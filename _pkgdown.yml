@@ -9,6 +9,7 @@ reference:
   - title: "Inference & utilities"
     contents:
       - perm_solomon
+      - stouffer_solomon
       - power_solomon
       - check_solomon_assumptions
       - p_to_z
@@ -16,6 +17,10 @@ reference:
     contents:
       - plot_solomon
       - plot_solomon_gg
+      - plot_perm
   - title: "Data"
     contents:
       - solomon_demo
+  - title: "Package"
+    contents:
+      - starts_with("solomonR")

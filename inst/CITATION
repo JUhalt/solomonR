@@ -1,11 +1,10 @@
-bibentry(
-  bibtype = "Article",
-  title = ,
-  author = ,
-  journal = ,
-  year = ,
-  volume = ,
-  number = ,
-  pages = ,
-  doi =
+citHeader("To cite solomonR in publications, please use:")
+
+citEntry(
+  entry  = "Manual",
+  title  = "solomonR: Analyze Solomon Four-Group Designs",
+  author = as.person("Joshua Uhalt"),
+  year   = format(Sys.Date(), "%Y"),
+  note   = paste("R package version", utils::packageVersion("solomonR")),
+  url    = "https://juhalt.github.io/solomonR"
 )
