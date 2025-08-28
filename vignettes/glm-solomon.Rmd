@@ -1,0 +1,24 @@
+---
+title: "Unified GLM for Solomon Four-Group Designs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Unified GLM for Solomon}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+A single GLM captures treatment, pretest indicator, their interaction, and an ANCOVA
+term for the *observed* pretest scores (only in pretested cells). We provide robust SEs
+and optional permutation p-values for small-N settings.
+
+```{r}
+library(solomonR); set.seed(1)
+n <- 30
+pre  <- c(rnorm(n), rnorm(n), rep(NA, 2*n))
+trt  <- c(rep(1,n), rep(0,n), rep(1,n), rep(0,n))
+preI <- c(rep(1,2*n), rep(0,2*n))
+y    <- rnorm(4*n) + 0.4*trt + 0.2*preI*trt + ifelse(preI==1, 0.5*pre, 0)
+fit  <- fit_solomon_glm(y, trt, preI, pre, robust = "HC3")
+fit$effects
+perm_solomon(fit, "Pretest x Treatment", reps = 1000, seed = 42)
+```

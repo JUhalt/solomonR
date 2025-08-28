@@ -1,0 +1,28 @@
+---
+title: "Classic Solomon Analysis (Teaching Flow)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Classic Solomon Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This vignette demonstrates the textbook route: 2×2 posttest ANOVA on the four cells,
+then ANCOVA on the pretested cells and a posttest-only t-test, with an *optional*
+Stouffer Z combination (Braver & Braver, 1988), plus cautions from later exchanges.
+
+References: Huck & Sandler (1973); Braver & Braver (1988); Sawilowsky & Markman (1988, 1990) and replies.
+
+```{r}
+library(solomonR); set.seed(123)
+n <- 40
+y_pre <- c(rnorm(n), rnorm(n), rep(NA, 2*n))
+treat <- c(rep(1,n), rep(0,n), rep(1,n), rep(0,n))
+prein <- c(rep(1,2*n), rep(0,2*n))
+y_post <- rnorm(4*n) + 0.5*treat # no sensitization
+res <- fit_solomon_classic(y_post, treat, prein, y_pre, combine_with_stouffer = TRUE)
+res$aov
+res$ancova
+res$t_unpretested
+res$stouffer
+```
