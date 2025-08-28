@@ -38,15 +38,36 @@ check_solomon_assumptions <- function(y_post, treat, pretested, y_pre) {
     p_slope <- a$`Pr(>F)`[which(rownames(a) == "treat:pre")][1]
   }
 
-  list(
+  structure(list(
     brown_forsythe_4cell_p = p_bf4,
     brown_forsythe_unpre_p = p_bf_un,
     shapiro_p_by_cell = shaps,
-    ancova_slope_homogeneity_p = p_slope,
-    notes = c(
-      "Use Welch t for Groups 3 vs 4 if brown_forsythe_unpre_p < .05 (you already do).",
-      "Prefer HC3 SEs (your default) if brown_forsythe_4cell_p < .05.",
-      "If ancova_slope_homogeneity_p < .05, ANCOVA assumption is violated; prefer the unified GLM with interaction terms or a permutation p-value."
-    )
-  )
+    ancova_slope_homogeneity_p = p_slope
+  ), class = "solomon_checks")
+}
+
+#' @export
+print.solomon_checks <- function(x, ...) {
+  line <- function(...) cat(sprintf(...), "\n", sep = "")
+  p_fmt <- function(p) ifelse(is.na(p), "NA", ifelse(p < .001, "<.001", sprintf("%.3f", p)))
+  ok <- function(flag) ifelse(flag, "OK", "FLAG")
+
+  line("Assumption checks (α = .05)")
+  bf4_ok  <- !is.na(x$brown_forsythe_4cell_p) && x$brown_forsythe_4cell_p >= .05
+  bfu_ok  <- !is.na(x$brown_forsythe_unpre_p) && x$brown_forsythe_unpre_p >= .05
+  shp_min <- suppressWarnings(min(x$shapiro_p_by_cell, na.rm = TRUE))
+  shp_ok  <- is.finite(shp_min) && shp_min >= .05
+  slp_ok  <- !is.na(x$ancova_slope_homogeneity_p) && x$ancova_slope_homogeneity_p >= .05
+
+  line("  HoV across 4 posttest cells (Brown–Forsythe): p = %s  -> %s", p_fmt(x$brown_forsythe_4cell_p), ok(bf4_ok))
+  line("  HoV in unpretested cells (Welch target):       p = %s  -> %s", p_fmt(x$brown_forsythe_unpre_p),  ok(bfu_ok))
+  line("  Normality by cell (Shapiro, min p):            p = %s  -> %s", p_fmt(shp_min),                   ok(shp_ok))
+  line("  ANCOVA slope homogeneity (pretested):          p = %s  -> %s", p_fmt(x$ancova_slope_homogeneity_p), ok(slp_ok))
+
+  line("")
+  line("Recommendations:")
+  line("  • Robust SEs (HC3): %s", ifelse(bf4_ok, "fine", "recommended"))
+  line("  • Welch t for groups 3–4: %s", ifelse(bfu_ok, "fine", "recommended (package uses Welch)"))
+  line("  • Permutation p-values: %s", ifelse(all(bf4_ok, bfu_ok, shp_ok, slp_ok), "optional", "consider"))
+  invisible(x)
 }

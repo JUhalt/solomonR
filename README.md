@@ -11,7 +11,8 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 <!-- badges: end -->
 
-The goal of solomonR is to …
+Analyze Solomon Four-Group designs using classic and modern methods
+(GLM, robust SEs, permutation, effect sizes).
 
 # solomonR
 
@@ -30,7 +31,7 @@ pak::pak("JUhalt/solomonR")
 #> ℹ Loading metadata database✔ Loading metadata database ... done
 #>  
 #> ℹ No downloads are needed
-#> ✔ 1 pkg + 46 deps: kept 46 [5.1s]
+#> ✔ 1 pkg + 46 deps: kept 46 [9s]
 ```
 
 ## Quick Start
@@ -53,7 +54,7 @@ fit_g <- fit_solomon_glm(y = y_post, treat = treat, pretested = pretested, prete
 print(fit_g)            # t.test/ANOVA-like summary with key contrasts
 #> Solomon GLM (unified model)
 #> Formula: y ~ treat * pretested + pre_obs
-#> <environment: 0x000001610035d318>
+#> <environment: 0x0000023022334580>
 #> 
 #> Coefficients (robust SEs):
 #>             term estimate std.error statistic   p.value
@@ -110,7 +111,7 @@ print(fit_g)            # t.test/ANOVA-like summary with key contrasts
 print(summary(fit_g))   # structured summary
 #> Summary: Solomon GLM (unified model)
 #> Formula: y ~ treat * pretested + pre_obs
-#> <environment: 0x000001610035d318>
+#> <environment: 0x0000023022334580>
 #> 
 #> Coefficients (robust SEs):
 #>             term estimate std.error statistic   p.value
@@ -277,3 +278,8 @@ See the vignettes:
 
 - Classic Solomon Analysis (Teaching Flow)
 - Unified GLM for Solomon Four-Group Designs
+
+Why two paths?
+
+- classic = teaching/replication
+- GLM = default for inference & extensions

@@ -2,23 +2,28 @@
 % Please edit documentation in R/solomon_core.R
 \name{perm_solomon}
 \alias{perm_solomon}
-\title{Permutation p-value for a named contrast from a fitted solomon_glm}
+\title{Permutation p-value for a Solomon contrast}
 \usage{
 perm_solomon(
   object,
   contrast = "ATE (avg over pretest)",
   reps = 5000L,
-  seed = NULL
+  seed = NULL,
+  return_dist = FALSE
 )
 }
 \arguments{
-\item{object}{result of fit_solomon_glm()}
+\item{object}{fit from fit_solomon_glm()}
 
 \item{contrast}{one of: "ATE (avg over pretest)", "Pretest x Treatment",
 "Treatment | pretested", "Treatment | unpretested"}
 
 \item{reps}{number of permutations}
+
+\item{seed}{optional RNG seed}
+
+\item{return_dist}{if TRUE, also return the vector of permuted Z's}
 }
 \description{
-Permutation p-value for a named contrast from a fitted solomon_glm
+Permutation p-value for a Solomon contrast
 }
