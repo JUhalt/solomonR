@@ -1,3 +1,21 @@
-url: https://JUhalt.github.io/solomonR   # change to your repo Pages URL when ready
+url: https://juhalt.github.io/solomonR
 template:
   bootstrap: 5
+
+reference:
+  - title: "Core fitting functions"
+    contents:
+      - starts_with("fit_solomon_")
+  - title: "Inference & utilities"
+    contents:
+      - perm_solomon
+      - power_solomon
+      - check_solomon_assumptions
+      - p_to_z
+  - title: "Plotting"
+    contents:
+      - plot_solomon
+      - plot_solomon_gg
+  - title: "Data"
+    contents:
+      - solomon_demo

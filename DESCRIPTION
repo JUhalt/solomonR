@@ -31,5 +31,6 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-URL: https://github.com/JUhalt/solomonR
+URL: https://github.com/JUhalt/solomonR, https://juhalt.github.io/solomonR/
 BugReports: https://github.com/JUhalt/solomonR/issues
+LazyData: true

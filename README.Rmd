@@ -16,39 +16,62 @@ knitr::opts_chunk$set(
 # solomonR
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/JUhalt/solomonR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/JUhalt/solomonR/actions/workflows/R-CMD-check.yaml)
+[![pkgdown](https://github.com/JUhalt/solomonR/actions/workflows/pkgdown.yaml/badge.svg)](https://juhalt.github.io/solomonR/)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 <!-- badges: end -->
 
 The goal of solomonR is to ...
 
+# solomonR
+
+Tools to analyze **Solomon Four-Group Designs** (SFGD) with both the classic teaching workflow and a modern unified GLM:
+- Classic flow: 2×2 posttest ANOVA → (if no sensitization) ANCOVA on pretested cells + posttest-only t, optional Stouffer combine (Braver & Braver, 1988).  
+- Modern flow: one GLM with robust SEs + key contrasts, permutation p-values, effect sizes, and diagnostic helpers.
+
 ## Installation
 
-You can install the development version of solomonR like so:
-
-``` r
-# FILL THIS IN! HOW CAN PEOPLE INSTALL YOUR DEV PACKAGE?
+```{r}
+# install.packages("pak")
+pak::pak("JUhalt/solomonR")
 ```
 
-## Example
+## Quick Start
 
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
+```{r}
 library(solomonR)
-## basic example code
+
+set.seed(1)
+n <- 20
+pretested <- c(rep(1, 2*n), rep(0, 2*n))
+treat     <- c(rep(1,n), rep(0,n), rep(1,n), rep(0,n))
+y_pre     <- c(rnorm(n, 50,10), rnorm(n, 50,10), rep(NA, 2*n))
+
+# Data-generating process: treatment bumps posttest by 0.4 SD
+eps <- rnorm(4*n, 0, 10)
+y_post <- 50 + 0.5*ifelse(pretested==1 & !is.na(y_pre), scale(y_pre), 0) + 4*treat + eps
+
+# Modern unified GLM
+fit_g <- fit_solomon_glm(y = y_post, treat = treat, pretested = pretested, pretest_score = y_pre)
+print(fit_g)            # t.test/ANOVA-like summary with key contrasts
+print(summary(fit_g))   # structured summary
+plot_solomon_gg(y_post, treat, pretested)  # quick visual
+
+# Classic teaching flow
+fit_c <- fit_solomon_classic(y_post, treat, pretested, y_pre)
+print(fit_c)            # ANOVA → ANCOVA / Welch t → optional Stouffer Z
+
+# Assumptions & diagnostics
+check_solomon_assumptions(y_post, treat, pretested, y_pre)
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+## What you get
+- **Key contrasts** (ATE, pretest×treat, simple effects) with **robust SEs** and **semi-partial R² (±CI)**
+- **Hedges’ g (±CI)** for Groups 3 vs 4 (posttest-only)
+- **Permutation tests** for contrasts, **diagnostics** (Brown–Forsythe, Shapiro by cell, ANCOVA slope homogeneity)
+- **Base plot + ggplot** cell-means CIs
 
-```{r cars}
-summary(cars)
-```
+See the vignettes:
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+- Classic Solomon Analysis (Teaching Flow)
+- Unified GLM for Solomon Four-Group Designs

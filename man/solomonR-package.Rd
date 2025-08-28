@@ -11,6 +11,7 @@ Tools to analyze Solomon Four-Group Designs (SFGD): (a) the classic two-step wor
 Useful links:
 \itemize{
   \item \url{https://github.com/JUhalt/solomonR}
+  \item \url{https://juhalt.github.io/solomonR/}
   \item Report bugs at \url{https://github.com/JUhalt/solomonR/issues}
 }
 
