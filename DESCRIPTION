@@ -1,6 +1,6 @@
 Package: solomonR
 Title: Analyze Solomon Four-Group Designs
-Version: 0.2.0.9000
+Version: 0.2.0
 Authors@R: 
     person("Joshua", "Uhalt", email = "Josh.Uhalt@gmail.com", role = c("aut","cre"))
 Description: Tools for analyzing Solomon four-group experimental designs using
