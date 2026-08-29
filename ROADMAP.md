@@ -243,6 +243,33 @@ Candidate requirements:
 
 ---
 
+## Publication milestone
+
+Development of the companion methodological/software manuscript will
+continue alongside package development.
+
+### v0.8.x - Methodological feature freeze
+- Freeze major analyses intended for the v1.0 paper
+- Finalize simulation conditions
+- Finalize worked example
+- Validate all primary estimands and inferential procedures
+- Begin full manuscript drafting
+
+### v0.9.x - Release candidate and manuscript freeze
+- Stable candidate API
+- Complete reproducible simulations
+- Complete manuscript tables and figures
+- Public preprint when appropriate
+- CRAN pre-submission checks
+
+### v1.0.0 - Stable package + manuscript submission
+- Stable public release
+- Submit to CRAN
+- Archive release and reproducible materials
+- Submit companion peer-reviewed methodological/software paper
+
+Publication acceptance is not required before the v1.0 release.
+
 # Later / exploratory
 
 These are intentionally outside the initial release path.
