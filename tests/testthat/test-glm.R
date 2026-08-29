@@ -77,3 +77,115 @@ test_that("GLM contrasts recover known Solomon estimands", {
     tolerance = 1e-10
   )
 })
+
+test_that("Wald partial R2 is bounded for Gaussian Solomon models", {
+
+  data(solomon_demo, package = "solomonR")
+
+  fit <- with(
+    solomon_demo,
+    fit_solomon_glm(
+      y_post,
+      treat,
+      pretested,
+      y_pre,
+      robust = "HC3"
+    )
+  )
+
+  expect_true(
+    all(
+      fit$effects$r2 >= 0 &
+        fit$effects$r2 <= 1
+    )
+  )
+
+  expect_true(
+    all(is.na(fit$effects$r2_lo))
+  )
+
+  expect_true(
+    all(is.na(fit$effects$r2_hi))
+  )
+})
+
+
+test_that("conventional Gaussian R2 matches the one-df partial R2 identity", {
+
+  data(solomon_demo, package = "solomonR")
+
+  fit <- with(
+    solomon_demo,
+    fit_solomon_glm(
+      y_post,
+      treat,
+      pretested,
+      y_pre,
+      robust = "none"
+    )
+  )
+
+  df <- stats::df.residual(fit$model)
+
+  expected <- fit$effects$statistic^2 /
+    (
+      fit$effects$statistic^2 + df
+    )
+
+  expect_equal(
+    fit$effects$r2,
+    expected,
+    tolerance = 1e-12
+  )
+})
+
+
+test_that("Wald R2 is not reported for non-Gaussian GLMs", {
+
+  set.seed(123)
+
+  n <- 160
+
+  treat <- rep(
+    c(0, 1, 0, 1),
+    each = n / 4
+  )
+
+  pretested <- rep(
+    c(0, 0, 1, 1),
+    each = n / 4
+  )
+
+  eta <- -0.5 +
+    0.8 * treat +
+    0.2 * pretested +
+    0.3 * treat * pretested
+
+  probability <- stats::plogis(eta)
+
+  y <- stats::rbinom(
+    n,
+    size = 1,
+    prob = probability
+  )
+
+  fit <- fit_solomon_glm(
+    y = y,
+    treat = treat,
+    pretested = pretested,
+    family = stats::binomial(),
+    robust = "HC3"
+  )
+
+  expect_true(
+    all(is.na(fit$effects$r2))
+  )
+
+  expect_true(
+    all(is.na(fit$effects$r2_lo))
+  )
+
+  expect_true(
+    all(is.na(fit$effects$r2_hi))
+  )
+})

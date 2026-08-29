@@ -151,20 +151,81 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
   r2_un  <- contrast_r2_ci(fit, L_un,  vcovM)
 
   effects <- data.frame(
-    contrast   = c("ATE (avg over pretest)", "Pretest x Treatment",
-                   "Treatment | pretested",  "Treatment | unpretested"),
-    estimate   = c(c_ate["estimate"], c_int["estimate"], c_pre["estimate"], c_un["estimate"]),
-    std.error  = c(c_ate["std.error"], c_int["std.error"], c_pre["std.error"], c_un["std.error"]),
-    statistic  = c(c_ate["statistic"], c_int["statistic"], c_pre["statistic"], c_un["statistic"]),
-    p.value    = c(c_ate["p.value"],   c_int["p.value"],   c_pre["p.value"],   c_un["p.value"]),
-    r2         = c(r2_ate["r2"], r2_int["r2"], r2_pre["r2"], r2_un["r2"]),
-    r2_lo      = c(r2_ate["lower"], r2_int["lower"], r2_pre["lower"], r2_un["lower"]),
-    r2_hi      = c(r2_ate["upper"], r2_int["upper"], r2_pre["upper"], r2_un["upper"]),
-    row.names = NULL
+    contrast = c(
+      "ATE (avg over pretest)",
+      "Pretest x Treatment",
+      "Treatment | pretested",
+      "Treatment | unpretested"
+    ),
+
+    estimate = c(
+      unname(c_ate["estimate"]),
+      unname(c_int["estimate"]),
+      unname(c_pre["estimate"]),
+      unname(c_un["estimate"])
+    ),
+
+    std.error = c(
+      unname(c_ate["std.error"]),
+      unname(c_int["std.error"]),
+      unname(c_pre["std.error"]),
+      unname(c_un["std.error"])
+    ),
+
+    statistic = c(
+      unname(c_ate["statistic"]),
+      unname(c_int["statistic"]),
+      unname(c_pre["statistic"]),
+      unname(c_un["statistic"])
+    ),
+
+    p.value = c(
+      unname(c_ate["p.value"]),
+      unname(c_int["p.value"]),
+      unname(c_pre["p.value"]),
+      unname(c_un["p.value"])
+    ),
+
+    r2 = c(
+      r2_ate$r2,
+      r2_int$r2,
+      r2_pre$r2,
+      r2_un$r2
+    ),
+
+    r2_lo = c(
+      r2_ate$r2_lo,
+      r2_int$r2_lo,
+      r2_pre$r2_lo,
+      r2_un$r2_lo
+    ),
+
+    r2_hi = c(
+      r2_ate$r2_hi,
+      r2_int$r2_hi,
+      r2_pre$r2_hi,
+      r2_un$r2_hi
+    ),
+
+    row.names = NULL,
+    stringsAsFactors = FALSE
   )
 
-  structure(list(model = fit, vcov = vcovM, coefficients = tidy, effects = effects, data = df),
-            class = "solomon_glm")
+  out <- list(
+    model = fit,
+    coefficients = tidy,
+    effects = effects,
+    vcov = vcovM,
+    data = df,
+    robust = robust,
+    family = family,
+    cluster = cluster,
+    call = match.call()
+  )
+
+  class(out) <- "solomon_glm"
+
+  out
 }
 
 #' Permutation test for a Solomon contrast
