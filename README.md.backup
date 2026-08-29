@@ -1,14 +1,7 @@
-
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 # solomonR
 
 <!-- badges: start -->
-
-[![R-CMD-check](https://github.com/JUhalt/solomonR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/JUhalt/solomonR/actions/workflows/R-CMD-check.yaml)
-[![pkgdown](https://github.com/JUhalt/solomonR/actions/workflows/pkgdown.yaml/badge.svg)](https://juhalt.github.io/solomonR/)
-[![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html)
+<!-- Badges will be added when continuous integration is enabled. -->
 <!-- badges: end -->
 
 **solomonR** is an R package for analyzing, teaching, and studying the
@@ -33,7 +26,7 @@ workflow.
 > Version 0.2 focuses on the core analytical toolkit. The API may still
 > change before version 1.0.
 
-------------------------------------------------------------------------
+---
 
 ## The Solomon four-group design
 
@@ -42,10 +35,10 @@ experimental manipulation of whether participants receive a pretest.
 
 | Group | Pretest | Treatment | Posttest |
 |:-----:|:-------:|:---------:|:--------:|
-|   1   |   Yes   |    Yes    |   Yes    |
-|   2   |   Yes   |    No     |   Yes    |
-|   3   |   No    |    Yes    |   Yes    |
-|   4   |   No    |    No     |   Yes    |
+| 1 | Yes | Yes | Yes |
+| 2 | Yes | No | Yes |
+| 3 | No | Yes | Yes |
+| 4 | No | No | Yes |
 
 This allows researchers to ask not only:
 
@@ -58,32 +51,32 @@ but also:
 That second question is the **pretest-by-treatment interaction**, often
 described as pretest sensitization.
 
-------------------------------------------------------------------------
+---
 
 ## Installation
 
 The development version can be installed from GitHub:
 
-``` r
+```r
 install.packages("pak")
 pak::pak("JUhalt/solomonR")
 ```
 
 Then load the package:
 
-``` r
+```r
 library(solomonR)
 ```
 
 `solomonR` is not yet on CRAN.
 
-------------------------------------------------------------------------
+---
 
 ## A 60-second analysis
 
 The package includes a small example Solomon dataset:
 
-``` r
+```r
 data(solomon_demo)
 
 head(solomon_demo)
@@ -92,7 +85,7 @@ head(solomon_demo)
 The principal modern observed-variable analysis fits one unified model
 and estimates four Solomon-specific contrasts:
 
-``` r
+```r
 fit <- with(
   solomon_demo,
   fit_solomon_glm(
@@ -113,9 +106,9 @@ The key estimands are:
   and unpretested conditions;
 - **Pretest x Treatment** — whether the treatment effect differs
   depending on pretesting;
-- **Treatment \| pretested** — the treatment effect among participants
+- **Treatment | pretested** — the treatment effect among participants
   who received the pretest;
-- **Treatment \| unpretested** — the treatment effect among participants
+- **Treatment | unpretested** — the treatment effect among participants
   who did not receive the pretest.
 
 The model handles the structural absence of pretest scores in Groups 3
@@ -123,11 +116,11 @@ and 4 without discarding those groups.
 
 For Gaussian models, the output also reports a **Wald-based partial
 R-squared** for each one-degree-of-freedom contrast. With conventional
-OLS covariance this corresponds to the usual partial R-squared identity.
-With robust covariance estimation it should be interpreted as a
-descriptive Wald-based approximation.
+OLS covariance this corresponds to the usual partial R-squared
+identity. With robust covariance estimation it should be interpreted
+as a descriptive Wald-based approximation.
 
-------------------------------------------------------------------------
+---
 
 ## Historical Solomon analysis
 
@@ -135,7 +128,7 @@ The historical analysis is retained because it is important to
 understand how the Solomon design developed and how it has traditionally
 been taught.
 
-``` r
+```r
 classic <- with(
   solomon_demo,
   fit_solomon_classic(
@@ -164,7 +157,7 @@ replication, but it is **not the default modern inferential
 recommendation**. Later simulation work raised concerns about Type I
 error in conditional versions of this procedure.
 
-------------------------------------------------------------------------
+---
 
 ## Randomization-based inference
 
@@ -172,7 +165,7 @@ When treatment was genuinely randomized within the Solomon pretesting
 conditions, `perm_solomon()` provides a treatment-label permutation
 test.
 
-``` r
+```r
 perm <- perm_solomon(
   fit,
   contrast = "ATE (avg over pretest)",
@@ -192,7 +185,7 @@ correction for the permutation p-value.
 
 The permutation distribution can also be visualized:
 
-``` r
+```r
 plot_perm(perm)
 ```
 
@@ -200,18 +193,18 @@ Randomization inference should reflect the design that actually
 generated the treatment assignments. Cluster-randomized studies require
 permutation at the appropriate randomization unit.
 
-------------------------------------------------------------------------
+---
 
 ## Full-information maximum likelihood
 
 `fit_solomon_ml()` implements a full-information likelihood approach
-inspired by van Engelenburg’s treatment of the Solomon design.
+inspired by van Engelenburg's treatment of the Solomon design.
 
 Unlike analyses that simply discard structurally missing pretests, the
 likelihood recognizes that Groups 3 and 4 were **never intended to have
 pretest observations**.
 
-``` r
+```r
 ml <- with(
   solomon_demo,
   fit_solomon_ml(
@@ -232,7 +225,7 @@ The ML model estimates the same central Solomon quantities:
 - treatment effect among pretested participants; and
 - treatment effect among unpretested participants.
 
-------------------------------------------------------------------------
+---
 
 ## Structural equation models
 
@@ -241,7 +234,7 @@ The ML model estimates the same central Solomon quantities:
 
 ### Observed-variable SEM
 
-``` r
+```r
 sem_fit <- with(
   solomon_demo,
   fit_solomon_sem(
@@ -260,7 +253,7 @@ for that model.
 
 An ANCOVA-style SEM can also be fit within the two pretested groups:
 
-``` r
+```r
 sem_ancova <- with(
   solomon_demo,
   fit_solomon_sem(
@@ -287,13 +280,13 @@ models.
 
 See:
 
-``` r
+```r
 ?fit_solomon_sem_latent
 ```
 
 for details.
 
-------------------------------------------------------------------------
+---
 
 ## Diagnostics
 
@@ -308,7 +301,7 @@ Solomon analyses, including:
 These diagnostics are intended to inform analysis, not create a rigid
 sequence of statistical gatekeeping tests.
 
-``` r
+```r
 checks <- with(
   solomon_demo,
   check_solomon_assumptions(
@@ -322,21 +315,21 @@ checks <- with(
 checks
 ```
 
-------------------------------------------------------------------------
+---
 
 ## Which analysis should I use?
 
 A useful starting point is:
 
-| Goal                                  | Suggested `solomonR` approach |
-|---------------------------------------|-------------------------------|
-| Modern primary analysis               | `fit_solomon_glm()`           |
-| Randomization-based inference         | `perm_solomon()`              |
-| Full-information likelihood           | `fit_solomon_ml()`            |
-| Teach or reproduce historical methods | `fit_solomon_classic()`       |
-| Observed-variable SEM                 | `fit_solomon_sem()`           |
-| Multi-item / latent outcome           | `fit_solomon_sem_latent()`    |
-| Model diagnostics                     | `check_solomon_assumptions()` |
+| Goal | Suggested `solomonR` approach |
+|---|---|
+| Modern primary analysis | `fit_solomon_glm()` |
+| Randomization-based inference | `perm_solomon()` |
+| Full-information likelihood | `fit_solomon_ml()` |
+| Teach or reproduce historical methods | `fit_solomon_classic()` |
+| Observed-variable SEM | `fit_solomon_sem()` |
+| Multi-item / latent outcome | `fit_solomon_sem_latent()` |
+| Model diagnostics | `check_solomon_assumptions()` |
 
 For many ordinary randomized Solomon experiments with continuous
 outcomes, the unified GLM with clearly defined contrasts is a useful
@@ -346,15 +339,15 @@ The historical Tests A-I remain valuable for understanding the
 development of the design, but they should not automatically be treated
 as the preferred contemporary analysis.
 
-------------------------------------------------------------------------
+---
 
 ## Important statistical notes
 
 ### A nonsignificant interaction is not evidence of no sensitization
 
-Failure to reject the pretest-by-treatment interaction does not
-establish that sensitization is absent. Equivalence-based approaches are
-planned for a future release.
+Failure to reject the pretest-by-treatment interaction does not establish
+that sensitization is absent. Equivalence-based approaches are planned
+for a future release.
 
 ### Robust covariance and Wald R-squared
 
@@ -380,7 +373,7 @@ The current power-simulation helper is **experimental**. A redesigned
 Solomon-specific planning and power framework is scheduled for a later
 release and should be preferred once available.
 
-------------------------------------------------------------------------
+---
 
 ## Package philosophy
 
@@ -399,17 +392,19 @@ and full-information likelihood methods.
 
 Develop SEM, latent-variable, longitudinal, generalized-outcome, design
 planning, visualization, and other modern Solomon methods while clearly
-distinguishing established methodology from package-specific extensions.
+distinguishing established methodology from package-specific
+extensions.
 
 The aim is to make the Solomon four-group design easier to **teach,
 understand, analyze, and extend** without erasing the methodological
 history that produced it.
 
-------------------------------------------------------------------------
+---
 
 ## Roadmap
 
-Development plans are maintained in [`ROADMAP.md`](ROADMAP.md).
+Development plans are maintained in
+[`ROADMAP.md`](ROADMAP.md).
 
 Major planned additions include:
 
@@ -422,7 +417,7 @@ Major planned additions include:
 - clustered and longitudinal designs;
 - expanded teaching and reporting tools.
 
-------------------------------------------------------------------------
+---
 
 ## Citation
 
@@ -430,11 +425,11 @@ A formal package/methods manuscript is in development.
 
 For the installed package citation, use:
 
-``` r
+```r
 citation("solomonR")
 ```
 
-------------------------------------------------------------------------
+---
 
 ## References
 
@@ -446,14 +441,14 @@ Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
 Education, 42*, 54-55.
 
-Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-Meta-analysis and the Solomon four-group design. *The Journal of
-Experimental Education, 62*, 361-376.
+Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S.
+(1994). Meta-analysis and the Solomon four-group design. *The Journal
+of Experimental Education, 62*, 361-376.
 
 van Engelenburg, G. (1999). Statistical analysis for the Solomon
 four-group design.
 
-------------------------------------------------------------------------
+---
 
 ## License
 

@@ -1,24 +1,521 @@
 ---
-title: "Unified GLM for Solomon Four-Group Designs"
+title: "Modern Analysis of the Solomon Four-Group Design"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Unified GLM for Solomon}
+  %\VignetteIndexEntry{Modern Analysis of the Solomon Four-Group Design}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-A single GLM captures treatment, pretest indicator, their interaction, and an ANCOVA
-term for the *observed* pretest scores (only in pretested cells). We provide robust SEs
-and optional permutation p-values for small-N settings.
+## A unified approach
+
+The Solomon four-group design is often introduced through a sequence
+of separate analyses.
+
+A modern alternative is to represent the four-group design in a single
+model and estimate the scientifically relevant questions as explicit
+contrasts.
+
+For a continuous posttest outcome, the core model in `solomonR` is
+
+\[
+Y =
+\beta_0 +
+\beta_T T +
+\beta_P P +
+\beta_{TP}(T \times P) +
+\beta_X X_{\mathrm{obs}} +
+\varepsilon,
+\]
+
+where:
+
+- \(T\) indicates treatment assignment;
+- \(P\) indicates whether a participant was pretested;
+- \(T \times P\) represents pretest sensitization; and
+- \(X_{\mathrm{obs}}\) incorporates the pretest information available
+  in the pretested groups.
+
+`solomonR` then estimates four predefined Solomon contrasts from this
+model.
+
+## Structural missingness of the pretest
+
+One unusual feature of the Solomon design deserves special attention.
+
+Participants in Groups 3 and 4 were deliberately **not pretested**.
+Their absent pretest values are therefore structurally missing by
+design.
+
+Simply placing the raw pretest variable into an ordinary regression
+formula can cause complete-case deletion of Groups 3 and 4, destroying
+the four-group design.
+
+`fit_solomon_glm()` avoids this problem internally. For the optional
+pretest covariate, the model uses the observed pretest score among
+pretested participants and a design-safe value among participants for
+whom the pretest was never administered.
+
+The pretest indicator remains in the model, so this coding does not
+pretend that Groups 3 and 4 actually had baseline scores of zero.
+
+## Example data
+
+```{r example-data}
+library(solomonR)
+
+data(solomon_demo)
+
+demo_preview <- head(
+  solomon_demo,
+  6
+)
+
+demo_preview$y_post <- round(
+  demo_preview$y_post,
+  2
+)
+
+demo_preview$y_pre <- round(
+  demo_preview$y_pre,
+  2
+)
+
+knitr::kable(
+  demo_preview,
+  align = "rrrr"
+)
+```
+
+## Fit the model
+
+A useful default for continuous outcomes is the unified model with HC3
+heteroskedasticity-robust covariance estimation.
 
 ```{r}
-library(solomonR); set.seed(1)
-n <- 30
-pre  <- c(rnorm(n), rnorm(n), rep(NA, 2*n))
-trt  <- c(rep(1,n), rep(0,n), rep(1,n), rep(0,n))
-preI <- c(rep(1,2*n), rep(0,2*n))
-y    <- rnorm(4*n) + 0.4*trt + 0.2*preI*trt + ifelse(preI==1, 0.5*pre, 0)
-fit  <- fit_solomon_glm(y, trt, preI, pre, robust = "HC3")
-fit$effects
-perm_solomon(fit, "Pretest x Treatment", reps = 1000, seed = 42)
+fit <- with(
+  solomon_demo,
+  fit_solomon_glm(
+    y = y_post,
+    treat = treat,
+    pretested = pretested,
+    pretest_score = y_pre,
+    robust = "HC3"
+  )
+)
+
+fit
 ```
+
+The output contains model coefficients followed by the four principal
+Solomon contrasts.
+
+The contrasts can also be accessed directly:
+
+```{r glm-effects}
+effects_display <- fit$effects[
+  ,
+  c(
+    "contrast",
+    "estimate",
+    "std.error",
+    "statistic",
+    "p.value",
+    "r2"
+  )
+]
+
+effects_display$estimate <- sprintf(
+  "%.2f",
+  effects_display$estimate
+)
+
+effects_display$std.error <- sprintf(
+  "%.2f",
+  effects_display$std.error
+)
+
+effects_display$statistic <- sprintf(
+  "%.2f",
+  effects_display$statistic
+)
+
+effects_display$p.value <- ifelse(
+  effects_display$p.value < .001,
+  "< .001",
+  sub(
+    "^0",
+    "",
+    sprintf(
+      "%.3f",
+      effects_display$p.value
+    )
+  )
+)
+
+effects_display$r2 <- sub(
+  "^0",
+  "",
+  sprintf(
+    "%.3f",
+    effects_display$r2
+  )
+)
+
+names(effects_display) <- c(
+  "Contrast",
+  "Estimate",
+  "SE",
+  "z",
+  "p",
+  "Wald R2"
+)
+
+knitr::kable(
+  effects_display,
+  align = c(
+    "l",
+    "r",
+    "r",
+    "r",
+    "r",
+    "r"
+  )
+)
+```
+
+## The four Solomon estimands
+
+### Average treatment effect
+
+The reported ATE is the treatment effect averaged equally over the two
+pretest conditions:
+
+\[
+ATE =
+\beta_T +
+\frac{1}{2}\beta_{TP}.
+\]
+
+This distinction is important.
+
+With the unpretested condition used as the reference group,
+\(\beta_T\) by itself is the treatment effect among **unpretested**
+participants. It is not the equal-weighted Solomon ATE.
+
+### Pretest x Treatment
+
+The sensitization contrast is
+
+\[
+\beta_{TP}.
+\]
+
+It asks whether the treatment effect differs according to whether the
+pretest was administered.
+
+A statistically nonsignificant interaction should not be interpreted
+as proof that sensitization is absent. Formal equivalence procedures
+for that stronger question are planned for a future version of
+`solomonR`.
+
+### Treatment effect among pretested participants
+
+The treatment effect among participants who received the pretest is
+
+\[
+\beta_T + \beta_{TP}.
+\]
+
+### Treatment effect among unpretested participants
+
+The treatment effect among participants who did not receive the
+pretest is
+
+\[
+\beta_T.
+\]
+
+Together, these contrasts describe both the treatment effect and its
+possible modification by pretesting.
+
+## Why HC3?
+
+The `robust` argument controls covariance estimation.
+
+```{r eval=FALSE}
+fit_solomon_glm(
+  y_post,
+  treat,
+  pretested,
+  y_pre,
+  robust = "none"
+)
+
+fit_solomon_glm(
+  y_post,
+  treat,
+  pretested,
+  y_pre,
+  robust = "HC3"
+)
+```
+
+HC3 provides heteroskedasticity-robust standard errors and is a useful
+default when equal residual variances are uncertain.
+
+A CR2 covariance option is also available for clustered data:
+
+```{r eval=FALSE}
+fit_solomon_glm(
+  y_post,
+  treat,
+  pretested,
+  y_pre,
+  robust = "CR2",
+  cluster = cluster_id
+)
+```
+
+The current CR2 option supplies cluster-robust covariance estimation.
+Small-sample cluster-robust inference requires additional care, so CR2
+results should not yet be interpreted as a complete small-sample
+Satterthwaite procedure.
+
+## Wald-based partial R-squared
+
+For Gaussian models, `fit_solomon_glm()` reports a Wald-based partial
+\(R^2\) for each one-degree-of-freedom contrast.
+
+With conventional Gaussian OLS covariance,
+
+\[
+R^2_{\mathrm{partial}} =
+\frac{t^2}{t^2 + df_{\mathrm{residual}}}.
+\]
+
+When a robust covariance estimator such as HC3 is used, `solomonR`
+applies the same transformation to the robust Wald statistic. In that
+case the result should be interpreted as a **descriptive Wald-based
+approximation**, not an exact decomposition of model variance.
+
+Confidence intervals for this quantity are not currently reported.
+
+```{r glm-r2}
+r2_display <- fit$effects[
+  ,
+  c(
+    "contrast",
+    "r2"
+  )
+]
+
+r2_display$r2 <- sub(
+  "^0",
+  "",
+  sprintf(
+    "%.3f",
+    r2_display$r2
+  )
+)
+
+names(r2_display) <- c(
+  "Contrast",
+  "Wald R2"
+)
+
+knitr::kable(
+  r2_display,
+  align = c("l", "r")
+)
+```
+
+## Diagnostics
+
+The package provides design-relevant diagnostics through
+`check_solomon_assumptions()`.
+
+```{r}
+checks <- with(
+  solomon_demo,
+  check_solomon_assumptions(
+    y_post,
+    treat,
+    pretested,
+    y_pre
+  )
+)
+
+checks
+```
+
+These include variance checks, cell-level distribution summaries, and
+assessment of ANCOVA slope homogeneity.
+
+Diagnostics should inform analysis choices rather than be treated as a
+mechanical series of pass/fail gates.
+
+## Randomization-based inference
+
+If treatment assignment was genuinely randomized within the Solomon
+pretesting conditions, treatment-label permutation provides another
+inferential approach.
+
+```{r}
+perm <- perm_solomon(
+  fit,
+  contrast = "ATE (avg over pretest)",
+  reps = 1000,
+  seed = 42,
+  return_dist = TRUE
+)
+
+perm
+```
+
+`perm_solomon()` shuffles treatment labels **within pretest strata**.
+This preserves the number of treated and control participants within
+the pretested and unpretested portions of the design.
+
+The test uses an HC3-studentized statistic.
+
+Its Monte Carlo p-value uses a finite-simulation correction:
+
+\[
+p =
+\frac{B_{\mathrm{extreme}} + 1}
+     {B_{\mathrm{valid}} + 1}.
+\]
+
+This prevents an estimated permutation p-value of exactly zero.
+
+The null distribution can be visualized with:
+
+```{r fig.width=7, fig.height=4.5}
+plot_perm(perm)
+```
+
+Randomization inference is justified by the assignment mechanism, not
+merely by a small sample size. If treatment was randomized at the
+cluster level, permutation should likewise occur at the cluster rather
+than individual level.
+
+## A likelihood-based alternative
+
+`fit_solomon_ml()` provides a full-information maximum-likelihood
+analysis inspired by van Engelenburg's treatment of the Solomon
+four-group design.
+
+```{r}
+ml <- with(
+  solomon_demo,
+  fit_solomon_ml(
+    y_post,
+    treat,
+    pretested,
+    y_pre
+  )
+)
+
+ml
+```
+
+A useful feature of the likelihood formulation is that the structurally
+absent pretests in Groups 3 and 4 are treated as part of the design
+rather than as ordinary missing baseline observations.
+
+The ML and GLM approaches target closely related Solomon effects but use
+different assumptions for uncertainty estimation.
+
+## Historical analysis
+
+For teaching or reproducing the classical Tests A-I workflow, use:
+
+```{r}
+classic <- with(
+  solomon_demo,
+  fit_solomon_classic(
+    y_post,
+    treat,
+    pretested,
+    y_pre
+  )
+)
+
+classic
+```
+
+See:
+
+```{r eval=FALSE}
+vignette("classic-solomon", package = "solomonR")
+```
+
+for a detailed explanation of the historical sequence and its
+limitations.
+
+## SEM extensions
+
+`solomonR` also includes observed- and latent-variable SEM approaches.
+
+An observed four-group mean model can be fit with:
+
+```{r eval=FALSE}
+fit_solomon_sem(
+  y_post,
+  treat,
+  pretested
+)
+```
+
+The unrestricted four-group observed mean model is saturated, so global
+fit indices are not diagnostic for that model.
+
+For multi-item outcomes, `fit_solomon_sem_latent()` provides latent
+Solomon contrasts. Latent mean comparisons require scalar measurement
+invariance across the four Solomon groups.
+
+These SEM tools extend the same basic estimands used throughout the
+package:
+
+- ATE;
+- pretest sensitization;
+- treatment effect among pretested participants; and
+- treatment effect among unpretested participants.
+
+## Choosing an analysis
+
+For many randomized Solomon studies with continuous outcomes, a useful
+workflow is:
+
+1. describe the four groups and inspect the data;
+2. fit the unified GLM with prespecified contrasts;
+3. examine the pretest-by-treatment contrast directly;
+4. inspect diagnostics;
+5. use randomization inference when justified by the treatment
+   assignment mechanism; and
+6. use ML or SEM when the scientific question or measurement structure
+   warrants those approaches.
+
+The historical decision tree remains valuable for teaching, but a
+modern analysis does not need to choose its inferential procedure based
+on whether an earlier significance test crossed \(p=.05\).
+
+## Where solomonR is heading
+
+The package is under active development.
+
+Planned additions include:
+
+- equivalence testing for pretest sensitization;
+- automated design validation;
+- structural-versus-incidental missingness diagnostics;
+- method-comparison tools;
+- Solomon-specific visualization;
+- redesigned power and sample-size planning;
+- generalized outcomes;
+- clustered and longitudinal extensions; and
+- expanded SEM workflows.
+
+See `ROADMAP.md` in the package repository for the current development
+plan.

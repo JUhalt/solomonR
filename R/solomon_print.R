@@ -417,3 +417,68 @@ print.solomon_classic <- function(x, digits = 3, ...) {
 
   invisible(x)
 }
+
+#' @export
+print.solomon_perm <- function(x, digits = 2, ...) {
+
+  format_p <- function(p) {
+
+    if (is.na(p)) {
+      return("NA")
+    }
+
+    if (p < .001) {
+      return("< .001")
+    }
+
+    sub(
+      "^0",
+      "",
+      sprintf("%.3f", p)
+    )
+  }
+
+  cat("Solomon randomization test\n")
+  cat("--------------------------\n")
+
+  cat(
+    sprintf(
+      "Contrast: %s\n",
+      x$contrast
+    )
+  )
+
+  cat(
+    sprintf(
+      "Observed studentized statistic: z = %.*f\n",
+      digits,
+      x$z_obs
+    )
+  )
+
+  cat(
+    sprintf(
+      "Permutation p = %s\n",
+      format_p(x$p_perm)
+    )
+  )
+
+  cat(
+    sprintf(
+      "Valid permutations: %d of %d\n",
+      x$valid_reps,
+      x$reps
+    )
+  )
+
+  if (!is.null(x$z_perm)) {
+    cat(
+      sprintf(
+        "Permutation distribution retained (%d draws); use plot_perm() to visualize it.\n",
+        length(x$z_perm)
+      )
+    )
+  }
+
+  invisible(x)
+}
