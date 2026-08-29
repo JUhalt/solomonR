@@ -1,6 +1,6 @@
 Package: solomonR
 Title: Analyze Solomon Four-Group Designs (Classic & Modern)
-Version: 0.1.0
+Version: 0.2.0.9000
 Authors@R: 
     person("Joshua", "Uhalt", email = "Josh.Uhalt@gmail.com", role = c("aut","cre"))
 Description: Tools to analyze Solomon Four-Group Designs (SFGD): 
