@@ -11,275 +11,450 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 <!-- badges: end -->
 
-Analyze Solomon Four-Group designs using classic and modern methods
-(GLM, robust SEs, permutation, effect sizes).
+**solomonR** is an R package for analyzing, teaching, and studying the
+**Solomon four-group design**.
 
-# solomonR
+The package brings together three perspectives that have often been
+treated separately:
 
-Tools to analyze **Solomon Four-Group Designs** (SFGD) with both the
-classic teaching workflow and a modern unified GLM: - Classic flow: 2×2
-posttest ANOVA → (if no sensitization) ANCOVA on pretested cells +
-posttest-only t, optional Stouffer combine (Braver & Braver, 1988).  
-- Modern flow: one GLM with robust SEs + key contrasts, permutation
-p-values, effect sizes, and diagnostic helpers.
+- the **historical Solomon analysis workflow**, preserved for teaching
+  and methodological replication;
+- **modern model-based and randomization-based analyses** for applied
+  research; and
+- **SEM approaches**, including latent-variable extensions when outcomes
+  are measured with multiple indicators.
+
+The goal is not to replace the history of the Solomon design with a
+single new procedure. Instead, `solomonR` makes the historical methods
+transparent while providing modern alternatives in one reproducible
+workflow.
+
+> **Development status:** `solomonR` is currently in active development.
+> Version 0.2 focuses on the core analytical toolkit. The API may still
+> change before version 1.0.
+
+------------------------------------------------------------------------
+
+## The Solomon four-group design
+
+The Solomon design combines a randomized treatment comparison with an
+experimental manipulation of whether participants receive a pretest.
+
+| Group | Pretest | Treatment | Posttest |
+|:-----:|:-------:|:---------:|:--------:|
+|   1   |   Yes   |    Yes    |   Yes    |
+|   2   |   Yes   |    No     |   Yes    |
+|   3   |   No    |    Yes    |   Yes    |
+|   4   |   No    |    No     |   Yes    |
+
+This allows researchers to ask not only:
+
+> **Does the treatment work?**
+
+but also:
+
+> **Does receiving the pretest change the treatment effect?**
+
+That second question is the **pretest-by-treatment interaction**, often
+described as pretest sensitization.
+
+------------------------------------------------------------------------
 
 ## Installation
 
+The development version can be installed from GitHub:
+
 ``` r
-# install.packages("pak")
+install.packages("pak")
 pak::pak("JUhalt/solomonR")
-#> ℹ Loading metadata database✔ Loading metadata database ... done
-#>  
-#> ℹ No downloads are needed
-#> ✔ 1 pkg + 46 deps: kept 46 [9s]
 ```
 
-## Quick Start
+Then load the package:
 
 ``` r
 library(solomonR)
-
-set.seed(1)
-n <- 20
-pretested <- c(rep(1, 2*n), rep(0, 2*n))
-treat     <- c(rep(1,n), rep(0,n), rep(1,n), rep(0,n))
-y_pre     <- c(rnorm(n, 50,10), rnorm(n, 50,10), rep(NA, 2*n))
-
-# Data-generating process: treatment bumps posttest by 0.4 SD
-eps <- rnorm(4*n, 0, 10)
-y_post <- 50 + 0.5*ifelse(pretested==1 & !is.na(y_pre), scale(y_pre), 0) + 4*treat + eps
-
-# Modern unified GLM
-fit_g <- fit_solomon_glm(y = y_post, treat = treat, pretested = pretested, pretest_score = y_pre)
-print(fit_g)            # t.test/ANOVA-like summary with key contrasts
-#> Solomon GLM (unified model)
-#> Formula: y ~ treat * pretested + pre_obs
-#> <environment: 0x0000023022334580>
-#> 
-#> Coefficients (robust SEs):
-#>             term estimate std.error statistic   p.value
-#>      (Intercept)   51.138     2.000    25.563 3.89e-144
-#>            treat    4.060     2.829     1.435  1.51e-01
-#>        pretested  -14.991     8.598    -1.744  8.12e-02
-#>          pre_obs    0.297     0.163     1.825  6.81e-02
-#>  treat:pretested   -0.163     4.014    -0.041  9.68e-01
-#> 
-#> Key contrasts:
-#>                 contrast estimate std.error statistic  p.value
-#>   ATE (avg over pretest)     4.06     2.829     1.435 1.51e-01
-#>      Pretest x Treatment     4.06     2.829     1.435 1.51e-01
-#>      Pretest x Treatment     3.06     2.829     1.082 2.79e-01
-#>      Pretest x Treatment     2.06     2.829     0.728 4.66e-01
-#>      Pretest x Treatment     1.06     2.829     0.375 7.08e-01
-#>      Pretest x Treatment     0.06     2.829     0.021 9.83e-01
-#>      Pretest x Treatment    -0.94     2.829    -0.332 7.40e-01
-#>      Pretest x Treatment    -1.94     2.829    -0.686 4.93e-01
-#>      Pretest x Treatment    -2.94     2.829    -1.039 2.99e-01
-#>      Pretest x Treatment    -3.94     2.829    -1.393 1.64e-01
-#>      Pretest x Treatment    -4.94     2.829    -1.746 8.08e-02
-#>      Pretest x Treatment    -5.94     2.829    -2.100 3.58e-02
-#>      Pretest x Treatment    -6.94     2.829    -2.453 1.42e-02
-#>      Pretest x Treatment    -7.94     2.829    -2.807 5.01e-03
-#>      Pretest x Treatment    -8.94     2.829    -3.160 1.58e-03
-#>      Pretest x Treatment    -9.94     2.829    -3.513 4.42e-04
-#>      Pretest x Treatment   -10.94     2.829    -3.867 1.10e-04
-#>      Pretest x Treatment   -11.94     2.829    -4.220 2.44e-05
-#>      Pretest x Treatment   -12.94     2.829    -4.574 4.79e-06
-#>      Pretest x Treatment   -13.94     2.829    -4.927 8.33e-07
-#>      Pretest x Treatment   -14.94     2.829    -5.281 1.29e-07
-#>    Treatment | pretested     8.12     5.658     1.435 1.51e-01
-#>    Treatment | pretested     7.12     5.658     1.258 2.08e-01
-#>    Treatment | pretested     6.12     5.658     1.082 2.79e-01
-#>    Treatment | pretested     5.12     5.658     0.905 3.65e-01
-#>    Treatment | pretested     4.12     5.658     0.728 4.66e-01
-#>    Treatment | pretested     3.12     5.658     0.551 5.81e-01
-#>    Treatment | pretested     2.12     5.658     0.375 7.08e-01
-#>    Treatment | pretested     1.12     5.658     0.198 8.43e-01
-#>    Treatment | pretested     0.12     5.658     0.021 9.83e-01
-#>    Treatment | pretested    -0.88     5.658    -0.155 8.76e-01
-#>    Treatment | pretested    -1.88     5.658    -0.332 7.40e-01
-#>    Treatment | pretested    -2.88     5.658    -0.509 6.11e-01
-#>    Treatment | pretested    -3.88     5.658    -0.686 4.93e-01
-#>    Treatment | pretested    -4.88     5.658    -0.862 3.88e-01
-#>    Treatment | pretested    -5.88     5.658    -1.039 2.99e-01
-#>    Treatment | pretested    -6.88     5.658    -1.216 2.24e-01
-#>    Treatment | pretested    -7.88     5.658    -1.393 1.64e-01
-#>    Treatment | pretested    -8.88     5.658    -1.569 1.17e-01
-#>    Treatment | pretested    -9.88     5.658    -1.746 8.08e-02
-#>    Treatment | pretested   -10.88     5.658    -1.923 5.45e-02
-#>  Treatment | unpretested     4.06     2.829     1.435 1.51e-01
-print(summary(fit_g))   # structured summary
-#> Summary: Solomon GLM (unified model)
-#> Formula: y ~ treat * pretested + pre_obs
-#> <environment: 0x0000023022334580>
-#> 
-#> Coefficients (robust SEs):
-#>             term estimate std.error statistic   p.value
-#>      (Intercept)   51.138     2.000    25.563 3.89e-144
-#>            treat    4.060     2.829     1.435  1.51e-01
-#>        pretested  -14.991     8.598    -1.744  8.12e-02
-#>          pre_obs    0.297     0.163     1.825  6.81e-02
-#>  treat:pretested   -0.163     4.014    -0.041  9.68e-01
-#> 
-#> Key contrasts:
-#>                 contrast estimate std.error statistic  p.value    r2 r2_lo
-#>   ATE (avg over pretest)     4.06     2.829     1.435 1.51e-01    NA    NA
-#>      Pretest x Treatment     4.06     2.829     1.435 1.51e-01 0.024 0.005
-#>      Pretest x Treatment     3.06     2.829     1.082 2.79e-01    NA    NA
-#>      Pretest x Treatment     2.06     2.829     0.728 4.66e-01    NA    NA
-#>      Pretest x Treatment     1.06     2.829     0.375 7.08e-01    NA    NA
-#>      Pretest x Treatment     0.06     2.829     0.021 9.83e-01    NA    NA
-#>      Pretest x Treatment    -0.94     2.829    -0.332 7.40e-01    NA    NA
-#>      Pretest x Treatment    -1.94     2.829    -0.686 4.93e-01    NA    NA
-#>      Pretest x Treatment    -2.94     2.829    -1.039 2.99e-01    NA    NA
-#>      Pretest x Treatment    -3.94     2.829    -1.393 1.64e-01    NA    NA
-#>      Pretest x Treatment    -4.94     2.829    -1.746 8.08e-02    NA    NA
-#>      Pretest x Treatment    -5.94     2.829    -2.100 3.58e-02    NA    NA
-#>      Pretest x Treatment    -6.94     2.829    -2.453 1.42e-02    NA    NA
-#>      Pretest x Treatment    -7.94     2.829    -2.807 5.01e-03    NA    NA
-#>      Pretest x Treatment    -8.94     2.829    -3.160 1.58e-03    NA    NA
-#>      Pretest x Treatment    -9.94     2.829    -3.513 4.42e-04    NA    NA
-#>      Pretest x Treatment   -10.94     2.829    -3.867 1.10e-04    NA    NA
-#>      Pretest x Treatment   -11.94     2.829    -4.220 2.44e-05    NA    NA
-#>      Pretest x Treatment   -12.94     2.829    -4.574 4.79e-06    NA    NA
-#>      Pretest x Treatment   -13.94     2.829    -4.927 8.33e-07    NA    NA
-#>      Pretest x Treatment   -14.94     2.829    -5.281 1.29e-07    NA    NA
-#>    Treatment | pretested     8.12     5.658     1.435 1.51e-01    NA    NA
-#>    Treatment | pretested     7.12     5.658     1.258 2.08e-01    NA    NA
-#>    Treatment | pretested     6.12     5.658     1.082 2.79e-01    NA    NA
-#>    Treatment | pretested     5.12     5.658     0.905 3.65e-01    NA    NA
-#>    Treatment | pretested     4.12     5.658     0.728 4.66e-01    NA    NA
-#>    Treatment | pretested     3.12     5.658     0.551 5.81e-01    NA    NA
-#>    Treatment | pretested     2.12     5.658     0.375 7.08e-01    NA    NA
-#>    Treatment | pretested     1.12     5.658     0.198 8.43e-01    NA    NA
-#>    Treatment | pretested     0.12     5.658     0.021 9.83e-01    NA    NA
-#>    Treatment | pretested    -0.88     5.658    -0.155 8.76e-01    NA    NA
-#>    Treatment | pretested    -1.88     5.658    -0.332 7.40e-01    NA    NA
-#>    Treatment | pretested    -2.88     5.658    -0.509 6.11e-01    NA    NA
-#>    Treatment | pretested    -3.88     5.658    -0.686 4.93e-01    NA    NA
-#>    Treatment | pretested    -4.88     5.658    -0.862 3.88e-01    NA    NA
-#>    Treatment | pretested    -5.88     5.658    -1.039 2.99e-01    NA    NA
-#>    Treatment | pretested    -6.88     5.658    -1.216 2.24e-01    NA    NA
-#>    Treatment | pretested    -7.88     5.658    -1.393 1.64e-01    NA    NA
-#>    Treatment | pretested    -8.88     5.658    -1.569 1.17e-01    NA    NA
-#>    Treatment | pretested    -9.88     5.658    -1.746 8.08e-02    NA    NA
-#>    Treatment | pretested   -10.88     5.658    -1.923 5.45e-02    NA    NA
-#>  Treatment | unpretested     4.06     2.829     1.435 1.51e-01    NA    NA
-#>  r2_hi
-#>     NA
-#>  0.129
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-#>     NA
-plot_solomon_gg(y_post, treat, pretested)  # quick visual
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="100%" />
+`solomonR` is not yet on CRAN.
+
+------------------------------------------------------------------------
+
+## A 60-second analysis
+
+The package includes a small example Solomon dataset:
 
 ``` r
+data(solomon_demo)
 
-# Classic teaching flow
-fit_c <- fit_solomon_classic(y_post, treat, pretested, y_pre)
-print(fit_c)            # ANOVA → ANCOVA / Welch t → optional Stouffer Z
-#> Classic Solomon analysis
-#> 
-#> 2x2 ANOVA on posttest (tests sensitization via interaction):
-#> # A tibble: 4 × 6
-#>   term               df     sumsq   meansq statistic p.value
-#>   <chr>           <dbl>     <dbl>    <dbl>     <dbl>   <dbl>
-#> 1 treat               1  365.     365.      4.42      0.0388
-#> 2 pretested           1    0.0235   0.0235  0.000285  0.987 
-#> 3 treat:pretested     1    0.888    0.888   0.0108    0.918 
-#> 4 Residuals          76 6269.      82.5    NA        NA     
-#> 
-#> ANCOVA on pretested cells (Groups 1 & 2):
-#> # A tibble: 3 × 5
-#>   term           estimate std.error statistic  p.value
-#>   <chr>             <dbl>     <dbl>     <dbl>    <dbl>
-#> 1 (Intercept)      36.1       8.65       4.18 0.000171
-#> 2 treat[idx_pre]    3.90      2.94       1.32 0.194   
-#> 3 y_pre[idx_pre]    0.297     0.168      1.76 0.0859  
-#> 
-#> Posttest-only Welch t (Groups 3 & 4):
-#> # A tibble: 1 × 10
-#>   estimate estimate1 estimate2 statistic p.value parameter conf.low conf.high
-#>      <dbl>     <dbl>     <dbl>     <dbl>   <dbl>     <dbl>    <dbl>     <dbl>
-#> 1    -4.06      51.1      55.2     -1.49   0.146      37.5    -9.59      1.47
-#> # ℹ 2 more variables: method <chr>, alternative <chr>
-
-# Assumptions & diagnostics
-check_solomon_assumptions(y_post, treat, pretested, y_pre)
-#> $brown_forsythe_4cell_p
-#> [1] 0.8581486
-#> 
-#> $brown_forsythe_unpre_p
-#> [1] 0.4677638
-#> 
-#> $shapiro_p_by_cell
-#>        0.0        1.0        0.1        1.1 
-#> 0.03058808 0.44929286 0.45692114 0.87119333 
-#> 
-#> $ancova_slope_homogeneity_p
-#> [1] 0.8853772
-#> 
-#> $notes
-#> [1] "Use Welch t for Groups 3 vs 4 if brown_forsythe_unpre_p < .05 (you already do)."                                                            
-#> [2] "Prefer HC3 SEs (your default) if brown_forsythe_4cell_p < .05."                                                                             
-#> [3] "If ancova_slope_homogeneity_p < .05, ANCOVA assumption is violated; prefer the unified GLM with interaction terms or a permutation p-value."
+head(solomon_demo)
 ```
 
-## What you get
+The principal modern observed-variable analysis fits one unified model
+and estimates four Solomon-specific contrasts:
 
-- **Key contrasts** (ATE, pretest×treat, simple effects) with **robust
-  SEs** and **semi-partial R² (±CI)**
-- **Hedges’ g (±CI)** for Groups 3 vs 4 (posttest-only)
-- **Permutation tests** for contrasts, **diagnostics** (Brown–Forsythe,
-  Shapiro by cell, ANCOVA slope homogeneity)
-- **Base plot + ggplot** cell-means CIs
+``` r
+fit <- with(
+  solomon_demo,
+  fit_solomon_glm(
+    y = y_post,
+    treat = treat,
+    pretested = pretested,
+    pretest_score = y_pre,
+    robust = "HC3"
+  )
+)
 
-See the vignettes:
+fit
+```
 
-- Classic Solomon Analysis (Teaching Flow)
-- Unified GLM for Solomon Four-Group Designs
+The key estimands are:
 
-Why two paths?
+- **ATE** — the treatment effect averaged equally across the pretested
+  and unpretested conditions;
+- **Pretest x Treatment** — whether the treatment effect differs
+  depending on pretesting;
+- **Treatment \| pretested** — the treatment effect among participants
+  who received the pretest;
+- **Treatment \| unpretested** — the treatment effect among participants
+  who did not receive the pretest.
 
-- classic = teaching/replication
-- GLM = default for inference & extensions
+The model handles the structural absence of pretest scores in Groups 3
+and 4 without discarding those groups.
+
+For Gaussian models, the output also reports a **Wald-based partial
+R-squared** for each one-degree-of-freedom contrast. With conventional
+OLS covariance this corresponds to the usual partial R-squared identity.
+With robust covariance estimation it should be interpreted as a
+descriptive Wald-based approximation.
+
+------------------------------------------------------------------------
+
+## Historical Solomon analysis
+
+The historical analysis is retained because it is important to
+understand how the Solomon design developed and how it has traditionally
+been taught.
+
+``` r
+classic <- with(
+  solomon_demo,
+  fit_solomon_classic(
+    y_post,
+    treat,
+    pretested,
+    y_pre
+  )
+)
+
+classic
+```
+
+`fit_solomon_classic()` calculates the historical **Tests A-I** and
+shows the decision path that would have been reached under the
+traditional conditional workflow.
+
+The package distinguishes between:
+
+- tests that were **calculated**, and
+- tests that were actually reached along the historical **decision
+  path**.
+
+The historical Stouffer combination is included for teaching and
+replication, but it is **not the default modern inferential
+recommendation**. Later simulation work raised concerns about Type I
+error in conditional versions of this procedure.
+
+------------------------------------------------------------------------
+
+## Randomization-based inference
+
+When treatment was genuinely randomized within the Solomon pretesting
+conditions, `perm_solomon()` provides a treatment-label permutation
+test.
+
+``` r
+perm <- perm_solomon(
+  fit,
+  contrast = "ATE (avg over pretest)",
+  reps = 5000,
+  seed = 123,
+  return_dist = TRUE
+)
+
+perm
+```
+
+Treatment labels are permuted **within the pretested and unpretested
+strata**, preserving the Solomon design.
+
+The test uses an HC3-studentized statistic and a finite Monte Carlo
+correction for the permutation p-value.
+
+The permutation distribution can also be visualized:
+
+``` r
+plot_perm(perm)
+```
+
+Randomization inference should reflect the design that actually
+generated the treatment assignments. Cluster-randomized studies require
+permutation at the appropriate randomization unit.
+
+------------------------------------------------------------------------
+
+## Full-information maximum likelihood
+
+`fit_solomon_ml()` implements a full-information likelihood approach
+inspired by van Engelenburg’s treatment of the Solomon design.
+
+Unlike analyses that simply discard structurally missing pretests, the
+likelihood recognizes that Groups 3 and 4 were **never intended to have
+pretest observations**.
+
+``` r
+ml <- with(
+  solomon_demo,
+  fit_solomon_ml(
+    y_post,
+    treat,
+    pretested,
+    y_pre
+  )
+)
+
+ml
+```
+
+The ML model estimates the same central Solomon quantities:
+
+- average treatment effect;
+- pretest-by-treatment interaction;
+- treatment effect among pretested participants; and
+- treatment effect among unpretested participants.
+
+------------------------------------------------------------------------
+
+## Structural equation models
+
+`solomonR` also supports SEM formulations of the design through
+`lavaan`.
+
+### Observed-variable SEM
+
+``` r
+sem_fit <- with(
+  solomon_demo,
+  fit_solomon_sem(
+    y_post,
+    treat,
+    pretested
+  )
+)
+
+sem_fit
+```
+
+The four-group observed mean-structure model is saturated. Consequently,
+global indices such as CFI and RMSEA are **not diagnostic of model fit**
+for that model.
+
+An ANCOVA-style SEM can also be fit within the two pretested groups:
+
+``` r
+sem_ancova <- with(
+  solomon_demo,
+  fit_solomon_sem(
+    y_post,
+    treat,
+    pretested,
+    y_pre = y_pre,
+    ancova = TRUE
+  )
+)
+
+sem_ancova
+```
+
+### Latent outcomes
+
+For multi-item outcomes, `fit_solomon_sem_latent()` estimates Solomon
+contrasts at the latent-variable level.
+
+Latent mean comparisons require **scalar measurement invariance** across
+the four Solomon groups. `solomonR` enforces this requirement rather
+than silently interpreting latent means from configural or metric-only
+models.
+
+See:
+
+``` r
+?fit_solomon_sem_latent
+```
+
+for details.
+
+------------------------------------------------------------------------
+
+## Diagnostics
+
+`check_solomon_assumptions()` provides diagnostics relevant to common
+Solomon analyses, including:
+
+- Brown-Forsythe variance checks;
+- cell-level distribution summaries;
+- ANCOVA slope-homogeneity assessment; and
+- guidance for choosing more robust alternatives.
+
+These diagnostics are intended to inform analysis, not create a rigid
+sequence of statistical gatekeeping tests.
+
+``` r
+checks <- with(
+  solomon_demo,
+  check_solomon_assumptions(
+    y_post,
+    treat,
+    pretested,
+    y_pre
+  )
+)
+
+checks
+```
+
+------------------------------------------------------------------------
+
+## Which analysis should I use?
+
+A useful starting point is:
+
+| Goal                                  | Suggested `solomonR` approach |
+|---------------------------------------|-------------------------------|
+| Modern primary analysis               | `fit_solomon_glm()`           |
+| Randomization-based inference         | `perm_solomon()`              |
+| Full-information likelihood           | `fit_solomon_ml()`            |
+| Teach or reproduce historical methods | `fit_solomon_classic()`       |
+| Observed-variable SEM                 | `fit_solomon_sem()`           |
+| Multi-item / latent outcome           | `fit_solomon_sem_latent()`    |
+| Model diagnostics                     | `check_solomon_assumptions()` |
+
+For many ordinary randomized Solomon experiments with continuous
+outcomes, the unified GLM with clearly defined contrasts is a useful
+primary analysis.
+
+The historical Tests A-I remain valuable for understanding the
+development of the design, but they should not automatically be treated
+as the preferred contemporary analysis.
+
+------------------------------------------------------------------------
+
+## Important statistical notes
+
+### A nonsignificant interaction is not evidence of no sensitization
+
+Failure to reject the pretest-by-treatment interaction does not
+establish that sensitization is absent. Equivalence-based approaches are
+planned for a future release.
+
+### Robust covariance and Wald R-squared
+
+HC3 changes the covariance estimate used for inference. The associated
+Wald R-squared reported by `solomonR` is therefore a descriptive
+Wald-based quantity rather than an exact decomposition of model
+variance.
+
+### CR2
+
+A CR2 covariance option is available for clustered data. Small-sample
+cluster-robust inference is an area of continued development and should
+be reported carefully.
+
+### Latent means
+
+Latent Solomon mean contrasts require scalar measurement invariance.
+Partial invariance workflows are not yet automated.
+
+### Power
+
+The current power-simulation helper is **experimental**. A redesigned
+Solomon-specific planning and power framework is scheduled for a later
+release and should be preferred once available.
+
+------------------------------------------------------------------------
+
+## Package philosophy
+
+`solomonR` is organized around three layers.
+
+### 1. History
+
+Preserve and reproduce the classical Solomon literature accurately.
+
+### 2. Modern analysis
+
+Provide unified regression, robust inference, randomization inference,
+and full-information likelihood methods.
+
+### 3. Extensions
+
+Develop SEM, latent-variable, longitudinal, generalized-outcome, design
+planning, visualization, and other modern Solomon methods while clearly
+distinguishing established methodology from package-specific extensions.
+
+The aim is to make the Solomon four-group design easier to **teach,
+understand, analyze, and extend** without erasing the methodological
+history that produced it.
+
+------------------------------------------------------------------------
+
+## Roadmap
+
+Development plans are maintained in [`ROADMAP.md`](ROADMAP.md).
+
+Major planned additions include:
+
+- sensitization equivalence testing;
+- design validation and missingness diagnostics;
+- method-comparison tools;
+- Solomon-specific visualizations;
+- redesigned sample-size and power planning;
+- binary and count outcomes;
+- clustered and longitudinal designs;
+- expanded teaching and reporting tools.
+
+------------------------------------------------------------------------
+
+## Citation
+
+A formal package/methods manuscript is in development.
+
+For the installed package citation, use:
+
+``` r
+citation("solomonR")
+```
+
+------------------------------------------------------------------------
+
+## References
+
+Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*, 150-154.
+
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
+design: Appropriate statistical analyses. *The Journal of Experimental
+Education, 42*, 54-55.
+
+Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
+Meta-analysis and the Solomon four-group design. *The Journal of
+Experimental Education, 62*, 361-376.
+
+van Engelenburg, G. (1999). Statistical analysis for the Solomon
+four-group design.
+
+------------------------------------------------------------------------
+
+## License
+
+See the repository license for terms of use.

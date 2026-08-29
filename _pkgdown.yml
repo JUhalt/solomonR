@@ -1,26 +1,47 @@
 url: https://juhalt.github.io/solomonR
+
 template:
   bootstrap: 5
 
 reference:
-  - title: "Core fitting functions"
+  - title: "Modern Solomon analysis"
+    desc: >
+      Unified regression, likelihood, and randomization-based methods.
     contents:
-      - starts_with("fit_solomon_")
-  - title: "Inference & utilities"
-    contents:
+      - fit_solomon_glm
+      - fit_solomon_ml
       - perm_solomon
+
+  - title: "Historical Solomon analysis"
+    desc: >
+      Classical procedures retained for teaching and methodological replication.
+    contents:
+      - fit_solomon_classic
       - stouffer_solomon
-      - power_solomon
-      - check_solomon_assumptions
       - p_to_z
+
+  - title: "Structural equation models"
+    desc: >
+      Observed- and latent-variable SEM approaches to the Solomon design.
+    contents:
+      - fit_solomon_sem
+      - fit_solomon_sem_latent
+
+  - title: "Diagnostics and design utilities"
+    contents:
+      - check_solomon_assumptions
+      - power_solomon
+
   - title: "Plotting"
     contents:
       - plot_solomon
       - plot_solomon_gg
       - plot_perm
+
   - title: "Data"
     contents:
       - solomon_demo
+
   - title: "Package"
     contents:
       - starts_with("solomonR")

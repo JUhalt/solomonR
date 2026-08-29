@@ -4,6 +4,12 @@ p_fmt <- function(p) {
 }
 estse_str <- function(est, se, digits = 3) sprintf("%.*f (%.3f)", digits, est, se)
 
+p_fmt <- function(p) {
+  ifelse(is.na(p), "NA",
+         ifelse(p < .001, "<.001", sprintf("%.3f", p)))
+}
+estse_str <- function(est, se, digits = 3) sprintf("%.*f (%.3f)", digits, est, se)
+
 #' @export
 print.solomon_glm <- function(x, digits = 3, ...) {
   # header + formula (without the environment garbage)
@@ -34,7 +40,14 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   }
 
   # --- Key contrasts table ---
-  ef <- x$effects[, c("contrast","estimate","std.error","statistic","p.value","r2")]
+  ef <- x$effects[, c(
+    "contrast",
+    "estimate",
+    "std.error",
+    "statistic",
+    "p.value",
+    "r2"
+  )]
   ef$`Est (SE)` <- estse_str(ef$estimate, ef$std.error, digits)
   ef$z <- sprintf("%.2f", ef$statistic)
   ef$p <- p_fmt(ef$p.value)
@@ -44,11 +57,22 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   est2_w <- max(nchar("Est (SE)"), nchar(ef$`Est (SE)`))
   z2_w   <- max(nchar("z"),        nchar(ef$z))
   p2_w   <- max(nchar("p"),        nchar(ef$p))
-  r2_w   <- max(nchar("R2"),       nchar(ef$R2))
+  r2_w <- max(
+    nchar("Wald R2"),
+    nchar(ef$R2)
+  )
 
   cat("\n")
-  cat(sprintf("%-*s  %-*s  %*s  %*s  %*s\n",
-              con_w, "Key contrasts", est2_w, "Est (SE)", z2_w, "z", p2_w, "p", r2_w, "R2"))
+  cat(
+    sprintf(
+      "%-*s  %-*s  %*s  %*s  %*s\n",
+      con_w, "Key contrasts",
+      est2_w, "Est (SE)",
+      z2_w, "z",
+      p2_w, "p",
+      r2_w, "Wald R2"
+    )
+  )
   for (i in seq_len(nrow(ef))) {
     cat(sprintf("%-*s  %-*s  %*s  %*s  %*s\n",
                 con_w,  ef$contrast[i],
@@ -57,6 +81,150 @@ print.solomon_glm <- function(x, digits = 3, ...) {
                 p2_w,   ef$p[i],
                 r2_w,   ef$R2[i]))
   }
+  invisible(x)
+  cat(
+    "\nWald R2: partial R-squared for conventional Gaussian OLS;\n",
+    "a Wald-based descriptive approximation when robust covariance is used.\n",
+    sep = ""
+  )
+}
+
+#' @export
+print.solomon_classic <- function(x, digits = 3, ...) {
+
+  p_fmt <- function(p) {
+    if (is.na(p)) {
+      "NA"
+    } else if (p < .001) {
+      "<.001"
+    } else {
+      sprintf("%.3f", p)
+    }
+  }
+
+  show_F <- function(letter) {
+
+    z <- x$tests[[letter]]$result
+
+    marker <- if (letter %in% x$path) {
+      "[PATH]"
+    } else {
+      "      "
+    }
+
+    cat(
+      sprintf(
+        "%s Test %s: %-45s F(1, %.0f) = %.2f, p = %s\n",
+        marker,
+        letter,
+        x$tests[[letter]]$label,
+        z$df,
+        z$F,
+        p_fmt(z$p.value)
+      )
+    )
+  }
+
+  cat("Classic Solomon analysis (historical teaching workflow)\n")
+  cat("-------------------------------------------------------\n")
+
+  cat(
+    sprintf(
+      "Selected pretested-group method: Test %s (%s)\n",
+      x$settings$selected_test,
+      x$settings$pretested_test
+    )
+  )
+
+  cat(
+    sprintf(
+      "Historical decision path: %s\n\n",
+      x$path_string
+    )
+  )
+
+  cat("Historical Tests A-I\n")
+  cat("--------------------\n")
+
+  cat(
+    "All tests are shown below. Tests marked [PATH] were reached by\n",
+    "the historical decision sequence for these data.\n\n",
+    sep = ""
+  )
+
+  show_F("A")
+  show_F("B")
+  show_F("C")
+  show_F("D")
+  show_F("E")
+  show_F("F")
+  show_F("G")
+
+  h <- x$tests$H$result
+
+  h_marker <- if ("H" %in% x$path) {
+    "[PATH]"
+  } else {
+    "      "
+  }
+
+  cat(
+    sprintf(
+      "%s Test H: %-45s t(%.0f) = %.2f, p = %s\n",
+      h_marker,
+      x$tests$H$label,
+      h$df,
+      h$statistic,
+      p_fmt(h$p.value)
+    )
+  )
+
+  if (!is.null(x$tests$I$result)) {
+
+    ii <- x$tests$I$result
+
+    i_marker <- if ("I" %in% x$path) {
+      "[PATH]"
+    } else {
+      "      "
+    }
+
+    cat(
+      sprintf(
+        "%s Test I: %-45s Z = %.2f, p(one-tailed) = %s\n",
+        i_marker,
+        ii$source,
+        ii$z,
+        p_fmt(ii$p.value)
+      )
+    )
+  }
+
+  cat("\nHistorical interpretation\n")
+  cat("-------------------------\n")
+  cat(x$conclusion, "\n")
+
+  if (!is.null(x$g_post)) {
+    cat(
+      sprintf(
+        "\nGroups 3-4 effect size: Hedges g = %.3f, 95%% CI [%.3f, %.3f]\n",
+        x$g_post["g"],
+        x$g_post["lower"],
+        x$g_post["upper"]
+      )
+    )
+  }
+
+  if (isTRUE(x$settings$combine_with_stouffer)) {
+    cat(
+      "\nCaution: Test I is reproduced for historical teaching and replication.\n",
+      "Later simulation work raised concerns about Type I error for the\n",
+      "conditional meta-analytic sequence; it is not the default modern\n",
+      "inferential recommendation in solomonR.\n",
+      sep = ""
+    )
+  }
+
   invisible(x)
 }
 
@@ -111,55 +279,205 @@ print.summary.solomon_glm <- function(x, digits = 3, ...) {
 }
 
 #' @export
+#' @export
 print.solomon_classic <- function(x, digits = 3, ...) {
-  line <- function(...) cat(sprintf(...), "\n", sep = "")
-  p_fmt <- function(p) ifelse(p < .001, "<.001", sprintf("%.3f", p))
 
-  line("Classic Solomon analysis")
-
-  # ANOVA interaction summary
-  if (!is.null(x$aov)) {
-    a <- x$aov
-    ai <- a[a$term %in% c("treat:pretested","factor(treat):factor(preind)","treat:pr…", "treat:pretested"), , drop=FALSE]
-    ar <- a[a$term %in% c("Residuals"), , drop=FALSE]
-    if (nrow(ai) == 1 && nrow(ar) == 1) {
-      df1 <- ai$df; df2 <- ar$df
-      F   <- ai$statistic; p <- ai$p.value
-      line("")
-      line("Interaction (Pretest × Treatment): F(%d, %d) = %.2f, p = %s",
-           df1, df2, F, p_fmt(p))
+  p_fmt <- function(p) {
+    if (is.na(p)) {
+      "NA"
+    } else if (p < .001) {
+      "<.001"
+    } else {
+      sprintf("%.3f", p)
     }
   }
 
-  # ANCOVA line (pretested)
-  if (!is.null(x$ancova)) {
-    an <- x$ancova
-    tr <- an[grepl("^treat", an$term), , drop=FALSE]
-    if (nrow(tr) == 1) {
-      line("Pretested (ANCOVA): beta_treat = %.*f (SE = %.3f), t = %.2f, p = %s",
-           digits, tr$estimate, tr$std.error, tr$statistic, p_fmt(tr$p.value))
+  show_F <- function(letter) {
+
+    z <- x$tests[[letter]]$result
+
+    marker <- if (letter %in% x$path) {
+      "[PATH]"
+    } else {
+      "      "
     }
+
+    cat(
+      sprintf(
+        "%s Test %s: %-45s F(1, %.0f) = %.2f, p = %s\n",
+        marker,
+        letter,
+        x$tests[[letter]]$label,
+        z$df,
+        z$F,
+        p_fmt(z$p.value)
+      )
+    )
   }
 
-  # Welch t (unpretested)
-  if (!is.null(x$t_unpretested)) {
-    tt <- x$t_unpretested
-    line("Unpretested (Welch t): t(%0.1f) = %.2f, p = %s; Δ = %.*f, 95%% CI [%.*f, %.*f]",
-         tt$parameter, tt$statistic, p_fmt(tt$p.value),
-         digits, tt$estimate, digits, tt$conf.low, digits, tt$conf.high)
+  cat("Classic Solomon analysis (historical teaching workflow)\n")
+  cat("-------------------------------------------------------\n")
+
+  cat(
+    sprintf(
+      "Selected pretested-group method: Test %s (%s)\n",
+      x$settings$selected_test,
+      x$settings$pretested_test
+    )
+  )
+
+  cat(
+    sprintf(
+      "Historical decision path: %s\n\n",
+      x$path_string
+    )
+  )
+
+  cat("Historical Tests A-I\n")
+  cat("--------------------\n")
+
+  cat(
+    "All tests are shown below. Tests marked [PATH] were reached by\n",
+    "the historical decision sequence for these data.\n\n",
+    sep = ""
+  )
+
+  show_F("A")
+  show_F("B")
+  show_F("C")
+  show_F("D")
+  show_F("E")
+  show_F("F")
+  show_F("G")
+
+  h <- x$tests$H$result
+
+  h_marker <- if ("H" %in% x$path) {
+    "[PATH]"
+  } else {
+    "      "
   }
 
-  # Hedges g
+  cat(
+    sprintf(
+      "%s Test H: %-45s t(%.0f) = %.2f, p = %s\n",
+      h_marker,
+      x$tests$H$label,
+      h$df,
+      h$statistic,
+      p_fmt(h$p.value)
+    )
+  )
+
+  if (!is.null(x$tests$I$result)) {
+
+    ii <- x$tests$I$result
+
+    i_marker <- if ("I" %in% x$path) {
+      "[PATH]"
+    } else {
+      "      "
+    }
+
+    cat(
+      sprintf(
+        "%s Test I: %-45s Z = %.2f, p(one-tailed) = %s\n",
+        i_marker,
+        ii$source,
+        ii$z,
+        p_fmt(ii$p.value)
+      )
+    )
+  }
+
+  cat("\nHistorical interpretation\n")
+  cat("-------------------------\n")
+  cat(x$conclusion, "\n")
+
   if (!is.null(x$g_post)) {
-    line("Effect size (Groups 3–4): Hedges g = %.3f, 95%% CI [%.3f, %.3f]",
-         x$g_post["g"], x$g_post["lower"], x$g_post["upper"])
+    cat(
+      sprintf(
+        "\nGroups 3-4 effect size: Hedges g = %.3f, 95%% CI [%.3f, %.3f]\n",
+        x$g_post["g"],
+        x$g_post["lower"],
+        x$g_post["upper"]
+      )
+    )
   }
 
-  # Optional Stouffer
-  if (!is.null(x$stouffer)) {
-    z <- x$stouffer$z_meta
-    p1 <- x$stouffer$p_meta_one_tailed
-    line("Stouffer Z (one-tailed): Z = %.2f, p = %s", z, p_fmt(p1))
+  if (isTRUE(x$settings$combine_with_stouffer)) {
+    cat(
+      "\nCaution: Test I is reproduced for historical teaching and replication.\n",
+      "Later simulation work raised concerns about Type I error for the\n",
+      "conditional meta-analytic sequence; it is not the default modern\n",
+      "inferential recommendation in solomonR.\n",
+      sep = ""
+    )
+  }
+
+  invisible(x)
+}
+
+#' @export
+print.solomon_perm <- function(x, digits = 2, ...) {
+
+  format_p <- function(p) {
+
+    if (is.na(p)) {
+      return("NA")
+    }
+
+    if (p < .001) {
+      return("< .001")
+    }
+
+    sub(
+      "^0",
+      "",
+      sprintf("%.3f", p)
+    )
+  }
+
+  cat("Solomon randomization test\n")
+  cat("--------------------------\n")
+
+  cat(
+    sprintf(
+      "Contrast: %s\n",
+      x$contrast
+    )
+  )
+
+  cat(
+    sprintf(
+      "Observed studentized statistic: z = %.*f\n",
+      digits,
+      x$z_obs
+    )
+  )
+
+  cat(
+    sprintf(
+      "Permutation p = %s\n",
+      format_p(x$p_perm)
+    )
+  )
+
+  cat(
+    sprintf(
+      "Valid permutations: %d of %d\n",
+      x$valid_reps,
+      x$reps
+    )
+  )
+
+  if (!is.null(x$z_perm)) {
+    cat(
+      sprintf(
+        "Permutation distribution retained (%d draws); use plot_perm() to visualize it.\n",
+        length(x$z_perm)
+      )
+    )
   }
 
   invisible(x)

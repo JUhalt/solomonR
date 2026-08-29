@@ -26,6 +26,9 @@ power_solomon(
 \item{sigma}{SD of errors}
 
 \item{sims}{number of Monte Carlo replicates}
+
+\item{stouffer}{Logical; if \code{TRUE}, also estimate power for the optional
+Stouffer meta-analytic procedure.}
 }
 \value{
 data.frame with estimated power for: interaction, ATE, simple effects, and (optionally) Stouffer Z

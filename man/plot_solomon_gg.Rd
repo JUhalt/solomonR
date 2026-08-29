@@ -2,10 +2,21 @@
 % Please edit documentation in R/solomon_plot_gg.R
 \name{plot_solomon_gg}
 \alias{plot_solomon_gg}
-\title{ggplot: Solomon posttest cell means with 95\% CIs}
+\title{Plot Solomon Posttest Cell Means with ggplot2}
 \usage{
 plot_solomon_gg(y, treat, pretested)
 }
+\arguments{
+\item{y}{Numeric vector of posttest scores.}
+
+\item{treat}{Treatment indicator coded 0 = control and 1 = treatment.}
+
+\item{pretested}{Pretest indicator coded 0 = not pretested and 1 = pretested.}
+}
+\value{
+A ggplot object.
+}
 \description{
-ggplot: Solomon posttest cell means with 95\% CIs
+Displays posttest means and 95\% confidence intervals for the four cells
+of a Solomon four-group design.
 }

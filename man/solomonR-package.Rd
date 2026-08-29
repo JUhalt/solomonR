@@ -3,9 +3,9 @@
 \docType{package}
 \name{solomonR-package}
 \alias{solomonR-package}
-\title{solomonR: Analyze Solomon Four-Group Designs (Classic & Modern)}
+\title{solomonR: Analyze Solomon Four-Group Designs}
 \description{
-Tools to analyze Solomon Four-Group Designs (SFGD): (a) the classic two-step workflow (2x2 posttest ANOVA + ANCOVA / t) with optional Stouffer Z per Braver & Braver (1988), alongside cautions from later exchanges; (b) a unified GLM/ANCOVA approach with robust SEs and permutation inference; (c) power simulation helpers.
+Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.
 }
 \seealso{
 Useful links:
@@ -18,6 +18,11 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Joshua Uhalt \email{Josh.Uhalt@gmail.com}
+
+Authors:
+\itemize{
+  \item Joshua Uhalt \email{Josh.Uhalt@gmail.com}
+}
 
 }
 \keyword{internal}
