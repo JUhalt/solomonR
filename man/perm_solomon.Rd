@@ -2,7 +2,7 @@
 % Please edit documentation in R/solomon_core.R
 \name{perm_solomon}
 \alias{perm_solomon}
-\title{Permutation p-value for a Solomon contrast}
+\title{Permutation test for a Solomon contrast}
 \usage{
 perm_solomon(
   object,
@@ -13,17 +13,28 @@ perm_solomon(
 )
 }
 \arguments{
-\item{object}{fit from fit_solomon_glm()}
+\item{object}{An object returned by \code{fit_solomon_glm()}.}
 
-\item{contrast}{one of: "ATE (avg over pretest)", "Pretest x Treatment",
-"Treatment | pretested", "Treatment | unpretested"}
+\item{contrast}{Character string identifying the contrast to test. One of
+\code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
+\code{"Treatment | pretested"}, or
+\code{"Treatment | unpretested"}.}
 
-\item{reps}{number of permutations}
+\item{reps}{Number of permutations. Default is 5000.}
 
-\item{seed}{optional RNG seed}
+\item{seed}{Optional random-number seed for reproducibility.}
 
-\item{return_dist}{if TRUE, also return the vector of permuted Z's}
+\item{return_dist}{Logical. If \code{TRUE}, return the permutation
+distribution in addition to the observed statistic and p-value.}
+}
+\value{
+A list containing the observed studentized statistic
+(\code{z_obs}) and permutation p-value (\code{p_perm}). If
+\code{return_dist = TRUE}, the permutation distribution
+(\code{z_perm}) is also returned.
 }
 \description{
-Permutation p-value for a Solomon contrast
+Performs a randomization-based test by permuting treatment assignment
+within pretest strata. This preserves the Solomon four-group design while
+generating the null distribution for a selected treatment contrast.
 }

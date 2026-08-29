@@ -110,17 +110,34 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     c(estimate = est, std.error = se, statistic = z, p.value = p)
   }
 
-  # ATE across pretest status: coefficient on treat
-  L_ate <- Z(); L_ate["treat"] <- 1
+  # Equal-weighted average treatment effect across pretest conditions:
+  # beta_treat + 0.5 * beta_treat:pretested
+  L_ate <- Z()
+  L_ate["treat"] <- 1
+  if ("treat:pretested" %in% cn) {
+    L_ate["treat:pretested"] <- 0.5
+  }
 
-  # Pretest x Treatment: coefficient on interaction (if present)
-  L_int <- Z(); if ("treat:pretested" %in% cn) L_int["treat:pretested"] <- 1
+  # Pretest x Treatment interaction:
+  # difference between the treatment effect in pretested versus
+  # unpretested participants
+  L_int <- Z()
+  if ("treat:pretested" %in% cn) {
+    L_int["treat:pretested"] <- 1
+  }
 
-  # Simple effects:
-  # Treatment | pretested (=1): treat + treat:pretested
-  L_pre <- Z(); L_pre["treat"] <- 1; if ("treat:pretested" %in% cn) L_pre["treat:pretested"] <- 1
-  # Treatment | unpretested (=0): treat
-  L_un  <- L_ate
+  # Treatment effect among pretested participants:
+  # beta_treat + beta_treat:pretested
+  L_pre <- Z()
+  L_pre["treat"] <- 1
+  if ("treat:pretested" %in% cn) {
+    L_pre["treat:pretested"] <- 1
+  }
+
+  # Treatment effect among unpretested participants:
+  # beta_treat
+  L_un <- Z()
+  L_un["treat"] <- 1
 
   c_ate <- lin_contrast(L_ate)
   c_int <- lin_contrast(L_int)
@@ -218,55 +235,241 @@ fit_solomon_classic <- function(y_post, treat, pretested, y_pre,
   ), class = "solomon_classic")
 }
 
-#' Permutation p-value for a Solomon contrast
-#' @param object fit from fit_solomon_glm()
-#' @param contrast one of: "ATE (avg over pretest)", "Pretest x Treatment",
-#'   "Treatment | pretested", "Treatment | unpretested"
-#' @param reps number of permutations
-#' @param seed optional RNG seed
-#' @param return_dist if TRUE, also return the vector of permuted Z's
+#' Permutation test for a Solomon contrast
+#'
+#' Performs a randomization-based test by permuting treatment assignment
+#' within pretest strata. This preserves the Solomon four-group design while
+#' generating the null distribution for a selected treatment contrast.
+#'
+#' @param object An object returned by \code{fit_solomon_glm()}.
+#' @param contrast Character string identifying the contrast to test. One of
+#'   \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
+#'   \code{"Treatment | pretested"}, or
+#'   \code{"Treatment | unpretested"}.
+#' @param reps Number of permutations. Default is 5000.
+#' @param seed Optional random-number seed for reproducibility.
+#' @param return_dist Logical. If \code{TRUE}, return the permutation
+#'   distribution in addition to the observed statistic and p-value.
+#'
+#' @return A list containing the observed studentized statistic
+#'   (\code{z_obs}) and permutation p-value (\code{p_perm}). If
+#'   \code{return_dist = TRUE}, the permutation distribution
+#'   (\code{z_perm}) is also returned.
+#'
 #' @export
-perm_solomon <- function(object,
-                         contrast = "ATE (avg over pretest)",
-                         reps = 5000L,
-                         seed = NULL,
-                         return_dist = FALSE) {
-  if (!inherits(object, "solomon_glm")) stop("object must be from fit_solomon_glm()")
-  if (!is.null(seed)) set.seed(seed)
-  df   <- object$data
-  form <- stats::formula(object$model)
-  fam  <- stats::family(object$model)
+perm_solomon <- function(
+    object,
+    contrast = "ATE (avg over pretest)",
+    reps = 5000L,
+    seed = NULL,
+    return_dist = FALSE
+) {
 
-  # observed Z (force scalar)
-  obs <- object$effects[object$effects$contrast == contrast, , drop = TRUE]
-  if (is.null(nrow(obs))) {
-    # 'drop = TRUE' gives a named vector when there's exactly one row
-    z_obs <- as.numeric(obs[["statistic"]])
-  } else {
-    if (nrow(obs) != 1L) stop("Contrast not found or not unique: ", contrast)
-    z_obs <- as.numeric(obs$statistic[1])
+  if (!inherits(object, "solomon_glm")) {
+    stop("object must be from fit_solomon_glm().")
   }
 
-  # permute treatment labels within pretested strata
+  valid_contrasts <- c(
+    "ATE (avg over pretest)",
+    "Pretest x Treatment",
+    "Treatment | pretested",
+    "Treatment | unpretested"
+  )
+
+  if (!contrast %in% valid_contrasts) {
+    stop(
+      "Unknown contrast. Choose one of: ",
+      paste(valid_contrasts, collapse = ", ")
+    )
+  }
+
+  reps <- as.integer(reps)
+
+  if (length(reps) != 1L || is.na(reps) || reps < 1L) {
+    stop("reps must be a positive integer.")
+  }
+
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+
+  df <- object$data
+  form <- stats::formula(object$model)
+  fam <- stats::family(object$model)
+
+  # ------------------------------------------------------------
+  # Helper: construct the requested linear contrast
+  # ------------------------------------------------------------
+
+  make_contrast <- function(coef_names, contrast) {
+
+    L <- numeric(length(coef_names))
+    names(L) <- coef_names
+
+    if (!"treat" %in% coef_names) {
+      stop("The fitted model does not contain a treatment coefficient.")
+    }
+
+    has_interaction <- "treat:pretested" %in% coef_names
+
+    if (contrast == "ATE (avg over pretest)") {
+
+      # Equal-weighted average of the treatment effects across the
+      # pretested and unpretested conditions:
+      #
+      # beta_treat + 0.5 * beta_treat:pretested
+
+      L["treat"] <- 1
+
+      if (has_interaction) {
+        L["treat:pretested"] <- 0.5
+      }
+
+    } else if (contrast == "Pretest x Treatment") {
+
+      if (!has_interaction) {
+        stop("The fitted model does not contain a treatment-by-pretest interaction.")
+      }
+
+      L["treat:pretested"] <- 1
+
+    } else if (contrast == "Treatment | pretested") {
+
+      # beta_treat + beta_treat:pretested
+
+      L["treat"] <- 1
+
+      if (has_interaction) {
+        L["treat:pretested"] <- 1
+      }
+
+    } else if (contrast == "Treatment | unpretested") {
+
+      # beta_treat
+
+      L["treat"] <- 1
+    }
+
+    L
+  }
+
+  # ------------------------------------------------------------
+  # Helper: studentized statistic for a fitted model
+  # ------------------------------------------------------------
+
+  contrast_z <- function(fit, contrast) {
+
+    b <- stats::coef(fit)
+
+    V <- sandwich::vcovHC(
+      fit,
+      type = "HC3"
+    )
+
+    # Force coefficient and covariance-matrix order to match.
+    V <- V[names(b), names(b), drop = FALSE]
+
+    L <- make_contrast(
+      coef_names = names(b),
+      contrast = contrast
+    )
+
+    Lm <- matrix(L, nrow = 1)
+
+    estimate <- as.numeric(Lm %*% b)
+
+    variance <- as.numeric(
+      Lm %*% V %*% t(Lm)
+    )
+
+    if (!is.finite(variance) || variance <= 0) {
+      return(NA_real_)
+    }
+
+    estimate / sqrt(variance)
+  }
+
+  # ------------------------------------------------------------
+  # Observed statistic
+  # ------------------------------------------------------------
+
+  z_obs <- contrast_z(
+    object$model,
+    contrast
+  )
+
+  if (!is.finite(z_obs)) {
+    stop("Could not calculate the observed permutation-test statistic.")
+  }
+
+  # ------------------------------------------------------------
+  # Permutation distribution
+  #
+  # Treatment assignment is shuffled WITHIN pretest strata.
+  # This preserves the Solomon design and the number assigned
+  # to treatment/control within each pretesting condition.
+  # ------------------------------------------------------------
+
   z_perm <- numeric(reps)
-  df_perm <- df
-  df_perm$treat <- stats::ave(
-    df$treat,
-    df$pretested,
-    FUN = function(x) sample(x, length(x))
+
+  for (i in seq_len(reps)) {
+
+    df_perm <- df
+
+    df_perm$treat <- stats::ave(
+      df$treat,
+      df$pretested,
+      FUN = function(x) sample(x, length(x), replace = FALSE)
+    )
+
+    fit_perm <- stats::glm(
+      form,
+      data = df_perm,
+      family = fam,
+      na.action = stats::na.exclude
+    )
+
+    z_perm[i] <- contrast_z(
+      fit_perm,
+      contrast
+    )
+  }
+
+  # In the unlikely event that a permuted model produces an undefined
+  # statistic, exclude that replicate explicitly rather than silently
+  # allowing NA propagation.
+
+  valid <- is.finite(z_perm)
+
+  if (!any(valid)) {
+    stop("No valid permutation statistics were obtained.")
+  }
+
+  z_perm_valid <- z_perm[valid]
+
+  # Two-sided randomization p-value with the +1 finite-simulation
+  # correction. This prevents an estimated p-value of exactly zero.
+
+  p_perm <- (
+    sum(abs(z_perm_valid) >= abs(z_obs)) + 1
+  ) / (
+    length(z_perm_valid) + 1
   )
 
-  f <- stats::glm(
-    form,
-    data = df_perm,
-    family = fam,
-    na.action = stats::na.exclude
+  out <- list(
+    contrast = contrast,
+    z_obs = z_obs,
+    p_perm = p_perm,
+    reps = reps,
+    valid_reps = length(z_perm_valid)
   )
 
-  # force scalar compare (kills the recycling warning)
-  p_perm <- mean(abs(z_perm) >= abs(z_obs[1]))
-  out <- list(z_obs = as.numeric(z_obs[1]), p_perm = p_perm)
-  if (isTRUE(return_dist)) out$z_perm <- z_perm
+  if (isTRUE(return_dist)) {
+    out$z_perm <- z_perm_valid
+  }
+
+  class(out) <- "solomon_perm"
+
   out
 }
 
