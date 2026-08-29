@@ -53,6 +53,23 @@ fit_solomon_sem_latent <- function(
   invariance_post <- match.arg(invariance_post)
   invariance_pre  <- match.arg(invariance_pre)
 
+  if (!identical(invariance_post, "scalar")) {
+    stop(
+      "Latent Solomon mean contrasts require scalar measurement ",
+      "invariance across the four POST groups. ",
+      "Configural and metric models may be useful for measurement-model ",
+      "assessment, but latent mean contrasts should not be interpreted ",
+      "without scalar or defensible partial-scalar invariance."
+    )
+  }
+  if (isTRUE(ancova) &&
+      !identical(invariance_pre, "scalar")) {
+    stop(
+      "The latent ANCOVA pathway currently requires scalar measurement ",
+      "invariance across the pretested treatment groups."
+    )
+  }
+
   .eq_from_inv <- function(inv) switch(inv,
                                        configural = character(0),
                                        metric     = "loadings",
@@ -97,6 +114,12 @@ fit_solomon_sem_latent <- function(
     fixed.x       = TRUE
   )
 
+  if (!isTRUE(lavaan::lavInspect(fit_post, "converged"))) {
+    stop(
+      "The four-group latent POST model did not converge."
+    )
+  }
+
   pe_post <- lavaan::parameterEstimates(
     fit_post,
     standardized = FALSE
@@ -131,7 +154,7 @@ fit_solomon_sem_latent <- function(
     pre_meas   <- paste0("PRE  =~ ", paste(pre_items,  collapse = " + "))
     post_meas2 <- paste0("POST =~ ", paste(post_items, collapse = " + "))
     post_mean2 <- 'POST ~ c(mu_P1, mu_P0)*1'
-    anc_line   <- 'POST ~ beta_pre*PRE'
+    anc_line <- "POST ~ c(beta_pre, beta_pre)*PRE"
     pre_defs   <- 'Pre_Eff := (mu_P1 - mu_P0)'
     mod_pre <- paste(pre_meas, post_meas2, post_mean2, anc_line, pre_defs, sep = "\n")
 
@@ -146,16 +169,39 @@ fit_solomon_sem_latent <- function(
       group.equal   = .eq_from_inv(invariance_pre),
       fixed.x       = FALSE
     )
-    pe_post <- lavaan::parameterEstimates(
-      fit_post,
+
+    if (!isTRUE(lavaan::lavInspect(fit_pre, "converged"))) {
+      stop(
+        "The latent pretested-group ANCOVA model did not converge."
+      )
+    }
+
+    pe_pre <- lavaan::parameterEstimates(
+      fit_pre,
       standardized = FALSE
     )
 
-    eff_post <- pe_post[
-      pe_post$op == ":=",
-      c("lhs", "est", "se", "z", "pvalue"),
+    eff_pre <- pe_pre[
+      pe_pre$op == ":=",
+      c(
+        "lhs",
+        "est",
+        "se",
+        "z",
+        "pvalue"
+      ),
       drop = FALSE
     ]
+
+    names(eff_pre) <- c(
+      "contrast",
+      "estimate",
+      "std.error",
+      "statistic",
+      "p.value"
+    )
+
+    fm_pre <- .safe_fitmeas(fit_pre)
 
     names(eff_post) <- c(
       "contrast",

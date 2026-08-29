@@ -52,6 +52,12 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
       std.lv = FALSE, missing = "fiml", fixed.x = TRUE
     )
 
+    if (!isTRUE(lavaan::lavInspect(fit, "converged"))) {
+      stop(
+        "The four-group Solomon SEM did not converge."
+      )
+    }
+
     pe <- lavaan::parameterEstimates(fit, standardized = FALSE)
     eff <- pe[
       pe$op == ":=",
@@ -84,7 +90,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
       ', var_post, '
 
       # Common ANCOVA slope across P1/P0 (can relax if you wish)
-      y_post ~ beta_pre*y_pre
+      y_post ~ c(beta_pre, beta_pre)*y_pre
 
       # Defined parameter: treatment simple effect among pretested
       Pre_Eff := (mu_P1 - mu_P0)
@@ -96,14 +102,36 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
       std.lv = FALSE, missing = "fiml", fixed.x = FALSE
     )
 
-    pe2 <- lavaan::parameterEstimates(fit2, standardized = FALSE)
-    eff2 <- pe[
-      pe$op == ":=",
-      c("lhs", "est", "se", "z", "pvalue"),
+    if (!isTRUE(lavaan::lavInspect(fit2, "converged"))) {
+      stop(
+        "The pretested-group Solomon ANCOVA SEM did not converge."
+      )
+    }
+
+    pe2 <- lavaan::parameterEstimates(
+      fit2,
+      standardized = FALSE
+    )
+
+    eff2 <- pe2[
+      pe2$op == ":=",
+      c(
+        "lhs",
+        "est",
+        "se",
+        "z",
+        "pvalue"
+      ),
       drop = FALSE
     ]
-    names(eff2) <- c("contrast","estimate","std.error","statistic","p.value")
 
+    names(eff2) <- c(
+      "contrast",
+      "estimate",
+      "std.error",
+      "statistic",
+      "p.value"
+    )
     fm2 <- try(lavaan::fitMeasures(fit2, c("cfi","rmsea","srmr","df")), silent = TRUE)
     if (inherits(fm2, "try-error")) fm2 <- c(cfi = NA, rmsea = NA, srmr = NA, df = NA)
 

@@ -57,11 +57,22 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   est2_w <- max(nchar("Est (SE)"), nchar(ef$`Est (SE)`))
   z2_w   <- max(nchar("z"),        nchar(ef$z))
   p2_w   <- max(nchar("p"),        nchar(ef$p))
-  r2_w   <- max(nchar("R2"),       nchar(ef$R2))
+  r2_w <- max(
+    nchar("Wald R2"),
+    nchar(ef$R2)
+  )
 
   cat("\n")
-  cat(sprintf("%-*s  %-*s  %*s  %*s  %*s\n",
-              con_w, "Key contrasts", est2_w, "Est (SE)", z2_w, "z", p2_w, "p", r2_w, "R2"))
+  cat(
+    sprintf(
+      "%-*s  %-*s  %*s  %*s  %*s\n",
+      con_w, "Key contrasts",
+      est2_w, "Est (SE)",
+      z2_w, "z",
+      p2_w, "p",
+      r2_w, "Wald R2"
+    )
+  )
   for (i in seq_len(nrow(ef))) {
     cat(sprintf("%-*s  %-*s  %*s  %*s  %*s\n",
                 con_w,  ef$contrast[i],
