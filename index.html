@@ -5,14 +5,14 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Analyze Solomon Four-Group Designs (Classic &amp; Modern) • solomonR</title>
+<title>Analyze Solomon Four-Group Designs • solomonR</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Analyze Solomon Four-Group Designs (Classic &amp; Modern)">
-<meta name="description" content="Tools to analyze Solomon Four-Group Designs (SFGD): (a) the classic two-step workflow (2x2 posttest ANOVA + ANCOVA / t) with optional Stouffer Z per Braver &amp; Braver (1988), alongside cautions from later exchanges; (b) a unified GLM/ANCOVA approach with robust SEs and permutation inference; (c) power simulation helpers.">
-<meta property="og:description" content="Tools to analyze Solomon Four-Group Designs (SFGD): (a) the classic two-step workflow (2x2 posttest ANOVA + ANCOVA / t) with optional Stouffer Z per Braver &amp; Braver (1988), alongside cautions from later exchanges; (b) a unified GLM/ANCOVA approach with robust SEs and permutation inference; (c) power simulation helpers.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Analyze Solomon Four-Group Designs">
+<meta name="description" content="Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.">
+<meta property="og:description" content="Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,10 +35,11 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/classic-solomon.html">Classic Solomon Analysis (Teaching Flow)</a></li>
-    <li><a class="dropdown-item" href="articles/glm-solomon.html">Unified GLM for Solomon Four-Group Designs</a></li>
+<li><a class="dropdown-item" href="articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
+    <li><a class="dropdown-item" href="articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -57,279 +58,404 @@
 </h1></div>
 <!-- badges: start -->
 
-<p>Analyze Solomon Four-Group designs using classic and modern methods (GLM, robust SEs, permutation, effect sizes).</p>
+<p><strong>solomonR</strong> is an R package for analyzing, teaching, and studying the <strong>Solomon four-group design</strong>.</p>
+<p>The package brings together three perspectives that have often been treated separately:</p>
+<ul>
+<li>the <strong>historical Solomon analysis workflow</strong>, preserved for teaching and methodological replication;</li>
+<li>
+<strong>modern model-based and randomization-based analyses</strong> for applied research; and</li>
+<li>
+<strong>SEM approaches</strong>, including latent-variable extensions when outcomes are measured with multiple indicators.</li>
+</ul>
+<p>The goal is not to replace the history of the Solomon design with a single new procedure. Instead, <code>solomonR</code> makes the historical methods transparent while providing modern alternatives in one reproducible workflow.</p>
+<blockquote>
+<p><strong>Development status:</strong> <code>solomonR</code> is currently in active development. Version 0.2 focuses on the core analytical toolkit. The API may still change before version 1.0.</p>
+</blockquote>
+<hr>
+<div class="section level2">
+<h2 id="the-solomon-four-group-design">The Solomon four-group design<a class="anchor" aria-label="anchor" href="#the-solomon-four-group-design"></a>
+</h2>
+<p>The Solomon design combines a randomized treatment comparison with an experimental manipulation of whether participants receive a pretest.</p>
+<table class="table">
+<thead><tr>
+<th align="center">Group</th>
+<th align="center">Pretest</th>
+<th align="center">Treatment</th>
+<th align="center">Posttest</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="center">1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr>
+<td align="center">2</td>
+<td align="center">Yes</td>
+<td align="center">No</td>
+<td align="center">Yes</td>
+</tr>
+<tr>
+<td align="center">3</td>
+<td align="center">No</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr>
+<td align="center">4</td>
+<td align="center">No</td>
+<td align="center">No</td>
+<td align="center">Yes</td>
+</tr>
+</tbody>
+</table>
+<p>This allows researchers to ask not only:</p>
+<blockquote>
+<p><strong>Does the treatment work?</strong></p>
+</blockquote>
+<p>but also:</p>
+<blockquote>
+<p><strong>Does receiving the pretest change the treatment effect?</strong></p>
+</blockquote>
+<p>That second question is the <strong>pretest-by-treatment interaction</strong>, often described as pretest sensitization.</p>
+<hr>
 </div>
-<div class="section level1">
-<h1 id="solomonr-1">solomonR<a class="anchor" aria-label="anchor" href="#solomonr-1"></a>
-</h1>
-<p>Tools to analyze <strong>Solomon Four-Group Designs</strong> (SFGD) with both the classic teaching workflow and a modern unified GLM: - Classic flow: 2×2 posttest ANOVA → (if no sensitization) ANCOVA on pretested cells + posttest-only t, optional Stouffer combine (Braver &amp; Braver, 1988).<br>
-- Modern flow: one GLM with robust SEs + key contrasts, permutation p-values, effect sizes, and diagnostic helpers.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p>The development version can be installed from GitHub:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"JUhalt/solomonR"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; ℹ Loading metadata database✔ Loading metadata database ... done</span></span>
-<span><span class="co">#&gt;  </span></span>
-<span><span class="co">#&gt; ℹ No downloads are needed</span></span>
-<span><span class="co">#&gt; ✔ 1 pkg + 46 deps: kept 46 [9s]</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
-</h2>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"JUhalt/solomonR"</span><span class="op">)</span></span></code></pre></div>
+<p>Then load the package:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/JUhalt/solomonR" class="external-link">solomonR</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">20</span></span>
-<span><span class="va">pretested</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">*</span><span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span><span class="op">*</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">treat</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>,<span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>,<span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>,<span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>,<span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">y_pre</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">50</span>,<span class="fl">10</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">50</span>,<span class="fl">10</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">2</span><span class="op">*</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Data-generating process: treatment bumps posttest by 0.4 SD</span></span>
-<span><span class="va">eps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">4</span><span class="op">*</span><span class="va">n</span>, <span class="fl">0</span>, <span class="fl">10</span><span class="op">)</span></span>
-<span><span class="va">y_post</span> <span class="op">&lt;-</span> <span class="fl">50</span> <span class="op">+</span> <span class="fl">0.5</span><span class="op">*</span><span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">pretested</span><span class="op">==</span><span class="fl">1</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">y_pre</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="va">y_pre</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span> <span class="op">+</span> <span class="fl">4</span><span class="op">*</span><span class="va">treat</span> <span class="op">+</span> <span class="va">eps</span></span>
-<span></span>
-<span><span class="co"># Modern unified GLM</span></span>
-<span><span class="va">fit_g</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y_post</span>, treat <span class="op">=</span> <span class="va">treat</span>, pretested <span class="op">=</span> <span class="va">pretested</span>, pretest_score <span class="op">=</span> <span class="va">y_pre</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fit_g</span><span class="op">)</span>            <span class="co"># t.test/ANOVA-like summary with key contrasts</span></span>
-<span><span class="co">#&gt; Solomon GLM (unified model)</span></span>
-<span><span class="co">#&gt; Formula: y ~ treat * pretested + pre_obs</span></span>
-<span><span class="co">#&gt; &lt;environment: 0x0000023022334580&gt;</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (robust SEs):</span></span>
-<span><span class="co">#&gt;             term estimate std.error statistic   p.value</span></span>
-<span><span class="co">#&gt;      (Intercept)   51.138     2.000    25.563 3.89e-144</span></span>
-<span><span class="co">#&gt;            treat    4.060     2.829     1.435  1.51e-01</span></span>
-<span><span class="co">#&gt;        pretested  -14.991     8.598    -1.744  8.12e-02</span></span>
-<span><span class="co">#&gt;          pre_obs    0.297     0.163     1.825  6.81e-02</span></span>
-<span><span class="co">#&gt;  treat:pretested   -0.163     4.014    -0.041  9.68e-01</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Key contrasts:</span></span>
-<span><span class="co">#&gt;                 contrast estimate std.error statistic  p.value</span></span>
-<span><span class="co">#&gt;   ATE (avg over pretest)     4.06     2.829     1.435 1.51e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     4.06     2.829     1.435 1.51e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     3.06     2.829     1.082 2.79e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     2.06     2.829     0.728 4.66e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     1.06     2.829     0.375 7.08e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     0.06     2.829     0.021 9.83e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -0.94     2.829    -0.332 7.40e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -1.94     2.829    -0.686 4.93e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -2.94     2.829    -1.039 2.99e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -3.94     2.829    -1.393 1.64e-01</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -4.94     2.829    -1.746 8.08e-02</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -5.94     2.829    -2.100 3.58e-02</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -6.94     2.829    -2.453 1.42e-02</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -7.94     2.829    -2.807 5.01e-03</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -8.94     2.829    -3.160 1.58e-03</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -9.94     2.829    -3.513 4.42e-04</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -10.94     2.829    -3.867 1.10e-04</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -11.94     2.829    -4.220 2.44e-05</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -12.94     2.829    -4.574 4.79e-06</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -13.94     2.829    -4.927 8.33e-07</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -14.94     2.829    -5.281 1.29e-07</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     8.12     5.658     1.435 1.51e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     7.12     5.658     1.258 2.08e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     6.12     5.658     1.082 2.79e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     5.12     5.658     0.905 3.65e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     4.12     5.658     0.728 4.66e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     3.12     5.658     0.551 5.81e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     2.12     5.658     0.375 7.08e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     1.12     5.658     0.198 8.43e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     0.12     5.658     0.021 9.83e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -0.88     5.658    -0.155 8.76e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -1.88     5.658    -0.332 7.40e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -2.88     5.658    -0.509 6.11e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -3.88     5.658    -0.686 4.93e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -4.88     5.658    -0.862 3.88e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -5.88     5.658    -1.039 2.99e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -6.88     5.658    -1.216 2.24e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -7.88     5.658    -1.393 1.64e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -8.88     5.658    -1.569 1.17e-01</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -9.88     5.658    -1.746 8.08e-02</span></span>
-<span><span class="co">#&gt;    Treatment | pretested   -10.88     5.658    -1.923 5.45e-02</span></span>
-<span><span class="co">#&gt;  Treatment | unpretested     4.06     2.829     1.435 1.51e-01</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_g</span><span class="op">)</span><span class="op">)</span>   <span class="co"># structured summary</span></span>
-<span><span class="co">#&gt; Summary: Solomon GLM (unified model)</span></span>
-<span><span class="co">#&gt; Formula: y ~ treat * pretested + pre_obs</span></span>
-<span><span class="co">#&gt; &lt;environment: 0x0000023022334580&gt;</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (robust SEs):</span></span>
-<span><span class="co">#&gt;             term estimate std.error statistic   p.value</span></span>
-<span><span class="co">#&gt;      (Intercept)   51.138     2.000    25.563 3.89e-144</span></span>
-<span><span class="co">#&gt;            treat    4.060     2.829     1.435  1.51e-01</span></span>
-<span><span class="co">#&gt;        pretested  -14.991     8.598    -1.744  8.12e-02</span></span>
-<span><span class="co">#&gt;          pre_obs    0.297     0.163     1.825  6.81e-02</span></span>
-<span><span class="co">#&gt;  treat:pretested   -0.163     4.014    -0.041  9.68e-01</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Key contrasts:</span></span>
-<span><span class="co">#&gt;                 contrast estimate std.error statistic  p.value    r2 r2_lo</span></span>
-<span><span class="co">#&gt;   ATE (avg over pretest)     4.06     2.829     1.435 1.51e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     4.06     2.829     1.435 1.51e-01 0.024 0.005</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     3.06     2.829     1.082 2.79e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     2.06     2.829     0.728 4.66e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     1.06     2.829     0.375 7.08e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment     0.06     2.829     0.021 9.83e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -0.94     2.829    -0.332 7.40e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -1.94     2.829    -0.686 4.93e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -2.94     2.829    -1.039 2.99e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -3.94     2.829    -1.393 1.64e-01    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -4.94     2.829    -1.746 8.08e-02    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -5.94     2.829    -2.100 3.58e-02    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -6.94     2.829    -2.453 1.42e-02    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -7.94     2.829    -2.807 5.01e-03    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -8.94     2.829    -3.160 1.58e-03    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment    -9.94     2.829    -3.513 4.42e-04    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -10.94     2.829    -3.867 1.10e-04    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -11.94     2.829    -4.220 2.44e-05    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -12.94     2.829    -4.574 4.79e-06    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -13.94     2.829    -4.927 8.33e-07    NA    NA</span></span>
-<span><span class="co">#&gt;      Pretest x Treatment   -14.94     2.829    -5.281 1.29e-07    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     8.12     5.658     1.435 1.51e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     7.12     5.658     1.258 2.08e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     6.12     5.658     1.082 2.79e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     5.12     5.658     0.905 3.65e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     4.12     5.658     0.728 4.66e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     3.12     5.658     0.551 5.81e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     2.12     5.658     0.375 7.08e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     1.12     5.658     0.198 8.43e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested     0.12     5.658     0.021 9.83e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -0.88     5.658    -0.155 8.76e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -1.88     5.658    -0.332 7.40e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -2.88     5.658    -0.509 6.11e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -3.88     5.658    -0.686 4.93e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -4.88     5.658    -0.862 3.88e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -5.88     5.658    -1.039 2.99e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -6.88     5.658    -1.216 2.24e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -7.88     5.658    -1.393 1.64e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -8.88     5.658    -1.569 1.17e-01    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested    -9.88     5.658    -1.746 8.08e-02    NA    NA</span></span>
-<span><span class="co">#&gt;    Treatment | pretested   -10.88     5.658    -1.923 5.45e-02    NA    NA</span></span>
-<span><span class="co">#&gt;  Treatment | unpretested     4.06     2.829     1.435 1.51e-01    NA    NA</span></span>
-<span><span class="co">#&gt;  r2_hi</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;  0.129</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="co">#&gt;     NA</span></span>
-<span><span class="fu"><a href="reference/plot_solomon_gg.html">plot_solomon_gg</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span><span class="op">)</span>  <span class="co"># quick visual</span></span></code></pre></div>
-<p><img src="reference/figures/README-unnamed-chunk-3-1.png" width="100%"></p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span></span>
-<span><span class="co"># Classic teaching flow</span></span>
-<span><span class="va">fit_c</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fit_c</span><span class="op">)</span>            <span class="co"># ANOVA → ANCOVA / Welch t → optional Stouffer Z</span></span>
-<span><span class="co">#&gt; Classic Solomon analysis</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; 2x2 ANOVA on posttest (tests sensitization via interaction):</span></span>
-<span><span class="co">#&gt; # A tibble: 4 × 6</span></span>
-<span><span class="co">#&gt;   term               df     sumsq   meansq statistic p.value</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;           &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 treat               1  365.     365.      4.42      0.0388</span></span>
-<span><span class="co">#&gt; 2 pretested           1    0.0235   0.0235  0.000285  0.987 </span></span>
-<span><span class="co">#&gt; 3 treat:pretested     1    0.888    0.888   0.0108    0.918 </span></span>
-<span><span class="co">#&gt; 4 Residuals          76 6269.      82.5    NA        NA     </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ANCOVA on pretested cells (Groups 1 &amp; 2):</span></span>
-<span><span class="co">#&gt; # A tibble: 3 × 5</span></span>
-<span><span class="co">#&gt;   term           estimate std.error statistic  p.value</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;             &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 (Intercept)      36.1       8.65       4.18 0.000171</span></span>
-<span><span class="co">#&gt; 2 treat[idx_pre]    3.90      2.94       1.32 0.194   </span></span>
-<span><span class="co">#&gt; 3 y_pre[idx_pre]    0.297     0.168      1.76 0.0859  </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Posttest-only Welch t (Groups 3 &amp; 4):</span></span>
-<span><span class="co">#&gt; # A tibble: 1 × 10</span></span>
-<span><span class="co">#&gt;   estimate estimate1 estimate2 statistic p.value parameter conf.low conf.high</span></span>
-<span><span class="co">#&gt;      &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1    -4.06      51.1      55.2     -1.49   0.146      37.5    -9.59      1.47</span></span>
-<span><span class="co">#&gt; # ℹ 2 more variables: method &lt;chr&gt;, alternative &lt;chr&gt;</span></span>
-<span></span>
-<span><span class="co"># Assumptions &amp; diagnostics</span></span>
-<span><span class="fu"><a href="reference/check_solomon_assumptions.html">check_solomon_assumptions</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $brown_forsythe_4cell_p</span></span>
-<span><span class="co">#&gt; [1] 0.8581486</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $brown_forsythe_unpre_p</span></span>
-<span><span class="co">#&gt; [1] 0.4677638</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $shapiro_p_by_cell</span></span>
-<span><span class="co">#&gt;        0.0        1.0        0.1        1.1 </span></span>
-<span><span class="co">#&gt; 0.03058808 0.44929286 0.45692114 0.87119333 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $ancova_slope_homogeneity_p</span></span>
-<span><span class="co">#&gt; [1] 0.8853772</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $notes</span></span>
-<span><span class="co">#&gt; [1] "Use Welch t for Groups 3 vs 4 if brown_forsythe_unpre_p &lt; .05 (you already do)."                                                            </span></span>
-<span><span class="co">#&gt; [2] "Prefer HC3 SEs (your default) if brown_forsythe_4cell_p &lt; .05."                                                                             </span></span>
-<span><span class="co">#&gt; [3] "If ancova_slope_homogeneity_p &lt; .05, ANCOVA assumption is violated; prefer the unified GLM with interaction terms or a permutation p-value."</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/JUhalt/solomonR" class="external-link">solomonR</a></span><span class="op">)</span></span></code></pre></div>
+<p><code>solomonR</code> is not yet on CRAN.</p>
+<hr>
 </div>
 <div class="section level2">
-<h2 id="what-you-get">What you get<a class="anchor" aria-label="anchor" href="#what-you-get"></a>
+<h2 id="a-60-second-analysis">A 60-second analysis<a class="anchor" aria-label="anchor" href="#a-60-second-analysis"></a>
 </h2>
+<p>The package includes a small example Solomon dataset:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">solomon_demo</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">solomon_demo</span><span class="op">)</span></span></code></pre></div>
+<p>The principal modern observed-variable analysis fits one unified model and estimates four Solomon-specific contrasts:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
+<span>    y <span class="op">=</span> <span class="va">y_post</span>,</span>
+<span>    treat <span class="op">=</span> <span class="va">treat</span>,</span>
+<span>    pretested <span class="op">=</span> <span class="va">pretested</span>,</span>
+<span>    pretest_score <span class="op">=</span> <span class="va">y_pre</span>,</span>
+<span>    robust <span class="op">=</span> <span class="st">"HC3"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit</span></span></code></pre></div>
+<p>The key estimands are:</p>
 <ul>
 <li>
-<strong>Key contrasts</strong> (ATE, pretest×treat, simple effects) with <strong>robust SEs</strong> and <strong>semi-partial R² (±CI)</strong>
-</li>
+<strong>ATE</strong> — the treatment effect averaged equally across the pretested and unpretested conditions;</li>
 <li>
-<strong>Hedges’ g (±CI)</strong> for Groups 3 vs 4 (posttest-only)</li>
+<strong>Pretest x Treatment</strong> — whether the treatment effect differs depending on pretesting;</li>
 <li>
-<strong>Permutation tests</strong> for contrasts, <strong>diagnostics</strong> (Brown–Forsythe, Shapiro by cell, ANCOVA slope homogeneity)</li>
+<strong>Treatment | pretested</strong> — the treatment effect among participants who received the pretest;</li>
 <li>
-<strong>Base plot + ggplot</strong> cell-means CIs</li>
+<strong>Treatment | unpretested</strong> — the treatment effect among participants who did not receive the pretest.</li>
 </ul>
-<p>See the vignettes:</p>
+<p>The model handles the structural absence of pretest scores in Groups 3 and 4 without discarding those groups.</p>
+<p>For Gaussian models, the output also reports a <strong>Wald-based partial R-squared</strong> for each one-degree-of-freedom contrast. With conventional OLS covariance this corresponds to the usual partial R-squared identity. With robust covariance estimation it should be interpreted as a descriptive Wald-based approximation.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="historical-solomon-analysis">Historical Solomon analysis<a class="anchor" aria-label="anchor" href="#historical-solomon-analysis"></a>
+</h2>
+<p>The historical analysis is retained because it is important to understand how the Solomon design developed and how it has traditionally been taught.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">classic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span></span>
+<span>    <span class="va">y_post</span>,</span>
+<span>    <span class="va">treat</span>,</span>
+<span>    <span class="va">pretested</span>,</span>
+<span>    <span class="va">y_pre</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">classic</span></span></code></pre></div>
+<p><code><a href="reference/fit_solomon_classic.html">fit_solomon_classic()</a></code> calculates the historical <strong>Tests A-I</strong> and shows the decision path that would have been reached under the traditional conditional workflow.</p>
+<p>The package distinguishes between:</p>
 <ul>
-<li>Classic Solomon Analysis (Teaching Flow)</li>
-<li>Unified GLM for Solomon Four-Group Designs</li>
+<li>tests that were <strong>calculated</strong>, and</li>
+<li>tests that were actually reached along the historical <strong>decision path</strong>.</li>
 </ul>
-<p>Why two paths?</p>
+<p>The historical Stouffer combination is included for teaching and replication, but it is <strong>not the default modern inferential recommendation</strong>. Later simulation work raised concerns about Type I error in conditional versions of this procedure.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="randomization-based-inference">Randomization-based inference<a class="anchor" aria-label="anchor" href="#randomization-based-inference"></a>
+</h2>
+<p>When treatment was genuinely randomized within the Solomon pretesting conditions, <code><a href="reference/perm_solomon.html">perm_solomon()</a></code> provides a treatment-label permutation test.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">perm</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/perm_solomon.html">perm_solomon</a></span><span class="op">(</span></span>
+<span>  <span class="va">fit</span>,</span>
+<span>  contrast <span class="op">=</span> <span class="st">"ATE (avg over pretest)"</span>,</span>
+<span>  reps <span class="op">=</span> <span class="fl">5000</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">123</span>,</span>
+<span>  return_dist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">perm</span></span></code></pre></div>
+<p>Treatment labels are permuted <strong>within the pretested and unpretested strata</strong>, preserving the Solomon design.</p>
+<p>The test uses an HC3-studentized statistic and a finite Monte Carlo correction for the permutation p-value.</p>
+<p>The permutation distribution can also be visualized:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/plot_perm.html">plot_perm</a></span><span class="op">(</span><span class="va">perm</span><span class="op">)</span></span></code></pre></div>
+<p>Randomization inference should reflect the design that actually generated the treatment assignments. Cluster-randomized studies require permutation at the appropriate randomization unit.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="full-information-maximum-likelihood">Full-information maximum likelihood<a class="anchor" aria-label="anchor" href="#full-information-maximum-likelihood"></a>
+</h2>
+<p><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> implements a full-information likelihood approach inspired by van Engelenburg’s treatment of the Solomon design.</p>
+<p>Unlike analyses that simply discard structurally missing pretests, the likelihood recognizes that Groups 3 and 4 were <strong>never intended to have pretest observations</strong>.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span></span>
+<span>    <span class="va">y_post</span>,</span>
+<span>    <span class="va">treat</span>,</span>
+<span>    <span class="va">pretested</span>,</span>
+<span>    <span class="va">y_pre</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">ml</span></span></code></pre></div>
+<p>The ML model estimates the same central Solomon quantities:</p>
 <ul>
-<li>classic = teaching/replication</li>
-<li>GLM = default for inference &amp; extensions</li>
+<li>average treatment effect;</li>
+<li>pretest-by-treatment interaction;</li>
+<li>treatment effect among pretested participants; and</li>
+<li>treatment effect among unpretested participants.</li>
 </ul>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="structural-equation-models">Structural equation models<a class="anchor" aria-label="anchor" href="#structural-equation-models"></a>
+</h2>
+<p><code>solomonR</code> also supports SEM formulations of the design through <code>lavaan</code>.</p>
+<div class="section level3">
+<h3 id="observed-variable-sem">Observed-variable SEM<a class="anchor" aria-label="anchor" href="#observed-variable-sem"></a>
+</h3>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sem_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="reference/fit_solomon_sem.html">fit_solomon_sem</a></span><span class="op">(</span></span>
+<span>    <span class="va">y_post</span>,</span>
+<span>    <span class="va">treat</span>,</span>
+<span>    <span class="va">pretested</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sem_fit</span></span></code></pre></div>
+<p>The four-group observed mean-structure model is saturated. Consequently, global indices such as CFI and RMSEA are <strong>not diagnostic of model fit</strong> for that model.</p>
+<p>An ANCOVA-style SEM can also be fit within the two pretested groups:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sem_ancova</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="reference/fit_solomon_sem.html">fit_solomon_sem</a></span><span class="op">(</span></span>
+<span>    <span class="va">y_post</span>,</span>
+<span>    <span class="va">treat</span>,</span>
+<span>    <span class="va">pretested</span>,</span>
+<span>    y_pre <span class="op">=</span> <span class="va">y_pre</span>,</span>
+<span>    ancova <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sem_ancova</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="latent-outcomes">Latent outcomes<a class="anchor" aria-label="anchor" href="#latent-outcomes"></a>
+</h3>
+<p>For multi-item outcomes, <code><a href="reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> estimates Solomon contrasts at the latent-variable level.</p>
+<p>Latent mean comparisons require <strong>scalar measurement invariance</strong> across the four Solomon groups. <code>solomonR</code> enforces this requirement rather than silently interpreting latent means from configural or metric-only models.</p>
+<p>See:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="op">?</span><span class="va">fit_solomon_sem_latent</span></span></code></pre></div>
+<p>for details.</p>
+<hr>
 </div>
 </div>
-
+<div class="section level2">
+<h2 id="diagnostics">Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics"></a>
+</h2>
+<p><code><a href="reference/check_solomon_assumptions.html">check_solomon_assumptions()</a></code> provides diagnostics relevant to common Solomon analyses, including:</p>
+<ul>
+<li>Brown-Forsythe variance checks;</li>
+<li>cell-level distribution summaries;</li>
+<li>ANCOVA slope-homogeneity assessment; and</li>
+<li>guidance for choosing more robust alternatives.</li>
+</ul>
+<p>These diagnostics are intended to inform analysis, not create a rigid sequence of statistical gatekeeping tests.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="reference/check_solomon_assumptions.html">check_solomon_assumptions</a></span><span class="op">(</span></span>
+<span>    <span class="va">y_post</span>,</span>
+<span>    <span class="va">treat</span>,</span>
+<span>    <span class="va">pretested</span>,</span>
+<span>    <span class="va">y_pre</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">checks</span></span></code></pre></div>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="which-analysis-should-i-use">Which analysis should I use?<a class="anchor" aria-label="anchor" href="#which-analysis-should-i-use"></a>
+</h2>
+<p>A useful starting point is:</p>
+<table class="table">
+<colgroup>
+<col width="55%">
+<col width="44%">
+</colgroup>
+<thead><tr>
+<th>Goal</th>
+<th>Suggested <code>solomonR</code> approach</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Modern primary analysis</td>
+<td><code><a href="reference/fit_solomon_glm.html">fit_solomon_glm()</a></code></td>
+</tr>
+<tr>
+<td>Randomization-based inference</td>
+<td><code><a href="reference/perm_solomon.html">perm_solomon()</a></code></td>
+</tr>
+<tr>
+<td>Full-information likelihood</td>
+<td><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code></td>
+</tr>
+<tr>
+<td>Teach or reproduce historical methods</td>
+<td><code><a href="reference/fit_solomon_classic.html">fit_solomon_classic()</a></code></td>
+</tr>
+<tr>
+<td>Observed-variable SEM</td>
+<td><code><a href="reference/fit_solomon_sem.html">fit_solomon_sem()</a></code></td>
+</tr>
+<tr>
+<td>Multi-item / latent outcome</td>
+<td><code><a href="reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code></td>
+</tr>
+<tr>
+<td>Model diagnostics</td>
+<td><code><a href="reference/check_solomon_assumptions.html">check_solomon_assumptions()</a></code></td>
+</tr>
+</tbody>
+</table>
+<p>For many ordinary randomized Solomon experiments with continuous outcomes, the unified GLM with clearly defined contrasts is a useful primary analysis.</p>
+<p>The historical Tests A-I remain valuable for understanding the development of the design, but they should not automatically be treated as the preferred contemporary analysis.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="important-statistical-notes">Important statistical notes<a class="anchor" aria-label="anchor" href="#important-statistical-notes"></a>
+</h2>
+<div class="section level3">
+<h3 id="a-nonsignificant-interaction-is-not-evidence-of-no-sensitization">A nonsignificant interaction is not evidence of no sensitization<a class="anchor" aria-label="anchor" href="#a-nonsignificant-interaction-is-not-evidence-of-no-sensitization"></a>
+</h3>
+<p>Failure to reject the pretest-by-treatment interaction does not establish that sensitization is absent. Equivalence-based approaches are planned for a future release.</p>
+</div>
+<div class="section level3">
+<h3 id="robust-covariance-and-wald-r-squared">Robust covariance and Wald R-squared<a class="anchor" aria-label="anchor" href="#robust-covariance-and-wald-r-squared"></a>
+</h3>
+<p>HC3 changes the covariance estimate used for inference. The associated Wald R-squared reported by <code>solomonR</code> is therefore a descriptive Wald-based quantity rather than an exact decomposition of model variance.</p>
+</div>
+<div class="section level3">
+<h3 id="cr2">CR2<a class="anchor" aria-label="anchor" href="#cr2"></a>
+</h3>
+<p>A CR2 covariance option is available for clustered data. Small-sample cluster-robust inference is an area of continued development and should be reported carefully.</p>
+</div>
+<div class="section level3">
+<h3 id="latent-means">Latent means<a class="anchor" aria-label="anchor" href="#latent-means"></a>
+</h3>
+<p>Latent Solomon mean contrasts require scalar measurement invariance. Partial invariance workflows are not yet automated.</p>
+</div>
+<div class="section level3">
+<h3 id="power">Power<a class="anchor" aria-label="anchor" href="#power"></a>
+</h3>
+<p>The current power-simulation helper is <strong>experimental</strong>. A redesigned Solomon-specific planning and power framework is scheduled for a later release and should be preferred once available.</p>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="package-philosophy">Package philosophy<a class="anchor" aria-label="anchor" href="#package-philosophy"></a>
+</h2>
+<p><code>solomonR</code> is organized around three layers.</p>
+<div class="section level3">
+<h3 id="id_1-history">1. History<a class="anchor" aria-label="anchor" href="#id_1-history"></a>
+</h3>
+<p>Preserve and reproduce the classical Solomon literature accurately.</p>
+</div>
+<div class="section level3">
+<h3 id="id_2-modern-analysis">2. Modern analysis<a class="anchor" aria-label="anchor" href="#id_2-modern-analysis"></a>
+</h3>
+<p>Provide unified regression, robust inference, randomization inference, and full-information likelihood methods.</p>
+</div>
+<div class="section level3">
+<h3 id="id_3-extensions">3. Extensions<a class="anchor" aria-label="anchor" href="#id_3-extensions"></a>
+</h3>
+<p>Develop SEM, latent-variable, longitudinal, generalized-outcome, design planning, visualization, and other modern Solomon methods while clearly distinguishing established methodology from package-specific extensions.</p>
+<p>The aim is to make the Solomon four-group design easier to <strong>teach, understand, analyze, and extend</strong> without erasing the methodological history that produced it.</p>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>
+</h2>
+<p>Development plans are maintained in <a href="ROADMAP.html"><code>ROADMAP.md</code></a>.</p>
+<p>Major planned additions include:</p>
+<ul>
+<li>sensitization equivalence testing;</li>
+<li>design validation and missingness diagnostics;</li>
+<li>method-comparison tools;</li>
+<li>Solomon-specific visualizations;</li>
+<li>redesigned sample-size and power planning;</li>
+<li>binary and count outcomes;</li>
+<li>clustered and longitudinal designs;</li>
+<li>expanded teaching and reporting tools.</li>
+</ul>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+</h2>
+<p>A formal package/methods manuscript is in development.</p>
+<p>For the installed package citation, use:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"solomonR"</span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<p>Braver, M. W., &amp; Braver, S. L. (1988). Statistical treatment of the Solomon four-group design: A meta-analytic approach. <em>Psychological Bulletin, 104</em>, 150-154.</p>
+<p>Huck, S. W., &amp; Sandler, H. M. (1973). A note on the Solomon 4-group design: Appropriate statistical analyses. <em>The Journal of Experimental Education, 42</em>, 54-55.</p>
+<p>Sawilowsky, S. S., Kelley, D. L., Blair, R. C., &amp; Markman, B. S. (1994). Meta-analysis and the Solomon four-group design. <em>The Journal of Experimental Education, 62</em>, 361-376.</p>
+<p>van Engelenburg, G. (1999). Statistical analysis for the Solomon four-group design.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
+</h2>
+<p>See the repository license for terms of use.</p>
+</div>
+</div>
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
@@ -379,7 +505,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

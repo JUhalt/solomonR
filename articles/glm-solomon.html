@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Unified GLM for Solomon Four-Group Designs • solomonR</title>
+<title>Modern Analysis of the Solomon Four-Group Design • solomonR</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Unified GLM for Solomon Four-Group Designs">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Modern Analysis of the Solomon Four-Group Design">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,10 +33,11 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/classic-solomon.html">Classic Solomon Analysis (Teaching Flow)</a></li>
-    <li><a class="dropdown-item" href="../articles/glm-solomon.html">Unified GLM for Solomon Four-Group Designs</a></li>
+<li><a class="dropdown-item" href="../articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -56,7 +57,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Unified GLM for Solomon Four-Group Designs</h1>
+      <h1>Modern Analysis of the Solomon Four-Group Design</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/vignettes/glm-solomon.Rmd" class="external-link"><code>vignettes/glm-solomon.Rmd</code></a></small>
@@ -65,37 +66,688 @@
 
     
     
-<p>A single GLM captures treatment, pretest indicator, their
-interaction, and an ANCOVA term for the <em>observed</em> pretest scores
-(only in pretested cells). We provide robust SEs and optional
-permutation p-values for small-N settings.</p>
+<div class="section level2">
+<h2 id="a-unified-approach">A unified approach<a class="anchor" aria-label="anchor" href="#a-unified-approach"></a>
+</h2>
+<p>The Solomon four-group design is often introduced through a sequence
+of separate analyses.</p>
+<p>A modern alternative is to represent the four-group design in a
+single model and estimate the scientifically relevant questions as
+explicit contrasts.</p>
+<p>For a continuous posttest outcome, the core model in
+<code>solomonR</code> is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Y</mi><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mi>T</mi></msub><mi>T</mi><mo>+</mo><msub><mi>β</mi><mi>P</mi></msub><mi>P</mi><mo>+</mo><msub><mi>β</mi><mrow><mi>T</mi><mi>P</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo>×</mo><mi>P</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><msub><mi>β</mi><mi>X</mi></msub><msub><mi>X</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">s</mi></mrow></msub><mo>+</mo><mi>ε</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">
+Y =
+\beta_0 +
+\beta_T T +
+\beta_P P +
+\beta_{TP}(T \times P) +
+\beta_X X_{\mathrm{obs}} +
+\varepsilon,
+</annotation></semantics></math></p>
+<p>where:</p>
+<ul>
+<li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+indicates treatment assignment;</li>
+<li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>P</mi><annotation encoding="application/x-tex">P</annotation></semantics></math>
+indicates whether a participant was pretested;</li>
+<li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>×</mo><mi>P</mi></mrow><annotation encoding="application/x-tex">T \times P</annotation></semantics></math>
+represents pretest sensitization; and</li>
+<li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">s</mi></mrow></msub><annotation encoding="application/x-tex">X_{\mathrm{obs}}</annotation></semantics></math>
+incorporates the pretest information available in the pretested
+groups.</li>
+</ul>
+<p><code>solomonR</code> then estimates four predefined Solomon
+contrasts from this model.</p>
+</div>
+<div class="section level2">
+<h2 id="structural-missingness-of-the-pretest">Structural missingness of the pretest<a class="anchor" aria-label="anchor" href="#structural-missingness-of-the-pretest"></a>
+</h2>
+<p>One unusual feature of the Solomon design deserves special
+attention.</p>
+<p>Participants in Groups 3 and 4 were deliberately <strong>not
+pretested</strong>. Their absent pretest values are therefore
+structurally missing by design.</p>
+<p>Simply placing the raw pretest variable into an ordinary regression
+formula can cause complete-case deletion of Groups 3 and 4, destroying
+the four-group design.</p>
+<p><code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> avoids this problem internally. For
+the optional pretest covariate, the model uses the observed pretest
+score among pretested participants and a design-safe value among
+participants for whom the pretest was never administered.</p>
+<p>The pretest indicator remains in the model, so this coding does not
+pretend that Groups 3 and 4 actually had baseline scores of zero.</p>
+</div>
+<div class="section level2">
+<h2 id="example-data">Example data<a class="anchor" aria-label="anchor" href="#example-data"></a>
+</h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/JUhalt/solomonR" class="external-link">solomonR</a></span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">30</span></span>
-<span><span class="va">pre</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">2</span><span class="op">*</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">trt</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>,<span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>,<span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>,<span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>,<span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">preI</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">*</span><span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">2</span><span class="op">*</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">y</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">4</span><span class="op">*</span><span class="va">n</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.4</span><span class="op">*</span><span class="va">trt</span> <span class="op">+</span> <span class="fl">0.2</span><span class="op">*</span><span class="va">preI</span><span class="op">*</span><span class="va">trt</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">preI</span><span class="op">==</span><span class="fl">1</span>, <span class="fl">0.5</span><span class="op">*</span><span class="va">pre</span>, <span class="fl">0</span><span class="op">)</span></span>
-<span><span class="va">fit</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">y</span>, <span class="va">trt</span>, <span class="va">preI</span>, <span class="va">pre</span>, robust <span class="op">=</span> <span class="st">"HC3"</span><span class="op">)</span></span>
-<span><span class="va">fit</span><span class="op">$</span><span class="va">effects</span></span></code></pre></div>
-<pre><code><span><span class="co">##                  contrast   estimate std.error  statistic    p.value</span></span>
-<span><span class="co">## 1  ATE (avg over pretest) -0.1670311 0.2603660 -0.6415241 0.52118223</span></span>
-<span><span class="co">## 2     Pretest x Treatment  0.7615756 0.3582305  2.1259373 0.03350848</span></span>
-<span><span class="co">## 3   Treatment | pretested  0.5945446 0.2460460  2.4163959 0.01567501</span></span>
-<span><span class="co">## 4 Treatment | unpretested -0.1670311 0.2603660 -0.6415241 0.52118223</span></span>
-<span><span class="co">##            r2        r2_lo      r2_hi</span></span>
-<span><span class="co">## 1 0.003565962 0.0555790906 0.01489043</span></span>
-<span><span class="co">## 2 0.037814795 0.0002394831 0.12676747</span></span>
-<span><span class="co">## 3 0.048320248 0.0018082899 0.14276679</span></span>
-<span><span class="co">## 4 0.003565962 0.0555790906 0.01489043</span></span></code></pre>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/perm_solomon.html">perm_solomon</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"Pretest x Treatment"</span>, reps <span class="op">=</span> <span class="fl">1000</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## $z_obs</span></span>
-<span><span class="co">## [1] 2.125937</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/JUhalt/solomonR" class="external-link">solomonR</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">solomon_demo</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">demo_preview</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fl">6</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">demo_preview</span><span class="op">$</span><span class="va">y_post</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span></span>
+<span>  <span class="va">demo_preview</span><span class="op">$</span><span class="va">y_post</span>,</span>
+<span>  <span class="fl">2</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">demo_preview</span><span class="op">$</span><span class="va">y_pre</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span></span>
+<span>  <span class="va">demo_preview</span><span class="op">$</span><span class="va">y_pre</span>,</span>
+<span>  <span class="fl">2</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="va">demo_preview</span>,</span>
+<span>  align <span class="op">=</span> <span class="st">"rrrr"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="right">y_post</th>
+<th align="right">treat</th>
+<th align="right">pretested</th>
+<th align="right">y_pre</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="right">58.27</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">63.71</td>
+</tr>
+<tr class="even">
+<td align="right">46.45</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">44.35</td>
+</tr>
+<tr class="odd">
+<td align="right">70.41</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">53.63</td>
+</tr>
+<tr class="even">
+<td align="right">61.19</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">56.33</td>
+</tr>
+<tr class="odd">
+<td align="right">55.57</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">54.04</td>
+</tr>
+<tr class="even">
+<td align="right">57.24</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">48.94</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="fit-the-model">Fit the model<a class="anchor" aria-label="anchor" href="#fit-the-model"></a>
+</h2>
+<p>A useful default for continuous outcomes is the unified model with
+HC3 heteroskedasticity-robust covariance estimation.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
+<span>    y <span class="op">=</span> <span class="va">y_post</span>,</span>
+<span>    treat <span class="op">=</span> <span class="va">treat</span>,</span>
+<span>    pretested <span class="op">=</span> <span class="va">pretested</span>,</span>
+<span>    pretest_score <span class="op">=</span> <span class="va">y_pre</span>,</span>
+<span>    robust <span class="op">=</span> <span class="st">"HC3"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit</span></span></code></pre></div>
+<pre><code><span><span class="co">## Solomon GLM (unified model)</span></span>
+<span><span class="co">## Formula: y ~ treat * pretested + pre_obs</span></span>
 <span><span class="co">## </span></span>
-<span><span class="co">## $p_perm</span></span>
-<span><span class="co">## [1] 0.035</span></span></code></pre>
-  </main>
+<span><span class="co">## Term             Est (SE)            z      p</span></span>
+<span><span class="co">## (Intercept)      48.387 (1.705)  28.37  &lt;.001</span></span>
+<span><span class="co">## treat            4.700 (2.705)    1.74  0.082</span></span>
+<span><span class="co">## pretested        10.082 (6.067)   1.66  0.097</span></span>
+<span><span class="co">## pre_obs          -0.168 (0.121)  -1.39  0.165</span></span>
+<span><span class="co">## treat:pretested  1.566 (3.731)    0.42  0.675</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Key contrasts            Est (SE)          z      p  Wald R2</span></span>
+<span><span class="co">## ATE (avg over pretest)   5.483 (1.865)  2.94  0.003    0.083</span></span>
+<span><span class="co">## Pretest x Treatment      1.566 (3.731)  0.42  0.675    0.002</span></span>
+<span><span class="co">## Treatment | pretested    6.266 (2.569)  2.44  0.015    0.059</span></span>
+<span><span class="co">## Treatment | unpretested  4.700 (2.705)  1.74  0.082    0.031</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Wald R2: partial R-squared for conventional Gaussian OLS;</span></span>
+<span><span class="co">## a Wald-based descriptive approximation when robust covariance is used.</span></span></code></pre>
+<p>The output contains model coefficients followed by the four principal
+Solomon contrasts.</p>
+<p>The contrasts can also be accessed directly:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">effects_display</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span></span>
+<span>  ,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="st">"contrast"</span>,</span>
+<span>    <span class="st">"estimate"</span>,</span>
+<span>    <span class="st">"std.error"</span>,</span>
+<span>    <span class="st">"statistic"</span>,</span>
+<span>    <span class="st">"p.value"</span>,</span>
+<span>    <span class="st">"r2"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">effects_display</span><span class="op">$</span><span class="va">estimate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
+<span>  <span class="st">"%.2f"</span>,</span>
+<span>  <span class="va">effects_display</span><span class="op">$</span><span class="va">estimate</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">effects_display</span><span class="op">$</span><span class="va">std.error</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
+<span>  <span class="st">"%.2f"</span>,</span>
+<span>  <span class="va">effects_display</span><span class="op">$</span><span class="va">std.error</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">effects_display</span><span class="op">$</span><span class="va">statistic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
+<span>  <span class="st">"%.2f"</span>,</span>
+<span>  <span class="va">effects_display</span><span class="op">$</span><span class="va">statistic</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">effects_display</span><span class="op">$</span><span class="va">p.value</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span></span>
+<span>  <span class="va">effects_display</span><span class="op">$</span><span class="va">p.value</span> <span class="op">&lt;</span> <span class="fl">.001</span>,</span>
+<span>  <span class="st">"&lt; .001"</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span></span>
+<span>    <span class="st">"^0"</span>,</span>
+<span>    <span class="st">""</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
+<span>      <span class="st">"%.3f"</span>,</span>
+<span>      <span class="va">effects_display</span><span class="op">$</span><span class="va">p.value</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">effects_display</span><span class="op">$</span><span class="va">r2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span></span>
+<span>  <span class="st">"^0"</span>,</span>
+<span>  <span class="st">""</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
+<span>    <span class="st">"%.3f"</span>,</span>
+<span>    <span class="va">effects_display</span><span class="op">$</span><span class="va">r2</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">effects_display</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"Contrast"</span>,</span>
+<span>  <span class="st">"Estimate"</span>,</span>
+<span>  <span class="st">"SE"</span>,</span>
+<span>  <span class="st">"z"</span>,</span>
+<span>  <span class="st">"p"</span>,</span>
+<span>  <span class="st">"Wald R2"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="va">effects_display</span>,</span>
+<span>  align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="st">"l"</span>,</span>
+<span>    <span class="st">"r"</span>,</span>
+<span>    <span class="st">"r"</span>,</span>
+<span>    <span class="st">"r"</span>,</span>
+<span>    <span class="st">"r"</span>,</span>
+<span>    <span class="st">"r"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="left">Contrast</th>
+<th align="right">Estimate</th>
+<th align="right">SE</th>
+<th align="right">z</th>
+<th align="right">p</th>
+<th align="right">Wald R2</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">ATE (avg over pretest)</td>
+<td align="right">5.48</td>
+<td align="right">1.87</td>
+<td align="right">2.94</td>
+<td align="right">.003</td>
+<td align="right">.083</td>
+</tr>
+<tr class="even">
+<td align="left">Pretest x Treatment</td>
+<td align="right">1.57</td>
+<td align="right">3.73</td>
+<td align="right">0.42</td>
+<td align="right">.675</td>
+<td align="right">.002</td>
+</tr>
+<tr class="odd">
+<td align="left">Treatment | pretested</td>
+<td align="right">6.27</td>
+<td align="right">2.57</td>
+<td align="right">2.44</td>
+<td align="right">.015</td>
+<td align="right">.059</td>
+</tr>
+<tr class="even">
+<td align="left">Treatment | unpretested</td>
+<td align="right">4.70</td>
+<td align="right">2.71</td>
+<td align="right">1.74</td>
+<td align="right">.082</td>
+<td align="right">.031</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="the-four-solomon-estimands">The four Solomon estimands<a class="anchor" aria-label="anchor" href="#the-four-solomon-estimands"></a>
+</h2>
+<div class="section level3">
+<h3 id="average-treatment-effect">Average treatment effect<a class="anchor" aria-label="anchor" href="#average-treatment-effect"></a>
+</h3>
+<p>The reported ATE is the treatment effect averaged equally over the
+two pretest conditions:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>T</mi><mi>E</mi><mo>=</mo><msub><mi>β</mi><mi>T</mi></msub><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><msub><mi>β</mi><mrow><mi>T</mi><mi>P</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+ATE =
+\beta_T +
+\frac{1}{2}\beta_{TP}.
+</annotation></semantics></math></p>
+<p>This distinction is important.</p>
+<p>With the unpretested condition used as the reference group,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mi>T</mi></msub><annotation encoding="application/x-tex">\beta_T</annotation></semantics></math>
+by itself is the treatment effect among <strong>unpretested</strong>
+participants. It is not the equal-weighted Solomon ATE.</p>
+</div>
+<div class="section level3">
+<h3 id="pretest-x-treatment">Pretest x Treatment<a class="anchor" aria-label="anchor" href="#pretest-x-treatment"></a>
+</h3>
+<p>The sensitization contrast is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mrow><mi>T</mi><mi>P</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\beta_{TP}.
+</annotation></semantics></math></p>
+<p>It asks whether the treatment effect differs according to whether the
+pretest was administered.</p>
+<p>A statistically nonsignificant interaction should not be interpreted
+as proof that sensitization is absent. Formal equivalence procedures for
+that stronger question are planned for a future version of
+<code>solomonR</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="treatment-effect-among-pretested-participants">Treatment effect among pretested participants<a class="anchor" aria-label="anchor" href="#treatment-effect-among-pretested-participants"></a>
+</h3>
+<p>The treatment effect among participants who received the pretest
+is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mi>T</mi></msub><mo>+</mo><msub><mi>β</mi><mrow><mi>T</mi><mi>P</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\beta_T + \beta_{TP}.
+</annotation></semantics></math></p>
+</div>
+<div class="section level3">
+<h3 id="treatment-effect-among-unpretested-participants">Treatment effect among unpretested participants<a class="anchor" aria-label="anchor" href="#treatment-effect-among-unpretested-participants"></a>
+</h3>
+<p>The treatment effect among participants who did not receive the
+pretest is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mi>T</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\beta_T.
+</annotation></semantics></math></p>
+<p>Together, these contrasts describe both the treatment effect and its
+possible modification by pretesting.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="why-hc3">Why HC3?<a class="anchor" aria-label="anchor" href="#why-hc3"></a>
+</h2>
+<p>The <code>robust</code> argument controls covariance estimation.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
+<span>  <span class="va">y_post</span>,</span>
+<span>  <span class="va">treat</span>,</span>
+<span>  <span class="va">pretested</span>,</span>
+<span>  <span class="va">y_pre</span>,</span>
+<span>  robust <span class="op">=</span> <span class="st">"none"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
+<span>  <span class="va">y_post</span>,</span>
+<span>  <span class="va">treat</span>,</span>
+<span>  <span class="va">pretested</span>,</span>
+<span>  <span class="va">y_pre</span>,</span>
+<span>  robust <span class="op">=</span> <span class="st">"HC3"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>HC3 provides heteroskedasticity-robust standard errors and is a
+useful default when equal residual variances are uncertain.</p>
+<p>A CR2 covariance option is also available for clustered data:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
+<span>  <span class="va">y_post</span>,</span>
+<span>  <span class="va">treat</span>,</span>
+<span>  <span class="va">pretested</span>,</span>
+<span>  <span class="va">y_pre</span>,</span>
+<span>  robust <span class="op">=</span> <span class="st">"CR2"</span>,</span>
+<span>  cluster <span class="op">=</span> <span class="va">cluster_id</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The current CR2 option supplies cluster-robust covariance estimation.
+Small-sample cluster-robust inference requires additional care, so CR2
+results should not yet be interpreted as a complete small-sample
+Satterthwaite procedure.</p>
+</div>
+<div class="section level2">
+<h2 id="wald-based-partial-r-squared">Wald-based partial R-squared<a class="anchor" aria-label="anchor" href="#wald-based-partial-r-squared"></a>
+</h2>
+<p>For Gaussian models, <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> reports a
+Wald-based partial
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>R</mi><mn>2</mn></msup><annotation encoding="application/x-tex">R^2</annotation></semantics></math>
+for each one-degree-of-freedom contrast.</p>
+<p>With conventional Gaussian OLS covariance,</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>R</mi><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow><mn>2</mn></msubsup><mo>=</mo><mfrac><msup><mi>t</mi><mn>2</mn></msup><mrow><msup><mi>t</mi><mn>2</mn></msup><mo>+</mo><mi>d</mi><msub><mi>f</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+R^2_{\mathrm{partial}} =
+\frac{t^2}{t^2 + df_{\mathrm{residual}}}.
+</annotation></semantics></math></p>
+<p>When a robust covariance estimator such as HC3 is used,
+<code>solomonR</code> applies the same transformation to the robust Wald
+statistic. In that case the result should be interpreted as a
+<strong>descriptive Wald-based approximation</strong>, not an exact
+decomposition of model variance.</p>
+<p>Confidence intervals for this quantity are not currently
+reported.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">r2_display</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span></span>
+<span>  ,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="st">"contrast"</span>,</span>
+<span>    <span class="st">"r2"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">r2_display</span><span class="op">$</span><span class="va">r2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span></span>
+<span>  <span class="st">"^0"</span>,</span>
+<span>  <span class="st">""</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
+<span>    <span class="st">"%.3f"</span>,</span>
+<span>    <span class="va">r2_display</span><span class="op">$</span><span class="va">r2</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">r2_display</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"Contrast"</span>,</span>
+<span>  <span class="st">"Wald R2"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="va">r2_display</span>,</span>
+<span>  align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"l"</span>, <span class="st">"r"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="left">Contrast</th>
+<th align="right">Wald R2</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">ATE (avg over pretest)</td>
+<td align="right">.083</td>
+</tr>
+<tr class="even">
+<td align="left">Pretest x Treatment</td>
+<td align="right">.002</td>
+</tr>
+<tr class="odd">
+<td align="left">Treatment | pretested</td>
+<td align="right">.059</td>
+</tr>
+<tr class="even">
+<td align="left">Treatment | unpretested</td>
+<td align="right">.031</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="diagnostics">Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics"></a>
+</h2>
+<p>The package provides design-relevant diagnostics through
+<code><a href="../reference/check_solomon_assumptions.html">check_solomon_assumptions()</a></code>.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="../reference/check_solomon_assumptions.html">check_solomon_assumptions</a></span><span class="op">(</span></span>
+<span>    <span class="va">y_post</span>,</span>
+<span>    <span class="va">treat</span>,</span>
+<span>    <span class="va">pretested</span>,</span>
+<span>    <span class="va">y_pre</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">checks</span></span></code></pre></div>
+<pre><code><span><span class="co">## Assumption checks (alpha = .05)</span></span>
+<span><span class="co">##   HoV across 4 posttest cells (Brown-Forsythe): p = 0.885  -&gt; OK</span></span>
+<span><span class="co">##   HoV in unpretested cells (Welch target):       p = 0.541  -&gt; OK</span></span>
+<span><span class="co">##   Normality by cell (Shapiro, min p):            p = 0.030  -&gt; FLAG</span></span>
+<span><span class="co">##   ANCOVA slope homogeneity (pretested):          p = 0.636  -&gt; OK</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Recommendations:</span></span>
+<span><span class="co">##   * Robust SEs (HC3): fine</span></span>
+<span><span class="co">##   * Welch t for groups 3-4: fine</span></span>
+<span><span class="co">##   * Permutation p-values: consider</span></span></code></pre>
+<p>These include variance checks, cell-level distribution summaries, and
+assessment of ANCOVA slope homogeneity.</p>
+<p>Diagnostics should inform analysis choices rather than be treated as
+a mechanical series of pass/fail gates.</p>
+</div>
+<div class="section level2">
+<h2 id="randomization-based-inference">Randomization-based inference<a class="anchor" aria-label="anchor" href="#randomization-based-inference"></a>
+</h2>
+<p>If treatment assignment was genuinely randomized within the Solomon
+pretesting conditions, treatment-label permutation provides another
+inferential approach.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">perm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/perm_solomon.html">perm_solomon</a></span><span class="op">(</span></span>
+<span>  <span class="va">fit</span>,</span>
+<span>  contrast <span class="op">=</span> <span class="st">"ATE (avg over pretest)"</span>,</span>
+<span>  reps <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">42</span>,</span>
+<span>  return_dist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">perm</span></span></code></pre></div>
+<pre><code><span><span class="co">## Solomon randomization test</span></span>
+<span><span class="co">## --------------------------</span></span>
+<span><span class="co">## Contrast: ATE (avg over pretest)</span></span>
+<span><span class="co">## Observed studentized statistic: z = 2.94</span></span>
+<span><span class="co">## Permutation p = .002</span></span>
+<span><span class="co">## Valid permutations: 1000 of 1000</span></span>
+<span><span class="co">## Permutation distribution retained (1000 draws); use plot_perm() to visualize it.</span></span></code></pre>
+<p><code><a href="../reference/perm_solomon.html">perm_solomon()</a></code> shuffles treatment labels <strong>within
+pretest strata</strong>. This preserves the number of treated and
+control participants within the pretested and unpretested portions of
+the design.</p>
+<p>The test uses an HC3-studentized statistic.</p>
+<p>Its Monte Carlo p-value uses a finite-simulation correction:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mfrac><mrow><msub><mi>B</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">e</mi></mrow></msub><mo>+</mo><mn>1</mn></mrow><mrow><msub><mi>B</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">d</mi></mrow></msub><mo>+</mo><mn>1</mn></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+p =
+\frac{B_{\mathrm{extreme}} + 1}
+     {B_{\mathrm{valid}} + 1}.
+</annotation></semantics></math></p>
+<p>This prevents an estimated permutation p-value of exactly zero.</p>
+<p>The null distribution can be visualized with:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_perm.html">plot_perm</a></span><span class="op">(</span><span class="va">perm</span><span class="op">)</span></span></code></pre></div>
+<p><img src="glm-solomon_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="672"></p>
+<p>Randomization inference is justified by the assignment mechanism, not
+merely by a small sample size. If treatment was randomized at the
+cluster level, permutation should likewise occur at the cluster rather
+than individual level.</p>
+</div>
+<div class="section level2">
+<h2 id="a-likelihood-based-alternative">A likelihood-based alternative<a class="anchor" aria-label="anchor" href="#a-likelihood-based-alternative"></a>
+</h2>
+<p><code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> provides a full-information
+maximum-likelihood analysis inspired by van Engelenburg’s treatment of
+the Solomon four-group design.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="../reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span></span>
+<span>    <span class="va">y_post</span>,</span>
+<span>    <span class="va">treat</span>,</span>
+<span>    <span class="va">pretested</span>,</span>
+<span>    <span class="va">y_pre</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">ml</span></span></code></pre></div>
+<pre><code><span><span class="co">## Solomon full-information maximum-likelihood model</span></span>
+<span><span class="co">## -------------------------------------------------</span></span>
+<span><span class="co">## Method: van Engelenburg (1999)</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Centered pretest mean: 49.643</span></span>
+<span><span class="co">## Residual SD, unpretested: 9.182</span></span>
+<span><span class="co">## Residual SD, pretested:   8.849</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Key Solomon estimands</span></span>
+<span><span class="co">## ---------------------</span></span>
+<span><span class="co">## ATE (avg over pretest)       5.483 (SE = 1.821), z = 3.01, p = 0.003</span></span>
+<span><span class="co">## Pretest x Treatment          1.566 (SE = 3.641), z = 0.43, p = 0.667</span></span>
+<span><span class="co">## Treatment | pretested        6.266 (SE = 2.552), z = 2.45, p = 0.014</span></span>
+<span><span class="co">## Treatment | unpretested      4.700 (SE = 2.597), z = 1.81, p = 0.070</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## logLik = -361.77; optimizer convergence = 0</span></span></code></pre>
+<p>A useful feature of the likelihood formulation is that the
+structurally absent pretests in Groups 3 and 4 are treated as part of
+the design rather than as ordinary missing baseline observations.</p>
+<p>The ML and GLM approaches target closely related Solomon effects but
+use different assumptions for uncertainty estimation.</p>
+</div>
+<div class="section level2">
+<h2 id="historical-analysis">Historical analysis<a class="anchor" aria-label="anchor" href="#historical-analysis"></a>
+</h2>
+<p>For teaching or reproducing the classical Tests A-I workflow,
+use:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">classic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
+<span>  <span class="va">solomon_demo</span>,</span>
+<span>  <span class="fu"><a href="../reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span></span>
+<span>    <span class="va">y_post</span>,</span>
+<span>    <span class="va">treat</span>,</span>
+<span>    <span class="va">pretested</span>,</span>
+<span>    <span class="va">y_pre</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">classic</span></span></code></pre></div>
+<pre><code><span><span class="co">## Classic Solomon analysis (historical teaching workflow)</span></span>
+<span><span class="co">## -------------------------------------------------------</span></span>
+<span><span class="co">## Selected pretested-group method: Test E (ancova)</span></span>
+<span><span class="co">## Historical decision path: A -&gt; D</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Historical Tests A-I</span></span>
+<span><span class="co">## --------------------</span></span>
+<span><span class="co">## All tests are shown below. Tests marked [PATH] were reached by</span></span>
+<span><span class="co">## the historical decision sequence for these data.</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## [PATH] Test A: Pretest x Treatment interaction               F(1, 96) = 0.05, p = 0.827</span></span>
+<span><span class="co">##        Test B: Treatment effect among pretested groups       F(1, 96) = 4.39, p = 0.039</span></span>
+<span><span class="co">##        Test C: Treatment effect among unpretested groups     F(1, 96) = 3.19, p = 0.077</span></span>
+<span><span class="co">## [PATH] Test D: Treatment main effect                         F(1, 96) = 7.54, p = 0.007</span></span>
+<span><span class="co">##        Test E: ANCOVA treatment effect                       F(1, 47) = 5.66, p = 0.021</span></span>
+<span><span class="co">##        Test F: Gain-score treatment effect                   F(1, 48) = 0.05, p = 0.818</span></span>
+<span><span class="co">##        Test G: Repeated-measures Treatment x Time interaction F(1, 48) = 0.05, p = 0.818</span></span>
+<span><span class="co">##        Test H: Posttest-only treatment effect                t(48) = 1.77, p = 0.083</span></span>
+<span><span class="co">##        Test I: E + H (ANCOVA + posttest-only)                Z = 2.85, p(one-tailed) = 0.002</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Historical interpretation</span></span>
+<span><span class="co">## -------------------------</span></span>
+<span><span class="co">## Historical pathway: no evidence of pretest sensitization and the treatment main effect is significant. </span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Groups 3-4 effect size: Hedges g = 0.494, 95% CI [-0.069, 1.057]</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Caution: Test I is reproduced for historical teaching and replication.</span></span>
+<span><span class="co">## Later simulation work raised concerns about Type I error for the</span></span>
+<span><span class="co">## conditional meta-analytic sequence; it is not the default modern</span></span>
+<span><span class="co">## inferential recommendation in solomonR.</span></span></code></pre>
+<p>See:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"classic-solomon"</span>, package <span class="op">=</span> <span class="st">"solomonR"</span><span class="op">)</span></span></code></pre></div>
+<p>for a detailed explanation of the historical sequence and its
+limitations.</p>
+</div>
+<div class="section level2">
+<h2 id="sem-extensions">SEM extensions<a class="anchor" aria-label="anchor" href="#sem-extensions"></a>
+</h2>
+<p><code>solomonR</code> also includes observed- and latent-variable SEM
+approaches.</p>
+<p>An observed four-group mean model can be fit with:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/fit_solomon_sem.html">fit_solomon_sem</a></span><span class="op">(</span></span>
+<span>  <span class="va">y_post</span>,</span>
+<span>  <span class="va">treat</span>,</span>
+<span>  <span class="va">pretested</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The unrestricted four-group observed mean model is saturated, so
+global fit indices are not diagnostic for that model.</p>
+<p>For multi-item outcomes, <code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code>
+provides latent Solomon contrasts. Latent mean comparisons require
+scalar measurement invariance across the four Solomon groups.</p>
+<p>These SEM tools extend the same basic estimands used throughout the
+package:</p>
+<ul>
+<li>ATE;</li>
+<li>pretest sensitization;</li>
+<li>treatment effect among pretested participants; and</li>
+<li>treatment effect among unpretested participants.</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="choosing-an-analysis">Choosing an analysis<a class="anchor" aria-label="anchor" href="#choosing-an-analysis"></a>
+</h2>
+<p>For many randomized Solomon studies with continuous outcomes, a
+useful workflow is:</p>
+<ol style="list-style-type: decimal">
+<li>describe the four groups and inspect the data;</li>
+<li>fit the unified GLM with prespecified contrasts;</li>
+<li>examine the pretest-by-treatment contrast directly;</li>
+<li>inspect diagnostics;</li>
+<li>use randomization inference when justified by the treatment
+assignment mechanism; and</li>
+<li>use ML or SEM when the scientific question or measurement structure
+warrants those approaches.</li>
+</ol>
+<p>The historical decision tree remains valuable for teaching, but a
+modern analysis does not need to choose its inferential procedure based
+on whether an earlier significance test crossed
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>.05</mn></mrow><annotation encoding="application/x-tex">p=.05</annotation></semantics></math>.</p>
+</div>
+<div class="section level2">
+<h2 id="where-solomonr-is-heading">Where solomonR is heading<a class="anchor" aria-label="anchor" href="#where-solomonr-is-heading"></a>
+</h2>
+<p>The package is under active development.</p>
+<p>Planned additions include:</p>
+<ul>
+<li>equivalence testing for pretest sensitization;</li>
+<li>automated design validation;</li>
+<li>structural-versus-incidental missingness diagnostics;</li>
+<li>method-comparison tools;</li>
+<li>Solomon-specific visualization;</li>
+<li>redesigned power and sample-size planning;</li>
+<li>generalized outcomes;</li>
+<li>clustered and longitudinal extensions; and</li>
+<li>expanded SEM workflows.</li>
+</ul>
+<p>See <code>ROADMAP.md</code> in the package repository for the current
+development plan.</p>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 
@@ -105,7 +757,7 @@ permutation p-values for small-N settings.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>
