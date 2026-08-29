@@ -24,3 +24,7 @@ reference:
   - title: "Package"
     contents:
       - starts_with("solomonR")
+  - title: "SEM"
+    contents:
+      - fit_solomon_sem
+      - fit_solomon_sem_latent

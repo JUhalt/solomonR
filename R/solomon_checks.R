@@ -1,4 +1,4 @@
-# Brown–Forsythe (median-based Levene) without new deps
+# Brown-Forsythe (median-based Levene) without new deps
 bf_test <- function(y, group) {
   group <- factor(group)
   med <- tapply(y, group, stats::median, na.rm = TRUE)
@@ -18,7 +18,7 @@ check_solomon_assumptions <- function(y_post, treat, pretested, y_pre) {
   df <- data.frame(y_post, treat=factor(treat), pretested=factor(pretested))
   df$cell <- interaction(df$pretested, df$treat, drop = TRUE)
 
-  # (1) Heteroscedasticity across the four posttest cells (Brown–Forsythe)
+  # (1) Heteroscedasticity across the four posttest cells (Brown-Forsythe)
   p_bf4 <- bf_test(df$y_post, df$cell)
 
   # (2) Heteroscedasticity in posttest-only cells (Groups 3 vs 4) for Welch t transparency
@@ -52,22 +52,22 @@ print.solomon_checks <- function(x, ...) {
   p_fmt <- function(p) ifelse(is.na(p), "NA", ifelse(p < .001, "<.001", sprintf("%.3f", p)))
   ok <- function(flag) ifelse(flag, "OK", "FLAG")
 
-  line("Assumption checks (α = .05)")
+  line("Assumption checks (alpha = .05)")
   bf4_ok  <- !is.na(x$brown_forsythe_4cell_p) && x$brown_forsythe_4cell_p >= .05
   bfu_ok  <- !is.na(x$brown_forsythe_unpre_p) && x$brown_forsythe_unpre_p >= .05
   shp_min <- suppressWarnings(min(x$shapiro_p_by_cell, na.rm = TRUE))
   shp_ok  <- is.finite(shp_min) && shp_min >= .05
   slp_ok  <- !is.na(x$ancova_slope_homogeneity_p) && x$ancova_slope_homogeneity_p >= .05
 
-  line("  HoV across 4 posttest cells (Brown–Forsythe): p = %s  -> %s", p_fmt(x$brown_forsythe_4cell_p), ok(bf4_ok))
+  line("  HoV across 4 posttest cells (Brown-Forsythe): p = %s  -> %s", p_fmt(x$brown_forsythe_4cell_p), ok(bf4_ok))
   line("  HoV in unpretested cells (Welch target):       p = %s  -> %s", p_fmt(x$brown_forsythe_unpre_p),  ok(bfu_ok))
   line("  Normality by cell (Shapiro, min p):            p = %s  -> %s", p_fmt(shp_min),                   ok(shp_ok))
   line("  ANCOVA slope homogeneity (pretested):          p = %s  -> %s", p_fmt(x$ancova_slope_homogeneity_p), ok(slp_ok))
 
   line("")
   line("Recommendations:")
-  line("  • Robust SEs (HC3): %s", ifelse(bf4_ok, "fine", "recommended"))
-  line("  • Welch t for groups 3–4: %s", ifelse(bfu_ok, "fine", "recommended (package uses Welch)"))
-  line("  • Permutation p-values: %s", ifelse(all(bf4_ok, bfu_ok, shp_ok, slp_ok), "optional", "consider"))
+  line("  * Robust SEs (HC3): %s", ifelse(bf4_ok, "fine", "recommended"))
+  line("  * Welch t for groups 3-4: %s", ifelse(bfu_ok, "fine", "recommended (package uses Welch)"))
+  line("  * Permutation p-values: %s", ifelse(all(bf4_ok, bfu_ok, shp_ok, slp_ok), "optional", "consider"))
   invisible(x)
 }

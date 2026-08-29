@@ -1,4 +1,12 @@
-#' Plot Solomon posttest cell means with 95% CIs
+#' Plot Solomon Posttest Cell Means
+#'
+#' Displays posttest means and 95% confidence intervals for the four cells
+#' of a Solomon four-group design.
+#'
+#' @param y Numeric vector of posttest scores.
+#' @param treat Treatment indicator coded 0 = control and 1 = treatment.
+#' @param pretested Pretest indicator coded 0 = not pretested and 1 = pretested.
+#' @return Invisibly returns a data frame containing cell summaries.
 #' @export
 plot_solomon <- function(y, treat, pretested) {
   df <- data.frame(y=y, treat=factor(treat), pretested=factor(pretested))
@@ -9,14 +17,15 @@ plot_solomon <- function(y, treat, pretested) {
   agg$lo <- agg$mean - z*agg$se
   agg$hi <- agg$mean + z*agg$se
   # base R plot to avoid extra deps
-  op <- par(mar=c(4,4,1,1)); on.exit(par(op))
+  op <- graphics::par(mar = c(4, 4, 1, 1))
+  on.exit(graphics::par(op))
   xpos <- c(1,2,4,5)  # spacing between pretested strata
   ord <- with(agg, order(pretested, treat))
   agg <- agg[ord,]; agg$x <- xpos
-  plot(NA, xlim=c(.5,5.5), ylim=range(c(agg$lo, agg$hi)),
+  graphics::plot(NA, xlim=c(.5,5.5), ylim=range(c(agg$lo, agg$hi)),
        xlab="Group (Pretested vs Unpretested; Control vs Treat)", ylab="Posttest mean")
-  segments(agg$x, agg$lo, agg$x, agg$hi)
-  points(agg$x, agg$mean, pch=19)
-  axis(1, at=xpos, labels=c("Pre:C","Pre:T","Un:C","Un:T"))
+  graphics::segments(agg$x, agg$lo, agg$x, agg$hi)
+  graphics::points(agg$x, agg$mean, pch=19)
+  graphics::axis(1, at=xpos, labels=c("Pre:C","Pre:T","Un:C","Un:T"))
   invisible(agg)
 }

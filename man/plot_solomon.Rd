@@ -2,10 +2,21 @@
 % Please edit documentation in R/solomon_plot.R
 \name{plot_solomon}
 \alias{plot_solomon}
-\title{Plot Solomon posttest cell means with 95\% CIs}
+\title{Plot Solomon Posttest Cell Means}
 \usage{
 plot_solomon(y, treat, pretested)
 }
+\arguments{
+\item{y}{Numeric vector of posttest scores.}
+
+\item{treat}{Treatment indicator coded 0 = control and 1 = treatment.}
+
+\item{pretested}{Pretest indicator coded 0 = not pretested and 1 = pretested.}
+}
+\value{
+Invisibly returns a data frame containing cell summaries.
+}
 \description{
-Plot Solomon posttest cell means with 95\% CIs
+Displays posttest means and 95\% confidence intervals for the four cells
+of a Solomon four-group design.
 }

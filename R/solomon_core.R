@@ -162,6 +162,9 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 #'   following Braver & Braver’s “Test I” (use with documented homogeneity assumptions)
 #' @return a list of model tables and decisions
 #' @export
+#' @param stouffer_direction Character; direction of the one-tailed treatment
+#'   hypothesis used when computing the optional Stouffer combination.
+#'   One of `"greater"` or `"less"`.
 fit_solomon_classic <- function(y_post, treat, pretested, y_pre,
                                 combine_with_stouffer = FALSE,
                                 stouffer_direction = c("greater","less")) {
@@ -246,41 +249,19 @@ perm_solomon <- function(object,
 
   # permute treatment labels within pretested strata
   z_perm <- numeric(reps)
-  for (i in seq_len(reps)) {
-    df$tre_perm <- ave(df$treat, df$pretested, FUN = function(x) sample(x, length(x)))
-    f  <- stats::glm(form,
-                     data = transform(df, treat = tre_perm),
-                     family = fam,
-                     na.action = stats::na.exclude)
-    est <- stats::coef(f)
-    vc  <- sandwich::vcovHC(f, type = "HC3")
+  df_perm <- df
+  df_perm$treat <- stats::ave(
+    df$treat,
+    df$pretested,
+    FUN = function(x) sample(x, length(x))
+  )
 
-    getZ <- function(L) {
-      L <- matrix(L, nrow = 1)
-      estv <- as.numeric(L %*% est)
-      sev  <- sqrt(as.numeric(L %*% vc %*% t(L)))
-      estv / sev
-    }
-
-    cn <- names(est)
-    Z  <- function() { v <- numeric(length(cn)); names(v) <- cn; v }
-
-    if (contrast == "ATE (avg over pretest)") {
-      L <- Z(); L["treat"] <- 1
-      z_perm[i] <- getZ(L)
-    } else if (contrast == "Pretest x Treatment") {
-      L <- Z(); L["treat:pretested"] <- 1
-      z_perm[i] <- getZ(L)
-    } else if (contrast == "Treatment | pretested") {
-      L <- Z(); L["treat"] <- 1; L["treat:pretested"] <- if ("treat:pretested" %in% cn) 1 else 0
-      z_perm[i] <- getZ(L)
-    } else if (contrast == "Treatment | unpretested") {
-      L <- Z(); L["treat"] <- 1
-      z_perm[i] <- getZ(L)
-    } else {
-      stop("Unknown contrast: ", contrast)
-    }
-  }
+  f <- stats::glm(
+    form,
+    data = df_perm,
+    family = fam,
+    na.action = stats::na.exclude
+  )
 
   # force scalar compare (kills the recycling warning)
   p_perm <- mean(abs(z_perm) >= abs(z_obs[1]))
@@ -298,6 +279,8 @@ perm_solomon <- function(object,
 #' @param sims number of Monte Carlo replicates
 #' @return data.frame with estimated power for: interaction, ATE, simple effects, and (optionally) Stouffer Z
 #' @export
+#' @param stouffer Logical; if `TRUE`, also estimate power for the optional
+#'   Stouffer meta-analytic procedure.
 power_solomon <- function(n = list(n1=50,n2=50,n3=50,n4=50),
                           delta = 0.3, rho = 0.5, sens = 0, sigma = 1, sims = 2000,
                           stouffer = TRUE) {
@@ -307,13 +290,13 @@ power_solomon <- function(n = list(n1=50,n2=50,n3=50,n4=50),
 
   for (s in seq_len(sims)) {
     # simulate
-    pre1 <- rnorm(n$n1); pre2 <- rnorm(n$n2)
+    pre1 <- stats::rnorm(n$n1); pre2 <- stats::rnorm(n$n2)
     # induce pre-post corr via bivariate normal construction
-    e1 <- rnorm(n$n1); e2 <- rnorm(n$n2)
+    e1 <- stats::rnorm(n$n1); e2 <- stats::rnorm(n$n2)
     post1 <- delta + sens + rho*pre1 + sqrt(1-rho^2)*e1
     post2 <- 0 + 0     + rho*pre2 + sqrt(1-rho^2)*e2
-    post3 <- delta + rnorm(n$n3, 0, sigma)
-    post4 <- 0     + rnorm(n$n4, 0, sigma)
+    post3 <- delta + stats::rnorm(n$n3, 0, sigma)
+    post4 <- 0     + stats::rnorm(n$n4, 0, sigma)
 
     y_post <- c(post1, post2, post3, post4)
     treat  <- c(rep(1,n$n1), rep(0,n$n2), rep(1,n$n3), rep(0,n$n4))

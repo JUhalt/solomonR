@@ -120,14 +120,16 @@ print.solomon_classic <- function(x, digits = 3, ...) {
   # ANOVA interaction summary
   if (!is.null(x$aov)) {
     a <- x$aov
-    ai <- a[a$term %in% c("treat:pretested","factor(treat):factor(preind)","treat:pr…", "treat:pretested"), , drop=FALSE]
+    ai <- a[a$term %in% c("treat:pretested","factor(treat):factor(preind)","treat:pr...", "treat:pretested"), , drop=FALSE]
     ar <- a[a$term %in% c("Residuals"), , drop=FALSE]
     if (nrow(ai) == 1 && nrow(ar) == 1) {
       df1 <- ai$df; df2 <- ar$df
       F   <- ai$statistic; p <- ai$p.value
       line("")
-      line("Interaction (Pretest × Treatment): F(%d, %d) = %.2f, p = %s",
-           df1, df2, F, p_fmt(p))
+      line(
+        "Interaction (Pretest x Treatment): F(%.0f, %.0f) = %.2f, p = %s",
+        df1, df2, F, p_fmt(p)
+      )
     }
   }
 
@@ -144,14 +146,14 @@ print.solomon_classic <- function(x, digits = 3, ...) {
   # Welch t (unpretested)
   if (!is.null(x$t_unpretested)) {
     tt <- x$t_unpretested
-    line("Unpretested (Welch t): t(%0.1f) = %.2f, p = %s; Δ = %.*f, 95%% CI [%.*f, %.*f]",
+    line("Unpretested (Welch t): t(%0.1f) = %.2f, p = %s; Delta = %.*f, 95%% CI [%.*f, %.*f]",
          tt$parameter, tt$statistic, p_fmt(tt$p.value),
          digits, tt$estimate, digits, tt$conf.low, digits, tt$conf.high)
   }
 
   # Hedges g
   if (!is.null(x$g_post)) {
-    line("Effect size (Groups 3–4): Hedges g = %.3f, 95%% CI [%.3f, %.3f]",
+    line("Effect size (Groups 3-4): Hedges g = %.3f, 95%% CI [%.3f, %.3f]",
          x$g_post["g"], x$g_post["lower"], x$g_post["upper"])
   }
 

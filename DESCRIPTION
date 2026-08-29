@@ -11,27 +11,23 @@ Description: Tools to analyze Solomon Four-Group Designs (SFGD):
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
 Depends: R (>= 4.1)
-Imports: 
+Imports:
     stats,
-    utils,
-    methods,
     broom,
     dplyr,
-    rlang,
     sandwich,
-    lmtest,
     clubSandwich,
-    marginaleffects,
-    infer,
     generics,
-    ggplot2
+    ggplot2,
+    tibble
 Suggests:
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown
+    rmarkdown,
+    lavaan
 VignetteBuilder: knitr
 URL: https://github.com/JUhalt/solomonR, https://juhalt.github.io/solomonR/
 BugReports: https://github.com/JUhalt/solomonR/issues
 LazyData: true
+Config/roxygen2/version: 8.1.0

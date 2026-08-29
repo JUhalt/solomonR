@@ -24,6 +24,10 @@ fit_solomon_classic(
 
 \item{combine_with_stouffer}{logical; if TRUE, combine ANCOVA & posttest-only p’s (one-tailed)
 following Braver & Braver’s “Test I” (use with documented homogeneity assumptions)}
+
+\item{stouffer_direction}{Character; direction of the one-tailed treatment
+hypothesis used when computing the optional Stouffer combination.
+One of \code{"greater"} or \code{"less"}.}
 }
 \value{
 a list of model tables and decisions
