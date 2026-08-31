@@ -9,6 +9,8 @@
 [![pkgdown](https://github.com/JUhalt/solomonR/actions/workflows/pkgdown.yaml/badge.svg)](https://juhalt.github.io/solomonR/)
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html)
+[![R-universe
+version](https://JUhalt.r-universe.dev/solomonR/badges/version)](https://JUhalt.r-universe.dev/solomonR)
 <!-- badges: end -->
 
 **solomonR** is an R package for analyzing, teaching, and studying the
@@ -61,6 +63,18 @@ described as pretest sensitization.
 ------------------------------------------------------------------------
 
 ## Installation
+
+The latest stable release is available from R-universe:
+
+``` r
+install.packages(
+  "solomonR",
+  repos = c(
+    JUhalt = "https://juhalt.r-universe.dev",
+    CRAN = "https://cloud.r-project.org"
+  )
+)
+```
 
 The development version can be installed from GitHub:
 
