@@ -64,25 +64,25 @@ contemporary recommendations and from new extensions introduced by
 - [x] Unit tests
 
 ### Historical / teaching analysis
-- [ ] Reconstruct full historical Solomon Test A-I workflow
-- [ ] Test A: Pretest x Treatment
-- [ ] Tests B/C: Simple-effect follow-ups
-- [ ] Test D: Treatment main effect
-- [ ] Test E: ANCOVA
-- [ ] Test F: Gain-score analysis
-- [ ] Test G: Repeated-measures alternative
-- [ ] Test H: Posttest-only comparison
-- [ ] Test I: Stouffer meta-analytic combination
-- [ ] Clearly label historically proposed vs currently recommended procedures
-- [ ] Correct directional Stouffer implementation
-- [ ] Document later Type I error critiques
+- [x] Reconstruct full historical Solomon Test A-I workflow
+- [x] Test A: Pretest x Treatment
+- [x] Tests B/C: Simple-effect follow-ups
+- [x] Test D: Treatment main effect
+- [x] Test E: ANCOVA
+- [x] Test F: Gain-score analysis
+- [x] Test G: Repeated-measures alternative
+- [x] Test H: Posttest-only comparison
+- [x] Test I: Stouffer meta-analytic combination
+- [x] Clearly label historically proposed vs currently recommended procedures
+- [x] Correct directional Stouffer implementation
+- [x] Document later Type I error critiques
 
 ### Diagnostics and effect sizes
 - [x] Brown-Forsythe checks
 - [x] ANCOVA slope-homogeneity check
 - [x] Cell normality summaries
 - [x] Hedges g for posttest-only comparison
-- [ ] Correct / rename Wald-derived R-squared effect size
+- [x] Correct / rename Wald-derived R-squared effect size
 - [ ] Add confidence intervals consistently
 
 ### SEM
@@ -90,7 +90,7 @@ contemporary recommendations and from new extensions introduced by
 - [x] Latent POST SEM
 - [x] Optional latent PRE -> POST model in pretested groups
 - [x] Measurement-invariance options
-- [ ] Add SEM unit tests
+- [x] Add SEM unit tests
 - [ ] Clarify established methodology vs solomonR extensions
 
 ### Package quality
@@ -98,11 +98,12 @@ contemporary recommendations and from new extensions introduced by
 - [x] pkgdown infrastructure
 - [x] bundled demo data
 - [x] print / summary methods
-- [ ] `R CMD check`: 0 errors, 0 warnings, 0 notes
-- [ ] Public GitHub repository
-- [ ] GitHub release
-- [ ] Public pkgdown site
-- [ ] Installation instructions
+- [x] `R CMD check`: 0 errors, 0 warnings, 0 notes
+- [x] Public GitHub repository
+- [x] GitHub release
+- [x] Public pkgdown site
+- [x] Installation instructions
+- [x] R-universe distribution
 
 ---
 
@@ -111,7 +112,7 @@ contemporary recommendations and from new extensions introduced by
 **Goal:** Make solomonR a modern analysis toolkit rather than only
 an implementation of historical workflows.
 
-- [ ] `fit_solomon_ml()`
+- [x] `fit_solomon_ml()` *(implemented early in v0.2.0; broader simulation validation continues)*
   - Solomon-specific maximum-likelihood regression
   - Based on van Engelenburg (1999)
   - Structural pretest missingness handled explicitly
