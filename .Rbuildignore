@@ -9,3 +9,4 @@
 ^pkgdown$
 ^\.github$
 ^ROADMAP\.md$
+^CITATION\.cff$

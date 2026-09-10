@@ -1,0 +1,36 @@
+name: Methodological question
+description: Ask about a statistical method, estimand, assumption, or interpretation in solomonR.
+title: "[Method] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for questions about what solomonR computes, why a method is used, how Solomon four-group results should be interpreted, or how analytical approaches differ.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Methodological question
+      description: Describe the statistical, design, or interpretation question.
+    validations:
+      required: true
+
+  - type: input
+    id: function
+    attributes:
+      label: Relevant solomonR function
+      description: Identify the function if the question concerns a specific analysis.
+      placeholder: "fit_solomon_glm(), fit_solomon_ml(), perm_solomon(), fit_solomon_sem(), ..."
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Research context
+      description: Describe the Solomon design, estimand, analysis goal, or comparison that motivated the question.
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References or competing approaches
+      description: Include relevant papers, textbooks, software, or alternative methods if applicable.
