@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,7 @@
 </ul>
 <p>The goal is not to replace the history of the Solomon design with a single new procedure. Instead, <code>solomonR</code> makes the historical methods transparent while providing modern alternatives in one reproducible workflow.</p>
 <blockquote>
-<p><strong>Development status:</strong> <code>solomonR</code> is currently in active development. Version 0.2 focuses on the core analytical toolkit. The API may still change before version 1.0.</p>
+<p><strong>Development status:</strong> The stable <code>v0.2.0</code> release provides the core Solomon analytical toolkit. Development version <code>0.2.0.9000</code> is now targeting <code>v0.3.0</code>. The API may continue to evolve before version 1.0.</p>
 </blockquote>
 <hr>
 <div class="section level2">
@@ -124,12 +124,21 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>The development version can be installed from GitHub:</p>
+<p>The latest stable release is available from R-universe:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span></span>
+<span>  <span class="st">"solomonR"</span>,</span>
+<span>  repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    JUhalt <span class="op">=</span> <span class="st">"https://juhalt.r-universe.dev"</span>,</span>
+<span>    CRAN <span class="op">=</span> <span class="st">"https://cloud.r-project.org"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The development version can be installed from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"JUhalt/solomonR"</span><span class="op">)</span></span></code></pre></div>
 <p>Then load the package:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/JUhalt/solomonR" class="external-link">solomonR</a></span><span class="op">)</span></span></code></pre></div>
 <p><code>solomonR</code> is not yet on CRAN.</p>
 <hr>
@@ -138,12 +147,12 @@
 <h2 id="a-60-second-analysis">A 60-second analysis<a class="anchor" aria-label="anchor" href="#a-60-second-analysis"></a>
 </h2>
 <p>The package includes a small example Solomon dataset:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">solomon_demo</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">solomon_demo</span><span class="op">)</span></span></code></pre></div>
 <p>The principal modern observed-variable analysis fits one unified model and estimates four Solomon-specific contrasts:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_demo</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
@@ -175,7 +184,7 @@
 <h2 id="historical-solomon-analysis">Historical Solomon analysis<a class="anchor" aria-label="anchor" href="#historical-solomon-analysis"></a>
 </h2>
 <p>The historical analysis is retained because it is important to understand how the Solomon design developed and how it has traditionally been taught.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_demo</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span></span>
@@ -200,7 +209,7 @@
 <h2 id="randomization-based-inference">Randomization-based inference<a class="anchor" aria-label="anchor" href="#randomization-based-inference"></a>
 </h2>
 <p>When treatment was genuinely randomized within the Solomon pretesting conditions, <code><a href="reference/perm_solomon.html">perm_solomon()</a></code> provides a treatment-label permutation test.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">perm</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/perm_solomon.html">perm_solomon</a></span><span class="op">(</span></span>
 <span>  <span class="va">fit</span>,</span>
 <span>  contrast <span class="op">=</span> <span class="st">"ATE (avg over pretest)"</span>,</span>
@@ -213,7 +222,7 @@
 <p>Treatment labels are permuted <strong>within the pretested and unpretested strata</strong>, preserving the Solomon design.</p>
 <p>The test uses an HC3-studentized statistic and a finite Monte Carlo correction for the permutation p-value.</p>
 <p>The permutation distribution can also be visualized:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/plot_perm.html">plot_perm</a></span><span class="op">(</span><span class="va">perm</span><span class="op">)</span></span></code></pre></div>
 <p>Randomization inference should reflect the design that actually generated the treatment assignments. Cluster-randomized studies require permutation at the appropriate randomization unit.</p>
 <hr>
@@ -223,7 +232,7 @@
 </h2>
 <p><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> implements a full-information likelihood approach inspired by van Engelenburg’s treatment of the Solomon design.</p>
 <p>Unlike analyses that simply discard structurally missing pretests, the likelihood recognizes that Groups 3 and 4 were <strong>never intended to have pretest observations</strong>.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_demo</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span></span>
@@ -251,7 +260,7 @@
 <div class="section level3">
 <h3 id="observed-variable-sem">Observed-variable SEM<a class="anchor" aria-label="anchor" href="#observed-variable-sem"></a>
 </h3>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sem_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_demo</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_sem.html">fit_solomon_sem</a></span><span class="op">(</span></span>
@@ -264,7 +273,7 @@
 <span><span class="va">sem_fit</span></span></code></pre></div>
 <p>The four-group observed mean-structure model is saturated. Consequently, global indices such as CFI and RMSEA are <strong>not diagnostic of model fit</strong> for that model.</p>
 <p>An ANCOVA-style SEM can also be fit within the two pretested groups:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sem_ancova</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_demo</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_sem.html">fit_solomon_sem</a></span><span class="op">(</span></span>
@@ -284,7 +293,7 @@
 <p>For multi-item outcomes, <code><a href="reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> estimates Solomon contrasts at the latent-variable level.</p>
 <p>Latent mean comparisons require <strong>scalar measurement invariance</strong> across the four Solomon groups. <code>solomonR</code> enforces this requirement rather than silently interpreting latent means from configural or metric-only models.</p>
 <p>See:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="op">?</span><span class="va">fit_solomon_sem_latent</span></span></code></pre></div>
 <p>for details.</p>
 <hr>
@@ -301,7 +310,7 @@
 <li>guidance for choosing more robust alternatives.</li>
 </ul>
 <p>These diagnostics are intended to inform analysis, not create a rigid sequence of statistical gatekeeping tests.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_demo</span>,</span>
 <span>  <span class="fu"><a href="reference/check_solomon_assumptions.html">check_solomon_assumptions</a></span><span class="op">(</span></span>
@@ -437,7 +446,7 @@
 </h2>
 <p>A formal package/methods manuscript is in development.</p>
 <p>For the installed package citation, use:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"solomonR"</span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
@@ -493,6 +502,7 @@
 <li><a href="https://github.com/JUhalt/solomonR/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/JUhalt/solomonR/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://juhalt.github.io/solomonR/"><img src="https://github.com/JUhalt/solomonR/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a></li>
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html" class="external-link"><img src="https://img.shields.io/badge/lifecycle-experimental-orange.svg" alt="Lifecycle: experimental"></a></li>
+<li><a href="https://JUhalt.r-universe.dev/solomonR" class="external-link"><img src="https://JUhalt.r-universe.dev/solomonR/badges/version" alt="R-universe version"></a></li>
 </ul>
 </div>
 

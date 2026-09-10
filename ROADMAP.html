@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,7 +34,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>solomonR Roadmap</h1>
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.2.0/ROADMAP.md" class="external-link"><code>ROADMAP.md</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/ROADMAP.md" class="external-link"><code>ROADMAP.md</code></a></small>
     </div>
 
 
@@ -77,7 +77,8 @@
 <div class="section level1">
 <h1 id="release-plan">Release plan<a class="anchor" aria-label="anchor" href="#release-plan"></a></h1>
 <div class="section level2">
-<h2 id="v020---core-solomon-toolkit">v0.2.0 - Core Solomon toolkit<a class="anchor" aria-label="anchor" href="#v020---core-solomon-toolkit"></a></h2>
+<h2 id="v020---core-solomon-toolkit-completed">v0.2.0 - Core Solomon toolkit (completed)<a class="anchor" aria-label="anchor" href="#v020---core-solomon-toolkit-completed"></a></h2>
+<p><strong>Status:</strong> Released August 30, 2026</p>
 <p><strong>Goal:</strong> First public, usable release.</p>
 <div class="section level3">
 <h3 id="modern-observed-variable-analysis">Modern observed-variable analysis<a class="anchor" aria-label="anchor" href="#modern-observed-variable-analysis"></a></h3>
@@ -100,18 +101,18 @@
 </ul></div>
 <div class="section level3">
 <h3 id="historical--teaching-analysis">Historical / teaching analysis<a class="anchor" aria-label="anchor" href="#historical--teaching-analysis"></a></h3>
-<ul class="task-list"><li><label><input type="checkbox">Reconstruct full historical Solomon Test A-I workflow</label></li>
-<li><label><input type="checkbox">Test A: Pretest x Treatment</label></li>
-<li><label><input type="checkbox">Tests B/C: Simple-effect follow-ups</label></li>
-<li><label><input type="checkbox">Test D: Treatment main effect</label></li>
-<li><label><input type="checkbox">Test E: ANCOVA</label></li>
-<li><label><input type="checkbox">Test F: Gain-score analysis</label></li>
-<li><label><input type="checkbox">Test G: Repeated-measures alternative</label></li>
-<li><label><input type="checkbox">Test H: Posttest-only comparison</label></li>
-<li><label><input type="checkbox">Test I: Stouffer meta-analytic combination</label></li>
-<li><label><input type="checkbox">Clearly label historically proposed vs currently recommended procedures</label></li>
-<li><label><input type="checkbox">Correct directional Stouffer implementation</label></li>
-<li><label><input type="checkbox">Document later Type I error critiques</label></li>
+<ul class="task-list"><li><label><input type="checkbox" checked>Reconstruct full historical Solomon Test A-I workflow</label></li>
+<li><label><input type="checkbox" checked>Test A: Pretest x Treatment</label></li>
+<li><label><input type="checkbox" checked>Tests B/C: Simple-effect follow-ups</label></li>
+<li><label><input type="checkbox" checked>Test D: Treatment main effect</label></li>
+<li><label><input type="checkbox" checked>Test E: ANCOVA</label></li>
+<li><label><input type="checkbox" checked>Test F: Gain-score analysis</label></li>
+<li><label><input type="checkbox" checked>Test G: Repeated-measures alternative</label></li>
+<li><label><input type="checkbox" checked>Test H: Posttest-only comparison</label></li>
+<li><label><input type="checkbox" checked>Test I: Stouffer meta-analytic combination</label></li>
+<li><label><input type="checkbox" checked>Clearly label historically proposed vs currently recommended procedures</label></li>
+<li><label><input type="checkbox" checked>Correct directional Stouffer implementation</label></li>
+<li><label><input type="checkbox" checked>Document later Type I error critiques</label></li>
 </ul></div>
 <div class="section level3">
 <h3 id="diagnostics-and-effect-sizes">Diagnostics and effect sizes<a class="anchor" aria-label="anchor" href="#diagnostics-and-effect-sizes"></a></h3>
@@ -119,8 +120,8 @@
 <li><label><input type="checkbox" checked>ANCOVA slope-homogeneity check</label></li>
 <li><label><input type="checkbox" checked>Cell normality summaries</label></li>
 <li><label><input type="checkbox" checked>Hedges g for posttest-only comparison</label></li>
-<li><label><input type="checkbox">Correct / rename Wald-derived R-squared effect size</label></li>
-<li><label><input type="checkbox">Add confidence intervals consistently</label></li>
+<li><label><input type="checkbox" checked>Correct / rename Wald-derived R-squared effect size</label></li>
+<li><label><input type="checkbox" checked>Broader confidence-interval consistency deferred to v0.3</label></li>
 </ul></div>
 <div class="section level3">
 <h3 id="sem">SEM<a class="anchor" aria-label="anchor" href="#sem"></a></h3>
@@ -128,8 +129,8 @@
 <li><label><input type="checkbox" checked>Latent POST SEM</label></li>
 <li><label><input type="checkbox" checked>Optional latent PRE -&gt; POST model in pretested groups</label></li>
 <li><label><input type="checkbox" checked>Measurement-invariance options</label></li>
-<li><label><input type="checkbox">Add SEM unit tests</label></li>
-<li><label><input type="checkbox">Clarify established methodology vs solomonR extensions</label></li>
+<li><label><input type="checkbox" checked>Add SEM unit tests</label></li>
+<li><label><input type="checkbox" checked>Expanded method-positioning documentation deferred to v0.3</label></li>
 </ul></div>
 <div class="section level3">
 <h3 id="package-quality">Package quality<a class="anchor" aria-label="anchor" href="#package-quality"></a></h3>
@@ -137,31 +138,33 @@
 <li><label><input type="checkbox" checked>pkgdown infrastructure</label></li>
 <li><label><input type="checkbox" checked>bundled demo data</label></li>
 <li><label><input type="checkbox" checked>print / summary methods</label></li>
-<li><label><input type="checkbox"><code>R CMD check</code>: 0 errors, 0 warnings, 0 notes</label></li>
-<li><label><input type="checkbox">Public GitHub repository</label></li>
-<li><label><input type="checkbox">GitHub release</label></li>
-<li><label><input type="checkbox">Public pkgdown site</label></li>
-<li><label><input type="checkbox">Installation instructions</label></li>
+<li><label><input type="checkbox" checked><code>R CMD check</code>: 0 errors, 0 warnings, 0 notes</label></li>
+<li><label><input type="checkbox" checked>Public GitHub repository</label></li>
+<li><label><input type="checkbox" checked>GitHub release</label></li>
+<li><label><input type="checkbox" checked>Public pkgdown site</label></li>
+<li><label><input type="checkbox" checked>Installation instructions</label></li>
+<li><label><input type="checkbox" checked>R-universe distribution</label></li>
 </ul><hr></div>
 </div>
 <div class="section level2">
 <h2 id="v030---modern-solomon-methods">v0.3.0 - Modern Solomon methods<a class="anchor" aria-label="anchor" href="#v030---modern-solomon-methods"></a></h2>
+<p><strong>Status:</strong> Active development</p>
 <p><strong>Goal:</strong> Make solomonR a modern analysis toolkit rather than only an implementation of historical workflows.</p>
 <ul class="task-list"><li>
-<label><input type="checkbox"><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code></label>
+<p><label><input type="checkbox" checked><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> <em>(implemented early in v0.2.0; broader simulation validation continues)</em></label></p>
 <ul><li>Solomon-specific maximum-likelihood regression</li>
 <li>Based on van Engelenburg (1999)</li>
 <li>Structural pretest missingness handled explicitly</li>
 <li>Known-result / simulation validation</li>
 </ul></li>
 <li>
-<label><input type="checkbox">Sensitization equivalence testing</label>
+<p><label><input type="checkbox">Sensitization equivalence testing</label></p>
 <ul><li>CI-based / TOST-style inference</li>
 <li>User-specified smallest effect size of interest</li>
 <li>Distinguish “no significant sensitization” from evidence of negligible sensitization</li>
 </ul></li>
 <li>
-<label><input type="checkbox"><code>validate_solomon()</code></label>
+<p><label><input type="checkbox"><code>validate_solomon()</code></label></p>
 <ul><li>Verify all four cells</li>
 <li>Inspect group sizes</li>
 <li>Validate coding</li>
@@ -170,15 +173,17 @@
 <li>Identify sparse / empty cells</li>
 </ul></li>
 <li>
-<label><input type="checkbox"><code>check_solomon_missing()</code></label>
+<p><label><input type="checkbox"><code>check_solomon_missing()</code></label></p>
 <ul><li>Distinguish structural from incidental missingness</li>
 <li>Prevent inappropriate imputation of deliberately absent pretests</li>
 </ul></li>
 <li>
-<label><input type="checkbox"><code>compare_solomon_methods()</code></label>
+<p><label><input type="checkbox"><code>compare_solomon_methods()</code></label></p>
 <ul><li>Side-by-side classic, GLM, ML, permutation, and SEM results</li>
 <li>Explicitly identify differing estimands</li>
 </ul></li>
+<li><p><label><input type="checkbox">Add confidence intervals consistently across release-defining effect summaries.</label></p></li>
+<li><p><label><input type="checkbox">Expand documentation distinguishing established Solomon methodology, contemporary recommendations, and solomonR-specific extensions.</label></p></li>
 </ul><hr></div>
 <div class="section level2">
 <h2 id="v040---design-planning-and-visualization">v0.4.0 - Design planning and visualization<a class="anchor" aria-label="anchor" href="#v040---design-planning-and-visualization"></a></h2>

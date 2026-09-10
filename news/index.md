@@ -1,5 +1,15 @@
 # Changelog
 
+## solomonR 0.2.0.9000
+
+### Development
+
+- Began development toward solomonR 0.3.0.
+- Added R-universe distribution and stable-release installation
+  instructions.
+- Reconciled the development roadmap with functionality delivered in
+  v0.2.0.
+
 ## solomonR 0.2.0
 
 ### Historical Solomon workflow

@@ -16,6 +16,8 @@ Useful links:
 
 - <https://juhalt.github.io/solomonR/>
 
+- <https://juhalt.r-universe.dev/solomonR>
+
 - Report bugs at <https://github.com/JUhalt/solomonR/issues>
 
 ## Author

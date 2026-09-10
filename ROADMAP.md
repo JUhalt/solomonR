@@ -41,7 +41,9 @@ contemporary recommendations and from new extensions introduced by
 
 # Release plan
 
-## v0.2.0 - Core Solomon toolkit
+## v0.2.0 - Core Solomon toolkit (completed)
+
+**Status:** Released August 30, 2026
 
 **Goal:** First public, usable release.
 
@@ -113,7 +115,7 @@ Hedges g for posttest-only comparison
 
 Correct / rename Wald-derived R-squared effect size
 
-Add confidence intervals consistently
+Broader confidence-interval consistency deferred to v0.3
 
 ### SEM
 
@@ -127,7 +129,7 @@ Measurement-invariance options
 
 Add SEM unit tests
 
-Clarify established methodology vs solomonR extensions
+Expanded method-positioning documentation deferred to v0.3
 
 ### Package quality
 
@@ -149,14 +151,19 @@ Public pkgdown site
 
 Installation instructions
 
+R-universe distribution
+
 ------------------------------------------------------------------------
 
 ## v0.3.0 - Modern Solomon methods
+
+**Status:** Active development
 
 **Goal:** Make solomonR a modern analysis toolkit rather than only an
 implementation of historical workflows.
 
 [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+*(implemented early in v0.2.0; broader simulation validation continues)*
 
 - Solomon-specific maximum-likelihood regression
 - Based on van Engelenburg (1999)
@@ -188,6 +195,12 @@ Sensitization equivalence testing
 
 - Side-by-side classic, GLM, ML, permutation, and SEM results
 - Explicitly identify differing estimands
+
+Add confidence intervals consistently across release-defining effect
+summaries.
+
+Expand documentation distinguishing established Solomon methodology,
+contemporary recommendations, and solomonR-specific extensions.
 
 ------------------------------------------------------------------------
 
