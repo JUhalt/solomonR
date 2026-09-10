@@ -42,7 +42,9 @@ contemporary recommendations and from new extensions introduced by
 
 # Release plan
 
-## v0.2.0 - Core Solomon toolkit
+## v0.2.0 - Core Solomon toolkit (completed)
+
+**Status:** Released August 30, 2026
 
 **Goal:** First public, usable release.
 
@@ -83,7 +85,7 @@ contemporary recommendations and from new extensions introduced by
 - [x] Cell normality summaries
 - [x] Hedges g for posttest-only comparison
 - [x] Correct / rename Wald-derived R-squared effect size
-- [ ] Add confidence intervals consistently
+- [x] Broader confidence-interval consistency deferred to v0.3
 
 ### SEM
 - [x] Observed mean-structure SEM
@@ -91,7 +93,7 @@ contemporary recommendations and from new extensions introduced by
 - [x] Optional latent PRE -> POST model in pretested groups
 - [x] Measurement-invariance options
 - [x] Add SEM unit tests
-- [ ] Clarify established methodology vs solomonR extensions
+- [x] Expanded method-positioning documentation deferred to v0.3
 
 ### Package quality
 - [x] testthat infrastructure
@@ -108,6 +110,8 @@ contemporary recommendations and from new extensions introduced by
 ---
 
 ## v0.3.0 - Modern Solomon methods
+
+**Status:** Active development
 
 **Goal:** Make solomonR a modern analysis toolkit rather than only
 an implementation of historical workflows.
@@ -138,6 +142,11 @@ an implementation of historical workflows.
 - [ ] `compare_solomon_methods()`
   - Side-by-side classic, GLM, ML, permutation, and SEM results
   - Explicitly identify differing estimands
+
+- [ ] Add confidence intervals consistently across release-defining effect summaries.
+
+- [ ] Expand documentation distinguishing established Solomon methodology,
+  contemporary recommendations, and solomonR-specific extensions.
 
 ---
 
