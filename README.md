@@ -9,6 +9,8 @@
 [![pkgdown](https://github.com/JUhalt/solomonR/actions/workflows/pkgdown.yaml/badge.svg)](https://juhalt.github.io/solomonR/)
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html)
+[![R-universe
+version](https://JUhalt.r-universe.dev/solomonR/badges/version)](https://JUhalt.r-universe.dev/solomonR)
 <!-- badges: end -->
 
 **solomonR** is an R package for analyzing, teaching, and studying the
@@ -29,9 +31,9 @@ single new procedure. Instead, `solomonR` makes the historical methods
 transparent while providing modern alternatives in one reproducible
 workflow.
 
-> **Development status:** `solomonR` is currently in active development.
-> Version 0.2 focuses on the core analytical toolkit. The API may still
-> change before version 1.0.
+> **Development status:** The stable `v0.2.0` release provides the core
+> Solomon analytical toolkit. Development version `0.2.0.9000` is now
+> targeting `v0.3.0`. The API may continue to evolve before version 1.0.
 
 ------------------------------------------------------------------------
 
@@ -61,6 +63,18 @@ described as pretest sensitization.
 ------------------------------------------------------------------------
 
 ## Installation
+
+The latest stable release is available from R-universe:
+
+``` r
+install.packages(
+  "solomonR",
+  repos = c(
+    JUhalt = "https://juhalt.r-universe.dev",
+    CRAN = "https://cloud.r-project.org"
+  )
+)
+```
 
 The development version can be installed from GitHub:
 

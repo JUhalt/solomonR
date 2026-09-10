@@ -4,20 +4,26 @@
 \alias{solomonR}
 \title{solomonR: Analyze Solomon Four-Group Designs}
 \description{
-Implements (1) the classic Solomon analysis path (2x2 posttest ANOVA to check
-pretest sensitization, then ANCOVA on pretested cells and a posttest-only t-test),
-plus optional Stouffer Z "Test I" (Braver & Braver, 1988); and (2) a unified GLM
-that estimates treatment, pretest indicator, and their interaction, using ANCOVA
-logic for the pretested cells and robust or permutation-based inference.
+Provides tools for analyzing, teaching, and studying the Solomon
+four-group experimental design. The package includes the historical
+Tests A-I workflow, unified generalized linear models with robust
+covariance estimation, stratified randomization inference,
+Solomon-specific full-information maximum likelihood, and observed-
+and latent-variable structural equation models.
 }
 \details{
-Key references: Huck & Sandler (1973) for the classic workflow; Braver & Braver
-(1988) for Stouffer Z; and the Sawilowsky & Markman critiques and replies (1988–1990)
-for cautions and selection bias issues. Teaching overviews are included.
+The package distinguishes historically important procedures from
+contemporary recommendations and emphasizes explicit Solomon-specific
+estimands, structural pretest missingness, reproducible diagnostics,
+and modern inference.
+
+Key historical references include Huck & Sandler (1973),
+Braver & Braver (1988), the Sawilowsky and Markman methodological
+exchanges, and van Engelenburg (1999).
 }
-\keyword{ANCOVA;}
+\keyword{ANCOVA}
+\keyword{SEM}
 \keyword{Solomon}
-\keyword{Stouffer}
-\keyword{Z;}
-\keyword{four-group;}
+\keyword{four-group}
+\keyword{maximum-likelihood}
 \keyword{permutation}

@@ -12,6 +12,7 @@ Useful links:
 \itemize{
   \item \url{https://github.com/JUhalt/solomonR}
   \item \url{https://juhalt.github.io/solomonR/}
+  \item \url{https://juhalt.r-universe.dev/solomonR}
   \item Report bugs at \url{https://github.com/JUhalt/solomonR/issues}
 }
 

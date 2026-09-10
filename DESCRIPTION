@@ -1,6 +1,6 @@
 Package: solomonR
 Title: Analyze Solomon Four-Group Designs
-Version: 0.2.0
+Version: 0.2.0.9000
 Authors@R: 
     person("Joshua", "Uhalt", email = "Josh.Uhalt@gmail.com", role = c("aut","cre"))
 Description: Tools for analyzing Solomon four-group experimental designs using
@@ -29,7 +29,9 @@ Suggests:
     rmarkdown,
     lavaan
 VignetteBuilder: knitr
-URL: https://github.com/JUhalt/solomonR, https://juhalt.github.io/solomonR/
+URL: https://github.com/JUhalt/solomonR,
+    https://juhalt.github.io/solomonR/,
+    https://juhalt.r-universe.dev/solomonR
 BugReports: https://github.com/JUhalt/solomonR/issues
 LazyData: true
 Config/roxygen2/version: 8.1.0
