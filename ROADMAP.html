@@ -120,8 +120,7 @@
 <li><label><input type="checkbox" checked>ANCOVA slope-homogeneity check</label></li>
 <li><label><input type="checkbox" checked>Cell normality summaries</label></li>
 <li><label><input type="checkbox" checked>Hedges g for posttest-only comparison</label></li>
-<li><label><input type="checkbox" checked>Correct / rename Wald-derived R-squared effect size</label></li>
-<li><label><input type="checkbox" checked>Broader confidence-interval consistency deferred to v0.3</label></li>
+<li><label><input type="checkbox" checked>Correct / rename Wald-derived R-squared effect size Broader confidence-interval consistency was deferred to v0.3; see <a href="https://github.com/JUhalt/solomonR/issues/8" class="external-link">#8</a>.</label></li>
 </ul></div>
 <div class="section level3">
 <h3 id="sem">SEM<a class="anchor" aria-label="anchor" href="#sem"></a></h3>
@@ -129,8 +128,7 @@
 <li><label><input type="checkbox" checked>Latent POST SEM</label></li>
 <li><label><input type="checkbox" checked>Optional latent PRE -&gt; POST model in pretested groups</label></li>
 <li><label><input type="checkbox" checked>Measurement-invariance options</label></li>
-<li><label><input type="checkbox" checked>Add SEM unit tests</label></li>
-<li><label><input type="checkbox" checked>Expanded method-positioning documentation deferred to v0.3</label></li>
+<li><label><input type="checkbox" checked>Add SEM unit tests Expanded method-positioning documentation was deferred to v0.3; see <a href="https://github.com/JUhalt/solomonR/issues/9" class="external-link">#9</a>.</label></li>
 </ul></div>
 <div class="section level3">
 <h3 id="package-quality">Package quality<a class="anchor" aria-label="anchor" href="#package-quality"></a></h3>
@@ -148,23 +146,17 @@
 </div>
 <div class="section level2">
 <h2 id="v030---modern-solomon-methods">v0.3.0 - Modern Solomon methods<a class="anchor" aria-label="anchor" href="#v030---modern-solomon-methods"></a></h2>
-<p><strong>Status:</strong> Active development</p>
+<p><strong>Status:</strong> Active development — <a href="https://github.com/JUhalt/solomonR/milestone/1" class="external-link">v0.3.0 milestone</a>.</p>
 <p><strong>Goal:</strong> Make solomonR a modern analysis toolkit rather than only an implementation of historical workflows.</p>
+<p>Already delivered in v0.2.0: <code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>. Broader validation remains open in <a href="https://github.com/JUhalt/solomonR/issues/10" class="external-link">#10</a>. - Solomon-specific maximum-likelihood regression - Based on van Engelenburg (1999) - Structural pretest missingness handled explicitly - Existing known-result validation; broader simulation evidence is tracked separately.</p>
 <ul class="task-list"><li>
-<p><label><input type="checkbox" checked><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> <em>(implemented early in v0.2.0; broader simulation validation continues)</em></label></p>
-<ul><li>Solomon-specific maximum-likelihood regression</li>
-<li>Based on van Engelenburg (1999)</li>
-<li>Structural pretest missingness handled explicitly</li>
-<li>Known-result / simulation validation</li>
-</ul></li>
-<li>
-<p><label><input type="checkbox">Sensitization equivalence testing</label></p>
+<p><label><input type="checkbox">Sensitization equivalence testing — <a href="https://github.com/JUhalt/solomonR/issues/4" class="external-link">#4</a></label></p>
 <ul><li>CI-based / TOST-style inference</li>
 <li>User-specified smallest effect size of interest</li>
 <li>Distinguish “no significant sensitization” from evidence of negligible sensitization</li>
 </ul></li>
 <li>
-<p><label><input type="checkbox"><code>validate_solomon()</code></label></p>
+<p><label><input type="checkbox"><code>validate_solomon()</code> — <a href="https://github.com/JUhalt/solomonR/issues/5" class="external-link">#5</a></label></p>
 <ul><li>Verify all four cells</li>
 <li>Inspect group sizes</li>
 <li>Validate coding</li>
@@ -173,17 +165,19 @@
 <li>Identify sparse / empty cells</li>
 </ul></li>
 <li>
-<p><label><input type="checkbox"><code>check_solomon_missing()</code></label></p>
+<p><label><input type="checkbox"><code>check_solomon_missing()</code> — <a href="https://github.com/JUhalt/solomonR/issues/6" class="external-link">#6</a></label></p>
 <ul><li>Distinguish structural from incidental missingness</li>
 <li>Prevent inappropriate imputation of deliberately absent pretests</li>
 </ul></li>
 <li>
-<p><label><input type="checkbox"><code>compare_solomon_methods()</code></label></p>
+<p><label><input type="checkbox"><code>compare_solomon_methods()</code> — <a href="https://github.com/JUhalt/solomonR/issues/7" class="external-link">#7</a></label></p>
 <ul><li>Side-by-side classic, GLM, ML, permutation, and SEM results</li>
 <li>Explicitly identify differing estimands</li>
 </ul></li>
-<li><p><label><input type="checkbox">Add confidence intervals consistently across release-defining effect summaries.</label></p></li>
-<li><p><label><input type="checkbox">Expand documentation distinguishing established Solomon methodology, contemporary recommendations, and solomonR-specific extensions.</label></p></li>
+<li><p><label><input type="checkbox">Add confidence intervals consistently across release-defining effect summaries — <a href="https://github.com/JUhalt/solomonR/issues/8" class="external-link">#8</a>.</label></p></li>
+<li><p><label><input type="checkbox">Expand documentation distinguishing established Solomon methodology, contemporary recommendations, and solomonR-specific extensions — <a href="https://github.com/JUhalt/solomonR/issues/9" class="external-link">#9</a>.</label></p></li>
+<li><p><label><input type="checkbox">Broaden ML simulation validation — <a href="https://github.com/JUhalt/solomonR/issues/10" class="external-link">#10</a>.</label></p></li>
+<li><p><label><input type="checkbox">Reconcile release documentation, licensing and distribution — <a href="https://github.com/JUhalt/solomonR/issues/12" class="external-link">#12</a>.</label></p></li>
 </ul><hr></div>
 <div class="section level2">
 <h2 id="v040---design-planning-and-visualization">v0.4.0 - Design planning and visualization<a class="anchor" aria-label="anchor" href="#v040---design-planning-and-visualization"></a></h2>
@@ -268,8 +262,8 @@
 <div class="section level2">
 <h2 id="v060---teaching-and-reporting">v0.6.0 - Teaching and reporting<a class="anchor" aria-label="anchor" href="#v060---teaching-and-reporting"></a></h2>
 <ul class="task-list"><li><label><input type="checkbox">Complete introductory vignette</label></li>
-<li><label><input type="checkbox">Historical-analysis vignette</label></li>
-<li><label><input type="checkbox">Modern-analysis vignette</label></li>
+<li><label><input type="checkbox">Expand the existing historical-analysis vignette; define additional coverage when scoped.</label></li>
+<li><label><input type="checkbox">Expand the existing modern-analysis vignette; define additional coverage when scoped.</label></li>
 <li><label><input type="checkbox">SEM / latent-variable vignette</label></li>
 <li><label><input type="checkbox">Power / planning vignette</label></li>
 <li><label><input type="checkbox">Single worked social-psychology example across methods</label></li>
@@ -327,14 +321,15 @@
 </div>
 <div class="section level1">
 <h1 id="later--exploratory">Later / exploratory<a class="anchor" aria-label="anchor" href="#later--exploratory"></a></h1>
-<p>These are intentionally outside the initial release path.</p>
-<ul><li>Bayesian Solomon modeling</li>
-<li>Rank-based / nonparametric unified methods</li>
-<li>Multivariate outcomes</li>
-<li>Latent change-score Solomon models</li>
-<li>Missing-data sensitivity analyses</li>
-<li>Optimal allocation algorithms</li>
-<li>Shiny teaching / design application</li>
+<p>These are intentionally outside the initial release path. Proposals become release commitments only when their scope and acceptance criteria are agreed in a linked issue and assigned to a milestone.</p>
+<ul><li><p><a href="https://github.com/JUhalt/solomonR/issues/11" class="external-link">Proposal: reproducible simulation benchmark reports with Monte Carlo uncertainty (#11)</a>. This research-informed reporting extension would build on existing ML-validation and method-comparison work; no additional release scope is committed.</p></li>
+<li><p>Bayesian Solomon modeling</p></li>
+<li><p>Rank-based / nonparametric unified methods</p></li>
+<li><p>Multivariate outcomes</p></li>
+<li><p>Latent change-score Solomon models</p></li>
+<li><p>Missing-data sensitivity analyses</p></li>
+<li><p>Optimal allocation algorithms</p></li>
+<li><p>Shiny teaching / design application</p></li>
 </ul></div>
 
 

@@ -427,7 +427,10 @@ history that produced it.
 ## Roadmap
 
 Development plans are maintained in
-[`ROADMAP.md`](https://juhalt.github.io/solomonR/ROADMAP.md).
+[`ROADMAP.md`](https://juhalt.github.io/solomonR/ROADMAP.md), with
+committed v0.3 work tracked in the [v0.3.0
+milestone](https://github.com/JUhalt/solomonR/milestone/1) and [GitHub
+issues](https://github.com/JUhalt/solomonR/issues).
 
 Major planned additions include:
 
@@ -476,4 +479,14 @@ four-group design.
 
 ## License
 
-See the repository license for terms of use.
+The current development source is licensed under the **GNU General
+Public License, version 3 only** (SPDX: `GPL-3.0-only`). See
+[LICENSE.md](https://juhalt.github.io/solomonR/LICENSE.md) for the full
+terms and
+[inst/NOTICE](https://github.com/JUhalt/solomonR/blob/master/inst/NOTICE)
+for copyright and retained historical notices.
+
+The published v0.2.0 release remains under its original MIT license. The
+stable R-universe installation above continues to install that release
+until a new release is published; changing the development license does
+not relicense previously published versions.

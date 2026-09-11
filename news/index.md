@@ -4,9 +4,21 @@
 
 ### Development
 
+- Changed current development licensing to GNU GPL version 3 only
+  (GPL-3). Previously published releases retain their original MIT terms
+  and notices.
+
+- Aligned development citation metadata, license pages, and
+  roadmap/issue links.
+
+- Distinguished completed implementation, deferred work, and research
+  proposals in the roadmap without changing analytical behavior.
+
 - Began development toward solomonR 0.3.0.
+
 - Added R-universe distribution and stable-release installation
   instructions.
+
 - Reconciled the development roadmap with functionality delivered in
   v0.2.0.
 
