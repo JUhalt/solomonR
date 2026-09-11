@@ -10,7 +10,7 @@ Description: Tools for analyzing Solomon four-group experimental designs using
     models. Includes diagnostics, effect sizes, plotting, and teaching-oriented
     workflows that distinguish historical procedures from contemporary
     recommendations.
-License: MIT + file LICENSE
+License: GPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.1)

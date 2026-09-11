@@ -30,3 +30,8 @@ body:
     attributes:
       label: Interpretation and researcher-control considerations
       description: Note assumptions, design decisions, or analytical choices the package should expose rather than automate.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Completion criteria and roadmap impact
+      description: Describe an observable outcome, dependencies, and the relevant roadmap item. State whether this is a proposal or accepted release work.

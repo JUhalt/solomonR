@@ -85,7 +85,7 @@ contemporary recommendations and from new extensions introduced by
 - [x] Cell normality summaries
 - [x] Hedges g for posttest-only comparison
 - [x] Correct / rename Wald-derived R-squared effect size
-- [x] Broader confidence-interval consistency deferred to v0.3
+Broader confidence-interval consistency was deferred to v0.3; see [#8](https://github.com/JUhalt/solomonR/issues/8).
 
 ### SEM
 - [x] Observed mean-structure SEM
@@ -93,7 +93,7 @@ contemporary recommendations and from new extensions introduced by
 - [x] Optional latent PRE -> POST model in pretested groups
 - [x] Measurement-invariance options
 - [x] Add SEM unit tests
-- [x] Expanded method-positioning documentation deferred to v0.3
+Expanded method-positioning documentation was deferred to v0.3; see [#9](https://github.com/JUhalt/solomonR/issues/9).
 
 ### Package quality
 - [x] testthat infrastructure
@@ -111,23 +111,23 @@ contemporary recommendations and from new extensions introduced by
 
 ## v0.3.0 - Modern Solomon methods
 
-**Status:** Active development
+**Status:** Active development — [v0.3.0 milestone](https://github.com/JUhalt/solomonR/milestone/1).
 
 **Goal:** Make solomonR a modern analysis toolkit rather than only
 an implementation of historical workflows.
 
-- [x] `fit_solomon_ml()` *(implemented early in v0.2.0; broader simulation validation continues)*
+Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open in [#10](https://github.com/JUhalt/solomonR/issues/10).
   - Solomon-specific maximum-likelihood regression
   - Based on van Engelenburg (1999)
   - Structural pretest missingness handled explicitly
-  - Known-result / simulation validation
+  - Existing known-result validation; broader simulation evidence is tracked separately.
 
-- [ ] Sensitization equivalence testing
+- [ ] Sensitization equivalence testing — [#4](https://github.com/JUhalt/solomonR/issues/4)
   - CI-based / TOST-style inference
   - User-specified smallest effect size of interest
   - Distinguish "no significant sensitization" from evidence of negligible sensitization
 
-- [ ] `validate_solomon()`
+- [ ] `validate_solomon()` — [#5](https://github.com/JUhalt/solomonR/issues/5)
   - Verify all four cells
   - Inspect group sizes
   - Validate coding
@@ -135,18 +135,22 @@ an implementation of historical workflows.
   - Detect unexpected missingness
   - Identify sparse / empty cells
 
-- [ ] `check_solomon_missing()`
+- [ ] `check_solomon_missing()` — [#6](https://github.com/JUhalt/solomonR/issues/6)
   - Distinguish structural from incidental missingness
   - Prevent inappropriate imputation of deliberately absent pretests
 
-- [ ] `compare_solomon_methods()`
+- [ ] `compare_solomon_methods()` — [#7](https://github.com/JUhalt/solomonR/issues/7)
   - Side-by-side classic, GLM, ML, permutation, and SEM results
   - Explicitly identify differing estimands
 
-- [ ] Add confidence intervals consistently across release-defining effect summaries.
+- [ ] Add confidence intervals consistently across release-defining effect summaries — [#8](https://github.com/JUhalt/solomonR/issues/8).
 
 - [ ] Expand documentation distinguishing established Solomon methodology,
-  contemporary recommendations, and solomonR-specific extensions.
+  contemporary recommendations, and solomonR-specific extensions — [#9](https://github.com/JUhalt/solomonR/issues/9).
+
+- [ ] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10).
+
+- [ ] Reconcile release documentation, licensing and distribution — [#12](https://github.com/JUhalt/solomonR/issues/12).
 
 ---
 
@@ -220,8 +224,8 @@ data collection begins.
 ## v0.6.0 - Teaching and reporting
 
 - [ ] Complete introductory vignette
-- [ ] Historical-analysis vignette
-- [ ] Modern-analysis vignette
+- [ ] Expand the existing historical-analysis vignette; define additional coverage when scoped.
+- [ ] Expand the existing modern-analysis vignette; define additional coverage when scoped.
 - [ ] SEM / latent-variable vignette
 - [ ] Power / planning vignette
 - [ ] Single worked social-psychology example across methods
@@ -282,7 +286,13 @@ Publication acceptance is not required before the v1.0 release.
 
 # Later / exploratory
 
-These are intentionally outside the initial release path.
+These are intentionally outside the initial release path. Proposals become
+release commitments only when their scope and acceptance criteria are agreed
+in a linked issue and assigned to a milestone.
+
+- [Proposal: reproducible simulation benchmark reports with Monte Carlo uncertainty (#11)](https://github.com/JUhalt/solomonR/issues/11).
+  This research-informed reporting extension would build on existing ML-validation
+  and method-comparison work; no additional release scope is committed.
 
 - Bayesian Solomon modeling
 - Rank-based / nonparametric unified methods

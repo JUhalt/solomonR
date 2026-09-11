@@ -64,4 +64,18 @@ behavior.
 Pull requests should describe what changed, why it changed, how it was tested,
 and any methodological or API decisions that deserve review.
 
-The current development specification is maintained in `ROADMAP.md`.
+The current development specification is maintained in [ROADMAP.md](https://github.com/JUhalt/solomonR/blob/master/ROADMAP.md).
+
+## Keeping plans and public information aligned
+
+Record accepted findings and feature ideas in an issue with supporting evidence,
+scope, limitations, and observable acceptance criteria. Link the issue from the
+roadmap and assign a milestone only when the release scope is accepted. Label
+research-informed extensions as proposals until reviewed; a citation alone is
+not validation of an implementation. When work ships, update the issue, roadmap,
+README or articles, and release notes together. Preserve historical release and
+license information.
+
+README.md is generated from README.Rmd. Update the source and render it when
+changing public README content. GitHub Actions builds the pkgdown site from the
+current source; verify its version, license, and links after publication.
