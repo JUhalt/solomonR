@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use solomonR in your work, please cite the software."
+title: "solomonR: Analyze Solomon Four-Group Designs"
+type: software
+authors:
+  - family-names: Uhalt
+    given-names: Joshua
+version: 0.2.0
+date-released: 2026-08-30
+repository-code: "https://github.com/JUhalt/solomonR"
+url: "https://juhalt.github.io/solomonR/"
+license: MIT
