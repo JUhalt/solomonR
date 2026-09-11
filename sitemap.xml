@@ -1,8 +1,13 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://juhalt.github.io/solomonR/404.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/CODE_OF_CONDUCT.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/CONTRIBUTING.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/LICENSE-text.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/LICENSE.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/PULL_REQUEST_TEMPLATE.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/ROADMAP.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/SECURITY.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/SUPPORT.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/classic-solomon.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/glm-solomon.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/index.html</loc></url>
