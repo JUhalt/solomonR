@@ -36,6 +36,15 @@
   & Finch, 2001; Kelley, 2007) instead of a normal approximation.
 * Printed output shows each interval with its confidence level.
 
+## Method guide (#9)
+
+* New article `vignette("solomon-methods")` labels each analysis as a
+  historical procedure, contemporary recommendation, published Solomon
+  proposal, or solomonR extension, and states its estimand, assumptions,
+  limitations, and sources. Historical claims were checked against the
+  sources, including Campbell and Stanley (1963), Braver and Braver (1988),
+  and Sawilowsky et al. (1994).
+
 ## Method comparison (#7)
 
 * New `compare_solomon_methods()` fits the unified GLM, maximum likelihood,

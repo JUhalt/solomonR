@@ -396,6 +396,12 @@ For many ordinary randomized Solomon experiments with continuous
 outcomes, the unified GLM with clearly defined contrasts is a useful
 primary analysis.
 
+For the origin, assumptions, limitations, and sources of every method,
+see the article [Solomon Methods: History, Recommendations, and
+Extensions](https://juhalt.github.io/solomonR/articles/solomon-methods.html).
+It labels each analysis as a historical procedure, a contemporary
+recommendation, a published Solomon proposal, or a `solomonR` extension.
+
 The historical Tests A-I remain valuable for understanding the
 development of the design, but they should not automatically be treated
 as the preferred contemporary analysis.

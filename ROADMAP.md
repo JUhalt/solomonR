@@ -154,7 +154,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
 
 - [x] Add confidence intervals consistently across release-defining effect summaries, with literature-based reference distributions and an HC3 default — [#8](https://github.com/JUhalt/solomonR/issues/8).
 
-- [ ] Expand documentation distinguishing established Solomon methodology,
+- [x] Expand documentation distinguishing established Solomon methodology,
   contemporary recommendations, and solomonR-specific extensions — [#9](https://github.com/JUhalt/solomonR/issues/9).
 
 - [ ] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10).
