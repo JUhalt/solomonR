@@ -9,21 +9,25 @@
 #'       with a latent PRE factor and latent POST factor, fitting a latent
 #'       ANCOVA (POST ~ PRE), and reporting the pretested simple effect.
 #'
-#' Measurement invariance for POST can be set via `invariance_post`:
-#'   - "configural" (default): equal form only
-#'   - "metric": equal loadings
-#'   - "scalar": equal loadings + intercepts (supports mean comparisons)
+#' Latent mean contrasts require scalar measurement invariance (equal
+#' loadings and intercepts) across groups (Meredith, 1993; Vandenberg &
+#' Lance, 2000). `invariance_post` and `invariance_pre` therefore accept only
+#' `"scalar"`; configural and metric models are rejected with an explanation.
 #'
-#' For the pretested ANCOVA branch, `invariance_pre` applies across P1/P0.
+#' Identification: with scalar invariance, the latent POST mean of the
+#' unpretested control group (U0) is fixed at 0 and the other latent means are
+#' estimated relative to it. In the pretested ANCOVA model, the pretested
+#' control group (P0) is the reference. The Solomon contrasts are differences
+#' between latent means, so they do not depend on the reference choice.
 #'
 #' @param data data.frame containing all variables
 #' @param pre_items character vector of pretest item names (for ANCOVA branch)
 #' @param post_items character vector of posttest item names (required)
-#' @param treat 0/1 numeric (or logical) treatment indicator (length nrow(data))
-#' @param pretested 0/1 numeric (or logical) pretest indicator (length nrow(data))
-#' @param invariance_post one of "configural","metric","scalar" (default "scalar")
+#' @param treat 0/1 (or logical) treatment indicator (length nrow(data))
+#' @param pretested 0/1 (or logical) pretest indicator (length nrow(data))
+#' @param invariance_post measurement invariance for POST; must be "scalar"
 #' @param ancova logical; if TRUE, also fit latent ANCOVA in pretested groups
-#' @param invariance_pre one of "configural","metric","scalar" for pretested branch
+#' @param invariance_pre measurement invariance for the pretested branch; must be "scalar"
 #' @param estimator lavaan estimator, default "MLR" (robust)
 #' @param std_lv logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale
 #' @return An object of class `solomon_sem_latent` with:
@@ -35,6 +39,17 @@
 #'     \item `effects_pre` (optional): data.frame with `Pre_Eff` on latent POST (pretested)
 #'     \item `fitmeasures_pre` (optional)
 #'   }
+#' @references
+#' Meredith, W. (1993). Measurement invariance, factor analysis and factorial
+#' invariance. *Psychometrika, 58*(4), 525-543.
+#'
+#' Rosseel, Y. (2012). lavaan: An R package for structural equation
+#' modeling. *Journal of Statistical Software, 48*(2), 1-36.
+#'
+#' Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
+#' measurement invariance literature: Suggestions, practices, and
+#' recommendations for organizational research. *Organizational Research
+#' Methods, 3*(1), 4-70.
 #' @export
 fit_solomon_sem_latent <- function(
     data,
@@ -79,20 +94,25 @@ fit_solomon_sem_latent <- function(
     if (inherits(out, "try-error")) c(cfi = NA, rmsea = NA, srmr = NA, df = NA) else out
   }
 
-  stopifnot(length(treat) == nrow(data), length(pretested) == nrow(data))
+  treat <- .solomon_indicator(treat, "treat")
+  pretested <- .solomon_indicator(pretested, "pretested")
+  .solomon_check_lengths(data = data, treat = treat, pretested = pretested)
   if (length(post_items) < 2) stop("post_items must have at least 2 indicators for a latent POST factor.")
 
   # ------------------ 4-group label as a DATA COLUMN ------------------
-  g4 <- interaction(as.integer(pretested), as.integer(treat), drop = TRUE)
+  g4 <- interaction(pretested, treat, drop = TRUE)
   lvl <- c("1.1","1.0","0.1","0.0")  # P1, P0, U1, U0
   g4  <- factor(g4, levels = lvl, labels = c("P1","P0","U1","U0"))
   data4 <- data
   data4$group4 <- g4                                # <- ADD COLUMN
   # --------------------------------------------------------------------
 
-  # POST measurement + group-specific latent POST means (with labels)
+  # POST measurement + group-specific latent POST means (with labels).
+  # Under scalar invariance, one latent mean must be fixed for
+  # identification; U0 (unpretested control) is the reference.
   post_meas  <- paste0("POST =~ ", paste(post_items, collapse = " + "))
   post_means <- 'POST ~ c(mu_P1, mu_P0, mu_U1, mu_U0)*1'
+  post_ident <- 'mu_U0 == 0'
   # Defined parameters (contrasts) - so we get SE/z/p directly
   post_defs  <- '
     ATE       := ((mu_P1 - mu_P0) + (mu_U1 - mu_U0))/2
@@ -100,7 +120,7 @@ fit_solomon_sem_latent <- function(
     Pre_Eff   := (mu_P1 - mu_P0)
     Unpre_Eff := (mu_U1 - mu_U0)
   '
-  mod_post <- paste(post_meas, post_means, post_defs, sep = "\n")
+  mod_post <- paste(post_meas, post_means, post_ident, post_defs, sep = "\n")
 
   fit_post <- lavaan::sem(
     model         = mod_post,
@@ -146,17 +166,19 @@ fit_solomon_sem_latent <- function(
     if (is.null(pre_items) || length(pre_items) < 2)
       stop("ancova=TRUE requires pre_items with at least 2 indicators.")
 
-    keep <- as.integer(pretested) == 1L
+    keep <- pretested == 1L
     data2 <- data[keep, , drop = FALSE]
-    g2 <- factor(ifelse(as.integer(treat)[keep] == 1L, "P1", "P0"), levels = c("P1","P0"))
+    g2 <- factor(ifelse(treat[keep] == 1L, "P1", "P0"), levels = c("P1","P0"))
     data2$grp2 <- g2                                    # <- ADD COLUMN
 
     pre_meas   <- paste0("PRE  =~ ", paste(pre_items,  collapse = " + "))
     post_meas2 <- paste0("POST =~ ", paste(post_items, collapse = " + "))
     post_mean2 <- 'POST ~ c(mu_P1, mu_P0)*1'
+    # P0 (pretested control) is the reference latent mean.
+    pre_ident  <- 'mu_P0 == 0'
     anc_line <- "POST ~ c(beta_pre, beta_pre)*PRE"
     pre_defs   <- 'Pre_Eff := (mu_P1 - mu_P0)'
-    mod_pre <- paste(pre_meas, post_meas2, post_mean2, anc_line, pre_defs, sep = "\n")
+    mod_pre <- paste(pre_meas, post_meas2, post_mean2, pre_ident, anc_line, pre_defs, sep = "\n")
 
     fit_pre <- lavaan::sem(
       model         = mod_pre,
@@ -201,15 +223,6 @@ fit_solomon_sem_latent <- function(
       "p.value"
     )
 
-    fm_pre <- .safe_fitmeas(fit_pre)
-
-    names(eff_post) <- c(
-      "contrast",
-      "estimate",
-      "std.error",
-      "statistic",
-      "p.value"
-    )
     fm_pre <- .safe_fitmeas(fit_pre)
   }
 

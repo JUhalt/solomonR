@@ -2,7 +2,7 @@
 % Please edit documentation in R/solomon_core.R
 \name{power_solomon}
 \alias{power_solomon}
-\title{Power simulation for Solomon designs}
+\title{Power simulation for Solomon designs (experimental)}
 \usage{
 power_solomon(
   n = list(n1 = 50, n2 = 50, n3 = 50, n4 = 50),
@@ -15,24 +15,42 @@ power_solomon(
 )
 }
 \arguments{
-\item{n}{list with n1..n4 per cell (or a single n per cell)}
+\item{n}{Cell sizes: a single number used for all four cells, or a list
+with elements \code{n1} (pretested treatment), \code{n2} (pretested control),
+\code{n3} (unpretested treatment), and \code{n4} (unpretested control).}
 
-\item{delta}{average treatment effect (on posttest scale)}
+\item{delta}{Treatment effect among unpretested participants, on the
+posttest scale.}
 
-\item{rho}{correlation(pre, post) in pretested cells}
+\item{rho}{Pretest-posttest correlation in the pretested cells.}
 
-\item{sens}{pretest sensitization add-on to treatment in pretested cells (0 = none)}
+\item{sens}{Sensitization: the additional treatment effect among pretested
+participants (0 = none).}
 
-\item{sigma}{SD of errors}
+\item{sigma}{Posttest residual standard deviation in all cells.}
 
-\item{sims}{number of Monte Carlo replicates}
+\item{sims}{Number of Monte Carlo replicates.}
 
-\item{stouffer}{Logical; if \code{TRUE}, also estimate power for the optional
-Stouffer meta-analytic procedure.}
+\item{stouffer}{Logical; if \code{TRUE}, also estimate the rejection rate of the
+historical Stouffer Test I, evaluated one-tailed (treatment > control)
+as in \code{\link[=fit_solomon_classic]{fit_solomon_classic()}}.}
 }
 \value{
-data.frame with estimated power for: interaction, ATE, simple effects, and (optionally) Stouffer Z
+A data frame with the estimated rejection rate for the 2x2 ANOVA
+interaction, the GLM average treatment effect, the two simple treatment
+effects, and Test I (\code{NA} when \code{stouffer = FALSE}).
 }
 \description{
-Power simulation for Solomon designs
+\strong{Experimental.} This helper is scheduled to be rebuilt and validated in a
+later release. Its simulator has not been validated, and its results
+should not be used for study planning.
+}
+\details{
+Simulates normally distributed Solomon four-group data and estimates the
+rejection rate of several Solomon tests at alpha = .05. Pretest scores are
+standard normal. The posttest residual standard deviation is \code{sigma} in
+every cell, and the pretest-posttest correlation in the pretested cells is
+\code{rho}. The treatment effect is \code{delta} among unpretested participants and
+\code{delta + sens} among pretested participants, so the equal-weighted average
+treatment effect is \code{delta + sens / 2}.
 }

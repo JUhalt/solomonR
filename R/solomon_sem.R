@@ -7,17 +7,38 @@
 #'    with group means; reports the pretested simple effect (Pre_Eff). This avoids
 #'    structural missingness of y_pre in U1/U0 and matches Huck & Sandler.
 #'
+#' The four-group mean-structure model is saturated, so its global fit
+#' indices are not diagnostic. Its contrasts are unadjusted posttest mean
+#' differences, whereas the ANCOVA mode adjusts for the pretest within the
+#' pretested groups.
+#'
 #' @param y_post numeric posttest
-#' @param treat 0/1 treatment
-#' @param pretested 0/1 pretest indicator
+#' @param treat 0/1 (or logical) treatment indicator
+#' @param pretested 0/1 (or logical) pretest indicator
 #' @param y_pre optional pretest score (required if ancova = TRUE)
 #' @param equal_var logical; if TRUE, constrain posttest variances equal across groups
 #' @param ancova logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)
 #' @param estimator lavaan estimator (default "MLR")
+#' @references
+#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
+#' design: Appropriate statistical analyses. *The Journal of Experimental
+#' Education, 42*(1), 54-55.
+#'
+#' Rosseel, Y. (2012). lavaan: An R package for structural equation
+#' modeling. *Journal of Statistical Software, 48*(2), 1-36.
 #' @export
 fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
                             equal_var = FALSE, ancova = FALSE,
                             estimator = "MLR") {
+  treat <- .solomon_indicator(treat, "treat")
+  pretested <- .solomon_indicator(pretested, "pretested")
+  .solomon_check_lengths(
+    y_post = y_post,
+    treat = treat,
+    pretested = pretested,
+    y_pre = y_pre
+  )
+
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
   }

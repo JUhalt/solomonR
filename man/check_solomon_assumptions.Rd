@@ -2,19 +2,48 @@
 % Please edit documentation in R/solomon_checks.R
 \name{check_solomon_assumptions}
 \alias{check_solomon_assumptions}
-\title{Assumption checks for Solomon analyses}
+\title{Descriptive assumption diagnostics for Solomon analyses}
 \usage{
 check_solomon_assumptions(y_post, treat, pretested, y_pre)
 }
 \arguments{
 \item{y_post}{numeric posttest}
 
-\item{treat}{0/1}
+\item{treat}{0/1 (or logical) treatment indicator}
 
-\item{pretested}{0/1}
+\item{pretested}{0/1 (or logical) pretest indicator}
 
 \item{y_pre}{numeric pretest (NA for unpretested)}
 }
+\value{
+An object of class \code{solomon_checks}.
+}
 \description{
-Assumption checks for Solomon analyses
+Reports Brown-Forsythe tests of equal posttest variance (Brown & Forsythe,
+1974), Shapiro-Wilk normality tests within cells, and a test of
+homogeneous pretest-posttest slopes among pretested participants with
+complete scores.
+}
+\details{
+These results are descriptive. Choosing an analysis according to whether
+a preliminary assumption test is significant can distort Type I error
+rates (Zimmerman, 2004), so solomonR does not use them as gates:
+heteroskedasticity-consistent standard errors are a reasonable default for
+the unified GLM regardless of these results (Long & Ervin, 2000). A small
+slope-homogeneity p-value is substantively informative: it suggests that
+the treatment effect among pretested participants depends on the pretest
+score.
+}
+\references{
+Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
+variances. \emph{Journal of the American Statistical Association, 69}(346),
+364-367.
+
+Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+standard errors in the linear regression model. \emph{The American
+Statistician, 54}(3), 217-224.
+
+Zimmerman, D. W. (2004). A note on preliminary tests of equality of
+variances. \emph{British Journal of Mathematical and Statistical Psychology,
+57}(1), 173-181.
 }

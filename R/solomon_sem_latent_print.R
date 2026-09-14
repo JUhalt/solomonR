@@ -1,13 +1,10 @@
-p_fmt <- function(p) ifelse(is.na(p), "NA", ifelse(p < .001, "<.001", sprintf("%.3f", p)))
-estse_str <- function(est, se, digits = 3) ifelse(is.na(se), sprintf("%.*f (NA)", digits, est),
-                                                  sprintf("%.*f (%.3f)", digits, est, se))
-
 #' @export
 print.solomon_sem_latent <- function(x, digits = 3, ...) {
   cat("Solomon SEM (latent)\n")
   cat(sprintf("POST measurement invariance: %s\n", x$settings$invariance_post))
+  cat("Latent mean reference: U0 (unpretested control) fixed at 0\n")
   if (isTRUE(x$settings$ancova))
-    cat(sprintf("Pretested latent ANCOVA: %s\n", x$settings$invariance_pre))
+    cat(sprintf("Pretested latent ANCOVA: %s (reference: P0)\n", x$settings$invariance_pre))
   cat("\n")
 
   # POST (4-group)

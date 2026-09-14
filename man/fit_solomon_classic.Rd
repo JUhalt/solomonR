@@ -60,3 +60,26 @@ raised concerns about experiment-wise Type I error when the procedure is
 used conditionally. Its presence in this function should not be interpreted
 as a general contemporary recommendation.
 }
+\references{
+Solomon, R. L. (1949). An extension of control group design.
+\emph{Psychological Bulletin, 46}(2), 137-150.
+
+Campbell, D. T., & Stanley, J. C. (1963). \emph{Experimental and
+quasi-experimental designs for research}. Rand McNally.
+
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
+design: Appropriate statistical analyses. \emph{The Journal of Experimental
+Education, 42}(1), 54-55.
+
+Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological
+Bulletin, 104}(1), 150-154.
+
+Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
+Meta-analysis and the Solomon four-group design. \emph{The Journal of
+Experimental Education, 62}(4), 361-376.
+
+Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had
+more power in randomized studies and more bias in nonrandomized studies.
+\emph{Journal of Clinical Epidemiology, 59}(9), 920-925.
+}

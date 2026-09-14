@@ -21,6 +21,13 @@
 #'
 #' @return An object of class \code{solomon_ml}.
 #'
+#' @section Standard errors:
+#' Standard errors come from the observed information matrix, and tests use
+#' a normal reference distribution. The point estimates coincide with
+#' separate regressions in the pretested and unpretested groups. In small
+#' samples the resulting intervals can be too narrow; simulation validation
+#' of interval coverage is in progress.
+#'
 #' @references
 #' van Engelenburg, G. (1999). Statistical analysis for the Solomon
 #' four-group design. University of Twente Research Report 99-06.

@@ -9,4 +9,9 @@ hedges_g_ci(m1, m0, s1, s0, n1, n0, conf = 0.95)
 \description{
 Hedges g for a two-group contrast with CI
 }
+\references{
+Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
+size and related estimators. \emph{Journal of Educational Statistics, 6}(2),
+107-128.
+}
 \keyword{internal}

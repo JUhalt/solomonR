@@ -7,12 +7,13 @@
 plot_perm(perm)
 }
 \arguments{
-\item{perm}{A list returned by perm_solomon(..., return_dist = TRUE)
-containing \code{z_perm} and \code{z_obs}.}
+\item{perm}{An object returned by \code{perm_solomon(..., return_dist = TRUE)}.}
 }
 \value{
 A ggplot object
 }
 \description{
-Plot permutation distribution for a Solomon contrast
+Draws the permutation distribution of the studentized statistic with the
+observed value marked. The subtitle reports the same Monte Carlo p-value
+as \code{\link[=perm_solomon]{perm_solomon()}}.
 }

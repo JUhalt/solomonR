@@ -18,23 +18,80 @@ fit_solomon_glm(
 \arguments{
 \item{y}{numeric posttest vector}
 
-\item{treat}{0/1 indicator (1 = treatment)}
+\item{treat}{0/1 (or logical) treatment indicator (1 = treatment)}
 
-\item{pretested}{0/1 indicator (1 = group received pretest)}
+\item{pretested}{0/1 (or logical) pretest indicator (1 = group received pretest)}
 
 \item{pretest_score}{numeric vector for those pretested; NA for others}
 
 \item{covariates}{optional data.frame of additional covariates}
 
-\item{robust}{character: "none","HC3","CR2" (cluster-robust via clubSandwich if \code{cluster} supplied)}
+\item{robust}{character: "none", "HC3", or "CR2" (cluster-robust; requires \code{cluster})}
 
-\item{cluster}{optional clustering id (e.g., class/site)}
+\item{cluster}{optional clustering id (e.g., class/site), one value per participant}
 
 \item{family}{model family (default gaussian())}
 }
 \value{
-a list with model, tidy tables, and predefined contrasts (ATE, interaction, simple effects)
+An object of class \code{solomon_glm}: a list with the fitted model,
+coefficient and contrast tables (including degrees of freedom), the
+covariance matrix, and the settings used.
 }
 \description{
-Fit the unified GLM for a Solomon Four-Group design
+Fits one generalized linear model to all four Solomon groups and reports
+four Solomon contrasts: the equal-weighted average treatment effect, the
+Pretest x Treatment (sensitization) contrast, and the treatment effect
+within each pretesting condition.
+}
+\details{
+When \code{pretest_score} is supplied, it enters the model as \code{pre_obs}, equal
+to the pretest score in the pretested groups and 0 in the unpretested
+groups, so the structurally absent pretests do not remove Groups 3 and 4.
+Regression adjustment for baseline covariates in randomized experiments,
+and the case for pairing it with heteroskedasticity-robust standard errors,
+is discussed by Lin (2013). Pretested participants with a missing pretest
+score are excluded with a warning; incidental missingness is never imputed.
+}
+\section{Inference}{
+
+\itemize{
+\item \code{robust = "none"}: model-based covariance with normal-reference tests.
+\item \code{robust = "HC3"}: heteroskedasticity-consistent covariance (MacKinnon &
+White, 1985), recommended for samples of modest size (Long & Ervin,
+2000), with normal-reference tests.
+\item \code{robust = "CR2"}: bias-reduced cluster-robust covariance (Bell &
+McCaffrey, 2002) with Satterthwaite degrees of freedom (Pustejovsky &
+Tipton, 2018), computed with the clubSandwich package. Use this when
+participants are nested in clusters such as classrooms or sites.
+}
+
+The degrees of freedom used for each test are returned in the \code{df}
+columns (\code{Inf} for normal-reference tests). For non-identity links, the
+contrasts are on the link scale.
+}
+
+\references{
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
+for linear regression with multi-stage samples. \emph{Survey Methodology,
+28}(2), 169-181.
+
+Lin, W. (2013). Agnostic notes on regression adjustments to experimental
+data: Reexamining Freedman's critique. \emph{The Annals of Applied Statistics,
+7}(1), 295-318.
+
+Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+standard errors in the linear regression model. \emph{The American
+Statistician, 54}(3), 217-224.
+
+MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+covariance matrix estimators with improved finite sample properties.
+\emph{Journal of Econometrics, 29}(3), 305-325.
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed
+effects models. \emph{Journal of Business & Economic Statistics, 36}(4),
+672-683.
+
+Solomon, R. L. (1949). An extension of control group design.
+\emph{Psychological Bulletin, 46}(2), 137-150.
 }
