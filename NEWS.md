@@ -1,6 +1,56 @@
 # solomonR 0.2.0.9000
 
+## Inference corrections
+
+* `fit_solomon_glm(robust = "CR2")` now uses Satterthwaite degrees of freedom
+  for coefficient and contrast tests (Pustejovsky & Tipton, 2018), matching
+  clubSandwich. The previous normal-reference CR2 tests over-rejected with few
+  clusters (#14). Coefficient and contrast tables gain a `df` column (`Inf` for
+  normal-reference tests).
+* `fit_solomon_glm(robust = "CR2")` no longer fails when outcomes are missing;
+  the clustering variable is aligned with the rows used by the model (#14).
+* `perm_solomon()` refuses fits that include a clustering variable, because
+  permuting individuals is not a valid randomization test when treatment was
+  assigned to clusters (#15). Cluster-level randomization inference is planned
+  (#19).
+* `fit_solomon_sem_latent()` fixes a reference latent mean (U0; P0 in the
+  latent ANCOVA) so the latent mean structure is identified. Solomon contrasts
+  are unchanged; model degrees of freedom and fit indices are now correct
+  (#16).
+
+## Safeguards
+
+* `fit_solomon_glm()`, `fit_solomon_sem()`, `fit_solomon_sem_latent()`, and
+  `check_solomon_assumptions()` require `treat` and `pretested` to be coded 0/1
+  (or logical) and inputs to have equal lengths, instead of returning empty or
+  rescaled results (#5).
+* `fit_solomon_glm()` warns when pretested participants are missing pretest
+  scores (they are excluded, not imputed) and when pretest scores are supplied
+  for unpretested participants (#5, #6).
+* `power_solomon()` now warns that it is experimental. Interim fixes: `sigma`
+  applies to every cell, the Stouffer arm uses the historical one-tailed
+  direction, disabled metrics are `NA`, and `delta` is documented as the effect
+  among unpretested participants. A validated rebuild is planned (#18).
+* `perm_solomon(seed = )` restores the global random-number state on exit.
+
+## Output and documentation
+
+* Printed GLM results name the covariance estimator and reference
+  distribution. The summary no longer labels conventional standard errors as
+  robust, and `print()` returns the fitted object invisibly.
+* `plot_perm()` reports the same corrected p-value as `perm_solomon()`.
+* `check_solomon_assumptions()` presents its results as descriptive
+  diagnostics rather than gates for choosing an analysis, and uses complete
+  pretested cases for the slope-homogeneity test.
+* Help pages now cite the methodological sources for each procedure (#9).
+* `inst/CITATION` uses `bibentry()`.
+* Removed the unused internal `spr2_ci()`, which relied on an invalid interval
+  transformation, and duplicated print helpers.
+
 ## Development
+
+* Set the v0.3.0 scope around graduate students and applied researchers and
+  added v0.4.0, v0.5.0, v0.6.0, and v1.0.0 milestones that mirror the roadmap.
 
 * Changed current development licensing to GNU GPL version 3 only (GPL-3).
   Previously published releases retain their original MIT terms and notices.

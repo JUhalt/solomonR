@@ -277,10 +277,11 @@ fit_solomon_glm(
 )
 ```
 
-The current CR2 option supplies cluster-robust covariance estimation.
-Small-sample cluster-robust inference requires additional care, so CR2
-results should not yet be interpreted as a complete small-sample
-Satterthwaite procedure.
+CR2 combines the bias-reduced cluster-robust covariance estimator (Bell &
+McCaffrey, 2002) with Satterthwaite degrees of freedom for each
+coefficient and contrast (Pustejovsky & Tipton, 2018). The degrees of
+freedom are reported in the `df` column and can be small when there are
+few clusters.
 
 ## Wald-based partial R-squared
 
@@ -397,8 +398,9 @@ plot_perm(perm)
 
 Randomization inference is justified by the assignment mechanism, not
 merely by a small sample size. If treatment was randomized at the
-cluster level, permutation should likewise occur at the cluster rather
-than individual level.
+cluster level, permutation must likewise occur at the cluster level.
+`perm_solomon()` permutes individuals, so it refuses fits that include a
+clustering variable; use the CR2 tests above for clustered designs.
 
 ## A likelihood-based alternative
 
