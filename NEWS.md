@@ -36,6 +36,18 @@
   & Finch, 2001; Kelley, 2007) instead of a normal approximation.
 * Printed output shows each interval with its confidence level.
 
+## Design validation and missingness (#5, #6)
+
+* New `validate_solomon()` checks input lengths, 0/1 coding, the presence of
+  all four cells, and observed outcomes per cell, and returns every problem
+  as an error, warning, or note instead of stopping at the first.
+* New `check_solomon_missing()` separates structurally absent pretests in the
+  unpretested groups from incidental pretest and posttest missingness,
+  unexpected pretest scores, and unassigned participants. It reports counts by
+  cell and cited guidance for each category (Solomon, 1949; Rubin, 1976;
+  Graham et al., 2006; White & Thompson, 2005; Groenwold et al., 2012; Little &
+  Rubin, 2019).
+
 ## Safeguards
 
 * `fit_solomon_glm()`, `fit_solomon_sem()`, `fit_solomon_sem_latent()`, and

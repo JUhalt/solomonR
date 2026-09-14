@@ -136,7 +136,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
   - User-specified smallest effect size of interest
   - Distinguish "no significant sensitization" from evidence of negligible sensitization
 
-- [ ] `validate_solomon()` — [#5](https://github.com/JUhalt/solomonR/issues/5)
+- [x] `validate_solomon()` — [#5](https://github.com/JUhalt/solomonR/issues/5)
   - Verify all four cells
   - Inspect group sizes
   - Validate coding
@@ -144,7 +144,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
   - Detect unexpected missingness
   - Identify sparse / empty cells
 
-- [ ] `check_solomon_missing()` — [#6](https://github.com/JUhalt/solomonR/issues/6)
+- [x] `check_solomon_missing()` — [#6](https://github.com/JUhalt/solomonR/issues/6)
   - Distinguish structural from incidental missingness
   - Prevent inappropriate imputation of deliberately absent pretests
 

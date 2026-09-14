@@ -326,6 +326,25 @@ for details.
 
 ------------------------------------------------------------------------
 
+## Check the design first
+
+Before fitting a model, `validate_solomon()` confirms that all four
+cells are present, the design indicators are coded 0/1, and each cell
+has enough observed outcomes. It reports every problem at once instead
+of stopping at the first.
+
+``` r
+with(
+  solomon_demo,
+  validate_solomon(y_post, treat, pretested, y_pre)
+)
+```
+
+`check_solomon_missing()` separates the pretests that are absent by
+design in Groups 3 and 4, which must never be imputed, from incidental
+missing values, and explains the supported response to each with its
+sources.
+
 ## Diagnostics
 
 `check_solomon_assumptions()` provides diagnostics relevant to common
@@ -360,15 +379,16 @@ checks
 
 A useful starting point is:
 
-| Goal                                  | Suggested `solomonR` approach |
-|---------------------------------------|-------------------------------|
-| Modern primary analysis               | `fit_solomon_glm()`           |
-| Randomization-based inference         | `perm_solomon()`              |
-| Full-information likelihood           | `fit_solomon_ml()`            |
-| Teach or reproduce historical methods | `fit_solomon_classic()`       |
-| Observed-variable SEM                 | `fit_solomon_sem()`           |
-| Multi-item / latent outcome           | `fit_solomon_sem_latent()`    |
-| Model diagnostics                     | `check_solomon_assumptions()` |
+| Goal | Suggested `solomonR` approach |
+|----|----|
+| Modern primary analysis | `fit_solomon_glm()` |
+| Randomization-based inference | `perm_solomon()` |
+| Full-information likelihood | `fit_solomon_ml()` |
+| Teach or reproduce historical methods | `fit_solomon_classic()` |
+| Observed-variable SEM | `fit_solomon_sem()` |
+| Multi-item / latent outcome | `fit_solomon_sem_latent()` |
+| Check design coding and missingness | `validate_solomon()`, `check_solomon_missing()` |
+| Model diagnostics | `check_solomon_assumptions()` |
 
 For many ordinary randomized Solomon experiments with continuous
 outcomes, the unified GLM with clearly defined contrasts is a useful
