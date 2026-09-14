@@ -14,7 +14,8 @@ fit_solomon_sem_latent(
   ancova = FALSE,
   invariance_pre = c("scalar", "metric", "configural"),
   estimator = "MLR",
-  std_lv = TRUE
+  std_lv = TRUE,
+  conf_level = 0.95
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ fit_solomon_sem_latent(
 \item{estimator}{lavaan estimator, default "MLR" (robust)}
 
 \item{std_lv}{logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale}
+
+\item{conf_level}{confidence level for intervals (default 0.95)}
 }
 \value{
 An object of class \code{solomon_sem_latent} with:
@@ -70,6 +73,9 @@ unpretested control group (U0) is fixed at 0 and the other latent means are
 estimated relative to it. In the pretested ANCOVA model, the pretested
 control group (P0) is the reference. The Solomon contrasts are differences
 between latent means, so they do not depend on the reference choice.
+
+Tests and confidence intervals for the contrasts are lavaan's Wald
+results, which use a large-sample normal reference distribution.
 }
 \references{
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial

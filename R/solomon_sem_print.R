@@ -11,6 +11,8 @@ print.solomon_sem <- function(x, digits = 3, ...) {
     }
   }
 
+  level <- if (is.null(x$conf_level)) 0.95 else x$conf_level
+
   # ----------------------------------------------------------
   # Header
   # ----------------------------------------------------------
@@ -85,6 +87,15 @@ print.solomon_sem <- function(x, digits = 3, ...) {
     character(1)
   )
 
+  has_ci <- all(c("conf.low", "conf.high") %in% names(ef))
+  ci_label <- sprintf("%s%% CI", format(100 * level))
+
+  ef$ci <- if (has_ci) {
+    sprintf("[%.*f, %.*f]", digits, ef$conf.low, digits, ef$conf.high)
+  } else {
+    rep("", nrow(ef))
+  }
+
   contrast_w <- max(
     nchar("Key contrasts"),
     nchar(ef$contrast)
@@ -105,9 +116,14 @@ print.solomon_sem <- function(x, digits = 3, ...) {
     nchar(ef$p)
   )
 
+  ci_w <- max(
+    if (has_ci) nchar(ci_label) else 0L,
+    nchar(ef$ci)
+  )
+
   cat(
     sprintf(
-      "%-*s  %-*s  %*s  %*s\n",
+      "%-*s  %-*s  %*s  %*s  %*s\n",
       contrast_w,
       "Key contrasts",
       est_w,
@@ -115,7 +131,9 @@ print.solomon_sem <- function(x, digits = 3, ...) {
       z_w,
       "z",
       p_w,
-      "p"
+      "p",
+      ci_w,
+      if (has_ci) ci_label else ""
     )
   )
 
@@ -123,7 +141,7 @@ print.solomon_sem <- function(x, digits = 3, ...) {
 
     cat(
       sprintf(
-        "%-*s  %-*s  %*s  %*s\n",
+        "%-*s  %-*s  %*s  %*s  %*s\n",
         contrast_w,
         ef$contrast[i],
         est_w,
@@ -131,7 +149,9 @@ print.solomon_sem <- function(x, digits = 3, ...) {
         z_w,
         ef$z[i],
         p_w,
-        ef$p[i]
+        ef$p[i],
+        ci_w,
+        ef$ci[i]
       )
     )
   }

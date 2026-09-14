@@ -25,7 +25,7 @@
 #'
 #' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 #' design: Appropriate statistical analyses. *The Journal of Experimental
-#' Education, 42*(1), 54-55.
+#' Education, 42*(2), 54-55.
 #'
 #' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
 #' Solomon four-group design: A meta-analytic approach. *Psychological
@@ -56,11 +56,11 @@ p_to_z <- function(p) {
   stats::qnorm(1 - p)
 }
 
-#' Stouffer's Z combiner (a.k.a. "Test I")
+#' Stouffer's Z combiner (Braver & Braver, 1988, Test I)
 #'
 #' Combine one-tailed p-values that test the *same directional* hypothesis into
-#' a single Z. This is provided to reproduce the Braver & Braver (1988) option
-#' for SFGD. Use cautiously and document assumptions about homogeneity; see
+#' a single Z. This is provided to reproduce the Braver & Braver (1988)
+#' meta-analytic option (Test I) for the Solomon four-group design. Use cautiously and document assumptions about homogeneity; see
 #' the 1988–1990 exchanges for caveats.
 #' @param p numeric vector of one-tailed p-values (same direction)
 #' @return list with z_meta and p_meta (one-tailed)
@@ -102,34 +102,59 @@ stouffer_solomon <- function(p) {
 #' score are excluded with a warning; incidental missingness is never imputed.
 #'
 #' @section Inference:
-#' - `robust = "none"`: model-based covariance with normal-reference tests.
-#' - `robust = "HC3"`: heteroskedasticity-consistent covariance (MacKinnon &
-#'   White, 1985), recommended for samples of modest size (Long & Ervin,
-#'   2000), with normal-reference tests.
+#' - `robust = "HC3"` (default): heteroskedasticity-consistent covariance
+#'   (MacKinnon & White, 1985), recommended for routine use and particularly
+#'   below about 250 observations (Long & Ervin, 2000; Hayes & Cai, 2007).
+#'   Heteroskedasticity is expected in the unified Solomon model: when the
+#'   pretest predicts the posttest, adjusting for it reduces residual variance
+#'   only in the pretested groups.
+#' - `robust = "none"`: conventional model-based covariance.
 #' - `robust = "CR2"`: bias-reduced cluster-robust covariance (Bell &
 #'   McCaffrey, 2002) with Satterthwaite degrees of freedom (Pustejovsky &
 #'   Tipton, 2018), computed with the clubSandwich package. Use this when
 #'   participants are nested in clusters such as classrooms or sites.
 #'
-#' The degrees of freedom used for each test are returned in the `df`
-#' columns (`Inf` for normal-reference tests). For non-identity links, the
-#' contrasts are on the link scale.
+#' Tests and confidence intervals use the same reference distribution. For
+#' `"HC3"` and `"none"` it is the t distribution with residual degrees of
+#' freedom when the dispersion is estimated, as in Gaussian models, which is
+#' the conventional choice when t approximations are used with robust
+#' standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
+#' with a fixed dispersion (binomial, Poisson) use the normal distribution.
+#' The degrees of freedom are returned in the `df` columns (`Inf` for normal
+#' reference distributions). Imbens and Kolesár (2016) further recommend
+#' Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
+#' that refinement is under evaluation. For non-identity links, the contrasts
+#' are on the link scale.
+#'
+#' Confidence intervals for the Wald partial R-squared use the noncentral F
+#' method (Steiger, 2004) and are reported only for conventional Gaussian
+#' fits; no corresponding interval is available with robust covariance.
 #'
 #' @param y numeric posttest vector
 #' @param treat 0/1 (or logical) treatment indicator (1 = treatment)
 #' @param pretested 0/1 (or logical) pretest indicator (1 = group received pretest)
 #' @param pretest_score numeric vector for those pretested; NA for others
 #' @param covariates optional data.frame of additional covariates
-#' @param robust character: "none", "HC3", or "CR2" (cluster-robust; requires `cluster`)
+#' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per participant
 #' @param family model family (default gaussian())
+#' @param conf_level confidence level for intervals (default 0.95)
 #' @return An object of class `solomon_glm`: a list with the fitted model,
-#'   coefficient and contrast tables (including degrees of freedom), the
-#'   covariance matrix, and the settings used.
+#'   coefficient and contrast tables (including degrees of freedom and
+#'   confidence limits `conf.low` and `conf.high`), the covariance matrix,
+#'   and the settings used.
 #' @references
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 #' for linear regression with multi-stage samples. *Survey Methodology,
 #' 28*(2), 169-181.
+#'
+#' Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
+#' standard error estimators in OLS regression: An introduction and software
+#' implementation. *Behavior Research Methods, 39*(4), 709-722.
+#'
+#' Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
+#' samples: Some practical advice. *The Review of Economics and Statistics,
+#' 98*(4), 701-712.
 #'
 #' Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 #' data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
@@ -148,13 +173,24 @@ stouffer_solomon <- function(p) {
 #' effects models. *Journal of Business & Economic Statistics, 36*(4),
 #' 672-683.
 #'
+#' Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
+#' guide to statistical inference in linear modeling for non-normal or
+#' heteroskedastic error distributions. *Behavior Research Methods, 57*(12),
+#' Article 338.
+#'
 #' Solomon, R. L. (1949). An extension of control group design.
 #' *Psychological Bulletin, 46*(2), 137-150.
+#'
+#' Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
+#' and tests of close fit in the analysis of variance and contrast analysis.
+#' *Psychological Methods, 9*(2), 164-182.
 #' @export
 fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
-                            covariates = NULL, robust = c("none","HC3","CR2"),
-                            cluster = NULL, family = stats::gaussian()) {
+                            covariates = NULL, robust = c("HC3", "none", "CR2"),
+                            cluster = NULL, family = stats::gaussian(),
+                            conf_level = 0.95) {
   robust <- match.arg(robust)
+  .check_conf_level(conf_level)
 
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
@@ -234,9 +270,15 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     vcovM <- stats::vcov(fit)
   }
 
+  # --- reference distribution ---
+  # CR2 tests use Satterthwaite degrees of freedom. Otherwise, as in
+  # summary.glm(), tests use t with residual df when the dispersion is
+  # estimated (e.g., Gaussian models) and the normal distribution when it is
+  # fixed (binomial, Poisson).
+  dispersion_fixed <- stats::family(fit)$family %in% c("binomial", "poisson")
+  df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
+
   # --- tidy coefficients with chosen vcov ---
-  # CR2 tests use Satterthwaite degrees of freedom; the other covariance
-  # options use a normal reference distribution (df = Inf).
   tidy <- broom::tidy(fit)
   se_vec <- sqrt(diag(vcovM))
   tidy$std.error <- unname(se_vec[match(tidy$term, names(se_vec))])
@@ -245,9 +287,12 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     ct <- clubSandwich::coef_test(fit_cr, vcov = vcovM, test = "Satterthwaite")
     tidy$df <- ct$df_Satt[match(tidy$term, ct$Coef)]
   } else {
-    tidy$df <- Inf
+    tidy$df <- df_model
   }
   tidy$p.value <- 2 * stats::pt(-abs(tidy$statistic), df = tidy$df)
+  coef_ci <- .wald_ci(tidy$estimate, tidy$std.error, tidy$df, conf_level)
+  tidy$conf.low <- unname(coef_ci[, "conf.low"])
+  tidy$conf.high <- unname(coef_ci[, "conf.high"])
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -269,10 +314,12 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
         )
       )$df
     } else {
-      Inf
+      df_model
     }
     p   <- 2 * stats::pt(-abs(z), df = dfc)
-    c(estimate = est, std.error = se, statistic = z, p.value = p, df = dfc)
+    ci  <- .wald_ci(est, se, dfc, conf_level)
+    c(estimate = est, std.error = se, statistic = z, p.value = p, df = dfc,
+      conf.low = unname(ci[, "conf.low"]), conf.high = unname(ci[, "conf.high"]))
   }
 
   # Equal-weighted average treatment effect across pretest conditions:
@@ -309,11 +356,13 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
   c_pre <- lin_contrast(L_pre)
   c_un  <- lin_contrast(L_un)
 
-  # semi-partial R^2 for each contrast
-  r2_ate <- contrast_r2_ci(fit, L_ate, vcovM)
-  r2_int <- contrast_r2_ci(fit, L_int, vcovM)
-  r2_pre <- contrast_r2_ci(fit, L_pre, vcovM)
-  r2_un  <- contrast_r2_ci(fit, L_un,  vcovM)
+  # Wald-based partial R^2 for each contrast (intervals only for
+  # conventional covariance)
+  conventional <- robust == "none"
+  r2_ate <- contrast_r2_ci(fit, L_ate, vcovM, conf_level, conventional)
+  r2_int <- contrast_r2_ci(fit, L_int, vcovM, conf_level, conventional)
+  r2_pre <- contrast_r2_ci(fit, L_pre, vcovM, conf_level, conventional)
+  r2_un  <- contrast_r2_ci(fit, L_un,  vcovM, conf_level, conventional)
 
   effects <- data.frame(
     contrast = c(
@@ -358,6 +407,20 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
       unname(c_un["df"])
     ),
 
+    conf.low = c(
+      unname(c_ate["conf.low"]),
+      unname(c_int["conf.low"]),
+      unname(c_pre["conf.low"]),
+      unname(c_un["conf.low"])
+    ),
+
+    conf.high = c(
+      unname(c_ate["conf.high"]),
+      unname(c_int["conf.high"]),
+      unname(c_pre["conf.high"]),
+      unname(c_un["conf.high"])
+    ),
+
     r2 = c(
       r2_ate$r2,
       r2_int$r2,
@@ -392,6 +455,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     robust = robust,
     family = family,
     cluster = cluster,
+    conf_level = conf_level,
     call = match.call()
   )
 

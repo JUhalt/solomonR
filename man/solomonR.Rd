@@ -30,7 +30,7 @@ quasi-experimental designs for research}. Rand McNally.
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. \emph{The Journal of Experimental
-Education, 42}(1), 54-55.
+Education, 42}(2), 54-55.
 
 Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. \emph{Psychological

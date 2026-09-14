@@ -89,6 +89,7 @@
 
   data.frame(
     test = "I",
+    procedure = "Braver & Braver (1988)",
     source = source,
     z = combined$z_meta,
     p.value = combined$p_meta_one_tailed,
@@ -110,9 +111,10 @@
 #' two-wave repeated-measures interaction, the posttest-only comparison, and
 #' the optional Stouffer meta-analytic combination.
 #'
-#' Test I is included for historical replication and teaching. Later work
-#' raised concerns about experiment-wise Type I error when the procedure is
-#' used conditionally. Its presence in this function should not be interpreted
+#' Test I, the Braver & Braver (1988) Stouffer meta-analytic combination, is
+#' included for historical replication and teaching. Later work (see
+#' Sawilowsky et al., 1994) raised concerns about experiment-wise Type I
+#' error when the procedure is used conditionally. Its presence in this function should not be interpreted
 #' as a general contemporary recommendation.
 #'
 #' @param y_post Numeric posttest scores.
@@ -125,11 +127,22 @@
 #' @param pretested_test Which historical pretested-group analysis should be
 #'   followed in the decision pathway: \code{"ancova"}, \code{"gain"}, or
 #'   \code{"repeated"}. All three are still calculated and returned.
-#' @param combine_with_stouffer Logical. If \code{TRUE}, include historical
-#'   Test I in the decision pathway when earlier treatment tests are
+#' @param combine_with_stouffer Logical. If \code{TRUE}, include Test I, the
+#'   Braver & Braver (1988) Stouffer combination, in the decision pathway when earlier treatment tests are
 #'   nonsignificant.
 #' @param stouffer_direction Direction of the historical one-tailed treatment
 #'   hypothesis used for Test I: \code{"greater"} or \code{"less"}.
+#'
+#' @param conf_level Confidence level for intervals. Default is 0.95.
+#'
+#' @section Confidence intervals:
+#' Tests A-H are t tests (equivalently, F tests with one numerator degree of
+#' freedom) with residual degrees of freedom, and each result carries the
+#' matching confidence interval (`conf.low`, `conf.high`). Test I combines
+#' p-values and has no interval. The Groups 3-4 standardized mean difference
+#' (`g_post`) reports Hedges' g with a noncentral t interval for the
+#' population standardized mean difference (Cumming & Finch, 2001; Kelley,
+#' 2007).
 #'
 #' @return An object of class \code{solomon_classic}. The \code{tests}
 #'   component contains Tests A-I, while \code{path} records the historical
@@ -144,7 +157,7 @@
 #'
 #' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 #' design: Appropriate statistical analyses. *The Journal of Experimental
-#' Education, 42*(1), 54-55.
+#' Education, 42*(2), 54-55.
 #'
 #' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
 #' Solomon four-group design: A meta-analytic approach. *Psychological
@@ -158,6 +171,15 @@
 #' more power in randomized studies and more bias in nonrandomized studies.
 #' *Journal of Clinical Epidemiology, 59*(9), 920-925.
 #'
+#' Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
+#' calculation of confidence intervals that are based on central and
+#' noncentral distributions. *Educational and Psychological Measurement,
+#' 61*(4), 532-574.
+#'
+#' Kelley, K. (2007). Confidence intervals for standardized effect sizes:
+#' Theory, application, and implementation. *Journal of Statistical
+#' Software, 20*(8), 1-24.
+#'
 #' @export
 fit_solomon_classic <- function(
     y_post,
@@ -167,11 +189,13 @@ fit_solomon_classic <- function(
     alpha = 0.05,
     pretested_test = c("ancova", "gain", "repeated"),
     combine_with_stouffer = TRUE,
-    stouffer_direction = c("greater", "less")
+    stouffer_direction = c("greater", "less"),
+    conf_level = 0.95
 ) {
 
   pretested_test <- match.arg(pretested_test)
   stouffer_direction <- match.arg(stouffer_direction)
+  .check_conf_level(conf_level)
 
   if (length(y_post) != length(treat) ||
       length(y_post) != length(pretested) ||
@@ -494,6 +518,27 @@ fit_solomon_classic <- function(
   }
 
   # ----------------------------------------------------------
+  # Confidence intervals for Tests A-H (t with residual df)
+  # ----------------------------------------------------------
+
+  with_ci <- function(res) {
+    ci <- .wald_ci(res$estimate, res$std.error, res$df, conf_level)
+    res$conf.low <- unname(ci[, "conf.low"])
+    res$conf.high <- unname(ci[, "conf.high"])
+    res
+  }
+
+  A <- with_ci(A)
+  B <- with_ci(B)
+  C <- with_ci(C)
+  D <- with_ci(D)
+  E <- with_ci(E)
+  F <- with_ci(F)
+  G <- with_ci(G)
+  H <- with_ci(H)
+  pretest_main <- with_ci(pretest_main)
+
+  # ----------------------------------------------------------
   # Hedges g for Groups 3 and 4
   # ----------------------------------------------------------
 
@@ -506,7 +551,8 @@ fit_solomon_classic <- function(
     stats::sd(x1),
     stats::sd(x0),
     length(x1),
-    length(x0)
+    length(x0),
+    conf = conf_level
   )
 
   # Legacy-friendly objects retained for existing user code.
@@ -579,7 +625,7 @@ fit_solomon_classic <- function(
       model = fit_h
     ),
     I = list(
-      label = "Historical Stouffer combination",
+      label = "Braver & Braver (1988) Stouffer combination",
       result = I_selected,
       all = I_all
     )
@@ -597,7 +643,8 @@ fit_solomon_classic <- function(
         pretested_test = pretested_test,
         selected_test = selected_letter,
         combine_with_stouffer = combine_with_stouffer,
-        stouffer_direction = stouffer_direction
+        stouffer_direction = stouffer_direction,
+        conf_level = conf_level
       ),
 
       # Legacy fields

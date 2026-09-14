@@ -11,7 +11,8 @@ fit_solomon_sem(
   y_pre = NULL,
   equal_var = FALSE,
   ancova = FALSE,
-  estimator = "MLR"
+  estimator = "MLR",
+  conf_level = 0.95
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ fit_solomon_sem(
 \item{ancova}{logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)}
 
 \item{estimator}{lavaan estimator (default "MLR")}
+
+\item{conf_level}{confidence level for intervals (default 0.95)}
 }
 \description{
 Two modes:
@@ -44,11 +47,14 @@ The four-group mean-structure model is saturated, so its global fit
 indices are not diagnostic. Its contrasts are unadjusted posttest mean
 differences, whereas the ANCOVA mode adjusts for the pretest within the
 pretested groups.
+
+Tests and confidence intervals for the contrasts are lavaan's Wald
+results, which use a large-sample normal reference distribution.
 }
 \references{
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. \emph{The Journal of Experimental
-Education, 42}(1), 54-55.
+Education, 42}(2), 54-55.
 
 Rosseel, Y. (2012). lavaan: An R package for structural equation
 modeling. \emph{Journal of Statistical Software, 48}(2), 1-36.

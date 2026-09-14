@@ -21,12 +21,15 @@
 #'
 #' @return An object of class \code{solomon_ml}.
 #'
-#' @section Standard errors:
-#' Standard errors come from the observed information matrix, and tests use
-#' a normal reference distribution. The point estimates coincide with
-#' separate regressions in the pretested and unpretested groups. In small
-#' samples the resulting intervals can be too narrow; simulation validation
-#' of interval coverage is in progress.
+#' @param conf_level Confidence level for Wald intervals. Default is 0.95.
+#'
+#' @section Standard errors and intervals:
+#' Standard errors come from the observed information matrix. Tests and Wald
+#' confidence intervals use a normal reference distribution, the usual
+#' large-sample basis for maximum-likelihood inference. The point estimates
+#' coincide with separate regressions in the pretested and unpretested
+#' groups. In small samples the resulting intervals can be too narrow;
+#' simulation validation of interval coverage is in progress.
 #'
 #' @references
 #' van Engelenburg, G. (1999). Statistical analysis for the Solomon
@@ -39,10 +42,12 @@ fit_solomon_ml <- function(
     pretested,
     y_pre,
     weights = c("equal"),
-    control = list()
+    control = list(),
+    conf_level = 0.95
 ) {
 
   weights <- match.arg(weights)
+  .check_conf_level(conf_level)
 
   if (length(y_post) != length(treat) ||
       length(y_post) != length(pretested) ||
@@ -249,12 +254,16 @@ fit_solomon_ml <- function(
   z <- b / se
   p <- 2 * stats::pnorm(-abs(z))
 
+  coef_ci <- .wald_ci(unname(b), unname(se), Inf, conf_level)
+
   coefficients <- data.frame(
     term = names(b),
     estimate = unname(b),
     std.error = unname(se),
     statistic = unname(z),
     p.value = unname(p),
+    conf.low = unname(coef_ci[, "conf.low"]),
+    conf.high = unname(coef_ci[, "conf.high"]),
     row.names = NULL
   )
 
@@ -276,12 +285,16 @@ fit_solomon_ml <- function(
     statistic <- estimate / std.error
     p.value <- 2 * stats::pnorm(-abs(statistic))
 
+    ci <- .wald_ci(estimate, std.error, Inf, conf_level)
+
     data.frame(
       contrast = label,
       estimate = estimate,
       std.error = std.error,
       statistic = statistic,
       p.value = p.value,
+      conf.low = unname(ci[, "conf.low"]),
+      conf.high = unname(ci[, "conf.high"]),
       row.names = NULL
     )
   }
@@ -348,6 +361,7 @@ fit_solomon_ml <- function(
       vcov = V,
       data = df,
       call = match.call(),
+      conf_level = conf_level,
       method = "van Engelenburg (1999) full-information ML"
     ),
     class = "solomon_ml"

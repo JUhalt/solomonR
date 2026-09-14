@@ -20,6 +20,9 @@
 #' control group (P0) is the reference. The Solomon contrasts are differences
 #' between latent means, so they do not depend on the reference choice.
 #'
+#' Tests and confidence intervals for the contrasts are lavaan's Wald
+#' results, which use a large-sample normal reference distribution.
+#'
 #' @param data data.frame containing all variables
 #' @param pre_items character vector of pretest item names (for ANCOVA branch)
 #' @param post_items character vector of posttest item names (required)
@@ -30,6 +33,7 @@
 #' @param invariance_pre measurement invariance for the pretested branch; must be "scalar"
 #' @param estimator lavaan estimator, default "MLR" (robust)
 #' @param std_lv logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale
+#' @param conf_level confidence level for intervals (default 0.95)
 #' @return An object of class `solomon_sem_latent` with:
 #'   \itemize{
 #'     \item `fit_post`: lavaan object for the 4-group POST model
@@ -60,13 +64,15 @@ fit_solomon_sem_latent <- function(
     ancova = FALSE,
     invariance_pre = c("scalar","metric","configural"),
     estimator = "MLR",
-    std_lv = TRUE
+    std_lv = TRUE,
+    conf_level = 0.95
 ) {
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
   }
   invariance_post <- match.arg(invariance_post)
   invariance_pre  <- match.arg(invariance_pre)
+  .check_conf_level(conf_level)
 
   if (!identical(invariance_post, "scalar")) {
     stop(
@@ -92,6 +98,18 @@ fit_solomon_sem_latent <- function(
   .safe_fitmeas <- function(fit) {
     out <- try(lavaan::fitMeasures(fit, c("cfi","rmsea","srmr","df")), silent = TRUE)
     if (inherits(out, "try-error")) c(cfi = NA, rmsea = NA, srmr = NA, df = NA) else out
+  }
+  .effects <- function(fit) {
+    pe <- lavaan::parameterEstimates(fit, standardized = FALSE, level = conf_level)
+    eff <- pe[
+      pe$op == ":=",
+      c("lhs", "est", "se", "z", "pvalue", "ci.lower", "ci.upper"),
+      drop = FALSE
+    ]
+    names(eff) <- c("contrast", "estimate", "std.error", "statistic", "p.value",
+                    "conf.low", "conf.high")
+    rownames(eff) <- NULL
+    eff
   }
 
   treat <- .solomon_indicator(treat, "treat")
@@ -140,24 +158,7 @@ fit_solomon_sem_latent <- function(
     )
   }
 
-  pe_post <- lavaan::parameterEstimates(
-    fit_post,
-    standardized = FALSE
-  )
-
-  eff_post <- pe_post[
-    pe_post$op == ":=",
-    c("lhs", "est", "se", "z", "pvalue"),
-    drop = FALSE
-  ]
-
-  names(eff_post) <- c(
-    "contrast",
-    "estimate",
-    "std.error",
-    "statistic",
-    "p.value"
-  )
+  eff_post <- .effects(fit_post)
   fm_post <- .safe_fitmeas(fit_post)
 
   # ------------------ Optional latent ANCOVA in pretested groups ------------------
@@ -198,31 +199,7 @@ fit_solomon_sem_latent <- function(
       )
     }
 
-    pe_pre <- lavaan::parameterEstimates(
-      fit_pre,
-      standardized = FALSE
-    )
-
-    eff_pre <- pe_pre[
-      pe_pre$op == ":=",
-      c(
-        "lhs",
-        "est",
-        "se",
-        "z",
-        "pvalue"
-      ),
-      drop = FALSE
-    ]
-
-    names(eff_pre) <- c(
-      "contrast",
-      "estimate",
-      "std.error",
-      "statistic",
-      "p.value"
-    )
-
+    eff_pre <- .effects(fit_pre)
     fm_pre <- .safe_fitmeas(fit_pre)
   }
 
@@ -237,7 +214,8 @@ fit_solomon_sem_latent <- function(
       invariance_post = invariance_post,
       ancova = ancova,
       invariance_pre = invariance_pre,
-      std_lv = std_lv
+      std_lv = std_lv,
+      conf_level = conf_level
     )
   ), class = "solomon_sem_latent")
 }

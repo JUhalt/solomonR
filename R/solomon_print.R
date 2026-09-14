@@ -16,22 +16,45 @@ estse_str <- function(est, se, digits = 3) {
 # Describe the covariance estimator and reference distribution of a
 # solomon_glm fit or its summary.
 .solomon_vcov_label <- function(x) {
-  switch(
-    x$robust,
-    none = "model-based (conventional); normal-reference tests",
-    HC3 = "HC3 heteroskedasticity-consistent; normal-reference tests",
-    CR2 = sprintf(
+
+  if (identical(x$robust, "CR2")) {
+    return(sprintf(
       "CR2 cluster-robust (%d clusters); Satterthwaite t tests",
       length(unique(stats::na.omit(x$cluster)))
-    )
+    ))
+  }
+
+  estimator <- switch(
+    x$robust,
+    none = "model-based (conventional)",
+    HC3 = "HC3 heteroskedasticity-consistent"
+  )
+
+  df <- x$effects$df
+  reference <- if (!is.null(df) && all(is.finite(df))) {
+    sprintf("t tests (df = %s)", format(df[1]))
+  } else {
+    "normal-reference tests"
+  }
+
+  paste0(estimator, "; ", reference)
+}
+
+# Format degrees of freedom: whole numbers without decimals.
+.df_fmt <- function(df) {
+  ifelse(
+    !is.finite(df),
+    "Inf",
+    ifelse(abs(df - round(df)) < 1e-8, sprintf("%.0f", df), sprintf("%.1f", df))
   )
 }
 
 # Print the coefficient and key-contrast tables of a solomon_glm fit.
-.solomon_glm_tables <- function(coefs, effects, robust, digits = 3) {
+.solomon_glm_tables <- function(coefs, effects, digits = 3, conf_level = 0.95) {
 
-  show_df <- identical(robust, "CR2")
+  show_df <- "df" %in% names(effects) && any(is.finite(effects$df))
   stat_label <- if (show_df) "t" else "z"
+  ci_label <- sprintf("%s%% CI", format(100 * conf_level))
 
   print_table <- function(tab, first_col, first_label, r2 = FALSE) {
 
@@ -43,12 +66,19 @@ estse_str <- function(est, se, digits = 3) {
     heads <- c(first_label, "Est (SE)", stat_label)
 
     if (show_df && "df" %in% names(tab)) {
-      cols <- c(cols, list(sprintf("%.1f", tab$df)))
+      cols <- c(cols, list(.df_fmt(tab$df)))
       heads <- c(heads, "df")
     }
 
     cols <- c(cols, list(p_fmt(tab$p.value)))
     heads <- c(heads, "p")
+
+    if (all(c("conf.low", "conf.high") %in% names(tab))) {
+      cols <- c(cols, list(sprintf(
+        "[%.*f, %.*f]", digits, tab$conf.low, digits, tab$conf.high
+      )))
+      heads <- c(heads, ci_label)
+    }
 
     if (r2 && "r2" %in% names(tab)) {
       cols <- c(cols, list(ifelse(is.na(tab$r2), "", sprintf("%.3f", tab$r2))))
@@ -86,7 +116,8 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   if (!is.null(f)) cat("Formula: ", paste(deparse(f), collapse = " "), "\n", sep = "")
   cat("Covariance: ", .solomon_vcov_label(x), "\n\n", sep = "")
 
-  .solomon_glm_tables(x$coefficients, x$effects, x$robust, digits)
+  level <- if (is.null(x$conf_level)) 0.95 else x$conf_level
+  .solomon_glm_tables(x$coefficients, x$effects, digits, level)
 
   cat(
     "\nWald R2: partial R-squared for conventional Gaussian OLS;\n",
@@ -198,11 +229,12 @@ print.solomon_classic <- function(x, digits = 3, ...) {
 
     cat(
       sprintf(
-        "%s Test I: %-45s Z = %.2f, p(one-tailed) = %s\n",
+        "%s Test I: %-45s Z = %.2f, p(one-tailed) = %s [%s]\n",
         i_marker,
-        ii$source,
+        x$tests$I$label,
         ii$z,
-        p_fmt(ii$p.value)
+        p_fmt(ii$p.value),
+        ii$source
       )
     )
   }
@@ -214,8 +246,9 @@ print.solomon_classic <- function(x, digits = 3, ...) {
   if (!is.null(x$g_post)) {
     cat(
       sprintf(
-        "\nGroups 3-4 effect size: Hedges g = %.3f, 95%% CI [%.3f, %.3f]\n",
+        "\nGroups 3-4 effect size: Hedges g = %.3f, %s%% CI [%.3f, %.3f] (noncentral t)\n",
         x$g_post["g"],
+        format(100 * (if (is.null(x$settings$conf_level)) 0.95 else x$settings$conf_level)),
         x$g_post["lower"],
         x$g_post["upper"]
       )
@@ -224,10 +257,11 @@ print.solomon_classic <- function(x, digits = 3, ...) {
 
   if (isTRUE(x$settings$combine_with_stouffer)) {
     cat(
-      "\nCaution: Test I is reproduced for historical teaching and replication.\n",
-      "Later simulation work raised concerns about Type I error for the\n",
-      "conditional meta-analytic sequence; it is not the default modern\n",
-      "inferential recommendation in solomonR.\n",
+      "\nCaution: Test I, the Braver & Braver (1988) Stouffer combination, is\n",
+      "reproduced for historical teaching and replication. Later simulation\n",
+      "work (see Sawilowsky et al., 1994) raised concerns about Type I error\n",
+      "for the conditional meta-analytic sequence; it is not the default\n",
+      "modern inferential recommendation in solomonR.\n",
       sep = ""
     )
   }

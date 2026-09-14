@@ -10,9 +10,10 @@ fit_solomon_glm(
   pretested,
   pretest_score = NULL,
   covariates = NULL,
-  robust = c("none", "HC3", "CR2"),
+  robust = c("HC3", "none", "CR2"),
   cluster = NULL,
-  family = stats::gaussian()
+  family = stats::gaussian(),
+  conf_level = 0.95
 )
 }
 \arguments{
@@ -26,16 +27,19 @@ fit_solomon_glm(
 
 \item{covariates}{optional data.frame of additional covariates}
 
-\item{robust}{character: "none", "HC3", or "CR2" (cluster-robust; requires \code{cluster})}
+\item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
 \item{cluster}{optional clustering id (e.g., class/site), one value per participant}
 
 \item{family}{model family (default gaussian())}
+
+\item{conf_level}{confidence level for intervals (default 0.95)}
 }
 \value{
 An object of class \code{solomon_glm}: a list with the fitted model,
-coefficient and contrast tables (including degrees of freedom), the
-covariance matrix, and the settings used.
+coefficient and contrast tables (including degrees of freedom and
+confidence limits \code{conf.low} and \code{conf.high}), the covariance matrix,
+and the settings used.
 }
 \description{
 Fits one generalized linear model to all four Solomon groups and reports
@@ -55,25 +59,48 @@ score are excluded with a warning; incidental missingness is never imputed.
 \section{Inference}{
 
 \itemize{
-\item \code{robust = "none"}: model-based covariance with normal-reference tests.
-\item \code{robust = "HC3"}: heteroskedasticity-consistent covariance (MacKinnon &
-White, 1985), recommended for samples of modest size (Long & Ervin,
-2000), with normal-reference tests.
+\item \code{robust = "HC3"} (default): heteroskedasticity-consistent covariance
+(MacKinnon & White, 1985), recommended for routine use and particularly
+below about 250 observations (Long & Ervin, 2000; Hayes & Cai, 2007).
+Heteroskedasticity is expected in the unified Solomon model: when the
+pretest predicts the posttest, adjusting for it reduces residual variance
+only in the pretested groups.
+\item \code{robust = "none"}: conventional model-based covariance.
 \item \code{robust = "CR2"}: bias-reduced cluster-robust covariance (Bell &
 McCaffrey, 2002) with Satterthwaite degrees of freedom (Pustejovsky &
 Tipton, 2018), computed with the clubSandwich package. Use this when
 participants are nested in clusters such as classrooms or sites.
 }
 
-The degrees of freedom used for each test are returned in the \code{df}
-columns (\code{Inf} for normal-reference tests). For non-identity links, the
-contrasts are on the link scale.
+Tests and confidence intervals use the same reference distribution. For
+\code{"HC3"} and \code{"none"} it is the t distribution with residual degrees of
+freedom when the dispersion is estimated, as in Gaussian models, which is
+the conventional choice when t approximations are used with robust
+standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
+with a fixed dispersion (binomial, Poisson) use the normal distribution.
+The degrees of freedom are returned in the \code{df} columns (\code{Inf} for normal
+reference distributions). Imbens and Kolesár (2016) further recommend
+Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
+that refinement is under evaluation. For non-identity links, the contrasts
+are on the link scale.
+
+Confidence intervals for the Wald partial R-squared use the noncentral F
+method (Steiger, 2004) and are reported only for conventional Gaussian
+fits; no corresponding interval is available with robust covariance.
 }
 
 \references{
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 for linear regression with multi-stage samples. \emph{Survey Methodology,
 28}(2), 169-181.
+
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
+standard error estimators in OLS regression: An introduction and software
+implementation. \emph{Behavior Research Methods, 39}(4), 709-722.
+
+Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
+samples: Some practical advice. \emph{The Review of Economics and Statistics,
+98}(4), 701-712.
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. \emph{The Annals of Applied Statistics,
@@ -92,6 +119,15 @@ cluster-robust variance estimation and hypothesis testing in fixed
 effects models. \emph{Journal of Business & Economic Statistics, 36}(4),
 672-683.
 
+Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
+guide to statistical inference in linear modeling for non-normal or
+heteroskedastic error distributions. \emph{Behavior Research Methods, 57}(12),
+Article 338.
+
 Solomon, R. L. (1949). An extension of control group design.
 \emph{Psychological Bulletin, 46}(2), 137-150.
+
+Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
+and tests of close fit in the analysis of variance and contrast analysis.
+\emph{Psychological Methods, 9}(2), 164-182.
 }

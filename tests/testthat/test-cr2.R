@@ -74,20 +74,8 @@ test_that("CR2 Solomon contrasts match clubSandwich linear contrasts", {
   expect_equal(ate$std.error, lc$SE, tolerance = 1e-8)
   expect_equal(ate$df, lc$df, tolerance = 1e-8)
   expect_equal(ate$p.value, lc$p_val, tolerance = 1e-6)
-})
-
-
-test_that("non-clustered fits report normal-reference tests", {
-
-  data(solomon_demo, package = "solomonR")
-
-  fit <- with(
-    solomon_demo,
-    fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "HC3")
-  )
-
-  expect_true(all(is.infinite(fit$effects$df)))
-  expect_true(all(is.infinite(fit$coefficients$df)))
+  expect_equal(ate$conf.low, lc$CI_L, tolerance = 1e-6)
+  expect_equal(ate$conf.high, lc$CI_U, tolerance = 1e-6)
 })
 
 

@@ -10,7 +10,8 @@ fit_solomon_ml(
   pretested,
   y_pre,
   weights = c("equal"),
-  control = list()
+  control = list(),
+  conf_level = 0.95
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ pretest conditions. Currently \code{"equal"} gives equal weight to the
 pretested and unpretested treatment effects.}
 
 \item{control}{Optional list passed to \code{stats::optim()}.}
+
+\item{conf_level}{Confidence level for Wald intervals. Default is 0.95.}
 }
 \value{
 An object of class \code{solomon_ml}.
@@ -43,13 +46,14 @@ The model estimates the treatment effect, pretest effect,
 Treatment x Pretest interaction, pretest-posttest slope, and separate
 residual standard deviations for pretested and unpretested participants.
 }
-\section{Standard errors}{
+\section{Standard errors and intervals}{
 
-Standard errors come from the observed information matrix, and tests use
-a normal reference distribution. The point estimates coincide with
-separate regressions in the pretested and unpretested groups. In small
-samples the resulting intervals can be too narrow; simulation validation
-of interval coverage is in progress.
+Standard errors come from the observed information matrix. Tests and Wald
+confidence intervals use a normal reference distribution, the usual
+large-sample basis for maximum-likelihood inference. The point estimates
+coincide with separate regressions in the pretested and unpretested
+groups. In small samples the resulting intervals can be too narrow;
+simulation validation of interval coverage is in progress.
 }
 
 \references{
