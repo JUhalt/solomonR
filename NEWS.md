@@ -18,6 +18,24 @@
   are unchanged; model degrees of freedom and fit indices are now correct
   (#16).
 
+## Confidence intervals and reference distributions (#8)
+
+* `fit_solomon_glm()` now defaults to `robust = "HC3"`, following Long & Ervin
+  (2000) and Hayes & Cai (2007).
+* Tests and intervals share one reference distribution: t with residual
+  degrees of freedom for Gaussian GLMs (conventional and HC3), the normal
+  distribution for binomial and Poisson models, and Satterthwaite t for CR2.
+* Effect summaries from `fit_solomon_glm()`, `fit_solomon_classic()` (Tests
+  A-H), `fit_solomon_ml()`, `fit_solomon_sem()`, and `fit_solomon_sem_latent()`
+  gain `conf.low` and `conf.high` columns and a `conf_level` argument. ML and
+  SEM intervals are large-sample Wald intervals.
+* The Wald partial R-squared has a noncentral F confidence interval for
+  conventional Gaussian fits (Steiger, 2004); none is reported under robust
+  covariance.
+* The Groups 3-4 Hedges' g interval now uses the noncentral t method (Cumming
+  & Finch, 2001; Kelley, 2007) instead of a normal approximation.
+* Printed output shows each interval with its confidence level.
+
 ## Safeguards
 
 * `fit_solomon_glm()`, `fit_solomon_sem()`, `fit_solomon_sem_latent()`, and
@@ -43,6 +61,8 @@
   diagnostics rather than gates for choosing an analysis, and uses complete
   pretested cases for the slope-homogeneity test.
 * Help pages now cite the methodological sources for each procedure (#9).
+* Test I is labeled as the Braver & Braver (1988) Stouffer combination in
+  output and help pages, and its result gains a `procedure` column.
 * `inst/CITATION` uses `bibentry()`.
 * Removed the unused internal `spr2_ci()`, which relied on an invalid interval
   transformation, and duplicated print helpers.

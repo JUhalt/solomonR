@@ -144,11 +144,16 @@ The key estimands are:
 The model handles the structural absence of pretest scores in Groups 3
 and 4 without discarding those groups.
 
+Every contrast is reported with a confidence interval (`conf.low`,
+`conf.high`; set the level with `conf_level`). HC3 covariance is the
+default (Long & Ervin, 2000), and Gaussian models use t tests with
+residual degrees of freedom.
+
 For Gaussian models, the output also reports a **Wald-based partial
 R-squared** for each one-degree-of-freedom contrast. With conventional
-OLS covariance this corresponds to the usual partial R-squared identity.
-With robust covariance estimation it should be interpreted as a
-descriptive Wald-based approximation.
+covariance this is the usual partial R-squared, with a noncentral F
+confidence interval (Steiger, 2004). With robust covariance it is a
+descriptive Wald-based approximation without an interval.
 
 ------------------------------------------------------------------------
 
@@ -182,8 +187,8 @@ The package distinguishes between:
 - tests that were actually reached along the historical **decision
   path**.
 
-The historical Stouffer combination is included for teaching and
-replication, but it is **not the default modern inferential
+Test I, the Braver & Braver (1988) Stouffer combination, is included for
+teaching and replication, but it is **not the default modern inferential
 recommendation**. Later simulation work raised concerns about Type I
 error in conditional versions of this procedure.
 
@@ -383,12 +388,16 @@ Failure to reject the pretest-by-treatment interaction does not
 establish that sensitization is absent. Equivalence-based approaches are
 planned for a future release.
 
-### Robust covariance and Wald R-squared
+### Reference distributions and intervals
 
-HC3 changes the covariance estimate used for inference. The associated
-Wald R-squared reported by `solomonR` is therefore a descriptive
-Wald-based quantity rather than an exact decomposition of model
-variance.
+HC3 is the default covariance estimator, following Long and Ervin (2000)
+and Hayes and Cai (2007). Tests and confidence intervals use the t
+distribution with residual degrees of freedom for Gaussian models, the
+normal distribution for binomial and Poisson models, and Satterthwaite
+degrees of freedom for CR2. Maximum-likelihood and SEM results use
+large-sample normal intervals. Under robust covariance, the Wald
+R-squared is a descriptive quantity rather than an exact decomposition
+of model variance.
 
 ### CR2
 
@@ -477,6 +486,10 @@ Bulletin, 104*, 150-154.
 Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
 quasi-experimental designs for research*. Rand McNally.
 
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
+standard error estimators in OLS regression: An introduction and
+software implementation. *Behavior Research Methods, 39*, 709-722.
+
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
 Education, 42*, 54-55.
@@ -496,6 +509,10 @@ Experimental Education, 62*, 361-376.
 
 Solomon, R. L. (1949). An extension of control group design.
 *Psychological Bulletin, 46*, 137-150.
+
+Steiger, J. H. (2004). Beyond the F test: Effect size confidence
+intervals and tests of close fit in the analysis of variance and
+contrast analysis. *Psychological Methods, 9*, 164-182.
 
 van Engelenburg, G. (1999). Statistical analysis for the Solomon
 four-group design.

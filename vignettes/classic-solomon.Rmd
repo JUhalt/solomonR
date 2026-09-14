@@ -245,7 +245,7 @@ cat(
 )
 ```
 
-## Test I: historical Stouffer combination
+## Test I: Braver & Braver (1988) Stouffer combination
 
 Braver and Braver (1988) proposed combining evidence from the
 pretested and unpretested treatment comparisons using Stouffer's
