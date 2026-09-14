@@ -27,8 +27,12 @@ reference:
       - fit_solomon_sem
       - fit_solomon_sem_latent
 
-  - title: "Diagnostics and design utilities"
+  - title: "Design validation and diagnostics"
+    desc: >
+      Check design coding, cell structure, and missingness before analysis.
     contents:
+      - validate_solomon
+      - check_solomon_missing
       - check_solomon_assumptions
       - power_solomon
 
