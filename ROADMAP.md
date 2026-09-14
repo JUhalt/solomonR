@@ -131,7 +131,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
   - Structural pretest missingness handled explicitly
   - Existing known-result validation; broader simulation evidence is tracked separately.
 
-- [ ] Sensitization equivalence testing — [#4](https://github.com/JUhalt/solomonR/issues/4)
+- [x] Sensitization equivalence testing — [#4](https://github.com/JUhalt/solomonR/issues/4)
   - CI-based / TOST-style inference
   - User-specified smallest effect size of interest
   - Distinguish "no significant sensitization" from evidence of negligible sensitization

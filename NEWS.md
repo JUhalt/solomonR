@@ -36,6 +36,17 @@
   & Finch, 2001; Kelley, 2007) instead of a normal approximation.
 * Printed output shows each interval with its confidence level.
 
+## Sensitization equivalence testing (#4)
+
+* New `equivalence_solomon()` performs a two one-sided tests (TOST)
+  equivalence test for a Solomon contrast, by default the Pretest x Treatment
+  sensitization contrast (Schuirmann, 1987; Lakens, 2017). It uses the fitted
+  model's reference distribution, reports both one-sided tests, the
+  1 - 2 alpha interval, and the test against zero, and classifies the result
+  as equivalent, trivially small, different, or inconclusive. Bounds have no
+  default and are documented as a prespecified smallest effect size of
+  interest.
+
 ## Design validation and missingness (#5, #6)
 
 * New `validate_solomon()` checks input lengths, 0/1 coding, the presence of

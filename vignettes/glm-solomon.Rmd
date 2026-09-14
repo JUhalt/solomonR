@@ -295,6 +295,30 @@ coefficient and contrast (Pustejovsky & Tipton, 2018). The degrees of
 freedom are reported in the `df` column and can be small when there are
 few clusters.
 
+## Is sensitization negligible?
+
+A nonsignificant Pretest x Treatment contrast does not show that
+sensitization is absent. An equivalence test asks a different question:
+can effects at least as large as the smallest effect size of interest
+(SESOI) be rejected? `equivalence_solomon()` performs the two one-sided
+tests (TOST) procedure (Lakens, 2017).
+
+The bounds must be set before the data are examined. Suppose that, before
+collecting data, the researchers noted that prior studies with this
+measure reported a posttest standard deviation of about 10 points, and
+decided that sensitization smaller than half a standard deviation
+(5 points) would be negligible.
+
+```{r glm-equivalence}
+equivalence_solomon(fit, bounds = 5)
+```
+
+With 25 participants per group, the 90% confidence interval still
+extends beyond 5 points, so the result is inconclusive: these data can
+neither detect sensitization nor rule out sensitization of that size.
+Equivalence tests need adequate power of their own (Lakens, 2017), so
+equivalence bounds belong in study planning.
+
 ## Wald-based partial R-squared
 
 For Gaussian models, `fit_solomon_glm()` reports a Wald-based partial
@@ -546,6 +570,10 @@ for linear regression with multi-stage samples. *Survey Methodology, 28*,
 Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
 standard error estimators in OLS regression: An introduction and software
 implementation. *Behavior Research Methods, 39*, 709-722.
+
+Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
+correlations, and meta-analyses. *Social Psychological and Personality
+Science, 8*, 355-362.
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
 standard errors in the linear regression model. *The American

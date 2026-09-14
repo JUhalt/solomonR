@@ -391,6 +391,7 @@ A useful starting point is:
 |---|---|
 | Modern primary analysis | `fit_solomon_glm()` |
 | Randomization-based inference | `perm_solomon()` |
+| Test whether sensitization is negligible | `equivalence_solomon()` |
 | Full-information likelihood | `fit_solomon_ml()` |
 | Teach or reproduce historical methods | `fit_solomon_classic()` |
 | Observed-variable SEM | `fit_solomon_sem()` |
@@ -413,8 +414,18 @@ as the preferred contemporary analysis.
 ### A nonsignificant interaction is not evidence of no sensitization
 
 Failure to reject the pretest-by-treatment interaction does not establish
-that sensitization is absent. Equivalence-based approaches are planned
-for a future release.
+that sensitization is absent. To test whether sensitization is
+negligible, use an equivalence test with bounds set in advance at the
+smallest effect size of interest (Lakens, 2017):
+
+```r
+# Bounds must be justified and fixed before examining the data.
+equivalence_solomon(fit, bounds = 2)
+```
+
+The result reports both one-sided tests, the 90% confidence interval,
+and one of four outcomes: equivalent, different from zero but trivially
+small, different, or inconclusive.
 
 ### Reference distributions and intervals
 
@@ -483,7 +494,6 @@ Development plans are maintained in
 Major planned additions include:
 
 - a getting-started guide for graduate students and applied researchers;
-- sensitization equivalence testing;
 - design validation and missingness diagnostics;
 - method-comparison tools;
 - Solomon-specific visualizations;
@@ -522,6 +532,10 @@ implementation. *Behavior Research Methods, 39*, 709-722.
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
 Education, 42*, 54-55.
+
+Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
+correlations, and meta-analyses. *Social Psychological and Personality
+Science, 8*, 355-362.
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
 standard errors in the linear regression model. *The American
