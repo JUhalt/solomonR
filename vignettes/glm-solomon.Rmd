@@ -166,7 +166,7 @@ names(effects_display) <- c(
   "Contrast",
   "Estimate",
   "SE",
-  "z",
+  "t",
   "p",
   "Wald R2"
 )
@@ -215,9 +215,8 @@ It asks whether the treatment effect differs according to whether the
 pretest was administered.
 
 A statistically nonsignificant interaction should not be interpreted
-as proof that sensitization is absent. Formal equivalence procedures
-for that stronger question are planned for a future version of
-`solomonR`.
+as proof that sensitization is absent. The equivalence test described
+below addresses that stronger question.
 
 ### Treatment effect among pretested participants
 
@@ -524,12 +523,38 @@ package:
 - treatment effect among pretested participants; and
 - treatment effect among unpretested participants.
 
+## Comparing analyses
+
+`compare_solomon_methods()` fits several analyses to the same data and
+lines up their estimates of each Solomon contrast.
+
+```{r glm-compare}
+with(
+  solomon_demo,
+  compare_solomon_methods(
+    y_post,
+    treat,
+    pretested,
+    y_pre,
+    methods = c("glm", "ml", "classic")
+  )
+)
+```
+
+All rows target the same population contrasts. Several estimates are
+identical, such as the unified GLM, maximum likelihood, and the classic
+ANCOVA among pretested participants, yet their standard errors and
+intervals differ because the methods make different variance
+assumptions and use different reference distributions. Pretest
+adjustment changes precision rather than the target (Lin, 2013).
+
 ## Choosing an analysis
 
 For many randomized Solomon studies with continuous outcomes, a useful
 workflow is:
 
-1. describe the four groups and inspect the data;
+1. check the design with `validate_solomon()` and
+   `check_solomon_missing()`, and inspect the data;
 2. fit the unified GLM with prespecified contrasts;
 3. examine the pretest-by-treatment contrast directly;
 4. inspect diagnostics;
@@ -548,10 +573,6 @@ The package is under active development.
 
 Planned additions include:
 
-- equivalence testing for pretest sensitization;
-- automated design validation;
-- structural-versus-incidental missingness diagnostics;
-- method-comparison tools;
 - Solomon-specific visualization;
 - redesigned power and sample-size planning;
 - generalized outcomes;
@@ -574,6 +595,10 @@ implementation. *Behavior Research Methods, 39*, 709-722.
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality
 Science, 8*, 355-362.
+
+Lin, W. (2013). Agnostic notes on regression adjustments to experimental
+data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
+7*, 295-318.
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
 standard errors in the linear regression model. *The American

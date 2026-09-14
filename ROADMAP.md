@@ -148,7 +148,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
   - Distinguish structural from incidental missingness
   - Prevent inappropriate imputation of deliberately absent pretests
 
-- [ ] `compare_solomon_methods()` — [#7](https://github.com/JUhalt/solomonR/issues/7)
+- [x] `compare_solomon_methods()` — [#7](https://github.com/JUhalt/solomonR/issues/7)
   - Side-by-side classic, GLM, ML, permutation, and SEM results
   - Explicitly identify differing estimands
 

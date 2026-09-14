@@ -36,6 +36,16 @@
   & Finch, 2001; Kelley, 2007) instead of a normal approximation.
 * Printed output shows each interval with its confidence level.
 
+## Method comparison (#7)
+
+* New `compare_solomon_methods()` fits the unified GLM, maximum likelihood,
+  classic Tests A-F and H, and SEM to the same data and aligns their estimates
+  of the four Solomon contrasts with each method's pretest adjustment,
+  variance assumption, reference distribution, and interval. Analyses that do
+  not estimate a raw-scale contrast (permutation tests, Test I, latent SEM,
+  Hedges' g) are listed separately with the reason (Lin, 2013; Lundberg et al.,
+  2021).
+
 ## Sensitization equivalence testing (#4)
 
 * New `equivalence_solomon()` performs a two one-sided tests (TOST)

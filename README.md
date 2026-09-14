@@ -384,6 +384,7 @@ A useful starting point is:
 | Modern primary analysis | `fit_solomon_glm()` |
 | Randomization-based inference | `perm_solomon()` |
 | Test whether sensitization is negligible | `equivalence_solomon()` |
+| Compare analyses and their estimands | `compare_solomon_methods()` |
 | Full-information likelihood | `fit_solomon_ml()` |
 | Teach or reproduce historical methods | `fit_solomon_classic()` |
 | Observed-variable SEM | `fit_solomon_sem()` |
@@ -485,8 +486,6 @@ issues](https://github.com/JUhalt/solomonR/issues).
 Major planned additions include:
 
 - a getting-started guide for graduate students and applied researchers;
-- design validation and missingness diagnostics;
-- method-comparison tools;
 - Solomon-specific visualizations;
 - redesigned sample-size and power planning;
 - binary and count outcomes;
