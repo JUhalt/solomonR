@@ -12,6 +12,7 @@ reference:
       - fit_solomon_ml
       - perm_solomon
       - equivalence_solomon
+      - compare_solomon_methods
 
   - title: "Historical Solomon analysis"
     desc: >
