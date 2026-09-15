@@ -164,6 +164,10 @@
 * Aligned development citation metadata, license pages, and roadmap/issue links.
 * Distinguished completed implementation, deferred work, and research proposals
   in the roadmap without changing analytical behavior.
+* Formatted `LICENSE.md` as markdown so the pkgdown license page has a title
+  and readable headings; the license wording is unchanged.
+* Added `Language: en-US` and a spelling word list (`inst/WORDLIST`) so
+  documentation spell checks report only genuine errors.
 
 * Began development toward solomonR 0.3.0.
 * Added R-universe distribution and stable-release installation instructions.

@@ -500,7 +500,6 @@ issues](https://github.com/JUhalt/solomonR/issues).
 
 Major planned additions include:
 
-- a getting-started guide for graduate students and applied researchers;
 - Solomon-specific visualizations;
 - redesigned sample-size and power planning;
 - binary and count outcomes;
@@ -562,8 +561,8 @@ Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
 contrast analysis. *Psychological Methods, 9*, 164-182.
 
-van Engelenburg, G. (1999). Statistical analysis for the Solomon
-four-group design.
+van Engelenburg, G. (1999). *Statistical analysis for the Solomon
+four-group design* (Research Report 99-06). University of Twente.
 
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. *British Journal of Mathematical and Statistical Psychology,

@@ -12,6 +12,7 @@ Description: Tools for analyzing Solomon four-group experimental designs using
     recommendations.
 License: GPL-3
 Encoding: UTF-8
+Language: en-US
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.1)
 Imports:
