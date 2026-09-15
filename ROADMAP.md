@@ -118,9 +118,9 @@ Expanded method-positioning documentation was deferred to v0.3; see [#9](https:/
 
 ---
 
-## v0.3.0 - Modern Solomon methods
+## v0.3.0 - Modern Solomon methods (completed)
 
-**Status:** Active development — [v0.3.0 milestone](https://github.com/JUhalt/solomonR/milestone/1).
+**Status:** Released September 15, 2026 — [v0.3.0 milestone](https://github.com/JUhalt/solomonR/milestone/1).
 
 **Goal:** Make solomonR a modern analysis toolkit rather than only
 an implementation of historical workflows.
@@ -178,7 +178,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Simulation validation and a sma
 
 ## v0.4.0 - Design planning and visualization
 
-**Milestone:** [v0.4.0](https://github.com/JUhalt/solomonR/milestone/2)
+**Status:** Active development — [v0.4.0 milestone](https://github.com/JUhalt/solomonR/milestone/2).
 
 **Goal:** Make the design easy to understand visually and useful before
 data collection begins.
