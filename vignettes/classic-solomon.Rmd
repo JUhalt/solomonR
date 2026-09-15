@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 library(solomonR)
 
 data(
-  "solomon_demo",
+  "solomon_example",
   package = "solomonR"
 )
 ```
@@ -69,10 +69,10 @@ effect and possible **pretest sensitization**.
 ```{r example-data}
 library(solomonR)
 
-data(solomon_demo)
+data(solomon_example)
 
 demo_preview <- head(
-  solomon_demo,
+  solomon_example,
   6
 )
 
@@ -103,7 +103,7 @@ The complete historical analysis is available through
 
 ```{r}
 classic <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_classic(
     y_post,
     treat,
@@ -245,7 +245,7 @@ cat(
 )
 ```
 
-## Test I: historical Stouffer combination
+## Test I: Braver & Braver (1988) Stouffer combination
 
 Braver and Braver (1988) proposed combining evidence from the
 pretested and unpretested treatment comparisons using Stouffer's

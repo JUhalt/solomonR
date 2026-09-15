@@ -15,3 +15,8 @@ numeric Z-scores
 \description{
 Convert p-value to Z (one-tailed) for Stouffer's method
 }
+\references{
+Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
+Williams, R. M., Jr. (1949). \emph{The American soldier: Adjustment during
+army life} (Vol. 1). Princeton University Press.
+}

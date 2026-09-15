@@ -2,7 +2,7 @@
 % Please edit documentation in R/solomon_core.R
 \name{stouffer_solomon}
 \alias{stouffer_solomon}
-\title{Stouffer's Z combiner (a.k.a. "Test I")}
+\title{Stouffer's Z combiner (Braver & Braver, 1988, Test I)}
 \usage{
 stouffer_solomon(p)
 }
@@ -14,10 +14,23 @@ list with z_meta and p_meta (one-tailed)
 }
 \description{
 Combine one-tailed p-values that test the \emph{same directional} hypothesis into
-a single Z. This is provided to reproduce the Braver & Braver (1988) option
-for SFGD. Use cautiously and document assumptions about homogeneity; see
+a single Z. This is provided to reproduce the Braver & Braver (1988)
+meta-analytic option (Test I) for the Solomon four-group design. Use cautiously and document assumptions about homogeneity; see
 the 1988–1990 exchanges for caveats.
 }
 \examples{
 stouffer_solomon(c(0.10, 0.11))
+}
+\references{
+Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
+Williams, R. M., Jr. (1949). \emph{The American soldier: Adjustment during
+army life} (Vol. 1). Princeton University Press.
+
+Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological
+Bulletin, 104}(1), 150-154.
+
+Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
+Meta-analysis and the Solomon four-group design. \emph{The Journal of
+Experimental Education, 62}(4), 361-376.
 }

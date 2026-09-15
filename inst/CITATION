@@ -1,10 +1,17 @@
-citHeader("To cite solomonR in publications, please use:")
+year <- if (!is.null(meta$`Date/Publication`)) {
+  substr(meta$`Date/Publication`, 1, 4)
+} else if (!is.null(meta$Date)) {
+  substr(meta$Date, 1, 4)
+} else {
+  format(Sys.Date(), "%Y")
+}
 
-citEntry(
-  entry  = "Manual",
-  title  = "solomonR: Analyze Solomon Four-Group Designs",
-  author = as.person("Joshua Uhalt"),
-  year   = format(Sys.Date(), "%Y"),
-  note   = paste("R package version", utils::packageVersion("solomonR")),
-  url    = "https://juhalt.github.io/solomonR"
+bibentry(
+  bibtype = "Manual",
+  header  = "To cite solomonR in publications, please use:",
+  title   = "{solomonR}: Analyze Solomon Four-Group Designs",
+  author  = person("Joshua", "Uhalt"),
+  year    = year,
+  note    = paste("R package version", meta$Version),
+  url     = "https://juhalt.github.io/solomonR/"
 )

@@ -14,7 +14,8 @@ fit_solomon_sem_latent(
   ancova = FALSE,
   invariance_pre = c("scalar", "metric", "configural"),
   estimator = "MLR",
-  std_lv = TRUE
+  std_lv = TRUE,
+  conf_level = 0.95
 )
 }
 \arguments{
@@ -22,21 +23,23 @@ fit_solomon_sem_latent(
 
 \item{post_items}{character vector of posttest item names (required)}
 
-\item{treat}{0/1 numeric (or logical) treatment indicator (length nrow(data))}
+\item{treat}{0/1 (or logical) treatment indicator (length nrow(data))}
 
-\item{pretested}{0/1 numeric (or logical) pretest indicator (length nrow(data))}
+\item{pretested}{0/1 (or logical) pretest indicator (length nrow(data))}
 
 \item{pre_items}{character vector of pretest item names (for ANCOVA branch)}
 
-\item{invariance_post}{one of "configural","metric","scalar" (default "scalar")}
+\item{invariance_post}{measurement invariance for POST; must be "scalar"}
 
 \item{ancova}{logical; if TRUE, also fit latent ANCOVA in pretested groups}
 
-\item{invariance_pre}{one of "configural","metric","scalar" for pretested branch}
+\item{invariance_pre}{measurement invariance for the pretested branch; must be "scalar"}
 
 \item{estimator}{lavaan estimator, default "MLR" (robust)}
 
 \item{std_lv}{logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale}
+
+\item{conf_level}{confidence level for intervals (default 0.95)}
 }
 \value{
 An object of class \code{solomon_sem_latent} with:
@@ -60,12 +63,29 @@ with a latent PRE factor and latent POST factor, fitting a latent
 ANCOVA (POST ~ PRE), and reporting the pretested simple effect.
 }
 \details{
-Measurement invariance for POST can be set via \code{invariance_post}:
-\itemize{
-\item "configural" (default): equal form only
-\item "metric": equal loadings
-\item "scalar": equal loadings + intercepts (supports mean comparisons)
-}
+Latent mean contrasts require scalar measurement invariance (equal
+loadings and intercepts) across groups (Meredith, 1993; Vandenberg &
+Lance, 2000). \code{invariance_post} and \code{invariance_pre} therefore accept only
+\code{"scalar"}; configural and metric models are rejected with an explanation.
 
-For the pretested ANCOVA branch, \code{invariance_pre} applies across P1/P0.
+Identification: with scalar invariance, the latent POST mean of the
+unpretested control group (U0) is fixed at 0 and the other latent means are
+estimated relative to it. In the pretested ANCOVA model, the pretested
+control group (P0) is the reference. The Solomon contrasts are differences
+between latent means, so they do not depend on the reference choice.
+
+Tests and confidence intervals for the contrasts are lavaan's Wald
+results, which use a large-sample normal reference distribution.
+}
+\references{
+Meredith, W. (1993). Measurement invariance, factor analysis and factorial
+invariance. \emph{Psychometrika, 58}(4), 525-543.
+
+Rosseel, Y. (2012). lavaan: An R package for structural equation
+modeling. \emph{Journal of Statistical Software, 48}(2), 1-36.
+
+Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
+measurement invariance literature: Suggestions, practices, and
+recommendations for organizational research. \emph{Organizational Research
+Methods, 3}(1), 4-70.
 }

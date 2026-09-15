@@ -3,7 +3,7 @@
 \docType{data}
 \name{solomon_demo}
 \alias{solomon_demo}
-\title{Demo Solomon Four-Group Dataset}
+\title{Demo Solomon four-group data set (second example)}
 \format{
 A data frame with 100 rows and 4 variables:
 \describe{
@@ -18,8 +18,26 @@ assigned to the unpretested groups.}
 Synthetic data generated for examples and package documentation.
 }
 \description{
-A synthetic dataset illustrating a Solomon four-group experimental design.
-The dataset contains 25 observations in each of the four combinations of
-treatment and pretest assignment.
+A synthetic data set with 25 observations in each of the four combinations
+of treatment and pretest assignment. It is kept as a second example because
+two of its features make different analyses of the same effect disagree:
+}
+\details{
+\itemize{
+\item among pretested participants, the pretest and posttest are negatively
+correlated (r = -0.14); and
+\item the pretested treatment group's mean pretest score is about 4.5 points
+higher than the pretested control group's.
+}
+
+As a result, unadjusted, ANCOVA, and gain-score estimates of the treatment
+effect among pretested participants differ markedly (see
+\code{\link[=compare_solomon_methods]{compare_solomon_methods()}} and \code{vignette("getting-started")}). The
+parameters used to generate these data were not recorded, so their true
+effects are unknown. For the primary example with documented true values,
+see \link{solomon_example}.
+}
+\seealso{
+\link{solomon_example}
 }
 \keyword{datasets}

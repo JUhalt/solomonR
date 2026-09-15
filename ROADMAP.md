@@ -9,6 +9,15 @@ The roadmap distinguishes historically important methods from
 contemporary recommendations and from new extensions introduced by
 `solomonR`.
 
+The primary audience is graduate students (Master's and doctoral) and
+applied researchers who need to plan, analyze, interpret, and report a
+Solomon four-group study. Every procedure should be traceable to published
+methodology or clearly labeled as a `solomonR`-specific extension.
+
+**Distribution:** releases are published on
+[R-universe](https://juhalt.r-universe.dev/solomonR). CRAN submission is
+planned for v1.0.0.
+
 ---
 
 ## Guiding principles
@@ -116,18 +125,18 @@ Expanded method-positioning documentation was deferred to v0.3; see [#9](https:/
 **Goal:** Make solomonR a modern analysis toolkit rather than only
 an implementation of historical workflows.
 
-Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open in [#10](https://github.com/JUhalt/solomonR/issues/10).
+Already delivered in v0.2.0: `fit_solomon_ml()`. Simulation validation and a small-sample inference option are added in v0.3.0 ([#10](https://github.com/JUhalt/solomonR/issues/10), [#22](https://github.com/JUhalt/solomonR/issues/22)).
   - Solomon-specific maximum-likelihood regression
   - Based on van Engelenburg (1999)
   - Structural pretest missingness handled explicitly
-  - Existing known-result validation; broader simulation evidence is tracked separately.
+  - Known-result tests plus a pre-specified simulation study (84 scenarios, 2,000 replications each).
 
-- [ ] Sensitization equivalence testing — [#4](https://github.com/JUhalt/solomonR/issues/4)
+- [x] Sensitization equivalence testing — [#4](https://github.com/JUhalt/solomonR/issues/4)
   - CI-based / TOST-style inference
   - User-specified smallest effect size of interest
   - Distinguish "no significant sensitization" from evidence of negligible sensitization
 
-- [ ] `validate_solomon()` — [#5](https://github.com/JUhalt/solomonR/issues/5)
+- [x] `validate_solomon()` — [#5](https://github.com/JUhalt/solomonR/issues/5)
   - Verify all four cells
   - Inspect group sizes
   - Validate coding
@@ -135,26 +144,41 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
   - Detect unexpected missingness
   - Identify sparse / empty cells
 
-- [ ] `check_solomon_missing()` — [#6](https://github.com/JUhalt/solomonR/issues/6)
+- [x] `check_solomon_missing()` — [#6](https://github.com/JUhalt/solomonR/issues/6)
   - Distinguish structural from incidental missingness
   - Prevent inappropriate imputation of deliberately absent pretests
 
-- [ ] `compare_solomon_methods()` — [#7](https://github.com/JUhalt/solomonR/issues/7)
+- [x] `compare_solomon_methods()` — [#7](https://github.com/JUhalt/solomonR/issues/7)
   - Side-by-side classic, GLM, ML, permutation, and SEM results
   - Explicitly identify differing estimands
 
-- [ ] Add confidence intervals consistently across release-defining effect summaries — [#8](https://github.com/JUhalt/solomonR/issues/8).
+- [x] Add confidence intervals consistently across release-defining effect summaries, with literature-based reference distributions and an HC3 default — [#8](https://github.com/JUhalt/solomonR/issues/8).
 
-- [ ] Expand documentation distinguishing established Solomon methodology,
+- [x] Expand documentation distinguishing established Solomon methodology,
   contemporary recommendations, and solomonR-specific extensions — [#9](https://github.com/JUhalt/solomonR/issues/9).
 
-- [ ] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10).
+- [x] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10). Point estimates validated; default Wald intervals too narrow in small samples (extended for #22).
+- [x] Small-sample inference option for `fit_solomon_ml()`, with a warning below 40 participants per cell — [#22](https://github.com/JUhalt/solomonR/issues/22). Calibrated at every cell size studied.
 
 - [ ] Reconcile release documentation, licensing and distribution — [#12](https://github.com/JUhalt/solomonR/issues/12).
+
+### Correctness (September 2026 review)
+
+- [x] Satterthwaite small-sample tests for CR2 contrasts — [#14](https://github.com/JUhalt/solomonR/issues/14).
+- [x] Refuse individual-level permutation of clustered fits — [#15](https://github.com/JUhalt/solomonR/issues/15).
+- [x] Identify the latent Solomon mean structure — [#16](https://github.com/JUhalt/solomonR/issues/16).
+- [x] Interim `power_solomon()` safeguards (experimental warning, corrected simulator details); the validated rebuild remains in v0.4.0 — [#18](https://github.com/JUhalt/solomonR/issues/18).
+
+### Documentation for the intended audience
+
+- [x] Getting-started guide for graduate students and applied researchers, moved forward from v0.6.0 — [#17](https://github.com/JUhalt/solomonR/issues/17).
+- [x] Documented primary teaching data set `solomon_example`, with `solomon_demo` kept as a second example — [#21](https://github.com/JUhalt/solomonR/issues/21).
 
 ---
 
 ## v0.4.0 - Design planning and visualization
+
+**Milestone:** [v0.4.0](https://github.com/JUhalt/solomonR/milestone/2)
 
 **Goal:** Make the design easy to understand visually and useful before
 data collection begins.
@@ -182,7 +206,7 @@ data collection begins.
   - Power curves / surfaces across N, effect size, rho, and sensitization
 
 ### Design planning
-- [ ] Rebuild and validate `power_solomon()`
+- [ ] Rebuild and validate `power_solomon()` — [#18](https://github.com/JUhalt/solomonR/issues/18)
 - [ ] Correct data-generating mechanism
 - [ ] Validate Type I error and power
 - [ ] `plan_solomon()`
@@ -194,6 +218,8 @@ data collection begins.
 ---
 
 ## v0.5.0 - Extended outcomes and designs
+
+**Milestone:** [v0.5.0](https://github.com/JUhalt/solomonR/milestone/3)
 
 - [ ] Binary outcomes
   - Logistic models
@@ -208,6 +234,7 @@ data collection begins.
 - [ ] Mixed / multilevel Solomon models
   - Clustered assignment
   - Classrooms / schools / sites
+  - Cluster-level randomization inference — [#19](https://github.com/JUhalt/solomonR/issues/19)
 
 - [ ] Longitudinal Solomon models
   - Repeated follow-ups
@@ -223,20 +250,24 @@ data collection begins.
 
 ## v0.6.0 - Teaching and reporting
 
-- [ ] Complete introductory vignette
+**Milestone:** [v0.6.0](https://github.com/JUhalt/solomonR/milestone/4)
+
+- [ ] Complete introductory vignette — the getting-started guide moved to v0.3.0 ([#17](https://github.com/JUhalt/solomonR/issues/17)); extend it here as needed.
 - [ ] Expand the existing historical-analysis vignette; define additional coverage when scoped.
 - [ ] Expand the existing modern-analysis vignette; define additional coverage when scoped.
 - [ ] SEM / latent-variable vignette
 - [ ] Power / planning vignette
 - [ ] Single worked social-psychology example across methods
 - [ ] APA-style reporting helper
-- [ ] Method-selection guide
+- [ ] Method-selection guide — initial guidance ships with v0.3.0 ([#9](https://github.com/JUhalt/solomonR/issues/9), [#17](https://github.com/JUhalt/solomonR/issues/17))
 - [ ] Historical timeline / decision-tree documentation
 - [ ] Expanded pkgdown site
 
 ---
 
 # v1.0.0 - Stable comprehensive release
+
+**Milestone:** [v1.0.0](https://github.com/JUhalt/solomonR/milestone/5). Distribution remains R-universe until this release.
 
 Candidate requirements:
 

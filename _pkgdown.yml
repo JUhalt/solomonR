@@ -11,6 +11,8 @@ reference:
       - fit_solomon_glm
       - fit_solomon_ml
       - perm_solomon
+      - equivalence_solomon
+      - compare_solomon_methods
 
   - title: "Historical Solomon analysis"
     desc: >
@@ -27,8 +29,12 @@ reference:
       - fit_solomon_sem
       - fit_solomon_sem_latent
 
-  - title: "Diagnostics and design utilities"
+  - title: "Design validation and diagnostics"
+    desc: >
+      Check design coding, cell structure, and missingness before analysis.
     contents:
+      - validate_solomon
+      - check_solomon_missing
       - check_solomon_assumptions
       - power_solomon
 
@@ -40,8 +46,27 @@ reference:
 
   - title: "Data"
     contents:
+      - solomon_example
       - solomon_demo
 
   - title: "Package"
     contents:
       - starts_with("solomonR")
+
+articles:
+  - title: "Start here"
+    navbar: ~
+    contents:
+      - getting-started
+
+  - title: "Analyses"
+    navbar: Analyses
+    contents:
+      - glm-solomon
+      - classic-solomon
+
+  - title: "Methods and evidence"
+    navbar: Methods and evidence
+    contents:
+      - solomon-methods
+      - articles/ml-validation

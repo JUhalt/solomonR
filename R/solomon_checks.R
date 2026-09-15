@@ -8,33 +8,71 @@ bf_test <- function(y, group) {
   a$`Pr(>F)`[1]
 }
 
-#' Assumption checks for Solomon analyses
+#' Descriptive assumption diagnostics for Solomon analyses
+#'
+#' Reports Brown-Forsythe tests of equal posttest variance (Brown & Forsythe,
+#' 1974), Shapiro-Wilk normality tests within cells, and a test of
+#' homogeneous pretest-posttest slopes among pretested participants with
+#' complete scores.
+#'
+#' These results are descriptive. Choosing an analysis according to whether
+#' a preliminary assumption test is significant can distort Type I error
+#' rates (Zimmerman, 2004), so solomonR does not use them as gates:
+#' heteroskedasticity-consistent standard errors are a reasonable default for
+#' the unified GLM regardless of these results (Long & Ervin, 2000). A small
+#' slope-homogeneity p-value is substantively informative: it suggests that
+#' the treatment effect among pretested participants depends on the pretest
+#' score.
+#'
 #' @param y_post numeric posttest
-#' @param treat 0/1
-#' @param pretested 0/1
+#' @param treat 0/1 (or logical) treatment indicator
+#' @param pretested 0/1 (or logical) pretest indicator
 #' @param y_pre numeric pretest (NA for unpretested)
+#' @return An object of class `solomon_checks`.
+#' @references
+#' Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
+#' variances. *Journal of the American Statistical Association, 69*(346),
+#' 364-367.
+#'
+#' Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+#' standard errors in the linear regression model. *The American
+#' Statistician, 54*(3), 217-224.
+#'
+#' Zimmerman, D. W. (2004). A note on preliminary tests of equality of
+#' variances. *British Journal of Mathematical and Statistical Psychology,
+#' 57*(1), 173-181.
 #' @export
 check_solomon_assumptions <- function(y_post, treat, pretested, y_pre) {
+  treat <- .solomon_indicator(treat, "treat")
+  pretested <- .solomon_indicator(pretested, "pretested")
+  .solomon_check_lengths(
+    y_post = y_post,
+    treat = treat,
+    pretested = pretested,
+    y_pre = y_pre
+  )
+
   df <- data.frame(y_post, treat=factor(treat), pretested=factor(pretested))
   df$cell <- interaction(df$pretested, df$treat, drop = TRUE)
 
   # (1) Heteroscedasticity across the four posttest cells (Brown-Forsythe)
   p_bf4 <- bf_test(df$y_post, df$cell)
 
-  # (2) Heteroscedasticity in posttest-only cells (Groups 3 vs 4) for Welch t transparency
+  # (2) Heteroscedasticity in posttest-only cells (Groups 3 vs 4)
   p_bf_un <- bf_test(df$y_post[df$pretested==0], df$treat[df$pretested==0])
 
-  # (3) Normality (Shapiro) within each posttest cell (warn if n<3)
+  # (3) Normality (Shapiro) within each posttest cell (NA if n<3)
   shaps <- tapply(df$y_post, df$cell, function(v) if (sum(is.finite(v)) >= 3) stats::shapiro.test(v)$p.value else NA_real_)
 
-  # (4) Homogeneity of regression slopes for ANCOVA (pretested cells only):
-  # y_post ~ treat * y_pre  (if interaction significant -> slope heterogeneity)
+  # (4) Homogeneity of regression slopes for ANCOVA among pretested
+  # participants with complete scores: y_post ~ treat * y_pre
+  # (if interaction significant -> slope heterogeneity)
   p_slope <- NA_real_
-  if (any(pretested==1) && all(is.finite(y_pre[pretested==1]))) {
-    dd <- data.frame(y = y_post[pretested==1], treat = factor(treat[pretested==1]), pre = y_pre[pretested==1])
+  pre_rows <- which(pretested == 1L & is.finite(y_pre) & is.finite(y_post))
+  if (length(pre_rows) > 4L && length(unique(treat[pre_rows])) == 2L) {
+    dd <- data.frame(y = y_post[pre_rows], treat = factor(treat[pre_rows]), pre = y_pre[pre_rows])
     fit <- stats::lm(y ~ treat * pre, data = dd)
     a <- stats::anova(fit)
-    # last row is interaction (treat:pre)
     p_slope <- a$`Pr(>F)`[which(rownames(a) == "treat:pre")][1]
   }
 
@@ -48,26 +86,26 @@ check_solomon_assumptions <- function(y_post, treat, pretested, y_pre) {
 
 #' @export
 print.solomon_checks <- function(x, ...) {
-  line <- function(...) cat(sprintf(...), "\n", sep = "")
-  p_fmt <- function(p) ifelse(is.na(p), "NA", ifelse(p < .001, "<.001", sprintf("%.3f", p)))
-  ok <- function(flag) ifelse(flag, "OK", "FLAG")
+  row <- function(label, p) cat(sprintf("  %-52s p = %s\n", label, p_fmt(p)))
 
-  line("Assumption checks (alpha = .05)")
-  bf4_ok  <- !is.na(x$brown_forsythe_4cell_p) && x$brown_forsythe_4cell_p >= .05
-  bfu_ok  <- !is.na(x$brown_forsythe_unpre_p) && x$brown_forsythe_unpre_p >= .05
   shp_min <- suppressWarnings(min(x$shapiro_p_by_cell, na.rm = TRUE))
-  shp_ok  <- is.finite(shp_min) && shp_min >= .05
-  slp_ok  <- !is.na(x$ancova_slope_homogeneity_p) && x$ancova_slope_homogeneity_p >= .05
+  if (!is.finite(shp_min)) shp_min <- NA_real_
 
-  line("  HoV across 4 posttest cells (Brown-Forsythe): p = %s  -> %s", p_fmt(x$brown_forsythe_4cell_p), ok(bf4_ok))
-  line("  HoV in unpretested cells (Welch target):       p = %s  -> %s", p_fmt(x$brown_forsythe_unpre_p),  ok(bfu_ok))
-  line("  Normality by cell (Shapiro, min p):            p = %s  -> %s", p_fmt(shp_min),                   ok(shp_ok))
-  line("  ANCOVA slope homogeneity (pretested):          p = %s  -> %s", p_fmt(x$ancova_slope_homogeneity_p), ok(slp_ok))
+  cat("Solomon assumption diagnostics (descriptive)\n")
+  row("Equal variance, four posttest cells (Brown-Forsythe)", x$brown_forsythe_4cell_p)
+  row("Equal variance, unpretested cells (Brown-Forsythe)", x$brown_forsythe_unpre_p)
+  row("Normality within cells (Shapiro-Wilk, smallest p)", shp_min)
+  row("Homogeneous slopes, pretested groups (Treat x Pre)", x$ancova_slope_homogeneity_p)
 
-  line("")
-  line("Recommendations:")
-  line("  * Robust SEs (HC3): %s", ifelse(bf4_ok, "fine", "recommended"))
-  line("  * Welch t for groups 3-4: %s", ifelse(bfu_ok, "fine", "recommended (package uses Welch)"))
-  line("  * Permutation p-values: %s", ifelse(all(bf4_ok, bfu_ok, shp_ok, slp_ok), "optional", "consider"))
+  cat(
+    "\nThese p-values describe the data; they are not gates for choosing an\n",
+    "analysis. Selecting a test because a preliminary assumption test was or\n",
+    "was not significant can distort Type I error rates (Zimmerman, 2004).\n",
+    "HC3 robust standard errors are a reasonable default for the unified GLM\n",
+    "regardless of these results (Long & Ervin, 2000). A small slope p-value\n",
+    "suggests the treatment effect in pretested groups depends on the pretest\n",
+    "score, which is substantively informative.\n",
+    sep = ""
+  )
   invisible(x)
 }

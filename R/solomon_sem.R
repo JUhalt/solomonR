@@ -7,20 +7,50 @@
 #'    with group means; reports the pretested simple effect (Pre_Eff). This avoids
 #'    structural missingness of y_pre in U1/U0 and matches Huck & Sandler.
 #'
+#' The four-group mean-structure model is saturated, so its global fit
+#' indices are not diagnostic. Its contrasts are unadjusted posttest mean
+#' differences, whereas the ANCOVA mode adjusts for the pretest within the
+#' pretested groups.
+#'
+#' Tests and confidence intervals for the contrasts are lavaan's Wald
+#' results, which use a large-sample normal reference distribution.
+#'
 #' @param y_post numeric posttest
-#' @param treat 0/1 treatment
-#' @param pretested 0/1 pretest indicator
+#' @param treat 0/1 (or logical) treatment indicator
+#' @param pretested 0/1 (or logical) pretest indicator
 #' @param y_pre optional pretest score (required if ancova = TRUE)
 #' @param equal_var logical; if TRUE, constrain posttest variances equal across groups
 #' @param ancova logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)
 #' @param estimator lavaan estimator (default "MLR")
+#' @param conf_level confidence level for intervals (default 0.95)
+#' @references
+#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
+#' design: Appropriate statistical analyses. *The Journal of Experimental
+#' Education, 42*(2), 54-55.
+#'
+#' Rosseel, Y. (2012). lavaan: An R package for structural equation
+#' modeling. *Journal of Statistical Software, 48*(2), 1-36.
 #' @export
 fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
                             equal_var = FALSE, ancova = FALSE,
-                            estimator = "MLR") {
+                            estimator = "MLR", conf_level = 0.95) {
+  treat <- .solomon_indicator(treat, "treat")
+  pretested <- .solomon_indicator(pretested, "pretested")
+  .solomon_check_lengths(
+    y_post = y_post,
+    treat = treat,
+    pretested = pretested,
+    y_pre = y_pre
+  )
+  .check_conf_level(conf_level)
+
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
   }
+
+  effect_columns <- c("lhs", "est", "se", "z", "pvalue", "ci.lower", "ci.upper")
+  effect_names <- c("contrast", "estimate", "std.error", "statistic", "p.value",
+                    "conf.low", "conf.high")
 
   if (!ancova) {
     # ---- 4-group mean-structure SEM (no pretest covariate) ----
@@ -58,18 +88,20 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
       )
     }
 
-    pe <- lavaan::parameterEstimates(fit, standardized = FALSE)
+    pe <- lavaan::parameterEstimates(fit, standardized = FALSE, level = conf_level)
     eff <- pe[
       pe$op == ":=",
-      c("lhs", "est", "se", "z", "pvalue"),
+      effect_columns,
       drop = FALSE
     ]
-    names(eff) <- c("contrast","estimate","std.error","statistic","p.value")
+    names(eff) <- effect_names
+    rownames(eff) <- NULL
 
     fm <- try(lavaan::fitMeasures(fit, c("cfi","rmsea","srmr","df")), silent = TRUE)
     if (inherits(fm, "try-error")) fm <- c(cfi = NA, rmsea = NA, srmr = NA, df = NA)
 
-    structure(list(mode = "mean", fit = fit, effects = eff, fitmeasures = fm),
+    structure(list(mode = "mean", fit = fit, effects = eff, fitmeasures = fm,
+                   conf_level = conf_level),
               class = "solomon_sem")
 
   } else {
@@ -110,32 +142,24 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
 
     pe2 <- lavaan::parameterEstimates(
       fit2,
-      standardized = FALSE
+      standardized = FALSE,
+      level = conf_level
     )
 
     eff2 <- pe2[
       pe2$op == ":=",
-      c(
-        "lhs",
-        "est",
-        "se",
-        "z",
-        "pvalue"
-      ),
+      effect_columns,
       drop = FALSE
     ]
 
-    names(eff2) <- c(
-      "contrast",
-      "estimate",
-      "std.error",
-      "statistic",
-      "p.value"
-    )
+    names(eff2) <- effect_names
+    rownames(eff2) <- NULL
+
     fm2 <- try(lavaan::fitMeasures(fit2, c("cfi","rmsea","srmr","df")), silent = TRUE)
     if (inherits(fm2, "try-error")) fm2 <- c(cfi = NA, rmsea = NA, srmr = NA, df = NA)
 
-    structure(list(mode = "ancova_pretested", fit = fit2, effects = eff2, fitmeasures = fm2),
+    structure(list(mode = "ancova_pretested", fit = fit2, effects = eff2, fitmeasures = fm2,
+                   conf_level = conf_level),
               class = "solomon_sem")
   }
 }

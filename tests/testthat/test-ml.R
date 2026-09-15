@@ -8,7 +8,8 @@ test_that("Solomon ML converges and returns expected components", {
       y_post,
       treat,
       pretested,
-      y_pre
+      y_pre,
+      inference = "wald"
     )
   )
 
@@ -54,7 +55,8 @@ test_that("Solomon ML reproduces its closed-form component regressions", {
       y_post,
       treat,
       pretested,
-      y_pre
+      y_pre,
+      inference = "wald"
     )
   )
 
@@ -139,7 +141,8 @@ test_that("Solomon ML residual SDs are maximum-likelihood estimates", {
       y_post,
       treat,
       pretested,
-      y_pre
+      y_pre,
+      inference = "wald"
     )
   )
 
@@ -196,7 +199,8 @@ test_that("Solomon ML estimands have the expected algebraic relationships", {
       y_post,
       treat,
       pretested,
-      y_pre
+      y_pre,
+      inference = "wald"
     )
   )
 
@@ -245,7 +249,8 @@ test_that("Solomon ML pretested effect agrees with classic ANCOVA", {
       y_post,
       treat,
       pretested,
-      y_pre
+      y_pre,
+      inference = "wald"
     )
   )
 
