@@ -49,10 +49,10 @@ effect and possible **pretest sensitization**.
 
 library(solomonR)
 
-data(solomon_demo)
+data(solomon_example)
 
 demo_preview <- head(
-  solomon_demo,
+  solomon_example,
   6
 )
 
@@ -74,12 +74,12 @@ knitr::kable(
 
 | y_post | treat | pretested | y_pre |
 |-------:|------:|----------:|------:|
-|  58.27 |     1 |         1 | 63.71 |
-|  46.45 |     1 |         1 | 44.35 |
-|  70.41 |     1 |         1 | 53.63 |
-|  61.19 |     1 |         1 | 56.33 |
-|  55.57 |     1 |         1 | 54.04 |
-|  57.24 |     1 |         1 | 48.94 |
+|     60 |     1 |         1 |    55 |
+|     71 |     1 |         1 |    42 |
+|     58 |     1 |         1 |    58 |
+|     54 |     1 |         1 |    34 |
+|     57 |     1 |         1 |    42 |
+|     45 |     1 |         1 |    38 |
 
 The pretest variable is structurally absent for participants who were
 not pretested. Those missing values are therefore part of the design,
@@ -93,7 +93,7 @@ The complete historical analysis is available through
 ``` r
 
 classic <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_classic(
     y_post,
     treat,
@@ -106,33 +106,34 @@ classic
 #> Classic Solomon analysis (historical teaching workflow)
 #> -------------------------------------------------------
 #> Selected pretested-group method: Test E (ancova)
-#> Historical decision path: A -> D
+#> Historical decision path: A -> D -> E -> H -> I
 #> 
 #> Historical Tests A-I
 #> --------------------
 #> All tests are shown below. Tests marked [PATH] were reached by
 #> the historical decision sequence for these data.
 #> 
-#> [PATH] Test A: Pretest x Treatment interaction               F(1, 96) = 0.05, p = 0.827
-#>        Test B: Treatment effect among pretested groups       F(1, 96) = 4.39, p = 0.039
-#>        Test C: Treatment effect among unpretested groups     F(1, 96) = 3.19, p = 0.077
-#> [PATH] Test D: Treatment main effect                         F(1, 96) = 7.54, p = 0.007
-#>        Test E: ANCOVA treatment effect                       F(1, 47) = 5.66, p = 0.021
-#>        Test F: Gain-score treatment effect                   F(1, 48) = 0.05, p = 0.818
-#>        Test G: Repeated-measures Treatment x Time interaction F(1, 48) = 0.05, p = 0.818
-#>        Test H: Posttest-only treatment effect                t(48) = 1.77, p = 0.083
-#>        Test I: E + H (ANCOVA + posttest-only)                Z = 2.85, p(one-tailed) = 0.002
+#> [PATH] Test A: Pretest x Treatment interaction               F(1, 116) = 0.29, p = 0.589
+#>        Test B: Treatment effect among pretested groups       F(1, 116) = 0.49, p = 0.486
+#>        Test C: Treatment effect among unpretested groups     F(1, 116) = 2.14, p = 0.146
+#> [PATH] Test D: Treatment main effect                         F(1, 116) = 2.34, p = 0.129
+#> [PATH] Test E: ANCOVA treatment effect                       F(1, 57) = 0.59, p = 0.444
+#>        Test F: Gain-score treatment effect                   F(1, 58) = 0.46, p = 0.499
+#>        Test G: Repeated-measures Treatment x Time interaction F(1, 58) = 0.46, p = 0.499
+#> [PATH] Test H: Posttest-only treatment effect                t(58) = 1.66, p = 0.103
+#> [PATH] Test I: Braver & Braver (1988) Stouffer combination   Z = 1.69, p(one-tailed) = 0.045 [E + H (ANCOVA + posttest-only)]
 #> 
 #> Historical interpretation
 #> -------------------------
-#> Historical pathway: no evidence of pretest sensitization and the treatment main effect is significant. 
+#> Historical pathway: Test I produces a significant Stouffer combination. This result is retained for historical replication and should be interpreted in light of later Type I error critiques. 
 #> 
-#> Groups 3-4 effect size: Hedges g = 0.494, 95% CI [-0.069, 1.057]
+#> Groups 3-4 effect size: Hedges g = 0.423, 95% CI [-0.086, 0.938] (noncentral t)
 #> 
-#> Caution: Test I is reproduced for historical teaching and replication.
-#> Later simulation work raised concerns about Type I error for the
-#> conditional meta-analytic sequence; it is not the default modern
-#> inferential recommendation in solomonR.
+#> Caution: Test I, the Braver & Braver (1988) Stouffer combination, is
+#> reproduced for historical teaching and replication. Later simulation
+#> work (see Sawilowsky et al., 1994) raised concerns about Type I error
+#> for the conditional meta-analytic sequence; it is not the default
+#> modern inferential recommendation in solomonR.
 ```
 
 The printed output reports all of the historical tests but marks the
@@ -270,10 +271,10 @@ cat(
     classic$g_post["upper"]
   )
 )
-#> Hedges' g = 0.49, 95% CI [-0.07, 1.06]
+#> Hedges' g = 0.42, 95% CI [-0.09, 0.94]
 ```
 
-## Test I: historical Stouffer combination
+## Test I: Braver & Braver (1988) Stouffer combination
 
 Braver and Braver (1988) proposed combining evidence from the pretested
 and unpretested treatment comparisons using Stouffer’s method.
@@ -304,7 +305,7 @@ cat(
     }
   )
 )
-#> Stouffer Z = 2.85, p = .002
+#> Stouffer Z = 1.69, p = .045
 ```
 
 This detail matters. A directional one-tailed p-value is not obtained

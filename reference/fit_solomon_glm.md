@@ -1,6 +1,9 @@
 # Fit the unified GLM for a Solomon Four-Group design
 
-Fit the unified GLM for a Solomon Four-Group design
+Fits one generalized linear model to all four Solomon groups and reports
+four Solomon contrasts: the equal-weighted average treatment effect, the
+Pretest x Treatment (sensitization) contrast, and the treatment effect
+within each pretesting condition.
 
 ## Usage
 
@@ -11,9 +14,10 @@ fit_solomon_glm(
   pretested,
   pretest_score = NULL,
   covariates = NULL,
-  robust = c("none", "HC3", "CR2"),
+  robust = c("HC3", "none", "CR2"),
   cluster = NULL,
-  family = stats::gaussian()
+  family = stats::gaussian(),
+  conf_level = 0.95
 )
 ```
 
@@ -25,11 +29,11 @@ fit_solomon_glm(
 
 - treat:
 
-  0/1 indicator (1 = treatment)
+  0/1 (or logical) treatment indicator (1 = treatment)
 
 - pretested:
 
-  0/1 indicator (1 = group received pretest)
+  0/1 (or logical) pretest indicator (1 = group received pretest)
 
 - pretest_score:
 
@@ -41,18 +45,117 @@ fit_solomon_glm(
 
 - robust:
 
-  character: "none","HC3","CR2" (cluster-robust via clubSandwich if
-  `cluster` supplied)
+  character: "HC3" (default), "none", or "CR2" (cluster-robust; requires
+  `cluster`)
 
 - cluster:
 
-  optional clustering id (e.g., class/site)
+  optional clustering id (e.g., class/site), one value per participant
 
 - family:
 
   model family (default gaussian())
 
+- conf_level:
+
+  confidence level for intervals (default 0.95)
+
 ## Value
 
-a list with model, tidy tables, and predefined contrasts (ATE,
-interaction, simple effects)
+An object of class `solomon_glm`: a list with the fitted model,
+coefficient and contrast tables (including degrees of freedom and
+confidence limits `conf.low` and `conf.high`), the covariance matrix,
+and the settings used.
+
+## Details
+
+When `pretest_score` is supplied, it enters the model as `pre_obs`,
+equal to the pretest score in the pretested groups and 0 in the
+unpretested groups, so the structurally absent pretests do not remove
+Groups 3 and 4. Regression adjustment for baseline covariates in
+randomized experiments, and the case for pairing it with
+heteroskedasticity-robust standard errors, is discussed by Lin (2013).
+Pretested participants with a missing pretest score are excluded with a
+warning; incidental missingness is never imputed.
+
+## Inference
+
+- `robust = "HC3"` (default): heteroskedasticity-consistent covariance
+  (MacKinnon & White, 1985), recommended for routine use and
+  particularly below about 250 observations (Long & Ervin, 2000; Hayes &
+  Cai, 2007). Heteroskedasticity is expected in the unified Solomon
+  model: when the pretest predicts the posttest, adjusting for it
+  reduces residual variance only in the pretested groups.
+
+- `robust = "none"`: conventional model-based covariance.
+
+- `robust = "CR2"`: bias-reduced cluster-robust covariance (Bell &
+  McCaffrey, 2002) with Satterthwaite degrees of freedom (Pustejovsky &
+  Tipton, 2018), computed with the clubSandwich package. Use this when
+  participants are nested in clusters such as classrooms or sites.
+
+Tests and confidence intervals use the same reference distribution. For
+`"HC3"` and `"none"` it is the t distribution with residual degrees of
+freedom when the dispersion is estimated, as in Gaussian models, which
+is the conventional choice when t approximations are used with robust
+standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025).
+Families with a fixed dispersion (binomial, Poisson) use the normal
+distribution. The degrees of freedom are returned in the `df` columns
+(`Inf` for normal reference distributions). Imbens and Kolesár (2016)
+further recommend Bell-McCaffrey degrees of freedom for
+heteroskedasticity-robust intervals; that refinement is under
+evaluation. For non-identity links, the contrasts are on the link scale.
+
+In the package's simulation validation (issues \#10 and \#22), HC3
+intervals for the Solomon contrasts were conservative with 10 or fewer
+participants per cell (mean coverage of nominal 95% intervals was 0.961
+with 6 per cell and 0.958 with 10, and the Pretest x Treatment test had
+a Type I error of 0.034 with 6 per cell) and close to nominal with 20 or
+more (mean coverage 0.951 to 0.954).
+
+Confidence intervals for the Wald partial R-squared use the noncentral F
+method (Steiger, 2004) and are reported only for conventional Gaussian
+fits; no corresponding interval is available with robust covariance.
+
+## References
+
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard
+errors for linear regression with multi-stage samples. *Survey
+Methodology, 28*(2), 169-181.
+
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
+standard error estimators in OLS regression: An introduction and
+software implementation. *Behavior Research Methods, 39*(4), 709-722.
+
+Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
+samples: Some practical advice. *The Review of Economics and Statistics,
+98*(4), 701-712.
+
+Lin, W. (2013). Agnostic notes on regression adjustments to experimental
+data: Reexamining Freedman's critique. *The Annals of Applied
+Statistics, 7*(1), 295-318.
+
+Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+standard errors in the linear regression model. *The American
+Statistician, 54*(3), 217-224.
+
+MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+covariance matrix estimators with improved finite sample properties.
+*Journal of Econometrics, 29*(3), 305-325.
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed
+effects models. *Journal of Business & Economic Statistics, 36*(4),
+672-683.
+
+Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
+guide to statistical inference in linear modeling for non-normal or
+heteroskedastic error distributions. *Behavior Research Methods,
+57*(12), Article 338.
+
+Solomon, R. L. (1949). An extension of control group design.
+*Psychological Bulletin, 46*(2), 137-150.
+
+Steiger, J. H. (2004). Beyond the F test: Effect size confidence
+intervals and tests of close fit in the analysis of variance and
+contrast analysis. *Psychological Methods, 9*(2), 164-182.

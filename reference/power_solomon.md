@@ -1,6 +1,8 @@
-# Power simulation for Solomon designs
+# Power simulation for Solomon designs (experimental)
 
-Power simulation for Solomon designs
+**Experimental.** This helper is scheduled to be rebuilt and validated
+in a later release. Its simulator has not been validated, and its
+results should not be used for study planning.
 
 ## Usage
 
@@ -20,35 +22,50 @@ power_solomon(
 
 - n:
 
-  list with n1..n4 per cell (or a single n per cell)
+  Cell sizes: a single number used for all four cells, or a list with
+  elements `n1` (pretested treatment), `n2` (pretested control), `n3`
+  (unpretested treatment), and `n4` (unpretested control).
 
 - delta:
 
-  average treatment effect (on posttest scale)
+  Treatment effect among unpretested participants, on the posttest
+  scale.
 
 - rho:
 
-  correlation(pre, post) in pretested cells
+  Pretest-posttest correlation in the pretested cells.
 
 - sens:
 
-  pretest sensitization add-on to treatment in pretested cells (0 =
-  none)
+  Sensitization: the additional treatment effect among pretested
+  participants (0 = none).
 
 - sigma:
 
-  SD of errors
+  Posttest residual standard deviation in all cells.
 
 - sims:
 
-  number of Monte Carlo replicates
+  Number of Monte Carlo replicates.
 
 - stouffer:
 
-  Logical; if `TRUE`, also estimate power for the optional Stouffer
-  meta-analytic procedure.
+  Logical; if `TRUE`, also estimate the rejection rate of the historical
+  Stouffer Test I, evaluated one-tailed (treatment \> control) as in
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md).
 
 ## Value
 
-data.frame with estimated power for: interaction, ATE, simple effects,
-and (optionally) Stouffer Z
+A data frame with the estimated rejection rate for the 2x2 ANOVA
+interaction, the GLM average treatment effect, the two simple treatment
+effects, and Test I (`NA` when `stouffer = FALSE`).
+
+## Details
+
+Simulates normally distributed Solomon four-group data and estimates the
+rejection rate of several Solomon tests at alpha = .05. Pretest scores
+are standard normal. The posttest residual standard deviation is `sigma`
+in every cell, and the pretest-posttest correlation in the pretested
+cells is `rho`. The treatment effect is `delta` among unpretested
+participants and `delta + sens` among pretested participants, so the
+equal-weighted average treatment effect is `delta + sens / 2`.

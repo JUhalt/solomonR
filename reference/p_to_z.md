@@ -18,3 +18,9 @@ p_to_z(p)
 ## Value
 
 numeric Z-scores
+
+## References
+
+Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
+Williams, R. M., Jr. (1949). *The American soldier: Adjustment during
+army life* (Vol. 1). Princeton University Press.

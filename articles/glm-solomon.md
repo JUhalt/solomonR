@@ -59,10 +59,10 @@ pretend that Groups 3 and 4 actually had baseline scores of zero.
 
 library(solomonR)
 
-data(solomon_demo)
+data(solomon_example)
 
 demo_preview <- head(
-  solomon_demo,
+  solomon_example,
   6
 )
 
@@ -84,22 +84,22 @@ knitr::kable(
 
 | y_post | treat | pretested | y_pre |
 |-------:|------:|----------:|------:|
-|  58.27 |     1 |         1 | 63.71 |
-|  46.45 |     1 |         1 | 44.35 |
-|  70.41 |     1 |         1 | 53.63 |
-|  61.19 |     1 |         1 | 56.33 |
-|  55.57 |     1 |         1 | 54.04 |
-|  57.24 |     1 |         1 | 48.94 |
+|     60 |     1 |         1 |    55 |
+|     71 |     1 |         1 |    42 |
+|     58 |     1 |         1 |    58 |
+|     54 |     1 |         1 |    34 |
+|     57 |     1 |         1 |    42 |
+|     45 |     1 |         1 |    38 |
 
 ## Fit the model
 
-A useful default for continuous outcomes is the unified model with HC3
-heteroskedasticity-robust covariance estimation.
+The unified model with HC3 heteroskedasticity-consistent covariance, the
+default, is a sound starting point for continuous outcomes.
 
 ``` r
 
 fit <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_glm(
     y = y_post,
     treat = treat,
@@ -114,19 +114,20 @@ fit
 
     ## Solomon GLM (unified model)
     ## Formula: y ~ treat * pretested + pre_obs
+    ## Covariance: HC3 heteroskedasticity-consistent; t tests (df = 115)
     ## 
-    ## Term             Est (SE)            z      p
-    ## (Intercept)      48.387 (1.705)  28.37  <.001
-    ## treat            4.700 (2.705)    1.74  0.082
-    ## pretested        10.082 (6.067)   1.66  0.097
-    ## pre_obs          -0.168 (0.121)  -1.39  0.165
-    ## treat:pretested  1.566 (3.731)    0.42  0.675
+    ## Term             Est (SE)             t   df      p              95% CI
+    ## (Intercept)      51.100 (1.739)   29.39  115  <.001    [47.656, 54.544]
+    ## treat            3.633 (2.229)     1.63  115  0.106     [-0.782, 8.049]
+    ## pretested        -26.219 (5.957)  -4.40  115  <.001  [-38.019, -14.418]
+    ## pre_obs          0.598 (0.101)     5.91  115  <.001      [0.397, 0.798]
+    ## treat:pretested  -1.940 (3.168)   -0.61  115  0.541     [-8.214, 4.335]
     ## 
-    ## Key contrasts            Est (SE)          z      p  Wald R2
-    ## ATE (avg over pretest)   5.483 (1.865)  2.94  0.003    0.083
-    ## Pretest x Treatment      1.566 (3.731)  0.42  0.675    0.002
-    ## Treatment | pretested    6.266 (2.569)  2.44  0.015    0.059
-    ## Treatment | unpretested  4.700 (2.705)  1.74  0.082    0.031
+    ## Key contrasts            Est (SE)            t   df      p           95% CI  Wald R2
+    ## ATE (avg over pretest)   2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024
+    ## Pretest x Treatment      -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003
+    ## Treatment | pretested    1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005
+    ## Treatment | unpretested  3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023
     ## 
     ## Wald R2: partial R-squared for conventional Gaussian OLS;
     ## a Wald-based descriptive approximation when robust covariance is used.
@@ -191,7 +192,7 @@ names(effects_display) <- c(
   "Contrast",
   "Estimate",
   "SE",
-  "z",
+  "t",
   "p",
   "Wald R2"
 )
@@ -209,12 +210,12 @@ knitr::kable(
 )
 ```
 
-| Contrast                 | Estimate |   SE |    z |    p | Wald R2 |
-|:-------------------------|---------:|-----:|-----:|-----:|--------:|
-| ATE (avg over pretest)   |     5.48 | 1.87 | 2.94 | .003 |    .083 |
-| Pretest x Treatment      |     1.57 | 3.73 | 0.42 | .675 |    .002 |
-| Treatment \| pretested   |     6.27 | 2.57 | 2.44 | .015 |    .059 |
-| Treatment \| unpretested |     4.70 | 2.71 | 1.74 | .082 |    .031 |
+| Contrast                 | Estimate |   SE |     t |    p | Wald R2 |
+|:-------------------------|---------:|-----:|------:|-----:|--------:|
+| ATE (avg over pretest)   |     2.66 | 1.58 |  1.68 | .095 |    .024 |
+| Pretest x Treatment      |    -1.94 | 3.17 | -0.61 | .541 |    .003 |
+| Treatment \| pretested   |     1.69 | 2.25 |  0.75 | .453 |    .005 |
+| Treatment \| unpretested |     3.63 | 2.23 |  1.63 | .106 |    .023 |
 
 ## The four Solomon estimands
 
@@ -247,8 +248,8 @@ It asks whether the treatment effect differs according to whether the
 pretest was administered.
 
 A statistically nonsignificant interaction should not be interpreted as
-proof that sensitization is absent. Formal equivalence procedures for
-that stronger question are planned for a future version of `solomonR`.
+proof that sensitization is absent. The equivalence test described below
+addresses that stronger question.
 
 ### Treatment effect among pretested participants
 
@@ -293,8 +294,20 @@ fit_solomon_glm(
 )
 ```
 
-HC3 provides heteroskedasticity-robust standard errors and is a useful
-default when equal residual variances are uncertain.
+HC3, the default, provides heteroskedasticity-consistent standard errors
+(MacKinnon & White, 1985). Long and Ervin (2000) recommend HC3 when the
+sample is below about 250, and Hayes and Cai (2007) recommend
+heteroskedasticity-consistent standard errors as routine practice. The
+Solomon design adds its own reason: adjusting for the pretest reduces
+residual variance only in the pretested groups, so the unified model is
+heteroskedastic whenever the pretest predicts the posttest.
+
+For Gaussian models, tests and confidence intervals use the t
+distribution with residual degrees of freedom, with or without robust
+covariance; binomial and Poisson models use the normal distribution. The
+`df`, `conf.low`, and `conf.high` columns of `fit$effects` record the
+reference distribution and interval for each contrast, and `conf_level`
+sets the confidence level.
 
 A CR2 covariance option is also available for clustered data:
 
@@ -310,10 +323,55 @@ fit_solomon_glm(
 )
 ```
 
-The current CR2 option supplies cluster-robust covariance estimation.
-Small-sample cluster-robust inference requires additional care, so CR2
-results should not yet be interpreted as a complete small-sample
-Satterthwaite procedure.
+CR2 combines the bias-reduced cluster-robust covariance estimator (Bell
+& McCaffrey, 2002) with Satterthwaite degrees of freedom for each
+coefficient and contrast (Pustejovsky & Tipton, 2018). The degrees of
+freedom are reported in the `df` column and can be small when there are
+few clusters.
+
+## Is sensitization negligible?
+
+A nonsignificant Pretest x Treatment contrast does not show that
+sensitization is absent. An equivalence test asks a different question:
+can effects at least as large as the smallest effect size of interest
+(SESOI) be rejected?
+[`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
+performs the two one-sided tests (TOST) procedure (Lakens, 2017).
+
+The bounds must be set before the data are examined. Suppose that,
+before collecting data, the researchers noted that prior studies with
+this measure reported a posttest standard deviation of about 10 points,
+and decided that sensitization smaller than half a standard deviation (5
+points) would be negligible.
+
+``` r
+
+equivalence_solomon(fit, bounds = 5)
+```
+
+    ## Solomon equivalence test (TOST)
+    ## Contrast: Pretest x Treatment
+    ## Equivalence bounds (raw scale): [-5.000, 5.000]; alpha = 0.05
+    ## Inference: HC3 heteroskedasticity-consistent; t tests (df = 115)
+    ## 
+    ## Estimate = -1.940 (SE = 3.168)
+    ## 90% CI [-7.193, 3.313] (equivalence); 95% CI [-8.214, 4.335] (test against zero)
+    ## 
+    ## Lower bound test:   t(115) = 0.97, p = 0.168
+    ## Upper bound test:   t(115) = -2.19, p = 0.015
+    ## Equivalence (TOST): p = 0.168
+    ## Test against zero:  t(115) = -0.61, p = 0.541
+    ## 
+    ## Conclusion: Inconclusive: the contrast is neither different from zero nor
+    ##   statistically equivalent.
+    ## Equivalence bounds must be justified and fixed before the data are examined;
+    ## see ?equivalence_solomon.
+
+With 30 participants per group, the 90% confidence interval still
+extends beyond the bounds, so the result is inconclusive: these data can
+neither detect sensitization nor rule out sensitization of that size.
+Equivalence tests need adequate power of their own (Lakens, 2017), so
+equivalence bounds belong in study planning.
 
 ## Wald-based partial R-squared
 
@@ -334,7 +392,10 @@ applies the same transformation to the robust Wald statistic. In that
 case the result should be interpreted as a **descriptive Wald-based
 approximation**, not an exact decomposition of model variance.
 
-Confidence intervals for this quantity are not currently reported.
+For conventional Gaussian fits (`robust = "none"`), `r2_lo` and `r2_hi`
+give a confidence interval from the noncentral F distribution (Steiger,
+2004). No interval is reported with robust covariance, because that
+pivot no longer applies.
 
 ``` r
 
@@ -368,10 +429,10 @@ knitr::kable(
 
 | Contrast                 | Wald R2 |
 |:-------------------------|--------:|
-| ATE (avg over pretest)   |    .083 |
-| Pretest x Treatment      |    .002 |
-| Treatment \| pretested   |    .059 |
-| Treatment \| unpretested |    .031 |
+| ATE (avg over pretest)   |    .024 |
+| Pretest x Treatment      |    .003 |
+| Treatment \| pretested   |    .005 |
+| Treatment \| unpretested |    .023 |
 
 ## Diagnostics
 
@@ -381,7 +442,7 @@ The package provides design-relevant diagnostics through
 ``` r
 
 checks <- with(
-  solomon_demo,
+  solomon_example,
   check_solomon_assumptions(
     y_post,
     treat,
@@ -393,16 +454,19 @@ checks <- with(
 checks
 ```
 
-    ## Assumption checks (alpha = .05)
-    ##   HoV across 4 posttest cells (Brown-Forsythe): p = 0.885  -> OK
-    ##   HoV in unpretested cells (Welch target):       p = 0.541  -> OK
-    ##   Normality by cell (Shapiro, min p):            p = 0.030  -> FLAG
-    ##   ANCOVA slope homogeneity (pretested):          p = 0.636  -> OK
+    ## Solomon assumption diagnostics (descriptive)
+    ##   Equal variance, four posttest cells (Brown-Forsythe) p = 0.147
+    ##   Equal variance, unpretested cells (Brown-Forsythe)   p = 0.297
+    ##   Normality within cells (Shapiro-Wilk, smallest p)    p = 0.006
+    ##   Homogeneous slopes, pretested groups (Treat x Pre)   p = 0.108
     ## 
-    ## Recommendations:
-    ##   * Robust SEs (HC3): fine
-    ##   * Welch t for groups 3-4: fine
-    ##   * Permutation p-values: consider
+    ## These p-values describe the data; they are not gates for choosing an
+    ## analysis. Selecting a test because a preliminary assumption test was or
+    ## was not significant can distort Type I error rates (Zimmerman, 2004).
+    ## HC3 robust standard errors are a reasonable default for the unified GLM
+    ## regardless of these results (Long & Ervin, 2000). A small slope p-value
+    ## suggests the treatment effect in pretested groups depends on the pretest
+    ## score, which is substantively informative.
 
 These include variance checks, cell-level distribution summaries, and
 assessment of ANCOVA slope homogeneity.
@@ -432,8 +496,8 @@ perm
     ## Solomon randomization test
     ## --------------------------
     ## Contrast: ATE (avg over pretest)
-    ## Observed studentized statistic: z = 2.94
-    ## Permutation p = .002
+    ## Observed studentized statistic: z = 1.68
+    ## Permutation p = .097
     ## Valid permutations: 1000 of 1000
     ## Permutation distribution retained (1000 draws); use plot_perm() to visualize it.
 
@@ -465,8 +529,10 @@ plot_perm(perm)
 
 Randomization inference is justified by the assignment mechanism, not
 merely by a small sample size. If treatment was randomized at the
-cluster level, permutation should likewise occur at the cluster rather
-than individual level.
+cluster level, permutation must likewise occur at the cluster level.
+[`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+permutes individuals, so it refuses fits that include a clustering
+variable; use the CR2 tests above for clustered designs.
 
 ## A likelihood-based alternative
 
@@ -477,12 +543,13 @@ Engelenburg’s treatment of the Solomon four-group design.
 ``` r
 
 ml <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_ml(
     y_post,
     treat,
     pretested,
-    y_pre
+    y_pre,
+    inference = "satterthwaite"
   )
 )
 
@@ -492,19 +559,20 @@ ml
     ## Solomon full-information maximum-likelihood model
     ## -------------------------------------------------
     ## Method: van Engelenburg (1999)
+    ## Inference: small-sample (t; Welch-Satterthwaite df for combined contrasts)
     ## 
-    ## Centered pretest mean: 49.643
-    ## Residual SD, unpretested: 9.182
-    ## Residual SD, pretested:   8.849
+    ## Centered pretest mean: 49.600
+    ## Residual SD, unpretested: 8.345
+    ## Residual SD, pretested:   8.298
     ## 
     ## Key Solomon estimands
     ## ---------------------
-    ## ATE (avg over pretest)       5.483 (SE = 1.821), z = 3.01, p = 0.003
-    ## Pretest x Treatment          1.566 (SE = 3.641), z = 0.43, p = 0.667
-    ## Treatment | pretested        6.266 (SE = 2.552), z = 2.45, p = 0.014
-    ## Treatment | unpretested      4.700 (SE = 2.597), z = 1.81, p = 0.070
+    ## ATE (avg over pretest)       2.663 (SE = 1.552), t(115.0) = 1.72, p = 0.089, 95% CI [-0.411, 5.738]
+    ## Pretest x Treatment          -1.940 (SE = 3.104), t(115.0) = -0.62, p = 0.533, 95% CI [-8.088, 4.209]
+    ## Treatment | pretested        1.693 (SE = 2.198), t(57) = 0.77, p = 0.444, 95% CI [-2.708, 6.095]
+    ## Treatment | unpretested      3.633 (SE = 2.192), t(58) = 1.66, p = 0.103, 95% CI [-0.754, 8.020]
     ## 
-    ## logLik = -361.77; optimizer convergence = 0
+    ## logLik = -424.53; optimizer convergence = 0
 
 A useful feature of the likelihood formulation is that the structurally
 absent pretests in Groups 3 and 4 are treated as part of the design
@@ -513,6 +581,15 @@ rather than as ordinary missing baseline observations.
 The ML and GLM approaches target closely related Solomon effects but use
 different assumptions for uncertainty estimation.
 
+By default,
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+uses van Engelenburg’s large-sample Wald inference. In the package’s
+simulation validation those intervals were too narrow with small groups,
+so the example above uses the small-sample option,
+`inference = "satterthwaite"`, which applies Welch-Satterthwaite degrees
+of freedom (Satterthwaite, 1946; Welch, 1947). The function warns when
+groups are small and `inference` has not been chosen.
+
 ## Historical analysis
 
 For teaching or reproducing the classical Tests A-I workflow, use:
@@ -520,7 +597,7 @@ For teaching or reproducing the classical Tests A-I workflow, use:
 ``` r
 
 classic <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_classic(
     y_post,
     treat,
@@ -535,33 +612,34 @@ classic
     ## Classic Solomon analysis (historical teaching workflow)
     ## -------------------------------------------------------
     ## Selected pretested-group method: Test E (ancova)
-    ## Historical decision path: A -> D
+    ## Historical decision path: A -> D -> E -> H -> I
     ## 
     ## Historical Tests A-I
     ## --------------------
     ## All tests are shown below. Tests marked [PATH] were reached by
     ## the historical decision sequence for these data.
     ## 
-    ## [PATH] Test A: Pretest x Treatment interaction               F(1, 96) = 0.05, p = 0.827
-    ##        Test B: Treatment effect among pretested groups       F(1, 96) = 4.39, p = 0.039
-    ##        Test C: Treatment effect among unpretested groups     F(1, 96) = 3.19, p = 0.077
-    ## [PATH] Test D: Treatment main effect                         F(1, 96) = 7.54, p = 0.007
-    ##        Test E: ANCOVA treatment effect                       F(1, 47) = 5.66, p = 0.021
-    ##        Test F: Gain-score treatment effect                   F(1, 48) = 0.05, p = 0.818
-    ##        Test G: Repeated-measures Treatment x Time interaction F(1, 48) = 0.05, p = 0.818
-    ##        Test H: Posttest-only treatment effect                t(48) = 1.77, p = 0.083
-    ##        Test I: E + H (ANCOVA + posttest-only)                Z = 2.85, p(one-tailed) = 0.002
+    ## [PATH] Test A: Pretest x Treatment interaction               F(1, 116) = 0.29, p = 0.589
+    ##        Test B: Treatment effect among pretested groups       F(1, 116) = 0.49, p = 0.486
+    ##        Test C: Treatment effect among unpretested groups     F(1, 116) = 2.14, p = 0.146
+    ## [PATH] Test D: Treatment main effect                         F(1, 116) = 2.34, p = 0.129
+    ## [PATH] Test E: ANCOVA treatment effect                       F(1, 57) = 0.59, p = 0.444
+    ##        Test F: Gain-score treatment effect                   F(1, 58) = 0.46, p = 0.499
+    ##        Test G: Repeated-measures Treatment x Time interaction F(1, 58) = 0.46, p = 0.499
+    ## [PATH] Test H: Posttest-only treatment effect                t(58) = 1.66, p = 0.103
+    ## [PATH] Test I: Braver & Braver (1988) Stouffer combination   Z = 1.69, p(one-tailed) = 0.045 [E + H (ANCOVA + posttest-only)]
     ## 
     ## Historical interpretation
     ## -------------------------
-    ## Historical pathway: no evidence of pretest sensitization and the treatment main effect is significant. 
+    ## Historical pathway: Test I produces a significant Stouffer combination. This result is retained for historical replication and should be interpreted in light of later Type I error critiques. 
     ## 
-    ## Groups 3-4 effect size: Hedges g = 0.494, 95% CI [-0.069, 1.057]
+    ## Groups 3-4 effect size: Hedges g = 0.423, 95% CI [-0.086, 0.938] (noncentral t)
     ## 
-    ## Caution: Test I is reproduced for historical teaching and replication.
-    ## Later simulation work raised concerns about Type I error for the
-    ## conditional meta-analytic sequence; it is not the default modern
-    ## inferential recommendation in solomonR.
+    ## Caution: Test I, the Braver & Braver (1988) Stouffer combination, is
+    ## reproduced for historical teaching and replication. Later simulation
+    ## work (see Sawilowsky et al., 1994) raised concerns about Type I error
+    ## for the conditional meta-analytic sequence; it is not the default
+    ## modern inferential recommendation in solomonR.
 
 See:
 
@@ -604,12 +682,112 @@ package:
 - treatment effect among pretested participants; and
 - treatment effect among unpretested participants.
 
+## Comparing analyses
+
+[`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
+fits several analyses to the same data and lines up their estimates of
+each Solomon contrast.
+
+``` r
+
+with(
+  solomon_example,
+  compare_solomon_methods(
+    y_post,
+    treat,
+    pretested,
+    y_pre,
+    methods = c("glm", "ml", "classic")
+  )
+)
+```
+
+    ## Solomon method comparison (continuous posttest; treatment minus control)
+    ## All rows target the same population contrasts; they differ in pretest
+    ## adjustment, variance assumptions, and reference distributions, which affect
+    ## precision rather than the target.
+    ## 
+    ## ATE (avg over pretest)
+    ##  Method                            Estimate 95% CI          Reference p    
+    ##  Unified GLM (HC3)                 2.663    [-0.474, 5.801] t(115)    0.095
+    ##  Maximum likelihood                2.663    [-0.314, 5.641] normal    0.080
+    ##  Maximum likelihood (small-sample) 2.663    [-0.411, 5.738] t(115.0)  0.089
+    ##  Classic Test D                    2.683    [-0.793, 6.160] t(116)    0.129
+    ## 
+    ## Pretest x Treatment
+    ##  Method                            Estimate 95% CI          Reference p    
+    ##  Unified GLM (HC3)                 -1.940   [-8.214, 4.335] t(115)    0.541
+    ##  Maximum likelihood                -1.940   [-7.895, 4.016] normal    0.523
+    ##  Maximum likelihood (small-sample) -1.940   [-8.088, 4.209] t(115.0)  0.533
+    ##  Classic Test A                    -1.900   [-8.853, 5.053] t(116)    0.589
+    ## 
+    ## Treatment | pretested
+    ##  Method                            Estimate 95% CI          Reference p    
+    ##  Unified GLM (HC3)                 1.693    [-2.765, 6.152] t(115)    0.453
+    ##  Maximum likelihood                1.693    [-2.506, 5.893] normal    0.429
+    ##  Maximum likelihood (small-sample) 1.693    [-2.708, 6.095] t(57)     0.444
+    ##  Classic Test B                    1.733    [-3.183, 6.650] t(116)    0.486
+    ##  Classic Test E (ANCOVA)           1.693    [-2.708, 6.095] t(57)     0.444
+    ##  Classic Test F (gain score)       1.667    [-3.239, 6.572] t(58)     0.499
+    ## 
+    ## Treatment | unpretested
+    ##  Method                            Estimate 95% CI          Reference p    
+    ##  Unified GLM (HC3)                 3.633    [-0.782, 8.049] t(115)    0.106
+    ##  Maximum likelihood                3.633    [-0.590, 7.857] normal    0.092
+    ##  Maximum likelihood (small-sample) 3.633    [-0.754, 8.020] t(58)     0.103
+    ##  Classic Test C                    3.633    [-1.283, 8.550] t(116)    0.146
+    ##  Classic Test H (posttest-only)    3.633    [-0.754, 8.020] t(58)     0.103
+    ## 
+    ## Methods:
+    ## - Unified GLM (HC3): adjustment = pretest (pretested groups); common residual
+    ##   variance; HC3 robust.
+    ## - Maximum likelihood: adjustment = pretest (pretested groups); separate
+    ##   residual variances by pretest condition; Wald inference (van Engelenburg,
+    ##   1999).
+    ## - Maximum likelihood (small-sample): adjustment = pretest (pretested groups);
+    ##   separate residual variances by pretest condition; Welch-Satterthwaite t.
+    ## - Classic Test D: adjustment = none; common residual variance; four-group
+    ##   model.
+    ## - Classic Test A: adjustment = none; common residual variance; four-group
+    ##   model.
+    ## - Classic Test B: adjustment = none; common residual variance; four-group
+    ##   model.
+    ## - Classic Test E (ANCOVA): adjustment = pretest (pretested groups only);
+    ##   common residual variance; pretested groups.
+    ## - Classic Test F (gain score): adjustment = gain score (pretested groups
+    ##   only); common residual variance; pretested groups.
+    ## - Classic Test C: adjustment = none; common residual variance; four-group
+    ##   model.
+    ## - Classic Test H (posttest-only): adjustment = none (unpretested groups
+    ##   only); common residual variance; unpretested groups.
+    ## 
+    ## Not compared:
+    ## - perm_solomon(): Tests the sharp null hypothesis of no treatment effect for
+    ##   any participant; it does not estimate a contrast.
+    ## - Test I (Braver & Braver, 1988): Combines one-tailed p-values from two
+    ##   tests; it does not estimate a contrast.
+    ## - fit_solomon_sem_latent(): Estimates contrasts on a latent-variable scale,
+    ##   not the observed posttest scale.
+    ## - Hedges' g (fit_solomon_classic()): A standardized mean difference, not a
+    ##   raw-scale contrast.
+
+All rows target the same population contrasts. Several estimates are
+identical, such as the unified GLM, maximum likelihood, and the classic
+ANCOVA among pretested participants, yet their standard errors and
+intervals differ because the methods make different variance assumptions
+and use different reference distributions. Pretest adjustment changes
+precision rather than the target (Lin, 2013).
+
 ## Choosing an analysis
 
 For many randomized Solomon studies with continuous outcomes, a useful
 workflow is:
 
-1.  describe the four groups and inspect the data;
+1.  check the design with
+    [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md)
+    and
+    [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md),
+    and inspect the data;
 2.  fit the unified GLM with prespecified contrasts;
 3.  examine the pretest-by-treatment contrast directly;
 4.  inspect diagnostics;
@@ -628,10 +806,6 @@ The package is under active development.
 
 Planned additions include:
 
-- equivalence testing for pretest sensitization;
-- automated design validation;
-- structural-versus-incidental missingness diagnostics;
-- method-comparison tools;
 - Solomon-specific visualization;
 - redesigned power and sample-size planning;
 - generalized outcomes;
@@ -640,3 +814,48 @@ Planned additions include:
 
 See `ROADMAP.md` in the package repository for the current development
 plan.
+
+## References
+
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard
+errors for linear regression with multi-stage samples. *Survey
+Methodology, 28*, 169-181.
+
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
+standard error estimators in OLS regression: An introduction and
+software implementation. *Behavior Research Methods, 39*, 709-722.
+
+Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
+correlations, and meta-analyses. *Social Psychological and Personality
+Science, 8*, 355-362.
+
+Lin, W. (2013). Agnostic notes on regression adjustments to experimental
+data: Reexamining Freedman’s critique. *The Annals of Applied
+Statistics, 7*, 295-318.
+
+Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+standard errors in the linear regression model. *The American
+Statistician, 54*, 217-224.
+
+MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+covariance matrix estimators with improved finite sample properties.
+*Journal of Econometrics, 29*, 305-325.
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed
+effects models. *Journal of Business & Economic Statistics, 36*,
+672-683.
+
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*, 110-114.
+
+Steiger, J. H. (2004). Beyond the F test: Effect size confidence
+intervals and tests of close fit in the analysis of variance and
+contrast analysis. *Psychological Methods, 9*, 164-182.
+
+van Engelenburg, G. (1999). *Statistical analysis for the Solomon
+four-group design* (Research Report 99-06). University of Twente.
+
+Welch, B. L. (1947). The generalization of “Student’s” problem when
+several different population variances are involved. *Biometrika, 34*,
+28-35.

@@ -22,7 +22,8 @@ perm_solomon(
 - object:
 
   An object returned by
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  without a clustering variable.
 
 - contrast:
 
@@ -36,7 +37,8 @@ perm_solomon(
 
 - seed:
 
-  Optional random-number seed for reproducibility.
+  Optional random-number seed for reproducibility. The global
+  random-number state is restored when the function exits.
 
 - return_dist:
 
@@ -48,3 +50,35 @@ perm_solomon(
 A list containing the observed studentized statistic (`z_obs`) and
 permutation p-value (`p_perm`). If `return_dist = TRUE`, the permutation
 distribution (`z_perm`) is also returned.
+
+## Details
+
+The test statistic is the HC3-studentized contrast. The permutation
+p-value is a valid test of the sharp null hypothesis that treatment has
+no effect for any participant; the `+1` correction keeps the Monte Carlo
+p-value from being zero (Phipson & Smyth, 2010). Studentizing the
+statistic makes permutation tests asymptotically robust when only an
+average effect is hypothesized to be zero (DiCiccio & Romano, 2017; Wu &
+Ding, 2021); for the Pretest x Treatment contrast that robustness should
+be regarded as approximate.
+
+Randomization inference must permute the unit that was randomized.
+Because this function permutes individual participants, it refuses fits
+that include a clustering variable. For clustered designs, use the CR2
+small-sample tests reported by
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+
+## References
+
+DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
+correlation and regression coefficients. *Journal of the American
+Statistical Association, 112*(519), 1211-1220.
+
+Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
+zero: Calculating exact p-values when permutations are randomly drawn.
+*Statistical Applications in Genetics and Molecular Biology, 9*(1),
+Article 39.
+
+Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses
+in randomized experiments. *Journal of the American Statistical
+Association, 116*(536), 1898-1913.

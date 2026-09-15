@@ -18,9 +18,18 @@ single new procedure. Instead, `solomonR` makes the historical methods
 transparent while providing modern alternatives in one reproducible
 workflow.
 
+`solomonR` is written for graduate students and applied researchers who
+need to analyze, interpret, and report a Solomon study. Each function’s
+help page cites the methodological sources it implements. New users
+should start with the article [Getting Started: Analyzing a Solomon
+Four-Group
+Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
+
 > **Development status:** The stable `v0.2.0` release provides the core
-> Solomon analytical toolkit. Development version `0.2.0.9000` is now
-> targeting `v0.3.0`. The API may continue to evolve before version 1.0.
+> Solomon analytical toolkit. Development version `0.2.0.9000` is
+> targeting `v0.3.0`, which focuses on correct small-sample inference,
+> input safeguards, and documentation for graduate students and applied
+> researchers. The API may continue to evolve before version 1.0.
 
 ------------------------------------------------------------------------
 
@@ -79,19 +88,22 @@ Then load the package:
 library(solomonR)
 ```
 
-`solomonR` is not yet on CRAN.
+`solomonR` is distributed through R-universe; CRAN submission is planned
+for version 1.0.0.
 
 ------------------------------------------------------------------------
 
 ## A 60-second analysis
 
-The package includes a small example Solomon dataset:
+The package includes a simulated example study whose true effects are
+known (see
+[`?solomon_example`](https://juhalt.github.io/solomonR/reference/solomon_example.md)):
 
 ``` r
 
-data(solomon_demo)
+data(solomon_example)
 
-head(solomon_demo)
+head(solomon_example)
 ```
 
 The principal modern observed-variable analysis fits one unified model
@@ -100,7 +112,7 @@ and estimates four Solomon-specific contrasts:
 ``` r
 
 fit <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_glm(
     y = y_post,
     treat = treat,
@@ -127,11 +139,16 @@ The key estimands are:
 The model handles the structural absence of pretest scores in Groups 3
 and 4 without discarding those groups.
 
+Every contrast is reported with a confidence interval (`conf.low`,
+`conf.high`; set the level with `conf_level`). HC3 covariance is the
+default (Long & Ervin, 2000), and Gaussian models use t tests with
+residual degrees of freedom.
+
 For Gaussian models, the output also reports a **Wald-based partial
 R-squared** for each one-degree-of-freedom contrast. With conventional
-OLS covariance this corresponds to the usual partial R-squared identity.
-With robust covariance estimation it should be interpreted as a
-descriptive Wald-based approximation.
+covariance this is the usual partial R-squared, with a noncentral F
+confidence interval (Steiger, 2004). With robust covariance it is a
+descriptive Wald-based approximation without an interval.
 
 ------------------------------------------------------------------------
 
@@ -144,7 +161,7 @@ been taught.
 ``` r
 
 classic <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_classic(
     y_post,
     treat,
@@ -166,8 +183,8 @@ The package distinguishes between:
 - tests that were actually reached along the historical **decision
   path**.
 
-The historical Stouffer combination is included for teaching and
-replication, but it is **not the default modern inferential
+Test I, the Braver & Braver (1988) Stouffer combination, is included for
+teaching and replication, but it is **not the default modern inferential
 recommendation**. Later simulation work raised concerns about Type I
 error in conditional versions of this procedure.
 
@@ -207,8 +224,12 @@ plot_perm(perm)
 ```
 
 Randomization inference should reflect the design that actually
-generated the treatment assignments. Cluster-randomized studies require
-permutation at the appropriate randomization unit.
+generated the treatment assignments. Because
+[`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+permutes individual participants, it refuses fits that include a
+clustering variable; use the CR2 tests from
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+for cluster-randomized studies.
 
 ------------------------------------------------------------------------
 
@@ -225,7 +246,7 @@ pretest observations**.
 ``` r
 
 ml <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_ml(
     y_post,
     treat,
@@ -244,6 +265,12 @@ The ML model estimates the same central Solomon quantities:
 - treatment effect among pretested participants; and
 - treatment effect among unpretested participants.
 
+By default it uses van Engelenburg’s large-sample Wald inference. With
+small groups, use `inference = "satterthwaite"`, a small-sample option
+with Welch-Satterthwaite degrees of freedom;
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+warns when groups are small and no option has been chosen.
+
 ------------------------------------------------------------------------
 
 ## Structural equation models
@@ -256,7 +283,7 @@ The ML model estimates the same central Solomon quantities:
 ``` r
 
 sem_fit <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_sem(
     y_post,
     treat,
@@ -276,7 +303,7 @@ An ANCOVA-style SEM can also be fit within the two pretested groups:
 ``` r
 
 sem_ancova <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_sem(
     y_post,
     treat,
@@ -298,7 +325,8 @@ estimates Solomon contrasts at the latent-variable level.
 Latent mean comparisons require **scalar measurement invariance** across
 the four Solomon groups. `solomonR` enforces this requirement rather
 than silently interpreting latent means from configural or metric-only
-models.
+models. For identification, the latent mean of the unpretested control
+group is fixed at 0; the Solomon contrasts do not depend on this choice.
 
 See:
 
@@ -311,23 +339,45 @@ for details.
 
 ------------------------------------------------------------------------
 
+## Check the design first
+
+Before fitting a model,
+[`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md)
+confirms that all four cells are present, the design indicators are
+coded 0/1, and each cell has enough observed outcomes. It reports every
+problem at once instead of stopping at the first.
+
+``` r
+
+with(
+  solomon_example,
+  validate_solomon(y_post, treat, pretested, y_pre)
+)
+```
+
+[`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+separates the pretests that are absent by design in Groups 3 and 4,
+which must never be imputed, from incidental missing values, and
+explains the supported response to each with its sources.
+
 ## Diagnostics
 
 [`check_solomon_assumptions()`](https://juhalt.github.io/solomonR/reference/check_solomon_assumptions.md)
 provides diagnostics relevant to common Solomon analyses, including:
 
 - Brown-Forsythe variance checks;
-- cell-level distribution summaries;
-- ANCOVA slope-homogeneity assessment; and
-- guidance for choosing more robust alternatives.
+- cell-level normality summaries; and
+- ANCOVA slope-homogeneity assessment.
 
-These diagnostics are intended to inform analysis, not create a rigid
-sequence of statistical gatekeeping tests.
+These diagnostics are descriptive, not a sequence of gatekeeping tests:
+choosing an analysis because a preliminary test was significant can
+distort Type I error rates (Zimmerman, 2004). HC3 standard errors are a
+reasonable default for the unified GLM regardless of the results.
 
 ``` r
 
 checks <- with(
-  solomon_demo,
+  solomon_example,
   check_solomon_assumptions(
     y_post,
     treat,
@@ -349,15 +399,24 @@ A useful starting point is:
 |----|----|
 | Modern primary analysis | [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md) |
 | Randomization-based inference | [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md) |
+| Test whether sensitization is negligible | [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md) |
+| Compare analyses and their estimands | [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md) |
 | Full-information likelihood | [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md) |
 | Teach or reproduce historical methods | [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md) |
 | Observed-variable SEM | [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md) |
 | Multi-item / latent outcome | [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md) |
+| Check design coding and missingness | [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md), [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md) |
 | Model diagnostics | [`check_solomon_assumptions()`](https://juhalt.github.io/solomonR/reference/check_solomon_assumptions.md) |
 
 For many ordinary randomized Solomon experiments with continuous
 outcomes, the unified GLM with clearly defined contrasts is a useful
 primary analysis.
+
+For the origin, assumptions, limitations, and sources of every method,
+see the article [Solomon Methods: History, Recommendations, and
+Extensions](https://juhalt.github.io/solomonR/articles/solomon-methods.html).
+It labels each analysis as a historical procedure, a contemporary
+recommendation, a published Solomon proposal, or a `solomonR` extension.
 
 The historical Tests A-I remain valuable for understanding the
 development of the design, but they should not automatically be treated
@@ -370,21 +429,37 @@ as the preferred contemporary analysis.
 ### A nonsignificant interaction is not evidence of no sensitization
 
 Failure to reject the pretest-by-treatment interaction does not
-establish that sensitization is absent. Equivalence-based approaches are
-planned for a future release.
+establish that sensitization is absent. To test whether sensitization is
+negligible, use an equivalence test with bounds set in advance at the
+smallest effect size of interest (Lakens, 2017):
 
-### Robust covariance and Wald R-squared
+``` r
 
-HC3 changes the covariance estimate used for inference. The associated
-Wald R-squared reported by `solomonR` is therefore a descriptive
-Wald-based quantity rather than an exact decomposition of model
-variance.
+# Bounds must be justified and fixed before examining the data.
+equivalence_solomon(fit, bounds = 2)
+```
+
+The result reports both one-sided tests, the 90% confidence interval,
+and one of four outcomes: equivalent, different from zero but trivially
+small, different, or inconclusive.
+
+### Reference distributions and intervals
+
+HC3 is the default covariance estimator, following Long and Ervin (2000)
+and Hayes and Cai (2007). Tests and confidence intervals use the t
+distribution with residual degrees of freedom for Gaussian models, the
+normal distribution for binomial and Poisson models, and Satterthwaite
+degrees of freedom for CR2. Maximum-likelihood and SEM results use
+large-sample normal intervals. Under robust covariance, the Wald
+R-squared is a descriptive quantity rather than an exact decomposition
+of model variance.
 
 ### CR2
 
-A CR2 covariance option is available for clustered data. Small-sample
-cluster-robust inference is an area of continued development and should
-be reported carefully.
+For clustered data, `robust = "CR2"` combines the bias-reduced
+cluster-robust covariance estimator with Satterthwaite degrees of
+freedom (Pustejovsky & Tipton, 2018). With few clusters, report the
+degrees of freedom alongside each test.
 
 ### Latent means
 
@@ -393,9 +468,9 @@ Partial invariance workflows are not yet automated.
 
 ### Power
 
-The current power-simulation helper is **experimental**. A redesigned
-Solomon-specific planning and power framework is scheduled for a later
-release and should be preferred once available.
+The current power-simulation helper is **experimental**, warns when it
+is called, and should not be used for study planning. A redesigned and
+validated Solomon-specific planning framework is scheduled for v0.4.0.
 
 ------------------------------------------------------------------------
 
@@ -434,9 +509,6 @@ issues](https://github.com/JUhalt/solomonR/issues).
 
 Major planned additions include:
 
-- sensitization equivalence testing;
-- design validation and missingness diagnostics;
-- method-comparison tools;
 - Solomon-specific visualizations;
 - redesigned sample-size and power planning;
 - binary and count outcomes;
@@ -464,16 +536,47 @@ Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. *Psychological
 Bulletin, 104*, 150-154.
 
+Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
+quasi-experimental designs for research*. Rand McNally.
+
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
+standard error estimators in OLS regression: An introduction and
+software implementation. *Behavior Research Methods, 39*, 709-722.
+
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
 Education, 42*, 54-55.
+
+Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
+correlations, and meta-analyses. *Social Psychological and Personality
+Science, 8*, 355-362.
+
+Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+standard errors in the linear regression model. *The American
+Statistician, 54*, 217-224.
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed
+effects models. *Journal of Business & Economic Statistics, 36*,
+672-683.
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
 Experimental Education, 62*, 361-376.
 
-van Engelenburg, G. (1999). Statistical analysis for the Solomon
-four-group design.
+Solomon, R. L. (1949). An extension of control group design.
+*Psychological Bulletin, 46*, 137-150.
+
+Steiger, J. H. (2004). Beyond the F test: Effect size confidence
+intervals and tests of close fit in the analysis of variance and
+contrast analysis. *Psychological Methods, 9*, 164-182.
+
+van Engelenburg, G. (1999). *Statistical analysis for the Solomon
+four-group design* (Research Report 99-06). University of Twente.
+
+Zimmerman, D. W. (2004). A note on preliminary tests of equality of
+variances. *British Journal of Mathematical and Statistical Psychology,
+57*, 173-181.
 
 ------------------------------------------------------------------------
 

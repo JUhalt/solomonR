@@ -8,12 +8,18 @@
 <url><loc>https://juhalt.github.io/solomonR/SECURITY.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/SUPPORT.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/classic-solomon.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/articles/getting-started.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/glm-solomon.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/index.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/articles/ml-validation.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/articles/solomon-methods.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/authors.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/index.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/news/index.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/check_solomon_assumptions.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/check_solomon_missing.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/compare_solomon_methods.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/equivalence_solomon.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/fit_solomon_classic.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/fit_solomon_glm.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/fit_solomon_ml.html</loc></url>
@@ -30,7 +36,8 @@
 <url><loc>https://juhalt.github.io/solomonR/reference/solomonR-package.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/solomonR.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/solomon_demo.html</loc></url>
-<url><loc>https://juhalt.github.io/solomonR/reference/spr2_ci.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/solomon_example.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/stouffer_solomon.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/validate_solomon.html</loc></url>
 </urlset>
 
