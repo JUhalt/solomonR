@@ -63,13 +63,13 @@ perform imputation, or provide sensitivity analyses for outcome
 missingness that depends on unobserved values.
 }
 \examples{
-data(solomon_demo)
+data(solomon_example)
 
 # Structural absence only: pretests are absent by design in Groups 3 and 4.
-with(solomon_demo, check_solomon_missing(y_post, treat, pretested, y_pre))
+with(solomon_example, check_solomon_missing(y_post, treat, pretested, y_pre))
 
 # Mixed: add a lost pretest and a missing posttest.
-d <- solomon_demo
+d <- solomon_example
 d$y_pre[which(d$pretested == 1)[1]] <- NA
 d$y_post[which(d$pretested == 0)[1]] <- NA
 with(d, check_solomon_missing(y_post, treat, pretested, y_pre))

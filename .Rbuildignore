@@ -11,3 +11,4 @@
 ^ROADMAP\.md$
 ^CITATION\.cff$
 ^vignettes/articles$
+^data-raw$

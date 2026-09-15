@@ -46,8 +46,27 @@ reference:
 
   - title: "Data"
     contents:
+      - solomon_example
       - solomon_demo
 
   - title: "Package"
     contents:
       - starts_with("solomonR")
+
+articles:
+  - title: "Start here"
+    navbar: ~
+    contents:
+      - getting-started
+
+  - title: "Analyses"
+    navbar: Analyses
+    contents:
+      - glm-solomon
+      - classic-solomon
+
+  - title: "Methods and evidence"
+    navbar: Methods and evidence
+    contents:
+      - solomon-methods
+      - articles/ml-validation

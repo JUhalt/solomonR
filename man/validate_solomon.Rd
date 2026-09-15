@@ -59,13 +59,13 @@ variability, and HC3 standard errors can be undefined for a cell with a
 single observation. Plan cell sizes with a power analysis.
 }
 \examples{
-data(solomon_demo)
+data(solomon_example)
 
 # A valid design.
-with(solomon_demo, validate_solomon(y_post, treat, pretested, y_pre))
+with(solomon_example, validate_solomon(y_post, treat, pretested, y_pre))
 
 # An empty cell makes the design invalid.
-no_group_3 <- solomon_demo[!(solomon_demo$pretested == 0 & solomon_demo$treat == 1), ]
+no_group_3 <- solomon_example[!(solomon_example$pretested == 0 & solomon_example$treat == 1), ]
 with(no_group_3, validate_solomon(y_post, treat, pretested, y_pre))
 }
 \references{

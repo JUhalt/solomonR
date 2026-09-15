@@ -125,11 +125,11 @@ Expanded method-positioning documentation was deferred to v0.3; see [#9](https:/
 **Goal:** Make solomonR a modern analysis toolkit rather than only
 an implementation of historical workflows.
 
-Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open in [#10](https://github.com/JUhalt/solomonR/issues/10).
+Already delivered in v0.2.0: `fit_solomon_ml()`. Simulation validation and a small-sample inference option are added in v0.3.0 ([#10](https://github.com/JUhalt/solomonR/issues/10), [#22](https://github.com/JUhalt/solomonR/issues/22)).
   - Solomon-specific maximum-likelihood regression
   - Based on van Engelenburg (1999)
   - Structural pretest missingness handled explicitly
-  - Existing known-result validation; broader simulation evidence is tracked separately.
+  - Known-result tests plus a pre-specified simulation study (84 scenarios, 2,000 replications each).
 
 - [x] Sensitization equivalence testing — [#4](https://github.com/JUhalt/solomonR/issues/4)
   - CI-based / TOST-style inference
@@ -157,8 +157,8 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
 - [x] Expand documentation distinguishing established Solomon methodology,
   contemporary recommendations, and solomonR-specific extensions — [#9](https://github.com/JUhalt/solomonR/issues/9).
 
-- [x] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10). Point estimates validated; Wald intervals too narrow below about 50 per cell.
-- Proposal, not yet committed: small-sample inference for `fit_solomon_ml()` — [#22](https://github.com/JUhalt/solomonR/issues/22).
+- [x] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10). Point estimates validated; default Wald intervals too narrow in small samples (extended for #22).
+- [x] Small-sample inference option for `fit_solomon_ml()`, with a warning below 40 participants per cell — [#22](https://github.com/JUhalt/solomonR/issues/22). Calibrated at every cell size studied.
 
 - [ ] Reconcile release documentation, licensing and distribution — [#12](https://github.com/JUhalt/solomonR/issues/12).
 
@@ -171,7 +171,8 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
 
 ### Documentation for the intended audience
 
-- [ ] Getting-started guide for graduate students and applied researchers, moved forward from v0.6.0 — [#17](https://github.com/JUhalt/solomonR/issues/17).
+- [x] Getting-started guide for graduate students and applied researchers, moved forward from v0.6.0 — [#17](https://github.com/JUhalt/solomonR/issues/17).
+- [x] Documented primary teaching data set `solomon_example`, with `solomon_demo` kept as a second example — [#21](https://github.com/JUhalt/solomonR/issues/21).
 
 ---
 

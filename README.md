@@ -35,7 +35,10 @@ workflow.
 
 `solomonR` is written for graduate students and applied researchers who
 need to analyze, interpret, and report a Solomon study. Each function’s
-help page cites the methodological sources it implements.
+help page cites the methodological sources it implements. New users
+should start with the article [Getting Started: Analyzing a Solomon
+Four-Group
+Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 
 > **Development status:** The stable `v0.2.0` release provides the core
 > Solomon analytical toolkit. Development version `0.2.0.9000` is
@@ -104,12 +107,13 @@ for version 1.0.0.
 
 ## A 60-second analysis
 
-The package includes a small example Solomon dataset:
+The package includes a simulated example study whose true effects are
+known (see `?solomon_example`):
 
 ``` r
-data(solomon_demo)
+data(solomon_example)
 
-head(solomon_demo)
+head(solomon_example)
 ```
 
 The principal modern observed-variable analysis fits one unified model
@@ -117,7 +121,7 @@ and estimates four Solomon-specific contrasts:
 
 ``` r
 fit <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_glm(
     y = y_post,
     treat = treat,
@@ -165,7 +169,7 @@ been taught.
 
 ``` r
 classic <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_classic(
     y_post,
     treat,
@@ -243,7 +247,7 @@ pretest observations**.
 
 ``` r
 ml <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_ml(
     y_post,
     treat,
@@ -262,6 +266,11 @@ The ML model estimates the same central Solomon quantities:
 - treatment effect among pretested participants; and
 - treatment effect among unpretested participants.
 
+By default it uses van Engelenburg’s large-sample Wald inference. With
+small groups, use `inference = "satterthwaite"`, a small-sample option
+with Welch-Satterthwaite degrees of freedom; `fit_solomon_ml()` warns
+when groups are small and no option has been chosen.
+
 ------------------------------------------------------------------------
 
 ## Structural equation models
@@ -273,7 +282,7 @@ The ML model estimates the same central Solomon quantities:
 
 ``` r
 sem_fit <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_sem(
     y_post,
     treat,
@@ -292,7 +301,7 @@ An ANCOVA-style SEM can also be fit within the two pretested groups:
 
 ``` r
 sem_ancova <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_sem(
     y_post,
     treat,
@@ -335,7 +344,7 @@ of stopping at the first.
 
 ``` r
 with(
-  solomon_demo,
+  solomon_example,
   validate_solomon(y_post, treat, pretested, y_pre)
 )
 ```
@@ -361,7 +370,7 @@ reasonable default for the unified GLM regardless of the results.
 
 ``` r
 checks <- with(
-  solomon_demo,
+  solomon_example,
   check_solomon_assumptions(
     y_post,
     treat,

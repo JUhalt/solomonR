@@ -87,13 +87,13 @@
 #' 24*(7), 993-1007.
 #' @seealso [validate_solomon()]
 #' @examples
-#' data(solomon_demo)
+#' data(solomon_example)
 #'
 #' # Structural absence only: pretests are absent by design in Groups 3 and 4.
-#' with(solomon_demo, check_solomon_missing(y_post, treat, pretested, y_pre))
+#' with(solomon_example, check_solomon_missing(y_post, treat, pretested, y_pre))
 #'
 #' # Mixed: add a lost pretest and a missing posttest.
-#' d <- solomon_demo
+#' d <- solomon_example
 #' d$y_pre[which(d$pretested == 1)[1]] <- NA
 #' d$y_post[which(d$pretested == 0)[1]] <- NA
 #' with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
@@ -292,13 +292,13 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL) {
 #' *Psychological Bulletin, 46*(2), 137-150.
 #' @seealso [check_solomon_missing()]
 #' @examples
-#' data(solomon_demo)
+#' data(solomon_example)
 #'
 #' # A valid design.
-#' with(solomon_demo, validate_solomon(y_post, treat, pretested, y_pre))
+#' with(solomon_example, validate_solomon(y_post, treat, pretested, y_pre))
 #'
 #' # An empty cell makes the design invalid.
-#' no_group_3 <- solomon_demo[!(solomon_demo$pretested == 0 & solomon_demo$treat == 1), ]
+#' no_group_3 <- solomon_example[!(solomon_example$pretested == 0 & solomon_example$treat == 1), ]
 #' with(no_group_3, validate_solomon(y_post, treat, pretested, y_pre))
 #' @export
 validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n = 2) {

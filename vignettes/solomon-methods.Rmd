@@ -220,9 +220,12 @@ descriptions rather than gates.
 - **Assumptions:** normal errors; a common pretest-posttest slope in the
   pretested groups; equal variances within each pretest condition.
 - **Limitations:** its point estimates coincide with separate regressions
-  in the two pretest conditions. Its Wald intervals use a normal
-  reference distribution and can be too narrow in small samples;
-  simulation validation is tracked in issue #10.
+  in the two pretest conditions. Its default Wald intervals use a normal
+  reference distribution and were too narrow with small groups in the
+  package's simulation validation. A small-sample option,
+  `inference = "satterthwaite"`, uses unbiased residual variances and
+  Welch-Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch, 1947);
+  the function warns when groups are small and no option has been chosen.
 - **Function:** `fit_solomon_ml()`.
 
 ## solomonR extensions
@@ -396,6 +399,9 @@ modeling. *Journal of Statistical Software, 48*(2), 1-36.
 Rubin, D. B. (1976). Inference and missing data. *Biometrika, 63*,
 581-592.
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*, 110-114.
+
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
 Experimental Education, 62*, 361-376.
@@ -427,6 +433,9 @@ Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
 measurement invariance literature: Suggestions, practices, and
 recommendations for organizational research. *Organizational Research
 Methods, 3*, 4-70.
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. *Biometrika, 34*, 28-35.
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. *Statistics in Medicine, 24*,

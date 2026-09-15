@@ -64,10 +64,10 @@ pretend that Groups 3 and 4 actually had baseline scores of zero.
 ```{r example-data}
 library(solomonR)
 
-data(solomon_demo)
+data(solomon_example)
 
 demo_preview <- head(
-  solomon_demo,
+  solomon_example,
   6
 )
 
@@ -94,7 +94,7 @@ default, is a sound starting point for continuous outcomes.
 
 ```{r}
 fit <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_glm(
     y = y_post,
     treat = treat,
@@ -312,8 +312,8 @@ decided that sensitization smaller than half a standard deviation
 equivalence_solomon(fit, bounds = 5)
 ```
 
-With 25 participants per group, the 90% confidence interval still
-extends beyond 5 points, so the result is inconclusive: these data can
+With 30 participants per group, the 90% confidence interval still
+extends beyond the bounds, so the result is inconclusive: these data can
 neither detect sensitization nor rule out sensitization of that size.
 Equivalence tests need adequate power of their own (Lakens, 2017), so
 equivalence bounds belong in study planning.
@@ -376,7 +376,7 @@ The package provides design-relevant diagnostics through
 
 ```{r}
 checks <- with(
-  solomon_demo,
+  solomon_example,
   check_solomon_assumptions(
     y_post,
     treat,
@@ -448,12 +448,13 @@ four-group design.
 
 ```{r}
 ml <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_ml(
     y_post,
     treat,
     pretested,
-    y_pre
+    y_pre,
+    inference = "satterthwaite"
   )
 )
 
@@ -467,13 +468,20 @@ rather than as ordinary missing baseline observations.
 The ML and GLM approaches target closely related Solomon effects but use
 different assumptions for uncertainty estimation.
 
+By default, `fit_solomon_ml()` uses van Engelenburg's large-sample Wald
+inference. In the package's simulation validation those intervals were
+too narrow with small groups, so the example above uses the small-sample
+option, `inference = "satterthwaite"`, which applies Welch-Satterthwaite
+degrees of freedom (Satterthwaite, 1946; Welch, 1947). The function warns
+when groups are small and `inference` has not been chosen.
+
 ## Historical analysis
 
 For teaching or reproducing the classical Tests A-I workflow, use:
 
 ```{r}
 classic <- with(
-  solomon_demo,
+  solomon_example,
   fit_solomon_classic(
     y_post,
     treat,
@@ -530,7 +538,7 @@ lines up their estimates of each Solomon contrast.
 
 ```{r glm-compare}
 with(
-  solomon_demo,
+  solomon_example,
   compare_solomon_methods(
     y_post,
     treat,
@@ -612,9 +620,15 @@ Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
 effects models. *Journal of Business & Economic Statistics, 36*, 672-683.
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*, 110-114.
+
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
 *Psychological Methods, 9*, 164-182.
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente.
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. *Biometrika, 34*, 28-35.
