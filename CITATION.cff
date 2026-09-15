@@ -1,11 +1,12 @@
 cff-version: 1.2.0
-message: "This citation describes the development source. For a released version, use citation(\"solomonR\") in that installation or the citation from its tag."
+message: "If you use solomonR, please cite it using the metadata below. For a different version, use citation(\"solomonR\") in that installation or the citation from its tag."
 title: "solomonR: Analyze Solomon Four-Group Designs"
 type: software
 authors:
   - family-names: Uhalt
     given-names: Joshua
-version: 0.2.0.9000
+version: 0.3.0
+date-released: "2026-09-15"
 repository-code: "https://github.com/JUhalt/solomonR"
 url: "https://juhalt.github.io/solomonR/"
 license: GPL-3.0-only
