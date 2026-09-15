@@ -45,7 +45,9 @@ Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 > summaries, equivalence testing for pretest sensitization, design and
 > missingness checks, method comparison, and documentation written for
 > graduate students and applied researchers. The API may continue to
-> evolve before version 1.0.
+> evolve before version 1.0. Development version `0.3.0.9000` is working
+> toward `v0.4.0`: validated power and sample-size planning, and
+> Solomon-specific figures.
 
 ------------------------------------------------------------------------
 
