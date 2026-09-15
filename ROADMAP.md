@@ -184,36 +184,40 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Simulation validation and a sma
 data collection begins.
 
 ### Visualization
-- [ ] `plot_solomon_design()`
+- [ ] `plot_solomon_design()` — [#25](https://github.com/JUhalt/solomonR/issues/25)
   - Solomon four-group design schematic
   - Optional cell N / means
 
-- [ ] `plot_sensitization()`
+- [ ] `plot_sensitization()` — [#26](https://github.com/JUhalt/solomonR/issues/26)
   - Treatment x Pretest interaction visualization
   - Direct graphical representation of sensitization
 
-- [ ] `plot_solomon_effects()`
+- [ ] `plot_solomon_effects()` — [#27](https://github.com/JUhalt/solomonR/issues/27)
   - Forest plot of ATE, simple treatment effects, and sensitization
 
-- [ ] `plot_solomon_change()`
+- [ ] `plot_solomon_change()` — [#28](https://github.com/JUhalt/solomonR/issues/28)
   - Pre/post trajectories for pretested groups
 
-- [ ] `plot_classic_flow()`
+- [ ] `plot_classic_flow()` — [#29](https://github.com/JUhalt/solomonR/issues/29)
   - Historical decision tree
   - Optionally highlight the path taken by a fitted dataset
 
-- [ ] `plot_power_solomon()`
+- [ ] `plot_power_solomon()` — [#30](https://github.com/JUhalt/solomonR/issues/30)
   - Power curves / surfaces across N, effect size, rho, and sensitization
 
 ### Design planning
 - [ ] Rebuild and validate `power_solomon()` — [#18](https://github.com/JUhalt/solomonR/issues/18)
-- [ ] Correct data-generating mechanism
-- [ ] Validate Type I error and power
-- [ ] `plan_solomon()`
-  - Required sample size
-  - Four-cell allocation
+  - Correct data-generating mechanism
+  - Validate Type I error and power against analytic benchmarks, with Monte Carlo standard errors
+  - Validation protocol posted on the issue before implementation
+
+- [ ] `plan_solomon()` — [#24](https://github.com/JUhalt/solomonR/issues/24)
+  - Required sample size for a target power
+  - Four-cell allocation, including unequal allocation
   - Power for multiple Solomon estimands
-- [ ] Explore unequal allocation strategies
+
+### Evidence and reporting
+- [ ] Reproducible simulation benchmark reports with Monte Carlo uncertainty — [#11](https://github.com/JUhalt/solomonR/issues/11)
 
 ---
 
