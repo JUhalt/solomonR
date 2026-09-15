@@ -78,7 +78,7 @@ test_that("equivalence tests use the fitted model's reference distribution", {
   expect_output(print(glm_eq), "Solomon equivalence test")
   expect_output(print(glm_eq), "90% CI")
 
-  ml_fit <- with(solomon_demo, fit_solomon_ml(y_post, treat, pretested, y_pre))
+  ml_fit <- with(solomon_demo, fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
   ml_eq <- equivalence_solomon(ml_fit, bounds = 2, contrast = "ATE (avg over pretest)")
 
   expect_true(is.infinite(ml_eq$df))

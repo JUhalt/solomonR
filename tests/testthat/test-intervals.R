@@ -206,7 +206,7 @@ test_that("ML intervals use a normal reference distribution", {
 
   data(solomon_demo, package = "solomonR")
 
-  ml <- with(solomon_demo, fit_solomon_ml(y_post, treat, pretested, y_pre))
+  ml <- with(solomon_demo, fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
 
   expect_equal(
     ml$effects$conf.low,

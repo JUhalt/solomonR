@@ -23,8 +23,10 @@
 #' @section Inference:
 #' Each one-sided test uses the estimate, standard error, and reference
 #' distribution of the fitted model: t with the model's degrees of freedom for
-#' [fit_solomon_glm()] (Satterthwaite degrees of freedom with CR2), and the
-#' normal distribution for [fit_solomon_ml()]. The equivalence p-value is the
+#' [fit_solomon_glm()] (Satterthwaite degrees of freedom with CR2); for
+#' [fit_solomon_ml()], the normal distribution with its default Wald inference
+#' or t with Welch-Satterthwaite degrees of freedom with
+#' `inference = "satterthwaite"`. The equivalence p-value is the
 #' larger of the two one-sided p-values, and the matching interval has
 #' confidence level 1 - 2 `alpha` (90\% when `alpha = 0.05`; Lakens, 2017).
 #' The conventional two-sided test against zero is reported alongside, with
@@ -77,12 +79,13 @@
 #' bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics,
 #' 15*(6), 657-680.
 #' @examples
-#' data(solomon_demo)
-#' fit <- with(solomon_demo, fit_solomon_glm(y_post, treat, pretested, y_pre))
+#' data(solomon_example)
+#' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 #'
-#' # Illustrative bounds only. In a real study, justify the smallest effect
-#' # size of interest and fix the bounds before examining the data.
-#' equivalence_solomon(fit, bounds = 1)
+#' # Illustrative bounds only: half a standard deviation (5 points) on this
+#' # test. In a real study, justify the smallest effect size of interest and
+#' # fix the bounds before examining the data.
+#' equivalence_solomon(fit, bounds = 5)
 #' @export
 equivalence_solomon <- function(
     object,

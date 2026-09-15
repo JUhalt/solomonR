@@ -11,7 +11,8 @@ fit_solomon_ml(
   y_pre,
   weights = c("equal"),
   control = list(),
-  conf_level = 0.95
+  conf_level = 0.95,
+  inference = c("wald", "satterthwaite")
 )
 }
 \arguments{
@@ -30,7 +31,12 @@ pretested and unpretested treatment effects.}
 
 \item{control}{Optional list passed to \code{stats::optim()}.}
 
-\item{conf_level}{Confidence level for Wald intervals. Default is 0.95.}
+\item{conf_level}{Confidence level for intervals. Default is 0.95.}
+
+\item{inference}{How standard errors, tests, and intervals are computed:
+\code{"wald"} (default) for van Engelenburg's (1999) large-sample Wald
+inference, or \code{"satterthwaite"} for the small-sample option. The point
+estimates are the same. See the Inference options section.}
 }
 \value{
 An object of class \code{solomon_ml}.
@@ -46,26 +52,53 @@ The model estimates the treatment effect, pretest effect,
 Treatment x Pretest interaction, pretest-posttest slope, and separate
 residual standard deviations for pretested and unpretested participants.
 }
-\section{Standard errors and intervals}{
+\section{Inference options}{
 
-Standard errors come from the observed information matrix. Tests and Wald
-confidence intervals use a normal reference distribution, the usual
-large-sample basis for maximum-likelihood inference. The point estimates
-coincide with separate regressions in the pretested and unpretested
-groups.
+The point estimates are maximum-likelihood estimates, which coincide with
+separate regressions in the pretested and unpretested groups.
+\itemize{
+\item \code{inference = "wald"} (default) follows van Engelenburg (1999): standard
+errors come from the observed information matrix, and tests and
+intervals use a normal reference distribution, the usual large-sample
+basis for maximum-likelihood inference.
+\item \code{inference = "satterthwaite"} is a small-sample option. Standard errors
+use unbiased residual variances within each pretest condition. Contrasts
+within one condition use t tests with that condition's residual degrees
+of freedom, and contrasts that combine the conditions (the ATE and
+Pretest x Treatment) use Welch-Satterthwaite degrees of freedom
+(Satterthwaite, 1946; Welch, 1947).
+}
 
-In the package's pre-specified simulation validation (issue #10; 60
-scenarios with 2,000 replications each), the point estimates were unbiased
-but the Wald intervals were too narrow in small samples: mean coverage of
-nominal 95\% intervals was 0.89 with 6 participants per cell, 0.92 with 10,
-and 0.94 with 20, and the Pretest x Treatment test rejected a true null
-9.8\% of the time with 6 per cell. Coverage was close to nominal with 50 or
-more participants per cell. For smaller studies, prefer
-\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. The full report is at
-\url{https://juhalt.github.io/solomonR/articles/ml-validation.html}.
+In the package's simulation validation (issues #10 and #22; 84 scenarios
+with 2,000 replications each, reported in the article "Validating
+fit_solomon_ml()" on the package website), both options recovered the
+Solomon contrasts without bias. Wald intervals were too narrow in small
+samples: mean coverage of nominal 95\% intervals was 0.893 with 6
+participants per cell, 0.920 with 10, 0.936 with 20, 0.941 with 30, and
+0.948 with 100, and the Pretest x Treatment test rejected a true null
+hypothesis in 9.9\% of samples with 6 per cell and 5.9\% with 30. The
+small-sample option had mean coverage of 0.949 to 0.950 and Type I error of
+0.050 to 0.053 at every cell size studied, from 6 to 100 per cell.
+
+When the smallest cell has fewer than 40 participants and \code{inference} is
+not supplied, \code{fit_solomon_ml()} issues a warning of class
+\code{solomonR_small_sample_warning} that suggests the small-sample option.
+Supplying \code{inference = "wald"} explicitly keeps the default without the
+warning. The threshold follows a rule set before the validation results
+were examined: 40 is the smallest cell size at which Wald inference had
+mean coverage of at least 0.940 and Type I error of at most 0.060, with
+equal and unequal residual variances, at that size and every larger size
+studied.
 }
 
 \references{
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. \emph{Biometrics Bulletin, 2}(6), 110-114.
+
 van Engelenburg, G. (1999). Statistical analysis for the Solomon
 four-group design. University of Twente Research Report 99-06.
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1/2),
+28-35.
 }

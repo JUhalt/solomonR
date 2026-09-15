@@ -84,11 +84,12 @@ Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
 that refinement is under evaluation. For non-identity links, the contrasts
 are on the link scale.
 
-In the package's simulation validation (issue #10), HC3 intervals for the
-Solomon contrasts were conservative with 10 or fewer participants per cell
-(mean coverage 0.96 for nominal 95\% intervals, and a Type I error of 0.03
-for the Pretest x Treatment test with 6 per cell) and close to nominal with
-20 or more.
+In the package's simulation validation (issues #10 and #22), HC3 intervals
+for the Solomon contrasts were conservative with 10 or fewer participants
+per cell (mean coverage of nominal 95\% intervals was 0.961 with 6 per cell
+and 0.958 with 10, and the Pretest x Treatment test had a Type I error of
+0.034 with 6 per cell) and close to nominal with 20 or more (mean coverage
+0.951 to 0.954).
 
 Confidence intervals for the Wald partial R-squared use the noncentral F
 method (Steiger, 2004) and are reported only for conventional Gaussian

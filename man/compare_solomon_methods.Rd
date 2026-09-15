@@ -24,7 +24,9 @@ compare_solomon_methods(
 analyses, and the SEM ANCOVA require them.}
 
 \item{methods}{Analyses to include: any of \code{"glm"} (unified GLM with HC3),
-\code{"ml"}, \code{"classic"}, and \code{"sem"} (requires the lavaan package).}
+\code{"ml"} (maximum likelihood, reported with both its default Wald inference
+and the small-sample option), \code{"classic"}, and \code{"sem"} (requires the
+lavaan package).}
 
 \item{conf_level}{Confidence level for intervals. Default is 0.95.}
 }
@@ -80,9 +82,9 @@ estimators can target different noncollapsible quantities (Daniel et al.,
 }
 
 \examples{
-data(solomon_demo)
+data(solomon_example)
 with(
-  solomon_demo,
+  solomon_example,
   compare_solomon_methods(
     y_post, treat, pretested, y_pre,
     methods = c("glm", "ml", "classic")

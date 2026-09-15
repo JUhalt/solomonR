@@ -1,3 +1,26 @@
+# Smallest cell size at which fit_solomon_ml() Wald inference is not flagged.
+# Set from the package's simulation validation (issues #10 and #22) by the
+# threshold rule posted on #22 before the results were examined.
+.solomon_ml_small_cell <- 40L
+
+.warn_ml_small_sample <- function(min_cell) {
+  warning(structure(
+    class = c("solomonR_small_sample_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "The smallest Solomon cell has ", min_cell, " participants. In the ",
+        "package's simulation validation, maximum-likelihood Wald intervals were ",
+        "too narrow with fewer than ", .solomon_ml_small_cell, " participants per ",
+        "cell. Consider inference = \"satterthwaite\", or supply ",
+        "inference = \"wald\" to keep the default without this warning. ",
+        "See ?fit_solomon_ml."
+      ),
+      call = NULL
+    )
+  ))
+}
+
+
 #' Full-information ML analysis for a Solomon Four-Group Design
 #'
 #' Fits the maximum-likelihood regression model described by van Engelenburg
@@ -18,31 +41,60 @@
 #'   pretest conditions. Currently \code{"equal"} gives equal weight to the
 #'   pretested and unpretested treatment effects.
 #' @param control Optional list passed to \code{stats::optim()}.
+#' @param conf_level Confidence level for intervals. Default is 0.95.
+#' @param inference How standard errors, tests, and intervals are computed:
+#'   `"wald"` (default) for van Engelenburg's (1999) large-sample Wald
+#'   inference, or `"satterthwaite"` for the small-sample option. The point
+#'   estimates are the same. See the Inference options section.
+#'
+#' @section Inference options:
+#' The point estimates are maximum-likelihood estimates, which coincide with
+#' separate regressions in the pretested and unpretested groups.
+#'
+#' - `inference = "wald"` (default) follows van Engelenburg (1999): standard
+#'   errors come from the observed information matrix, and tests and
+#'   intervals use a normal reference distribution, the usual large-sample
+#'   basis for maximum-likelihood inference.
+#' - `inference = "satterthwaite"` is a small-sample option. Standard errors
+#'   use unbiased residual variances within each pretest condition. Contrasts
+#'   within one condition use t tests with that condition's residual degrees
+#'   of freedom, and contrasts that combine the conditions (the ATE and
+#'   Pretest x Treatment) use Welch-Satterthwaite degrees of freedom
+#'   (Satterthwaite, 1946; Welch, 1947).
+#'
+#' In the package's simulation validation (issues #10 and #22; 84 scenarios
+#' with 2,000 replications each, reported in the article "Validating
+#' fit_solomon_ml()" on the package website), both options recovered the
+#' Solomon contrasts without bias. Wald intervals were too narrow in small
+#' samples: mean coverage of nominal 95% intervals was 0.893 with 6
+#' participants per cell, 0.920 with 10, 0.936 with 20, 0.941 with 30, and
+#' 0.948 with 100, and the Pretest x Treatment test rejected a true null
+#' hypothesis in 9.9% of samples with 6 per cell and 5.9% with 30. The
+#' small-sample option had mean coverage of 0.949 to 0.950 and Type I error of
+#' 0.050 to 0.053 at every cell size studied, from 6 to 100 per cell.
+#'
+#' When the smallest cell has fewer than 40 participants and `inference` is
+#' not supplied, `fit_solomon_ml()` issues a warning of class
+#' `solomonR_small_sample_warning` that suggests the small-sample option.
+#' Supplying `inference = "wald"` explicitly keeps the default without the
+#' warning. The threshold follows a rule set before the validation results
+#' were examined: 40 is the smallest cell size at which Wald inference had
+#' mean coverage of at least 0.940 and Type I error of at most 0.060, with
+#' equal and unequal residual variances, at that size and every larger size
+#' studied.
 #'
 #' @return An object of class \code{solomon_ml}.
 #'
-#' @param conf_level Confidence level for Wald intervals. Default is 0.95.
-#'
-#' @section Standard errors and intervals:
-#' Standard errors come from the observed information matrix. Tests and Wald
-#' confidence intervals use a normal reference distribution, the usual
-#' large-sample basis for maximum-likelihood inference. The point estimates
-#' coincide with separate regressions in the pretested and unpretested
-#' groups.
-#'
-#' In the package's pre-specified simulation validation (issue #10; 60
-#' scenarios with 2,000 replications each), the point estimates were unbiased
-#' but the Wald intervals were too narrow in small samples: mean coverage of
-#' nominal 95% intervals was 0.89 with 6 participants per cell, 0.92 with 10,
-#' and 0.94 with 20, and the Pretest x Treatment test rejected a true null
-#' 9.8% of the time with 6 per cell. Coverage was close to nominal with 50 or
-#' more participants per cell. For smaller studies, prefer
-#' [fit_solomon_glm()]. The full report is at
-#' <https://juhalt.github.io/solomonR/articles/ml-validation.html>.
-#'
 #' @references
+#' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+#' variance components. *Biometrics Bulletin, 2*(6), 110-114.
+#'
 #' van Engelenburg, G. (1999). Statistical analysis for the Solomon
 #' four-group design. University of Twente Research Report 99-06.
+#'
+#' Welch, B. L. (1947). The generalization of "Student's" problem when several
+#' different population variances are involved. *Biometrika, 34*(1/2),
+#' 28-35.
 #'
 #' @export
 fit_solomon_ml <- function(
@@ -52,10 +104,13 @@ fit_solomon_ml <- function(
     y_pre,
     weights = c("equal"),
     control = list(),
-    conf_level = 0.95
+    conf_level = 0.95,
+    inference = c("wald", "satterthwaite")
 ) {
 
+  inference_supplied <- !missing(inference)
   weights <- match.arg(weights)
+  inference <- match.arg(inference)
   .check_conf_level(conf_level)
 
   if (length(y_post) != length(treat) ||
@@ -113,6 +168,13 @@ fit_solomon_ml <- function(
     stop("Both treatment conditions must occur among unpretested participants.")
   }
 
+  cell_sizes <- table(
+    factor(df$pretested, levels = c(1L, 0L)),
+    factor(df$treat, levels = c(1L, 0L))
+  )
+  min_cell_n <- as.integer(min(cell_sizes))
+  small_sample <- min_cell_n < .solomon_ml_small_cell
+
   # Center X over all participants for whom the pretest was administered,
   # following van Engelenburg's deviation-score formulation.
   x_bar <- mean(df$y_pre[idx_pre])
@@ -121,7 +183,8 @@ fit_solomon_ml <- function(
   df$x_c[idx_pre] <- df$y_pre[idx_pre] - x_bar
 
   # ----------------------------------------------------------
-  # Starting values
+  # Starting values (and the separate regressions used by the
+  # small-sample option)
   # ----------------------------------------------------------
 
   un_fit <- stats::lm(
@@ -259,18 +322,101 @@ fit_solomon_ml <- function(
     drop = FALSE
   ]
 
-  se <- sqrt(diag(V))
-  z <- b / se
-  p <- 2 * stats::pnorm(-abs(z))
+  Z <- function() {
+    stats::setNames(
+      numeric(length(b)),
+      names(b)
+    )
+  }
 
-  coef_ci <- .wald_ci(unname(b), unname(se), Inf, conf_level)
+  # ----------------------------------------------------------
+  # Variance and degrees of freedom for a linear combination
+  # of the ML parameters
+  # ----------------------------------------------------------
+
+  if (inference == "wald") {
+
+    combination_variance <- function(L) {
+      as.numeric(t(L) %*% V %*% L)
+    }
+
+    combination_df <- function(L) {
+      Inf
+    }
+
+  } else {
+
+    V_u <- stats::vcov(un_fit)
+    V_p <- stats::vcov(pre_fit)
+    df_u <- stats::df.residual(un_fit)
+    df_p <- stats::df.residual(pre_fit)
+
+    # Each ML parameter (rows: a, bX, bT, bP, bTP) as a combination of the
+    # coefficients of the separate unpretested and pretested regressions.
+    M_u <- matrix(
+      c(1, 0,
+        0, 0,
+        0, 1,
+        -1, 0,
+        0, -1),
+      nrow = 5, byrow = TRUE,
+      dimnames = list(names(b), colnames(V_u))
+    )
+
+    M_p <- matrix(
+      c(0, 0, 0,
+        0, 0, 1,
+        0, 0, 0,
+        1, 0, 0,
+        0, 1, 0),
+      nrow = 5, byrow = TRUE,
+      dimnames = list(names(b), colnames(V_p))
+    )
+
+    components <- function(L) {
+      c_u <- as.numeric(L %*% M_u)
+      c_p <- as.numeric(L %*% M_p)
+      c(
+        unpretested = as.numeric(t(c_u) %*% V_u %*% c_u),
+        pretested = as.numeric(t(c_p) %*% V_p %*% c_p)
+      )
+    }
+
+    combination_variance <- function(L) {
+      sum(components(L))
+    }
+
+    # Welch-Satterthwaite degrees of freedom; reduces to the residual
+    # degrees of freedom of one regression when the other contributes nothing.
+    combination_df <- function(L) {
+      v <- components(L)
+      denominator <- sum(
+        if (v[["unpretested"]] > 0) v[["unpretested"]]^2 / df_u else 0,
+        if (v[["pretested"]] > 0) v[["pretested"]]^2 / df_p else 0
+      )
+      sum(v)^2 / denominator
+    }
+  }
+
+  unit <- function(name) {
+    L <- Z()
+    L[name] <- 1
+    L
+  }
+
+  coef_se <- vapply(names(b), function(name) sqrt(combination_variance(unit(name))), numeric(1))
+  coef_df <- vapply(names(b), function(name) combination_df(unit(name)), numeric(1))
+  coef_statistic <- b / coef_se
+  coef_p <- 2 * stats::pt(-abs(coef_statistic), df = coef_df)
+  coef_ci <- .wald_ci(unname(b), unname(coef_se), unname(coef_df), conf_level)
 
   coefficients <- data.frame(
     term = names(b),
     estimate = unname(b),
-    std.error = unname(se),
-    statistic = unname(z),
-    p.value = unname(p),
+    std.error = unname(coef_se),
+    statistic = unname(coef_statistic),
+    p.value = unname(coef_p),
+    df = unname(coef_df),
     conf.low = unname(coef_ci[, "conf.low"]),
     conf.high = unname(coef_ci[, "conf.high"]),
     row.names = NULL
@@ -285,16 +431,11 @@ fit_solomon_ml <- function(
     L <- L[names(b)]
 
     estimate <- sum(L * b)
-
-    variance <- as.numeric(
-      t(L) %*% V %*% L
-    )
-
-    std.error <- sqrt(variance)
+    std.error <- sqrt(combination_variance(L))
+    df <- combination_df(L)
     statistic <- estimate / std.error
-    p.value <- 2 * stats::pnorm(-abs(statistic))
-
-    ci <- .wald_ci(estimate, std.error, Inf, conf_level)
+    p.value <- 2 * stats::pt(-abs(statistic), df = df)
+    ci <- .wald_ci(estimate, std.error, df, conf_level)
 
     data.frame(
       contrast = label,
@@ -302,16 +443,10 @@ fit_solomon_ml <- function(
       std.error = std.error,
       statistic = statistic,
       p.value = p.value,
+      df = df,
       conf.low = unname(ci[, "conf.low"]),
       conf.high = unname(ci[, "conf.high"]),
       row.names = NULL
-    )
-  }
-
-  Z <- function() {
-    stats::setNames(
-      numeric(length(b)),
-      names(b)
     )
   }
 
@@ -355,7 +490,7 @@ fit_solomon_ml <- function(
   sigma_R <- exp(est_full["log_sigma_R"])
   sigma_E <- exp(est_full["log_sigma_E"])
 
-  structure(
+  out <- structure(
     list(
       coefficients = coefficients,
       effects = effects,
@@ -371,8 +506,17 @@ fit_solomon_ml <- function(
       data = df,
       call = match.call(),
       conf_level = conf_level,
+      inference = inference,
+      min_cell_n = min_cell_n,
+      small_sample = small_sample,
       method = "van Engelenburg (1999) full-information ML"
     ),
     class = "solomon_ml"
   )
+
+  if (inference == "wald" && small_sample && !inference_supplied) {
+    .warn_ml_small_sample(min_cell_n)
+  }
+
+  out
 }

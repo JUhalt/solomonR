@@ -42,7 +42,9 @@
 #' @param y_pre Optional numeric pretest scores. Maximum likelihood, the classic
 #'   analyses, and the SEM ANCOVA require them.
 #' @param methods Analyses to include: any of `"glm"` (unified GLM with HC3),
-#'   `"ml"`, `"classic"`, and `"sem"` (requires the lavaan package).
+#'   `"ml"` (maximum likelihood, reported with both its default Wald inference
+#'   and the small-sample option), `"classic"`, and `"sem"` (requires the
+#'   lavaan package).
 #' @param conf_level Confidence level for intervals. Default is 0.95.
 #' @return An object of class `solomon_comparison` with `results` (one row per
 #'   method and contrast, with the adjustment, variance assumption, reference
@@ -70,9 +72,9 @@
 #' @seealso [fit_solomon_glm()], [fit_solomon_ml()], [fit_solomon_classic()],
 #'   [fit_solomon_sem()]
 #' @examples
-#' data(solomon_demo)
+#' data(solomon_example)
 #' with(
-#'   solomon_demo,
+#'   solomon_example,
 #'   compare_solomon_methods(
 #'     y_post, treat, pretested, y_pre,
 #'     methods = c("glm", "ml", "classic")
@@ -159,17 +161,33 @@ compare_solomon_methods <- function(
     if (is.null(y_pre)) {
       skipped$ml <- "Maximum likelihood requires pretest scores (`y_pre`)."
     } else {
-      ml <- try_fit(fit_solomon_ml(y_post, treat, pretested, y_pre, conf_level = conf_level))
+      ml <- try_fit(
+        fit_solomon_ml(y_post, treat, pretested, y_pre, conf_level = conf_level,
+                       inference = "wald")
+      )
       if (inherits(ml, "error")) {
         skipped$ml <- conditionMessage(ml)
       } else {
         rows$ml <- make_rows(
           "Maximum likelihood",
           pretest_adjustment,
-          "separate residual variances by pretest condition",
+          "separate residual variances by pretest condition; Wald inference (van Engelenburg, 1999)",
           ml$effects$contrast,
           ml$effects
         )
+        ml_small <- try_fit(
+          fit_solomon_ml(y_post, treat, pretested, y_pre, conf_level = conf_level,
+                         inference = "satterthwaite")
+        )
+        if (!inherits(ml_small, "error")) {
+          rows$ml_small <- make_rows(
+            "Maximum likelihood (small-sample)",
+            pretest_adjustment,
+            "separate residual variances by pretest condition; Welch-Satterthwaite t",
+            ml_small$effects$contrast,
+            ml_small$effects
+          )
+        }
       }
     }
   }
