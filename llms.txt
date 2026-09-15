@@ -25,11 +25,12 @@ should start with the article [Getting Started: Analyzing a Solomon
 Four-Group
 Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 
-> **Development status:** The stable `v0.2.0` release provides the core
-> Solomon analytical toolkit. Development version `0.2.0.9000` is
-> targeting `v0.3.0`, which focuses on correct small-sample inference,
-> input safeguards, and documentation for graduate students and applied
-> researchers. The API may continue to evolve before version 1.0.
+> **Release status:** `v0.3.0` is the current stable release. It adds
+> small-sample inference corrections, confidence intervals across effect
+> summaries, equivalence testing for pretest sensitization, design and
+> missingness checks, method comparison, and documentation written for
+> graduate students and applied researchers. The API may continue to
+> evolve before version 1.0.
 
 ------------------------------------------------------------------------
 
@@ -503,8 +504,8 @@ history that produced it.
 
 Development plans are maintained in
 [`ROADMAP.md`](https://juhalt.github.io/solomonR/ROADMAP.md), with
-committed v0.3 work tracked in the [v0.3.0
-milestone](https://github.com/JUhalt/solomonR/milestone/1) and [GitHub
+committed v0.4 work tracked in the [v0.4.0
+milestone](https://github.com/JUhalt/solomonR/milestone/2) and [GitHub
 issues](https://github.com/JUhalt/solomonR/issues).
 
 Major planned additions include:
@@ -582,17 +583,16 @@ variances. *British Journal of Mathematical and Statistical Psychology,
 
 ## License
 
-The current development source is licensed under the **GNU General
-Public License, version 3 only** (SPDX: `GPL-3.0-only`). See
+solomonR `v0.3.0` and later is licensed under the **GNU General Public
+License, version 3 only** (SPDX: `GPL-3.0-only`). See
 [LICENSE.md](https://juhalt.github.io/solomonR/LICENSE.md) for the full
 terms and
 [inst/NOTICE](https://github.com/JUhalt/solomonR/blob/master/inst/NOTICE)
 for copyright and retained historical notices.
 
-The published v0.2.0 release remains under its original MIT license. The
-stable R-universe installation above continues to install that release
-until a new release is published; changing the development license does
-not relicense previously published versions.
+The published `v0.2.0` release remains under its original MIT license.
+Releasing later versions under GPL-3.0-only does not relicense
+previously published versions.
 
 # Package index
 

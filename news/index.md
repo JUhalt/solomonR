@@ -1,6 +1,6 @@
 # Changelog
 
-## solomonR 0.2.0.9000
+## solomonR 0.3.0
 
 ### Inference corrections
 
@@ -214,9 +214,9 @@
   and added v0.4.0, v0.5.0, v0.6.0, and v1.0.0 milestones that mirror
   the roadmap.
 
-- Changed current development licensing to GNU GPL version 3 only
-  (GPL-3). Previously published releases retain their original MIT terms
-  and notices.
+- solomonR 0.3.0 and later is licensed under GNU GPL version 3 only
+  (GPL-3). Version 0.2.0 and earlier retain their original MIT terms and
+  notices.
 
 - Aligned development citation metadata, license pages, and
   roadmap/issue links.
