@@ -36,6 +36,18 @@
   & Finch, 2001; Kelley, 2007) instead of a normal approximation.
 * Printed output shows each interval with its confidence level.
 
+## Maximum-likelihood validation (#10)
+
+* A pre-specified simulation study (60 scenarios, 2,000 replications each;
+  Morris, White & Crowther, 2019) validated estimand recovery by
+  `fit_solomon_ml()` but found its Wald intervals too narrow with 20 or fewer
+  participants per cell (mean coverage 0.89 at 6 per cell; sensitization Type
+  I error 0.098). The unified GLM with HC3 was conservative at 10 or fewer per
+  cell and close to nominal from 20. Results, script, and scenario definitions
+  are in the new article "Validating fit_solomon_ml()", and the help pages
+  report the findings. A small-sample option for `fit_solomon_ml()` is
+  proposed in #22.
+
 ## Method guide (#9)
 
 * New article `vignette("solomon-methods")` labels each analysis as a

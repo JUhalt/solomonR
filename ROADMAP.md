@@ -157,7 +157,8 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Broader validation remains open
 - [x] Expand documentation distinguishing established Solomon methodology,
   contemporary recommendations, and solomonR-specific extensions — [#9](https://github.com/JUhalt/solomonR/issues/9).
 
-- [ ] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10).
+- [x] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10). Point estimates validated; Wald intervals too narrow below about 50 per cell.
+- Proposal, not yet committed: small-sample inference for `fit_solomon_ml()` — [#22](https://github.com/JUhalt/solomonR/issues/22).
 
 - [ ] Reconcile release documentation, licensing and distribution — [#12](https://github.com/JUhalt/solomonR/issues/12).
 

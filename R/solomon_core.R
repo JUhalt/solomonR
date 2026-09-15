@@ -126,6 +126,12 @@ stouffer_solomon <- function(p) {
 #' that refinement is under evaluation. For non-identity links, the contrasts
 #' are on the link scale.
 #'
+#' In the package's simulation validation (issue #10), HC3 intervals for the
+#' Solomon contrasts were conservative with 10 or fewer participants per cell
+#' (mean coverage 0.96 for nominal 95% intervals, and a Type I error of 0.03
+#' for the Pretest x Treatment test with 6 per cell) and close to nominal with
+#' 20 or more.
+#'
 #' Confidence intervals for the Wald partial R-squared use the noncentral F
 #' method (Steiger, 2004) and are reported only for conventional Gaussian
 #' fits; no corresponding interval is available with robust covariance.

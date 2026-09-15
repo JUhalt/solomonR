@@ -1,0 +1,262 @@
+---
+title: "Validating fit_solomon_ml(): A Simulation Study"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE,
+                      fig.width = 8, fig.height = 5)
+library(ggplot2)
+
+performance <- utils::read.csv("ml-validation/performance.csv")
+run <- utils::read.csv("ml-validation/run-information.csv")
+
+contrast_levels <- c(
+  "ATE (avg over pretest)",
+  "Pretest x Treatment",
+  "Treatment | pretested",
+  "Treatment | unpretested"
+)
+method_levels <- c(
+  "ML (Wald z)",
+  "GLM HC3 (t)",
+  "Separate OLS, Welch-Satterthwaite (exploratory)"
+)
+
+performance$contrast <- factor(performance$contrast, contrast_levels)
+performance$method <- factor(performance$method, method_levels)
+
+# Tolerances declared in the protocol before any results were examined.
+performance$bias_ok <- abs(performance$bias) <= 2 * performance$mcse_bias
+performance$coverage_ok <- performance$coverage >= 0.94 & performance$coverage <= 0.96
+performance$se_ok <- abs(performance$relative_se_error) <= 5
+performance$type1_ok <- with(
+  performance,
+  ifelse(contrast == "Pretest x Treatment" & sensitization == 0,
+         rejection >= 0.04 & rejection <= 0.06, TRUE)
+)
+performance$failures_ok <- performance$n_failed == 0
+performance$all_ok <- with(
+  performance,
+  bias_ok & coverage_ok & se_ok & type1_ok & failures_ok
+)
+
+wide_by_cell_size <- function(data, value, fmt) {
+  data <- data[, c("method", "n_cell", value)]
+  wide <- reshape(data, idvar = "method", timevar = "n_cell", direction = "wide")
+  wide <- wide[order(wide$method), ]
+  cells <- sort(unique(data$n_cell))
+  out <- data.frame(Method = as.character(wide$method), check.names = FALSE)
+  for (n in cells) {
+    out[[paste("n =", n)]] <- fmt(wide[[paste(value, n, sep = ".")]])
+  }
+  out
+}
+```
+
+This article reports the simulation validation of `fit_solomon_ml()`
+requested in [issue #10](https://github.com/JUhalt/solomonR/issues/10). The
+aims, data-generating mechanisms, estimands, methods, performance measures,
+and tolerances were posted to that issue before any results were examined,
+following the ADEMP structure of Morris, White and Crowther (2019).
+
+## Design
+
+**Aims.** Check whether `fit_solomon_ml()` recovers the four Solomon
+contrasts, whether its standard errors are calibrated, and whether its 95%
+Wald intervals reach nominal coverage. It is compared with the unified GLM
+using HC3 standard errors and t reference distributions, and with an
+exploratory small-sample counterpart: separate least-squares fits in each
+pretest condition, with Welch-Satterthwaite degrees of freedom for contrasts
+that combine them (Satterthwaite, 1946; Welch, 1947).
+
+**Data-generating mechanisms.** A full factorial of 60 scenarios crossing
+participants per cell (6, 10, 20, 50, 100), sensitization (0, 0.3),
+pretest-posttest correlation (0, 0.5, 0.8), and the residual standard
+deviation of treated relative to control participants (1, 1.5). Every
+participant has a latent baseline that only pretested participants observe,
+so structural pretest absence is present in every scenario. The treatment
+effect is 0.5 among unpretested participants and 0.5 plus the sensitization
+among pretested participants.
+
+**Performance measures.** Bias, empirical and model-based standard errors,
+coverage of 95% intervals, the rejection rate at alpha = .05, and fit
+failures, each with its Monte Carlo standard error (MCSE), from
+`r format(run$nsim, big.mark = ",")` replications per scenario.
+
+**Tolerances.** Bias within 2 MCSE of zero; coverage between 0.940 and
+0.960; model standard errors within 5% of the empirical standard error; Type
+I error for the sensitization test between 0.040 and 0.060 when there is no
+sensitization; and no fit failures.
+
+## Fit failures
+
+```{r failures}
+failures <- aggregate(
+  n_failed ~ method,
+  data = performance[performance$contrast == contrast_levels[1], ],
+  FUN = sum
+)
+names(failures) <- c("Method", "Failed fits across all scenarios")
+knitr::kable(failures)
+```
+
+## Coverage
+
+```{r coverage-plot, fig.height = 6}
+coverage <- aggregate(
+  coverage ~ method + contrast + n_cell + sd_ratio,
+  data = performance,
+  FUN = mean
+)
+coverage$sd_ratio <- factor(paste("SD ratio", coverage$sd_ratio))
+
+ggplot(coverage, aes(n_cell, coverage, colour = method)) +
+  annotate("rect", xmin = 0, xmax = Inf, ymin = 0.94, ymax = 0.96, alpha = 0.15) +
+  geom_hline(yintercept = 0.95, linetype = "dashed") +
+  geom_line() +
+  geom_point() +
+  scale_x_log10(breaks = c(6, 10, 20, 50, 100)) +
+  facet_grid(sd_ratio ~ contrast, labeller = label_wrap_gen(width = 18)) +
+  labs(x = "Participants per cell (log scale)",
+       y = "Coverage of 95% intervals", colour = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom")
+```
+
+Coverage is averaged over the correlation and sensitization conditions; the
+shaded band is the pre-declared tolerance. Scenario-level values and their
+MCSEs are in `ml-validation/performance.csv`.
+
+```{r coverage-tables}
+mean_coverage <- aggregate(coverage ~ method + n_cell, data = performance, FUN = mean)
+knitr::kable(
+  wide_by_cell_size(mean_coverage, "coverage", function(x) sprintf("%.3f", x)),
+  caption = "Mean coverage across scenarios and contrasts"
+)
+
+lowest_coverage <- aggregate(coverage ~ method + n_cell, data = performance, FUN = min)
+knitr::kable(
+  wide_by_cell_size(lowest_coverage, "coverage", function(x) sprintf("%.3f", x)),
+  caption = "Lowest coverage across scenarios and contrasts"
+)
+```
+
+## Bias
+
+```{r bias}
+bias_summary <- data.frame(
+  Method = method_levels,
+  `Largest absolute bias` = sprintf(
+    "%.3f", tapply(abs(performance$bias), performance$method, max)[method_levels]
+  ),
+  `Estimates beyond 2 MCSE` = sprintf(
+    "%d of %d",
+    as.integer(tapply(!performance$bias_ok, performance$method, sum)[method_levels]),
+    as.integer(table(performance$method)[method_levels])
+  ),
+  check.names = FALSE
+)
+knitr::kable(bias_summary)
+```
+
+The three methods produce identical point estimates, so their bias is
+identical. With 2 MCSE as the tolerance, roughly 5% of scenario-by-contrast
+estimates are expected to fall outside it by chance even for an unbiased
+estimator.
+
+## Standard error calibration
+
+```{r se}
+relative_se <- aggregate(relative_se_error ~ method + n_cell, data = performance, FUN = mean)
+knitr::kable(
+  wide_by_cell_size(relative_se, "relative_se_error", function(x) sprintf("%+.1f%%", x)),
+  caption = "Mean relative error of model-based standard errors"
+)
+```
+
+## Type I error for sensitization
+
+```{r type1}
+null <- performance[performance$contrast == "Pretest x Treatment" & performance$sensitization == 0, ]
+type1 <- aggregate(rejection ~ method + n_cell, data = null, FUN = mean)
+knitr::kable(
+  wide_by_cell_size(type1, "rejection", function(x) sprintf("%.3f", x)),
+  caption = "Rejection rate of the Pretest x Treatment test with no sensitization (nominal .05)"
+)
+```
+
+## Scenarios meeting every tolerance
+
+```{r tolerance}
+scenario_ok <- aggregate(all_ok ~ method + scenario + n_cell, data = performance, FUN = all)
+meeting <- aggregate(all_ok ~ method + n_cell, data = scenario_ok, FUN = sum)
+totals <- aggregate(all_ok ~ method + n_cell, data = scenario_ok, FUN = length)
+meeting$all_ok <- sprintf("%d of %d", meeting$all_ok, totals$all_ok)
+knitr::kable(
+  wide_by_cell_size(meeting, "all_ok", identity),
+  caption = "Scenarios in which all four contrasts meet every tolerance"
+)
+```
+
+## Conclusions
+
+**Estimand recovery is validated.** All three methods produce the same point
+estimates. The largest absolute bias was 0.060 standard-deviation units, at 6
+participants per cell, and 18 of 240 scenario-by-contrast estimates (7.5%)
+fell outside 2 MCSE, close to the chance expectation. No fit failed.
+
+**Inference from `fit_solomon_ml()` is not validated below about 50
+participants per cell.** Its 95% Wald intervals had mean coverage of 0.893
+with 6 participants per cell, 0.922 with 10, and 0.936 with 20, reaching
+0.945 to 0.947 only at 50 to 100. Its standard errors were 10.8% too small at
+6 per cell and 5.8% too small at 10, and the sensitization test rejected a
+true null 9.8% of the time at 6 per cell and 7.6% at 10. It met every
+tolerance in none of the scenarios with 20 or fewer participants per cell,
+in 8 of 12 at 50, and in 10 of 12 at 100.
+
+**The unified GLM with HC3 is conservative in small samples.** Its intervals
+over-covered at 10 or fewer participants per cell (mean coverage 0.962 at 6
+and 0.959 at 10), its standard errors overestimated variability, and the
+sensitization test's Type I error was 0.032 at 6 per cell. It was close to
+nominal from 20 participants per cell onward and did not under-cover by more
+than about one percentage point in any scenario.
+
+**The exploratory Welch-Satterthwaite counterpart was calibrated at every
+cell size**, with mean coverage between 0.949 and 0.951, model standard
+errors within 1% of the empirical standard errors on average, and Type I
+error between 0.048 and 0.051. Because it shares the maximum-likelihood point
+estimates, a small-sample inference option for `fit_solomon_ml()` is proposed
+in [issue #22](https://github.com/JUhalt/solomonR/issues/22).
+
+Unequal residual standard deviations between arms (ratio 1.5) changed mean
+coverage by less than 0.01 for every method.
+
+**Practical guidance from this validation:** with fewer than about 50
+participants per cell, do not rely on the intervals or p-values from
+`fit_solomon_ml()`; use `fit_solomon_glm()`, whose intervals err on the
+conservative side.
+
+**Not covered:** non-normal errors, clustered designs, missing posttest
+scores, and incidental pretest missingness.
+
+## Reproducing these results
+
+The simulation script is `vignettes/articles/ml-validation/ml-simulation.R`
+in the package repository. It was run at commit `r run$git_commit` with R
+`r run$r_version`, base seed `r run$base_seed`, and
+`r format(run$nsim, big.mark = ",")` replications per scenario.
+
+## References
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*,
+2074-2102.
+
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*, 110-114.
+
+van Engelenburg, G. (1999). *Statistical analysis for the Solomon
+four-group design* (Research Report 99-06). University of Twente.
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. *Biometrika, 34*, 28-35.

@@ -52,8 +52,17 @@ Standard errors come from the observed information matrix. Tests and Wald
 confidence intervals use a normal reference distribution, the usual
 large-sample basis for maximum-likelihood inference. The point estimates
 coincide with separate regressions in the pretested and unpretested
-groups. In small samples the resulting intervals can be too narrow;
-simulation validation of interval coverage is in progress.
+groups.
+
+In the package's pre-specified simulation validation (issue #10; 60
+scenarios with 2,000 replications each), the point estimates were unbiased
+but the Wald intervals were too narrow in small samples: mean coverage of
+nominal 95\% intervals was 0.89 with 6 participants per cell, 0.92 with 10,
+and 0.94 with 20, and the Pretest x Treatment test rejected a true null
+9.8\% of the time with 6 per cell. Coverage was close to nominal with 50 or
+more participants per cell. For smaller studies, prefer
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. The full report is at
+\url{https://juhalt.github.io/solomonR/articles/ml-validation.html}.
 }
 
 \references{
