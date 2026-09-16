@@ -1,5 +1,7 @@
 # Changelog
 
+## solomonR (development version)
+
 ## solomonR 0.3.0
 
 ### Inference corrections
