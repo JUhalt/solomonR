@@ -160,7 +160,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Simulation validation and a sma
 - [x] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10). Point estimates validated; default Wald intervals too narrow in small samples (extended for #22).
 - [x] Small-sample inference option for `fit_solomon_ml()`, with a warning below 40 participants per cell — [#22](https://github.com/JUhalt/solomonR/issues/22). Calibrated at every cell size studied.
 
-- [ ] Reconcile release documentation, licensing and distribution — [#12](https://github.com/JUhalt/solomonR/issues/12).
+- [x] Reconcile release documentation, licensing and distribution — [#12](https://github.com/JUhalt/solomonR/issues/12). Released September 15, 2026; R-universe serves 0.3.0 under GPL-3.
 
 ### Correctness (September 2026 review)
 
@@ -206,10 +206,10 @@ data collection begins.
   - Power curves / surfaces across N, effect size, rho, and sensitization
 
 ### Design planning
-- [ ] Rebuild and validate `power_solomon()` — [#18](https://github.com/JUhalt/solomonR/issues/18)
-  - Correct data-generating mechanism
-  - Validate Type I error and power against analytic benchmarks, with Monte Carlo standard errors
-  - Validation protocol posted on the issue before implementation
+- [x] Rebuild and validate `power_solomon()` — [#18](https://github.com/JUhalt/solomonR/issues/18)
+  - Corrected data-generating mechanism, with rejection rates and Monte Carlo standard errors per estimand
+  - Validation protocol and amendment posted on the issue before implementation
+  - 126 scenarios and 315,000 replications: exact agreement with the analytic benchmark for the 2x2 ANOVA interaction, nominal size for Test I under the complete null, and no fit failures; GLM rejection rates are conservative with small cells, following HC3
 
 - [ ] `plan_solomon()` — [#24](https://github.com/JUhalt/solomonR/issues/24)
   - Required sample size for a target power

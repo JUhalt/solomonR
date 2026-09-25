@@ -1,0 +1,262 @@
+---
+title: "Validating power_solomon(): A Simulation Study"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE,
+                      fig.width = 8, fig.height = 5)
+library(ggplot2)
+
+performance <- utils::read.csv("power-validation/performance.csv")
+run <- utils::read.csv("power-validation/run-information.csv")
+invariance <- utils::read.csv("power-validation/invariance.csv")
+
+test_levels <- c("GLM (HC3, t)", "2x2 ANOVA interaction",
+                 "Test I (Braver & Braver, 1988)")
+performance$test <- factor(performance$test, test_levels)
+allocation_levels <- unique(performance$allocation[order(performance$n1 + performance$n2 +
+                                                         performance$n3 + performance$n4)])
+performance$allocation <- factor(performance$allocation, allocation_levels)
+
+# Tolerances declared on the issue before any results were examined.
+performance$null_case <- !is.na(performance$true_effect) & performance$true_effect == 0
+performance$tolerance <- pmax(0.02, 2 * performance$mcse)
+performance$agrees <- !is.na(performance$analytic_power) &
+  abs(performance$difference) <= performance$tolerance
+performance$type1_ok <- ifelse(performance$null_case,
+                               performance$power >= 0.04 & performance$power <= 0.06,
+                               NA)
+
+wide_by_allocation <- function(data, value, fmt) {
+  data <- data[, c("test", "allocation", value)]
+  wide <- reshape(data, idvar = "test", timevar = "allocation", direction = "wide")
+  out <- data.frame(Test = as.character(wide$test), check.names = FALSE)
+  for (a in levels(performance$allocation)) {
+    column <- paste(value, a, sep = ".")
+    if (column %in% names(wide)) out[[a]] <- fmt(wide[[column]])
+  }
+  out
+}
+```
+
+This article reports the simulation validation of `power_solomon()` requested
+in [issue #18](https://github.com/JUhalt/solomonR/issues/18). The aims,
+data-generating mechanisms, estimands, methods, performance measures, and
+tolerances were posted to that issue before any results were examined,
+following the ADEMP structure of Morris, White and Crowther (2019). An
+amendment reducing the grid to a practical runtime was also posted before the
+run, and changed no tolerance.
+
+The study drives `power_solomon()` itself rather than a parallel
+implementation, so what is validated is the function users call.
+
+## Design
+
+**Aims.** Establish that each reported test holds its nominal Type I error
+when the corresponding effect is zero, that simulated power agrees with
+analytic power where an analytic result exists, and that every reported
+number carries its Monte Carlo uncertainty.
+
+**Data-generating mechanisms.** Every participant has a latent baseline drawn
+from a standard normal distribution, which only pretested participants
+observe, so structural pretest absence is present in every scenario. The
+posttest residual standard deviation is 1 in every cell, the
+pretest-posttest correlation among pretested participants is `rho`, the
+treatment effect is `delta` among unpretested participants, and sensitization
+adds `sens` among pretested participants.
+
+The grid crosses:
+
+- **allocation:** 10, 20, 30, 50, and 100 participants per cell, plus the
+  unequal allocations 60/60/20/20 and 20/20/60/60;
+- **`delta`:** 0, 0.3, 0.6;
+- **`sens`:** 0, 0.3;
+- **`rho`:** 0, 0.5, 0.8.
+
+**Methods.** The three procedures `power_solomon()` reports: the unified GLM
+with HC3 standard errors and t reference distributions, the 2x2 ANOVA
+interaction, and the historical one-tailed Test I (Braver & Braver, 1988).
+
+**Analytic benchmarks.** Normal-theory rejection probabilities computed from
+the design: a two-sample t test for the unpretested contrast, an ANCOVA
+comparison with residual variance reduced by the squared pretest-posttest
+correlation for the pretested contrast, and Welch-Satterthwaite degrees of
+freedom for the contrasts that combine pretest conditions. The 2x2 ANOVA
+interaction is benchmarked with pooled variance and no pretest adjustment.
+Test I combines two p-values directionally and has no closed form, so it is
+reported without a benchmark.
+
+**Performance measures.** The rejection rate of each test with its Monte
+Carlo standard error, the difference from the analytic benchmark, and the
+number of fit failures. Replications: `r format(run$sims_null, big.mark = ",")`
+in complete-null scenarios and `r format(run$sims_alternative, big.mark = ",")`
+elsewhere.
+
+**Tolerances.** Type I error between 0.040 and 0.060 wherever the true effect
+is zero; power within 0.02 of the analytic benchmark or within 2 Monte Carlo
+standard errors, whichever is larger; no fit failures; and scale invariance
+at a residual standard deviation of 2 with proportionally scaled effects.
+
+## Fit failures
+
+```{r failures}
+failures <- aggregate(failures ~ test, data = performance, FUN = sum)
+names(failures) <- c("Test", "Failed fits across all scenarios")
+knitr::kable(failures)
+```
+
+## Type I error
+
+```{r type1}
+null_rows <- performance[performance$null_case, ]
+type1 <- aggregate(power ~ test + allocation, data = null_rows, FUN = mean)
+knitr::kable(
+  wide_by_allocation(type1, "power", function(x) sprintf("%.3f", x)),
+  caption = "Mean rejection rate where the true effect is zero (nominal .05)"
+)
+```
+
+```{r type1-plot, fig.height = 4}
+ggplot(null_rows, aes(allocation, power, colour = test)) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0.04, ymax = 0.06, alpha = 0.15) +
+  geom_hline(yintercept = 0.05, linetype = "dashed") +
+  geom_jitter(width = 0.15, height = 0, alpha = 0.7) +
+  labs(x = NULL, y = "Rejection rate under a true null", colour = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+The shaded band is the pre-declared tolerance. Each point is one scenario.
+
+## Agreement with analytic power
+
+```{r agreement-plot, fig.height = 5}
+bench <- performance[!is.na(performance$analytic_power) & !performance$null_case, ]
+
+ggplot(bench, aes(analytic_power, power, colour = allocation)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_point(alpha = 0.7) +
+  facet_wrap(~ test) +
+  labs(x = "Analytic power", y = "Simulated power", colour = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom")
+```
+
+```{r agreement-tables}
+differences <- aggregate(difference ~ test + allocation, data = bench, FUN = mean)
+knitr::kable(
+  wide_by_allocation(differences, "difference", function(x) sprintf("%+.3f", x)),
+  caption = "Mean difference between simulated and analytic power"
+)
+
+within <- aggregate(agrees ~ test + allocation, data = bench, FUN = mean)
+knitr::kable(
+  wide_by_allocation(within, "agrees", function(x) sprintf("%.0f%%", 100 * x)),
+  caption = "Share of scenarios within the pre-declared tolerance"
+)
+```
+
+## Historical Test I
+
+```{r test-i}
+test_i <- performance[performance$test == "Test I (Braver & Braver, 1988)", ]
+test_i_null <- test_i[test_i$delta == 0 & test_i$sens == 0, ]
+summary_i <- aggregate(power ~ allocation, data = test_i_null, FUN = mean)
+names(summary_i) <- c("Allocation", "Rejection rate under the complete null")
+knitr::kable(summary_i, digits = 3)
+```
+
+Test I combines two one-tailed p-values, so it is reported as a historical
+procedure rather than a recommended one, and its rejection rate is not
+compared with a two-sided benchmark.
+
+## Scale invariance
+
+```{r invariance}
+knitr::kable(
+  data.frame(
+    Estimand = invariance$estimand,
+    Test = invariance$test,
+    `SD 1` = sprintf("%.3f", invariance$power_sigma_1),
+    `SD 2` = sprintf("%.3f", invariance$power_sigma_2),
+    Difference = sprintf("%+.3f", invariance$difference),
+    check.names = FALSE
+  ),
+  caption = "Rejection rates with proportionally scaled effects and residual SD"
+)
+```
+
+## Conclusions
+
+**The simulator is validated.** Across 126 scenarios and 315,000
+replications, no fit failed, and three independent checks agreed:
+
+- **Analytic agreement.** The 2x2 ANOVA interaction matched its normal-theory
+  benchmark in every scenario at every allocation, with mean differences of
+  0.002 or less.
+- **Nominal size for Test I.** Under the complete null, the historical
+  one-tailed combination rejected between 4.4% and 5.6% of the time at
+  alpha = .05.
+- **Scale invariance.** Doubling the residual standard deviation with
+  proportionally scaled effects reproduced every rejection rate exactly.
+
+**Rejection rates from the unified GLM are conservative in small samples.**
+Type I error averaged 0.041 with 10 participants per cell, rising through
+0.044 at 20 and 0.047 at 30 to 0.049 at 100. Simulated power fell below the
+normal-theory benchmark by 0.030 on average with 10 per cell, 0.017 with 20,
+0.009 with 30, 0.005 with 50, and 0.003 with 100; the largest single
+difference was 0.083, for the ATE with 10 per cell. Agreement within the
+pre-declared tolerance rose from 41% of scenarios at 10 per cell to 98% at
+100.
+
+**This traces to HC3, not to the simulator.** The ANOVA arm is computed on
+the same simulated data sets and matched its benchmark exactly, so the
+deviation belongs to the covariance estimator rather than the data-generating
+mechanism. It is the same conservatism the `fit_solomon_ml()` validation
+found, where HC3 intervals over-covered at small cell sizes (mean coverage
+0.961 with 6 participants per cell). The protocol registered this deviation
+in advance.
+
+**Unequal allocation behaved like equal allocation of similar size.** The
+60/60/20/20 and 20/20/60/60 designs agreed with their benchmarks in 94% and
+74% of scenarios, between the 20- and 50-per-cell equal allocations.
+
+**Of 210 null scenarios, 17 fell outside the 0.040 to 0.060 band**, 15 of
+them below it. The low side is the HC3 conservatism described above; the two
+above the band, at 0.0605 and 0.0620, are within about two Monte Carlo
+standard errors of 0.05 and are consistent with simulation noise.
+
+**Practical guidance from this validation:**
+
+- Power reported for the GLM tests with 20 or fewer participants per cell is
+  a conservative figure; the normal-theory benchmark in this article is the
+  optimistic end of the range.
+- The 2x2 ANOVA interaction is the arm to compare against analytic
+  expectations, but it ignores the pretest, so it is less powerful than the
+  GLM whenever the pretest is informative.
+- Test I remains a historical procedure. Its size is nominal under the
+  complete null, which does not make the conditional sequence it belongs to
+  safe; see the method guide.
+
+**Not covered:** non-normal errors, clustered designs, binary and count
+outcomes, missing posttest scores, and incidental pretest missingness.
+
+## Reproducing these results
+
+The simulation script is
+`vignettes/articles/power-validation/power-simulation.R` in the package
+repository. It was run at `r run$git_commit` with R `r run$r_version`, base
+seed `r run$base_seed`, and the replication counts above.
+
+## References
+
+Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the Solomon
+four-group design: A meta-analytic approach. *Psychological Bulletin, 104*,
+150-154.
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*,
+2074-2102.
+
+Solomon, R. L. (1949). An extension of control group design.
+*Psychological Bulletin, 46*, 137-150.
