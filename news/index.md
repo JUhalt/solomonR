@@ -2,6 +2,24 @@
 
 ## solomonR (development version)
 
+### Sample-size planning ([\#24](https://github.com/JUhalt/solomonR/issues/24))
+
+- New
+  [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+  finds the smallest Solomon design, at a chosen allocation across the
+  four cells, whose power for each estimand reaches a target. Analytic
+  planning uses the normal-theory benchmarks validated in
+  [\#18](https://github.com/JUhalt/solomonR/issues/18) and returns the
+  exact minimum. `method = "simulation"` plans for the package’s own GLM
+  test through
+  [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md),
+  which matters with small cells, where HC3 standard errors are
+  conservative.
+- The help page shows that the sensitization contrast always has four
+  times the sampling variance of the average treatment effect, so
+  detecting sensitization as large as the average effect needs about
+  four times as many participants.
+
 ### Power simulation rebuilt and validated ([\#18](https://github.com/JUhalt/solomonR/issues/18))
 
 - [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)

@@ -323,11 +323,13 @@ Rebuild and validate
   Test I under the complete null, and no fit failures; GLM rejection
   rates are conservative with small cells, following HC3
 
-`plan_solomon()` — [\#24](https://github.com/JUhalt/solomonR/issues/24)
+[`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+— [\#24](https://github.com/JUhalt/solomonR/issues/24)
 
-- Required sample size for a target power
+- Smallest design reaching a target power for each Solomon estimand
 - Four-cell allocation, including unequal allocation
-- Power for multiple Solomon estimands
+- Exact analytic search, or simulation of the package’s own GLM test for
+  small designs
 
 ### Evidence and reporting
 

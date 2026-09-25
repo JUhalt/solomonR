@@ -438,7 +438,7 @@
 <div class="section level3">
 <h3 id="power">Power<a class="anchor" aria-label="anchor" href="#power"></a>
 </h3>
-<p><code><a href="reference/power_solomon.html">power_solomon()</a></code> reports the rejection rate of each Solomon test with its Monte Carlo standard error, and a pre-specified simulation study validated it against normal-theory benchmarks. With 20 or fewer participants per cell its GLM-based figures are conservative, because the package’s default HC3 standard errors are conservative there. Sample-size planning (<code>plan_solomon()</code>) is scheduled for v0.4.0.</p>
+<p><code><a href="reference/power_solomon.html">power_solomon()</a></code> reports the rejection rate of each Solomon test with its Monte Carlo standard error, and a pre-specified simulation study validated it against normal-theory benchmarks. With 20 or fewer participants per cell its GLM-based figures are conservative, because the package’s default HC3 standard errors are conservative there. <code><a href="reference/plan_solomon.html">plan_solomon()</a></code> finds the smallest design, at a chosen allocation across the four cells, that reaches a target power for each Solomon estimand. The sensitization contrast always has four times the sampling variance of the average treatment effect, so a study powered only for the average effect is usually underpowered for sensitization.</p>
 <hr>
 </div>
 </div>

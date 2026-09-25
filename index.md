@@ -476,8 +476,13 @@ reports the rejection rate of each Solomon test with its Monte Carlo
 standard error, and a pre-specified simulation study validated it
 against normal-theory benchmarks. With 20 or fewer participants per cell
 its GLM-based figures are conservative, because the package’s default
-HC3 standard errors are conservative there. Sample-size planning
-(`plan_solomon()`) is scheduled for v0.4.0.
+HC3 standard errors are conservative there.
+[`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+finds the smallest design, at a chosen allocation across the four cells,
+that reaches a target power for each Solomon estimand. The sensitization
+contrast always has four times the sampling variance of the average
+treatment effect, so a study powered only for the average effect is
+usually underpowered for sensitization.
 
 ------------------------------------------------------------------------
 

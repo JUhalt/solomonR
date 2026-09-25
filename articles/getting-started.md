@@ -252,9 +252,58 @@ power for the ATE and less for the treatment effect within each pretest
 condition. About one study in seven with this design would miss the
 effect. The confidence interval is the honest summary: it shows that
 effects anywhere from about zero to about six points are compatible with
-these data. Planning the sample size in advance is how a study avoids
-this situation; a validated planning tool is planned for a later release
-of `solomonR` (issue \#18).
+these data.
+
+Planning the sample size in advance is how a study avoids this
+situation.
+[`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+finds the smallest design that reaches a target power for each Solomon
+estimand. Using the values that generated these data (a treatment effect
+of 5 points, a posttest standard deviation of 10, and a pretest-posttest
+correlation of 0.6), 90% power requires:
+
+``` r
+
+plan_solomon(power = 0.90, delta = 5, sens = 0, rho = 0.6, sigma = 10)
+#>                  estimand true_effect n1 n2 n3 n4 total_n     power    basis
+#> 1  ATE (avg over pretest)           5 35 35 35 35     140 0.9001254 analytic
+#> 2     Pretest x Treatment           0 NA NA NA NA      NA        NA analytic
+#> 3   Treatment | pretested           5 55 55 55 55     220 0.9011284 analytic
+#> 4 Treatment | unpretested           5 86 86 86 86     344 0.9032300 analytic
+#>   mcse target_power alpha
+#> 1   NA          0.9  0.05
+#> 2   NA          0.9  0.05
+#> 3   NA          0.9  0.05
+#> 4   NA          0.9  0.05
+#>                                                          note
+#> 1                                                            
+#> 2 True effect is zero; no sample size gives power against it.
+#> 3                                                            
+#> 4
+```
+
+The sensitization row is empty because these data were generated without
+sensitization, and no sample size gives power against a zero effect.
+Detecting sensitization is far more demanding than detecting the average
+effect, because the sensitization contrast has four times the sampling
+variance of the ATE. Planning to detect sensitization of 5 points with
+80% power:
+
+``` r
+
+plan_solomon(power = 0.80, delta = 5, sens = 5, rho = 0.6, sigma = 10,
+             estimand = "sensitization")
+#>              estimand true_effect  n1  n2  n3  n4 total_n     power    basis
+#> 1 Pretest x Treatment           5 104 104 104 104     416 0.8019499 analytic
+#>   mcse target_power alpha note
+#> 1   NA          0.8  0.05
+```
+
+A Solomon study powered only for the ATE is usually underpowered for the
+question the design exists to answer.
+[`?plan_solomon`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+also shows how to trade pretested against unpretested participants when
+pretesting is costly.
 
 ## Step 4: Ask whether sensitization is negligible
 

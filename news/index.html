@@ -48,6 +48,11 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="solomonr-development-version">solomonR (development version)<a class="anchor" aria-label="anchor" href="#solomonr-development-version"></a></h2>
 <div class="section level3">
+<h3 id="sample-size-planning-development-version">Sample-size planning (<a href="https://github.com/JUhalt/solomonR/issues/24" class="external-link">#24</a>)<a class="anchor" aria-label="anchor" href="#sample-size-planning-development-version"></a></h3>
+<ul><li>New <code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> finds the smallest Solomon design, at a chosen allocation across the four cells, whose power for each estimand reaches a target. Analytic planning uses the normal-theory benchmarks validated in <a href="https://github.com/JUhalt/solomonR/issues/18" class="external-link">#18</a> and returns the exact minimum. <code>method = "simulation"</code> plans for the package’s own GLM test through <code><a href="../reference/power_solomon.html">power_solomon()</a></code>, which matters with small cells, where HC3 standard errors are conservative.</li>
+<li>The help page shows that the sensitization contrast always has four times the sampling variance of the average treatment effect, so detecting sensitization as large as the average effect needs about four times as many participants.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="power-simulation-rebuilt-and-validated-development-version">Power simulation rebuilt and validated (<a href="https://github.com/JUhalt/solomonR/issues/18" class="external-link">#18</a>)<a class="anchor" aria-label="anchor" href="#power-simulation-rebuilt-and-validated-development-version"></a></h3>
 <ul><li>
 <code><a href="../reference/power_solomon.html">power_solomon()</a></code> is rebuilt. It reports the rejection rate of each Solomon test with its Monte Carlo standard error, names the estimand, the test, and the true effect behind every row, and gains <code>alpha</code> and <code>seed</code> arguments. The global random number state is restored after use.</li>

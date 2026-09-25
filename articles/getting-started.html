@@ -359,9 +359,47 @@ power for the ATE and less for the treatment effect within each pretest
 condition. About one study in seven with this design would miss the
 effect. The confidence interval is the honest summary: it shows that
 effects anywhere from about zero to about six points are compatible with
-these data. Planning the sample size in advance is how a study avoids
-this situation; a validated planning tool is planned for a later release
-of <code>solomonR</code> (issue #18).</p>
+these data.</p>
+<p>Planning the sample size in advance is how a study avoids this
+situation. <code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> finds the smallest design that
+reaches a target power for each Solomon estimand. Using the values that
+generated these data (a treatment effect of 5 points, a posttest
+standard deviation of 10, and a pretest-posttest correlation of 0.6),
+90% power requires:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plan_solomon.html">plan_solomon</a></span><span class="op">(</span>power <span class="op">=</span> <span class="fl">0.90</span>, delta <span class="op">=</span> <span class="fl">5</span>, sens <span class="op">=</span> <span class="fl">0</span>, rho <span class="op">=</span> <span class="fl">0.6</span>, sigma <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                  estimand true_effect n1 n2 n3 n4 total_n     power    basis</span></span>
+<span><span class="co">#&gt; 1  ATE (avg over pretest)           5 35 35 35 35     140 0.9001254 analytic</span></span>
+<span><span class="co">#&gt; 2     Pretest x Treatment           0 NA NA NA NA      NA        NA analytic</span></span>
+<span><span class="co">#&gt; 3   Treatment | pretested           5 55 55 55 55     220 0.9011284 analytic</span></span>
+<span><span class="co">#&gt; 4 Treatment | unpretested           5 86 86 86 86     344 0.9032300 analytic</span></span>
+<span><span class="co">#&gt;   mcse target_power alpha</span></span>
+<span><span class="co">#&gt; 1   NA          0.9  0.05</span></span>
+<span><span class="co">#&gt; 2   NA          0.9  0.05</span></span>
+<span><span class="co">#&gt; 3   NA          0.9  0.05</span></span>
+<span><span class="co">#&gt; 4   NA          0.9  0.05</span></span>
+<span><span class="co">#&gt;                                                          note</span></span>
+<span><span class="co">#&gt; 1                                                            </span></span>
+<span><span class="co">#&gt; 2 True effect is zero; no sample size gives power against it.</span></span>
+<span><span class="co">#&gt; 3                                                            </span></span>
+<span><span class="co">#&gt; 4</span></span></code></pre></div>
+<p>The sensitization row is empty because these data were generated
+without sensitization, and no sample size gives power against a zero
+effect. Detecting sensitization is far more demanding than detecting the
+average effect, because the sensitization contrast has four times the
+sampling variance of the ATE. Planning to detect sensitization of 5
+points with 80% power:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plan_solomon.html">plan_solomon</a></span><span class="op">(</span>power <span class="op">=</span> <span class="fl">0.80</span>, delta <span class="op">=</span> <span class="fl">5</span>, sens <span class="op">=</span> <span class="fl">5</span>, rho <span class="op">=</span> <span class="fl">0.6</span>, sigma <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>             estimand <span class="op">=</span> <span class="st">"sensitization"</span><span class="op">)</span></span>
+<span><span class="co">#&gt;              estimand true_effect  n1  n2  n3  n4 total_n     power    basis</span></span>
+<span><span class="co">#&gt; 1 Pretest x Treatment           5 104 104 104 104     416 0.8019499 analytic</span></span>
+<span><span class="co">#&gt;   mcse target_power alpha note</span></span>
+<span><span class="co">#&gt; 1   NA          0.8  0.05</span></span></code></pre></div>
+<p>A Solomon study powered only for the ATE is usually underpowered for
+the question the design exists to answer. <code><a href="../reference/plan_solomon.html">?plan_solomon</a></code>
+also shows how to trade pretested against unpretested participants when
+pretesting is costly.</p>
 </div>
 <div class="section level2">
 <h2 id="step-4-ask-whether-sensitization-is-negligible">Step 4: Ask whether sensitization is negligible<a class="anchor" aria-label="anchor" href="#step-4-ask-whether-sensitization-is-negligible"></a>
@@ -374,7 +412,7 @@ smallest effect size of interest set <em>before</em> seeing the data
 <p>Suppose the researchers decided in advance that sensitization smaller
 than half a standard deviation, 5 points on this test, would not
 matter:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/equivalence_solomon.html">equivalence_solomon</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solomon equivalence test (TOST)</span></span>
 <span><span class="co">#&gt; Contrast: Pretest x Treatment</span></span>
@@ -405,7 +443,7 @@ readers that a larger study would be needed to settle the question.</p>
 same data and lines up their estimates. In a randomized experiment with
 a continuous outcome, they all target the same contrasts; pretest
 adjustment changes precision rather than the target (Lin, 2013).</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/compare_solomon_methods.html">compare_solomon_methods</a></span><span class="op">(</span></span>
@@ -487,7 +525,7 @@ Wald intervals by default. In the package’s simulation validation, those
 intervals were too narrow when groups were small, so
 <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warns when it is used with small groups
 and offers a small-sample option:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span></span>
@@ -497,7 +535,7 @@ and offers a small-sample option:</p>
 <span><span class="co">#&gt; fewer than 40 participants per cell. Consider inference = "satterthwaite", or</span></span>
 <span><span class="co">#&gt; supply inference = "wald" to keep the default without this warning. See</span></span>
 <span><span class="co">#&gt; ?fit_solomon_ml.</span></span></code></pre></div>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ml_small</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, inference <span class="op">=</span> <span class="st">"satterthwaite"</span><span class="op">)</span></span>
@@ -551,7 +589,7 @@ different ways of using the pretest agreed. The older
 Among its pretested participants, the treatment group’s mean pretest is
 about 4.5 points higher by chance, and the pretest and posttest are
 slightly <em>negatively</em> correlated.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">solomon_demo</span><span class="op">)</span></span>
 <span><span class="va">demo_classic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_demo</span>,</span>

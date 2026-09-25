@@ -513,7 +513,9 @@ the complete null, and that no fit failed. Rejection rates for the GLM
 tests are conservative with small cells, following the HC3 standard
 errors used by default, so treat them as a lower bound with 20 or fewer
 participants per cell. The article “Validating power_solomon()” reports
-the study in full, and sample-size planning is tracked in issue #24.</p>
+the study in full. <code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> inverts the same
+calculations to find the smallest design that reaches a target power,
+either analytically or by simulating the package’s own GLM test.</p>
 </div>
 </div>
 <div class="section level2">

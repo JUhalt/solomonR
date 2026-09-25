@@ -51,6 +51,8 @@ Check design coding, cell structure, and missingness before analysis.
   : Descriptive assumption diagnostics for Solomon analyses
 - [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
   : Power simulation for Solomon designs
+- [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+  : Sample-size planning for Solomon designs
 
 ## Plotting
 
