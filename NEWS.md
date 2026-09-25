@@ -1,5 +1,26 @@
 # solomonR (development version)
 
+## Validation evidence in one format (#11)
+
+* New article "Validation Evidence" gathers the package's simulation studies
+  in one place, with each study's protocol, scenarios, replications, methods,
+  failed fits, and results against its pre-registered tolerances.
+* Two shared tables, rebuilt by a committed script from each study's results,
+  can be downloaded from the repository. `studies.csv` has one row per study
+  and `benchmarks.csv` has one row per scenario, method, estimand, and
+  performance measure, with Monte Carlo standard errors. Failed fits are
+  counted separately, and measures a method cannot have are listed with a
+  reason rather than omitted.
+
+## Power curves (#30)
+
+* New `plot_power_solomon()` draws power against the size of the smallest
+  cell for each Solomon estimand, with the target power marked and the
+  design `plan_solomon()` returns for that target. Curves use the validated
+  normal-theory power by default; `method = "simulation"` uses the package's
+  GLM test through `power_solomon()` and shows two-MCSE bands. One of
+  `delta`, `sens`, or `rho` may vary across curves.
+
 ## Design, change, and historical-path figures (#25, #28, #29)
 
 * New `plot_solomon_design()` draws the four-group design in Campbell and

@@ -202,7 +202,7 @@ data collection begins.
   - Historical decision tree
   - Optionally highlight the path taken by a fitted dataset
 
-- [ ] `plot_power_solomon()` — [#30](https://github.com/JUhalt/solomonR/issues/30)
+- [x] `plot_power_solomon()` — [#30](https://github.com/JUhalt/solomonR/issues/30)
   - Power curves / surfaces across N, effect size, rho, and sensitization
 
 ### Design planning
@@ -217,7 +217,7 @@ data collection begins.
   - Exact analytic search, or simulation of the package's own GLM test for small designs
 
 ### Evidence and reporting
-- [ ] Reproducible simulation benchmark reports with Monte Carlo uncertainty — [#11](https://github.com/JUhalt/solomonR/issues/11)
+- [x] Reproducible simulation benchmark reports with Monte Carlo uncertainty — [#11](https://github.com/JUhalt/solomonR/issues/11). The "Validation Evidence" article and its shared `studies.csv` and `benchmarks.csv` tables
 
 ---
 
