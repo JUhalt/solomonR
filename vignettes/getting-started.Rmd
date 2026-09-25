@@ -211,6 +211,15 @@ neither show sensitization nor rule out sensitization as large as 5 points.
 "Inconclusive" is a legitimate and informative result; it tells readers that
 a larger study would be needed to settle the question.
 
+The sensitization itself is easiest to see in the group means.
+`plot_sensitization()` draws model-adjusted means, so the difference between
+the two lines' rises from control to treatment is exactly the Pretest x
+Treatment estimate above. Hollow points show the observed means:
+
+```{r sensitization-plot, fig.width = 6, fig.height = 4}
+plot_sensitization(fit, bounds = 5)
+```
+
 A forest plot shows all four Solomon contrasts at once, with the equivalence
 bounds shaded on the sensitization row:
 

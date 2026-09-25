@@ -1,1 +1,2 @@
-utils::globalVariables(c("z", "lo", "hi", "estimate", "contrast", "conf.low", "conf.high"))
+utils::globalVariables(c("z", "lo", "hi", "estimate", "contrast", "conf.low", "conf.high",
+                         "treatment", "condition", "y"))

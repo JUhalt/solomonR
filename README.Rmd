@@ -164,6 +164,13 @@ To see all four contrasts and their confidence intervals at once:
 plot_solomon_effects(fit)
 ```
 
+and to see the Pretest x Treatment interaction itself, as model-adjusted
+group means:
+
+```r
+plot_sensitization(fit)
+```
+
 Every contrast is reported with a confidence interval (`conf.low`,
 `conf.high`; set the level with `conf_level`). HC3 covariance is the
 default (Long & Ervin, 2000), and Gaussian models use t tests with

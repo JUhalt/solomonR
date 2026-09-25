@@ -188,7 +188,7 @@ data collection begins.
   - Solomon four-group design schematic
   - Optional cell N / means
 
-- [ ] `plot_sensitization()` — [#26](https://github.com/JUhalt/solomonR/issues/26)
+- [x] `plot_sensitization()` — [#26](https://github.com/JUhalt/solomonR/issues/26)
   - Treatment x Pretest interaction visualization
   - Direct graphical representation of sensitization
 
