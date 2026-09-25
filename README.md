@@ -46,6 +46,8 @@ Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 > Solomon contrasts, pretest-to-posttest change, the historical decision
 > path, and power; and a single index of the package’s simulation
 > evidence. The API may continue to evolve before version 1.0.
+> Development version `0.4.0.9000` is working toward `v0.5.0`: extended
+> outcomes and designs.
 
 ------------------------------------------------------------------------
 
