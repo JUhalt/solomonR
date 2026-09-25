@@ -69,8 +69,8 @@ no_group_3 <- solomon_example[!(solomon_example$pretested == 0 & solomon_example
 with(no_group_3, validate_solomon(y_post, treat, pretested, y_pre))
 }
 \references{
-Solomon, R. L. (1949). An extension of control group design.
-\emph{Psychological Bulletin, 46}(2), 137-150.
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 }
 \seealso{
 \code{\link[=check_solomon_missing]{check_solomon_missing()}}

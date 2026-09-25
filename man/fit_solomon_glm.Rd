@@ -97,44 +97,47 @@ fits; no corresponding interval is available with robust covariance.
 }
 
 \references{
-Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
-for linear regression with multi-stage samples. \emph{Survey Methodology,
-28}(2), 169-181.
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
+linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
+169–181.
 
-Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
-standard error estimators in OLS regression: An introduction and software
-implementation. \emph{Behavior Research Methods, 39}(4), 709-722.
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
+error estimators in OLS regression: An introduction and software
+implementation. \emph{Behavior Research Methods, 39}(4), 709–722.
+https://doi.org/10.3758/BF03192961
 
-Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
-samples: Some practical advice. \emph{The Review of Economics and Statistics,
-98}(4), 701-712.
+Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small samples:
+Some practical advice. \emph{The Review of Economics and Statistics, 98}(4),
+701–712. https://doi.org/10.1162/REST_a_00552
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. \emph{The Annals of Applied Statistics,
-7}(1), 295-318.
+7}(1), 295–318. https://doi.org/10.1214/12-AOAS583
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
-standard errors in the linear regression model. \emph{The American
-Statistician, 54}(3), 217-224.
+standard errors in the linear regression model. \emph{The American Statistician,
+54}(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
 
 MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
-covariance matrix estimators with improved finite sample properties.
-\emph{Journal of Econometrics, 29}(3), 305-325.
+covariance matrix estimators with improved finite sample properties. \emph{Journal
+of Econometrics, 29}(3), 305–325.
+https://doi.org/10.1016/0304-4076(85)90158-7
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
-cluster-robust variance estimation and hypothesis testing in fixed
-effects models. \emph{Journal of Business & Economic Statistics, 36}(4),
-672-683.
+cluster-robust variance estimation and hypothesis testing in fixed effects
+models. \emph{Journal of Business & Economic Statistics, 36}(4), 672–683.
+https://doi.org/10.1080/07350015.2016.1247004
 
 Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
 guide to statistical inference in linear modeling for non-normal or
 heteroskedastic error distributions. \emph{Behavior Research Methods, 57}(12),
-Article 338.
+Article 338. https://doi.org/10.3758/s13428-025-02801-4
 
-Solomon, R. L. (1949). An extension of control group design.
-\emph{Psychological Bulletin, 46}(2), 137-150.
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
-\emph{Psychological Methods, 9}(2), 164-182.
+\emph{Psychological Methods, 9}(2), 164–182.
+https://doi.org/10.1037/1082-989X.9.2.164
 }

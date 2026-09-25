@@ -12,7 +12,7 @@ run <- utils::read.csv("power-validation/run-information.csv")
 invariance <- utils::read.csv("power-validation/invariance.csv")
 
 test_levels <- c("GLM (HC3, t)", "2x2 ANOVA interaction",
-                 "Test I (Braver & Braver, 1988)")
+                 "Test I (Walton Braver & Braver, 1988)")
 performance$test <- factor(performance$test, test_levels)
 allocation_levels <- unique(performance$allocation[order(performance$n1 + performance$n2 +
                                                          performance$n3 + performance$n4)])
@@ -75,7 +75,7 @@ The grid crosses:
 
 **Methods.** The three procedures `power_solomon()` reports: the unified GLM
 with HC3 standard errors and t reference distributions, the 2x2 ANOVA
-interaction, and the historical one-tailed Test I (Braver & Braver, 1988).
+interaction, and the historical one-tailed Test I (Walton Braver & Braver, 1988).
 
 **Analytic benchmarks.** Normal-theory rejection probabilities computed from
 the design: a two-sample t test for the unpretested contrast, an ANCOVA
@@ -159,7 +159,7 @@ knitr::kable(
 ## Historical Test I
 
 ```{r test-i}
-test_i <- performance[performance$test == "Test I (Braver & Braver, 1988)", ]
+test_i <- performance[performance$test == "Test I (Walton Braver & Braver, 1988)", ]
 test_i_null <- test_i[test_i$delta == 0 & test_i$sens == 0, ]
 summary_i <- aggregate(power ~ allocation, data = test_i_null, FUN = mean)
 names(summary_i) <- c("Allocation", "Rejection rate under the complete null")
@@ -250,13 +250,13 @@ seed `r run$base_seed`, and the replication counts above.
 
 ## References
 
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the Solomon
-four-group design: A meta-analytic approach. *Psychological Bulletin, 104*,
-150-154.
-
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
-studies to evaluate statistical methods. *Statistics in Medicine, 38*,
-2074-2102.
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086
 
-Solomon, R. L. (1949). An extension of control group design.
-*Psychological Bulletin, 46*, 137-150.
+Solomon, R. L. (1949). An extension of control group design. *Psychological
+Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150

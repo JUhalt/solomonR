@@ -52,10 +52,11 @@ Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
 }
 \references{
-Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-design: Appropriate statistical analyses. \emph{The Journal of Experimental
-Education, 42}(2), 54-55.
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+Appropriate statistical analyses. \emph{The Journal of Experimental Education,
+42}(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
 
-Rosseel, Y. (2012). lavaan: An R package for structural equation
-modeling. \emph{Journal of Statistical Software, 48}(2), 1-36.
+Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
+\emph{Journal of Statistical Software, 48}(2), 1–36.
+https://doi.org/10.18637/jss.v048.i02
 }

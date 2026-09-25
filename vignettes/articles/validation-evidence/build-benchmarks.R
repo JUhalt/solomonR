@@ -97,7 +97,33 @@ pw_long <- long_measures(
   )
 )
 
-benchmarks <- rbind(ml_long, pw_long)
+# ---- plan_solomon() re-simulation (#24) -------------------------------------------
+
+pl <- read_study("plan-validation", "performance.csv")
+pl_run <- read_study("plan-validation", "run-information.csv")
+
+pl_long <- long_measures(
+  pl,
+  study = "plan-resimulation",
+  design = sprintf("allocation=%s; delta=%s; sens=%s; rho=%s; cells=%d/%d/%d/%d",
+                   pl$allocation, pl$delta, pl$sens, pl$rho, pl$n1, pl$n2, pl$n3, pl$n4),
+  method = "plan_solomon() analytic plan, re-simulated with GLM (HC3, t)",
+  estimand = pl$estimand,
+  null_effect = rep(FALSE, nrow(pl)),
+  measures = list(
+    simulated_power = c(value = "simulated_power", mcse = "mcse"),
+    analytic_power = c(value = "analytic_power", mcse = NA),
+    difference_from_target = c(value = "difference", mcse = "mcse")
+  ),
+  n_successful = pl_run$sims - pl$failures,
+  n_failed = pl$failures,
+  notes = list(
+    analytic_power = function(d) rep("normal-theory power of the returned design", nrow(d)),
+    difference_from_target = function(d) sprintf("target power %s", d$target_power)
+  )
+)
+
+benchmarks <- rbind(ml_long, pw_long, pl_long)
 numeric_cols <- vapply(benchmarks, is.numeric, logical(1))
 benchmarks[numeric_cols] <- lapply(benchmarks[numeric_cols], function(v) signif(v, 6))
 
@@ -107,24 +133,30 @@ site <- "https://juhalt.github.io/solomonR/articles"
 issue <- function(n) sprintf("https://github.com/JUhalt/solomonR/issues/%d", n)
 
 studies <- data.frame(
-  study = c("ml-inference", "power-simulation"),
-  title = c("Inference for fit_solomon_ml()", "Rejection rates from power_solomon()"),
-  issues = c("#10; #22", "#18"),
-  protocol = c(issue(10), issue(18)),
-  article = c(file.path(site, "ml-validation.html"), file.path(site, "power-validation.html")),
-  scenarios = c(length(unique(ml$scenario)), length(unique(pw$scenario))),
+  study = c("ml-inference", "power-simulation", "plan-resimulation"),
+  title = c("Inference for fit_solomon_ml()", "Rejection rates from power_solomon()",
+            "Designs from plan_solomon()"),
+  issues = c("#10; #22", "#18", "#24"),
+  protocol = c(issue(10), issue(18), issue(24)),
+  article = c(file.path(site, "ml-validation.html"), file.path(site, "power-validation.html"),
+              file.path(site, "plan-validation.html")),
+  scenarios = c(length(unique(ml$scenario)), length(unique(pw$scenario)), nrow(pl)),
   replications = c(
     format(ml_run$nsim),
-    sprintf("%d under the complete null; %d elsewhere", pw_run$sims_null, pw_run$sims_alternative)
+    sprintf("%d under the complete null; %d elsewhere", pw_run$sims_null, pw_run$sims_alternative),
+    sprintf("%d per planned design", pl_run$sims)
   ),
-  methods = c(paste(unique(ml$method), collapse = "; "), paste(unique(pw$test), collapse = "; ")),
-  estimands = c(paste(unique(ml$contrast), collapse = "; "), paste(unique(pw$estimand), collapse = "; ")),
-  package_commit = c(ml_run$git_commit, pw_run$git_commit),
-  r_version = c(ml_run$r_version, pw_run$r_version),
-  started = c(ml_run$started, pw_run$started),
-  finished = c(ml_run$finished, pw_run$finished),
+  methods = c(paste(unique(ml$method), collapse = "; "), paste(unique(pw$test), collapse = "; "),
+              "plan_solomon() analytic plans; GLM (HC3, t)"),
+  estimands = c(paste(unique(ml$contrast), collapse = "; "), paste(unique(pw$estimand), collapse = "; "),
+                paste(unique(pl$estimand), collapse = "; ")),
+  package_commit = c(ml_run$git_commit, pw_run$git_commit, pl_run$git_commit),
+  r_version = c(ml_run$r_version, pw_run$r_version, pl_run$r_version),
+  started = c(ml_run$started, pw_run$started, pl_run$started),
+  finished = c(ml_run$finished, pw_run$finished, pl_run$finished),
   failed_fits = c(sum(ml$n_failed[ml$contrast == ml$contrast[1]]),
-                  sum(pw$failures[pw$test == pw$test[1] & pw$estimand == pw$estimand[1]])),
+                  sum(pw$failures[pw$test == pw$test[1] & pw$estimand == pw$estimand[1]]),
+                  sum(pl$failures)),
   stringsAsFactors = FALSE
 )
 
