@@ -471,9 +471,13 @@ Partial invariance workflows are not yet automated.
 
 ### Power
 
-The current power-simulation helper is **experimental**, warns when it
-is called, and should not be used for study planning. A redesigned and
-validated Solomon-specific planning framework is scheduled for v0.4.0.
+[`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+reports the rejection rate of each Solomon test with its Monte Carlo
+standard error, and a pre-specified simulation study validated it
+against normal-theory benchmarks. With 20 or fewer participants per cell
+its GLM-based figures are conservative, because the package’s default
+HC3 standard errors are conservative there. Sample-size planning
+(`plan_solomon()`) is scheduled for v0.4.0.
 
 ------------------------------------------------------------------------
 
@@ -648,7 +652,7 @@ Check design coding, cell structure, and missingness before analysis.
 - [`check_solomon_assumptions()`](https://juhalt.github.io/solomonR/reference/check_solomon_assumptions.md)
   : Descriptive assumption diagnostics for Solomon analyses
 - [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
-  : Power simulation for Solomon designs (experimental)
+  : Power simulation for Solomon designs
 
 ## Plotting
 
@@ -691,3 +695,5 @@ Check design coding, cell structure, and missingness before analysis.
   Extensions](https://juhalt.github.io/solomonR/articles/solomon-methods.md):
 - [Validating fit_solomon_ml(): A Simulation
   Study](https://juhalt.github.io/solomonR/articles/ml-validation.md):
+- [Validating power_solomon(): A Simulation
+  Study](https://juhalt.github.io/solomonR/articles/power-validation.md):

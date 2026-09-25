@@ -44,6 +44,7 @@
     <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
     <li><a class="dropdown-item" href="articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -437,7 +438,7 @@
 <div class="section level3">
 <h3 id="power">Power<a class="anchor" aria-label="anchor" href="#power"></a>
 </h3>
-<p>The current power-simulation helper is <strong>experimental</strong>, warns when it is called, and should not be used for study planning. A redesigned and validated Solomon-specific planning framework is scheduled for v0.4.0.</p>
+<p><code><a href="reference/power_solomon.html">power_solomon()</a></code> reports the rejection rate of each Solomon test with its Monte Carlo standard error, and a pre-specified simulation study validated it against normal-theory benchmarks. With 20 or fewer participants per cell its GLM-based figures are conservative, because the package’s default HC3 standard errors are conservative there. Sample-size planning (<code>plan_solomon()</code>) is scheduled for v0.4.0.</p>
 <hr>
 </div>
 </div>

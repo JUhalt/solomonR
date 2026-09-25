@@ -233,7 +233,8 @@ with a warning below 40 participants per cell —
 every cell size studied.
 
 Reconcile release documentation, licensing and distribution —
-[\#12](https://github.com/JUhalt/solomonR/issues/12).
+[\#12](https://github.com/JUhalt/solomonR/issues/12). Released September
+15, 2026; R-universe serves 0.3.0 under GPL-3.
 
 ### Correctness (September 2026 review)
 
@@ -313,10 +314,14 @@ Rebuild and validate
 [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
 — [\#18](https://github.com/JUhalt/solomonR/issues/18)
 
-- Correct data-generating mechanism
-- Validate Type I error and power against analytic benchmarks, with
-  Monte Carlo standard errors
-- Validation protocol posted on the issue before implementation
+- Corrected data-generating mechanism, with rejection rates and Monte
+  Carlo standard errors per estimand
+- Validation protocol and amendment posted on the issue before
+  implementation
+- 126 scenarios and 315,000 replications: exact agreement with the
+  analytic benchmark for the 2x2 ANOVA interaction, nominal size for
+  Test I under the complete null, and no fit failures; GLM rejection
+  rates are conservative with small cells, following HC3
 
 `plan_solomon()` — [\#24](https://github.com/JUhalt/solomonR/issues/24)
 

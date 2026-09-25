@@ -18,3 +18,5 @@
   Extensions](https://juhalt.github.io/solomonR/articles/solomon-methods.md):
 - [Validating fit_solomon_ml(): A Simulation
   Study](https://juhalt.github.io/solomonR/articles/ml-validation.md):
+- [Validating power_solomon(): A Simulation
+  Study](https://juhalt.github.io/solomonR/articles/power-validation.md):

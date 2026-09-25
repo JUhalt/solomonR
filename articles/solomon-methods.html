@@ -42,6 +42,7 @@
     <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -501,10 +502,18 @@ analysis.</p>
 <div class="section level3">
 <h3 id="power-simulation">Power simulation<a class="anchor" aria-label="anchor" href="#power-simulation"></a>
 </h3>
-<p><strong>Label:</strong> solomonR extension, experimental.</p>
-<p><code><a href="../reference/power_solomon.html">power_solomon()</a></code> has not been validated and should not be
-used for study planning. A rebuilt planning framework is tracked in
-issue #18.</p>
+<p><strong>Label:</strong> solomonR extension, validated by
+simulation.</p>
+<p><code><a href="../reference/power_solomon.html">power_solomon()</a></code> reports the rejection rate of each
+Solomon test with its Monte Carlo standard error, naming the estimand
+and true effect behind every row. A pre-specified study of 126 scenarios
+found that the 2x2 ANOVA interaction matched its analytic benchmark in
+every scenario, that the historical Test I held its nominal size under
+the complete null, and that no fit failed. Rejection rates for the GLM
+tests are conservative with small cells, following the HC3 standard
+errors used by default, so treat them as a lower bound with 20 or fewer
+participants per cell. The article “Validating power_solomon()” reports
+the study in full, and sample-size planning is tracked in issue #24.</p>
 </div>
 </div>
 <div class="section level2">

@@ -2,6 +2,31 @@
 
 ## solomonR (development version)
 
+### Power simulation rebuilt and validated ([\#18](https://github.com/JUhalt/solomonR/issues/18))
+
+- [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+  is rebuilt. It reports the rejection rate of each Solomon test with
+  its Monte Carlo standard error, names the estimand, the test, and the
+  true effect behind every row, and gains `alpha` and `seed` arguments.
+  The global random number state is restored after use.
+- The simulator draws a latent baseline that only pretested participants
+  observe, so structural pretest absence is part of the design, and
+  `sigma` applies to every cell.
+- The experimental warning is removed. A pre-specified simulation study
+  of 126 scenarios and 315,000 replications, with the protocol and its
+  amendment posted on
+  [\#18](https://github.com/JUhalt/solomonR/issues/18) before any
+  results were examined, found exact agreement with the analytic
+  benchmark for the 2x2 ANOVA interaction, nominal size for Test I under
+  the complete null, exact scale invariance, and no fit failures.
+- Rejection rates from the unified GLM are conservative with small
+  cells, following the HC3 standard errors used by default: Type I error
+  averaged 0.041 with 10 participants per cell and 0.049 with 100. The
+  help page and the new article “Validating power_solomon()” report the
+  findings.
+- Test I rows report `NA` rather than zero power when
+  `stouffer = FALSE`.
+
 ## solomonR 0.3.0
 
 ### Inference corrections

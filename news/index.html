@@ -27,6 +27,7 @@
     <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -46,6 +47,15 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="solomonr-development-version">solomonR (development version)<a class="anchor" aria-label="anchor" href="#solomonr-development-version"></a></h2>
+<div class="section level3">
+<h3 id="power-simulation-rebuilt-and-validated-development-version">Power simulation rebuilt and validated (<a href="https://github.com/JUhalt/solomonR/issues/18" class="external-link">#18</a>)<a class="anchor" aria-label="anchor" href="#power-simulation-rebuilt-and-validated-development-version"></a></h3>
+<ul><li>
+<code><a href="../reference/power_solomon.html">power_solomon()</a></code> is rebuilt. It reports the rejection rate of each Solomon test with its Monte Carlo standard error, names the estimand, the test, and the true effect behind every row, and gains <code>alpha</code> and <code>seed</code> arguments. The global random number state is restored after use.</li>
+<li>The simulator draws a latent baseline that only pretested participants observe, so structural pretest absence is part of the design, and <code>sigma</code> applies to every cell.</li>
+<li>The experimental warning is removed. A pre-specified simulation study of 126 scenarios and 315,000 replications, with the protocol and its amendment posted on <a href="https://github.com/JUhalt/solomonR/issues/18" class="external-link">#18</a> before any results were examined, found exact agreement with the analytic benchmark for the 2x2 ANOVA interaction, nominal size for Test I under the complete null, exact scale invariance, and no fit failures.</li>
+<li>Rejection rates from the unified GLM are conservative with small cells, following the HC3 standard errors used by default: Type I error averaged 0.041 with 10 participants per cell and 0.049 with 100. The help page and the new article “Validating power_solomon()” report the findings.</li>
+<li>Test I rows report <code>NA</code> rather than zero power when <code>stouffer = FALSE</code>.</li>
+</ul></div>
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="solomonr-030">solomonR 0.3.0<a class="anchor" aria-label="anchor" href="#solomonr-030"></a></h2>

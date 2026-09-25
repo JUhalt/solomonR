@@ -286,11 +286,19 @@ check the design before analysis.
 
 ### Power simulation
 
-**Label:** solomonR extension, experimental.
+**Label:** solomonR extension, validated by simulation.
 
 [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
-has not been validated and should not be used for study planning. A
-rebuilt planning framework is tracked in issue \#18.
+reports the rejection rate of each Solomon test with its Monte Carlo
+standard error, naming the estimand and true effect behind every row. A
+pre-specified study of 126 scenarios found that the 2x2 ANOVA
+interaction matched its analytic benchmark in every scenario, that the
+historical Test I held its nominal size under the complete null, and
+that no fit failed. Rejection rates for the GLM tests are conservative
+with small cells, following the HC3 standard errors used by default, so
+treat them as a lower bound with 20 or fewer participants per cell. The
+article “Validating power_solomon()” reports the study in full, and
+sample-size planning is tracked in issue \#24.
 
 ## Summary
 
