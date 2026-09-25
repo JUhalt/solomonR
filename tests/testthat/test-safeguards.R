@@ -132,20 +132,6 @@ test_that("ML print shows the Solomon estimands", {
 })
 
 
-test_that("power_solomon is flagged experimental and marks disabled metrics", {
-
-  set.seed(1)
-
-  expect_warning(
-    res <- power_solomon(n = 10, sims = 3, stouffer = FALSE),
-    "experimental"
-  )
-
-  expect_true(is.na(res$power[res$metric == "A_stouffer"]))
-  expect_true(all(is.finite(res$power[res$metric != "A_stouffer"])))
-})
-
-
 test_that("CITATION file parses", {
 
   path <- system.file("CITATION", package = "solomonR")

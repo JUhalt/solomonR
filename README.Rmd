@@ -470,9 +470,12 @@ Partial invariance workflows are not yet automated.
 
 ### Power
 
-The current power-simulation helper is **experimental**, warns when it is
-called, and should not be used for study planning. A redesigned and
-validated Solomon-specific planning framework is scheduled for v0.4.0.
+`power_solomon()` reports the rejection rate of each Solomon test with its
+Monte Carlo standard error, and a pre-specified simulation study validated it
+against normal-theory benchmarks. With 20 or fewer participants per cell its
+GLM-based figures are conservative, because the package's default HC3
+standard errors are conservative there. Sample-size planning
+(`plan_solomon()`) is scheduled for v0.4.0.
 
 ---
 

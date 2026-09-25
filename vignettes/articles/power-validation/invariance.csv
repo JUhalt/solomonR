@@ -1,0 +1,7 @@
+"estimand","test","power_sigma_1","power_sigma_2","difference","mcse"
+"ATE (avg over pretest)","GLM (HC3, t)",0.96375,0.96375,0,0.00417947
+"Pretest x Treatment","GLM (HC3, t)",0.13575,0.13575,0,0.00765904
+"Treatment | pretested","GLM (HC3, t)",0.9375,0.9375,0,0.00541266
+"Treatment | unpretested","GLM (HC3, t)",0.45475,0.45475,0,0.0111345
+"Pretest x Treatment","2x2 ANOVA interaction",0.1335,0.1335,0,0.00760519
+"Treatment (one-sided)","Test I (Braver & Braver, 1988)",0.98575,0.98575,0,0.00265018

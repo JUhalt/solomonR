@@ -1,0 +1,2 @@
+"sims_null","sims_alternative","base_seed","alpha","sigma","workers","scenarios","git_commit","r_version","started","finished","failures"
+5000,2000,20260916,0.05,1,11,126,"2a944c8 plus #18 rebuild (solomon_power.R md5 180d6330d91d)","4.6.1","2026-09-16 06:15:24","2026-09-16 06:47:50",0
