@@ -1,5 +1,23 @@
 # solomonR (development version)
 
+## Design, change, and historical-path figures (#25, #28, #29)
+
+* New `plot_solomon_design()` draws the four-group design in Campbell and
+  Stanley's (1963) notation. Without data it gives the teaching schematic;
+  with data or a GLM fit it labels each group with its size and posttest
+  mean and flags empty or sparse groups, using the rule in
+  `validate_solomon()`.
+* New `plot_solomon_change()` shows pretest-to-posttest change for the
+  pretested groups, with t intervals, beside posttest means for the
+  unpretested groups, which are labeled as unpretested by design.
+  Pretested participants with incidentally missing pretests are excluded
+  from the trajectories and counted in the caption, never imputed.
+* New `plot_classic_flow()` draws the historical Tests A-I sequence as a
+  decision tree. Given a `fit_solomon_classic()` result, it highlights the
+  path taken with each test's p-value. Every version carries the caution
+  that the conditional sequence inflates Type I error (Sawilowsky et al.,
+  1994).
+
 ## Pretest sensitization figure (#26)
 
 * New `plot_sensitization()` draws the Pretest x Treatment interaction as

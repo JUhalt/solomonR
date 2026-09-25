@@ -184,7 +184,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Simulation validation and a sma
 data collection begins.
 
 ### Visualization
-- [ ] `plot_solomon_design()` — [#25](https://github.com/JUhalt/solomonR/issues/25)
+- [x] `plot_solomon_design()` — [#25](https://github.com/JUhalt/solomonR/issues/25)
   - Solomon four-group design schematic
   - Optional cell N / means
 
@@ -195,10 +195,10 @@ data collection begins.
 - [x] `plot_solomon_effects()` — [#27](https://github.com/JUhalt/solomonR/issues/27)
   - Forest plot of ATE, simple treatment effects, and sensitization
 
-- [ ] `plot_solomon_change()` — [#28](https://github.com/JUhalt/solomonR/issues/28)
+- [x] `plot_solomon_change()` — [#28](https://github.com/JUhalt/solomonR/issues/28)
   - Pre/post trajectories for pretested groups
 
-- [ ] `plot_classic_flow()` — [#29](https://github.com/JUhalt/solomonR/issues/29)
+- [x] `plot_classic_flow()` — [#29](https://github.com/JUhalt/solomonR/issues/29)
   - Historical decision tree
   - Optionally highlight the path taken by a fitted dataset
 
