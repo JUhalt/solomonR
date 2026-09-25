@@ -7,7 +7,7 @@
 plot_sensitization(fit, bounds = NULL, alpha = 0.05, show_observed = TRUE)
 }
 \arguments{
-\item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
+\item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}.}
 
 \item{bounds}{Optional equivalence bounds for the sensitization contrast,
 as one positive number or \code{c(lower, upper)}. When supplied, the caption
@@ -31,27 +31,43 @@ appears as lines that are not parallel.
 }
 \details{
 The treatment effect among pretested participants is adjusted for the
-pretest, so the sensitization contrast \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} reports is not
-the difference of differences among raw cell means. The figure therefore
-draws model-adjusted means: pretested groups are evaluated at the mean
-pretest score among pretested participants (the usual ANCOVA adjusted
-mean), unpretested groups without a pretest, and any covariates at their
-sample means. Because the model has no treatment-by-pretest-score term, the
-difference of differences among these adjusted means equals the fitted
-Pretest x Treatment estimate exactly. Observed cell means are shown as
-hollow points for comparison.
+pretest, so the sensitization contrast reported by \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or
+\code{\link[=fit_solomon_ml]{fit_solomon_ml()}} is not the difference of differences among raw cell
+means. The figure therefore draws model-adjusted means: pretested groups
+are evaluated at the mean pretest score among pretested participants (the
+usual ANCOVA adjusted mean), unpretested groups without a pretest, and any
+covariates at their sample means. Because neither model has a
+treatment-by-pretest-score term, the difference of differences among these
+adjusted means equals the fitted Pretest x Treatment estimate exactly.
+Observed cell means are shown as hollow points for comparison.
 
-Intervals for the adjusted means use the fitted covariance matrix and
-reference distribution: t with residual degrees of freedom, Satterthwaite t
-for CR2, or the normal distribution for binomial and Poisson models, whose
-means are shown on the link scale. The sensitization estimate and interval
-in the subtitle are taken unchanged from the fit.
+Intervals for the adjusted means use the fit's own covariance matrix and
+reference distribution:
+\itemize{
+\item for \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, t with residual degrees of freedom, Satterthwaite
+t for CR2, or the normal distribution for binomial and Poisson models,
+whose means are shown on the link scale;
+\item for \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, the normal distribution under the default Wald
+inference (van Engelenburg, 1999), or Welch-Satterthwaite t under
+\code{inference = "satterthwaite"}.
+}
+
+The sensitization estimate and interval in the subtitle are taken unchanged
+from the fit.
 }
 \examples{
 fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 plot_sensitization(fit)
 plot_sensitization(fit, bounds = 5)
 
+ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
+                                           inference = "satterthwaite"))
+plot_sensitization(ml)
+
+}
+\references{
+van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
+design} (Research Report 99-06). University of Twente.
 }
 \seealso{
 \code{\link[=equivalence_solomon]{equivalence_solomon()}}, \code{\link[=plot_solomon_effects]{plot_solomon_effects()}}

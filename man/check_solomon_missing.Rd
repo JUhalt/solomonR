@@ -77,25 +77,26 @@ with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
 \references{
 Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 Planned missing data designs in psychological research. \emph{Psychological
-Methods, 11}(4), 323-343.
+Methods, 11}(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
 
 Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R.,
 Altman, D. G., & Moons, K. G. M. (2012). Missing covariate data in clinical
-research: When and when not to use the missing-indicator method for
-analysis. \emph{Canadian Medical Association Journal, 184}(11), 1265-1269.
+research: When and when not to use the missing-indicator method for analysis.
+\emph{Canadian Medical Association Journal, 184}(11), 1265–1269.
+https://doi.org/10.1503/cmaj.110977
 
 Little, R. J. A., & Rubin, D. B. (2019). \emph{Statistical analysis with missing
-data} (3rd ed.). Wiley.
+data} (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
 
 Rubin, D. B. (1976). Inference and missing data. \emph{Biometrika, 63}(3),
-581-592.
+581–592. https://doi.org/10.1093/biomet/63.3.581
 
-Solomon, R. L. (1949). An extension of control group design.
-\emph{Psychological Bulletin, 46}(2), 137-150.
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
-baseline measurements in randomized trials. \emph{Statistics in Medicine,
-24}(7), 993-1007.
+baseline measurements in randomized trials. \emph{Statistics in Medicine, 24}(7),
+993–1007. https://doi.org/10.1002/sim.1981
 }
 \seealso{
 \code{\link[=validate_solomon]{validate_solomon()}}

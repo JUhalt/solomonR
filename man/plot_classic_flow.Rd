@@ -19,8 +19,8 @@ Draws the conditional Tests A-I sequence implemented in
 interaction) decides the branch. If it is significant, Tests B and C
 examine the treatment effect within each pretest condition. If not, Test D
 examines the treatment main effect, followed if necessary by the selected
-pretested-groups test (E, F, or G), Test H, and finally Test I, the Braver
-and Braver (1988) Stouffer combination.
+pretested-groups test (E, F, or G), Test H, and finally Test I, the
+Walton Braver and Braver (1988) Stouffer combination.
 }
 \details{
 Given a fitted classic analysis, the tests it visited are highlighted with
@@ -39,11 +39,11 @@ plot_classic_flow(classic)
 
 }
 \references{
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the Solomon
-four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
-104}(1), 150-154.
-
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-Meta-analysis and the Solomon four-group design. \emph{The Journal of
-Experimental Education, 62}(4), 361-376.
+Meta-analysis and the Solomon four-group design. \emph{The Journal of Experimental
+Education, 62}(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
+104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 }

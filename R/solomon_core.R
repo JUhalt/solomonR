@@ -13,30 +13,30 @@
 #' and modern inference.
 #'
 #' Key historical references include Huck & Sandler (1973),
-#' Braver & Braver (1988), the Sawilowsky and Markman methodological
+#' Walton Braver & Braver (1988), the Sawilowsky and Markman methodological
 #' exchanges, and van Engelenburg (1999).
 #'
 #' @references
-#' Solomon, R. L. (1949). An extension of control group design.
-#' *Psychological Bulletin, 46*(2), 137-150.
-#'
 #' Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally.
 #'
-#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-#' design: Appropriate statistical analyses. *The Journal of Experimental
-#' Education, 42*(2), 54-55.
-#'
-#' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-#' Solomon four-group design: A meta-analytic approach. *Psychological
-#' Bulletin, 104*(1), 150-154.
+#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+#' Appropriate statistical analyses. *The Journal of Experimental Education,
+#' 42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
 #'
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-#' Meta-analysis and the Solomon four-group design. *The Journal of
-#' Experimental Education, 62*(4), 361-376.
+#' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
+#' Education, 62*(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
 #'
-#' van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-#' four-group design* (Research Report 99-06). University of Twente.
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+#'
+#' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
+#' design* (Research Report 99-06). University of Twente.
+#'
+#' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+#' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
+#' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 #'
 #' @keywords Solomon four-group ANCOVA permutation maximum-likelihood SEM
 #' @name solomonR
@@ -48,34 +48,34 @@ NULL
 #' @param p numeric vector of p-values assumed one-tailed and aligned in the same direction
 #' @return numeric Z-scores
 #' @references
-#' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
-#' Williams, R. M., Jr. (1949). *The American soldier: Adjustment during
-#' army life* (Vol. 1). Princeton University Press.
+#' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams, R.
+#' M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol. 1).
+#' Princeton University Press.
 #' @export
 p_to_z <- function(p) {
   stats::qnorm(1 - p)
 }
 
-#' Stouffer's Z combiner (Braver & Braver, 1988, Test I)
+#' Stouffer's Z combiner (Walton Braver & Braver, 1988, Test I)
 #'
 #' Combine one-tailed p-values that test the *same directional* hypothesis into
-#' a single Z. This is provided to reproduce the Braver & Braver (1988)
+#' a single Z. This is provided to reproduce the Walton Braver & Braver (1988)
 #' meta-analytic option (Test I) for the Solomon four-group design. Use cautiously and document assumptions about homogeneity; see
 #' the 1988–1990 exchanges for caveats.
 #' @param p numeric vector of one-tailed p-values (same direction)
 #' @return list with z_meta and p_meta (one-tailed)
 #' @references
-#' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
-#' Williams, R. M., Jr. (1949). *The American soldier: Adjustment during
-#' army life* (Vol. 1). Princeton University Press.
-#'
-#' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-#' Solomon four-group design: A meta-analytic approach. *Psychological
-#' Bulletin, 104*(1), 150-154.
-#'
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-#' Meta-analysis and the Solomon four-group design. *The Journal of
-#' Experimental Education, 62*(4), 361-376.
+#' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
+#' Education, 62*(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
+#'
+#' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams, R.
+#' M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol. 1).
+#' Princeton University Press.
+#'
+#' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+#' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
+#' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 #' @examples
 #' stouffer_solomon(c(0.10, 0.11))
 #' @export
@@ -143,7 +143,12 @@ stouffer_solomon <- function(p) {
 #' @param pretest_score numeric vector for those pretested; NA for others
 #' @param covariates optional data.frame of additional covariates
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
-#' @param cluster optional clustering id (e.g., class/site), one value per participant
+#' @param cluster optional clustering id (e.g., class/site), one value per
+#'   participant. CR2 fits refuse designs in which a Solomon cell contains a
+#'   single cluster, because cluster and condition are then confounded; see
+#'   [validate_solomon()]. A classed warning (`solomonR_small_df_warning`)
+#'   flags Solomon contrasts whose Satterthwaite degrees of freedom are below
+#'   4, where Tipton (2015) advises that p-values not be trusted.
 #' @param family model family (default gaussian())
 #' @param conf_level confidence level for intervals (default 0.95)
 #' @return An object of class `solomon_glm`: a list with the fitted model,
@@ -151,46 +156,53 @@ stouffer_solomon <- function(p) {
 #'   confidence limits `conf.low` and `conf.high`), the covariance matrix,
 #'   and the settings used.
 #' @references
-#' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
-#' for linear regression with multi-stage samples. *Survey Methodology,
-#' 28*(2), 169-181.
+#' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
+#' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
+#' 169–181.
 #'
-#' Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
-#' standard error estimators in OLS regression: An introduction and software
-#' implementation. *Behavior Research Methods, 39*(4), 709-722.
+#' Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
+#' error estimators in OLS regression: An introduction and software
+#' implementation. *Behavior Research Methods, 39*(4), 709–722.
+#' https://doi.org/10.3758/BF03192961
 #'
-#' Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
-#' samples: Some practical advice. *The Review of Economics and Statistics,
-#' 98*(4), 701-712.
+#' Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small samples:
+#' Some practical advice. *The Review of Economics and Statistics, 98*(4),
+#' 701–712. https://doi.org/10.1162/REST_a_00552
 #'
 #' Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 #' data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
-#' 7*(1), 295-318.
+#' 7*(1), 295–318. https://doi.org/10.1214/12-AOAS583
 #'
 #' Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
-#' standard errors in the linear regression model. *The American
-#' Statistician, 54*(3), 217-224.
+#' standard errors in the linear regression model. *The American Statistician,
+#' 54*(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
 #'
 #' MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
-#' covariance matrix estimators with improved finite sample properties.
-#' *Journal of Econometrics, 29*(3), 305-325.
+#' covariance matrix estimators with improved finite sample properties. *Journal
+#' of Econometrics, 29*(3), 305–325.
+#' https://doi.org/10.1016/0304-4076(85)90158-7
 #'
 #' Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
-#' cluster-robust variance estimation and hypothesis testing in fixed
-#' effects models. *Journal of Business & Economic Statistics, 36*(4),
-#' 672-683.
+#' cluster-robust variance estimation and hypothesis testing in fixed effects
+#' models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
+#' https://doi.org/10.1080/07350015.2016.1247004
 #'
 #' Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
 #' guide to statistical inference in linear modeling for non-normal or
 #' heteroskedastic error distributions. *Behavior Research Methods, 57*(12),
-#' Article 338.
+#' Article 338. https://doi.org/10.3758/s13428-025-02801-4
 #'
-#' Solomon, R. L. (1949). An extension of control group design.
-#' *Psychological Bulletin, 46*(2), 137-150.
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 #'
 #' Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 #' and tests of close fit in the analysis of variance and contrast analysis.
-#' *Psychological Methods, 9*(2), 164-182.
+#' *Psychological Methods, 9*(2), 164–182.
+#' https://doi.org/10.1037/1082-989X.9.2.164
+#'
+#' Tipton, E. (2015). Small sample adjustments for robust variance estimation
+#' with meta-regression. *Psychological Methods, 20*(3), 375–393.
+#' https://doi.org/10.1037/met0000011
 #' @export
 fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
@@ -266,6 +278,10 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     cluster_fit <- cluster[used]
     if (anyNA(cluster_fit)) {
       stop("`cluster` is missing for participants included in the model.", call. = FALSE)
+    }
+    single <- .cluster_structure(df$treat[used], df$pretested[used], cluster_fit)$single_cluster
+    if (length(single)) {
+      .stop_confounded_clusters(single)
     }
 
     # clubSandwich cannot use the NA-padded residuals of an na.exclude fit,
@@ -453,6 +469,13 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     stringsAsFactors = FALSE
   )
 
+  if (robust == "CR2") {
+    small_df <- is.finite(effects$df) & effects$df < 4
+    if (any(small_df)) {
+      .warn_cr2_small_df(effects$contrast[small_df], effects$df[small_df])
+    }
+  }
+
   out <- list(
     model = fit,
     coefficients = tidy,
@@ -511,17 +534,18 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 #'
 #' @references
 #' DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
-#' correlation and regression coefficients. *Journal of the American
-#' Statistical Association, 112*(519), 1211-1220.
+#' correlation and regression coefficients. *Journal of the American Statistical
+#' Association, 112*(519), 1211–1220.
+#' https://doi.org/10.1080/01621459.2016.1202117
 #'
 #' Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 #' zero: Calculating exact p-values when permutations are randomly drawn.
 #' *Statistical Applications in Genetics and Molecular Biology, 9*(1),
-#' Article 39.
+#' Article 39. https://doi.org/10.2202/1544-6115.1585
 #'
-#' Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses
-#' in randomized experiments. *Journal of the American Statistical
-#' Association, 116*(536), 1898-1913.
+#' Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in
+#' randomized experiments. *Journal of the American Statistical Association,
+#' 116*(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415
 #'
 #' @export
 perm_solomon <- function(

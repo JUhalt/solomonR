@@ -1,0 +1,400 @@
+---
+title: "References and the Solomon Literature"
+description: >
+  Every source solomonR draws on, in APA Style (7th ed.), with a note on what
+  each Solomon-design work contributes and where the package uses it.
+---
+
+solomonR attributes every procedure it implements to its published source.
+This page is the package's canonical reference list: each reference in the
+help pages and articles is written exactly as it appears here, in APA Style
+(7th ed.), with DOIs verified against Crossref.
+
+The first list is the literature on the Solomon design itself, each entry
+followed by a note on what the work contributes and where solomonR uses it.
+The second list holds the general methods references cited in the
+documentation. To cite solomonR, run `citation("solomonR")`, and cite the
+methods you used from the lists below.
+
+## The Solomon design literature
+
+Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+four-group designs reconsidered: A reply to Sawilowsky and Markman.
+*Perceptual and Motor Skills, 71*(1), 321–322.
+https://doi.org/10.2466/pms.1990.71.1.321
+
+> The authors' reply to Sawilowsky and Markman (1990a). It amends the 1988
+> decision flow: once Tests A and D are nonsignificant, all tests through
+> Test I are carried out. *In solomonR:* the 1990 flow version (planned,
+> [#50](https://github.com/JUhalt/solomonR/issues/50)).
+
+Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
+quasi-experimental designs for research*. Rand McNally.
+
+> Places the Solomon design among experimental designs, names pretest
+> reactivity as a threat to external validity, and recommends a 2 x 2
+> analysis of posttest scores. *In solomonR:* Tests A–D of
+> `fit_solomon_classic()`; `plot_solomon_design()`.
+
+Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
+designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
+Publications. https://doi.org/10.4135/9781071802779
+
+> Chapter 6 (pp. 93–101) describes Solomon four-, six-, and eight-group
+> designs with published examples. *In solomonR:* Solomon N-group designs
+> (planned, [#45](https://github.com/JUhalt/solomonR/issues/45)).
+
+El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
+pretest sensitisation and the cognitive acceleration through science
+education programme in the Solomon four-group design. *Brain Sciences,
+16*(1), Article 64. https://doi.org/10.3390/brainsci16010064
+
+> A recent classroom Solomon study that reports full cell statistics and a
+> sensitization effect, with one intact class per condition. *In solomonR:*
+> a benchmark for summary-statistics reanalysis and an example of
+> class–condition confounding (planned,
+> [#46](https://github.com/JUhalt/solomonR/issues/46),
+> [#53](https://github.com/JUhalt/solomonR/issues/53)).
+
+El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025b). Methodological
+aspects of the Solomon four-group design: Detecting pre-test sensitisation
+and analysing qualitative and quantitative variables in education research.
+*Review of Education, 13*(1), Article e70050.
+https://doi.org/10.1002/rev3.70050
+
+> A methodological guide to detecting pretest sensitization, including
+> categorical outcomes. *In solomonR:* the historical categorical path for
+> binary outcomes (planned,
+> [#43](https://github.com/JUhalt/solomonR/issues/43)).
+
+French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
+Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
+(2021a). Reducing bias in trials due to reactions to measurement: Experts
+produced recommendations informed by evidence. *Journal of Clinical
+Epidemiology, 139*, 130–139. https://doi.org/10.1016/j.jclinepi.2021.06.028
+
+> The MERIT recommendations for recognizing and reducing bias from
+> measurement reactivity in trials, including when a Solomon design is
+> warranted. *In solomonR:* the decision article (planned,
+> [#48](https://github.com/JUhalt/solomonR/issues/48)).
+
+French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
+Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
+(2021b). Reducing bias in trials from reactions to measurement: The MERIT
+study including developmental work and expert workshop. *Health Technology
+Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550
+
+> The full MERIT report, with the evidence behind the recommendations and a
+> worked Solomon example with a binary outcome. *In solomonR:* the decision
+> article and the binary-outcome example (planned).
+
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+Appropriate statistical analyses. *The Journal of Experimental Education,
+42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
+
+> Argues that the ANCOVA on the pretested groups remains valid when
+> pretesting has a main effect, and that a significant interaction calls for
+> a posttest t test on the unpretested groups, whose result generalizes to
+> an unpretested population. *In solomonR:* Tests E and H of
+> `fit_solomon_classic()`.
+
+Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig, L.
+S. (1996). The effect of sex education on adolescents' use of condoms:
+Applying the Solomon four-group design. *Health Education Quarterly, 23*(1),
+34–47. https://doi.org/10.1177/109019819602300103
+
+> A cluster-randomized school trial in which the intervention appeared to
+> work only in combination with the pretest. *In solomonR:* the
+> binary-outcome example (planned,
+> [#43](https://github.com/JUhalt/solomonR/issues/43)).
+
+Lana, R. E. (1959). Pretest-treatment interaction effects in attitudinal
+studies. *Psychological Bulletin, 56*(4), 293–300.
+https://doi.org/10.1037/h0044646
+
+> An early review of pretest-by-treatment interaction in attitude research.
+> *In solomonR:* background for the decision article (planned).
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+> A randomized six-group Solomon design (two interventions and a control)
+> with published individual-level data. *In solomonR:* Solomon N-group
+> designs and worked examples (planned,
+> [#45](https://github.com/JUhalt/solomonR/issues/45),
+> [#54](https://github.com/JUhalt/solomonR/issues/54)).
+
+McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011). Can
+research assessments themselves cause bias in behaviour change trials? A
+systematic review of evidence from Solomon 4-group studies. *PLoS ONE,
+6*(10), Article e25223. https://doi.org/10.1371/journal.pone.0025223
+
+> A systematic review of Solomon studies with behavioral outcomes, finding
+> too little high-quality evidence to settle whether assessment effects
+> bias trials. *In solomonR:* the getting-started guide and the decision
+> article.
+
+McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+through service learning. *Journal of Management Education, 26*(6), 629–647.
+https://doi.org/10.1177/1052562902238322
+
+> A nonrandomized Solomon eight-group design crossing two interventions with
+> pretesting. *In solomonR:* examples for N-group and quasi-experimental
+> designs (planned).
+
+Morris, S. B. (2008). Estimating effect sizes from pretest-posttest-control
+group designs. *Organizational Research Methods, 11*(2), 364–386.
+https://doi.org/10.1177/1094428106291059
+
+> Compares effect sizes for pretest–posttest–control designs and recommends
+> the pooled-pretest-SD estimator. *In solomonR:* effect sizes for the
+> pretested pair (planned,
+> [#53](https://github.com/JUhalt/solomonR/issues/53)).
+
+Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
+of meta-analysis in the Solomon four-group design* [Paper presentation].
+First International Conference on Multiple Comparisons, Tel Aviv, Israel.
+http://digitalcommons.wayne.edu/coe_tbf/29
+
+> Extends the Type I error evidence on the historical test sequence to
+> nonnormal data and proposes alpha allocations to control it. *In
+> solomonR:* the replication study and alpha-allocation options (planned,
+> [#51](https://github.com/JUhalt/solomonR/issues/51)).
+
+Sawilowsky, S. S. (2000). Review of the rank transform in designed
+experiments. *Perceptual and Motor Skills, 90*(2), 489–497.
+https://doi.org/10.2466/pms.2000.90.2.489
+
+> Documents the failure of rank-transform tests for interactions. *In
+> solomonR:* why the package has no rank-transform test for sensitization;
+> its distribution-free option is randomization inference
+> (`perm_solomon()`).
+
+Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
+Meta-analysis and the Solomon four-group design. *The Journal of
+Experimental Education, 62*(4), 361–376.
+https://doi.org/10.1080/00220973.1994.9944140
+
+> A Monte Carlo study showing inflated experiment-wise Type I error for the
+> meta-analytic test sequence. *In solomonR:* the caution printed with Test
+> I and the methods guide.
+
+Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power of
+meta-analysis in the Solomon four-group design. *Perceptual and Motor
+Skills, 71*(1), 177–178. https://doi.org/10.2466/pms.1990.71.1.177
+
+> A counterexample in which Test I misses an effect that a constituent test
+> detects. *In solomonR:* the history article (planned).
+
+Sawilowsky, S. S., & Markman, B. S. (1990b). Rejoinder to Braver and Walton
+Braver. *Perceptual and Motor Skills, 71*(2), 424–426.
+https://doi.org/10.2466/pms.1990.71.2.424
+
+> Continues the exchange and calls for systematic study of the procedure.
+> *In solomonR:* the history and decision articles (planned).
+
+Solomon, R. L. (1949). An extension of control group design. *Psychological
+Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+
+> Introduces the four-group design to separate pretest effects from
+> treatment effects. *In solomonR:* the design itself; every estimand.
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+
+> Cited by Edmonds and Kennedy (2017) for analyses of four-, six-, and
+> eight-group designs. Not yet reviewed for solomonR
+> ([#45](https://github.com/JUhalt/solomonR/issues/45)).
+
+van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
+design* (Research Report 99-06). University of Twente.
+
+> Proposes full-information maximum likelihood for the Solomon design,
+> treating the absent pretests as structurally missing. *In solomonR:*
+> `fit_solomon_ml()`.
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
+
+> Proposes the Test A–I decision flow ending in a meta-analytic combination
+> of the pretested and unpretested comparisons. *In solomonR:*
+> `fit_solomon_classic()`, `plot_classic_flow()`, and `stouffer_solomon()`.
+
+Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
+sensitization effects in experimental design. *American Educational Research
+Journal, 19*(2), 249–258. https://doi.org/10.3102/00028312019002249
+
+> A meta-analysis of pretest effects and pretest-by-treatment interactions.
+> *In solomonR:* planning values (planned,
+> [#49](https://github.com/JUhalt/solomonR/issues/49)).
+
+## Methods references
+
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
+for linear regression with multi-stage samples. *Survey Methodology, 28*(2),
+169–181.
+
+Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
+variances. *Journal of the American Statistical Association, 69*(346),
+364–367. https://doi.org/10.1080/01621459.1974.10482955
+
+Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
+calculation of confidence intervals that are based on central and noncentral
+distributions. *Educational and Psychological Measurement, 61*(4), 532–574.
+https://doi.org/10.1177/00131640121971374
+
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. *Biometrical Journal, 63*(3),
+528–557. https://doi.org/10.1002/bimj.201900297
+
+DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
+correlation and regression coefficients. *Journal of the American
+Statistical Association, 112*(519), 1211–1220.
+https://doi.org/10.1080/01621459.2016.1202117
+
+Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
+Planned missing data designs in psychological research. *Psychological
+Methods, 11*(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
+
+Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R.,
+Altman, D. G., & Moons, K. G. M. (2012). Missing covariate data in clinical
+research: When and when not to use the missing-indicator method for
+analysis. *Canadian Medical Association Journal, 184*(11), 1265–1269.
+https://doi.org/10.1503/cmaj.110977
+
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
+error estimators in OLS regression: An introduction and software
+implementation. *Behavior Research Methods, 39*(4), 709–722.
+https://doi.org/10.3758/BF03192961
+
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd ed.).
+Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+
+Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
+size and related estimators. *Journal of Educational Statistics, 6*(2),
+107–128. https://doi.org/10.3102/10769986006002107
+
+Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
+samples: Some practical advice. *The Review of Economics and Statistics,
+98*(4), 701–712. https://doi.org/10.1162/REST_a_00552
+
+Kelley, K. (2007). Confidence intervals for standardized effect sizes:
+Theory, application, and implementation. *Journal of Statistical Software,
+20*(8), 1–24. https://doi.org/10.18637/jss.v020.i08
+
+Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
+correlations, and meta-analyses. *Social Psychological and Personality
+Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177
+
+Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing for
+psychological research: A tutorial. *Advances in Methods and Practices in
+Psychological Science, 1*(2), 259–269.
+https://doi.org/10.1177/2515245918770963
+
+Lin, W. (2013). Agnostic notes on regression adjustments to experimental
+data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
+7*(1), 295–318. https://doi.org/10.1214/12-AOAS583
+
+Little, R. J. A., & Rubin, D. B. (2019). *Statistical analysis with missing
+data* (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
+
+Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+standard errors in the linear regression model. *The American Statistician,
+54*(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
+
+Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your estimand?
+Defining the target quantity connects statistical evidence to theory.
+*American Sociological Review, 86*(3), 532–565.
+https://doi.org/10.1177/00031224211004187
+
+MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+covariance matrix estimators with improved finite sample properties.
+*Journal of Econometrics, 29*(3), 305–325.
+https://doi.org/10.1016/0304-4076(85)90158-7
+
+Meredith, W. (1993). Measurement invariance, factor analysis and factorial
+invariance. *Psychometrika, 58*(4), 525–543.
+https://doi.org/10.1007/BF02294825
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086
+
+Murphy, K. R., & Myors, B. (1999). Testing the hypothesis that treatments
+have negligible effects: Minimum-effect tests in the general linear model.
+*Journal of Applied Psychology, 84*(2), 234–248.
+https://doi.org/10.1037/0021-9010.84.2.234
+
+Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
+zero: Calculating exact p-values when permutations are randomly drawn.
+*Statistical Applications in Genetics and Molecular Biology, 9*(1),
+Article 39. https://doi.org/10.2202/1544-6115.1585
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed effects
+models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
+https://doi.org/10.1080/07350015.2016.1247004
+
+Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
+guide to statistical inference in linear modeling for non-normal or
+heteroskedastic error distributions. *Behavior Research Methods, 57*(12),
+Article 338. https://doi.org/10.3758/s13428-025-02801-4
+
+Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
+*Journal of Statistical Software, 48*(2), 1–36.
+https://doi.org/10.18637/jss.v048.i02
+
+Rubin, D. B. (1976). Inference and missing data. *Biometrika, 63*(3),
+581–592. https://doi.org/10.1093/biomet/63.3.581
+
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+https://doi.org/10.2307/3002019
+
+Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
+and the power approach for assessing the equivalence of average
+bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics, 15*(6),
+657–680. https://doi.org/10.1007/BF01068419
+
+Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
+and tests of close fit in the analysis of variance and contrast analysis.
+*Psychological Methods, 9*(2), 164–182.
+https://doi.org/10.1037/1082-989X.9.2.164
+
+Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams,
+R. M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol.
+1). Princeton University Press.
+
+Tipton, E. (2015). Small sample adjustments for robust variance estimation
+with meta-regression. *Psychological Methods, 20*(3), 375–393.
+https://doi.org/10.1037/met0000011
+
+Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had more
+power in randomized studies and more bias in nonrandomized studies. *Journal
+of Clinical Epidemiology, 59*(9), 920–925.
+https://doi.org/10.1016/j.jclinepi.2006.02.007
+
+Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
+measurement invariance literature: Suggestions, practices, and
+recommendations for organizational research. *Organizational Research
+Methods, 3*(1), 4–70. https://doi.org/10.1177/109442810031002
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. *Biometrika, 34*(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
+
+White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
+baseline measurements in randomized trials. *Statistics in Medicine, 24*(7),
+993–1007. https://doi.org/10.1002/sim.1981
+
+Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in
+randomized experiments. *Journal of the American Statistical Association,
+116*(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415
+
+Zimmerman, D. W. (2004). A note on preliminary tests of equality of
+variances. *British Journal of Mathematical and Statistical Psychology,
+57*(1), 173–181. https://doi.org/10.1348/000711004849222

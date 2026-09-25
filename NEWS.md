@@ -1,5 +1,57 @@
 # solomonR (development version)
 
+## Clustered designs (#46)
+
+* `validate_solomon()` gains a `cluster` argument. It reports the number of
+  clusters and cluster sizes in each cell, and whether treatment and
+  pretesting were assigned to whole clusters or within them. A cell made up
+  of a single cluster is an error, because cluster and condition are then
+  completely confounded, as when each Solomon condition is one intact class.
+* `fit_solomon_glm(robust = "CR2")` refuses such designs with a classed
+  error (`solomonR_confounded_clusters`) instead of reporting cluster-robust
+  standard errors that cannot be estimated.
+* When whole clusters are randomized, a cell with two or three clusters is a
+  warning, following the rule of thumb that four clusters per arm is an
+  absolute minimum (Hayes & Moulton, 2017, p. 128).
+* CR2 fits give a classed warning (`solomonR_small_df_warning`) when a
+  Solomon contrast has Satterthwaite degrees of freedom below 4, where Tipton
+  (2015) advises that p-values not be trusted.
+
+## Sensitization figure for maximum-likelihood fits (#47)
+
+* `plot_sensitization()` now accepts `fit_solomon_ml()` fits. Intervals for
+  the adjusted cell means use the fit's own inference: the normal reference
+  under the default Wald inference, or Welch-Satterthwaite t under
+  `inference = "satterthwaite"`. `fit_solomon_ml()` now stores what those
+  intervals need; its estimates, standard errors, and intervals are
+  unchanged.
+* The figure's caption now puts the adjustment and the interval method on
+  separate lines, so it is no longer cut off at common figure widths.
+
+## Attribution (#42)
+
+* Every reference is now in APA Style (7th ed.) with its DOI, verified
+  against Crossref, and a new "References and the Solomon Literature" article
+  is the package's canonical reference list. It adds the Solomon literature
+  the package draws on or plans to, each with a note on its contribution.
+* Corrected the attribution of the 1988 meta-analytic procedure (Test I) to
+  Walton Braver and Braver (1988), as the authors cite their own article.
+  Earlier documentation and output wrote "Braver & Braver (1988)" and
+  "Braver, M. W.". Printed labels change accordingly, including the `test`
+  column of `power_solomon()` and the committed validation tables; no
+  numeric result changes.
+* The roadmap and README now link each planned item to its issue, with a new
+  v0.7.0 milestone for longitudinal and quasi-experimental designs.
+
+## Validation evidence
+
+* The "Validation Evidence" article and its shared tables now include a
+  re-simulation check of `plan_solomon()` (#24). Fifty-six analytically
+  planned designs were re-simulated with the package's GLM test, with no
+  failed fits. From 30 participants per cell, 37 of 39 plans reached the 80%
+  target within 0.02, and the two exceptions were above it. A new article,
+  "Checking plan_solomon()", reports every plan.
+
 # solomonR 0.4.0
 
 ## Validation evidence in one format (#11)

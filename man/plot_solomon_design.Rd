@@ -43,6 +43,6 @@ with(solomon_example, plot_solomon_design(y_post, treat, pretested))
 Campbell, D. T., & Stanley, J. C. (1963). \emph{Experimental and
 quasi-experimental designs for research}. Rand McNally.
 
-Solomon, R. L. (1949). An extension of control group design.
-\emph{Psychological Bulletin, 46}(2), 137-150.
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 }

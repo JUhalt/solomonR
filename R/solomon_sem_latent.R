@@ -45,15 +45,17 @@
 #'   }
 #' @references
 #' Meredith, W. (1993). Measurement invariance, factor analysis and factorial
-#' invariance. *Psychometrika, 58*(4), 525-543.
+#' invariance. *Psychometrika, 58*(4), 525–543.
+#' https://doi.org/10.1007/BF02294825
 #'
-#' Rosseel, Y. (2012). lavaan: An R package for structural equation
-#' modeling. *Journal of Statistical Software, 48*(2), 1-36.
+#' Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
+#' *Journal of Statistical Software, 48*(2), 1–36.
+#' https://doi.org/10.18637/jss.v048.i02
 #'
 #' Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
 #' measurement invariance literature: Suggestions, practices, and
 #' recommendations for organizational research. *Organizational Research
-#' Methods, 3*(1), 4-70.
+#' Methods, 3*(1), 4–70. https://doi.org/10.1177/109442810031002
 #' @export
 fit_solomon_sem_latent <- function(
     data,

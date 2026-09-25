@@ -18,30 +18,30 @@ estimands, structural pretest missingness, reproducible diagnostics,
 and modern inference.
 
 Key historical references include Huck & Sandler (1973),
-Braver & Braver (1988), the Sawilowsky and Markman methodological
+Walton Braver & Braver (1988), the Sawilowsky and Markman methodological
 exchanges, and van Engelenburg (1999).
 }
 \references{
-Solomon, R. L. (1949). An extension of control group design.
-\emph{Psychological Bulletin, 46}(2), 137-150.
-
 Campbell, D. T., & Stanley, J. C. (1963). \emph{Experimental and
 quasi-experimental designs for research}. Rand McNally.
 
-Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-design: Appropriate statistical analyses. \emph{The Journal of Experimental
-Education, 42}(2), 54-55.
-
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. \emph{Psychological
-Bulletin, 104}(1), 150-154.
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+Appropriate statistical analyses. \emph{The Journal of Experimental Education,
+42}(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-Meta-analysis and the Solomon four-group design. \emph{The Journal of
-Experimental Education, 62}(4), 361-376.
+Meta-analysis and the Solomon four-group design. \emph{The Journal of Experimental
+Education, 62}(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
 
-van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon
-four-group design} (Research Report 99-06). University of Twente.
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
+
+van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
+design} (Research Report 99-06). University of Twente.
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
+104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 }
 \keyword{ANCOVA}
 \keyword{SEM}

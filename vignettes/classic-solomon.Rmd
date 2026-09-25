@@ -39,7 +39,7 @@ therefore distinguishes the historical procedure from the package's
 modern model-based and randomization-based approaches.
 
 The implementation draws especially on the historical discussions of
-Huck and Sandler (1973), Braver and Braver (1988), and later simulation
+Huck and Sandler (1973), Walton Braver and Braver (1988), and later simulation
 work examining the operating characteristics of conditional Solomon
 procedures.
 
@@ -263,9 +263,9 @@ cat(
 )
 ```
 
-## Test I: Braver & Braver (1988) Stouffer combination
+## Test I: Walton Braver & Braver (1988) Stouffer combination
 
-Braver and Braver (1988) proposed combining evidence from the
+Walton Braver and Braver (1988) proposed combining evidence from the
 pretested and unpretested treatment comparisons using Stouffer's
 method.
 
@@ -344,14 +344,15 @@ while modern methods are available alongside it.
 
 ## References
 
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+Appropriate statistical analyses. *The Journal of Experimental Education,
+42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
+
+Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
+Meta-analysis and the Solomon four-group design. *The Journal of
+Experimental Education, 62*(4), 361–376.
+https://doi.org/10.1080/00220973.1994.9944140
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. *Psychological
-Bulletin, 104*, 150-154.
-
-Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-design: Appropriate statistical analyses. *The Journal of Experimental
-Education, 42*, 54-55.
-
-Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S.
-(1994). Meta-analysis and the Solomon four-group design. *The Journal
-of Experimental Education, 62*, 361-376.
+Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150

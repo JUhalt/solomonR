@@ -257,7 +257,7 @@ print.solomon_classic <- function(x, digits = 3, ...) {
 
   if (isTRUE(x$settings$combine_with_stouffer)) {
     cat(
-      "\nCaution: Test I, the Braver & Braver (1988) Stouffer combination, is\n",
+      "\nCaution: Test I, the Walton Braver & Braver (1988) Stouffer combination, is\n",
       "reproduced for historical teaching and replication. Later simulation\n",
       "work (see Sawilowsky et al., 1994) raised concerns about Type I error\n",
       "for the conditional meta-analytic sequence; it is not the default\n",

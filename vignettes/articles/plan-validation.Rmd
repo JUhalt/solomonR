@@ -1,0 +1,115 @@
+---
+title: "Checking plan_solomon(): Re-simulating Planned Designs"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+performance <- utils::read.csv("plan-validation/performance.csv", stringsAsFactors = FALSE)
+run <- utils::read.csv("plan-validation/run-information.csv", stringsAsFactors = FALSE)
+
+num <- function(x, digits = 3) formatC(x, format = "f", digits = digits)
+performance$size <- cut(performance$smallest_cell, c(0, 29, 99, Inf),
+                        labels = c("under 30", "30 to 99", "100 or more"))
+performance$within <- abs(performance$difference) <= 0.02
+```
+
+`plan_solomon()` returns the smallest design whose normal-theory power
+reaches a target. This check asks whether the package's own test, run on
+data from the returned design, actually reaches that target. The criterion
+was posted to [issue #24](https://github.com/JUhalt/solomonR/issues/24)
+before the check was run: from 30 participants per cell, re-simulated power
+should be within 0.02 of the target.
+
+## Design
+
+**Plans.** Each design came from `plan_solomon()` with a target of 80%
+power, for every estimand with a nonzero effect. That gave
+`r run$plans` plans from `r run$designs` designs, crossing these settings:
+
+- **Treatment effect among unpretested participants:** 0.3 or 0.6.
+- **Sensitization:** 0 or 0.3.
+- **Pretest-posttest correlation:** 0 or 0.5.
+- **Allocation:** equal, or 1:1:2:2 (twice as many unpretested
+  participants).
+
+**Re-simulation.** Each returned design was simulated with `power_solomon()`
+at `r format(run$sims, big.mark = ",")` replications, a Monte Carlo standard
+error (MCSE) of about 0.009 at power 0.80. The rejection rate of the unified
+GLM test with HC3 standard errors, the package default, was compared with
+the target. Fit failures were counted separately.
+
+## Results
+
+```{r by-size}
+by_size <- do.call(rbind, lapply(split(performance, performance$size), function(g) {
+  if (nrow(g) == 0) return(NULL)
+  data.frame(
+    `Smallest cell` = as.character(g$size[1]),
+    Plans = nrow(g),
+    `Mean difference from target` = sprintf("%+.3f", mean(g$difference)),
+    `Largest shortfall` = sprintf("%+.3f", min(g$difference)),
+    `Within 0.02` = sum(g$within),
+    check.names = FALSE
+  )
+}))
+knitr::kable(by_size, row.names = FALSE)
+```
+
+```{r misses}
+large <- performance[performance$smallest_cell >= 30, ]
+misses <- large[!large$within, ]
+```
+
+- **Criterion met.** From 30 participants per cell, `r sum(large$within)` of
+  `r nrow(large)` plans reached the target within 0.02.
+  `r if (nrow(misses)) sprintf("The %s outside were above the target, at %s, which is consistent with simulation error.", if (nrow(misses) == 1) "one plan" else paste(nrow(misses), "plans"), paste(num(misses$simulated_power), collapse = " and ")) else ""`
+- **Fit failures.** `r sum(performance$failures)` across all re-simulations.
+- **Small designs.** Below 30 participants per cell, analytic plans run
+  slightly short, because the HC3 standard errors the package uses are
+  conservative there. This matches the validation of `power_solomon()`. For
+  such designs, `plan_solomon(method = "simulation")` plans for the package's
+  own test directly.
+
+```{r sensitization}
+ate <- performance[performance$estimand == "ATE (avg over pretest)" & performance$sens == 0, ]
+sens <- performance[performance$estimand == "Pretest x Treatment", ]
+pairs <- merge(
+  sens[sens$delta == 0.3, c("rho", "allocation", "total_n")],
+  ate[ate$delta == 0.3, c("rho", "allocation", "total_n")],
+  by = c("rho", "allocation"), suffixes = c("_sensitization", "_ate")
+)
+pairs$ratio <- pairs$total_n_sensitization / pairs$total_n_ate
+```
+
+**The four-times-variance result, in practice.** Detecting sensitization of
+0.3 standard deviations needed between `r num(min(pairs$ratio), 2)` and
+`r num(max(pairs$ratio), 2)` times as many participants as detecting an
+average treatment effect of the same size, in line with the exact
+four-to-one variance ratio stated on `?plan_solomon`.
+
+## All plans
+
+```{r all}
+knitr::kable(
+  data.frame(
+    Estimand = performance$estimand,
+    Design = sprintf("delta %s, sens %s, rho %s, %s", performance$delta,
+                     performance$sens, performance$rho, performance$allocation),
+    `Cell sizes` = sprintf("%d/%d/%d/%d", performance$n1, performance$n2,
+                           performance$n3, performance$n4),
+    `Analytic power` = num(performance$analytic_power),
+    `Simulated power` = num(performance$simulated_power),
+    MCSE = num(performance$mcse, 4),
+    check.names = FALSE
+  )[order(performance$smallest_cell), ],
+  row.names = FALSE
+)
+```
+
+## Reproducing this check
+
+The script is `vignettes/articles/plan-validation/plan-resimulation.R` in
+the package repository. It was run at `r run$git_commit` with R
+`r run$r_version` and base seed `r run$base_seed`. The results also feed the
+shared tables on the [Validation Evidence](validation-evidence.html) page.
