@@ -156,6 +156,38 @@ tests are conservative with 20 or fewer participants per cell, following
 the HC3 standard errors the package uses by default. See the
 [full article](`r studies$article[studies$study == "power-simulation"]`).
 
+## Sample-size planning
+
+`plan_solomon()` was checked by re-simulating the designs it returns with
+the package's own GLM test. The registered criterion was that, from 30
+participants per cell, re-simulated power falls within 0.02 of the target.
+
+```{r plan}
+pl <- benchmarks[benchmarks$study == "plan-resimulation" &
+                   benchmarks$measure == "difference_from_target", ]
+cells <- sub("^.*cells=", "", pl$design)
+smallest <- vapply(strsplit(cells, "/"), function(v) min(as.integer(v)), integer(1))
+large <- smallest >= 30
+
+knitr::kable(
+  data.frame(
+    `Smallest cell` = c("30 or more", "under 30"),
+    Plans = c(sum(large), sum(!large)),
+    `Within 0.02 of the target` = c(sum(abs(pl$value[large]) <= 0.02),
+                                    sum(abs(pl$value[!large]) <= 0.02)),
+    `Mean difference` = sprintf("%+.3f", c(mean(pl$value[large]), mean(pl$value[!large]))),
+    `Failed fits` = c(sum(pl$n_failed[large]), sum(pl$n_failed[!large])),
+    check.names = FALSE
+  )
+)
+```
+
+Below 30 participants per cell, analytic plans run slightly short, following
+the HC3 conservatism found for `power_solomon()`. For small designs,
+`plan_solomon(method = "simulation")` plans for the package's own test
+directly. See the
+[full article](`r studies$article[studies$study == "plan-resimulation"]`).
+
 ## Adding a study
 
 A new study joins this page by:
@@ -164,9 +196,6 @@ A new study joins this page by:
 2. committing its script, `performance.csv`, and `run-information.csv` in a
    folder under `vignettes/articles/`;
 3. adding a section for it to `validation-evidence/build-benchmarks.R`.
-
-The re-simulation check of `plan_solomon()` (issue #24) is the next study to
-be added in this format.
 
 ## References
 

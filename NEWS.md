@@ -1,5 +1,14 @@
 # solomonR (development version)
 
+## Validation evidence
+
+* The "Validation Evidence" article and its shared tables now include a
+  re-simulation check of `plan_solomon()` (#24). Fifty-six analytically
+  planned designs were re-simulated with the package's GLM test, with no
+  failed fits. From 30 participants per cell, 37 of 39 plans reached the 80%
+  target within 0.02, and the two exceptions were above it. A new article,
+  "Checking plan_solomon()", reports every plan.
+
 # solomonR 0.4.0
 
 ## Validation evidence in one format (#11)

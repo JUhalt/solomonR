@@ -3,3 +3,4 @@
 !articles/ml-validation/*.R
 !articles/power-validation/*.R
 !articles/validation-evidence/*.R
+!articles/plan-validation/*.R
