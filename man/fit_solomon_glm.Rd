@@ -29,7 +29,10 @@ fit_solomon_glm(
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
-\item{cluster}{optional clustering id (e.g., class/site), one value per participant}
+\item{cluster}{optional clustering id (e.g., class/site), one value per
+participant. CR2 fits refuse designs in which a Solomon cell contains a
+single cluster, because cluster and condition are then confounded; see
+\code{\link[=validate_solomon]{validate_solomon()}}.}
 
 \item{family}{model family (default gaussian())}
 

@@ -20,6 +20,57 @@
   ))
 }
 
+# Variance and reference degrees of freedom for a linear combination `L` of
+# the ML parameters (a, bX, bT, bP, bTP, in that order), using the stored
+# `inference_parts` of a fit. Wald inference uses the inverse observed
+# information with a normal reference. The small-sample option adds the
+# variances from the separate unpretested and pretested regressions, with
+# Welch-Satterthwaite degrees of freedom; these reduce to the residual degrees
+# of freedom of one regression when the other contributes nothing.
+.ml_combination <- function(L, parts) {
+  L <- as.numeric(L)
+  if (identical(parts$inference, "wald")) {
+    return(c(variance = as.numeric(t(L) %*% parts$V %*% L), df = Inf))
+  }
+  c_u <- as.numeric(L %*% parts$M_u)
+  c_p <- as.numeric(L %*% parts$M_p)
+  v_u <- as.numeric(t(c_u) %*% parts$V_u %*% c_u)
+  v_p <- as.numeric(t(c_p) %*% parts$V_p %*% c_p)
+  denominator <- sum(
+    if (v_u > 0) v_u^2 / parts$df_u else 0,
+    if (v_p > 0) v_p^2 / parts$df_p else 0
+  )
+  c(variance = v_u + v_p, df = (v_u + v_p)^2 / denominator)
+}
+
+# Estimate, standard error, reference df, and interval for each row of `L`,
+# a matrix whose columns name ML parameters (unnamed parameters count as 0),
+# computed exactly as fit_solomon_ml() computes its own contrasts.
+.ml_linear_combination <- function(fit, L) {
+  if (is.null(fit$inference_parts)) {
+    stop("This fit was made by an earlier version of solomonR; refit it with ",
+         "fit_solomon_ml().", call. = FALSE)
+  }
+  b <- stats::setNames(fit$coefficients$estimate, fit$coefficients$term)
+  full <- matrix(0, nrow = nrow(L), ncol = length(b), dimnames = list(NULL, names(b)))
+  full[, colnames(L)] <- L
+
+  rows <- lapply(seq_len(nrow(full)), function(i) {
+    comb <- .ml_combination(full[i, ], fit$inference_parts)
+    estimate <- sum(full[i, ] * b)
+    std.error <- sqrt(comb[["variance"]])
+    ci <- .wald_ci(estimate, std.error, comb[["df"]], fit$conf_level)
+    data.frame(
+      estimate = estimate,
+      std.error = std.error,
+      df = comb[["df"]],
+      conf.low = unname(ci[, "conf.low"]),
+      conf.high = unname(ci[, "conf.high"])
+    )
+  })
+  do.call(rbind, rows)
+}
+
 
 #' Full-information ML analysis for a Solomon Four-Group Design
 #'
@@ -335,26 +386,19 @@ fit_solomon_ml <- function(
   # of the ML parameters
   # ----------------------------------------------------------
 
-  if (inference == "wald") {
+  # Everything needed for the variance and reference df of any linear
+  # combination of the ML parameters. It is kept in the fit so that figures
+  # use exactly the fit's inference (see .ml_combination()).
+  parts <- list(inference = inference, V = V)
 
-    combination_variance <- function(L) {
-      as.numeric(t(L) %*% V %*% L)
-    }
-
-    combination_df <- function(L) {
-      Inf
-    }
-
-  } else {
+  if (inference == "satterthwaite") {
 
     V_u <- stats::vcov(un_fit)
     V_p <- stats::vcov(pre_fit)
-    df_u <- stats::df.residual(un_fit)
-    df_p <- stats::df.residual(pre_fit)
 
     # Each ML parameter (rows: a, bX, bT, bP, bTP) as a combination of the
     # coefficients of the separate unpretested and pretested regressions.
-    M_u <- matrix(
+    parts$M_u <- matrix(
       c(1, 0,
         0, 0,
         0, 1,
@@ -364,7 +408,7 @@ fit_solomon_ml <- function(
       dimnames = list(names(b), colnames(V_u))
     )
 
-    M_p <- matrix(
+    parts$M_p <- matrix(
       c(0, 0, 0,
         0, 0, 1,
         0, 0, 0,
@@ -374,29 +418,18 @@ fit_solomon_ml <- function(
       dimnames = list(names(b), colnames(V_p))
     )
 
-    components <- function(L) {
-      c_u <- as.numeric(L %*% M_u)
-      c_p <- as.numeric(L %*% M_p)
-      c(
-        unpretested = as.numeric(t(c_u) %*% V_u %*% c_u),
-        pretested = as.numeric(t(c_p) %*% V_p %*% c_p)
-      )
-    }
+    parts$V_u <- V_u
+    parts$V_p <- V_p
+    parts$df_u <- stats::df.residual(un_fit)
+    parts$df_p <- stats::df.residual(pre_fit)
+  }
 
-    combination_variance <- function(L) {
-      sum(components(L))
-    }
+  combination_variance <- function(L) {
+    .ml_combination(L, parts)[["variance"]]
+  }
 
-    # Welch-Satterthwaite degrees of freedom; reduces to the residual
-    # degrees of freedom of one regression when the other contributes nothing.
-    combination_df <- function(L) {
-      v <- components(L)
-      denominator <- sum(
-        if (v[["unpretested"]] > 0) v[["unpretested"]]^2 / df_u else 0,
-        if (v[["pretested"]] > 0) v[["pretested"]]^2 / df_p else 0
-      )
-      sum(v)^2 / denominator
-    }
+  combination_df <- function(L) {
+    .ml_combination(L, parts)[["df"]]
   }
 
   unit <- function(name) {
@@ -504,6 +537,7 @@ fit_solomon_ml <- function(
       convergence = opt$convergence,
       optimizer = opt,
       vcov = V,
+      inference_parts = parts,
       data = df,
       call = match.call(),
       conf_level = conf_level,

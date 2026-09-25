@@ -165,10 +165,97 @@ test_that("binomial fits are shown on the link scale with a normal reference", {
 })
 
 
-test_that("only unified GLM fits are accepted", {
+ml_fit <- function(inference) {
+  with(solomon_example,
+       fit_solomon_ml(y_post, treat, pretested, y_pre, inference = inference))
+}
 
-  ml <- with(solomon_example,
-             fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
-  expect_error(plot_sensitization(ml), "fit_solomon_glm")
-  expect_error(plot_sensitization(list()), "fit_solomon_glm")
+ml_contrast_vectors <- function() {
+  rbind(
+    "ATE (avg over pretest)" = c(bT = 1, bTP = 0.5),
+    "Pretest x Treatment" = c(bT = 0, bTP = 1),
+    "Treatment | pretested" = c(bT = 1, bTP = 1),
+    "Treatment | unpretested" = c(bT = 1, bTP = 0)
+  )
+}
+
+
+test_that("the ML linear-combination helper reproduces the fitted contrasts exactly", {
+
+  for (inference in c("wald", "satterthwaite")) {
+    fit <- ml_fit(inference)
+    L <- ml_contrast_vectors()
+    combined <- .ml_linear_combination(fit, L)
+    reported <- fit$effects[match(rownames(L), fit$effects$contrast), ]
+    expect_equal(combined$estimate, reported$estimate, tolerance = 1e-12)
+    expect_equal(combined$std.error, reported$std.error, tolerance = 1e-12)
+    expect_equal(combined$df, reported$df, tolerance = 1e-12)
+    expect_equal(combined$conf.low, reported$conf.low, tolerance = 1e-12)
+    expect_equal(combined$conf.high, reported$conf.high, tolerance = 1e-12)
+  }
+})
+
+
+test_that("ML adjusted means reproduce the fitted sensitization contrast", {
+
+  for (inference in c("wald", "satterthwaite")) {
+    fit <- ml_fit(inference)
+    p <- plot_sensitization(fit)
+    sens <- fit$effects$estimate[fit$effects$contrast == "Pretest x Treatment"]
+    expect_equal(adjusted_difference(p), sens, tolerance = 1e-10)
+
+    b <- stats::setNames(fit$coefficients$estimate, fit$coefficients$term)
+    cell <- function(t, c) p$data$estimate[p$data$treatment == t & p$data$condition == c]
+    expect_equal(cell("Control", "Unpretested"), unname(b["a"]), tolerance = 1e-12)
+    expect_equal(cell("Control", "Pretested"), unname(b["a"] + b["bP"]), tolerance = 1e-12)
+    expect_match(p$labels$caption, sprintf("mean pretest \\(%s\\)",
+                                           formatC(fit$pretest_mean, format = "f", digits = 2)))
+  }
+})
+
+
+test_that("ML intervals follow the fit's inference", {
+
+  wald <- plot_sensitization(ml_fit("wald"))
+  expect_true(all(is.infinite(wald$data$df)))
+  expect_match(wald$labels$caption, "maximum likelihood; Wald inference")
+  expect_match(wald$labels$caption, "normal reference")
+
+  small <- plot_sensitization(ml_fit("satterthwaite"))
+  n_unpretested <- sum(solomon_example$pretested == 0)
+  n_pretested <- sum(solomon_example$pretested == 1)
+  unpretested <- small$data$condition == "Unpretested"
+  # A cell mean uses one of the two separate regressions, so its
+  # Welch-Satterthwaite df are that regression's residual df.
+  expect_equal(small$data$df[unpretested], rep(n_unpretested - 2, 2), tolerance = 1e-8)
+  expect_equal(small$data$df[!unpretested], rep(n_pretested - 3, 2), tolerance = 1e-8)
+  expect_match(small$labels$caption, "maximum likelihood; small-sample option")
+  expect_match(small$labels$caption, "t reference")
+})
+
+
+test_that("ML fits show observed means and equivalence bounds", {
+
+  fit <- ml_fit("wald")
+  p <- plot_sensitization(fit, bounds = 5)
+  hollow <- Filter(function(l) identical(l$aes_params$shape, 21), p$layers)
+  expect_length(hollow, 1L)
+  observed <- stats::aggregate(y_post ~ treat + pretested, data = solomon_example, FUN = mean)
+  plotted <- hollow[[1]]$data
+  plotted <- plotted[order(plotted$pretested, plotted$treat), ]
+  observed <- observed[order(observed$pretested, observed$treat), ]
+  expect_equal(plotted$y, observed$y_post)
+
+  tost <- equivalence_solomon(fit, bounds = 5)
+  expect_match(p$labels$caption, tost$outcome, fixed = TRUE)
+})
+
+
+test_that("unsupported and outdated fits are refused with a clear message", {
+
+  expect_error(plot_sensitization(list()), "fit_solomon_glm\\(\\) or fit_solomon_ml\\(\\)")
+
+  old <- ml_fit("wald")
+  old$inference_parts <- NULL
+  expect_error(plot_sensitization(old), "earlier version of solomonR")
 })

@@ -1,5 +1,27 @@
 # solomonR (development version)
 
+## Clustered designs (#46)
+
+* `validate_solomon()` gains a `cluster` argument. It reports the number of
+  clusters and cluster sizes in each cell, and whether treatment and
+  pretesting were assigned to whole clusters or within them. A cell made up
+  of a single cluster is an error, because cluster and condition are then
+  completely confounded, as when each Solomon condition is one intact class.
+* `fit_solomon_glm(robust = "CR2")` refuses such designs with a classed
+  error (`solomonR_confounded_clusters`) instead of reporting cluster-robust
+  standard errors that cannot be estimated.
+
+## Sensitization figure for maximum-likelihood fits (#47)
+
+* `plot_sensitization()` now accepts `fit_solomon_ml()` fits. Intervals for
+  the adjusted cell means use the fit's own inference: the normal reference
+  under the default Wald inference, or Welch-Satterthwaite t under
+  `inference = "satterthwaite"`. `fit_solomon_ml()` now stores what those
+  intervals need; its estimates, standard errors, and intervals are
+  unchanged.
+* The figure's caption now puts the adjustment and the interval method on
+  separate lines, so it is no longer cut off at common figure widths.
+
 ## Attribution (#42)
 
 * Every reference is now in APA Style (7th ed.) with its DOI, verified

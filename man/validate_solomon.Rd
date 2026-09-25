@@ -4,7 +4,14 @@
 \alias{validate_solomon}
 \title{Validate the structure and coding of a Solomon four-group design}
 \usage{
-validate_solomon(y_post, treat, pretested, y_pre = NULL, min_cell_n = 2)
+validate_solomon(
+  y_post,
+  treat,
+  pretested,
+  y_pre = NULL,
+  min_cell_n = 2,
+  cluster = NULL
+)
 }
 \arguments{
 \item{y_post}{Numeric posttest scores.}
@@ -18,11 +25,15 @@ unpretested participants.}
 
 \item{min_cell_n}{Minimum number of observed posttest scores required in
 each cell (at least 2).}
+
+\item{cluster}{Optional cluster identifier (for example, class, school, or
+site), one value per participant.}
 }
 \value{
 An object of class \code{solomon_validation} with \code{valid} (\code{TRUE} when
 no errors were found), \code{issues} (severity, check, and message), \code{cells}
-(counts by cell), and \code{missing} (the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result).
+(counts by cell, with clusters and cluster sizes when \code{cluster} is
+supplied), and \code{missing} (the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result).
 }
 \description{
 Checks that data can support a Solomon four-group analysis before a model
@@ -57,6 +68,20 @@ participants).
 least two observations per cell are needed to estimate within-cell
 variability, and HC3 standard errors can be undefined for a cell with a
 single observation. Plan cell sizes with a power analysis.
+
+Clustered designs: when participants belong to classes, schools, or sites,
+supply \code{cluster}. The number of clusters and the range of cluster sizes are
+then reported for each cell, together with whether treatment and pretesting
+were assigned to whole clusters or varied within them.
+
+A cell that contains a single cluster is an error. Class and condition are
+then completely confounded, as when each Solomon condition is one intact
+class (El Karkri et al., 2025a): a difference between the classes cannot be
+separated from the treatment, pretest, or sensitization effect, and no
+between-cluster variability can be estimated. Cluster-robust inference
+(Pustejovsky & Tipton, 2018) needs several clusters in every cell. For
+example, Kvalem et al. (1996) randomized 124 school classes to the four
+Solomon conditions.
 }
 \examples{
 data(solomon_example)
@@ -67,8 +92,28 @@ with(solomon_example, validate_solomon(y_post, treat, pretested, y_pre))
 # An empty cell makes the design invalid.
 no_group_3 <- solomon_example[!(solomon_example$pretested == 0 & solomon_example$treat == 1), ]
 with(no_group_3, validate_solomon(y_post, treat, pretested, y_pre))
+
+# One intact class per condition confounds class with condition.
+one_class <- with(solomon_example, 2 * pretested + treat)
+with(solomon_example, validate_solomon(y_post, treat, pretested, y_pre,
+                                       cluster = one_class))
 }
 \references{
+El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
+pretest sensitisation and the cognitive acceleration through science
+education programme in the Solomon four-group design. \emph{Brain Sciences,
+16}(1), Article 64. https://doi.org/10.3390/brainsci16010064
+
+Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig,
+L. S. (1996). The effect of sex education on adolescents' use of condoms:
+Applying the Solomon four-group design. \emph{Health Education Quarterly,
+23}(1), 34–47. https://doi.org/10.1177/109019819602300103
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed effects
+models. \emph{Journal of Business & Economic Statistics, 36}(4), 672–683.
+https://doi.org/10.1080/07350015.2016.1247004
+
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 }

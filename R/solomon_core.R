@@ -143,7 +143,10 @@ stouffer_solomon <- function(p) {
 #' @param pretest_score numeric vector for those pretested; NA for others
 #' @param covariates optional data.frame of additional covariates
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
-#' @param cluster optional clustering id (e.g., class/site), one value per participant
+#' @param cluster optional clustering id (e.g., class/site), one value per
+#'   participant. CR2 fits refuse designs in which a Solomon cell contains a
+#'   single cluster, because cluster and condition are then confounded; see
+#'   [validate_solomon()].
 #' @param family model family (default gaussian())
 #' @param conf_level confidence level for intervals (default 0.95)
 #' @return An object of class `solomon_glm`: a list with the fitted model,
@@ -269,6 +272,10 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     cluster_fit <- cluster[used]
     if (anyNA(cluster_fit)) {
       stop("`cluster` is missing for participants included in the model.", call. = FALSE)
+    }
+    single <- .cluster_structure(df$treat[used], df$pretested[used], cluster_fit)$single_cluster
+    if (length(single)) {
+      .stop_confounded_clusters(single)
     }
 
     # clubSandwich cannot use the NA-padded residuals of an na.exclude fit,
