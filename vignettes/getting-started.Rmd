@@ -199,6 +199,16 @@ A Solomon study powered only for the ATE is usually underpowered for the
 question the design exists to answer. `?plan_solomon` also shows how to
 trade pretested against unpretested participants when pretesting is costly.
 
+Power curves show the same planning problem across sample sizes. Each cross
+marks the design `plan_solomon()` returns for the target:
+
+```{r power-curves, fig.width = 8, fig.height = 5}
+plot_power_solomon(
+  n = seq(10, 150, by = 5), delta = 5, sens = 0, rho = 0.6, sigma = 10,
+  estimand = c("ate", "pretested", "unpretested"), target = 0.90
+)
+```
+
 ## Step 4: Ask whether sensitization is negligible
 
 The Pretest x Treatment estimate is `r fmt(sens$estimate)` points

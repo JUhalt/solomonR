@@ -202,7 +202,7 @@ data collection begins.
   - Historical decision tree
   - Optionally highlight the path taken by a fitted dataset
 
-- [ ] `plot_power_solomon()` — [#30](https://github.com/JUhalt/solomonR/issues/30)
+- [x] `plot_power_solomon()` — [#30](https://github.com/JUhalt/solomonR/issues/30)
   - Power curves / surfaces across N, effect size, rho, and sensitization
 
 ### Design planning

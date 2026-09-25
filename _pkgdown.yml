@@ -49,6 +49,7 @@ reference:
       - plot_solomon_design
       - plot_solomon_change
       - plot_classic_flow
+      - plot_power_solomon
 
   - title: "Data"
     contents:
