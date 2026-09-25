@@ -44,6 +44,7 @@ reference:
       - plot_solomon
       - plot_solomon_gg
       - plot_perm
+      - plot_solomon_effects
 
   - title: "Data"
     contents:
