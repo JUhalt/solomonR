@@ -40,8 +40,8 @@
 #' @return A ggplot object.
 #'
 #' @references
-#' Solomon, R. L. (1949). An extension of control group design.
-#' *Psychological Bulletin, 46*(2), 137-150.
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 #'
 #' @examples
 #' with(solomon_example, plot_solomon_change(y_post, treat, pretested, y_pre))

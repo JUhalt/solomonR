@@ -32,15 +32,15 @@ bf_test <- function(y, group) {
 #' @references
 #' Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
 #' variances. *Journal of the American Statistical Association, 69*(346),
-#' 364-367.
+#' 364–367. https://doi.org/10.1080/01621459.1974.10482955
 #'
 #' Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
-#' standard errors in the linear regression model. *The American
-#' Statistician, 54*(3), 217-224.
+#' standard errors in the linear regression model. *The American Statistician,
+#' 54*(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
 #'
 #' Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 #' variances. *British Journal of Mathematical and Statistical Psychology,
-#' 57*(1), 173-181.
+#' 57*(1), 173–181. https://doi.org/10.1348/000711004849222
 #' @export
 check_solomon_assumptions <- function(y_post, treat, pretested, y_pre) {
   treat <- .solomon_indicator(treat, "treat")

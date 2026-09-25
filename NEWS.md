@@ -1,5 +1,20 @@
 # solomonR (development version)
 
+## Attribution (#42)
+
+* Every reference is now in APA Style (7th ed.) with its DOI, verified
+  against Crossref, and a new "References and the Solomon Literature" article
+  is the package's canonical reference list. It adds the Solomon literature
+  the package draws on or plans to, each with a note on its contribution.
+* Corrected the attribution of the 1988 meta-analytic procedure (Test I) to
+  Walton Braver and Braver (1988), as the authors cite their own article.
+  Earlier documentation and output wrote "Braver & Braver (1988)" and
+  "Braver, M. W.". Printed labels change accordingly, including the `test`
+  column of `power_solomon()` and the committed validation tables; no
+  numeric result changes.
+* The roadmap and README now link each planned item to its issue, with a new
+  v0.7.0 milestone for longitudinal and quasi-experimental designs.
+
 ## Validation evidence
 
 * The "Validation Evidence" article and its shared tables now include a

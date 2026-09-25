@@ -89,7 +89,7 @@ test_that("non-estimating and differently scaled analyses are listed, not aligne
   )
 
   expect_true(all(
-    c("perm_solomon()", "Test I (Braver & Braver, 1988)", "fit_solomon_sem_latent()") %in%
+    c("perm_solomon()", "Test I (Walton Braver & Braver, 1988)", "fit_solomon_sem_latent()") %in%
       comparison$not_compared$analysis
   ))
   expect_equal(nrow(comparison$estimands), 4L)

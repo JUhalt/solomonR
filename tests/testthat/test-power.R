@@ -132,7 +132,7 @@ test_that("disabled Test I is reported as unavailable rather than as no power", 
 
   res <- power_solomon(n = 10, sims = 20, stouffer = FALSE, seed = 5)
 
-  test_i <- res$test == "Test I (Braver & Braver, 1988)"
+  test_i <- res$test == "Test I (Walton Braver & Braver, 1988)"
   expect_true(is.na(res$power[test_i]))
   expect_true(all(is.finite(res$power[!test_i])))
 })

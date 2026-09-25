@@ -80,3 +80,8 @@ articles:
       - articles/ml-validation
       - articles/power-validation
       - articles/plan-validation
+
+  - title: "References"
+    navbar: References
+    contents:
+      - articles/references
