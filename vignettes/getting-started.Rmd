@@ -100,6 +100,14 @@ with(
 )
 ```
 
+A schematic of the design, in the notation of Campbell and Stanley (1963),
+shows each group's size and posttest mean, and flags any group that is empty
+or too small to estimate its variability:
+
+```{r design-plot, fig.width = 8, fig.height = 3.5}
+with(solomon_example, plot_solomon_design(y_post, treat, pretested))
+```
+
 ## Step 2: See how the design was analyzed historically
 
 Early treatments of the design analyzed posttest scores with a two-by-two

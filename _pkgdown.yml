@@ -46,6 +46,9 @@ reference:
       - plot_perm
       - plot_solomon_effects
       - plot_sensitization
+      - plot_solomon_design
+      - plot_solomon_change
+      - plot_classic_flow
 
   - title: "Data"
     contents:
