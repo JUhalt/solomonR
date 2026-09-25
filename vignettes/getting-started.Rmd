@@ -211,6 +211,18 @@ neither show sensitization nor rule out sensitization as large as 5 points.
 "Inconclusive" is a legitimate and informative result; it tells readers that
 a larger study would be needed to settle the question.
 
+A forest plot shows all four Solomon contrasts at once, with the equivalence
+bounds shaded on the sensitization row:
+
+```{r effects-plot, fig.width = 7, fig.height = 3.5}
+plot_solomon_effects(fit, bounds = 5)
+```
+
+The sensitization interval extends beyond the shaded band, so these data
+cannot rule out sensitization as large as 5 points. The figure shows the
+fit's 95% intervals; the equivalence test uses the narrower 90% interval,
+which also extends beyond the bounds.
+
 ## Step 5: Check how the conclusions depend on the analysis
 
 `compare_solomon_methods()` fits several analyses to the same data and lines

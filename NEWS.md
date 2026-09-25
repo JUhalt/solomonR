@@ -1,5 +1,16 @@
 # solomonR (development version)
 
+## Forest plot of the Solomon contrasts (#27)
+
+* New `plot_solomon_effects()` draws the four Solomon contrasts with their
+  confidence intervals from a fit by `fit_solomon_glm()`, `fit_solomon_ml()`,
+  `fit_solomon_sem()`, or `fit_solomon_sem_latent()`. Estimates and intervals
+  are taken unchanged from the fitted object, and the caption states the
+  confidence level, the inference used, and the reference distribution.
+* Contrasts a model does not estimate are named in the caption rather than
+  drawn as zero, and optional equivalence bounds are shaded on the
+  sensitization row, matching `equivalence_solomon()`.
+
 ## Sample-size planning (#24)
 
 * New `plan_solomon()` finds the smallest Solomon design, at a chosen

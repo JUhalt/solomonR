@@ -192,7 +192,7 @@ data collection begins.
   - Treatment x Pretest interaction visualization
   - Direct graphical representation of sensitization
 
-- [ ] `plot_solomon_effects()` — [#27](https://github.com/JUhalt/solomonR/issues/27)
+- [x] `plot_solomon_effects()` — [#27](https://github.com/JUhalt/solomonR/issues/27)
   - Forest plot of ATE, simple treatment effects, and sensitization
 
 - [ ] `plot_solomon_change()` — [#28](https://github.com/JUhalt/solomonR/issues/28)
