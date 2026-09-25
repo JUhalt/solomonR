@@ -342,7 +342,8 @@ tables
 
 ## v0.5.0 - Extended outcomes and designs
 
-**Milestone:** [v0.5.0](https://github.com/JUhalt/solomonR/milestone/3)
+**Status:** Active development — [v0.5.0
+milestone](https://github.com/JUhalt/solomonR/milestone/3).
 
 Binary outcomes
 
