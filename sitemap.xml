@@ -14,6 +14,7 @@
 <url><loc>https://juhalt.github.io/solomonR/articles/ml-validation.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/power-validation.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/solomon-methods.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/articles/validation-evidence.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/authors.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/index.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/news/index.html</loc></url>
@@ -31,8 +32,14 @@
 <url><loc>https://juhalt.github.io/solomonR/reference/p_to_z.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/perm_solomon.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/plan_solomon.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/plot_classic_flow.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/plot_perm.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/plot_power_solomon.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/plot_sensitization.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/plot_solomon.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/plot_solomon_change.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/plot_solomon_design.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/plot_solomon_effects.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/plot_solomon_gg.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/power_solomon.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/solomonR-package.html</loc></url>

@@ -141,6 +141,17 @@ with(
 #>   Sources: Solomon (1949); Graham et al. (2006)
 ```
 
+A schematic of the design, in the notation of Campbell and Stanley
+(1963), shows each group’s size and posttest mean, and flags any group
+that is empty or too small to estimate its variability:
+
+``` r
+
+with(solomon_example, plot_solomon_design(y_post, treat, pretested))
+```
+
+![](getting-started_files/figure-html/design-plot-1.png)
+
 ## Step 2: See how the design was analyzed historically
 
 Early treatments of the design analyzed posttest scores with a
@@ -305,6 +316,21 @@ question the design exists to answer.
 also shows how to trade pretested against unpretested participants when
 pretesting is costly.
 
+Power curves show the same planning problem across sample sizes. Each
+cross marks the design
+[`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+returns for the target:
+
+``` r
+
+plot_power_solomon(
+  n = seq(10, 150, by = 5), delta = 5, sens = 0, rho = 0.6, sigma = 10,
+  estimand = c("ate", "pretested", "unpretested"), target = 0.90
+)
+```
+
+![](getting-started_files/figure-html/power-curves-1.png)
+
 ## Step 4: Ask whether sensitization is negligible
 
 The Pretest x Treatment estimate is -1.9 points (p = .541). A
@@ -342,6 +368,34 @@ The 90% confidence interval extends beyond the bounds, so these data can
 neither show sensitization nor rule out sensitization as large as 5
 points. “Inconclusive” is a legitimate and informative result; it tells
 readers that a larger study would be needed to settle the question.
+
+The sensitization itself is easiest to see in the group means.
+[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+draws model-adjusted means, so the difference between the two lines’
+rises from control to treatment is exactly the Pretest x Treatment
+estimate above. Hollow points show the observed means:
+
+``` r
+
+plot_sensitization(fit, bounds = 5)
+```
+
+![](getting-started_files/figure-html/sensitization-plot-1.png)
+
+A forest plot shows all four Solomon contrasts at once, with the
+equivalence bounds shaded on the sensitization row:
+
+``` r
+
+plot_solomon_effects(fit, bounds = 5)
+```
+
+![](getting-started_files/figure-html/effects-plot-1.png)
+
+The sensitization interval extends beyond the shaded band, so these data
+cannot rule out sensitization as large as 5 points. The figure shows the
+fit’s 95% intervals; the equivalence test uses the narrower 90%
+interval, which also extends beyond the bounds.
 
 ## Step 5: Check how the conclusions depend on the analysis
 

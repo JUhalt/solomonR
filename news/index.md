@@ -2,6 +2,96 @@
 
 ## solomonR (development version)
 
+### Validation evidence in one format ([\#11](https://github.com/JUhalt/solomonR/issues/11))
+
+- New article “Validation Evidence” gathers the package’s simulation
+  studies in one place, with each study’s protocol, scenarios,
+  replications, methods, failed fits, and results against its
+  pre-registered tolerances.
+- Two shared tables, rebuilt by a committed script from each study’s
+  results, can be downloaded from the repository. `studies.csv` has one
+  row per study and `benchmarks.csv` has one row per scenario, method,
+  estimand, and performance measure, with Monte Carlo standard errors.
+  Failed fits are counted separately, and measures a method cannot have
+  are listed with a reason rather than omitted.
+
+### Power curves ([\#30](https://github.com/JUhalt/solomonR/issues/30))
+
+- New
+  [`plot_power_solomon()`](https://juhalt.github.io/solomonR/reference/plot_power_solomon.md)
+  draws power against the size of the smallest cell for each Solomon
+  estimand, with the target power marked and the design
+  [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+  returns for that target. Curves use the validated normal-theory power
+  by default; `method = "simulation"` uses the package’s GLM test
+  through
+  [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+  and shows two-MCSE bands. One of `delta`, `sens`, or `rho` may vary
+  across curves.
+
+### Design, change, and historical-path figures ([\#25](https://github.com/JUhalt/solomonR/issues/25), [\#28](https://github.com/JUhalt/solomonR/issues/28), [\#29](https://github.com/JUhalt/solomonR/issues/29))
+
+- New
+  [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
+  draws the four-group design in Campbell and Stanley’s (1963) notation.
+  Without data it gives the teaching schematic; with data or a GLM fit
+  it labels each group with its size and posttest mean and flags empty
+  or sparse groups, using the rule in
+  [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md).
+- New
+  [`plot_solomon_change()`](https://juhalt.github.io/solomonR/reference/plot_solomon_change.md)
+  shows pretest-to-posttest change for the pretested groups, with t
+  intervals, beside posttest means for the unpretested groups, which are
+  labeled as unpretested by design. Pretested participants with
+  incidentally missing pretests are excluded from the trajectories and
+  counted in the caption, never imputed.
+- New
+  [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
+  draws the historical Tests A-I sequence as a decision tree. Given a
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  result, it highlights the path taken with each test’s p-value. Every
+  version carries the caution that the conditional sequence inflates
+  Type I error (Sawilowsky et al., 1994).
+
+### Pretest sensitization figure ([\#26](https://github.com/JUhalt/solomonR/issues/26))
+
+- New
+  [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+  draws the Pretest x Treatment interaction as model-adjusted group
+  means with confidence intervals. Pretested groups are evaluated at the
+  mean pretest among pretested participants and unpretested groups
+  without a pretest, so the difference of differences among the plotted
+  means equals the fitted sensitization contrast exactly. Observed means
+  are overlaid for comparison.
+- Its intervals use the fit’s own covariance matrix and reference
+  distribution, the subtitle reports the fitted contrast, and optional
+  bounds add the outcome of
+  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md).
+- [`plot_solomon()`](https://juhalt.github.io/solomonR/reference/plot_solomon.md)
+  and
+  [`plot_solomon_gg()`](https://juhalt.github.io/solomonR/reference/plot_solomon_gg.md)
+  now use t intervals with n - 1 degrees of freedom for cell means
+  instead of the normal quantile, which was too narrow with small cells.
+
+### Forest plot of the Solomon contrasts ([\#27](https://github.com/JUhalt/solomonR/issues/27))
+
+- New
+  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
+  draws the four Solomon contrasts with their confidence intervals from
+  a fit by
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+  [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md),
+  or
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md).
+  Estimates and intervals are taken unchanged from the fitted object,
+  and the caption states the confidence level, the inference used, and
+  the reference distribution.
+- Contrasts a model does not estimate are named in the caption rather
+  than drawn as zero, and optional equivalence bounds are shaded on the
+  sensitization row, matching
+  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md).
+
 ### Sample-size planning ([\#24](https://github.com/JUhalt/solomonR/issues/24))
 
 - New

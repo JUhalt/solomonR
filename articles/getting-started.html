@@ -41,6 +41,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
   </ul>
@@ -256,6 +257,12 @@ responses (White &amp; Thompson, 2005; Little &amp; Rubin, 2019).</p>
 <span><span class="co">#&gt;     can be imputed, an imputed pretest here would describe a measurement that</span></span>
 <span><span class="co">#&gt;     never occurred.</span></span>
 <span><span class="co">#&gt;   Sources: Solomon (1949); Graham et al. (2006)</span></span></code></pre></div>
+<p>A schematic of the design, in the notation of Campbell and Stanley
+(1963), shows each group’s size and posttest mean, and flags any group
+that is empty or too small to estimate its variability:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu"><a href="../reference/plot_solomon_design.html">plot_solomon_design</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="getting-started_files/figure-html/design-plot-1.png" class="r-plt" alt="" width="768"></p>
 </div>
 <div class="section level2">
 <h2 id="step-2-see-how-the-design-was-analyzed-historically">Step 2: See how the design was analyzed historically<a class="anchor" aria-label="anchor" href="#step-2-see-how-the-design-was-analyzed-historically"></a>
@@ -267,7 +274,7 @@ Huck &amp; Sandler, 1973). Braver and Braver (1988) added a
 meta-analytic combination, Test I. <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>
 reproduces this sequence and marks the tests the historical path reaches
 with <code>[PATH]</code>.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span></span>
@@ -324,7 +331,7 @@ pretest in the groups that took it. It uses
 heteroskedasticity-consistent (HC3) standard errors by default (Long
 &amp; Ervin, 2000; Hayes &amp; Cai, 2007) with t tests on the residual
 degrees of freedom.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span></span>
@@ -366,7 +373,7 @@ reaches a target power for each Solomon estimand. Using the values that
 generated these data (a treatment effect of 5 points, a posttest
 standard deviation of 10, and a pretest-posttest correlation of 0.6),
 90% power requires:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plan_solomon.html">plan_solomon</a></span><span class="op">(</span>power <span class="op">=</span> <span class="fl">0.90</span>, delta <span class="op">=</span> <span class="fl">5</span>, sens <span class="op">=</span> <span class="fl">0</span>, rho <span class="op">=</span> <span class="fl">0.6</span>, sigma <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                  estimand true_effect n1 n2 n3 n4 total_n     power    basis</span></span>
 <span><span class="co">#&gt; 1  ATE (avg over pretest)           5 35 35 35 35     140 0.9001254 analytic</span></span>
@@ -389,7 +396,7 @@ effect. Detecting sensitization is far more demanding than detecting the
 average effect, because the sensitization contrast has four times the
 sampling variance of the ATE. Planning to detect sensitization of 5
 points with 80% power:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plan_solomon.html">plan_solomon</a></span><span class="op">(</span>power <span class="op">=</span> <span class="fl">0.80</span>, delta <span class="op">=</span> <span class="fl">5</span>, sens <span class="op">=</span> <span class="fl">5</span>, rho <span class="op">=</span> <span class="fl">0.6</span>, sigma <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>             estimand <span class="op">=</span> <span class="st">"sensitization"</span><span class="op">)</span></span>
 <span><span class="co">#&gt;              estimand true_effect  n1  n2  n3  n4 total_n     power    basis</span></span>
@@ -400,6 +407,15 @@ points with 80% power:</p>
 the question the design exists to answer. <code><a href="../reference/plan_solomon.html">?plan_solomon</a></code>
 also shows how to trade pretested against unpretested participants when
 pretesting is costly.</p>
+<p>Power curves show the same planning problem across sample sizes. Each
+cross marks the design <code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> returns for the
+target:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_power_solomon.html">plot_power_solomon</a></span><span class="op">(</span></span>
+<span>  n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">150</span>, by <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>, delta <span class="op">=</span> <span class="fl">5</span>, sens <span class="op">=</span> <span class="fl">0</span>, rho <span class="op">=</span> <span class="fl">0.6</span>, sigma <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  estimand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ate"</span>, <span class="st">"pretested"</span>, <span class="st">"unpretested"</span><span class="op">)</span>, target <span class="op">=</span> <span class="fl">0.90</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="getting-started_files/figure-html/power-curves-1.png" class="r-plt" alt="" width="768"></p>
 </div>
 <div class="section level2">
 <h2 id="step-4-ask-whether-sensitization-is-negligible">Step 4: Ask whether sensitization is negligible<a class="anchor" aria-label="anchor" href="#step-4-ask-whether-sensitization-is-negligible"></a>
@@ -412,7 +428,7 @@ smallest effect size of interest set <em>before</em> seeing the data
 <p>Suppose the researchers decided in advance that sensitization smaller
 than half a standard deviation, 5 points on this test, would not
 matter:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/equivalence_solomon.html">equivalence_solomon</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solomon equivalence test (TOST)</span></span>
 <span><span class="co">#&gt; Contrast: Pretest x Treatment</span></span>
@@ -435,6 +451,23 @@ matter:</p>
 can neither show sensitization nor rule out sensitization as large as 5
 points. “Inconclusive” is a legitimate and informative result; it tells
 readers that a larger study would be needed to settle the question.</p>
+<p>The sensitization itself is easiest to see in the group means.
+<code><a href="../reference/plot_sensitization.html">plot_sensitization()</a></code> draws model-adjusted means, so the
+difference between the two lines’ rises from control to treatment is
+exactly the Pretest x Treatment estimate above. Hollow points show the
+observed means:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_sensitization.html">plot_sensitization</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
+<p><img src="getting-started_files/figure-html/sensitization-plot-1.png" class="r-plt" alt="" width="576"></p>
+<p>A forest plot shows all four Solomon contrasts at once, with the
+equivalence bounds shaded on the sensitization row:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_solomon_effects.html">plot_solomon_effects</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
+<p><img src="getting-started_files/figure-html/effects-plot-1.png" class="r-plt" alt="" width="672"></p>
+<p>The sensitization interval extends beyond the shaded band, so these
+data cannot rule out sensitization as large as 5 points. The figure
+shows the fit’s 95% intervals; the equivalence test uses the narrower
+90% interval, which also extends beyond the bounds.</p>
 </div>
 <div class="section level2">
 <h2 id="step-5-check-how-the-conclusions-depend-on-the-analysis">Step 5: Check how the conclusions depend on the analysis<a class="anchor" aria-label="anchor" href="#step-5-check-how-the-conclusions-depend-on-the-analysis"></a>
@@ -443,7 +476,7 @@ readers that a larger study would be needed to settle the question.</p>
 same data and lines up their estimates. In a randomized experiment with
 a continuous outcome, they all target the same contrasts; pretest
 adjustment changes precision rather than the target (Lin, 2013).</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/compare_solomon_methods.html">compare_solomon_methods</a></span><span class="op">(</span></span>
@@ -525,7 +558,7 @@ Wald intervals by default. In the package’s simulation validation, those
 intervals were too narrow when groups were small, so
 <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warns when it is used with small groups
 and offers a small-sample option:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span></span>
@@ -535,7 +568,7 @@ and offers a small-sample option:</p>
 <span><span class="co">#&gt; fewer than 40 participants per cell. Consider inference = "satterthwaite", or</span></span>
 <span><span class="co">#&gt; supply inference = "wald" to keep the default without this warning. See</span></span>
 <span><span class="co">#&gt; ?fit_solomon_ml.</span></span></code></pre></div>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ml_small</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, inference <span class="op">=</span> <span class="st">"satterthwaite"</span><span class="op">)</span></span>
@@ -589,7 +622,7 @@ different ways of using the pretest agreed. The older
 Among its pretested participants, the treatment group’s mean pretest is
 about 4.5 points higher by chance, and the pretest and posttest are
 slightly <em>negatively</em> correlated.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">solomon_demo</span><span class="op">)</span></span>
 <span><span class="va">demo_classic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_demo</span>,</span>

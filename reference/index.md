@@ -62,6 +62,18 @@ Check design coding, cell structure, and missingness before analysis.
   : Plot Solomon Posttest Cell Means with ggplot2
 - [`plot_perm()`](https://juhalt.github.io/solomonR/reference/plot_perm.md)
   : Plot permutation distribution for a Solomon contrast
+- [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
+  : Forest plot of the Solomon contrasts
+- [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+  : Pretest sensitization figure
+- [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
+  : Schematic of the Solomon four-group design
+- [`plot_solomon_change()`](https://juhalt.github.io/solomonR/reference/plot_solomon_change.md)
+  : Pretest-to-posttest change in a Solomon design
+- [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
+  : Historical Solomon decision path
+- [`plot_power_solomon()`](https://juhalt.github.io/solomonR/reference/plot_power_solomon.md)
+  : Power curves for a Solomon design
 
 ## Data
 

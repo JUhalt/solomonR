@@ -1,7 +1,10 @@
 # Plot Solomon Posttest Cell Means
 
 Displays posttest means and 95% confidence intervals for the four cells
-of a Solomon four-group design.
+of a Solomon four-group design. Intervals use the t distribution with
+n - 1 degrees of freedom within each cell. For the model-adjusted means
+behind the sensitization contrast, see
+[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md).
 
 ## Usage
 

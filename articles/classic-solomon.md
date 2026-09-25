@@ -145,6 +145,21 @@ This distinction is important.
 A test can be **calculated** for teaching or inspection without having
 been **reached** under the historical conditional procedure.
 
+[`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
+draws the conditional sequence as a decision tree and highlights the
+route these data took, with the p-value of each test reached:
+
+``` r
+
+plot_classic_flow(classic)
+```
+
+![](classic-solomon_files/figure-html/classic-flow-1.png)
+
+The caption repeats the caution discussed below: the sequence ending in
+Test I is kept for teaching and replication, not as a recommended
+analysis.
+
 ## Tests A-D: the four-group posttest model
 
 The first part of the classic workflow is based on the four-group
@@ -215,6 +230,19 @@ Test F compares change scores between the two pretested groups.
 
 classic$tests$F$result
 ```
+
+The change being compared is visible in the pretested groups’ pretest
+and posttest means.
+[`plot_solomon_change()`](https://juhalt.github.io/solomonR/reference/plot_solomon_change.md)
+shows them beside the unpretested groups, which are observed at posttest
+only:
+
+``` r
+
+with(solomon_example, plot_solomon_change(y_post, treat, pretested, y_pre))
+```
+
+![](classic-solomon_files/figure-html/change-plot-1.png)
 
 ### Test G: repeated-measures formulation
 

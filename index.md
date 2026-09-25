@@ -142,6 +142,21 @@ The key estimands are:
 The model handles the structural absence of pretest scores in Groups 3
 and 4 without discarding those groups.
 
+To see all four contrasts and their confidence intervals at once:
+
+``` r
+
+plot_solomon_effects(fit)
+```
+
+and to see the Pretest x Treatment interaction itself, as model-adjusted
+group means:
+
+``` r
+
+plot_sensitization(fit)
+```
+
 Every contrast is reported with a confidence interval (`conf.low`,
 `conf.high`; set the level with `conf_level`). HC3 covariance is the
 default (Long & Ervin, 2000), and Gaussian models use t tests with

@@ -275,36 +275,36 @@ data collection begins.
 
 ### Visualization
 
-`plot_solomon_design()` —
-[\#25](https://github.com/JUhalt/solomonR/issues/25)
+[`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
+— [\#25](https://github.com/JUhalt/solomonR/issues/25)
 
 - Solomon four-group design schematic
 - Optional cell N / means
 
-`plot_sensitization()` —
-[\#26](https://github.com/JUhalt/solomonR/issues/26)
+[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+— [\#26](https://github.com/JUhalt/solomonR/issues/26)
 
 - Treatment x Pretest interaction visualization
 - Direct graphical representation of sensitization
 
-`plot_solomon_effects()` —
-[\#27](https://github.com/JUhalt/solomonR/issues/27)
+[`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
+— [\#27](https://github.com/JUhalt/solomonR/issues/27)
 
 - Forest plot of ATE, simple treatment effects, and sensitization
 
-`plot_solomon_change()` —
-[\#28](https://github.com/JUhalt/solomonR/issues/28)
+[`plot_solomon_change()`](https://juhalt.github.io/solomonR/reference/plot_solomon_change.md)
+— [\#28](https://github.com/JUhalt/solomonR/issues/28)
 
 - Pre/post trajectories for pretested groups
 
-`plot_classic_flow()` —
-[\#29](https://github.com/JUhalt/solomonR/issues/29)
+[`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
+— [\#29](https://github.com/JUhalt/solomonR/issues/29)
 
 - Historical decision tree
 - Optionally highlight the path taken by a fitted dataset
 
-`plot_power_solomon()` —
-[\#30](https://github.com/JUhalt/solomonR/issues/30)
+[`plot_power_solomon()`](https://juhalt.github.io/solomonR/reference/plot_power_solomon.md)
+— [\#30](https://github.com/JUhalt/solomonR/issues/30)
 
 - Power curves / surfaces across N, effect size, rho, and sensitization
 
@@ -334,7 +334,9 @@ Rebuild and validate
 ### Evidence and reporting
 
 Reproducible simulation benchmark reports with Monte Carlo uncertainty —
-[\#11](https://github.com/JUhalt/solomonR/issues/11)
+[\#11](https://github.com/JUhalt/solomonR/issues/11). The “Validation
+Evidence” article and its shared `studies.csv` and `benchmarks.csv`
+tables
 
 ------------------------------------------------------------------------
 

@@ -26,6 +26,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
   </ul></li>
@@ -47,6 +48,33 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="solomonr-development-version">solomonR (development version)<a class="anchor" aria-label="anchor" href="#solomonr-development-version"></a></h2>
+<div class="section level3">
+<h3 id="validation-evidence-in-one-format-development-version">Validation evidence in one format (<a href="https://github.com/JUhalt/solomonR/issues/11" class="external-link">#11</a>)<a class="anchor" aria-label="anchor" href="#validation-evidence-in-one-format-development-version"></a></h3>
+<ul><li>New article “Validation Evidence” gathers the package’s simulation studies in one place, with each study’s protocol, scenarios, replications, methods, failed fits, and results against its pre-registered tolerances.</li>
+<li>Two shared tables, rebuilt by a committed script from each study’s results, can be downloaded from the repository. <code>studies.csv</code> has one row per study and <code>benchmarks.csv</code> has one row per scenario, method, estimand, and performance measure, with Monte Carlo standard errors. Failed fits are counted separately, and measures a method cannot have are listed with a reason rather than omitted.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="power-curves-development-version">Power curves (<a href="https://github.com/JUhalt/solomonR/issues/30" class="external-link">#30</a>)<a class="anchor" aria-label="anchor" href="#power-curves-development-version"></a></h3>
+<ul><li>New <code><a href="../reference/plot_power_solomon.html">plot_power_solomon()</a></code> draws power against the size of the smallest cell for each Solomon estimand, with the target power marked and the design <code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> returns for that target. Curves use the validated normal-theory power by default; <code>method = "simulation"</code> uses the package’s GLM test through <code><a href="../reference/power_solomon.html">power_solomon()</a></code> and shows two-MCSE bands. One of <code>delta</code>, <code>sens</code>, or <code>rho</code> may vary across curves.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="design-change-and-historical-path-figures-development-version">Design, change, and historical-path figures (<a href="https://github.com/JUhalt/solomonR/issues/25" class="external-link">#25</a>, <a href="https://github.com/JUhalt/solomonR/issues/28" class="external-link">#28</a>, <a href="https://github.com/JUhalt/solomonR/issues/29" class="external-link">#29</a>)<a class="anchor" aria-label="anchor" href="#design-change-and-historical-path-figures-development-version"></a></h3>
+<ul><li>New <code><a href="../reference/plot_solomon_design.html">plot_solomon_design()</a></code> draws the four-group design in Campbell and Stanley’s (1963) notation. Without data it gives the teaching schematic; with data or a GLM fit it labels each group with its size and posttest mean and flags empty or sparse groups, using the rule in <code><a href="../reference/validate_solomon.html">validate_solomon()</a></code>.</li>
+<li>New <code><a href="../reference/plot_solomon_change.html">plot_solomon_change()</a></code> shows pretest-to-posttest change for the pretested groups, with t intervals, beside posttest means for the unpretested groups, which are labeled as unpretested by design. Pretested participants with incidentally missing pretests are excluded from the trajectories and counted in the caption, never imputed.</li>
+<li>New <code><a href="../reference/plot_classic_flow.html">plot_classic_flow()</a></code> draws the historical Tests A-I sequence as a decision tree. Given a <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code> result, it highlights the path taken with each test’s p-value. Every version carries the caution that the conditional sequence inflates Type I error (Sawilowsky et al., 1994).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="pretest-sensitization-figure-development-version">Pretest sensitization figure (<a href="https://github.com/JUhalt/solomonR/issues/26" class="external-link">#26</a>)<a class="anchor" aria-label="anchor" href="#pretest-sensitization-figure-development-version"></a></h3>
+<ul><li>New <code><a href="../reference/plot_sensitization.html">plot_sensitization()</a></code> draws the Pretest x Treatment interaction as model-adjusted group means with confidence intervals. Pretested groups are evaluated at the mean pretest among pretested participants and unpretested groups without a pretest, so the difference of differences among the plotted means equals the fitted sensitization contrast exactly. Observed means are overlaid for comparison.</li>
+<li>Its intervals use the fit’s own covariance matrix and reference distribution, the subtitle reports the fitted contrast, and optional bounds add the outcome of <code><a href="../reference/equivalence_solomon.html">equivalence_solomon()</a></code>.</li>
+<li>
+<code><a href="../reference/plot_solomon.html">plot_solomon()</a></code> and <code><a href="../reference/plot_solomon_gg.html">plot_solomon_gg()</a></code> now use t intervals with n - 1 degrees of freedom for cell means instead of the normal quantile, which was too narrow with small cells.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="forest-plot-of-the-solomon-contrasts-development-version">Forest plot of the Solomon contrasts (<a href="https://github.com/JUhalt/solomonR/issues/27" class="external-link">#27</a>)<a class="anchor" aria-label="anchor" href="#forest-plot-of-the-solomon-contrasts-development-version"></a></h3>
+<ul><li>New <code><a href="../reference/plot_solomon_effects.html">plot_solomon_effects()</a></code> draws the four Solomon contrasts with their confidence intervals from a fit by <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>, <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>, <code><a href="../reference/fit_solomon_sem.html">fit_solomon_sem()</a></code>, or <code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code>. Estimates and intervals are taken unchanged from the fitted object, and the caption states the confidence level, the inference used, and the reference distribution.</li>
+<li>Contrasts a model does not estimate are named in the caption rather than drawn as zero, and optional equivalence bounds are shaded on the sensitization row, matching <code><a href="../reference/equivalence_solomon.html">equivalence_solomon()</a></code>.</li>
+</ul></div>
 <div class="section level3">
 <h3 id="sample-size-planning-development-version">Sample-size planning (<a href="https://github.com/JUhalt/solomonR/issues/24" class="external-link">#24</a>)<a class="anchor" aria-label="anchor" href="#sample-size-planning-development-version"></a></h3>
 <ul><li>New <code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> finds the smallest Solomon design, at a chosen allocation across the four cells, whose power for each estimand reaches a target. Analytic planning uses the normal-theory benchmarks validated in <a href="https://github.com/JUhalt/solomonR/issues/18" class="external-link">#18</a> and returns the exact minimum. <code>method = "simulation"</code> plans for the package’s own GLM test through <code><a href="../reference/power_solomon.html">power_solomon()</a></code>, which matters with small cells, where HC3 standard errors are conservative.</li>

@@ -8,7 +8,8 @@ articles:
   articles/ml-validation: ml-validation.html
   articles/power-validation: power-validation.html
   solomon-methods: solomon-methods.html
-last_built: 2026-09-25T11:29Z
+  articles/validation-evidence: validation-evidence.html
+last_built: 2026-09-25T11:33Z
 urls:
   reference: https://juhalt.github.io/solomonR/reference
   article: https://juhalt.github.io/solomonR/articles

@@ -43,6 +43,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
     <li><a class="dropdown-item" href="articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
   </ul>
@@ -186,6 +187,12 @@
 <strong>Treatment | unpretested</strong> — the treatment effect among participants who did not receive the pretest.</li>
 </ul>
 <p>The model handles the structural absence of pretest scores in Groups 3 and 4 without discarding those groups.</p>
+<p>To see all four contrasts and their confidence intervals at once:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/plot_solomon_effects.html">plot_solomon_effects</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<p>and to see the Pretest x Treatment interaction itself, as model-adjusted group means:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/plot_sensitization.html">plot_sensitization</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <p>Every contrast is reported with a confidence interval (<code>conf.low</code>, <code>conf.high</code>; set the level with <code>conf_level</code>). HC3 covariance is the default (Long &amp; Ervin, 2000), and Gaussian models use t tests with residual degrees of freedom.</p>
 <p>For Gaussian models, the output also reports a <strong>Wald-based partial R-squared</strong> for each one-degree-of-freedom contrast. With conventional covariance this is the usual partial R-squared, with a noncentral F confidence interval (Steiger, 2004). With robust covariance it is a descriptive Wald-based approximation without an interval.</p>
 <hr>
@@ -194,7 +201,7 @@
 <h2 id="historical-solomon-analysis">Historical Solomon analysis<a class="anchor" aria-label="anchor" href="#historical-solomon-analysis"></a>
 </h2>
 <p>The historical analysis is retained because it is important to understand how the Solomon design developed and how it has traditionally been taught.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span></span>
@@ -219,7 +226,7 @@
 <h2 id="randomization-based-inference">Randomization-based inference<a class="anchor" aria-label="anchor" href="#randomization-based-inference"></a>
 </h2>
 <p>When treatment was genuinely randomized within the Solomon pretesting conditions, <code><a href="reference/perm_solomon.html">perm_solomon()</a></code> provides a treatment-label permutation test.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">perm</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/perm_solomon.html">perm_solomon</a></span><span class="op">(</span></span>
 <span>  <span class="va">fit</span>,</span>
 <span>  contrast <span class="op">=</span> <span class="st">"ATE (avg over pretest)"</span>,</span>
@@ -232,7 +239,7 @@
 <p>Treatment labels are permuted <strong>within the pretested and unpretested strata</strong>, preserving the Solomon design.</p>
 <p>The test uses an HC3-studentized statistic and a finite Monte Carlo correction for the permutation p-value.</p>
 <p>The permutation distribution can also be visualized:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/plot_perm.html">plot_perm</a></span><span class="op">(</span><span class="va">perm</span><span class="op">)</span></span></code></pre></div>
 <p>Randomization inference should reflect the design that actually generated the treatment assignments. Because <code><a href="reference/perm_solomon.html">perm_solomon()</a></code> permutes individual participants, it refuses fits that include a clustering variable; use the CR2 tests from <code><a href="reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> for cluster-randomized studies.</p>
 <hr>
@@ -242,7 +249,7 @@
 </h2>
 <p><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> implements a full-information likelihood approach inspired by van Engelenburg’s treatment of the Solomon design.</p>
 <p>Unlike analyses that simply discard structurally missing pretests, the likelihood recognizes that Groups 3 and 4 were <strong>never intended to have pretest observations</strong>.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span></span>
@@ -271,7 +278,7 @@
 <div class="section level3">
 <h3 id="observed-variable-sem">Observed-variable SEM<a class="anchor" aria-label="anchor" href="#observed-variable-sem"></a>
 </h3>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sem_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_sem.html">fit_solomon_sem</a></span><span class="op">(</span></span>
@@ -284,7 +291,7 @@
 <span><span class="va">sem_fit</span></span></code></pre></div>
 <p>The four-group observed mean-structure model is saturated. Consequently, global indices such as CFI and RMSEA are <strong>not diagnostic of model fit</strong> for that model.</p>
 <p>An ANCOVA-style SEM can also be fit within the two pretested groups:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sem_ancova</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="reference/fit_solomon_sem.html">fit_solomon_sem</a></span><span class="op">(</span></span>
@@ -304,7 +311,7 @@
 <p>For multi-item outcomes, <code><a href="reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> estimates Solomon contrasts at the latent-variable level.</p>
 <p>Latent mean comparisons require <strong>scalar measurement invariance</strong> across the four Solomon groups. <code>solomonR</code> enforces this requirement rather than silently interpreting latent means from configural or metric-only models. For identification, the latent mean of the unpretested control group is fixed at 0; the Solomon contrasts do not depend on this choice.</p>
 <p>See:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="op">?</span><span class="va">fit_solomon_sem_latent</span></span></code></pre></div>
 <p>for details.</p>
 <hr>
@@ -314,7 +321,7 @@
 <h2 id="check-the-design-first">Check the design first<a class="anchor" aria-label="anchor" href="#check-the-design-first"></a>
 </h2>
 <p>Before fitting a model, <code><a href="reference/validate_solomon.html">validate_solomon()</a></code> confirms that all four cells are present, the design indicators are coded 0/1, and each cell has enough observed outcomes. It reports every problem at once instead of stopping at the first.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="reference/validate_solomon.html">validate_solomon</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span></span>
@@ -331,7 +338,7 @@
 <li>ANCOVA slope-homogeneity assessment.</li>
 </ul>
 <p>These diagnostics are descriptive, not a sequence of gatekeeping tests: choosing an analysis because a preliminary test was significant can distort Type I error rates (Zimmerman, 2004). HC3 standard errors are a reasonable default for the unified GLM regardless of the results.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="reference/check_solomon_assumptions.html">check_solomon_assumptions</a></span><span class="op">(</span></span>
@@ -415,7 +422,7 @@
 <h3 id="a-nonsignificant-interaction-is-not-evidence-of-no-sensitization">A nonsignificant interaction is not evidence of no sensitization<a class="anchor" aria-label="anchor" href="#a-nonsignificant-interaction-is-not-evidence-of-no-sensitization"></a>
 </h3>
 <p>Failure to reject the pretest-by-treatment interaction does not establish that sensitization is absent. To test whether sensitization is negligible, use an equivalence test with bounds set in advance at the smallest effect size of interest (Lakens, 2017):</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Bounds must be justified and fixed before examining the data.</span></span>
 <span><span class="fu"><a href="reference/equivalence_solomon.html">equivalence_solomon</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p>The result reports both one-sided tests, the 90% confidence interval, and one of four outcomes: equivalent, different from zero but trivially small, different, or inconclusive.</p>
@@ -483,7 +490,7 @@
 </h2>
 <p>A formal package/methods manuscript is in development.</p>
 <p>For the installed package citation, use:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"solomonR"</span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>

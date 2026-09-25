@@ -41,6 +41,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
   </ul>
@@ -276,6 +277,15 @@ tests actually reached by the historical decision sequence with
 <p>A test can be <strong>calculated</strong> for teaching or inspection
 without having been <strong>reached</strong> under the historical
 conditional procedure.</p>
+<p><code><a href="../reference/plot_classic_flow.html">plot_classic_flow()</a></code> draws the conditional sequence as a
+decision tree and highlights the route these data took, with the p-value
+of each test reached:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_classic_flow.html">plot_classic_flow</a></span><span class="op">(</span><span class="va">classic</span><span class="op">)</span></span></code></pre></div>
+<p><img src="classic-solomon_files/figure-html/classic-flow-1.png" class="r-plt" alt="" width="672"></p>
+<p>The caption repeats the caution discussed below: the sequence ending
+in Test I is kept for teaching and replication, not as a recommended
+analysis.</p>
 </div>
 <div class="section level2">
 <h2 id="tests-a-d-the-four-group-posttest-model">Tests A-D: the four-group posttest model<a class="anchor" aria-label="anchor" href="#tests-a-d-the-four-group-posttest-model"></a>
@@ -313,7 +323,7 @@ coefficient by itself represents the treatment effect only in the
 reference pretest condition.</p>
 <p>The individual historical results are available from the fitted
 object. For example:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">A</span><span class="op">$</span><span class="va">result</span></span>
 <span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">D</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
 </div>
@@ -330,15 +340,21 @@ baseline measurement available in Groups 1 and 2.</p>
 while adjusting posttest scores for the pretest.</p>
 <p>This is the default pretested-group method in
 <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">E</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="test-f-gain-score-analysis">Test F: gain-score analysis<a class="anchor" aria-label="anchor" href="#test-f-gain-score-analysis"></a>
 </h3>
 <p>Test F compares change scores between the two pretested groups.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="cn">F</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
+<p>The change being compared is visible in the pretested groups’ pretest
+and posttest means. <code><a href="../reference/plot_solomon_change.html">plot_solomon_change()</a></code> shows them beside
+the unpretested groups, which are observed at posttest only:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu"><a href="../reference/plot_solomon_change.html">plot_solomon_change</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="classic-solomon_files/figure-html/change-plot-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level3">
 <h3 id="test-g-repeated-measures-formulation">Test G: repeated-measures formulation<a class="anchor" aria-label="anchor" href="#test-g-repeated-measures-formulation"></a>
@@ -349,11 +365,11 @@ comparison.</p>
 algebraically connected to the gain-score comparison.
 <code>solomonR</code> retains Test G as a separate historical label
 because the distinction is useful pedagogically.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">G</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
 <p>The pretested-group analysis can also be selected explicitly when
 reproducing a particular historical strategy.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span></span>
 <span>  <span class="va">y_post</span>,</span>
 <span>  <span class="va">treat</span>,</span>
@@ -368,7 +384,7 @@ reproducing a particular historical strategy.</p>
 </h2>
 <p>Test H compares Groups 3 and 4, which did not receive the
 pretest.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">H</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
 <p>Because these groups were never pretested, this comparison provides a
 direct treatment contrast uncontaminated by administration of a baseline
@@ -376,7 +392,7 @@ measure.</p>
 <p><code>solomonR</code> also reports Hedges’
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>
 for this posttest-only comparison when available.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
 <span>    <span class="st">"Hedges' g = %.2f, 95%% CI [%.2f, %.2f]"</span>,</span>
@@ -396,7 +412,7 @@ method.</p>
 <p>When requested, <code>solomonR</code> reproduces this historical
 analysis using <strong>directional one-tailed p-values aligned with the
 same treatment direction</strong>.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
 <span>    <span class="st">"Stouffer Z = %.2f, p = %s"</span>,</span>
@@ -440,7 +456,7 @@ a single prespecified model or a randomization-based analysis rather
 than automatically following a significance-driven testing tree.</p>
 <p>See the unified GLM vignette for the primary modern observed-variable
 workflow:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"glm-solomon"</span>, package <span class="op">=</span> <span class="st">"solomonR"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

@@ -16,6 +16,8 @@
 
 - [Solomon Methods: History, Recommendations, and
   Extensions](https://juhalt.github.io/solomonR/articles/solomon-methods.md):
+- [Validation
+  Evidence](https://juhalt.github.io/solomonR/articles/validation-evidence.md):
 - [Validating fit_solomon_ml(): A Simulation
   Study](https://juhalt.github.io/solomonR/articles/ml-validation.md):
 - [Validating power_solomon(): A Simulation
