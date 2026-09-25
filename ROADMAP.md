@@ -176,9 +176,9 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Simulation validation and a sma
 
 ---
 
-## v0.4.0 - Design planning and visualization
+## v0.4.0 - Design planning and visualization (completed)
 
-**Status:** Active development — [v0.4.0 milestone](https://github.com/JUhalt/solomonR/milestone/2).
+**Status:** Released September 25, 2026 — [v0.4.0 milestone](https://github.com/JUhalt/solomonR/milestone/2).
 
 **Goal:** Make the design easy to understand visually and useful before
 data collection begins.

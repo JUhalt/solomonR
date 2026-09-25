@@ -1,13 +1,15 @@
 Package: solomonR
 Title: Analyze Solomon Four-Group Designs
-Version: 0.3.0.9000
+Version: 0.4.0
+Date: 2026-09-25
 Authors@R: 
     person("Joshua", "Uhalt", email = "Josh.Uhalt@gmail.com", role = c("aut","cre"))
 Description: Tools for analyzing Solomon four-group experimental designs using
     historical Tests A-I, unified generalized linear models with robust
     covariance estimation, stratified randomization inference, full-information
     maximum likelihood, and observed- and latent-variable structural equation
-    models. Includes diagnostics, effect sizes, plotting, and teaching-oriented
+    models. Includes diagnostics, effect sizes, power and sample-size
+    planning, plotting, and teaching-oriented
     workflows that distinguish historical procedures from contemporary
     recommendations.
 License: GPL-3
