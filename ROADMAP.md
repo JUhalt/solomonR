@@ -211,10 +211,10 @@ data collection begins.
   - Validation protocol and amendment posted on the issue before implementation
   - 126 scenarios and 315,000 replications: exact agreement with the analytic benchmark for the 2x2 ANOVA interaction, nominal size for Test I under the complete null, and no fit failures; GLM rejection rates are conservative with small cells, following HC3
 
-- [ ] `plan_solomon()` — [#24](https://github.com/JUhalt/solomonR/issues/24)
-  - Required sample size for a target power
+- [x] `plan_solomon()` — [#24](https://github.com/JUhalt/solomonR/issues/24)
+  - Smallest design reaching a target power for each Solomon estimand
   - Four-cell allocation, including unequal allocation
-  - Power for multiple Solomon estimands
+  - Exact analytic search, or simulation of the package's own GLM test for small designs
 
 ### Evidence and reporting
 - [ ] Reproducible simulation benchmark reports with Monte Carlo uncertainty — [#11](https://github.com/JUhalt/solomonR/issues/11)
