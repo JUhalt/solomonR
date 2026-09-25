@@ -37,6 +37,7 @@ reference:
       - check_solomon_missing
       - check_solomon_assumptions
       - power_solomon
+      - plan_solomon
 
   - title: "Plotting"
     contents:

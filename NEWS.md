@@ -1,5 +1,18 @@
 # solomonR (development version)
 
+## Sample-size planning (#24)
+
+* New `plan_solomon()` finds the smallest Solomon design, at a chosen
+  allocation across the four cells, whose power for each estimand reaches a
+  target. Analytic planning uses the normal-theory benchmarks validated in
+  #18 and returns the exact minimum. `method = "simulation"` plans for the
+  package's own GLM test through `power_solomon()`, which matters with small
+  cells, where HC3 standard errors are conservative.
+* The help page shows that the sensitization contrast always has four times
+  the sampling variance of the average treatment effect, so detecting
+  sensitization as large as the average effect needs about four times as many
+  participants.
+
 ## Power simulation rebuilt and validated (#18)
 
 * `power_solomon()` is rebuilt. It reports the rejection rate of each Solomon
