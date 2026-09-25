@@ -4,3 +4,4 @@
 !articles/power-validation/*.R
 !articles/validation-evidence/*.R
 !articles/plan-validation/*.R
+!articles/binary-validation/*.R
