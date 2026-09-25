@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Analyze Solomon Four-Group Designs">
-<meta name="description" content="Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.">
-<meta property="og:description" content="Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.">
+<meta name="description" content="Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, power and sample-size planning, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.">
+<meta property="og:description" content="Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, power and sample-size planning, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,7 +79,7 @@
 <p>The goal is not to replace the history of the Solomon design with a single new procedure. Instead, <code>solomonR</code> makes the historical methods transparent while providing modern alternatives in one reproducible workflow.</p>
 <p><code>solomonR</code> is written for graduate students and applied researchers who need to analyze, interpret, and report a Solomon study. Each function’s help page cites the methodological sources it implements. New users should start with the article <a href="https://juhalt.github.io/solomonR/articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a>.</p>
 <blockquote>
-<p><strong>Release status:</strong> <code>v0.3.0</code> is the current stable release. It adds small-sample inference corrections, confidence intervals across effect summaries, equivalence testing for pretest sensitization, design and missingness checks, method comparison, and documentation written for graduate students and applied researchers. The API may continue to evolve before version 1.0. Development version <code>0.3.0.9000</code> is working toward <code>v0.4.0</code>: validated power and sample-size planning, and Solomon-specific figures.</p>
+<p><strong>Release status:</strong> <code>v0.4.0</code> is the current stable release. It adds validated power and sample-size planning (<code><a href="reference/power_solomon.html">power_solomon()</a></code>, <code><a href="reference/plan_solomon.html">plan_solomon()</a></code>); figures for the design, pretest sensitization, the Solomon contrasts, pretest-to-posttest change, the historical decision path, and power; and a single index of the package’s simulation evidence. The API may continue to evolve before version 1.0.</p>
 </blockquote>
 <hr>
 <div class="section level2">
@@ -474,7 +474,7 @@
 <div class="section level2">
 <h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>
 </h2>
-<p>Development plans are maintained in <a href="ROADMAP.html"><code>ROADMAP.md</code></a>, with committed v0.4 work tracked in the <a href="https://github.com/JUhalt/solomonR/milestone/2" class="external-link">v0.4.0 milestone</a> and <a href="https://github.com/JUhalt/solomonR/issues" class="external-link">GitHub issues</a>.</p>
+<p>Development plans are maintained in <a href="ROADMAP.html"><code>ROADMAP.md</code></a>, with committed v0.5 work tracked in the <a href="https://github.com/JUhalt/solomonR/milestone/3" class="external-link">v0.5.0 milestone</a> and <a href="https://github.com/JUhalt/solomonR/issues" class="external-link">GitHub issues</a>.</p>
 <p>Major planned additions include:</p>
 <ul>
 <li>Solomon-specific visualizations;</li>

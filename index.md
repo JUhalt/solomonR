@@ -25,14 +25,14 @@ should start with the article [Getting Started: Analyzing a Solomon
 Four-Group
 Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 
-> **Release status:** `v0.3.0` is the current stable release. It adds
-> small-sample inference corrections, confidence intervals across effect
-> summaries, equivalence testing for pretest sensitization, design and
-> missingness checks, method comparison, and documentation written for
-> graduate students and applied researchers. The API may continue to
-> evolve before version 1.0. Development version `0.3.0.9000` is working
-> toward `v0.4.0`: validated power and sample-size planning, and
-> Solomon-specific figures.
+> **Release status:** `v0.4.0` is the current stable release. It adds
+> validated power and sample-size planning
+> ([`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md),
+> [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md));
+> figures for the design, pretest sensitization, the Solomon contrasts,
+> pretest-to-posttest change, the historical decision path, and power;
+> and a single index of the package’s simulation evidence. The API may
+> continue to evolve before version 1.0.
 
 ------------------------------------------------------------------------
 
@@ -530,8 +530,8 @@ history that produced it.
 
 Development plans are maintained in
 [`ROADMAP.md`](https://juhalt.github.io/solomonR/ROADMAP.md), with
-committed v0.4 work tracked in the [v0.4.0
-milestone](https://github.com/JUhalt/solomonR/milestone/2) and [GitHub
+committed v0.5 work tracked in the [v0.5.0
+milestone](https://github.com/JUhalt/solomonR/milestone/3) and [GitHub
 issues](https://github.com/JUhalt/solomonR/issues).
 
 Major planned additions include:
