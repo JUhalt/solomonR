@@ -32,7 +32,9 @@ fit_solomon_glm(
 \item{cluster}{optional clustering id (e.g., class/site), one value per
 participant. CR2 fits refuse designs in which a Solomon cell contains a
 single cluster, because cluster and condition are then confounded; see
-\code{\link[=validate_solomon]{validate_solomon()}}.}
+\code{\link[=validate_solomon]{validate_solomon()}}. A classed warning (\code{solomonR_small_df_warning})
+flags Solomon contrasts whose Satterthwaite degrees of freedom are below
+4, where Tipton (2015) advises that p-values not be trusted.}
 
 \item{family}{model family (default gaussian())}
 
@@ -143,4 +145,8 @@ Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
 \emph{Psychological Methods, 9}(2), 164–182.
 https://doi.org/10.1037/1082-989X.9.2.164
+
+Tipton, E. (2015). Small sample adjustments for robust variance estimation
+with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.
+https://doi.org/10.1037/met0000011
 }

@@ -271,6 +271,9 @@ error estimators in OLS regression: An introduction and software
 implementation. *Behavior Research Methods, 39*(4), 709–722.
 https://doi.org/10.3758/BF03192961
 
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd ed.).
+Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+
 Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
 size and related estimators. *Journal of Educational Statistics, 6*(2),
 107–128. https://doi.org/10.3102/10769986006002107
@@ -365,6 +368,10 @@ https://doi.org/10.1037/1082-989X.9.2.164
 Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams,
 R. M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol.
 1). Princeton University Press.
+
+Tipton, E. (2015). Small sample adjustments for robust variance estimation
+with meta-regression. *Psychological Methods, 20*(3), 375–393.
+https://doi.org/10.1037/met0000011
 
 Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had more
 power in randomized studies and more bias in nonrandomized studies. *Journal

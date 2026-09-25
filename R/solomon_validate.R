@@ -50,6 +50,25 @@
   )
 }
 
+# Classed warning for CR2 contrasts with Satterthwaite degrees of freedom
+# below 4, where Tipton (2015, p. 389) advises that p-values not be trusted.
+.warn_cr2_small_df <- function(contrasts, df) {
+  warning(structure(
+    class = c("solomonR_small_df_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "Satterthwaite degrees of freedom are below 4 for: ",
+        paste(sprintf("%s (df = %.1f)", contrasts, df), collapse = "; "),
+        ". Tipton (2015) found that cluster-robust tests with so few degrees ",
+        "of freedom can reject far more often than their nominal level, and ",
+        "advised that their p-values not be trusted. More clusters, or clusters ",
+        "of more equal size, are needed; see validate_solomon()."
+      ),
+      call = NULL
+    )
+  ))
+}
+
 # Classed error for cluster-robust inference in a design whose cells contain
 # a single cluster.
 .stop_confounded_clusters <- function(cells) {
@@ -349,7 +368,9 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL) {
 #' between-cluster variability can be estimated. Cluster-robust inference
 #' (Pustejovsky & Tipton, 2018) needs several clusters in every cell. For
 #' example, Kvalem et al. (1996) randomized 124 school classes to the four
-#' Solomon conditions.
+#' Solomon conditions. When whole clusters are randomized, a cell with two or
+#' three clusters is a warning: Hayes and Moulton (2017, p. 128) regard four
+#' clusters per arm as an absolute minimum.
 #'
 #' @inheritParams check_solomon_missing
 #' @param min_cell_n Minimum number of observed posttest scores required in
@@ -365,6 +386,9 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL) {
 #' pretest sensitisation and the cognitive acceleration through science
 #' education programme in the Solomon four-group design. *Brain Sciences,
 #' 16*(1), Article 64. https://doi.org/10.3390/brainsci16010064
+#'
+#' Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd ed.).
+#' Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
 #'
 #' Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig,
 #' L. S. (1996). The effect of sex education on adolescents' use of condoms:
@@ -598,6 +622,19 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
           "A single cluster makes up each of these cells: ",
           paste(clusters$single_cluster, collapse = "; "),
           ". Cluster and condition are completely confounded, so a difference between clusters cannot be separated from the Solomon effects and cluster-robust inference is unavailable."
+        )
+      )
+    }
+
+    whole_clusters <- clusters$treat_varies == 0 && clusters$pretest_varies == 0
+    few <- cells$cell[cells$clusters %in% 2:3]
+    if (whole_clusters && length(few)) {
+      add_issue(
+        "warning", "few_clusters",
+        paste0(
+          "Fewer than four clusters make up these cells: ",
+          paste(few, collapse = "; "),
+          ". When whole clusters are randomized, Hayes and Moulton (2017, p. 128) regard four clusters per arm as an absolute minimum."
         )
       )
     }

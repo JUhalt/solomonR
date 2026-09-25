@@ -146,7 +146,9 @@ stouffer_solomon <- function(p) {
 #' @param cluster optional clustering id (e.g., class/site), one value per
 #'   participant. CR2 fits refuse designs in which a Solomon cell contains a
 #'   single cluster, because cluster and condition are then confounded; see
-#'   [validate_solomon()].
+#'   [validate_solomon()]. A classed warning (`solomonR_small_df_warning`)
+#'   flags Solomon contrasts whose Satterthwaite degrees of freedom are below
+#'   4, where Tipton (2015) advises that p-values not be trusted.
 #' @param family model family (default gaussian())
 #' @param conf_level confidence level for intervals (default 0.95)
 #' @return An object of class `solomon_glm`: a list with the fitted model,
@@ -197,6 +199,10 @@ stouffer_solomon <- function(p) {
 #' and tests of close fit in the analysis of variance and contrast analysis.
 #' *Psychological Methods, 9*(2), 164–182.
 #' https://doi.org/10.1037/1082-989X.9.2.164
+#'
+#' Tipton, E. (2015). Small sample adjustments for robust variance estimation
+#' with meta-regression. *Psychological Methods, 20*(3), 375–393.
+#' https://doi.org/10.1037/met0000011
 #' @export
 fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
@@ -462,6 +468,13 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     row.names = NULL,
     stringsAsFactors = FALSE
   )
+
+  if (robust == "CR2") {
+    small_df <- is.finite(effects$df) & effects$df < 4
+    if (any(small_df)) {
+      .warn_cr2_small_df(effects$contrast[small_df], effects$df[small_df])
+    }
+  }
 
   out <- list(
     model = fit,

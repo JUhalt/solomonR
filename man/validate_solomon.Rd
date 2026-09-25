@@ -81,7 +81,9 @@ separated from the treatment, pretest, or sensitization effect, and no
 between-cluster variability can be estimated. Cluster-robust inference
 (Pustejovsky & Tipton, 2018) needs several clusters in every cell. For
 example, Kvalem et al. (1996) randomized 124 school classes to the four
-Solomon conditions.
+Solomon conditions. When whole clusters are randomized, a cell with two or
+three clusters is a warning: Hayes and Moulton (2017, p. 128) regard four
+clusters per arm as an absolute minimum.
 }
 \examples{
 data(solomon_example)
@@ -103,6 +105,9 @@ El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
 pretest sensitisation and the cognitive acceleration through science
 education programme in the Solomon four-group design. \emph{Brain Sciences,
 16}(1), Article 64. https://doi.org/10.3390/brainsci16010064
+
+Hayes, R. J., & Moulton, L. H. (2017). \emph{Cluster randomised trials} (2nd ed.).
+Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
 
 Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig,
 L. S. (1996). The effect of sex education on adolescents' use of condoms:

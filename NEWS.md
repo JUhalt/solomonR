@@ -10,6 +10,12 @@
 * `fit_solomon_glm(robust = "CR2")` refuses such designs with a classed
   error (`solomonR_confounded_clusters`) instead of reporting cluster-robust
   standard errors that cannot be estimated.
+* When whole clusters are randomized, a cell with two or three clusters is a
+  warning, following the rule of thumb that four clusters per arm is an
+  absolute minimum (Hayes & Moulton, 2017, p. 128).
+* CR2 fits give a classed warning (`solomonR_small_df_warning`) when a
+  Solomon contrast has Satterthwaite degrees of freedom below 4, where Tipton
+  (2015) advises that p-values not be trusted.
 
 ## Sensitization figure for maximum-likelihood fits (#47)
 

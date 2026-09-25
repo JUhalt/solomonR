@@ -219,10 +219,42 @@ test_that("CR2 fits refuse designs with a single cluster in a cell", {
     class = "solomonR_confounded_clusters"
   )
 
-  # Two clusters in every cell are accepted.
+  # Two clusters in every cell are fitted, but the Satterthwaite degrees of
+  # freedom are then below 4 and the classed warning follows Tipton (2015).
   d$class2 <- paste(d$class, seq_len(nrow(d)) %% 2)
-  expect_s3_class(
-    with(d, fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "CR2", cluster = class2)),
-    "solomon_glm"
+  expect_warning(
+    fit <- with(d, fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "CR2", cluster = class2)),
+    class = "solomonR_small_df_warning"
+  )
+  expect_s3_class(fit, "solomon_glm")
+  expect_true(any(fit$effects$df < 4))
+})
+
+
+test_that("fewer than four whole clusters in a cell is a warning", {
+
+  d <- demo_data()
+  cell <- 2 * d$pretested + d$treat
+  # Three classes per cell, each class inside one Solomon condition.
+  d$class <- paste(cell, seq_len(nrow(d)) %% 3)
+
+  v <- with(d, validate_solomon(y_post, treat, pretested, y_pre, cluster = class))
+  expect_true(v$valid)
+  expect_true("few_clusters" %in% issue_checks(v, "warning"))
+  expect_match(v$issues$message[v$issues$check == "few_clusters"], "Hayes and Moulton (2017, p. 128)", fixed = TRUE)
+
+  # Four classes per cell: no warning.
+  d$class4 <- paste(cell, seq_len(nrow(d)) %% 4)
+  v4 <- with(d, validate_solomon(y_post, treat, pretested, y_pre, cluster = class4))
+  expect_false("few_clusters" %in% issue_checks(v4, "warning"))
+})
+
+
+test_that("CR2 fits with enough clusters do not warn about degrees of freedom", {
+
+  d <- demo_data()
+  d$site <- rep(seq_len(12), length.out = nrow(d))
+  expect_no_warning(
+    with(d, fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "CR2", cluster = site))
   )
 })
