@@ -5,7 +5,7 @@
 \alias{solomonR-package}
 \title{solomonR: Analyze Solomon Four-Group Designs}
 \description{
-Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.
+Tools for analyzing Solomon four-group experimental designs using historical Tests A-I, unified generalized linear models with robust covariance estimation, stratified randomization inference, full-information maximum likelihood, and observed- and latent-variable structural equation models. Includes diagnostics, effect sizes, power and sample-size planning, plotting, and teaching-oriented workflows that distinguish historical procedures from contemporary recommendations.
 }
 \seealso{
 Useful links:
