@@ -1,3 +1,5 @@
+# solomonR (development version)
+
 # solomonR 0.4.0
 
 ## Validation evidence in one format (#11)
