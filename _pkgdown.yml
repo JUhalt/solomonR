@@ -76,5 +76,6 @@ articles:
     navbar: Methods and evidence
     contents:
       - solomon-methods
+      - articles/validation-evidence
       - articles/ml-validation
       - articles/power-validation

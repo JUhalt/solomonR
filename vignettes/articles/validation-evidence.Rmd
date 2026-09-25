@@ -1,0 +1,175 @@
+---
+title: "Validation Evidence"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+studies <- utils::read.csv("validation-evidence/studies.csv", stringsAsFactors = FALSE)
+benchmarks <- utils::read.csv("validation-evidence/benchmarks.csv", stringsAsFactors = FALSE)
+
+pct <- function(x) sprintf("%.0f%%", 100 * x)
+num <- function(x, digits = 3) formatC(x, format = "f", digits = digits)
+```
+
+This page gathers the simulation studies that check `solomonR`'s methods.
+Each study followed the ADEMP structure of Morris, White and Crowther
+(2019):
+
+- its aims, data-generating mechanisms, estimands, methods, performance
+  measures, and tolerances were posted to a GitHub issue before any results
+  were examined;
+- its script, scenario definitions, and results are committed with its
+  article.
+
+The evidence covers the scenarios each study examined. It is not a
+validation of every Solomon design: non-normal errors, clustered
+assignment, binary and count outcomes, and incidental missing data are
+outside every study below unless a study says otherwise.
+
+## Studies
+
+```{r studies}
+knitr::kable(
+  data.frame(
+    Study = sprintf("[%s](%s)", studies$title, studies$article),
+    Protocol = sprintf("[%s](%s)", studies$issues, studies$protocol),
+    Scenarios = studies$scenarios,
+    Replications = studies$replications,
+    Methods = gsub("; ", "<br>", studies$methods),
+    `Failed fits` = studies$failed_fits,
+    check.names = FALSE
+  ),
+  escape = FALSE
+)
+```
+
+## Shared results format
+
+Every study contributes to two tables, which are rebuilt from the study
+folders by `validation-evidence/build-benchmarks.R` and can be downloaded
+from the
+[package repository](https://github.com/JUhalt/solomonR/tree/master/vignettes/articles/validation-evidence):
+
+- **`studies.csv`** has one row per study:
+  - the protocol and article;
+  - scenario and replication counts;
+  - the methods and estimands;
+  - the package commit and R version;
+  - the run dates;
+  - the total number of failed fits.
+- **`benchmarks.csv`** has one row per scenario, method, estimand, and
+  performance measure:
+  - the scenario's design settings;
+  - the value and its Monte Carlo standard error (MCSE);
+  - the numbers of successful and failed fits;
+  - a note.
+
+Two conventions keep the tables honest:
+
+- **Failed fits** are counted separately from the performance measures and
+  never silently dropped.
+- **A measure a method cannot have** is listed with an empty value and a note
+  giving the reason, rather than omitted. For example, the historical Test I
+  has no analytic power benchmark, because it combines one-sided p-values.
+
+## Maximum-likelihood inference
+
+`fit_solomon_ml()` was checked with its default Wald inference, its
+small-sample option, and the unified GLM for comparison. The registered
+tolerances:
+
+- coverage between 0.940 and 0.960;
+- Type I error for the sensitization test between 0.040 and 0.060;
+- bias within 2 MCSE.
+
+```{r ml}
+ml <- benchmarks[benchmarks$study == "ml-inference", ]
+coverage <- ml[ml$measure == "coverage", ]
+null <- ml[ml$measure == "rejection_rate" & ml$null_effect &
+             ml$estimand == "Pretest x Treatment", ]
+
+methods <- unique(ml$method)
+knitr::kable(
+  data.frame(
+    Method = methods,
+    `Mean coverage` = vapply(methods, function(m) num(mean(coverage$value[coverage$method == m])), ""),
+    `Lowest coverage` = vapply(methods, function(m) num(min(coverage$value[coverage$method == m])), ""),
+    `Coverage within 0.940-0.960` = vapply(methods, function(m) {
+      v <- coverage$value[coverage$method == m]
+      pct(mean(v >= 0.94 & v <= 0.96))
+    }, ""),
+    `Mean Type I error` = vapply(methods, function(m) num(mean(null$value[null$method == m])), ""),
+    check.names = FALSE,
+    row.names = NULL
+  ),
+  caption = "Across all scenarios and contrasts; results by cell size are in the full article."
+)
+```
+
+The default Wald intervals are too narrow in small samples, which is why
+`fit_solomon_ml()` warns below 40 participants per cell and offers the
+small-sample option. See the
+[full article](`r studies$article[studies$study == "ml-inference"]`).
+
+## Power simulation
+
+`power_solomon()` was checked against normal-theory benchmarks. The
+registered tolerances:
+
+- Type I error between 0.040 and 0.060 wherever the true effect is zero;
+- power within 0.02 of the analytic benchmark, or within 2 MCSE, whichever
+  is larger.
+
+```{r power}
+pw <- benchmarks[benchmarks$study == "power-simulation", ]
+type1 <- pw[pw$measure == "rejection_rate" & pw$null_effect, ]
+difference <- pw[pw$measure == "difference_from_benchmark" & !is.na(pw$value) &
+                   !pw$null_effect, ]
+difference$within <- abs(difference$value) <= pmax(0.02, 2 * difference$mcse)
+
+methods <- unique(pw$method)
+knitr::kable(
+  data.frame(
+    Method = methods,
+    `Mean Type I error` = vapply(methods, function(m) {
+      v <- type1$value[type1$method == m]
+      if (length(v)) num(mean(v)) else "not assessed"
+    }, ""),
+    `Type I error within 0.040-0.060` = vapply(methods, function(m) {
+      v <- type1$value[type1$method == m]
+      if (length(v)) pct(mean(v >= 0.04 & v <= 0.06)) else "not assessed"
+    }, ""),
+    `Power within tolerance of the benchmark` = vapply(methods, function(m) {
+      v <- difference$within[difference$method == m]
+      if (length(v)) pct(mean(v)) else "no analytic benchmark"
+    }, ""),
+    check.names = FALSE,
+    row.names = NULL
+  ),
+  caption = "Across all scenarios; results by allocation are in the full article."
+)
+```
+
+The 2x2 ANOVA interaction matched its benchmark in every scenario. The GLM
+tests are conservative with 20 or fewer participants per cell, following
+the HC3 standard errors the package uses by default. See the
+[full article](`r studies$article[studies$study == "power-simulation"]`).
+
+## Adding a study
+
+A new study joins this page by:
+
+1. posting its protocol to a GitHub issue before running;
+2. committing its script, `performance.csv`, and `run-information.csv` in a
+   folder under `vignettes/articles/`;
+3. adding a section for it to `validation-evidence/build-benchmarks.R`.
+
+The re-simulation check of `plan_solomon()` (issue #24) is the next study to
+be added in this format.
+
+## References
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*,
+2074-2102.

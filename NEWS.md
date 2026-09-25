@@ -1,5 +1,17 @@
 # solomonR (development version)
 
+## Validation evidence in one format (#11)
+
+* New article "Validation Evidence" gathers the package's simulation studies
+  in one place, with each study's protocol, scenarios, replications, methods,
+  failed fits, and results against its pre-registered tolerances.
+* Two shared tables, rebuilt by a committed script from each study's results,
+  can be downloaded from the repository. `studies.csv` has one row per study
+  and `benchmarks.csv` has one row per scenario, method, estimand, and
+  performance measure, with Monte Carlo standard errors. Failed fits are
+  counted separately, and measures a method cannot have are listed with a
+  reason rather than omitted.
+
 ## Power curves (#30)
 
 * New `plot_power_solomon()` draws power against the size of the smallest

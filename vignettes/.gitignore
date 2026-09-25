@@ -2,3 +2,4 @@
 *.R
 !articles/ml-validation/*.R
 !articles/power-validation/*.R
+!articles/validation-evidence/*.R
