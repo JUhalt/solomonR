@@ -1,7 +1,9 @@
 #' Plot Solomon Posttest Cell Means
 #'
 #' Displays posttest means and 95% confidence intervals for the four cells
-#' of a Solomon four-group design.
+#' of a Solomon four-group design. Intervals use the t distribution with
+#' n - 1 degrees of freedom within each cell. For the model-adjusted means
+#' behind the sensitization contrast, see [plot_sensitization()].
 #'
 #' @param y Numeric vector of posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
@@ -13,9 +15,9 @@ plot_solomon <- function(y, treat, pretested) {
   agg <- dplyr::summarise(dplyr::group_by(df, pretested, treat),
                           n=dplyr::n(), mean=mean(y), sd=stats::sd(y))
   agg$se <- agg$sd / sqrt(agg$n)
-  z <- stats::qnorm(.975)
-  agg$lo <- agg$mean - z*agg$se
-  agg$hi <- agg$mean + z*agg$se
+  crit <- stats::qt(0.975, df = agg$n - 1)
+  agg$lo <- agg$mean - crit * agg$se
+  agg$hi <- agg$mean + crit * agg$se
   # base R plot to avoid extra deps
   op <- graphics::par(mar = c(4, 4, 1, 1))
   on.exit(graphics::par(op))

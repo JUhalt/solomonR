@@ -1,5 +1,20 @@
 # solomonR (development version)
 
+## Pretest sensitization figure (#26)
+
+* New `plot_sensitization()` draws the Pretest x Treatment interaction as
+  model-adjusted group means with confidence intervals. Pretested groups are
+  evaluated at the mean pretest among pretested participants and unpretested
+  groups without a pretest, so the difference of differences among the
+  plotted means equals the fitted sensitization contrast exactly. Observed
+  means are overlaid for comparison.
+* Its intervals use the fit's own covariance matrix and reference
+  distribution, the subtitle reports the fitted contrast, and optional bounds
+  add the outcome of `equivalence_solomon()`.
+* `plot_solomon()` and `plot_solomon_gg()` now use t intervals with n - 1
+  degrees of freedom for cell means instead of the normal quantile, which was
+  too narrow with small cells.
+
 ## Forest plot of the Solomon contrasts (#27)
 
 * New `plot_solomon_effects()` draws the four Solomon contrasts with their

@@ -18,5 +18,7 @@ A ggplot object.
 }
 \description{
 Displays posttest means and 95\% confidence intervals for the four cells
-of a Solomon four-group design.
+of a Solomon four-group design. Intervals use the t distribution with
+n - 1 degrees of freedom within each cell. For the model-adjusted means
+behind the sensitization contrast, see \code{\link[=plot_sensitization]{plot_sensitization()}}.
 }

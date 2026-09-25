@@ -45,6 +45,7 @@ reference:
       - plot_solomon_gg
       - plot_perm
       - plot_solomon_effects
+      - plot_sensitization
 
   - title: "Data"
     contents:
