@@ -285,7 +285,10 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
         list(message = sprintf(
           paste0("The logistic fit failed in %d of %d bootstrap resamples (more ",
                  "than 10%%), usually because of sparse cells; intervals are not ",
-                 "reported."), failures, R), call = NULL)
+                 "reported. method = \"delta\" does not resample; in the package's ",
+                 "simulation study (issue #43), its risk-difference intervals met ",
+                 "the registered tolerances in most designs in which the bootstrap ",
+                 "failed this often."), failures, R), call = NULL)
       ))
     }
   } else {
