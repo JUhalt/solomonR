@@ -13,7 +13,8 @@ fit_solomon_glm(
   robust = c("HC3", "none", "CR2"),
   cluster = NULL,
   family = stats::gaussian(),
-  conf_level = 0.95
+  conf_level = 0.95,
+  exposure = NULL
 )
 }
 \arguments{
@@ -39,12 +40,18 @@ flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 \item{family}{model family (default gaussian())}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
+
+\item{exposure}{optional positive exposure (for example, observation time)
+for each participant, entered as a log offset; requires a log-link family
+such as \code{poisson()}. Contrasts are then log rate ratios per unit of
+exposure.}
 }
 \value{
 An object of class \code{solomon_glm}: a list with the fitted model,
 coefficient and contrast tables (including degrees of freedom and
 confidence limits \code{conf.low} and \code{conf.high}), the covariance matrix,
-and the settings used.
+the Pearson dispersion statistic for binomial and Poisson fits, and the
+settings used.
 }
 \description{
 Fits one generalized linear model to all four Solomon groups and reports
@@ -95,6 +102,17 @@ sensitization present. Such fits give the classed warning
 Solomon contrasts on a common scale with \code{\link[=marginal_solomon]{marginal_solomon()}}. Identity and
 log links are collapsible and are not affected.
 
+Count outcomes: with \code{family = poisson()}, the default HC3 covariance gives
+the robust (quasi-likelihood) inference that Cameron and Trivedi (2013)
+describe. The Poisson estimator stays consistent when the counts are not
+Poisson, provided the mean is correctly specified (p. 72), whereas
+model-based standard errors should not be used under overdispersion. The
+Pearson dispersion statistic is returned as \code{dispersion} for description;
+values well above 1 indicate overdispersion. Log-link rate ratios are
+collapsible, so the noncollapsibility caution above does not apply.
+Use \code{exposure} for counts observed over different times or exposures, and
+\code{\link[=marginal_solomon]{marginal_solomon()}} for rate differences.
+
 The degrees of freedom are returned in the \code{df} columns (\code{Inf} for normal
 reference distributions). Imbens and Kolesár (2016) further recommend
 Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
@@ -117,6 +135,10 @@ fits; no corresponding interval is available with robust covariance.
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
 169–181.
+
+Cameron, A. C., & Trivedi, P. K. (2013). \emph{Regression analysis of count data}
+(2nd ed.). Cambridge University Press.
+https://doi.org/10.1017/CBO9781139013567
 
 Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 Comparing noncollapsible effect estimators and their standard errors after

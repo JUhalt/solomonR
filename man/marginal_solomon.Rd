@@ -2,7 +2,7 @@
 % Please edit documentation in R/solomon_marginal.R
 \name{marginal_solomon}
 \alias{marginal_solomon}
-\title{Marginal Solomon contrasts for binary outcomes}
+\title{Marginal Solomon contrasts for binary and count outcomes}
 \usage{
 marginal_solomon(
   fit,
@@ -15,11 +15,15 @@ marginal_solomon(
 }
 \arguments{
 \item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \code{family = binomial()} (logit
-link). Cluster-robust (CR2) fits are not yet supported.}
+link) or \code{family = poisson()} (log link). Cluster-robust (CR2) fits are not
+yet supported.}
 
-\item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and \code{"odds_ratio"}.}
+\item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
+outcomes, \code{"odds_ratio"}. For count outcomes the default is
+\code{c("difference", "ratio")}.}
 
-\item{method}{\code{"bootstrap"} (default) or \code{"delta"}.}
+\item{method}{\code{"bootstrap"} (default for binary outcomes) or \code{"delta"}
+(the only method for count outcomes).}
 
 \item{R}{Number of bootstrap resamples (at least 99). Default 999.}
 
@@ -31,12 +35,14 @@ state is restored afterwards.}
 \value{
 An object of class \code{solomon_marginal} with \code{effects} (one row per
 scale and contrast: estimate and interval on the reporting scale, standard
-error on the analysis scale, p-value), \code{risks} (the four marginal risks),
-and the settings, including the number of failed bootstrap resamples.
+error on the analysis scale, p-value), \code{risks} (binary) or \code{rates}
+(counts, per unit of exposure) for the four cells, and the settings,
+including the number of failed bootstrap resamples.
 }
 \description{
 Estimates the Solomon contrasts for a binary outcome as risk differences,
-risk ratios, or odds ratios, comparing marginal risks in every cell.
+risk ratios, or odds ratios, and for a count outcome as rate differences or
+rate ratios, comparing marginal risks or rates in every cell.
 }
 \details{
 A logistic model that adjusts for the pretest estimates, among pretested
@@ -81,8 +87,19 @@ events or only non-events, or a fitted probability within 1e-8 of 0 or 1)
 are excluded and counted; when more than 10\% fail, intervals are not
 reported.
 
+Count outcomes: for a fit with \code{family = poisson()}, rates per unit of
+exposure are standardized in the same way and compared as rate differences
+or rate ratios. Log-link rate ratios are collapsible (Daniel et al., 2021),
+so they agree with the fitted model's coefficients when there are no other
+covariates; rate differences depend on the covariate distribution. For
+counts, intervals use the delta method with the fit's (by default robust
+HC3) covariance, which Cameron and Trivedi (2013) recommend under
+overdispersion; a bootstrap for counts has not been evaluated and is not
+offered. The fit's Pearson dispersion statistic is printed for
+description.
+
 The package's simulation validation of this function is described on
-issue #43.
+issue #43 (binary outcomes) and issue #44 (count outcomes).
 }
 \examples{
 d <- solomon_example
@@ -94,8 +111,20 @@ marginal_solomon(fit, method = "delta")
 marginal_solomon(fit, R = 499, seed = 1)
 }
 
+# A count outcome observed over different exposure times.
+set.seed(2)
+d$days <- runif(nrow(d), 5, 15)
+d$visits <- rpois(nrow(d), d$days * exp(-1.5 + 0.3 * d$treat))
+counts <- with(d, fit_solomon_glm(visits, treat, pretested, y_pre,
+                                  family = poisson(), exposure = days))
+marginal_solomon(counts)
+
 }
 \references{
+Cameron, A. C., & Trivedi, P. K. (2013). \emph{Regression analysis of count data}
+(2nd ed.). Cambridge University Press.
+https://doi.org/10.1017/CBO9781139013567
+
 Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 Comparing noncollapsible effect estimators and their standard errors after
 adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),

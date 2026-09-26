@@ -6,3 +6,5 @@
 !articles/plan-validation/*.R
 !articles/binary-validation/*.R
 articles/binary-validation/cache/
+!articles/count-validation/*.R
+articles/count-validation/cache/

@@ -132,6 +132,17 @@ stouffer_solomon <- function(p) {
 #' Solomon contrasts on a common scale with [marginal_solomon()]. Identity and
 #' log links are collapsible and are not affected.
 #'
+#' Count outcomes: with `family = poisson()`, the default HC3 covariance gives
+#' the robust (quasi-likelihood) inference that Cameron and Trivedi (2013)
+#' describe. The Poisson estimator stays consistent when the counts are not
+#' Poisson, provided the mean is correctly specified (p. 72), whereas
+#' model-based standard errors should not be used under overdispersion. The
+#' Pearson dispersion statistic is returned as `dispersion` for description;
+#' values well above 1 indicate overdispersion. Log-link rate ratios are
+#' collapsible, so the noncollapsibility caution above does not apply.
+#' Use `exposure` for counts observed over different times or exposures, and
+#' [marginal_solomon()] for rate differences.
+#'
 #' The degrees of freedom are returned in the `df` columns (`Inf` for normal
 #' reference distributions). Imbens and Kolesár (2016) further recommend
 #' Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
@@ -163,14 +174,23 @@ stouffer_solomon <- function(p) {
 #'   4, where Tipton (2015) advises that p-values not be trusted.
 #' @param family model family (default gaussian())
 #' @param conf_level confidence level for intervals (default 0.95)
+#' @param exposure optional positive exposure (for example, observation time)
+#'   for each participant, entered as a log offset; requires a log-link family
+#'   such as `poisson()`. Contrasts are then log rate ratios per unit of
+#'   exposure.
 #' @return An object of class `solomon_glm`: a list with the fitted model,
 #'   coefficient and contrast tables (including degrees of freedom and
 #'   confidence limits `conf.low` and `conf.high`), the covariance matrix,
-#'   and the settings used.
+#'   the Pearson dispersion statistic for binomial and Poisson fits, and the
+#'   settings used.
 #' @references
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 #' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 #' 169–181.
+#'
+#' Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
+#' (2nd ed.). Cambridge University Press.
+#' https://doi.org/10.1017/CBO9781139013567
 #'
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after
@@ -224,9 +244,11 @@ stouffer_solomon <- function(p) {
 fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
                             cluster = NULL, family = stats::gaussian(),
-                            conf_level = 0.95) {
+                            conf_level = 0.95, exposure = NULL) {
   robust <- match.arg(robust)
   .check_conf_level(conf_level)
+  if (is.character(family)) family <- get(family, mode = "function", envir = parent.frame())
+  if (is.function(family)) family <- family()
 
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
@@ -237,7 +259,8 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     pretested = pretested,
     pretest_score = pretest_score,
     covariates = covariates,
-    cluster = cluster
+    cluster = cluster,
+    exposure = exposure
   )
 
   df <- data.frame(
@@ -276,6 +299,16 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
   rhs <- c("treat*pretested",
            if (!is.null(pretest_score)) "pre_obs" else NULL,
            if (!is.null(covariates)) names(covariates) else NULL)
+  if (!is.null(exposure)) {
+    if (!is.numeric(exposure) || any(exposure <= 0, na.rm = TRUE)) {
+      stop("`exposure` must contain positive numbers.", call. = FALSE)
+    }
+    if (!identical(family$link, "log")) {
+      stop("`exposure` requires a log-link family, such as poisson().", call. = FALSE)
+    }
+    df$log_exposure <- log(exposure)
+    rhs <- c(rhs, "offset(log_exposure)")
+  }
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
   fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
@@ -497,10 +530,17 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     }
   }
 
+  dispersion <- if (stats::family(fit)$family %in% c("binomial", "poisson")) {
+    sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
+  } else {
+    NA_real_
+  }
+
   out <- list(
     model = fit,
     coefficients = tidy,
     effects = effects,
+    dispersion = dispersion,
     vcov = vcovM,
     data = df,
     robust = robust,

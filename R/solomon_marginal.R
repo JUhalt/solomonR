@@ -1,16 +1,21 @@
-# Marginal Solomon contrasts for binary outcomes (issue #43).
+# Marginal Solomon contrasts for binary (issue #43) and count (issue #44)
+# outcomes.
 
 .marginal_scales <- c(
   difference = "Risk difference",
   ratio = "Risk ratio",
   odds_ratio = "Odds ratio"
 )
+.marginal_rate_scales <- c(
+  difference = "Rate difference",
+  ratio = "Rate ratio"
+)
 
 # Marginal (standardized) risks for the four Solomon cells from logistic
 # coefficients `b`: each participant's risk is predicted under treatment and
 # under control, and averaged within their pretest condition (Daniel et al.,
 # 2021; Localio et al., 2007). Returns r(t, p) as a named vector.
-.marginal_risks <- function(b, X, pretested) {
+.marginal_risks <- function(b, X, pretested, linkinv = stats::plogis) {
   b[is.na(b)] <- 0
   b_t <- b[["treat"]]
   b_tp <- if ("treat:pretested" %in% names(b)) b[["treat:pretested"]] else 0
@@ -20,20 +25,22 @@
     if (b_tp != 0) X[, "treat:pretested"] * b_tp else 0
   pre <- pretested == 1L
   c(
-    t1p1 = mean(stats::plogis(base[pre] + b_t + b_tp)),
-    t0p1 = mean(stats::plogis(base[pre])),
-    t1p0 = mean(stats::plogis(base[!pre] + b_t)),
-    t0p0 = mean(stats::plogis(base[!pre]))
+    t1p1 = mean(linkinv(base[pre] + b_t + b_tp)),
+    t0p1 = mean(linkinv(base[pre])),
+    t1p0 = mean(linkinv(base[!pre] + b_t)),
+    t0p0 = mean(linkinv(base[!pre]))
   )
 }
 
 # The four Solomon contrasts on one scale from the four marginal risks. The
 # average treatment effect compares risks averaged over equal numbers of
 # pretested and unpretested participants. Ratio scales are undefined when a
-# risk is 0 or 1 (within 1e-8, as under separation).
-.marginal_contrasts <- function(r, scale) {
+# risk is 0 or 1 (within 1e-8, as under separation), or when a count
+# outcome's rate is 0.
+.marginal_contrasts <- function(r, scale, count = FALSE) {
   g <- switch(scale, difference = identity, ratio = log, odds_ratio = stats::qlogis)
-  if (scale != "difference" && .degenerate_risk(r)) {
+  degenerate <- if (count) any(r < 1e-8) else .degenerate_risk(r)
+  if (scale != "difference" && degenerate) {
     return(stats::setNames(rep(NA_real_, 4), .solomon_contrast_order))
   }
   pre <- g(r[["t1p1"]]) - g(r[["t0p1"]])
@@ -42,9 +49,15 @@
   stats::setNames(c(ate, pre - un, pre, un), .solomon_contrast_order)
 }
 
-.marginal_all <- function(b, X, pretested, scales) {
-  r <- .marginal_risks(b, X, pretested)
-  unlist(lapply(scales, function(s) .marginal_contrasts(r, s)), use.names = FALSE)
+.marginal_all <- function(b, X, pretested, scales, count = FALSE) {
+  r <- .marginal_risks(b, X, pretested, linkinv = if (count) exp else stats::plogis)
+  unlist(lapply(scales, function(s) .marginal_contrasts(r, s, count)), use.names = FALSE)
+}
+
+# A Solomon cell with no counts at all has no rate ratio (the log-link
+# estimate diverges).
+.cell_empty <- function(y, treat, pretested) {
+  any(tapply(y, list(treat, pretested), function(v) all(v == 0)))
 }
 
 # Classed warning for link-scale Solomon contrasts from a noncollapsible link
@@ -116,10 +129,11 @@
 }
 
 
-#' Marginal Solomon contrasts for binary outcomes
+#' Marginal Solomon contrasts for binary and count outcomes
 #'
 #' Estimates the Solomon contrasts for a binary outcome as risk differences,
-#' risk ratios, or odds ratios, comparing marginal risks in every cell.
+#' risk ratios, or odds ratios, and for a count outcome as rate differences or
+#' rate ratios, comparing marginal risks or rates in every cell.
 #'
 #' A logistic model that adjusts for the pretest estimates, among pretested
 #' participants, a treatment effect conditional on the pretest, but among
@@ -162,13 +176,28 @@
 #' are excluded and counted; when more than 10% fail, intervals are not
 #' reported.
 #'
+#' Count outcomes: for a fit with `family = poisson()`, rates per unit of
+#' exposure are standardized in the same way and compared as rate differences
+#' or rate ratios. Log-link rate ratios are collapsible (Daniel et al., 2021),
+#' so they agree with the fitted model's coefficients when there are no other
+#' covariates; rate differences depend on the covariate distribution. For
+#' counts, intervals use the delta method with the fit's (by default robust
+#' HC3) covariance, which Cameron and Trivedi (2013) recommend under
+#' overdispersion; a bootstrap for counts has not been evaluated and is not
+#' offered. The fit's Pearson dispersion statistic is printed for
+#' description.
+#'
 #' The package's simulation validation of this function is described on
-#' issue #43.
+#' issue #43 (binary outcomes) and issue #44 (count outcomes).
 #'
 #' @param fit A fit from [fit_solomon_glm()] with `family = binomial()` (logit
-#'   link). Cluster-robust (CR2) fits are not yet supported.
-#' @param scale One or more of `"difference"`, `"ratio"`, and `"odds_ratio"`.
-#' @param method `"bootstrap"` (default) or `"delta"`.
+#'   link) or `family = poisson()` (log link). Cluster-robust (CR2) fits are not
+#'   yet supported.
+#' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
+#'   outcomes, `"odds_ratio"`. For count outcomes the default is
+#'   `c("difference", "ratio")`.
+#' @param method `"bootstrap"` (default for binary outcomes) or `"delta"`
+#'   (the only method for count outcomes).
 #' @param R Number of bootstrap resamples (at least 99). Default 999.
 #' @param seed Optional integer seed for the bootstrap. The global random number
 #'   state is restored afterwards.
@@ -176,10 +205,15 @@
 #'
 #' @return An object of class `solomon_marginal` with `effects` (one row per
 #'   scale and contrast: estimate and interval on the reporting scale, standard
-#'   error on the analysis scale, p-value), `risks` (the four marginal risks),
-#'   and the settings, including the number of failed bootstrap resamples.
+#'   error on the analysis scale, p-value), `risks` (binary) or `rates`
+#'   (counts, per unit of exposure) for the four cells, and the settings,
+#'   including the number of failed bootstrap resamples.
 #'
 #' @references
+#' Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
+#' (2nd ed.). Cambridge University Press.
+#' https://doi.org/10.1017/CBO9781139013567
+#'
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after
 #' adjustment for different covariate sets. *Biometrical Journal, 63*(3),
@@ -202,6 +236,14 @@
 #' marginal_solomon(fit, R = 499, seed = 1)
 #' }
 #'
+#' # A count outcome observed over different exposure times.
+#' set.seed(2)
+#' d$days <- runif(nrow(d), 5, 15)
+#' d$visits <- rpois(nrow(d), d$days * exp(-1.5 + 0.3 * d$treat))
+#' counts <- with(d, fit_solomon_glm(visits, treat, pretested, y_pre,
+#'                                   family = poisson(), exposure = days))
+#' marginal_solomon(counts)
+#'
 #' @export
 marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio"),
                              method = c("bootstrap", "delta"), R = 999, seed = NULL,
@@ -211,15 +253,30 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stop("`fit` must come from fit_solomon_glm().", call. = FALSE)
   }
   family <- stats::family(fit$model)
-  if (!identical(family$family, "binomial") || !identical(family$link, "logit")) {
-    stop("`fit` must use family = binomial() with the logit link.", call. = FALSE)
+  binary <- identical(family$family, "binomial") && identical(family$link, "logit")
+  count <- identical(family$family, "poisson") && identical(family$link, "log")
+  if (!binary && !count) {
+    stop("`fit` must use family = binomial() (logit link) or poisson() (log link).",
+         call. = FALSE)
   }
   if (identical(fit$robust, "CR2")) {
     stop("Cluster-robust (CR2) fits are not yet supported; cluster-level inference ",
-         "for binary outcomes is planned with issues #19 and #46.", call. = FALSE)
+         "is planned with issues #19 and #46.", call. = FALSE)
   }
+  method_missing <- missing(method)
+  if (count && missing(scale)) scale <- c("difference", "ratio")
   scale <- match.arg(scale, several.ok = TRUE)
   method <- match.arg(method)
+  if (count) {
+    if ("odds_ratio" %in% scale) {
+      stop("The odds-ratio scale applies only to binary outcomes.", call. = FALSE)
+    }
+    if (!method_missing && method == "bootstrap") {
+      stop("For count outcomes only method = \"delta\" is offered; a bootstrap ",
+           "for counts has not been evaluated.", call. = FALSE)
+    }
+    method <- "delta"
+  }
   .check_conf_level(conf_level)
   if (method == "bootstrap" && (!is.numeric(R) || length(R) != 1L || R < 99)) {
     stop("`R` must be a single number of at least 99.", call. = FALSE)
@@ -232,19 +289,25 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   treat <- as.integer(X[, "treat"])
   b <- stats::coef(model)
 
-  estimate <- .marginal_all(b, X, pretested, scale)
-  risks <- .marginal_risks(b, X, pretested)
-  separated <- .cell_separated(y, treat, pretested) || .degenerate_risk(risks)
+  estimate <- .marginal_all(b, X, pretested, scale, count)
+  risks <- .marginal_risks(b, X, pretested, linkinv = if (count) exp else stats::plogis)
+  separated <- if (count) {
+    .cell_empty(y, treat, pretested) || any(risks < 1e-8)
+  } else {
+    .cell_separated(y, treat, pretested) || .degenerate_risk(risks)
+  }
   if (separated) {
     estimate[rep(scale, each = 4) != "difference"] <- NA_real_
   }
   if (any(scale != "difference") && separated) {
     warning(structure(
       class = c("solomonR_sparse_cell_warning", "warning", "condition"),
-      list(message = paste0(
-        "A Solomon cell has only events or only non-events, so ratio-scale ",
-        "contrasts are undefined and reported as NA."
-      ), call = NULL)
+      list(message = if (count) {
+        "A Solomon cell has no counts, so rate ratios are undefined and reported as NA."
+      } else {
+        paste0("A Solomon cell has only events or only non-events, so ratio-scale ",
+               "contrasts are undefined and reported as NA.")
+      }, call = NULL)
     ))
   }
 
@@ -297,7 +360,8 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       h <- 1e-6 * max(1, abs(b[[j]]))
       up <- b; up[j] <- up[j] + h
       down <- b; down[j] <- down[j] - h
-      (.marginal_all(up, X, pretested, scale) - .marginal_all(down, X, pretested, scale)) / (2 * h)
+      (.marginal_all(up, X, pretested, scale, count) -
+         .marginal_all(down, X, pretested, scale, count)) / (2 * h)
     }, numeric(length(estimate)))
     grad <- matrix(grad, nrow = length(estimate))
     std.error <- sqrt(rowSums((grad %*% V) * grad))
@@ -311,7 +375,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   report <- function(x) ifelse(ratio, exp(x), x)
 
   effects <- data.frame(
-    scale = unname(.marginal_scales[scale_col]),
+    scale = unname((if (count) .marginal_rate_scales else .marginal_scales)[scale_col]),
     contrast = rep(.solomon_contrast_order, length(scale)),
     estimate = report(estimate),
     conf.low = report(ci[, 1]),
@@ -321,17 +385,23 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stringsAsFactors = FALSE
   )
 
+  cells <- data.frame(
+    cell = c("Pretested, treatment", "Pretested, control",
+             "Unpretested, treatment", "Unpretested, control"),
+    treat = c(1L, 0L, 1L, 0L),
+    pretested = c(1L, 1L, 0L, 0L),
+    value = unname(risks),
+    stringsAsFactors = FALSE
+  )
+  names(cells)[4] <- if (count) "rate" else "risk"
+
   structure(
     list(
       effects = effects,
-      risks = data.frame(
-        cell = c("Pretested, treatment", "Pretested, control",
-                 "Unpretested, treatment", "Unpretested, control"),
-        treat = c(1L, 0L, 1L, 0L),
-        pretested = c(1L, 1L, 0L, 0L),
-        risk = unname(risks),
-        stringsAsFactors = FALSE
-      ),
+      risks = if (!count) cells,
+      rates = if (count) cells,
+      outcome = if (count) "count" else "binary",
+      dispersion = fit$dispersion,
       method = method,
       R = if (method == "bootstrap") R else NA_integer_,
       failures = failures,
@@ -346,22 +416,34 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
 
 #' @export
 print.solomon_marginal <- function(x, digits = 3, ...) {
-  cat("Marginal Solomon contrasts for a binary outcome\n")
+  count <- identical(x$outcome, "count")
+  what <- if (count) "Rates" else "Risks"
+  cat("Marginal Solomon contrasts for a", if (count) "count" else "binary", "outcome\n")
   cat(if (x$pretest_adjusted) {
-    "Risks standardized over the pretest among pretested participants.\n"
+    paste(what, "standardized over the pretest among pretested participants.\n")
   } else {
-    "Risks from the fitted cell probabilities (no pretest adjustment).\n"
+    paste(what, "from the fitted cells (no pretest adjustment).\n")
   })
+  if (count && is.finite(x$dispersion)) {
+    cat(sprintf("Pearson dispersion: %.2f (values well above 1 indicate overdispersion).\n",
+                x$dispersion))
+  }
   cat(if (x$method == "bootstrap") {
     sprintf("%s%% percentile intervals from %d cell-stratified bootstrap resamples (%d failed).\n",
             format(100 * x$conf_level), x$R, x$failures)
   } else {
     sprintf("%s%% delta-method intervals (%s covariance).\n", format(100 * x$conf_level), x$vcov)
   })
-  cat("\nMarginal risks:\n")
-  risks <- x$risks[, c("cell", "risk")]
-  risks$risk <- round(risks$risk, digits)
-  print(risks, row.names = FALSE)
+  if (count) {
+    cat("\nMarginal rates per unit of exposure:\n")
+    cells <- x$rates[, c("cell", "rate")]
+    cells$rate <- round(cells$rate, digits)
+  } else {
+    cat("\nMarginal risks:\n")
+    cells <- x$risks[, c("cell", "risk")]
+    cells$risk <- round(cells$risk, digits)
+  }
+  print(cells, row.names = FALSE)
   for (s in unique(x$effects$scale)) {
     cat("\n", s, ":\n", sep = "")
     tab <- x$effects[x$effects$scale == s, c("contrast", "estimate", "conf.low", "conf.high", "p.value")]
