@@ -57,15 +57,16 @@ small-sample tests reported by \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}
 }
 \references{
 DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
-correlation and regression coefficients. \emph{Journal of the American
-Statistical Association, 112}(519), 1211-1220.
+correlation and regression coefficients. \emph{Journal of the American Statistical
+Association, 112}(519), 1211–1220.
+https://doi.org/10.1080/01621459.2016.1202117
 
 Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 zero: Calculating exact p-values when permutations are randomly drawn.
 \emph{Statistical Applications in Genetics and Molecular Biology, 9}(1),
-Article 39.
+Article 39. https://doi.org/10.2202/1544-6115.1585
 
-Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses
-in randomized experiments. \emph{Journal of the American Statistical
-Association, 116}(536), 1898-1913.
+Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in
+randomized experiments. \emph{Journal of the American Statistical Association,
+116}(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415
 }

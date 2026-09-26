@@ -134,14 +134,15 @@
 #' @references
 #' Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 #' studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
-#' 2074-2102.
+#' 2074–2102. https://doi.org/10.1002/sim.8086
 #'
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-#' variance components. *Biometrics Bulletin, 2*(6), 110-114.
+#' variance components. *Biometrics Bulletin, 2*(6), 110–114.
+#' https://doi.org/10.2307/3002019
 #'
 #' Welch, B. L. (1947). The generalization of "Student's" problem when several
-#' different population variances are involved. *Biometrika, 34*(1/2),
-#' 28-35.
+#' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
+#' https://doi.org/10.1093/biomet/34.1-2.28
 #'
 #' @examples
 #' # Equal allocation, a treatment effect of 0.4 SD, and sensitization of 0.2 SD

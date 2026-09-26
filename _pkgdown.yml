@@ -10,6 +10,7 @@ reference:
     contents:
       - fit_solomon_glm
       - fit_solomon_ml
+      - marginal_solomon
       - perm_solomon
       - equivalence_solomon
       - compare_solomon_methods
@@ -19,6 +20,7 @@ reference:
       Classical procedures retained for teaching and methodological replication.
     contents:
       - fit_solomon_classic
+      - fisher_solomon
       - stouffer_solomon
       - p_to_z
 
@@ -79,3 +81,10 @@ articles:
       - articles/validation-evidence
       - articles/ml-validation
       - articles/power-validation
+      - articles/plan-validation
+      - articles/binary-validation
+
+  - title: "References"
+    navbar: References
+    contents:
+      - articles/references

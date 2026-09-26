@@ -64,20 +64,22 @@
 #' @references
 #' Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 #' correlations, and meta-analyses. *Social Psychological and Personality
-#' Science, 8*(4), 355-362.
+#' Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177
 #'
 #' Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing for
 #' psychological research: A tutorial. *Advances in Methods and Practices in
-#' Psychological Science, 1*(2), 259-269.
+#' Psychological Science, 1*(2), 259–269.
+#' https://doi.org/10.1177/2515245918770963
 #'
 #' Murphy, K. R., & Myors, B. (1999). Testing the hypothesis that treatments
 #' have negligible effects: Minimum-effect tests in the general linear model.
-#' *Journal of Applied Psychology, 84*(2), 234-248.
+#' *Journal of Applied Psychology, 84*(2), 234–248.
+#' https://doi.org/10.1037/0021-9010.84.2.234
 #'
 #' Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 #' and the power approach for assessing the equivalence of average
-#' bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics,
-#' 15*(6), 657-680.
+#' bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics, 15*(6),
+#' 657–680. https://doi.org/10.1007/BF01068419
 #' @examples
 #' data(solomon_example)
 #' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))

@@ -24,12 +24,13 @@
 #' @param estimator lavaan estimator (default "MLR")
 #' @param conf_level confidence level for intervals (default 0.95)
 #' @references
-#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-#' design: Appropriate statistical analyses. *The Journal of Experimental
-#' Education, 42*(2), 54-55.
+#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+#' Appropriate statistical analyses. *The Journal of Experimental Education,
+#' 42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
 #'
-#' Rosseel, Y. (2012). lavaan: An R package for structural equation
-#' modeling. *Journal of Statistical Software, 48*(2), 1-36.
+#' Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
+#' *Journal of Statistical Software, 48*(2), 1–36.
+#' https://doi.org/10.18637/jss.v048.i02
 #' @export
 fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
                             equal_var = FALSE, ancova = FALSE,

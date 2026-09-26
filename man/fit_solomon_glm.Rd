@@ -29,7 +29,12 @@ fit_solomon_glm(
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
-\item{cluster}{optional clustering id (e.g., class/site), one value per participant}
+\item{cluster}{optional clustering id (e.g., class/site), one value per
+participant. CR2 fits refuse designs in which a Solomon cell contains a
+single cluster, because cluster and condition are then confounded; see
+\code{\link[=validate_solomon]{validate_solomon()}}. A classed warning (\code{solomonR_small_df_warning})
+flags Solomon contrasts whose Satterthwaite degrees of freedom are below
+4, where Tipton (2015) advises that p-values not be trusted.}
 
 \item{family}{model family (default gaussian())}
 
@@ -78,6 +83,18 @@ freedom when the dispersion is estimated, as in Gaussian models, which is
 the conventional choice when t approximations are used with robust
 standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
 with a fixed dispersion (binomial, Poisson) use the normal distribution.
+With a noncollapsible link (such as the logit) and \code{pretest_score}, the
+link-scale contrasts compare a treatment effect conditional on the pretest
+among pretested participants with a marginal effect among unpretested
+participants, who have no pretest. When the pretest predicts the outcome,
+the Pretest x Treatment contrast is then nonzero even without
+sensitization (Daniel et al., 2021): in the package's simulation study
+(issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
+sensitization present. Such fits give the classed warning
+\code{solomonR_noncollapsible_warning}; for binary outcomes, estimate the
+Solomon contrasts on a common scale with \code{\link[=marginal_solomon]{marginal_solomon()}}. Identity and
+log links are collapsible and are not affected.
+
 The degrees of freedom are returned in the \code{df} columns (\code{Inf} for normal
 reference distributions). Imbens and Kolesár (2016) further recommend
 Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
@@ -97,44 +114,56 @@ fits; no corresponding interval is available with robust covariance.
 }
 
 \references{
-Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
-for linear regression with multi-stage samples. \emph{Survey Methodology,
-28}(2), 169-181.
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
+linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
+169–181.
 
-Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
-standard error estimators in OLS regression: An introduction and software
-implementation. \emph{Behavior Research Methods, 39}(4), 709-722.
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
+528–557. https://doi.org/10.1002/bimj.201900297
 
-Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
-samples: Some practical advice. \emph{The Review of Economics and Statistics,
-98}(4), 701-712.
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
+error estimators in OLS regression: An introduction and software
+implementation. \emph{Behavior Research Methods, 39}(4), 709–722.
+https://doi.org/10.3758/BF03192961
+
+Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small samples:
+Some practical advice. \emph{The Review of Economics and Statistics, 98}(4),
+701–712. https://doi.org/10.1162/REST_a_00552
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. \emph{The Annals of Applied Statistics,
-7}(1), 295-318.
+7}(1), 295–318. https://doi.org/10.1214/12-AOAS583
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
-standard errors in the linear regression model. \emph{The American
-Statistician, 54}(3), 217-224.
+standard errors in the linear regression model. \emph{The American Statistician,
+54}(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
 
 MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
-covariance matrix estimators with improved finite sample properties.
-\emph{Journal of Econometrics, 29}(3), 305-325.
+covariance matrix estimators with improved finite sample properties. \emph{Journal
+of Econometrics, 29}(3), 305–325.
+https://doi.org/10.1016/0304-4076(85)90158-7
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
-cluster-robust variance estimation and hypothesis testing in fixed
-effects models. \emph{Journal of Business & Economic Statistics, 36}(4),
-672-683.
+cluster-robust variance estimation and hypothesis testing in fixed effects
+models. \emph{Journal of Business & Economic Statistics, 36}(4), 672–683.
+https://doi.org/10.1080/07350015.2016.1247004
 
 Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
 guide to statistical inference in linear modeling for non-normal or
 heteroskedastic error distributions. \emph{Behavior Research Methods, 57}(12),
-Article 338.
+Article 338. https://doi.org/10.3758/s13428-025-02801-4
 
-Solomon, R. L. (1949). An extension of control group design.
-\emph{Psychological Bulletin, 46}(2), 137-150.
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
-\emph{Psychological Methods, 9}(2), 164-182.
+\emph{Psychological Methods, 9}(2), 164–182.
+https://doi.org/10.1037/1082-989X.9.2.164
+
+Tipton, E. (2015). Small sample adjustments for robust variance estimation
+with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.
+https://doi.org/10.1037/met0000011
 }

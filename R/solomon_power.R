@@ -126,7 +126,7 @@
 #' Tests are computed from the same functions users would call, so reported
 #' power reflects the package's default inference: `fit_solomon_glm()` with
 #' HC3 standard errors and t reference distributions, the 2x2 ANOVA
-#' interaction, and the historical one-tailed Test I (Braver & Braver, 1988).
+#' interaction, and the historical one-tailed Test I (Walton Braver & Braver, 1988).
 #'
 #' @section Validation:
 #' A pre-specified simulation study of 126 scenarios and 315,000 replications
@@ -149,6 +149,10 @@
 #'
 #' With 20 or fewer participants per cell, treat GLM-based power as a
 #' conservative figure rather than an exact one.
+#'
+#' Only continuous outcomes are simulated. Binary and count outcomes are not
+#' supported; for binary outcomes see [marginal_solomon()] and its simulation
+#' validation on issue #43.
 #'
 #' @param n Cell sizes: a single number used for all four cells, or four
 #'   sizes given as a list or vector with elements `n1` (pretested treatment),
@@ -176,13 +180,13 @@
 #'   contrast, and all Test I values are `NA` when `stouffer = FALSE`.
 #'
 #' @references
-#' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-#' Solomon four-group design: A meta-analytic approach. *Psychological
-#' Bulletin, 104*(1), 150-154.
-#'
 #' Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 #' studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
-#' 2074-2102.
+#' 2074–2102. https://doi.org/10.1002/sim.8086
+#'
+#' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+#' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
+#' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 #'
 #' @examples
 #' power_solomon(n = 30, delta = 0.5, sens = 0.2, sims = 50, seed = 1)
@@ -266,7 +270,7 @@ power_solomon <- function(n = 50,
   data.frame(
     estimand = c(contrasts, "Pretest x Treatment", "Treatment (one-sided)"),
     test = c(rep("GLM (HC3, t)", 4L), "2x2 ANOVA interaction",
-             "Test I (Braver & Braver, 1988)"),
+             "Test I (Walton Braver & Braver, 1988)"),
     true_effect = c(delta + sens / 2, sens, delta + sens, delta, sens, NA_real_),
     power = unname(power),
     mcse = unname(mcse),

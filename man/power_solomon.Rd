@@ -72,7 +72,7 @@ estimates the Type I error rather than power.
 Tests are computed from the same functions users would call, so reported
 power reflects the package's default inference: \code{fit_solomon_glm()} with
 HC3 standard errors and t reference distributions, the 2x2 ANOVA
-interaction, and the historical one-tailed Test I (Braver & Braver, 1988).
+interaction, and the historical one-tailed Test I (Walton Braver & Braver, 1988).
 }
 \section{Validation}{
 
@@ -97,6 +97,10 @@ scenario), 0.017 with 20, and 0.003 with 100.
 
 With 20 or fewer participants per cell, treat GLM-based power as a
 conservative figure rather than an exact one.
+
+Only continuous outcomes are simulated. Binary and count outcomes are not
+supported; for binary outcomes see \code{\link[=marginal_solomon]{marginal_solomon()}} and its simulation
+validation on issue #43.
 }
 
 \examples{
@@ -104,11 +108,11 @@ power_solomon(n = 30, delta = 0.5, sens = 0.2, sims = 50, seed = 1)
 
 }
 \references{
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. \emph{Psychological
-Bulletin, 104}(1), 150-154.
-
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. \emph{Statistics in Medicine, 38}(11),
-2074-2102.
+2074–2102. https://doi.org/10.1002/sim.8086
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
+104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 }

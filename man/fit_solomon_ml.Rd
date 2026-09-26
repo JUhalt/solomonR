@@ -93,12 +93,13 @@ studied.
 
 \references{
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. \emph{Biometrics Bulletin, 2}(6), 110-114.
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
 
-van Engelenburg, G. (1999). Statistical analysis for the Solomon
-four-group design. University of Twente Research Report 99-06.
+van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
+design} (Research Report 99-06). University of Twente.
 
 Welch, B. L. (1947). The generalization of "Student's" problem when several
-different population variances are involved. \emph{Biometrika, 34}(1/2),
-28-35.
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }

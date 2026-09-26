@@ -62,6 +62,56 @@
   list(L = L, cells = cells, pretest_mean = pre_mean)
 }
 
+# Model-adjusted cell means, with intervals, for the four Solomon groups,
+# computed with the fit's own covariance matrix and reference distribution.
+# Pretested groups are evaluated at the mean pretest among pretested
+# participants, so the difference of differences equals the fitted
+# Pretest x Treatment estimate exactly.
+.sensitization_cells <- function(fit) {
+  cells <- data.frame(treat = c(0L, 1L, 0L, 1L), pretested = c(1L, 1L, 0L, 0L))
+
+  if (inherits(fit, "solomon_glm")) {
+    if (!"treat:pretested" %in% names(stats::coef(fit$model))) {
+      stop("The fit has no Pretest x Treatment term.", call. = FALSE)
+    }
+    design <- .glm_cell_means_design(fit)
+    family <- stats::family(fit$model)
+    link_scale <- !identical(family$family, "gaussian")
+    return(list(
+      adjusted = cbind(design$cells, .glm_linear_combination(fit, design$L)),
+      pretest_mean = design$pretest_mean,
+      y_label = if (link_scale) {
+        sprintf("Adjusted mean (%s link scale)", family$link)
+      } else {
+        "Adjusted posttest mean"
+      },
+      link_scale = link_scale,
+      inference = .solomon_vcov_label(fit),
+      observed = fit$data[, c("y", "treat", "pretested")]
+    ))
+  }
+
+  # fit_solomon_ml(): the pretest enters centered at its mean among pretested
+  # participants (van Engelenburg, 1999), so cell means set the centered
+  # pretest to zero.
+  L <- cbind(
+    a = 1,
+    bT = cells$treat,
+    bP = cells$pretested,
+    bTP = cells$treat * cells$pretested
+  )
+  observed <- fit$data[, c("y_post", "treat", "pretested")]
+  names(observed)[1] <- "y"
+  list(
+    adjusted = cbind(cells, .ml_linear_combination(fit, L)),
+    pretest_mean = fit$pretest_mean,
+    y_label = "Adjusted posttest mean",
+    link_scale = FALSE,
+    inference = .effects_for_plot(fit)$inference,
+    observed = observed
+  )
+}
+
 #' Pretest sensitization figure
 #'
 #' Draws the Pretest x Treatment interaction that the Solomon design exists to
@@ -70,23 +120,30 @@
 #' appears as lines that are not parallel.
 #'
 #' The treatment effect among pretested participants is adjusted for the
-#' pretest, so the sensitization contrast [fit_solomon_glm()] reports is not
-#' the difference of differences among raw cell means. The figure therefore
-#' draws model-adjusted means: pretested groups are evaluated at the mean
-#' pretest score among pretested participants (the usual ANCOVA adjusted
-#' mean), unpretested groups without a pretest, and any covariates at their
-#' sample means. Because the model has no treatment-by-pretest-score term, the
-#' difference of differences among these adjusted means equals the fitted
-#' Pretest x Treatment estimate exactly. Observed cell means are shown as
-#' hollow points for comparison.
+#' pretest, so the sensitization contrast reported by [fit_solomon_glm()] or
+#' [fit_solomon_ml()] is not the difference of differences among raw cell
+#' means. The figure therefore draws model-adjusted means: pretested groups
+#' are evaluated at the mean pretest score among pretested participants (the
+#' usual ANCOVA adjusted mean), unpretested groups without a pretest, and any
+#' covariates at their sample means. Because neither model has a
+#' treatment-by-pretest-score term, the difference of differences among these
+#' adjusted means equals the fitted Pretest x Treatment estimate exactly.
+#' Observed cell means are shown as hollow points for comparison.
 #'
-#' Intervals for the adjusted means use the fitted covariance matrix and
-#' reference distribution: t with residual degrees of freedom, Satterthwaite t
-#' for CR2, or the normal distribution for binomial and Poisson models, whose
-#' means are shown on the link scale. The sensitization estimate and interval
-#' in the subtitle are taken unchanged from the fit.
+#' Intervals for the adjusted means use the fit's own covariance matrix and
+#' reference distribution:
 #'
-#' @param fit A fit from [fit_solomon_glm()].
+#' - for [fit_solomon_glm()], t with residual degrees of freedom, Satterthwaite
+#'   t for CR2, or the normal distribution for binomial and Poisson models,
+#'   whose means are shown on the link scale;
+#' - for [fit_solomon_ml()], the normal distribution under the default Wald
+#'   inference (van Engelenburg, 1999), or Welch-Satterthwaite t under
+#'   `inference = "satterthwaite"`.
+#'
+#' The sensitization estimate and interval in the subtitle are taken unchanged
+#' from the fit.
+#'
+#' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()].
 #' @param bounds Optional equivalence bounds for the sensitization contrast,
 #'   as one positive number or `c(lower, upper)`. When supplied, the caption
 #'   reports the outcome of [equivalence_solomon()] with these bounds, which
@@ -98,6 +155,10 @@
 #'
 #' @return A ggplot object.
 #'
+#' @references
+#' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
+#' design* (Research Report 99-06). University of Twente.
+#'
 #' @seealso [equivalence_solomon()], [plot_solomon_effects()]
 #'
 #' @examples
@@ -105,18 +166,19 @@
 #' plot_sensitization(fit)
 #' plot_sensitization(fit, bounds = 5)
 #'
+#' ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
+#'                                            inference = "satterthwaite"))
+#' plot_sensitization(ml)
+#'
 #' @export
 plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed = TRUE) {
 
-  if (!inherits(fit, "solomon_glm")) {
-    stop("`fit` must come from fit_solomon_glm().", call. = FALSE)
-  }
-  if (!"treat:pretested" %in% names(stats::coef(fit$model))) {
-    stop("The fit has no Pretest x Treatment term.", call. = FALSE)
+  if (!inherits(fit, c("solomon_glm", "solomon_ml"))) {
+    stop("`fit` must come from fit_solomon_glm() or fit_solomon_ml().", call. = FALSE)
   }
 
-  design <- .glm_cell_means_design(fit)
-  adjusted <- cbind(design$cells, .glm_linear_combination(fit, design$L))
+  cells <- .sensitization_cells(fit)
+  adjusted <- cells$adjusted
   adjusted$treatment <- factor(ifelse(adjusted$treat == 1L, "Treatment", "Control"),
                                levels = c("Control", "Treatment"))
   adjusted$condition <- factor(ifelse(adjusted$pretested == 1L, "Pretested", "Unpretested"),
@@ -131,22 +193,15 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
     formatC(sens$conf.high, format = "f", digits = 2)
   )
 
-  link_scale <- !identical(stats::family(fit$model)$family, "gaussian")
-  y_label <- if (link_scale) {
-    sprintf("Adjusted mean (%s link scale)", stats::family(fit$model)$link)
-  } else {
-    "Adjusted posttest mean"
-  }
-
-  adjustment <- if (is.na(design$pretest_mean)) {
+  adjustment <- if (is.na(cells$pretest_mean)) {
     "Means from the fitted model"
   } else {
     sprintf("Adjusted means: pretested groups at the mean pretest (%s)",
-            formatC(design$pretest_mean, format = "f", digits = 2))
+            formatC(cells$pretest_mean, format = "f", digits = 2))
   }
   caption <- sprintf(
-    "%s; %s%% intervals, %s, %s.",
-    adjustment, level, .solomon_vcov_label(fit), .reference_label(adjusted$df)
+    "%s.\n%s%% intervals: %s; %s.",
+    adjustment, level, cells$inference, .reference_label(adjusted$df)
   )
 
   dodge <- ggplot2::position_dodge(width = 0.15)
@@ -159,8 +214,8 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
                            width = 0.1, position = dodge) +
     ggplot2::geom_point(size = 3, position = dodge)
 
-  if (isTRUE(show_observed) && !link_scale) {
-    observed <- stats::aggregate(y ~ treat + pretested, data = fit$data, FUN = mean)
+  if (isTRUE(show_observed) && !cells$link_scale) {
+    observed <- stats::aggregate(y ~ treat + pretested, data = cells$observed, FUN = mean)
     observed$treatment <- factor(ifelse(observed$treat == 1L, "Treatment", "Control"),
                                  levels = c("Control", "Treatment"))
     observed$condition <- factor(ifelse(observed$pretested == 1L, "Pretested", "Unpretested"),
@@ -183,7 +238,7 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
   }
 
   p +
-    ggplot2::labs(x = NULL, y = y_label, colour = NULL, title = "Pretest sensitization",
+    ggplot2::labs(x = NULL, y = cells$y_label, colour = NULL, title = "Pretest sensitization",
                   subtitle = subtitle, caption = caption) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")

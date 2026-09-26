@@ -1,0 +1,299 @@
+---
+title: "Binary Outcomes: Validating marginal_solomon()"
+description: >
+  Simulation study of the marginal Solomon contrasts for binary outcomes, the
+  conditional logistic contrast, and the historical categorical rule.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+p <- utils::read.csv("binary-validation/performance.csv", stringsAsFactors = FALSE)
+info <- utils::read.csv("binary-validation/run-information.csv", stringsAsFactors = FALSE)
+run <- stats::setNames(as.list(info$value), info$item)
+reps <- as.integer(run$replications)
+
+scale_label <- c(difference = "Risk difference", ratio = "Risk ratio", odds_ratio = "Odds ratio")
+method_label <- c(bootstrap = "Bootstrap (percentile)", delta = "Delta method (HC3)",
+                  unadjusted = "Unadjusted, delta method (HC3)")
+
+sc <- unique(p[, c("scenario", "n", "control_risk", "bX", "pattern", "fit_failures",
+                   "unadjusted_failures", "interval_failures")])
+
+m <- p[p$method %in% names(method_label), ]
+m$failed <- ifelse(m$method == "bootstrap", m$fit_failures + m$interval_failures,
+                   ifelse(m$method == "delta", m$fit_failures, m$unadjusted_failures))
+m$supported <- m$failed <= 0.05 * reps
+m$null <- abs(m$true_value) < 1e-8
+# Tolerances declared on issue #43 before any run.
+m$bias_ok <- abs(m$bias) <= 2 * m$bias_mcse
+m$cov_ok <- m$coverage >= 0.94 & m$coverage <= 0.96
+m$se_ok <- abs(m$relerr) <= 10
+m$t1_ok <- ifelse(m$null, m$rejection >= 0.04 & m$rejection <= 0.06, TRUE)
+m$all_ok <- m$bias_ok & m$cov_ok & m$se_ok & m$t1_ok
+s <- m[m$supported, ]
+
+pct <- function(x) sprintf("%.1f%%", 100 * x)
+rng <- function(x, d = 3) if (length(x)) sprintf(paste0("%.", d, "f to %.", d, "f"), min(x), max(x)) else "--"
+```
+
+This article reports the simulation validation of `marginal_solomon()`, the
+package's estimator of the Solomon contrasts for binary outcomes, together
+with two comparisons that motivated it. The aims, data-generating mechanisms,
+estimands, methods, performance measures, and tolerances were posted on
+[issue #43](https://github.com/JUhalt/solomonR/issues/43) before any run,
+following the ADEMP structure of Morris et al. (2019). One amendment, a fuller
+definition of a failed logistic fit, was posted before any run.
+
+The first full run stopped with a numerical error in the bootstrap refit and
+produced no results. The error was fixed, a regression test was added, and
+the study was rerun unchanged; both events are logged on the issue. The
+results below come from package commit `r substr(run$commit, 1, 7)`,
+`r reps` replications per scenario, and `r run$bootstrap_R` bootstrap
+resamples per dataset.
+
+## Design
+
+**Data.** Each participant has a latent baseline X ~ N(0, 1), observed only
+in the pretested groups, and a binary outcome with
+
+logit Pr(Y = 1) = b0 + bX X + bT T + bP P + bTP T P.
+
+The 48 scenarios cross participants per cell (20, 50, 100), the control risk
+(0.1, 0.3), the association of the pretest with the outcome (bX = 0 or 1 on
+the log-odds scale), and four effect patterns:
+
+- no effects;
+- a treatment effect only (bT = log 2);
+- a treatment effect and a pretest effect (bT = log 2, bP = log 1.5);
+- sensitization only (bTP = log 2).
+
+**Estimands.** The marginal risk in each cell, averaged over X by numerical
+integration, gives the four Solomon contrasts on three scales: risk
+difference, log risk ratio, and log odds ratio. Sensitization is zero on every
+scale under the first two patterns. Under the third it is nonzero on the
+difference and ratio scales, which shows that sensitization depends on the
+scale.
+
+**Methods.** `marginal_solomon()` on the pretest-adjusted logistic fit, with
+bootstrap and with delta-method intervals; the same contrasts without the
+pretest (the unadjusted comparator); the logit-scale contrasts of
+`fit_solomon_glm(family = binomial())`; and the historical rule of
+`fisher_solomon()` (El Karkri et al., 2025b).
+
+**Tolerances.** Bias within 2 Monte Carlo standard errors (MCSE); coverage of
+95% intervals from 0.940 to 0.960; model standard error within 10% of the
+empirical standard error; and, where the true value is zero, a rejection rate
+from 0.040 to 0.060. A scenario in which more than 5% of datasets fail is
+outside the method's supported range.
+
+## Failures and the supported range
+
+With few events, a Solomon cell can have no events at all, and the logistic
+model then has no estimate. The bootstrap fails more often, because a
+resample can empty a cell that the data did not.
+
+```{r failures}
+f <- aggregate(cbind(fit = fit_failures, boot = fit_failures + interval_failures) ~ n + control_risk,
+               sc, function(x) max(x) / reps)
+f <- f[order(f$control_risk, f$n), ]
+knitr::kable(data.frame(
+  `Per cell` = f$n, `Control risk` = f$control_risk,
+  `Datasets with a failed fit (max)` = pct(f$fit),
+  `Datasets without a bootstrap interval (max)` = pct(f$boot),
+  check.names = FALSE
+), align = "rrrr")
+```
+
+With 20 participants per cell and a control risk of 0.1, up to
+`r pct(max(sc$fit_failures[sc$n == 20 & sc$control_risk == 0.1]) / reps)` of
+datasets have no estimate, so these scenarios are outside every method's
+supported range. The bootstrap is also outside its range with 20 per cell and
+a control risk of 0.3, and with 50 per cell and a control risk of 0.1.
+
+## Risk differences
+
+```{r rd}
+rd <- s[s$scale == "difference", ]
+tab <- aggregate(cbind(cells = 1, pass = all_ok) ~ method + n + control_risk, rd, sum)
+tab <- tab[order(tab$method, tab$control_risk, tab$n), ]
+knitr::kable(data.frame(
+  Method = method_label[tab$method], `Per cell` = tab$n, `Control risk` = tab$control_risk,
+  `Contrasts meeting every tolerance` = sprintf("%d of %d", tab$pass, tab$cells),
+  check.names = FALSE
+), row.names = FALSE, align = "lrrr")
+```
+
+On the risk-difference scale the delta method met every tolerance in
+`r sum(rd$all_ok[rd$method == "delta"])` of `r sum(rd$method == "delta")`
+supported scenario-contrasts. Its coverage ranged from
+`r rng(rd$coverage[rd$method == "delta"])` and its Type I error, where the
+true value is zero, from `r rng(rd$rejection[rd$method == "delta" & rd$null])`.
+The bootstrap's coverage ranged from
+`r rng(rd$coverage[rd$method == "bootstrap"])`, slightly below nominal in
+some scenarios. The expectation stated in the protocol, that the delta method
+would under-cover in small samples with a low control risk (Localio et al.,
+2007), was not borne out: with the HC3 covariance the package uses, its
+coverage fell below 0.940 in
+`r sum(rd$method == "delta" & rd$coverage < 0.94)` supported scenario-contrast
+(lowest `r sprintf("%.3f", min(rd$coverage[rd$method == "delta"]))`), and its
+Type I error exceeded 0.060 in
+`r sum(rd$method == "delta" & rd$null & rd$rejection > 0.06)`
+(highest `r sprintf("%.3f", max(rd$rejection[rd$method == "delta" & rd$null]))`).
+
+## Risk ratios and odds ratios
+
+```{r ratios}
+ra <- s[s$scale != "difference", ]
+tab <- aggregate(cbind(cells = 1, pass = all_ok, over = coverage > 0.96,
+                       low_t1 = null & rejection < 0.04) ~ method + scale + n + control_risk, ra, sum)
+tab <- tab[order(tab$scale, tab$method, tab$control_risk, tab$n), ]
+knitr::kable(data.frame(
+  Scale = scale_label[tab$scale], Method = method_label[tab$method],
+  `Per cell` = tab$n, `Control risk` = tab$control_risk,
+  `Meeting every tolerance` = sprintf("%d of %d", tab$pass, tab$cells),
+  `Coverage above 0.96` = tab$over,
+  `Type I error below 0.04` = tab$low_t1,
+  check.names = FALSE
+), row.names = FALSE, align = "llrrrrr")
+```
+
+On the ratio scales every method was conservative in small samples: the
+delta-method intervals covered more than 96% of the time in many scenarios
+(up to `r sprintf("%.3f", max(ra$coverage[ra$method == "delta"]))`), and
+tests rejected true nulls less often than 4%. The log-scale estimators also
+showed small-sample bias. Performance approached the tolerances with 100
+participants per cell and a control risk of 0.3. The bootstrap percentile
+intervals covered closer to nominal on these scales (from
+`r rng(ra$coverage[ra$method == "bootstrap"])`), but its p-values, which use
+the bootstrap standard error, were conservative, because that standard error
+exceeded the empirical one by up to
+`r sprintf("%.0f%%", max(ra$relerr[ra$method == "bootstrap"]))`.
+
+## The conditional logistic contrast
+
+`fit_solomon_glm(family = binomial())` with a pretest covariate compares a
+treatment effect conditional on the pretest (pretested participants) with a
+marginal one (unpretested participants). Odds ratios are noncollapsible, so
+the two differ whenever the pretest predicts the outcome (Daniel et al.,
+2021). The table shows its Pretest x Treatment contrast when there is no
+sensitization.
+
+```{r conditional}
+cl <- p[p$method == "conditional_logit" & p$contrast == "Pretest x Treatment" &
+          p$pattern %in% c("treatment", "pretest_and_treatment") & p$fit_failures <= 0.05 * reps, ]
+cl <- cl[order(cl$bX, cl$pattern, cl$control_risk, cl$n), ]
+knitr::kable(data.frame(
+  `Pretest log-odds` = cl$bX, Pattern = ifelse(cl$pattern == "treatment", "Treatment only",
+                                               "Treatment and pretest"),
+  `Per cell` = cl$n, `Control risk` = cl$control_risk,
+  `Mean estimate (log odds)` = sprintf("%.3f", cl$mean_estimate),
+  `In MCSE units` = sprintf("%.1f", cl$mean_estimate / (cl$empse / sqrt(cl$n_used))),
+  `Rejection rate` = sprintf("%.3f", cl$rejection),
+  check.names = FALSE
+), row.names = FALSE, align = "rlrrrrr")
+```
+
+When the pretest predicts the outcome, the contrast averaged 0.08 to 0.21 on
+the log-odds scale with no sensitization present, 5 to 13 Monte Carlo
+standard errors from zero. At these sample sizes the bias is small relative
+to the contrast's standard error, so its test still rejected at close to the
+nominal rate (at most `r sprintf("%.3f", max(cl$rejection[cl$bX == 1]))`);
+the expectation that it would reject clearly more often than 5% was not borne
+out here, although the bias does not shrink as samples grow. As decided in
+the protocol, `fit_solomon_glm()` now warns about such fits
+(`solomonR_noncollapsible_warning`) and points to `marginal_solomon()`.
+
+## The historical categorical rule
+
+`fisher_solomon()` reproduces the rule described by El Karkri et al. (2025b):
+sensitization is declared when the treatment comparison is significant among
+pretested participants and not among unpretested participants.
+
+```{r rule}
+hr <- p[p$method == "historical_fisher_rule", ]
+tab <- aggregate(rejection ~ pattern + n, hr, function(x) rng(x))
+tab$pattern <- factor(tab$pattern, c("null", "treatment", "pretest_and_treatment", "sensitization"),
+                      c("No effects", "Treatment only (no sensitization)",
+                        "Treatment and pretest (no sensitization on the log-odds scale)",
+                        "Sensitization"))
+tab <- tab[order(tab$pattern, tab$n), ]
+knitr::kable(data.frame(Pattern = tab$pattern, `Per cell` = tab$n,
+                        `Declares sensitization (range)` = tab$rejection, check.names = FALSE),
+             row.names = FALSE, align = "lrr")
+```
+
+With a treatment effect and no sensitization, the rule declared sensitization
+in up to a quarter of datasets, because it fires whenever the pretested
+comparison reaches significance and the unpretested one does not. As Gelman
+and Stern (2006) put it, "even large changes in significance levels can
+correspond to small, nonsignificant changes in the underlying quantities"
+(p. 328).
+
+## Adjusting for the pretest
+
+```{r efficiency}
+e <- merge(m[m$method == "delta" & m$scale == "difference", c("scenario", "contrast", "empse", "supported")],
+           m[m$method == "unadjusted" & m$scale == "difference", c("scenario", "contrast", "empse")],
+           by = c("scenario", "contrast"), suffixes = c("_adj", "_un"))
+e <- merge(e, sc[, c("scenario", "bX")], by = "scenario")
+e <- e[e$supported, ]
+e$ratio <- e$empse_adj / e$empse_un
+tab <- aggregate(ratio ~ bX + contrast, e, function(x) rng(x))
+knitr::kable(data.frame(`Pretest log-odds` = tab$bX, Contrast = tab$contrast,
+                        `Empirical SE, adjusted / unadjusted` = tab$ratio, check.names = FALSE),
+             row.names = FALSE, align = "rlr")
+```
+
+Standardizing over the pretest made the contrasts involving pretested
+participants more precise when the pretest predicts the outcome, with no
+meaningful loss when it does not, as Daniel et al. (2021) describe for
+covariate adjustment in randomized trials.
+
+## Summary
+
+- Risk differences from `marginal_solomon()` are validated across the
+  supported range; the delta method met every tolerance more often than the
+  bootstrap, whose intervals were slightly narrow in some scenarios.
+- Risk ratios and odds ratios are conservative with 20 to 50 participants per
+  cell and approach the tolerances with 100 per cell; their delta-method
+  intervals are wider than necessary, not too narrow.
+- With 20 participants per cell and a control risk of 0.1, no method is
+  supported: too many datasets have a cell without events.
+- The logit-scale Pretest x Treatment contrast from a pretest-adjusted
+  logistic model is biased away from zero without sensitization.
+- The historical rule declares sensitization far more often than 5% when
+  there is none.
+
+## Reproducibility
+
+The script, `binary-validation/binary-simulation.R`, and its results,
+`performance.csv` and `run-information.csv`, are in the package repository.
+The run took from `r run$started` to `r run$finished` on
+`r run$workers` workers (`r run$R_version`).
+
+## References
+
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. *Biometrical Journal, 63*(3),
+528–557. https://doi.org/10.1002/bimj.201900297
+
+El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025b). Methodological
+aspects of the Solomon four-group design: Detecting pre-test sensitisation
+and analysing qualitative and quantitative variables in education research.
+*Review of Education, 13*(1), Article e70050.
+https://doi.org/10.1002/rev3.70050
+
+Gelman, A., & Stern, H. (2006). The difference between "significant" and
+"not significant" is not itself statistically significant. *The American
+Statistician, 60*(4), 328–331. https://doi.org/10.1198/000313006X152649
+
+Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and
+confidence intervals were easily computed indirectly from multivariable
+logistic regression. *Journal of Clinical Epidemiology, 60*(9), 874–882.
+https://doi.org/10.1016/j.jclinepi.2006.12.001
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086

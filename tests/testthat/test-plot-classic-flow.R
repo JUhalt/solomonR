@@ -16,7 +16,7 @@ test_that("the generic diagram shows the Tests A-I tree with its caution", {
   expect_false(any(nodes$visited))
   expect_false(any(edges$visited))
   expect_match(p$labels$caption, "Sawilowsky et al., 1994")
-  expect_match(nodes$label[nodes$node == "I"], "Braver & Braver \\(1988\\)")
+  expect_match(nodes$label[nodes$node == "I"], "Walton Braver & Braver \\(1988\\)")
 })
 
 

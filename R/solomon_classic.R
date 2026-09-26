@@ -59,7 +59,7 @@
 }
 
 
-# Internal helper: Braver & Braver Stouffer combination
+# Internal helper: Walton Braver & Braver Stouffer combination
 .classic_stouffer_pair <- function(pre_result,
                                    unpre_result,
                                    direction,
@@ -89,7 +89,7 @@
 
   data.frame(
     test = "I",
-    procedure = "Braver & Braver (1988)",
+    procedure = "Walton Braver & Braver (1988)",
     source = source,
     z = combined$z_meta,
     p.value = combined$p_meta_one_tailed,
@@ -111,7 +111,7 @@
 #' two-wave repeated-measures interaction, the posttest-only comparison, and
 #' the optional Stouffer meta-analytic combination.
 #'
-#' Test I, the Braver & Braver (1988) Stouffer meta-analytic combination, is
+#' Test I, the Walton Braver & Braver (1988) Stouffer meta-analytic combination, is
 #' included for historical replication and teaching. Later work (see
 #' Sawilowsky et al., 1994) raised concerns about experiment-wise Type I
 #' error when the procedure is used conditionally. Its presence in this function should not be interpreted
@@ -128,7 +128,7 @@
 #'   followed in the decision pathway: \code{"ancova"}, \code{"gain"}, or
 #'   \code{"repeated"}. All three are still calculated and returned.
 #' @param combine_with_stouffer Logical. If \code{TRUE}, include Test I, the
-#'   Braver & Braver (1988) Stouffer combination, in the decision pathway when earlier treatment tests are
+#'   Walton Braver & Braver (1988) Stouffer combination, in the decision pathway when earlier treatment tests are
 #'   nonsignificant.
 #' @param stouffer_direction Direction of the historical one-tailed treatment
 #'   hypothesis used for Test I: \code{"greater"} or \code{"less"}.
@@ -149,36 +149,37 @@
 #'   decision sequence for the observed data.
 #'
 #' @references
-#' Solomon, R. L. (1949). An extension of control group design.
-#' *Psychological Bulletin, 46*(2), 137-150.
-#'
 #' Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally.
 #'
-#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-#' design: Appropriate statistical analyses. *The Journal of Experimental
-#' Education, 42*(2), 54-55.
-#'
-#' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-#' Solomon four-group design: A meta-analytic approach. *Psychological
-#' Bulletin, 104*(1), 150-154.
-#'
-#' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-#' Meta-analysis and the Solomon four-group design. *The Journal of
-#' Experimental Education, 62*(4), 361-376.
-#'
-#' Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had
-#' more power in randomized studies and more bias in nonrandomized studies.
-#' *Journal of Clinical Epidemiology, 59*(9), 920-925.
-#'
 #' Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
-#' calculation of confidence intervals that are based on central and
-#' noncentral distributions. *Educational and Psychological Measurement,
-#' 61*(4), 532-574.
+#' calculation of confidence intervals that are based on central and noncentral
+#' distributions. *Educational and Psychological Measurement, 61*(4), 532–574.
+#' https://doi.org/10.1177/00131640121971374
+#'
+#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+#' Appropriate statistical analyses. *The Journal of Experimental Education,
+#' 42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
 #'
 #' Kelley, K. (2007). Confidence intervals for standardized effect sizes:
-#' Theory, application, and implementation. *Journal of Statistical
-#' Software, 20*(8), 1-24.
+#' Theory, application, and implementation. *Journal of Statistical Software,
+#' 20*(8), 1–24. https://doi.org/10.18637/jss.v020.i08
+#'
+#' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
+#' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
+#' Education, 62*(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
+#'
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+#'
+#' Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had more
+#' power in randomized studies and more bias in nonrandomized studies. *Journal
+#' of Clinical Epidemiology, 59*(9), 920–925.
+#' https://doi.org/10.1016/j.jclinepi.2006.02.007
+#'
+#' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+#' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
+#' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 #'
 #' @export
 fit_solomon_classic <- function(
@@ -625,7 +626,7 @@ fit_solomon_classic <- function(
       model = fit_h
     ),
     I = list(
-      label = "Braver & Braver (1988) Stouffer combination",
+      label = "Walton Braver & Braver (1988) Stouffer combination",
       result = I_selected,
       all = I_all
     )

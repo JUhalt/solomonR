@@ -71,7 +71,7 @@ Analyses that do not estimate a raw-scale Solomon contrast are listed in
 \itemize{
 \item \code{perm_solomon()} tests the sharp null hypothesis of no treatment effect
 for any participant and produces no estimate.
-\item Test I (Braver & Braver, 1988) combines one-tailed p-values.
+\item Test I (Walton Braver & Braver, 1988) combines one-tailed p-values.
 \item \code{fit_solomon_sem_latent()} estimates contrasts on a latent-variable scale.
 \item Hedges' g from \code{fit_solomon_classic()} is a standardized mean difference.
 }
@@ -92,22 +92,23 @@ with(
 )
 }
 \references{
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the Solomon
-four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
-104}(1), 150-154.
-
 Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 Comparing noncollapsible effect estimators and their standard errors after
 adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
-528-557.
+528–557. https://doi.org/10.1002/bimj.201900297
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. \emph{The Annals of Applied Statistics,
-7}(1), 295-318.
+7}(1), 295–318. https://doi.org/10.1214/12-AOAS583
 
 Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your estimand?
 Defining the target quantity connects statistical evidence to theory.
-\emph{American Sociological Review, 86}(3), 532-565.
+\emph{American Sociological Review, 86}(3), 532–565.
+https://doi.org/10.1177/00031224211004187
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
+104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 }
 \seealso{
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, \code{\link[=fit_solomon_classic]{fit_solomon_classic()}},
