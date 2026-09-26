@@ -52,20 +52,29 @@
 # Logistic regression by iteratively reweighted least squares, with the
 # convergence rule of stats::glm.fit() (relative change in deviance below
 # `epsilon`). A lean version for bootstrap refits, warm-started at `start`.
+# Fitted risks that reach 0 or 1 in floating point (near separation) make the
+# working response or the deviance non-finite; the fit is then reported as
+# not converged, which the bootstrap counts as a failed resample.
 .logistic_irls <- function(X, y, start, epsilon = 1e-8, maxit = 25L) {
+  failed <- list(converged = FALSE)
+  events <- y == 1
+  deviance <- function(mu) -2 * (sum(log(mu[events])) + sum(log1p(-mu[!events])))
   b <- start
   eta <- drop(X %*% b)
   mu <- stats::plogis(eta)
-  dev <- -2 * sum(log(ifelse(y == 1, mu, 1 - mu)))
+  dev <- deviance(mu)
+  if (!is.finite(dev)) return(failed)
   for (iter in seq_len(maxit)) {
     w <- mu * (1 - mu)
     z <- eta + (y - mu) / w
+    if (!all(is.finite(z))) return(failed)
     b <- tryCatch(solve(crossprod(X, w * X), crossprod(X, w * z))[, 1],
                   error = function(e) NULL)
-    if (is.null(b)) return(list(converged = FALSE))
+    if (is.null(b) || !all(is.finite(b))) return(failed)
     eta <- drop(X %*% b)
     mu <- stats::plogis(eta)
-    dev_new <- -2 * sum(log(ifelse(y == 1, mu, 1 - mu)))
+    dev_new <- deviance(mu)
+    if (!is.finite(dev_new)) return(failed)
     if (abs(dev_new - dev) / (abs(dev_new) + 0.1) < epsilon) {
       return(list(coefficients = b, fitted.values = mu, converged = TRUE))
     }
@@ -356,8 +365,11 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
 #' This is provided for teaching and replication. The rule compares
 #' significance, not effects: when the treatment effect is the same in both
 #' pretest conditions, it still declares sensitization whenever the pretested
-#' comparison reaches significance and the unpretested one does not. A test of
-#' sensitization compares the effects themselves; see [marginal_solomon()].
+#' comparison reaches significance and the unpretested one does not. As Gelman
+#' and Stern (2006) put it, "even large changes in significance levels can
+#' correspond to small, nonsignificant changes in the underlying quantities"
+#' (p. 328). A test of sensitization compares the effects themselves; see
+#' [marginal_solomon()].
 #'
 #' @param y Binary outcome coded 0/1 (or logical).
 #' @param treat Treatment indicator coded 0/1 (or logical).
@@ -375,6 +387,10 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
 #' and analysing qualitative and quantitative variables in education research.
 #' *Review of Education, 13*(1), Article e70050.
 #' https://doi.org/10.1002/rev3.70050
+#'
+#' Gelman, A., & Stern, H. (2006). The difference between "significant" and
+#' "not significant" is not itself statistically significant. *The American
+#' Statistician, 60*(4), 328–331. https://doi.org/10.1198/000313006X152649
 #'
 #' @seealso [marginal_solomon()]
 #'

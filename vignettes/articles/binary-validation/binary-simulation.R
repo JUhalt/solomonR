@@ -5,12 +5,16 @@
 #
 #   Rscript vignettes/articles/binary-validation/binary-simulation.R [reps] [R]
 #
-# Writes performance.csv and run-information.csv next to this script.
+# Writes performance.csv and run-information.csv next to this script. Each
+# finished scenario is saved in cache/ (not committed), so an interrupted run
+# resumes where it stopped.
 
 args <- commandArgs(trailingOnly = TRUE)
 reps <- if (length(args) >= 1) as.integer(args[[1]]) else 2000L
 boot_R <- if (length(args) >= 2) as.integer(args[[2]]) else 999L
 out_dir <- file.path("vignettes", "articles", "binary-validation")
+cache_dir <- file.path(out_dir, "cache")
+dir.create(cache_dir, showWarnings = FALSE)
 pkg_dir <- normalizePath(".")
 
 scenarios <- expand.grid(
@@ -28,7 +32,9 @@ effects <- list(
   sensitization = c(bT = 0, bP = 0, bTP = log(2))
 )
 
-run_scenario <- function(s, reps, boot_R, pkg_dir, effects) {
+run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
+  cache_file <- file.path(cache_dir, sprintf("scenario-%02d.rds", s$scenario))
+  if (file.exists(cache_file)) return(readRDS(cache_file))
   suppressMessages(pkgload::load_all(pkg_dir, quiet = TRUE, export_all = TRUE))
   RNGkind("L'Ecuyer-CMRG")
   set.seed(20260926 + s$scenario)
@@ -70,37 +76,50 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects) {
   fit_failed <- un_failed <- rep(FALSE, reps)
   boot_failures <- rep(NA_real_, reps)
   interval_failed <- rep(FALSE, reps)
+  rep_errors <- character()
 
   cells <- data.frame(treat = c(1L, 0L, 1L, 0L), pretested = c(1L, 1L, 0L, 0L))
   design <- cells[rep(1:4, each = s$n), ]
 
-  for (i in seq_len(reps)) {
+  one_rep <- function(i) {
     x <- stats::rnorm(nrow(design))
     eta <- b0 + s$bX * x + e[["bT"]] * design$treat + e[["bP"]] * design$pretested +
       e[["bTP"]] * design$treat * design$pretested
     y <- stats::rbinom(nrow(design), 1, stats::plogis(eta))
     y_pre <- ifelse(design$pretested == 1L, x, NA_real_)
 
-    fisher_rule[i] <- fisher_solomon(y, design$treat, design$pretested)$sensitization
+    fisher_rule[i] <<- fisher_solomon(y, design$treat, design$pretested)$sensitization
 
     fit <- suppressWarnings(fit_solomon_glm(y, design$treat, design$pretested, y_pre,
                                             family = stats::binomial()))
-    fit_failed[i] <- .logistic_failed(fit$model, y, design$treat, design$pretested)
+    fit_failed[i] <<- .logistic_failed(fit$model, y, design$treat, design$pretested)
     if (!fit_failed[i]) {
-      cond[i, ] <- c(fit$effects$estimate, fit$effects$p.value)
+      cond[i, ] <<- c(fit$effects$estimate, fit$effects$p.value)
       mb <- suppressWarnings(marginal_solomon(fit, R = boot_R))
-      boot_failures[i] <- mb$failures
-      interval_failed[i] <- mb$failures > 0.1 * boot_R
-      store$bootstrap[i, , ] <- analysis(mb)
-      store$delta[i, , ] <- analysis(suppressWarnings(marginal_solomon(fit, method = "delta")))
+      boot_failures[i] <<- mb$failures
+      interval_failed[i] <<- mb$failures > 0.1 * boot_R
+      store$bootstrap[i, , ] <<- analysis(mb)
+      store$delta[i, , ] <<- analysis(suppressWarnings(marginal_solomon(fit, method = "delta")))
     }
 
     un <- suppressWarnings(fit_solomon_glm(y, design$treat, design$pretested,
                                            family = stats::binomial()))
-    un_failed[i] <- .logistic_failed(un$model, y, design$treat, design$pretested)
+    un_failed[i] <<- .logistic_failed(un$model, y, design$treat, design$pretested)
     if (!un_failed[i]) {
-      store$unadjusted[i, , ] <- analysis(suppressWarnings(marginal_solomon(un, method = "delta")))
+      store$unadjusted[i, , ] <<- analysis(suppressWarnings(marginal_solomon(un, method = "delta")))
     }
+  }
+  # An unexpected error in a replication is recorded and counted as a failed
+  # fit rather than stopping the study.
+  for (i in seq_len(reps)) {
+    tryCatch(one_rep(i), error = function(err) {
+      rep_errors <<- c(rep_errors, conditionMessage(err))
+      fit_failed[i] <<- TRUE
+      un_failed[i] <<- TRUE
+      store$bootstrap[i, , ] <<- NA_real_
+      store$delta[i, , ] <<- NA_real_
+      store$unadjusted[i, , ] <<- NA_real_
+    })
   }
 
   measures <- function(a, keep, true_value) {
@@ -174,6 +193,9 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects) {
   out$mean_boot_failures <- mean(boot_failures, na.rm = TRUE)
   out$replications <- reps
   out$bootstrap_R <- boot_R
+  out$rep_errors <- length(rep_errors)
+  out$rep_error_messages <- paste(unique(rep_errors), collapse = " | ")
+  saveRDS(out, cache_file)
   out
 }
 
@@ -183,7 +205,8 @@ on.exit(parallel::stopCluster(cl), add = TRUE)
 order_run <- order(-scenarios$n)  # largest scenarios first, for load balance
 results <- parallel::parLapplyLB(cl, split(scenarios[order_run, ], seq_along(order_run)),
                                  run_scenario, reps = reps, boot_R = boot_R,
-                                 pkg_dir = pkg_dir, effects = effects)
+                                 pkg_dir = pkg_dir, effects = effects,
+                                 cache_dir = normalizePath(cache_dir))
 performance <- dplyr::bind_rows(results)
 performance <- merge(scenarios, performance, by = "scenario")
 performance <- performance[order(performance$scenario, performance$method,

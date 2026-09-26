@@ -33,8 +33,11 @@ non-pre-tested groups" (p. 7).
 This is provided for teaching and replication. The rule compares
 significance, not effects: when the treatment effect is the same in both
 pretest conditions, it still declares sensitization whenever the pretested
-comparison reaches significance and the unpretested one does not. A test of
-sensitization compares the effects themselves; see \code{\link[=marginal_solomon]{marginal_solomon()}}.
+comparison reaches significance and the unpretested one does not. As Gelman
+and Stern (2006) put it, "even large changes in significance levels can
+correspond to small, nonsignificant changes in the underlying quantities"
+(p. 328). A test of sensitization compares the effects themselves; see
+\code{\link[=marginal_solomon]{marginal_solomon()}}.
 }
 \examples{
 # Kvalem et al. (1996): condom use at most recent intercourse, 6 months.
@@ -55,6 +58,10 @@ aspects of the Solomon four-group design: Detecting pre-test sensitisation
 and analysing qualitative and quantitative variables in education research.
 \emph{Review of Education, 13}(1), Article e70050.
 https://doi.org/10.1002/rev3.70050
+
+Gelman, A., & Stern, H. (2006). The difference between "significant" and
+"not significant" is not itself statistically significant. \emph{The American
+Statistician, 60}(4), 328–331. https://doi.org/10.1198/000313006X152649
 }
 \seealso{
 \code{\link[=marginal_solomon]{marginal_solomon()}}

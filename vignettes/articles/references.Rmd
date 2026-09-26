@@ -254,6 +254,10 @@ correlation and regression coefficients. *Journal of the American
 Statistical Association, 112*(519), 1211–1220.
 https://doi.org/10.1080/01621459.2016.1202117
 
+Gelman, A., & Stern, H. (2006). The difference between "significant" and
+"not significant" is not itself statistically significant. *The American
+Statistician, 60*(4), 328–331. https://doi.org/10.1198/000313006X152649
+
 Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 Planned missing data designs in psychological research. *Psychological
 Methods, 11*(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323

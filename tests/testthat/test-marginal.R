@@ -164,3 +164,18 @@ test_that("the bootstrap's IRLS refit matches glm.fit()", {
     }
   })
 })
+
+
+test_that("the IRLS refit reports near separation as a failure, not an error", {
+
+  withr::with_seed(1, {
+    x <- c(stats::rnorm(20, -3), stats::rnorm(20, 3))
+  })
+  X <- cbind("(Intercept)" = 1, x = x)
+  # One observation on the wrong side of an otherwise separating covariate,
+  # started far out: fitted risks reach 0 or 1 in floating point.
+  y <- c(rep(0, 19), 1, rep(1, 19), 0)
+  expect_false(.logistic_irls(X, y, start = c(0, 10))$converged)
+  # Complete separation.
+  expect_false(.logistic_irls(X, as.numeric(x > 0), start = c(0, 1))$converged)
+})
