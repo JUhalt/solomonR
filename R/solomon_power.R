@@ -150,6 +150,10 @@
 #' With 20 or fewer participants per cell, treat GLM-based power as a
 #' conservative figure rather than an exact one.
 #'
+#' Only continuous outcomes are simulated. Binary and count outcomes are not
+#' supported; for binary outcomes see [marginal_solomon()] and its simulation
+#' validation on issue #43.
+#'
 #' @param n Cell sizes: a single number used for all four cells, or four
 #'   sizes given as a list or vector with elements `n1` (pretested treatment),
 #'   `n2` (pretested control), `n3` (unpretested treatment), and `n4`

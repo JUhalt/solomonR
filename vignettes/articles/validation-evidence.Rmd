@@ -24,8 +24,9 @@ Each study followed the ADEMP structure of Morris, White and Crowther
 
 The evidence covers the scenarios each study examined. It is not a
 validation of every Solomon design: non-normal errors, clustered
-assignment, binary and count outcomes, and incidental missing data are
-outside every study below unless a study says otherwise.
+assignment, count outcomes, and incidental missing data are outside every
+study below unless a study says otherwise. Binary outcomes are covered by
+their own study.
 
 ## Studies
 
@@ -187,6 +188,51 @@ the HC3 conservatism found for `power_solomon()`. For small designs,
 `plan_solomon(method = "simulation")` plans for the package's own test
 directly. See the
 [full article](`r studies$article[studies$study == "plan-resimulation"]`).
+
+## Binary outcomes
+
+`marginal_solomon()` was checked on the risk-difference, risk-ratio, and
+odds-ratio scales, with bootstrap and delta-method intervals, against the
+same registered tolerances as above plus a model standard error within 10%
+of the empirical one. A scenario in which more than 5% of datasets failed is
+outside a method's supported range.
+
+```{r binary}
+bi <- benchmarks[benchmarks$study == "binary-outcomes" &
+                   grepl("^marginal_solomon", benchmarks$method), ]
+reps <- 2000
+key <- c("method", "design", "estimand")
+wide <- stats::reshape(bi[, c(key, "measure", "value", "mcse", "n_failed", "null_effect")],
+                       idvar = key, timevar = "measure", direction = "wide")
+wide$supported <- wide$n_failed.coverage <= 0.05 * reps
+wide$ok <- abs(wide$value.bias) <= 2 * wide$mcse.bias &
+  wide$value.coverage >= 0.94 & wide$value.coverage <= 0.96 &
+  abs(wide$value.relative_se_error_pct) <= 10 &
+  ifelse(wide$null_effect.coverage, wide$value.rejection_rate >= 0.04 &
+           wide$value.rejection_rate <= 0.06, TRUE)
+wide$scale <- sub("^.*\\((.*)\\)$", "\\1", wide$estimand)
+s <- wide[wide$supported, ]
+groups <- unique(s[, c("method", "scale")])
+knitr::kable(
+  data.frame(
+    Method = groups$method,
+    Scale = groups$scale,
+    `Supported contrasts meeting every tolerance` = vapply(seq_len(nrow(groups)), function(i) {
+      v <- s$ok[s$method == groups$method[i] & s$scale == groups$scale[i]]
+      sprintf("%d of %d", sum(v), length(v))
+    }, ""),
+    check.names = FALSE,
+    row.names = NULL
+  ),
+  caption = "Across supported scenarios; results by design are in the full article."
+)
+```
+
+Risk differences are validated across the supported range. Risk ratios and
+odds ratios are conservative with 20 to 50 participants per cell. With 20
+per cell and a control risk of 0.1, too many datasets have a cell without
+events for any method. See the
+[full article](`r studies$article[studies$study == "binary-outcomes"]`).
 
 ## Adding a study
 

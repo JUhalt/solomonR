@@ -97,6 +97,10 @@ scenario), 0.017 with 20, and 0.003 with 100.
 
 With 20 or fewer participants per cell, treat GLM-based power as a
 conservative figure rather than an exact one.
+
+Only continuous outcomes are simulated. Binary and count outcomes are not
+supported; for binary outcomes see \code{\link[=marginal_solomon]{marginal_solomon()}} and its simulation
+validation on issue #43.
 }
 
 \examples{

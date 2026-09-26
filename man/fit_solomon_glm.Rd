@@ -83,6 +83,18 @@ freedom when the dispersion is estimated, as in Gaussian models, which is
 the conventional choice when t approximations are used with robust
 standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
 with a fixed dispersion (binomial, Poisson) use the normal distribution.
+With a noncollapsible link (such as the logit) and \code{pretest_score}, the
+link-scale contrasts compare a treatment effect conditional on the pretest
+among pretested participants with a marginal effect among unpretested
+participants, who have no pretest. When the pretest predicts the outcome,
+the Pretest x Treatment contrast is then nonzero even without
+sensitization (Daniel et al., 2021): in the package's simulation study
+(issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
+sensitization present. Such fits give the classed warning
+\code{solomonR_noncollapsible_warning}; for binary outcomes, estimate the
+Solomon contrasts on a common scale with \code{\link[=marginal_solomon]{marginal_solomon()}}. Identity and
+log links are collapsible and are not affected.
+
 The degrees of freedom are returned in the \code{df} columns (\code{Inf} for normal
 reference distributions). Imbens and Kolesár (2016) further recommend
 Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
@@ -105,6 +117,11 @@ fits; no corresponding interval is available with robust covariance.
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
 169–181.
+
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
+528–557. https://doi.org/10.1002/bimj.201900297
 
 Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
 error estimators in OLS regression: An introduction and software

@@ -1,5 +1,25 @@
 # solomonR (development version)
 
+## Binary outcomes (#43)
+
+* New `marginal_solomon()` estimates the Solomon contrasts for binary
+  outcomes as risk differences, risk ratios, or odds ratios from marginal
+  (standardized) risks, following Daniel et al. (2021) and Localio et al.
+  (2007). Intervals come from a bootstrap that resamples within the four
+  Solomon cells, or from the delta method.
+* New `fisher_solomon()` reproduces the historical categorical analysis of
+  El Karkri et al. (2025b), with a caution that its rule compares
+  significance, not effects.
+* `fit_solomon_glm()` now warns (`solomonR_noncollapsible_warning`) when a
+  noncollapsible link such as the logit is combined with `pretest_score`:
+  its Pretest x Treatment contrast then compares a conditional with a
+  marginal effect and is nonzero without sensitization.
+* New article "Binary Outcomes: Validating marginal_solomon()" reports the
+  simulation study registered on #43 (48 scenarios, 2,000 replications
+  each), and the "Validation Evidence" tables include it. Risk differences
+  are validated across the supported range; risk ratios and odds ratios are
+  conservative with 20 to 50 participants per cell.
+
 ## Clustered designs (#46)
 
 * `validate_solomon()` gains a `cluster` argument. It reports the number of

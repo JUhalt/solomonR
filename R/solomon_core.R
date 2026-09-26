@@ -120,6 +120,18 @@ stouffer_solomon <- function(p) {
 #' the conventional choice when t approximations are used with robust
 #' standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
 #' with a fixed dispersion (binomial, Poisson) use the normal distribution.
+#' With a noncollapsible link (such as the logit) and `pretest_score`, the
+#' link-scale contrasts compare a treatment effect conditional on the pretest
+#' among pretested participants with a marginal effect among unpretested
+#' participants, who have no pretest. When the pretest predicts the outcome,
+#' the Pretest x Treatment contrast is then nonzero even without
+#' sensitization (Daniel et al., 2021): in the package's simulation study
+#' (issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
+#' sensitization present. Such fits give the classed warning
+#' `solomonR_noncollapsible_warning`; for binary outcomes, estimate the
+#' Solomon contrasts on a common scale with [marginal_solomon()]. Identity and
+#' log links are collapsible and are not affected.
+#'
 #' The degrees of freedom are returned in the `df` columns (`Inf` for normal
 #' reference distributions). Imbens and Kolesár (2016) further recommend
 #' Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
@@ -159,6 +171,11 @@ stouffer_solomon <- function(p) {
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 #' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 #' 169–181.
+#'
+#' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+#' Comparing noncollapsible effect estimators and their standard errors after
+#' adjustment for different covariate sets. *Biometrical Journal, 63*(3),
+#' 528–557. https://doi.org/10.1002/bimj.201900297
 #'
 #' Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
 #' error estimators in OLS regression: An introduction and software
@@ -262,6 +279,10 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
   fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
+
+  if (!is.null(pretest_score) && !stats::family(fit)$link %in% c("identity", "log")) {
+    .warn_noncollapsible(stats::family(fit)$link)
+  }
 
   # Robust VCOV
   fit_cr <- fit

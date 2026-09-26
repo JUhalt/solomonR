@@ -47,6 +47,25 @@
   unlist(lapply(scales, function(s) .marginal_contrasts(r, s)), use.names = FALSE)
 }
 
+# Classed warning for link-scale Solomon contrasts from a noncollapsible link
+# with the pretest as a covariate (#43).
+.warn_noncollapsible <- function(link) {
+  warning(structure(
+    class = c("solomonR_noncollapsible_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "With the ", link, " link and a pretest covariate, the Pretest x Treatment ",
+        "contrast compares a treatment effect conditional on the pretest ",
+        "(pretested participants) with a marginal one (unpretested participants). ",
+        "These differ whenever the pretest predicts the outcome, even without ",
+        "sensitization (Daniel et al., 2021). Use marginal_solomon() to compare ",
+        "the effects on a common scale."
+      ),
+      call = NULL
+    )
+  ))
+}
+
 .degenerate_risk <- function(r) any(r < 1e-8 | r > 1 - 1e-8)
 
 # Logistic regression by iteratively reweighted least squares, with the

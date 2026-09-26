@@ -18,6 +18,11 @@ binary_example <- function() {
 
 odds <- function(p) p / (1 - p)
 
+# Pretest-adjusted logistic fits warn about noncollapsibility by design.
+quiet_fit <- function(expr) {
+  suppressWarnings(expr, classes = "solomonR_noncollapsible_warning")
+}
+
 
 test_that("the historical categorical path reproduces Kvalem et al. (1996)", {
 
@@ -70,7 +75,7 @@ test_that("delta-method risk differences match the binomial standard error", {
 test_that("pretest-adjusted risks are standardized over pretested participants", {
 
   d <- binary_example()
-  fit <- with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial()))
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
   m <- marginal_solomon(fit, method = "delta")
 
   pre <- d[d$pretested == 1, ]
@@ -99,7 +104,7 @@ test_that("pretest-adjusted risks are standardized over pretested participants",
 test_that("the bootstrap is reproducible, leaves the RNG state alone, and brackets the estimate", {
 
   d <- binary_example()
-  fit <- with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial()))
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
 
   set.seed(99)
   before <- stats::runif(1)
@@ -139,11 +144,11 @@ test_that("unsupported fits and arguments are refused", {
 
   d <- binary_example()
   d$site <- rep(seq_len(12), length.out = nrow(d))
-  cr2 <- with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial(),
-                                 robust = "CR2", cluster = site))
+  cr2 <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial(),
+                                           robust = "CR2", cluster = site)))
   expect_error(marginal_solomon(cr2), "not yet supported")
 
-  fit <- with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial()))
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
   expect_error(marginal_solomon(fit, R = 10), "at least 99")
 })
 
@@ -151,7 +156,7 @@ test_that("unsupported fits and arguments are refused", {
 test_that("the bootstrap's IRLS refit matches glm.fit()", {
 
   d <- binary_example()
-  fit <- with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial()))
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
   X <- stats::model.matrix(fit$model)
   y <- fit$model$y
   withr::with_seed(11, {
@@ -178,4 +183,22 @@ test_that("the IRLS refit reports near separation as a failure, not an error", {
   expect_false(.logistic_irls(X, y, start = c(0, 10))$converged)
   # Complete separation.
   expect_false(.logistic_irls(X, as.numeric(x > 0), start = c(0, 1))$converged)
+})
+
+
+test_that("noncollapsible links with a pretest covariate warn; collapsible links do not", {
+
+  d <- binary_example()
+  expect_warning(
+    with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())),
+    class = "solomonR_noncollapsible_warning"
+  )
+  expect_warning(
+    with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial(link = "probit"))),
+    class = "solomonR_noncollapsible_warning"
+  )
+  expect_no_warning(with(d, fit_solomon_glm(passed, treat, pretested, family = stats::binomial())))
+  d$count <- stats::rpois(nrow(d), 2)
+  expect_no_warning(with(d, fit_solomon_glm(count, treat, pretested, y_pre, family = stats::poisson())))
+  expect_no_warning(with(d, fit_solomon_glm(y_post, treat, pretested, y_pre)))
 })

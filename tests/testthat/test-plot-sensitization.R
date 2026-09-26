@@ -155,7 +155,10 @@ test_that("binomial fits are shown on the link scale with a normal reference", {
 
   d <- solomon_example
   d$passed <- as.integer(d$y_post > stats::median(d$y_post))
-  fit <- with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial()))
+  expect_warning(
+    fit <- with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())),
+    class = "solomonR_noncollapsible_warning"
+  )
   p <- plot_sensitization(fit)
 
   expect_equal(p$labels$y, "Adjusted mean (logit link scale)")
