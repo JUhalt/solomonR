@@ -282,7 +282,38 @@ nb_long <- long_measures(
   n_failed = nb$fit_failures
 )
 
-benchmarks <- rbind(ml_long, pw_long, pl_long, bi_long, bi_c_long, bi_h_long, co_long, cl_long, nb_long)
+# ---- Marginal contrasts from clustered fits (#64) ---------------------------------
+
+cm <- read_study("cluster-marginal-validation", "performance.csv")
+cm_info <- read_study("cluster-marginal-validation", "run-information.csv")
+cm_run <- stats::setNames(as.list(cm_info$value), cm_info$item)
+cm_method <- c(
+  normal = "marginal_solomon() on a CR2 fit, delta method, normal reference",
+  satterthwaite = "marginal_solomon() on a CR2 fit, delta method, Satterthwaite t",
+  cluster_summary = "Cluster-level summaries, separate-variances t (Hayes & Moulton, 2017)"
+)
+cm_scale <- c(difference = "risk difference", ratio = "log risk ratio", odds_ratio = "log odds ratio")
+cm_long <- long_measures(
+  cm,
+  study = "cluster-marginal",
+  design = sprintf("design=%s; allocation=%s; ICC=%s; pattern=%s",
+                   cl_design_label[cm$design], cm$allocation, cm$icc, cm$pattern),
+  method = unname(cm_method[cm$method]),
+  estimand = sprintf("%s (%s)", cm$contrast, cm_scale[cm$scale]),
+  null_effect = abs(cm$true_value) < 1e-8,
+  measures = list(
+    bias = c(value = "bias", mcse = "bias_mcse"),
+    empirical_se = c(value = "empse", mcse = NA),
+    relative_se_error_pct = c(value = "relerr", mcse = "relerr_mcse"),
+    coverage = c(value = "coverage", mcse = "coverage_mcse"),
+    rejection_rate = c(value = "rejection", mcse = "rejection_mcse")
+  ),
+  n_successful = cm$n_used,
+  n_failed = cm$fit_failures
+)
+
+benchmarks <- rbind(ml_long, pw_long, pl_long, bi_long, bi_c_long, bi_h_long, co_long, cl_long, nb_long,
+                    cm_long)
 numeric_cols <- vapply(benchmarks, is.numeric, logical(1))
 benchmarks[numeric_cols] <- lapply(benchmarks[numeric_cols], function(v) signif(v, 6))
 
@@ -293,21 +324,23 @@ issue <- function(n) sprintf("https://github.com/JUhalt/solomonR/issues/%d", n)
 
 studies <- data.frame(
   study = c("ml-inference", "power-simulation", "plan-resimulation", "binary-outcomes",
-            "count-outcomes", "clustered-designs", "negative-binomial"),
+            "count-outcomes", "clustered-designs", "negative-binomial", "cluster-marginal"),
   title = c("Inference for fit_solomon_ml()", "Rejection rates from power_solomon()",
             "Designs from plan_solomon()", "Binary outcomes: marginal_solomon()",
             "Count outcomes: Poisson fits and marginal_solomon()",
             "Clustered designs: cluster-level randomization inference",
-            "Count outcomes: the negative-binomial option"),
-  issues = c("#10; #22", "#18", "#24", "#43", "#44", "#19", "#62"),
-  protocol = c(issue(10), issue(18), issue(24), issue(43), issue(44), issue(19), issue(62)),
+            "Count outcomes: the negative-binomial option",
+            "Clustered designs: marginal risk contrasts"),
+  issues = c("#10; #22", "#18", "#24", "#43", "#44", "#19", "#62", "#64"),
+  protocol = c(issue(10), issue(18), issue(24), issue(43), issue(44), issue(19), issue(62), issue(64)),
   article = c(file.path(site, "ml-validation.html"), file.path(site, "power-validation.html"),
               file.path(site, "plan-validation.html"), file.path(site, "binary-validation.html"),
               file.path(site, "count-validation.html"), file.path(site, "cluster-validation.html"),
-              file.path(site, "count-validation.html#the-negative-binomial-option")),
+              file.path(site, "count-validation.html#the-negative-binomial-option"),
+              file.path(site, "cluster-marginal-validation.html")),
   scenarios = c(length(unique(ml$scenario)), length(unique(pw$scenario)), nrow(pl),
                 length(unique(bi$scenario)), length(unique(co$scenario)), length(unique(cl$scenario)),
-                length(unique(nb$scenario))),
+                length(unique(nb$scenario)), length(unique(cm$scenario))),
   replications = c(
     format(ml_run$nsim),
     sprintf("%d under the complete null; %d elsewhere", pw_run$sims_null, pw_run$sims_alternative),
@@ -316,39 +349,45 @@ studies <- data.frame(
     sprintf("%s per scenario", co_run$replications),
     sprintf("%s per scenario; 999 permutations per test, or every allocation when there are at most 999",
             cl_run$replications),
-    sprintf("%s per scenario (the datasets of the count study)", nb_run$replications)
+    sprintf("%s per scenario (the datasets of the count study)", nb_run$replications),
+    sprintf("%s per scenario", cm_run$replications)
   ),
   methods = c(paste(unique(ml$method), collapse = "; "), paste(unique(pw$test), collapse = "; "),
               "plan_solomon() analytic plans; GLM (HC3, t)",
               paste(c(unname(bi_method), "fit_solomon_glm(family = binomial())", "fisher_solomon()"), collapse = "; "),
               paste(unname(co_method), collapse = "; "),
               paste(unname(cl_method), collapse = "; "),
-              paste(unname(nb_method), collapse = "; ")),
+              paste(unname(nb_method), collapse = "; "),
+              paste(unname(cm_method), collapse = "; ")),
   estimands = c(paste(unique(ml$contrast), collapse = "; "), paste(unique(pw$estimand), collapse = "; "),
                 paste(unique(pl$estimand), collapse = "; "),
                 "Solomon contrasts as risk differences, risk ratios, and odds ratios",
                 "Solomon contrasts as rate differences and rate ratios",
                 "Type I error and power for the Solomon contrasts in cluster-randomized designs",
-                "Solomon contrasts as rate differences and rate ratios"),
+                "Solomon contrasts as rate differences and rate ratios",
+                "Marginal Solomon contrasts as risk differences, risk ratios, and odds ratios in cluster-randomized designs"),
   package_commit = c(ml_run$git_commit, pw_run$git_commit, pl_run$git_commit, substr(bi_run$commit, 1, 7),
-                     substr(co_run$commit, 1, 7), substr(cl_run$commit, 1, 7), substr(nb_run$commit, 1, 7)),
+                     substr(co_run$commit, 1, 7), substr(cl_run$commit, 1, 7), substr(nb_run$commit, 1, 7),
+                     substr(cm_run$commit, 1, 7)),
   r_version = c(ml_run$r_version, pw_run$r_version, pl_run$r_version, sub("R version ([0-9.]+).*", "\\1", bi_run$R_version),
                 sub("R version ([0-9.]+).*", "\\1", co_run$R_version),
                 sub("R version ([0-9.]+).*", "\\1", cl_run$R_version),
-                sub("R version ([0-9.]+).*", "\\1", nb_run$R_version)),
+                sub("R version ([0-9.]+).*", "\\1", nb_run$R_version),
+                sub("R version ([0-9.]+).*", "\\1", cm_run$R_version)),
   started = c(ml_run$started, pw_run$started, pl_run$started, sub(" UTC", "", bi_run$started),
               sub(" UTC", "", co_run$started), sub(" UTC", "", cl_run$started),
-              sub(" UTC", "", nb_run$started)),
+              sub(" UTC", "", nb_run$started), sub(" UTC", "", cm_run$started)),
   finished = c(ml_run$finished, pw_run$finished, pl_run$finished, sub(" UTC", "", bi_run$finished),
                sub(" UTC", "", co_run$finished), sub(" UTC", "", cl_run$finished),
-               sub(" UTC", "", nb_run$finished)),
+               sub(" UTC", "", nb_run$finished), sub(" UTC", "", cm_run$finished)),
   failed_fits = c(sum(ml$n_failed[ml$contrast == ml$contrast[1]]),
                   sum(pw$failures[pw$test == pw$test[1] & pw$estimand == pw$estimand[1]]),
                   sum(pl$failures),
                   sum(unique(bi[, c("scenario", "fit_failures")])$fit_failures),
                   sum(unique(co[, c("scenario", "fit_failures")])$fit_failures),
                   sum(unique(cl[, c("scenario", "rep_errors")])$rep_errors),
-                  sum(unique(nb[, c("scenario", "fit_failures")])$fit_failures)),
+                  sum(unique(nb[, c("scenario", "fit_failures")])$fit_failures),
+                  sum(unique(cm[, c("scenario", "fit_failures")])$fit_failures)),
   stringsAsFactors = FALSE
 )
 

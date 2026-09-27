@@ -243,3 +243,14 @@ test_that("clustered fits use CR2 delta-method intervals with Satterthwaite t (#
   expect_equal(row$conf.high - row$estimate, stats::qt(0.975, df1) * row$std.error, tolerance = 1e-8)
   expect_equal(row$p.value, 2 * stats::pt(-abs(row$estimate / row$std.error), df1), tolerance = 1e-10)
 })
+
+test_that("clustered count fits are refused until validated (#64)", {
+  set.seed(641)
+  cluster <- rep(1:24, each = 10)
+  treat <- rep(c(1, 0, 1, 0), each = 6)[cluster]
+  pretested <- rep(c(1, 1, 0, 0), each = 6)[cluster]
+  y <- stats::rpois(length(cluster), exp(0.5 + 0.3 * treat))
+  fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::poisson(),
+                                   robust = "CR2", cluster = cluster))
+  expect_error(marginal_solomon(fit), "supported for binary outcomes")
+})

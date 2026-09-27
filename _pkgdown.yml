@@ -103,6 +103,7 @@ articles:
       - articles/binary-validation
       - articles/count-validation
       - articles/cluster-validation
+      - articles/cluster-marginal-validation
 
   - title: "References"
     navbar: References

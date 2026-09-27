@@ -16,8 +16,8 @@ marginal_solomon(
 \arguments{
 \item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \code{family = binomial()} (logit
 link), \code{family = poisson()} (log link), or
-\code{family = "negative_binomial"}, with HC3, model-based, or CR2
-covariance.}
+\code{family = "negative_binomial"}, with HC3 or model-based covariance, or,
+for binary outcomes, CR2 covariance.}
 
 \item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
 outcomes, \code{"odds_ratio"}. For count outcomes the default is
@@ -102,16 +102,40 @@ fits the estimated theta, are printed for description. No published
 Solomon study with a count outcome has been identified, so this use of
 count-data methods is a solomonR extension.
 
-Clustered fits: with \code{robust = "CR2"}, the delta-method standard errors use
-the CR2 cluster-robust covariance (Bell & McCaffrey, 2002), and intervals
+Clustered fits: for binary outcomes fitted with \code{robust = "CR2"}, the
+delta-method standard errors use the CR2 cluster-robust covariance (Bell &
+McCaffrey, 2002), and intervals
 and tests use the t distribution with Satterthwaite degrees of freedom for
 the delta method's linear approximation (Pustejovsky & Tipton, 2018).
 Applying those degrees of freedom to the linearized contrast is a solomonR
-extension; its simulation validation is on issue #64. Only the delta
-method is offered, because the bootstrap resamples participants rather
-than clusters, and a classed warning flags degrees of freedom below 4
-(Tipton, 2015). For a cluster-level randomization test, see
-\code{\link[=perm_solomon]{perm_solomon()}}.
+extension. Only the delta method is offered, because the bootstrap
+resamples participants rather than clusters, and a classed warning flags
+degrees of freedom below 4 (Tipton, 2015).
+
+In the package's simulation of cluster-randomized Solomon designs (issue
+#64; 4 to 47 clusters per cell or arm, intracluster correlations of 0.02
+and 0.10), these intervals met the coverage and Type I error tolerances
+for risk differences in 140 of 144 scenario-contrasts and for odds ratios
+in 137 of 144. The four risk-difference shortfalls, with coverage from
+0.935 to 0.961, all had an intracluster correlation of 0.10: 4 or 10
+clusters per arm with pretesting assigned within clusters, 15 and 47
+clusters per arm with pretesting within clusters, and 15, 15, 47, and 47
+clusters per cell. Risk-ratio intervals met the tolerances in 111 of 144
+and were conservative with 4 clusters per cell or arm (coverage up to
+0.973). A normal reference distribution undercovered (coverage down to
+0.880), so it is not used for clustered fits.
+
+In the three shortfalls with pretesting assigned within clusters, the
+unweighted comparison of cluster-level summaries (Hayes & Moulton, 2017,
+pp. 211–215) met the tolerances, so a cluster-level analysis is the
+recommended alternative for risk differences in such designs when
+clustering is strong. The differences were small, and the cluster-level comparison met
+the tolerances less often across all scenarios (119 of 144), mostly by
+covering more than 96\% of the time with 4 clusters per cell or arm.
+\code{\link[=perm_solomon]{perm_solomon()}} gives a cluster-level randomization test. Clustered count
+fits have not been validated and are refused; for them, the log rate-ratio
+contrasts of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with CR2 covariance and \code{\link[=perm_solomon]{perm_solomon()}}
+account for clustering.
 
 The package's simulation validation of this function is described on
 issue #43 (binary outcomes), issue #44 (count outcomes), issue #62
@@ -149,6 +173,9 @@ Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 Comparing noncollapsible effect estimators and their standard errors after
 adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
 528–557. https://doi.org/10.1002/bimj.201900297
+
+Hayes, R. J., & Moulton, L. H. (2017). \emph{Cluster randomised trials} (2nd
+ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
 
 Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and
 confidence intervals were easily computed indirectly from multivariable
