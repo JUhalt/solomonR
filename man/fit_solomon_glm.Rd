@@ -81,7 +81,11 @@ only in the pretested groups.
 \item \code{robust = "CR2"}: bias-reduced cluster-robust covariance (Bell &
 McCaffrey, 2002) with Satterthwaite degrees of freedom (Pustejovsky &
 Tipton, 2018), computed with the clubSandwich package. Use this when
-participants are nested in clusters such as classrooms or sites.
+participants are nested in clusters such as classrooms or sites. In the
+package's simulation of cluster-randomized Solomon designs (issue #19),
+CR2 tests exceeded the nominal level with four clusters per arm (Type I
+error up to 0.068 with no effect in any cluster); with few clusters, the
+cluster-level randomization test of \code{\link[=perm_solomon]{perm_solomon()}} is preferred.
 }
 
 Tests and confidence intervals use the same reference distribution. For

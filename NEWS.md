@@ -1,5 +1,31 @@
 # solomonR (development version)
 
+## Cluster-level randomization inference (#19)
+
+* `perm_solomon()` now accepts clustered fits and permutes whole clusters.
+  It supports clusters assigned to the four Solomon conditions (permuted
+  within pretest conditions) and treatment by cluster with pretesting
+  within clusters (permuted across clusters); designs that assign treatment
+  within clusters are refused. The statistic uses covariate-adjusted
+  cluster-level summaries (Gail et al., 1996; Hayes & Moulton, 2017), and
+  every allocation is enumerated, with an exact p-value, when there are at
+  most `reps`.
+* New `statistic` argument: `"studentized"` (default) or `"difference"`.
+  Results report the estimate, the level permuted, whether the p-value is
+  exact, and the numbers of treated and control clusters.
+* A classed warning (`solomonR_unbalanced_clusters_warning`) is given when
+  treated and control clusters differ in number.
+* New article "Clustered Designs: Validating Cluster-Level Randomization
+  Inference" reports the simulation study registered on #19 (96 scenarios,
+  2,000 replications each), and the "Validation Evidence" tables include
+  it. The permutation tests were exact under the sharp null hypothesis. With
+  unequal numbers of clusters and more variable treated clusters, the
+  studentized statistic's Type I error reached 0.08 and the raw difference's
+  0.16. CR2 tests exceeded the nominal level with four clusters per arm, so
+  the permutation test is recommended for designs with few clusters.
+* `marginal_solomon()` points clustered designs to `perm_solomon()`; marginal
+  contrasts for clustered fits are planned in #64.
+
 ## Count outcomes (#44)
 
 * `fit_solomon_glm()` gains `exposure`, a log offset for counts observed over

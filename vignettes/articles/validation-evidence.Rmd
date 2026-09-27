@@ -23,10 +23,10 @@ Each study followed the ADEMP structure of Morris, White and Crowther
   article.
 
 The evidence covers the scenarios each study examined. It is not a
-validation of every Solomon design: non-normal continuous errors,
-clustered assignment, and incidental missing data are outside every study
-below unless a study says otherwise. Binary and count outcomes are covered
-by their own studies.
+validation of every Solomon design: non-normal continuous errors and
+incidental missing data are outside every study below unless a study says
+otherwise. Binary and count outcomes, and cluster-randomized designs, are
+covered by their own studies.
 
 ## Studies
 
@@ -277,6 +277,44 @@ Model-based standard errors fail under overdispersion, which is why the
 package's default is the robust covariance. See the
 [full article](`r studies$article[studies$study == "count-outcomes"]`).
 
+## Clustered designs
+
+The cluster-level randomization tests of `perm_solomon()` were checked for
+Type I error in cluster-randomized Solomon designs, with equal and unequal
+numbers of treated and control clusters, and compared with the CR2 tests of
+`fit_solomon_glm()`. The tolerance is a Type I error from 0.040 to 0.060.
+
+```{r clusters}
+cl <- benchmarks[benchmarks$study == "clustered-designs" & benchmarks$null_effect, ]
+cl$balanced <- grepl("allocation=balanced", cl$design)
+groups <- unique(cl[, c("method", "balanced")])
+groups <- groups[order(!groups$balanced, groups$method), ]
+knitr::kable(
+  data.frame(
+    Allocation = ifelse(groups$balanced, "equal", "unequal"),
+    Method = groups$method,
+    `Within 0.040 to 0.060` = vapply(seq_len(nrow(groups)), function(i) {
+      v <- cl$value[cl$method == groups$method[i] & cl$balanced == groups$balanced[i]]
+      sprintf("%d of %d", sum(v >= 0.04 & v <= 0.06), length(v))
+    }, ""),
+    `Largest Type I error` = vapply(seq_len(nrow(groups)), function(i) {
+      num(max(cl$value[cl$method == groups$method[i] & cl$balanced == groups$balanced[i]]))
+    }, ""),
+    check.names = FALSE,
+    row.names = NULL
+  ),
+  caption = "Null contrasts across both assignment mechanisms, both outcomes, and all variance ratios."
+)
+```
+
+The permutation tests are exact under the sharp null hypothesis; with four
+clusters per arm they are conservative, because few allocations exist. With
+unequal numbers of clusters and more variable treated clusters, the
+unstudentized difference rejects far too often, as Gail et al. (1996) found;
+the studentized statistic reduces but does not remove that excess. CR2 tests
+exceed the nominal level with four clusters per arm. See the
+[full article](`r studies$article[studies$study == "clustered-designs"]`).
+
 ## Adding a study
 
 A new study joins this page by:
@@ -287,6 +325,11 @@ A new study joins this page by:
 3. adding a section for it to `validation-evidence/build-benchmarks.R`.
 
 ## References
+
+Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
+design considerations and randomization-based inference for community
+intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
+<https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
 
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),

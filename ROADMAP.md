@@ -288,13 +288,14 @@ helper by #52; and the SEM vignette by #55.
 
 ---
 
-## v0.7.0 - Longitudinal and quasi-experimental designs
+## v0.7.0 - Longitudinal, quasi-experimental, and clustered extensions
 
 **Milestone:** [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6)
 
 - [ ] Longitudinal Solomon designs: Treatment x Pretest x Time — [#57](https://github.com/JUhalt/solomonR/issues/57)
 - [ ] Quasi-experimental Solomon designs, with the loss of causal warrant
   made explicit — [#58](https://github.com/JUhalt/solomonR/issues/58)
+- [ ] Marginal risk and rate contrasts for clustered Solomon designs — [#64](https://github.com/JUhalt/solomonR/issues/64)
 
 ---
 

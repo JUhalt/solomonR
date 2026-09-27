@@ -35,6 +35,7 @@ cmaj
 CMD
 comparator
 configural
+Cousens
 CRC
 Crossref
 Crowther
@@ -70,6 +71,7 @@ heteroskedastic
 Heteroskedasticity
 heteroskedasticity
 https
+ije
 Imbens
 Isager
 jclinepi
@@ -107,6 +109,7 @@ nonsignificant
 nrow
 Olchowski
 Oo
+Parpia
 Pharmacokinetics
 Phipson
 pkgdown
@@ -137,6 +140,7 @@ Scheel
 Schuirmann
 sensitisation
 SESOI
+SICI
 Smyth
 solomon
 SPDX
@@ -145,6 +149,7 @@ Steiger
 Steyn
 Stouffer
 Stouffer's
+studentization
 Studentizing
 Suchman
 Sundet
@@ -155,9 +160,12 @@ TOST
 TP
 Trivedi
 Twente
+unclustered
+Unclustered
 underpowered
 Unpre
 unpretested
+unstudentized
 Vandenberg
 varepsilon
 Welch
@@ -166,4 +174,6 @@ Willson
 Witton
 Zhang
 α
+ε
 μ
+ψ

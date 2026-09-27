@@ -104,7 +104,10 @@ Applying the Solomon four-group design. *Health Education Quarterly, 23*(1),
 
 > A cluster-randomized school trial in which the intervention appeared to
 > work only in combination with the pretest. *In solomonR:* the
-> known-result tests of `fisher_solomon()` and `marginal_solomon()`.
+> known-result tests of `fisher_solomon()` and `marginal_solomon()`, and
+> the unbalanced allocation (30 intervention and 94 control classes) in the
+> simulation study of cluster-level `perm_solomon()`
+> ([#19](https://github.com/JUhalt/solomonR/issues/19)).
 
 Lana, R. E. (1959). Pretest-treatment interaction effects in attitudinal
 studies. *Psychological Bulletin, 56*(4), 293–300.
@@ -235,6 +238,10 @@ Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 for linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 169–181.
 
+Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
+analysis of incidence rates in cluster randomized trials. *International
+Journal of Epidemiology, 31*(4), 839–846. https://doi.org/10.1093/ije/31.4.839
+
 Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
 variances. *Journal of the American Statistical Association, 69*(346),
 364–367. https://doi.org/10.1080/01621459.1974.10482955
@@ -257,6 +264,11 @@ DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
 correlation and regression coefficients. *Journal of the American
 Statistical Association, 112*(519), 1211–1220.
 https://doi.org/10.1080/01621459.2016.1202117
+
+Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
+design considerations and randomization-based inference for community
+intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
+<https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
 
 Gelman, A., & Stern, H. (2006). The difference between "significant" and
 "not significant" is not itself statistically significant. *The American

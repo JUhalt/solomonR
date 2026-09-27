@@ -84,6 +84,7 @@ articles:
       - articles/plan-validation
       - articles/binary-validation
       - articles/count-validation
+      - articles/cluster-validation
 
   - title: "References"
     navbar: References

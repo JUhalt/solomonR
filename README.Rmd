@@ -251,10 +251,10 @@ plot_perm(perm)
 ```
 
 Randomization inference should reflect the design that actually
-generated the treatment assignments. Because `perm_solomon()` permutes
-individual participants, it refuses fits that include a clustering
-variable; use the CR2 tests from `fit_solomon_glm()` for
-cluster-randomized studies.
+generated the treatment assignments. For fits with a `cluster`
+variable, `perm_solomon()` permutes whole clusters. It uses
+covariate-adjusted cluster-level summaries, with exact enumeration when
+the design is small (Gail et al., 1996; Hayes & Moulton, 2017).
 
 ---
 
@@ -534,7 +534,8 @@ on one of these milestones:
   reporting, organized around deciding, planning, analyzing, reporting, and
   synthesizing Solomon studies;
 - [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6): longitudinal
-  and quasi-experimental Solomon designs.
+  and quasi-experimental Solomon designs, and marginal contrasts for
+  clustered designs.
 
 Version 1.0.0 is the release in which `solomonR` covers the published
 Solomon four-group methodology to date. Every source the package draws on
@@ -561,10 +562,18 @@ citation("solomonR")
 Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
 quasi-experimental designs for research*. Rand McNally.
 
+Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
+design considerations and randomization-based inference for community
+intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
+<https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
+
 Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
 error estimators in OLS regression: An introduction and software
 implementation. *Behavior Research Methods, 39*(4), 709–722.
 https://doi.org/10.3758/BF03192961
+
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd ed.).
+Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 Appropriate statistical analyses. *The Journal of Experimental Education,

@@ -83,6 +83,41 @@
   list(alloc = alloc, exact = exact, n_allocations = n_alloc)
 }
 
+# Classed warning for unequal numbers of treated and control clusters, where
+# a cluster permutation test can exceed its nominal level under the weak null
+# hypothesis (Gail et al., 1996, p. 1079). The rates quoted are the largest
+# Type I errors in the package's simulation study (issue #19), all with
+# treated clusters four times as variable as control clusters.
+.warn_unbalanced_clusters <- function(statistic, strata, n_treated, n_control) {
+  counts <- sprintf("%d treated and %d control", n_treated, n_control)
+  if (!identical(names(strata), "all")) counts <- paste0(names(strata), ": ", counts)
+  evidence <- if (statistic == "difference") {
+    paste0(
+      "the difference statistic reached a Type I error of 0.16 with 15 treated ",
+      "and 47 control clusters; statistic = \"studentized\" is more robust"
+    )
+  } else {
+    paste0(
+      "the studentized statistic reached a Type I error of 0.08 with 4 treated ",
+      "and 8 control clusters and 0.07 with 15 and 47"
+    )
+  }
+  warning(structure(
+    class = c("solomonR_unbalanced_clusters_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "Treated and control clusters differ in number (",
+        paste(counts, collapse = "; "), "). The test is exact for the sharp ",
+        "null hypothesis of no effect in any cluster, but when only the average ",
+        "effect is zero it can reject too often if the arm with fewer clusters ",
+        "is more variable (Gail et al., 1996). In the package's simulation ",
+        "(issue #19), ", evidence, "."
+      ),
+      call = NULL
+    )
+  ))
+}
+
 .perm_solomon_cluster <- function(object, contrast, reps, return_dist, statistic) {
   fit <- object$model
   used <- rep(TRUE, nrow(object$data))
@@ -152,6 +187,10 @@
       min_arm, " control cluster(s)", where, ". See validate_solomon().",
       call. = FALSE
     )
+  }
+
+  if (any(n_treated != n_control)) {
+    .warn_unbalanced_clusters(statistic, strata, n_treated, n_control)
   }
 
   stat_for <- function(alloc) {
