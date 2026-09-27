@@ -153,10 +153,19 @@ rbind(analytic, simulated)[, c("basis", "n1", "total_n", "power", "mcse")]
 For a large effect in small groups, the simulated plan needs
 `r simulated$n1` participants per group against `r analytic$n1` from the
 normal-theory calculation. The
-re-simulation study behind this advice is reported in the article
-"Designs from plan_solomon()", and the rejection rates of `power_solomon()`
-in "Validating power_solomon()"; both are summarized on the Validation
-Evidence page.
+re-simulation study behind this advice is reported in
+[Designs from plan_solomon()](plan-validation.html), and the rejection rates
+of `power_solomon()` in [Validating power_solomon()](power-validation.html);
+both are summarized on the [Validation Evidence](validation-evidence.html)
+page.
+
+## The historical test sequence
+
+These plans are for the package's recommended analysis. Planning for the
+historical sequence of Tests A–I, and the power cost of the alpha
+allocations Sawilowsky (1996) proposed to control its experiment-wise error,
+will be added with
+[issue #51](https://github.com/JUhalt/solomonR/issues/51).
 
 ## References
 
@@ -164,6 +173,11 @@ McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011). Can
 research assessments themselves cause bias in behaviour change trials? A
 systematic review of evidence from Solomon 4-group studies. *PLoS ONE,
 6*(10), Article e25223. https://doi.org/10.1371/journal.pone.0025223
+
+Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
+of meta-analysis in the Solomon four-group design* [Paper presentation].
+First International Conference on Multiple Comparisons, Tel Aviv, Israel.
+http://digitalcommons.wayne.edu/coe_tbf/29
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational Research
