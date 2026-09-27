@@ -58,6 +58,9 @@ for (path in list.files("R", pattern = "[.]R$", full.names = TRUE)) {
       end <- end + 1
     }
     block <- sub("^#' ?", "", lines[seq_len(end - s) + s])
+    # Roxygen markdown needs literal brackets escaped, as in "\[Paper
+    # presentation\]"; compare the text as it renders.
+    block <- gsub("\\\\([][])", "\\1", block)
     n_checked <- n_checked + check_list(paragraphs(block), sprintf("%s:%d", path, s))
   }
 }
