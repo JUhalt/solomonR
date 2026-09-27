@@ -553,3 +553,14 @@ test_that("ANCOVA SEM print retains model fit information", {
     "CFI="
   )
 })
+
+test_that("the saturated mean-structure model reports no global fit and no lavaan warnings (#55)", {
+  d <- solomon_example
+  expect_no_warning(fit <- fit_solomon_sem(d$y_post, d$treat, d$pretested))
+  expect_identical(unname(fit$fitmeasures["df"]), 0)
+  expect_true(all(is.na(fit$fitmeasures[c("cfi", "rmsea", "srmr")])))
+  expect_output(print(fit), "not diagnostic")
+
+  ancova <- fit_solomon_sem(d$y_post, d$treat, d$pretested, d$y_pre, ancova = TRUE)
+  expect_gt(unname(ancova$fitmeasures["df"]), 0)
+})

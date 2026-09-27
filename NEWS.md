@@ -1,5 +1,14 @@
 # solomonR (development version)
 
+## SEM fit measures (#55, first part)
+
+* `fit_solomon_sem()` and `fit_solomon_sem_latent()` no longer request
+  global fit indices for saturated models (df = 0), where they are not
+  diagnostic. This removes the lavaan warnings about robust CFI and RMSEA
+  that the four-group mean-structure model produced; such fits report
+  `df = 0` and missing indices, and print that global fit is not
+  diagnostic.
+
 ## Planning article (#49)
 
 * New article "Planning a Solomon Study": how to choose sample sizes with

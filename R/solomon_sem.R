@@ -1,3 +1,15 @@
+# Global fit indices. A saturated model (df = 0) fits perfectly by
+# construction, so its CFI, RMSEA, and SRMR are not diagnostic; with a
+# robust estimator lavaan also warns that the robust versions are NA. They
+# are therefore not requested for saturated models.
+.sem_fit_measures <- function(fit) {
+  df <- try(unname(lavaan::fitMeasures(fit, "df")), silent = TRUE)
+  if (inherits(df, "try-error")) return(c(cfi = NA, rmsea = NA, srmr = NA, df = NA))
+  if (isTRUE(df == 0)) return(c(cfi = NA, rmsea = NA, srmr = NA, df = 0))
+  fm <- try(lavaan::fitMeasures(fit, c("cfi", "rmsea", "srmr", "df")), silent = TRUE)
+  if (inherits(fm, "try-error")) c(cfi = NA, rmsea = NA, srmr = NA, df = df) else fm
+}
+
 #' SEM analysis for Solomon Four-Group designs (mean-structure; optional ANCOVA)
 #'
 #' Two modes:
@@ -98,8 +110,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     names(eff) <- effect_names
     rownames(eff) <- NULL
 
-    fm <- try(lavaan::fitMeasures(fit, c("cfi","rmsea","srmr","df")), silent = TRUE)
-    if (inherits(fm, "try-error")) fm <- c(cfi = NA, rmsea = NA, srmr = NA, df = NA)
+    fm <- .sem_fit_measures(fit)
 
     structure(list(mode = "mean", fit = fit, effects = eff, fitmeasures = fm,
                    conf_level = conf_level),
@@ -156,8 +167,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     names(eff2) <- effect_names
     rownames(eff2) <- NULL
 
-    fm2 <- try(lavaan::fitMeasures(fit2, c("cfi","rmsea","srmr","df")), silent = TRUE)
-    if (inherits(fm2, "try-error")) fm2 <- c(cfi = NA, rmsea = NA, srmr = NA, df = NA)
+    fm2 <- .sem_fit_measures(fit2)
 
     structure(list(mode = "ancova_pretested", fit = fit2, effects = eff2, fitmeasures = fm2,
                    conf_level = conf_level),

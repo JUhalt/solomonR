@@ -97,10 +97,7 @@ fit_solomon_sem_latent <- function(
                                        configural = character(0),
                                        metric     = "loadings",
                                        scalar     = c("loadings","intercepts"))
-  .safe_fitmeas <- function(fit) {
-    out <- try(lavaan::fitMeasures(fit, c("cfi","rmsea","srmr","df")), silent = TRUE)
-    if (inherits(out, "try-error")) c(cfi = NA, rmsea = NA, srmr = NA, df = NA) else out
-  }
+  .safe_fitmeas <- .sem_fit_measures
   .effects <- function(fit) {
     pe <- lavaan::parameterEstimates(fit, standardized = FALSE, level = conf_level)
     eff <- pe[
