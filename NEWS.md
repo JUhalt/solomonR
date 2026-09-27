@@ -97,7 +97,7 @@
     converted to z as if one-tailed, which differs from Walton Braver and
     Braver's definition.
   - As defined, with Test I judged two-tailed, the 1988 and 1995 sequences
-    falsely declare an effect about 13.5% of the time (14% to 15% with a
+    falsely declare an effect 13.5% to 13.7% of the time (14% to 15% with a
     one-tailed Test I).
   - Sawilowsky's allocations exceed their robustness limits (.056 to .081
     with a two-tailed Test I).
