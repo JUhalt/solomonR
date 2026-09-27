@@ -52,7 +52,8 @@ education programme in the Solomon four-group design. *Brain Sciences,
 
 > A recent classroom Solomon study that reports full cell statistics and a
 > sensitization effect, with one intact class per condition. *In solomonR:*
-> the known-result test and example of `solomon_from_summary()`, and an
+> the data set `elkarkri2025a`, the known-result test and example of
+> `solomon_from_summary()`, and an
 > example of the class–condition confounding that `validate_solomon()`
 > detects ([#46](https://github.com/JUhalt/solomonR/issues/46),
 > [#53](https://github.com/JUhalt/solomonR/issues/53)).
@@ -104,8 +105,9 @@ Applying the Solomon four-group design. *Health Education Quarterly, 23*(1),
 34–47. https://doi.org/10.1177/109019819602300103
 
 > A cluster-randomized school trial in which the intervention appeared to
-> work only in combination with the pretest. *In solomonR:* the
-> known-result tests of `fisher_solomon()` and `marginal_solomon()`, and
+> work only in combination with the pretest. *In solomonR:* the data set
+> `kvalem1996`, the known-result tests of `fisher_solomon()` and
+> `marginal_solomon()`, and
 > the unbalanced allocation (30 intervention and 94 control classes) in the
 > simulation study of cluster-level `perm_solomon()`
 > ([#19](https://github.com/JUhalt/solomonR/issues/19)).

@@ -1,5 +1,13 @@
 # solomonR (development version)
 
+## Published data sets (#54, first part)
+
+* New data sets `elkarkri2025a` and `kvalem1996` hold the published Solomon
+  results of El Karkri et al. (2025a; posttest statistics of four intact
+  classes) and Kvalem et al. (1996; condom use in a class-randomized trial),
+  with their sources, designs, and caveats on the help pages. Tests
+  reproduce the published ANOVA and chi-square results from them.
+
 ## Reporting (#52)
 
 * New `report_solomon()` turns a fitted Solomon analysis into APA 7 results
