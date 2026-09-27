@@ -37,21 +37,25 @@ single cluster, because cluster and condition are then confounded; see
 flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 4, where Tipton (2015) advises that p-values not be trusted.}
 
-\item{family}{model family (default gaussian())}
+\item{family}{model family (default gaussian()), given as a family object,
+a family function, or its name; or \code{"negative_binomial"} for the NB2
+model for counts.}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
 
 \item{exposure}{optional positive exposure (for example, observation time)
 for each participant, entered as a log offset; requires a log-link family
-such as \code{poisson()}. Contrasts are then log rate ratios per unit of
-exposure.}
+such as \code{poisson()} or \code{"negative_binomial"}. Contrasts are then log rate
+ratios per unit of exposure.}
 }
 \value{
 An object of class \code{solomon_glm}: a list with the fitted model,
 coefficient and contrast tables (including degrees of freedom and
 confidence limits \code{conf.low} and \code{conf.high}), the covariance matrix,
-the Pearson dispersion statistic for binomial and Poisson fits, and the
-settings used.
+the Pearson dispersion statistic for binomial, Poisson, and
+negative-binomial fits, \code{theta} (its estimate, standard error, and
+\eqn{\alpha = 1/\theta}) for negative-binomial fits, and the settings
+used.
 }
 \description{
 Fits one generalized linear model to all four Solomon groups and reports
@@ -115,6 +119,18 @@ Use \code{exposure} for counts observed over different times or exposures, and
 a count outcome has been identified, so applying these count-data methods
 to the Solomon contrasts is a solomonR extension; its simulation validation
 is on issue #44.
+
+\code{family = "negative_binomial"} fits the NB2 model, with variance
+\eqn{\mu + \alpha\mu^2}, by maximum likelihood using \code{MASS::glm.nb()}
+(Venables & Ripley, 2002). Its coefficient estimates stay consistent when the
+counts are not negative binomial, provided the mean is correctly specified,
+but its model-based standard errors do not, so robust standard errors are
+advised (Cameron & Trivedi, 2013, pp. 84--85); the default HC3 covariance
+provides them. The estimated \eqn{\theta = 1/\alpha} is returned as
+\code{theta}. When the counts show little overdispersion, \eqn{\theta} does not
+converge and a classed warning (\code{solomonR_theta_boundary_warning}) is
+given. Clustered (CR2) negative-binomial fits are not supported. The
+simulation validation is on issue #62.
 
 The degrees of freedom are returned in the \code{df} columns (\code{Inf} for normal
 reference distributions). Imbens and Kolesár (2016) further recommend
@@ -191,4 +207,7 @@ https://doi.org/10.1037/1082-989X.9.2.164
 Tipton, E. (2015). Small sample adjustments for robust variance estimation
 with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.
 https://doi.org/10.1037/met0000011
+
+Venables, W. N., & Ripley, B. D. (2002). \emph{Modern applied statistics with S}
+(4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
 }

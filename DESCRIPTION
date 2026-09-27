@@ -23,6 +23,7 @@ Imports:
     sandwich,
     clubSandwich,
     generics,
+    MASS,
     ggplot2,
     tibble,
     withr

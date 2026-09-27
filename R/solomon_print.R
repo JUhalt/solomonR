@@ -114,7 +114,12 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   f <- tryCatch(stats::formula(x$model), error = function(e) NULL)
   cat("Solomon GLM (unified model)\n")
   if (!is.null(f)) cat("Formula: ", paste(deparse(f), collapse = " "), "\n", sep = "")
-  cat("Covariance: ", .solomon_vcov_label(x), "\n\n", sep = "")
+  cat("Covariance: ", .solomon_vcov_label(x), "\n", sep = "")
+  if (!is.null(x$theta)) {
+    cat(sprintf("Negative binomial (NB2): theta = %.3g (SE %.3g); alpha = 1/theta = %.3g\n",
+                x$theta[["theta"]], x$theta[["std.error"]], x$theta[["alpha"]]))
+  }
+  cat("\n")
 
   level <- if (is.null(x$conf_level)) 0.95 else x$conf_level
   .solomon_glm_tables(x$coefficients, x$effects, digits, level)

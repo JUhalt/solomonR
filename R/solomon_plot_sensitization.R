@@ -23,7 +23,7 @@
       )$df
     }, numeric(1))
   } else {
-    fixed <- stats::family(model)$family %in% c("binomial", "poisson")
+    fixed <- .fixed_dispersion(stats::family(model))
     df <- rep(if (fixed) Inf else stats::df.residual(model), nrow(L))
   }
 

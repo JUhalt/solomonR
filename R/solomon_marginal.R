@@ -176,7 +176,8 @@
 #' are excluded and counted; when more than 10% fail, intervals are not
 #' reported.
 #'
-#' Count outcomes: for a fit with `family = poisson()`, rates per unit of
+#' Count outcomes: for a fit with `family = poisson()` or
+#' `family = "negative_binomial"`, rates per unit of
 #' exposure are standardized in the same way and compared as rate differences
 #' or rate ratios. Log-link rate ratios are collapsible (Daniel et al., 2021),
 #' so they agree with the fitted model's coefficients when there are no other
@@ -184,15 +185,18 @@
 #' counts, intervals use the delta method with the fit's (by default robust
 #' HC3) covariance, which Cameron and Trivedi (2013) recommend under
 #' overdispersion; a bootstrap for counts has not been evaluated and is not
-#' offered. The fit's Pearson dispersion statistic is printed for
-#' description. No published Solomon study with a count outcome has been
-#' identified, so this use of count-data methods is a solomonR extension.
+#' offered. The fit's Pearson dispersion statistic, and for negative-binomial
+#' fits the estimated theta, are printed for description. No published
+#' Solomon study with a count outcome has been identified, so this use of
+#' count-data methods is a solomonR extension.
 #'
 #' The package's simulation validation of this function is described on
-#' issue #43 (binary outcomes) and issue #44 (count outcomes).
+#' issue #43 (binary outcomes), issue #44 (count outcomes), and issue #62
+#' (negative-binomial fits).
 #'
 #' @param fit A fit from [fit_solomon_glm()] with `family = binomial()` (logit
-#'   link) or `family = poisson()` (log link). Cluster-robust (CR2) fits are not
+#'   link), `family = poisson()` (log link), or
+#'   `family = "negative_binomial"`. Cluster-robust (CR2) fits are not
 #'   yet supported (issue #64); for clustered designs, [perm_solomon()] gives a
 #'   cluster-level randomization test on the difference scale.
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
@@ -256,10 +260,11 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   }
   family <- stats::family(fit$model)
   binary <- identical(family$family, "binomial") && identical(family$link, "logit")
-  count <- identical(family$family, "poisson") && identical(family$link, "log")
+  count <- (identical(family$family, "poisson") || .is_negbin(family)) &&
+    identical(family$link, "log")
   if (!binary && !count) {
-    stop("`fit` must use family = binomial() (logit link) or poisson() (log link).",
-         call. = FALSE)
+    stop("`fit` must use family = binomial() (logit link), poisson() (log link), ",
+         "or \"negative_binomial\".", call. = FALSE)
   }
   if (identical(fit$robust, "CR2")) {
     stop("Cluster-robust (CR2) fits are not yet supported (issue #64). For ",
@@ -405,6 +410,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       rates = if (count) cells,
       outcome = if (count) "count" else "binary",
       dispersion = fit$dispersion,
+      theta = fit$theta,
       method = method,
       R = if (method == "bootstrap") R else NA_integer_,
       failures = failures,
@@ -427,7 +433,10 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
   } else {
     paste(what, "from the fitted cells (no pretest adjustment).\n")
   })
-  if (count && is.finite(x$dispersion)) {
+  if (count && !is.null(x$theta)) {
+    cat(sprintf("Negative-binomial (NB2) fit: theta = %.3g (alpha = 1/theta = %.3g).\n",
+                x$theta[["theta"]], x$theta[["alpha"]]))
+  } else if (count && is.finite(x$dispersion)) {
     cat(sprintf("Pearson dispersion: %.2f (values well above 1 indicate overdispersion).\n",
                 x$dispersion))
   }

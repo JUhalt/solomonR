@@ -146,6 +146,18 @@ stouffer_solomon <- function(p) {
 #' to the Solomon contrasts is a solomonR extension; its simulation validation
 #' is on issue #44.
 #'
+#' `family = "negative_binomial"` fits the NB2 model, with variance
+#' \eqn{\mu + \alpha\mu^2}, by maximum likelihood using `MASS::glm.nb()`
+#' (Venables & Ripley, 2002). Its coefficient estimates stay consistent when the
+#' counts are not negative binomial, provided the mean is correctly specified,
+#' but its model-based standard errors do not, so robust standard errors are
+#' advised (Cameron & Trivedi, 2013, pp. 84--85); the default HC3 covariance
+#' provides them. The estimated \eqn{\theta = 1/\alpha} is returned as
+#' `theta`. When the counts show little overdispersion, \eqn{\theta} does not
+#' converge and a classed warning (`solomonR_theta_boundary_warning`) is
+#' given. Clustered (CR2) negative-binomial fits are not supported. The
+#' simulation validation is on issue #62.
+#'
 #' The degrees of freedom are returned in the `df` columns (`Inf` for normal
 #' reference distributions). Imbens and Kolesár (2016) further recommend
 #' Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
@@ -175,17 +187,21 @@ stouffer_solomon <- function(p) {
 #'   [validate_solomon()]. A classed warning (`solomonR_small_df_warning`)
 #'   flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 #'   4, where Tipton (2015) advises that p-values not be trusted.
-#' @param family model family (default gaussian())
+#' @param family model family (default gaussian()), given as a family object,
+#'   a family function, or its name; or `"negative_binomial"` for the NB2
+#'   model for counts.
 #' @param conf_level confidence level for intervals (default 0.95)
 #' @param exposure optional positive exposure (for example, observation time)
 #'   for each participant, entered as a log offset; requires a log-link family
-#'   such as `poisson()`. Contrasts are then log rate ratios per unit of
-#'   exposure.
+#'   such as `poisson()` or `"negative_binomial"`. Contrasts are then log rate
+#'   ratios per unit of exposure.
 #' @return An object of class `solomon_glm`: a list with the fitted model,
 #'   coefficient and contrast tables (including degrees of freedom and
 #'   confidence limits `conf.low` and `conf.high`), the covariance matrix,
-#'   the Pearson dispersion statistic for binomial and Poisson fits, and the
-#'   settings used.
+#'   the Pearson dispersion statistic for binomial, Poisson, and
+#'   negative-binomial fits, `theta` (its estimate, standard error, and
+#'   \eqn{\alpha = 1/\theta}) for negative-binomial fits, and the settings
+#'   used.
 #' @references
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 #' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
@@ -243,6 +259,9 @@ stouffer_solomon <- function(p) {
 #' Tipton, E. (2015). Small sample adjustments for robust variance estimation
 #' with meta-regression. *Psychological Methods, 20*(3), 375–393.
 #' https://doi.org/10.1037/met0000011
+#'
+#' Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
+#' (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
 #' @export
 fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
@@ -250,6 +269,15 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
                             conf_level = 0.95, exposure = NULL) {
   robust <- match.arg(robust)
   .check_conf_level(conf_level)
+  negbin <- identical(family, "negative_binomial")
+  if (negbin) {
+    if (robust == "CR2") {
+      stop("Clustered (CR2) negative-binomial fits are not supported.", call. = FALSE)
+    }
+    # NB2 uses the log link; the Poisson family stands in for the link checks
+    # below and is replaced by the fitted family afterwards.
+    family <- stats::poisson()
+  }
   if (is.character(family)) family <- get(family, mode = "function", envir = parent.frame())
   if (is.function(family)) family <- family()
 
@@ -314,7 +342,12 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
   }
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
-  fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
+  if (negbin) {
+    fit <- .fit_negbin(fml, df)
+    family <- stats::family(fit)
+  } else {
+    fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
+  }
 
   if (!is.null(pretest_score) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link)
@@ -355,7 +388,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
   # summary.glm(), tests use t with residual df when the dispersion is
   # estimated (e.g., Gaussian models) and the normal distribution when it is
   # fixed (binomial, Poisson).
-  dispersion_fixed <- stats::family(fit)$family %in% c("binomial", "poisson")
+  dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
   # --- tidy coefficients with chosen vcov ---
@@ -533,7 +566,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     }
   }
 
-  dispersion <- if (stats::family(fit)$family %in% c("binomial", "poisson")) {
+  dispersion <- if (.fixed_dispersion(stats::family(fit))) {
     sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
   } else {
     NA_real_
@@ -544,6 +577,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     coefficients = tidy,
     effects = effects,
     dispersion = dispersion,
+    theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = vcovM,
     data = df,
     robust = robust,

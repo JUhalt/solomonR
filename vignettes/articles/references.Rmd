@@ -394,6 +394,9 @@ measurement invariance literature: Suggestions, practices, and
 recommendations for organizational research. *Organizational Research
 Methods, 3*(1), 4–70. https://doi.org/10.1177/109442810031002
 
+Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
+(4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
+
 Welch, B. L. (1947). The generalization of "Student's" problem when several
 different population variances are involved. *Biometrika, 34*(1–2), 28–35.
 https://doi.org/10.1093/biomet/34.1-2.28

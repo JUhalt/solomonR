@@ -15,7 +15,8 @@ marginal_solomon(
 }
 \arguments{
 \item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \code{family = binomial()} (logit
-link) or \code{family = poisson()} (log link). Cluster-robust (CR2) fits are not
+link), \code{family = poisson()} (log link), or
+\code{family = "negative_binomial"}. Cluster-robust (CR2) fits are not
 yet supported (issue #64); for clustered designs, \code{\link[=perm_solomon]{perm_solomon()}} gives a
 cluster-level randomization test on the difference scale.}
 
@@ -88,7 +89,8 @@ events or only non-events, or a fitted probability within 1e-8 of 0 or 1)
 are excluded and counted; when more than 10\% fail, intervals are not
 reported.
 
-Count outcomes: for a fit with \code{family = poisson()}, rates per unit of
+Count outcomes: for a fit with \code{family = poisson()} or
+\code{family = "negative_binomial"}, rates per unit of
 exposure are standardized in the same way and compared as rate differences
 or rate ratios. Log-link rate ratios are collapsible (Daniel et al., 2021),
 so they agree with the fitted model's coefficients when there are no other
@@ -96,12 +98,14 @@ covariates; rate differences depend on the covariate distribution. For
 counts, intervals use the delta method with the fit's (by default robust
 HC3) covariance, which Cameron and Trivedi (2013) recommend under
 overdispersion; a bootstrap for counts has not been evaluated and is not
-offered. The fit's Pearson dispersion statistic is printed for
-description. No published Solomon study with a count outcome has been
-identified, so this use of count-data methods is a solomonR extension.
+offered. The fit's Pearson dispersion statistic, and for negative-binomial
+fits the estimated theta, are printed for description. No published
+Solomon study with a count outcome has been identified, so this use of
+count-data methods is a solomonR extension.
 
 The package's simulation validation of this function is described on
-issue #43 (binary outcomes) and issue #44 (count outcomes).
+issue #43 (binary outcomes), issue #44 (count outcomes), and issue #62
+(negative-binomial fits).
 }
 \examples{
 d <- solomon_example
