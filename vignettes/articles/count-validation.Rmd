@@ -164,26 +164,134 @@ effect, model-based coverage ranged from
 `r rng(s$coverage[s$method == "model_based" & s$alpha == 0 & s$bX == 0])`.
 This is the reason the package's default is the robust covariance.
 
+## The negative-binomial option
+
+```{r nb-setup}
+nb <- utils::read.csv("count-validation/nb-performance.csv", stringsAsFactors = FALSE)
+nb_info <- utils::read.csv("count-validation/nb-run-information.csv", stringsAsFactors = FALSE)
+nb_run <- stats::setNames(as.list(nb_info$value), nb_info$item)
+nb$supported <- nb$fit_failures <= 0.05 * reps
+nb$null <- abs(nb$true_value) < 1e-8
+nb$cov_ok <- nb$coverage >= 0.94 & nb$coverage <= 0.96
+nb$t1_ok <- ifelse(nb$null, nb$rejection >= 0.04 & nb$rejection <= 0.06, TRUE)
+nbs <- nb[nb$supported, ]
+
+# The Poisson results must reproduce the count study above exactly.
+repro <- merge(nb[nb$model == "poisson", c("scenario", "method", "scale", "contrast", "coverage", "bias")],
+               p[, c("scenario", "method", "scale", "contrast", "coverage", "bias")],
+               by = c("scenario", "method", "scale", "contrast"))
+reproduced <- nrow(repro) > 0 && isTRUE(all.equal(repro$coverage.x, repro$coverage.y)) &&
+  isTRUE(all.equal(repro$bias.x, repro$bias.y))
+
+link <- nbs[nbs$method == "hc3" & nbs$scale == "log_rate_ratio_link", ]
+rule_cells <- link[link$alpha == 1 & link$n >= 50, ]
+share <- tapply(rule_cells$cov_ok & rule_cells$t1_ok, rule_cells$model, mean)
+count_ok <- tapply(rule_cells$cov_ok & rule_cells$t1_ok, rule_cells$model, sum)
+mb <- nbs[nbs$model == "negative_binomial" & nbs$method == "model_based", ]
+
+paired <- function(d) {
+  merge(d[d$model == "negative_binomial", ], d[d$model == "poisson", ],
+        by = c("scenario", "contrast"), suffixes = c(".nb", ".po"))
+}
+strong <- paired(link[link$alpha == 1 & link$control_rate == 3, ])
+precision_gain <- 1 - mean(strong$empse.nb / strong$empse.po)
+pois_counts <- paired(link[link$alpha == 0, ])
+rule3_n <- sum(!(pois_counts$cov_ok.nb & pois_counts$t1_ok.nb) &
+                 (pois_counts$cov_ok.po & pois_counts$t1_ok.po))
+```
+
+Because robust Poisson inference fell short of the rule above, a
+negative-binomial (NB2) option was added under its own protocol, posted on
+[issue #62](https://github.com/JUhalt/solomonR/issues/62) before
+implementation and before any run. `fit_solomon_glm(family =
+"negative_binomial")` fits NB2 by maximum likelihood (Venables & Ripley,
+2002) with HC3 standard errors by default, as Cameron and Trivedi (2013,
+pp. 84–85) advise.
+
+The study reused the datasets of the count study: same generating code, same
+seeds. The Poisson results it recomputed
+`r if (reproduced) "reproduce the results above exactly" else "do not reproduce the results above"`,
+so the comparison between the two models is paired.
+
+```{r nb-table}
+tab <- aggregate(cbind(cells = 1, ok = cov_ok & t1_ok) ~ model + method + alpha + n,
+                 nbs[nbs$scale == "log_rate_ratio_link", ], sum)
+tab <- tab[order(tab$alpha, tab$n, tab$model, tab$method), ]
+knitr::kable(data.frame(
+  Overdispersion = ifelse(tab$alpha == 0, "none (Poisson)", "alpha = 1"),
+  `Per cell` = tab$n,
+  Model = ifelse(tab$model == "poisson", "Poisson", "Negative binomial"),
+  Covariance = ifelse(tab$method == "hc3", "HC3", "model-based"),
+  `Contrasts within the coverage and Type I tolerances` = sprintf("%d of %d", tab$ok, tab$cells),
+  check.names = FALSE, row.names = NULL
+), caption = "Log rate-ratio contrasts, supported scenarios.")
+```
+
+The protocol fixed five rules before the run.
+
+1. **Overdispersed counts.** With α = 1 and 50 or 100 participants per cell,
+   the NB2 fit with HC3 met the coverage and Type I tolerances in
+   `r sprintf("%.0f%%", 100 * share[["negative_binomial"]])`
+   (`r count_ok[["negative_binomial"]]` of `r sum(rule_cells$model == "negative_binomial")`)
+   of the contrasts, and robust Poisson in
+   `r sprintf("%.0f%%", 100 * share[["poisson"]])`
+   (`r count_ok[["poisson"]]` of `r sum(rule_cells$model == "poisson")`).
+   `r if (share[["negative_binomial"]] >= 0.9 && share[["negative_binomial"]] > share[["poisson"]]) "The negative-binomial option is therefore recommended for overdispersed counts." else "The 90% threshold was not reached, so robust Poisson remains the recommendation and the negative-binomial option is an alternative."`
+   With strong overdispersion (a control rate of 3), the NB2 estimates were
+   more precise: their empirical standard errors averaged
+   `r sprintf("%.1f%%", 100 * precision_gain)` smaller than Poisson's, as
+   Cameron and Trivedi (2013, p. 88) found for NB2 data. The
+   small-sample shortfall of the robust standard errors remained.
+2. **Model-based standard errors.** They fell outside the coverage tolerance
+   in `r sum(!mb$cov_ok)` of `r nrow(mb)` contrasts (coverage
+   `r rng(mb$coverage)`). As with Poisson fits, they fail in the unpretested
+   groups whenever the pretest predicts the outcome, even with Poisson
+   counts, because those groups' counts mix over the unobserved baseline. The
+   default stays HC3.
+3. **Poisson counts.** With α = 0, the NB2 fit with HC3 fell outside a
+   tolerance that robust Poisson met in `r rule3_n` of
+   `r nrow(pois_counts)` contrasts, so the help page recommends Poisson when
+   there is no evidence
+   of overdispersion. With Poisson counts, θ did not converge in up to
+   `r max(nb$theta_boundary[nb$alpha == 0])` of `r reps` fits per scenario,
+   which the classed warning `solomonR_theta_boundary_warning` reports.
+4. **Designs neither method supports.** With 20 participants per cell and
+   strong overdispersion, neither model's HC3 intervals met the coverage
+   tolerance consistently (coverage from
+   `r rng(link$coverage[link$alpha == 1 & link$control_rate == 3 & link$n == 20])`).
+5. **Guidance.** Where both methods fell short (α = 1, control rate 3), the
+   Poisson fit's mean Pearson dispersion ranged from
+   `r rng(unique(nb[nb$alpha == 1 & nb$control_rate == 3, c("scenario", "mean_dispersion")])$mean_dispersion, 1)`;
+   with a control rate of 0.5 it ranged from
+   `r rng(unique(nb[nb$alpha == 1 & nb$control_rate == 0.5, c("scenario", "mean_dispersion")])$mean_dispersion, 1)`.
+   No dispersion threshold was fixed in advance, so none is recommended.
+
 ## Summary
 
 - With the default HC3 covariance, Poisson fits give valid inference for the
   Solomon contrasts on the log rate-ratio scale when the counts are Poisson
   or mildly overdispersed.
 - With strong overdispersion, HC3 intervals are somewhat too narrow with 20
-  to 50 participants per cell and close to nominal with 100. By the rule
-  fixed in the protocol, a negative-binomial option is proposed, with its own
-  protocol.
-- `marginal_solomon()` adds rate differences, with delta-method intervals.
-- Model-based standard errors should not be used for counts: they fail under
-  overdispersion, and in the unpretested groups whenever the pretest predicts
-  the outcome.
+  to 50 participants per cell and close to nominal with 100, for Poisson and
+  negative-binomial fits alike.
+- The negative-binomial option gives slightly more precise estimates under
+  strong overdispersion but did not reach the threshold for being
+  recommended; robust Poisson remains the recommendation.
+- `marginal_solomon()` adds rate differences, with delta-method intervals,
+  for both models.
+- Model-based standard errors should not be used for counts, from either
+  model: they fail under overdispersion, and in the unpretested groups
+  whenever the pretest predicts the outcome.
 
 ## Reproducibility
 
-The script, `count-validation/count-simulation.R`, and its results,
-`performance.csv` and `run-information.csv`, are in the package repository.
-The run took from `r run$started` to `r run$finished` on `r run$workers`
-workers (`r run$R_version`).
+The scripts, `count-validation/count-simulation.R` and
+`count-validation/nb-simulation.R`, and their results (`performance.csv`,
+`run-information.csv`, `nb-performance.csv`, and `nb-run-information.csv`)
+are in the package repository. The count study ran from `r run$started` to
+`r run$finished` and the negative-binomial study from `r nb_run$started` to
+`r nb_run$finished` (package commit `r substr(nb_run$commit, 1, 7)`), each
+on `r run$workers` workers (`r run$R_version`).
 
 ## References
 
@@ -199,3 +307,6 @@ adjustment for different covariate sets. *Biometrical Journal, 63*(3),
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
 2074–2102. https://doi.org/10.1002/sim.8086
+
+Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
+(4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2

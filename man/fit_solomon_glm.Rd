@@ -133,8 +133,18 @@ advised (Cameron & Trivedi, 2013, pp. 84--85); the default HC3 covariance
 provides them. The estimated \eqn{\theta = 1/\alpha} is returned as
 \code{theta}. When the counts show little overdispersion, \eqn{\theta} does not
 converge and a classed warning (\code{solomonR_theta_boundary_warning}) is
-given. Clustered (CR2) negative-binomial fits are not supported. The
-simulation validation is on issue #62.
+given. Clustered (CR2) negative-binomial fits are not supported.
+
+In the package's pre-registered simulation (issue #62), which reused the
+datasets of issue #44, the NB2 fit with HC3 met the coverage and Type I
+tolerances in 85\% of the overdispersed contrasts with 50 or 100
+participants per cell, against 82\% for robust Poisson. That fell short of
+the 90\% set in advance for recommending it, although its estimates were
+on average 3.5\% more precise with strong overdispersion. Robust Poisson
+therefore remains the recommendation, and Poisson is preferred when there
+is no evidence of overdispersion. Model-based NB2 standard errors fell
+outside the coverage tolerance in 162 of 384 contrasts and should not be
+used.
 
 The degrees of freedom are returned in the \code{df} columns (\code{Inf} for normal
 reference distributions). Imbens and Kolesár (2016) further recommend

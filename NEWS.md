@@ -1,5 +1,22 @@
 # solomonR (development version)
 
+## Negative-binomial option for counts (#62)
+
+* `fit_solomon_glm(family = "negative_binomial")` fits the NB2 model by
+  maximum likelihood with `MASS::glm.nb()` (Venables & Ripley, 2002), with
+  the same Solomon model and exposure offsets as the Poisson fit and HC3
+  standard errors by default (Cameron & Trivedi, 2013). It returns and
+  prints the estimated theta, and gives a classed warning
+  (`solomonR_theta_boundary_warning`) when theta does not converge because
+  the counts show little overdispersion. `marginal_solomon()` accepts these
+  fits. MASS is a new import.
+* The simulation study registered on #62 reused the datasets of #44. The NB2
+  fit met the coverage and Type I tolerances in 85% of overdispersed
+  contrasts with 50 or 100 participants per cell, against 82% for robust
+  Poisson, short of the 90% fixed in advance for recommending it; robust
+  Poisson remains the recommendation. Model-based NB2 standard errors
+  should not be used. The count article reports the study.
+
 ## Cluster-level randomization inference (#19)
 
 * `perm_solomon()` now accepts clustered fits and permutes whole clusters.

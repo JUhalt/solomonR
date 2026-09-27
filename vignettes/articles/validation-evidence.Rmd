@@ -277,6 +277,44 @@ Model-based standard errors fail under overdispersion, which is why the
 package's default is the robust covariance. See the
 [full article](`r studies$article[studies$study == "count-outcomes"]`).
 
+### The negative-binomial option
+
+The NB2 fit of `fit_solomon_glm(family = "negative_binomial")` was checked
+on the same datasets, against the same tolerances.
+
+```{r negbin}
+nbb <- benchmarks[benchmarks$study == "negative-binomial" & grepl("model contrast", benchmarks$estimand), ]
+key <- c("method", "design", "estimand")
+wide <- stats::reshape(nbb[, c(key, "measure", "value", "n_failed", "null_effect")],
+                       idvar = key, timevar = "measure", direction = "wide")
+wide <- wide[wide$n_failed.coverage <= 0.05 * 2000, ]
+wide$ok <- wide$value.coverage >= 0.94 & wide$value.coverage <= 0.96 &
+  ifelse(wide$null_effect.coverage, wide$value.rejection_rate >= 0.04 &
+           wide$value.rejection_rate <= 0.06, TRUE)
+wide$overdispersed <- grepl("overdispersion=1", wide$design)
+groups <- unique(wide[, c("method", "overdispersed")])
+groups <- groups[order(groups$overdispersed, groups$method), ]
+knitr::kable(
+  data.frame(
+    Counts = ifelse(groups$overdispersed, "overdispersed", "Poisson"),
+    Method = groups$method,
+    `Contrasts within the coverage and Type I tolerances` = vapply(seq_len(nrow(groups)), function(i) {
+      v <- wide$ok[wide$method == groups$method[i] & wide$overdispersed == groups$overdispersed[i]]
+      sprintf("%d of %d", sum(v), length(v))
+    }, ""),
+    check.names = FALSE,
+    row.names = NULL
+  ),
+  caption = "Log rate-ratio contrasts across supported scenarios."
+)
+```
+
+The NB2 fit with HC3 did slightly better than robust Poisson with strong
+overdispersion but fell short of the threshold fixed for recommending it,
+so robust Poisson remains the recommendation. Its model-based standard
+errors should not be used. See the
+[full article](`r studies$article[studies$study == "negative-binomial"]`).
+
 ## Clustered designs
 
 The cluster-level randomization tests of `perm_solomon()` were checked for
