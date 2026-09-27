@@ -26,8 +26,8 @@
 #' @section Not compared:
 #' Analyses that do not estimate a raw-scale Solomon contrast are listed in
 #' `not_compared` rather than aligned with the others:
-#' - `perm_solomon()` tests the sharp null hypothesis of no treatment effect
-#'   for any participant and produces no estimate.
+#' - `perm_solomon()` is a randomization test of no treatment effect, not an
+#'   interval estimator of the contrasts.
 #' - Test I (Walton Braver & Braver, 1988) combines one-tailed p-values.
 #' - `fit_solomon_sem_latent()` estimates contrasts on a latent-variable scale.
 #' - Hedges' g from `fit_solomon_classic()` is a standardized mean difference.
@@ -319,7 +319,7 @@ compare_solomon_methods <- function(
       "Hedges' g (fit_solomon_classic())"
     ),
     reason = c(
-      "Tests the sharp null hypothesis of no treatment effect for any participant; it does not estimate a contrast.",
+      "A randomization test of no treatment effect; it gives no interval for the contrast.",
       "Combines one-tailed p-values from two tests; it does not estimate a contrast.",
       "Estimates contrasts on a latent-variable scale, not the observed posttest scale.",
       "A standardized mean difference, not a raw-scale contrast."

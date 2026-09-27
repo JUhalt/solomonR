@@ -193,7 +193,8 @@
 #'
 #' @param fit A fit from [fit_solomon_glm()] with `family = binomial()` (logit
 #'   link) or `family = poisson()` (log link). Cluster-robust (CR2) fits are not
-#'   yet supported.
+#'   yet supported (issue #64); for clustered designs, [perm_solomon()] gives a
+#'   cluster-level randomization test on the difference scale.
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
 #'   outcomes, `"odds_ratio"`. For count outcomes the default is
 #'   `c("difference", "ratio")`.
@@ -261,8 +262,9 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
          call. = FALSE)
   }
   if (identical(fit$robust, "CR2")) {
-    stop("Cluster-robust (CR2) fits are not yet supported; cluster-level inference ",
-         "is planned with issues #19 and #46.", call. = FALSE)
+    stop("Cluster-robust (CR2) fits are not yet supported (issue #64). For ",
+         "clustered designs, perm_solomon() gives a cluster-level randomization ",
+         "test on the difference scale.", call. = FALSE)
   }
   method_missing <- missing(method)
   if (count && missing(scale)) scale <- c("difference", "ratio")

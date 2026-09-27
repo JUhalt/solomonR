@@ -8,3 +8,5 @@
 articles/binary-validation/cache/
 !articles/count-validation/*.R
 articles/count-validation/cache/
+!articles/cluster-validation/*.R
+articles/cluster-validation/cache/

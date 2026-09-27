@@ -16,7 +16,8 @@ marginal_solomon(
 \arguments{
 \item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \code{family = binomial()} (logit
 link) or \code{family = poisson()} (log link). Cluster-robust (CR2) fits are not
-yet supported.}
+yet supported (issue #64); for clustered designs, \code{\link[=perm_solomon]{perm_solomon()}} gives a
+cluster-level randomization test on the difference scale.}
 
 \item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
 outcomes, \code{"odds_ratio"}. For count outcomes the default is

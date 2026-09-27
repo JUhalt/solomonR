@@ -69,8 +69,8 @@ uncertainty differs.
 Analyses that do not estimate a raw-scale Solomon contrast are listed in
 \code{not_compared} rather than aligned with the others:
 \itemize{
-\item \code{perm_solomon()} tests the sharp null hypothesis of no treatment effect
-for any participant and produces no estimate.
+\item \code{perm_solomon()} is a randomization test of no treatment effect, not an
+interval estimator of the contrasts.
 \item Test I (Walton Braver & Braver, 1988) combines one-tailed p-values.
 \item \code{fit_solomon_sem_latent()} estimates contrasts on a latent-variable scale.
 \item Hedges' g from \code{fit_solomon_classic()} is a standardized mean difference.

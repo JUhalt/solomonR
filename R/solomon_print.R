@@ -299,28 +299,60 @@ print.solomon_perm <- function(x, digits = 2, ...) {
     )
   )
 
-  cat(
-    sprintf(
-      "Observed studentized statistic: z = %.*f\n",
-      digits,
-      x$z_obs
+  if (identical(x$level, "cluster")) {
+    cat(sprintf("Permuted: whole clusters (%s)\n", x$design))
+    cat(
+      "Clusters (treated/control): ",
+      paste(
+        sprintf("%s %d/%d", x$clusters$stratum, x$clusters$treated, x$clusters$control),
+        collapse = "; "
+      ),
+      "\n",
+      sep = ""
     )
-  )
+  }
+
+  if (!is.null(x$estimate)) {
+    cat(sprintf("Estimate: %.*f\n", digits, x$estimate))
+  }
+
+  if (identical(x$statistic, "difference")) {
+    cat(sprintf("Observed statistic (the contrast itself): %.*f\n", digits, x$z_obs))
+  } else {
+    cat(
+      sprintf(
+        "Observed studentized statistic: z = %.*f\n",
+        digits,
+        x$z_obs
+      )
+    )
+  }
 
   cat(
     sprintf(
-      "Permutation p = %s\n",
-      format_p(x$p_perm)
+      "Permutation p = %s%s\n",
+      format_p(x$p_perm),
+      if (isTRUE(x$exact)) " (exact)" else ""
     )
   )
 
-  cat(
-    sprintf(
-      "Valid permutations: %d of %d\n",
-      x$valid_reps,
-      x$reps
+  if (isTRUE(x$exact)) {
+    cat(
+      sprintf(
+        "All %s possible allocations used; smallest attainable p = %s\n",
+        format(x$n_allocations, big.mark = ","),
+        format_p(x$min_p)
+      )
     )
-  )
+  } else {
+    cat(
+      sprintf(
+        "Valid permutations: %d of %d\n",
+        x$valid_reps,
+        x$reps
+      )
+    )
+  }
 
   if (!is.null(x$z_perm)) {
     cat(

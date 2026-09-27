@@ -13,7 +13,8 @@ plot_perm(perm)
 A ggplot object
 }
 \description{
-Draws the permutation distribution of the studentized statistic with the
-observed value marked. The subtitle reports the same Monte Carlo p-value
-as \code{\link[=perm_solomon]{perm_solomon()}}.
+Draws the permutation distribution of the test statistic with the
+observed value marked. The subtitle reports the same p-value as
+\code{\link[=perm_solomon]{perm_solomon()}}, and says whether it came from every possible allocation
+or from sampled permutations.
 }
