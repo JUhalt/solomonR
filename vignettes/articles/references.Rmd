@@ -136,8 +136,8 @@ systematic review of evidence from Solomon 4-group studies. *PLoS ONE,
 
 > A systematic review of Solomon studies with behavioral outcomes, finding
 > too little high-quality evidence to settle whether assessment effects
-> bias trials. *In solomonR:* the getting-started guide and the decision
-> article.
+> bias trials. *In solomonR:* the getting-started guide, the planning
+> article, and the decision article.
 
 McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 through service learning. *Journal of Management Education, 26*(6), 629–647.
@@ -233,8 +233,8 @@ sensitization effects in experimental design. *American Educational Research
 Journal, 19*(2), 249–258. https://doi.org/10.3102/00028312019002249
 
 > A meta-analysis of pretest effects and pretest-by-treatment interactions.
-> *In solomonR:* planning values (planned,
-> [#49](https://github.com/JUhalt/solomonR/issues/49)).
+> *In solomonR:* the planning values in the article "Planning a Solomon
+> Study" ([#49](https://github.com/JUhalt/solomonR/issues/49)).
 
 ## Methods references
 

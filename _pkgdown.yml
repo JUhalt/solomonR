@@ -81,6 +81,7 @@ articles:
     contents:
       - glm-solomon
       - classic-solomon
+      - articles/planning
 
   - title: "Methods and evidence"
     navbar: Methods and evidence

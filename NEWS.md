@@ -1,5 +1,15 @@
 # solomonR (development version)
 
+## Planning article (#49)
+
+* New article "Planning a Solomon Study": how to choose sample sizes with
+  `plan_solomon()`, `power_solomon()`, and `plot_power_solomon()`, with
+  planning values from the meta-analysis of Willson and Putnam (1982) and
+  the caution of McCambridge et al. (2011). It shows why sensitization needs
+  about four times the sample of the average treatment effect, how the
+  pretest-posttest correlation and the allocation change the plan, and when
+  to plan by simulation.
+
 ## Reanalysis from summary statistics and effect sizes (#53)
 
 * New `solomon_from_summary()` reanalyzes a published Solomon study from the
