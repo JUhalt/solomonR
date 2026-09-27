@@ -42,6 +42,25 @@
   alternative for risk differences (Hayes & Moulton, 2017), as the
   protocol's third decision rule requires.
 
+## The 1995 decision flow and alpha allocations (#50, #51)
+
+* `fit_solomon_classic()` and `plot_classic_flow()` gain `flow = "1995"`,
+  the revision that removed Test D (Walton Braver & Braver, 1995, as cited in
+  Sawilowsky, 1996, p. 2). The remaining tests follow the 1988 rule, as in
+  Sawilowsky's (1996) simulation of the revised sequence. The default, 1988,
+  is unchanged.
+* New `alpha_allocation` option for the 1995 flow: Sawilowsky's (1996,
+  Table 4) Methods 1 and 2, under Bradley's conservative and liberal
+  robustness criteria as he applied them, with the published test-wise
+  levels. `print()`, `plot_classic_flow()`, and `report_solomon()` show the
+  levels used.
+* Campbell and Stanley is now cited as the 1966 Rand McNally book, the
+  edition whose page numbers the package gives, with the original 1963
+  date (APA 7, republished work). The history/maturation check cites Campbell
+  and Stanley (1963/1966, p. 25) and Solomon (1949, pp. 146–148) for its
+  rationale, and the methods vignette's description of their recommended
+  analysis now follows their wording (p. 25).
+
 ## Published data sets (#54, first part)
 
 * New data sets `elkarkri2025a` and `kvalem1996` hold the published Solomon

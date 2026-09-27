@@ -201,6 +201,21 @@
     refs <- c(refs, "braver1990")
     method <- paste0(method, ", as amended by Braver and Walton Braver (1990)")
   }
+  if (flow == "1995") {
+    refs <- c(refs, "sawilowsky1996")
+    method <- paste0(method, ", as revised to omit Test D (Walton Braver & Braver, ",
+                     "1995, as cited in Sawilowsky, 1996)")
+  }
+  allocation <- fit$settings$alpha_allocation
+  if (!is.null(allocation) && allocation != "none") {
+    refs <- c(refs, "sawilowsky1996")
+    lv <- fit$settings$alpha_levels
+    method <- paste0(method, sprintf(
+      ", with the test-wise significance levels of Sawilowsky's (1996) Method %s under the %s robustness criterion (Test A at %s; Tests E, H, and I at %s)",
+      substr(allocation, 7, 7), sub("^method[12]_", "", allocation),
+      sub("^0", "", format(lv[["A"]])), sub("^0", "", format(lv[["S"]]))
+    ))
+  }
   method <- paste0(method, ".")
 
   label <- c(
@@ -243,10 +258,10 @@
   ))
 
   if (!is.null(fit$history) && nrow(fit$history) > 0L) {
-    refs <- c(refs, "mai2020")
+    refs <- c(refs, "campbell1966", "mai2020")
     h <- fit$history
     results <- c(results, sprintf(
-      "In the history/maturation check (Mai et al., 2020), the unpretested control posttest differed from the treated-group pretest by %s, %s, %s, and from the control-group pretest by %s, %s, %s.",
+      "In the history/maturation check (Campbell & Stanley, 1963/1966; Mai et al., 2020), the unpretested control posttest differed from the treated-group pretest by %s, %s, %s, and from the control-group pretest by %s, %s, %s.",
       .apa_num(h$estimate[1], digits), .apa_stat(h$statistic[1], h$df[1], md, "t", digits), .apa_p(h$p.value[1], md),
       .apa_num(h$estimate[2], digits), .apa_stat(h$statistic[2], h$df[2], md, "t", digits), .apa_p(h$p.value[2], md)
     ))

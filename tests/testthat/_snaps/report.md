@@ -70,9 +70,10 @@
       error of this sequence exceeds its nominal level (Sawilowsky et al., 1994).
       The 1990 sequence ended at Test I, which the 1990 amendment regards as the
       most definitive test.
-      In the history/maturation check (Mai et al., 2020), the unpretested control
-      posttest differed from the treated-group pretest by 1.47, t(58) = 0.54, p =
-      .590, and from the control-group pretest by 1.53, t(58) = 0.61, p = .543.
+      In the history/maturation check (Campbell & Stanley, 1963/1966; Mai et al.,
+      2020), the unpretested control posttest differed from the treated-group
+      pretest by 1.47, t(58) = 0.54, p = .590, and from the control-group pretest
+      by 1.53, t(58) = 0.61, p = .543.
       
       References
       
@@ -80,6 +81,9 @@
           four-group designs reconsidered: A reply to Sawilowsky and Markman.
           Perceptual and Motor Skills, 71(1), 321–322.
           https://doi.org/10.2466/pms.1990.71.1.321
+      
+      Campbell, D. T., & Stanley, J. C. (1966). Experimental and quasi-experimental
+          designs for research. Rand McNally. (Original work published 1963)
       
       Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
           Appropriate statistical analyses. The Journal of Experimental Education,

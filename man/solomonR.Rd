@@ -22,8 +22,9 @@ Walton Braver & Braver (1988), the Sawilowsky and Markman methodological
 exchanges, and van Engelenburg (1999).
 }
 \references{
-Campbell, D. T., & Stanley, J. C. (1963). \emph{Experimental and
-quasi-experimental designs for research}. Rand McNally.
+Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
+quasi-experimental designs for research}. Rand McNally. (Original work
+published 1963)
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 Appropriate statistical analyses. \emph{The Journal of Experimental Education,
