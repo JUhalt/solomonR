@@ -244,7 +244,7 @@
     ii <- fit$tests$I$result
     refs <- c(refs, "stouffer1949", "sawilowsky1994")
     results <- c(results, sprintf(
-      "Test I, the Stouffer combination (Stouffer et al., 1949; Walton Braver & Braver, 1988), gave %s, one-tailed %s. The experiment-wise Type I error of this sequence exceeds its nominal level (Sawilowsky et al., 1994).",
+      "Test I, the Stouffer combination (Stouffer et al., 1949; Walton Braver & Braver, 1988), gave %s, %s. The experiment-wise Type I error of this sequence exceeds its nominal level (Sawilowsky et al., 1994).",
       .apa_stat(ii$z, Inf, md, "z", digits), .apa_p(ii$p.value, md)
     ))
   }
@@ -311,6 +311,19 @@
 }
 
 .report_marginal <- function(fit, digits, md) {
+  if (identical(fit$method, "cluster_summary")) {
+    method <- paste0(
+      "Risk differences were estimated from unweighted cluster-level summaries (",
+      fit$design, ") and compared with t intervals using separate variances and ",
+      "Satterthwaite degrees of freedom (Hayes & Moulton, 2017)."
+    )
+    e <- fit$effects
+    e$statistic <- NA_real_
+    results <- paste0("On the risk difference scale: ",
+                      paste(.contrast_sentences(e, fit$conf_level, digits, md), collapse = " "))
+    return(list(method = method, results = results, table = fit$effects, refs = "hayes2017",
+                cells = NULL))
+  }
   count <- identical(fit$outcome, "count")
   refs <- .solomon_function_refs$marginal_solomon
   if (count) refs <- c(refs, "cameron2013")

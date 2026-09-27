@@ -146,7 +146,7 @@ test_that("unsupported fits and arguments are refused", {
   d$site <- rep(seq_len(12), length.out = nrow(d))
   cr2 <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial(),
                                            robust = "CR2", cluster = site)))
-  expect_error(marginal_solomon(cr2, method = "bootstrap"), "only method = \"delta\"")
+  expect_error(marginal_solomon(cr2, method = "bootstrap"), "bootstrap is not offered")
 
   fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
   expect_error(marginal_solomon(fit, R = 10), "at least 99")
@@ -253,4 +253,75 @@ test_that("clustered count fits are refused until validated (#64)", {
   fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::poisson(),
                                    robust = "CR2", cluster = cluster))
   expect_error(marginal_solomon(fit), "supported for binary outcomes")
+})
+
+
+test_that("cluster-level summaries follow Hayes and Moulton (2017) with whole clusters in cells (#64)", {
+  set.seed(6401)
+  cells <- rep(1:4, each = 5)
+  cluster <- rep(seq_along(cells), each = 12)
+  treat <- c(1, 0, 1, 0)[cells][cluster]
+  pretested <- c(1, 1, 0, 0)[cells][cluster]
+  u <- stats::rnorm(length(cells), 0, 0.5)[cluster]
+  y <- stats::rbinom(length(cluster), 1, stats::plogis(-0.5 + 0.6 * treat + u))
+  fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial(),
+                                   robust = "CR2", cluster = cluster))
+  m <- marginal_solomon(fit, method = "cluster_summary")
+  expect_identical(m$method, "cluster_summary")
+  expect_identical(unique(m$effects$scale), "Risk difference")
+
+  p_cl <- tapply(y, cluster, mean)
+  cell_of <- tapply(cells[cluster], cluster, `[`, 1)
+  # The simple effect among pretested clusters is Welch's t test on cluster proportions.
+  tt <- stats::t.test(p_cl[cell_of == 1], p_cl[cell_of == 2])
+  row <- m$effects[m$effects$contrast == "Treatment | pretested", ]
+  expect_equal(row$estimate, unname(diff(rev(tt$estimate))), tolerance = 1e-10)
+  expect_equal(row$df, unname(tt$parameter), tolerance = 1e-10)
+  expect_equal(row$p.value, tt$p.value, tolerance = 1e-10)
+  expect_equal(c(row$conf.low, row$conf.high), tt$conf.int[1:2], tolerance = 1e-10)
+  expect_equal(m$risks$risk, c(mean(p_cl[cell_of == 1]), mean(p_cl[cell_of == 2]),
+                               mean(p_cl[cell_of == 3]), mean(p_cl[cell_of == 4])))
+  expect_output(print(m), "cluster-level summaries")
+  rep <- report_solomon(m)
+  expect_true(any(startsWith(rep$references, "Hayes, R. J.")))
+})
+
+test_that("with pretesting within clusters, treated and control clusters are compared (#64)", {
+  set.seed(6402)
+  k <- 12
+  cluster <- rep(seq_len(k), each = 16)
+  treat <- rep(rep(c(1, 0), each = k / 2), each = 16)
+  pretested <- rep(rep(c(1, 0), each = 8), k)
+  y <- stats::rbinom(length(cluster), 1, stats::plogis(-0.3 + 0.5 * treat))
+  fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial(),
+                                   robust = "CR2", cluster = cluster))
+  m <- marginal_solomon(fit, method = "cluster_summary")
+  m1 <- tapply(y[pretested == 1], cluster[pretested == 1], mean)
+  m0 <- tapply(y[pretested == 0], cluster[pretested == 0], mean)
+  t_cl <- tapply(treat, cluster, `[`, 1)
+  score <- (m1 + m0) / 2
+  tt <- stats::t.test(score[t_cl == 1], score[t_cl == 0])
+  row <- m$effects[m$effects$contrast == "ATE (avg over pretest)", ]
+  expect_equal(row$estimate, unname(diff(rev(tt$estimate))), tolerance = 1e-10)
+  expect_equal(row$df, unname(tt$parameter), tolerance = 1e-10)
+  expect_match(m$design, "within clusters")
+})
+
+test_that("cluster-level summaries are refused or flagged where they do not apply (#64)", {
+  set.seed(6403)
+  cells <- rep(1:4, each = 3)
+  cluster <- rep(seq_along(cells), each = 10)
+  treat <- c(1, 0, 1, 0)[cells][cluster]
+  pretested <- c(1, 1, 0, 0)[cells][cluster]
+  y <- stats::rbinom(length(cluster), 1, 0.4)
+  # Three clusters per cell also give small CR2 degrees of freedom.
+  cr2 <- suppressWarnings(quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial(),
+                                                    robust = "CR2", cluster = cluster)),
+                          classes = "solomonR_small_df_warning")
+  expect_warning(marginal_solomon(cr2, method = "cluster_summary"),
+                 class = "solomonR_few_clusters_warning")
+  expect_error(marginal_solomon(cr2, scale = "ratio", method = "cluster_summary"),
+               "risk differences only")
+  hc3 <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial()))
+  expect_error(marginal_solomon(hc3, method = "cluster_summary"), "robust = \"CR2\"")
 })

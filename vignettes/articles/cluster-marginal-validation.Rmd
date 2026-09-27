@@ -175,8 +175,9 @@ reference is not used for clustered fits.
 `r sum(short$rule_ok_m3)` of the `r nrow(short)` scenario-contrasts where
 M2 did not; all of them assign pretesting within clusters. As the rule
 requires, the help page of `marginal_solomon()` recommends a cluster-level
-analysis for such designs when clustering is strong, and a cluster-summary
-option will follow under issue #64. The evidence for it is thin: M2's
+analysis for such designs when clustering is strong, and
+`marginal_solomon(method = "cluster_summary")` now computes it exactly as
+this study's comparator did. The evidence for it is thin: M2's
 shortfalls there are small, and M3 met the tolerances less often across all
 scenarios (`r count(m3$rule_ok)`), mostly by covering more than 96% of the
 time with 4 clusters per cell or arm (coverage from

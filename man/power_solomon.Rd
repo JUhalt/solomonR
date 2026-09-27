@@ -35,8 +35,10 @@ participants (0 = none).}
 \item{sims}{Number of Monte Carlo replications.}
 
 \item{stouffer}{Logical; if \code{TRUE}, also report the historical Test I
-rejection rate, evaluated one-tailed (treatment > control) as in
-\code{\link[=fit_solomon_classic]{fit_solomon_classic()}}.}
+rejection rate: one-tailed p-values in the direction treatment >
+control are combined, and the combined z is judged by its two-tailed
+p-value, as in \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} and Walton Braver and Braver's
+(1988, p. 153) worked example.}
 
 \item{alpha}{Significance level. Default is 0.05.}
 
@@ -72,7 +74,7 @@ estimates the Type I error rather than power.
 Tests are computed from the same functions users would call, so reported
 power reflects the package's default inference: \code{fit_solomon_glm()} with
 HC3 standard errors and t reference distributions, the 2x2 ANOVA
-interaction, and the historical one-tailed Test I (Walton Braver & Braver, 1988).
+interaction, and the historical Test I (Walton Braver & Braver, 1988).
 }
 \section{Validation}{
 

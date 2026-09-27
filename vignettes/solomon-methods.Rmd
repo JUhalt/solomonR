@@ -109,7 +109,8 @@ and are described in more detail in `vignette("classic-solomon")`.
 - **Estimates:** nothing directly. Test I combines one-tailed p-values
   from the pretested and unpretested treatment comparisons with
   Stouffer's method (Stouffer et al., 1949), as proposed by Walton Braver and
-  Braver (1988).
+  Braver (1988). The combined z is judged by its two-tailed p-value, as in
+  their worked example (p. 153).
 - **Assumptions:** both tests address the same directional hypothesis, and
   the combination is specified in advance.
 - **Limitations:** in a Monte Carlo study, the conditional sequence that

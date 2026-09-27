@@ -126,7 +126,7 @@
 #' Tests are computed from the same functions users would call, so reported
 #' power reflects the package's default inference: `fit_solomon_glm()` with
 #' HC3 standard errors and t reference distributions, the 2x2 ANOVA
-#' interaction, and the historical one-tailed Test I (Walton Braver & Braver, 1988).
+#' interaction, and the historical Test I (Walton Braver & Braver, 1988).
 #'
 #' @section Validation:
 #' A pre-specified simulation study of 126 scenarios and 315,000 replications
@@ -166,8 +166,10 @@
 #' @param sigma Posttest residual standard deviation in all cells.
 #' @param sims Number of Monte Carlo replications.
 #' @param stouffer Logical; if `TRUE`, also report the historical Test I
-#'   rejection rate, evaluated one-tailed (treatment > control) as in
-#'   [fit_solomon_classic()].
+#'   rejection rate: one-tailed p-values in the direction treatment >
+#'   control are combined, and the combined z is judged by its two-tailed
+#'   p-value, as in [fit_solomon_classic()] and Walton Braver and Braver's
+#'   (1988, p. 153) worked example.
 #' @param alpha Significance level. Default is 0.05.
 #' @param seed Optional integer seed. The global random number state is
 #'   restored afterwards.
@@ -240,7 +242,7 @@ power_solomon <- function(n = 50,
       )
       eps <- .Machine$double.eps
       p_one <- pmin(pmax(p_one, eps), 1 - eps)
-      stouffer_p <- stouffer_solomon(p_one)$p_meta_one_tailed
+      stouffer_p <- stouffer_solomon(p_one)$p_meta_two_tailed
     }
 
     c(glm_p, aov_p, stouffer_p)
