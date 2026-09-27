@@ -76,9 +76,11 @@
     published rates only when the two-sided p-values of Tests E and H were
     converted to z as if one-tailed, which differs from Walton Braver and
     Braver's definition.
-  - As defined, the 1988 and 1995 sequences falsely declare an effect about
-    14% to 15% of the time.
-  - Sawilowsky's allocations exceed their robustness limits (.057 to .084).
+  - As defined, with Test I judged two-tailed, the 1988 and 1995 sequences
+    falsely declare an effect about 13.5% of the time (14% to 15% with a
+    one-tailed Test I).
+  - Sawilowsky's allocations exceed their robustness limits (.056 to .081
+    with a two-tailed Test I).
   The help page of `fit_solomon_classic()` reports these results.
 * **Test I is now judged by the two-tailed p of the combined z**, following
   Walton Braver and Braver's worked example (1988, p. 153: z = 2.05,
