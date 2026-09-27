@@ -1,5 +1,23 @@
 # solomonR (development version)
 
+## Nonrandomized Solomon designs (#58)
+
+* New `baseline_solomon()` compares the two pretested arms at pretest, from
+  individual scores or from published summary statistics, with the mean
+  difference, a pooled t test, and Hedges's g with its noncentral-t
+  confidence interval. The unpretested arms have no pretest, so their
+  baseline cannot be checked; the printout says so.
+* `report_solomon()` gains `design$assignment` (`"random"` or
+  `"nonrandom"`). For nonrandomized designs, results speak of differences
+  between groups rather than treatment effects, and the design statement
+  names the threats that random assignment would otherwise control, following
+  Edmonds and Kennedy (2017, pp. 7–8, 94). Baseline comparisons are reported
+  too.
+* `elkarkri2025a` gains the pretest means and standard deviations of the two
+  pretested classes (El Karkri et al., 2025a, Table 7, p. 10), which differed
+  at pretest.
+* The methods vignette has a new section on nonrandomized Solomon designs.
+
 ## Published data sets (#54, first part)
 
 * New data sets `elkarkri2025a` and `kvalem1996` hold the published Solomon

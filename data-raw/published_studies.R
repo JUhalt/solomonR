@@ -9,14 +9,17 @@ groups <- c("Pretested, treatment", "Pretested, control",
             "Unpretested, treatment", "Unpretested, control")
 
 # El Karkri, Quesada, and Romero-Ariza (2025a), Table 8 (p. 11): posttest
-# statistics of the four Solomon groups.
+# statistics of the four Solomon groups; Table 7 (p. 10): pretest statistics
+# of the two pretested groups.
 elkarkri2025a <- data.frame(
   group = factor(groups, levels = groups),
   pretested = c(1L, 1L, 0L, 0L),
   treat = c(1L, 0L, 1L, 0L),
   n = c(9L, 25L, 17L, 37L),
   mean = c(10.94, 7.80, 8.94, 9.35),
-  sd = c(2.26, 2.29, 1.98, 2.11)
+  sd = c(2.26, 2.29, 1.98, 2.11),
+  pre_mean = c(9.61, 7.86, NA, NA),
+  pre_sd = c(2.67, 2.72, NA, NA)
 )
 
 # Kvalem, Sundet, Rivo, Eilertsen, and Bakketeig (1996, p. 42): use of condoms

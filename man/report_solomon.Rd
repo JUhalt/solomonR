@@ -13,8 +13,9 @@ report_solomon(fit, design = NULL, digits = 2, format = c("text", "markdown"))
 numbers assigned to the four groups (pretested treatment, pretested
 control, unpretested treatment, unpretested control); \code{prespecified},
 \code{TRUE} or \code{FALSE} for whether the sensitization analysis was
-pre-specified; and \code{measurement}, one description of the measurement
-procedure or one per group.}
+pre-specified; \code{measurement}, one description of the measurement
+procedure or one per group; and \code{assignment}, \code{"random"} or
+\code{"nonrandom"}.}
 
 \item{digits}{Decimal places for estimates and statistics. Default 2.}
 
@@ -35,7 +36,8 @@ used.
 Supported objects come from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}},
 \code{\link[=fit_solomon_classic]{fit_solomon_classic()}}, \code{\link[=perm_solomon]{perm_solomon()}}, \code{\link[=marginal_solomon]{marginal_solomon()}},
 \code{\link[=equivalence_solomon]{equivalence_solomon()}}, \code{\link[=fisher_solomon]{fisher_solomon()}}, \code{\link[=solomon_from_summary]{solomon_from_summary()}},
-\code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, and \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}}. The references depend
+\code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}}, and \code{\link[=baseline_solomon]{baseline_solomon()}}.
+The references depend
 on the options the fit used: for example, a CR2 fit cites Bell and
 McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of
 the classic analysis adds Braver and Walton Braver (1990). Every reference
@@ -48,6 +50,17 @@ sensitization analysis was pre-specified, and the measurement procedure
 in each group (Recommendation 11 is to use identical measurement protocols
 in all arms, p. 34).
 
+\strong{Nonrandomized designs.} With \code{design$assignment = "nonrandom"}, the
+results describe differences between groups rather than treatment
+effects, and the design statement names the threats that random
+assignment would otherwise control: selection bias, the largest threat to
+internal validity in quasi-experimental research (Edmonds & Kennedy, 2017,
+p. 7), and instrumentation, which with selection bias Edmonds and Kennedy
+name as the threats most common in quasi-experimental Solomon designs
+(p. 94). It adds that baseline differences can be examined only in the
+pretested arms (\code{\link[=baseline_solomon]{baseline_solomon()}}); that last point is solomonR's own
+reasoning about the design.
+
 \strong{What the report does not decide.} It states results; it does not
 interpret them. Whether the analysis was pre-specified must be supplied,
 never inferred, and the choice of analysis, the reading of the results,
@@ -59,6 +72,10 @@ report_solomon(fit, design = list(prespecified = TRUE))
 
 }
 \references{
+Edmonds, W. A., & Kennedy, T. D. (2017). \emph{An applied guide to research
+designs: Quantitative, qualitative, and mixed methods} (2nd ed.). SAGE
+Publications. https://doi.org/10.4135/9781071802779
+
 French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
 Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
 (2021b). Reducing bias in trials from reactions to measurement: The MERIT

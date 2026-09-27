@@ -1,27 +1,33 @@
-#' Posttest statistics from El Karkri et al. (2025a)
+#' Pretest and posttest statistics from El Karkri et al. (2025a)
 #'
 #' The posttest sample size, mean, and standard deviation of the four Solomon
 #' groups in a classroom study of the Cognitive Acceleration through Science
-#' Education programme, as reported by El Karkri et al. (2025a, Table 8,
-#' p. 11). Numbers reported in the publication are reused with citation.
+#' Education programme (El Karkri et al., 2025a, Table 8, p. 11), and the
+#' pretest mean and standard deviation of the two pretested groups (Table 7,
+#' p. 10). Numbers reported in the publication are reused with citation.
 #'
 #' @details
-#' **Design and caveats.** Each Solomon group was one intact class, so class
-#' and condition are confounded: differences between the groups can reflect
+#' **Design and caveats.** The authors describe the study as
+#' quasi-experimental: each Solomon group was one intact class, so class and
+#' condition are confounded, and differences between the groups can reflect
 #' the classes as well as the treatment and the pretest. [validate_solomon()]
-#' flags this design when class membership is supplied. The authors reported
-#' a significant Pretest x Treatment interaction.
+#' flags this design when class membership is supplied. The pretested classes
+#' already differed at pretest (9.61 against 7.86), which
+#' [baseline_solomon()] reports; the unpretested classes have no pretest.
+#' The authors reported a significant Pretest x Treatment interaction.
 #'
 #' **Known result.** [solomon_from_summary()] reproduces the published
 #' two-way ANOVA from these numbers within rounding: interaction F(1, 84) =
 #' 11.46 against the published 11.482, treatment 6.78 against 6.794, and
 #' pretest 0.18 against 0.186 (pp. 11-12).
 #'
-#' @format A data frame with 4 rows, one per Solomon group, and 6 variables:
+#' @format A data frame with 4 rows, one per Solomon group, and 8 variables:
 #' \describe{
 #'   \item{group}{The Solomon group.}
 #'   \item{pretested, treat}{Indicators (1 = yes).}
 #'   \item{n, mean, sd}{Posttest sample size, mean, and standard deviation.}
+#'   \item{pre_mean, pre_sd}{Pretest mean and standard deviation (pretested
+#'     groups only; the pretest sample sizes equal the posttest ones).}
 #' }
 #'
 #' @source El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual
@@ -29,10 +35,12 @@
 #' science education programme in the Solomon four-group design. *Brain
 #' Sciences, 16*(1), Article 64. https://doi.org/10.3390/brainsci16010064
 #'
-#' @seealso [solomon_from_summary()], [kvalem1996]
+#' @seealso [solomon_from_summary()], [baseline_solomon()], [kvalem1996]
 #'
 #' @examples
 #' with(elkarkri2025a, solomon_from_summary(n, mean, sd))
+#' pre <- elkarkri2025a[elkarkri2025a$pretested == 1, ]
+#' baseline_solomon(n = pre$n, mean = pre$pre_mean, sd = pre$pre_sd)
 "elkarkri2025a"
 
 #' Condom use in the Solomon study of Kvalem et al. (1996)

@@ -214,6 +214,29 @@ was not significant can distort Type I error rates (Zimmerman, 2004).
 (Brown & Forsythe, 1974), normality tests, and a slope-homogeneity test as
 descriptions rather than gates.
 
+### Nonrandomized Solomon designs
+
+**Label:** contemporary recommendation, with a solomonR observation.
+
+Solomon designs are often run with intact groups, as in El Karkri et al.
+(2025a), who assigned one class to each condition. Without random
+assignment, the contrasts are differences between groups rather than
+treatment effects. Selection bias is the largest threat to internal
+validity in quasi-experimental research (Edmonds & Kennedy, 2017, p. 7),
+and with instrumentation it is the threat most common in quasi-experimental
+Solomon designs (p. 94).
+
+- **Baseline in the pretested arms.** `baseline_solomon()` compares the
+  pretested groups' pretests. In El Karkri et al. (2025a, p. 10), the
+  pretested classes already differed at baseline, 9.61 against 7.86.
+- **No baseline in the unpretested arms.** This is solomonR's observation
+  about the design: the unpretested arms have no pretest by design, so
+  selection bias in their comparison, which isolates pretest sensitization,
+  cannot be checked or adjusted for with the study's own data.
+- **Reporting.** `report_solomon(fit, design = list(assignment =
+  "nonrandom"))` describes differences rather than effects and names these
+  threats.
+
 ## Published Solomon proposals
 
 ### Full-information maximum likelihood
@@ -331,6 +354,15 @@ DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
 correlation and regression coefficients. *Journal of the American
 Statistical Association, 112*(519), 1211–1220.
 https://doi.org/10.1080/01621459.2016.1202117
+
+Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
+designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
+Publications. https://doi.org/10.4135/9781071802779
+
+El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
+pretest sensitisation and the cognitive acceleration through science
+education programme in the Solomon four-group design. *Brain Sciences,
+16*(1), Article 64. https://doi.org/10.3390/brainsci16010064
 
 Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
 design considerations and randomization-based inference for community

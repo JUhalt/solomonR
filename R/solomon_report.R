@@ -18,7 +18,8 @@
   fit_solomon_sem = "rosseel2012",
   fit_solomon_sem_latent = c("rosseel2012", "meredith1993", "vandenberg2000"),
   solomon_from_summary = "waltonbraver1988",
-  solomon_effect_sizes = c("morris2008", "hedges1981")
+  solomon_effect_sizes = c("morris2008", "hedges1981"),
+  baseline_solomon = c("cumming2001", "kelley2007")
 )
 
 # ---- Formatting helpers -----------------------------------------------------------
@@ -409,7 +410,37 @@
 }
 
 # Reporting functions by result class.
+.report_baseline <- function(fit, digits, md) {
+  g <- fit$groups
+  method <- paste(
+    "Baseline equivalence of the pretested arms was examined by comparing their pretest",
+    "scores, with Hedges's g and a noncentral-t interval (Cumming & Finch, 2001; Kelley, 2007)."
+  )
+  results <- c(
+    sprintf(
+      "At pretest, the treated group scored %s = %s (%s = %s) and the control group %s = %s (%s = %s), a difference of %s, %s, %s, %s, g = %s, %s.",
+      if (md) "*M*" else "M", .apa_num(g$mean[1], digits), if (md) "*SD*" else "SD", .apa_num(g$sd[1], digits),
+      if (md) "*M*" else "M", .apa_num(g$mean[2], digits), if (md) "*SD*" else "SD", .apa_num(g$sd[2], digits),
+      .apa_num(fit$difference, digits), .apa_ci(fit$conf.low, fit$conf.high, fit$conf_level, digits),
+      .apa_stat(fit$statistic, fit$df, md, "t", digits), .apa_p(fit$p.value, md),
+      .apa_num(fit$g, digits), .apa_ci(fit$g.low, fit$g.high, fit$conf_level, digits)
+    ),
+    "The unpretested arms have no pretest, so their baseline could not be checked."
+  )
+  list(method = method, results = results, table = fit$groups,
+       refs = .solomon_function_refs$baseline_solomon, cells = NULL)
+}
+
+# Reporting language for nonrandomized designs.
+.nonrandom_wording <- function(x) {
+  x <- gsub("average treatment effect", "average treatment-control difference", x)
+  x <- gsub("treatment effect", "treatment-control difference", x)
+  x <- gsub("treatment main effect", "treatment-control main difference", x)
+  x
+}
+
 .report_handlers <- list(
+  solomon_baseline = .report_baseline,
   solomon_glm = .report_glm,
   solomon_ml = .report_ml,
   solomon_classic = .report_classic,
@@ -453,6 +484,19 @@
       ))
     }
   }
+  if (identical(design$assignment, "random")) {
+    out <- c(out, "Participants were randomly assigned to the four groups.")
+  } else if (identical(design$assignment, "nonrandom")) {
+    out <- c(out, paste(
+      "The groups were not formed by random assignment, so the contrasts below are",
+      "differences between groups rather than treatment effects. Selection bias, the",
+      "largest threat to internal validity in quasi-experimental research, and",
+      "instrumentation are the threats most relevant to a nonrandomized Solomon design",
+      "(Edmonds & Kennedy, 2017). Baseline differences can be examined only in the",
+      "pretested arms; the unpretested arms, whose comparison isolates pretest",
+      "sensitization, have no baseline."
+    ))
+  }
   if (!is.null(design$prespecified)) {
     out <- c(out, if (isTRUE(design$prespecified)) {
       "The analysis of pretest sensitization was pre-specified."
@@ -490,7 +534,8 @@
 #' Supported objects come from [fit_solomon_glm()], [fit_solomon_ml()],
 #' [fit_solomon_classic()], [perm_solomon()], [marginal_solomon()],
 #' [equivalence_solomon()], [fisher_solomon()], [solomon_from_summary()],
-#' [fit_solomon_sem()], and [fit_solomon_sem_latent()]. The references depend
+#' [fit_solomon_sem()], [fit_solomon_sem_latent()], and [baseline_solomon()].
+#' The references depend
 #' on the options the fit used: for example, a CR2 fit cites Bell and
 #' McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of
 #' the classic analysis adds Braver and Walton Braver (1990). Every reference
@@ -503,6 +548,17 @@
 #' in each group (Recommendation 11 is to use identical measurement protocols
 #' in all arms, p. 34).
 #'
+#' **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
+#' results describe differences between groups rather than treatment
+#' effects, and the design statement names the threats that random
+#' assignment would otherwise control: selection bias, the largest threat to
+#' internal validity in quasi-experimental research (Edmonds & Kennedy, 2017,
+#' p. 7), and instrumentation, which with selection bias Edmonds and Kennedy
+#' name as the threats most common in quasi-experimental Solomon designs
+#' (p. 94). It adds that baseline differences can be examined only in the
+#' pretested arms ([baseline_solomon()]); that last point is solomonR's own
+#' reasoning about the design.
+#'
 #' **What the report does not decide.** It states results; it does not
 #' interpret them. Whether the analysis was pre-specified must be supplied,
 #' never inferred, and the choice of analysis, the reading of the results,
@@ -513,8 +569,9 @@
 #'   numbers assigned to the four groups (pretested treatment, pretested
 #'   control, unpretested treatment, unpretested control); `prespecified`,
 #'   `TRUE` or `FALSE` for whether the sensitization analysis was
-#'   pre-specified; and `measurement`, one description of the measurement
-#'   procedure or one per group.
+#'   pre-specified; `measurement`, one description of the measurement
+#'   procedure or one per group; and `assignment`, `"random"` or
+#'   `"nonrandom"`.
 #' @param digits Decimal places for estimates and statistics. Default 2.
 #' @param format `"text"` (default) or `"markdown"`, which italicizes
 #'   statistical symbols.
@@ -524,6 +581,10 @@
 #'   `references` (APA 7 reference entries, in APA order).
 #'
 #' @references
+#' Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
+#' designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
+#' Publications. https://doi.org/10.4135/9781071802779
+#'
 #' French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
 #' Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
 #' (2021b). Reducing bias in trials from reactions to measurement: The MERIT
@@ -542,6 +603,17 @@ report_solomon <- function(fit, design = NULL, digits = 2, format = c("text", "m
   }
   md <- format == "markdown"
   parts <- .report_parts(fit, digits, md)
+  nonrandom <- identical(design$assignment, "nonrandom")
+  if (!is.null(design$assignment) && !design$assignment %in% c("random", "nonrandom")) {
+    stop("`design$assignment` must be \"random\" or \"nonrandom\".", call. = FALSE)
+  }
+  if (nonrandom) {
+    # Without random assignment, contrasts are differences between groups,
+    # not treatment effects.
+    parts$results <- .nonrandom_wording(parts$results)
+    parts$method <- .nonrandom_wording(parts$method)
+    parts$refs <- c(parts$refs, "edmonds2017")
+  }
   keys <- unique(c("solomon1949", parts$refs))
   refs <- .apa_sort(unname(.solomon_reference_text[keys]))
   refs <- if (md) gsub("(https?://[^ ]+)", "<\\1>", refs) else gsub("*", "", refs, fixed = TRUE)

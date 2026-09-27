@@ -42,8 +42,12 @@ designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
 Publications. https://doi.org/10.4135/9781071802779
 
 > Chapter 6 (pp. 93–101) describes Solomon four-, six-, and eight-group
-> designs with published examples. *In solomonR:* Solomon N-group designs
-> (planned, [#45](https://github.com/JUhalt/solomonR/issues/45)).
+> designs with published examples, and treats nonrandomized designs and
+> their threats, selection bias above all (pp. 7–8, 94). *In solomonR:*
+> `baseline_solomon()`, the nonrandomized wording and threats paragraph of
+> `report_solomon()` ([#58](https://github.com/JUhalt/solomonR/issues/58)),
+> and Solomon N-group designs (planned,
+> [#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
 pretest sensitisation and the cognitive acceleration through science
@@ -53,7 +57,9 @@ education programme in the Solomon four-group design. *Brain Sciences,
 > A recent classroom Solomon study that reports full cell statistics and a
 > sensitization effect, with one intact class per condition. *In solomonR:*
 > the data set `elkarkri2025a`, the known-result test and example of
-> `solomon_from_summary()`, and an
+> `solomon_from_summary()`, the pretest imbalance example of
+> `baseline_solomon()` ([#58](https://github.com/JUhalt/solomonR/issues/58)),
+> and an
 > example of the class–condition confounding that `validate_solomon()`
 > detects ([#46](https://github.com/JUhalt/solomonR/issues/46),
 > [#53](https://github.com/JUhalt/solomonR/issues/53)).

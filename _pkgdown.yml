@@ -52,6 +52,7 @@ reference:
       - validate_solomon
       - check_solomon_missing
       - check_solomon_assumptions
+      - baseline_solomon
       - power_solomon
       - plan_solomon
 

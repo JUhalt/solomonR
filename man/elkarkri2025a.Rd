@@ -3,13 +3,15 @@
 \docType{data}
 \name{elkarkri2025a}
 \alias{elkarkri2025a}
-\title{Posttest statistics from El Karkri et al. (2025a)}
+\title{Pretest and posttest statistics from El Karkri et al. (2025a)}
 \format{
-A data frame with 4 rows, one per Solomon group, and 6 variables:
+A data frame with 4 rows, one per Solomon group, and 8 variables:
 \describe{
 \item{group}{The Solomon group.}
 \item{pretested, treat}{Indicators (1 = yes).}
 \item{n, mean, sd}{Posttest sample size, mean, and standard deviation.}
+\item{pre_mean, pre_sd}{Pretest mean and standard deviation (pretested
+groups only; the pretest sample sizes equal the posttest ones).}
 }
 }
 \source{
@@ -24,15 +26,19 @@ elkarkri2025a
 \description{
 The posttest sample size, mean, and standard deviation of the four Solomon
 groups in a classroom study of the Cognitive Acceleration through Science
-Education programme, as reported by El Karkri et al. (2025a, Table 8,
-p. 11). Numbers reported in the publication are reused with citation.
+Education programme (El Karkri et al., 2025a, Table 8, p. 11), and the
+pretest mean and standard deviation of the two pretested groups (Table 7,
+p. 10). Numbers reported in the publication are reused with citation.
 }
 \details{
-\strong{Design and caveats.} Each Solomon group was one intact class, so class
-and condition are confounded: differences between the groups can reflect
+\strong{Design and caveats.} The authors describe the study as
+quasi-experimental: each Solomon group was one intact class, so class and
+condition are confounded, and differences between the groups can reflect
 the classes as well as the treatment and the pretest. \code{\link[=validate_solomon]{validate_solomon()}}
-flags this design when class membership is supplied. The authors reported
-a significant Pretest x Treatment interaction.
+flags this design when class membership is supplied. The pretested classes
+already differed at pretest (9.61 against 7.86), which
+\code{\link[=baseline_solomon]{baseline_solomon()}} reports; the unpretested classes have no pretest.
+The authors reported a significant Pretest x Treatment interaction.
 
 \strong{Known result.} \code{\link[=solomon_from_summary]{solomon_from_summary()}} reproduces the published
 two-way ANOVA from these numbers within rounding: interaction F(1, 84) =
@@ -41,8 +47,10 @@ pretest 0.18 against 0.186 (pp. 11-12).
 }
 \examples{
 with(elkarkri2025a, solomon_from_summary(n, mean, sd))
+pre <- elkarkri2025a[elkarkri2025a$pretested == 1, ]
+baseline_solomon(n = pre$n, mean = pre$pre_mean, sd = pre$pre_sd)
 }
 \seealso{
-\code{\link[=solomon_from_summary]{solomon_from_summary()}}, \link{kvalem1996}
+\code{\link[=solomon_from_summary]{solomon_from_summary()}}, \code{\link[=baseline_solomon]{baseline_solomon()}}, \link{kvalem1996}
 }
 \keyword{datasets}
