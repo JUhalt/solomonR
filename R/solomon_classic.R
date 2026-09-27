@@ -92,7 +92,8 @@
     procedure = "Walton Braver & Braver (1988)",
     source = source,
     z = combined$z_meta,
-    p.value = combined$p_meta_one_tailed,
+    p.value = combined$p_meta_two_tailed,
+    p_one_tailed = combined$p_meta_one_tailed,
     p_pretested_one_tailed = p_one[1],
     p_unpretested_one_tailed = p_one[2],
     row.names = NULL
@@ -277,7 +278,12 @@
 #' the optional Stouffer meta-analytic combination.
 #'
 #' Test I, the Walton Braver & Braver (1988) Stouffer meta-analytic combination, is
-#' included for historical replication and teaching. Later work (see
+#' included for historical replication and teaching. It converts the
+#' one-tailed p-values of the pretested-groups test and Test H, in the
+#' direction of `stouffer_direction`, to z and combines them (p. 152). The
+#' combined z is judged by its two-tailed p-value, as in their worked example
+#' (p. 153: z = 2.05, p = .040); the one-tailed value is kept as
+#' `p_one_tailed`. Later work (see
 #' Sawilowsky et al., 1994) raised concerns about experiment-wise Type I
 #' error when the procedure is used conditionally. Its presence in this function should not be interpreted
 #' as a general contemporary recommendation.
@@ -337,20 +343,22 @@
 #'
 #' - **Tests A to H** reached and rejected at the rates Sawilowsky et al.
 #'   (1994, Table 2) and Sawilowsky (1996, Table 1) report.
-#' - **Test I** rejected far more often than published. With its one-tailed
-#'   criterion, the experiment-wise error rates were .151 for the 1988
-#'   sequence and .142 for the 1995 sequence. A two-tailed criterion gave
-#'   .137 and .135. The published rates are .137 and .125. A post hoc
-#'   investigation reproduced the published rates only when the two-sided
-#'   p-values of Tests E and H were converted to z as if one-tailed, a reading
-#'   that differs from Walton Braver and Braver's (1988, p. 152) definition.
-#'   The p-value reported for Test I is one-tailed; their worked example
-#'   reports the two-tailed value (p. 153).
+#' - **Test I** rejected far more often than published. With its two-tailed
+#'   criterion, the experiment-wise error rates were .137 for the 1988
+#'   sequence and .135 for the 1995 sequence, against the published .137 and
+#'   .125. A post hoc investigation reproduced the published Test I rates
+#'   only when the two-sided p-values of Tests E and H were converted to z as
+#'   if one-tailed, a reading that differs from Walton Braver and Braver's
+#'   (1988, p. 152) definition.
 #' - **The alpha allocations**, with Test I as defined here, gave
-#'   experiment-wise error rates of .062, .084, .057, and .084 for
+#'   experiment-wise error rates of .059, .079, .056, and .081 for
 #'   `"method1_conservative"`, `"method1_liberal"`, `"method2_conservative"`,
 #'   and `"method2_liberal"`, against Sawilowsky's .054, .072, .057, and .076.
 #'   All four exceed their limits of .055 and .075.
+#'
+#' Until this version, Test I was judged by the one-tailed p of the combined
+#' z. It now follows Walton Braver and Braver's worked example (p. 153),
+#' which reports the two-tailed p.
 #'
 #' See the article "Historical Tests: Replicating the Published Error Rates".
 #'
@@ -796,7 +804,8 @@ fit_solomon_classic <- function(
   if (isTRUE(combine_with_stouffer)) {
     stouffer_legacy <- list(
       z_meta = I_selected$z,
-      p_meta_one_tailed = I_selected$p.value
+      p_meta_two_tailed = I_selected$p.value,
+      p_meta_one_tailed = I_selected$p_one_tailed
     )
   }
 

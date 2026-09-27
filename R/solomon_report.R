@@ -243,7 +243,7 @@
     ii <- fit$tests$I$result
     refs <- c(refs, "stouffer1949", "sawilowsky1994")
     results <- c(results, sprintf(
-      "Test I, the Stouffer combination (Stouffer et al., 1949; Walton Braver & Braver, 1988), gave %s, one-tailed %s. The experiment-wise Type I error of this sequence exceeds its nominal level (Sawilowsky et al., 1994).",
+      "Test I, the Stouffer combination (Stouffer et al., 1949; Walton Braver & Braver, 1988), gave %s, %s. The experiment-wise Type I error of this sequence exceeds its nominal level (Sawilowsky et al., 1994).",
       .apa_stat(ii$z, Inf, md, "z", digits), .apa_p(ii$p.value, md)
     ))
   }
