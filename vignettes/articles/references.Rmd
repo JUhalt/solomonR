@@ -239,6 +239,10 @@ Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
 variances. *Journal of the American Statistical Association, 69*(346),
 364–367. https://doi.org/10.1080/01621459.1974.10482955
 
+Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
+(2nd ed.). Cambridge University Press.
+https://doi.org/10.1017/CBO9781139013567
+
 Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
 calculation of confidence intervals that are based on central and noncentral
 distributions. *Educational and Psychological Measurement, 61*(4), 532–574.

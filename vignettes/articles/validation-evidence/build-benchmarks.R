@@ -188,7 +188,39 @@ bi_h_long <- long_measures(
   n_failed = rep(0, nrow(bi_h))
 )
 
-benchmarks <- rbind(ml_long, pw_long, pl_long, bi_long, bi_c_long, bi_h_long)
+# ---- Count outcomes: fit_solomon_glm(poisson) and marginal_solomon() (#44) -------
+
+co <- read_study("count-validation", "performance.csv")
+co_info <- read_study("count-validation", "run-information.csv")
+co_run <- stats::setNames(as.list(co_info$value), co_info$item)
+co_method <- c(
+  hc3 = "fit_solomon_glm(family = poisson()), HC3",
+  model_based = "fit_solomon_glm(family = poisson()), model-based",
+  marginal_delta = "marginal_solomon(), delta method (HC3)"
+)
+co_scale <- c(log_rate_ratio_link = "log rate ratio, model contrast",
+              rate_difference = "rate difference",
+              log_rate_ratio = "log rate ratio, marginal")
+co_long <- long_measures(
+  co,
+  study = "count-outcomes",
+  design = sprintf("n per cell=%d; control rate=%s; overdispersion=%s; pretest log-rate=%s; pattern=%s",
+                   co$n, co$control_rate, co$alpha, co$bX, co$pattern),
+  method = unname(co_method[co$method]),
+  estimand = sprintf("%s (%s)", co$contrast, co_scale[co$scale]),
+  null_effect = abs(co$true_value) < 1e-8,
+  measures = list(
+    bias = c(value = "bias", mcse = "bias_mcse"),
+    empirical_se = c(value = "empse", mcse = "empse_mcse"),
+    relative_se_error_pct = c(value = "relerr", mcse = "relerr_mcse"),
+    coverage = c(value = "coverage", mcse = "coverage_mcse"),
+    rejection_rate = c(value = "rejection", mcse = "rejection_mcse")
+  ),
+  n_successful = co$n_used,
+  n_failed = co$fit_failures
+)
+
+benchmarks <- rbind(ml_long, pw_long, pl_long, bi_long, bi_c_long, bi_h_long, co_long)
 numeric_cols <- vapply(benchmarks, is.numeric, logical(1))
 benchmarks[numeric_cols] <- lapply(benchmarks[numeric_cols], function(v) signif(v, 6))
 
@@ -198,35 +230,46 @@ site <- "https://juhalt.github.io/solomonR/articles"
 issue <- function(n) sprintf("https://github.com/JUhalt/solomonR/issues/%d", n)
 
 studies <- data.frame(
-  study = c("ml-inference", "power-simulation", "plan-resimulation", "binary-outcomes"),
+  study = c("ml-inference", "power-simulation", "plan-resimulation", "binary-outcomes",
+            "count-outcomes"),
   title = c("Inference for fit_solomon_ml()", "Rejection rates from power_solomon()",
-            "Designs from plan_solomon()", "Binary outcomes: marginal_solomon()"),
-  issues = c("#10; #22", "#18", "#24", "#43"),
-  protocol = c(issue(10), issue(18), issue(24), issue(43)),
+            "Designs from plan_solomon()", "Binary outcomes: marginal_solomon()",
+            "Count outcomes: Poisson fits and marginal_solomon()"),
+  issues = c("#10; #22", "#18", "#24", "#43", "#44"),
+  protocol = c(issue(10), issue(18), issue(24), issue(43), issue(44)),
   article = c(file.path(site, "ml-validation.html"), file.path(site, "power-validation.html"),
-              file.path(site, "plan-validation.html"), file.path(site, "binary-validation.html")),
+              file.path(site, "plan-validation.html"), file.path(site, "binary-validation.html"),
+              file.path(site, "count-validation.html")),
   scenarios = c(length(unique(ml$scenario)), length(unique(pw$scenario)), nrow(pl),
-                length(unique(bi$scenario))),
+                length(unique(bi$scenario)), length(unique(co$scenario))),
   replications = c(
     format(ml_run$nsim),
     sprintf("%d under the complete null; %d elsewhere", pw_run$sims_null, pw_run$sims_alternative),
     sprintf("%d per planned design", pl_run$sims),
-    sprintf("%s per scenario; %s bootstrap resamples", bi_run$replications, bi_run$bootstrap_R)
+    sprintf("%s per scenario; %s bootstrap resamples", bi_run$replications, bi_run$bootstrap_R),
+    sprintf("%s per scenario", co_run$replications)
   ),
   methods = c(paste(unique(ml$method), collapse = "; "), paste(unique(pw$test), collapse = "; "),
               "plan_solomon() analytic plans; GLM (HC3, t)",
-              paste(c(unname(bi_method), "fit_solomon_glm(family = binomial())", "fisher_solomon()"), collapse = "; ")),
+              paste(c(unname(bi_method), "fit_solomon_glm(family = binomial())", "fisher_solomon()"), collapse = "; "),
+              paste(unname(co_method), collapse = "; ")),
   estimands = c(paste(unique(ml$contrast), collapse = "; "), paste(unique(pw$estimand), collapse = "; "),
                 paste(unique(pl$estimand), collapse = "; "),
-                "Solomon contrasts as risk differences, risk ratios, and odds ratios"),
-  package_commit = c(ml_run$git_commit, pw_run$git_commit, pl_run$git_commit, substr(bi_run$commit, 1, 7)),
-  r_version = c(ml_run$r_version, pw_run$r_version, pl_run$r_version, sub("R version ([0-9.]+).*", "\\1", bi_run$R_version)),
-  started = c(ml_run$started, pw_run$started, pl_run$started, sub(" UTC", "", bi_run$started)),
-  finished = c(ml_run$finished, pw_run$finished, pl_run$finished, sub(" UTC", "", bi_run$finished)),
+                "Solomon contrasts as risk differences, risk ratios, and odds ratios",
+                "Solomon contrasts as rate differences and rate ratios"),
+  package_commit = c(ml_run$git_commit, pw_run$git_commit, pl_run$git_commit, substr(bi_run$commit, 1, 7),
+                     substr(co_run$commit, 1, 7)),
+  r_version = c(ml_run$r_version, pw_run$r_version, pl_run$r_version, sub("R version ([0-9.]+).*", "\\1", bi_run$R_version),
+                sub("R version ([0-9.]+).*", "\\1", co_run$R_version)),
+  started = c(ml_run$started, pw_run$started, pl_run$started, sub(" UTC", "", bi_run$started),
+              sub(" UTC", "", co_run$started)),
+  finished = c(ml_run$finished, pw_run$finished, pl_run$finished, sub(" UTC", "", bi_run$finished),
+               sub(" UTC", "", co_run$finished)),
   failed_fits = c(sum(ml$n_failed[ml$contrast == ml$contrast[1]]),
                   sum(pw$failures[pw$test == pw$test[1] & pw$estimand == pw$estimand[1]]),
                   sum(pl$failures),
-                  sum(unique(bi[, c("scenario", "fit_failures")])$fit_failures)),
+                  sum(unique(bi[, c("scenario", "fit_failures")])$fit_failures),
+                  sum(unique(co[, c("scenario", "fit_failures")])$fit_failures)),
   stringsAsFactors = FALSE
 )
 

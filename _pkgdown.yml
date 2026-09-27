@@ -83,6 +83,7 @@ articles:
       - articles/power-validation
       - articles/plan-validation
       - articles/binary-validation
+      - articles/count-validation
 
   - title: "References"
     navbar: References

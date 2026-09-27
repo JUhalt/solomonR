@@ -1,0 +1,201 @@
+---
+title: "Count Outcomes: Validating Poisson Fits and marginal_solomon()"
+description: >
+  Simulation study of the Solomon contrasts for count outcomes, with and
+  without overdispersion, from fit_solomon_glm(family = poisson()) and
+  marginal_solomon().
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+p <- utils::read.csv("count-validation/performance.csv", stringsAsFactors = FALSE)
+info <- utils::read.csv("count-validation/run-information.csv", stringsAsFactors = FALSE)
+run <- stats::setNames(as.list(info$value), info$item)
+reps <- as.integer(run$replications)
+
+method_label <- c(
+  hc3 = "Poisson fit, HC3",
+  model_based = "Poisson fit, model-based",
+  marginal_delta = "marginal_solomon(), delta method"
+)
+scale_label <- c(
+  log_rate_ratio_link = "Log rate ratio (model contrast)",
+  rate_difference = "Rate difference",
+  log_rate_ratio = "Log rate ratio (marginal)"
+)
+
+p$supported <- p$fit_failures <= 0.05 * reps
+p$null <- abs(p$true_value) < 1e-8
+# Tolerances declared on issue #44 before any run.
+p$bias_ok <- abs(p$bias) <= 2 * p$bias_mcse
+p$cov_ok <- p$coverage >= 0.94 & p$coverage <= 0.96
+p$se_ok <- abs(p$relerr) <= 10
+p$t1_ok <- ifelse(p$null, p$rejection >= 0.04 & p$rejection <= 0.06, TRUE)
+p$all_ok <- p$bias_ok & p$cov_ok & p$se_ok & p$t1_ok
+s <- p[p$supported, ]
+
+rng <- function(x, d = 3) if (length(x)) sprintf(paste0("%.", d, "f to %.", d, "f"), min(x), max(x)) else "--"
+```
+
+This article reports the simulation validation of the Solomon contrasts for
+count outcomes. The aims, data-generating mechanisms, estimands, methods,
+performance measures, tolerances, and a decision rule about a
+negative-binomial option were posted on
+[issue #44](https://github.com/JUhalt/solomonR/issues/44) before any run,
+following the ADEMP structure of Morris et al. (2019). The results come from
+package commit `r substr(run$commit, 1, 7)` and `r reps` replications per
+scenario.
+
+## Design
+
+**Data.** Each participant has a latent baseline X ~ N(0, 1), observed only
+in the pretested groups, an exposure E ~ Uniform(0.5, 1.5), and a count with
+
+log E[Y] = log E + b0 + bX X + bT T + bP P + bTP T P.
+
+Counts are Poisson or overdispersed: negative binomial with
+Var(Y) = μ + α μ², generated as Poisson counts with a gamma multiplier. The
+96 scenarios cross participants per cell (20, 50, 100), the control rate
+(0.5, 3), overdispersion (α = 0 or 1), the association of the pretest with
+the outcome (bX = 0 or 0.5), and four effect patterns: no effects, a
+treatment effect only (bT = log 1.5), a treatment and a pretest effect
+(bP = log 1.25), and sensitization only (bTP = log 1.5).
+
+**Estimands.** The model's contrasts are the conditional log rate ratios.
+The marginal rates per unit of exposure have a closed form, from which come
+the Solomon contrasts as rate differences and as marginal log rate ratios.
+Log-link rate ratios are collapsible (Daniel et al., 2021), so the model's
+treatment and sensitization contrasts estimate the marginal ones.
+
+**Methods.** `fit_solomon_glm(family = poisson(), exposure = )` with the
+default HC3 covariance and with model-based covariance, and
+`marginal_solomon()` with delta-method intervals.
+
+**Tolerances.** Bias within 2 Monte Carlo standard errors (MCSE); coverage of
+95% intervals from 0.940 to 0.960; model standard error within 10% of the
+empirical standard error; and, where the true value is zero, a rejection rate
+from 0.040 to 0.060.
+
+## Failures
+
+```{r failures}
+f <- unique(p[, c("scenario", "n", "control_rate", "fit_failures")])
+tab <- aggregate(fit_failures ~ n + control_rate, f, max)
+knitr::kable(data.frame(`Per cell` = tab$n, `Control rate` = tab$control_rate,
+                        `Failed fits (max over scenarios)` = tab$fit_failures,
+                        check.names = FALSE), row.names = FALSE)
+```
+
+A fit fails when it does not converge or when a Solomon cell has no counts at
+all. `r sum(!unique(p[, c("scenario", "supported")])$supported)` of 96
+scenarios had more than 5% failed fits.
+
+## Results by method
+
+```{r summary}
+tab <- aggregate(cbind(cells = 1, pass = all_ok, cov = cov_ok, t1 = t1_ok) ~ method + scale + alpha, s, sum)
+tab <- tab[order(tab$alpha, tab$method, tab$scale), ]
+knitr::kable(data.frame(
+  Overdispersion = ifelse(tab$alpha == 0, "none (Poisson)", "alpha = 1"),
+  Method = method_label[tab$method], Scale = scale_label[tab$scale],
+  `Meeting every tolerance` = sprintf("%d of %d", tab$pass, tab$cells),
+  `Coverage within tolerance` = sprintf("%d of %d", tab$cov, tab$cells),
+  check.names = FALSE
+), row.names = FALSE)
+```
+
+```{r coverage}
+tab <- aggregate(coverage ~ method + scale + alpha + n, s, function(x) rng(x))
+tab <- tab[order(tab$alpha, tab$method, tab$scale, tab$n), ]
+knitr::kable(data.frame(
+  Overdispersion = ifelse(tab$alpha == 0, "none", "alpha = 1"),
+  Method = method_label[tab$method], Scale = scale_label[tab$scale],
+  `Per cell` = tab$n, `Coverage (range)` = tab$coverage, check.names = FALSE
+), row.names = FALSE)
+```
+
+## Overdispersion and the decision rule
+
+```{r decision}
+d <- s[s$method == "hc3" & s$alpha == 1 & s$n >= 50, ]
+share <- mean(d$cov_ok & d$t1_ok)
+```
+
+The protocol fixed a rule before the run: if HC3 inference from the Poisson
+fit met the coverage and Type I tolerances in at least 90% of the supported
+overdispersed scenario-contrasts with 50 or 100 participants per cell, no
+negative-binomial option would be added. The share was
+`r sprintf("%.0f%%", 100 * share)` (`r sum(d$cov_ok & d$t1_ok)` of
+`r nrow(d)`), so `r if (share >= 0.9) "no negative-binomial option is added" else "a negative-binomial option is proposed, with its own protocol"`.
+
+Where HC3 fell short, it was with strong overdispersion and small cells.
+With a control rate of 3 (mean Pearson dispersion of about 4 to 6), its
+coverage ranged from
+`r rng(s$coverage[s$method == "hc3" & s$alpha == 1 & s$control_rate == 3 & s$n == 20])`
+with 20 participants per cell and
+`r rng(s$coverage[s$method == "hc3" & s$alpha == 1 & s$control_rate == 3 & s$n == 50])`
+with 50, and reached
+`r rng(s$coverage[s$method == "hc3" & s$alpha == 1 & s$control_rate == 3 & s$n == 100])`
+with 100. With a control rate of 0.5, overdispersion was milder and HC3 met
+the tolerances in most contrasts at every cell size.
+
+```{r hc3-by-design}
+h <- s[s$method == "hc3" & s$alpha == 1, ]
+tab <- aggregate(cbind(cells = 1, ok = cov_ok & t1_ok) ~ n + control_rate, h, sum)
+tab <- tab[order(tab$control_rate, tab$n), ]
+knitr::kable(data.frame(`Control rate` = tab$control_rate, `Per cell` = tab$n,
+                        `HC3 contrasts within the coverage and Type I tolerances` =
+                          sprintf("%d of %d", tab$ok, tab$cells), check.names = FALSE),
+             row.names = FALSE, caption = "Overdispersed counts (alpha = 1).")
+```
+
+Model-based standard errors understate uncertainty whenever the counts are
+overdispersed: their coverage ranged from
+`r rng(s$coverage[s$method == "model_based" & s$alpha == 1])` with
+α = 1. This is the failure Cameron and Trivedi (2013, p. 72) describe. They
+also failed with Poisson counts when the pretest predicts the outcome
+(coverage from
+`r rng(s$coverage[s$method == "model_based" & s$alpha == 0 & s$bX > 0])`),
+which the protocol did not anticipate. The unpretested participants have no
+pretest in the model, so their counts mix over the unobserved baseline and
+are overdispersed even when each person's count is Poisson. With no pretest
+effect, model-based coverage ranged from
+`r rng(s$coverage[s$method == "model_based" & s$alpha == 0 & s$bX == 0])`.
+This is the reason the package's default is the robust covariance.
+
+## Summary
+
+- With the default HC3 covariance, Poisson fits give valid inference for the
+  Solomon contrasts on the log rate-ratio scale when the counts are Poisson
+  or mildly overdispersed.
+- With strong overdispersion, HC3 intervals are somewhat too narrow with 20
+  to 50 participants per cell and close to nominal with 100. By the rule
+  fixed in the protocol, a negative-binomial option is proposed, with its own
+  protocol.
+- `marginal_solomon()` adds rate differences, with delta-method intervals.
+- Model-based standard errors should not be used for counts: they fail under
+  overdispersion, and in the unpretested groups whenever the pretest predicts
+  the outcome.
+
+## Reproducibility
+
+The script, `count-validation/count-simulation.R`, and its results,
+`performance.csv` and `run-information.csv`, are in the package repository.
+The run took from `r run$started` to `r run$finished` on `r run$workers`
+workers (`r run$R_version`).
+
+## References
+
+Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
+(2nd ed.). Cambridge University Press.
+https://doi.org/10.1017/CBO9781139013567
+
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. *Biometrical Journal, 63*(3),
+528–557. https://doi.org/10.1002/bimj.201900297
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086

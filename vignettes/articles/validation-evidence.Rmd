@@ -23,10 +23,10 @@ Each study followed the ADEMP structure of Morris, White and Crowther
   article.
 
 The evidence covers the scenarios each study examined. It is not a
-validation of every Solomon design: non-normal errors, clustered
-assignment, count outcomes, and incidental missing data are outside every
-study below unless a study says otherwise. Binary outcomes are covered by
-their own study.
+validation of every Solomon design: non-normal continuous errors,
+clustered assignment, and incidental missing data are outside every study
+below unless a study says otherwise. Binary and count outcomes are covered
+by their own studies.
 
 ## Studies
 
@@ -233,6 +233,49 @@ odds ratios are conservative with 20 to 50 participants per cell. With 20
 per cell and a control risk of 0.1, too many datasets have a cell without
 events for any method. See the
 [full article](`r studies$article[studies$study == "binary-outcomes"]`).
+
+## Count outcomes
+
+Poisson fits of `fit_solomon_glm()` and the rate contrasts of
+`marginal_solomon()` were checked with and without overdispersion, against
+the same tolerances as the binary study.
+
+```{r counts}
+co <- benchmarks[benchmarks$study == "count-outcomes", ]
+key <- c("method", "design", "estimand")
+wide <- stats::reshape(co[, c(key, "measure", "value", "mcse", "n_failed", "null_effect")],
+                       idvar = key, timevar = "measure", direction = "wide")
+wide$supported <- wide$n_failed.coverage <= 0.05 * 2000
+wide$ok <- abs(wide$value.bias) <= 2 * wide$mcse.bias &
+  wide$value.coverage >= 0.94 & wide$value.coverage <= 0.96 &
+  abs(wide$value.relative_se_error_pct) <= 10 &
+  ifelse(wide$null_effect.coverage, wide$value.rejection_rate >= 0.04 &
+           wide$value.rejection_rate <= 0.06, TRUE)
+wide$overdispersed <- grepl("overdispersion=1", wide$design)
+wide$scale <- sub("^.*\\((.*)\\)$", "\\1", wide$estimand)
+s <- wide[wide$supported, ]
+groups <- unique(s[, c("method", "scale", "overdispersed")])
+groups <- groups[order(groups$overdispersed, groups$method), ]
+knitr::kable(
+  data.frame(
+    Counts = ifelse(groups$overdispersed, "overdispersed", "Poisson"),
+    Method = groups$method,
+    Scale = groups$scale,
+    `Supported contrasts meeting every tolerance` = vapply(seq_len(nrow(groups)), function(i) {
+      v <- s$ok[s$method == groups$method[i] & s$scale == groups$scale[i] &
+                  s$overdispersed == groups$overdispersed[i]]
+      sprintf("%d of %d", sum(v), length(v))
+    }, ""),
+    check.names = FALSE,
+    row.names = NULL
+  ),
+  caption = "Across supported scenarios; results by design are in the full article."
+)
+```
+
+Model-based standard errors fail under overdispersion, which is why the
+package's default is the robust covariance. See the
+[full article](`r studies$article[studies$study == "count-outcomes"]`).
 
 ## Adding a study
 

@@ -241,7 +241,8 @@ conditions, and make clustered designs safe to analyze.
   - Published example: Kvalem et al. (1996)
 
 - [ ] Count outcomes — [#44](https://github.com/JUhalt/solomonR/issues/44)
-  - Poisson and negative-binomial models, rate ratios
+  - Robust Poisson models, rate ratios and rate differences, exposure offsets
+  - Negative-binomial option for strongly overdispersed counts — [#62](https://github.com/JUhalt/solomonR/issues/62)
 
 - [ ] Solomon N-group designs: more than two conditions — [#45](https://github.com/JUhalt/solomonR/issues/45)
   - One model with planned contrasts in place of overlapping four-group

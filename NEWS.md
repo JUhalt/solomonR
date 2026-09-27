@@ -1,5 +1,21 @@
 # solomonR (development version)
 
+## Count outcomes (#44)
+
+* `fit_solomon_glm()` gains `exposure`, a log offset for counts observed over
+  different times or exposures (log-link families only), and returns the
+  Pearson dispersion statistic for binomial and Poisson fits.
+* `marginal_solomon()` accepts Poisson fits: the Solomon contrasts as rate
+  differences and rate ratios per unit of exposure, standardized over each
+  pretest condition, with delta-method intervals from the robust covariance
+  (Cameron & Trivedi, 2013).
+* New article "Count Outcomes: Validating Poisson Fits and marginal_solomon()"
+  reports the simulation study registered on #44 (96 scenarios, 2,000
+  replications each). Robust (HC3) inference is valid for Poisson and mildly
+  overdispersed counts and somewhat anticonservative with strong
+  overdispersion and 20 to 50 participants per cell; model-based standard
+  errors fail under overdispersion.
+
 ## Binary outcomes (#43)
 
 * New `marginal_solomon()` estimates the Solomon contrasts for binary
