@@ -79,8 +79,17 @@
   - As defined, the 1988 and 1995 sequences falsely declare an effect about
     14% to 15% of the time.
   - Sawilowsky's allocations exceed their robustness limits (.057 to .084).
-  The help page of `fit_solomon_classic()` reports these results. The
-  package's Test I criterion is unchanged.
+  The help page of `fit_solomon_classic()` reports these results.
+* **Test I is now judged by the two-tailed p of the combined z**, following
+  Walton Braver and Braver's worked example (1988, p. 153: z = 2.05,
+  p = .040). This follows the maintainer's decision after #51 to keep to
+  the literature.
+  - What changes: the path and conclusion of `fit_solomon_classic()` when
+    Test I is reached, and the Test I rates of `power_solomon()`.
+  - What is unchanged: the components are still the one-tailed p-values in
+    the direction of the effect.
+  - What is kept: the one-tailed value, as `p_one_tailed`.
+    `stouffer_solomon()` gains `p_meta_two_tailed`.
 * New articles:
   - "A History of the Solomon Design and Its Analysis", from Solomon (1949)
     to the MERIT recommendations (#50);
