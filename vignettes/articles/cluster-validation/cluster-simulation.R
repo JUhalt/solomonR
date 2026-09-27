@@ -144,12 +144,15 @@ run_scenario <- function(s, reps, pkg_dir, allocations, cache_dir) {
 started <- Sys.time()
 cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
-# Largest designs first, so the long scenarios do not finish last.
+# Largest designs first, one scenario per task, so the long scenarios do not
+# finish last. Each scenario sets its own seed, so results do not depend on
+# the scheduling.
 n_clusters <- mapply(function(d, a) sum(allocations[[d]][[a]]), scenarios$design, scenarios$allocation)
 order_run <- order(-n_clusters)
 results <- parallel::parLapplyLB(cl, split(scenarios[order_run, ], seq_along(order_run)),
                                  run_scenario, reps = reps, pkg_dir = pkg_dir,
-                                 allocations = allocations, cache_dir = normalizePath(cache_dir))
+                                 allocations = allocations, cache_dir = normalizePath(cache_dir),
+                                 chunk.size = 1)
 performance <- do.call(rbind, results)
 performance <- merge(scenarios, performance, by = "scenario")
 performance <- performance[order(performance$scenario, performance$method, performance$contrast), ]
