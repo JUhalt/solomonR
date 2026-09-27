@@ -23,6 +23,13 @@
   clustering, the help page recommends a cluster-level analysis as an
   alternative for risk differences (Hayes & Moulton, 2017), as the
   protocol's third decision rule requires.
+* New `marginal_solomon(method = "cluster_summary")` for clustered binary
+  fits. It compares the unweighted means of cluster-level proportions with
+  t intervals that use separate variances and Satterthwaite degrees of
+  freedom (Hayes & Moulton, 2017, pp. 211–215), as the pre-registered
+  study's comparator did. It works whether whole clusters were assigned to
+  the four cells or pretesting was assigned within clusters. It warns
+  below four clusters per arm (p. 128).
 
 ## Measurement invariance for latent models (#55, second part)
 

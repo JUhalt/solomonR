@@ -310,6 +310,19 @@
 }
 
 .report_marginal <- function(fit, digits, md) {
+  if (identical(fit$method, "cluster_summary")) {
+    method <- paste0(
+      "Risk differences were estimated from unweighted cluster-level summaries (",
+      fit$design, ") and compared with t intervals using separate variances and ",
+      "Satterthwaite degrees of freedom (Hayes & Moulton, 2017)."
+    )
+    e <- fit$effects
+    e$statistic <- NA_real_
+    results <- paste0("On the risk difference scale: ",
+                      paste(.contrast_sentences(e, fit$conf_level, digits, md), collapse = " "))
+    return(list(method = method, results = results, table = fit$effects, refs = "hayes2017",
+                cells = NULL))
+  }
   count <- identical(fit$outcome, "count")
   refs <- .solomon_function_refs$marginal_solomon
   if (count) refs <- c(refs, "cameron2013")

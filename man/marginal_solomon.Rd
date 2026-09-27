@@ -7,7 +7,7 @@
 marginal_solomon(
   fit,
   scale = c("difference", "ratio", "odds_ratio"),
-  method = c("bootstrap", "delta"),
+  method = c("bootstrap", "delta", "cluster_summary"),
   R = 999,
   seed = NULL,
   conf_level = fit$conf_level
@@ -23,8 +23,10 @@ for binary outcomes, CR2 covariance.}
 outcomes, \code{"odds_ratio"}. For count outcomes the default is
 \code{c("difference", "ratio")}.}
 
-\item{method}{\code{"bootstrap"} (default for binary outcomes) or \code{"delta"}
-(the only method for count outcomes).}
+\item{method}{\code{"bootstrap"} (default for binary outcomes), \code{"delta"}
+(the only method for count outcomes, and the default for clustered
+fits), or \code{"cluster_summary"} (clustered binary fits, risk differences
+only; see Clustered fits).}
 
 \item{R}{Number of bootstrap resamples (at least 99). Default 999.}
 
@@ -129,7 +131,13 @@ In the three shortfalls with pretesting assigned within clusters, the
 unweighted comparison of cluster-level summaries (Hayes & Moulton, 2017,
 pp. 211–215) met the tolerances, so a cluster-level analysis is the
 recommended alternative for risk differences in such designs when
-clustering is strong. The differences were small, and the cluster-level comparison met
+clustering is strong. \code{method = "cluster_summary"} computes it, as the
+study did: the unweighted mean of the cluster proportions in each arm,
+compared with a t interval that uses separate variances and Satterthwaite
+degrees of freedom. With pretesting assigned within clusters, each cluster
+contributes its pretested and unpretested proportions, and treated and
+control clusters are compared. It warns when an arm has fewer than four
+clusters, the minimum Hayes and Moulton (2017, p. 128) recommend. The differences were small, and the cluster-level comparison met
 the tolerances less often across all scenarios (119 of 144), mostly by
 covering more than 96\% of the time with 4 clusters per cell or arm.
 \code{\link[=perm_solomon]{perm_solomon()}} gives a cluster-level randomization test. Clustered count
