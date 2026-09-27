@@ -13,6 +13,13 @@
 #' loadings and intercepts) across groups (Meredith, 1993; Vandenberg &
 #' Lance, 2000). `invariance_post` and `invariance_pre` therefore accept only
 #' `"scalar"`; configural and metric models are rejected with an explanation.
+#' [invariance_solomon()] tests invariance across the four groups. If only
+#' some indicators are noninvariant, `partial_post` and `partial_pre` free
+#' their parameters for a partial-invariance model, which permits latent mean
+#' comparisons when enough indicators remain invariant (Byrne et al., 1989).
+#' Freed parameters must be chosen on substantive grounds before the analysis
+#' and involve only a minority of the indicators (Vandenberg & Lance, 2000,
+#' p. 38).
 #'
 #' Identification: with scalar invariance, the latent POST mean of the
 #' unpretested control group (U0) is fixed at 0 and the other latent means are
@@ -31,6 +38,9 @@
 #' @param invariance_post measurement invariance for POST; must be "scalar"
 #' @param ancova logical; if TRUE, also fit latent ANCOVA in pretested groups
 #' @param invariance_pre measurement invariance for the pretested branch; must be "scalar"
+#' @param partial_post,partial_pre Optional freed parameters of the POST or
+#'   PRE indicators for a partial-invariance model, in lavaan syntax (for
+#'   example, `"post3 ~ 1"`); see [invariance_solomon()].
 #' @param estimator lavaan estimator, default "MLR" (robust)
 #' @param std_lv logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale
 #' @param conf_level confidence level for intervals (default 0.95)
@@ -44,6 +54,11 @@
 #'     \item `fitmeasures_pre` (optional)
 #'   }
 #' @references
+#' Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
+#' equivalence of factor covariance and mean structures: The issue of partial
+#' measurement invariance. *Psychological Bulletin, 105*(3), 456–466.
+#' https://doi.org/10.1037/0033-2909.105.3.456
+#'
 #' Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 #' invariance. *Psychometrika, 58*(4), 525–543.
 #' https://doi.org/10.1007/BF02294825
@@ -67,7 +82,9 @@ fit_solomon_sem_latent <- function(
     invariance_pre = c("scalar","metric","configural"),
     estimator = "MLR",
     std_lv = TRUE,
-    conf_level = 0.95
+    conf_level = 0.95,
+    partial_post = NULL,
+    partial_pre = NULL
 ) {
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
@@ -115,6 +132,8 @@ fit_solomon_sem_latent <- function(
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(data = data, treat = treat, pretested = pretested)
   if (length(post_items) < 2) stop("post_items must have at least 2 indicators for a latent POST factor.")
+  .check_partial(partial_post, post_items)
+  .check_partial(partial_pre, pre_items)
 
   # ------------------ 4-group label as a DATA COLUMN ------------------
   g4 <- interaction(pretested, treat, drop = TRUE)
@@ -148,6 +167,7 @@ fit_solomon_sem_latent <- function(
     estimator     = estimator,
     missing       = "fiml",
     group.equal   = .eq_from_inv(invariance_post),
+    group.partial = if (is.null(partial_post)) "" else partial_post,
     fixed.x       = TRUE
   )
 
@@ -189,6 +209,7 @@ fit_solomon_sem_latent <- function(
       estimator     = estimator,
       missing       = "fiml",
       group.equal   = .eq_from_inv(invariance_pre),
+      group.partial = if (is.null(c(partial_post, partial_pre))) "" else c(partial_post, partial_pre),
       fixed.x       = FALSE
     )
 
@@ -213,6 +234,8 @@ fit_solomon_sem_latent <- function(
       invariance_post = invariance_post,
       ancova = ancova,
       invariance_pre = invariance_pre,
+      partial_post = partial_post,
+      partial_pre = partial_pre,
       std_lv = std_lv,
       conf_level = conf_level
     )

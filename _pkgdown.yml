@@ -44,6 +44,7 @@ reference:
     contents:
       - fit_solomon_sem
       - fit_solomon_sem_latent
+      - invariance_solomon
 
   - title: "Design validation and diagnostics"
     desc: >

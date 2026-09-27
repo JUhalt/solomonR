@@ -1,5 +1,22 @@
 # solomonR (development version)
 
+## Measurement invariance for latent models (#55, second part)
+
+* New `invariance_solomon()` tests measurement invariance of a set of
+  indicators across the four Solomon groups: configural, metric, and scalar
+  models in the sequence Vandenberg and Lance (2000) recommend. At each step
+  it reports the chi-square difference test, scaled for robust estimators
+  (Satorra & Bentler, 2001), and the change in CFI, RMSEA, and SRMR against
+  the cutoffs of Chen (2007). It gives the decision under each criterion.
+  The two criteria can disagree, and the change-in-fit cutoffs are
+  unreliable in small samples, so the function decides nothing for the user.
+  Which criterion should govern latent mean contrasts in Solomon designs is
+  the subject of a simulation study posted on #55.
+* `fit_solomon_sem_latent()` gains `partial_post` and `partial_pre` for
+  partial-invariance models (Byrne et al., 1989). The freed parameters must
+  involve only a minority of the indicators (Vandenberg & Lance, 2000,
+  p. 38), and at least two indicators must stay fully invariant.
+
 ## The 1995 decision flow and alpha allocations (#50, #51)
 
 * `fit_solomon_classic()` and `plot_classic_flow()` gain `flow = "1995"`,

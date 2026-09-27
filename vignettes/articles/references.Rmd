@@ -264,9 +264,23 @@ Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
 variances. *Journal of the American Statistical Association, 69*(346),
 364–367. https://doi.org/10.1080/01621459.1974.10482955
 
+Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
+equivalence of factor covariance and mean structures: The issue of partial
+measurement invariance. *Psychological Bulletin, 105*(3), 456–466.
+https://doi.org/10.1037/0033-2909.105.3.456
+
 Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
 (2nd ed.). Cambridge University Press.
 https://doi.org/10.1017/CBO9781139013567
+
+Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
+measurement invariance. *Structural Equation Modeling: A Multidisciplinary
+Journal, 14*(3), 464–504. https://doi.org/10.1080/10705510701301834
+
+Cheung, G. W., & Rensvold, R. B. (2002). Evaluating goodness-of-fit indexes
+for testing measurement invariance. *Structural Equation Modeling: A
+Multidisciplinary Journal, 9*(2), 233–255.
+https://doi.org/10.1207/S15328007SEM0902_5
 
 Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
 calculation of confidence intervals that are based on central and noncentral
@@ -391,6 +405,10 @@ https://doi.org/10.18637/jss.v048.i02
 
 Rubin, D. B. (1976). Inference and missing data. *Biometrika, 63*(3),
 581–592. https://doi.org/10.1093/biomet/63.3.581
+
+Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square test
+statistic for moment structure analysis. *Psychometrika, 66*(4), 507–514.
+https://doi.org/10.1007/BF02296192
 
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 variance components. *Biometrics Bulletin, 2*(6), 110–114.
