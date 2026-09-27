@@ -24,6 +24,12 @@ reference:
       - stouffer_solomon
       - p_to_z
 
+  - title: "Reporting"
+    desc: >
+      APA 7 results text with the references for the methods used.
+    contents:
+      - report_solomon
+
   - title: "Reanalysis and synthesis"
     desc: >
       Reanalyze published studies from summary statistics and compute effect

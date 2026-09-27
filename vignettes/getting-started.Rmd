@@ -306,7 +306,13 @@ confidence interval, and how sensitization was assessed. For these data:
 > against a prespecified smallest effect of interest of 5 points was
 > inconclusive.
 
-An automated reporting helper is planned for a later release.
+`report_solomon()` drafts such a paragraph, with the APA 7 references for
+exactly the methods the analysis used. What was pre-specified must be
+supplied; the helper never infers it, and the interpretation remains yours:
+
+```{r report}
+report_solomon(fit, design = list(prespecified = TRUE))
+```
 
 ## A second example: when estimators disagree
 

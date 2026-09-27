@@ -1,0 +1,44 @@
+# APA 7 references cited by report_solomon() (issue #52).
+#
+# Generated from vignettes/articles/references.Rmd, the canonical list;
+# tools/check-references.R checks that every entry still matches it.
+# Non-ASCII characters are written as \u escapes, as R code requires.
+
+.solomon_reference_text <- c(
+  solomon1949 = "Solomon, R. L. (1949). An extension of control group design. *Psychological Bulletin, 46*(2), 137\u2013150. https://doi.org/10.1037/h0062958",
+  mackinnon1985 = "MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. *Journal of Econometrics, 29*(3), 305\u2013325. https://doi.org/10.1016/0304-4076(85)90158-7",
+  long2000 = "Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent standard errors in the linear regression model. *The American Statistician, 54*(3), 217\u2013224. https://doi.org/10.1080/00031305.2000.10474549",
+  lin2013 = "Lin, W. (2013). Agnostic notes on regression adjustments to experimental data: Reexamining Freedman's critique. *The Annals of Applied Statistics, 7*(1), 295\u2013318. https://doi.org/10.1214/12-AOAS583",
+  bell2002 = "Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for linear regression with multi-stage samples. *Survey Methodology, 28*(2), 169\u2013181.",
+  pustejovsky2018 = "Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for cluster-robust variance estimation and hypothesis testing in fixed effects models. *Journal of Business & Economic Statistics, 36*(4), 672\u2013683. https://doi.org/10.1080/07350015.2016.1247004",
+  tipton2015 = "Tipton, E. (2015). Small sample adjustments for robust variance estimation with meta-regression. *Psychological Methods, 20*(3), 375\u2013393. https://doi.org/10.1037/met0000011",
+  cameron2013 = "Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data* (2nd ed.). Cambridge University Press. https://doi.org/10.1017/CBO9781139013567",
+  venables2002 = "Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S* (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2",
+  daniel2021 = "Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges: Comparing noncollapsible effect estimators and their standard errors after adjustment for different covariate sets. *Biometrical Journal, 63*(3), 528\u2013557. https://doi.org/10.1002/bimj.201900297",
+  localio2007 = "Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and confidence intervals were easily computed indirectly from multivariable logistic regression. *Journal of Clinical Epidemiology, 60*(9), 874\u2013882. https://doi.org/10.1016/j.jclinepi.2006.12.001",
+  vanengelenburg1999 = "van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group design* (Research Report 99-06). University of Twente.",
+  satterthwaite1946 = "Satterthwaite, F. E. (1946). An approximate distribution of estimates of variance components. *Biometrics Bulletin, 2*(6), 110\u2013114. https://doi.org/10.2307/3002019",
+  welch1947 = "Welch, B. L. (1947). The generalization of \"Student's\" problem when several different population variances are involved. *Biometrika, 34*(1\u20132), 28\u201335. https://doi.org/10.1093/biomet/34.1-2.28",
+  waltonbraver1988 = "Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the Solomon four-group design: A meta-analytic approach. *Psychological Bulletin, 104*(1), 150\u2013154. https://doi.org/10.1037/0033-2909.104.1.150",
+  braver1990 = "Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon four-group designs reconsidered: A reply to Sawilowsky and Markman. *Perceptual and Motor Skills, 71*(1), 321\u2013322. https://doi.org/10.2466/pms.1990.71.1.321",
+  sawilowsky1994 = "Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994). Meta-analysis and the Solomon four-group design. *The Journal of Experimental Education, 62*(4), 361\u2013376. https://doi.org/10.1080/00220973.1994.9944140",
+  huck1973 = "Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design: Appropriate statistical analyses. *The Journal of Experimental Education, 42*(2), 54\u201355. https://doi.org/10.1080/00220973.1973.11011460",
+  mai2020 = "Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of transfer interventions using Solomon four-group designs. *Education Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092",
+  stouffer1949 = "Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams, R. M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol. 1). Princeton University Press.",
+  phipson2010 = "Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be zero: Calculating exact p-values when permutations are randomly drawn. *Statistical Applications in Genetics and Molecular Biology, 9*(1), Article 39. https://doi.org/10.2202/1544-6115.1585",
+  wu2021 = "Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in randomized experiments. *Journal of the American Statistical Association, 116*(536), 1898\u20131913. https://doi.org/10.1080/01621459.2020.1750415",
+  diciccio2017 = "DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for correlation and regression coefficients. *Journal of the American Statistical Association, 112*(519), 1211\u20131220. https://doi.org/10.1080/01621459.2016.1202117",
+  gail1996 = "Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On design considerations and randomization-based inference for community intervention trials. *Statistics in Medicine, 15*(11), 1069\u20131092. https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q",
+  hayes2017 = "Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286",
+  bennett2002 = "Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the analysis of incidence rates in cluster randomized trials. *International Journal of Epidemiology, 31*(4), 839\u2013846. https://doi.org/10.1093/ije/31.4.839",
+  schuirmann1987 = "Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics, 15*(6), 657\u2013680. https://doi.org/10.1007/BF01068419",
+  lakens2017 = "Lakens, D. (2017). Equivalence tests: A practical primer for t tests, correlations, and meta-analyses. *Social Psychological and Personality Science, 8*(4), 355\u2013362. https://doi.org/10.1177/1948550617697177",
+  lakens2018 = "Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing for psychological research: A tutorial. *Advances in Methods and Practices in Psychological Science, 1*(2), 259\u2013269. https://doi.org/10.1177/2515245918770963",
+  elkarkri2025b = "El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025b). Methodological aspects of the Solomon four-group design: Detecting pre-test sensitisation and analysing qualitative and quantitative variables in education research. *Review of Education, 13*(1), Article e70050. https://doi.org/10.1002/rev3.70050",
+  gelman2006 = "Gelman, A., & Stern, H. (2006). The difference between \"significant\" and \"not significant\" is not itself statistically significant. *The American Statistician, 60*(4), 328\u2013331. https://doi.org/10.1198/000313006X152649",
+  morris2008 = "Morris, S. B. (2008). Estimating effect sizes from pretest-posttest-control group designs. *Organizational Research Methods, 11*(2), 364\u2013386. https://doi.org/10.1177/1094428106291059",
+  hedges1981 = "Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect size and related estimators. *Journal of Educational Statistics, 6*(2), 107\u2013128. https://doi.org/10.3102/10769986006002107",
+  rosseel2012 = "Rosseel, Y. (2012). lavaan: An R package for structural equation modeling. *Journal of Statistical Software, 48*(2), 1\u201336. https://doi.org/10.18637/jss.v048.i02",
+  meredith1993 = "Meredith, W. (1993). Measurement invariance, factor analysis and factorial invariance. *Psychometrika, 58*(4), 525\u2013543. https://doi.org/10.1007/BF02294825",
+  vandenberg2000 = "Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the measurement invariance literature: Suggestions, practices, and recommendations for organizational research. *Organizational Research Methods, 3*(1), 4\u201370. https://doi.org/10.1177/109442810031002"
+)

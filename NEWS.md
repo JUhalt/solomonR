@@ -1,5 +1,23 @@
 # solomonR (development version)
 
+## Reporting (#52)
+
+* New `report_solomon()` turns a fitted Solomon analysis into APA 7 results
+  sentences, a design statement, and the APA 7 references for exactly the
+  methods and options the analysis used (for example, CR2 standard errors,
+  the 1990 decision flow, or cluster-level permutation). It supports the
+  fits of `fit_solomon_glm()`, `fit_solomon_ml()`, `fit_solomon_classic()`,
+  `perm_solomon()`, `marginal_solomon()`, `equivalence_solomon()`,
+  `fisher_solomon()`, `solomon_from_summary()`, `fit_solomon_sem()`, and
+  `fit_solomon_sem_latent()`, in plain text or Markdown.
+* The design statement follows the MERIT recommendations (French et al.,
+  2021b): group sizes, attrition by group, whether the sensitization analysis
+  was pre-specified (supplied, never inferred), and the measurement procedure
+  in each group.
+* Every registered reference matches the canonical bibliography, which
+  `tools/check-references.R` now also checks, and a test fails if an
+  exported analysis function has no registered references.
+
 ## SEM fit measures (#55, first part)
 
 * `fit_solomon_sem()` and `fit_solomon_sem_latent()` no longer request

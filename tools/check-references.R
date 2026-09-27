@@ -82,6 +82,17 @@ for (path in md_files) {
   }
 }
 
+# The references report_solomon() cites (R/solomon_report_refs.R).
+registry <- new.env()
+sys.source(file.path("R", "solomon_report_refs.R"), envir = registry)
+for (key in names(registry$.solomon_reference_text)) {
+  entry <- enc2utf8(registry$.solomon_reference_text[[key]])
+  if (!entry %in% canonical) {
+    note("R/solomon_report_refs.R", paste("not in the canonical list:", key))
+  }
+}
+n_checked <- n_checked + length(registry$.solomon_reference_text)
+
 canonical_lines <- readLines(canonical_file, encoding = "UTF-8")
 sections <- split(canonical_lines, cumsum(grepl("^## ", canonical_lines)))
 for (section in sections[-1]) {
