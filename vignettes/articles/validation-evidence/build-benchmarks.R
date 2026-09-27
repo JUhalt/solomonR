@@ -391,6 +391,52 @@ studies <- data.frame(
   stringsAsFactors = FALSE
 )
 
+# ---- Historical Tests A-I: replication of published error rates (#51) --------------
+# Every condition is a complete null, so each rate is a Type I error rate.
+
+hc <- read_study("classic-validation", "performance.csv")
+hc_info <- read_study("classic-validation", "run-information.csv")
+hc_run <- stats::setNames(as.list(hc_info$value), hc_info$item)
+hc_measure <- c(A = "Test A reached and rejects", D = "Test D reached and rejects",
+                E = "Test E reached and rejects", H = "Test H reached and rejects",
+                I = "Test I reached and rejects", any = "any rejection (experiment-wise)",
+                decisive = "Test A, D, or I rejects (1990 amendment)")
+hc_long <- data.frame(
+  study = "historical-tests",
+  scenario = hc$condition,
+  design = sprintf("distribution=%s; n per group=%d; pretest-posttest r=%s", hc$dist, hc$n, hc$r),
+  method = sprintf("fit_solomon_classic(flow = \"%s\"%s), Test I %s", hc$flow,
+                   ifelse(hc$allocation == "none", "", sprintf(", alpha_allocation = \"%s\"", hc$allocation)),
+                   sub("_", "-", hc$criterion)),
+  estimand = unname(hc_measure[hc$measure]),
+  null_effect = TRUE,
+  measure = "rejection_rate",
+  value = signif(hc$rate, 6),
+  mcse = signif(hc$mcse, 6),
+  n_successful = hc$replications - hc$failures,
+  n_failed = hc$failures,
+  note = "",
+  stringsAsFactors = FALSE
+)
+benchmarks <- rbind(benchmarks, hc_long)
+studies <- rbind(studies, data.frame(
+  study = "historical-tests",
+  title = "Historical Tests A-I: replication of published error rates",
+  issues = "#50; #51",
+  protocol = issue(51),
+  article = file.path(site, "classic-validation.html"),
+  scenarios = length(unique(hc$condition)),
+  replications = sprintf("%s per condition", hc_run$replications),
+  methods = "fit_solomon_classic(), 1988, 1990, and 1995 flows and Sawilowsky's (1996) alpha allocations; Test I one-tailed and two-tailed",
+  estimands = "Conditional and experiment-wise Type I error rates of the historical sequence",
+  package_commit = substr(hc_run$commit, 1, 7),
+  r_version = sub("R version ([0-9.]+).*", "\\1", hc_run$R_version),
+  started = sub(" UTC", "", hc_run$started),
+  finished = sub(" UTC", "", hc_run$finished),
+  failed_fits = sum(unique(hc[, c("condition", "failures")])$failures),
+  stringsAsFactors = FALSE
+))
+
 dir.create("validation-evidence", showWarnings = FALSE)
 utils::write.csv(studies, file.path("validation-evidence", "studies.csv"), row.names = FALSE)
 utils::write.csv(benchmarks, file.path("validation-evidence", "benchmarks.csv"), row.names = FALSE)

@@ -15,3 +15,5 @@ articles/count-validation/nb-cache/
 articles/cluster-marginal-validation/cache/
 !articles/classic-validation/*.R
 articles/classic-validation/cache/
+!articles/invariance-validation/*.R
+articles/invariance-validation/cache/

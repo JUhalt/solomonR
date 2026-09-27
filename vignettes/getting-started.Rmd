@@ -15,7 +15,10 @@ This guide is for graduate students and applied researchers who need to
 analyze, interpret, and report a Solomon four-group study. It follows one
 example from checking the data to writing up the results, and it explains
 where each recommendation comes from. For the full origin, assumptions, and
-limitations of every method, see `vignette("solomon-methods")`.
+limitations of every method, see `vignette("solomon-methods")`. If you are
+still deciding whether a Solomon design is right for your study, start with
+the article [Should I Use a Solomon
+Design?](https://juhalt.github.io/solomonR/articles/should-i-use-a-solomon-design.html).
 
 ```{r load}
 library(solomonR)
