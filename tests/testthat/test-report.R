@@ -7,7 +7,7 @@ test_that("every exported analysis function has a registered reference set", {
   # report itself. A new export must be added to the registry or here.
   not_analysis <- c(
     grep("^plot_", exports, value = TRUE),
-    "validate_solomon", "check_solomon_missing", "check_solomon_assumptions",
+    "validate_solomon", "check_solomon_missing", "check_solomon_assumptions", "invariance_solomon",
     "power_solomon", "plan_solomon", "compare_solomon_methods", "p_to_z",
     "report_solomon"
   )

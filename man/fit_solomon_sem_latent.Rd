@@ -15,7 +15,9 @@ fit_solomon_sem_latent(
   invariance_pre = c("scalar", "metric", "configural"),
   estimator = "MLR",
   std_lv = TRUE,
-  conf_level = 0.95
+  conf_level = 0.95,
+  partial_post = NULL,
+  partial_pre = NULL
 )
 }
 \arguments{
@@ -40,6 +42,10 @@ fit_solomon_sem_latent(
 \item{std_lv}{logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
+
+\item{partial_post, partial_pre}{Optional freed parameters of the POST or
+PRE indicators for a partial-invariance model, in lavaan syntax (for
+example, \code{"post3 ~ 1"}); see \code{\link[=invariance_solomon]{invariance_solomon()}}.}
 }
 \value{
 An object of class \code{solomon_sem_latent} with:
@@ -67,6 +73,13 @@ Latent mean contrasts require scalar measurement invariance (equal
 loadings and intercepts) across groups (Meredith, 1993; Vandenberg &
 Lance, 2000). \code{invariance_post} and \code{invariance_pre} therefore accept only
 \code{"scalar"}; configural and metric models are rejected with an explanation.
+\code{\link[=invariance_solomon]{invariance_solomon()}} tests invariance across the four groups. If only
+some indicators are noninvariant, \code{partial_post} and \code{partial_pre} free
+their parameters for a partial-invariance model, which permits latent mean
+comparisons when enough indicators remain invariant (Byrne et al., 1989).
+Freed parameters must be chosen on substantive grounds before the analysis
+and involve only a minority of the indicators (Vandenberg & Lance, 2000,
+p. 38).
 
 Identification: with scalar invariance, the latent POST mean of the
 unpretested control group (U0) is fixed at 0 and the other latent means are
@@ -78,6 +91,11 @@ Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
 }
 \references{
+Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
+equivalence of factor covariance and mean structures: The issue of partial
+measurement invariance. \emph{Psychological Bulletin, 105}(3), 456–466.
+https://doi.org/10.1037/0033-2909.105.3.456
+
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. \emph{Psychometrika, 58}(4), 525–543.
 https://doi.org/10.1007/BF02294825

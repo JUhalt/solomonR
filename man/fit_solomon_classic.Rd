@@ -102,6 +102,32 @@ Sawilowsky et al., 1994) raised concerns about experiment-wise Type I
 error when the procedure is used conditionally. Its presence in this function should not be interpreted
 as a general contemporary recommendation.
 }
+\section{Error rates and the published replication}{
+
+The package's replication of the published Type I error rates (issue
+#51; normal data, 30 per group, 20,000 datasets per condition) found:
+\itemize{
+\item \strong{Tests A to H} reached and rejected at the rates Sawilowsky et al.
+(1994, Table 2) and Sawilowsky (1996, Table 1) report.
+\item \strong{Test I} rejected far more often than published. With its one-tailed
+criterion, the experiment-wise error rates were .151 for the 1988
+sequence and .142 for the 1995 sequence. A two-tailed criterion gave
+.137 and .135. The published rates are .137 and .125. A post hoc
+investigation reproduced the published rates only when the two-sided
+p-values of Tests E and H were converted to z as if one-tailed, a reading
+that differs from Walton Braver and Braver's (1988, p. 152) definition.
+The p-value reported for Test I is one-tailed; their worked example
+reports the two-tailed value (p. 153).
+\item \strong{The alpha allocations}, with Test I as defined here, gave
+experiment-wise error rates of .062, .084, .057, and .084 for
+\code{"method1_conservative"}, \code{"method1_liberal"}, \code{"method2_conservative"},
+and \code{"method2_liberal"}, against Sawilowsky's .054, .072, .057, and .076.
+All four exceed their limits of .055 and .075.
+}
+
+See the article "Historical Tests: Replicating the Published Error Rates".
+}
+
 \section{History and maturation}{
 
 The \code{history} component compares the unpretested control posttest (O6)
