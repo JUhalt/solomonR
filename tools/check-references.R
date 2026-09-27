@@ -6,8 +6,10 @@
 #
 # Reference entries are read from roxygen `@references` blocks in R/ and from
 # "References" sections of the vignettes, articles, and README.Rmd. Entries
-# are compared after collapsing whitespace, so line wrapping does not matter.
-# Exits with status 1 if any entry differs from the canonical list.
+# are compared after collapsing whitespace, so line wrapping does not matter,
+# and after removing the angle brackets of explicit Markdown links such as
+# <https://doi.org/...>, which DOIs containing "::" need in order to render as
+# one link. Exits with status 1 if any entry differs from the canonical list.
 
 # A reference starts with an author, not a blockquote marker or list bullet.
 ref_pattern <- "^[^()>*-][^()]*? \\(\\d{4}[a-z]?(, [^)]*)?\\)\\."
@@ -16,6 +18,7 @@ paragraphs <- function(lines) {
   groups <- cumsum(!nzchar(trimws(lines)))
   paras <- split(trimws(lines), groups)
   paras <- vapply(paras, function(p) paste(p[nzchar(p)], collapse = " "), "")
+  paras <- gsub("<(https?://[^>[:space:]]+)>", "\\1", paras)
   unname(paras[nzchar(paras)])
 }
 
@@ -70,7 +73,8 @@ for (path in md_files) {
   starts <- grep("^#{2,3} References\\s*$", lines)
   for (s in starts) {
     end <- s
-    while (end < length(lines) && !grepl("^(#{1,3} |```|-{3,}\\s*$|<)", lines[end + 1])) {
+    while (end < length(lines) &&
+           !grepl("^(#{1,3} |```|-{3,}\\s*$|<(?!https?://))", lines[end + 1], perl = TRUE)) {
       end <- end + 1
     }
     block <- lines[seq_len(end - s) + s]

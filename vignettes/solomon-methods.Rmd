@@ -159,8 +159,14 @@ that inference (Lin, 2013).
   Studentized statistics make such tests robust when only an average
   effect is hypothesized to be zero (DiCiccio & Romano, 2017; Wu & Ding,
   2021).
-- **Limitations:** the permuted unit must be the randomized unit, so
-  cluster-randomized studies are not supported yet.
+- **Clustered designs:** the permuted unit must be the randomized unit, so
+  for fits with a `cluster` variable whole clusters are permuted. The
+  statistic uses covariate-adjusted cluster-level summaries (Gail et al.,
+  1996; Hayes & Moulton, 2017, ch. 10), and designs with few enough
+  allocations are enumerated exactly.
+- **Limitations:** designs that assign treatment to participants within
+  clusters, and stratified or restricted randomization of clusters, are
+  not supported.
 
 ### Equivalence testing for sensitization
 
@@ -326,6 +332,11 @@ correlation and regression coefficients. *Journal of the American
 Statistical Association, 112*(519), 1211–1220.
 https://doi.org/10.1080/01621459.2016.1202117
 
+Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
+design considerations and randomization-based inference for community
+intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
+<https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
+
 Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 Planned missing data designs in psychological research. *Psychological
 Methods, 11*(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
@@ -340,6 +351,9 @@ Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
 error estimators in OLS regression: An introduction and software
 implementation. *Behavior Research Methods, 39*(4), 709–722.
 https://doi.org/10.3758/BF03192961
+
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd ed.).
+Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
 
 Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
 size and related estimators. *Journal of Educational Statistics, 6*(2),

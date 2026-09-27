@@ -436,9 +436,27 @@ plot_perm(perm)
 
 Randomization inference is justified by the assignment mechanism, not
 merely by a small sample size. If treatment was randomized at the
-cluster level, permutation must likewise occur at the cluster level.
-`perm_solomon()` permutes individuals, so it refuses fits that include a
-clustering variable; use the CR2 tests above for clustered designs.
+cluster level, permutation must likewise occur at the cluster level. For
+fits with a `cluster` variable, `perm_solomon()` permutes whole clusters:
+
+```{r eval=FALSE}
+fit_cl <- fit_solomon_glm(
+  y_post, treat, pretested, y_pre,
+  robust = "CR2",
+  cluster = cluster_id
+)
+
+perm_solomon(fit_cl, contrast = "Treatment | unpretested")
+```
+
+Two assignment mechanisms are supported: whole clusters assigned to the
+four Solomon conditions, and treatment assigned to clusters with
+pretesting assigned to participants within them. The statistic is built
+from covariate-adjusted cluster-level summaries, each cluster counts once,
+and small designs are enumerated exactly (Gail et al., 1996; Hayes &
+Moulton, 2017). Designs that assign treatment to participants within
+clusters are refused. The help page, `?perm_solomon`, gives the details
+and the simulation evidence.
 
 ## A likelihood-based alternative
 
@@ -596,10 +614,18 @@ Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 for linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 169–181.
 
+Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
+design considerations and randomization-based inference for community
+intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
+<https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
+
 Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
 error estimators in OLS regression: An introduction and software
 implementation. *Behavior Research Methods, 39*(4), 709–722.
 https://doi.org/10.3758/BF03192961
+
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd ed.).
+Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
 
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality

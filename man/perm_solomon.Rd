@@ -106,8 +106,27 @@ unequal numbers of clusters and unequal variances.
 When the number of possible allocations is at most \code{reps}, all of them are
 enumerated and the p-value is exact; the smallest attainable p-value is
 then reported. Hayes and Moulton (2017, p. 239) note that at least four
-clusters per arm are needed for a two-sided p below .05. Validity was
-checked by a pre-registered simulation study on issue #19.
+clusters per arm are needed for a two-sided p below .05.
+
+\strong{Simulation evidence.} In the package's pre-registered simulation study
+(issue #19; 96 scenarios, 2,000 replications each):
+\itemize{
+\item Under the sharp null hypothesis, both statistics had Type I errors of at
+most 0.063, consistent with the exactness of randomization tests. With
+four clusters per arm, few allocations exist and the test is
+conservative: the attainable level at .05 is 2/70, about 0.03.
+\item When treatment made treated clusters four times as variable as control
+clusters, so that only the average effect was zero, the studentized
+statistic's Type I error reached 0.065 with equal numbers of treated and
+control clusters, 0.0685 with 15 treated and 47 control clusters per
+pretest condition, and 0.0805 with 4 and 8. The difference statistic
+reached 0.158 with 15 and 47, as Gail et al. (1996) found for unbalanced
+designs. A classed warning (\code{solomonR_unbalanced_clusters_warning}) is
+therefore given whenever treated and control clusters differ in number.
+\item The CR2 tests of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} reached 0.068 with four clusters per
+arm even under the sharp null, where this test is exact, so the
+permutation test is preferred for designs with few clusters.
+}
 }
 \references{
 Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
@@ -123,7 +142,7 @@ https://doi.org/10.1080/01621459.2016.1202117
 Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996).
 On design considerations and randomization-based inference for community
 intervention trials. \emph{Statistics in Medicine, 15}(11), 1069–1092.
-https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11<1069::AID-SIM220>3.0.CO;2-Q
+https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11\%3C1069::AID-SIM220\%3E3.0.CO;2-Q
 
 Hayes, R. J., & Moulton, L. H. (2017). \emph{Cluster randomised trials} (2nd
 ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286

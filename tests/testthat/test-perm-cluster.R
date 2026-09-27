@@ -35,6 +35,15 @@ fit_a <- function(d, ...) {
 
 cluster_means <- function(v, cluster) tapply(v, cluster, mean)
 
+# Most designs below have unequal numbers of treated and control clusters;
+# the warning this gives is tested on its own.
+perm <- function(...) {
+  withCallingHandlers(
+    perm_solomon(...),
+    solomonR_unbalanced_clusters_warning = function(w) invokeRestart("muffleWarning")
+  )
+}
+
 test_that("the studentized cluster statistic is Welch's t on cluster means", {
   d <- make_design_a()
   fit <- fit_a(d)
@@ -46,8 +55,8 @@ test_that("the studentized cluster statistic is Welch's t on cluster means", {
     welch <- stats::t.test(m[arm == 1], m[arm == 0], var.equal = FALSE)
     contrast <- if (p == 1) "Treatment | pretested" else "Treatment | unpretested"
 
-    stud <- perm_solomon(fit, contrast, reps = 99, seed = 1)
-    diff <- perm_solomon(fit, contrast, reps = 99, seed = 1, statistic = "difference")
+    stud <- perm(fit, contrast, reps = 99, seed = 1)
+    diff <- perm(fit, contrast, reps = 99, seed = 1, statistic = "difference")
 
     expect_equal(stud$z_obs, unname(welch$statistic), tolerance = 1e-10)
     expect_equal(stud$estimate, mean(m[arm == 1]) - mean(m[arm == 0]), tolerance = 1e-10)
@@ -70,8 +79,8 @@ test_that("combined contrasts use the separate-variances standard error", {
     )
   })
 
-  ate <- perm_solomon(fit, "ATE (avg over pretest)", reps = 99, seed = 1)
-  ptx <- perm_solomon(fit, "Pretest x Treatment", reps = 99, seed = 1)
+  ate <- perm(fit, "ATE (avg over pretest)", reps = 99, seed = 1)
+  ptx <- perm(fit, "Pretest x Treatment", reps = 99, seed = 1)
 
   expect_equal(ate$estimate, (parts[[1]][["diff"]] + parts[[2]][["diff"]]) / 2, tolerance = 1e-10)
   expect_equal(
@@ -96,7 +105,7 @@ test_that("Stage 1 residuals adjust for the pretest score (Hayes & Moulton, 2017
   arm <- tapply(d$treat, d$cluster, `[`, 1)[names(r)]
   pre <- tapply(d$pretested, d$cluster, `[`, 1)[names(r)]
 
-  res <- perm_solomon(fit, "Treatment | pretested", reps = 99, seed = 1)
+  res <- perm(fit, "Treatment | pretested", reps = 99, seed = 1)
 
   expect_equal(
     res$estimate,
@@ -120,7 +129,7 @@ test_that("count residuals are divided by cluster exposure", {
   arm <- tapply(d$treat, d$cluster, `[`, 1)[names(score)]
   pre <- tapply(d$pretested, d$cluster, `[`, 1)[names(score)]
 
-  res <- perm_solomon(fit, "Treatment | unpretested", reps = 99, seed = 1)
+  res <- perm(fit, "Treatment | unpretested", reps = 99, seed = 1)
 
   expect_equal(
     res$estimate,
@@ -140,7 +149,7 @@ test_that("pretesting within clusters gives one score per cluster", {
   # which cancels from every contrast.
   welch <- stats::t.test((m1 - m0)[arm == 1], (m1 - m0)[arm == 0], var.equal = FALSE)
 
-  res <- perm_solomon(fit, "Pretest x Treatment", reps = 5000)
+  res <- perm(fit, "Pretest x Treatment", reps = 5000)
 
   expect_equal(res$z_obs, unname(welch$statistic), tolerance = 1e-10)
   expect_match(res$design, "pretesting within clusters")
@@ -151,7 +160,7 @@ test_that("pretesting within clusters gives one score per cluster", {
 test_that("small designs are enumerated exactly", {
   d <- make_design_b(n_treated = 3, n_control = 3)
   fit <- fit_a(d)
-  res <- perm_solomon(fit, "Treatment | unpretested", reps = 5000, return_dist = TRUE)
+  res <- perm(fit, "Treatment | unpretested", reps = 5000, return_dist = TRUE)
 
   u <- d[d$pretested == 0, ]
   m0 <- tapply(u$y, u$cluster, mean)
@@ -175,7 +184,7 @@ test_that("small designs are enumerated exactly", {
 test_that("large designs are sampled with the +1 correction", {
   d <- make_design_a(per_cell = c(6, 6, 8, 8))
   fit <- fit_a(d)
-  res <- perm_solomon(fit, "ATE (avg over pretest)", reps = 199, seed = 2)
+  res <- perm(fit, "ATE (avg over pretest)", reps = 199, seed = 2)
 
   expect_false(res$exact)
   expect_true(is.na(res$min_p))
@@ -190,10 +199,10 @@ test_that("cluster permutations are reproducible and restore the RNG state", {
 
   set.seed(123)
   before <- .Random.seed
-  a <- perm_solomon(fit, reps = 99, seed = 4, return_dist = TRUE)
+  a <- perm(fit, reps = 99, seed = 4, return_dist = TRUE)
   expect_identical(.Random.seed, before)
 
-  b <- perm_solomon(fit, reps = 99, seed = 4, return_dist = TRUE)
+  b <- perm(fit, reps = 99, seed = 4, return_dist = TRUE)
   expect_identical(a$z_perm, b$z_perm)
   expect_identical(a$p_perm, b$p_perm)
 })
@@ -206,23 +215,23 @@ test_that("unsupported clustered designs are refused", {
   fit_mixed <- suppressWarnings(fit_solomon_glm(
     mixed$y, mixed$treat, mixed$pretested, cluster = mixed$cluster
   ))
-  expect_error(perm_solomon(fit_mixed, reps = 10), "Treatment varies within 1 cluster")
+  expect_error(perm(fit_mixed, reps = 10), "Treatment varies within 1 cluster")
 
   b <- make_design_b()
   b$pretested[b$cluster == "k1"] <- 1
   fit_b <- fit_a(b)
-  expect_error(perm_solomon(fit_b, reps = 10), "only pretested or only unpretested")
+  expect_error(perm(fit_b, reps = 10), "only pretested or only unpretested")
 
   one <- make_design_a(per_cell = c(1, 4, 4, 4))
   fit_one <- suppressWarnings(fit_solomon_glm(
     one$y, one$treat, one$pretested, cluster = one$cluster
   ))
   expect_error(
-    perm_solomon(fit_one, "Treatment | pretested", reps = 10),
+    perm(fit_one, "Treatment | pretested", reps = 10),
     "at least 2 treated and 2 control"
   )
   expect_no_error(
-    perm_solomon(fit_one, "Treatment | unpretested", reps = 10, seed = 1)
+    perm(fit_one, "Treatment | unpretested", reps = 10, seed = 1)
   )
 })
 
@@ -234,11 +243,40 @@ test_that("statistic = 'difference' gives the contrast for unclustered fits", {
   y <- 0.5 * treat + stats::rnorm(n)
   fit <- fit_solomon_glm(y, treat, pretested)
 
-  res <- perm_solomon(fit, "Treatment | unpretested", reps = 49, seed = 1,
+  res <- perm(fit, "Treatment | unpretested", reps = 49, seed = 1,
                       statistic = "difference")
 
   expect_equal(res$z_obs, unname(stats::coef(fit$model)["treat"]))
   expect_equal(res$estimate, res$z_obs)
   expect_identical(res$level, "participant")
   expect_output(print(res), "the contrast itself")
+})
+
+
+test_that("unequal numbers of treated and control clusters give a classed warning", {
+  d <- make_design_a(per_cell = c(4, 4, 8, 8))
+  fit <- fit_a(d)
+
+  expect_warning(
+    perm_solomon(fit, "Treatment | pretested", reps = 99, seed = 1),
+    class = "solomonR_unbalanced_clusters_warning"
+  )
+  expect_warning(
+    perm_solomon(fit, "Treatment | pretested", reps = 99, seed = 1),
+    "pretested: 4 treated and 8 control"
+  )
+  expect_warning(
+    perm_solomon(fit, "Treatment | pretested", reps = 99, seed = 1, statistic = "difference"),
+    "more robust"
+  )
+
+  b <- make_design_b(n_treated = 3, n_control = 5)
+  expect_warning(
+    perm_solomon(fit_a(b), reps = 99, seed = 1),
+    "(3 treated and 5 control)",
+    fixed = TRUE
+  )
+
+  balanced <- fit_a(make_design_a(per_cell = c(4, 4, 4, 4)))
+  expect_no_warning(perm_solomon(balanced, reps = 99, seed = 1))
 })
