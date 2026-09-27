@@ -11,8 +11,10 @@
   `"nonrandom"`). For nonrandomized designs, results speak of differences
   between groups rather than treatment effects, and the design statement
   names the threats that random assignment would otherwise control, following
-  Edmonds and Kennedy (2017, pp. 7–8, 94). Baseline comparisons are reported
-  too.
+  Edmonds and Kennedy (2017, pp. 7–8, 94). It adds that the unpretested
+  arms have no baseline and, without random assignment, form a static-group
+  comparison whose groups cannot be shown equivalent (Campbell & Stanley,
+  1963/1966, pp. 12, 25). Baseline comparisons are reported too.
 * `elkarkri2025a` gains the pretest means and standard deviations of the two
   pretested classes (El Karkri et al., 2025a, Table 7, p. 10), which differed
   at pretest.

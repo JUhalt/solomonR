@@ -39,9 +39,13 @@ published 1963)
 > scores, followed by ANCOVA of the pretested groups when the effects of
 > pretesting are negligible (p. 25). Comparing the unpretested control
 > posttest with the pretests estimates the combined effect of maturation and
-> history (p. 25). Page numbers refer to the 1966 book. *In solomonR:* Tests
-> A–D and the history check of `fit_solomon_classic()`;
-> `plot_solomon_design()`.
+> history (p. 25). Without randomization, a comparison of groups measured
+> only after the treatment is a static-group comparison, whose groups cannot
+> be certified equivalent (p. 12). Page numbers refer to the 1966 book. *In
+> solomonR:* Tests A–D and the history check of `fit_solomon_classic()`;
+> `plot_solomon_design()`; the caveat on the unpretested arms of
+> nonrandomized designs in `baseline_solomon()` and `report_solomon()`
+> ([#58](https://github.com/JUhalt/solomonR/issues/58)).
 
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE

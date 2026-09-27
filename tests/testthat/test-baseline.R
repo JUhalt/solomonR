@@ -43,6 +43,8 @@ test_that("reports for nonrandomized designs speak of differences and name the t
   expect_true(any(grepl("treatment-control difference", nonrandom$results)))
   expect_true(any(grepl("Selection bias", nonrandom$design)))
   expect_true(any(startsWith(nonrandom$references, "Edmonds")))
+  expect_true(any(startsWith(nonrandom$references, "Campbell")))
+  expect_true(any(grepl("static-group comparison", nonrandom$design)))
   expect_true(any(grepl("treatment effect", random$results)))
   expect_true(any(grepl("randomly assigned", random$design)))
   expect_false(any(startsWith(random$references, "Edmonds")))

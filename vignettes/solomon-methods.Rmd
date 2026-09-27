@@ -217,7 +217,7 @@ descriptions rather than gates.
 
 ### Nonrandomized Solomon designs
 
-**Label:** contemporary recommendation, with a solomonR observation.
+**Label:** contemporary recommendation.
 
 Solomon designs are often run with intact groups, as in El Karkri et al.
 (2025a), who assigned one class to each condition. Without random
@@ -230,10 +230,14 @@ Solomon designs (p. 94).
 - **Baseline in the pretested arms.** `baseline_solomon()` compares the
   pretested groups' pretests. In El Karkri et al. (2025a, p. 10), the
   pretested classes already differed at baseline, 9.61 against 7.86.
-- **No baseline in the unpretested arms.** This is solomonR's observation
-  about the design: the unpretested arms have no pretest by design, so
-  selection bias in their comparison, which isolates pretest sensitization,
-  cannot be checked or adjusted for with the study's own data.
+- **No baseline in the unpretested arms.** The unpretested arms form the
+  posttest-only control group design, which relies on randomization rather
+  than a pretest for the equivalence of its groups (Campbell & Stanley,
+  1963/1966, p. 25). Without random assignment they form a static-group
+  comparison, for which there are "no formal means of certifying that the
+  groups would have been equivalent" (p. 12). Selection bias in their
+  comparison, which isolates pretest sensitization, therefore cannot be
+  checked or adjusted for with the study's own data.
 - **Reporting.** `report_solomon(fit, design = list(assignment =
   "nonrandom"))` describes differences rather than effects and names these
   threats.

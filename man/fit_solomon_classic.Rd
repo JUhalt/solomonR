@@ -155,7 +155,7 @@ transfer interventions using Solomon four-group designs. \emph{Education
 Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
 
 Sawilowsky, S. S. (1996, June 23). \emph{Controlling experiment-wise Type I error
-of meta-analysis in the Solomon four-group design} \link{Paper presentation}.
+of meta-analysis in the Solomon four-group design} [Paper presentation].
 First International Conference on Multiple Comparisons, Tel Aviv, Israel.
 http://digitalcommons.wayne.edu/coe_tbf/29
 

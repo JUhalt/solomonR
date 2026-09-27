@@ -11,15 +11,18 @@
 #' Kelley, 2007). No equivalence threshold is applied; the estimate and its
 #' interval are reported for the reader to judge.
 #'
-#' **What the design cannot check.** The unpretested arms have no pretest by
-#' design, so their baseline equivalence cannot be checked, or adjusted for,
-#' with the study's own data. Without random assignment, selection bias in the
+#' **What the design cannot check.** The unpretested arms form the
+#' posttest-only control group design, which relies on randomization rather
+#' than a pretest for the equivalence of its groups (Campbell & Stanley,
+#' 1963/1966, p. 25). Without random assignment they form a static-group
+#' comparison, for which there are "no formal means of certifying that the
+#' groups would have been equivalent" (p. 12). Selection bias in the
 #' unpretested comparison, which is the comparison that isolates pretest
-#' sensitization, therefore remains unaddressed. This reasoning is solomonR's
-#' own; Edmonds and Kennedy (2017) identify selection bias as the largest
-#' threat to internal validity in quasi-experimental research (p. 7) and,
-#' with instrumentation, as the threat most common in quasi-experimental
-#' Solomon designs (p. 94).
+#' sensitization, therefore cannot be checked or adjusted for with the
+#' study's own data. Edmonds and Kennedy (2017) identify selection bias as
+#' the largest threat to internal validity in quasi-experimental research
+#' (p. 7) and, with instrumentation, as the threat most common in
+#' quasi-experimental Solomon designs (p. 94).
 #'
 #' @param y_pre,treat,pretested Individual data: pretest scores, treatment
 #'   indicator, and pretest indicator. Only pretested participants with a
@@ -33,6 +36,10 @@
 #'   interval.
 #'
 #' @references
+#' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+#' quasi-experimental designs for research*. Rand McNally. (Original work
+#' published 1963)
+#'
 #' Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
 #' calculation of confidence intervals that are based on central and noncentral
 #' distributions. *Educational and Psychological Measurement, 61*(4), 532–574.

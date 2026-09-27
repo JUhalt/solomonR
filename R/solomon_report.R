@@ -509,7 +509,8 @@
       "instrumentation are the threats most relevant to a nonrandomized Solomon design",
       "(Edmonds & Kennedy, 2017). Baseline differences can be examined only in the",
       "pretested arms; the unpretested arms, whose comparison isolates pretest",
-      "sensitization, have no baseline."
+      "sensitization, have no baseline and form a static-group comparison, whose",
+      "groups cannot be shown to have been equivalent (Campbell & Stanley, 1963/1966)."
     ))
   }
   if (!is.null(design$prespecified)) {
@@ -571,8 +572,10 @@
 #' p. 7), and instrumentation, which with selection bias Edmonds and Kennedy
 #' name as the threats most common in quasi-experimental Solomon designs
 #' (p. 94). It adds that baseline differences can be examined only in the
-#' pretested arms ([baseline_solomon()]); that last point is solomonR's own
-#' reasoning about the design.
+#' pretested arms ([baseline_solomon()]): without random assignment the
+#' unpretested arms form a static-group comparison, whose groups cannot be
+#' shown to have been equivalent (Campbell & Stanley, 1963/1966, pp. 12,
+#' 25).
 #'
 #' **What the report does not decide.** It states results; it does not
 #' interpret them. Whether the analysis was pre-specified must be supplied,
@@ -596,6 +599,10 @@
 #'   `references` (APA 7 reference entries, in APA order).
 #'
 #' @references
+#' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+#' quasi-experimental designs for research*. Rand McNally. (Original work
+#' published 1963)
+#'
 #' Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 #' designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
 #' Publications. https://doi.org/10.4135/9781071802779
@@ -627,7 +634,7 @@ report_solomon <- function(fit, design = NULL, digits = 2, format = c("text", "m
     # not treatment effects.
     parts$results <- .nonrandom_wording(parts$results)
     parts$method <- .nonrandom_wording(parts$method)
-    parts$refs <- c(parts$refs, "edmonds2017")
+    parts$refs <- c(parts$refs, "campbell1966", "edmonds2017")
   }
   keys <- unique(c("solomon1949", parts$refs))
   refs <- .apa_sort(unname(.solomon_reference_text[keys]))

@@ -58,8 +58,10 @@ internal validity in quasi-experimental research (Edmonds & Kennedy, 2017,
 p. 7), and instrumentation, which with selection bias Edmonds and Kennedy
 name as the threats most common in quasi-experimental Solomon designs
 (p. 94). It adds that baseline differences can be examined only in the
-pretested arms (\code{\link[=baseline_solomon]{baseline_solomon()}}); that last point is solomonR's own
-reasoning about the design.
+pretested arms (\code{\link[=baseline_solomon]{baseline_solomon()}}): without random assignment the
+unpretested arms form a static-group comparison, whose groups cannot be
+shown to have been equivalent (Campbell & Stanley, 1963/1966, pp. 12,
+25).
 
 \strong{What the report does not decide.} It states results; it does not
 interpret them. Whether the analysis was pre-specified must be supplied,
@@ -72,6 +74,10 @@ report_solomon(fit, design = list(prespecified = TRUE))
 
 }
 \references{
+Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
+quasi-experimental designs for research}. Rand McNally. (Original work
+published 1963)
+
 Edmonds, W. A., & Kennedy, T. D. (2017). \emph{An applied guide to research
 designs: Quantitative, qualitative, and mixed methods} (2nd ed.). SAGE
 Publications. https://doi.org/10.4135/9781071802779
