@@ -142,6 +142,9 @@ run_scenario <- function(s, reps, pkg_dir, allocations, cache_dir) {
 }
 
 started <- Sys.time()
+# Recorded at the start, so commits made while the run is in progress are not
+# attributed to it.
+commit <- tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) NA_character_)
 cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
 # Largest designs first, one scenario per task, so the long scenarios do not
@@ -160,7 +163,7 @@ utils::write.csv(performance, file.path(out_dir, "performance.csv"), row.names =
 info <- data.frame(
   item = c("commit", "started", "finished", "replications", "R_version", "platform", "workers"),
   value = c(
-    tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) NA_character_),
+    commit,
     format(started, tz = "UTC", usetz = TRUE), format(Sys.time(), tz = "UTC", usetz = TRUE),
     reps, R.version.string, R.version$platform, length(cl)
   )
