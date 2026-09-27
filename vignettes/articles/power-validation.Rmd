@@ -75,7 +75,11 @@ The grid crosses:
 
 **Methods.** The three procedures `power_solomon()` reports: the unified GLM
 with HC3 standard errors and t reference distributions, the 2x2 ANOVA
-interaction, and the historical one-tailed Test I (Walton Braver & Braver, 1988).
+interaction, and the historical Test I (Walton Braver & Braver, 1988). When
+this study ran, Test I was judged one-tailed. Since then, `power_solomon()`
+uses the two-tailed p of the combined z, as in Walton Braver and Braver's
+worked example (1988, p. 153). The Test I rows below are those of the
+one-tailed version.
 
 **Analytic benchmarks.** Normal-theory rejection probabilities computed from
 the design: a two-sample t test for the unpretested contrast, an ANCOVA

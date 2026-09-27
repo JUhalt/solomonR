@@ -217,7 +217,13 @@
 #' unweighted comparison of cluster-level summaries (Hayes & Moulton, 2017,
 #' pp. 211–215) met the tolerances, so a cluster-level analysis is the
 #' recommended alternative for risk differences in such designs when
-#' clustering is strong. The differences were small, and the cluster-level comparison met
+#' clustering is strong. `method = "cluster_summary"` computes it, as the
+#' study did: the unweighted mean of the cluster proportions in each arm,
+#' compared with a t interval that uses separate variances and Satterthwaite
+#' degrees of freedom. With pretesting assigned within clusters, each cluster
+#' contributes its pretested and unpretested proportions, and treated and
+#' control clusters are compared. It warns when an arm has fewer than four
+#' clusters, the minimum Hayes and Moulton (2017, p. 128) recommend. The differences were small, and the cluster-level comparison met
 #' the tolerances less often across all scenarios (119 of 144), mostly by
 #' covering more than 96% of the time with 4 clusters per cell or arm.
 #' [perm_solomon()] gives a cluster-level randomization test. Clustered count
@@ -236,8 +242,10 @@
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
 #'   outcomes, `"odds_ratio"`. For count outcomes the default is
 #'   `c("difference", "ratio")`.
-#' @param method `"bootstrap"` (default for binary outcomes) or `"delta"`
-#'   (the only method for count outcomes).
+#' @param method `"bootstrap"` (default for binary outcomes), `"delta"`
+#'   (the only method for count outcomes, and the default for clustered
+#'   fits), or `"cluster_summary"` (clustered binary fits, risk differences
+#'   only; see Clustered fits).
 #' @param R Number of bootstrap resamples (at least 99). Default 999.
 #' @param seed Optional integer seed for the bootstrap. The global random number
 #'   state is restored afterwards.
@@ -302,8 +310,8 @@
 #'
 #' @export
 marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio"),
-                             method = c("bootstrap", "delta"), R = 999, seed = NULL,
-                             conf_level = fit$conf_level) {
+                             method = c("bootstrap", "delta", "cluster_summary"), R = 999,
+                             seed = NULL, conf_level = fit$conf_level) {
 
   if (!inherits(fit, "solomon_glm")) {
     stop("`fit` must come from fit_solomon_glm().", call. = FALSE)
@@ -324,10 +332,23 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
          "log rate-ratio contrasts of fit_solomon_glm(robust = \"CR2\") and ",
          "perm_solomon() account for clustering.", call. = FALSE)
   }
+  if (!method_missing && identical(match.arg(method), "cluster_summary")) {
+    if (!cr2 || !binary) {
+      stop("method = \"cluster_summary\" needs a binary fit with robust = \"CR2\" ",
+           "and its clusters.", call. = FALSE)
+    }
+    if (!missing(scale) && !identical(unique(scale), "difference")) {
+      stop("Cluster-level summaries give risk differences only; use scale = \"difference\".",
+           call. = FALSE)
+    }
+    .check_conf_level(conf_level)
+    return(.marginal_cluster_summary(fit, conf_level))
+  }
   if (cr2) {
     if (!method_missing && identical(match.arg(method), "bootstrap")) {
-      stop("For clustered (CR2) fits only method = \"delta\" is offered; the ",
-           "bootstrap resamples participants, not clusters.", call. = FALSE)
+      stop("For clustered (CR2) fits the bootstrap is not offered; it resamples ",
+           "participants, not clusters. Use method = \"delta\" or \"cluster_summary\".",
+           call. = FALSE)
     }
     method <- "delta"
   }
@@ -526,6 +547,11 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
   cat(if (x$method == "bootstrap") {
     sprintf("%s%% percentile intervals from %d cell-stratified bootstrap resamples (%d failed).\n",
             format(100 * x$conf_level), x$R, x$failures)
+  } else if (x$method == "cluster_summary") {
+    sprintf(paste0("%s%% t intervals from unweighted cluster-level summaries, separate variances ",
+                   "(Hayes & Moulton, 2017); design: %s; clusters: %s.\n"),
+            format(100 * x$conf_level), x$design,
+            paste(names(x$clusters), x$clusters, sep = " = ", collapse = ", "))
   } else {
     sprintf("%s%% delta-method intervals (%s covariance).\n", format(100 * x$conf_level), x$vcov)
   })

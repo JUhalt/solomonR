@@ -73,9 +73,11 @@ with each flow and allocation, and its path had to match; all
 checks matched. Test I, the Stouffer combination, was judged by two
 criteria:
 
-- the package's one-tailed p of the combined z;
+- the one-tailed p of the combined z, which the package used when the
+  study ran;
 - the two-tailed p that Walton Braver and Braver report in their worked
-  example (1988, p. 153: z = 2.05, p = .040).
+  example (1988, p. 153: z = 2.05, p = .040), which the package uses now
+  (see the decisions below).
 
 **Agreement.** A replicated rate agrees with a published one if they differ
 by at most two standard errors of the difference. That standard error
@@ -142,8 +144,9 @@ caption = "Rate at which Test I is reached and rejects, normal data, 30 per grou
 Test I agreed with the published value in
 `r count(one$agree[one$measure == "I"])` comparisons under the one-tailed
 criterion and `r count(two$agree[two$measure == "I"])` under the two-tailed
-criterion. Under the protocol's decision rule 2, neither criterion is
-supported by the published rates, so the package's Test I is unchanged.
+criterion. Under the protocol's decision rule 2, the published rates
+support neither criterion, so the rule does not decide it (see the
+decisions below).
 
 **Investigation (post hoc).** The disagreement was investigated after the
 run. The investigation was not part of the protocol. A separate
@@ -202,10 +205,10 @@ is not a safe analysis.
 
 Across pretest–posttest correlations and group sizes (Sets 2 and 3), the
 1995 sequence's error rate ranged from
-`r num(min(p$rate[p$set %in% c(2, 3) & p$flow == "1995" & p$allocation == "none" & p$measure == "any" & p$criterion == "one_tailed"]))`
+`r num(min(p$rate[p$set %in% c(2, 3) & p$flow == "1995" & p$allocation == "none" & p$measure == "any" & p$criterion == "two_tailed"]))`
 to
-`r num(max(p$rate[p$set %in% c(2, 3) & p$flow == "1995" & p$allocation == "none" & p$measure == "any" & p$criterion == "one_tailed"]))`
-with the package's criterion. The published values from Sawilowsky's (1996)
+`r num(max(p$rate[p$set %in% c(2, 3) & p$flow == "1995" & p$allocation == "none" & p$measure == "any" & p$criterion == "two_tailed"]))`
+with the two-tailed criterion. The published values from Sawilowsky's (1996)
 Table 3 agreed in
 `r count(one$agree[one$table == "Table 3"])` comparisons. Those values are
 totals that include Test I.
@@ -229,12 +232,12 @@ tab <- data.frame(
 )
 knitr::kable(tab, row.names = FALSE, align = "lrrrr",
              caption = "Experiment-wise error rate under each allocation, normal data, 30 per group.")
-exceed <- sum(sapply(seq_along(al), function(i) rate_of("1995", "any", alloc = al[i]) > limit[i]))
+exceed <- sum(sapply(seq_along(al), function(i) rate_of("1995", "any", "two_tailed", alloc = al[i]) > limit[i]))
 ```
 
 The allocations reproduce the published rates only under the reading of
 Test I described above. With Test I as defined, `r exceed` of the 4
-allocations exceed their limit under the package's criterion. As the
+allocations exceed their limit under the two-tailed criterion. As the
 protocol's decision rule 3 requires, `fit_solomon_classic()` implements
 Sawilowsky's published levels, and its help page reports these replicated
 rates next to his.
@@ -261,11 +264,13 @@ definitive, a significant Test A, Test D, or Test I declared an effect in
    - The published Test A rates for uniform and gamma data, and the rates
      of the tests that follow them, remain unexplained.
 2. **Test I criterion.** Neither criterion reproduces the published Test I
-   rates, so the package's one-tailed criterion is kept and this
-   disagreement is reported. Walton Braver and Braver's worked example
-   reports a two-tailed p (1988, p. 153). Which criterion the package should
-   use is left to the maintainer. The replicated error rates above are
-   given under both.
+   rates, so rule 2 did not decide between them, and the question went to
+   the maintainer. The maintainer's decision was to follow the literature.
+   Walton Braver and Braver's worked example reports the two-tailed p of the
+   combined z (1988, p. 153), so `fit_solomon_classic()` and
+   `power_solomon()` now judge Test I by it. The one-tailed value is still
+   returned. The replicated error rates above are given under both
+   criteria.
 3. **Allocations.** The option implements the published levels. The help
    page reports the replicated rates and that `r exceed` of the 4 exceed
    their limits with Test I as defined.

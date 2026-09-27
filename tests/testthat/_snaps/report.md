@@ -66,8 +66,8 @@
       57) = 0.59, p = .444.
       The posttest-only treatment effect (Test H) was 3.63, t(58) = 1.66, p = .103.
       Test I, the Stouffer combination (Stouffer et al., 1949; Walton Braver &
-      Braver, 1988), gave z = 1.69, one-tailed p = .045. The experiment-wise Type I
-      error of this sequence exceeds its nominal level (Sawilowsky et al., 1994).
+      Braver, 1988), gave z = 1.69, p = .090. The experiment-wise Type I error of
+      this sequence exceeds its nominal level (Sawilowsky et al., 1994).
       The 1990 sequence ended at Test I, which the 1990 amendment regards as the
       most definitive test.
       In the history/maturation check (Campbell & Stanley, 1963/1966; Mai et al.,

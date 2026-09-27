@@ -246,7 +246,7 @@ print.solomon_classic <- function(x, digits = 3, ...) {
 
     cat(
       sprintf(
-        "%s Test I: %-45s Z = %.2f, p(one-tailed) = %s [%s]\n",
+        "%s Test I: %-45s Z = %.2f, p = %s [%s]\n",
         i_marker,
         x$tests$I$label,
         ii$z,
