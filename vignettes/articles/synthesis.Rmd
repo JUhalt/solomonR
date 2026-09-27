@@ -34,7 +34,8 @@ pretesting agree just as closely.
 
 The reanalysis adds what the published tests do not show: the simple
 treatment effects with confidence intervals. In this study, the treatment
-effect is clear in the pretested classes and absent in the unpretested ones.
+effect is clear in the pretested classes, and in the unpretested classes it
+is small and its interval includes zero.
 
 Summary statistics limit the reanalysis:
 - **Variances.** The pooled error variance assumes equal variances in the

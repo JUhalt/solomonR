@@ -300,7 +300,9 @@ This detail matters. A directional one-tailed p-value is not obtained
 correctly by mechanically dividing every two-sided p-value by two
 without considering the sign of the effect. The package's replication of
 the published error rates found that the published simulations appear to
-have combined the tests without regard to sign. That is why they report
+have combined the tests without regard to sign. `solomonR` refers the
+combined z to its two-tailed p-value, as Walton Braver and Braver report it
+in their worked example (1988, p. 153). That is why they report
 far fewer Test I rejections than the procedure as defined produces (see
 [Historical Tests: Replicating the Published Error
 Rates](https://juhalt.github.io/solomonR/articles/classic-validation.html)).
@@ -383,9 +385,11 @@ of earlier tests changes the operating characteristics of the overall
 procedure. Sawilowsky et al. (1994) found that the 1988 sequence falsely
 declared an effect about 14% of the time at a nominal 5% per test.
 
-The package's own replication found the sequence as defined somewhat
-worse: 14% to 15% for both the 1988 and 1995 versions. Even Sawilowsky's
-(1996) alpha allocations stayed above their targets.
+The package's own replication found similar rates for the sequence as
+Walton Braver and Braver define it. With Test I judged two-tailed, as in
+their worked example, the rate was 13.5% to 13.7% for the 1988 and 1995
+versions, and Sawilowsky's (1996) alpha allocations stayed above their
+targets.
 
 For contemporary applied work, researchers should therefore consider a
 single prespecified model or a randomization-based analysis rather than
