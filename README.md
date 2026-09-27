@@ -553,8 +553,9 @@ citation("solomonR")
 
 ## References
 
-Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
-quasi-experimental designs for research*. Rand McNally.
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
 
 Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D.
 (1996). On design considerations and randomization-based inference for

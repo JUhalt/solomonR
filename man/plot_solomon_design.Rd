@@ -22,7 +22,7 @@ A ggplot object.
 }
 \description{
 Draws the Solomon (1949) four-group design in the notation of Campbell and
-Stanley (1963): each row is a randomized group (R), O marks an observation
+Stanley (1963/1966, p. 6): each row is a randomized group (R), O marks an observation
 (pretest or posttest), and X marks the treatment. Groups 1 and 2 are
 pretested; Groups 3 and 4 are not, by design, so their missing pretest is
 part of the experiment rather than missing data.
@@ -40,8 +40,9 @@ with(solomon_example, plot_solomon_design(y_post, treat, pretested))
 
 }
 \references{
-Campbell, D. T., & Stanley, J. C. (1963). \emph{Experimental and
-quasi-experimental designs for research}. Rand McNally.
+Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
+quasi-experimental designs for research}. Rand McNally. (Original work
+published 1963)
 
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958

@@ -100,7 +100,7 @@ with(
 )
 ```
 
-A schematic of the design, in the notation of Campbell and Stanley (1963),
+A schematic of the design, in the notation of Campbell and Stanley (1963/1966),
 shows each group's size and posttest mean, and flags any group that is empty
 or too small to estimate its variability:
 
@@ -112,7 +112,7 @@ with(solomon_example, plot_solomon_design(y_post, treat, pretested))
 
 Early treatments of the design analyzed posttest scores with a two-by-two
 analysis of variance and moved on to further tests depending on which
-earlier tests were significant (Campbell & Stanley, 1963; Huck & Sandler,
+earlier tests were significant (Campbell & Stanley, 1963/1966, p. 25; Huck & Sandler,
 1973). Walton Braver and Braver (1988) added a meta-analytic combination, Test I.
 `fit_solomon_classic()` reproduces this sequence and marks the tests the
 historical path reaches with `[PATH]`.
@@ -365,8 +365,9 @@ adjusts for the pretest rather than analyzing gains.
 **Historical sources**
 
 - Solomon (1949) introduced the design and the problem it solves.
-- Campbell and Stanley (1963) placed it among the true experimental designs
-  and described the posttest analysis of variance followed by ANCOVA.
+- Campbell and Stanley (1963/1966, pp. 13, 24–25) placed it among the true
+  experimental designs and described the posttest analysis of variance
+  followed by ANCOVA.
 - Huck and Sandler (1973) discussed appropriate analyses for the design.
 - Walton Braver and Braver (1988) proposed combining the pretested and unpretested
   comparisons with Stouffer's method (Test I).
@@ -392,8 +393,9 @@ adjusts for the pretest rather than analyzing gains.
 
 ## References
 
-Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
-quasi-experimental designs for research*. Rand McNally.
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
 
 Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
 error estimators in OLS regression: An introduction and software

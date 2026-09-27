@@ -182,11 +182,21 @@ print.solomon_classic <- function(x, digits = 3, ...) {
   flow <- if (is.null(x$settings$flow)) "1988" else x$settings$flow
   cat(
     sprintf(
-      "Historical decision path (%s flow): %s\n\n",
+      "Historical decision path (%s flow): %s\n",
       flow,
       x$path_string
     )
   )
+  allocation <- x$settings$alpha_allocation
+  if (!is.null(allocation) && allocation != "none") {
+    lv <- x$settings$alpha_levels
+    cat(sprintf(
+      "Alpha allocation (Sawilowsky, 1996, Table 4, %s): A = %s, %s = %s, H = %s, I = %s\n",
+      allocation, format(lv[["A"]]), x$settings$selected_test, format(lv[["S"]]),
+      format(lv[["H"]]), format(lv[["I"]])
+    ))
+  }
+  cat("\n")
 
   cat("Historical Tests A-I\n")
   cat("--------------------\n")

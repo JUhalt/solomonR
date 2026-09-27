@@ -62,6 +62,79 @@ test_that("1990 requires Test I", {
   )
 })
 
+# ---- 1995 (Walton Braver & Braver, 1995, as cited in Sawilowsky, 1996, p. 2) --
+
+test_that("1995: Test D is removed from the sequence", {
+  # A significant Test D no longer ends the sequence.
+  expect_identical(path_for("1995", D = .01)$path, c("A", "E", "H", "I"))
+  expect_false("D" %in% path_for("1995", D = .01, S = .01)$path)
+})
+
+test_that("1995: a significant Test A still leads to Tests B and C", {
+  expect_identical(path_for("1995", A = .01, D = .01)$path, c("A", "B", "C"))
+})
+
+test_that("1995: the remaining tests stop at the first significant one", {
+  expect_identical(path_for("1995", S = .01, H = .01)$path, c("A", "E"))
+  expect_identical(path_for("1995", H = .01, I = .01)$path, c("A", "E", "H"))
+  expect_identical(path_for("1995", I = .01)$path, c("A", "E", "H", "I"))
+  expect_identical(path_for("1995", combine = FALSE)$path, c("A", "E", "H"))
+  expect_match(path_for("1995", combine = FALSE)$conclusion, "Tests A, E and H", fixed = TRUE)
+  expect_match(path_for("1995", I = .01)$conclusion, "1995 revision, without Test D", fixed = TRUE)
+})
+
+test_that("the 1988 conclusions are unchanged by the 1995 option", {
+  expect_identical(
+    path_for("1988", combine = FALSE)$conclusion,
+    "Historical pathway: Tests A, D, E and H are nonsignificant; Test I was not requested."
+  )
+  expect_identical(
+    path_for("1988", S = .01)$conclusion,
+    paste("Historical pathway: no evidence of pretest sensitization;",
+          "Test E detects a treatment effect in the pretested groups.")
+  )
+})
+
+# ---- Alpha allocations (Sawilowsky, 1996, Table 4) ----------------------------
+
+test_that("the allocations use Sawilowsky's (1996) published levels", {
+  lv <- function(a) .classic_alpha_levels(0.05, a)[c("A", "S", "H", "I")]
+  expect_equal(unname(lv("method1_conservative")), rep(0.02, 4))
+  expect_equal(unname(lv("method1_liberal")), rep(0.0275, 4))
+  expect_equal(unname(lv("method2_conservative")), c(0.05, 0.005, 0.005, 0.005))
+  expect_equal(unname(lv("method2_liberal")), c(0.05, 0.02, 0.02, 0.02))
+  # Tests B and C are outside the allocation and keep alpha.
+  expect_equal(unname(.classic_alpha_levels(0.05, "method2_conservative")[c("B", "C")]), c(0.05, 0.05))
+  expect_equal(unname(.classic_alpha_levels(0.05, "none")), rep(0.05, 7))
+})
+
+test_that("the path applies the test-wise levels", {
+  p <- p_all(S = .01)
+  lv <- .classic_alpha_levels(0.05, "method2_conservative")
+  # p = .01 is significant at .05 but not at .005.
+  expect_identical(.classic_path(p, 0.05, "1995", "E", TRUE)$path, c("A", "E"))
+  expect_identical(.classic_path(p, lv, "1995", "E", TRUE)$path, c("A", "E", "H", "I"))
+})
+
+test_that("an allocation is refused outside the conditions it was obtained for", {
+  d <- solomon_example
+  fit <- function(...) fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre, ...)
+  expect_error(fit(alpha_allocation = "method1_liberal"), "flow = \"1995\"")
+  expect_error(fit(flow = "1995", alpha = 0.10, alpha_allocation = "method1_liberal"), "alpha = 0.05")
+  expect_error(fit(flow = "1995", pretested_test = "gain", alpha_allocation = "method1_liberal"),
+               "ancova")
+  expect_error(fit(flow = "1995", combine_with_stouffer = FALSE, alpha_allocation = "method1_liberal"),
+               "combine_with_stouffer")
+
+  ok <- fit(flow = "1995", alpha_allocation = "method2_liberal")
+  expect_identical(ok$settings$alpha_allocation, "method2_liberal")
+  expect_equal(ok$settings$alpha_levels[["S"]], 0.02)
+  expect_output(print(ok), "Alpha allocation (Sawilowsky, 1996, Table 4", fixed = TRUE)
+  rep <- report_solomon(ok)
+  expect_match(rep$method, "Method 2 under the liberal robustness criterion", fixed = TRUE)
+  expect_true(any(startsWith(rep$references, "Sawilowsky, S. S. (1996")))
+})
+
 # ---- Fitted objects -----------------------------------------------------------
 
 test_that("the default flow is 1988 and its results are unchanged", {
@@ -77,7 +150,7 @@ test_that("the default flow is 1988 and its results are unchanged", {
 
 test_that("fitted paths follow the rules for the observed p-values", {
   d <- solomon_example
-  for (flow in c("1988", "1990")) {
+  for (flow in c("1988", "1990", "1995")) {
     fit <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre, flow = flow)
     p <- c(A = fit$tests$A$result$p.value, B = fit$tests$B$result$p.value,
            C = fit$tests$C$result$p.value, D = fit$tests$D$result$p.value,
@@ -120,4 +193,13 @@ test_that("plot_classic_flow() draws the chosen version", {
   g <- plot_classic_flow(fit)
   expect_true("always" %in% labels(g))
   expect_match(g$labels$subtitle, "1990 flow")
+
+  nodes <- function(g) {
+    layer <- Filter(function(l) inherits(l$geom, "GeomLabel"), g$layers)[[1]]
+    layer$data$node
+  }
+  expect_false("D" %in% nodes(plot_classic_flow(flow = "1995")))
+  expect_true("D" %in% nodes(plot_classic_flow()))
+  fit95 <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre, flow = "1995")
+  expect_match(plot_classic_flow(fit95)$labels$subtitle, "1995 flow")
 })
