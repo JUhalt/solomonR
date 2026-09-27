@@ -141,7 +141,10 @@ stouffer_solomon <- function(p) {
 #' values well above 1 indicate overdispersion. Log-link rate ratios are
 #' collapsible, so the noncollapsibility caution above does not apply.
 #' Use `exposure` for counts observed over different times or exposures, and
-#' [marginal_solomon()] for rate differences.
+#' [marginal_solomon()] for rate differences. No published Solomon study with
+#' a count outcome has been identified, so applying these count-data methods
+#' to the Solomon contrasts is a solomonR extension; its simulation validation
+#' is on issue #44.
 #'
 #' The degrees of freedom are returned in the `df` columns (`Inf` for normal
 #' reference distributions). Imbens and Kolesár (2016) further recommend

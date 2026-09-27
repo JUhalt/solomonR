@@ -96,7 +96,8 @@ counts, intervals use the delta method with the fit's (by default robust
 HC3) covariance, which Cameron and Trivedi (2013) recommend under
 overdispersion; a bootstrap for counts has not been evaluated and is not
 offered. The fit's Pearson dispersion statistic is printed for
-description.
+description. No published Solomon study with a count outcome has been
+identified, so this use of count-data methods is a solomonR extension.
 
 The package's simulation validation of this function is described on
 issue #43 (binary outcomes) and issue #44 (count outcomes).
