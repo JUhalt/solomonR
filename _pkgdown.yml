@@ -79,6 +79,11 @@ reference:
       - starts_with("solomonR")
 
 articles:
+  - title: "Decide"
+    navbar: Decide
+    contents:
+      - articles/should-i-use-a-solomon-design
+
   - title: "Start here"
     navbar: ~
     contents:
@@ -95,6 +100,7 @@ articles:
     navbar: Methods and evidence
     contents:
       - solomon-methods
+      - articles/history
       - articles/validation-evidence
       - articles/ml-validation
       - articles/power-validation
@@ -102,6 +108,7 @@ articles:
       - articles/binary-validation
       - articles/count-validation
       - articles/cluster-validation
+      - articles/classic-validation
 
   - title: "References"
     navbar: References
