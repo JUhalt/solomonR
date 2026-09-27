@@ -13,7 +13,8 @@ fit_solomon_classic(
   pretested_test = c("ancova", "gain", "repeated"),
   combine_with_stouffer = TRUE,
   stouffer_direction = c("greater", "less"),
-  conf_level = 0.95
+  conf_level = 0.95,
+  flow = c("1988", "1990")
 )
 }
 \arguments{
@@ -41,11 +42,22 @@ nonsignificant.}
 hypothesis used for Test I: \code{"greater"} or \code{"less"}.}
 
 \item{conf_level}{Confidence level for intervals. Default is 0.95.}
+
+\item{flow}{Which published version of the decision sequence to follow.
+\code{"1988"} (the default) is the original sequence of Walton Braver and
+Braver (1988, pp. 151--153): testing stops at the first significant test
+among D, the selected pretested-groups test (E, F, or G), and H, and
+Test I is reached only when all are nonsignificant. \code{"1990"} is the
+authors' amendment (Braver & Walton Braver, 1990, p. 322): once Tests A
+and D are nonsignificant, every test through Test I is run and Test I is
+regarded as the most definitive. Only the \code{path} and \code{conclusion}
+differ; every test is always calculated.}
 }
 \value{
 An object of class \code{solomon_classic}. The \code{tests}
 component contains Tests A-I, while \code{path} records the historical
-decision sequence for the observed data.
+decision sequence for the observed data under the chosen \code{flow}.
+The \code{history} component holds the history/maturation comparisons.
 }
 \description{
 Implements the historical Test A-I framework associated with analysis of
@@ -64,6 +76,18 @@ Sawilowsky et al., 1994) raised concerns about experiment-wise Type I
 error when the procedure is used conditionally. Its presence in this function should not be interpreted
 as a general contemporary recommendation.
 }
+\section{History and maturation}{
+
+The \code{history} component compares the unpretested control posttest (O6)
+with the pretests of the pretested groups (O1 and O3) by independent-samples
+t tests, as Mai et al. (2020, p. 8) report. Neither group had received the
+treatment when these scores were measured, so a difference estimates the
+combined effect of history and maturation between the two occasions,
+provided assignment was random and the measure is comparable at both
+occasions. It is reported as a historical check, not a test of the
+treatment.
+}
+
 \section{Confidence intervals}{
 
 Tests A-H are t tests (equivalently, F tests with one numerator degree of
@@ -76,6 +100,11 @@ population standardized mean difference (Cumming & Finch, 2001; Kelley,
 }
 
 \references{
+Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+four-group designs reconsidered: A reply to Sawilowsky and Markman.
+\emph{Perceptual and Motor Skills, 71}(1), 321–322.
+https://doi.org/10.2466/pms.1990.71.1.321
+
 Campbell, D. T., & Stanley, J. C. (1963). \emph{Experimental and
 quasi-experimental designs for research}. Rand McNally.
 
@@ -91,6 +120,10 @@ Appropriate statistical analyses. \emph{The Journal of Experimental Education,
 Kelley, K. (2007). Confidence intervals for standardized effect sizes:
 Theory, application, and implementation. \emph{Journal of Statistical Software,
 20}(8), 1–24. https://doi.org/10.18637/jss.v020.i08
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. \emph{Education
+Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. \emph{The Journal of Experimental

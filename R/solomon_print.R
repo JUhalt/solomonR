@@ -179,9 +179,11 @@ print.solomon_classic <- function(x, digits = 3, ...) {
     )
   )
 
+  flow <- if (is.null(x$settings$flow)) "1988" else x$settings$flow
   cat(
     sprintf(
-      "Historical decision path: %s\n\n",
+      "Historical decision path (%s flow): %s\n\n",
+      flow,
       x$path_string
     )
   )
@@ -258,6 +260,17 @@ print.solomon_classic <- function(x, digits = 3, ...) {
         x$g_post["upper"]
       )
     )
+  }
+
+  if (!is.null(x$history) && nrow(x$history) > 0L) {
+    cat("\nHistory/maturation check (historical; Mai et al., 2020)\n")
+    for (i in seq_len(nrow(x$history))) {
+      h <- x$history[i, ]
+      cat(sprintf(
+        "  %s: difference = %.*f, t(%.0f) = %.2f, p = %s\n",
+        h$comparison, digits, h$estimate, h$df, h$statistic, p_fmt(h$p.value)
+      ))
+    }
   }
 
   if (isTRUE(x$settings$combine_with_stouffer)) {

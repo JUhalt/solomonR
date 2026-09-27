@@ -27,13 +27,18 @@
   )
 }
 
-.classic_flow_edges <- data.frame(
-  from = c("A", "A", "A", "D", "S", "H"),
-  to = c("B", "C", "D", "S", "H", "I"),
-  label = c("significant", "", "not significant", "not significant",
-            "not significant", "not significant"),
-  stringsAsFactors = FALSE
-)
+# In the 1990 amendment, once Tests A and D are nonsignificant every test
+# through Test I is run (Braver & Walton Braver, 1990, p. 322).
+.classic_flow_edges <- function(flow = "1988") {
+  after_d <- if (flow == "1990") "always" else "not significant"
+  data.frame(
+    from = c("A", "A", "A", "D", "S", "H"),
+    to = c("B", "C", "D", "S", "H", "I"),
+    label = c("significant", "", "not significant", "not significant",
+              after_d, after_d),
+    stringsAsFactors = FALSE
+  )
+}
 
 #' Historical Solomon decision path
 #'
@@ -43,7 +48,10 @@
 #' examine the treatment effect within each pretest condition. If not, Test D
 #' examines the treatment main effect, followed if necessary by the selected
 #' pretested-groups test (E, F, or G), Test H, and finally Test I, the
-#' Walton Braver and Braver (1988) Stouffer combination.
+#' Walton Braver and Braver (1988) Stouffer combination. In the original
+#' 1988 sequence each of these is reached only if the one before it is
+#' nonsignificant; in the 1990 amendment (Braver & Walton Braver, 1990), all
+#' of them are run once Test D is nonsignificant.
 #'
 #' Given a fitted classic analysis, the tests it visited are highlighted with
 #' their p-values, following the fit's recorded path exactly, and the caption
@@ -56,10 +64,17 @@
 #'
 #' @param fit Optional fit from [fit_solomon_classic()]. Without one, the
 #'   generic diagram is drawn.
+#' @param flow Version of the sequence to draw when `fit` is not given:
+#'   `"1988"` or `"1990"`. With a fit, the fit's own version is used.
 #'
 #' @return A ggplot object.
 #'
 #' @references
+#' Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+#' four-group designs reconsidered: A reply to Sawilowsky and Markman.
+#' *Perceptual and Motor Skills, 71*(1), 321–322.
+#' https://doi.org/10.2466/pms.1990.71.1.321
+#'
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 #' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
 #' Education, 62*(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
@@ -72,17 +87,19 @@
 #' plot_classic_flow()
 #' classic <- with(solomon_example, fit_solomon_classic(y_post, treat, pretested, y_pre))
 #' plot_classic_flow(classic)
+#' plot_classic_flow(flow = "1990")
 #'
 #' @export
-plot_classic_flow <- function(fit = NULL) {
+plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990")) {
 
   if (!is.null(fit) && !inherits(fit, "solomon_classic")) {
     stop("`fit` must come from fit_solomon_classic().", call. = FALSE)
   }
 
+  flow <- if (!is.null(fit) && !is.null(fit$settings$flow)) fit$settings$flow else match.arg(flow)
   selected <- if (is.null(fit)) NULL else fit$settings$selected_test
   nodes <- .classic_flow_nodes(selected)
-  edges <- .classic_flow_edges
+  edges <- .classic_flow_edges(flow)
 
   caution <- paste(
     "Teaching and replication aid, not a recommended workflow: the conditional",
@@ -92,7 +109,7 @@ plot_classic_flow <- function(fit = NULL) {
 
   nodes$visited <- FALSE
   edges$visited <- FALSE
-  subtitle <- "Historical Tests A-I sequence"
+  subtitle <- sprintf("Historical Tests A-I sequence (%s flow)", flow)
   caption <- caution
 
   if (!is.null(fit)) {
@@ -116,7 +133,8 @@ plot_classic_flow <- function(fit = NULL) {
     if (all(c("B", "C") %in% path)) step_pairs <- c(step_pairs, "A C")
     edges$visited <- paste(edges$from, edges$to) %in% step_pairs
 
-    subtitle <- sprintf("Path taken: %s (alpha = %s)", fit$path_string, format(fit$settings$alpha))
+    subtitle <- sprintf("Path taken (%s flow): %s (alpha = %s)", flow, fit$path_string,
+                        format(fit$settings$alpha))
     caption <- paste0(fit$conclusion, "\n", caution)
   }
 

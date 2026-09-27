@@ -1,5 +1,20 @@
 # solomonR (development version)
 
+## Versioned historical decision flows (#50, in progress)
+
+* `fit_solomon_classic()` and `plot_classic_flow()` gain `flow`. `"1988"`,
+  the default, keeps the original sequence of Walton Braver and Braver
+  (1988) and leaves existing results unchanged; `"1990"` follows the
+  authors' amendment (Braver & Walton Braver, 1990), in which every test
+  through Test I is run once Tests A and D are nonsignificant and Test I is
+  regarded as the most definitive.
+* `fit_solomon_classic()` returns a history/maturation check (`history`):
+  the unpretested control posttest (O6) compared with the pretests of the
+  pretested groups (O1, O3) by independent-samples t tests, as Mai et al.
+  (2020) report. It is printed as a historical check.
+* The decision rules are now a separate internal function with a test for
+  each published rule.
+
 ## Negative-binomial option for counts (#62)
 
 * `fit_solomon_glm(family = "negative_binomial")` fits the NB2 model by

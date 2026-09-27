@@ -25,8 +25,9 @@ https://doi.org/10.2466/pms.1990.71.1.321
 
 > The authors' reply to Sawilowsky and Markman (1990a). It amends the 1988
 > decision flow: once Tests A and D are nonsignificant, all tests through
-> Test I are carried out. *In solomonR:* the 1990 flow version (planned,
-> [#50](https://github.com/JUhalt/solomonR/issues/50)).
+> Test I are carried out. *In solomonR:* the 1990 flow version,
+> `fit_solomon_classic(flow = "1990")` and `plot_classic_flow(flow = "1990")`
+> ([#50](https://github.com/JUhalt/solomonR/issues/50)).
 
 Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
 quasi-experimental designs for research*. Rand McNally.
@@ -121,8 +122,10 @@ transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 
 > A randomized six-group Solomon design (two interventions and a control)
-> with published individual-level data. *In solomonR:* Solomon N-group
-> designs and worked examples (planned,
+> with published individual-level data. *In solomonR:* the
+> history/maturation check of `fit_solomon_classic()`, which follows its
+> comparisons of O6 with O1 and O3; Solomon N-group designs and worked
+> examples (planned,
 > [#45](https://github.com/JUhalt/solomonR/issues/45),
 > [#54](https://github.com/JUhalt/solomonR/issues/54)).
 

@@ -100,6 +100,127 @@
 }
 
 
+# Historical decision pathway from the p-values of Tests A-I (`S` is the
+# selected pretested-groups test, E, F, or G).
+#
+# 1988: Walton Braver and Braver (1988, pp. 151-153). A significant Test A
+# leads to Tests B and C and ends the sequence; otherwise testing stops at
+# the first significant test among D, the selected test, and H, and Test I
+# is reached only when all of them are nonsignificant.
+# 1990: Braver and Walton Braver (1990, p. 322). As 1988 through Test D;
+# once Tests A and D are nonsignificant, every test through Test I is run
+# and Test I is regarded as the most definitive.
+.classic_path <- function(p, alpha, flow, selected, combine_with_stouffer) {
+  sig <- p < alpha
+
+  if (sig[["A"]]) {
+    conclusion <- if (sig[["B"]] && sig[["C"]]) {
+      paste(
+        "Historical pathway: evidence of pretest sensitization;",
+        "the treatment effect is detected in both pretested and",
+        "unpretested groups but differs by pretesting condition."
+      )
+    } else if (sig[["B"]]) {
+      paste(
+        "Historical pathway: evidence of pretest sensitization;",
+        "the treatment effect is detected only among pretested groups."
+      )
+    } else if (sig[["C"]]) {
+      paste(
+        "Historical pathway: evidence of pretest sensitization;",
+        "the treatment effect is detected only among unpretested groups."
+      )
+    } else {
+      paste(
+        "Historical pathway: the Treatment x Pretest interaction is",
+        "significant, but neither simple treatment effect reaches alpha."
+      )
+    }
+    return(list(path = c("A", "B", "C"), conclusion = conclusion))
+  }
+
+  if (sig[["D"]]) {
+    return(list(
+      path = c("A", "D"),
+      conclusion = paste(
+        "Historical pathway: no evidence of pretest sensitization",
+        "and the treatment main effect is significant."
+      )
+    ))
+  }
+
+  if (flow == "1990") {
+    return(list(
+      path = c("A", "D", selected, "H", "I"),
+      conclusion = paste0(
+        "Historical pathway (1990 amendment): Tests A and D are ",
+        "nonsignificant, so every test through Test I is run and Test I ",
+        "is regarded as the most definitive. ",
+        if (sig[["I"]]) {
+          "Test I produces a significant Stouffer combination"
+        } else {
+          "Test I does not reach the specified alpha level"
+        },
+        sprintf(
+          " (Test %s p = %.3f, Test H p = %.3f, Test I p = %.3f). ",
+          selected, p[["S"]], p[["H"]], p[["I"]]
+        ),
+        "Interpret this in light of later Type I error critiques."
+      )
+    ))
+  }
+
+  if (sig[["S"]]) {
+    return(list(
+      path = c("A", "D", selected),
+      conclusion = paste(
+        "Historical pathway: no evidence of pretest sensitization;",
+        paste0("Test ", selected),
+        "detects a treatment effect in the pretested groups."
+      )
+    ))
+  }
+
+  if (sig[["H"]]) {
+    return(list(
+      path = c("A", "D", selected, "H"),
+      conclusion = paste(
+        "Historical pathway: no evidence of pretest sensitization;",
+        "Test H detects a treatment effect in the unpretested groups."
+      )
+    ))
+  }
+
+  if (!isTRUE(combine_with_stouffer)) {
+    return(list(
+      path = c("A", "D", selected, "H"),
+      conclusion = paste(
+        "Historical pathway: Tests A, D,",
+        selected,
+        "and H are nonsignificant; Test I was not requested."
+      )
+    ))
+  }
+
+  list(
+    path = c("A", "D", selected, "H", "I"),
+    conclusion = if (sig[["I"]]) {
+      paste(
+        "Historical pathway: Test I produces a significant",
+        "Stouffer combination. This result is retained for",
+        "historical replication and should be interpreted in",
+        "light of later Type I error critiques."
+      )
+    } else {
+      paste(
+        "Historical pathway: no treatment test in the selected",
+        "A-I sequence reaches the specified alpha level."
+      )
+    }
+  )
+}
+
+
 #' Historical Solomon Four-Group Analysis
 #'
 #' Implements the historical Test A-I framework associated with analysis of
@@ -134,6 +255,25 @@
 #'   hypothesis used for Test I: \code{"greater"} or \code{"less"}.
 #'
 #' @param conf_level Confidence level for intervals. Default is 0.95.
+#' @param flow Which published version of the decision sequence to follow.
+#'   `"1988"` (the default) is the original sequence of Walton Braver and
+#'   Braver (1988, pp. 151--153): testing stops at the first significant test
+#'   among D, the selected pretested-groups test (E, F, or G), and H, and
+#'   Test I is reached only when all are nonsignificant. `"1990"` is the
+#'   authors' amendment (Braver & Walton Braver, 1990, p. 322): once Tests A
+#'   and D are nonsignificant, every test through Test I is run and Test I is
+#'   regarded as the most definitive. Only the `path` and `conclusion`
+#'   differ; every test is always calculated.
+#'
+#' @section History and maturation:
+#' The `history` component compares the unpretested control posttest (O6)
+#' with the pretests of the pretested groups (O1 and O3) by independent-samples
+#' t tests, as Mai et al. (2020, p. 8) report. Neither group had received the
+#' treatment when these scores were measured, so a difference estimates the
+#' combined effect of history and maturation between the two occasions,
+#' provided assignment was random and the measure is comparable at both
+#' occasions. It is reported as a historical check, not a test of the
+#' treatment.
 #'
 #' @section Confidence intervals:
 #' Tests A-H are t tests (equivalently, F tests with one numerator degree of
@@ -146,9 +286,15 @@
 #'
 #' @return An object of class \code{solomon_classic}. The \code{tests}
 #'   component contains Tests A-I, while \code{path} records the historical
-#'   decision sequence for the observed data.
+#'   decision sequence for the observed data under the chosen \code{flow}.
+#'   The \code{history} component holds the history/maturation comparisons.
 #'
 #' @references
+#' Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+#' four-group designs reconsidered: A reply to Sawilowsky and Markman.
+#' *Perceptual and Motor Skills, 71*(1), 321–322.
+#' https://doi.org/10.2466/pms.1990.71.1.321
+#'
 #' Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally.
 #'
@@ -164,6 +310,10 @@
 #' Kelley, K. (2007). Confidence intervals for standardized effect sizes:
 #' Theory, application, and implementation. *Journal of Statistical Software,
 #' 20*(8), 1–24. https://doi.org/10.18637/jss.v020.i08
+#'
+#' Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+#' transfer interventions using Solomon four-group designs. *Education
+#' Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 #'
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 #' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
@@ -191,12 +341,22 @@ fit_solomon_classic <- function(
     pretested_test = c("ancova", "gain", "repeated"),
     combine_with_stouffer = TRUE,
     stouffer_direction = c("greater", "less"),
-    conf_level = 0.95
+    conf_level = 0.95,
+    flow = c("1988", "1990")
 ) {
 
   pretested_test <- match.arg(pretested_test)
   stouffer_direction <- match.arg(stouffer_direction)
+  flow <- match.arg(flow)
   .check_conf_level(conf_level)
+
+  if (flow == "1990" && !isTRUE(combine_with_stouffer)) {
+    stop(
+      "flow = \"1990\" always completes the sequence with Test I ",
+      "(Braver & Walton Braver, 1990); use combine_with_stouffer = TRUE.",
+      call. = FALSE
+    )
+  }
 
   if (length(y_post) != length(treat) ||
       length(y_post) != length(pretested) ||
@@ -414,109 +574,19 @@ fit_solomon_classic <- function(
   # Reconstruct the historical decision pathway
   # ----------------------------------------------------------
 
-  path <- "A"
-
-  if (A$p.value < alpha) {
-
-    path <- c(path, "B", "C")
-
-    b_sig <- B$p.value < alpha
-    c_sig <- C$p.value < alpha
-
-    if (b_sig && c_sig) {
-      conclusion <- paste(
-        "Historical pathway: evidence of pretest sensitization;",
-        "the treatment effect is detected in both pretested and",
-        "unpretested groups but differs by pretesting condition."
-      )
-    } else if (b_sig && !c_sig) {
-      conclusion <- paste(
-        "Historical pathway: evidence of pretest sensitization;",
-        "the treatment effect is detected only among pretested groups."
-      )
-    } else if (!b_sig && c_sig) {
-      conclusion <- paste(
-        "Historical pathway: evidence of pretest sensitization;",
-        "the treatment effect is detected only among unpretested groups."
-      )
-    } else {
-      conclusion <- paste(
-        "Historical pathway: the Treatment x Pretest interaction is",
-        "significant, but neither simple treatment effect reaches alpha."
-      )
-    }
-
-  } else {
-
-    path <- c(path, "D")
-
-    if (D$p.value < alpha) {
-
-      conclusion <- paste(
-        "Historical pathway: no evidence of pretest sensitization",
-        "and the treatment main effect is significant."
-      )
-
-    } else {
-
-      selected_results <- list(
-        E = E,
-        F = F,
-        G = G
-      )
-
-      selected_result <- selected_results[[selected_letter]]
-
-      path <- c(path, selected_letter)
-
-      if (selected_result$p.value < alpha) {
-
-        conclusion <- paste(
-          "Historical pathway: no evidence of pretest sensitization;",
-          paste0("Test ", selected_letter),
-          "detects a treatment effect in the pretested groups."
-        )
-
-      } else {
-
-        path <- c(path, "H")
-
-        if (H$p.value < alpha) {
-
-          conclusion <- paste(
-            "Historical pathway: no evidence of pretest sensitization;",
-            "Test H detects a treatment effect in the unpretested groups."
-          )
-
-        } else if (isTRUE(combine_with_stouffer)) {
-
-          path <- c(path, "I")
-
-          if (I_selected$p.value < alpha) {
-            conclusion <- paste(
-              "Historical pathway: Test I produces a significant",
-              "Stouffer combination. This result is retained for",
-              "historical replication and should be interpreted in",
-              "light of later Type I error critiques."
-            )
-          } else {
-            conclusion <- paste(
-              "Historical pathway: no treatment test in the selected",
-              "A-I sequence reaches the specified alpha level."
-            )
-          }
-
-        } else {
-
-          conclusion <- paste(
-            "Historical pathway: Tests A, D,",
-            selected_letter,
-            "and H are nonsignificant; Test I was not requested."
-          )
-        }
-      }
-    }
-  }
+  pathway <- .classic_path(
+    p = c(
+      A = A$p.value, B = B$p.value, C = C$p.value, D = D$p.value,
+      S = list(E = E, F = F, G = G)[[selected_letter]]$p.value,
+      H = H$p.value, I = I_selected$p.value
+    ),
+    alpha = alpha,
+    flow = flow,
+    selected = selected_letter,
+    combine_with_stouffer = combine_with_stouffer
+  )
+  path <- pathway$path
+  conclusion <- pathway$conclusion
 
   # ----------------------------------------------------------
   # Confidence intervals for Tests A-H (t with residual df)
@@ -554,6 +624,39 @@ fit_solomon_classic <- function(
     length(x1),
     length(x0),
     conf = conf_level
+  )
+
+  # ----------------------------------------------------------
+  # History/maturation check (historical)
+  #
+  # The unpretested control posttest (O6) is compared with the pretests
+  # of the pretested groups (O1, O3) by independent-samples t tests, as
+  # Mai et al. (2020, p. 8) report. Neither group received the treatment
+  # before these measurements, so a difference estimates the combined
+  # effect of history and maturation between the two occasions.
+  # ----------------------------------------------------------
+
+  o6 <- stats::na.omit(df$y_post[df$treat == 0L & df$pretested == 0L])
+  history_row <- function(pre, label) {
+    pre <- stats::na.omit(pre)
+    if (length(pre) < 2L || length(o6) < 2L) return(NULL)
+    tt <- stats::t.test(o6, pre, var.equal = TRUE, conf.level = conf_level)
+    data.frame(
+      comparison = label,
+      estimate = mean(o6) - mean(pre),
+      statistic = unname(tt$statistic),
+      df = unname(tt$parameter),
+      p.value = tt$p.value,
+      conf.low = tt$conf.int[1],
+      conf.high = tt$conf.int[2],
+      stringsAsFactors = FALSE
+    )
+  }
+  history <- rbind(
+    history_row(df$y_pre[df$treat == 1L & df$pretested == 1L],
+                "O6 - O1: control posttest vs. treated-group pretest"),
+    history_row(df$y_pre[df$treat == 0L & df$pretested == 1L],
+                "O6 - O3: control posttest vs. control-group pretest")
   )
 
   # Legacy-friendly objects retained for existing user code.
@@ -639,13 +742,15 @@ fit_solomon_classic <- function(
       path_string = paste(path, collapse = " -> "),
       conclusion = conclusion,
       pretest_main = pretest_main,
+      history = history,
       settings = list(
         alpha = alpha,
         pretested_test = pretested_test,
         selected_test = selected_letter,
         combine_with_stouffer = combine_with_stouffer,
         stouffer_direction = stouffer_direction,
-        conf_level = conf_level
+        conf_level = conf_level,
+        flow = flow
       ),
 
       # Legacy fields

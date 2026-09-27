@@ -300,6 +300,53 @@ This detail matters. A directional one-tailed p-value is not obtained
 correctly by mechanically dividing every two-sided p-value by two
 without considering the sign of the effect.
 
+## Versions of the decision sequence
+
+The sequence changed after it was published, and `fit_solomon_classic()`
+reproduces each version through its `flow` argument.
+
+- **1988, the default.** In the original sequence, testing stops at the
+  first significant test among D, the selected pretested-groups test, and H;
+  Test I is reached only when all of them are nonsignificant (Walton Braver
+  & Braver, 1988, pp. 151–153).
+- **1990.** Replying to Sawilowsky and Markman (1990a), the authors agreed
+  that using the meta-analysis selectively introduces selection bias. Once
+  Tests A and D are nonsignificant, the analyst "should complete all the
+  tests through Test I" (Braver & Walton Braver, 1990, p. 322), and Test I is
+  regarded as the most definitive test.
+
+```{r flow-1990}
+classic_1990 <- with(
+  solomon_example,
+  fit_solomon_classic(y_post, treat, pretested, y_pre, flow = "1990")
+)
+
+classic_1990$path_string
+classic_1990$conclusion
+```
+
+The tests themselves are identical in both versions; only the path and the
+conclusion differ.
+
+## History and maturation
+
+The four-group design also allows a check that does not involve the
+treatment.
+The unpretested control group's posttest (O6) was measured at the same time
+as the other posttests, but its participants received neither the pretest
+nor the treatment. Comparing it with the pretests of the pretested groups
+(O1 and O3), which were measured before any treatment, estimates the
+combined effect of history and maturation between the two occasions. Mai et
+al. (2020, p. 8) report these comparisons as independent-samples t tests,
+which `fit_solomon_classic()` returns as `history`:
+
+```{r history}
+classic$history
+```
+
+The check assumes random assignment and a measure that is comparable at the
+two occasions.
+
 ## Why Test I is treated cautiously
 
 The Stouffer procedure is included because it is part of the history of
@@ -344,14 +391,27 @@ while modern methods are available alongside it.
 
 ## References
 
+Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+four-group designs reconsidered: A reply to Sawilowsky and Markman.
+*Perceptual and Motor Skills, 71*(1), 321–322.
+https://doi.org/10.2466/pms.1990.71.1.321
+
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 Appropriate statistical analyses. *The Journal of Experimental Education,
 42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
 Experimental Education, 62*(4), 361–376.
 https://doi.org/10.1080/00220973.1994.9944140
+
+Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power of
+meta-analysis in the Solomon four-group design. *Perceptual and Motor
+Skills, 71*(1), 177–178. https://doi.org/10.2466/pms.1990.71.1.177
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. *Psychological
