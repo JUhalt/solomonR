@@ -17,7 +17,7 @@
   involve only a minority of the indicators (Vandenberg & Lance, 2000,
   p. 38), and at least two indicators must stay fully invariant.
 
-## The 1995 decision flow and alpha allocations (#50, #51)
+## History, the 1995 flow, and the published error rates (#48, #50, #51)
 
 * `fit_solomon_classic()` and `plot_classic_flow()` gain `flow = "1995"`,
   the revision that removed Test D (Walton Braver & Braver, 1995, as cited in
@@ -35,6 +35,29 @@
   and Stanley (1963/1966, p. 25) and Solomon (1949, pp. 146–148) for its
   rationale, and the methods vignette's description of their recommended
   analysis now follows their wording (p. 25).
+* A simulation study under a protocol posted on #51 before any run
+  replicated the published Type I error rates of the historical sequence
+  (Sawilowsky et al., 1994; Sawilowsky, 1996), with 30 conditions and
+  20,000 replications each.
+  - Tests A to H agreed with the published rates for normal data.
+  - Test I rejected far more often than published under both a one-tailed
+    and a two-tailed criterion. A post hoc investigation reproduced the
+    published rates only when the two-sided p-values of Tests E and H were
+    converted to z as if one-tailed, which differs from Walton Braver and
+    Braver's definition.
+  - As defined, the 1988 and 1995 sequences falsely declare an effect about
+    14% to 15% of the time.
+  - Sawilowsky's allocations exceed their robustness limits (.057 to .084).
+  The help page of `fit_solomon_classic()` reports these results. The
+  package's Test I criterion is unchanged.
+* New articles:
+  - "A History of the Solomon Design and Its Analysis", from Solomon (1949)
+    to the MERIT recommendations (#50);
+  - "Should I Use a Solomon Design?", which comes first in the site's
+    article menu and adapts the MERIT decision flow chart (French et al.,
+    2021b) under its CC BY 4.0 license (#48);
+  - "Historical Tests: Replicating the Published Error Rates" (#51), which
+    also joins the Validation Evidence page.
 
 ## Published data sets (#54, first part)
 

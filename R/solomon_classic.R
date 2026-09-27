@@ -331,6 +331,29 @@
 #'   significant Test A, are outside the allocation and keep `alpha`; that
 #'   choice is solomonR's.
 #'
+#' @section Error rates and the published replication:
+#' The package's replication of the published Type I error rates (issue
+#' #51; normal data, 30 per group, 20,000 datasets per condition) found:
+#'
+#' - **Tests A to H** reached and rejected at the rates Sawilowsky et al.
+#'   (1994, Table 2) and Sawilowsky (1996, Table 1) report.
+#' - **Test I** rejected far more often than published. With its one-tailed
+#'   criterion, the experiment-wise error rates were .151 for the 1988
+#'   sequence and .142 for the 1995 sequence. A two-tailed criterion gave
+#'   .137 and .135. The published rates are .137 and .125. A post hoc
+#'   investigation reproduced the published rates only when the two-sided
+#'   p-values of Tests E and H were converted to z as if one-tailed, a reading
+#'   that differs from Walton Braver and Braver's (1988, p. 152) definition.
+#'   The p-value reported for Test I is one-tailed; their worked example
+#'   reports the two-tailed value (p. 153).
+#' - **The alpha allocations**, with Test I as defined here, gave
+#'   experiment-wise error rates of .062, .084, .057, and .084 for
+#'   `"method1_conservative"`, `"method1_liberal"`, `"method2_conservative"`,
+#'   and `"method2_liberal"`, against Sawilowsky's .054, .072, .057, and .076.
+#'   All four exceed their limits of .055 and .075.
+#'
+#' See the article "Historical Tests: Replicating the Published Error Rates".
+#'
 #' @section History and maturation:
 #' The `history` component compares the unpretested control posttest (O6)
 #' with the pretests of the pretested groups (O1 and O3) by independent-samples
