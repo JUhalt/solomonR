@@ -40,5 +40,7 @@
   hedges1981 = "Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect size and related estimators. *Journal of Educational Statistics, 6*(2), 107\u2013128. https://doi.org/10.3102/10769986006002107",
   rosseel2012 = "Rosseel, Y. (2012). lavaan: An R package for structural equation modeling. *Journal of Statistical Software, 48*(2), 1\u201336. https://doi.org/10.18637/jss.v048.i02",
   meredith1993 = "Meredith, W. (1993). Measurement invariance, factor analysis and factorial invariance. *Psychometrika, 58*(4), 525\u2013543. https://doi.org/10.1007/BF02294825",
-  vandenberg2000 = "Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the measurement invariance literature: Suggestions, practices, and recommendations for organizational research. *Organizational Research Methods, 3*(1), 4\u201370. https://doi.org/10.1177/109442810031002"
+  vandenberg2000 = "Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the measurement invariance literature: Suggestions, practices, and recommendations for organizational research. *Organizational Research Methods, 3*(1), 4\u201370. https://doi.org/10.1177/109442810031002",
+  campbell1966 = "Campbell, D. T., & Stanley, J. C. (1966). *Experimental and quasi-experimental designs for research*. Rand McNally. (Original work published 1963)",
+  sawilowsky1996 = "Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error of meta-analysis in the Solomon four-group design* [Paper presentation]. First International Conference on Multiple Comparisons, Tel Aviv, Israel. http://digitalcommons.wayne.edu/coe_tbf/29"
 )

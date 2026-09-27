@@ -29,13 +29,19 @@ https://doi.org/10.2466/pms.1990.71.1.321
 > `fit_solomon_classic(flow = "1990")` and `plot_classic_flow(flow = "1990")`
 > ([#50](https://github.com/JUhalt/solomonR/issues/50)).
 
-Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
-quasi-experimental designs for research*. Rand McNally.
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
 
-> Places the Solomon design among experimental designs, names pretest
-> reactivity as a threat to external validity, and recommends a 2 x 2
-> analysis of posttest scores. *In solomonR:* Tests A–D of
-> `fit_solomon_classic()`; `plot_solomon_design()`.
+> Places the Solomon design among the true experimental designs (pp. 13,
+> 24), names the interaction of testing and treatment as a threat to
+> external validity (p. 18), and recommends a 2 x 2 analysis of posttest
+> scores, followed by ANCOVA of the pretested groups when the effects of
+> pretesting are negligible (p. 25). Comparing the unpretested control
+> posttest with the pretests estimates the combined effect of maturation and
+> history (p. 25). Page numbers refer to the 1966 book. *In solomonR:* Tests
+> A–D and the history check of `fit_solomon_classic()`;
+> `plot_solomon_design()`.
 
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
@@ -165,8 +171,11 @@ First International Conference on Multiple Comparisons, Tel Aviv, Israel.
 http://digitalcommons.wayne.edu/coe_tbf/29
 
 > Extends the Type I error evidence on the historical test sequence to
-> nonnormal data and proposes alpha allocations to control it. *In
-> solomonR:* the replication study and alpha-allocation options (planned,
+> nonnormal data, reports the 1995 revision that removed Test D (p. 2), and
+> proposes alpha allocations to control the error rate (Table 4). *In
+> solomonR:* `fit_solomon_classic(flow = "1995")`, the `alpha_allocation`
+> option, and the replication study
+> ([#50](https://github.com/JUhalt/solomonR/issues/50),
 > [#51](https://github.com/JUhalt/solomonR/issues/51)).
 
 Sawilowsky, S. S. (2000). Review of the rank transform in designed
@@ -205,7 +214,10 @@ Solomon, R. L. (1949). An extension of control group design. *Psychological
 Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 
 > Introduces the four-group design to separate pretest effects from
-> treatment effects. *In solomonR:* the design itself; every estimand.
+> treatment effects, first as a three-group design (pp. 141–145) and then,
+> for field studies exposed to outside events, with a fourth group
+> (pp. 146–148). *In solomonR:* the design itself; every estimand; the
+> rationale of the history/maturation check.
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International

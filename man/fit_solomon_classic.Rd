@@ -14,7 +14,9 @@ fit_solomon_classic(
   combine_with_stouffer = TRUE,
   stouffer_direction = c("greater", "less"),
   conf_level = 0.95,
-  flow = c("1988", "1990")
+  flow = c("1988", "1990", "1995"),
+  alpha_allocation = c("none", "method1_conservative", "method1_liberal",
+    "method2_conservative", "method2_liberal")
 )
 }
 \arguments{
@@ -50,8 +52,32 @@ among D, the selected pretested-groups test (E, F, or G), and H, and
 Test I is reached only when all are nonsignificant. \code{"1990"} is the
 authors' amendment (Braver & Walton Braver, 1990, p. 322): once Tests A
 and D are nonsignificant, every test through Test I is run and Test I is
-regarded as the most definitive. Only the \code{path} and \code{conclusion}
-differ; every test is always calculated.}
+regarded as the most definitive. \code{"1995"} is the authors' later
+revision, which removed Test D (Walton Braver & Braver, 1995, as cited in
+Sawilowsky, 1996, p. 2); the revision itself is unpublished. The
+remaining tests follow the 1988 rule, each reached only if the
+ones before it are nonsignificant, as in Sawilowsky's (1996) simulation
+of the revised sequence. Only the \code{path} and \code{conclusion} differ; every
+test is always calculated.}
+
+\item{alpha_allocation}{Test-wise significance levels for the historical
+sequence. \code{"none"} (the default) uses \code{alpha} for every test. The other
+options are the two Bonferroni-type allocations of Sawilowsky (1996,
+Table 4), which he calibrated by Monte Carlo so that the experiment-wise
+Type I error of the 1995 sequence stays within Bradley's (1968, as cited
+in Sawilowsky, 1996) conservative (\code{"_conservative"}) or liberal
+(\code{"_liberal"}) robustness limit for a nominal alpha of .05:
+\itemize{
+\item \code{"method1_conservative"} and \code{"method1_liberal"}: Tests A, E, H, and I
+each at .020 or .0275;
+\item \code{"method2_conservative"} and \code{"method2_liberal"}: Test A at .05, as a
+preliminary test, and Tests E, H, and I each at .005 or .020.
+}
+
+An allocation requires \code{flow = "1995"}, \code{alpha = 0.05}, \code{pretested_test = "ancova"}, and \code{combine_with_stouffer = TRUE}, the conditions for which
+the levels were obtained. Tests B and C, reached only after a
+significant Test A, are outside the allocation and keep \code{alpha}; that
+choice is solomonR's.}
 }
 \value{
 An object of class \code{solomon_classic}. The \code{tests}
@@ -82,10 +108,12 @@ The \code{history} component compares the unpretested control posttest (O6)
 with the pretests of the pretested groups (O1 and O3) by independent-samples
 t tests, as Mai et al. (2020, p. 8) report. Neither group had received the
 treatment when these scores were measured, so a difference estimates the
-combined effect of history and maturation between the two occasions,
-provided assignment was random and the measure is comparable at both
-occasions. It is reported as a historical check, not a test of the
-treatment.
+combined effect of history and maturation between the two occasions
+(Campbell & Stanley, 1963/1966, p. 25), provided assignment was random and
+the measure is comparable at both occasions. Solomon (1949, pp. 146–148)
+introduced the fourth group for this purpose, attributing its change from
+the pretest to outside events and the passage of time. It is reported as a
+historical check, not a test of the treatment.
 }
 
 \section{Confidence intervals}{
@@ -105,8 +133,9 @@ four-group designs reconsidered: A reply to Sawilowsky and Markman.
 \emph{Perceptual and Motor Skills, 71}(1), 321–322.
 https://doi.org/10.2466/pms.1990.71.1.321
 
-Campbell, D. T., & Stanley, J. C. (1963). \emph{Experimental and
-quasi-experimental designs for research}. Rand McNally.
+Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
+quasi-experimental designs for research}. Rand McNally. (Original work
+published 1963)
 
 Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
 calculation of confidence intervals that are based on central and noncentral
@@ -124,6 +153,11 @@ Theory, application, and implementation. \emph{Journal of Statistical Software,
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. \emph{Education
 Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+Sawilowsky, S. S. (1996, June 23). \emph{Controlling experiment-wise Type I error
+of meta-analysis in the Solomon four-group design} \link{Paper presentation}.
+First International Conference on Multiple Comparisons, Tel Aviv, Israel.
+http://digitalcommons.wayne.edu/coe_tbf/29
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. \emph{The Journal of Experimental

@@ -110,8 +110,18 @@
 # 1990: Braver and Walton Braver (1990, p. 322). As 1988 through Test D;
 # once Tests A and D are nonsignificant, every test through Test I is run
 # and Test I is regarded as the most definitive.
+# 1995: Walton Braver and Braver (1995, as cited in Sawilowsky, 1996, p. 2)
+# removed Test D. The remaining tests follow the 1988 rule, each reached only
+# if the ones before it are nonsignificant, as in Sawilowsky's (1996)
+# simulation of the revised sequence.
+#
+# `alpha` is one level for every test, or a named vector of levels for A, B,
+# C, D, S, H, and I (see .classic_alpha_levels()).
 .classic_path <- function(p, alpha, flow, selected, combine_with_stouffer) {
-  sig <- p < alpha
+  if (is.null(names(alpha))) {
+    alpha <- stats::setNames(rep(alpha, 7L), c("A", "B", "C", "D", "S", "H", "I"))
+  }
+  sig <- stats::setNames(p < alpha[names(p)], names(p))
 
   if (sig[["A"]]) {
     conclusion <- if (sig[["B"]] && sig[["C"]]) {
@@ -139,7 +149,15 @@
     return(list(path = c("A", "B", "C"), conclusion = conclusion))
   }
 
-  if (sig[["D"]]) {
+  without_d <- flow == "1995"
+  first <- if (without_d) "A" else c("A", "D")
+  lead <- if (without_d) {
+    "Historical pathway (1995 revision, without Test D):"
+  } else {
+    "Historical pathway:"
+  }
+
+  if (!without_d && sig[["D"]]) {
     return(list(
       path = c("A", "D"),
       conclusion = paste(
@@ -172,9 +190,10 @@
 
   if (sig[["S"]]) {
     return(list(
-      path = c("A", "D", selected),
+      path = c(first, selected),
       conclusion = paste(
-        "Historical pathway: no evidence of pretest sensitization;",
+        lead,
+        "no evidence of pretest sensitization;",
         paste0("Test ", selected),
         "detects a treatment effect in the pretested groups."
       )
@@ -183,9 +202,10 @@
 
   if (sig[["H"]]) {
     return(list(
-      path = c("A", "D", selected, "H"),
+      path = c(first, selected, "H"),
       conclusion = paste(
-        "Historical pathway: no evidence of pretest sensitization;",
+        lead,
+        "no evidence of pretest sensitization;",
         "Test H detects a treatment effect in the unpretested groups."
       )
     ))
@@ -193,9 +213,10 @@
 
   if (!isTRUE(combine_with_stouffer)) {
     return(list(
-      path = c("A", "D", selected, "H"),
+      path = c(first, selected, "H"),
       conclusion = paste(
-        "Historical pathway: Tests A, D,",
+        lead,
+        paste0("Tests ", paste(first, collapse = ", "), ","),
         selected,
         "and H are nonsignificant; Test I was not requested."
       )
@@ -203,21 +224,44 @@
   }
 
   list(
-    path = c("A", "D", selected, "H", "I"),
+    path = c(first, selected, "H", "I"),
     conclusion = if (sig[["I"]]) {
       paste(
-        "Historical pathway: Test I produces a significant",
+        lead,
+        "Test I produces a significant",
         "Stouffer combination. This result is retained for",
         "historical replication and should be interpreted in",
         "light of later Type I error critiques."
       )
     } else {
       paste(
-        "Historical pathway: no treatment test in the selected",
+        lead,
+        "no treatment test in the selected",
         "A-I sequence reaches the specified alpha level."
       )
     }
   )
+}
+
+
+# Test-wise significance levels for the historical sequence. With an
+# allocation, the levels are those Sawilowsky (1996, Table 4) obtained by
+# Monte Carlo for Tests A, E, H, and I (the 1995 sequence, nominal alpha =
+# .05) under Bradley's (1968, as cited in Sawilowsky, 1996) conservative and
+# liberal robustness criteria. Tests B and C, reached only after a
+# significant Test A, are not part of that allocation and keep `alpha`.
+.classic_alpha_levels <- function(alpha, allocation) {
+  levels <- stats::setNames(rep(alpha, 7L), c("A", "B", "C", "D", "S", "H", "I"))
+  published <- switch(
+    allocation,
+    none = NULL,
+    method1_conservative = c(A = 0.02, S = 0.02, H = 0.02, I = 0.02),
+    method1_liberal = c(A = 0.0275, S = 0.0275, H = 0.0275, I = 0.0275),
+    method2_conservative = c(A = 0.05, S = 0.005, H = 0.005, I = 0.005),
+    method2_liberal = c(A = 0.05, S = 0.02, H = 0.02, I = 0.02)
+  )
+  levels[names(published)] <- published
+  levels
 }
 
 
@@ -262,18 +306,42 @@
 #'   Test I is reached only when all are nonsignificant. `"1990"` is the
 #'   authors' amendment (Braver & Walton Braver, 1990, p. 322): once Tests A
 #'   and D are nonsignificant, every test through Test I is run and Test I is
-#'   regarded as the most definitive. Only the `path` and `conclusion`
-#'   differ; every test is always calculated.
+#'   regarded as the most definitive. `"1995"` is the authors' later
+#'   revision, which removed Test D (Walton Braver & Braver, 1995, as cited in
+#'   Sawilowsky, 1996, p. 2); the revision itself is unpublished. The
+#'   remaining tests follow the 1988 rule, each reached only if the
+#'   ones before it are nonsignificant, as in Sawilowsky's (1996) simulation
+#'   of the revised sequence. Only the `path` and `conclusion` differ; every
+#'   test is always calculated.
+#' @param alpha_allocation Test-wise significance levels for the historical
+#'   sequence. `"none"` (the default) uses `alpha` for every test. The other
+#'   options are the two Bonferroni-type allocations of Sawilowsky (1996,
+#'   Table 4), which he calibrated by Monte Carlo so that the experiment-wise
+#'   Type I error of the 1995 sequence stays within Bradley's (1968, as cited
+#'   in Sawilowsky, 1996) conservative (`"_conservative"`) or liberal
+#'   (`"_liberal"`) robustness limit for a nominal alpha of .05:
+#'   - `"method1_conservative"` and `"method1_liberal"`: Tests A, E, H, and I
+#'     each at .020 or .0275;
+#'   - `"method2_conservative"` and `"method2_liberal"`: Test A at .05, as a
+#'     preliminary test, and Tests E, H, and I each at .005 or .020.
+#'
+#'   An allocation requires `flow = "1995"`, `alpha = 0.05`, `pretested_test =
+#'   "ancova"`, and `combine_with_stouffer = TRUE`, the conditions for which
+#'   the levels were obtained. Tests B and C, reached only after a
+#'   significant Test A, are outside the allocation and keep `alpha`; that
+#'   choice is solomonR's.
 #'
 #' @section History and maturation:
 #' The `history` component compares the unpretested control posttest (O6)
 #' with the pretests of the pretested groups (O1 and O3) by independent-samples
 #' t tests, as Mai et al. (2020, p. 8) report. Neither group had received the
 #' treatment when these scores were measured, so a difference estimates the
-#' combined effect of history and maturation between the two occasions,
-#' provided assignment was random and the measure is comparable at both
-#' occasions. It is reported as a historical check, not a test of the
-#' treatment.
+#' combined effect of history and maturation between the two occasions
+#' (Campbell & Stanley, 1963/1966, p. 25), provided assignment was random and
+#' the measure is comparable at both occasions. Solomon (1949, pp. 146–148)
+#' introduced the fourth group for this purpose, attributing its change from
+#' the pretest to outside events and the passage of time. It is reported as a
+#' historical check, not a test of the treatment.
 #'
 #' @section Confidence intervals:
 #' Tests A-H are t tests (equivalently, F tests with one numerator degree of
@@ -295,8 +363,9 @@
 #' *Perceptual and Motor Skills, 71*(1), 321–322.
 #' https://doi.org/10.2466/pms.1990.71.1.321
 #'
-#' Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
-#' quasi-experimental designs for research*. Rand McNally.
+#' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+#' quasi-experimental designs for research*. Rand McNally. (Original work
+#' published 1963)
 #'
 #' Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
 #' calculation of confidence intervals that are based on central and noncentral
@@ -314,6 +383,11 @@
 #' Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 #' transfer interventions using Solomon four-group designs. *Education
 #' Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+#'
+#' Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
+#' of meta-analysis in the Solomon four-group design* \[Paper presentation\].
+#' First International Conference on Multiple Comparisons, Tel Aviv, Israel.
+#' http://digitalcommons.wayne.edu/coe_tbf/29
 #'
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 #' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
@@ -342,13 +416,30 @@ fit_solomon_classic <- function(
     combine_with_stouffer = TRUE,
     stouffer_direction = c("greater", "less"),
     conf_level = 0.95,
-    flow = c("1988", "1990")
+    flow = c("1988", "1990", "1995"),
+    alpha_allocation = c("none", "method1_conservative", "method1_liberal",
+                         "method2_conservative", "method2_liberal")
 ) {
 
   pretested_test <- match.arg(pretested_test)
   stouffer_direction <- match.arg(stouffer_direction)
   flow <- match.arg(flow)
+  alpha_allocation <- match.arg(alpha_allocation)
   .check_conf_level(conf_level)
+
+  if (alpha_allocation != "none") {
+    if (flow != "1995" || !isTRUE(all.equal(alpha, 0.05)) ||
+        pretested_test != "ancova" || !isTRUE(combine_with_stouffer)) {
+      stop(
+        "Sawilowsky's (1996) alpha allocations were obtained for the 1995 ",
+        "sequence of Tests A, E, H, and I at a nominal alpha of .05; use ",
+        "flow = \"1995\", alpha = 0.05, pretested_test = \"ancova\", and ",
+        "combine_with_stouffer = TRUE.",
+        call. = FALSE
+      )
+    }
+  }
+  alpha_levels <- .classic_alpha_levels(alpha, alpha_allocation)
 
   if (flow == "1990" && !isTRUE(combine_with_stouffer)) {
     stop(
@@ -580,7 +671,7 @@ fit_solomon_classic <- function(
       S = list(E = E, F = F, G = G)[[selected_letter]]$p.value,
       H = H$p.value, I = I_selected$p.value
     ),
-    alpha = alpha,
+    alpha = alpha_levels,
     flow = flow,
     selected = selected_letter,
     combine_with_stouffer = combine_with_stouffer
@@ -750,7 +841,9 @@ fit_solomon_classic <- function(
         combine_with_stouffer = combine_with_stouffer,
         stouffer_direction = stouffer_direction,
         conf_level = conf_level,
-        flow = flow
+        flow = flow,
+        alpha_allocation = alpha_allocation,
+        alpha_levels = alpha_levels
       ),
 
       # Legacy fields

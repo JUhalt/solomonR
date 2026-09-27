@@ -1,6 +1,6 @@
 # Historical Tests A-I decision path (issue #29).
 
-.classic_flow_nodes <- function(selected = NULL) {
+.classic_flow_nodes <- function(selected = NULL, flow = "1988") {
   selected_label <- if (is.null(selected)) {
     "Test E / F / G\nTreatment in pretested groups"
   } else {
@@ -10,7 +10,7 @@
       G = "Treatment x Time interaction"
     )[[selected]])
   }
-  data.frame(
+  nodes <- data.frame(
     node = c("A", "B", "C", "D", "S", "H", "I"),
     x = c(0, -2, -2, 2, 2, 2, 2),
     y = c(5, 4, 3, 4, 3, 2, 1),
@@ -25,11 +25,27 @@
     ),
     stringsAsFactors = FALSE
   )
+  if (flow == "1995") {
+    # The 1995 revision removed Test D; the later tests move up one level.
+    nodes <- nodes[nodes$node != "D", ]
+    nodes$y[nodes$node %in% c("S", "H", "I")] <- nodes$y[nodes$node %in% c("S", "H", "I")] + 1
+  }
+  nodes
 }
 
 # In the 1990 amendment, once Tests A and D are nonsignificant every test
-# through Test I is run (Braver & Walton Braver, 1990, p. 322).
+# through Test I is run (Braver & Walton Braver, 1990, p. 322). The 1995
+# revision removed Test D (Walton Braver & Braver, 1995, as cited in
+# Sawilowsky, 1996, p. 2).
 .classic_flow_edges <- function(flow = "1988") {
+  if (flow == "1995") {
+    return(data.frame(
+      from = c("A", "A", "A", "S", "H"),
+      to = c("B", "C", "S", "H", "I"),
+      label = c("significant", "", "not significant", "not significant", "not significant"),
+      stringsAsFactors = FALSE
+    ))
+  }
   after_d <- if (flow == "1990") "always" else "not significant"
   data.frame(
     from = c("A", "A", "A", "D", "S", "H"),
@@ -51,7 +67,8 @@
 #' Walton Braver and Braver (1988) Stouffer combination. In the original
 #' 1988 sequence each of these is reached only if the one before it is
 #' nonsignificant; in the 1990 amendment (Braver & Walton Braver, 1990), all
-#' of them are run once Test D is nonsignificant.
+#' of them are run once Test D is nonsignificant. The 1995 revision removed
+#' Test D (Walton Braver & Braver, 1995, as cited in Sawilowsky, 1996, p. 2).
 #'
 #' Given a fitted classic analysis, the tests it visited are highlighted with
 #' their p-values, following the fit's recorded path exactly, and the caption
@@ -65,7 +82,8 @@
 #' @param fit Optional fit from [fit_solomon_classic()]. Without one, the
 #'   generic diagram is drawn.
 #' @param flow Version of the sequence to draw when `fit` is not given:
-#'   `"1988"` or `"1990"`. With a fit, the fit's own version is used.
+#'   `"1988"`, `"1990"`, or `"1995"`. With a fit, the fit's own version is
+#'   used.
 #'
 #' @return A ggplot object.
 #'
@@ -74,6 +92,11 @@
 #' four-group designs reconsidered: A reply to Sawilowsky and Markman.
 #' *Perceptual and Motor Skills, 71*(1), 321–322.
 #' https://doi.org/10.2466/pms.1990.71.1.321
+#'
+#' Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
+#' of meta-analysis in the Solomon four-group design* \[Paper presentation\].
+#' First International Conference on Multiple Comparisons, Tel Aviv, Israel.
+#' http://digitalcommons.wayne.edu/coe_tbf/29
 #'
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 #' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
@@ -88,9 +111,10 @@
 #' classic <- with(solomon_example, fit_solomon_classic(y_post, treat, pretested, y_pre))
 #' plot_classic_flow(classic)
 #' plot_classic_flow(flow = "1990")
+#' plot_classic_flow(flow = "1995")
 #'
 #' @export
-plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990")) {
+plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990", "1995")) {
 
   if (!is.null(fit) && !inherits(fit, "solomon_classic")) {
     stop("`fit` must come from fit_solomon_classic().", call. = FALSE)
@@ -98,7 +122,7 @@ plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990")) {
 
   flow <- if (!is.null(fit) && !is.null(fit$settings$flow)) fit$settings$flow else match.arg(flow)
   selected <- if (is.null(fit)) NULL else fit$settings$selected_test
-  nodes <- .classic_flow_nodes(selected)
+  nodes <- .classic_flow_nodes(selected, flow)
   edges <- .classic_flow_edges(flow)
 
   caution <- paste(
@@ -133,8 +157,13 @@ plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990")) {
     if (all(c("B", "C") %in% path)) step_pairs <- c(step_pairs, "A C")
     edges$visited <- paste(edges$from, edges$to) %in% step_pairs
 
-    subtitle <- sprintf("Path taken (%s flow): %s (alpha = %s)", flow, fit$path_string,
-                        format(fit$settings$alpha))
+    allocation <- fit$settings$alpha_allocation
+    alpha_text <- if (is.null(allocation) || allocation == "none") {
+      sprintf("alpha = %s", format(fit$settings$alpha))
+    } else {
+      sprintf("alpha allocation: %s (Sawilowsky, 1996)", allocation)
+    }
+    subtitle <- sprintf("Path taken (%s flow): %s (%s)", flow, fit$path_string, alpha_text)
     caption <- paste0(fit$conclusion, "\n", caution)
   }
 
