@@ -1,5 +1,19 @@
 # solomonR (development version)
 
+## Reanalysis from summary statistics and effect sizes (#53)
+
+* New `solomon_from_summary()` reanalyzes a published Solomon study from the
+  posttest n, mean, and SD of the four groups: the two-way ANOVA with Type
+  III sums of squares, Tests A-D, the pretest main effect, and the simple
+  effects, with confidence intervals. It reproduces the F tests of El Karkri
+  et al. (2025a) from their Table 8 within rounding.
+* New `solomon_effect_sizes()` returns effect sizes for meta-analysis in
+  `yi`/`vi` form: Morris's (2008) d_ppc2 for the pretested pair, with its
+  Eq. 25 variance, and Hedges's g for the unpretested pair. The Eq. 25
+  variance reproduces all 54 theoretical values in Morris's Tables 2 and 3,
+  and the help page states its underestimation when treatment inflates
+  posttest variance.
+
 ## Versioned historical decision flows (#50, in progress)
 
 * `fit_solomon_classic()` and `plot_classic_flow()` gain `flow`. `"1988"`,

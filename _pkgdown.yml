@@ -24,6 +24,14 @@ reference:
       - stouffer_solomon
       - p_to_z
 
+  - title: "Reanalysis and synthesis"
+    desc: >
+      Reanalyze published studies from summary statistics and compute effect
+      sizes for meta-analysis.
+    contents:
+      - solomon_from_summary
+      - solomon_effect_sizes
+
   - title: "Structural equation models"
     desc: >
       Observed- and latent-variable SEM approaches to the Solomon design.

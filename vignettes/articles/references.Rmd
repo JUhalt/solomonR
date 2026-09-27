@@ -52,9 +52,9 @@ education programme in the Solomon four-group design. *Brain Sciences,
 
 > A recent classroom Solomon study that reports full cell statistics and a
 > sensitization effect, with one intact class per condition. *In solomonR:*
-> a benchmark for summary-statistics reanalysis and an example of
-> class–condition confounding (planned,
-> [#46](https://github.com/JUhalt/solomonR/issues/46),
+> the known-result test and example of `solomon_from_summary()`, and an
+> example of the class–condition confounding that `validate_solomon()`
+> detects ([#46](https://github.com/JUhalt/solomonR/issues/46),
 > [#53](https://github.com/JUhalt/solomonR/issues/53)).
 
 El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025b). Methodological
@@ -152,9 +152,10 @@ group designs. *Organizational Research Methods, 11*(2), 364–386.
 https://doi.org/10.1177/1094428106291059
 
 > Compares effect sizes for pretest–posttest–control designs and recommends
-> the pooled-pretest-SD estimator. *In solomonR:* effect sizes for the
-> pretested pair (planned,
-> [#53](https://github.com/JUhalt/solomonR/issues/53)).
+> the pooled-pretest-SD estimator. *In solomonR:* d<sub>ppc2</sub> and its
+> variance for the pretested pair in `solomon_effect_sizes()`, tested
+> against the paper's worked example and theoretical variances
+> ([#53](https://github.com/JUhalt/solomonR/issues/53)).
 
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
 of meta-analysis in the Solomon four-group design* [Paper presentation].
