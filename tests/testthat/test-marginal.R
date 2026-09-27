@@ -146,7 +146,7 @@ test_that("unsupported fits and arguments are refused", {
   d$site <- rep(seq_len(12), length.out = nrow(d))
   cr2 <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial(),
                                            robust = "CR2", cluster = site)))
-  expect_error(marginal_solomon(cr2), "not yet supported")
+  expect_error(marginal_solomon(cr2, method = "bootstrap"), "only method = \"delta\"")
 
   fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
   expect_error(marginal_solomon(fit, R = 10), "at least 99")
@@ -201,4 +201,45 @@ test_that("noncollapsible links with a pretest covariate warn; collapsible links
   d$count <- stats::rpois(nrow(d), 2)
   expect_no_warning(with(d, fit_solomon_glm(count, treat, pretested, y_pre, family = stats::poisson())))
   expect_no_warning(with(d, fit_solomon_glm(y_post, treat, pretested, y_pre)))
+})
+
+test_that("clustered fits use CR2 delta-method intervals with Satterthwaite t (#64)", {
+  set.seed(64)
+  cells <- rep(1:4, each = 6)
+  cluster <- rep(seq_along(cells), each = 15)
+  treat <- c(1, 0, 1, 0)[cells][cluster]
+  pretested <- c(1, 1, 0, 0)[cells][cluster]
+  u <- stats::rnorm(length(cells), 0, 0.4)[cluster]
+  y <- stats::rbinom(length(cluster), 1, stats::plogis(-0.8 + 0.5 * treat + u))
+  fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial(),
+                                   robust = "CR2", cluster = cluster))
+  m <- marginal_solomon(fit, scale = "difference")
+
+  # Without covariates the marginal risks are the cell proportions.
+  prop <- function(t, p) mean(y[treat == t & pretested == p])
+  expect_equal(m$risks$risk, c(prop(1, 1), prop(0, 1), prop(1, 0), prop(0, 0)), tolerance = 1e-8)
+  expect_identical(m$method, "delta")
+  expect_true(all(is.finite(m$effects$df)))
+
+  # The degrees of freedom are those of the delta method's linear
+  # approximation under CR2 (Pustejovsky & Tipton, 2018).
+  b <- stats::coef(fit$model)
+  X <- stats::model.matrix(fit$model)
+  pre <- as.integer(X[, "pretested"])
+  g <- vapply(seq_along(b), function(j) {
+    h <- 1e-6 * max(1, abs(b[[j]]))
+    up <- b; up[j] <- up[j] + h
+    dn <- b; dn[j] <- dn[j] - h
+    (.marginal_all(up, X, pre, "difference") - .marginal_all(dn, X, pre, "difference")) / (2 * h)
+  }, numeric(4))
+  g <- matrix(g, nrow = 4, dimnames = list(NULL, names(b)))
+  fit_cr <- stats::glm(stats::formula(fit$model), data = stats::model.frame(fit$model),
+                       family = stats::binomial())
+  df1 <- as.data.frame(clubSandwich::linear_contrast(fit_cr, vcov = fit$vcov,
+                                                     contrasts = g[4, , drop = FALSE],
+                                                     test = "Satterthwaite"))$df
+  row <- m$effects[m$effects$contrast == "Treatment | unpretested", ]
+  expect_equal(row$df, df1, tolerance = 1e-8)
+  expect_equal(row$conf.high - row$estimate, stats::qt(0.975, df1) * row$std.error, tolerance = 1e-8)
+  expect_equal(row$p.value, 2 * stats::pt(-abs(row$estimate / row$std.error), df1), tolerance = 1e-10)
 })

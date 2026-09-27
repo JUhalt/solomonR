@@ -190,15 +190,25 @@
 #' Solomon study with a count outcome has been identified, so this use of
 #' count-data methods is a solomonR extension.
 #'
+#' Clustered fits: with `robust = "CR2"`, the delta-method standard errors use
+#' the CR2 cluster-robust covariance (Bell & McCaffrey, 2002), and intervals
+#' and tests use the t distribution with Satterthwaite degrees of freedom for
+#' the delta method's linear approximation (Pustejovsky & Tipton, 2018).
+#' Applying those degrees of freedom to the linearized contrast is a solomonR
+#' extension; its simulation validation is on issue #64. Only the delta
+#' method is offered, because the bootstrap resamples participants rather
+#' than clusters, and a classed warning flags degrees of freedom below 4
+#' (Tipton, 2015). For a cluster-level randomization test, see
+#' [perm_solomon()].
+#'
 #' The package's simulation validation of this function is described on
-#' issue #43 (binary outcomes), issue #44 (count outcomes), and issue #62
-#' (negative-binomial fits).
+#' issue #43 (binary outcomes), issue #44 (count outcomes), issue #62
+#' (negative-binomial fits), and issue #64 (clustered fits).
 #'
 #' @param fit A fit from [fit_solomon_glm()] with `family = binomial()` (logit
 #'   link), `family = poisson()` (log link), or
-#'   `family = "negative_binomial"`. Cluster-robust (CR2) fits are not
-#'   yet supported (issue #64); for clustered designs, [perm_solomon()] gives a
-#'   cluster-level randomization test on the difference scale.
+#'   `family = "negative_binomial"`, with HC3, model-based, or CR2
+#'   covariance.
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
 #'   outcomes, `"odds_ratio"`. For count outcomes the default is
 #'   `c("difference", "ratio")`.
@@ -216,6 +226,10 @@
 #'   including the number of failed bootstrap resamples.
 #'
 #' @references
+#' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
+#' for linear regression with multi-stage samples. *Survey Methodology, 28*(2),
+#' 169–181.
+#'
 #' Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
 #' (2nd ed.). Cambridge University Press.
 #' https://doi.org/10.1017/CBO9781139013567
@@ -229,6 +243,15 @@
 #' confidence intervals were easily computed indirectly from multivariable
 #' logistic regression. *Journal of Clinical Epidemiology, 60*(9), 874–882.
 #' https://doi.org/10.1016/j.jclinepi.2006.12.001
+#'
+#' Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+#' cluster-robust variance estimation and hypothesis testing in fixed effects
+#' models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
+#' https://doi.org/10.1080/07350015.2016.1247004
+#'
+#' Tipton, E. (2015). Small sample adjustments for robust variance estimation
+#' with meta-regression. *Psychological Methods, 20*(3), 375–393.
+#' https://doi.org/10.1037/met0000011
 #'
 #' @seealso [fit_solomon_glm()], [fisher_solomon()]
 #'
@@ -266,12 +289,15 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stop("`fit` must use family = binomial() (logit link), poisson() (log link), ",
          "or \"negative_binomial\".", call. = FALSE)
   }
-  if (identical(fit$robust, "CR2")) {
-    stop("Cluster-robust (CR2) fits are not yet supported (issue #64). For ",
-         "clustered designs, perm_solomon() gives a cluster-level randomization ",
-         "test on the difference scale.", call. = FALSE)
-  }
+  cr2 <- identical(fit$robust, "CR2")
   method_missing <- missing(method)
+  if (cr2) {
+    if (!method_missing && identical(match.arg(method), "bootstrap")) {
+      stop("For clustered (CR2) fits only method = \"delta\" is offered; the ",
+           "bootstrap resamples participants, not clusters.", call. = FALSE)
+    }
+    method <- "delta"
+  }
   if (count && missing(scale)) scale <- c("difference", "ratio")
   scale <- match.arg(scale, several.ok = TRUE)
   method <- match.arg(method)
@@ -321,6 +347,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
 
   alpha <- 1 - conf_level
   failures <- NA_integer_
+  df <- rep(Inf, length(estimate))
 
   if (method == "bootstrap") {
     cells <- split(seq_along(y), interaction(treat, pretested, drop = TRUE))
@@ -373,11 +400,25 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     }, numeric(length(estimate)))
     grad <- matrix(grad, nrow = length(estimate))
     std.error <- sqrt(rowSums((grad %*% V) * grad))
-    z <- stats::qnorm(1 - alpha / 2)
-    ci <- cbind(estimate - z * std.error, estimate + z * std.error)
+    if (cr2) {
+      # Satterthwaite degrees of freedom for the delta method's linear
+      # approximation (Pustejovsky & Tipton, 2018), from the complete-case
+      # refit that the CR2 covariance was computed on.
+      colnames(grad) <- names(b)
+      fit_cr <- stats::glm(stats::formula(model), data = stats::model.frame(model),
+                           family = fit$family)
+      ok <- is.finite(estimate) & is.finite(std.error) & std.error > 0
+      df[ok] <- vapply(which(ok), function(i) {
+        as.data.frame(clubSandwich::linear_contrast(
+          fit_cr, vcov = fit$vcov, contrasts = grad[i, , drop = FALSE], test = "Satterthwaite"
+        ))$df
+      }, numeric(1))
+    }
+    q <- ifelse(is.finite(df), stats::qt(1 - alpha / 2, pmax(df, 1e-8)), stats::qnorm(1 - alpha / 2))
+    ci <- cbind(estimate - q * std.error, estimate + q * std.error)
   }
 
-  p.value <- 2 * stats::pnorm(-abs(estimate / std.error))
+  p.value <- 2 * stats::pt(-abs(estimate / std.error), df)
   scale_col <- rep(scale, each = 4)
   ratio <- scale_col != "difference"
   report <- function(x) ifelse(ratio, exp(x), x)
@@ -389,9 +430,18 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     conf.low = report(ci[, 1]),
     conf.high = report(ci[, 2]),
     std.error = std.error,
+    df = df,
     p.value = p.value,
     stringsAsFactors = FALSE
   )
+
+  if (cr2) {
+    small_df <- is.finite(df) & df < 4
+    if (any(small_df)) {
+      .warn_cr2_small_df(paste(effects$scale[small_df], effects$contrast[small_df], sep = ": "),
+                         df[small_df])
+    }
+  }
 
   cells <- data.frame(
     cell = c("Pretested, treatment", "Pretested, control",

@@ -298,8 +298,14 @@
   count <- identical(fit$outcome, "count")
   refs <- .solomon_function_refs$marginal_solomon
   if (count) refs <- c(refs, "cameron2013")
+  clustered <- !is.null(fit$effects$df) && any(is.finite(fit$effects$df))
   intervals <- if (identical(fit$method, "bootstrap")) {
     sprintf("percentile intervals from %d cell-stratified bootstrap resamples", fit$R)
+  } else if (clustered) {
+    refs <- c(refs, "bell2002", "pustejovsky2018")
+    paste("delta-method intervals from CR2 cluster-robust standard errors, with t",
+          "reference distributions using Satterthwaite degrees of freedom",
+          "(Bell & McCaffrey, 2002; Pustejovsky & Tipton, 2018)")
   } else {
     "delta-method intervals"
   }

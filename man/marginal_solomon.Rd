@@ -16,9 +16,8 @@ marginal_solomon(
 \arguments{
 \item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \code{family = binomial()} (logit
 link), \code{family = poisson()} (log link), or
-\code{family = "negative_binomial"}. Cluster-robust (CR2) fits are not
-yet supported (issue #64); for clustered designs, \code{\link[=perm_solomon]{perm_solomon()}} gives a
-cluster-level randomization test on the difference scale.}
+\code{family = "negative_binomial"}, with HC3, model-based, or CR2
+covariance.}
 
 \item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
 outcomes, \code{"odds_ratio"}. For count outcomes the default is
@@ -103,9 +102,20 @@ fits the estimated theta, are printed for description. No published
 Solomon study with a count outcome has been identified, so this use of
 count-data methods is a solomonR extension.
 
+Clustered fits: with \code{robust = "CR2"}, the delta-method standard errors use
+the CR2 cluster-robust covariance (Bell & McCaffrey, 2002), and intervals
+and tests use the t distribution with Satterthwaite degrees of freedom for
+the delta method's linear approximation (Pustejovsky & Tipton, 2018).
+Applying those degrees of freedom to the linearized contrast is a solomonR
+extension; its simulation validation is on issue #64. Only the delta
+method is offered, because the bootstrap resamples participants rather
+than clusters, and a classed warning flags degrees of freedom below 4
+(Tipton, 2015). For a cluster-level randomization test, see
+\code{\link[=perm_solomon]{perm_solomon()}}.
+
 The package's simulation validation of this function is described on
-issue #43 (binary outcomes), issue #44 (count outcomes), and issue #62
-(negative-binomial fits).
+issue #43 (binary outcomes), issue #44 (count outcomes), issue #62
+(negative-binomial fits), and issue #64 (clustered fits).
 }
 \examples{
 d <- solomon_example
@@ -127,6 +137,10 @@ marginal_solomon(counts)
 
 }
 \references{
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
+for linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
+169–181.
+
 Cameron, A. C., & Trivedi, P. K. (2013). \emph{Regression analysis of count data}
 (2nd ed.). Cambridge University Press.
 https://doi.org/10.1017/CBO9781139013567
@@ -140,6 +154,15 @@ Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and
 confidence intervals were easily computed indirectly from multivariable
 logistic regression. \emph{Journal of Clinical Epidemiology, 60}(9), 874–882.
 https://doi.org/10.1016/j.jclinepi.2006.12.001
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed effects
+models. \emph{Journal of Business & Economic Statistics, 36}(4), 672–683.
+https://doi.org/10.1080/07350015.2016.1247004
+
+Tipton, E. (2015). Small sample adjustments for robust variance estimation
+with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.
+https://doi.org/10.1037/met0000011
 }
 \seealso{
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fisher_solomon]{fisher_solomon()}}
