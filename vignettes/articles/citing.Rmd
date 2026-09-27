@@ -1,0 +1,100 @@
+---
+title: "How to Cite solomonR and the Methods It Implements"
+description: >
+  Cite the package and the published methods behind each analysis.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(solomonR)
+```
+
+When you use solomonR, cite both the package and the published methods
+behind the analysis you ran. The package is software, and the methods are
+the scholarship its analyses rest on.
+
+## The package
+
+```{r citation}
+citation("solomonR")
+```
+
+Include the version you used. It is printed above, and `packageVersion("solomonR")`
+reports it as well.
+
+## The methods
+
+The simplest way to cite the methods of a particular analysis is
+`report_solomon()`. It lists the APA 7 references for exactly the methods
+and options your fit used. For example, cluster-robust standard errors add
+their sources, and a historical analysis names the version of the test
+sequence:
+
+```{r report-refs}
+fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+report_solomon(fit)$references
+```
+
+The table lists the references each analysis function rests on, whatever
+options are chosen. Options add references of their own; `report_solomon()`
+includes them, and each function's help page lists them all.
+
+```{r registry, echo = FALSE}
+refs <- solomonR:::.solomon_function_refs
+text <- solomonR:::.solomon_reference_text
+cite <- function(keys) {
+  if (!length(keys)) return("Its model and inference options (see its help page)")
+  short <- vapply(text[keys], function(e) {
+    authors <- sub(" \\([0-9]{4}.*$", "", e)
+    year <- sub("^[^(]*\\(([0-9]{4}[a-z]?).*$", "\\1", e)
+    original <- regmatches(e, regexpr("Original work published [0-9]{4}", e))
+    if (length(original)) year <- paste0(sub("^.* ", "", original), "/", year)
+    surnames <- sub(",.*$", "", strsplit(authors, "\\.,\\s(&\\s)?", perl = TRUE)[[1]])
+    who <- if (length(surnames) == 1L) surnames else if (length(surnames) == 2L) {
+      paste(surnames, collapse = " & ")
+    } else {
+      paste(surnames[1], "et al.")
+    }
+    paste0(who, " (", year, ")")
+  }, "")
+  paste(short, collapse = "; ")
+}
+knitr::kable(data.frame(
+  Function = sprintf("`%s()`", names(refs)),
+  `Core references` = vapply(refs, cite, ""),
+  check.names = FALSE
+), row.names = FALSE, align = "ll")
+```
+
+The full entries, with notes on how the package uses each work, are on the
+[References](references.html) page.
+
+## Historical procedures
+
+If you reproduce a historical analysis, cite its original source. When the
+package's replication bears on your use of it, cite that too. The historical
+procedures are labeled by author and year throughout the package:
+
+- the Tests A–I sequence and its versions (Walton Braver & Braver, 1988;
+  Braver & Walton Braver, 1990);
+- the 1995 revision (Walton Braver & Braver, 1995, as cited in Sawilowsky,
+  1996).
+
+The article "Historical Tests: Replicating the Published Error Rates" reports
+what the package's replication found about their error rates.
+
+## References
+
+Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+four-group designs reconsidered: A reply to Sawilowsky and Markman.
+*Perceptual and Motor Skills, 71*(1), 321–322.
+https://doi.org/10.2466/pms.1990.71.1.321
+
+Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
+of meta-analysis in the Solomon four-group design* [Paper presentation].
+First International Conference on Multiple Comparisons, Tel Aviv, Israel.
+http://digitalcommons.wayne.edu/coe_tbf/29
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150

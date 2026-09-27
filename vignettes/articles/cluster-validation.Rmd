@@ -323,8 +323,10 @@ commit 48c926d, were kept; the package code is the same at both commits,
 and each scenario sets its own seed, so the results do not depend on the
 scheduling.
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
 
+## References
 Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
 analysis of incidence rates in cluster randomized trials. *International
 Journal of Epidemiology, 31*(4), 839–846. https://doi.org/10.1093/ije/31.4.839

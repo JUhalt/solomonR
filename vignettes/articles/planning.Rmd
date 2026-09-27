@@ -167,8 +167,10 @@ allocations Sawilowsky (1996) proposed to control its experiment-wise error,
 will be added with
 [issue #51](https://github.com/JUhalt/solomonR/issues/51).
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
 
+## References
 McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011). Can
 research assessments themselves cause bias in behaviour change trials? A
 systematic review of evidence from Solomon 4-group studies. *PLoS ONE,

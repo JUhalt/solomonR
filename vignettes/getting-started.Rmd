@@ -15,10 +15,29 @@ This guide is for graduate students and applied researchers who need to
 analyze, interpret, and report a Solomon four-group study. It follows one
 example from checking the data to writing up the results, and it explains
 where each recommendation comes from. For the full origin, assumptions, and
-limitations of every method, see `vignette("solomon-methods")`. If you are
-still deciding whether a Solomon design is right for your study, start with
-the article [Should I Use a Solomon
-Design?](https://juhalt.github.io/solomonR/articles/should-i-use-a-solomon-design.html).
+limitations of every method, see `vignette("solomon-methods")`.
+
+## The path through a Solomon study
+
+This guide covers the analysis. The steps before and after it each have
+their own article:
+
+1. **Decide** whether a Solomon design suits the question:
+   [Should I Use a Solomon Design?](https://juhalt.github.io/solomonR/articles/should-i-use-a-solomon-design.html)
+2. **Plan** the sample size:
+   [Planning a Solomon Study](https://juhalt.github.io/solomonR/articles/planning.html)
+3. **Analyze** the data: this guide, with the details of every method in
+   `vignette("solomon-methods")`.
+4. **Report** the design, the estimates, and the references:
+   [Reporting a Solomon Study](https://juhalt.github.io/solomonR/articles/reporting.html)
+5. **Synthesize** published studies:
+   [Reanalysis and Synthesis](https://juhalt.github.io/solomonR/articles/synthesis.html)
+
+The historical analysis has its own place:
+- [A History of the Solomon Design and Its Analysis](https://juhalt.github.io/solomonR/articles/history.html) tells
+  how it developed.
+- `vignette("classic-solomon")` shows how to reproduce it. It is kept for
+  teaching and replication, not recommended for new studies.
 
 ```{r load}
 library(solomonR)
@@ -394,8 +413,10 @@ adjusts for the pretest rather than analyzing gains.
 - McCambridge et al. (2011) review the empirical evidence on whether research
   assessments sensitize participants.
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](https://juhalt.github.io/solomonR/articles/references.html) page.
 
+## References
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
 published 1963)

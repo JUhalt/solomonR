@@ -1,5 +1,25 @@
 # solomonR (development version)
 
+## The site follows the research path (#56)
+
+* The article menu now follows the path a researcher takes: Decide, Plan,
+  Analyze, Report, and Synthesize. History and Validation evidence have
+  their own menus, and every article sits in exactly one group. The
+  function reference is grouped the same way, with the historical
+  procedures in a separate group.
+* The getting-started guide opens with the path and links each step's
+  article.
+* New articles:
+  - "Reporting a Solomon Study" shows what to report, including the MERIT
+    measurement items, and how `report_solomon()` drafts it.
+  - "Reanalysis and Synthesis" covers reanalysis from summary statistics
+    and effect sizes for meta-analysis.
+  - "How to Cite solomonR and the Methods It Implements" is generated from
+    the package's reference registry.
+* Every article's reference list links to the canonical bibliography.
+* The historical-analysis vignette covers the 1995 flow, the alpha
+  allocations, and what the replication found.
+
 ## Nonrandomized Solomon designs (#58)
 
 * New `baseline_solomon()` compares the two pretested arms at pretest, from

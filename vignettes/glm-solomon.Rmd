@@ -608,8 +608,10 @@ Planned additions include:
 See `ROADMAP.md` in the package repository for the current development
 plan.
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](https://juhalt.github.io/solomonR/articles/references.html) page.
 
+## References
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 for linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 169–181.

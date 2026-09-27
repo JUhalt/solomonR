@@ -243,8 +243,10 @@ Later work turned from the test sequence to the design's purpose:
 plot_classic_flow(flow = "1995")
 ```
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
 
+## References
 Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
 four-group designs reconsidered: A reply to Sawilowsky and Markman.
 *Perceptual and Motor Skills, 71*(1), 321–322.

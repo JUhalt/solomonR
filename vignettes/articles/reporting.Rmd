@@ -1,0 +1,91 @@
+---
+title: "Reporting a Solomon Study"
+description: >
+  What to report from a Solomon four-group study, and how report_solomon()
+  drafts the results, the design statement, and the references.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(solomonR)
+```
+
+A Solomon study report has to let readers judge two things: the treatment
+effect and whether the pretest changed it. This article describes what to
+report and shows how `report_solomon()` drafts it. The helper writes
+sentences. The researcher decides what they mean.
+
+## What to report
+
+- **The design.**
+  - How participants were assigned.
+  - How many were assigned to and analyzed in each of the four groups. Any
+    attrition, by group.
+  - How the pretest and posttest were given in each group. MERIT
+    Recommendation 11 is to use identical measurement protocols in all arms
+    (French et al., 2021b, p. 34).
+- **What was decided in advance.** Whether the sensitization analysis was
+  pre-specified, and any smallest effect of interest for an equivalence
+  test.
+- **The estimands and analysis.**
+  - Which contrasts were estimated: the average treatment effect, the
+    Pretest x Treatment contrast, and the two simple treatment effects.
+  - The model and how its uncertainty was computed.
+- **The results.** Each estimate with its confidence interval. For binary
+  or count outcomes, the scale of each contrast, because sensitization can
+  differ between scales.
+- **The references** for the methods used.
+
+## Drafting it with `report_solomon()`
+
+`report_solomon()` takes a fitted analysis and returns APA 7 results
+sentences, a design statement, and the references for exactly the methods
+and options that analysis used. Facts the data cannot show are supplied in
+`design`. The helper never infers them. The example data have 30
+participants per group; the numbers randomized below are hypothetical.
+
+```{r report}
+fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+report_solomon(fit, design = list(
+  randomized = c(32, 31, 30, 31),
+  prespecified = TRUE,
+  measurement = "The same 20-item test, given by the same research assistant in all groups.",
+  assignment = "random"
+))
+```
+
+In the example:
+- **Attrition.** The numbers randomized are compared with the numbers
+  analyzed, so the statement reports attrition by group.
+- **Pre-specification.** It is stated because it was supplied.
+- **Other analyses.** The design statement is the same, but the results and
+  references change. A clustered fit cites its cluster-robust standard
+  errors. A historical analysis names the version of the test sequence. A
+  nonrandomized design speaks of differences between groups rather than
+  treatment effects.
+
+For a manuscript, `format = "markdown"` italicizes statistical symbols as
+APA style requires:
+
+```{r markdown}
+report_solomon(fit, format = "markdown")$results
+```
+
+## What the helper does not do
+
+The report states results; it does not interpret them. Whether a
+sensitization contrast is small enough to ignore is a substantive judgment.
+`equivalence_solomon()` supports it when a smallest effect of interest was
+fixed in advance. The choice of analysis, the reading of the results, and
+the conclusions remain the researcher's.
+
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
+
+## References
+
+French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
+Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
+(2021b). Reducing bias in trials from reactions to measurement: The MERIT
+study including developmental work and expert workshop. *Health Technology
+Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550

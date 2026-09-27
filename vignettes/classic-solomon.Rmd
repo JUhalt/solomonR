@@ -298,7 +298,12 @@ cat(
 
 This detail matters. A directional one-tailed p-value is not obtained
 correctly by mechanically dividing every two-sided p-value by two
-without considering the sign of the effect.
+without considering the sign of the effect. The package's replication of
+the published error rates found that the published simulations appear to
+have combined the tests without regard to sign. That is why they report
+far fewer Test I rejections than the procedure as defined produces (see
+[Historical Tests: Replicating the Published Error
+Rates](https://juhalt.github.io/solomonR/articles/classic-validation.html)).
 
 ## Versions of the decision sequence
 
@@ -314,6 +319,10 @@ reproduces each version through its `flow` argument.
   Tests A and D are nonsignificant, the analyst "should complete all the
   tests through Test I" (Braver & Walton Braver, 1990, p. 322), and Test I is
   regarded as the most definitive test.
+- **1995.** A later revision removed Test D. It is unpublished and known
+  from Sawilowsky (1996, p. 2), so it is cited as Walton Braver and Braver
+  (1995, as cited in Sawilowsky, 1996). The remaining tests follow the 1988
+  rule, as in Sawilowsky's simulation of the revised sequence.
 
 ```{r flow-1990}
 classic_1990 <- with(
@@ -325,8 +334,20 @@ classic_1990$path_string
 classic_1990$conclusion
 ```
 
-The tests themselves are identical in both versions; only the path and the
-conclusion differ.
+The tests themselves are identical in every version; only the path and the
+conclusion differ. For the 1995 version, `alpha_allocation` applies the
+test-wise significance levels that Sawilowsky (1996, Table 4) proposed to
+control the experiment-wise error rate:
+
+```{r flow-1995}
+classic_1995 <- with(
+  solomon_example,
+  fit_solomon_classic(y_post, treat, pretested, y_pre, flow = "1995",
+                      alpha_allocation = "method2_conservative")
+)
+
+classic_1995$path_string
+```
 
 ## History and maturation
 
@@ -359,7 +380,12 @@ Later simulation work showed that conditional analysis sequences can
 have undesirable experiment-wise Type I error properties. In
 particular, choosing later tests based on the statistical significance
 of earlier tests changes the operating characteristics of the overall
-procedure.
+procedure. Sawilowsky et al. (1994) found that the 1988 sequence falsely
+declared an effect about 14% of the time at a nominal 5% per test.
+
+The package's own replication found the sequence as defined somewhat
+worse: 14% to 15% for both the 1988 and 1995 versions. Even Sawilowsky's
+(1996) alpha allocations stayed above their targets.
 
 For contemporary applied work, researchers should therefore consider a
 single prespecified model or a randomization-based analysis rather than
@@ -387,10 +413,14 @@ purposes.
 | Model latent outcomes | `fit_solomon_sem_latent()` |
 
 The historical procedure is therefore preserved rather than erased,
-while modern methods are available alongside it.
+while modern methods are available alongside it. [A History of the Solomon
+Design and Its Analysis](https://juhalt.github.io/solomonR/articles/history.html) tells how each version arose
+and how the debate over it unfolded.
+
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](https://juhalt.github.io/solomonR/articles/references.html) page.
 
 ## References
-
 Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
 four-group designs reconsidered: A reply to Sawilowsky and Markman.
 *Perceptual and Motor Skills, 71*(1), 321–322.
@@ -403,6 +433,11 @@ Appropriate statistical analyses. *The Journal of Experimental Education,
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
+of meta-analysis in the Solomon four-group design* [Paper presentation].
+First International Conference on Multiple Comparisons, Tel Aviv, Israel.
+http://digitalcommons.wayne.edu/coe_tbf/29
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of

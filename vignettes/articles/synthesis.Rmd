@@ -1,0 +1,102 @@
+---
+title: "Reanalysis and Synthesis"
+description: >
+  Reanalyzing a published Solomon study from its summary statistics, and
+  computing effect sizes for a meta-analysis.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(solomonR)
+```
+
+Most published Solomon studies report cell means and standard deviations,
+not individual data. This article shows two uses of those summaries:
+- **Reanalysis.** Checking or extending a study's analysis.
+- **Synthesis.** Computing effect sizes that combine across studies.
+
+## Reanalyzing a published study
+
+El Karkri et al. (2025a) report the posttest sample size, mean, and
+standard deviation of their four Solomon groups (Table 8, p. 11). The
+package bundles them as `elkarkri2025a`. `solomon_from_summary()` fits the
+two-by-two posttest model from these numbers:
+
+```{r reanalysis}
+elkarkri2025a[, c("group", "n", "mean", "sd")]
+fit <- with(elkarkri2025a, solomon_from_summary(n, mean, sd))
+fit
+```
+
+The published two-way ANOVA is reproduced within rounding. The interaction
+F is 11.46, against the published 11.482 (pp. 11–12). Treatment and
+pretesting agree just as closely.
+
+The reanalysis adds what the published tests do not show: the simple
+treatment effects with confidence intervals. In this study, the treatment
+effect is clear in the pretested classes and absent in the unpretested ones.
+
+Summary statistics limit the reanalysis:
+- **Variances.** The pooled error variance assumes equal variances in the
+  four groups.
+- **Individual data.** Robust standard errors, covariate adjustment, and
+  the analyses of the pretested groups need the individual data.
+- **The design.** Each group of El Karkri et al. is one intact class, so the
+  class and the condition are confounded (see `?elkarkri2025a` and
+  `baseline_solomon()`).
+
+## Effect sizes for meta-analysis
+
+`solomon_effect_sizes()` computes a standardized treatment effect for each
+pair of the design, with its sampling variance in the `yi`/`vi` form that
+meta-analysis software reads:
+
+- **The pretested pair.** Morris's (2008) effect size for
+  pretest-posttest-control designs, d<sub>ppc2</sub>. It is the difference
+  in mean change, divided by the pooled pretest standard deviation, with a
+  small-sample correction. Its variance (Eq. 25) needs the pre-post
+  correlation. El Karkri et al. do not report it, so it has to come from
+  elsewhere, such as the study's authors, a similar study, or a planning
+  value.
+- **The unpretested pair.** Hedges's g on the posttest (Hedges, 1981).
+
+The correlation matters, so compute the effect sizes under several values:
+
+```{r effect-sizes}
+d <- elkarkri2025a
+es <- lapply(c(0.3, 0.5, 0.7), function(r) {
+  x <- solomon_effect_sizes(n = d$n, mean_post = d$mean, sd_post = d$sd,
+                            mean_pre = d$pre_mean[1:2], sd_pre = d$pre_sd[1:2], r = r)
+  cbind(r = r, x)
+})
+do.call(rbind, es)
+```
+
+The correlation changes the variance of the pretested effect size, and so
+its weight in a meta-analysis.
+
+Two cautions from Morris (2008) and the package's documentation apply:
+- **Unreliable variances.** Eq. 25 can underestimate the true variance
+  when the treatment inflates posttest variance (p. 380).
+- **Different standardizers.** The pretested and unpretested effect sizes
+  use different standardizers, so their difference is not a clean measure
+  of pretest sensitization. To estimate sensitization itself, use the
+  Pretest x Treatment contrast from `solomon_from_summary()`.
+
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
+
+## References
+
+El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
+pretest sensitisation and the cognitive acceleration through science
+education programme in the Solomon four-group design. *Brain Sciences,
+16*(1), Article 64. https://doi.org/10.3390/brainsci16010064
+
+Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
+size and related estimators. *Journal of Educational Statistics, 6*(2),
+107–128. https://doi.org/10.3102/10769986006002107
+
+Morris, S. B. (2008). Estimating effect sizes from pretest-posttest-control
+group designs. *Organizational Research Methods, 11*(2), 364–386.
+https://doi.org/10.1177/1094428106291059

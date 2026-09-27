@@ -426,8 +426,10 @@ A new study joins this page by:
    folder under `vignettes/articles/`;
 3. adding a section for it to `validation-evidence/build-benchmarks.R`.
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
 
+## References
 Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
 design considerations and randomization-based inference for community
 intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.

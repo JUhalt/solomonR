@@ -190,8 +190,10 @@ ask. `report_solomon()` includes a design statement for this. The
 contemporary analysis is in `vignette("glm-solomon")`, and the historical
 procedures are in "A History of the Solomon Design and Its Analysis".
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
 
+## References
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
 published 1963)

@@ -4,9 +4,28 @@ template:
   bootstrap: 5
 
 reference:
-  - title: "Modern Solomon analysis"
+  - title: "Decide and plan"
     desc: >
-      Unified regression, likelihood, and randomization-based methods.
+      Sample sizes and power for a Solomon study, before data are collected.
+    contents:
+      - plan_solomon
+      - power_solomon
+      - plot_power_solomon
+
+  - title: "Check the design"
+    desc: >
+      Design coding, cell structure, clustering, missingness, and baseline
+      balance, before analysis.
+    contents:
+      - validate_solomon
+      - check_solomon_missing
+      - check_solomon_assumptions
+      - baseline_solomon
+
+  - title: "Analyze: recommended methods"
+    desc: >
+      One model for all four groups, with robust, likelihood-based, and
+      randomization-based inference.
     contents:
       - fit_solomon_glm
       - fit_solomon_ml
@@ -15,22 +34,22 @@ reference:
       - equivalence_solomon
       - compare_solomon_methods
 
-  - title: "Historical Solomon analysis"
+  - title: "Analyze: latent variables"
     desc: >
-      Classical procedures retained for teaching and methodological replication.
+      Observed- and latent-variable structural equation models, and
+      measurement invariance across the Solomon groups.
     contents:
-      - fit_solomon_classic
-      - fisher_solomon
-      - stouffer_solomon
-      - p_to_z
+      - fit_solomon_sem
+      - fit_solomon_sem_latent
+      - invariance_solomon
 
-  - title: "Reporting"
+  - title: "Report"
     desc: >
       APA 7 results text with the references for the methods used.
     contents:
       - report_solomon
 
-  - title: "Reanalysis and synthesis"
+  - title: "Synthesize"
     desc: >
       Reanalyze published studies from summary statistics and compute effect
       sizes for meta-analysis.
@@ -38,24 +57,17 @@ reference:
       - solomon_from_summary
       - solomon_effect_sizes
 
-  - title: "Structural equation models"
+  - title: "History: historical procedures"
     desc: >
-      Observed- and latent-variable SEM approaches to the Solomon design.
+      Procedures retained for teaching and for reproducing historical
+      analyses, labeled by author and year. They are not the recommended
+      analyses.
     contents:
-      - fit_solomon_sem
-      - fit_solomon_sem_latent
-      - invariance_solomon
-
-  - title: "Design validation and diagnostics"
-    desc: >
-      Check design coding, cell structure, and missingness before analysis.
-    contents:
-      - validate_solomon
-      - check_solomon_missing
-      - check_solomon_assumptions
-      - baseline_solomon
-      - power_solomon
-      - plan_solomon
+      - fit_solomon_classic
+      - plot_classic_flow
+      - fisher_solomon
+      - stouffer_solomon
+      - p_to_z
 
   - title: "Plotting"
     contents:
@@ -66,8 +78,6 @@ reference:
       - plot_sensitization
       - plot_solomon_design
       - plot_solomon_change
-      - plot_classic_flow
-      - plot_power_solomon
 
   - title: "Data"
     contents:
@@ -86,23 +96,37 @@ articles:
     contents:
       - articles/should-i-use-a-solomon-design
 
-  - title: "Start here"
-    navbar: ~
+  - title: "Plan"
+    navbar: Plan
     contents:
-      - getting-started
-
-  - title: "Analyses"
-    navbar: Analyses
-    contents:
-      - glm-solomon
-      - classic-solomon
       - articles/planning
 
-  - title: "Methods and evidence"
-    navbar: Methods and evidence
+  - title: "Analyze"
+    navbar: Analyze
     contents:
+      - getting-started
+      - glm-solomon
       - solomon-methods
+
+  - title: "Report"
+    navbar: Report
+    contents:
+      - articles/reporting
+
+  - title: "Synthesize"
+    navbar: Synthesize
+    contents:
+      - articles/synthesis
+
+  - title: "History"
+    navbar: History
+    contents:
       - articles/history
+      - classic-solomon
+
+  - title: "Validation evidence"
+    navbar: Validation evidence
+    contents:
       - articles/validation-evidence
       - articles/ml-validation
       - articles/power-validation
@@ -117,3 +141,4 @@ articles:
     navbar: References
     contents:
       - articles/references
+      - articles/citing

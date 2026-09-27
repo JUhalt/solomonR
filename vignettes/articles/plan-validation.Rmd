@@ -113,3 +113,6 @@ The script is `vignettes/articles/plan-validation/plan-resimulation.R` in
 the package repository. It was run at `r run$git_commit` with R
 `r run$r_version` and base seed `r run$base_seed`. The results also feed the
 shared tables on the [Validation Evidence](validation-evidence.html) page.
+
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.

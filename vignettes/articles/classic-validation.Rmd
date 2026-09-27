@@ -282,8 +282,10 @@ The files are in the package repository:
 The run took from `r run$started` to `r run$finished` on `r run$workers`
 workers (`r run$R_version`).
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
 
+## References
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
 2074–2102. https://doi.org/10.1002/sim.8086

@@ -272,8 +272,10 @@ The script, `binary-validation/binary-simulation.R`, and its results,
 The run took from `r run$started` to `r run$finished` on
 `r run$workers` workers (`r run$R_version`).
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
 
+## References
 Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 Comparing noncollapsible effect estimators and their standard errors after
 adjustment for different covariate sets. *Biometrical Journal, 63*(3),

@@ -293,8 +293,10 @@ are in the package repository. The count study ran from `r run$started` to
 `r nb_run$finished` (package commit `r substr(nb_run$commit, 1, 7)`), each
 on `r run$workers` workers (`r run$R_version`).
 
-## References
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
 
+## References
 Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
 (2nd ed.). Cambridge University Press.
 https://doi.org/10.1017/CBO9781139013567
