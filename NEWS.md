@@ -17,6 +17,7 @@
   pretested classes (El Karkri et al., 2025a, Table 7, p. 10), which differed
   at pretest.
 * The methods vignette has a new section on nonrandomized Solomon designs.
+
 ## Marginal contrasts for clustered fits (#64)
 
 * `marginal_solomon()` now accepts logistic fits with `robust = "CR2"`;
