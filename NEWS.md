@@ -1,5 +1,29 @@
 # solomonR (development version)
 
+## Marginal contrasts for clustered fits (#64)
+
+* `marginal_solomon()` now accepts logistic fits with `robust = "CR2"`;
+  clustered count fits, which the study did not cover, are refused with a
+  pointer to alternatives. Delta-method standard errors use the CR2
+  covariance (Bell & McCaffrey, 2002), and intervals and tests use the t
+  distribution with Satterthwaite degrees of freedom for the linearized
+  contrast (Pustejovsky & Tipton, 2018). Effects gain a `df` column, and
+  degrees of freedom below 4 give the classed small-df warning (Tipton,
+  2015). The bootstrap is refused for clustered fits, because it resamples
+  participants rather than clusters.
+* A simulation study under a protocol posted on #64 before any run (36
+  scenarios, 2,000 replications each) supports these intervals: they met the
+  coverage and Type I tolerances for risk differences in 140 of 144
+  scenario-contrasts and for odds ratios in 137 of 144, and were
+  conservative for risk ratios with four clusters per cell or arm. A normal
+  reference was too liberal (Type I error up to 0.12) and is not used. The
+  new article "Clustered Designs: Validating Marginal Risk Contrasts" reports
+  the study, and the Validation Evidence page includes it.
+* For designs with pretesting assigned within clusters and strong
+  clustering, the help page recommends a cluster-level analysis as an
+  alternative for risk differences (Hayes & Moulton, 2017), as the
+  protocol's third decision rule requires.
+
 ## Published data sets (#54, first part)
 
 * New data sets `elkarkri2025a` and `kvalem1996` hold the published Solomon

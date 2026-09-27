@@ -353,6 +353,44 @@ the studentized statistic reduces but does not remove that excess. CR2 tests
 exceed the nominal level with four clusters per arm. See the
 [full article](`r studies$article[studies$study == "clustered-designs"]`).
 
+### Marginal risk contrasts from clustered fits
+
+`marginal_solomon()` on logistic fits with CR2 covariance was checked in the
+same two cluster-randomized designs, against the coverage and Type I
+tolerances.
+
+```{r cluster-marginal}
+cm <- benchmarks[benchmarks$study == "cluster-marginal", ]
+key <- c("method", "design", "estimand")
+wide <- stats::reshape(cm[, c(key, "measure", "value", "null_effect")],
+                       idvar = key, timevar = "measure", direction = "wide")
+wide$ok <- wide$value.coverage >= 0.94 & wide$value.coverage <= 0.96 &
+  ifelse(wide$null_effect.coverage, wide$value.rejection_rate >= 0.04 &
+           wide$value.rejection_rate <= 0.06, TRUE)
+wide$scale <- sub(".*\\((.*)\\)$", "\\1", wide$estimand)
+groups <- unique(wide[, c("method", "scale")])
+groups <- groups[order(groups$scale, groups$method), ]
+knitr::kable(
+  data.frame(
+    Scale = groups$scale,
+    Method = groups$method,
+    `Contrasts within the coverage and Type I tolerances` = vapply(seq_len(nrow(groups)), function(i) {
+      v <- wide$ok[wide$method == groups$method[i] & wide$scale == groups$scale[i]]
+      sprintf("%d of %d", sum(v), length(v))
+    }, ""),
+    check.names = FALSE,
+    row.names = NULL
+  ),
+  caption = "Both designs, all allocations, both intracluster correlations."
+)
+```
+
+With Satterthwaite degrees of freedom, the intervals met the tolerances for
+risk differences and odds ratios in almost every scenario and were
+conservative for risk ratios with four clusters per cell or arm; a normal
+reference was too liberal. See the
+[full article](`r studies$article[studies$study == "cluster-marginal"]`).
+
 ## Adding a study
 
 A new study joins this page by:

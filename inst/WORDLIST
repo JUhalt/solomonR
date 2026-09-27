@@ -78,6 +78,7 @@ hta
 https
 ije
 Imbens
+intracluster
 Isager
 jclinepi
 jss
@@ -88,6 +89,7 @@ Lakens
 lavaan
 lavaan's
 Lifecycle
+linearized
 Localio
 Locock
 Lundberg
@@ -150,6 +152,7 @@ SESOI
 SICI
 Smyth
 solomon
+solomonR's
 SPDX
 Springer
 SRMR
@@ -171,6 +174,7 @@ Trivedi
 Twente
 unclustered
 Unclustered
+undercovered
 underpowered
 Unpre
 unpretested
