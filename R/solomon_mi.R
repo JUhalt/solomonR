@@ -97,6 +97,45 @@
   drop(model$X_mis %*% beta) + stats::rnorm(nrow(model$X_mis), 0, sqrt(s2))
 }
 
+# The completed-data analysis of fit_solomon_glm() (linear model with the
+# pretest adjustment, HC3 or model-based covariance), computed directly.
+# Every completed data set has the same design matrix, so the contrast
+# weights A = L (X'X)^-1 X' and the leverages are computed once: the
+# estimates are A y and the HC3 variances are (A * A) w, with
+# w = (e / (1 - h))^2 (MacKinnon & White, 1985). test-mi.R checks that the
+# results equal fit_solomon_glm()'s.
+.mi_design <- function(d, robust) {
+  pre <- !is.null(d$y_pre)
+  X <- cbind(1, d$treat, d$pretested,
+             if (pre) ifelse(d$pretested == 1L, d$y_pre, 0),
+             d$treat * d$pretested)
+  L <- rbind(
+    c(0, 1, 0, if (pre) 0, 0.5),  # ATE (avg over pretest)
+    c(0, 0, 0, if (pre) 0, 1),    # Pretest x Treatment
+    c(0, 1, 0, if (pre) 0, 1),    # Treatment | pretested
+    c(0, 1, 0, if (pre) 0, 0)     # Treatment | unpretested
+  )
+  xtx_inv <- solve(crossprod(X))
+  B <- xtx_inv %*% t(X)
+  list(
+    X = X, B = B, A = L %*% B,
+    h = rowSums((X %*% xtx_inv) * X),
+    lxl = rowSums((L %*% xtx_inv) * L),
+    df = nrow(X) - ncol(X),
+    robust = robust
+  )
+}
+
+.mi_analyze <- function(des, y) {
+  e <- y - drop(des$X %*% (des$B %*% y))
+  variance <- if (des$robust == "HC3") {
+    drop((des$A^2) %*% (e / (1 - des$h))^2)
+  } else {
+    des$lxl * sum(e^2) / des$df
+  }
+  list(estimate = drop(des$A %*% y), std.error = sqrt(variance))
+}
+
 # Rubin's rules (Carpenter et al., 2023, Eqs. 2.16 and 2.26) with the
 # small-sample degrees of freedom of Barnard and Rubin (1999), as given by
 # van Buuren (2018, Eqs. 2.30-2.32).
@@ -162,8 +201,10 @@
 #'    those observed by an offset in each group, as in the pattern-mixture
 #'    analysis of Little et al. (2012, p. 1358), and "a clinically plausible
 #'    amount" is added to the imputed outcomes (White et al., 2011).
-#' 4. **Analysis and pooling.** Each completed data set is analyzed with
-#'    [fit_solomon_glm()], and the contrasts are combined with Rubin's rules:
+#' 4. **Analysis and pooling.** Each completed data set is analyzed with the
+#'    model of [fit_solomon_glm()] (computed directly, since the design is
+#'    the same in every completed data set), and the contrasts are combined
+#'    with Rubin's rules:
 #'    the mean estimate, with variance W + (1 + 1/m)B (Carpenter et al.,
 #'    2023, Eq. 2.16). Tests and intervals use t with the small-sample degrees
 #'    of freedom of Barnard and Rubin (1999, as cited in van Buuren, 2018,
@@ -276,7 +317,8 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
   contrasts <- c("ATE (avg over pretest)", "Pretest x Treatment",
                  "Treatment | pretested", "Treatment | unpretested")
   est <- se <- matrix(NA_real_, m, 4L, dimnames = list(NULL, contrasts))
-  df_com <- NULL
+  des <- .mi_design(d, robust)
+  df_com <- rep(des$df, 4L)
   for (k in seq_len(m)) {
     y_k <- d$y_post
     for (j in 1:4) {
@@ -284,12 +326,9 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
         y_k[models[[j]]$rows_mis] <- .mi_draw(models[[j]]) + delta[[j]]
       }
     }
-    fit_k <- fit_solomon_glm(y_k, d$treat, d$pretested, d$y_pre, robust = robust,
-                             conf_level = conf_level)
-    eff <- fit_k$effects[match(contrasts, fit_k$effects$contrast), ]
-    est[k, ] <- eff$estimate
-    se[k, ] <- eff$std.error
-    if (is.null(df_com)) df_com <- eff$df
+    fit_k <- .mi_analyze(des, y_k)
+    est[k, ] <- fit_k$estimate
+    se[k, ] <- fit_k$std.error
   }
 
   structure(
