@@ -6,7 +6,9 @@ description: >
 ---
 
 solomonR attributes every procedure it implements to its published source.
-This page is the package's canonical reference list: each reference in the
+The article "Coverage of the Published Methodology" maps each work on the
+Solomon design to what the package does with it. This page is the package's
+canonical reference list: each reference in the
 help pages and articles is written exactly as it appears here, in APA Style
 (7th ed.), with DOIs verified against Crossref.
 
@@ -92,8 +94,9 @@ Epidemiology, 139*, 130–139. https://doi.org/10.1016/j.jclinepi.2021.06.028
 
 > The MERIT recommendations for recognizing and reducing bias from
 > measurement reactivity in trials, including when a Solomon design is
-> warranted. *In solomonR:* the decision article (planned,
-> [#48](https://github.com/JUhalt/solomonR/issues/48)).
+> warranted. *In solomonR:* the decision article "Should I Use a Solomon
+> Design?" and the history article
+> ([#48](https://github.com/JUhalt/solomonR/issues/48)).
 
 French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
 Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
@@ -102,8 +105,10 @@ study including developmental work and expert workshop. *Health Technology
 Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550
 
 > The full MERIT report, with the evidence behind the recommendations and a
-> worked Solomon example with a binary outcome. *In solomonR:* the decision
-> article and the binary-outcome example (planned).
+> worked Solomon example with a binary outcome. *In solomonR:* the
+> measurement items of `report_solomon()`, and the reporting, decision, and
+> history articles ([#48](https://github.com/JUhalt/solomonR/issues/48),
+> [#52](https://github.com/JUhalt/solomonR/issues/52)).
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 Appropriate statistical analyses. *The Journal of Experimental Education,
@@ -133,7 +138,8 @@ studies. *Psychological Bulletin, 56*(4), 293–300.
 https://doi.org/10.1037/h0044646
 
 > An early review of pretest-by-treatment interaction in attitude research.
-> *In solomonR:* background for the decision article (planned).
+> *In solomonR:* not yet cited in an analysis or article; to be reviewed in
+> the coverage audit ([#80](https://github.com/JUhalt/solomonR/issues/80)).
 
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. *Education
@@ -162,8 +168,8 @@ through service learning. *Journal of Management Education, 26*(6), 629–647.
 https://doi.org/10.1177/1052562902238322
 
 > A nonrandomized Solomon eight-group design crossing two interventions with
-> pretesting. *In solomonR:* examples for N-group and quasi-experimental
-> designs (planned).
+> pretesting. *In solomonR:* an example for Solomon N-group designs (planned,
+> [#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 Morris, S. B. (2008). Estimating effect sizes from pretest-posttest-control
 group designs. *Organizational Research Methods, 11*(2), 364–386.
@@ -204,21 +210,25 @@ https://doi.org/10.1080/00220973.1994.9944140
 
 > A Monte Carlo study showing inflated experiment-wise Type I error for the
 > meta-analytic test sequence. *In solomonR:* the caution printed with Test
-> I and the methods guide.
+> I, the methods guide, and the replication of its Table 2 in "Historical
+> Tests: Replicating the Published Error Rates"
+> ([#51](https://github.com/JUhalt/solomonR/issues/51)).
 
 Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power of
 meta-analysis in the Solomon four-group design. *Perceptual and Motor
 Skills, 71*(1), 177–178. https://doi.org/10.2466/pms.1990.71.1.177
 
 > A counterexample in which Test I misses an effect that a constituent test
-> detects. *In solomonR:* the history article (planned).
+> detects. *In solomonR:* the history article and the historical-analysis
+> vignette ([#50](https://github.com/JUhalt/solomonR/issues/50)).
 
 Sawilowsky, S. S., & Markman, B. S. (1990b). Rejoinder to Braver and Walton
 Braver. *Perceptual and Motor Skills, 71*(2), 424–426.
 https://doi.org/10.2466/pms.1990.71.2.424
 
 > Continues the exchange and calls for systematic study of the procedure.
-> *In solomonR:* the history and decision articles (planned).
+> *In solomonR:* the history article
+> ([#50](https://github.com/JUhalt/solomonR/issues/50)).
 
 Solomon, R. L. (1949). An extension of control group design. *Psychological
 Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958

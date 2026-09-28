@@ -153,4 +153,5 @@ articles:
     navbar: References
     contents:
       - articles/references
+      - articles/coverage
       - articles/citing

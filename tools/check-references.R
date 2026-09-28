@@ -9,7 +9,9 @@
 # are compared after collapsing whitespace, so line wrapping does not matter,
 # and after removing the angle brackets of explicit Markdown links such as
 # <https://doi.org/...>, which DOIs containing "::" need in order to render as
-# one link. Exits with status 1 if any entry differs from the canonical list.
+# one link. It also checks that every work in the Solomon-design section of
+# the canonical list appears in the coverage article. Exits with status 1 if
+# any entry differs from the canonical list or lacks a coverage entry.
 
 # A reference starts with an author, not a blockquote marker or list bullet.
 ref_pattern <- "^[^()>*-][^()]*? \\(\\d{4}[a-z]?(, [^)]*)?\\)\\."
@@ -102,6 +104,19 @@ for (section in sections[-1]) {
   invisible(check_list(paragraphs(section[-1]), paste(canonical_file, section[1])))
 }
 if (anyDuplicated(canonical)) note(canonical_file, "duplicate entry")
+
+# Every work in the Solomon-design section of the bibliography must have an
+# entry in the coverage article, whose reference list names each one (#80).
+coverage_file <- file.path("vignettes", "articles", "coverage.Rmd")
+is_solomon <- vapply(sections, function(s) grepl("^## The Solomon design literature", s[1]), NA)
+solomon_refs <- paragraphs(sections[[which(is_solomon)]][-1])
+solomon_refs <- solomon_refs[grepl(ref_pattern, solomon_refs, perl = TRUE)]
+coverage_lines <- readLines(coverage_file, encoding = "UTF-8")
+coverage_start <- grep("^## References\\s*$", coverage_lines)
+coverage_refs <- paragraphs(coverage_lines[seq(coverage_start + 1L, length(coverage_lines))])
+for (e in setdiff(solomon_refs, coverage_refs)) {
+  note(coverage_file, paste("no coverage entry for:", substr(e, 1, 90)))
+}
 
 cat(sprintf("Checked %d reference entries against %d canonical references.\n",
             n_checked, length(canonical)))

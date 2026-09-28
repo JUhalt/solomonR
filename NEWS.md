@@ -1,5 +1,18 @@
 # solomonR (development version)
 
+## Coverage of the published methodology (#80)
+
+* New article "Coverage of the Published Methodology" (References menu)
+  maps every work on the Solomon design in the bibliography to what it
+  contributes, where solomonR implements it, and its status. It also
+  lists the sources that have been identified but not yet read.
+* `tools/check-references.R` now fails if a work on the Solomon design is
+  in the bibliography without a coverage entry.
+* The bibliography notes that still said "planned" for work now done
+  (MERIT, the 1990 exchange, the decision and history articles) are
+  updated. Lana (1959) and McCarthy and Tucker (2002) are marked as not
+  yet used.
+
 ## Teaching toolkit (#79)
 
 * New `simulate_solomon()` generates a randomized Solomon study with chosen
