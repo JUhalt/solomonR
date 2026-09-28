@@ -323,14 +323,15 @@ for the v1.0 paper.
 - **History**
   - [ ] Solomon's (1949) original analysis and data — [#78](https://github.com/JUhalt/solomonR/issues/78); in review, [PR #87](https://github.com/JUhalt/solomonR/pull/87)
 - **Teaching**
-  - [ ] Simulated data with known effects and classroom exercises — [#79](https://github.com/JUhalt/solomonR/issues/79)
+  - [ ] Simulated data with known effects and classroom exercises — [#79](https://github.com/JUhalt/solomonR/issues/79); in review, [PR #88](https://github.com/JUhalt/solomonR/pull/88)
 - **Coverage**
-  - [ ] Literature coverage audit before the feature freeze — [#80](https://github.com/JUhalt/solomonR/issues/80)
-    - The coverage article and its check are done. The remaining step is
-      to read the identified sources listed in the issue.
+  - [ ] Literature coverage audit before the feature freeze — [#80](https://github.com/JUhalt/solomonR/issues/80); in review, [PR #89](https://github.com/JUhalt/solomonR/pull/89)
+    - The coverage article and its check are done, and every identified
+      source has been read except Steyn (2009), which is on interlibrary
+      loan.
 - **Research workflow**
-  - [ ] Analysis plan and study template for new Solomon studies — [#81](https://github.com/JUhalt/solomonR/issues/81); sources requested
-  - [ ] Sensitivity analysis for missing posttests — [#82](https://github.com/JUhalt/solomonR/issues/82); sources requested
+  - [ ] Analysis plan and study template for new Solomon studies — [#81](https://github.com/JUhalt/solomonR/issues/81); sources read and design posted on the issue
+  - [ ] Sensitivity analysis for missing posttests — [#82](https://github.com/JUhalt/solomonR/issues/82); in review, [PR #92](https://github.com/JUhalt/solomonR/pull/92), with its simulation study running
 
 At the freeze, the simulation conditions, the worked example, and the
 validation of every primary estimand and inferential procedure are
