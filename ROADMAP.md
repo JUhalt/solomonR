@@ -331,7 +331,7 @@ for the v1.0 paper.
       loan.
 - **Research workflow**
   - [ ] Analysis plan and study template for new Solomon studies — [#81](https://github.com/JUhalt/solomonR/issues/81); sources read and design posted on the issue
-  - [ ] Sensitivity analysis for missing posttests — [#82](https://github.com/JUhalt/solomonR/issues/82); in review, [PR #92](https://github.com/JUhalt/solomonR/pull/92), with its simulation study running
+  - [ ] Sensitivity analysis for missing posttests — [#82](https://github.com/JUhalt/solomonR/issues/82); in review, [PR #92](https://github.com/JUhalt/solomonR/pull/92). Its simulation study is reported; the functions stay experimental because the pre-specified rule for validation was not met
 
 At the freeze, the simulation conditions, the worked example, and the
 validation of every primary estimand and inferential procedure are
