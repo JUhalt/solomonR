@@ -20,6 +20,26 @@ test_that("with no missing posttests, the result is fit_solomon_glm()'s", {
   expect_equal(mi$effects$mc_se, rep(0, 4))
 })
 
+test_that("each completed data set is analyzed exactly as fit_solomon_glm() would", {
+  d <- with_missing()
+  prep <- solomonR:::.mi_prepare(d$y_post, d$treat, d$pretested, d$y_pre)
+  set.seed(4)
+  for (pre in c(TRUE, FALSE)) {
+    for (robust in c("HC3", "none")) {
+      p <- prep
+      if (!pre) p$y_pre <- NULL
+      des <- solomonR:::.mi_design(p, robust)
+      y <- p$y_post
+      y[is.na(y)] <- rnorm(sum(is.na(y)), 50, 10)
+      fast <- solomonR:::.mi_analyze(des, y)
+      ref <- fit_solomon_glm(y, p$treat, p$pretested, p$y_pre, robust = robust)$effects
+      expect_equal(fast$estimate, ref$estimate, tolerance = 1e-10)
+      expect_equal(fast$std.error, ref$std.error, tolerance = 1e-10)
+      expect_equal(rep(des$df, 4), ref$df)
+    }
+  }
+})
+
 test_that("Rubin's rules and the Barnard-Rubin degrees of freedom are applied as published", {
   est <- cbind(a = c(1.0, 1.4, 0.8, 1.2), b = c(-0.5, -0.1, -0.3, -0.7))
   se <- cbind(a = c(0.50, 0.55, 0.45, 0.52), b = c(0.30, 0.35, 0.28, 0.33))

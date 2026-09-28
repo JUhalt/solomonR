@@ -83,8 +83,10 @@ missing posttests are then drawn from the model (Carpenter et al.,
 those observed by an offset in each group, as in the pattern-mixture
 analysis of Little et al. (2012, p. 1358), and "a clinically plausible
 amount" is added to the imputed outcomes (White et al., 2011).
-\item \strong{Analysis and pooling.} Each completed data set is analyzed with
-\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, and the contrasts are combined with Rubin's rules:
+\item \strong{Analysis and pooling.} Each completed data set is analyzed with the
+model of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (computed directly, since the design is
+the same in every completed data set), and the contrasts are combined
+with Rubin's rules:
 the mean estimate, with variance W + (1 + 1/m)B (Carpenter et al.,
 2023, Eq. 2.16). Tests and intervals use t with the small-sample degrees
 of freedom of Barnard and Rubin (1999, as cited in van Buuren, 2018,
