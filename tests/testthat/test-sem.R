@@ -285,6 +285,7 @@ test_that("latent Solomon POST model converges and returns four contrasts", {
 
   fit <- fit_solomon_sem_latent(
     data = sim$data,
+    check_invariance = FALSE,  # tested in test-invariance-check.R
     post_items = c(
       "post1",
       "post2",
@@ -339,6 +340,7 @@ test_that("latent Solomon contrasts satisfy their defining algebra", {
 
   fit <- fit_solomon_sem_latent(
     data = sim$data,
+    check_invariance = FALSE,  # tested in test-invariance-check.R
     post_items = c(
       "post1",
       "post2",
@@ -416,6 +418,7 @@ test_that("latent Solomon ANCOVA converges and returns pretested effect", {
 
   fit <- fit_solomon_sem_latent(
     data = sim$data,
+    check_invariance = FALSE,  # tested in test-invariance-check.R
     post_items = c(
       "post1",
       "post2",
@@ -485,6 +488,7 @@ test_that("latent ANCOVA requires PRE indicators", {
   expect_error(
     fit_solomon_sem_latent(
       data = sim$data,
+      check_invariance = FALSE,  # tested in test-invariance-check.R
       post_items = c(
         "post1",
         "post2",

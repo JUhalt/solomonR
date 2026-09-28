@@ -96,6 +96,7 @@ articles:
       - glm-solomon
       - classic-solomon
       - articles/planning
+      - articles/sem
 
   - title: "Methods and evidence"
     navbar: Methods and evidence
@@ -111,6 +112,7 @@ articles:
       - articles/cluster-validation
       - articles/cluster-marginal-validation
       - articles/classic-validation
+      - articles/invariance-validation
 
   - title: "References"
     navbar: References
