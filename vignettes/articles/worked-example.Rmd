@@ -25,6 +25,12 @@ the article. This example follows the path of the site's menus: check the
 design, reproduce the published analysis, fit the recommended model, and
 draft the report.
 
+**Acknowledgment.** We thank Nu Nu Mai, Yoshi Takahashi, and Mon Mon Oo
+for making their data publicly available with their article. This example
+reanalyzes their data to teach the package. For the study itself, its
+interventions, its measures, and the authors' conclusions, read the
+published article (Mai et al., 2020).
+
 ## The design and the data
 
 Final-year students at a management college took a three-hour workshop.
