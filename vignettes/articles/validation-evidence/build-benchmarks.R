@@ -495,6 +495,49 @@ studies <- rbind(studies, data.frame(
   stringsAsFactors = FALSE
 ))
 
+# ---- Missing posttests: multiple imputation and offsets (#82) --------------------
+# Bias, coverage, and rejection of the four Solomon contrasts for the
+# complete-case analysis, MI under missing at random, and MI with the true
+# offsets.
+
+mi <- read_study("mi-validation", "performance.csv")
+mi_info <- read_study("mi-validation", "run-information.csv")
+mi_run <- stats::setNames(as.list(mi_info$value), mi_info$item)
+mi_offsets <- c(A = "none (missing at random)", B = "-0.5 SD in all groups",
+                C = "-0.5 SD in the treatment groups", D = "-0.5 SD in the pretested treatment group")
+mi_method <- c(complete_case = "fit_solomon_glm() on complete cases, HC3",
+               mi_mar = "fit_solomon_mi(delta = 0), m = 100",
+               mi_true = "fit_solomon_mi(delta = true offsets), m = 100")
+mi_design <- sprintf("n per group=%d; missing=%s; offsets=%s", mi$n, mi$missing,
+                     mi_offsets[mi$offsets])
+mi_long <- long_measures(
+  mi, "missing-posttests", mi_design, unname(mi_method[mi$method]), mi$contrast,
+  abs(mi$true_value) < 1e-8,
+  list(bias = c(value = "bias", mcse = "bias_mcse"),
+       coverage = c(value = "coverage", mcse = "coverage_mcse"),
+       rejection_rate = c(value = "rejection", mcse = "rejection_mcse"),
+       relative_se_error = c(value = "relerr", mcse = "relerr_mcse")),
+  mi$replications - mi$failures, mi$failures
+)
+benchmarks <- rbind(benchmarks, mi_long)
+studies <- rbind(studies, data.frame(
+  study = "missing-posttests",
+  title = "Missing posttests: multiple imputation with offsets",
+  issues = "#82",
+  protocol = issue(82),
+  article = file.path(site, "mi-validation.html"),
+  scenarios = length(unique(mi$scenario)),
+  replications = sprintf("%s per scenario", mi_run$replications),
+  methods = paste(unname(mi_method), collapse = "; "),
+  estimands = "Solomon contrasts on the means of all randomized participants, with missing posttests shifted by known offsets",
+  package_commit = substr(mi_run$commit, 1, 7),
+  r_version = sub("R version ([0-9.]+).*", "\\1", mi_run$R_version),
+  started = sub(" UTC", "", mi_run$started),
+  finished = sub(" UTC", "", mi_run$finished),
+  failed_fits = sum(unique(mi[, c("scenario", "method", "contrast", "failures")])$failures),
+  stringsAsFactors = FALSE
+))
+
 dir.create("validation-evidence", showWarnings = FALSE)
 utils::write.csv(studies, file.path("validation-evidence", "studies.csv"), row.names = FALSE)
 utils::write.csv(benchmarks, file.path("validation-evidence", "benchmarks.csv"), row.names = FALSE)

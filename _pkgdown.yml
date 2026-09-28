@@ -170,6 +170,7 @@ articles:
       - articles/cluster-marginal-validation
       - articles/classic-validation
       - articles/invariance-validation
+      - articles/mi-validation
 
   - title: "References"
     navbar: References

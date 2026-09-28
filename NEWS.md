@@ -21,8 +21,15 @@
   offsets and reports where each contrast's conclusion changes, as White et
   al. (2011) recommend. `plot_tipping_point()` draws it.
 * `report_solomon()` reports both, with their references.
-* Both functions are experimental until the simulation study posted on
-  #82 has been run and reported.
+* A simulation study under the protocol posted on #82 (24 scenarios, 2,000
+  replications each) is reported in the new article "Missing Posttests:
+  Validating the Sensitivity Analysis" and on the validation-evidence page.
+  With 60 or more participants per group, intervals had nominal coverage
+  and Type I error when the offsets were right; with 30 per group they were
+  conservative. The pre-specified rule for validation was not met (84 of 96
+  cells, against 90%), so both functions stay experimental. The analyses
+  that assume missing at random biased the sensitization contrast by 0.10
+  to 0.16 SD when the departure was confined to one pretested group.
 * The APA sort in `report_solomon()` and `tools/check-references.R` now
   compares the first author's surname and initials before the other
   authors, so that "Little, R. J." precedes "Little, R. J. A.".

@@ -87,7 +87,7 @@ not blurred by Monte Carlo noise.
 }
 \section{Lifecycle}{
 
-Experimental, with \code{\link[=fit_solomon_mi]{fit_solomon_mi()}}.
+Experimental, with \code{\link[=fit_solomon_mi]{fit_solomon_mi()}}, whose validation study it shares.
 }
 
 \examples{
