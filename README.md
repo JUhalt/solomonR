@@ -411,7 +411,8 @@ A useful starting point is:
 | Test whether sensitization is negligible | `equivalence_solomon()` |
 | Compare analyses and their estimands | `compare_solomon_methods()` |
 | Full-information likelihood | `fit_solomon_ml()` |
-| Teach or reproduce historical methods | `fit_solomon_classic()` |
+| Teach or reproduce historical methods | `fit_solomon_classic()`, `fit_solomon_1949()` |
+| Teach with data whose effects are known | `simulate_solomon()` |
 | Observed-variable SEM | `fit_solomon_sem()` |
 | Multi-item / latent outcome | `fit_solomon_sem_latent()` |
 | Check design coding and missingness | `validate_solomon()`, `check_solomon_missing()` |
@@ -529,13 +530,21 @@ milestones:
   and synthesizing Solomon studies;
 - [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6): longitudinal
   and quasi-experimental Solomon designs, and marginal contrasts for
-  clustered designs.
+  clustered designs;
+- [v0.8.0](https://github.com/JUhalt/solomonR/milestone/7): the
+  methodological feature freeze, with Solomon’s (1949) original
+  analysis, a teaching toolkit, an audit of the literature’s coverage,
+  and a workflow for new studies;
+- [v0.9.0](https://github.com/JUhalt/solomonR/milestone/8): the release
+  candidate, with a stable API and CRAN pre-submission checks.
 
 Version 1.0.0 is the release in which `solomonR` covers the published
 Solomon four-group methodology to date. Every source the package draws
 on is listed on the
 [References](https://juhalt.github.io/solomonR/articles/references.html)
-page.
+page, and the article [Coverage of the Published
+Methodology](https://juhalt.github.io/solomonR/articles/coverage.html)
+maps each work on the design to what the package does with it.
 
 ------------------------------------------------------------------------
 
