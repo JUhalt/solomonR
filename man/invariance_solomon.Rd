@@ -71,11 +71,14 @@ The criteria can disagree, and both rest on simulations with two groups
 and maximum likelihood estimation of multivariate normal data (Cheung &
 Rensvold, 2002, p. 251; Chen, 2007). Chen (2007, p. 502) notes that RMSEA
 and SRMR tend to over-reject invariant models when samples are small, as
-Solomon groups often are. Which criterion should govern latent mean
-contrasts in Solomon designs is being studied under a protocol on issue
-#55; until then, this function reports both and decides nothing for the
-user. The fit indexes are those of the maximum likelihood fit, whose
-estimates MLR shares.
+Solomon groups often are. A simulation study under a protocol posted on
+issue #55 found that neither criterion, nor the two together, kept false
+rejections of invariance at or below .060 in Solomon-sized groups (see
+the article "Latent Contrasts: Validating the Invariance Check"). This
+function therefore reports both and decides nothing for the user, and
+\code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}} runs it and warns, rather than refuses, when a
+criterion flags noninvariance. The fit indexes are those of the maximum
+likelihood fit, whose estimates MLR shares.
 }
 
 \section{Partial invariance}{

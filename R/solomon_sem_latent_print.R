@@ -13,8 +13,12 @@ print.solomon_sem_latent <- function(x, digits = 3, ...) {
 
   # POST (4-group)
   fm <- x$fitmeasures_post
-  cat(sprintf("POST model fit (4 groups): CFI=%.3f, RMSEA=%.3f, SRMR=%.3f; df=%d\n\n",
+  cat(sprintf("POST model fit (4 groups): CFI=%.3f, RMSEA=%.3f, SRMR=%.3f; df=%d\n",
               fm["cfi"], fm["rmsea"], fm["srmr"], as.integer(fm["df"])))
+  if (!is.null(x$invariance_status)) {
+    cat(sprintf("Invariance check: %s\n", x$invariance_status))
+  }
+  cat("\n")
   ef <- x$effects_post
   ef$`Est (SE)` <- estse_str(ef$estimate, ef$std.error, digits)
   ef$z <- ifelse(is.na(ef$statistic), "", sprintf("%.2f", ef$statistic))

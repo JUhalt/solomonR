@@ -1,0 +1,322 @@
+---
+title: "Latent Contrasts: Validating the Invariance Check"
+description: >
+  Simulation study of which measurement-invariance criterion should govern
+  latent Solomon mean contrasts, how often each criterion falsely rejects or
+  detects noninvariance in Solomon-sized groups, and how noninvariance
+  biases the sensitization contrast.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+p <- utils::read.csv("invariance-validation/performance.csv", stringsAsFactors = FALSE)
+info <- utils::read.csv("invariance-validation/run-information.csv", stringsAsFactors = FALSE)
+run <- stats::setNames(as.list(info$value), info$item)
+reps <- as.integer(run$replications)
+
+crit <- c("chisq", "chen", "both")
+crit_label <- c(chisq = "C1: scaled chi-square difference",
+                chen = "C2: change in fit (Chen, 2007)",
+                both = "C3: both")
+pattern_label <- c("1: none", "2: intercept +0.3, pretested groups",
+                   "3: intercept +0.6, pretested groups", "4: intercept +0.6, U0 only",
+                   "5: loading -0.3, pretested groups")
+
+rej <- p[p$criterion %in% crit, ]
+w <- stats::reshape(rej[, c("scenario", "k", "n", "pattern", "criterion", "measure", "value")],
+                    idvar = c("scenario", "k", "n", "pattern", "criterion"),
+                    timevar = "measure", direction = "wide")
+names(w) <- sub("^value[.]", "", names(w))
+
+null <- w[w$pattern == 1, ]
+null$larger <- pmax(null$reject_metric, null$reject_scalar)
+alt <- w[w$pattern >= 2, ]
+alt$detect <- ifelse(alt$pattern == 5, alt$reject_metric, alt$reject_scalar)
+
+eligible <- vapply(crit, function(cr) {
+  d <- null[null$criterion == cr, ]
+  over <- d$larger > 0.060
+  !(sum(over) > 1 || any(over & d$n >= 60))
+}, logical(1))
+detection <- tapply(alt$detect, alt$criterion, mean)[crit]
+low <- stats::aggregate(detect ~ scenario + k + n + pattern, alt, max)
+low <- low[low$detect < 0.5, ]
+
+a3 <- p[p$criterion %in% c("scalar_model", "partial_model"), ]
+a3w <- stats::reshape(a3[, c("scenario", "k", "n", "pattern", "criterion", "measure", "value", "mcse")],
+                      idvar = c("scenario", "k", "n", "pattern", "criterion"),
+                      timevar = "measure", direction = "wide")
+
+pct <- function(x) sprintf("%.1f%%", 100 * x)
+rng <- function(x, d = 3) sprintf(paste0("%.", d, "f to %.", d, "f"), min(x), max(x))
+fails <- max(p$failures)
+```
+
+`fit_solomon_sem_latent()` compares latent means across the four Solomon
+groups. That comparison assumes scalar measurement invariance: equal
+loadings and intercepts in every group (Meredith, 1993). This study asked
+which published criterion, if any, should decide whether the package
+refuses the latent contrasts when invariance fails.
+
+The aims, data-generating mechanisms, estimands, methods, performance
+measures, and decision rules were posted on
+[issue #55](https://github.com/JUhalt/solomonR/issues/55) before any run,
+following the ADEMP structure of Morris et al. (2019). The results come
+from package commit `r substr(run$commit, 1, 7)`, with `r reps`
+replications per scenario.
+
+## Design
+
+**Data.** One latent factor with k = 3, 4, or 6 normally distributed
+indicators:
+
+- loadings of 0.8, 0.9, 0.7, 0.8, 0.9, and 0.7 (the first k);
+- residual SD 0.6;
+- latent variance 1 in each group;
+- latent means of 0.4, 0, 0.4, and 0 in the pretested treatment (P1),
+  pretested control (P0), unpretested treatment (U1), and unpretested
+  control (U0) groups, so there is a treatment effect and no
+  sensitization.
+
+There were 30, 60, or 120 participants per group.
+
+**Noninvariance patterns,** all on the last indicator:
+
+```{r patterns}
+knitr::kable(data.frame(Pattern = pattern_label,
+                        `Step that should fail` = c("none", "scalar", "scalar", "scalar", "metric"),
+                        check.names = FALSE))
+```
+
+Patterns 2 and 3 are the response shift a pretest could cause in both
+pretested groups. The full factorial has `r length(unique(p$scenario))`
+scenarios.
+
+**Criteria.** `invariance_solomon()` with MLR estimation, under three
+decision criteria:
+
+- **C1:** the scaled chi-square difference test at alpha = .05 (Satorra &
+  Bentler, 2001), which Vandenberg and Lance (2000, p. 46) recommend as the
+  primary criterion;
+- **C2:** the change in CFI, RMSEA, and SRMR, judged against Chen's (2007,
+  pp. 501–502) cutoffs;
+- **C3:** both C1 and C2 indicate noninvariance.
+
+**Decision rules** (fixed before the run):
+
+1. **Eligibility.** A criterion is eligible to govern refusals if it
+   falsely rejects metric or scalar invariance at a rate of .060 or less in
+   at least 8 of the 9 pattern-1 scenarios, and in every pattern-1 scenario
+   with 60 or more per group.
+2. **Choice.** The eligible criterion that detects noninvariance most often
+   becomes the refusal rule.
+3. **No eligible criterion.** If none is eligible, the fit runs the check,
+   reports it, and warns, without refusing.
+4. **Small samples.** Group sizes at which every criterion detects
+   noninvariance less than half the time are named as too small for the
+   check to protect the contrasts.
+
+**Amendment.** The simulation script recorded the rejection rate of each
+step separately, not the rate of rejecting either step. The rate of
+rejecting either step is at least the larger of the two, so eligibility
+below uses the larger rate. A criterion that fails with the larger rate
+fails with the combined rate too. Here every criterion failed on the
+larger rate alone, so the missing combined rate does not change any
+decision.
+
+## Failures
+
+```{r failures}
+fs <- unique(p[p$failures > 0, c("scenario", "k", "n", "pattern", "failures")])
+```
+
+`r sum(fs$failures)` of `r format(45 * reps, big.mark = ",")` replications failed, in
+`r nrow(fs)` scenarios, all with `r paste(sort(unique(fs$n)), collapse = " or ")`
+per group. The most in one scenario was `r max(fs$failures)`
+(`r sprintf("%.1f%%", 100 * max(fs$failures) / reps)`), so every scenario is
+within the supported range. Most failures were a model that did not
+converge, usually the three-indicator configural model, which is just
+identified within each group. At least two came from the scaled difference
+test, which lavaan could not compute for those data. The package now
+reports that criterion as undetermined instead of stopping. One such
+replication was reproduced exactly and is kept as a test.
+
+## False rejection when invariance holds
+
+The table gives, for each pattern-1 scenario, the larger of the two
+steps' false-rejection rates. Values above .060 are outside the tolerance.
+
+```{r null}
+tab <- stats::reshape(null[, c("k", "n", "criterion", "larger")], idvar = c("k", "n"),
+                      timevar = "criterion", direction = "wide")
+tab <- tab[order(tab$n, tab$k), ]
+names(tab) <- c("Indicators", "n per group", crit_label[sub("^larger[.]", "", names(tab)[-(1:2)])])
+knitr::kable(tab, digits = 3, row.names = FALSE)
+```
+
+```{r eligibility}
+elig_text <- if (any(eligible)) {
+  sprintf("Eligible: %s.", paste(crit_label[eligible], collapse = "; "))
+} else {
+  "No criterion was eligible."
+}
+```
+
+`r elig_text`
+
+- **The chi-square difference test** falsely rejected at rates of
+  `r rng(null$larger[null$criterion == "chisq"])`.
+- **Chen's cutoffs** ranged from
+  `r rng(null$larger[null$criterion == "chen"])`. They rejected far too
+  often with 30 or 60 per group (up to
+  `r sprintf("%.3f", max(null$larger[null$criterion == "chen" & null$n <= 60]))`),
+  as Chen (2007, p. 502) anticipated for RMSEA and SRMR in small samples.
+  With 120 per group they stayed within the tolerance except with three
+  indicators (`r sprintf("%.3f", null$larger[null$criterion == "chen" & null$n == 120 & null$k == 3])`).
+- **Requiring both** ranged from
+  `r rng(null$larger[null$criterion == "both"])`.
+
+## Detection of noninvariance
+
+Rates at which each criterion rejected the step that should fail
+(patterns 2–5):
+
+```{r detection}
+dt <- stats::reshape(alt[, c("pattern", "k", "n", "criterion", "detect")],
+                     idvar = c("pattern", "k", "n"), timevar = "criterion", direction = "wide")
+dt <- dt[order(dt$pattern, dt$n, dt$k), ]
+dt$pattern <- pattern_label[dt$pattern]
+names(dt) <- c("Pattern", "Indicators", "n per group",
+               crit_label[sub("^detect[.]", "", names(dt)[-(1:3)])])
+knitr::kable(dt, digits = 3, row.names = FALSE)
+```
+
+Mean detection across patterns 2–5 was `r sprintf("%.3f", detection[["chisq"]])`
+for C1, `r sprintf("%.3f", detection[["chen"]])` for C2, and
+`r sprintf("%.3f", detection[["both"]])` for C3.
+`r if (nrow(low)) sprintf("Every criterion detected noninvariance less than half the time in %d scenarios, all with %s per group (rule 4).", nrow(low), paste(sort(unique(low$n)), collapse = " or ")) else "In every scenario at least one criterion detected noninvariance at least half the time (rule 4)."`
+
+```{r small}
+s30 <- alt[alt$n == 30 & alt$pattern %in% c(2, 5), ]
+```
+
+The small shifts were hard to detect with 30 per group. For the intercept
+shift of 0.3 (pattern 2) and the loading shift (pattern 5), the
+chi-square test detected noninvariance in
+`r rng(s30$detect[s30$criterion == "chisq"], 2)` of replications. Chen's
+cutoffs detected it in `r rng(s30$detect[s30$criterion == "chen"], 2)`, at
+the cost of the false rejections above.
+
+## Bias in the sensitization contrast
+
+The sensitization contrast is 0 in every pattern. The table gives its bias
+and the coverage of its 95% interval under the scalar model, which assumes
+full invariance, and under the partial model, which frees the last
+indicator's intercept.
+
+```{r aim3}
+b <- a3w[order(a3w$pattern, a3w$n, a3w$k, a3w$criterion), ]
+out <- data.frame(Pattern = pattern_label[b$pattern], Indicators = b$k, `n per group` = b$n,
+                  Model = sub("_model$", "", b$criterion),
+                  Bias = b$value.sens_bias, MCSE = b$mcse.sens_bias,
+                  Coverage = b$value.sens_coverage, check.names = FALSE)
+knitr::kable(out, digits = 3, row.names = FALSE)
+p4 <- b[b$pattern == 4 & b$criterion == "scalar_model", ]
+p4p <- b[b$pattern == 4 & b$criterion == "partial_model", ]
+p23 <- b[b$pattern %in% 2:3 & b$criterion == "scalar_model", ]
+z23 <- max(abs(p23$value.sens_bias / p23$mcse.sens_bias))
+z4p <- max(abs(p4p$value.sens_bias / p4p$mcse.sens_bias))
+# 95th percentile of the largest of m absolute standard normal deviates:
+# the largest deviation chance alone produces across m unbiased scenarios.
+max_null <- function(m) stats::qnorm((1 + 0.95^(1 / m)) / 2)
+```
+
+Two patterns of results stand out:
+
+- **A shift common to both pretested groups** (patterns 2 and 3) left the
+  sensitization contrast unbiased under the scalar model. The bias ranged
+  from `r rng(p23$value.sens_bias)`. The largest was
+  `r sprintf("%.1f", z23)` Monte Carlo standard errors from zero, within
+  what chance alone produces across `r nrow(p23)` unbiased scenarios (95th
+  percentile of the largest deviation: `r sprintf("%.1f", max_null(nrow(p23)))`). The
+  contrast is a difference of differences within each pretest condition,
+  so a shift shared by P1 and P0 cancels.
+- **A shift in one group** (pattern 4, U0 only) biased the contrast under
+  the scalar model, by `r rng(p4$value.sens_bias)` latent standard
+  deviations, with coverage from `r rng(p4$value.sens_coverage)`. Freeing
+  the shifted intercept removed the bias: under the partial model the
+  largest bias was `r sprintf("%.1f", z4p)` Monte Carlo standard errors
+  from zero.
+
+## Decision
+
+```{r decision}
+decision_text <- if (any(eligible)) {
+  "At least one criterion was eligible; see the rules above."
+} else {
+  paste("Under rule 3, `fit_solomon_sem_latent()` does not refuse latent contrasts.",
+        "It runs `invariance_solomon()` on the POST indicators, stores the result in",
+        "the fit's `invariance` element, prints a one-line summary, and warns (class",
+        "`solomonR_invariance_warning`) when a criterion does not support scalar (or",
+        "partial scalar) invariance. Researchers who established invariance elsewhere",
+        "can set `check_invariance = FALSE`.")
+}
+```
+
+`r decision_text`
+
+The warning is a prompt to look at the invariance results, not a verdict.
+In groups of 30 to 60, the criteria often flag invariance that holds.
+Freeing parameters for a partial-invariance model must rest on
+substantive grounds, not on the data at hand (Byrne et al., 1989, p. 465;
+Vandenberg & Lance, 2000, p. 38).
+
+## Limitations
+
+- **The data-generating mechanisms.** Normal data, one factor, equal group
+  sizes, and noninvariance in one indicator only.
+- **The latent contrasts.** Bias and coverage were studied for the
+  sensitization contrast only, under patterns 1–4.
+- **The criteria.** Other criteria, such as modification indices or
+  Bayesian approaches, were not studied.
+- **Improper solutions.** With three indicators and 30 per group, lavaan
+  often estimated a negative residual variance (a Heywood case). When the
+  loading-pattern scenario was rerun to reproduce its failures, lavaan gave
+  that warning 663 times across the three models of 1,000 replications.
+  The study counted such fits like any other, so its rates describe the
+  criteria as they behave on these data.
+
+The script is `vignettes/articles/invariance-validation/invariance-simulation.R`
+in the package repository.
+
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
+
+## References
+
+Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
+equivalence of factor covariance and mean structures: The issue of partial
+measurement invariance. *Psychological Bulletin, 105*(3), 456–466.
+https://doi.org/10.1037/0033-2909.105.3.456
+
+Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
+measurement invariance. *Structural Equation Modeling: A Multidisciplinary
+Journal, 14*(3), 464–504. https://doi.org/10.1080/10705510701301834
+
+Meredith, W. (1993). Measurement invariance, factor analysis and factorial
+invariance. *Psychometrika, 58*(4), 525–543.
+https://doi.org/10.1007/BF02294825
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086
+
+Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square test
+statistic for moment structure analysis. *Psychometrika, 66*(4), 507–514.
+https://doi.org/10.1007/BF02296192
+
+Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
+measurement invariance literature: Suggestions, practices, and
+recommendations for organizational research. *Organizational Research
+Methods, 3*(1), 4–70. https://doi.org/10.1177/109442810031002
