@@ -203,6 +203,18 @@ g corrects the small-sample bias of the standardized mean difference
   2005; Groenwold et al., 2012).
 - **Missing outcomes:** the classification of missing-data mechanisms
   follows Rubin (1976) and Little and Rubin (2019).
+- **Missing posttests:** if posttests are missing at random given group
+  and, in the pretested groups, the pretest, the model fitted to the
+  observed posttests is a valid main analysis, and multiple imputation
+  under the same assumption agrees with it (Carpenter et al., 2023, p.
+  256). Whether the conclusion survives departures from that assumption is
+  a sensitivity analysis. `fit_solomon_mi()` shifts the imputed posttests
+  of each group by a chosen offset (Carpenter et al., 2023, section 10.3),
+  and `tipping_point_solomon()` reports the offset at which a contrast's
+  conclusion changes (White et al., 2011). Offsets that differ between the
+  pretested groups bear on the sensitization contrast: in the package's
+  simulation study, a departure confined to one pretested group biased the
+  analyses that assume missing at random by 0.10 to 0.16 SD.
 - **Tools:** `check_solomon_missing()` and `validate_solomon()` report each
   category.
 
@@ -242,6 +254,28 @@ Solomon designs (p. 94).
 - **Reporting.** `report_solomon(fit, design = list(assignment =
   "nonrandom"))` describes differences rather than effects and names these
   threats.
+
+### Repeated posttests
+
+**Label:** contemporary recommendation, applied to the Solomon design.
+
+When the posttest is measured on several occasions, `fit_solomon_mmrm()`
+fits a mixed model for repeated measures with an unstructured
+within-participant covariance estimated by restricted maximum likelihood
+(Laird & Ware, 1982; Mallinckrodt et al., 2008). Likelihood-based analyses
+remain valid when participants drop out depending on their earlier
+observed scores, whereas per-occasion analyses of those still observed,
+and unweighted generalized estimating equations, require missingness
+completely at random (Fitzmaurice et al., 2011).
+
+- **Covariance by pretest condition.** Estimating the covariance
+  separately for pretested and unpretested participants is solomonR's
+  adaptation: the pretest adjustment makes the residual covariance differ
+  between them by design.
+- **Evidence.** In the package's simulation study, the contrasts were
+  unbiased under such dropout, with coverage of 0.937 to 0.962. Per-occasion
+  complete-case analyses were biased by up to 0.09 SD, and a covariance
+  shared by all four groups misstated standard errors by up to 17%.
 
 ## Published Solomon proposals
 
@@ -337,6 +371,8 @@ analytically or by simulating the package's own GLM test.
 | Maximum likelihood | Published proposal | All four | Yes | Normal errors; separate variances by pretest condition |
 | SEM (observed) | solomonR extension | All four | Optional | Multi-group mean structure |
 | SEM (latent) | solomonR extension | All four (latent scale) | Optional | Scalar invariance |
+| Multiple imputation with offsets | Contemporary | All four | Yes | Missing posttests shifted by stated offsets |
+| Mixed model for repeated measures | Contemporary | All four, at each occasion | Yes | Dropout missing at random; covariance by pretest condition |
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](https://juhalt.github.io/solomonR/articles/references.html) page.
@@ -353,6 +389,10 @@ variances. *Journal of the American Statistical Association, 69*(346),
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
 published 1963)
+
+Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
+M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd
+ed.). Wiley. https://doi.org/10.1002/9781119756118
 
 Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
 calculation of confidence intervals that are based on central and noncentral
@@ -372,6 +412,9 @@ El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
 pretest sensitisation and the cognitive acceleration through science
 education programme in the Solomon four-group design. *Brain Sciences,
 16*(1), Article 64. https://doi.org/10.3390/brainsci16010064
+
+Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied longitudinal
+analysis* (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
 
 Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
 design considerations and randomization-based inference for community
@@ -412,6 +455,9 @@ Kelley, K. (2007). Confidence intervals for standardized effect sizes:
 Theory, application, and implementation. *Journal of Statistical Software,
 20*(8), 1–24. https://doi.org/10.18637/jss.v020.i08
 
+Laird, N. M., & Ware, J. H. (1982). Random-effects models for longitudinal
+data. *Biometrics, 38*(4), 963–974. https://doi.org/10.2307/2529876
+
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality
 Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177
@@ -441,6 +487,11 @@ MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
 covariance matrix estimators with improved finite sample properties.
 *Journal of Econometrics, 29*(3), 305–325.
 https://doi.org/10.1016/0304-4076(85)90158-7
+
+Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
+(2008). Recommendations for the primary analysis of continuous endpoints in
+longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
+https://doi.org/10.1177/009286150804200402
 
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. *Psychometrika, 58*(4), 525–543.
@@ -514,6 +565,10 @@ Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 Welch, B. L. (1947). The generalization of "Student's" problem when several
 different population variances are involved. *Biometrika, 34*(1–2), 28–35.
 https://doi.org/10.1093/biomet/34.1-2.28
+
+White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
+for intention to treat analysis in randomised trials with missing outcome
+data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. *Statistics in Medicine, 24*(7),

@@ -88,7 +88,11 @@ function cites its sources:
 - marginal contrasts for binary and count outcomes
   (`marginal_solomon()`);
 - clustered designs;
-- planning (`plan_solomon()`, `power_solomon()`) and reporting
+- multiple imputation of missing posttests, with a tipping-point
+  sensitivity analysis (`fit_solomon_mi()`, `tipping_point_solomon()`);
+- designs with several posttest occasions (`fit_solomon_mmrm()`);
+- planning (`plan_solomon()`, `power_solomon()`), analysis plans for
+  preregistration (`analysis_plan_solomon()`), and reporting
   (`report_solomon()`).
 
 These sources are in the "Methods references" section of the
