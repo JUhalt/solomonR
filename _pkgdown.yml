@@ -37,6 +37,14 @@ reference:
       - equivalence_solomon
       - compare_solomon_methods
 
+  - title: "Analyze: missing posttests"
+    desc: >
+      Multiple imputation of missing posttests under missing at random, with
+      delta-adjusted sensitivity analyses and a tipping-point summary.
+    contents:
+      - fit_solomon_mi
+      - tipping_point_solomon
+
   - title: "Analyze: latent variables"
     desc: >
       Observed- and latent-variable structural equation models, and
@@ -76,6 +84,7 @@ reference:
   - title: "Plotting"
     contents:
       - plot_solomon_means
+      - plot_tipping_point
       - plot_perm
       - plot_solomon_effects
       - plot_sensitization

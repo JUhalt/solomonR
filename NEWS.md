@@ -1,5 +1,32 @@
 # solomonR (development version)
 
+## Sensitivity analysis for missing posttests (#82)
+
+* New `fit_solomon_mi()` multiply imputes missing posttests and combines
+  the four Solomon contrasts with Rubin's rules (Carpenter et al., 2023).
+  - **Imputation.** A normal linear model, fitted separately in each Solomon
+    group, on the pretest in the pretested groups. Pretests absent by design
+    are never imputed.
+  - **Offsets.** `delta` shifts the imputed posttests of each group by a
+    fixed amount: the delta-adjusted pattern-mixture analysis of Carpenter
+    et al. (2023, section 10.3), with offsets per group as in Little et al.
+    (2012). Offsets that differ between the pretested and unpretested groups
+    bear on the sensitization contrast.
+  - **Inference.** Tests and intervals use t with the small-sample degrees
+    of freedom of Barnard and Rubin (1999, as cited in van Buuren, 2018).
+    The output reports each contrast's fraction of missing information and
+    the Monte Carlo error from the finite number of imputations (default
+    `m = 100`).
+* New `tipping_point_solomon()` repeats the analysis over a range of
+  offsets and reports where each contrast's conclusion changes, as White et
+  al. (2011) recommend. `plot_tipping_point()` draws it.
+* `report_solomon()` reports both, with their references.
+* Both functions are experimental until the simulation study posted on
+  #82 has been run and reported.
+* The APA sort in `report_solomon()` and `tools/check-references.R` now
+  compares the first author's surname and initials before the other
+  authors, so that "Little, R. J." precedes "Little, R. J. A.".
+
 ## A stable interface (#83)
 
 The public interface is now settled. Former names keep working, with a

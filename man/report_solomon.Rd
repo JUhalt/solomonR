@@ -37,7 +37,8 @@ used.
 Supported objects come from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}},
 \code{\link[=fit_solomon_classic]{fit_solomon_classic()}}, \code{\link[=perm_solomon]{perm_solomon()}}, \code{\link[=marginal_solomon]{marginal_solomon()}},
 \code{\link[=equivalence_solomon]{equivalence_solomon()}}, \code{\link[=fisher_solomon]{fisher_solomon()}}, \code{\link[=solomon_from_summary]{solomon_from_summary()}},
-\code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}}, and \code{\link[=baseline_solomon]{baseline_solomon()}}.
+\code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}}, \code{\link[=baseline_solomon]{baseline_solomon()}},
+\code{\link[=fit_solomon_mi]{fit_solomon_mi()}}, and \code{\link[=tipping_point_solomon]{tipping_point_solomon()}}.
 The references depend
 on the options the fit used: for example, a CR2 fit cites Bell and
 McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of

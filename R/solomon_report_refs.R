@@ -5,6 +5,11 @@
 # Non-ASCII characters are written as \u escapes, as R code requires.
 
 .solomon_reference_text <- c(
+  carpenter2023 = "Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno, M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd ed.). Wiley. https://doi.org/10.1002/9781119756118",
+  cro2019 = "Cro, S., Carpenter, J. R., & Kenward, M. G. (2019). Information-anchored sensitivity analysis: Theory and application. *Journal of the Royal Statistical Society Series A: Statistics in Society, 182*(2), 623\u2013645. https://doi.org/10.1111/rssa.12423",
+  little2012 = "Little, R. J., D'Agostino, R., Cohen, M. L., Dickersin, K., Emerson, S. S., Farrar, J. T., Frangakis, C., Hogan, J. W., Molenberghs, G., Murphy, S. A., Neaton, J. D., Rotnitzky, A., Scharfstein, D., Shih, W. J., Siegel, J. P., & Stern, H. (2012). The prevention and treatment of missing data in clinical trials. *The New England Journal of Medicine, 367*(14), 1355\u20131360. https://doi.org/10.1056/NEJMsr1203730",
+  vanbuuren2018 = "van Buuren, S. (2018). *Flexible imputation of missing data* (2nd ed.). CRC Press. https://doi.org/10.1201/9780429492259",
+  white2011 = "White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy for intention to treat analysis in randomised trials with missing outcome data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40",
   solomon1949 = "Solomon, R. L. (1949). An extension of control group design. *Psychological Bulletin, 46*(2), 137\u2013150. https://doi.org/10.1037/h0062958",
   mackinnon1985 = "MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. *Journal of Econometrics, 29*(3), 305\u2013325. https://doi.org/10.1016/0304-4076(85)90158-7",
   long2000 = "Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent standard errors in the linear regression model. *The American Statistician, 54*(3), 217\u2013224. https://doi.org/10.1080/00031305.2000.10474549",

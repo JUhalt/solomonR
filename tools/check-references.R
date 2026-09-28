@@ -24,10 +24,17 @@ paragraphs <- function(lines) {
   unname(paras[nzchar(paras)])
 }
 
+# APA 7 orders entries by the first author's surname and initials, then by
+# the other authors and the year, so "Little, R. J." precedes "Little, R. J.
+# A."; the first author is therefore compared on its own.
 sort_key <- function(entry) {
   authors <- sub(" \\(\\d{4}.*$", "", entry)
   year <- sub("^[^()]+? \\((\\d{4}[a-z]?).*$", "\\1", entry)
-  paste(gsub("[^a-z]", "", tolower(gsub("&", "", authors, fixed = TRUE))), year)
+  parts <- strsplit(authors, ", ", fixed = TRUE)[[1]]
+  first <- paste(parts[seq_len(min(2L, length(parts)))], collapse = " ")
+  rest <- paste(parts[-seq_len(min(2L, length(parts)))], collapse = " ")
+  letters_only <- function(x) gsub("[^a-z]", "", tolower(gsub("&", "", x, fixed = TRUE)))
+  paste(letters_only(first), letters_only(rest), year)
 }
 
 canonical_file <- file.path("vignettes", "articles", "references.Rmd")

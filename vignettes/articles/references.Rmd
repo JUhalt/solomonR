@@ -360,6 +360,10 @@ Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
 (2nd ed.). Cambridge University Press.
 https://doi.org/10.1017/CBO9781139013567
 
+Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
+M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd
+ed.). Wiley. https://doi.org/10.1002/9781119756118
+
 Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
 measurement invariance. *Structural Equation Modeling: A Multidisciplinary
 Journal, 14*(3), 464–504. https://doi.org/10.1080/10705510701301834
@@ -368,6 +372,11 @@ Cheung, G. W., & Rensvold, R. B. (2002). Evaluating goodness-of-fit indexes
 for testing measurement invariance. *Structural Equation Modeling: A
 Multidisciplinary Journal, 9*(2), 233–255.
 https://doi.org/10.1207/S15328007SEM0902_5
+
+Cro, S., Carpenter, J. R., & Kenward, M. G. (2019). Information-anchored
+sensitivity analysis: Theory and application. *Journal of the Royal
+Statistical Society Series A: Statistics in Society, 182*(2), 623–645.
+https://doi.org/10.1111/rssa.12423
 
 Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and
 calculation of confidence intervals that are based on central and noncentral
@@ -439,6 +448,13 @@ https://doi.org/10.1177/2515245918770963
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
 7*(1), 295–318. https://doi.org/10.1214/12-AOAS583
+
+Little, R. J., D'Agostino, R., Cohen, M. L., Dickersin, K., Emerson, S. S.,
+Farrar, J. T., Frangakis, C., Hogan, J. W., Molenberghs, G., Murphy, S. A.,
+Neaton, J. D., Rotnitzky, A., Scharfstein, D., Shih, W. J., Siegel, J. P., &
+Stern, H. (2012). The prevention and treatment of missing data in clinical
+trials. *The New England Journal of Medicine, 367*(14), 1355–1360.
+https://doi.org/10.1056/NEJMsr1203730
 
 Little, R. J. A., & Rubin, D. B. (2019). *Statistical analysis with missing
 data* (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
@@ -528,6 +544,9 @@ power in randomized studies and more bias in nonrandomized studies. *Journal
 of Clinical Epidemiology, 59*(9), 920–925.
 https://doi.org/10.1016/j.jclinepi.2006.02.007
 
+van Buuren, S. (2018). *Flexible imputation of missing data* (2nd ed.). CRC
+Press. https://doi.org/10.1201/9780429492259
+
 Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
 measurement invariance literature: Suggestions, practices, and
 recommendations for organizational research. *Organizational Research
@@ -539,6 +558,10 @@ Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
 Welch, B. L. (1947). The generalization of "Student's" problem when several
 different population variances are involved. *Biometrika, 34*(1–2), 28–35.
 https://doi.org/10.1093/biomet/34.1-2.28
+
+White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
+for intention to treat analysis in randomised trials with missing outcome
+data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. *Statistics in Medicine, 24*(7),

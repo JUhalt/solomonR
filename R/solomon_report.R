@@ -20,7 +20,9 @@
   fit_solomon_sem_latent = c("rosseel2012", "meredith1993", "vandenberg2000"),
   solomon_from_summary = "waltonbraver1988",
   solomon_effect_sizes = c("morris2008", "hedges1981"),
-  baseline_solomon = c("cumming2001", "kelley2007")
+  baseline_solomon = c("cumming2001", "kelley2007"),
+  fit_solomon_mi = c("carpenter2023", "vanbuuren2018", "cro2019"),
+  tipping_point_solomon = c("white2011", "little2012", "carpenter2023")
 )
 
 # ---- Formatting helpers -----------------------------------------------------------
@@ -460,6 +462,104 @@
        refs = .solomon_function_refs$baseline_solomon, cells = NULL)
 }
 
+.mi_offset_phrase <- function(delta, digits) {
+  groups <- .solomon_group_labels[delta != 0]
+  values <- .apa_num(delta[delta != 0], digits)
+  if (length(unique(values)) == 1L) {
+    sprintf("%s in the %s group%s", values[1L], paste(groups, collapse = ", "),
+            if (length(groups) > 1L) "s" else "")
+  } else {
+    paste(sprintf("%s in the %s group", values, groups), collapse = "; ")
+  }
+}
+
+.mi_method <- function(x, pretest, robust, m) {
+  missing <- sum(x$missing)
+  total <- sum(x$n)
+  sprintf(
+    paste0(
+      "Missing posttests (%d of %d, %.1f%%) were multiply imputed (m = %d) with a normal ",
+      "linear regression fitted separately in each Solomon group%s (Carpenter et al., 2023). ",
+      "Each completed data set was analyzed with a linear model containing treatment, pretesting, ",
+      "and their interaction%s, with %s, and the estimates were combined with Rubin's rules, ",
+      "using the small-sample degrees of freedom of Barnard and Rubin (1999, as cited in van Buuren, 2018)."
+    ),
+    missing, total, 100 * missing / total, m,
+    if (pretest) ", on the pretest in the pretested groups" else "",
+    if (pretest) ", adjusting for the pretest score among pretested participants" else "",
+    if (robust == "HC3") "HC3 heteroskedasticity-consistent standard errors" else "model-based standard errors"
+  )
+}
+
+.report_mi <- function(fit, digits, md) {
+  refs <- .solomon_function_refs$fit_solomon_mi
+  method <- .mi_method(fit$missing, fit$pretest, fit$robust, fit$m)
+  method <- paste(method, if (all(fit$delta == 0)) {
+    "The imputations assumed the posttests were missing at random."
+  } else {
+    refs <- c(refs, "white2011")
+    sprintf(paste0(
+      "As a sensitivity analysis, the imputed posttests were shifted by %s, a delta-adjusted ",
+      "pattern-mixture analysis (Carpenter et al., 2023; White et al., 2011)."
+    ), .mi_offset_phrase(fit$delta, digits))
+  })
+  if (fit$robust == "HC3") refs <- c(refs, "mackinnon1985", "long2000")
+  if (fit$pretest) refs <- c(refs, "lin2013")
+  list(
+    method = method,
+    results = .contrast_sentences(fit$effects, fit$conf_level, digits, md),
+    table = fit$effects,
+    refs = refs,
+    cells = .cell_counts(fit$data$treat, fit$data$pretested)
+  )
+}
+
+.report_tipping <- function(fit, digits, md) {
+  refs <- c(.solomon_function_refs$tipping_point_solomon, "vanbuuren2018")
+  if (fit$robust == "HC3") refs <- c(refs, "mackinnon1985", "long2000")
+  r <- fit$results
+  pretest <- isTRUE(fit$pretest)
+  method <- paste(
+    .mi_method(fit$missing, pretest, fit$robust, fit$m),
+    sprintf(paste0(
+      "In a tipping-point sensitivity analysis (White et al., 2011; Little et al., 2012), ",
+      "the imputed posttests of the %s group%s were shifted by offsets from %s to %s ",
+      "(%s to %s pooled within-group standard deviations of the observed posttests)."
+    ), paste(fit$groups, collapse = ", "), if (length(fit$groups) > 1L) "s" else "",
+    .apa_num(min(r$delta), digits), .apa_num(max(r$delta), digits),
+    .apa_num(min(r$delta_sd), 2), .apa_num(max(r$delta_sd), 2))
+  )
+  base <- r[r$delta == 0, ]
+  level <- 1 - fit$alpha
+  results <- sprintf(
+    "Assuming the posttests were missing at random, %s was %s, %s, %s.",
+    .contrast_phrase(fit$contrast), .apa_num(base$estimate, digits),
+    .apa_ci(base$conf.low, base$conf.high, level, digits), .apa_p(base$p.value, md)
+  )
+  sig <- if (md) "*p*" else "p"
+  for (side in c("negative", "positive")) {
+    tp <- fit$tipping[[side]]
+    results <- c(results, if (is.na(tp)) {
+      sprintf("Its statistical significance at alpha = %s did not change for any %s offset tried.",
+              sub("^0", "", format(fit$alpha)), side)
+    } else {
+      row <- r[r$delta == tp, ]
+      sprintf("Its statistical significance at alpha = %s changed at an offset of %s (%s SD), where the estimate was %s, %s.",
+              sub("^0", "", format(fit$alpha)), .apa_num(tp, digits),
+              .apa_num(fit$tipping_sd[[side]], 2), .apa_num(row$estimate, digits),
+              .apa_p(row$p.value, md))
+    })
+  }
+  if (pretest) refs <- c(refs, "lin2013")
+  list(
+    method = method,
+    results = results,
+    table = r,
+    refs = refs,
+    cells = .cell_counts(fit$data$treat, fit$data$pretested)
+  )
+}
+
 # Reporting language for nonrandomized designs.
 .nonrandom_wording <- function(x) {
   x <- gsub("average treatment effect", "average treatment-control difference", x)
@@ -479,7 +579,9 @@
   solomon_fisher = .report_fisher,
   solomon_summary_fit = .report_summary_fit,
   solomon_sem = .report_sem,
-  solomon_sem_latent = .report_sem_latent
+  solomon_sem_latent = .report_sem_latent,
+  solomon_mi = .report_mi,
+  solomon_tipping = .report_tipping
 )
 
 # ---- Design reporting ----------------------------------------------------------------
@@ -547,11 +649,19 @@
   out
 }
 
-# APA order of the reference list: by author surnames, then year.
+# APA order of the reference list: by the first author's surname and
+# initials, then the other authors, then year (as in tools/check-references.R).
 .apa_sort <- function(refs) {
-  authors <- sub(" \\(\\d{4}.*$", "", refs)
-  year <- sub("^[^()]+? \\((\\d{4}[a-z]?).*$", "\\1", refs)
-  refs[order(gsub("[^a-z]", "", tolower(gsub("&", "", authors, fixed = TRUE))), year)]
+  key <- vapply(refs, function(entry) {
+    authors <- sub(" \\(\\d{4}.*$", "", entry)
+    year <- sub("^[^()]+? \\((\\d{4}[a-z]?).*$", "\\1", entry)
+    parts <- strsplit(authors, ", ", fixed = TRUE)[[1]]
+    first <- paste(parts[seq_len(min(2L, length(parts)))], collapse = " ")
+    rest <- paste(parts[-seq_len(min(2L, length(parts)))], collapse = " ")
+    letters_only <- function(x) gsub("[^a-z]", "", tolower(gsub("&", "", x, fixed = TRUE)))
+    paste(letters_only(first), letters_only(rest), year)
+  }, "")
+  refs[order(key)]
 }
 
 #' APA 7 results text for a Solomon analysis
@@ -565,7 +675,8 @@
 #' Supported objects come from [fit_solomon_glm()], [fit_solomon_ml()],
 #' [fit_solomon_classic()], [perm_solomon()], [marginal_solomon()],
 #' [equivalence_solomon()], [fisher_solomon()], [solomon_from_summary()],
-#' [fit_solomon_sem()], [fit_solomon_sem_latent()], and [baseline_solomon()].
+#' [fit_solomon_sem()], [fit_solomon_sem_latent()], [baseline_solomon()],
+#' [fit_solomon_mi()], and [tipping_point_solomon()].
 #' The references depend
 #' on the options the fit used: for example, a CR2 fit cites Bell and
 #' McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of
