@@ -87,7 +87,7 @@ underpowered for the question the Solomon design exists to answer.
 
 `plot_power_solomon()` shows the power curves behind the plan:
 
-```{r power-plot, fig.width = 7, fig.height = 4.5}
+```{r power-plot, fig.width = 7, fig.height = 4.5, fig.alt = "Power curves for each Solomon estimand across sample sizes per group, for a treatment effect of 0.30 and sensitization of 0.26 standard deviations."}
 plot_power_solomon(delta = 0.30, sens = 0.26, rho = 0.5, n = seq(20, 420, by = 40))
 ```
 

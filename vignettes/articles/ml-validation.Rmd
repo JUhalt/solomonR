@@ -148,7 +148,7 @@ knitr::kable(failures)
 
 ## Coverage
 
-```{r coverage-plot, fig.height = 6}
+```{r coverage-plot, fig.height = 6, fig.alt = "Coverage of 95% intervals by cell size for each method and contrast, with the 0.94 to 0.96 tolerance band shaded."}
 coverage <- aggregate(
   coverage ~ method + contrast + n_cell + sd_ratio,
   data = performance,

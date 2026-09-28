@@ -430,7 +430,7 @@ This prevents an estimated permutation p-value of exactly zero.
 
 The null distribution can be visualized with:
 
-```{r fig.width=7, fig.height=4.5}
+```{r perm-plot, fig.width = 7, fig.height = 4.5, fig.alt = "Histogram of the permutation distribution of the test statistic, with the observed value marked."}
 plot_perm(perm)
 ```
 

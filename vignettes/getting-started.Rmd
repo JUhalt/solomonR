@@ -127,7 +127,7 @@ A schematic of the design, in the notation of Campbell and Stanley (1963/1966),
 shows each group's size and posttest mean, and flags any group that is empty
 or too small to estimate its variability:
 
-```{r design-plot, fig.width = 8, fig.height = 3.5}
+```{r design-plot, fig.width = 8, fig.height = 3.5, fig.alt = "Diagram of the four Solomon groups, showing each group's size and posttest mean."}
 with(solomon_example, plot_solomon_design(y_post, treat, pretested))
 ```
 
@@ -225,7 +225,7 @@ trade pretested against unpretested participants when pretesting is costly.
 Power curves show the same planning problem across sample sizes. Each cross
 marks the design `plan_solomon()` returns for the target:
 
-```{r power-curves, fig.width = 8, fig.height = 5}
+```{r power-curves, fig.width = 8, fig.height = 5, fig.alt = "Power curves for the average treatment effect and the two simple treatment effects across sample sizes, with crosses marking the designs that reach 90% power."}
 plot_power_solomon(
   n = seq(10, 150, by = 5), delta = 5, sens = 0, rho = 0.6, sigma = 10,
   estimand = c("ate", "pretested", "unpretested"), target = 0.90
@@ -257,14 +257,14 @@ The sensitization itself is easiest to see in the group means.
 the two lines' rises from control to treatment is exactly the Pretest x
 Treatment estimate above. Hollow points show the observed means:
 
-```{r sensitization-plot, fig.width = 6, fig.height = 4}
+```{r sensitization-plot, fig.width = 6, fig.height = 4, fig.alt = "Model-based posttest means by treatment for pretested and unpretested participants, with observed means as hollow points and the equivalence bounds for the interaction."}
 plot_sensitization(fit, bounds = 5)
 ```
 
 A forest plot shows all four Solomon contrasts at once, with the equivalence
 bounds shaded on the sensitization row:
 
-```{r effects-plot, fig.width = 7, fig.height = 3.5}
+```{r effects-plot, fig.width = 7, fig.height = 3.5, fig.alt = "Forest plot of the four Solomon contrasts with 95% intervals, with the equivalence bounds shaded on the sensitization row."}
 plot_solomon_effects(fit, bounds = 5)
 ```
 

@@ -120,7 +120,7 @@ knitr::kable(
 )
 ```
 
-```{r type1-plot, fig.height = 4}
+```{r type1-plot, fig.height = 4, fig.alt = "Rejection rates under a true null for each test and allocation, one point per scenario, with the 0.04 to 0.06 tolerance band shaded."}
 ggplot(null_rows, aes(allocation, power, colour = test)) +
   annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0.04, ymax = 0.06, alpha = 0.15) +
   geom_hline(yintercept = 0.05, linetype = "dashed") +
@@ -134,7 +134,7 @@ The shaded band is the pre-declared tolerance. Each point is one scenario.
 
 ## Agreement with analytic power
 
-```{r agreement-plot, fig.height = 5}
+```{r agreement-plot, fig.height = 5, fig.alt = "Simulated power plotted against analytic power for each test, one point per scenario, with the line of equality dashed."}
 bench <- performance[!is.na(performance$analytic_power) & !performance$null_case, ]
 
 ggplot(bench, aes(analytic_power, power, colour = allocation)) +
