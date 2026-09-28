@@ -128,9 +128,12 @@
 #'   the basis (`"analytic"` or `"simulation"`), the Monte Carlo standard
 #'   error (`NA` for analytic rows), the target power, `alpha`, and a note.
 #'   Estimands whose true effect is zero, or whose target is not reached by
-#'   `max_n`, return `NA` sizes with an explanatory note.
+#'   `max_n`, return `NA` sizes with an explanatory note. The planning values
+#'   are kept in the attribute `settings`, which [analysis_plan_solomon()]
+#'   reads.
 #'
-#' @seealso [power_solomon()] for the power of a given design.
+#' @seealso [power_solomon()] for the power of a given design, and
+#'   [analysis_plan_solomon()] for an analysis plan built on the result.
 #'
 #' @references
 #' Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation

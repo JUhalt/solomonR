@@ -59,7 +59,9 @@ effect, the four cell sizes, the total sample size, the achieved power,
 the basis (\code{"analytic"} or \code{"simulation"}), the Monte Carlo standard
 error (\code{NA} for analytic rows), the target power, \code{alpha}, and a note.
 Estimands whose true effect is zero, or whose target is not reached by
-\code{max_n}, return \code{NA} sizes with an explanatory note.
+\code{max_n}, return \code{NA} sizes with an explanatory note. The planning values
+are kept in the attribute \code{settings}, which \code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}}
+reads.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -138,5 +140,6 @@ different population variances are involved. \emph{Biometrika, 34}(1–2), 28–
 https://doi.org/10.1093/biomet/34.1-2.28
 }
 \seealso{
-\code{\link[=power_solomon]{power_solomon()}} for the power of a given design.
+\code{\link[=power_solomon]{power_solomon()}} for the power of a given design, and
+\code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}} for an analysis plan built on the result.
 }
