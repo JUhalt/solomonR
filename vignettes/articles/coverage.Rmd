@@ -187,7 +187,7 @@ https://doi.org/10.1177/1094428106291059
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
 of meta-analysis in the Solomon four-group design* [Paper presentation].
 First International Conference on Multiple Comparisons, Tel Aviv, Israel.
-http://digitalcommons.wayne.edu/coe_tbf/29
+https://digitalcommons.wayne.edu/coe_tbf/29/
 
 Sawilowsky, S. S. (2000). Review of the rank transform in designed
 experiments. *Perceptual and Motor Skills, 90*(2), 489–497.

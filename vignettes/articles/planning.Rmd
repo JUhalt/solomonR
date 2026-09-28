@@ -179,7 +179,7 @@ systematic review of evidence from Solomon 4-group studies. *PLoS ONE,
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
 of meta-analysis in the Solomon four-group design* [Paper presentation].
 First International Conference on Multiple Comparisons, Tel Aviv, Israel.
-http://digitalcommons.wayne.edu/coe_tbf/29
+https://digitalcommons.wayne.edu/coe_tbf/29/
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational Research

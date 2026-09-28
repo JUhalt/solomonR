@@ -45,5 +45,5 @@
   cumming2001 = "Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and calculation of confidence intervals that are based on central and noncentral distributions. *Educational and Psychological Measurement, 61*(4), 532\u2013574. https://doi.org/10.1177/00131640121971374",
   kelley2007 = "Kelley, K. (2007). Confidence intervals for standardized effect sizes: Theory, application, and implementation. *Journal of Statistical Software, 20*(8), 1\u201324. https://doi.org/10.18637/jss.v020.i08",
   campbell1966 = "Campbell, D. T., & Stanley, J. C. (1966). *Experimental and quasi-experimental designs for research*. Rand McNally. (Original work published 1963)",
-  sawilowsky1996 = "Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error of meta-analysis in the Solomon four-group design* [Paper presentation]. First International Conference on Multiple Comparisons, Tel Aviv, Israel. http://digitalcommons.wayne.edu/coe_tbf/29"
+  sawilowsky1996 = "Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error of meta-analysis in the Solomon four-group design* [Paper presentation]. First International Conference on Multiple Comparisons, Tel Aviv, Israel. https://digitalcommons.wayne.edu/coe_tbf/29/"
 )
