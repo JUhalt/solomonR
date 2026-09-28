@@ -3,12 +3,13 @@
 test_that("every exported analysis function has a registered reference set", {
   exports <- getNamespaceExports("solomonR")
   # Exports that are not analysis methods: plots, design checks, planning,
-  # the method comparison (it reports other methods' fits), helpers, and the
-  # report itself. A new export must be added to the registry or here.
+  # the method comparison (it reports other methods' fits), the simulator,
+  # helpers, and the report itself. A new export must be added to the
+  # registry or here.
   not_analysis <- c(
     grep("^plot_", exports, value = TRUE),
     "validate_solomon", "check_solomon_missing", "check_solomon_assumptions", "invariance_solomon",
-    "power_solomon", "plan_solomon", "compare_solomon_methods", "p_to_z",
+    "power_solomon", "plan_solomon", "simulate_solomon", "compare_solomon_methods", "p_to_z",
     "report_solomon"
   )
   analysis <- setdiff(exports, not_analysis)

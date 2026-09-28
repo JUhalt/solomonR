@@ -6,11 +6,14 @@ template:
 reference:
   - title: "Decide and plan"
     desc: >
-      Sample sizes and power for a Solomon study, before data are collected.
+      Sample sizes and power for a Solomon study, before data are collected,
+      and simulated studies with known effects for teaching and for checking
+      an analysis plan.
     contents:
       - plan_solomon
       - power_solomon
       - plot_power_solomon
+      - simulate_solomon
 
   - title: "Check the design"
     desc: >
@@ -121,6 +124,11 @@ articles:
     navbar: Synthesize
     contents:
       - articles/synthesis
+
+  - title: "Teach"
+    navbar: Teach
+    contents:
+      - articles/teaching
 
   - title: "History"
     navbar: History

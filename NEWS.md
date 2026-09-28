@@ -1,5 +1,22 @@
 # solomonR (development version)
 
+## Teaching toolkit (#79)
+
+* New `simulate_solomon()` generates a randomized Solomon study with chosen
+  treatment, pretest, and sensitization effects, and attaches the true
+  value of every estimand. It uses the data-generating model of
+  `power_solomon()` (validated in #18), with a pretesting main effect and
+  a location added. With `solomon_example`'s settings and seed it
+  reproduces `solomon_example` exactly, and a test checks this.
+* New article "Teaching with solomonR" (Teach menu), with six lessons and
+  exercises whose solutions can be revealed:
+  - what each group contributes;
+  - building in sensitization;
+  - Solomon's (1949) own analysis;
+  - the error rate of the historical test sequence;
+  - why a nonsignificant interaction is not evidence of absence;
+  - what published studies can and cannot support.
+
 ## Solomon's (1949) original analysis (#78)
 
 * New `fit_solomon_1949()` reproduces the analysis Solomon (1949) proposed
