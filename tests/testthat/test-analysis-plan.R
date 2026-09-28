@@ -57,6 +57,36 @@ test_that("the references are complete and in APA order", {
   expect_true(any(grepl("^Chan, A.-W.", refs)))
 })
 
+test_that("with several occasions, the plan uses the repeated-measures model", {
+  p <- analysis_plan_solomon(occasions = c("post", "6 months", "12 months"))
+  txt <- paste(p$text, collapse = "
+")
+  expect_match(txt, "fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre)", fixed = TRUE)
+  expect_match(txt, "Pretest x Treatment at occasion 12 months", fixed = TRUE)
+  expect_match(txt, "does not apply when dropout depends on earlier posttests", fixed = TRUE)
+  expect_false(grepl("tipping_point_solomon(..., groups", txt, fixed = TRUE))
+  expect_true(any(grepl("^Mallinckrodt, C. H.", p$text)))
+  expect_false(any(grepl("^MacKinnon, J. G.", p$text)))
+  expect_identical(p$settings$primary_occasion, "12 months")
+
+  first <- analysis_plan_solomon(occasions = 3, primary_occasion = 1)
+  expect_identical(first$settings$primary_occasion, "1")
+  expect_error(analysis_plan_solomon(occasions = 3, primary_occasion = 4), "must be one of the occasions")
+  expect_error(analysis_plan_solomon(occasions = 0), "whole number of at least 1")
+
+  single <- analysis_plan_solomon()
+  expect_null(single$settings$primary_occasion)
+  expect_true(any(grepl("fit_solomon_glm(y_post, treat, pretested, y_pre)", single$text, fixed = TRUE)))
+})
+
+test_that("the report names the plan's confirmatory occasion", {
+  plan <- analysis_plan_solomon(occasions = 3)
+  fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
+  r <- report_solomon(fit, design = list(plan = plan))
+  expect_true(any(grepl("Pretest x Treatment interaction (pretest sensitization) at occasion 3.",
+                        r$design, fixed = TRUE)))
+})
+
 test_that("the plan can be written to a file", {
   f <- tempfile(fileext = ".md")
   on.exit(unlink(f))

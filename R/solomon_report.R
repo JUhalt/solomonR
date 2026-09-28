@@ -668,9 +668,10 @@
   if (!is.null(design$plan)) {
     s <- design$plan$settings
     out <- c(out, sprintf(
-      "The analysis followed an analysis plan dated %s, whose confirmatory contrast%s %s.",
+      "The analysis followed an analysis plan dated %s, whose confirmatory contrast%s %s%s.",
       format(design$plan$date), if (length(s$confirmatory) > 1L) "s were" else " was",
-      paste(.contrast_phrase(s$confirmatory), collapse = " and ")
+      paste(.contrast_phrase(s$confirmatory), collapse = " and "),
+      if (!is.null(s$primary_occasion)) sprintf(" at occasion %s", s$primary_occasion) else ""
     ))
   }
   if (!is.null(design$prespecified)) {

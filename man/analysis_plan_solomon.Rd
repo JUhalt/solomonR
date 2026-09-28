@@ -13,6 +13,8 @@ analysis_plan_solomon(
     "exploratory"),
   equivalence_bound = NULL,
   alpha = 0.05,
+  occasions = 1,
+  primary_occasion = NULL,
   tipping_groups = "treatment",
   title = "Analysis plan for a Solomon four-group study",
   file = NULL
@@ -42,6 +44,14 @@ estimated and reported but not confirmatory.}
 posttest units, for \code{sensitization = "equivalence"}.}
 
 \item{alpha}{Significance level of the confirmatory tests. Default 0.05.}
+
+\item{occasions}{Number of posttest occasions, or their labels. With more
+than one, the primary analysis is \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}, a mixed model for
+repeated measures (Mallinckrodt et al., 2008), and the confirmatory
+contrasts are those at \code{primary_occasion}.}
+
+\item{primary_occasion}{The occasion whose contrasts are confirmatory, when
+there are several. Default: the last.}
 
 \item{tipping_groups}{Groups whose imputed posttests are shifted in the
 tipping-point sensitivity analysis, as in \code{\link[=tipping_point_solomon]{tipping_point_solomon()}}.
@@ -135,9 +145,17 @@ Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
 study including developmental work and expert workshop. \emph{Health Technology
 Assessment, 25}(55), 1–72. https://doi.org/10.3310/hta25550
 
+Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). \emph{Applied
+longitudinal analysis} (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
+
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. \emph{Social Psychological and Personality
 Science, 8}(4), 355–362. https://doi.org/10.1177/1948550617697177
+
+Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
+(2008). Recommendations for the primary analysis of continuous endpoints
+in longitudinal clinical trials. \emph{Drug Information Journal, 42}(4),
+303–319. https://doi.org/10.1177/009286150804200402
 
 Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The
 preregistration revolution. \emph{Proceedings of the National Academy of

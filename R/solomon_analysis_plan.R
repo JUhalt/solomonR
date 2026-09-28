@@ -68,6 +68,12 @@
 #' @param equivalence_bound The smallest sensitization of interest, in
 #'   posttest units, for `sensitization = "equivalence"`.
 #' @param alpha Significance level of the confirmatory tests. Default 0.05.
+#' @param occasions Number of posttest occasions, or their labels. With more
+#'   than one, the primary analysis is [fit_solomon_mmrm()], a mixed model for
+#'   repeated measures (Mallinckrodt et al., 2008), and the confirmatory
+#'   contrasts are those at `primary_occasion`.
+#' @param primary_occasion The occasion whose contrasts are confirmatory, when
+#'   there are several. Default: the last.
 #' @param tipping_groups Groups whose imputed posttests are shifted in the
 #'   tipping-point sensitivity analysis, as in [tipping_point_solomon()].
 #'   Default `"treatment"`. When sensitization is confirmatory, a second
@@ -99,9 +105,17 @@
 #' study including developmental work and expert workshop. *Health Technology
 #' Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550
 #'
+#' Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied
+#' longitudinal analysis* (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
+#'
 #' Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 #' correlations, and meta-analyses. *Social Psychological and Personality
 #' Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177
+#'
+#' Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
+#' (2008). Recommendations for the primary analysis of continuous endpoints
+#' in longitudinal clinical trials. *Drug Information Journal, 42*(4),
+#' 303–319. https://doi.org/10.1177/009286150804200402
 #'
 #' Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The
 #' preregistration revolution. *Proceedings of the National Academy of
@@ -139,6 +153,7 @@ analysis_plan_solomon <- function(plan = NULL,
                                                     "smaller_pretested", "exploratory"),
                                   equivalence_bound = NULL,
                                   alpha = 0.05,
+                                  occasions = 1, primary_occasion = NULL,
                                   tipping_groups = "treatment",
                                   title = "Analysis plan for a Solomon four-group study",
                                   file = NULL) {
@@ -167,6 +182,26 @@ analysis_plan_solomon <- function(plan = NULL,
          ", or group numbers from 1 to 4.", call. = FALSE)
   }
 
+  if (is.numeric(occasions) && length(occasions) == 1L) {
+    if (!is.finite(occasions) || occasions < 1 || occasions != round(occasions)) {
+      stop("`occasions` must be a whole number of at least 1, or the occasion labels.",
+           call. = FALSE)
+    }
+    occasion_labels <- as.character(seq_len(occasions))
+  } else {
+    occasion_labels <- as.character(occasions)
+    if (!length(occasion_labels) || anyDuplicated(occasion_labels) || anyNA(occasion_labels)) {
+      stop("Occasion labels in `occasions` must be distinct.", call. = FALSE)
+    }
+  }
+  longitudinal <- length(occasion_labels) > 1L
+  if (is.null(primary_occasion)) primary_occasion <- occasion_labels[length(occasion_labels)]
+  primary_occasion <- as.character(primary_occasion)
+  if (length(primary_occasion) != 1L || !primary_occasion %in% occasion_labels) {
+    stop("`primary_occasion` must be one of the occasions.", call. = FALSE)
+  }
+  at <- if (longitudinal) sprintf(" at occasion %s", primary_occasion) else ""
+
   sens_confirmatory <- sensitization != "exploratory"
   confirmatory <- c("ATE (avg over pretest)", if (sens_confirmatory) "Pretest x Treatment")
   alpha_txt <- sub("^0", "", format(alpha))
@@ -176,9 +211,9 @@ analysis_plan_solomon <- function(plan = NULL,
   # ---- Hypotheses --------------------------------------------------------------
   h1 <- switch(
     direction,
-    increase = sprintf("**H1.** Averaged over the pretest conditions, %s will raise %s relative to the control condition.", treatment, outcome),
-    decrease = sprintf("**H1.** Averaged over the pretest conditions, %s will lower %s relative to the control condition.", treatment, outcome),
-    `two-sided` = sprintf("**H1.** Averaged over the pretest conditions, %s will change %s relative to the control condition; no direction is predicted.", treatment, outcome)
+    increase = sprintf("**H1.** Averaged over the pretest conditions, %s will raise %s%s relative to the control condition.", treatment, outcome, at),
+    decrease = sprintf("**H1.** Averaged over the pretest conditions, %s will lower %s%s relative to the control condition.", treatment, outcome, at),
+    `two-sided` = sprintf("**H1.** Averaged over the pretest conditions, %s will change %s%s relative to the control condition; no direction is predicted.", treatment, outcome, at)
   )
   h2 <- switch(
     sensitization,
@@ -189,6 +224,10 @@ analysis_plan_solomon <- function(plan = NULL,
     exploratory = "**Exploratory.** The Pretest x Treatment contrast (pretest sensitization) will be estimated and reported with its confidence interval, but no hypothesis about it is tested."
   )
   if (sensitization == "equivalence") keys <- c(keys, "lakens2017", "schuirmann1987")
+  if (longitudinal) {
+    keys <- setdiff(c(keys, "mallinckrodt2008", "fitzmaurice2011"),
+                    c("mackinnon1985", "long2000", "carpenter2023"))
+  }
 
   # ---- Planned sample ----------------------------------------------------------
   sample_lines <- if (is.null(plan)) {
@@ -259,6 +298,7 @@ analysis_plan_solomon <- function(plan = NULL,
     .plan_bullets(c(
       "**Randomization.** [The method of sequence generation, any stratification or blocking, and how allocation is concealed.]",
       "**Pretest-posttest interval.** [The interval.] Pretest effects can depend on it (Entwisle, 1961), so it is fixed in advance.",
+      if (longitudinal) sprintf("**Posttest occasions.** %d occasions (%s) [with their times]; the confirmatory contrasts are those at occasion %s.", length(occasion_labels), paste(occasion_labels, collapse = ", "), primary_occasion),
       "**Measurement.** The pretest and posttest are the same instrument, administered in the same way and at the same times in every group (French et al., 2021b, Recommendation 11). [Describe the instrument and its administration.]",
       "**Blinding (SPIRIT 17a).** [Who is blinded to the group assignment, and how.]"
     )),
@@ -273,10 +313,14 @@ analysis_plan_solomon <- function(plan = NULL,
     "",
     "### Primary analysis (SPIRIT 20a)",
     "",
-    "The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013), with HC3 standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).",
+    if (longitudinal) {
+      "The four Solomon contrasts at each occasion, and the change in the Pretest x Treatment contrast from the first occasion to the last, are estimated with a mixed model for repeated measures, `fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre)` (Mallinckrodt et al., 2008): occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants at each occasion (Lin, 2013), with an unstructured covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood, and Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011, p. 101). If the unstructured model does not converge, the fallback structures of `fit_solomon_mmrm()` are used, chosen by AIC."
+    } else {
+      "The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013), with HC3 standard errors (MacKinnon & White, 1985; Long & Ervin, 2000)."
+    },
     "",
     .plan_bullets(c(
-      sprintf("**Confirmatory contrasts:** %s.", paste(confirmatory, collapse = " and ")),
+      sprintf("**Confirmatory contrasts:** %s%s.", paste(confirmatory, collapse = " and "), at),
       h1_test,
       sens_analysis,
       "**Multiple testing.** [How the confirmatory tests control the error rate, or why no correction is needed.]",
@@ -296,9 +340,17 @@ analysis_plan_solomon <- function(plan = NULL,
     "",
     .plan_bullets(c(
       "**Population.** All randomized participants, analyzed in the groups to which they were assigned.",
-      "**Main assumption.** Missing posttests are missing at random given group and, in the pretested groups, the pretest. Under that assumption the model above, fitted to the observed posttests, is the main analysis; multiple imputation under the same assumption agrees with it (Carpenter et al., 2023, p. 256). Missing pretests among pretested participants are not imputed; [state how they are handled].",
-      sprintf("**Sensitivity analysis.** `tipping_point_solomon(..., groups = %s)` shifts the imputed posttests of the %s from -1 to 1 standard deviation and reports the offset at which each confirmatory conclusion changes (White et al., 2011; Carpenter et al., 2023).", tipping_code, tipping_label),
-      if (sens_confirmatory) "**Sensitization-specific sensitivity analysis.** `tipping_point_solomon(..., contrast = \"Pretest x Treatment\", groups = 1)` shifts the imputed posttests of the pretested treatment group alone, the departure from missing at random that bears on the sensitization contrast."
+      if (longitudinal) {
+        "**Main assumption.** Missing posttests, including those of participants who drop out, are missing at random given group, the pretest in the pretested groups, and the posttests observed earlier. The mixed model above is valid under that assumption; per-occasion analyses of the participants still observed are not (Fitzmaurice et al., 2011). Missing pretests among pretested participants are not imputed; [state how they are handled]."
+      } else {
+        "**Main assumption.** Missing posttests are missing at random given group and, in the pretested groups, the pretest. Under that assumption the model above, fitted to the observed posttests, is the main analysis; multiple imputation under the same assumption agrees with it (Carpenter et al., 2023, p. 256). Missing pretests among pretested participants are not imputed; [state how they are handled]."
+      },
+      if (longitudinal) {
+        "**Sensitivity analysis.** [A sensitivity analysis for departures from missing at random, stated in advance (White et al., 2011).] The package's `tipping_point_solomon()` imputes from the pretest alone, so it does not apply when dropout depends on earlier posttests."
+      } else {
+        sprintf("**Sensitivity analysis.** `tipping_point_solomon(..., groups = %s)` shifts the imputed posttests of the %s from -1 to 1 standard deviation and reports the offset at which each confirmatory conclusion changes (White et al., 2011; Carpenter et al., 2023).", tipping_code, tipping_label)
+      },
+      if (sens_confirmatory && !longitudinal) "**Sensitization-specific sensitivity analysis.** `tipping_point_solomon(..., contrast = \"Pretest x Treatment\", groups = 1)` shifts the imputed posttests of the pretested treatment group alone, the departure from missing at random that bears on the sensitization contrast."
     )),
     "",
     "## 4. Deviations from this plan (SPIRIT 25)",
@@ -319,6 +371,7 @@ analysis_plan_solomon <- function(plan = NULL,
     list(
       text = text,
       settings = list(
+        occasions = occasion_labels, primary_occasion = if (longitudinal) primary_occasion,
         confirmatory = confirmatory, direction = direction, sensitization = sensitization,
         equivalence_bound = equivalence_bound, alpha = alpha, tipping_groups = tipping_groups,
         outcome = outcome, treatment = treatment

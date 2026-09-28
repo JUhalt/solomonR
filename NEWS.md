@@ -14,6 +14,12 @@
   converge. It needs the mmrm package (Sabanes Bove et al., 2026), now a
   suggested dependency.
 * `report_solomon()` reports it.
+* `analysis_plan_solomon()` gains `occasions` and `primary_occasion`. With
+  several posttest occasions, the plan's primary analysis is
+  `fit_solomon_mmrm()`, its confirmatory contrasts are those at the primary
+  occasion, and its missing-data section states the assumption about
+  dropout. The tipping-point analysis is not offered there, because it
+  imputes from the pretest alone.
 * A simulation study under the protocol posted on #57 (12 scenarios, 2,000
   replications each) is reported in the new article "Longitudinal Designs:
   Validating the Repeated-Measures Analysis" and on the validation-evidence
