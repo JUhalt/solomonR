@@ -49,6 +49,27 @@ mai2020 <- data.frame(
   post_behavior = as.numeric(mai$Postbehavior)
 )
 
+# Solomon (1949), Tables II and III (pp. 144-145): the spelling experiment
+# with the three-group design, in a fifth-grade and a sixth-grade class. The
+# +/- values are printed as standard errors of the means (sigma_m, Table I).
+# Control Group II was not pretested; its improvement uses Solomon's inferred
+# pretest, and he printed its standard error as "?".
+solomon1949 <- data.frame(
+  grade = rep(c(5L, 6L), each = 3),
+  group = factor(rep(c("Experimental", "Control I", "Control II"), 2),
+                 levels = c("Experimental", "Control I", "Control II")),
+  pretested = rep(c(1L, 1L, 0L), 2),
+  treat = rep(c(1L, 0L, 1L), 2),
+  n = c(10L, 10L, 10L, 8L, 9L, 8L),
+  pre_mean = c(3.2, 2.8, NA, 5.4, 6.0, NA),
+  pre_se = c(0.8, 0.7, NA, 1.4, 1.5, NA),
+  mean = c(9.9, 3.5, 11.2, 11.8, 6.8, 14.4),
+  se = c(1.6, 0.8, 1.2, 1.0, 1.4, 0.3),
+  change = c(6.7, 0.7, 8.2, 6.4, 0.8, 8.7),
+  change_se = c(0.9, 0.5, NA, 1.2, 0.6, NA)
+)
+
 save(elkarkri2025a, file = "data/elkarkri2025a.rda", compress = "xz")
 save(mai2020, file = "data/mai2020.rda", compress = "xz")
 save(kvalem1996, file = "data/kvalem1996.rda", compress = "xz")
+save(solomon1949, file = "data/solomon1949.rda", compress = "xz")

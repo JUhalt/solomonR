@@ -1,5 +1,24 @@
 # solomonR (development version)
 
+## Solomon's (1949) original analysis (#78)
+
+* New `fit_solomon_1949()` reproduces the analysis Solomon (1949) proposed
+  with the design. The unpretested groups get an inferred pretest mean, each
+  group gets an improvement score, and the interaction is
+  I = d1 - (d2 + d3) in the three-group design, or I = d1 - (d2 + d3 - d4)
+  in the four-group design (pp. 141-147). It works from individual data or
+  group means. Like Solomon, it reports point estimates without a test. It
+  is labeled historical, with Campbell and Stanley's (1963/1966, p. 25)
+  verdict on gain-score analyses.
+* The documentation shows that in the four-group design the inferred
+  pretest cancels. I then equals the two-by-two posttest interaction
+  contrast, less the pretest difference between the pretested groups.
+* New `solomon1949` holds the group means of Solomon's spelling experiment
+  (Tables II and III, pp. 144-145). The function reproduces his published
+  interactions, -2.2 and -3.1.
+* The history article computes Solomon's analysis, and its implementation
+  table starts with it.
+
 ## Individual data from a published study (#54, second part)
 
 * New `mai2020` holds the individual data of Mai et al. (2020), a

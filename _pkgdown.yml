@@ -63,6 +63,7 @@ reference:
       analyses, labeled by author and year. They are not the recommended
       analyses.
     contents:
+      - fit_solomon_1949
       - fit_solomon_classic
       - plot_classic_flow
       - fisher_solomon
@@ -86,6 +87,7 @@ reference:
       - elkarkri2025a
       - kvalem1996
       - mai2020
+      - solomon1949
 
   - title: "Package"
     contents:

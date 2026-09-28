@@ -68,6 +68,20 @@ an interaction term from the groups' improvement scores (pp. 141–143).
 - **The result.** The pretest reduced the effect of the lesson, so the usual
   two-group design would have underrated it (p. 145).
 
+`fit_solomon_1949()` computes Solomon's analysis, and `solomon1949` holds
+his published means. For the fifth grade (Table II, p. 144), the inferred
+pretest is 3.0, and the interaction is I = d1 − (d2 + d3) = −2.2:
+
+```{r solomon-1949}
+g5 <- solomon1949[solomon1949$grade == 5, ]
+fit_solomon_1949(post_mean = g5$mean, pre_mean = g5$pre_mean[1:2], n = g5$n)
+```
+
+The sixth grade gives I = −3.1 (Table III, p. 145). Solomon reported no
+standard error for I: he printed the error of Control Group II's
+improvement as "?" and judged the interaction from the variability of the
+observed means (p. 144).
+
 The **fourth group**, which received neither pretest nor training, came
 from field studies. There, events between pretest and posttest affect
 everyone, and a group with no pretest and no treatment shows their effect.
@@ -75,6 +89,12 @@ In a footnote, Solomon credits Stouffer with pointing out that this group
 was necessary (p. 146). That group's change was attributed to the outside
 event (p. 147), and Solomon added that time and maturation can change scores
 in the same way (p. 148).
+
+With the fourth group, the interaction becomes I = d1 − (d2 + d3 − d4)
+(Table V, p. 147). Both unpretested groups get the same inferred pretest,
+so it cancels. What remains is the two-by-two interaction contrast of the
+posttests, less the pretest difference between the two pretested groups
+(`?fit_solomon_1949`).
 
 ## The design in the canon (1963)
 
@@ -230,6 +250,7 @@ Later work turned from the test sequence to the design's purpose:
 
 | Procedure | Source | In solomonR | Status |
 |---|---|---|---|
+| Improvement scores and the interaction term I | Solomon (1949) | `fit_solomon_1949()`, data `solomon1949` | historical |
 | Tests A–H | Campbell & Stanley (1963/1966); Huck & Sandler (1973) | `fit_solomon_classic()` | historical |
 | History/maturation check | Solomon (1949); Campbell & Stanley (1963/1966) | `fit_solomon_classic()$history` | historical |
 | Test I and the 1988 sequence | Walton Braver & Braver (1988) | `fit_solomon_classic(flow = "1988")` | historical |

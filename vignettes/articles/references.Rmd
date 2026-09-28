@@ -227,7 +227,8 @@ Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 > treatment effects, first as a three-group design (pp. 141–145) and then,
 > for field studies exposed to outside events, with a fourth group
 > (pp. 146–148). *In solomonR:* the design itself; every estimand; the
-> rationale of the history/maturation check.
+> rationale of the history/maturation check; his own analysis,
+> `fit_solomon_1949()`, and his spelling data, `solomon1949`.
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International

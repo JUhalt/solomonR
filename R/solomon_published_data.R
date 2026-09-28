@@ -183,3 +183,64 @@
 #' with(rp, fit_solomon_glm(post_behavior, treat = as.integer(condition == "RP"),
 #'                          pretested = pretested, pretest_score = pre_behavior))
 "mai2020"
+
+#' Solomon's (1949) spelling experiment
+#'
+#' Group sizes, means, and standard errors from the first published
+#' experiment with the Solomon design: spelling lessons in a fifth-grade and
+#' a sixth-grade class, analyzed with the three-group design (Solomon, 1949,
+#' Tables II and III, pp. 144–145). Numbers reported in the publication are
+#' reused with citation.
+#'
+#' @details
+#' **Design.** In each class, pupils were assigned to three groups that were
+#' "roughly equated in spelling ability by means of teachers' judgments"
+#' (p. 144), not randomized.
+#' - **Experimental group.** Pretested on a list of words, given a standard
+#'   spelling lesson, and posttested on the same words.
+#' - **Control Group I.** Pretested and posttested, without the lesson.
+#' - **Control Group II.** Given the lesson and the posttest, without the
+#'   pretest.
+#'
+#' There was no fourth group; Solomon introduced it later in the article for
+#' field studies (p. 147).
+#'
+#' **Known result.** [fit_solomon_1949()] reproduces the published values
+#' from these means: an inferred pretest of 3.0 and 5.7, improvements for
+#' Control Group II of 8.2 and 8.7, and interactions I = -2.2 (grade 5) and
+#' -3.1 (grade 6). The pretest reduced the effect of the lesson, so the usual
+#' two-group design would have underrated it (p. 145).
+#'
+#' **Caveats.** The groups are small (8 to 10 pupils) and were not randomized.
+#' Solomon printed the standard error of Control Group II's improvement as
+#' "?", since it depends on the inferred pretest.
+#'
+#' @format A data frame with 6 rows, one per group and grade, and 11
+#'   variables:
+#' \describe{
+#'   \item{grade}{5 or 6.}
+#'   \item{group}{Experimental, Control I, or Control II.}
+#'   \item{pretested, treat}{Indicators (1 = yes); `treat` is the spelling
+#'     lesson.}
+#'   \item{n}{Group size.}
+#'   \item{pre_mean, pre_se}{Pretest mean and its standard error (pretested
+#'     groups only).}
+#'   \item{mean, se}{Posttest mean and its standard error.}
+#'   \item{change, change_se}{Mean improvement, as printed, and its standard
+#'     error (missing for Control II, printed as "?").}
+#' }
+#'
+#' The standard errors are the values printed with a plus-or-minus sign,
+#' which Solomon's notation (sigma_m, Table I) identifies as standard errors
+#' of the means.
+#'
+#' @source Solomon, R. L. (1949). An extension of control group design.
+#' *Psychological Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+#'
+#' @seealso [fit_solomon_1949()], [elkarkri2025a], [mai2020]
+#'
+#' @examples
+#' solomon1949
+#' g6 <- solomon1949[solomon1949$grade == 6, ]
+#' fit_solomon_1949(post_mean = g6$mean, pre_mean = g6$pre_mean[1:2], n = g6$n)
+"solomon1949"

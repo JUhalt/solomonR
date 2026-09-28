@@ -13,6 +13,7 @@
   perm_solomon = "phipson2010",
   equivalence_solomon = c("schuirmann1987", "lakens2017", "lakens2018"),
   fit_solomon_classic = "waltonbraver1988",
+  fit_solomon_1949 = c("solomon1949", "campbell1966"),
   fisher_solomon = c("elkarkri2025b", "gelman2006"),
   stouffer_solomon = c("stouffer1949", "waltonbraver1988"),
   fit_solomon_sem = "rosseel2012",
