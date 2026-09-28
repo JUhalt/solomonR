@@ -1,5 +1,20 @@
 # solomonR (development version)
 
+## Longitudinal Solomon designs (#57)
+
+* New `fit_solomon_mmrm()` analyzes a Solomon design with several posttest
+  occasions by a mixed model for repeated measures, following Mallinckrodt
+  et al. (2008): occasion by treatment by pretesting, the pretest adjustment
+  of `fit_solomon_glm()` with a slope at each occasion, and an unstructured
+  covariance by REML (Laird & Ware, 1982), estimated separately for
+  pretested and unpretested participants. It reports the four Solomon
+  contrasts at each occasion and the change in sensitization, with
+  Kenward-Roger or Satterthwaite degrees of freedom, and falls back to
+  other covariance structures by AIC if the unstructured model does not
+  converge. It needs the mmrm package (Sabanes Bove et al., 2026), now a
+  suggested dependency.
+* `report_solomon()` reports it.
+
 ## Analysis plan and study template (#81)
 
 * New `analysis_plan_solomon()` writes an editable Markdown analysis plan

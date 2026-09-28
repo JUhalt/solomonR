@@ -401,6 +401,9 @@ correlation and regression coefficients. *Journal of the American
 Statistical Association, 112*(519), 1211–1220.
 https://doi.org/10.1080/01621459.2016.1202117
 
+Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied longitudinal
+analysis* (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
+
 Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
 design considerations and randomization-based inference for community
 intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
@@ -444,6 +447,9 @@ Kelley, K. (2007). Confidence intervals for standardized effect sizes:
 Theory, application, and implementation. *Journal of Statistical Software,
 20*(8), 1–24. https://doi.org/10.18637/jss.v020.i08
 
+Laird, N. M., & Ware, J. H. (1982). Random-effects models for longitudinal
+data. *Biometrics, 38*(4), 963–974. https://doi.org/10.2307/2529876
+
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality
 Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177
@@ -452,6 +458,10 @@ Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing for
 psychological research: A tutorial. *Advances in Methods and Practices in
 Psychological Science, 1*(2), 259–269.
 https://doi.org/10.1177/2515245918770963
+
+Liang, K.-Y., & Zeger, S. L. (1986). Longitudinal data analysis using
+generalized linear models. *Biometrika, 73*(1), 13–22.
+https://doi.org/10.1093/biomet/73.1.13
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
@@ -485,6 +495,11 @@ MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
 covariance matrix estimators with improved finite sample properties.
 *Journal of Econometrics, 29*(3), 305–325.
 https://doi.org/10.1016/0304-4076(85)90158-7
+
+Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
+(2008). Recommendations for the primary analysis of continuous endpoints in
+longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
+https://doi.org/10.1177/009286150804200402
 
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. *Psychometrika, 58*(4), 525–543.
@@ -524,6 +539,12 @@ https://doi.org/10.18637/jss.v048.i02
 
 Rubin, D. B. (1976). Inference and missing data. *Biometrika, 63*(3),
 581–592. https://doi.org/10.1093/biomet/63.3.581
+
+Sabanes Bove, D., Li, L., Dedic, J., Kelkhoff, D., Kunzmann, K., Lang, B. M.,
+Stock, C., Wang, Y., James, D., Sidi, J., Leibovitz, D., Sjoberg, D. D.,
+Krieger, N. I., Panagos, A., & Jones, J. (2026). *mmrm: Mixed models for
+repeated measures* (Version 0.3.18) [R package].
+https://doi.org/10.32614/CRAN.package.mmrm
 
 Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square test
 statistic for moment structure analysis. *Psychometrika, 66*(4), 507–514.

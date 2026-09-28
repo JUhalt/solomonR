@@ -46,6 +46,13 @@ reference:
       - fit_solomon_mi
       - tipping_point_solomon
 
+  - title: "Analyze: longitudinal designs"
+    desc: >
+      Several posttest occasions, analyzed with a mixed model for repeated
+      measures that is valid when participants drop out at random.
+    contents:
+      - fit_solomon_mmrm
+
   - title: "Analyze: latent variables"
     desc: >
       Observed- and latent-variable structural equation models, and

@@ -39,7 +39,8 @@ Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
-    lavaan
+    lavaan,
+    mmrm
 VignetteBuilder: knitr
 URL: https://github.com/JUhalt/solomonR,
     https://juhalt.github.io/solomonR/,

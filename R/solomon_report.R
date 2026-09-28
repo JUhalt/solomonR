@@ -22,7 +22,8 @@
   solomon_effect_sizes = c("morris2008", "hedges1981"),
   baseline_solomon = c("cumming2001", "kelley2007"),
   fit_solomon_mi = c("carpenter2023", "vanbuuren2018", "cro2019"),
-  tipping_point_solomon = c("white2011", "little2012", "carpenter2023")
+  tipping_point_solomon = c("white2011", "little2012", "carpenter2023"),
+  fit_solomon_mmrm = c("mallinckrodt2008", "laird1982", "sabanesbove2026")
 )
 
 # ---- Formatting helpers -----------------------------------------------------------
@@ -560,6 +561,40 @@
   )
 }
 
+.report_mmrm <- function(fit, digits, md) {
+  refs <- .solomon_function_refs$fit_solomon_mmrm
+  kr <- fit$df_method == "kenward-roger"
+  refs <- c(refs, if (kr) "fitzmaurice2011" else "satterthwaite1946")
+  if (fit$pretest) refs <- c(refs, "lin2013")
+  method <- paste0(
+    "Posttest outcomes at ", length(fit$occasions), " occasions were analyzed with a mixed model ",
+    "for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, ",
+    "and all their interactions",
+    if (fit$pretest) ", adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013)" else "",
+    ", with ", if (fit$covariance == "unstructured") "an unstructured" else paste("a", fit$covariance),
+    " within-participant covariance",
+    if (fit$grouped) " estimated separately for pretested and unpretested participants" else "",
+    " by restricted maximum likelihood (Laird & Ware, 1982). Tests used ",
+    if (kr) "Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011)"
+    else "Satterthwaite (1946) degrees of freedom",
+    ". The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that ",
+    "missing posttests are missing at random."
+  )
+  eff <- fit$effects
+  results <- unlist(lapply(unique(eff$occasion), function(o) {
+    e <- eff[eff$occasion == o, ]
+    s <- .contrast_sentences(e, fit$conf_level, digits, md)
+    change <- e$contrast == "Change in Pretest x Treatment"
+    s[!change] <- paste0("At occasion ", o, ", ", sub("^(.)", "\\L\\1", s[!change], perl = TRUE))
+    s[change] <- sub("^Change in Pretest x Treatment",
+                     sprintf("The change in the Pretest x Treatment interaction from occasion %s to occasion %s",
+                             fit$occasions[1], fit$occasions[length(fit$occasions)]), s[change])
+    s
+  }))
+  list(method = method, results = results, table = eff, refs = refs,
+       cells = .cell_counts(fit$data$treat, fit$data$pretested))
+}
+
 # Reporting language for nonrandomized designs.
 .nonrandom_wording <- function(x) {
   x <- gsub("average treatment effect", "average treatment-control difference", x)
@@ -581,7 +616,8 @@
   solomon_sem = .report_sem,
   solomon_sem_latent = .report_sem_latent,
   solomon_mi = .report_mi,
-  solomon_tipping = .report_tipping
+  solomon_tipping = .report_tipping,
+  solomon_mmrm = .report_mmrm
 )
 
 # ---- Design reporting ----------------------------------------------------------------
@@ -684,7 +720,7 @@
 #' [fit_solomon_classic()], [perm_solomon()], [marginal_solomon()],
 #' [equivalence_solomon()], [fisher_solomon()], [solomon_from_summary()],
 #' [fit_solomon_sem()], [fit_solomon_sem_latent()], [baseline_solomon()],
-#' [fit_solomon_mi()], and [tipping_point_solomon()].
+#' [fit_solomon_mi()], [tipping_point_solomon()], and [fit_solomon_mmrm()].
 #' The references depend
 #' on the options the fit used: for example, a CR2 fit cites Bell and
 #' McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of
