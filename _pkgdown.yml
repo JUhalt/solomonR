@@ -113,6 +113,7 @@ articles:
       - getting-started
       - glm-solomon
       - solomon-methods
+      - articles/sem
       - articles/worked-example
 
   - title: "Report"
@@ -148,6 +149,7 @@ articles:
       - articles/cluster-validation
       - articles/cluster-marginal-validation
       - articles/classic-validation
+      - articles/invariance-validation
 
   - title: "References"
     navbar: References
