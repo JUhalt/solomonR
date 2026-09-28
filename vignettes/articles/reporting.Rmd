@@ -55,6 +55,7 @@ report_solomon(fit, design = list(
 ```
 
 In the example:
+
 - **Attrition.** The numbers randomized are compared with the numbers
   analyzed, so the statement reports attrition by group.
 - **Pre-specification.** It is stated because it was supplied.

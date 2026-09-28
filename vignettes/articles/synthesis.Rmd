@@ -12,6 +12,7 @@ library(solomonR)
 
 Most published Solomon studies report cell means and standard deviations,
 not individual data. This article shows two uses of those summaries:
+
 - **Reanalysis.** Checking or extending a study's analysis.
 - **Synthesis.** Computing effect sizes that combine across studies.
 
@@ -38,6 +39,7 @@ effect is clear in the pretested classes, and in the unpretested classes it
 is small and its interval includes zero.
 
 Summary statistics limit the reanalysis:
+
 - **Variances.** The pooled error variance assumes equal variances in the
   four groups.
 - **Individual data.** Robust standard errors, covariate adjustment, and
@@ -77,6 +79,7 @@ The correlation changes the variance of the pretested effect size, and so
 its weight in a meta-analysis.
 
 Two cautions from Morris (2008) and the package's documentation apply:
+
 - **Unreliable variances.** Eq. 25 can underestimate the true variance
   when the treatment inflates posttest variance (p. 380).
 - **Different standardizers.** The pretested and unpretested effect sizes

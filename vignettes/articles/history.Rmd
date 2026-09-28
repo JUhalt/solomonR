@@ -107,6 +107,7 @@ they thought the extra gains of Design 5 might not be worth more than double
 the effort (p. 26).
 
 Huck and Sandler (1973) refined this advice:
+
 - **ANCOVA with a pretesting main effect.** The analysis of covariance of
   the pretested groups remains valid even when pretesting has a main effect,
   because random assignment makes that effect the same in both groups
@@ -192,6 +193,7 @@ were more powerful than Test I in most of the treatment models studied
 (pp. 369–371).
 
 Sawilowsky (1996) extended the evidence:
+
 - **The 1995 revision.** He reported that Walton Braver and Braver (1995, as
   cited in Sawilowsky, 1996, p. 2) had revised the procedure to remove
   Test D; that revision was never published.
