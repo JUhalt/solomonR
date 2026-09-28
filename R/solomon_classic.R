@@ -371,7 +371,9 @@
 #' (Campbell & Stanley, 1963/1966, p. 25), provided assignment was random and
 #' the measure is comparable at both occasions. Solomon (1949, pp. 146–148)
 #' introduced the fourth group for this purpose, attributing its change from
-#' the pretest to outside events and the passage of time. It is reported as a
+#' the pretest to outside events and the passage of time, and Campbell (1957,
+#' p. 303) first proposed the t test, together with the 2 x 2 analysis of
+#' variance of the posttests that Tests A–D carry out. It is reported as a
 #' historical check, not a test of the treatment.
 #'
 #' @section Confidence intervals:
@@ -393,6 +395,10 @@
 #' four-group designs reconsidered: A reply to Sawilowsky and Markman.
 #' *Perceptual and Motor Skills, 71*(1), 321–322.
 #' https://doi.org/10.2466/pms.1990.71.1.321
+#'
+#' Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+#' social settings. *Psychological Bulletin, 54*(4), 297–312.
+#' https://doi.org/10.1037/h0040950
 #'
 #' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally. (Original work

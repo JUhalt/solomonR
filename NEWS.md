@@ -8,6 +8,23 @@
   lists the sources that have been identified but not yet read.
 * `tools/check-references.R` now fails if a work on the Solomon design is
   in the bibliography without a coverage entry.
+* Four more works on the design were read and added to the bibliography,
+  the coverage article, and the history article:
+  - Campbell (1957), the first to reject the inferred-pretest analysis and
+    to recommend the 2 x 2 analysis of variance of the posttests and the
+    t test for history and maturation (p. 303). `fit_solomon_classic()` and
+    `fit_solomon_1949()` now credit him.
+  - Entwisle (1961), on pretest effects that depend on participants' sex
+    and ability.
+  - Bracht and Glass (1968), on pretest sensitization as a threat to
+    external validity.
+  - Solomon and Lessac (1968), on the design in developmental studies.
+* New `lana1959` holds the posttest statistics of Lana's (1959) attitude
+  experiment, one of the first built on the Solomon design.
+  `solomon_from_summary()` reproduces its published analysis of variance
+  (treatment F = 5.36 against the published 5.35), and a test checks it.
+* The history article has new sections on Campbell (1957) and on the first
+  experiments, and its timeline adds them.
 * The bibliography notes that still said "planned" for work now done
   (MERIT, the 1990 exchange, the decision and history articles) are
   updated. Lana (1959) and McCarthy and Tucker (2002) are marked as not
