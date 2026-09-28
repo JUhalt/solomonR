@@ -1,6 +1,6 @@
 # solomonR (development version)
 
-## A stable interface for v1.0 (#83)
+## A stable interface (#83)
 
 The public interface is now settled. Former names keep working, with a
 deprecation warning, through v1.x.
