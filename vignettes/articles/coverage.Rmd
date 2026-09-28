@@ -39,6 +39,7 @@ The status column uses six labels:
 | Entwisle (1961) | Training experiments with pretested and unpretested pupils paired on sex and IQ: no overall pretest effect, but a Pretesting x IQ x Sex interaction (pp. 612–613). | The history article | Evidence |
 | Campbell & Stanley (1963/1966) | The design as Design 5 (p. 24). The 2 x 2 analysis of variance of the posttests, then an analysis of covariance of the pretested groups (p. 25). The unpretested control against the pretests as a check of history and maturation (p. 25). The static-group comparison (p. 12). | Tests A–D and the history check of `fit_solomon_classic()`; the caveat on nonrandomized designs in `baseline_solomon()` and `report_solomon()` | Historical |
 | Bracht & Glass (1968) | Pretest sensitization, posttest sensitization, and the timing of measurement as threats to external validity (p. 439); a review finding the pretest effect most likely with self-reported attitudes and personality (p. 463). | The history article | Evidence |
+| Lana (1969/2009) | A review of pretest sensitization: sensitization with pretests that involve learning or recall (pp. 101–103), an "overwhelming lack" of it with attitude pretests (pp. 103–104), and the 2 x 2 posttest analysis (pp. 99–100). | The history article | Evidence |
 | Solomon & Lessac (1968) | The four-group design in developmental studies: the inferred pretest judges absolute improvement or deterioration, and the interaction is a difference of differences in a 2 x 2 factorial (pp. 146–147). | The inferred pretest of `fit_solomon_1949()`; the history article | Historical |
 | Huck & Sandler (1973) | The analysis of covariance of the pretested groups remains valid when pretesting has a main effect. After a significant interaction, the unpretested groups' t test answers whether the treatment works (pp. 54–55). | Tests E and H of `fit_solomon_classic()` | Historical |
 
@@ -100,15 +101,11 @@ which adds a pretesting effect to the validated simulation model of
 
 ## Sources identified but not yet read
 
-These works bear on the history or analysis of the design, and are
-tracked in [#80](https://github.com/JUhalt/solomonR/issues/80) until they
-have been read:
-
-- Lana's 1969 review of pretest sensitization, reissued in 2009;
-- Steyn (2009), listed above.
-
-They are not cited as sources for any procedure until they have been read.
-Their full references are in the issue.
+One identified work has not yet been read: Steyn (2009), listed above,
+which has been requested through interlibrary loan. It is tracked in
+[#80](https://github.com/JUhalt/solomonR/issues/80) and
+[#45](https://github.com/JUhalt/solomonR/issues/45), and it is not cited as
+a source for any procedure until it has been read.
 
 ## References
 
@@ -176,6 +173,12 @@ Applying the Solomon four-group design. *Health Education Quarterly, 23*(1),
 Lana, R. E. (1959). Pretest-treatment interaction effects in attitudinal
 studies. *Psychological Bulletin, 56*(4), 293–300.
 https://doi.org/10.1037/h0044646
+
+Lana, R. E. (2009). Pretest sensitization. In R. Rosenthal & R. L. Rosnow,
+*Artifacts in behavioral research: Robert Rosenthal and Ralph L. Rosnow's
+classic books* (pp. 93–109). Oxford University Press.
+https://doi.org/10.1093/acprof:oso/9780195385540.003.0004 (Original work
+published 1969)
 
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. *Education

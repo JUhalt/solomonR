@@ -202,6 +202,12 @@ Two papers of 1968 carried the design further:
   (p. 463). They also questioned Solomon's spelling result: the pretested
   groups were sent out of the room, and the groups were matched only by
   teachers' judgments (p. 462).
+- **Lana (1969/2009)** reached a different conclusion from much of the same
+  evidence. Pretests that involve learning or recall did sensitize, raising
+  or lowering the treatment's effect (pp. 101–103). But he found an
+  "overwhelming lack" of sensitization when the pretest measures existing
+  attitudes or opinions (pp. 103–104). The two reviews disagree about the
+  outcomes most at risk, which is one reason the question remained open.
 - **Solomon and Lessac (1968)** applied the design to studies of
   development, where a pretest could itself enrich an isolated animal's
   experience. Solomon now presented the design as a two-by-two factorial,
@@ -392,6 +398,12 @@ Appropriate statistical analyses. *The Journal of Experimental Education,
 Lana, R. E. (1959). Pretest-treatment interaction effects in attitudinal
 studies. *Psychological Bulletin, 56*(4), 293–300.
 https://doi.org/10.1037/h0044646
+
+Lana, R. E. (2009). Pretest sensitization. In R. Rosenthal & R. L. Rosnow,
+*Artifacts in behavioral research: Robert Rosenthal and Ralph L. Rosnow's
+classic books* (pp. 93–109). Oxford University Press.
+https://doi.org/10.1093/acprof:oso/9780195385540.003.0004 (Original work
+published 1969)
 
 McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011). Can
 research assessments themselves cause bias in behaviour change trials? A
