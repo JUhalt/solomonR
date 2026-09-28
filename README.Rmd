@@ -417,6 +417,7 @@ A useful starting point is:
 | Observed-variable SEM | `fit_solomon_sem()` |
 | Multi-item / latent outcome | `fit_solomon_sem_latent()` |
 | Check design coding and missingness | `validate_solomon()`, `check_solomon_missing()` |
+| Sensitivity analysis for missing posttests | `fit_solomon_mi()`, `tipping_point_solomon()` |
 | Model diagnostics | `check_solomon_assumptions()` |
 
 For many ordinary randomized Solomon experiments with continuous
