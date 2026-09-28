@@ -360,10 +360,13 @@ adjusts for the pretest rather than analyzing gains.
 
 | Goal | Function | Why |
 |---|---|---|
+| Plan the study and register its analysis | `plan_solomon()`, `analysis_plan_solomon()` | Sample size, then an editable plan for preregistration |
 | Check coding, groups, and missing data | `validate_solomon()`, `check_solomon_missing()` | Catch problems before modeling |
 | Primary analysis of a continuous outcome | `fit_solomon_glm()` | One prespecified model with explicit contrasts and HC3 standard errors |
 | Participants nested in classrooms or sites | `fit_solomon_glm(robust = "CR2", cluster = ...)` | Cluster-robust small-sample tests (Pustejovsky & Tipton, 2018) |
 | Test whether sensitization is negligible | `equivalence_solomon()` | A nonsignificant test is not evidence of absence |
+| Missing posttests | `fit_solomon_mi()`, `tipping_point_solomon()` | How far missing posttests would have to depart from missing at random to change a conclusion |
+| Posttests on several occasions | `fit_solomon_mmrm()` | Valid when participants drop out depending on earlier scores |
 | Inference that rests only on random assignment | `perm_solomon()` | Randomization test of no treatment effect |
 | Likelihood-based analysis | `fit_solomon_ml()` | Separate residual variances; use `inference = "satterthwaite"` with small groups |
 | Outcomes measured by several items | `fit_solomon_sem_latent()` | Latent contrasts under measurement invariance |
