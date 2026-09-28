@@ -99,14 +99,14 @@
 #' Psychological Measurement, 21*(3), 607–620.
 #' https://doi.org/10.1177/001316446102100307
 #'
+#' Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied
+#' longitudinal analysis* (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
+#'
 #' French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
 #' Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
 #' (2021b). Reducing bias in trials from reactions to measurement: The MERIT
 #' study including developmental work and expert workshop. *Health Technology
 #' Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550
-#'
-#' Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied
-#' longitudinal analysis* (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
 #'
 #' Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 #' correlations, and meta-analyses. *Social Psychological and Personality
