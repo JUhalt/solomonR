@@ -1,0 +1,236 @@
+---
+title: "Structural Equation Models for Solomon Designs"
+description: >
+  Observed- and latent-variable SEM for the Solomon four-group design:
+  the four-group mean structure, the pretested-groups ANCOVA, latent
+  outcomes, and measurement invariance across the Solomon groups.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(solomonR)
+```
+
+When a Solomon study's outcome is measured by several items, a
+structural equation model can compare latent means instead of scale
+scores. This article shows the package's two SEM functions:
+
+- **The observed-variable model** of the four groups, and its ANCOVA
+  version for the pretested groups.
+- **The latent-variable model**, and the measurement invariance its
+  comparisons require.
+
+The SEM functions use lavaan (Rosseel, 2012), and their tests and intervals
+are lavaan's large-sample Wald results. They are a solomonR extension built
+on established SEM methods, not a procedure proposed for the Solomon design
+in the literature.
+
+## Observed outcomes
+
+`fit_solomon_sem()` estimates the posttest mean of each Solomon group in a
+four-group mean-structure model and reports the four Solomon contrasts:
+
+```{r observed}
+sem <- with(solomon_example, fit_solomon_sem(y_post, treat, pretested))
+sem
+```
+
+- **No global fit test.** The four-group mean-structure model is saturated,
+  so its global fit indices are not diagnostic, and the function does not
+  report them.
+- **Unadjusted contrasts.** The contrasts are unadjusted posttest mean
+  differences, which is the SEM counterpart of the two-by-two analysis.
+
+With `ancova = TRUE`, the model is restricted to the pretested groups and
+adjusts for the pretest. That is the analysis of covariance Campbell and
+Stanley (1963/1966, p. 25) and Huck and Sandler (1973) describe for those
+groups:
+
+```{r observed-ancova}
+with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = TRUE))
+```
+
+The unpretested groups have no pretest by design, so the adjusted model
+uses only the pretested groups. It does not treat the absent pretests as
+missing data.
+
+## Latent outcomes
+
+`fit_solomon_sem_latent()` defines a latent posttest from several
+indicators and compares its means across the four groups.
+
+- **Identification.** The latent mean of the unpretested control group is
+  fixed at 0; the contrasts are differences between latent means, so they
+  do not depend on that choice.
+- **Optional ANCOVA.** With `ancova = TRUE` and pretest indicators, a latent
+  ANCOVA in the pretested groups is added.
+
+The example data below are simulated for this article. Four indicators
+measure one construct in every group, and the treatment raises the latent
+mean by 0.4 standard deviations:
+
+```{r latent-data}
+set.seed(2049)
+n <- 80
+g <- rep(1:4, each = n)
+treat <- c(1, 0, 1, 0)[g]
+pretested <- c(1, 1, 0, 0)[g]
+f <- rnorm(4 * n, 0.4 * treat)
+items <- data.frame(
+  y1 = 0.8 * f + rnorm(4 * n, 0, 0.6),
+  y2 = 0.9 * f + rnorm(4 * n, 0, 0.6),
+  y3 = 0.7 * f + rnorm(4 * n, 0, 0.6),
+  y4 = 0.8 * f + rnorm(4 * n, 0, 0.6)
+)
+latent <- fit_solomon_sem_latent(items, c("y1", "y2", "y3", "y4"), treat, pretested)
+latent
+```
+
+## Measurement invariance
+
+Latent means can be compared only if the indicators measure the construct
+in the same way in every group. The loadings and the intercepts must be
+equal across groups, which is scalar invariance (Meredith, 1993).
+
+- **Why this matters for Solomon designs.** Taking the pretest may change
+  how participants answer some items at the posttest, for example by making
+  them familiar with the items.
+- **Where the damage falls.** A shift shared by both pretested groups is
+  absorbed into their latent means and looks like an effect of pretesting.
+  It cancels from the sensitization contrast, which compares treatment
+  effects within each pretest condition. A shift in one group only, such
+  as the treated pretested participants reading an item differently, biases
+  the sensitization contrast itself. The package's simulation study
+  confirmed both patterns, with the one-group shift placed in the
+  unpretested control group (see "Latent Contrasts: Validating the
+  Invariance Check").
+
+`invariance_solomon()` fits the configural, metric, and scalar models
+across the four groups, in the sequence Vandenberg and Lance (2000,
+pp. 56–57) recommend:
+
+```{r invariance}
+inv <- invariance_solomon(items, c("y1", "y2", "y3", "y4"), treat, pretested)
+inv
+```
+
+Each step reports two published criteria:
+
+- **The chi-square difference test.** Scaled for the robust MLR estimator
+  (Satorra & Bentler, 2001). Vandenberg and Lance (2000, p. 46) recommend
+  it as the primary criterion.
+- **The change in fit.** The drop in CFI and the rises in RMSEA and SRMR,
+  against Chen's (2007, pp. 501–502) cutoffs. Cheung and Rensvold (2002,
+  pp. 234–235) favor such changes over the chi-square difference because
+  the latter depends on sample size.
+
+Here both criteria support scalar invariance, so the latent contrasts above
+can be interpreted.
+
+### When an intercept is not invariant
+
+Suppose the pretest makes item `y4` read higher in the two pretested groups
+at the same latent level:
+
+```{r noninvariant}
+shifted <- items
+shifted$y4[pretested == 1] <- shifted$y4[pretested == 1] + 0.6
+invariance_solomon(shifted, c("y1", "y2", "y3", "y4"), treat, pretested)
+```
+
+The scalar step fails. If theory identifies the noninvariant parameter,
+freeing it gives a partial-invariance model, in which the latent means are
+compared through the invariant indicators (Byrne et al., 1989). Byrne et
+al. caution against relaxing constraints that do not make sense
+substantively (p. 465). Vandenberg and Lance (2000, p. 38) set three
+conditions:
+
+- the freed parameters involve only a minority of the indicators;
+- the choice rests on as strong a theoretical basis as possible;
+- cross-validation evidence supports it.
+
+The package enforces the first condition and never chooses the parameters
+itself:
+
+```{r partial}
+fit_partial <- fit_solomon_sem_latent(shifted, c("y1", "y2", "y3", "y4"), treat, pretested,
+                                      partial_post = "y4 ~ 1")
+fit_partial$effects_post[, c("contrast", "estimate", "conf.low", "conf.high")]
+```
+
+## What the package does when invariance fails
+
+`fit_solomon_sem_latent()` runs `invariance_solomon()` on the POST
+indicators before it fits the latent means. When a criterion does not
+support scalar invariance (or partial scalar invariance, with
+`partial_post`), it warns. It does not refuse the contrasts:
+
+```{r check-warning}
+fit_shifted <- withCallingHandlers(
+  fit_solomon_sem_latent(shifted, c("y1", "y2", "y3", "y4"), treat, pretested),
+  solomonR_invariance_warning = function(w) {
+    message("Warning: ", conditionMessage(w))
+    invokeRestart("muffleWarning")
+  }
+)
+fit_shifted$invariance_status
+fit_shifted$effects_post[, c("contrast", "estimate", "conf.low", "conf.high")]
+```
+
+The package's simulation study settled that choice. Its decision rules
+were posted on issue #55 before any run (see "Latent Contrasts:
+Validating the Invariance Check"). A criterion could govern an automatic
+refusal only if it falsely rejected invariance at a rate of .060 or less
+in Solomon-sized groups, and none did. The warning is therefore a prompt
+to examine the invariance results, not a verdict.
+
+The shift in this example is common to both pretested groups, so the
+sensitization contrast is close to the one from the partial model above;
+the shift is absorbed into the effect of pretesting. A shift in one group
+only would bias the sensitization contrast, and there the partial model
+matters. `check_invariance = FALSE` skips the check when invariance was
+established elsewhere.
+
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
+
+## References
+
+Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
+equivalence of factor covariance and mean structures: The issue of partial
+measurement invariance. *Psychological Bulletin, 105*(3), 456–466.
+https://doi.org/10.1037/0033-2909.105.3.456
+
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
+
+Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
+measurement invariance. *Structural Equation Modeling: A Multidisciplinary
+Journal, 14*(3), 464–504. https://doi.org/10.1080/10705510701301834
+
+Cheung, G. W., & Rensvold, R. B. (2002). Evaluating goodness-of-fit indexes
+for testing measurement invariance. *Structural Equation Modeling: A
+Multidisciplinary Journal, 9*(2), 233–255.
+https://doi.org/10.1207/S15328007SEM0902_5
+
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+Appropriate statistical analyses. *The Journal of Experimental Education,
+42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
+
+Meredith, W. (1993). Measurement invariance, factor analysis and factorial
+invariance. *Psychometrika, 58*(4), 525–543.
+https://doi.org/10.1007/BF02294825
+
+Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
+*Journal of Statistical Software, 48*(2), 1–36.
+https://doi.org/10.18637/jss.v048.i02
+
+Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square test
+statistic for moment structure analysis. *Psychometrika, 66*(4), 507–514.
+https://doi.org/10.1007/BF02296192
+
+Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
+measurement invariance literature: Suggestions, practices, and
+recommendations for organizational research. *Organizational Research
+Methods, 3*(1), 4–70. https://doi.org/10.1177/109442810031002
