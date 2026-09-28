@@ -85,6 +85,7 @@ reference:
       - solomon_demo
       - elkarkri2025a
       - kvalem1996
+      - mai2020
 
   - title: "Package"
     contents:
@@ -107,6 +108,7 @@ articles:
       - getting-started
       - glm-solomon
       - solomon-methods
+      - articles/worked-example
 
   - title: "Report"
     navbar: Report

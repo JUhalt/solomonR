@@ -1,0 +1,31 @@
+solomonR: copyright holders and licenses of bundled material
+
+The package code is copyright (c) 2025-2026 Joshua Uhalt and is licensed
+under GPL-3 (see inst/NOTICE and LICENSE.md in the repository).
+
+The package also bundles data from published studies.
+
+1. mai2020 (data/mai2020.rda)
+
+   Copyright (c) 2020 Nu Nu Mai, Yoshi Takahashi, and Mon Mon Oo.
+   Published as supplementary material (Table S1: dataset.sav) of:
+
+     Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
+     of transfer interventions using Solomon four-group designs. Education
+     Sciences, 10(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+   License: Creative Commons Attribution 4.0 International (CC BY 4.0),
+   https://creativecommons.org/licenses/by/4.0/. The publisher's open access
+   policy (https://www.mdpi.com/openaccess) extends the license to the data
+   and supplementary material of its articles.
+
+   Changes: 6 of the 117 variables in the published file are kept, renamed,
+   and recoded to factors or 0/1 indicators, and an id column is added. The
+   original file and the build script are in data-raw/ in the package
+   repository.
+
+2. elkarkri2025a and kvalem1996 (data/elkarkri2025a.rda, data/kvalem1996.rda)
+
+   These hold summary statistics and counts reported in the cited
+   publications (see their help pages). They are published numbers, reused
+   with citation, not copied text or data files.

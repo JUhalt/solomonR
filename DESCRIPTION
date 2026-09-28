@@ -12,6 +12,8 @@ Description: Tools for analyzing Solomon four-group experimental designs using
     workflows that distinguish historical procedures from contemporary
     recommendations.
 License: GPL-3
+Copyright: See the file inst/COPYRIGHTS for the copyright holders and
+    licenses of the bundled published data.
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)

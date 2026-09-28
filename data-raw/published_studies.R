@@ -33,5 +33,22 @@ kvalem1996 <- data.frame(
   n = c(73L, 148L, 49L, 133L)
 )
 
+# Mai, Takahashi, and Oo (2020): individual-level data published as the
+# article's supplementary material ("Table S1: dataset.sav", available at
+# https://www.mdpi.com/2227-7102/10/4/92/s1) under the article's Creative
+# Commons Attribution 4.0 license. The file is kept in data-raw/. Changes:
+# six of its 117 variables are kept, renamed, and recoded as described on the
+# help page of mai2020.
+mai <- haven::zap_labels(haven::read_sav("data-raw/mai2020-supplementary.sav"))
+mai2020 <- data.frame(
+  id = seq_len(nrow(mai)),
+  gender = factor(mai$Gender, levels = 1:2, labels = c("Female", "Male")),
+  pretested = as.integer(mai$TestGroup),
+  condition = factor(mai$Conditions, levels = 1:3, labels = c("RP", "GS", "Control")),
+  pre_behavior = as.numeric(mai$Prebehavior),
+  post_behavior = as.numeric(mai$Postbehavior)
+)
+
 save(elkarkri2025a, file = "data/elkarkri2025a.rda", compress = "xz")
+save(mai2020, file = "data/mai2020.rda", compress = "xz")
 save(kvalem1996, file = "data/kvalem1996.rda", compress = "xz")

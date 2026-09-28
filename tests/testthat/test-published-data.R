@@ -22,3 +22,33 @@ test_that("kvalem1996 reproduces the published chi-square tests", {
   expect_equal(res$risk_treatment[1], 51 / 73)
   expect_identical(sum(kvalem1996$n), 403L)
 })
+
+test_that("mai2020 reproduces the published Table 4 ANOVAs", {
+  # Mai et al. (2020, Table 4, p. 8): Pretest x Treatment sum of squares,
+  # error sum of squares, and F for each pair of conditions.
+  published <- list(
+    c(treat = "RP", control = "Control", ss = 0.508, sse = 13.347, f = 3.461),
+    c(treat = "GS", control = "Control", ss = 0.031, sse = 10.892, f = 0.240),
+    c(treat = "RP", control = "GS", ss = 0.236, sse = 12.384, f = 1.522)
+  )
+  for (row in published) {
+    d <- subset(mai2020, condition %in% row[c("treat", "control")] & !is.na(post_behavior))
+    d$treat <- as.integer(d$condition == row[["treat"]])
+    fit <- stats::lm(post_behavior ~ treat * pretested, data = d)
+    ss_int <- stats::anova(fit)["treat:pretested", "Sum Sq"]
+    sse <- sum(stats::residuals(fit)^2)
+    classic <- fit_solomon_classic(d$post_behavior, d$treat, d$pretested, d$pre_behavior)
+    expect_equal(round(ss_int, 3), as.numeric(row[["ss"]]))
+    expect_equal(round(sse, 3), as.numeric(row[["sse"]]))
+    expect_equal(round(classic$tests$A$result$F, 3), as.numeric(row[["f"]]))
+  }
+})
+
+test_that("mai2020 keeps the published sample and attrition", {
+  expect_identical(nrow(mai2020), 211L)
+  expect_identical(sum(!is.na(mai2020$post_behavior)), 133L)
+  # The unpretested groups have no pretest by design.
+  expect_true(all(is.na(mai2020$pre_behavior[mai2020$pretested == 0])))
+  expect_true(all(!is.na(mai2020$pre_behavior[mai2020$pretested == 1])))
+  expect_identical(levels(mai2020$condition), c("RP", "GS", "Control"))
+})

@@ -140,12 +140,12 @@ transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 
 > A randomized six-group Solomon design (two interventions and a control)
-> with published individual-level data. *In solomonR:* the
-> history/maturation check of `fit_solomon_classic()`, which follows its
-> comparisons of O6 with O1 and O3; Solomon N-group designs and worked
-> examples (planned,
-> [#45](https://github.com/JUhalt/solomonR/issues/45),
-> [#54](https://github.com/JUhalt/solomonR/issues/54)).
+> with published individual-level data. *In solomonR:* the `mai2020`
+> data (CC BY 4.0) and the worked-example article, which reproduce its
+> Tables 4, 5, and 7; the history/maturation check of
+> `fit_solomon_classic()`, which follows its comparisons of O6 with O1 and
+> O3; Solomon N-group designs (planned,
+> [#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011). Can
 research assessments themselves cause bias in behaviour change trials? A

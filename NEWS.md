@@ -1,5 +1,21 @@
 # solomonR (development version)
 
+## Individual data from a published study (#54, second part)
+
+* New `mai2020` holds the individual data of Mai et al. (2020), a
+  randomized Solomon design with pretesting crossed with relapse
+  prevention, goal setting, and a control condition. The authors published
+  the data with the article under CC BY 4.0. The help page gives the
+  license, the changes made, and the points where the article and the data
+  disagree. `inst/COPYRIGHTS` and the `Copyright` field of `DESCRIPTION`
+  record the copyright holders.
+* The data reproduce the authors' Table 4 ANOVAs, Table 5 history checks,
+  and the first two ANCOVAs of Table 7. Tests check the Table 4 values.
+* New article "Worked Example: A Published Solomon Study" carries the
+  relapse-prevention comparison from checking the design to drafting the
+  report. It reproduces the published tests with `fit_solomon_classic()`
+  and fits the recommended model with `fit_solomon_glm()`.
+
 ## The site follows the research path (#56)
 
 * The article menu now follows the path a researcher takes: Decide, Plan,
