@@ -13,6 +13,7 @@ reference:
       - plan_solomon
       - power_solomon
       - plot_power_solomon
+      - analysis_plan_solomon
       - simulate_solomon
 
   - title: "Check the design"

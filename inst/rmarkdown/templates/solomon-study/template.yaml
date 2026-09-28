@@ -1,0 +1,7 @@
+name: Solomon four-group study
+description: >
+  Runs a pre-specified Solomon four-group analysis in order: the analysis
+  plan, the design check, missingness, the baseline description, the planned
+  model, the sensitivity analysis for missing posttests, and the APA 7
+  report.
+create_dir: false

@@ -279,5 +279,9 @@ plan_solomon <- function(power = 0.80,
 
   res <- do.call(rbind, lapply(estimand, plan_one))
   rownames(res) <- NULL
+  # The planning values, for analysis_plan_solomon().
+  attr(res, "settings") <- list(power = power, delta = delta, sens = sens, rho = rho,
+                                sigma = sigma, alpha = alpha, allocation = allocation,
+                                method = method)
   res
 }

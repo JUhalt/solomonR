@@ -13,7 +13,9 @@ report_solomon(fit, design = NULL, digits = 2, format = c("text", "markdown"))
 numbers assigned to the four groups (pretested treatment, pretested
 control, unpretested treatment, unpretested control); \code{prespecified},
 \code{TRUE} or \code{FALSE} for whether the sensitization analysis was
-pre-specified; \code{measurement}, one description of the measurement
+pre-specified; \code{plan}, the \code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}} result the study
+registered, which sets \code{prespecified} from the plan's confirmatory
+contrasts; \code{measurement}, one description of the measurement
 procedure or one per group; and \code{assignment}, \code{"random"} or
 \code{"nonrandom"}.}
 

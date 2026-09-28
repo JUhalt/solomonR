@@ -364,6 +364,14 @@ Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
 M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd
 ed.). Wiley. https://doi.org/10.1002/9781119756118
 
+Chan, A.-W., Tetzlaff, J. M., Altman, D. G., Laupacis, A., Gøtzsche, P. C.,
+Krleža-Jerić, K., Hróbjartsson, A., Mann, H., Dickersin, K., Berlin, J. A.,
+Doré, C. J., Parulekar, W. R., Summerskill, W. S. M., Groves, T., Schulz, K.
+F., Sox, H. C., Rockhold, F. W., Rennie, D., & Moher, D. (2013). SPIRIT 2013
+statement: Defining standard protocol items for clinical trials. *Annals of
+Internal Medicine, 158*(3), 200–207.
+https://doi.org/10.7326/0003-4819-158-3-201302050-00583
+
 Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
 measurement invariance. *Structural Equation Modeling: A Multidisciplinary
 Journal, 14*(3), 464–504. https://doi.org/10.1080/10705510701301834
@@ -491,6 +499,10 @@ have negligible effects: Minimum-effect tests in the general linear model.
 *Journal of Applied Psychology, 84*(2), 234–248.
 https://doi.org/10.1037/0021-9010.84.2.234
 
+Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The
+preregistration revolution. *Proceedings of the National Academy of Sciences,
+115*(11), 2600–2606. https://doi.org/10.1073/pnas.1708274114
+
 Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 zero: Calculating exact p-values when permutations are randomly drawn.
 *Statistical Applications in Genetics and Molecular Biology, 9*(1),
@@ -551,6 +563,10 @@ Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
 measurement invariance literature: Suggestions, practices, and
 recommendations for organizational research. *Organizational Research
 Methods, 3*(1), 4–70. https://doi.org/10.1177/109442810031002
+
+van 't Veer, A. E., & Giner-Sorolla, R. (2016). Pre-registration in social
+psychology—A discussion and suggested template. *Journal of Experimental
+Social Psychology, 67*, 2–12. https://doi.org/10.1016/j.jesp.2016.03.004
 
 Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
 (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2

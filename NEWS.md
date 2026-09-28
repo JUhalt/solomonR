@@ -1,5 +1,30 @@
 # solomonR (development version)
 
+## Analysis plan and study template (#81)
+
+* New `analysis_plan_solomon()` writes an editable Markdown analysis plan
+  for a new Solomon study, for preregistration or a protocol.
+  - **Structure.** It follows the sections of van 't Veer and
+    Giner-Sorolla's (2016) template, and each part names the SPIRIT 2013
+    item it answers (Chan et al., 2013).
+  - **Solomon-specific content.** Hypotheses for the treatment effect and
+    for sensitization, including the expected shape of the interaction; an
+    equivalence test when sensitization is claimed to be negligible
+    (Lakens, 2017); the pretest-posttest interval (Entwisle, 1961);
+    identical measurement in all groups (French et al., 2021b); the planned
+    model and confirmatory contrasts; missing posttests with a tipping-point
+    sensitivity analysis (White et al., 2011); and a table for deviations
+    (Nosek et al., 2018).
+  - **Planned sample.** Group sizes and planning values come from a
+    `plan_solomon()` result, which now keeps its planning values in a
+    `settings` attribute.
+* `report_solomon(design = list(plan = ))` states from the plan whether the
+  sensitization analysis was pre-specified, and names the plan's date and
+  confirmatory contrasts.
+* New R Markdown template, "Solomon four-group study"
+  (`rmarkdown::draft("study.Rmd", "solomon-study", package = "solomonR")`),
+  runs a planned analysis in order, from the design check to the report.
+
 ## Sensitivity analysis for missing posttests (#82)
 
 * New `fit_solomon_mi()` multiply imputes missing posttests and combines

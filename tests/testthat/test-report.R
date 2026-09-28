@@ -10,7 +10,7 @@ test_that("every exported analysis function has a registered reference set", {
     grep("^plot_", exports, value = TRUE),
     "validate_solomon", "check_solomon_missing", "check_solomon_assumptions", "invariance_solomon",
     "power_solomon", "plan_solomon", "simulate_solomon", "compare_solomon_methods", "p_to_z",
-    "report_solomon"
+    "report_solomon", "analysis_plan_solomon"
   )
   analysis <- setdiff(exports, not_analysis)
   expect_setequal(analysis, names(.solomon_function_refs))

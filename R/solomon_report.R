@@ -629,6 +629,14 @@
       "groups cannot be shown to have been equivalent (Campbell & Stanley, 1963/1966)."
     ))
   }
+  if (!is.null(design$plan)) {
+    s <- design$plan$settings
+    out <- c(out, sprintf(
+      "The analysis followed an analysis plan dated %s, whose confirmatory contrast%s %s.",
+      format(design$plan$date), if (length(s$confirmatory) > 1L) "s were" else " was",
+      paste(.contrast_phrase(s$confirmatory), collapse = " and ")
+    ))
+  }
   if (!is.null(design$prespecified)) {
     out <- c(out, if (isTRUE(design$prespecified)) {
       "The analysis of pretest sensitization was pre-specified."
@@ -713,7 +721,9 @@
 #'   numbers assigned to the four groups (pretested treatment, pretested
 #'   control, unpretested treatment, unpretested control); `prespecified`,
 #'   `TRUE` or `FALSE` for whether the sensitization analysis was
-#'   pre-specified; `measurement`, one description of the measurement
+#'   pre-specified; `plan`, the [analysis_plan_solomon()] result the study
+#'   registered, which sets `prespecified` from the plan's confirmatory
+#'   contrasts; `measurement`, one description of the measurement
 #'   procedure or one per group; and `assignment`, `"random"` or
 #'   `"nonrandom"`.
 #' @param digits Decimal places for estimates and statistics. Default 2.
@@ -750,6 +760,18 @@ report_solomon <- function(fit, design = NULL, digits = 2, format = c("text", "m
     stop("`design` must be a list (see ?report_solomon).", call. = FALSE)
   }
   md <- format == "markdown"
+  if (!is.null(design$plan)) {
+    # Pre-specification comes from the plan itself, never from a guess.
+    if (!inherits(design$plan, "solomon_analysis_plan")) {
+      stop("`design$plan` must come from analysis_plan_solomon().", call. = FALSE)
+    }
+    planned <- "Pretest x Treatment" %in% design$plan$settings$confirmatory
+    if (!is.null(design$prespecified) && !identical(isTRUE(design$prespecified), planned)) {
+      stop("`design$prespecified` contradicts `design$plan`, in which the sensitization ",
+           "analysis is ", if (planned) "confirmatory." else "exploratory.", call. = FALSE)
+    }
+    design$prespecified <- planned
+  }
   parts <- .report_parts(fit, digits, md)
   nonrandom <- identical(design$assignment, "nonrandom")
   if (!is.null(design$assignment) && !design$assignment %in% c("random", "nonrandom")) {
