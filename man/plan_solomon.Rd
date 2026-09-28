@@ -62,6 +62,7 @@ Estimands whose true effect is zero, or whose target is not reached by
 \code{max_n}, return \code{NA} sizes with an explanatory note.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Finds the smallest Solomon four-group design, at a fixed allocation across
 the four cells, whose power for each Solomon estimand reaches a target.
 \code{\link[=power_solomon]{power_solomon()}} answers the forward question, the power of a given

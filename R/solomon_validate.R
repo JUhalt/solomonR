@@ -91,6 +91,7 @@
 
 #' Distinguish structural and incidental missingness in a Solomon design
 #'
+#' `r lifecycle::badge("stable")`
 #' Classifies missing values in Solomon four-group data and explains the
 #' supported response to each kind. Pretest scores are *structurally absent*
 #' for participants assigned to the unpretested groups: withholding the
@@ -132,6 +133,9 @@
 #' @param pretested Pretest indicator coded 0/1 (or logical).
 #' @param y_pre Optional numeric pretest scores, missing by design for
 #'   unpretested participants.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #' @return An object of class `solomon_missing` with `by_cell` (counts by
 #'   Solomon cell), `counts` (totals by category), `pattern` (`"none"`,
 #'   `"structural"`, `"incidental"`, or `"mixed"`), and `guidance` (the
@@ -173,7 +177,12 @@
 #' d$y_post[which(d$pretested == 0)[1]] <- NA
 #' with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
 #' @export
-check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL) {
+check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
+                                  data = NULL) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
 
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
@@ -325,6 +334,7 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL) {
 
 #' Validate the structure and coding of a Solomon four-group design
 #'
+#' `r lifecycle::badge("stable")`
 #' Checks that data can support a Solomon four-group analysis before a model
 #' is fitted: equal input lengths, 0/1 coding of the design indicators, all
 #' four cells present, enough observed outcomes per cell, and the distinction
@@ -377,6 +387,9 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL) {
 #'   each cell (at least 2).
 #' @param cluster Optional cluster identifier (for example, class, school, or
 #'   site), one value per participant.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #' @return An object of class `solomon_validation` with `valid` (`TRUE` when
 #'   no errors were found), `issues` (severity, check, and message), `cells`
 #'   (counts by cell, with clusters and cluster sizes when `cluster` is
@@ -419,7 +432,12 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL) {
 #'                                        cluster = one_class))
 #' @export
 validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n = 2,
-                             cluster = NULL) {
+                             cluster = NULL,
+                             data = NULL) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre", "cluster"),
+    environment(), parent.frame()
+  )
 
   if (!is.numeric(min_cell_n) || length(min_cell_n) != 1L ||
       is.na(min_cell_n) || min_cell_n < 2) {

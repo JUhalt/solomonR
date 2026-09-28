@@ -12,7 +12,8 @@ fit_solomon_ml(
   weights = c("equal"),
   control = list(),
   conf_level = 0.95,
-  inference = c("wald", "satterthwaite")
+  inference = c("wald", "satterthwaite"),
+  data = NULL
 )
 }
 \arguments{
@@ -37,11 +38,16 @@ pretested and unpretested treatment effects.}
 \code{"wald"} (default) for van Engelenburg's (1999) large-sample Wald
 inference, or \code{"satterthwaite"} for the small-sample option. The point
 estimates are the same. See the Inference options section.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_ml}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Fits the maximum-likelihood regression model described by van Engelenburg
 (1999). Pretest information is incorporated for the pretested groups while
 structurally missing pretests in the unpretested groups are handled through

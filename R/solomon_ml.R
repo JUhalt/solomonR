@@ -74,6 +74,7 @@
 
 #' Full-information ML analysis for a Solomon Four-Group Design
 #'
+#' `r lifecycle::badge("stable")`
 #' Fits the maximum-likelihood regression model described by van Engelenburg
 #' (1999). Pretest information is incorporated for the pretested groups while
 #' structurally missing pretests in the unpretested groups are handled through
@@ -97,6 +98,9 @@
 #'   `"wald"` (default) for van Engelenburg's (1999) large-sample Wald
 #'   inference, or `"satterthwaite"` for the small-sample option. The point
 #'   estimates are the same. See the Inference options section.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #'
 #' @section Inference options:
 #' The point estimates are maximum-likelihood estimates, which coincide with
@@ -162,8 +166,13 @@ fit_solomon_ml <- function(
     weights = c("equal"),
     control = list(),
     conf_level = 0.95,
-    inference = c("wald", "satterthwaite")
+    inference = c("wald", "satterthwaite"),
+    data = NULL
 ) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
 
   inference_supplied <- !missing(inference)
   weights <- match.arg(weights)

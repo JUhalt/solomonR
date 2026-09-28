@@ -1,12 +1,47 @@
 # solomonR (development version)
 
+## A stable interface for v1.0 (#83)
+
+The public interface is now settled. Former names keep working, with a
+deprecation warning, through v1.x.
+
+* **One name for each argument.**
+  - `fit_solomon_glm()` takes `y_post` and `y_pre` (formerly `y` and
+    `pretest_score`), and `fisher_solomon()` takes `y_post` (formerly `y`),
+    as every other function does.
+  - A fitted model is passed as `fit`: `equivalence_solomon()` and
+    `perm_solomon()` formerly took `object`. `plot_solomon_design()` takes
+    `y_post` or `fit` (formerly `x`), and a fit passed by position still
+    works.
+  - `fit_solomon_classic()`'s `combine_with_stouffer` is now `stouffer`, as
+    in `power_solomon()`.
+* **One order for the planning functions.** `power_solomon()` now takes
+  `n`, `delta`, `sens`, `rho`, `sigma`, and `alpha` in that order, as
+  `plan_solomon()` and `plot_power_solomon()` do. Formerly `rho` came
+  before `sens`, so a call that passes them by position gets a warning that
+  it was read in the new order.
+* **A `data` argument.** Every function that takes data vectors also takes
+  an optional data frame, `data`, whose columns can be named bare or as
+  strings, for example `fit_solomon_glm(post, group, took_pretest, pre,
+  data = mydata)`. With `data`, `covariates` can be a vector of column
+  names.
+* **One posttest plot.** New `plot_solomon_means()` draws the four posttest
+  means with t intervals in ggplot2, as the other plots do, and takes
+  `conf_level`. `plot_solomon()` (base graphics) and `plot_solomon_gg()`
+  are deprecated.
+* **Lifecycle stages.** Each function's help page, and the reference index,
+  shows a lifecycle badge (Henry & Wickham, 2026). Every function is stable
+  except `fit_solomon_sem()`, `fit_solomon_sem_latent()`, and
+  `invariance_solomon()`, which are experimental; `?solomonR` gives the
+  reasons.
+* solomonR now imports lifecycle, which ggplot2 already imports.
+
 ## Examples for every exported function (#84, first part)
 
 * `fit_solomon_glm()`, `fit_solomon_classic()`, `fit_solomon_ml()`,
   `perm_solomon()`, `fit_solomon_sem()`, `check_solomon_assumptions()`,
-  `p_to_z()`, `plot_perm()`, `plot_solomon()`, and `plot_solomon_gg()`
-  now have runnable examples on their help pages. Each runs in under 3
-  seconds.
+  `p_to_z()`, and `plot_perm()` now have runnable examples on their help
+  pages. Each runs in under 3 seconds.
 * The help page of `fit_solomon_sem()` now documents its return value.
 
 ## Coverage of the published methodology (#80)

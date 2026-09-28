@@ -11,12 +11,14 @@ fit_solomon_classic(
   y_pre,
   alpha = 0.05,
   pretested_test = c("ancova", "gain", "repeated"),
-  combine_with_stouffer = TRUE,
+  stouffer = TRUE,
   stouffer_direction = c("greater", "less"),
   conf_level = 0.95,
   flow = c("1988", "1990", "1995"),
   alpha_allocation = c("none", "method1_conservative", "method1_liberal",
-    "method2_conservative", "method2_liberal")
+    "method2_conservative", "method2_liberal"),
+  data = NULL,
+  combine_with_stouffer = deprecated()
 )
 }
 \arguments{
@@ -36,7 +38,7 @@ pathway. Default is 0.05.}
 followed in the decision pathway: \code{"ancova"}, \code{"gain"}, or
 \code{"repeated"}. All three are still calculated and returned.}
 
-\item{combine_with_stouffer}{Logical. If \code{TRUE}, include Test I, the
+\item{stouffer}{Logical. If \code{TRUE}, include Test I, the
 Walton Braver & Braver (1988) Stouffer combination, in the decision pathway when earlier treatment tests are
 nonsignificant.}
 
@@ -74,10 +76,17 @@ each at .020 or .0275;
 preliminary test, and Tests E, H, and I each at .005 or .020.
 }
 
-An allocation requires \code{flow = "1995"}, \code{alpha = 0.05}, \code{pretested_test = "ancova"}, and \code{combine_with_stouffer = TRUE}, the conditions for which
+An allocation requires \code{flow = "1995"}, \code{alpha = 0.05}, \code{pretested_test = "ancova"}, and \code{stouffer = TRUE}, the conditions for which
 the levels were obtained. Tests B and C, reached only after a
 significant Test A, are outside the allocation and keep \code{alpha}; that
 choice is solomonR's.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
+
+\item{combine_with_stouffer}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use
+\code{stouffer}.}
 }
 \value{
 An object of class \code{solomon_classic}. The \code{tests}
@@ -86,6 +95,7 @@ decision sequence for the observed data under the chosen \code{flow}.
 The \code{history} component holds the history/maturation comparisons.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Implements the historical Test A-I framework associated with analysis of
 the Solomon four-group design. All tests are calculated when possible,
 while the historical decision pathway is stored separately.

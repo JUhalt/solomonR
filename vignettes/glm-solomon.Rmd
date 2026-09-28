@@ -93,15 +93,10 @@ The unified model with HC3 heteroskedasticity-consistent covariance, the
 default, is a sound starting point for continuous outcomes.
 
 ```{r}
-fit <- with(
-  solomon_example,
-  fit_solomon_glm(
-    y = y_post,
-    treat = treat,
-    pretested = pretested,
-    pretest_score = y_pre,
-    robust = "HC3"
-  )
+fit <- fit_solomon_glm(
+  y_post, treat, pretested, y_pre,
+  robust = "HC3",
+  data = solomon_example
 )
 
 fit

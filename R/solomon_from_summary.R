@@ -44,6 +44,7 @@
 
 #' Solomon analysis from summary statistics
 #'
+#' `r lifecycle::badge("stable")`
 #' Reanalyzes a published Solomon four-group study from the sample size,
 #' mean, and standard deviation of the posttest in each of the four groups.
 #'
@@ -189,6 +190,7 @@ print.solomon_summary_fit <- function(x, digits = 3, ...) {
 
 #' Solomon effect sizes for meta-analysis
 #'
+#' `r lifecycle::badge("stable")`
 #' Computes standardized treatment effects for the pretested and unpretested
 #' pairs of a Solomon four-group study, with sampling variances in the
 #' `yi`/`vi` form that meta-analysis software reads.

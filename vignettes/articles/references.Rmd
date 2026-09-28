@@ -415,6 +415,10 @@ Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
 size and related estimators. *Journal of Educational Statistics, 6*(2),
 107–128. https://doi.org/10.3102/10769986006002107
 
+Henry, L., & Wickham, H. (2026). *lifecycle: Manage the life cycle of
+your package functions* (Version 1.0.5) [R package].
+https://doi.org/10.32614/CRAN.package.lifecycle
+
 Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
 samples: Some practical advice. *The Review of Economics and Statistics,
 98*(4), 701–712. https://doi.org/10.1162/REST_a_00552

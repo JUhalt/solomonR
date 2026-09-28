@@ -28,6 +28,7 @@ An object of class \code{solomon_report} with \code{method}, \code{results}, and
 \code{references} (APA 7 reference entries, in APA order).
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Turns a fitted Solomon analysis into APA 7 results sentences, a short
 design statement, and the references for exactly the methods that analysis
 used.

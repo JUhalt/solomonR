@@ -20,6 +20,7 @@ III sum of squares), an \code{anova} table, the \code{cells}, the error mean
 square and degrees of freedom, and the settings.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Reanalyzes a published Solomon four-group study from the sample size,
 mean, and standard deviation of the posttest in each of the four groups.
 }

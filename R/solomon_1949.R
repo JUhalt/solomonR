@@ -5,6 +5,7 @@
 
 #' Solomon's (1949) improvement-score analysis
 #'
+#' `r lifecycle::badge("stable")`
 #' Reproduces the analysis Solomon (1949) proposed with the design: an
 #' inferred pretest mean for the unpretested groups, an improvement score
 #' for each group, and an interaction term I. It is a historical procedure,
@@ -71,6 +72,9 @@
 #' @param n Optional group sizes, in the order of `post_mean`, for the
 #'   printout and for `inferred_pretest = "pooled"`.
 #' @param inferred_pretest `"average"` (default) or `"pooled"`; see Details.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #'
 #' @return An object of class `solomon_1949` with `design` (`"three-group"`
 #'   or `"four-group"`), `groups` (a data frame with each group's pretest and
@@ -110,7 +114,12 @@
 #' @export
 fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pre = NULL,
                              post_mean = NULL, pre_mean = NULL, n = NULL,
-                             inferred_pretest = c("average", "pooled")) {
+                             inferred_pretest = c("average", "pooled"),
+                             data = NULL) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
   inferred_pretest <- match.arg(inferred_pretest)
   individual <- !is.null(y_post)
   if (individual == !is.null(post_mean)) {

@@ -73,6 +73,7 @@
 
 #' Forest plot of the Solomon contrasts
 #'
+#' `r lifecycle::badge("stable")`
 #' Plots the four Solomon contrasts from a fitted model: the average
 #' treatment effect across pretest conditions, the Pretest x Treatment
 #' sensitization contrast, and the treatment effects among pretested and

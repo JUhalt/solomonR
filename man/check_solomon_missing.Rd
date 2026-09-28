@@ -4,7 +4,7 @@
 \alias{check_solomon_missing}
 \title{Distinguish structural and incidental missingness in a Solomon design}
 \usage{
-check_solomon_missing(y_post, treat, pretested, y_pre = NULL)
+check_solomon_missing(y_post, treat, pretested, y_pre = NULL, data = NULL)
 }
 \arguments{
 \item{y_post}{Numeric posttest scores.}
@@ -15,6 +15,10 @@ check_solomon_missing(y_post, treat, pretested, y_pre = NULL)
 
 \item{y_pre}{Optional numeric pretest scores, missing by design for
 unpretested participants.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_missing} with \code{by_cell} (counts by
@@ -24,6 +28,7 @@ interpretation, supported response, and sources for each category
 present).
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Classifies missing values in Solomon four-group data and explains the
 supported response to each kind. Pretest scores are \emph{structurally absent}
 for participants assigned to the unpretested groups: withholding the

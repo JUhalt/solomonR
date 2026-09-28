@@ -107,14 +107,11 @@ test_that("glance summarizes the unified GLM", {
 })
 
 
-test_that("base-graphics cell plot returns the four cell summaries", {
+test_that("the cell-means plot holds the four cell summaries", {
 
   data(solomon_demo, package = "solomonR")
 
-  grDevices::pdf(NULL)
-  on.exit(grDevices::dev.off(), add = TRUE)
-
-  agg <- with(solomon_demo, plot_solomon(y_post, treat, pretested))
+  agg <- with(solomon_demo, plot_solomon_means(y_post, treat, pretested))$data
 
   expect_equal(nrow(agg), 4L)
   expect_equal(sum(agg$n), 100L)

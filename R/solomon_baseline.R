@@ -1,5 +1,6 @@
 #' Baseline comparison of the pretested arms
 #'
+#' `r lifecycle::badge("stable")`
 #' Compares the pretest scores of the treated and control pretested groups:
 #' the check of baseline equivalence that a Solomon design allows. It matters
 #' most when groups were not formed by random assignment.
@@ -30,6 +31,9 @@
 #' @param n,mean,sd Alternatively, the pretest sample size, mean, and standard
 #'   deviation of the two pretested groups, treated first.
 #' @param conf_level Confidence level. Default 0.95.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_pre = pre`) or as
+#'   strings (`y_pre = "pre"`).
 #'
 #' @return An object of class `solomon_baseline` with the group statistics,
 #'   the difference with its interval and t test, and Hedges's g with its
@@ -62,7 +66,12 @@
 #'
 #' @export
 baseline_solomon <- function(y_pre = NULL, treat = NULL, pretested = NULL,
-                             n = NULL, mean = NULL, sd = NULL, conf_level = 0.95) {
+                             n = NULL, mean = NULL, sd = NULL, conf_level = 0.95,
+                             data = NULL) {
+  .solomon_data_args(
+    data, c("y_pre", "treat", "pretested"),
+    environment(), parent.frame()
+  )
   .check_conf_level(conf_level)
   individual <- !is.null(y_pre)
   if (individual) {

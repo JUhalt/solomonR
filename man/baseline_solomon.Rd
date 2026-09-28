@@ -11,7 +11,8 @@ baseline_solomon(
   n = NULL,
   mean = NULL,
   sd = NULL,
-  conf_level = 0.95
+  conf_level = 0.95,
+  data = NULL
 )
 }
 \arguments{
@@ -23,6 +24,10 @@ pretest score are used.}
 deviation of the two pretested groups, treated first.}
 
 \item{conf_level}{Confidence level. Default 0.95.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_pre = pre}) or as
+strings (\code{y_pre = "pre"}).}
 }
 \value{
 An object of class \code{solomon_baseline} with the group statistics,
@@ -30,6 +35,7 @@ the difference with its interval and t test, and Hedges's g with its
 interval.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Compares the pretest scores of the treated and control pretested groups:
 the check of baseline equivalence that a Solomon design allows. It matters
 most when groups were not formed by random assignment.

@@ -1,31 +1,20 @@
-#' Plot Solomon Posttest Cell Means with ggplot2
+#' Plot Solomon posttest cell means with ggplot2 (deprecated)
 #'
-#' Displays posttest means and 95% confidence intervals for the four cells
-#' of a Solomon four-group design. Intervals use the t distribution with
-#' n - 1 degrees of freedom within each cell. For the model-adjusted means
-#' behind the sensitization contrast, see [plot_sensitization()].
+#' `r lifecycle::badge("deprecated")`
+#' `plot_solomon_gg()` was renamed [plot_solomon_means()] in solomonR 0.9.0,
+#' so that each plot in the package is named for what it shows. It still
+#' works, with a deprecation warning, and returns the plot that
+#' `plot_solomon_means()` draws.
 #'
 #' @param y Numeric vector of posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
 #' @param pretested Pretest indicator coded 0 = not pretested and 1 = pretested.
 #' @return A ggplot object.
 #' @examples
-#' with(solomon_example, plot_solomon_gg(y_post, treat, pretested))
+#' # Use plot_solomon_means() instead:
+#' plot_solomon_means(y_post, treat, pretested, data = solomon_example)
 #' @export
 plot_solomon_gg <- function(y, treat, pretested) {
-  df <- data.frame(y=y, treat=factor(treat), pretested=factor(pretested))
-  agg <- dplyr::summarise(dplyr::group_by(df, pretested, treat),
-                          n=dplyr::n(), mean=mean(y), sd=stats::sd(y), .groups="drop")
-  agg$se <- agg$sd / sqrt(agg$n)
-  crit <- stats::qt(0.975, df = agg$n - 1)
-  agg$lo <- agg$mean - crit * agg$se
-  agg$hi <- agg$mean + crit * agg$se
-  agg$facet <- ifelse(agg$pretested == 1, "Pretested", "Unpretested")
-
-  ggplot2::ggplot(agg, ggplot2::aes(x=treat, y=mean)) +
-    ggplot2::geom_point(size=3) +
-    ggplot2::geom_errorbar(ggplot2::aes(ymin=lo, ymax=hi), width=.1) +
-    ggplot2::facet_wrap(~ facet, nrow = 1) +
-    ggplot2::labs(x="Treatment", y="Posttest mean", title="Solomon Four-Group: Cell Means +/- 95% CI") +
-    ggplot2::theme_minimal(base_size = 12)
+  lifecycle::deprecate_warn("0.9.0", "plot_solomon_gg()", "plot_solomon_means()")
+  plot_solomon_means(y, treat, pretested)
 }

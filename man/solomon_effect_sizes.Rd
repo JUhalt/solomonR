@@ -33,6 +33,7 @@ size), \code{vi} (sampling variance), \code{sei} (standard error), and the group
 sizes.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Computes standardized treatment effects for the pretested and unpretested
 pairs of a Solomon four-group study, with sampling variances in the
 \code{yi}/\code{vi} form that meta-analysis software reads.

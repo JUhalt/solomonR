@@ -4,7 +4,7 @@
 \alias{check_solomon_assumptions}
 \title{Descriptive assumption diagnostics for Solomon analyses}
 \usage{
-check_solomon_assumptions(y_post, treat, pretested, y_pre)
+check_solomon_assumptions(y_post, treat, pretested, y_pre, data = NULL)
 }
 \arguments{
 \item{y_post}{numeric posttest}
@@ -14,11 +14,16 @@ check_solomon_assumptions(y_post, treat, pretested, y_pre)
 \item{pretested}{0/1 (or logical) pretest indicator}
 
 \item{y_pre}{numeric pretest (NA for unpretested)}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_checks}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Reports Brown-Forsythe tests of equal posttest variance (Brown & Forsythe,
 1974), Shapiro-Wilk normality tests within cells, and a test of
 homogeneous pretest-posttest slopes among pretested participants with

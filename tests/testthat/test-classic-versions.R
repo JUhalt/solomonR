@@ -57,8 +57,8 @@ test_that("1990 requires Test I", {
   d <- solomon_example
   expect_error(
     fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre,
-                        combine_with_stouffer = FALSE, flow = "1990"),
-    "combine_with_stouffer = TRUE"
+                        stouffer = FALSE, flow = "1990"),
+    "stouffer = TRUE"
   )
 })
 
@@ -123,8 +123,8 @@ test_that("an allocation is refused outside the conditions it was obtained for",
   expect_error(fit(flow = "1995", alpha = 0.10, alpha_allocation = "method1_liberal"), "alpha = 0.05")
   expect_error(fit(flow = "1995", pretested_test = "gain", alpha_allocation = "method1_liberal"),
                "ancova")
-  expect_error(fit(flow = "1995", combine_with_stouffer = FALSE, alpha_allocation = "method1_liberal"),
-               "combine_with_stouffer")
+  expect_error(fit(flow = "1995", stouffer = FALSE, alpha_allocation = "method1_liberal"),
+               "stouffer = TRUE")
 
   ok <- fit(flow = "1995", alpha_allocation = "method2_liberal")
   expect_identical(ok$settings$alpha_allocation, "method2_liberal")

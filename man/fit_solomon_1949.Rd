@@ -12,7 +12,8 @@ fit_solomon_1949(
   post_mean = NULL,
   pre_mean = NULL,
   n = NULL,
-  inferred_pretest = c("average", "pooled")
+  inferred_pretest = c("average", "pooled"),
+  data = NULL
 )
 }
 \arguments{
@@ -31,6 +32,10 @@ the two pretest means (experimental, Control I).}
 printout and for \code{inferred_pretest = "pooled"}.}
 
 \item{inferred_pretest}{\code{"average"} (default) or \code{"pooled"}; see Details.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_1949} with \code{design} (\code{"three-group"}
@@ -41,6 +46,7 @@ means when individual data are given), \code{inferred_pretest}, \code{I}, and, f
 the four-group design, \code{posttest_contrast} and \code{pretest_difference}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Reproduces the analysis Solomon (1949) proposed with the design: an
 inferred pretest mean for the unpretested groups, an improvement score
 for each group, and an interaction term I. It is a historical procedure,

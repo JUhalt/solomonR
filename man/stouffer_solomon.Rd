@@ -13,6 +13,7 @@ stouffer_solomon(p)
 list with \code{z_meta}, \code{p_meta_two_tailed}, and \code{p_meta_one_tailed}
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Combine one-tailed p-values that test the \emph{same directional} hypothesis into
 a single Z. This is provided to reproduce the Walton Braver & Braver (1988)
 meta-analytic option (Test I) for the Solomon four-group design. Use cautiously and document assumptions about homogeneity; see

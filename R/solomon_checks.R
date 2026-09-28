@@ -10,6 +10,7 @@ bf_test <- function(y, group) {
 
 #' Descriptive assumption diagnostics for Solomon analyses
 #'
+#' `r lifecycle::badge("stable")`
 #' Reports Brown-Forsythe tests of equal posttest variance (Brown & Forsythe,
 #' 1974), Shapiro-Wilk normality tests within cells, and a test of
 #' homogeneous pretest-posttest slopes among pretested participants with
@@ -28,6 +29,9 @@ bf_test <- function(y, group) {
 #' @param treat 0/1 (or logical) treatment indicator
 #' @param pretested 0/1 (or logical) pretest indicator
 #' @param y_pre numeric pretest (NA for unpretested)
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #' @return An object of class `solomon_checks`.
 #' @references
 #' Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
@@ -44,7 +48,12 @@ bf_test <- function(y, group) {
 #' @examples
 #' with(solomon_example, check_solomon_assumptions(y_post, treat, pretested, y_pre))
 #' @export
-check_solomon_assumptions <- function(y_post, treat, pretested, y_pre) {
+check_solomon_assumptions <- function(y_post, treat, pretested, y_pre,
+                                      data = NULL) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(

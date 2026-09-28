@@ -51,6 +51,7 @@ functions take. Its \code{"truth"} attribute is a data frame of the true
 estimands, and its \code{"settings"} attribute holds the arguments.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Generates individual data for a randomized Solomon four-group study with
 chosen treatment, pretest, and sensitization effects, and attaches the
 true value of every Solomon estimand. It is a solomonR teaching tool:

@@ -556,6 +556,7 @@
 
 #' APA 7 results text for a Solomon analysis
 #'
+#' `r lifecycle::badge("stable")`
 #' Turns a fitted Solomon analysis into APA 7 results sentences, a short
 #' design statement, and the references for exactly the methods that analysis
 #' used.

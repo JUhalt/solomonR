@@ -5,14 +5,15 @@
 \title{Equivalence test for a Solomon contrast}
 \usage{
 equivalence_solomon(
-  object,
+  fit,
   bounds,
   contrast = "Pretest x Treatment",
-  alpha = 0.05
+  alpha = 0.05,
+  object = deprecated()
 )
 }
 \arguments{
-\item{object}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}.}
+\item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}.}
 
 \item{bounds}{Equivalence bounds on the raw posttest scale: one positive
 number \code{delta}, giving \code{c(-delta, delta)}, or \code{c(lower, upper)} with
@@ -23,6 +24,8 @@ advance.}
 \code{"Pretest x Treatment"}.}
 
 \item{alpha}{Significance level for each one-sided test. Default is 0.05.}
+
+\item{object}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{fit}.}
 }
 \value{
 An object of class \code{solomon_equivalence} containing the estimate,
@@ -33,6 +36,7 @@ confidence intervals, the logical results \code{equivalent}, \code{different}, a
 \code{exceeds_bounds}, the \code{outcome}, and a plain-language \code{interpretation}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Tests whether a Solomon contrast, by default the Pretest x Treatment
 (sensitization) contrast, is small enough to be considered negligible,
 using the two one-sided tests (TOST) procedure (Schuirmann, 1987; Lakens,

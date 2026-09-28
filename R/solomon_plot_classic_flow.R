@@ -58,6 +58,7 @@
 
 #' Historical Solomon decision path
 #'
+#' `r lifecycle::badge("stable")`
 #' Draws the conditional Tests A-I sequence implemented in
 #' [fit_solomon_classic()] as a decision tree. Test A (the Pretest x Treatment
 #' interaction) decides the branch. If it is significant, Tests B and C

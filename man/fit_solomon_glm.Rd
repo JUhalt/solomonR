@@ -5,28 +5,33 @@
 \title{Fit the unified GLM for a Solomon Four-Group design}
 \usage{
 fit_solomon_glm(
-  y,
+  y_post,
   treat,
   pretested,
-  pretest_score = NULL,
+  y_pre = NULL,
   covariates = NULL,
   robust = c("HC3", "none", "CR2"),
   cluster = NULL,
   family = stats::gaussian(),
   conf_level = 0.95,
-  exposure = NULL
+  exposure = NULL,
+  data = NULL,
+  y = deprecated(),
+  pretest_score = deprecated()
 )
 }
 \arguments{
-\item{y}{numeric posttest vector}
+\item{y_post}{numeric posttest vector}
 
 \item{treat}{0/1 (or logical) treatment indicator (1 = treatment)}
 
 \item{pretested}{0/1 (or logical) pretest indicator (1 = group received pretest)}
 
-\item{pretest_score}{numeric vector for those pretested; NA for others}
+\item{y_pre}{numeric pretest vector: the pretest score for pretested
+participants and \code{NA} for the others}
 
-\item{covariates}{optional data.frame of additional covariates}
+\item{covariates}{optional data frame of additional covariates, or, with
+\code{data}, the names of its columns to use}
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
@@ -47,6 +52,13 @@ model for counts.}
 for each participant, entered as a log offset; requires a log-link family
 such as \code{poisson()} or \code{"negative_binomial"}. Contrasts are then log rate
 ratios per unit of exposure.}
+
+\item{data}{optional data frame. When supplied, the other data arguments
+are looked up in it first: give them as bare column names
+(\code{y_post = post}) or as strings (\code{y_post = "post"}).}
+
+\item{y, pretest_score}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{y_post}
+and \code{y_pre}.}
 }
 \value{
 An object of class \code{solomon_glm}: a list with the fitted model,
@@ -58,13 +70,14 @@ negative-binomial fits, \code{theta} (its estimate, standard error, and
 used.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Fits one generalized linear model to all four Solomon groups and reports
 four Solomon contrasts: the equal-weighted average treatment effect, the
 Pretest x Treatment (sensitization) contrast, and the treatment effect
 within each pretesting condition.
 }
 \details{
-When \code{pretest_score} is supplied, it enters the model as \code{pre_obs}, equal
+When \code{y_pre} is supplied, it enters the model as \code{pre_obs}, equal
 to the pretest score in the pretested groups and 0 in the unpretested
 groups, so the structurally absent pretests do not remove Groups 3 and 4.
 Regression adjustment for baseline covariates in randomized experiments,
@@ -98,7 +111,7 @@ freedom when the dispersion is estimated, as in Gaussian models, which is
 the conventional choice when t approximations are used with robust
 standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
 with a fixed dispersion (binomial, Poisson) use the normal distribution.
-With a noncollapsible link (such as the logit) and \code{pretest_score}, the
+With a noncollapsible link (such as the logit) and \code{y_pre}, the
 link-scale contrasts compare a treatment effect conditional on the pretest
 among pretested participants with a marginal effect among unpretested
 participants, who have no pretest. When the pretest predicts the outcome,
@@ -165,7 +178,7 @@ fits; no corresponding interval is available with robust covariance.
 }
 
 \examples{
-fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 fit
 
 # The four Solomon contrasts as a data frame.

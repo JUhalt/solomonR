@@ -97,7 +97,7 @@ test_that("combined contrasts use the separate-variances standard error", {
 
 test_that("Stage 1 residuals adjust for the pretest score (Hayes & Moulton, 2017)", {
   d <- make_design_a()
-  fit <- fit_a(d, pretest_score = ifelse(d$pretested == 1, d$x, NA))
+  fit <- fit_a(d, y_pre = ifelse(d$pretested == 1, d$x, NA))
 
   pre_obs <- ifelse(d$pretested == 1, d$x, 0)
   e <- stats::residuals(stats::lm(d$y ~ d$pretested + pre_obs))

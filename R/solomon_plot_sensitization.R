@@ -114,6 +114,7 @@
 
 #' Pretest sensitization figure
 #'
+#' `r lifecycle::badge("stable")`
 #' Draws the Pretest x Treatment interaction that the Solomon design exists to
 #' test: model-adjusted posttest means for the four groups, with confidence
 #' intervals, joined within each pretest condition so that sensitization

@@ -98,16 +98,20 @@ head(solomon_example)
 Pretest scores are missing for Groups 3 and 4 by design: those participants
 never took the pretest.
 
+Every analysis function takes the same data arguments, in the same order:
+the posttest `y_post`, the treatment indicator `treat` (1 = treatment), the
+pretest indicator `pretested` (1 = pretested), and the pretest `y_pre`. Pass
+them as vectors, or give a data frame as `data` and name its columns. The
+columns need not have these names: with your own data you might write
+`fit_solomon_glm(score2, group, took_pretest, score1, data = mydata)`.
+
 ## Step 1: Check the design
 
 Before fitting a model, confirm that all four groups are present, the design
 indicators are coded 0/1, and missing values are the kind you expect.
 
 ```{r validate}
-with(
-  solomon_example,
-  validate_solomon(y_post, treat, pretested, y_pre)
-)
+validate_solomon(y_post, treat, pretested, y_pre, data = solomon_example)
 ```
 
 `check_solomon_missing()` separates pretests that are absent by design from
@@ -117,10 +121,7 @@ values have their own supported responses (White & Thompson, 2005; Little &
 Rubin, 2019).
 
 ```{r missing}
-with(
-  solomon_example,
-  check_solomon_missing(y_post, treat, pretested, y_pre)
-)
+check_solomon_missing(y_post, treat, pretested, y_pre, data = solomon_example)
 ```
 
 A schematic of the design, in the notation of Campbell and Stanley (1963/1966),
@@ -128,7 +129,7 @@ shows each group's size and posttest mean, and flags any group that is empty
 or too small to estimate its variability:
 
 ```{r design-plot, fig.width = 8, fig.height = 3.5, fig.alt = "Diagram of the four Solomon groups, showing each group's size and posttest mean."}
-with(solomon_example, plot_solomon_design(y_post, treat, pretested))
+plot_solomon_design(y_post, treat, pretested, data = solomon_example)
 ```
 
 ## Step 2: See how the design was analyzed historically
@@ -141,10 +142,8 @@ earlier tests were significant (Campbell & Stanley, 1963/1966, p. 25; Huck & San
 historical path reaches with `[PATH]`.
 
 ```{r classic}
-classic <- with(
-  solomon_example,
-  fit_solomon_classic(y_post, treat, pretested, y_pre)
-)
+classic <- fit_solomon_classic(y_post, treat, pretested, y_pre,
+                               data = solomon_example)
 classic
 ```
 
@@ -168,10 +167,7 @@ Ervin, 2000; Hayes & Cai, 2007) with t tests on the residual degrees of
 freedom.
 
 ```{r glm}
-fit <- with(
-  solomon_example,
-  fit_solomon_glm(y_post, treat, pretested, y_pre)
-)
+fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 fit
 ```
 
@@ -281,12 +277,10 @@ they all target the same contrasts; pretest adjustment changes precision
 rather than the target (Lin, 2013).
 
 ```{r compare}
-with(
-  solomon_example,
-  compare_solomon_methods(
-    y_post, treat, pretested, y_pre,
-    methods = c("glm", "ml", "classic")
-  )
+compare_solomon_methods(
+  y_post, treat, pretested, y_pre,
+  methods = c("glm", "ml", "classic"),
+  data = solomon_example
 )
 ```
 
@@ -297,17 +291,12 @@ intervals were too narrow when groups were small, so `fit_solomon_ml()` warns
 when it is used with small groups and offers a small-sample option:
 
 ```{r ml-default}
-ml <- with(
-  solomon_example,
-  fit_solomon_ml(y_post, treat, pretested, y_pre)
-)
+ml <- fit_solomon_ml(y_post, treat, pretested, y_pre, data = solomon_example)
 ```
 
 ```{r ml-small}
-ml_small <- with(
-  solomon_example,
-  fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "satterthwaite")
-)
+ml_small <- fit_solomon_ml(y_post, treat, pretested, y_pre,
+                           inference = "satterthwaite", data = solomon_example)
 ml_small
 ```
 
@@ -348,10 +337,8 @@ are slightly *negatively* correlated.
 
 ```{r demo}
 data(solomon_demo)
-demo_classic <- with(
-  solomon_demo,
-  fit_solomon_classic(y_post, treat, pretested, y_pre)
-)
+demo_classic <- fit_solomon_classic(y_post, treat, pretested, y_pre,
+                                    data = solomon_demo)
 data.frame(
   analysis = c("Unadjusted (Test B)", "ANCOVA (Test E)", "Gain score (Test F)"),
   estimate = round(c(

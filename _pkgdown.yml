@@ -75,8 +75,7 @@ reference:
 
   - title: "Plotting"
     contents:
-      - plot_solomon
-      - plot_solomon_gg
+      - plot_solomon_means
       - plot_perm
       - plot_solomon_effects
       - plot_sensitization
@@ -93,7 +92,18 @@ reference:
       - mai2020
       - solomon1949
 
+  - title: "Deprecated"
+    desc: >
+      Former names that still work, with a warning, through v1.x. Each help
+      page names the replacement.
+    contents:
+      - plot_solomon
+      - plot_solomon_gg
+
   - title: "Package"
+    desc: >
+      An overview of the package, including the lifecycle stages marked by
+      the badge beside each function: stable, experimental, or deprecated.
     contents:
       - starts_with("solomonR")
 

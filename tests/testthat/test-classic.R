@@ -9,7 +9,7 @@ test_that("classic analysis returns complete historical A-I structure", {
       treat,
       pretested,
       y_pre,
-      combine_with_stouffer = TRUE
+      stouffer = TRUE
     )
   )
 
@@ -99,7 +99,7 @@ test_that("historical Stouffer combination is finite", {
       treat,
       pretested,
       y_pre,
-      combine_with_stouffer = TRUE,
+      stouffer = TRUE,
       stouffer_direction = "greater"
     )
   )

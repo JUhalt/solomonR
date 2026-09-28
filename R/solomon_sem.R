@@ -12,6 +12,7 @@
 
 #' SEM analysis for Solomon Four-Group designs (mean-structure; optional ANCOVA)
 #'
+#' `r lifecycle::badge("experimental")`
 #' Two modes:
 #' 1) mean-structure (default): 4-group SEM estimating posttest means for P1, P0, U1, U0,
 #'    and reporting ATE, Sens (Pretest×Treatment), Pre_Eff, Unpre_Eff.
@@ -27,6 +28,12 @@
 #' Tests and confidence intervals for the contrasts are lavaan's Wald
 #' results, which use a large-sample normal reference distribution.
 #'
+#' @section Lifecycle:
+#' Experimental. Its tests rest on large-sample (MLR) theory, and no
+#' simulation study in the package has yet checked their error rates at
+#' Solomon sample sizes. [fit_solomon_glm()] is the validated analysis of an
+#' observed outcome. The defaults may change after such a study.
+#'
 #' @param y_post numeric posttest
 #' @param treat 0/1 (or logical) treatment indicator
 #' @param pretested 0/1 (or logical) pretest indicator
@@ -35,6 +42,9 @@
 #' @param ancova logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)
 #' @param estimator lavaan estimator (default "MLR")
 #' @param conf_level confidence level for intervals (default 0.95)
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #' @references
 #' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 #' Appropriate statistical analyses. *The Journal of Experimental Education,
@@ -54,7 +64,12 @@
 #' @export
 fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
                             equal_var = FALSE, ancova = FALSE,
-                            estimator = "MLR", conf_level = 0.95) {
+                            estimator = "MLR", conf_level = 0.95,
+                            data = NULL) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(

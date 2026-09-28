@@ -4,16 +4,29 @@
 \alias{fisher_solomon}
 \title{Historical categorical analysis of a binary Solomon outcome}
 \usage{
-fisher_solomon(y, treat, pretested, alpha = 0.05)
+fisher_solomon(
+  y_post,
+  treat,
+  pretested,
+  alpha = 0.05,
+  data = NULL,
+  y = deprecated()
+)
 }
 \arguments{
-\item{y}{Binary outcome coded 0/1 (or logical).}
+\item{y_post}{Binary posttest outcome coded 0/1 (or logical).}
 
 \item{treat}{Treatment indicator coded 0/1 (or logical).}
 
 \item{pretested}{Pretest indicator coded 0/1 (or logical).}
 
 \item{alpha}{Significance level for the historical rule. Default 0.05.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
+
+\item{y}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{y_post}.}
 }
 \value{
 An object of class \code{solomon_fisher} with \code{tests} (one row per pretest
@@ -22,6 +35,7 @@ Pearson chi-square, and Fisher's exact p-value) and \code{sensitization} (the
 historical rule's verdict).
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Reproduces the categorical path described by El Karkri et al. (2025b) for
 qualitative outcomes: the treatment comparison is tested separately among
 pretested and unpretested participants with Fisher's exact test (Pearson's
@@ -49,7 +63,7 @@ d <- kvalem[rep(1:4, kvalem$n), c("treat", "pretested")]
 d$y <- unlist(lapply(1:4, function(i) {
   rep(c(1, 0), c(kvalem$events[i], kvalem$n[i] - kvalem$events[i]))
 }))
-with(d, fisher_solomon(y, treat, pretested))
+fisher_solomon(y, treat, pretested, data = d)
 
 }
 \references{

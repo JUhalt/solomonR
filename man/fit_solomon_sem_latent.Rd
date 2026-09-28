@@ -67,6 +67,7 @@ the check was not run, and \code{invariance_status}, a one-line summary
 }
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 This function provides a fully latent analysis path:
 (A) A 4-group SEM that defines a latent POST factor from multiple
 indicators and estimates group-specific latent means for
@@ -132,6 +133,14 @@ alone biased it (by 0.07 to 0.16 latent standard deviations across the
 scenarios studied), and freeing the shifted intercept with
 \code{partial_post} removed the bias.
 }
+}
+
+\section{Lifecycle}{
+
+Experimental. The issue #55 study found no invariance criterion that
+holds its false-rejection rate in Solomon-sized groups (see the Invariance
+check section), so how the check decides may change as better
+small-sample criteria are published.
 }
 
 \examples{

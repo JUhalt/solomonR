@@ -4,23 +4,39 @@
 \alias{plot_solomon_design}
 \title{Schematic of the Solomon four-group design}
 \usage{
-plot_solomon_design(x = NULL, treat = NULL, pretested = NULL)
+plot_solomon_design(
+  y_post = NULL,
+  treat = NULL,
+  pretested = NULL,
+  fit = NULL,
+  data = NULL,
+  x = deprecated()
+)
 }
 \arguments{
-\item{x}{Optional. Either a fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or a numeric
-vector of posttest scores, in which case \code{treat} and \code{pretested} are also
-required.}
+\item{y_post}{Optional numeric posttest scores, with \code{treat} and
+\code{pretested}. A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} given here is used as \code{fit}.}
 
 \item{treat}{Treatment indicator coded 0 = control and 1 = treatment, when
-\code{x} is a vector of posttest scores.}
+\code{y_post} is given.}
 
 \item{pretested}{Pretest indicator coded 0 = unpretested and 1 = pretested,
-when \code{x} is a vector of posttest scores.}
+when \code{y_post} is given.}
+
+\item{fit}{Optional fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, used instead of
+\code{y_post}, \code{treat}, and \code{pretested}.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
+
+\item{x}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{y_post} or \code{fit}.}
 }
 \value{
 A ggplot object.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Draws the Solomon (1949) four-group design in the notation of Campbell and
 Stanley (1963/1966, p. 6): each row is a randomized group (R), O marks an observation
 (pretest or posttest), and X marks the treatment. Groups 1 and 2 are
@@ -36,7 +52,7 @@ observed posttest scores, are flagged, using the same rule as
 }
 \examples{
 plot_solomon_design()
-with(solomon_example, plot_solomon_design(y_post, treat, pretested))
+plot_solomon_design(y_post, treat, pretested, data = solomon_example)
 
 }
 \references{

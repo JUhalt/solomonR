@@ -10,7 +10,8 @@ validate_solomon(
   pretested,
   y_pre = NULL,
   min_cell_n = 2,
-  cluster = NULL
+  cluster = NULL,
+  data = NULL
 )
 }
 \arguments{
@@ -28,6 +29,10 @@ each cell (at least 2).}
 
 \item{cluster}{Optional cluster identifier (for example, class, school, or
 site), one value per participant.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_validation} with \code{valid} (\code{TRUE} when
@@ -36,6 +41,7 @@ no errors were found), \code{issues} (severity, check, and message), \code{cells
 supplied), and \code{missing} (the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result).
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Checks that data can support a Solomon four-group analysis before a model
 is fitted: equal input lengths, 0/1 coding of the design indicators, all
 four cells present, enough observed outcomes per cell, and the distinction

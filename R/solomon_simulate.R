@@ -3,6 +3,7 @@
 
 #' Simulate a Solomon four-group study with known effects
 #'
+#' `r lifecycle::badge("stable")`
 #' Generates individual data for a randomized Solomon four-group study with
 #' chosen treatment, pretest, and sensitization effects, and attaches the
 #' true value of every Solomon estimand. It is a solomonR teaching tool:

@@ -1,5 +1,6 @@
 #' Compare Solomon analyses and their estimands
 #'
+#' `r lifecycle::badge("stable")`
 #' Fits several Solomon analyses to the same data and lines up their estimates
 #' of the four Solomon contrasts, so that differences in pretest adjustment,
 #' variance assumptions, and reference distributions are visible side by side.
@@ -46,6 +47,9 @@
 #'   and the small-sample option), `"classic"`, and `"sem"` (requires the
 #'   lavaan package).
 #' @param conf_level Confidence level for intervals. Default is 0.95.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #' @return An object of class `solomon_comparison` with `results` (one row per
 #'   method and contrast, with the adjustment, variance assumption, reference
 #'   distribution, estimate, standard error, interval, and p-value),
@@ -88,8 +92,13 @@ compare_solomon_methods <- function(
     pretested,
     y_pre = NULL,
     methods = c("glm", "ml", "classic", "sem"),
-    conf_level = 0.95
+    conf_level = 0.95,
+    data = NULL
 ) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
 
   methods <- match.arg(methods, several.ok = TRUE)
   .check_conf_level(conf_level)
@@ -201,7 +210,7 @@ compare_solomon_methods <- function(
       classic <- try_fit(
         fit_solomon_classic(
           y_post, treat, pretested, y_pre,
-          combine_with_stouffer = FALSE,
+          stouffer = FALSE,
           conf_level = conf_level
         )
       )

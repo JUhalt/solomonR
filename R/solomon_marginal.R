@@ -131,6 +131,7 @@
 
 #' Marginal Solomon contrasts for binary and count outcomes
 #'
+#' `r lifecycle::badge("stable")`
 #' Estimates the Solomon contrasts for a binary outcome as risk differences,
 #' risk ratios, or odds ratios, and for a count outcome as rate differences or
 #' rate ratios, comparing marginal risks or rates in every cell.
@@ -580,6 +581,7 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
 
 #' Historical categorical analysis of a binary Solomon outcome
 #'
+#' `r lifecycle::badge("stable")`
 #' Reproduces the categorical path described by El Karkri et al. (2025b) for
 #' qualitative outcomes: the treatment comparison is tested separately among
 #' pretested and unpretested participants with Fisher's exact test (Pearson's
@@ -596,10 +598,14 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
 #' (p. 328). A test of sensitization compares the effects themselves; see
 #' [marginal_solomon()].
 #'
-#' @param y Binary outcome coded 0/1 (or logical).
+#' @param y_post Binary posttest outcome coded 0/1 (or logical).
 #' @param treat Treatment indicator coded 0/1 (or logical).
 #' @param pretested Pretest indicator coded 0/1 (or logical).
 #' @param alpha Significance level for the historical rule. Default 0.05.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
+#' @param y `r lifecycle::badge("deprecated")` Use `y_post`.
 #'
 #' @return An object of class `solomon_fisher` with `tests` (one row per pretest
 #'   condition and for both combined: counts, proportions, the uncorrected
@@ -629,18 +635,28 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
 #' d$y <- unlist(lapply(1:4, function(i) {
 #'   rep(c(1, 0), c(kvalem$events[i], kvalem$n[i] - kvalem$events[i]))
 #' }))
-#' with(d, fisher_solomon(y, treat, pretested))
+#' fisher_solomon(y, treat, pretested, data = d)
 #'
 #' @export
-fisher_solomon <- function(y, treat, pretested, alpha = 0.05) {
-  y <- .solomon_indicator(y, "y")
+fisher_solomon <- function(y_post, treat, pretested, alpha = 0.05,
+                           data = NULL,
+                           y = deprecated()) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y"),
+    environment(), parent.frame()
+  )
+  if (lifecycle::is_present(y)) {
+    .renamed_arg(!missing(y_post), "y", "y_post", "fisher_solomon")
+    y_post <- y
+  }
+  y_post <- .solomon_indicator(y_post, "y_post")
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
-  .solomon_check_lengths(y = y, treat = treat, pretested = pretested)
+  .solomon_check_lengths(y_post = y_post, treat = treat, pretested = pretested)
 
-  ok <- !is.na(y) & !is.na(treat) & !is.na(pretested)
+  ok <- !is.na(y_post) & !is.na(treat) & !is.na(pretested)
   test_rows <- function(rows, label) {
-    tab <- table(factor(treat[rows], levels = c(1, 0)), factor(y[rows], levels = c(1, 0)))
+    tab <- table(factor(treat[rows], levels = c(1, 0)), factor(y_post[rows], levels = c(1, 0)))
     chi <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))
     data.frame(
       condition = label,

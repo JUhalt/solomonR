@@ -13,6 +13,7 @@ plot_perm(perm)
 A ggplot object
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Draws the permutation distribution of the test statistic with the
 observed value marked. The subtitle reports the same p-value as
 \code{\link[=perm_solomon]{perm_solomon()}}, and says whether it came from every possible allocation

@@ -14,6 +14,7 @@
 
 #' Schematic of the Solomon four-group design
 #'
+#' `r lifecycle::badge("stable")`
 #' Draws the Solomon (1949) four-group design in the notation of Campbell and
 #' Stanley (1963/1966, p. 6): each row is a randomized group (R), O marks an observation
 #' (pretest or posttest), and X marks the treatment. Groups 1 and 2 are
@@ -26,13 +27,18 @@
 #' observed posttest scores, are flagged, using the same rule as
 #' [validate_solomon()].
 #'
-#' @param x Optional. Either a fit from [fit_solomon_glm()] or a numeric
-#'   vector of posttest scores, in which case `treat` and `pretested` are also
-#'   required.
+#' @param y_post Optional numeric posttest scores, with `treat` and
+#'   `pretested`. A fit from [fit_solomon_glm()] given here is used as `fit`.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment, when
-#'   `x` is a vector of posttest scores.
+#'   `y_post` is given.
 #' @param pretested Pretest indicator coded 0 = unpretested and 1 = pretested,
-#'   when `x` is a vector of posttest scores.
+#'   when `y_post` is given.
+#' @param fit Optional fit from [fit_solomon_glm()], used instead of
+#'   `y_post`, `treat`, and `pretested`.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
+#' @param x `r lifecycle::badge("deprecated")` Use `y_post` or `fit`.
 #'
 #' @return A ggplot object.
 #'
@@ -46,26 +52,47 @@
 #'
 #' @examples
 #' plot_solomon_design()
-#' with(solomon_example, plot_solomon_design(y_post, treat, pretested))
+#' plot_solomon_design(y_post, treat, pretested, data = solomon_example)
 #'
 #' @export
-plot_solomon_design <- function(x = NULL, treat = NULL, pretested = NULL) {
+plot_solomon_design <- function(y_post = NULL, treat = NULL, pretested = NULL,
+                                fit = NULL, data = NULL, x = deprecated()) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested"),
+    environment(), parent.frame()
+  )
+  if (lifecycle::is_present(x)) {
+    new <- if (inherits(x, "solomon_glm")) "fit" else "y_post"
+    .renamed_arg(!is.null(y_post) || !is.null(fit), "x", new, "plot_solomon_design")
+    y_post <- x
+  }
+  # A fit passed by position, as plot_solomon_design(fit), arrives as y_post.
+  if (inherits(y_post, "solomon_glm")) {
+    if (!is.null(fit)) {
+      stop("Supply the fit once, as `fit`.", call. = FALSE)
+    }
+    fit <- y_post
+    y_post <- NULL
+  }
 
   groups <- .solomon_design_groups
   observed <- NULL
 
-  if (inherits(x, "solomon_glm")) {
-    observed <- data.frame(y = x$data$y, treat = x$data$treat,
-                           pretested = x$data$pretested)
-  } else if (!is.null(x)) {
+  if (!is.null(fit)) {
+    if (!inherits(fit, "solomon_glm")) {
+      stop("`fit` must come from fit_solomon_glm().", call. = FALSE)
+    }
+    observed <- data.frame(y = fit$data$y, treat = fit$data$treat,
+                           pretested = fit$data$pretested)
+  } else if (!is.null(y_post)) {
     if (is.null(treat) || is.null(pretested)) {
-      stop("When `x` is a vector of posttest scores, `treat` and `pretested` are required.",
+      stop("When `y_post` is given, `treat` and `pretested` are required.",
            call. = FALSE)
     }
     treat <- .solomon_indicator(treat, "treat")
     pretested <- .solomon_indicator(pretested, "pretested")
-    .solomon_check_lengths(y = x, treat = treat, pretested = pretested)
-    observed <- data.frame(y = x, treat = treat, pretested = pretested)
+    .solomon_check_lengths(y_post = y_post, treat = treat, pretested = pretested)
+    observed <- data.frame(y = y_post, treat = treat, pretested = pretested)
   }
 
   steps <- c("Randomized", "Pretest", "Treatment", "Posttest")

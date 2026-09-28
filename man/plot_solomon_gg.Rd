@@ -2,7 +2,7 @@
 % Please edit documentation in R/solomon_plot_gg.R
 \name{plot_solomon_gg}
 \alias{plot_solomon_gg}
-\title{Plot Solomon Posttest Cell Means with ggplot2}
+\title{Plot Solomon posttest cell means with ggplot2 (deprecated)}
 \usage{
 plot_solomon_gg(y, treat, pretested)
 }
@@ -17,11 +17,13 @@ plot_solomon_gg(y, treat, pretested)
 A ggplot object.
 }
 \description{
-Displays posttest means and 95\% confidence intervals for the four cells
-of a Solomon four-group design. Intervals use the t distribution with
-n - 1 degrees of freedom within each cell. For the model-adjusted means
-behind the sensitization contrast, see \code{\link[=plot_sensitization]{plot_sensitization()}}.
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}
+\code{plot_solomon_gg()} was renamed \code{\link[=plot_solomon_means]{plot_solomon_means()}} in solomonR 0.9.0,
+so that each plot in the package is named for what it shows. It still
+works, with a deprecation warning, and returns the plot that
+\code{plot_solomon_means()} draws.
 }
 \examples{
-with(solomon_example, plot_solomon_gg(y_post, treat, pretested))
+# Use plot_solomon_means() instead:
+plot_solomon_means(y_post, treat, pretested, data = solomon_example)
 }

@@ -268,6 +268,7 @@
 
 #' Historical Solomon Four-Group Analysis
 #'
+#' `r lifecycle::badge("stable")`
 #' Implements the historical Test A-I framework associated with analysis of
 #' the Solomon four-group design. All tests are calculated when possible,
 #' while the historical decision pathway is stored separately.
@@ -298,7 +299,7 @@
 #' @param pretested_test Which historical pretested-group analysis should be
 #'   followed in the decision pathway: \code{"ancova"}, \code{"gain"}, or
 #'   \code{"repeated"}. All three are still calculated and returned.
-#' @param combine_with_stouffer Logical. If \code{TRUE}, include Test I, the
+#' @param stouffer Logical. If \code{TRUE}, include Test I, the
 #'   Walton Braver & Braver (1988) Stouffer combination, in the decision pathway when earlier treatment tests are
 #'   nonsignificant.
 #' @param stouffer_direction Direction of the historical one-tailed treatment
@@ -332,10 +333,15 @@
 #'     preliminary test, and Tests E, H, and I each at .005 or .020.
 #'
 #'   An allocation requires `flow = "1995"`, `alpha = 0.05`, `pretested_test =
-#'   "ancova"`, and `combine_with_stouffer = TRUE`, the conditions for which
+#'   "ancova"`, and `stouffer = TRUE`, the conditions for which
 #'   the levels were obtained. Tests B and C, reached only after a
 #'   significant Test A, are outside the allocation and keep `alpha`; that
 #'   choice is solomonR's.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
+#' @param combine_with_stouffer `r lifecycle::badge("deprecated")` Use
+#'   `stouffer`.
 #'
 #' @section Error rates and the published replication:
 #' The package's replication of the published Type I error rates (issue
@@ -456,13 +462,25 @@ fit_solomon_classic <- function(
     y_pre,
     alpha = 0.05,
     pretested_test = c("ancova", "gain", "repeated"),
-    combine_with_stouffer = TRUE,
+    stouffer = TRUE,
     stouffer_direction = c("greater", "less"),
     conf_level = 0.95,
     flow = c("1988", "1990", "1995"),
     alpha_allocation = c("none", "method1_conservative", "method1_liberal",
-                         "method2_conservative", "method2_liberal")
+                         "method2_conservative", "method2_liberal"),
+    data = NULL,
+    combine_with_stouffer = deprecated()
 ) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
+  if (lifecycle::is_present(combine_with_stouffer)) {
+    .renamed_arg(!missing(stouffer), "combine_with_stouffer", "stouffer",
+                 "fit_solomon_classic")
+    stouffer <- combine_with_stouffer
+  }
+  combine_with_stouffer <- stouffer
 
   pretested_test <- match.arg(pretested_test)
   stouffer_direction <- match.arg(stouffer_direction)
@@ -477,7 +495,7 @@ fit_solomon_classic <- function(
         "Sawilowsky's (1996) alpha allocations were obtained for the 1995 ",
         "sequence of Tests A, E, H, and I at a nominal alpha of .05; use ",
         "flow = \"1995\", alpha = 0.05, pretested_test = \"ancova\", and ",
-        "combine_with_stouffer = TRUE.",
+        "stouffer = TRUE.",
         call. = FALSE
       )
     }
@@ -487,7 +505,7 @@ fit_solomon_classic <- function(
   if (flow == "1990" && !isTRUE(combine_with_stouffer)) {
     stop(
       "flow = \"1990\" always completes the sequence with Test I ",
-      "(Braver & Walton Braver, 1990); use combine_with_stouffer = TRUE.",
+      "(Braver & Walton Braver, 1990); use stouffer = TRUE.",
       call. = FALSE
     )
   }

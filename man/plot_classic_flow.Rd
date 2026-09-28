@@ -18,6 +18,7 @@ used.}
 A ggplot object.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Draws the conditional Tests A-I sequence implemented in
 \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} as a decision tree. Test A (the Pretest x Treatment
 interaction) decides the branch. If it is significant, Tests B and C

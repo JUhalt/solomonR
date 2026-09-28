@@ -2,6 +2,7 @@
 
 #' Power curves for a Solomon design
 #'
+#' `r lifecycle::badge("stable")`
 #' Draws power against sample size for each Solomon estimand, so the effect of
 #' cell size, effect size, pretest-posttest correlation, and sensitization on
 #' a planned study can be seen rather than read from a table. A horizontal

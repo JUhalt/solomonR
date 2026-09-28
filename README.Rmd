@@ -129,15 +129,10 @@ The principal modern observed-variable analysis fits one unified model
 and estimates four Solomon-specific contrasts:
 
 ```r
-fit <- with(
-  solomon_example,
-  fit_solomon_glm(
-    y = y_post,
-    treat = treat,
-    pretested = pretested,
-    pretest_score = y_pre,
-    robust = "HC3"
-  )
+fit <- fit_solomon_glm(
+  y_post, treat, pretested, y_pre,
+  robust = "HC3",
+  data = solomon_example
 )
 
 fit

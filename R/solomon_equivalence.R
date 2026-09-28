@@ -1,5 +1,6 @@
 #' Equivalence test for a Solomon contrast
 #'
+#' `r lifecycle::badge("stable")`
 #' Tests whether a Solomon contrast, by default the Pretest x Treatment
 #' (sensitization) contrast, is small enough to be considered negligible,
 #' using the two one-sided tests (TOST) procedure (Schuirmann, 1987; Lakens,
@@ -47,7 +48,7 @@
 #' size of interest in that direction (a minimum-effect test; Murphy & Myors,
 #' 1999).
 #'
-#' @param object A fit from [fit_solomon_glm()] or [fit_solomon_ml()].
+#' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()].
 #' @param bounds Equivalence bounds on the raw posttest scale: one positive
 #'   number `delta`, giving `c(-delta, delta)`, or `c(lower, upper)` with
 #'   `lower < 0 < upper`. There is no default; bounds must be chosen in
@@ -55,6 +56,7 @@
 #' @param contrast Solomon contrast to test. Default is
 #'   `"Pretest x Treatment"`.
 #' @param alpha Significance level for each one-sided test. Default is 0.05.
+#' @param object `r lifecycle::badge("deprecated")` Use `fit`.
 #' @return An object of class `solomon_equivalence` containing the estimate,
 #'   standard error, degrees of freedom, both one-sided tests
 #'   (`t_lower`, `p_lower`, `t_upper`, `p_upper`), the equivalence p-value
@@ -90,14 +92,20 @@
 #' equivalence_solomon(fit, bounds = 5)
 #' @export
 equivalence_solomon <- function(
-    object,
+    fit,
     bounds,
     contrast = "Pretest x Treatment",
-    alpha = 0.05
+    alpha = 0.05,
+    object = deprecated()
 ) {
+  if (lifecycle::is_present(object)) {
+    .renamed_arg(!missing(fit), "object", "fit", "equivalence_solomon")
+    fit <- object
+  }
 
-  if (!inherits(object, c("solomon_glm", "solomon_ml"))) {
-    stop("`object` must come from fit_solomon_glm() or fit_solomon_ml().", call. = FALSE)
+
+  if (!inherits(fit, c("solomon_glm", "solomon_ml"))) {
+    stop("`fit` must come from fit_solomon_glm() or fit_solomon_ml().", call. = FALSE)
   }
 
   if (missing(bounds)) {
@@ -115,7 +123,7 @@ equivalence_solomon <- function(
     stop("`alpha` must be a single number between 0 and 0.5.", call. = FALSE)
   }
 
-  effects <- object$effects
+  effects <- fit$effects
 
   if (length(contrast) != 1L || !contrast %in% effects$contrast) {
     stop(
@@ -138,10 +146,10 @@ equivalence_solomon <- function(
       estimate = row$estimate,
       std.error = row$std.error,
       df = df,
-      inference = if (inherits(object, "solomon_ml")) {
+      inference = if (inherits(fit, "solomon_ml")) {
         "maximum likelihood; large-sample normal reference"
       } else {
-        .solomon_vcov_label(object)
+        .solomon_vcov_label(fit)
       }
     ),
     result

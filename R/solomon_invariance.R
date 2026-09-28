@@ -136,6 +136,7 @@
 
 #' Measurement invariance across the four Solomon groups
 #'
+#' `r lifecycle::badge("experimental")`
 #' Tests whether a set of indicators measures the same construct in the same
 #' way in the four Solomon groups, the condition latent mean contrasts
 #' require (Meredith, 1993). It fits the configural, metric (equal loadings),
@@ -186,6 +187,12 @@
 #' 1989, p. 465), and must involve only a minority of the indicators
 #' (Vandenberg & Lance, 2000, p. 38); at least two indicators must stay
 #' fully invariant. The function never chooses them.
+#'
+#' @section Lifecycle:
+#' Experimental. The issue #55 study found no criterion that holds its
+#' false-rejection rate in Solomon-sized groups (see Two published
+#' criteria), so the criteria reported may change as better small-sample
+#' criteria are published.
 #'
 #' @param data A data frame with the indicators.
 #' @param items Names of at least three indicators.

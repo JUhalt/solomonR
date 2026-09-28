@@ -1,18 +1,21 @@
-#' Plot Solomon Posttest Cell Means
+#' Plot Solomon posttest cell means in base graphics (deprecated)
 #'
-#' Displays posttest means and 95% confidence intervals for the four cells
-#' of a Solomon four-group design. Intervals use the t distribution with
-#' n - 1 degrees of freedom within each cell. For the model-adjusted means
-#' behind the sensitization contrast, see [plot_sensitization()].
+#' `r lifecycle::badge("deprecated")`
+#' `plot_solomon()` is replaced by [plot_solomon_means()], which draws the
+#' same means and intervals with ggplot2, as every other plot in the package
+#' does. `plot_solomon()` still works, with a deprecation warning, and still
+#' draws in base graphics and returns the cell summaries invisibly.
 #'
 #' @param y Numeric vector of posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
 #' @param pretested Pretest indicator coded 0 = not pretested and 1 = pretested.
 #' @return Invisibly returns a data frame containing cell summaries.
 #' @examples
-#' with(solomon_example, plot_solomon(y_post, treat, pretested))
+#' # Use plot_solomon_means() instead:
+#' plot_solomon_means(y_post, treat, pretested, data = solomon_example)
 #' @export
 plot_solomon <- function(y, treat, pretested) {
+  lifecycle::deprecate_warn("0.9.0", "plot_solomon()", "plot_solomon_means()")
   df <- data.frame(y=y, treat=factor(treat), pretested=factor(pretested))
   agg <- dplyr::summarise(dplyr::group_by(df, pretested, treat),
                           n=dplyr::n(), mean=mean(y), sd=stats::sd(y))

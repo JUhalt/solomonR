@@ -1,5 +1,6 @@
 #' Plot permutation distribution for a Solomon contrast
 #'
+#' `r lifecycle::badge("stable")`
 #' Draws the permutation distribution of the test statistic with the
 #' observed value marked. The subtitle reports the same p-value as
 #' [perm_solomon()], and says whether it came from every possible allocation

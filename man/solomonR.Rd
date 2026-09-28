@@ -21,10 +21,38 @@ Key historical references include Huck & Sandler (1973),
 Walton Braver & Braver (1988), the Sawilowsky and Markman methodological
 exchanges, and van Engelenburg (1999).
 }
+\section{Lifecycle}{
+
+Each exported function's help page, and the reference index of the
+package website, shows the function's lifecycle stage, in the stages of
+the lifecycle package (Henry & Wickham, 2026):
+\itemize{
+\item \strong{Stable.} The interface is settled. Any change goes through
+deprecation: the old name keeps working, with a warning, through v1.x.
+\item \strong{Experimental.} The function is tested, but its interface or defaults
+may change. \code{\link[=fit_solomon_sem]{fit_solomon_sem()}} has no simulation study yet at Solomon
+sample sizes. The issue #55 study found no measurement-invariance
+criterion that holds its false-rejection rate in Solomon-sized groups,
+which affects \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}} and \code{\link[=invariance_solomon]{invariance_solomon()}}.
+\item \strong{Deprecated.} A former name that still works, with a warning. Its
+help page names the replacement.
+}
+
+solomonR 0.9.0 settled the interface (issue #83). The outcome arguments
+are \code{y_post} and \code{y_pre} everywhere, a fitted model is passed as \code{fit},
+and the planning functions share one argument order: \code{n} (or \code{power}),
+\code{delta}, \code{sens}, \code{rho}, \code{sigma}, \code{alpha}. Each function that takes data
+vectors also takes an optional \code{data} data frame.
+}
+
 \references{
 Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
 quasi-experimental designs for research}. Rand McNally. (Original work
 published 1963)
+
+Henry, L., & Wickham, H. (2026). \emph{lifecycle: Manage the life cycle of
+your package functions} (Version 1.0.5) [R package].
+https://doi.org/10.32614/CRAN.package.lifecycle
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 Appropriate statistical analyses. \emph{The Journal of Experimental Education,

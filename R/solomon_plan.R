@@ -57,6 +57,7 @@
 
 #' Sample-size planning for Solomon designs
 #'
+#' `r lifecycle::badge("stable")`
 #' Finds the smallest Solomon four-group design, at a fixed allocation across
 #' the four cells, whose power for each Solomon estimand reaches a target.
 #' [power_solomon()] answers the forward question, the power of a given

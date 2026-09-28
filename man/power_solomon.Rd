@@ -7,12 +7,12 @@
 power_solomon(
   n = 50,
   delta = 0.3,
-  rho = 0.5,
   sens = 0,
+  rho = 0.5,
   sigma = 1,
+  alpha = 0.05,
   sims = 2000,
   stouffer = TRUE,
-  alpha = 0.05,
   seed = NULL
 )
 }
@@ -25,12 +25,14 @@ sizes given as a list or vector with elements \code{n1} (pretested treatment),
 \item{delta}{Treatment effect among unpretested participants, on the
 posttest scale.}
 
-\item{rho}{Pretest-posttest correlation among pretested participants.}
-
 \item{sens}{Sensitization: the additional treatment effect among pretested
 participants (0 = none).}
 
+\item{rho}{Pretest-posttest correlation among pretested participants.}
+
 \item{sigma}{Posttest residual standard deviation in all cells.}
+
+\item{alpha}{Significance level. Default is 0.05.}
 
 \item{sims}{Number of Monte Carlo replications.}
 
@@ -39,8 +41,6 @@ rejection rate: one-tailed p-values in the direction treatment >
 control are combined, and the combined z is judged by its two-tailed
 p-value, as in \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} and Walton Braver and Braver's
 (1988, p. 153) worked example.}
-
-\item{alpha}{Significance level. Default is 0.05.}
 
 \item{seed}{Optional integer seed. The global random number state is
 restored afterwards.}
@@ -54,6 +54,7 @@ the combination targets a directional hypothesis rather than a single
 contrast, and all Test I values are \code{NA} when \code{stouffer = FALSE}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Simulates normally distributed Solomon four-group data and reports the
 rejection rate of each Solomon test at the chosen \code{alpha}, with its Monte
 Carlo standard error.
@@ -103,6 +104,12 @@ conservative figure rather than an exact one.
 Only continuous outcomes are simulated. Binary and count outcomes are not
 supported; for binary outcomes see \code{\link[=marginal_solomon]{marginal_solomon()}} and its simulation
 validation on issue #43.
+
+The arguments follow the order of \code{\link[=plan_solomon]{plan_solomon()}} and
+\code{\link[=plot_power_solomon]{plot_power_solomon()}}: \code{n}, \code{delta}, \code{sens}, \code{rho}, \code{sigma}, \code{alpha}.
+Before solomonR 0.9.0, \code{rho} came before \code{sens} and \code{alpha} came last, so
+a call that passes these by position gets a warning that it was read in
+the new order. Naming the arguments avoids the ambiguity.
 }
 
 \examples{

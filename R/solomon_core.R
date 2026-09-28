@@ -16,10 +16,34 @@
 #' Walton Braver & Braver (1988), the Sawilowsky and Markman methodological
 #' exchanges, and van Engelenburg (1999).
 #'
+#' @section Lifecycle:
+#' Each exported function's help page, and the reference index of the
+#' package website, shows the function's lifecycle stage, in the stages of
+#' the lifecycle package (Henry & Wickham, 2026):
+#' - **Stable.** The interface is settled. Any change goes through
+#'   deprecation: the old name keeps working, with a warning, through v1.x.
+#' - **Experimental.** The function is tested, but its interface or defaults
+#'   may change. [fit_solomon_sem()] has no simulation study yet at Solomon
+#'   sample sizes. The issue #55 study found no measurement-invariance
+#'   criterion that holds its false-rejection rate in Solomon-sized groups,
+#'   which affects [fit_solomon_sem_latent()] and [invariance_solomon()].
+#' - **Deprecated.** A former name that still works, with a warning. Its
+#'   help page names the replacement.
+#'
+#' solomonR 0.9.0 settled the interface (issue #83). The outcome arguments
+#' are `y_post` and `y_pre` everywhere, a fitted model is passed as `fit`,
+#' and the planning functions share one argument order: `n` (or `power`),
+#' `delta`, `sens`, `rho`, `sigma`, `alpha`. Each function that takes data
+#' vectors also takes an optional `data` data frame.
+#'
 #' @references
 #' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally. (Original work
 #' published 1963)
+#'
+#' Henry, L., & Wickham, H. (2026). *lifecycle: Manage the life cycle of
+#' your package functions* (Version 1.0.5) \[R package\].
+#' https://doi.org/10.32614/CRAN.package.lifecycle
 #'
 #' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 #' Appropriate statistical analyses. *The Journal of Experimental Education,
@@ -46,6 +70,9 @@ NULL
 # ---- helpers ----
 
 #' Convert p-value to Z (one-tailed) for Stouffer's method
+#'
+#' `r lifecycle::badge("stable")`
+#'
 #' @param p numeric vector of p-values assumed one-tailed and aligned in the same direction
 #' @return numeric Z-scores
 #' @references
@@ -61,6 +88,7 @@ p_to_z <- function(p) {
 
 #' Stouffer's Z combiner (Walton Braver & Braver, 1988, Test I)
 #'
+#' `r lifecycle::badge("stable")`
 #' Combine one-tailed p-values that test the *same directional* hypothesis into
 #' a single Z. This is provided to reproduce the Walton Braver & Braver (1988)
 #' meta-analytic option (Test I) for the Solomon four-group design. Use cautiously and document assumptions about homogeneity; see
@@ -103,12 +131,13 @@ stouffer_solomon <- function(p) {
 
 #' Fit the unified GLM for a Solomon Four-Group design
 #'
+#' `r lifecycle::badge("stable")`
 #' Fits one generalized linear model to all four Solomon groups and reports
 #' four Solomon contrasts: the equal-weighted average treatment effect, the
 #' Pretest x Treatment (sensitization) contrast, and the treatment effect
 #' within each pretesting condition.
 #'
-#' When `pretest_score` is supplied, it enters the model as `pre_obs`, equal
+#' When `y_pre` is supplied, it enters the model as `pre_obs`, equal
 #' to the pretest score in the pretested groups and 0 in the unpretested
 #' groups, so the structurally absent pretests do not remove Groups 3 and 4.
 #' Regression adjustment for baseline covariates in randomized experiments,
@@ -139,7 +168,7 @@ stouffer_solomon <- function(p) {
 #' the conventional choice when t approximations are used with robust
 #' standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
 #' with a fixed dispersion (binomial, Poisson) use the normal distribution.
-#' With a noncollapsible link (such as the logit) and `pretest_score`, the
+#' With a noncollapsible link (such as the logit) and `y_pre`, the
 #' link-scale contrasts compare a treatment effect conditional on the pretest
 #' among pretested participants with a marginal effect among unpretested
 #' participants, who have no pretest. When the pretest predicts the outcome,
@@ -204,11 +233,13 @@ stouffer_solomon <- function(p) {
 #' method (Steiger, 2004) and are reported only for conventional Gaussian
 #' fits; no corresponding interval is available with robust covariance.
 #'
-#' @param y numeric posttest vector
+#' @param y_post numeric posttest vector
 #' @param treat 0/1 (or logical) treatment indicator (1 = treatment)
 #' @param pretested 0/1 (or logical) pretest indicator (1 = group received pretest)
-#' @param pretest_score numeric vector for those pretested; NA for others
-#' @param covariates optional data.frame of additional covariates
+#' @param y_pre numeric pretest vector: the pretest score for pretested
+#'   participants and `NA` for the others
+#' @param covariates optional data frame of additional covariates, or, with
+#'   `data`, the names of its columns to use
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
 #'   participant. CR2 fits refuse designs in which a Solomon cell contains a
@@ -224,6 +255,11 @@ stouffer_solomon <- function(p) {
 #'   for each participant, entered as a log offset; requires a log-link family
 #'   such as `poisson()` or `"negative_binomial"`. Contrasts are then log rate
 #'   ratios per unit of exposure.
+#' @param data optional data frame. When supplied, the other data arguments
+#'   are looked up in it first: give them as bare column names
+#'   (`y_post = post`) or as strings (`y_post = "post"`).
+#' @param y,pretest_score `r lifecycle::badge("deprecated")` Use `y_post`
+#'   and `y_pre`.
 #' @return An object of class `solomon_glm`: a list with the fitted model,
 #'   coefficient and contrast tables (including degrees of freedom and
 #'   confidence limits `conf.low` and `conf.high`), the covariance matrix,
@@ -292,16 +328,32 @@ stouffer_solomon <- function(p) {
 #' Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
 #' (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
 #' @examples
-#' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+#' fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 #' fit
 #'
 #' # The four Solomon contrasts as a data frame.
 #' fit$effects
 #' @export
-fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
+fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
                             cluster = NULL, family = stats::gaussian(),
-                            conf_level = 0.95, exposure = NULL) {
+                            conf_level = 0.95, exposure = NULL, data = NULL,
+                            y = deprecated(),
+                            pretest_score = deprecated()) {
+  .solomon_data_args(
+    data,
+    c("y_post", "treat", "pretested", "y_pre", "covariates", "cluster",
+      "exposure", "y", "pretest_score"),
+    environment(), parent.frame(), as_frame = "covariates"
+  )
+  if (lifecycle::is_present(y)) {
+    .renamed_arg(!missing(y_post), "y", "y_post", "fit_solomon_glm")
+    y_post <- y
+  }
+  if (lifecycle::is_present(pretest_score)) {
+    .renamed_arg(!is.null(y_pre), "pretest_score", "y_pre", "fit_solomon_glm")
+    y_pre <- pretest_score
+  }
   robust <- match.arg(robust)
   .check_conf_level(conf_level)
   negbin <- identical(family, "negative_binomial")
@@ -320,24 +372,24 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
   pretested <- .solomon_indicator(pretested, "pretested")
 
   .solomon_check_lengths(
-    y = y,
+    y_post = y_post,
     treat = treat,
     pretested = pretested,
-    pretest_score = pretest_score,
+    y_pre = y_pre,
     covariates = covariates,
     cluster = cluster,
     exposure = exposure
   )
 
   df <- data.frame(
-    y = y,
+    y = y_post,
     treat = treat,
     pretested = pretested
   )
 
-  if (!is.null(pretest_score)) {
+  if (!is.null(y_pre)) {
 
-    n_incidental <- sum(pretested == 1L & is.na(pretest_score), na.rm = TRUE)
+    n_incidental <- sum(pretested == 1L & is.na(y_pre), na.rm = TRUE)
 
     if (n_incidental > 0L) {
       warning(
@@ -347,23 +399,23 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
       )
     }
 
-    if (any(pretested == 0L & !is.na(pretest_score), na.rm = TRUE)) {
+    if (any(pretested == 0L & !is.na(y_pre), na.rm = TRUE)) {
       warning(
-        "Observed pretest_score values were supplied for unpretested ",
+        "Observed `y_pre` values were supplied for unpretested ",
         "participants; these values are ignored.",
         call. = FALSE
       )
     }
 
-    # Safe pretest covariate: equals pretest_score in pretested rows, 0 otherwise
-    df$pre_obs <- ifelse(df$pretested == 1, pretest_score, 0)
+    # Safe pretest covariate: equals y_pre in pretested rows, 0 otherwise
+    df$pre_obs <- ifelse(df$pretested == 1, y_pre, 0)
   }
 
   if (!is.null(covariates)) df <- cbind(df, covariates)
 
   # One model: treatment + pretest indicator + their interaction + (optional) pre_obs
   rhs <- c("treat*pretested",
-           if (!is.null(pretest_score)) "pre_obs" else NULL,
+           if (!is.null(y_pre)) "pre_obs" else NULL,
            if (!is.null(covariates)) names(covariates) else NULL)
   if (!is.null(exposure)) {
     if (!is.numeric(exposure) || any(exposure <= 0, na.rm = TRUE)) {
@@ -384,7 +436,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
   }
 
-  if (!is.null(pretest_score) && !stats::family(fit)$link %in% c("identity", "log")) {
+  if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link)
   }
 
@@ -629,6 +681,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 
 #' Permutation test for a Solomon contrast
 #'
+#' `r lifecycle::badge("stable")`
 #' Performs a randomization-based test by permuting treatment assignment
 #' within pretest strata. This preserves the Solomon four-group design while
 #' generating the null distribution for a selected treatment contrast.
@@ -707,7 +760,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 #'   arm even under the sharp null, where this test is exact, so the
 #'   permutation test is preferred for designs with few clusters.
 #'
-#' @param object An object returned by \code{fit_solomon_glm()}.
+#' @param fit An object returned by \code{fit_solomon_glm()}.
 #' @param contrast Character string identifying the contrast to test. One of
 #'   \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
 #'   \code{"Treatment | pretested"}, or
@@ -720,6 +773,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 #'   distribution in addition to the observed statistic and p-value.
 #' @param statistic `"studentized"` (the default) divides the contrast by its
 #'   standard error; `"difference"` uses the contrast itself.
+#' @param object `r lifecycle::badge("deprecated")` Use `fit`.
 #'
 #' @return A list of class `solomon_perm` containing the contrast, the
 #'   statistic type, the level permuted (`"participant"` or `"cluster"`), the
@@ -771,16 +825,22 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 #' perm_solomon(fit, reps = 199, seed = 1)
 #' @export
 perm_solomon <- function(
-    object,
+    fit,
     contrast = "ATE (avg over pretest)",
     reps = 5000L,
     seed = NULL,
     return_dist = FALSE,
-    statistic = c("studentized", "difference")
+    statistic = c("studentized", "difference"),
+    object = deprecated()
 ) {
+  if (lifecycle::is_present(object)) {
+    .renamed_arg(!missing(fit), "object", "fit", "perm_solomon")
+    fit <- object
+  }
 
-  if (!inherits(object, "solomon_glm")) {
-    stop("object must be from fit_solomon_glm().")
+
+  if (!inherits(fit, "solomon_glm")) {
+    stop("`fit` must be from fit_solomon_glm().", call. = FALSE)
   }
 
   statistic <- match.arg(statistic)
@@ -809,13 +869,13 @@ perm_solomon <- function(
     withr::local_seed(seed)
   }
 
-  if (!is.null(object$cluster)) {
-    return(.perm_solomon_cluster(object, contrast, reps, return_dist, statistic))
+  if (!is.null(fit$cluster)) {
+    return(.perm_solomon_cluster(fit, contrast, reps, return_dist, statistic))
   }
 
-  df <- object$data
-  form <- stats::formula(object$model)
-  fam <- stats::family(object$model)
+  df <- fit$data
+  form <- stats::formula(fit$model)
+  fam <- stats::family(fit$model)
 
   # ------------------------------------------------------------
   # Helper: construct the requested linear contrast
@@ -918,12 +978,12 @@ perm_solomon <- function(
   # ------------------------------------------------------------
 
   estimate <- as.numeric(
-    make_contrast(names(stats::coef(object$model)), contrast) %*%
-      stats::coef(object$model)
+    make_contrast(names(stats::coef(fit$model)), contrast) %*%
+      stats::coef(fit$model)
   )
 
   z_obs <- contrast_z(
-    object$model,
+    fit$model,
     contrast
   )
 

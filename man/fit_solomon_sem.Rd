@@ -12,7 +12,8 @@ fit_solomon_sem(
   equal_var = FALSE,
   ancova = FALSE,
   estimator = "MLR",
-  conf_level = 0.95
+  conf_level = 0.95,
+  data = NULL
 )
 }
 \arguments{
@@ -31,6 +32,10 @@ fit_solomon_sem(
 \item{estimator}{lavaan estimator (default "MLR")}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_sem} with \code{mode} (\code{"mean"} or
@@ -39,6 +44,7 @@ An object of class \code{solomon_sem} with \code{mode} (\code{"mean"} or
 \code{fitmeasures}, and \code{conf_level}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 Two modes:
 \enumerate{
 \item mean-structure (default): 4-group SEM estimating posttest means for P1, P0, U1, U0,
@@ -57,6 +63,14 @@ pretested groups.
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
 }
+\section{Lifecycle}{
+
+Experimental. Its tests rest on large-sample (MLR) theory, and no
+simulation study in the package has yet checked their error rates at
+Solomon sample sizes. \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} is the validated analysis of an
+observed outcome. The defaults may change after such a study.
+}
+
 \examples{
 if (requireNamespace("lavaan", quietly = TRUE)) {
   with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre))

@@ -24,6 +24,7 @@ means as hollow points.}
 A ggplot object.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Draws the Pretest x Treatment interaction that the Solomon design exists to
 test: model-adjusted posttest means for the four groups, with confidence
 intervals, joined within each pretest condition so that sensitization

@@ -43,6 +43,7 @@ error on the analysis scale, p-value), \code{risks} (binary) or \code{rates}
 including the number of failed bootstrap resamples.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Estimates the Solomon contrasts for a binary outcome as risk differences,
 risk ratios, or odds ratios, and for a count outcome as rate differences or
 rate ratios, comparing marginal risks or rates in every cell.

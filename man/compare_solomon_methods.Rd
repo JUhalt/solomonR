@@ -10,7 +10,8 @@ compare_solomon_methods(
   pretested,
   y_pre = NULL,
   methods = c("glm", "ml", "classic", "sem"),
-  conf_level = 0.95
+  conf_level = 0.95,
+  data = NULL
 )
 }
 \arguments{
@@ -29,6 +30,10 @@ and the small-sample option), \code{"classic"}, and \code{"sem"} (requires the
 lavaan package).}
 
 \item{conf_level}{Confidence level for intervals. Default is 0.95.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_comparison} with \code{results} (one row per
@@ -39,6 +44,7 @@ excluded and why), and \code{skipped} (requested methods that could not be
 fitted and why).
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Fits several Solomon analyses to the same data and lines up their estimates
 of the four Solomon contrasts, so that differences in pretest adjustment,
 variance assumptions, and reference distributions are visible side by side.

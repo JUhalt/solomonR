@@ -5,16 +5,17 @@
 \title{Permutation test for a Solomon contrast}
 \usage{
 perm_solomon(
-  object,
+  fit,
   contrast = "ATE (avg over pretest)",
   reps = 5000L,
   seed = NULL,
   return_dist = FALSE,
-  statistic = c("studentized", "difference")
+  statistic = c("studentized", "difference"),
+  object = deprecated()
 )
 }
 \arguments{
-\item{object}{An object returned by \code{fit_solomon_glm()}.}
+\item{fit}{An object returned by \code{fit_solomon_glm()}.}
 
 \item{contrast}{Character string identifying the contrast to test. One of
 \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
@@ -32,6 +33,8 @@ distribution in addition to the observed statistic and p-value.}
 
 \item{statistic}{\code{"studentized"} (the default) divides the contrast by its
 standard error; \code{"difference"} uses the contrast itself.}
+
+\item{object}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{fit}.}
 }
 \value{
 A list of class \code{solomon_perm} containing the contrast, the
@@ -46,6 +49,7 @@ numbers of treated and control clusters. If
 (\code{z_perm}) is also returned.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Performs a randomization-based test by permuting treatment assignment
 within pretest strata. This preserves the Solomon four-group design while
 generating the null distribution for a selected treatment contrast.
