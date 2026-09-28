@@ -44,6 +44,10 @@
 #' @param estimator lavaan estimator, default "MLR" (robust)
 #' @param std_lv logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale
 #' @param conf_level confidence level for intervals (default 0.95)
+#' @param check_invariance If `TRUE` (the default), run [invariance_solomon()]
+#'   on the POST indicators first, and warn when a criterion does not support
+#'   scalar (or, with `partial_post`, partial scalar) invariance. Set it to
+#'   `FALSE` when invariance was established elsewhere. See Invariance check.
 #' @return An object of class `solomon_sem_latent` with:
 #'   \itemize{
 #'     \item `fit_post`: lavaan object for the 4-group POST model
@@ -52,6 +56,8 @@
 #'     \item `fit_pre` (optional): lavaan object for pretested latent ANCOVA
 #'     \item `effects_pre` (optional): data.frame with `Pre_Eff` on latent POST (pretested)
 #'     \item `fitmeasures_pre` (optional)
+#'     \item `invariance`: the [invariance_solomon()] result, or `NULL` when
+#'       the check was not run, and `invariance_status`, a one-line summary
 #'   }
 #' @references
 #' Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
@@ -84,7 +90,8 @@ fit_solomon_sem_latent <- function(
     std_lv = TRUE,
     conf_level = 0.95,
     partial_post = NULL,
-    partial_pre = NULL
+    partial_pre = NULL,
+    check_invariance = TRUE
 ) {
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
@@ -134,6 +141,45 @@ fit_solomon_sem_latent <- function(
   if (length(post_items) < 2) stop("post_items must have at least 2 indicators for a latent POST factor.")
   .check_partial(partial_post, post_items)
   .check_partial(partial_pre, pre_items)
+
+  # Invariance check (issue #55): no criterion was reliable enough in
+  # Solomon-sized groups to refuse the contrasts, so the check is run,
+  # reported, and turned into a warning when a criterion flags
+  # noninvariance.
+  invariance <- NULL
+  invariance_status <- if (!isTRUE(check_invariance)) {
+    "not run (check_invariance = FALSE)"
+  } else if (length(post_items) < 3L) {
+    "not run (it needs at least three POST indicators)"
+  } else {
+    NULL
+  }
+  if (is.null(invariance_status)) {
+    invariance <- invariance_solomon(data, post_items, treat, pretested,
+                                     estimator = estimator, partial = partial_post)
+    target <- if (is.null(partial_post)) "scalar" else "partial scalar"
+    flagged <- invariance$supported[invariance$supported != target]
+    labels <- c(chisq = "the chi-square difference test", chen2007 = "the change in fit (Chen, 2007)")
+    invariance_status <- if (length(flagged)) {
+      sprintf("%s invariance not supported by %s", target,
+              paste(sprintf("%s (%s supported)", labels[names(flagged)], flagged), collapse = " and "))
+    } else {
+      sprintf("%s invariance supported by both criteria", target)
+    }
+    if (length(flagged)) {
+      warning(structure(
+        class = c("solomonR_invariance_warning", "warning", "condition"),
+        list(message = paste0(
+          "Latent mean contrasts assume ", target, " invariance of the POST indicators, which ",
+          paste(labels[names(flagged)], collapse = " and "),
+          if (length(flagged) > 1L) " do" else " does",
+          " not support. In Solomon-sized groups these criteria can also reject invariance ",
+          "that holds; see 'Invariance check' in ?fit_solomon_sem_latent and the fit's ",
+          "`invariance` element."),
+          call = NULL)
+      ))
+    }
+  }
 
   # ------------------ 4-group label as a DATA COLUMN ------------------
   g4 <- interaction(pretested, treat, drop = TRUE)
@@ -230,7 +276,10 @@ fit_solomon_sem_latent <- function(
     fit_pre = fit_pre,
     effects_pre = eff_pre,
     fitmeasures_pre = fm_pre,
+    invariance = invariance,
+    invariance_status = invariance_status,
     settings = list(
+      check_invariance = check_invariance,
       invariance_post = invariance_post,
       ancova = ancova,
       invariance_pre = invariance_pre,

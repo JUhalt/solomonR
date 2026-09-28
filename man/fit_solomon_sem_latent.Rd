@@ -17,7 +17,8 @@ fit_solomon_sem_latent(
   std_lv = TRUE,
   conf_level = 0.95,
   partial_post = NULL,
-  partial_pre = NULL
+  partial_pre = NULL,
+  check_invariance = TRUE
 )
 }
 \arguments{
@@ -46,6 +47,11 @@ fit_solomon_sem_latent(
 \item{partial_post, partial_pre}{Optional freed parameters of the POST or
 PRE indicators for a partial-invariance model, in lavaan syntax (for
 example, \code{"post3 ~ 1"}); see \code{\link[=invariance_solomon]{invariance_solomon()}}.}
+
+\item{check_invariance}{If \code{TRUE} (the default), run \code{\link[=invariance_solomon]{invariance_solomon()}}
+on the POST indicators first, and warn when a criterion does not support
+scalar (or, with \code{partial_post}, partial scalar) invariance. Set it to
+\code{FALSE} when invariance was established elsewhere. See Invariance check.}
 }
 \value{
 An object of class \code{solomon_sem_latent} with:
@@ -56,6 +62,8 @@ An object of class \code{solomon_sem_latent} with:
 \item \code{fit_pre} (optional): lavaan object for pretested latent ANCOVA
 \item \code{effects_pre} (optional): data.frame with \code{Pre_Eff} on latent POST (pretested)
 \item \code{fitmeasures_pre} (optional)
+\item \code{invariance}: the \code{\link[=invariance_solomon]{invariance_solomon()}} result, or \code{NULL} when
+the check was not run, and \code{invariance_status}, a one-line summary
 }
 }
 \description{
