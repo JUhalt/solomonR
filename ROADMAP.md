@@ -281,7 +281,7 @@ contemporary methods clearly separated at every step.
 - **Analyze**
   - [ ] History article and versioned historical decision flows (1988, 1990, 1995) — [#50](https://github.com/JUhalt/solomonR/issues/50); in review, [PR #67](https://github.com/JUhalt/solomonR/pull/67) and [PR #76](https://github.com/JUhalt/solomonR/pull/76)
   - [ ] Replicate the published error rates of the historical test sequence — [#51](https://github.com/JUhalt/solomonR/issues/51); in review, [PR #76](https://github.com/JUhalt/solomonR/pull/76)
-  - [ ] SEM and latent-variable article, and measurement invariance — [#55](https://github.com/JUhalt/solomonR/issues/55); in review, [PR #70](https://github.com/JUhalt/solomonR/pull/70) and [PR #75](https://github.com/JUhalt/solomonR/pull/75) (its simulation study is running)
+  - [ ] SEM and latent-variable article, and measurement invariance — [#55](https://github.com/JUhalt/solomonR/issues/55); in review, [PR #70](https://github.com/JUhalt/solomonR/pull/70) and [PR #75](https://github.com/JUhalt/solomonR/pull/75)
 - **Report**
   - [ ] `report_solomon()`: APA 7 results text with method-specific references — [#52](https://github.com/JUhalt/solomonR/issues/52); in review, [PR #71](https://github.com/JUhalt/solomonR/pull/71)
 - **Synthesize**
