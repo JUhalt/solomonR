@@ -342,9 +342,11 @@ final, and drafting of the companion manuscript begins.
 
 **Milestone:** [v0.9.0](https://github.com/JUhalt/solomonR/milestone/8)
 
-- [ ] Stable public API: consistent argument names and lifecycle labels — [#83](https://github.com/JUhalt/solomonR/issues/83)
-  - The issue lists the audit. Each change waits for the maintainer's
-    decision.
+- [ ] Stable public API: consistent argument names and lifecycle labels — [#83](https://github.com/JUhalt/solomonR/issues/83); in review, [PR #91](https://github.com/JUhalt/solomonR/pull/91)
+  - `y_post` and `y_pre` everywhere, `fit` for fitted models, one order
+    for the planning arguments, an optional `data` argument, one posttest
+    plot (`plot_solomon_means()`), and a lifecycle badge on every
+    function. Former names still work, with a warning, through v1.x.
 - [ ] CRAN pre-submission readiness — [#84](https://github.com/JUhalt/solomonR/issues/84)
   - Nothing is submitted without the maintainer's sign-off.
 - Complete reproducible simulations, and manuscript tables and figures.
@@ -364,7 +366,7 @@ maintainer's sign-off ([#85](https://github.com/JUhalt/solomonR/issues/85)).
 
 Requirements, with status as of the current pull-request stack:
 
-- [ ] Stable public API — [#83](https://github.com/JUhalt/solomonR/issues/83)
+- [ ] Stable public API — [#83](https://github.com/JUhalt/solomonR/issues/83); in review, [PR #91](https://github.com/JUhalt/solomonR/pull/91)
 - [ ] Historical workflow validated against published results — [#51](https://github.com/JUhalt/solomonR/issues/51); in review, [PR #76](https://github.com/JUhalt/solomonR/pull/76)
 - [x] GLM and ML estimands validated
 - [ ] Randomization inference validated, including cluster-level designs — [#19](https://github.com/JUhalt/solomonR/issues/19); in review, [PR #65](https://github.com/JUhalt/solomonR/pull/65)
