@@ -34,6 +34,7 @@ their own article:
    [Reanalysis and Synthesis](https://juhalt.github.io/solomonR/articles/synthesis.html)
 
 The historical analysis has its own place:
+
 - [A History of the Solomon Design and Its Analysis](https://juhalt.github.io/solomonR/articles/history.html) tells
   how it developed.
 - `vignette("classic-solomon")` shows how to reproduce it. It is kept for

@@ -174,11 +174,13 @@ considering when all three of these hold.
    precision (`plan_solomon()`).
 
 **If sensitization is unlikely:**
+
 - a pretest-posttest trial analyzed with the pretest as a covariate; or
 - a posttest-only randomized trial (Campbell & Stanley's Design 6) answers
   the treatment question at lower cost.
 
 **If sensitization is possible but you cannot afford a Solomon design:**
+
 - MERIT's intermediate options are pilot or feasibility work, a study
   within a trial, and design changes that make the measurement less
   reactive (French et al., 2021b, p. 30);
