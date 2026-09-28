@@ -303,8 +303,8 @@ helper by #52; and the SEM vignette by #55.
 **Milestone:** [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6)
 
 - [ ] Longitudinal Solomon designs: Treatment x Pretest x Time — [#57](https://github.com/JUhalt/solomonR/issues/57); in review, [PR #94](https://github.com/JUhalt/solomonR/pull/94), with its simulation study running
-  - Waiting for the published methods for repeated posttests, which the
-    issue lists.
+  - The protocol, its two amendments, and the sources read are on the
+    issue.
 - [ ] Quasi-experimental Solomon designs, with the loss of causal warrant
   made explicit — [#58](https://github.com/JUhalt/solomonR/issues/58); in review, [PR #73](https://github.com/JUhalt/solomonR/pull/73)
 - [ ] Marginal risk and rate contrasts for clustered Solomon designs — [#64](https://github.com/JUhalt/solomonR/issues/64); in review, [PR #74](https://github.com/JUhalt/solomonR/pull/74)
