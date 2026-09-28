@@ -398,6 +398,64 @@ studies <- rbind(studies, data.frame(
   stringsAsFactors = FALSE
 ))
 
+# ---- Measurement invariance criteria for latent contrasts (#55) --------------------
+# Rejection rates of each criterion at each step, and the bias and coverage of the
+# latent sensitization contrast under the scalar and partial models.
+
+iv <- read_study("invariance-validation", "performance.csv")
+iv_info <- read_study("invariance-validation", "run-information.csv")
+iv_run <- stats::setNames(as.list(iv_info$value), iv_info$item)
+iv_pattern <- c("no noninvariance", "intercept +0.3 in the pretested groups",
+                "intercept +0.6 in the pretested groups", "intercept +0.6 in U0 only",
+                "loading -0.3 in the pretested groups")
+iv_method <- c(chisq = "invariance_solomon(), scaled chi-square difference (alpha = .05)",
+               chen = "invariance_solomon(), change in fit (Chen, 2007)",
+               both = "invariance_solomon(), both criteria",
+               scalar_model = "fit_solomon_sem_latent(), scalar model",
+               partial_model = "fit_solomon_sem_latent(), last intercept freed")
+iv_estimand <- c(reject_metric = "Rejection of metric invariance",
+                 reject_scalar = "Rejection of scalar invariance",
+                 sens_bias = "Sens (latent Pretest x Treatment)",
+                 sens_coverage = "Sens (latent Pretest x Treatment)")
+iv_measure <- c(reject_metric = "rejection_rate", reject_scalar = "rejection_rate",
+                sens_bias = "bias", sens_coverage = "coverage")
+# A rejection is correct only for the step the pattern makes noninvariant.
+iv_null <- ifelse(iv$measure == "reject_metric", iv$pattern != 5,
+                  ifelse(iv$measure == "reject_scalar", iv$pattern %in% c(1, 5), FALSE))
+iv_long <- data.frame(
+  study = "invariance-criteria",
+  scenario = iv$scenario,
+  design = sprintf("indicators=%d; n per group=%d; pattern=%s", iv$k, iv$n, iv_pattern[iv$pattern]),
+  method = unname(iv_method[iv$criterion]),
+  estimand = unname(iv_estimand[iv$measure]),
+  null_effect = iv_null | iv$measure %in% c("sens_bias", "sens_coverage"),
+  measure = unname(iv_measure[iv$measure]),
+  value = signif(iv$value, 6),
+  mcse = signif(iv$mcse, 6),
+  n_successful = iv$replications - iv$failures,
+  n_failed = iv$failures,
+  note = "",
+  stringsAsFactors = FALSE
+)
+benchmarks <- rbind(benchmarks, iv_long)
+studies <- rbind(studies, data.frame(
+  study = "invariance-criteria",
+  title = "Latent contrasts: measurement-invariance criteria",
+  issues = "#55",
+  protocol = issue(55),
+  article = file.path(site, "invariance-validation.html"),
+  scenarios = length(unique(iv$scenario)),
+  replications = sprintf("%s per scenario", iv_run$replications),
+  methods = paste(unname(iv_method), collapse = "; "),
+  estimands = "False rejection and detection of metric and scalar noninvariance; bias and coverage of the latent sensitization contrast",
+  package_commit = substr(iv_run$commit, 1, 7),
+  r_version = sub("R version ([0-9.]+).*", "\\1", iv_run$R_version),
+  started = sub(" UTC", "", iv_run$started),
+  finished = sub(" UTC", "", iv_run$finished),
+  failed_fits = sum(unique(iv[, c("scenario", "failures")])$failures),
+  stringsAsFactors = FALSE
+))
+
 dir.create("validation-evidence", showWarnings = FALSE)
 utils::write.csv(studies, file.path("validation-evidence", "studies.csv"), row.names = FALSE)
 utils::write.csv(benchmarks, file.path("validation-evidence", "benchmarks.csv"), row.names = FALSE)

@@ -215,13 +215,11 @@ fit_solomon_sem_latent <- function(
     flagged <- invariance$supported[!invariance$supported %in% c(target, "undetermined")]
     labels <- c(chisq = "the chi-square difference test", chen2007 = "the change in fit (Chen, 2007)")
     parts <- c(
-      if (length(flagged)) sprintf("not supported by %s",
-        paste(sprintf("%s (%s supported)", labels[names(flagged)], flagged), collapse = " and ")),
-      if (length(undetermined)) sprintf("not determined by %s (a statistic was unavailable)",
-        paste(labels[names(undetermined)], collapse = " and "))
+      sprintf("%s supports %s invariance only", labels[names(flagged)], flagged),
+      sprintf("%s could not be computed", labels[names(undetermined)])
     )
     invariance_status <- if (length(parts)) {
-      sprintf("%s invariance %s", target, paste(parts, collapse = "; "))
+      sprintf("%s invariance not supported: %s", target, paste(parts, collapse = "; "))
     } else {
       sprintf("%s invariance supported by both criteria", target)
     }
@@ -230,7 +228,7 @@ fit_solomon_sem_latent <- function(
         class = c("solomonR_invariance_warning", "warning", "condition"),
         list(message = paste0(
           "Latent mean contrasts assume ", target, " invariance of the POST indicators, ",
-          "which is ", paste(parts, collapse = " and "), ". ",
+          "which the invariance check did not support: ", paste(parts, collapse = "; "), ". ",
           "In Solomon-sized groups these criteria can also reject invariance that holds; ",
           "see 'Invariance check' in ?fit_solomon_sem_latent and the fit's `invariance` element."),
           call = NULL)

@@ -379,6 +379,41 @@ sequence falsely declares an effect nearly three times as often as its
 nominal level. See the
 [full article](`r studies$article[studies$study == "historical-tests"]`).
 
+## Latent contrasts: measurement invariance
+
+`invariance_solomon()` reports two published criteria for each step of the
+invariance sequence:
+
+- the scaled chi-square difference test (Satorra & Bentler, 2001);
+- the change in fit, judged against Chen's (2007) cutoffs.
+
+The study asked whether either criterion is reliable enough in
+Solomon-sized groups for `fit_solomon_sem_latent()` to refuse latent mean
+contrasts when it flags noninvariance. The table gives the largest
+false-rejection rate of each criterion when invariance holds.
+
+```{r invariance}
+iv <- benchmarks[benchmarks$study == "invariance-criteria" &
+                   benchmarks$measure == "rejection_rate" &
+                   grepl("pattern=no noninvariance", benchmarks$design), ]
+iv$n <- as.integer(sub(".*n per group=([0-9]+).*", "\\1", iv$design))
+iv$criterion <- sub("invariance_solomon(), ", "", iv$method, fixed = TRUE)
+tab <- stats::aggregate(value ~ criterion + n, iv, max)
+tab <- stats::reshape(tab, idvar = "criterion", timevar = "n", direction = "wide")
+names(tab) <- c("Criterion", paste(sub("value.", "", names(tab)[-1], fixed = TRUE), "per group"))
+tab[-1] <- lapply(tab[-1], num, digits = 3)
+knitr::kable(tab, row.names = FALSE,
+             caption = "Largest false-rejection rate across 3, 4, and 6 indicators and both steps; tolerance .060.")
+```
+
+No criterion kept false rejections at or below .060, so, under the rules
+posted before the run, `fit_solomon_sem_latent()` warns rather than
+refuses when a criterion flags noninvariance. The study also found that a
+pretest-induced shift common to both pretested groups leaves the
+sensitization contrast unbiased, while a shift in one group biases it. See
+the
+[full article](`r studies$article[studies$study == "invariance-criteria"]`).
+
 ## Adding a study
 
 A new study joins this page by:
@@ -390,6 +425,10 @@ A new study joins this page by:
 
 ## References
 
+Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
+measurement invariance. *Structural Equation Modeling: A Multidisciplinary
+Journal, 14*(3), 464–504. https://doi.org/10.1080/10705510701301834
+
 Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
 design considerations and randomization-based inference for community
 intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
@@ -398,6 +437,10 @@ intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
 2074–2102. https://doi.org/10.1002/sim.8086
+
+Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square test
+statistic for moment structure analysis. *Psychometrika, 66*(4), 507–514.
+https://doi.org/10.1007/BF02296192
 
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
 of meta-analysis in the Solomon four-group design* [Paper presentation].
