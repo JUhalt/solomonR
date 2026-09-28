@@ -74,3 +74,25 @@ test_that("an unavailable statistic makes a criterion undetermined, not an error
   expect_identical(solomonR:::.invariance_level(c(NA, FALSE)), "undetermined")
   expect_identical(solomonR:::.invariance_level(c(FALSE, NA)), "undetermined")
 })
+
+test_that("a failed scaled difference test is reported, not raised as an error", {
+  skip_if_not_installed("lavaan")
+  # Replication 862 of scenario 37 in the #55 simulation (3 indicators, 30
+  # per group), where lavaan cannot compute the scaled difference test.
+  d <- readRDS(test_path("fixtures", "invariance-undetermined.rds"))
+  g <- rep(1:4, each = 30)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  inv <- suppressWarnings(invariance_solomon(d, names(d), treat, pretested))
+  skip_if(!is.na(inv$tests$p.value[1]), "this lavaan version computes the scaled difference test")
+  expect_identical(inv$supported[["chisq"]], "undetermined")
+  expect_output(print(inv), "could not be determined")
+  expect_warning(
+    fit <- suppressMessages(withCallingHandlers(
+      fit_solomon_sem_latent(d, names(d), treat, pretested),
+      warning = function(w) if (!inherits(w, "solomonR_invariance_warning")) invokeRestart("muffleWarning")
+    )),
+    "could not be computed", class = "solomonR_invariance_warning"
+  )
+  expect_match(fit$invariance_status, "could not be computed")
+})

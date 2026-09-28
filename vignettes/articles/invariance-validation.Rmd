@@ -127,7 +127,20 @@ decision.
 
 ## Failures
 
-`r if (fails == 0) "No model failed to converge in any replication, so every scenario is in the supported range." else sprintf("Up to %d replications per scenario failed to converge.", fails)`
+```{r failures}
+fs <- unique(p[p$failures > 0, c("scenario", "k", "n", "pattern", "failures")])
+```
+
+`r sum(fs$failures)` of `r format(45 * reps, big.mark = ",")` replications failed, in
+`r nrow(fs)` scenarios, all with `r paste(sort(unique(fs$n)), collapse = " or ")`
+per group. The most in one scenario was `r max(fs$failures)`
+(`r sprintf("%.1f%%", 100 * max(fs$failures) / reps)`), so every scenario is
+within the supported range. Most failures were a model that did not
+converge, usually the three-indicator configural model, which is just
+identified within each group. At least two came from the scaled difference
+test, which lavaan could not compute for those data. The package now
+reports that criterion as undetermined instead of stopping. One such
+replication was reproduced exactly and is kept as a test.
 
 ## False rejection when invariance holds
 
@@ -267,6 +280,12 @@ Vandenberg & Lance, 2000, p. 38).
   sensitization contrast only, under patterns 1–4.
 - **The criteria.** Other criteria, such as modification indices or
   Bayesian approaches, were not studied.
+- **Improper solutions.** With three indicators and 30 per group, lavaan
+  often estimated a negative residual variance (a Heywood case). When the
+  loading-pattern scenario was rerun to reproduce its failures, lavaan gave
+  that warning 663 times across the three models of 1,000 replications.
+  The study counted such fits like any other, so its rates describe the
+  criteria as they behave on these data.
 
 The script is `vignettes/articles/invariance-validation/invariance-simulation.R`
 in the package repository.

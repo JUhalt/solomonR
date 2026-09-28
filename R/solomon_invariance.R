@@ -95,17 +95,24 @@
   cut <- .chen2007_cutoffs(sizes)
   robust <- estimator %in% c("MLR", "MLM", "MLMV")
   step <- function(less, more, srmr_cut) {
-    lrt <- suppressWarnings(lavaan::lavTestLRT(
-      fits[[less]], fits[[more]],
-      method = if (robust) "satorra.bentler.2001" else "default"
-    ))
+    # The scaled difference test can fail inside lavaan when its scaling
+    # correction is undefined, as in one replication of the #55 simulation
+    # (3 indicators, 30 per group); the criterion is then undetermined.
+    lrt <- tryCatch(
+      suppressWarnings(lavaan::lavTestLRT(
+        fits[[less]], fits[[more]],
+        method = if (robust) "satorra.bentler.2001" else "default"
+      )),
+      error = function(e) NULL
+    )
+    lrt_value <- function(col) if (is.null(lrt)) NA_real_ else unname(lrt[2, col])
     d_cfi <- unname(fm[more, "cfi"] - fm[less, "cfi"])
     d_rmsea <- unname(fm[more, "rmsea"] - fm[less, "rmsea"])
     d_srmr <- unname(fm[more, "srmr"] - fm[less, "srmr"])
-    p <- unname(lrt[2, "Pr(>Chisq)"])
+    p <- lrt_value("Pr(>Chisq)")
     data.frame(
       comparison = paste(more, "vs.", less),
-      chisq_diff = unname(lrt[2, "Chisq diff"]), df_diff = unname(lrt[2, "Df diff"]), p.value = p,
+      chisq_diff = lrt_value("Chisq diff"), df_diff = lrt_value("Df diff"), p.value = p,
       delta_cfi = d_cfi, delta_rmsea = d_rmsea, delta_srmr = d_srmr,
       noninvariant_chisq = p < alpha,
       noninvariant_chen = -d_cfi >= cut$cfi && (d_rmsea >= cut$rmsea || d_srmr >= srmr_cut),
