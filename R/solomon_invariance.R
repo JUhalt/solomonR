@@ -56,6 +56,18 @@
   invisible(freed)
 }
 
+# The most constrained level a criterion supports, from its noninvariance
+# flags for the metric and scalar steps. A flag is NA when the criterion's
+# statistic could not be computed for that step (in the #55 simulation this
+# happened in a few replications with 30 per group); the level is then
+# "undetermined" rather than an error.
+.invariance_level <- function(flags, partial = NULL) {
+  if (is.na(flags[1])) return("undetermined")
+  if (flags[1]) return("configural")
+  if (is.na(flags[2])) return("undetermined")
+  if (flags[2]) "metric" else if (is.null(partial)) "scalar" else "partial scalar"
+}
+
 # Configural, metric, and scalar models across the levels of `group`, with
 # the change in fit and the chi-square difference test at each step.
 .invariance_steps <- function(data, items, group, estimator, partial, alpha = 0.05) {
@@ -104,14 +116,12 @@
     step("configural", "metric", cut$srmr[["metric"]]),
     step("metric", "scalar", cut$srmr[["scalar"]])
   )
-  level <- function(flags) {
-    if (flags[1]) "configural" else if (flags[2]) "metric" else if (is.null(partial)) "scalar" else "partial scalar"
-  }
   list(
     fits = fits,
     models = data.frame(model = rownames(fm), fm, row.names = NULL, stringsAsFactors = FALSE),
     tests = tests,
-    supported = c(chisq = level(tests$noninvariant_chisq), chen2007 = level(tests$noninvariant_chen)),
+    supported = c(chisq = .invariance_level(tests$noninvariant_chisq, partial),
+                  chen2007 = .invariance_level(tests$noninvariant_chen, partial)),
     cutoffs = cut, sizes = sizes, partial = partial, alpha = alpha,
     scaled = robust
   )
@@ -151,11 +161,14 @@
 #' and maximum likelihood estimation of multivariate normal data (Cheung &
 #' Rensvold, 2002, p. 251; Chen, 2007). Chen (2007, p. 502) notes that RMSEA
 #' and SRMR tend to over-reject invariant models when samples are small, as
-#' Solomon groups often are. Which criterion should govern latent mean
-#' contrasts in Solomon designs is being studied under a protocol on issue
-#' #55; until then, this function reports both and decides nothing for the
-#' user. The fit indexes are those of the maximum likelihood fit, whose
-#' estimates MLR shares.
+#' Solomon groups often are. A simulation study under a protocol posted on
+#' issue #55 found that neither criterion, nor the two together, kept false
+#' rejections of invariance at or below .060 in Solomon-sized groups (see
+#' the article "Latent Contrasts: Validating the Invariance Check"). This
+#' function therefore reports both and decides nothing for the user, and
+#' [fit_solomon_sem_latent()] runs it and warns, rather than refuses, when a
+#' criterion flags noninvariance. The fit indexes are those of the maximum
+#' likelihood fit, whose estimates MLR shares.
 #'
 #' @section Partial invariance:
 #' When scalar invariance fails, latent means can still be compared if the
@@ -269,13 +282,18 @@ print.solomon_invariance <- function(x, digits = 3, ...) {
   t$chisq_diff <- round(t$chisq_diff, 2)
   t$p.value <- signif(t$p.value, 3)
   print(t, row.names = FALSE)
+  verdict <- function(level) {
+    if (level == "undetermined") "could not be determined (a statistic was unavailable)" else
+      paste(level, "supported")
+  }
   cat(sprintf(
-    "\nChi-square difference test%s at alpha = %s (Vandenberg & Lance, 2000, p. 46): %s supported.\n",
-    if (isTRUE(x$scaled)) " (scaled; Satorra & Bentler, 2001)" else "", x$alpha, x$supported[["chisq"]]
+    "\nChi-square difference test%s at alpha = %s (Vandenberg & Lance, 2000, p. 46): %s.\n",
+    if (isTRUE(x$scaled)) " (scaled; Satorra & Bentler, 2001)" else "", x$alpha,
+    verdict(x$supported[["chisq"]])
   ))
   cat(sprintf(
-    "Change in fit (Chen, 2007, pp. 501-502; %s): %s supported.\n",
-    x$cutoffs$setting, x$supported[["chen2007"]]
+    "Change in fit (Chen, 2007, pp. 501-502; %s): %s.\n",
+    x$cutoffs$setting, verdict(x$supported[["chen2007"]])
   ))
   if (x$supported[["chisq"]] != x$supported[["chen2007"]]) {
     cat("The criteria disagree; see ?invariance_solomon.\n")

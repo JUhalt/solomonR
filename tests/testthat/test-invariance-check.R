@@ -65,3 +65,12 @@ test_that("invariant data at a large n pass the check without a warning", {
   )
   expect_match(fit$invariance_status, "scalar invariance supported by both criteria")
 })
+
+test_that("an unavailable statistic makes a criterion undetermined, not an error", {
+  expect_identical(solomonR:::.invariance_level(c(FALSE, FALSE)), "scalar")
+  expect_identical(solomonR:::.invariance_level(c(FALSE, FALSE), partial = "y3 ~ 1"), "partial scalar")
+  expect_identical(solomonR:::.invariance_level(c(TRUE, NA)), "configural")
+  expect_identical(solomonR:::.invariance_level(c(FALSE, TRUE)), "metric")
+  expect_identical(solomonR:::.invariance_level(c(NA, FALSE)), "undetermined")
+  expect_identical(solomonR:::.invariance_level(c(FALSE, NA)), "undetermined")
+})

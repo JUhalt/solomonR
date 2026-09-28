@@ -98,11 +98,67 @@ between latent means, so they do not depend on the reference choice.
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
 }
+\section{Invariance check}{
+
+By default the function first runs \code{\link[=invariance_solomon]{invariance_solomon()}} on the POST
+indicators, stores the result in \code{invariance}, and prints a one-line
+summary. When the chi-square difference test or the change-in-fit
+criterion does not support scalar (or, with \code{partial_post}, partial
+scalar) invariance, it warns with class \code{solomonR_invariance_warning}. It
+does not refuse the contrasts.
+
+This follows a simulation study whose decision rules were posted on issue
+#55 before any run (see the article "Latent Contrasts: Validating the
+Invariance Check"). A criterion would have governed an automatic refusal
+only if it falsely rejected invariance at a rate of .060 or less in
+Solomon-sized groups, and none did. With six indicators and 60
+participants per group, the false-rejection rates were:
+\itemize{
+\item .100 for the scaled chi-square difference test (Satorra & Bentler, 2001);
+\item .178 for Chen's (2007) change-in-fit cutoffs;
+\item .090 when both had to agree.
+}
+
+The warning is therefore a prompt to examine the invariance results, not
+a verdict. The study also found which kind of noninvariance matters for
+the Solomon contrasts:
+\itemize{
+\item \strong{A shift common to both pretested groups.} When a pretest shifted an
+indicator's intercept equally in both pretested groups, the
+sensitization contrast stayed unbiased, because the shift cancels within
+the pretested condition.
+\item \strong{A shift in one group only.} A shift in the unpretested control group
+alone biased it (by 0.07 to 0.16 latent standard deviations across the
+scenarios studied), and freeing the shifted intercept with
+\code{partial_post} removed the bias.
+}
+}
+
+\examples{
+\donttest{
+if (requireNamespace("lavaan", quietly = TRUE)) {
+  set.seed(55)
+  g <- rep(1:4, each = 120)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  f <- stats::rnorm(480, 0.4 * treat)
+  items <- data.frame(y1 = f + stats::rnorm(480, 0, 0.6),
+                      y2 = 0.9 * f + stats::rnorm(480, 0, 0.6),
+                      y3 = 0.8 * f + stats::rnorm(480, 0, 0.6),
+                      y4 = 0.7 * f + stats::rnorm(480, 0, 0.6))
+  fit_solomon_sem_latent(items, c("y1", "y2", "y3", "y4"), treat, pretested)
+}
+}
+}
 \references{
 Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
 equivalence of factor covariance and mean structures: The issue of partial
 measurement invariance. \emph{Psychological Bulletin, 105}(3), 456–466.
 https://doi.org/10.1037/0033-2909.105.3.456
+
+Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
+measurement invariance. \emph{Structural Equation Modeling: A Multidisciplinary
+Journal, 14}(3), 464–504. https://doi.org/10.1080/10705510701301834
 
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. \emph{Psychometrika, 58}(4), 525–543.
@@ -111,6 +167,10 @@ https://doi.org/10.1007/BF02294825
 Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
 \emph{Journal of Statistical Software, 48}(2), 1–36.
 https://doi.org/10.18637/jss.v048.i02
+
+Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square test
+statistic for moment structure analysis. \emph{Psychometrika, 66}(4), 507–514.
+https://doi.org/10.1007/BF02296192
 
 Vandenberg, R. J., & Lance, C. E. (2000). A review and synthesis of the
 measurement invariance literature: Suggestions, practices, and
