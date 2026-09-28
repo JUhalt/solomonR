@@ -78,6 +78,14 @@ match the data (see issue #53). The article "Worked Example: A Published
 Solomon Study" carries the relapse-prevention comparison through the
 package's analyses.
 }
+\section{Acknowledgment}{
+
+We thank Nu Nu Mai, Yoshi Takahashi, and Mon Mon Oo for making their data
+publicly available with their article. For the study's design, measures,
+and findings, read the published article (Mai et al., 2020, cited under
+Source).
+}
+
 \section{License}{
 
 The data are © 2020 by the authors (Nu Nu Mai, Yoshi Takahashi, and Mon Mon
