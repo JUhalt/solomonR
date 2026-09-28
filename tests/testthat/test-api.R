@@ -221,5 +221,11 @@ test_that("the exported functions use one name for each kind of argument", {
       )
     }
   }
-  expect_false(any(c("outcome", "posttest", "pretest") %in% args))
+  # The data arguments have one set of names in every function that takes
+  # data (those with a `treat` argument); other functions, such as
+  # analysis_plan_solomon(outcome = ), may use these words for descriptions.
+  data_fns <- fns[vapply(fns, function(f) "treat" %in% names(formals(getExportedValue("solomonR", f))),
+                         logical(1))]
+  data_args <- unlist(lapply(data_fns, function(f) names(formals(getExportedValue("solomonR", f)))))
+  expect_false(any(c("outcome", "posttest", "pretest") %in% data_args))
 })
