@@ -401,6 +401,7 @@ A useful starting point is:
 
 | Goal | Suggested `solomonR` approach |
 |----|----|
+| Plan a study and pre-register its analysis | `plan_solomon()`, `analysis_plan_solomon()` |
 | Modern primary analysis | `fit_solomon_glm()` |
 | Randomization-based inference | `perm_solomon()` |
 | Test whether sensitization is negligible | `equivalence_solomon()` |
