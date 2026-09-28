@@ -1,0 +1,265 @@
+---
+title: "Missing Posttests: Validating the Sensitivity Analysis"
+description: >
+  Simulation study of fit_solomon_mi(): multiple imputation of missing
+  posttests under missing at random and under known departures from it.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+p <- utils::read.csv("mi-validation/performance.csv", stringsAsFactors = FALSE)
+info <- utils::read.csv("mi-validation/run-information.csv", stringsAsFactors = FALSE)
+agree <- utils::read.csv("mi-validation/agreement.csv", stringsAsFactors = FALSE)
+run <- stats::setNames(as.list(info$value), info$item)
+reps <- as.integer(run$replications)
+
+# Tolerances declared on issue #82 before any run.
+p$null <- abs(p$true_value) < 1e-8
+p$bias_ok <- abs(p$bias) <= 2 * p$bias_mcse
+p$cov_ok <- p$coverage >= 0.94 & p$coverage <= 0.96
+p$se_ok <- abs(p$relerr) <= 10
+p$t1_ok <- ifelse(p$null, p$rejection >= 0.04 & p$rejection <= 0.06, TRUE)
+p$all_ok <- p$bias_ok & p$cov_ok & p$se_ok & p$t1_ok
+
+# M3 is the analysis with the true offsets; under pattern A it is M2.
+m3 <- p[p$method == "mi_true" | (p$offsets == "A" & p$method == "mi_mar"), ]
+big <- m3[m3$n >= 60, ]
+short <- m3[!m3$all_ok, ]
+agree$within <- abs(agree$mean_difference) <= 2 * agree$mcse
+odd <- agree[!agree$within, ]
+
+pct <- function(x) sprintf("%.1f%%", 100 * x)
+f3 <- function(x) sprintf("%.3f", x)
+rng <- function(x, d = 3) sprintf(paste0("%.", d, "f to %.", d, "f"), min(x), max(x))
+offset_label <- c(A = "A: none (missing at random)", B = "B: all four groups",
+                  C = "C: the treatment groups", D = "D: the pretested treatment group only")
+method_label <- c(complete_case = "M1: complete case", mi_mar = "M2: MI, delta = 0",
+                  mi_true = "M3: MI, true offsets")
+```
+
+This article reports the simulation validation of `fit_solomon_mi()`, the
+multiple-imputation analysis of missing posttests that
+`tipping_point_solomon()` repeats over a range of offsets. The aims,
+data-generating mechanisms, estimands, methods, performance measures,
+tolerances, and decision rules were posted on
+[issue #82](https://github.com/JUhalt/solomonR/issues/82) before any code or
+run, following the ADEMP structure of Morris et al. (2019). The results come
+from package commit `r substr(run$commit, 1, 7)`, with `r reps` replications
+per scenario and `r run$imputations` imputations per analysis.
+
+## Design
+
+**Complete data.** The model of `simulate_solomon()` on a standardized
+scale: a treatment effect of 0.5, no sensitization, a pretest effect of 0.2,
+and a pretest-posttest correlation of 0.5.
+
+**Missing posttests.** In the pretested groups, whether a posttest is
+missing depends on the observed pretest (missing at random), with the odds
+doubling per standard deviation. The unpretested groups have no pretest, so
+their posttests are missing completely at random within group. Each unit
+with a missing posttest has its true outcome shifted by the offset of its
+group: the pattern-mixture model of Carpenter et al. (2023, Eq. 10.10).
+
+**Scenarios.** `r length(unique(p$scenario))` in all:
+
+- **Participants per group:** 30, 60, and 120.
+- **Missing proportions:** 20% in every group, or 30% in the treatment
+  groups and 10% in the control groups.
+- **Offsets of −0.5 SD:** (A) none, so the posttests are missing at
+  random; (B) in all four groups; (C) in the two treatment groups; and (D)
+  in the pretested treatment group only.
+
+**Estimands.** The four Solomon contrasts, defined on the means of all
+randomized participants, including the shifted outcomes of those whose
+posttest is missing.
+
+**Methods.**
+
+- **M1:** complete-case `fit_solomon_glm()` with HC3 standard errors.
+- **M2:** `fit_solomon_mi(delta = 0)`, the analysis under missing at random.
+- **M3:** `fit_solomon_mi()` with the true offsets. Under pattern A it is M2.
+
+**Tolerances.** Bias within 2 Monte Carlo standard errors (MCSE); coverage
+of 95% intervals from 0.940 to 0.960; model standard error within 10% of the
+empirical standard error; and, where the true value is zero, a rejection
+rate from 0.040 to 0.060.
+
+## Failures
+
+`r if (sum(p$failures) == 0 && all(p$errors == 0)) "No analysis failed or returned an error in any replication." else sprintf("%d analyses failed.", sum(p$failures))`
+
+## The analysis with the true offsets
+
+**Decision rule 1** required M3 to meet every tolerance in at least 90% of
+its `r nrow(m3)` contrast-by-scenario cells and in every cell with 60 or more
+participants per group. It met them in `r sum(m3$all_ok)` cells
+(`r pct(mean(m3$all_ok))`) and in `r sum(big$all_ok)` of the `r nrow(big)`
+cells with 60 or more per group, so **the rule was not met**, and the
+function is not validated as a whole.
+
+```{r rule1}
+tab <- aggregate(cbind(cells = 1, all = all_ok, coverage = cov_ok, type1 = t1_ok, bias = bias_ok) ~ n,
+                 m3, sum)
+knitr::kable(data.frame(
+  `Per group` = tab$n,
+  `Every tolerance` = sprintf("%d of %d", tab$all, tab$cells),
+  `Coverage` = sprintf("%d of %d", tab$coverage, tab$cells),
+  `Type I error` = sprintf("%d of %d", tab$type1, tab$cells),
+  `Bias` = sprintf("%d of %d", tab$bias, tab$cells),
+  check.names = FALSE
+), align = "lrrrr", caption = "Cells of M3 within each tolerance, by group size (all offsets and missing proportions).")
+```
+
+Every shortfall was a conservative interval or a small bias flag; no
+interval covered too rarely:
+
+```{r shortfalls}
+knitr::kable(data.frame(
+  `Per group` = short$n,
+  Missing = short$missing,
+  Offsets = short$offsets,
+  Contrast = short$contrast,
+  `Bias (SD)` = sprintf("%.4f", short$bias),
+  `Bias / MCSE` = sprintf("%.1f", short$bias / short$bias_mcse),
+  Coverage = sprintf("%.3f", short$coverage),
+  `Type I` = ifelse(short$null, sprintf("%.3f", short$rejection), ""),
+  check.names = FALSE
+), align = "rllllrrr", caption = "M3 cells outside a tolerance.")
+```
+
+- **With 60 or more per group,** coverage and Type I error were within
+  tolerance in every cell: coverage ranged from `r rng(big$coverage, 4)`.
+  Two contrasts in one scenario (a common offset with differential
+  missingness, 60 per group) had bias just beyond 2 MCSE:
+  `r paste(sprintf("%s SD (%.1f MCSE)", sprintf("%.3f", big$bias[!big$bias_ok]), big$bias[!big$bias_ok] / big$bias_mcse[!big$bias_ok]), collapse = " and ")`.
+- **With 30 per group,** intervals were conservative: mean coverage
+  `r f3(mean(m3$coverage[m3$n == 30]))` (up to `r f3(max(m3$coverage[m3$n == 30]))`),
+  with the model standard error exceeding the empirical standard error by
+  `r sprintf("%.1f%%", mean(m3$relerr[m3$n == 30]))` on average. The
+  complete-case HC3 analysis under missing at random averaged coverage of
+  `r f3(mean(p$coverage[p$method == "complete_case" & p$offsets == "A" & p$n == 30]))`
+  at this size, with its model standard error
+  `r sprintf("%.1f%%", mean(p$relerr[p$method == "complete_case" & p$offsets == "A" & p$n == 30]))`
+  above the empirical one, so the imputation adds a little conservatism to
+  that of the complete-data analysis. (The package's earlier study found HC3
+  intervals close to nominal, 0.951 to 0.954, with 20 or more per cell;
+  issues #10 and #22.)
+
+A method with no bias would exceed 2 MCSE in about 5 of 96 cells by chance;
+`r sum(!m3$bias_ok)` did. That is context for reading the table, not a
+change to the rule.
+
+## Agreement with the complete-case analysis
+
+Under missing at random, multiple imputation should agree with the
+complete-case analysis (Carpenter et al., 2023, p. 256). **Decision rule
+2** required the paired mean difference between M2 and M1 to lie within 2
+MCSE of zero. It did in `r sum(agree$within)` of `r nrow(agree)`
+comparisons, and no difference exceeded
+`r sprintf("%.4f", max(abs(agree$mean_difference)))` SD in absolute value.
+
+The exception was `r odd$contrast` with `r odd$n` per group and
+`r odd$missing` missingness: `r sprintf("%.5f", odd$mean_difference)` SD,
+`r sprintf("%.1f", abs(odd$mean_difference) / odd$mcse)` MCSE. In the
+unpretested groups the imputation model is the group mean, and under its
+posterior draw the expected imputed value equals the observed group mean,
+so the imputation cannot move this contrast systematically. The difference
+is attributed to chance among `r nrow(agree)` comparisons and to the Monte
+Carlo error of a finite number of imputations.
+
+## When posttests are not missing at random
+
+**Decision rule 3** was descriptive: the bias of the two analyses that
+assume missing at random (M1 and M2) when the missing posttests are shifted.
+The two had nearly the same bias throughout.
+
+```{r mar-bias}
+mar <- p[p$offsets != "A" & p$method %in% c("complete_case", "mi_mar"), ]
+agg <- aggregate(cbind(bias, coverage) ~ offsets + missing + method + contrast, mar, mean)
+agg <- agg[agg$method == "mi_mar", ]
+wide <- reshape(agg[, c("offsets", "missing", "contrast", "bias")], idvar = c("offsets", "missing"),
+                timevar = "contrast", direction = "wide")
+names(wide) <- sub("^bias\\.", "", names(wide))
+wide <- wide[order(wide$offsets, wide$missing), ]
+knitr::kable(data.frame(
+  Offsets = offset_label[wide$offsets], Missing = wide$missing,
+  ATE = sprintf("%.3f", wide$`ATE (avg over pretest)`),
+  `Pretest x Treatment` = sprintf("%.3f", wide$`Pretest x Treatment`),
+  `Treatment | pretested` = sprintf("%.3f", wide$`Treatment | pretested`),
+  `Treatment | unpretested` = sprintf("%.3f", wide$`Treatment | unpretested`),
+  check.names = FALSE
+), align = "llrrrr", row.names = FALSE,
+caption = "Mean bias (SD units) of M2, the MI analysis under missing at random, averaged over group sizes. M1 was within 0.001 of these values.")
+```
+
+- **A common offset** biased nothing when the missing proportions were
+  equal, because the shifts cancel in every contrast. With differential
+  missingness it biased the treatment contrasts.
+- **Offsets in the treatment groups** biased the treatment contrasts but
+  hardly the sensitization contrast, because the offset and the missing
+  proportion were the same in both treatment groups.
+- **An offset in the pretested treatment group alone** biased the
+  sensitization contrast by
+  `r sprintf("%.2f", wide[wide$offsets == "D" & wide$missing == "equal", "Pretest x Treatment"])`
+  SD with equal missingness and
+  `r sprintf("%.2f", wide[wide$offsets == "D" & wide$missing == "differential", "Pretest x Treatment"])`
+  SD with differential missingness. This is the Solomon-specific case: a departure from missing at random
+  in one pretested group can hide a true difference in sensitization, or
+  create a spurious one, while the analysis under missing at random
+  reports none.
+
+This is why `tipping_point_solomon()` lets the offsets differ between the
+pretested and unpretested groups: `groups = 1` shifts the pretested treatment
+group alone, the pattern that bears on sensitization.
+
+## Number of imputations
+
+**Decision rule 4** required the Monte Carlo error from `m = 100`
+imputations to stay below 10% of the pooled standard error. The largest
+ratio was `r sprintf("%.3f", max(p$max_mc_ratio, na.rm = TRUE))`, so the
+default stays at 100. The mean fraction of missing information was
+`r rng(p$mean_fmi[p$method != "complete_case"], 2)`.
+
+## What this means for users
+
+- With 60 or more participants per group, the intervals of
+  `fit_solomon_mi()` had nominal coverage and Type I error, both under
+  missing at random and under the pattern-mixture departures studied when
+  the offsets were right.
+- With 30 per group, they were conservative: slightly too wide, so tests
+  lose a little power but do not reject too often.
+- An analysis under missing at random can be biased in the sensitization
+  contrast when the departure from it differs between the pretested groups.
+  A tipping-point analysis with `groups = 1` shows how large such a
+  departure would need to be to change the conclusion.
+- The functions remain experimental, because decision rule 1 was not met.
+
+## Deviation from the protocol
+
+A first run, from commit 633a69e, was stopped after 11 of its 96 task
+parts, and its results were discarded unread. `fit_solomon_mi()` had been
+changed to compute each completed-data analysis from matrix products rather
+than by calling `fit_solomon_glm()`; the package's tests check that the
+results agree to 1e-10. The reported run is entirely from commit
+`r substr(run$commit, 1, 7)`, and the design, methods, and rules are those
+of the protocol.
+
+## Reproducing the study
+
+From the package root, `Rscript vignettes/articles/mi-validation/mi-simulation.R`
+writes `performance.csv` and `run-information.csv`, and
+`Rscript vignettes/articles/mi-validation/mi-agreement.R` then writes
+`agreement.csv` from the saved replications. The run used R
+`r sub("R version ([0-9.]+).*", "\\1", run$R_version)` and
+`r run$workers` workers and took from `r run$started` to `r run$finished`.
+
+## References
+
+Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
+M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd
+ed.). Wiley. https://doi.org/10.1002/9781119756118
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086

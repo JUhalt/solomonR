@@ -227,9 +227,27 @@
 #' rather than too few". The `mc_se` column gives the Monte Carlo standard
 #' error of each estimate due to the finite number of imputations.
 #'
+#' @section Validation:
+#' A simulation study under a protocol posted on issue #82 before any run
+#' (24 scenarios, 2,000 replications each; see the article "Missing
+#' Posttests: Validating the Sensitivity Analysis") found:
+#' - **With 60 or more participants per group,** coverage of 95% intervals
+#'   from 0.9415 to 0.9595 and Type I error within 0.040 to 0.060, under
+#'   missing at random and under the pattern-mixture departures studied
+#'   when the offsets were right. Bias exceeded 2 Monte Carlo standard
+#'   errors in 2 of 64 contrasts, by at most 0.011 SD.
+#' - **With 30 per group,** conservative intervals: coverage up to 0.967
+#'   and model standard errors 3.9% above the empirical ones on average.
+#' - **Missing at random:** agreement with the complete-case analysis, as
+#'   theory predicts (Carpenter et al., 2023, p. 256).
+#' - **Departures that differ between the pretested groups:** the
+#'   analyses that assume missing at random biased the sensitization
+#'   contrast by 0.10 to 0.16 SD.
+#'
 #' @section Lifecycle:
-#' Experimental until its simulation study, whose protocol is posted on
-#' issue #82, has been run and reported.
+#' Experimental. The study's pre-specified rule for validation, every
+#' tolerance met in 90% of cells and in every cell with 60 or more per group,
+#' was not met: 84 of 96 cells and 62 of 64.
 #'
 #' @param y_post Numeric posttest scores, with `NA` for missing posttests.
 #' @param treat Treatment indicator coded 0/1 (or logical).
@@ -421,7 +439,7 @@ print.solomon_mi <- function(x, digits = 3, ...) {
 #' not blurred by Monte Carlo noise.
 #'
 #' @section Lifecycle:
-#' Experimental, with [fit_solomon_mi()].
+#' Experimental, with [fit_solomon_mi()], whose validation study it shares.
 #'
 #' @inheritParams fit_solomon_mi
 #' @param contrast The Solomon contrast to follow. Default is the average

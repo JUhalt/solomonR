@@ -452,6 +452,38 @@ sensitization contrast unbiased, while a shift in one group biases it. See
 the
 [full article](`r studies$article[studies$study == "invariance-criteria"]`).
 
+## Missing posttests
+
+`fit_solomon_mi()` multiply imputes missing posttests and shifts the
+imputed values of each group by an offset, the pattern-mixture sensitivity
+analysis of Carpenter et al. (2023, section 10.3). The study generated
+posttests missing at random and posttests whose missing values were shifted
+by known offsets, and analyzed them with the true offsets. The table gives
+the coverage of 95% intervals by group size.
+
+```{r missing-posttests}
+mp <- benchmarks[benchmarks$study == "missing-posttests" & benchmarks$measure == "coverage" &
+                   grepl("true offsets|delta = 0", benchmarks$method), ]
+mp$n <- as.integer(sub(".*n per group=([0-9]+);.*", "\\1", mp$design))
+# The analysis with the true offsets: delta = 0 when the posttests are missing at random.
+mp <- mp[grepl("true offsets", mp$method) |
+           (grepl("delta = 0", mp$method) & grepl("offsets=none", mp$design)), ]
+tab <- stats::aggregate(value ~ n, mp, function(v) c(min = min(v), max = max(v)))
+knitr::kable(data.frame(`Per group` = tab$n,
+                        `Lowest coverage` = num(tab$value[, "min"], digits = 3),
+                        `Highest coverage` = num(tab$value[, "max"], digits = 3),
+                        check.names = FALSE),
+             row.names = FALSE, caption = "Coverage of 95% intervals with the true offsets, over 4 contrasts and 8 scenarios per size; tolerance .940 to .960.")
+```
+
+With 60 or more per group, coverage and Type I error were within tolerance
+in every scenario; with 30 per group, intervals were conservative. The
+pre-specified rule for validation was not met (84 of 96 cells, against 90%),
+so the functions stay experimental. The analyses that assume missing at
+random biased the sensitization contrast by 0.10 to 0.16 SD when the
+departure was confined to one pretested group. See the
+[full article](`r studies$article[studies$study == "missing-posttests"]`).
+
 ## Adding a study
 
 A new study joins this page by:
@@ -465,6 +497,10 @@ All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.
 
 ## References
+
+Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
+M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd
+ed.). Wiley. https://doi.org/10.1002/9781119756118
 
 Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
 measurement invariance. *Structural Equation Modeling: A Multidisciplinary
