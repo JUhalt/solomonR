@@ -7,6 +7,10 @@
 #'
 #' @param perm An object returned by `perm_solomon(..., return_dist = TRUE)`.
 #' @return A ggplot object
+#' @examples
+#' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+#' perm <- perm_solomon(fit, reps = 199, seed = 1, return_dist = TRUE)
+#' plot_perm(perm)
 #' @export
 plot_perm <- function(perm) {
   if (is.null(perm$z_perm) || is.null(perm$z_obs))

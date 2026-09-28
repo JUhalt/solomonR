@@ -128,6 +128,11 @@ arm even under the sharp null, where this test is exact, so the
 permutation test is preferred for designs with few clusters.
 }
 }
+\examples{
+fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+# Few permutations keep the example fast; use the default for analyses.
+perm_solomon(fit, reps = 199, seed = 1)
+}
 \references{
 Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
 analysis of incidence rates in cluster randomized trials. \emph{International

@@ -32,6 +32,12 @@ fit_solomon_sem(
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
 }
+\value{
+An object of class \code{solomon_sem} with \code{mode} (\code{"mean"} or
+\code{"ancova_pretested"}), the lavaan \code{fit}, the contrasts in \code{effects}
+(estimate, standard error, z, p value, and confidence interval), the
+\code{fitmeasures}, and \code{conf_level}.
+}
 \description{
 Two modes:
 \enumerate{
@@ -50,6 +56,11 @@ pretested groups.
 
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
+}
+\examples{
+if (requireNamespace("lavaan", quietly = TRUE)) {
+  with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre))
+}
 }
 \references{
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:

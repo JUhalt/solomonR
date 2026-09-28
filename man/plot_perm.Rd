@@ -18,3 +18,8 @@ observed value marked. The subtitle reports the same p-value as
 \code{\link[=perm_solomon]{perm_solomon()}}, and says whether it came from every possible allocation
 or from sampled permutations.
 }
+\examples{
+fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+perm <- perm_solomon(fit, reps = 199, seed = 1, return_dist = TRUE)
+plot_perm(perm)
+}

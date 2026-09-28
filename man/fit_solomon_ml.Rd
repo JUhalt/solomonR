@@ -91,6 +91,12 @@ equal and unequal residual variances, at that size and every larger size
 studied.
 }
 
+\examples{
+# With fewer than 40 participants per cell, use the small-sample
+# (Satterthwaite) inference; see "Inference options".
+with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
+                                     inference = "satterthwaite"))
+}
 \references{
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.

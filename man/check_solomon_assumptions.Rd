@@ -34,6 +34,9 @@ slope-homogeneity p-value is substantively informative: it suggests that
 the treatment effect among pretested participants depends on the pretest
 score.
 }
+\examples{
+with(solomon_example, check_solomon_assumptions(y_post, treat, pretested, y_pre))
+}
 \references{
 Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
 variances. \emph{Journal of the American Statistical Association, 69}(346),

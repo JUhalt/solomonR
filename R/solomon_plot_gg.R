@@ -9,6 +9,8 @@
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
 #' @param pretested Pretest indicator coded 0 = not pretested and 1 = pretested.
 #' @return A ggplot object.
+#' @examples
+#' with(solomon_example, plot_solomon_gg(y_post, treat, pretested))
 #' @export
 plot_solomon_gg <- function(y, treat, pretested) {
   df <- data.frame(y=y, treat=factor(treat), pretested=factor(pretested))

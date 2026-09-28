@@ -148,6 +148,11 @@
 #' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
 #' https://doi.org/10.1093/biomet/34.1-2.28
 #'
+#' @examples
+#' # With fewer than 40 participants per cell, use the small-sample
+#' # (Satterthwaite) inference; see "Inference options".
+#' with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
+#'                                      inference = "satterthwaite"))
 #' @export
 fit_solomon_ml <- function(
     y_post,

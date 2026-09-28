@@ -43,6 +43,14 @@
 #' Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
 #' *Journal of Statistical Software, 48*(2), 1–36.
 #' https://doi.org/10.18637/jss.v048.i02
+#' @return An object of class `solomon_sem` with `mode` (`"mean"` or
+#'   `"ancova_pretested"`), the lavaan `fit`, the contrasts in `effects`
+#'   (estimate, standard error, z, p value, and confidence interval), the
+#'   `fitmeasures`, and `conf_level`.
+#' @examples
+#' if (requireNamespace("lavaan", quietly = TRUE)) {
+#'   with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre))
+#' }
 #' @export
 fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
                             equal_var = FALSE, ancova = FALSE,

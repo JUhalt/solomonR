@@ -160,6 +160,13 @@ population standardized mean difference (Cumming & Finch, 2001; Kelley,
 2007).
 }
 
+\examples{
+classic <- with(solomon_example, fit_solomon_classic(y_post, treat, pretested, y_pre))
+classic
+
+# The 1995 revision of the sequence, without Test D (Sawilowsky, 1996).
+with(solomon_example, fit_solomon_classic(y_post, treat, pretested, y_pre, flow = "1995"))
+}
 \references{
 Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
 four-group designs reconsidered: A reply to Sawilowsky and Markman.

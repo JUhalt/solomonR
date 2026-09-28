@@ -164,6 +164,13 @@ method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.
 }
 
+\examples{
+fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+fit
+
+# The four Solomon contrasts as a data frame.
+fit$effects
+}
 \references{
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),

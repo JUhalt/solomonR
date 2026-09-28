@@ -22,3 +22,6 @@ of a Solomon four-group design. Intervals use the t distribution with
 n - 1 degrees of freedom within each cell. For the model-adjusted means
 behind the sensitization contrast, see \code{\link[=plot_sensitization]{plot_sensitization()}}.
 }
+\examples{
+with(solomon_example, plot_solomon(y_post, treat, pretested))
+}

@@ -1,5 +1,14 @@
 # solomonR (development version)
 
+## Examples for every exported function (#84, first part)
+
+* `fit_solomon_glm()`, `fit_solomon_classic()`, `fit_solomon_ml()`,
+  `perm_solomon()`, `fit_solomon_sem()`, `check_solomon_assumptions()`,
+  `p_to_z()`, `plot_perm()`, `plot_solomon()`, and `plot_solomon_gg()`
+  now have runnable examples on their help pages. Each runs in under 3
+  seconds.
+* The help page of `fit_solomon_sem()` now documents its return value.
+
 ## Coverage of the published methodology (#80)
 
 * New article "Coverage of the Published Methodology" (References menu)

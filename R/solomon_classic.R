@@ -436,6 +436,12 @@
 #' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
 #' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 #'
+#' @examples
+#' classic <- with(solomon_example, fit_solomon_classic(y_post, treat, pretested, y_pre))
+#' classic
+#'
+#' # The 1995 revision of the sequence, without Test D (Sawilowsky, 1996).
+#' with(solomon_example, fit_solomon_classic(y_post, treat, pretested, y_pre, flow = "1995"))
 #' @export
 fit_solomon_classic <- function(
     y_post,

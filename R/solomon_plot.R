@@ -9,6 +9,8 @@
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
 #' @param pretested Pretest indicator coded 0 = not pretested and 1 = pretested.
 #' @return Invisibly returns a data frame containing cell summaries.
+#' @examples
+#' with(solomon_example, plot_solomon(y_post, treat, pretested))
 #' @export
 plot_solomon <- function(y, treat, pretested) {
   df <- data.frame(y=y, treat=factor(treat), pretested=factor(pretested))

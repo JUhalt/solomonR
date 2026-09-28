@@ -41,6 +41,8 @@ bf_test <- function(y, group) {
 #' Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 #' variances. *British Journal of Mathematical and Statistical Psychology,
 #' 57*(1), 173–181. https://doi.org/10.1348/000711004849222
+#' @examples
+#' with(solomon_example, check_solomon_assumptions(y_post, treat, pretested, y_pre))
 #' @export
 check_solomon_assumptions <- function(y_post, treat, pretested, y_pre) {
   treat <- .solomon_indicator(treat, "treat")

@@ -52,6 +52,8 @@ NULL
 #' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams, R.
 #' M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol. 1).
 #' Princeton University Press.
+#' @examples
+#' p_to_z(c(0.05, 0.025, 0.5))
 #' @export
 p_to_z <- function(p) {
   stats::qnorm(1 - p)
@@ -289,6 +291,12 @@ stouffer_solomon <- function(p) {
 #'
 #' Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
 #' (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
+#' @examples
+#' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+#' fit
+#'
+#' # The four Solomon contrasts as a data frame.
+#' fit$effects
 #' @export
 fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
@@ -757,6 +765,10 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 #' randomized experiments. *Journal of the American Statistical Association,
 #' 116*(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415
 #'
+#' @examples
+#' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+#' # Few permutations keep the example fast; use the default for analyses.
+#' perm_solomon(fit, reps = 199, seed = 1)
 #' @export
 perm_solomon <- function(
     object,
