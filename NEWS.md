@@ -59,10 +59,29 @@
   it reports the chi-square difference test, scaled for robust estimators
   (Satorra & Bentler, 2001), and the change in CFI, RMSEA, and SRMR against
   the cutoffs of Chen (2007). It gives the decision under each criterion.
-  The two criteria can disagree, and the change-in-fit cutoffs are
-  unreliable in small samples, so the function decides nothing for the user.
-  Which criterion should govern latent mean contrasts in Solomon designs is
-  the subject of a simulation study posted on #55.
+  The two criteria can disagree, so the function decides nothing for the
+  user. A criterion whose statistic cannot be computed is reported as
+  undetermined.
+* `fit_solomon_sem_latent()` now runs `invariance_solomon()` on the POST
+  indicators first. It warns (class `solomonR_invariance_warning`) when a
+  criterion does not support scalar or partial scalar invariance, and it
+  stores the result in `invariance`. It never refuses the contrasts.
+  `check_invariance = FALSE` skips the check.
+* The choice between refusing and warning comes from a simulation study
+  whose decision rules were posted on #55 before any run: 45 scenarios with
+  1,000 replications each, with 3, 4, or 6 indicators and 30, 60, or 120
+  per group. No criterion kept false rejections of invariance at or below
+  .060. The scaled chi-square test falsely rejected at rates of .068 to
+  .144, and Chen's cutoffs at up to .400 with 30 per group. The study also
+  found which noninvariance matters. A pretest-induced intercept shift
+  common to both pretested groups left the sensitization contrast unbiased,
+  while a shift in one group biased it by 0.07 to 0.16 latent SD, and
+  freeing that intercept removed the bias. New article "Latent Contrasts:
+  Validating the Invariance Check", and a new entry on the validation
+  evidence page.
+* New article "Structural Equation Models for Solomon Designs" covers
+  observed and latent SEM, measurement invariance, partial invariance, and
+  the invariance check.
 * `fit_solomon_sem_latent()` gains `partial_post` and `partial_pre` for
   partial-invariance models (Byrne et al., 1989). The freed parameters must
   involve only a minority of the indicators (Vandenberg & Lance, 2000,
