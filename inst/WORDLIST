@@ -21,6 +21,8 @@ Biometrical
 Biometrics
 Biometrika
 Biopharmaceutics
+bmj
+BMJ
 Bonferroni
 bP
 Bracht
@@ -30,6 +32,7 @@ Breukelen
 bT
 bTP
 Butor
+Buuren
 bX
 Byrne
 Cai
@@ -44,12 +47,15 @@ comparator
 configural
 Cousens
 CRC
+Cro
 Crossref
 Crowther
 Cumsille
+D'Agostino
 DeVinney
 df
 DiCiccio
+Dickersin
 directionally
 doi
 Donders
@@ -70,8 +76,10 @@ estimand
 Estimands
 estimands
 et
+Farrar
 Forsythe
 frac
+Frangakis
 gatekeeping
 Gelman
 ggplot
@@ -93,6 +101,7 @@ Isager
 jclinepi
 jss
 Karkri
+Kenward
 Kolesár
 Kvalem
 Lakens
@@ -122,10 +131,13 @@ MERIT's
 MLM
 MLMV
 MLR
+Molenberghs
 multivariable
 Muthén
 Myors
 nd
+Neaton
+NEJMsr
 NIHR
 noncentral
 noncollapsibility
@@ -144,6 +156,7 @@ Phipson
 pkgdown
 PLoS
 pms
+Pocock
 Posttest
 posttest
 posttested
@@ -155,6 +168,7 @@ pre
 programme
 Psychometrika
 Pustejovsky
+Quartagno
 Quesada
 Rajh
 randomised
@@ -169,6 +183,8 @@ Rosenthal
 Rosnow
 Rosnow's
 Rosseel
+Rotnitzky
+rssa
 runnable
 Sandler
 Satorra
@@ -176,12 +192,15 @@ Satterthwaite
 sav
 Sawilowsky
 Sawilowsky's
+Scharfstein
 Scheel
 Schuirmann
 sensitisation
 SESOI
 Shavelson
+Shih
 SICI
+Siegel
 Smyth
 solomon
 solomonR's
