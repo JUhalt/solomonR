@@ -30,6 +30,8 @@
   record the copyright holders.
 * The data reproduce the authors' Table 4 ANOVAs, Table 5 history checks,
   and the first two ANCOVAs of Table 7. Tests check the Table 4 values.
+* The help page and the worked example thank the authors for making their
+  data public and point readers to the published article.
 * New article "Worked Example: A Published Solomon Study" carries the
   relapse-prevention comparison from checking the design to drafting the
   report. It reproduces the published tests with `fit_solomon_classic()`
