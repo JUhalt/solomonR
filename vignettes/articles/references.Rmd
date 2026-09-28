@@ -20,6 +20,18 @@ methods you used from the lists below.
 
 ## The Solomon design literature
 
+Bracht, G. H., & Glass, G. V. (1968). The external validity of experiments.
+*American Educational Research Journal, 5*(4), 437–474.
+https://doi.org/10.3102/00028312005004437
+
+> Lists pretest sensitization, posttest sensitization, and the interaction
+> of time of measurement and treatment among the threats to external
+> validity (p. 439), and reviews the evidence on pretest sensitization
+> (pp. 460–463): the effect is most likely when the outcome is a self-report
+> of personality, attitude, or opinion, and the evidence for achievement is
+> inconclusive (p. 463). *In solomonR:* the history article and the coverage
+> article ([#80](https://github.com/JUhalt/solomonR/issues/80)).
+
 Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
 four-group designs reconsidered: A reply to Sawilowsky and Markman.
 *Perceptual and Motor Skills, 71*(1), 321–322.
@@ -30,6 +42,21 @@ https://doi.org/10.2466/pms.1990.71.1.321
 > Test I are carried out. *In solomonR:* the 1990 flow version,
 > `fit_solomon_classic(flow = "1990")` and `plot_classic_flow(flow = "1990")`
 > ([#50](https://github.com/JUhalt/solomonR/issues/50)).
+
+Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+social settings. *Psychological Bulletin, 54*(4), 297–312.
+https://doi.org/10.1037/h0040950
+
+> Describes the interaction of testing and treatment as a sensitization
+> that limits generalization to unpretested populations (p. 302), and calls
+> the Solomon design "the new ideal design for social scientists"
+> (p. 303). It rejects the gain-score analysis with an inferred pretest,
+> which restricts the degrees of freedom and violates independence, and
+> recommends a two-by-two analysis of variance of the four posttests, with
+> a t test of the unpretested control posttest against the pretests for
+> history and maturation (p. 303). *In solomonR:* the first statement of
+> Tests A–D and of the history check of `fit_solomon_classic()`; the history
+> article.
 
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
@@ -86,6 +113,16 @@ https://doi.org/10.1002/rev3.70050
 > categorical outcomes. *In solomonR:* `fisher_solomon()`, the historical
 > categorical path for binary outcomes.
 
+Entwisle, D. R. (1961). Interactive effects of pretesting. *Educational and
+Psychological Measurement, 21*(3), 607–620.
+https://doi.org/10.1177/001316446102100307
+
+> Two fourth-grade training experiments in which pretested and unpretested
+> pupils were paired on sex and IQ. They found no overall pretest effect but
+> a Pretesting x IQ x Sex interaction (pp. 612–613), and suggest that
+> pretest effects depend on participants' characteristics (p. 614) and may
+> fade with time (p. 610). *In solomonR:* the history article.
+
 French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
 Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
 (2021a). Reducing bias in trials due to reactions to measurement: Experts
@@ -137,9 +174,12 @@ Lana, R. E. (1959). Pretest-treatment interaction effects in attitudinal
 studies. *Psychological Bulletin, 56*(4), 293–300.
 https://doi.org/10.1037/h0044646
 
-> An early review of pretest-by-treatment interaction in attitude research.
-> *In solomonR:* not yet cited in an analysis or article; to be reviewed in
-> the coverage audit ([#80](https://github.com/JUhalt/solomonR/issues/80)).
+> An experiment with the Solomon design on attitudes toward vivisection
+> that found no pretest-by-treatment interaction (pp. 297–298), and a review
+> of attitude studies that had not controlled for one (pp. 293–294). *In
+> solomonR:* the data set `lana1959`, whose published analysis of variance
+> (Table 3, p. 297) `solomon_from_summary()` reproduces; the history
+> article.
 
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. *Education
@@ -239,6 +279,18 @@ Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 > (pp. 146–148). *In solomonR:* the design itself; every estimand; the
 > rationale of the history/maturation check; his own analysis,
 > `fit_solomon_1949()`, and his spelling data, `solomon1949`.
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. *Psychological Bulletin,
+70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+
+> Applies the four-group design to isolation and enrichment studies of
+> development. The combined pretest mean of the pretested groups serves as
+> the best estimate for the unpretested groups, to judge whether they
+> improved or deteriorated, and the design is treated as a two-by-two
+> factorial whose interaction is a difference of differences (pp. 146–147).
+> *In solomonR:* the inferred pretest of `fit_solomon_1949()`; the history
+> article.
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International

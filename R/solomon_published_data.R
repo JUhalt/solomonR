@@ -244,3 +244,57 @@
 #' g6 <- solomon1949[solomon1949$grade == 6, ]
 #' fit_solomon_1949(post_mean = g6$mean, pre_mean = g6$pre_mean[1:2], n = g6$n)
 "solomon1949"
+
+#' Posttest statistics from Lana's (1959) attitude experiment
+#'
+#' The sample size, posttest mean, and standard deviation of the four Solomon
+#' groups in one of the first experiments built on the Solomon design: a
+#' recorded pro-vivisection talk and a 10-item vivisection questionnaire
+#' given to introductory psychology classes (Lana, 1959, Table 2, p. 297).
+#' Numbers reported in the publication are reused with citation.
+#'
+#' @details
+#' **Design.** Five classes (156 students) were randomly assigned to five
+#' conditions (p. 295). Four form a Solomon design:
+#' - **Group I.** Pretest, then the talk 12 days later, then the posttest.
+#' - **Group IV.** Pretest, then the posttest 12 days later.
+#' - **Group II.** The talk, then the posttest.
+#' - **Group III.** The posttest only.
+#'
+#' A fifth group, with a delayed posttest, is not part of the four-group
+#' design and is not included. Because whole classes were assigned, class
+#' and condition are confounded, as in [elkarkri2025a].
+#'
+#' **Known result.** Lana analyzed the posttest means as a two-by-two
+#' analysis of variance (Table 3, p. 297). The treatment effect was
+#' significant, F = 5.35, and the pretest and the interaction were not.
+#' [solomon_from_summary()] reproduces it within rounding (treatment
+#' F = 5.36 on 1 and 152 df). Lana's sums of squares are on the scale of the
+#' cell means (an unweighted-means analysis). Dividing the package's sums of
+#' squares by the harmonic mean of the cell sizes recovers them, and the F
+#' tests are the same.
+#'
+#' **Historical note.** Lana concluded that the pretest did not sensitize
+#' participants to the talk (p. 298), the opposite of Solomon's (1949)
+#' spelling result. Together they begin the record that Willson and Putnam
+#' (1982) later pooled.
+#'
+#' @format A data frame with 4 rows, one per Solomon group, and 7 variables:
+#' \describe{
+#'   \item{group}{The Solomon group.}
+#'   \item{lana_group}{Lana's group label (I to IV).}
+#'   \item{pretested, treat}{Indicators (1 = yes); `treat` is the recorded
+#'     talk.}
+#'   \item{n, mean, sd}{Posttest sample size, mean, and standard deviation.}
+#' }
+#'
+#' @source Lana, R. E. (1959). Pretest-treatment interaction effects in
+#' attitudinal studies. *Psychological Bulletin, 56*(4), 293–300.
+#' https://doi.org/10.1037/h0044646
+#'
+#' @seealso [solomon_from_summary()], [solomon1949], [elkarkri2025a]
+#'
+#' @examples
+#' lana1959
+#' with(lana1959, solomon_from_summary(n, mean, sd))
+"lana1959"

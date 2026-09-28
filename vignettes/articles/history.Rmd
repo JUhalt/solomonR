@@ -20,9 +20,12 @@ reproduces it, and keeps it separate from the analyses it recommends today.
 
 ```{r timeline, echo = FALSE, fig.alt = "Timeline of the Solomon design's methodological history from 1949 to 2025, in three strands: the design, its analysis, and evidence and recommendations."}
 events <- data.frame(
-  year = c(1949, 1963, 1973, 1982, 1988, 1990, 1994, 1996, 2011, 2021, 2025),
+  year = c(1949, 1957, 1959, 1963, 1968, 1973, 1982, 1988, 1990, 1994, 1996, 2011, 2021, 2025),
   label = c("Solomon: three- and\nfour-group designs",
+            "Campbell: 2 x 2\nposttest analysis",
+            "Lana: first\nattitude experiment",
             "Campbell & Stanley:\nDesign 5",
+            "Bracht & Glass:\nexternal validity",
             "Huck & Sandler:\nANCOVA advice",
             "Willson & Putnam:\nmeta-analysis",
             "Walton Braver & Braver:\nTests A-I",
@@ -32,11 +35,13 @@ events <- data.frame(
             "McCambridge et al.:\nreview",
             "French et al.:\nMERIT",
             "El Karkri et al."),
-  strand = c("Design", "Design", "Analysis", "Evidence", "Analysis", "Analysis",
-             "Evidence", "Evidence", "Evidence", "Evidence", "Analysis")
+  strand = c("Design", "Analysis", "Evidence", "Design", "Evidence", "Analysis", "Evidence",
+             "Analysis", "Analysis", "Evidence", "Evidence", "Evidence", "Evidence", "Analysis")
 )
 events$strand <- factor(events$strand, c("Evidence", "Analysis", "Design"))
-events$nudge <- rep(c(0.28, -0.28), length.out = nrow(events))
+# Alternate labels above and below the line within each strand.
+events$nudge <- stats::ave(seq_len(nrow(events)), events$strand,
+                           FUN = function(i) rep(c(0.28, -0.28), length.out = length(i)))
 ggplot2::ggplot(events, ggplot2::aes(year, strand)) +
   ggplot2::geom_hline(ggplot2::aes(yintercept = as.numeric(strand)), colour = "grey85") +
   ggplot2::geom_point(size = 2.6, colour = "#2c6e9b") +
@@ -96,6 +101,53 @@ so it cancels. What remains is the two-by-two interaction contrast of the
 posttests, less the pretest difference between the two pretested groups
 (`?fit_solomon_1949`).
 
+## The analysis recast (1957)
+
+Campbell (1957) brought the design into the discussion of validity. He
+described the interaction of testing and treatment as a sensitization of
+participants to the treatment, which leaves a pretest-posttest experiment
+no basis for generalizing to people who were never pretested (p. 302). The
+Solomon design, which controls and measures that interaction, had become
+in his words "the new ideal design for social scientists" (p. 303).
+
+He also set the terms of the analysis that later texts repeated (p. 303):
+
+- **Against the inferred pretest.** Giving the unpretested groups the
+  pretested groups' mean pretest "restricts the effective degrees of
+  freedom, violates assumptions of independence," and leaves no legitimate
+  test of the effects.
+- **For the posttests.** The four posttests form a two-by-two analysis of
+  variance: pretesting, treatment, and their interaction.
+- **For history and maturation.** A t test of the unpretested control
+  posttest against the pretests.
+
+## The first experiments (1959–1961)
+
+The first studies built on the design asked whether pretesting mattered at
+all.
+
+**Lana (1959)** gave a recorded talk on vivisection to introductory
+psychology classes, in a four-group design with a pretest 12 days before
+the talk. The talk changed attitudes, but the pretest neither changed them
+nor interacted with the talk (pp. 297–298). His analysis of variance of the
+posttest means can be reproduced from the published cell statistics,
+bundled as `lana1959`:
+
+```{r lana}
+with(lana1959, solomon_from_summary(n, mean, sd))
+```
+
+The treatment F is 5.36, against the published 5.35 (Table 3, p. 297).
+Lana's sums of squares are on the scale of the cell means; divided by the
+harmonic mean of the cell sizes, the package's sums of squares match them.
+
+**Entwisle (1961)** paired fourth-graders on sex and IQ and pretested one
+member of each pair at random. There was no overall pretest effect, but the
+pretest helped some combinations of sex and ability and hindered others
+(pp. 612–613). She suggested that Solomon's result was such an effect,
+observed in a homogeneous group (p. 614), and that pretest effects may fade
+as the interval grows (p. 610).
+
 ## The design in the canon (1963)
 
 Campbell and Stanley's survey, reprinted as a book in 1966, made the
@@ -116,7 +168,8 @@ p. 24). Page numbers here refer to the 1966 book.
   - the design's asymmetry rules out an analysis of variance of gain
     scores, and they judged Solomon's gain-score suggestions unacceptable.
 - **Their recommended analysis** (p. 25):
-  - a two-by-two analysis of variance of the posttest scores;
+  - a two-by-two analysis of variance of the posttest scores, as Campbell
+    (1957, p. 303) had proposed;
   - then, if the effects of pretesting are negligible, an analysis of
     covariance of the pretested groups with the pretest as covariate.
 
@@ -138,6 +191,23 @@ Huck and Sandler (1973) refined this advice:
 `fit_solomon_classic()` computes these tests as Tests A–H. Its `history`
 component compares the unpretested control posttest with the pretests, as
 Campbell and Stanley describe.
+
+Two papers of 1968 carried the design further:
+
+- **Bracht and Glass (1968)** listed pretest sensitization, posttest
+  sensitization, and the timing of measurement among the threats to
+  external validity (p. 439). Reviewing the evidence, they found the pretest
+  effect most likely when the outcome is a self-report of personality,
+  attitude, or opinion, and the evidence for achievement inconclusive
+  (p. 463). They also questioned Solomon's spelling result: the pretested
+  groups were sent out of the room, and the groups were matched only by
+  teachers' judgments (p. 462).
+- **Solomon and Lessac (1968)** applied the design to studies of
+  development, where a pretest could itself enrich an isolated animal's
+  experience. Solomon now presented the design as a two-by-two factorial,
+  with the interaction as a difference of differences, and still used the
+  pretested groups' combined mean as the best estimate of the unpretested
+  groups' starting point (pp. 146–147).
 
 ## How often does pretesting matter? (1982)
 
@@ -251,8 +321,9 @@ Later work turned from the test sequence to the design's purpose:
 | Procedure | Source | In solomonR | Status |
 |---|---|---|---|
 | Improvement scores and the interaction term I | Solomon (1949) | `fit_solomon_1949()`, data `solomon1949` | historical |
-| Tests A–H | Campbell & Stanley (1963/1966); Huck & Sandler (1973) | `fit_solomon_classic()` | historical |
-| History/maturation check | Solomon (1949); Campbell & Stanley (1963/1966) | `fit_solomon_classic()$history` | historical |
+| Tests A–H | Campbell (1957); Campbell & Stanley (1963/1966); Huck & Sandler (1973) | `fit_solomon_classic()` | historical |
+| History/maturation check | Solomon (1949); Campbell (1957); Campbell & Stanley (1963/1966) | `fit_solomon_classic()$history` | historical |
+| Lana's analysis of variance of posttest means | Lana (1959) | `solomon_from_summary()`, data `lana1959` | historical |
 | Test I and the 1988 sequence | Walton Braver & Braver (1988) | `fit_solomon_classic(flow = "1988")` | historical |
 | 1990 amendment | Braver & Walton Braver (1990) | `fit_solomon_classic(flow = "1990")` | historical |
 | 1995 revision without Test D | Walton Braver & Braver (1995, as cited in Sawilowsky, 1996) | `fit_solomon_classic(flow = "1995")` | historical |
@@ -270,10 +341,18 @@ All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.
 
 ## References
+Bracht, G. H., & Glass, G. V. (1968). The external validity of experiments.
+*American Educational Research Journal, 5*(4), 437–474.
+https://doi.org/10.3102/00028312005004437
+
 Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
 four-group designs reconsidered: A reply to Sawilowsky and Markman.
 *Perceptual and Motor Skills, 71*(1), 321–322.
 https://doi.org/10.2466/pms.1990.71.1.321
+
+Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+social settings. *Psychological Bulletin, 54*(4), 297–312.
+https://doi.org/10.1037/h0040950
 
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
@@ -290,6 +369,10 @@ and analysing qualitative and quantitative variables in education research.
 *Review of Education, 13*(1), Article e70050.
 https://doi.org/10.1002/rev3.70050
 
+Entwisle, D. R. (1961). Interactive effects of pretesting. *Educational and
+Psychological Measurement, 21*(3), 607–620.
+https://doi.org/10.1177/001316446102100307
+
 French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
 Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
 (2021a). Reducing bias in trials due to reactions to measurement: Experts
@@ -305,6 +388,10 @@ Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 Appropriate statistical analyses. *The Journal of Experimental Education,
 42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
+
+Lana, R. E. (1959). Pretest-treatment interaction effects in attitudinal
+studies. *Psychological Bulletin, 56*(4), 293–300.
+https://doi.org/10.1037/h0044646
 
 McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011). Can
 research assessments themselves cause bias in behaviour change trials? A
@@ -331,6 +418,10 @@ https://doi.org/10.2466/pms.1990.71.2.424
 
 Solomon, R. L. (1949). An extension of control group design. *Psychological
 Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. *Psychological Bulletin,
+70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. *Psychological

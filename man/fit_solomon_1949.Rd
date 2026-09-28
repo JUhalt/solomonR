@@ -83,11 +83,17 @@ I = (b1 - b2 - b3 + b4) - (a1 - a2): the posttest interaction contrast
 of the 2 x 2 analysis, less the pretest difference between the two
 pretested groups. With random assignment the pretest difference has
 expectation zero, so I estimates the same Pretest x Treatment interaction
-as the posttest contrast. Campbell and Stanley (1963/1966, p. 25) judged
-Solomon's gain-score suggestions unacceptable, ruled out an analysis of
-variance of gain scores because of the design's asymmetry, and
-recommended the 2 x 2 analysis of variance of the posttests
-(\code{\link[=fit_solomon_classic]{fit_solomon_classic()}}, Test A).
+as the posttest contrast.
+
+\strong{The later verdict.} Campbell (1957, p. 303) first rejected the analysis
+with an inferred pretest: it restricts the degrees of freedom, violates
+independence, and leaves no legitimate test. He recommended the 2 x 2
+analysis of variance of the four posttests instead (\code{\link[=fit_solomon_classic]{fit_solomon_classic()}},
+Test A). Campbell and Stanley (1963/1966, p. 25) repeated the
+recommendation and judged Solomon's gain-score suggestions unacceptable.
+Solomon and Lessac (1968, p. 147) still used the combined pretest mean of
+the pretested groups as the best estimate for the unpretested groups, to
+judge whether those groups improved or deteriorated in absolute terms.
 }
 \examples{
 # Solomon's fifth-grade spelling experiment (Table II, p. 144).
@@ -99,12 +105,20 @@ with(solomon_example, fit_solomon_1949(y_post, treat, pretested, y_pre))
 
 }
 \references{
+Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+social settings. \emph{Psychological Bulletin, 54}(4), 297–312.
+https://doi.org/10.1037/h0040950
+
 Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
 quasi-experimental designs for research}. Rand McNally. (Original work
 published 1963)
 
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. \emph{Psychological Bulletin,
+70}(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 }
 \seealso{
 \link{solomon1949} for Solomon's data, \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} for the

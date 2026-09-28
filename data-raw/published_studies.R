@@ -22,6 +22,22 @@ elkarkri2025a <- data.frame(
   pre_sd = c(2.67, 2.72, NA, NA)
 )
 
+# Lana (1959), Table 2 (p. 297): posttest statistics of the four Solomon
+# groups in an experiment on attitudes toward vivisection. Lana's Groups I,
+# IV, II, and III are, in the package's order, the pretested communication,
+# pretested control, unpretested communication, and unpretested control
+# groups. Group V (pretest, communication, delayed posttest) is not part of
+# the four-group design and is not stored.
+lana1959 <- data.frame(
+  group = factor(groups, levels = groups),
+  lana_group = c("I", "IV", "II", "III"),
+  pretested = c(1L, 1L, 0L, 0L),
+  treat = c(1L, 0L, 1L, 0L),
+  n = c(26L, 32L, 50L, 48L),
+  mean = c(42.96, 40.28, 42.90, 40.77),
+  sd = c(9.06, 5.48, 5.34, 5.76)
+)
+
 # Kvalem, Sundet, Rivo, Eilertsen, and Bakketeig (1996, p. 42): use of condoms
 # at the most recent intercourse at the 6-month posttest, among students who
 # had had intercourse before the intervention.
@@ -73,3 +89,4 @@ save(elkarkri2025a, file = "data/elkarkri2025a.rda", compress = "xz")
 save(mai2020, file = "data/mai2020.rda", compress = "xz")
 save(kvalem1996, file = "data/kvalem1996.rda", compress = "xz")
 save(solomon1949, file = "data/solomon1949.rda", compress = "xz")
+save(lana1959, file = "data/lana1959.rda", compress = "xz")

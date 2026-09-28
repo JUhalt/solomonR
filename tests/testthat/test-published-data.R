@@ -52,3 +52,20 @@ test_that("mai2020 keeps the published sample and attrition", {
   expect_true(all(!is.na(mai2020$pre_behavior[mai2020$pretested == 1])))
   expect_identical(levels(mai2020$condition), c("RP", "GS", "Control"))
 })
+
+test_that("lana1959 reproduces Lana's (1959) Table 3", {
+  fit <- with(lana1959, solomon_from_summary(n, mean, sd))
+  a <- fit$anova
+  f <- stats::setNames(a$F, a$source)
+  expect_equal(fit$df_error, 152)
+  # Published: treatment F = 5.35 (p < .05); pretest and interaction F < 1.
+  expect_lt(abs(f[["Treatment"]] - 5.35), 0.02)
+  expect_lt(f[["Pretest"]], 1)
+  expect_lt(f[["Treatment x Pretest"]], 1)
+  # Lana's sums of squares are on the cell-mean scale: the package's sums of
+  # squares divided by the harmonic mean of the cell sizes.
+  n_h <- 4 / sum(1 / lana1959$n)
+  ss <- stats::setNames(a$sumsq, a$source) / n_h
+  expect_equal(round(ss[["Treatment"]], 2), 5.78)
+  expect_equal(round(fit$mse / n_h, 2), 1.08)
+})
