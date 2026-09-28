@@ -181,6 +181,20 @@ https://doi.org/10.1037/h0044646
 > (Table 3, p. 297) `solomon_from_summary()` reproduces; the history
 > article.
 
+Lana, R. E. (2009). Pretest sensitization. In R. Rosenthal & R. L. Rosnow,
+*Artifacts in behavioral research: Robert Rosenthal and Ralph L. Rosnow's
+classic books* (pp. 93–109). Oxford University Press.
+https://doi.org/10.1093/acprof:oso/9780195385540.003.0004 (Original work
+published 1969)
+
+> A review of the pretest-sensitization literature to 1969. The four-group
+> design is analyzed as a two-by-two analysis of variance of the posttests
+> (pp. 99–100). Pretests that involve learning or recall did sensitize, in
+> either direction (pp. 101–103). An "overwhelming lack" of sensitization
+> was found when the pretest measures existing attitudes or opinions
+> (pp. 103–104), a conclusion at odds with Bracht and Glass (1968, p. 463).
+> *In solomonR:* the history article and the coverage article.
+
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092

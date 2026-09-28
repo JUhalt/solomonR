@@ -17,7 +17,7 @@
   lists the sources that have been identified but not yet read.
 * `tools/check-references.R` now fails if a work on the Solomon design is
   in the bibliography without a coverage entry.
-* Four more works on the design were read and added to the bibliography,
+* Five more works on the design were read and added to the bibliography,
   the coverage article, and the history article:
   - Campbell (1957), the first to reject the inferred-pretest analysis and
     to recommend the 2 x 2 analysis of variance of the posttests and the
@@ -28,6 +28,9 @@
   - Bracht and Glass (1968), on pretest sensitization as a threat to
     external validity.
   - Solomon and Lessac (1968), on the design in developmental studies.
+  - Lana's (1969/2009) review, which found sensitization with pretests
+    that involve learning but not with attitude pretests, at odds with
+    Bracht and Glass (1968).
 * New `lana1959` holds the posttest statistics of Lana's (1959) attitude
   experiment, one of the first built on the Solomon design.
   `solomon_from_summary()` reproduces its published analysis of variance
