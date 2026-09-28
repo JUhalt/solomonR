@@ -24,6 +24,7 @@ Biopharmaceutics
 bmj
 BMJ
 Bonferroni
+Bove
 bP
 Bracht
 brainsci
@@ -52,6 +53,7 @@ Crossref
 Crowther
 Cumsille
 D'Agostino
+Dedic
 DeHaven
 DeVinney
 df
@@ -80,6 +82,7 @@ Estimands
 estimands
 et
 Farrar
+Fitzmaurice
 Forsythe
 frac
 Frangakis
@@ -109,15 +112,20 @@ Jerić
 jesp
 jss
 Karkri
+Kelkhoff
 Kenward
 Kolesár
+Krieger
 Krleža
+Kunzmann
 Kvalem
 Lakens
 Laupacis
 lavaan
 lavaan's
+Leibovitz
 Lessac
+Liang
 Lifecycle
 lifecycle
 linearized
@@ -127,6 +135,8 @@ Lundberg
 lv
 MacKinnon
 maintainer's
+Mallinckrodt
+Mancuso
 Margolis
 Markman
 Markman's
@@ -139,9 +149,13 @@ MCSEs
 MDPI's
 Mellor
 MERIT's
+misspecified
 MLM
 MLMV
 MLR
+mmrm
+MMRM
+mmrm's
 Moher
 Molenberghs
 multivariable
@@ -163,8 +177,10 @@ Nosek
 nrow
 Olchowski
 Oo
+Panagos
 Parpia
 Parulekar
+Peng
 Pharmacokinetics
 Phipson
 pkgdown
@@ -181,6 +197,7 @@ ppc
 PRE
 Pre
 pre
+PROC
 programme
 Psychometrika
 Pustejovsky
@@ -204,6 +221,7 @@ Rosseel
 Rotnitzky
 rssa
 runnable
+Sabanes
 Sandler
 Satorra
 Satterthwaite
@@ -212,13 +230,16 @@ Sawilowsky
 Sawilowsky's
 Scharfstein
 Scheel
+Schnell
 Schuirmann
 sensitisation
 SESOI
 Shavelson
 Shih
 SICI
+Sidi
 Siegel
+Sjoberg
 Smyth
 solomon
 solomonR's
@@ -242,6 +263,7 @@ Takahashi
 Tetzlaff
 th
 Tipton
+Toeplitz
 TOST
 TP
 Trivedi
@@ -263,6 +285,7 @@ Wilk
 Willson
 Witton
 Yoshi
+Zeger
 Zhang
 α
 ε

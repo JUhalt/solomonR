@@ -14,6 +14,15 @@
   converge. It needs the mmrm package (Sabanes Bove et al., 2026), now a
   suggested dependency.
 * `report_solomon()` reports it.
+* A simulation study under the protocol posted on #57 (12 scenarios, 2,000
+  replications each) is reported in the new article "Longitudinal Designs:
+  Validating the Repeated-Measures Analysis" and on the validation-evidence
+  page. Under dropout that was missing at random, the contrasts were
+  unbiased, with coverage of 0.937 to 0.962, while per-occasion
+  complete-case analyses were biased by up to 0.09 SD. A covariance shared
+  by all four groups misstated the standard errors. The pre-specified rule
+  for the default degrees of freedom was not met, so the function stays
+  experimental, with Kenward-Roger as the default.
 
 ## Analysis plan and study template (#81)
 

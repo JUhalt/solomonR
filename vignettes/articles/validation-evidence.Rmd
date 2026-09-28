@@ -484,6 +484,35 @@ random biased the sensitization contrast by 0.10 to 0.16 SD when the
 departure was confined to one pretested group. See the
 [full article](`r studies$article[studies$study == "missing-posttests"]`).
 
+## Longitudinal designs
+
+`fit_solomon_mmrm()` estimates the Solomon contrasts at each posttest
+occasion with a mixed model for repeated measures (Mallinckrodt et al.,
+2008). The study generated monotone dropout that depended on the last
+posttest (missing at random) and compared the model with per-occasion
+complete-case analyses. The table gives, for the treatment contrasts at the
+last occasion under heavy dropout, the mean bias and the lowest coverage.
+
+```{r longitudinal}
+lg <- benchmarks[benchmarks$study == "longitudinal-mmrm" & grepl("dropout=heavy", benchmarks$design) &
+                   grepl("^3: Treatment|^3: ATE", benchmarks$estimand) &
+                   grepl("Kenward-Roger|complete cases", benchmarks$method) &
+                   !grepl("shared", benchmarks$method), ]
+tab <- merge(stats::aggregate(value ~ method, lg[lg$measure == "bias", ], mean),
+             stats::aggregate(value ~ method, lg[lg$measure == "coverage", ], min), by = "method")
+knitr::kable(data.frame(Method = tab$method, `Mean bias (SD)` = num(tab$value.x, digits = 3),
+                        `Lowest coverage` = num(tab$value.y, digits = 3), check.names = FALSE),
+             row.names = FALSE, caption = "Treatment contrasts at the third occasion, heavy dropout, 30 to 120 per group.")
+```
+
+With Kenward-Roger degrees of freedom, the model met every tolerance in 145
+of 156 cells; the pre-specified rule for choosing the default also required
+every cell with 60 or more per group and was not met, so the function stays
+experimental. A covariance shared by all four groups misstated the standard
+errors, which is why the function estimates it separately for pretested and
+unpretested participants. See the
+[full article](`r studies$article[studies$study == "longitudinal-mmrm"]`).
+
 ## Adding a study
 
 A new study joins this page by:
@@ -510,6 +539,11 @@ Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996). On
 design considerations and randomization-based inference for community
 intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
 <https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
+
+Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
+(2008). Recommendations for the primary analysis of continuous endpoints in
+longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
+https://doi.org/10.1177/009286150804200402
 
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),

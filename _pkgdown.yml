@@ -179,6 +179,7 @@ articles:
       - articles/classic-validation
       - articles/invariance-validation
       - articles/mi-validation
+      - articles/mmrm-validation
 
   - title: "References"
     navbar: References

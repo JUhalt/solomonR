@@ -1,0 +1,255 @@
+---
+title: "Longitudinal Designs: Validating the Repeated-Measures Analysis"
+description: >
+  Simulation study of fit_solomon_mmrm(): the Solomon contrasts at each of
+  three posttest occasions under dropout that is missing at random.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+p <- utils::read.csv("mmrm-validation/performance.csv", stringsAsFactors = FALSE)
+info <- utils::read.csv("mmrm-validation/run-information.csv", stringsAsFactors = FALSE)
+run <- stats::setNames(as.list(info$value), info$item)
+reps <- as.integer(run$replications)
+
+# Tolerances declared on issue #57 before any run.
+p$null <- abs(p$true_value) < 1e-8
+p$bias_ok <- abs(p$bias) <= 2 * p$bias_mcse
+p$cov_ok <- p$coverage >= 0.94 & p$coverage <= 0.96
+p$se_ok <- abs(p$relerr) <= 10
+p$t1_ok <- ifelse(p$null, p$rejection >= 0.04 & p$rejection <= 0.06, TRUE)
+p$all_ok <- p$bias_ok & p$cov_ok & p$se_ok & p$t1_ok
+p$type <- sub("^[0-9]+: |^3 vs 1: ", "", p$estimand)
+p$occasion <- sub(":.*$", "", p$estimand)
+
+kr <- p[p$method == "mmrm_kr", ]
+sat <- p[p$method == "mmrm_satterthwaite", ]
+nor <- p[p$method == "mmrm_normal", ]
+cc <- p[p$method == "complete_case", ]
+sh <- p[p$method == "mmrm_shared_kr", ]
+
+pct <- function(x) sprintf("%.1f%%", 100 * x)
+f3 <- function(x) sprintf("%.3f", x)
+rng <- function(x, d = 3) sprintf(paste0("%.", d, "f to %.", d, "f"), min(x), max(x))
+count <- function(ok) sprintf("%d of %d", sum(ok), length(ok))
+method_label <- c(mmrm_kr = "M1: MMRM, Kenward-Roger", mmrm_satterthwaite = "M2: MMRM, Satterthwaite",
+                  mmrm_normal = "M3: MMRM, normal reference", complete_case = "M4: complete case per occasion",
+                  mmrm_shared_kr = "M5: MMRM, one shared covariance")
+```
+
+This article reports the simulation validation of `fit_solomon_mmrm()`, the
+analysis of Solomon designs with several posttest occasions. The aims,
+data-generating mechanisms, estimands, methods, performance measures,
+tolerances, and decision rules were posted on
+[issue #57](https://github.com/JUhalt/solomonR/issues/57) before any code,
+following the ADEMP structure of Morris et al. (2019). Two amendments were
+posted before any run: the covariance is estimated separately for pretested
+and unpretested participants, with a shared-covariance model added as a
+comparator; and the Kenward-Roger adjustment uses the element-wise
+parameterization that reproduces SAS. The results come from package commit
+`r substr(run$commit, 1, 7)`, with `r reps` replications per scenario, mmrm
+`r run$mmrm_version`.
+
+## Design
+
+**Outcomes.** A latent baseline and three posttests, multivariate normal,
+with posttest standard deviations 1.0, 1.2, and 1.4 and correlation
+0.6^|lag|. The pretest is the baseline, observed in the pretested groups.
+The pretest effect is 0.2 at every occasion, and the treatment effect among
+unpretested participants is 0.5, 0.4, and 0.3.
+
+**Dropout.** Monotone and missing at random. Before the first posttest, 5%
+of the control groups and 10% of the treatment groups are missing
+completely at random. After each posttest, a participant drops out with a
+probability that doubles in odds per standard deviation of that posttest,
+at a rate per occasion of 8% (control) and 12% (treatment) for moderate
+dropout, or 20% and 30% for heavy dropout.
+
+**Scenarios.** `r length(unique(p$scenario))` in all: 30, 60, or 120 per
+group; moderate or heavy dropout; and no sensitization, or sensitization of
+0.3, 0.15, and 0 at the three occasions ("fading").
+
+**Estimands.** The four Solomon contrasts at each occasion and the change in
+the Pretest x Treatment contrast from the first occasion to the last: 13 in
+all, defined on the means of all randomized participants.
+
+**Methods.**
+
+- **M1:** `fit_solomon_mmrm()`, Kenward-Roger degrees of freedom.
+- **M2:** `fit_solomon_mmrm(df = "satterthwaite")`.
+- **M3:** M2's estimates and standard errors with a normal reference
+  distribution (Fitzmaurice et al., 2011, p. 101).
+- **M4:** `fit_solomon_glm()` at each occasion on the participants still
+  observed, whose point estimates equal those of unweighted generalized
+  estimating equations with an independence working correlation.
+- **M5:** the same MMRM with one unstructured covariance shared by all four
+  groups, with Kenward-Roger degrees of freedom.
+
+**Tolerances.** Bias within 2 Monte Carlo standard errors (MCSE); coverage
+of 95% intervals from 0.940 to 0.960; model standard error within 10% of the
+empirical standard error; and, where the true value is zero, a rejection
+rate from 0.040 to 0.060.
+
+## Failures and convergence
+
+`r if (sum(p$failures) == 0 && all(p$errors == 0)) "No analysis failed or returned an error in any replication." else sprintf("%d analyses failed.", sum(p$failures))`
+The unstructured covariance converged in every replication, so the fallback
+structures were never needed (**decision rule 4**).
+
+## Choosing the degrees of freedom
+
+**Decision rule 1** made the default the approximation, Kenward-Roger or
+Satterthwaite, that met every tolerance in more cells. It had to meet them
+in at least 90% of the `r nrow(kr)` estimand-by-scenario cells and in every
+cell with 60 or more per group.
+
+```{r rule1}
+rows <- lapply(c("mmrm_kr", "mmrm_satterthwaite", "mmrm_normal", "mmrm_shared_kr"), function(m) {
+  d <- p[p$method == m, ]
+  data.frame(Method = method_label[m],
+             `Every tolerance` = sprintf("%d of %d (%s)", sum(d$all_ok), nrow(d), pct(mean(d$all_ok))),
+             `60 or more per group` = count(d$all_ok[d$n >= 60]),
+             Coverage = rng(d$coverage),
+             `Type I error` = rng(d$rejection[d$null], 4),
+             check.names = FALSE)
+})
+knitr::kable(do.call(rbind, rows), row.names = FALSE, align = "lrrrr",
+             caption = "Cells meeting every tolerance, and the range of coverage and of Type I error where the true value is zero.")
+```
+
+Both approximations met every tolerance in `r pct(mean(kr$all_ok))` of cells,
+but neither did so in every cell with 60 or more per group, so **neither
+qualified under the rule**. The default stays Kenward-Roger, the
+approximation Mallinckrodt et al. (2008, p. 312) specify and the one the
+protocol's tie-break prefers when the two are close; here they differed by
+`r abs(sum(kr$all_ok[kr$n >= 60]) - sum(sat$all_ok[sat$n >= 60]))` cell. The
+Kenward-Roger shortfalls were:
+
+```{r shortfalls}
+s <- kr[!kr$all_ok, ]
+knitr::kable(data.frame(
+  `Per group` = s$n, Dropout = s$dropout, Sensitization = s$sensitization, Estimand = s$estimand,
+  `Bias (SD)` = sprintf("%.4f", s$bias), `Bias / MCSE` = sprintf("%.1f", s$bias / s$bias_mcse),
+  Coverage = sprintf("%.4f", s$coverage),
+  `Type I` = ifelse(s$null, sprintf("%.4f", s$rejection), ""),
+  check.names = FALSE
+), row.names = FALSE, align = "rlllrrrr", caption = "Kenward-Roger cells outside a tolerance.")
+```
+
+They are scattered across group sizes, dropout levels, occasions, and
+contrasts. The mean coverage was
+`r paste(sprintf("%.4f", tapply(kr$coverage, kr$n, mean)), collapse = ", ")`
+at 30, 60, and 120 per group.
+
+```{r calibrated}
+R <- reps
+# Applied exactly as the coverage tolerance is: to the observed proportion.
+x <- 0:R
+p_cov <- sum(stats::dbinom(x, R, 0.95)[x / R >= 0.94 & x / R <= 0.96])
+p_bias <- 2 * stats::pt(2, R - 1) - 1
+p_both <- p_cov * p_bias
+```
+
+**A note on the rule.** Monte Carlo error alone makes the rule stricter than
+any method can reliably meet. With `r R` replications, a method whose
+intervals cover exactly 95% and whose estimates are exactly unbiased falls
+inside the coverage tolerance with probability `r f3(p_cov)` in each cell and
+inside the bias tolerance with probability `r f3(p_bias)`, so it meets both
+in about `r pct(p_both)` of cells. The chance that it meets them in all
+`r sum(kr$n >= 60)` cells with 60 or more per group is about
+`r sprintf("%.4f", p_both^sum(kr$n >= 60))`. Both approximations' pass rates
+are what a correctly calibrated method would show. The verdict stands as the
+pre-specified rule gave it; future protocols in the package will state
+tolerances that allow for Monte Carlo error across many cells.
+
+**The normal reference distribution** (M3), which ignores the uncertainty in
+the estimated covariance, had mean coverage
+`r f3(mean(nor$coverage[nor$n == 30]))` at 30 per group (as low as
+`r f3(min(nor$coverage[nor$n == 30]))`) and Type I error up to
+`r sprintf("%.4f", max(nor$rejection[nor$null]))`. The t reference matters
+mainly in small groups, as Fitzmaurice et al. (2011, p. 101) caution.
+
+## Complete-case analysis under dropout
+
+```{r complete-case}
+last <- p[p$occasion == "3" & p$type != "Pretest x Treatment" &
+            p$method %in% c("complete_case", "mmrm_kr"), ]
+tab <- aggregate(cbind(bias, coverage) ~ method + dropout, last, function(x) c(mean = mean(x), min = min(x)))
+knitr::kable(data.frame(
+  Method = method_label[tab$method], Dropout = tab$dropout,
+  `Mean bias (SD)` = sprintf("%.3f", tab$bias[, "mean"]),
+  `Mean coverage` = sprintf("%.3f", tab$coverage[, "mean"]),
+  `Lowest coverage` = sprintf("%.3f", tab$coverage[, "min"]),
+  check.names = FALSE
+), row.names = FALSE, align = "llrrr",
+caption = "The three treatment contrasts at the last occasion, over group sizes and sensitization patterns.")
+```
+
+**Decision rule 3** was descriptive. The per-occasion complete-case analysis
+(M4) was unbiased at the first occasion, where missingness was completely at
+random. After dropout that depended on the last posttest, it underestimated
+the treatment contrasts at the last occasion, and its coverage fell as the
+groups grew, because the bias stays while the standard error shrinks
+(`r f3(min(cc$coverage[cc$n == 120]))` at 120 per group). The MMRM, which uses
+every observed posttest, was unbiased in the same cells. The sensitization
+contrast was nearly unbiased even under M4, because dropout followed the
+same rule in the pretested and unpretested groups; a dropout process that
+differed between them would bias it too.
+
+## One covariance for all four groups
+
+The MMRM with one covariance shared by all four groups (M5) was, like M1,
+nearly unbiased (bias within 2 MCSE in `r count(sh$bias_ok)` cells), but its
+standard errors were wrong:
+
+```{r shared}
+sh$contrast <- sh$type
+tab <- aggregate(cbind(relerr, coverage) ~ contrast, sh, function(x) c(min = min(x), max = max(x)))
+knitr::kable(data.frame(
+  Contrast = tab$contrast,
+  `Model SE vs empirical SE` = sprintf("%+.1f%% to %+.1f%%", tab$relerr[, "min"], tab$relerr[, "max"]),
+  Coverage = sprintf("%.3f to %.3f", tab$coverage[, "min"], tab$coverage[, "max"]),
+  check.names = FALSE
+), row.names = FALSE, align = "lrr", caption = "M5 over all scenarios and occasions.")
+```
+
+A shared matrix averages the conditional covariance of the pretested groups
+with the larger marginal covariance of the unpretested groups, so it
+understates the standard errors of the unpretested contrasts and overstates
+those of the pretested ones. Estimating the covariance separately by
+pretest condition, as `fit_solomon_mmrm()` does, is necessary.
+
+## What this means for users
+
+- Under dropout that is missing at random, `fit_solomon_mmrm()` gave
+  unbiased contrasts at every occasion, with coverage from
+  `r rng(kr$coverage)` and Type I error from `r rng(kr$rejection[kr$null], 4)`,
+  from 30 to 120 per group. Kenward-Roger and Satterthwaite degrees of
+  freedom performed alike.
+- Per-occasion analyses of the participants still observed can be biased
+  when dropout depends on earlier scores.
+- The function remains experimental, because decision rule 1 was not met.
+
+## Reproducing the study
+
+From the package root,
+`Rscript vignettes/articles/mmrm-validation/mmrm-simulation.R` writes
+`performance.csv` and `run-information.csv`. The run used R
+`r sub("R version ([0-9.]+).*", "\\1", run$R_version)`, mmrm
+`r run$mmrm_version`, and `r run$workers` workers, from `r run$started` to
+`r run$finished`.
+
+## References
+
+Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied longitudinal
+analysis* (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
+
+Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
+(2008). Recommendations for the primary analysis of continuous endpoints in
+longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
+https://doi.org/10.1177/009286150804200402
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086

@@ -144,9 +144,33 @@
 #' The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
 #' which must be installed.
 #'
+#' @section Validation:
+#' A simulation study under a protocol posted on issue #57 before any run
+#' (12 scenarios, 2,000 replications each; see the article "Longitudinal
+#' Designs: Validating the Repeated-Measures Analysis") generated monotone
+#' dropout that depended on the last posttest. With 30 to 120 participants
+#' per group:
+#' - **Coverage and Type I error.** With Kenward-Roger degrees of freedom,
+#'   95% intervals covered from 0.937 to 0.962 of the time, and Type I
+#'   error where the true value was zero ranged from 0.041 to 0.0615.
+#'   Satterthwaite degrees of freedom performed alike.
+#' - **Bias.** The contrasts were unbiased; the largest bias was 0.029 SD.
+#' - **Normal reference distribution.** It gave coverage as low as 0.935
+#'   at 30 per group.
+#' - **Shared covariance.** A covariance shared by all four groups misstated
+#'   the standard errors by up to 12% for the unpretested contrasts and 17%
+#'   for the pretested ones.
+#' - **Complete-case analyses.** Per-occasion analyses of the participants
+#'   still observed were biased by up to 0.09 SD at the last occasion.
+#'
 #' @section Lifecycle:
-#' Experimental until its simulation study, whose protocol is posted on
-#' issue #57, has been run and reported.
+#' Experimental. The study's pre-specified rule for choosing the default
+#' degrees of freedom, every tolerance met in 90% of cells and in every cell
+#' with 60 or more per group, was not met by either approximation (145 of
+#' 156 cells each; 97 and 96 of 104), although Monte Carlo error alone makes
+#' the second part unlikely to be met even by a correctly calibrated method.
+#' Kenward-Roger remains the default, as Mallinckrodt et al. (2008)
+#' specify.
 #'
 #' @param y_post Numeric posttest scores, one per participant and occasion
 #'   (long format), with `NA` for missing posttests.

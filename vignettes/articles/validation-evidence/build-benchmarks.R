@@ -538,6 +538,48 @@ studies <- rbind(studies, data.frame(
   stringsAsFactors = FALSE
 ))
 
+# ---- Longitudinal designs: fit_solomon_mmrm() (#57) --------------------------------
+# Bias, coverage, and rejection of the Solomon contrasts at three occasions and
+# of the change in sensitization, under monotone dropout missing at random.
+
+mm <- read_study("mmrm-validation", "performance.csv")
+mm_info <- read_study("mmrm-validation", "run-information.csv")
+mm_run <- stats::setNames(as.list(mm_info$value), mm_info$item)
+mm_method <- c(mmrm_kr = "fit_solomon_mmrm(), Kenward-Roger",
+               mmrm_satterthwaite = "fit_solomon_mmrm(), Satterthwaite",
+               mmrm_normal = "fit_solomon_mmrm() estimates, normal reference",
+               complete_case = "fit_solomon_glm() per occasion on complete cases, HC3",
+               mmrm_shared_kr = "MMRM with one shared covariance, Kenward-Roger")
+mm_design <- sprintf("n per group=%d; dropout=%s; sensitization=%s", mm$n, mm$dropout,
+                     mm$sensitization)
+mm_long <- long_measures(
+  mm, "longitudinal-mmrm", mm_design, unname(mm_method[mm$method]), mm$estimand,
+  abs(mm$true_value) < 1e-8,
+  list(bias = c(value = "bias", mcse = "bias_mcse"),
+       coverage = c(value = "coverage", mcse = "coverage_mcse"),
+       rejection_rate = c(value = "rejection", mcse = "rejection_mcse"),
+       relative_se_error = c(value = "relerr", mcse = "relerr_mcse")),
+  mm$replications - mm$failures, mm$failures
+)
+benchmarks <- rbind(benchmarks, mm_long)
+studies <- rbind(studies, data.frame(
+  study = "longitudinal-mmrm",
+  title = "Longitudinal designs: mixed model for repeated measures",
+  issues = "#57",
+  protocol = issue(57),
+  article = file.path(site, "mmrm-validation.html"),
+  scenarios = length(unique(mm$scenario)),
+  replications = sprintf("%s per scenario", mm_run$replications),
+  methods = paste(unname(mm_method), collapse = "; "),
+  estimands = "Solomon contrasts at each of three occasions and the change in sensitization, under monotone dropout missing at random",
+  package_commit = substr(mm_run$commit, 1, 7),
+  r_version = sub("R version ([0-9.]+).*", "\\1", mm_run$R_version),
+  started = sub(" UTC", "", mm_run$started),
+  finished = sub(" UTC", "", mm_run$finished),
+  failed_fits = sum(unique(mm[, c("scenario", "method", "estimand", "failures")])$failures),
+  stringsAsFactors = FALSE
+))
+
 dir.create("validation-evidence", showWarnings = FALSE)
 utils::write.csv(studies, file.path("validation-evidence", "studies.csv"), row.names = FALSE)
 utils::write.csv(benchmarks, file.path("validation-evidence", "benchmarks.csv"), row.names = FALSE)
