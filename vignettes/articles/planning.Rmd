@@ -159,6 +159,33 @@ of `power_solomon()` in [Validating power_solomon()](power-validation.html);
 both are summarized on the [Validation Evidence](validation-evidence.html)
 page.
 
+## Writing down the analysis
+
+Once the sample size is set, `analysis_plan_solomon()` drafts the analysis
+plan to register before the outcomes are seen. It takes the `plan_solomon()`
+result, so the planned sample and its planning values are filled in, and
+it follows the sections of van 't Veer and Giner-Sorolla's (2016)
+preregistration template:
+
+```{r analysis-plan}
+sens_plan <- plan_solomon(power = 0.80, delta = 0.30, sens = 0.26, rho = 0.5,
+                          estimand = "sensitization")
+draft <- analysis_plan_solomon(
+  plan = sens_plan,
+  outcome = "[the primary outcome]",
+  sensitization = "test"
+)
+cat(head(draft$text, 12), sep = "\n")
+```
+
+The draft names the model, the confirmatory contrasts, the handling of
+missing posttests, and a table for deviations. Text in square brackets is
+for you to complete. With several posttest occasions
+(`occasions = 3`), the plan uses the repeated-measures model of
+`fit_solomon_mmrm()` instead. Passing the registered plan to
+`report_solomon(fit, design = list(plan = draft))` lets the report state
+that the sensitization analysis was pre-specified.
+
 ## The historical test sequence
 
 These plans are for the package's recommended analysis. Planning for the
@@ -180,6 +207,10 @@ Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
 of meta-analysis in the Solomon four-group design* [Paper presentation].
 First International Conference on Multiple Comparisons, Tel Aviv, Israel.
 https://digitalcommons.wayne.edu/coe_tbf/29/
+
+van 't Veer, A. E., & Giner-Sorolla, R. (2016). Pre-registration in social
+psychology—A discussion and suggested template. *Journal of Experimental
+Social Psychology, 67*, 2–12. https://doi.org/10.1016/j.jesp.2016.03.004
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational Research

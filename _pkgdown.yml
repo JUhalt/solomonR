@@ -142,6 +142,7 @@ articles:
       - glm-solomon
       - solomon-methods
       - articles/sem
+      - articles/missing-and-repeated
       - articles/worked-example
 
   - title: "Report"

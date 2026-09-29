@@ -1,0 +1,241 @@
+---
+title: "Missing and Repeated Posttests"
+description: >
+  How to analyze a Solomon study when some posttests are missing, and when
+  the posttest is measured on several occasions and participants drop out.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(solomonR)
+has_mmrm <- requireNamespace("mmrm", quietly = TRUE)
+```
+
+Two situations call for more than one model fitted to complete data:
+
+- **Some posttests are missing.** The main analysis rests on an assumption
+  about why they are missing, and a sensitivity analysis asks how far that
+  assumption could be wrong before the conclusion changes (White et al.,
+  2011).
+- **The posttest is measured on several occasions,** and some participants
+  drop out along the way. A model for all occasions at once uses every
+  observed score and stays valid when dropout depends on earlier scores
+  (Fitzmaurice et al., 2011).
+
+Both are shown here on simulated data whose true effects are known. The
+methods are validated in the articles
+[Missing Posttests: Validating the Sensitivity Analysis](mi-validation.html)
+and
+[Longitudinal Designs: Validating the Repeated-Measures Analysis](mmrm-validation.html).
+
+## Missing posttests
+
+### The data
+
+A study with 50 participants per group, a treatment effect of 5 points, no
+sensitization, and a pretest-posttest correlation of 0.6. In the pretested
+groups, participants with lower pretests are more likely to miss the
+posttest; in the unpretested groups, one in five posttests is missing at
+random.
+
+```{r mi-data}
+d <- simulate_solomon(n = 50, delta = 5, sens = 0, pretest_effect = 2, rho = 0.6,
+                      sigma = 10, mean = 50, digits = 0, seed = 2082)
+set.seed(2083)
+p_missing <- ifelse(d$pretested == 1, stats::plogis(-1.4 - 0.08 * (d$y_pre - 50)), 0.2)
+d$y_post[stats::runif(nrow(d)) < p_missing] <- NA
+check_solomon_missing(y_post, treat, pretested, y_pre, data = d)
+```
+
+### The main analysis
+
+Here the posttests are missing at random given group and, in the pretested
+groups, the pretest: whether a posttest is missing depends only on things
+the model includes. The model fitted to the observed posttests is then a
+valid main analysis:
+
+```{r mi-glm}
+fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)
+fit$effects[, c("contrast", "estimate", "std.error", "conf.low", "conf.high", "p.value")]
+```
+
+Multiple imputation under the same assumption agrees with it, as it should
+(Carpenter et al., 2023, p. 256):
+
+```{r mi-mar}
+mar <- fit_solomon_mi(y_post, treat, pretested, y_pre, seed = 1, data = d)
+mar$effects[, c("contrast", "estimate", "std.error", "fmi")]
+```
+
+The `fmi` column is the fraction of missing information for each contrast.
+
+### How far could the assumption be wrong?
+
+Missing at random cannot be checked from the data. The sensitivity analysis
+asks: if the missing posttests were systematically lower (or higher) than
+the observed ones predict, by how much would they have to differ to change
+the conclusion? `fit_solomon_mi()` answers for one set of offsets, and
+`tipping_point_solomon()` for a range of them. By default the range is one
+standard deviation either way; here the treatment effect is large enough
+that its conclusion holds throughout that range, so the range is widened
+to show where it would change. The offsets are applied to the treatment
+groups, the departure that bears on the treatment effect:
+
+```{r tipping, fig.width = 7, fig.height = 4.5, fig.alt = "Pooled average treatment effect with its confidence band as the offset added to imputed treatment-group posttests goes from minus to plus one standard deviation."}
+tp <- tipping_point_solomon(y_post, treat, pretested, y_pre, groups = "treatment",
+                            deltas = seq(-25, 10, by = 2.5), seed = 1, data = d)
+tp$tipping
+tp$tipping_sd
+plot_tipping_point(tp)
+```
+
+`tp$tipping` gives the smallest offsets, in points, at which the
+conclusion about the average treatment effect changes, and `tp$tipping_sd`
+gives them in standard deviations of the observed posttests (`NA` means
+the conclusion did not change within the range tried). Here the effect
+would lose its statistical significance only if the missing treatment-group
+posttests were about `r abs(round(tp$tipping_sd[["negative"]], 1))`
+standard deviations lower than the imputation model predicts.
+Whether such an offset is plausible is a substantive judgment. White et al. (2011) suggest
+fixing the plausible range in advance, and `analysis_plan_solomon()`
+includes this analysis in the plan.
+
+### Sensitization and the pretested groups
+
+A departure from missing at random that differs between the pretested and
+unpretested groups bears on the sensitization contrast. In the validation
+study, a departure confined to the pretested treatment group biased the
+analyses that assume missing at random by 0.10 to 0.16 standard deviations.
+`groups = 1` shifts that group alone:
+
+```{r tipping-sens}
+tp_sens <- tipping_point_solomon(y_post, treat, pretested, y_pre,
+                                 contrast = "Pretest x Treatment", groups = 1,
+                                 deltas = seq(-30, 30, by = 2.5), seed = 1, data = d)
+tp_sens$tipping_sd
+```
+
+Here a significant Pretest x Treatment contrast would appear only if the
+missing posttests of the pretested treatment group were about
+`r round(tp_sens$tipping_sd[["positive"]], 1)` standard deviations higher
+than predicted.
+
+### Reporting
+
+`report_solomon()` writes the method, the offsets explored, and the tipping
+points, with their references:
+
+```{r report-tp}
+report_solomon(tp)
+```
+
+## Repeated posttests
+
+### The data
+
+The same design with posttests right after the treatment, at 6 months, and
+at 12 months. The treatment effect fades from 5 to 3 points. After each
+posttest, participants with lower scores are more likely to drop out, so
+the later posttests are missing at random given the earlier ones.
+
+```{r long-data}
+set.seed(57)
+n <- 60
+g <- rep(1:4, each = n)
+treat <- as.integer(g %in% c(1, 3))
+pretested <- as.integer(g <= 2)
+sds <- c(10, 10, 12, 14)  # the baseline, then the three posttests
+cov <- diag(sds) %*% outer(0:3, 0:3, function(i, j) 0.6^abs(i - j)) %*% diag(sds)
+z <- MASS::mvrnorm(4 * n, rep(0, 4), cov)
+y <- sapply(1:3, function(t) 50 + 2 * pretested + c(5, 4, 3)[t] * treat) + z[, 2:4]
+last <- rep(3L, 4 * n)
+for (t in 1:2) {
+  drop <- last == 3L & stats::runif(4 * n) < stats::plogis(-2 - 0.07 * (y[, t] - 50))
+  last[drop] <- t
+}
+for (t in 2:3) y[last < t, t] <- NA
+occasions <- c("post", "6 months", "12 months")
+long <- data.frame(
+  id = rep(seq_len(4 * n), 3),
+  occasion = factor(rep(occasions, each = 4 * n), levels = occasions),
+  y_post = as.vector(y),
+  treat = rep(treat, 3),
+  pretested = rep(pretested, 3),
+  y_pre = rep(ifelse(pretested == 1, 50 + z[, 1], NA), 3)
+)
+head(long)
+```
+
+The data are in long format: one row per participant and occasion, with the
+participant's identifier.
+
+### The model
+
+`fit_solomon_mmrm()` fits a mixed model for repeated measures (Mallinckrodt
+et al., 2008) and reports the four Solomon contrasts at each occasion, and
+the change in sensitization from the first occasion to the last:
+
+```{r mmrm, eval = has_mmrm}
+mm <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
+mm
+```
+
+The model needs the mmrm package. It estimates the covariance of the
+posttests separately for pretested and unpretested participants, because
+the pretest adjustment makes their residual covariance differ, and it uses
+Kenward-Roger degrees of freedom. The table of observed posttests shows the
+dropout.
+
+### Why not analyze each occasion separately?
+
+An analysis of the participants still observed at 12 months uses only them,
+and it is valid only if dropout is unrelated to the outcome. Here dropout
+followed low scores:
+
+```{r per-occasion, eval = has_mmrm}
+late <- long[long$occasion == "12 months" & !is.na(long$y_post), ]
+cc <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = late)
+data.frame(
+  contrast = cc$effects$contrast,
+  complete_case = round(cc$effects$estimate, 2),
+  mmrm = round(mm$effects$estimate[mm$effects$occasion == "12 months"], 2),
+  truth = c(3, 0, 3, 3)
+)
+```
+
+In this data set the two analyses differ by about a point at 12 months,
+well within their standard errors of about 2 points, and here the
+complete-case estimate happens to land closer to the truth. In a single
+data set that is a matter of chance. The difference is systematic only on
+average: across 2,000 data sets per scenario in the validation study,
+per-occasion complete-case analyses were biased by up to 0.09 standard
+deviations at the last occasion under heavy dropout, while the
+repeated-measures model was not.
+
+### Planning and reporting
+
+`analysis_plan_solomon(occasions = ...)` writes a plan with this model as
+the primary analysis and the contrasts at the primary occasion as
+confirmatory, and `report_solomon()` reports the fit:
+
+```{r mmrm-report, eval = has_mmrm}
+report_solomon(mm, digits = 1)$method
+```
+
+## References
+
+Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
+M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd
+ed.). Wiley. https://doi.org/10.1002/9781119756118
+
+Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied longitudinal
+analysis* (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
+
+Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
+(2008). Recommendations for the primary analysis of continuous endpoints in
+longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
+https://doi.org/10.1177/009286150804200402
+
+White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
+for intention to treat analysis in randomised trials with missing outcome
+data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40
