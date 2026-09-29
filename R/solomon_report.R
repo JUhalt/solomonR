@@ -463,11 +463,18 @@
        refs = .solomon_function_refs$baseline_solomon, cells = NULL)
 }
 
+# "a", "a and b", or "a, b, and c".
+.series_and <- function(x) {
+  if (length(x) <= 1L) return(paste(x))
+  if (length(x) == 2L) return(paste(x, collapse = " and "))
+  paste0(paste(x[-length(x)], collapse = ", "), ", and ", x[length(x)])
+}
+
 .mi_offset_phrase <- function(delta, digits) {
   groups <- .solomon_group_labels[delta != 0]
   values <- .apa_num(delta[delta != 0], digits)
   if (length(unique(values)) == 1L) {
-    sprintf("%s in the %s group%s", values[1L], paste(groups, collapse = ", "),
+    sprintf("%s in the %s group%s", values[1L], .series_and(groups),
             if (length(groups) > 1L) "s" else "")
   } else {
     paste(sprintf("%s in the %s group", values, groups), collapse = "; ")
@@ -526,7 +533,7 @@
       "In a tipping-point sensitivity analysis (White et al., 2011; Little et al., 2012), ",
       "the imputed posttests of the %s group%s were shifted by offsets from %s to %s ",
       "(%s to %s pooled within-group standard deviations of the observed posttests)."
-    ), paste(fit$groups, collapse = ", "), if (length(fit$groups) > 1L) "s" else "",
+    ), .series_and(fit$groups), if (length(fit$groups) > 1L) "s" else "",
     .apa_num(min(r$delta), digits), .apa_num(max(r$delta), digits),
     .apa_num(min(r$delta_sd), 2), .apa_num(max(r$delta_sd), 2))
   )

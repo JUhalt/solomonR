@@ -155,7 +155,7 @@ test_that("print and report describe the assumption and the offsets", {
   expect_true(any(grepl("^van Buuren, S.", r$references)))
 
   r2 <- report_solomon(mnar)
-  expect_match(r2$method, "-3.00 in the pretested treatment, unpretested treatment groups", fixed = TRUE)
+  expect_match(r2$method, "-3.00 in the pretested treatment and unpretested treatment groups", fixed = TRUE)
   expect_true(any(grepl("^White, I. R., Horton", r2$references)))
 })
 
