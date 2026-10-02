@@ -252,16 +252,20 @@ conditions, and make clustered designs safe to analyze.
   - Robust Poisson models, rate ratios and rate differences, exposure offsets
   - Negative-binomial option for strongly overdispersed counts — [#62](https://github.com/JUhalt/solomonR/issues/62); in review, [PR #66](https://github.com/JUhalt/solomonR/pull/66)
 
-- [ ] Solomon N-group designs: more than two conditions — [#45](https://github.com/JUhalt/solomonR/issues/45)
+- [ ] Solomon N-group designs: more than two conditions — [#45](https://github.com/JUhalt/solomonR/issues/45); in review, [PR #95](https://github.com/JUhalt/solomonR/pull/95)
   - One model with planned contrasts in place of overlapping four-group
     analyses (Edmonds & Kennedy, 2017; Mai et al., 2020):
     `fit_solomon_glm(control = , contrasts = )`
+  - Its simulation study is reported. The analysis is experimental, because
+    the pre-specified rule for error control was not met for two omnibus
+    tests with three treatments and 10 participants per group
   - Steyn's (2009) sequence of tests, `fit_solomon_steyn()`, and the
     `steyn2005` data (Steyn, 2005)
   - Steyn (2009) has been read in a pre-publication draft, dated March 2,
     2009. The published article has been requested, and
     `fit_solomon_steyn()` stays experimental until it has been checked
-    against that version. v1.0.0 waits for this item.
+    against that version. Whether v1.0.0 waits for that check is decided at
+    sign-off ([#85](https://github.com/JUhalt/solomonR/issues/85)).
 
 - [ ] Clustered designs
   - Detect designs that confound clusters with conditions — [#46](https://github.com/JUhalt/solomonR/issues/46); in review, [PR #60](https://github.com/JUhalt/solomonR/pull/60)
