@@ -1,0 +1,509 @@
+---
+title: "Designs With Several Treatments: Validating the Joint Model"
+description: >
+  Simulation study of fit_solomon_glm() for Solomon designs with two or
+  three treatments: Type I error of the omnibus tests, familywise error of
+  the Holm-adjusted comparisons, bias, and coverage, beside the error rates
+  of overlapping four-group analyses and of the tests of Steyn's (2009)
+  sequence.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+p <- utils::read.csv("ngroup-validation/performance.csv", stringsAsFactors = FALSE)
+agree <- utils::read.csv("ngroup-validation/agreement.csv", stringsAsFactors = FALSE)
+info <- utils::read.csv("ngroup-validation/run-information.csv", stringsAsFactors = FALSE)
+run <- stats::setNames(as.list(info$value), info$item)
+reps <- as.integer(run$replications_per_scenario)
+p$n <- as.character(p$n)
+p$size <- factor(ifelse(p$n == "mai", "15 to 27", p$n), levels = c("10", "25", "50", "15 to 27"))
+
+f3 <- function(x) sprintf("%.3f", x)
+f4 <- function(x) sprintf("%.4f", x)
+rng <- function(x, d = 3) sprintf(paste0("%.", d, "f to %.", d, "f"), min(x), max(x))
+hc3 <- c("M1", "M2")
+
+# Agreement criterion of the protocol: every compared value within 1e-8,
+# every outcome of Steyn's sequence identical, and no comparison missing.
+glm_rows <- agree$method %in% c("M1", "M2", "M3")
+steyn_rows <- agree$method %in% c("M5", "M5h")
+agree_diffs <- c(unlist(agree[glm_rows, grep("^max_diff", names(agree))]),
+                 agree$max_diff_p[steyn_rows])
+agree_decisions <- agree$decisions_identical[steyn_rows]
+agree_missing <- sum(is.na(agree_diffs)) + sum(is.na(agree_decisions))
+agree_met <- agree_missing == 0 && all(agree_diffs < 1e-8) && all(agree_decisions)
+
+# Rule 1: omnibus Type I error and Holm familywise error not significantly
+# above .05, by a one-sided exact binomial test at .05 / C.
+r1 <- p[p$method %in% hc3 & p$measure %in% c("type1_omnibus", "fwer_holm_control", "fwer_holm_pairwise"), ]
+r1$x <- round(r1$estimate * r1$reps)
+r1$p_above <- mapply(function(x, n) stats::binom.test(x, n, 0.05, alternative = "greater")$p.value, r1$x, r1$reps)
+r1$fail <- r1$p_above < 0.05 / nrow(r1)
+
+# Rules 2 and 3 cover the contrasts of M1 and M2: each treatment against the
+# control. The treatment-against-treatment comparisons (M1p and M2p in the
+# protocol) come under rule 1 only; their coverage and bias are reported
+# without a pass rule.
+vs_control <- function(d) grepl(" vs Control$", d$comparison)
+
+# Rule 2: coverage not significantly below .95.
+cov_all <- p[p$method %in% hc3 & p$measure == "coverage", ]
+cov_all$x <- round(cov_all$estimate * cov_all$reps)
+cov_all$p_below <- mapply(function(x, n) stats::binom.test(x, n, 0.95, alternative = "less")$p.value, cov_all$x, cov_all$reps)
+r2 <- cov_all[vs_control(cov_all), ]
+r2$fail <- r2$p_below < 0.05 / nrow(r2)
+tt2 <- cov_all[!vs_control(cov_all), ]
+
+# Rule 3: bias not significantly different from zero.
+bias_all <- p[p$method %in% hc3 & p$measure == "bias", ]
+bias_all$z <- bias_all$estimate / bias_all$mcse
+bias_all$p_two <- 2 * stats::pnorm(-abs(bias_all$z))
+r3 <- bias_all[vs_control(bias_all), ]
+r3$fail <- r3$p_two < 0.05 / nrow(r3)
+tt3 <- bias_all[!vs_control(bias_all), ]
+
+measure_label <- c(type1_omnibus = "Omnibus test", fwer_holm_control = "Holm family, against the control",
+                   fwer_holm_pairwise = "Holm family, all pairs")
+all_pass <- !any(r1$fail) && !any(r2$fail) && !any(r3$fail)
+verdict <- function(fail) if (any(fail)) "not met" else "met"
+
+# Checked, flagged at an unadjusted .05, and failing rates by one or more
+# factors of the design.
+pattern_table <- function(d, flagged, rule, by, caption) {
+  d$flagged <- flagged
+  d$`Per group` <- as.character(d$size)
+  d$Contrast <- d$contrast
+  d$Spread <- d$spread
+  d$Treatments <- as.character(d$k)
+  tab <- do.call(rbind, lapply(by, function(v) {
+    g <- split(d, factor(d[[v]], levels = unique(d[[v]][order(d$size)])))
+    data.frame(Factor = v, Level = names(g), Checked = vapply(g, nrow, integer(1)),
+               Flagged = vapply(g, function(x) sum(x$flagged), numeric(1)),
+               Expected = sprintf("%.1f", 0.05 * vapply(g, nrow, integer(1))),
+               Fails = vapply(g, function(x) sum(x$fail), numeric(1)), check.names = FALSE)
+  }))
+  names(tab)[4:6] <- c("Flagged at an unadjusted .05", "Expected by chance", paste("Fails rule", rule))
+  knitr::kable(tab, row.names = FALSE, align = "llrrrr", caption = caption)
+}
+```
+
+This article reports the simulation validation of `fit_solomon_glm()` for
+Solomon designs with several treatments. The aims, data-generating
+mechanisms, estimands, methods, performance measures, and decision rules
+were posted on [issue #45](https://github.com/JUhalt/solomonR/issues/45)
+before the study was run, following the ADEMP structure of Morris et al.
+(2019). One amendment was posted before the run. It changed the post hoc
+test of Steyn's sequence to the Scheffé test that Steyn (2005) used, and
+kept the Holm-adjusted version as a second variant. The study has
+`r format(reps, big.mark = ",")` replications in each of
+`r length(unique(p$scenario))` scenarios.
+
+## Design
+
+**Data.** Normal outcomes, generated as `simulate_solomon()` does, with a
+posttest standard deviation of 10 in every group when the spread is equal.
+A design has k treatments and a control, each with and without a pretest.
+
+**Scenarios.** They cross:
+
+- **treatments:** two (six groups) or three (eight groups);
+- **participants per group:** 10, 25, or 50, and, for two treatments, the
+  unequal posttest counts of Mai et al. (2020), 15 to 27 per group;
+- **pretest-posttest correlation:** 0.3 or 0.7;
+- **residual spread:** the part of the posttest that the pretest does not
+  predict has the same standard deviation in every group, or one 1.5 times
+  larger in the first treatment's groups. Those groups' posttest standard
+  deviation is then 14.6 at a correlation of 0.3 and 12.8 at 0.7;
+- **effects:**
+  - S0, none;
+  - S1, a pretest effect of 5 points and nothing else;
+  - S2, a treatment effect of 5 points for every treatment, with no
+    sensitization;
+  - S3, a treatment effect and sensitization of 5 points for the first
+    treatment only.
+
+**Methods.**
+
+- **M1:** `fit_solomon_glm(control = )` with the pretest adjustment and HC3
+  standard errors, the package's default.
+- **M2:** the same without the pretest adjustment.
+- **M3:** M2 with conventional standard errors, the joint two-way analysis
+  of variance.
+- **M4:** overlapping four-group analyses, a separate two-by-two analysis
+  of variance for each pair of conditions, each interaction judged at .05.
+  The analyses of each treatment against the control follow McCarthy and
+  Tucker (2002); all pairs follow Mai et al. (2020).
+- **M5:** the tests of Steyn's (2009) sequence, computed as
+  `fit_solomon_steyn()` computes them, with Scheffé post hoc tests. **M5h**
+  uses Holm-adjusted pairwise t tests. As the protocol defined them, the
+  outcomes of steps E4 and E5 are counted in every replication, whether or
+  not the function's decision path reaches those steps.
+
+**Decision rules,** for the HC3 fits (M1 and M2). Each allows for Monte
+Carlo error by a Bonferroni adjustment across the rates it checks:
+
+1. No omnibus Type I error and no Holm family's familywise error rate is
+   significantly above .05. The families are the comparisons of each
+   treatment with the control and the comparisons of all pairs.
+2. No contrast's coverage is significantly below .95, for each treatment
+   against the control.
+3. No contrast's bias is significantly different from zero, for each
+   treatment against the control.
+
+If the three rules hold, `fit_solomon_glm()` keeps its stable lifecycle
+stage for designs with several treatments. If any fails, that analysis is
+labeled experimental and the scenarios that failed are named.
+
+## Agreement with the package
+
+For speed the study computed every method directly. It checked those
+computations against the package's functions on the first
+`r max(agree$rep[agree$method == "M1"])` replications of every scenario
+for M1 to M3 and the first `r max(agree$rep[agree$method == "M5"])` for
+the sequence. The protocol required the values to agree within 1e-8 and
+the outcomes counted for Steyn's sequence to be identical. The largest
+difference in any estimate, standard error, p-value, or adjusted p-value
+was `r formatC(max(agree_diffs, na.rm = TRUE), format = "e", digits = 1)`.
+The outcomes counted for Steyn's sequence (E1 significant, a treatment
+declared effective, any E4 test significant, any E5 pair significant),
+rebuilt from the package's p-values by the protocol's rules, were identical
+in `r sum(agree_decisions, na.rm = TRUE)` of `r length(agree_decisions)`
+checks. `r if (agree_missing > 0) sprintf("%d comparisons could not be made.", agree_missing)`
+The agreement criterion is **`r if (agree_met) "met" else "not met"`**.
+
+## Rule 1: error control
+
+```{r rule1}
+tab <- do.call(rbind, lapply(split(r1, list(r1$measure, r1$size), drop = TRUE), function(d) {
+  data.frame(Rate = measure_label[d$measure[1]], `Per group` = as.character(d$size[1]),
+             Rates = nrow(d), Mean = f4(mean(d$estimate)), Highest = f4(max(d$estimate)),
+             `Above .05 (unadjusted test)` = sum(d$p_above < 0.05),
+             `Fails rule 1` = sum(d$fail), check.names = FALSE)
+}))
+tab <- tab[order(match(tab$Rate, measure_label), match(tab$`Per group`, levels(p$size))), ]
+knitr::kable(tab, row.names = FALSE, align = "llrrrrr",
+             caption = "Rejection rates of the HC3 fits (M1 and M2) where the null hypothesis holds. An unadjusted one-sided test at .05 flags about 5% of valid rates by chance.")
+```
+
+Rule 1 checked `r format(nrow(r1), big.mark = ",")` rates. `r sum(r1$fail)`
+failed it, so the rule is **`r verdict(r1$fail)`**. With an unadjusted
+one-sided test at .05, `r sum(r1$p_above < 0.05)` rates lay above .05, where
+about `r round(0.05 * nrow(r1))` would be expected by chance for a valid
+method.
+
+```{r rule1-fails}
+if (any(r1$fail)) {
+  s <- r1[r1$fail, ]
+  s <- s[order(-s$estimate), ]
+  knitr::kable(data.frame(
+    Method = s$method, Treatments = s$k, `Per group` = as.character(s$size), Correlation = s$rho,
+    Spread = s$spread, Effects = s$effects, Rate = measure_label[s$measure], Test = s$contrast,
+    Estimate = f4(s$estimate), check.names = FALSE
+  ), row.names = FALSE, caption = "Rates that fail rule 1.")
+}
+```
+
+```{r rule1-where}
+fails <- r1[r1$fail, ]
+where <- if (nrow(fails)) {
+  sprintf(paste0(
+    "Every failing rate is an omnibus test of %s, with %s treatments and %s ",
+    "participants per group; the failing rates run from %s to %s. No Holm ",
+    "family failed."),
+    paste(sort(unique(fails$contrast)), collapse = " or "),
+    paste(sort(unique(fails$k)), collapse = " or "),
+    paste(sort(unique(as.character(fails$size))), collapse = " or "),
+    f3(min(fails$estimate)), f3(max(fails$estimate)))
+} else {
+  ""
+}
+only_omnibus <- nrow(fails) > 0 && all(fails$measure == "type1_omnibus")
+key <- r1[r1$measure == "type1_omnibus" &
+            r1$contrast %in% c("Pretest x Condition", "Condition (avg over pretest)"), ]
+```
+
+`r if (only_omnibus) where`
+`r if (nrow(fails) && !only_omnibus) "The failing rates include Holm families; see the table above."`
+The two omnibus tests that carry the design's main questions, Pretest x
+Condition and Condition averaged over pretest, had rejection rates of
+`r rng(key$estimate)`, and `r sum(key$fail)` of their `r nrow(key)` rates
+failed the rule.
+
+```{r omnibus-detail}
+om <- r1[r1$measure == "type1_omnibus", ]
+tab <- stats::aggregate(estimate ~ contrast + size, om, function(x) sprintf("%.4f (%.4f)", mean(x), max(x)))
+wide <- stats::reshape(tab, idvar = "contrast", timevar = "size", direction = "wide")
+names(wide) <- sub("^estimate\\.", "", names(wide))
+names(wide)[1] <- "Omnibus test"
+knitr::kable(wide, row.names = FALSE,
+             caption = "Type I error of each omnibus test by participants per group: mean (highest) over the scenarios and the two HC3 fits.")
+```
+
+```{r rule1-pattern}
+pattern_table(r1, r1$p_above < 0.05, 1, c("Treatments", "Per group", "Contrast", "Spread"),
+              "Rule 1 by number of treatments, participants per group, test or contrast, and spread.")
+small <- r1[r1$size == "10", ]
+small$p_low <- mapply(function(x, n) stats::binom.test(x, n, 0.05, alternative = "less")$p.value, small$x, small$reps)
+holm <- r1[r1$measure != "type1_omnibus", ]
+```
+
+The Holm families were conservative: their familywise error rates were
+`r rng(holm$estimate)`, with a mean of `r f3(mean(holm$estimate))`. With 10
+participants per group, `r sum(small$estimate < 0.05)` of `r nrow(small)`
+rates were below .05 (mean `r f4(mean(small$estimate))`), and
+`r sum(small$p_low < 0.05)` were significantly below it at an unadjusted
+.05, where about `r round(0.05 * nrow(small))` would be expected by chance.
+Rates below .05 are conservatism, which the protocol does not count as a
+failure.
+
+## Rule 2: coverage
+
+```{r rule2}
+tab <- do.call(rbind, lapply(split(r2, list(r2$method, r2$size), drop = TRUE), function(d) {
+  data.frame(Method = d$method[1], `Per group` = as.character(d$size[1]), Intervals = nrow(d),
+             Mean = f4(mean(d$estimate)), Lowest = f4(min(d$estimate)), Highest = f4(max(d$estimate)),
+             `Fails rule 2` = sum(d$fail), check.names = FALSE)
+}))
+tab <- tab[order(tab$Method, match(tab$`Per group`, levels(p$size))), ]
+knitr::kable(tab, row.names = FALSE, align = "llrrrrr",
+             caption = "Coverage of nominal 95% intervals for every contrast of each treatment against the control.")
+```
+
+Rule 2 checked `r format(nrow(r2), big.mark = ",")` intervals.
+`r sum(r2$fail)` failed it, so the rule is **`r verdict(r2$fail)`**. With an
+unadjusted one-sided test at .05, `r sum(r2$p_below < 0.05)` intervals lay
+below .95, where about `r round(0.05 * nrow(r2))` would be expected by
+chance for a valid method.
+
+```{r rule2-fails}
+if (any(r2$fail)) {
+  s <- r2[r2$fail, ]
+  s <- s[order(s$estimate), ]
+  knitr::kable(data.frame(
+    Method = s$method, Treatments = s$k, `Per group` = as.character(s$size), Correlation = s$rho,
+    Spread = s$spread, Effects = s$effects, Contrast = s$contrast, Comparison = s$comparison,
+    Coverage = f4(s$estimate), MCSE = f4(s$mcse), check.names = FALSE
+  ), row.names = FALSE, caption = "Intervals that fail rule 2.")
+}
+```
+
+```{r rule2-pattern}
+pattern_table(r2, r2$p_below < 0.05, 2, c("Per group", "Contrast", "Spread"),
+              "Rule 2 by participants per group, contrast, and spread.")
+```
+
+The `r format(nrow(tt2), big.mark = ",")` intervals for the
+treatment-against-treatment comparisons, which no rule covers, had coverage
+of `r rng(tt2$estimate, 4)`; `r sum(tt2$p_below < 0.05 / nrow(tt2))` were
+significantly below .95 at .05/`r nrow(tt2)`.
+
+## Rule 3: bias
+
+Rule 3 checked `r format(nrow(r3), big.mark = ",")` contrasts.
+`r sum(r3$fail)` failed it, so the rule is **`r verdict(r3$fail)`**. The
+largest bias was `r f3(max(abs(r3$estimate)))` points, on a scale whose
+control-group standard deviation is 10, and `r sum(r3$p_two < 0.05)`
+contrasts differed from zero at an unadjusted .05, where about
+`r round(0.05 * nrow(r3))` would be expected by chance.
+
+```{r rule3-fails}
+if (any(r3$fail)) {
+  s <- r3[r3$fail, ]
+  s <- s[order(-abs(s$z)), ]
+  knitr::kable(data.frame(
+    Method = s$method, Treatments = s$k, `Per group` = as.character(s$size), Correlation = s$rho,
+    Spread = s$spread, Effects = s$effects, Contrast = s$contrast, Comparison = s$comparison,
+    Bias = f3(s$estimate), MCSE = f3(s$mcse), check.names = FALSE
+  ), row.names = FALSE, caption = "Contrasts that fail rule 3.")
+}
+```
+
+```{r rule3-pattern}
+pattern_table(r3, r3$p_two < 0.05, 3, c("Per group", "Contrast", "Spread"),
+              "Rule 3 by participants per group, contrast, and spread.")
+```
+
+For the treatment-against-treatment comparisons, which no rule covers, the
+largest bias was `r f3(max(abs(tt3$estimate)))` points, and
+`r sum(tt3$p_two < 0.05 / nrow(tt3))` of `r format(nrow(tt3), big.mark = ",")`
+differed from zero at .05/`r nrow(tt3)`.
+
+## The conventional analysis
+
+M3, the joint analysis of variance with conventional standard errors,
+assumes equal variances in the groups. No rule applies to it.
+
+```{r m3}
+m3 <- p[p$method == "M3" & p$measure %in% c("type1_omnibus", "fwer_holm_control"), ]
+tab <- stats::aggregate(estimate ~ spread + size, m3, function(x) sprintf("%.4f (%.4f)", mean(x), max(x)))
+wide <- stats::reshape(tab, idvar = "size", timevar = "spread", direction = "wide")
+names(wide) <- c("Per group", "Equal spread", "Unequal spread")
+knitr::kable(wide, row.names = FALSE,
+             caption = "M3: omnibus Type I error and Holm familywise error, mean (highest) over the scenarios.")
+```
+
+## Overlapping four-group analyses
+
+Where no treatment was sensitized (S0 to S2), the chance that at least one
+of the separate interaction tests was significant at .05 was:
+
+```{r m4}
+m4 <- p[p$method == "M4" & p$effects %in% c("S0", "S1", "S2"), ]
+tab <- stats::aggregate(estimate ~ measure + k, m4, function(x) sprintf("%.3f (%.3f to %.3f)", mean(x), min(x), max(x)))
+tab$measure <- c(any_interaction_control = "Each treatment against the control",
+                 any_interaction_pairs = "Every pair of conditions")[tab$measure]
+names(tab) <- c("Analyses", "Treatments", "At least one significant interaction: mean (range)")
+knitr::kable(tab[order(tab$Treatments), c(2, 1, 3)], row.names = FALSE)
+```
+
+```{r m4-joint}
+joint <- p[p$method == "M2" & p$measure == "type1_omnibus" & p$contrast == "Pretest x Condition", ]
+```
+
+The joint model's single Pretest x Condition test rejected in
+`r rng(joint$estimate)` of replications in the same scenarios (M2, which
+like M4 uses the posttests alone).
+
+## The tests of Steyn's sequence
+
+```{r m5}
+m5 <- p[p$method %in% c("M5", "M5h"), ]
+pick <- function(meas, eff) m5[m5$measure == meas & m5$effects %in% eff, ]
+rows <- list(
+  list("The first test (E1) is significant, no effects at all", "S0", pick("e1", "S0")),
+  list("The first test (E1) is significant, pretest effect only", "S1", pick("e1", "S1")),
+  list("A treatment with no effect is declared effective", "S3", pick("null_effective", "S3")),
+  list("Any E5 post hoc pair significant when no E4 test is (equal treatments)", "S2", pick("differ", "S2")),
+  list("Any E4 test significant, no effects at all", "S0", pick("flag", "S0")),
+  list("Any E4 test significant, pretest effect only", "S1", pick("flag", "S1"))
+)
+tab <- do.call(rbind, lapply(rows, function(r) {
+  d <- r[[3]]
+  one <- function(m) { x <- d$estimate[d$method == m]; sprintf("%.3f (%.3f to %.3f)", mean(x), min(x), max(x)) }
+  data.frame(Outcome = r[[1]], Scenarios = r[[2]], `Scheffé (M5)` = one("M5"),
+             `Holm (M5h)` = one("M5h"), check.names = FALSE)
+}))
+knitr::kable(tab, row.names = FALSE,
+             caption = "Tests of Steyn's sequence: the probability of each outcome as the protocol defined it, mean (range) over the scenarios.")
+```
+
+E1 compares all the posttest groups, so it responds to a pretest effect as
+well as to the treatments. With no effects at all (S0) its null hypothesis
+holds, and the rate is its Type I error. With a pretest effect only (S1)
+the pretested groups' means are 5 points above the unpretested groups', so
+the null hypothesis is false: the rate is the test's power to detect the
+pretest effect, and the sequence continues although no treatment has an
+effect.
+
+```{r m5-flag}
+flag1 <- pick("flag", "S1")
+flag1 <- flag1[flag1$method == "M5", ]
+by_n <- stats::aggregate(estimate ~ size, flag1[flag1$n != "mai", ], mean)
+rising <- !is.unsorted(by_n$estimate)
+mai <- flag1$estimate[flag1$n == "mai"]
+pxc <- r1[r1$measure == "type1_omnibus" & r1$contrast == "Pretest x Condition" & r1$effects == "S1", ]
+s1_path <- agree[steyn_rows & agree$scenario %in% unique(p$scenario[p$effects == "S1"]), ]
+```
+
+E4 compares a treatment's pretested and unpretested groups, and Steyn
+cautions about internal validity when they differ. With a pretest effect
+and no sensitization (S1), at least one E4 test was significant in
+`r rng(flag1$estimate, 2)` of replications, depending on the scenario.
+Averaged over the scenarios with equal group sizes, with two and three
+treatments, the rate was
+`r paste(sprintf("%.2f with %s per group", by_n$estimate, by_n$size), collapse = ", ")`
+`r if (rising) "(rising with the group size)"`. At the unequal sizes of Mai
+et al. (2020), 15 to 27 per group with two treatments, it was
+`r rng(mai, 2)`. That comparison picks up the pretest's own effect, which
+is not sensitization. In the same scenarios the joint model's Pretest x
+Condition test (M1 and M2) rejected in `r rng(pxc$estimate)` of
+replications, and `r sum(pxc$fail)` of its `r nrow(pxc)` rates failed rule
+1.
+
+These rates count the E4 tests in every replication, as the protocol set
+out. `fit_solomon_steyn()` acts on E4 only when E1 is significant and a
+treatment group differs from both control groups. With a pretest effect
+only, no group is expected to: the pretested groups match the pretested
+control, and the unpretested groups match the unpretested control. Its
+decision path then usually stops at step E2 and its conclusion does not
+raise the caution. The E4 tests are still printed, marked as off the
+decision path. In the `r nrow(s1_path)` replications of the S1 scenarios
+that the agreement check ran through the function, E4 was on its decision
+path in `r sum(s1_path$e4_on_path)`. This count was not planned in the
+protocol and is descriptive. In the same way, the S2 rate counts
+significant E5 post hoc pairs whenever no E4 test is significant, whereas
+the function's conclusion reads the E5 one-way analysis of variance, and
+only when E5 is on its path.
+
+## Verdict
+
+`r if (all_pass) "All three rules are met. For designs with several treatments, fit_solomon_glm() keeps its stable lifecycle stage." else sprintf("Rule 1 is %s, rule 2 is %s, and rule 3 is %s. As the protocol set out, the analysis of designs with several treatments is therefore labeled experimental. The tables above list every rate, interval, and contrast that failed.", verdict(r1$fail), verdict(r2$fail), verdict(r3$fail))`
+
+`r if (only_omnibus) "The failures are confined to the omnibus tests named under rule 1. The Holm-adjusted comparisons, which the package reports for every contrast, and the Pretest x Condition test did not fail. With few participants per group and three treatments, judge whether the conditions differ among pretested, or among unpretested, participants by the adjusted comparisons rather than by those two omnibus tests."`
+
+## Limits of this study
+
+- Outcomes were normal. The four-group studies of binary and count
+  outcomes and of clustered designs have not been repeated for several
+  treatments.
+- The comparisons were each treatment against the control and all pairs.
+  Planned comparisons given as weights use the same estimates and standard
+  errors, and were not simulated separately.
+- Before the study, runs with other seeds were made while the simulation
+  code was written. Short runs timed the code and checked it against the
+  package. One rate in the timing run looked high, so a further run of
+  2,000 replications in each of three scenarios with three treatments (S0
+  and S1; 10 or 25 per group) looked at the omnibus tests. With 10 per
+  group, the HC3 omnibus test of Condition | unpretested rejected in 6.1%
+  and 6.4% of replications. Nothing in the methods, scenarios, or rules was
+  changed in response, and rule 1 judged that test as posted. These runs
+  are described in the amendment on issue #45 and are not part of these
+  results.
+
+## Run information
+
+```{r info}
+knitr::kable(info, row.names = FALSE)
+```
+
+The replications were run from commit `r substr(run$simulation_commit, 1, 7)`.
+They do not call the package. The agreement check compared them with the
+package at commit `r substr(run$agreement_commit, 1, 7)`, after the
+summaries were rebuilt from the saved replications. The run was stopped
+once, by a time limit of the session that started it, after 303 of its
+1,120 tasks, and was resumed from the saved tasks. A resumed run gives the
+same results as an uninterrupted one, because each task has its own
+random-number substream. The start time of this run was taken from its log
+file.
+
+The script, `ngroup-simulation.R`, and the files `performance.csv`,
+`agreement.csv`, and `run-information.csv` are in the package repository
+under `vignettes/articles/ngroup-validation/`.
+
+## References
+
+Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+*Scandinavian Journal of Statistics, 6*(2), 65–70.
+https://www.jstor.org/stable/4615733
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+through service learning. *Journal of Management Education, 26*(6), 629–647.
+https://doi.org/10.1177/1052562902238322
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086
+
+Steyn, R. (2005). *Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies* [Self-evaluation and the forming of
+self-efficacy perceptions] [Doctoral thesis, University of South Africa].
+Unisa Institutional Repository. https://hdl.handle.net/10500/1745
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588

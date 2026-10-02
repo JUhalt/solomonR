@@ -63,7 +63,8 @@ each group), \code{dropouts} (the two-by-two table of dropouts), and
 \code{tests}.
 \item \code{effects}: \code{tests} (E1 to E5), \code{groups} (for several interventions,
 whether each intervention group differs from \code{Od} and from \code{Of}), and
-\code{highest} (the intervention with the highest mean in E5, or \code{NA}).
+\code{highest} (the intervention with the highest combined posttest mean
+in E5, or \code{NA}; see the Operationalization section).
 \item \code{path}: the steps of step 8 that Steyn's sequence acts on.
 \item \code{conclusions}: one plain-language summary for each step.
 \item \code{notes}: skipped steps and data notes.
@@ -92,8 +93,9 @@ four-group design and for its extension to several interventions, the
 extended Solomon design: k interventions and a control, each with and
 without a pretest, giving 2(k + 1) groups. The sequence checks the
 threats to internal validity the design can detect (nonequivalent groups,
-history and maturation, testing, instrumentation, regression to the mean,
-and attrition) before it compares the interventions. It is a published
+history and maturation, testing, the pretest-intervention interaction,
+instrumentation, regression to the mean, and attrition) before it
+compares the interventions. It is a published
 proposal, kept for replication and teaching. The package's recommended
 analysis is \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \verb{control =}, which estimates the
 Solomon contrasts of every intervention in one model.
@@ -159,9 +161,9 @@ each intervention group differs from \code{Od} and from \code{Of};
 \item E4, for each intervention, a t test of \code{Ob} against \code{Oe};
 \item E5, when no E4 test is significant, a one-way ANOVA of the k
 interventions with their two groups combined, with post hoc tests,
-to find the intervention with the highest mean. When an E4 test is
-significant, Steyn cautions that internal validity is in question
-and the groups are not combined.
+which Steyn uses to find which intervention had the greatest
+effect. When an E4 test is significant, Steyn cautions that
+internal validity is in question and the groups are not combined.
 }
 }
 
@@ -214,6 +216,14 @@ note is recorded when an expected count is below 5.
 differs from both when its post hoc p-values against \code{Od} and against
 \code{Of} are both below \code{alpha}. The sequence continues to E3 when at least
 one intervention group does.
+\item \strong{"Greatest effect"} (E5). Steyn does not say how the intervention
+with the greatest effect is identified. solomonR reports the
+intervention with the highest combined posttest mean (\code{highest}) and
+the post hoc tests of every pair. The highest mean is the greatest
+effect only when the interventions raise the scores; when they lower
+them, as in Steyn (2005), the greatest effect is the lowest mean.
+Read \code{highest} with the direction of the outcome and the post hoc
+tests.
 \item \strong{Missing scores.} Participants with a missing posttest stay in the
 data for the attrition step and are left out of the posttest analyses.
 The pretest analyses use the pretested participants with a pretest.
@@ -237,8 +247,10 @@ that a threat is absent.
 \item The chi-square test for the variance treats the variance of \code{Oc} as a
 known value and ignores the pairing of \code{Oc} and \code{Od}.
 \item A difference between \code{Ob} and \code{Oe} (E4) mixes a pretest main effect
-with pretest sensitization. The joint model's Pretest x Treatment
-contrast (\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}) is the direct test of sensitization.
+with pretest sensitization. Step 4 tests the interaction for each
+intervention separately; the joint model (\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}) tests it
+for all the interventions in one model, with adjusted p-values for the
+comparisons.
 \item The package's recommended analysis is \code{fit_solomon_glm(control = )}.
 }
 }

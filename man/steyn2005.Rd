@@ -56,7 +56,13 @@ existing classes of a police training college were allocated to the eight
 groups, seven classes to each, in consultation with the college's
 management, and the thesis states that this allocation was not random
 (pp. 105–106). The classes had been formed from the order in which
-trainees reported for training. The analyses in the thesis, and those
+trainees reported for training. The thesis is not consistent on this
+point. Its introduction says that participants were divided at random
+into eight groups and that the groups were assigned at random to the
+conditions (p. 9), and it calls the allocation random again on p. 107.
+The method chapter, followed here, gives the detail: the researcher
+judged the existing classes to be random groups and made no further
+random assignment (pp. 105–106). The analyses in the thesis, and those
 below, treat participants as the units, so they do not allow for the
 classes. See \code{\link[=baseline_solomon]{baseline_solomon()}} for nonrandomized designs and
 \code{\link[=validate_solomon]{validate_solomon()}} for clustered ones.
@@ -71,7 +77,11 @@ and p = .011).
 \item \strong{The 2 x 2 ANOVAs of each treatment against the control} (Tables 5.21,
 5.34, and 5.47; pp. 128, 135, 142), within rounding. For Test:
 intervention F = 21.3, pretest F = 4.5 (p = .033), and interaction
-F = 2.0 (p = .152).
+F = 2.0 (p = .152). For Norms, the thesis ran this analysis with 213
+participants in the unpretested group (Table 5.45, pp. 141–142), one
+fewer than in Table 5.59, so its error degrees of freedom are 854 and
+those computed from these statistics are 855. The F statistics for
+Norms (14.0, 0.9, and 0.1) are the same to one decimal.
 }
 
 The treatments lowered the scores. The thesis analyzed the design as

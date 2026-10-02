@@ -206,8 +206,9 @@
 #' extended Solomon design: k interventions and a control, each with and
 #' without a pretest, giving 2(k + 1) groups. The sequence checks the
 #' threats to internal validity the design can detect (nonequivalent groups,
-#' history and maturation, testing, instrumentation, regression to the mean,
-#' and attrition) before it compares the interventions. It is a published
+#' history and maturation, testing, the pretest-intervention interaction,
+#' instrumentation, regression to the mean, and attrition) before it
+#' compares the interventions. It is a published
 #' proposal, kept for replication and teaching. The package's recommended
 #' analysis is [fit_solomon_glm()] with `control =`, which estimates the
 #' Solomon contrasts of every intervention in one model.
@@ -270,9 +271,9 @@
 #'    - E4, for each intervention, a t test of `Ob` against `Oe`;
 #'    - E5, when no E4 test is significant, a one-way ANOVA of the k
 #'      interventions with their two groups combined, with post hoc tests,
-#'      to find the intervention with the highest mean. When an E4 test is
-#'      significant, Steyn cautions that internal validity is in question
-#'      and the groups are not combined.
+#'      which Steyn uses to find which intervention had the greatest
+#'      effect. When an E4 test is significant, Steyn cautions that
+#'      internal validity is in question and the groups are not combined.
 #'
 #' Every test is computed when the data allow it; `path` records the steps
 #' Steyn's sequence acts on at `alpha`. Steps 1, 2, 4, 5, and 6 use the
@@ -320,6 +321,14 @@
 #'   differs from both when its post hoc p-values against `Od` and against
 #'   `Of` are both below `alpha`. The sequence continues to E3 when at least
 #'   one intervention group does.
+#' - **"Greatest effect"** (E5). Steyn does not say how the intervention
+#'   with the greatest effect is identified. solomonR reports the
+#'   intervention with the highest combined posttest mean (`highest`) and
+#'   the post hoc tests of every pair. The highest mean is the greatest
+#'   effect only when the interventions raise the scores; when they lower
+#'   them, as in Steyn (2005), the greatest effect is the lowest mean.
+#'   Read `highest` with the direction of the outcome and the post hoc
+#'   tests.
 #' - **Missing scores.** Participants with a missing posttest stay in the
 #'   data for the attrition step and are left out of the posttest analyses.
 #'   The pretest analyses use the pretested participants with a pretest.
@@ -339,8 +348,10 @@
 #' - The chi-square test for the variance treats the variance of `Oc` as a
 #'   known value and ignores the pairing of `Oc` and `Od`.
 #' - A difference between `Ob` and `Oe` (E4) mixes a pretest main effect
-#'   with pretest sensitization. The joint model's Pretest x Treatment
-#'   contrast ([fit_solomon_glm()]) is the direct test of sensitization.
+#'   with pretest sensitization. Step 4 tests the interaction for each
+#'   intervention separately; the joint model ([fit_solomon_glm()]) tests it
+#'   for all the interventions in one model, with adjusted p-values for the
+#'   comparisons.
 #' - The package's recommended analysis is `fit_solomon_glm(control = )`.
 #'
 #' @section Lifecycle:
@@ -384,7 +395,8 @@
 #'     `tests`.
 #'   - `effects`: `tests` (E1 to E5), `groups` (for several interventions,
 #'     whether each intervention group differs from `Od` and from `Of`), and
-#'     `highest` (the intervention with the highest mean in E5, or `NA`).
+#'     `highest` (the intervention with the highest combined posttest mean
+#'     in E5, or `NA`; see the Operationalization section).
 #'   - `path`: the steps of step 8 that Steyn's sequence acts on.
 #'   - `conclusions`: one plain-language summary for each step.
 #'   - `notes`: skipped steps and data notes.

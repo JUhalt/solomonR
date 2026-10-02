@@ -245,7 +245,10 @@
   }
 
   if (!is.null(covariates)) {
-    clash <- intersect(names(covariates), names(df))
+    # `log_exposure` is reserved with or without `exposure`: report_solomon()
+    # and the clustered permutation test read a column of that name in the
+    # fit's data as the exposure offset.
+    clash <- intersect(names(covariates), c(names(df), "log_exposure"))
     if (length(clash)) {
       stop(
         "Rename these covariates, whose names the model uses: ",
@@ -259,7 +262,7 @@
   rhs <- c(
     sprintf("(%s) * pretested", paste(terms, collapse = " + ")),
     if (!is.null(y_pre)) "pre_obs" else NULL,
-    if (!is.null(covariates)) names(covariates) else NULL
+    if (!is.null(covariates)) .formula_names(names(covariates)) else NULL
   )
   if (!is.null(exposure)) {
     if (!is.numeric(exposure) || any(exposure <= 0, na.rm = TRUE)) {
@@ -281,45 +284,72 @@
   }
 
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
-    .warn_noncollapsible(stats::family(fit)$link)
+    .warn_noncollapsible(stats::family(fit)$link, ngroup = TRUE)
   }
 
-  # An empty cell leaves a coefficient inestimable.
-  if (anyNA(stats::coef(fit))) {
-    used <- rep(TRUE, nrow(df))
-    if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
-    counts <- table(
-      factor(df$condition[used], levels = lev),
-      factor(df$pretested[used], levels = c(1L, 0L))
-    )
-    empty <- which(counts == 0, arr.ind = TRUE)
+  # Analyzable participants (the rows the model kept) in each of the
+  # 2(k + 1) groups.
+  used <- rep(TRUE, nrow(df))
+  if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
+  counts <- table(
+    factor(df$condition[used], levels = lev),
+    factor(df$pretested[used], levels = c(1L, 0L))
+  )
+  group_names <- function(sel) {
+    at <- which(sel, arr.ind = TRUE)
+    paste(sprintf(
+      "%s, %s", c("1" = "Pretested", "0" = "Unpretested")[colnames(counts)[at[, 2]]],
+      rownames(counts)[at[, 1]]
+    ), collapse = "; ")
+  }
+
+  # An empty group, or a term collinear with the others, leaves a
+  # coefficient inestimable.
+  aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
+  if (length(aliased)) {
+    if (any(counts == 0)) {
+      stop(
+        "The model cannot be estimated because these groups have no analyzable ",
+        "participants: ", group_names(counts == 0), ".",
+        call. = FALSE
+      )
+    }
+    aliased[aliased == "pre_obs"] <- "pre_obs (the pretest, `y_pre`)"
     stop(
-      "The model cannot be estimated because these groups have no analyzable ",
-      "participants: ",
-      paste(sprintf(
-        "%s, %s", c("1" = "Pretested", "0" = "Unpretested")[colnames(counts)[empty[, 2]]],
-        rownames(counts)[empty[, 1]]
-      ), collapse = "; "),
-      ".",
+      "The model cannot be estimated because these terms are collinear with ",
+      "other terms of the model: ", paste(aliased, collapse = ", "),
+      ". A covariate or pretest that is constant, or that repeats another ",
+      "term, causes this.",
+      call. = FALSE
+    )
+  }
+
+  # A group with one participant is fitted exactly: its hat value is 1, and
+  # HC3 divides the squared residual by (1 - h)^2.
+  if (robust == "HC3" && any(counts == 1)) {
+    stop(
+      "HC3 standard errors are undefined because these groups have a single ",
+      "analyzable participant: ", group_names(counts == 1), ". ",
+      "Use `robust = \"none\"` or leave the condition out; see validate_solomon().",
       call. = FALSE
     )
   }
 
   # Robust covariance, as in the four-group model.
   fit_cr <- fit
+  n_clusters <- NULL
   if (robust == "HC3") {
     vcovM <- sandwich::vcovHC(fit, type = "HC3")
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
-    used <- rep(TRUE, nrow(df))
-    if (!is.null(fit$na.action)) {
-      used[fit$na.action] <- FALSE
-    }
     cluster_fit <- cluster[used]
     if (anyNA(cluster_fit)) {
       stop("`cluster` is missing for participants included in the model.", call. = FALSE)
     }
+    # The clusters the CR2 covariance is computed from; `cluster` keeps one
+    # value per input row.
+    n_clusters <- length(unique(cluster_fit))
     single <- .cluster_structure(
       df$condition[used], df$pretested[used], cluster_fit,
       cells = .solomon_cells(lev)
@@ -505,6 +535,7 @@
     robust = robust,
     family = family,
     cluster = cluster,
+    n_clusters = n_clusters,
     conf_level = conf_level,
     call = call
   )
@@ -559,7 +590,7 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
     paste(treatments, collapse = ", "), control, 2L * (k + 1L)
   ))
   f <- tryCatch(stats::formula(x$model), error = function(e) NULL)
-  if (!is.null(f)) cat("Formula: ", paste(deparse(f), collapse = " "), "\n", sep = "")
+  if (!is.null(f)) cat("Formula: ", .formula_line(f), "\n", sep = "")
   cat("Covariance: ", .solomon_vcov_label(x), "\n", sep = "")
   if (!is.null(x$theta)) {
     cat(sprintf("Negative binomial (NB2): theta = %.3g (SE %.3g); alpha = 1/theta = %.3g\n",
@@ -580,6 +611,10 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
   adj <- .adjust_label(x$adjust)
   cat("\nContrasts\n")
   e <- x$effects
+  # With one comparison nothing is adjusted, so the adjusted p-values (equal
+  # to the unadjusted ones) are not shown.
+  n_comp <- length(unique(e$comparison))
+  show_adj <- x$adjust != "none" && n_comp > 1L
   heads <- c("Comparison", "Contrast", "Est (SE)", if (show_df) "t" else "z")
   cols <- list(e$comparison, e$contrast, estse_str(e$estimate, e$std.error, digits),
                sprintf("%.2f", e$statistic))
@@ -587,17 +622,18 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
     heads <- c(heads, "df")
     cols <- c(cols, list(.df_fmt(e$df)))
   }
-  heads <- c(heads, "p", if (x$adjust != "none") "p adj.", ci_label)
+  heads <- c(heads, "p", if (show_adj) "p adj.", ci_label)
   cols <- c(
     cols,
     list(p_fmt(e$p.value)),
-    if (x$adjust != "none") list(p_fmt(e$p.adjusted)),
+    if (show_adj) list(p_fmt(e$p.adjusted)),
     list(sprintf("[%.*f, %.*f]", digits, e$conf.low, digits, e$conf.high))
   )
   .print_columns(heads, cols, left = 2L)
 
-  n_comp <- length(unique(e$comparison))
-  if (x$adjust != "none") {
+  if (n_comp == 1L) {
+    cat("\nWith one comparison, the p-values need no adjustment for multiple comparisons.\n")
+  } else if (show_adj) {
     cat(sprintf(paste0(
       "\np adj.: adjusted by %s within each contrast, across the %d ",
       "comparisons.\nConfidence intervals are not adjusted.\n"
@@ -605,7 +641,23 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
   } else {
     cat("\nNo adjustment for multiple comparisons.\n")
   }
+  cat(.ngroup_lifecycle_note(), sep = "\n")
   invisible(x)
+}
+
+# The lifecycle label of the analysis of designs with several treatments.
+# The protocol of its simulation study (issue #45) required the printed
+# output to say that the analysis is experimental and to name the scenarios
+# that failed the rule for error control.
+.ngroup_lifecycle_note <- function() {
+  c(
+    "",
+    "Experimental: in the package's simulation study (issue #45), the omnibus",
+    "tests of Condition | pretested and Condition | unpretested rejected in up",
+    "to 6.9% of replications at the .05 level with three treatments and 10",
+    "participants per group. No other test, and no family of adjusted",
+    "comparisons, failed the study's rule. See ?fit_solomon_glm."
+  )
 }
 
 

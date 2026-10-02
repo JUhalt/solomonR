@@ -11,7 +11,10 @@
 #
 # Writes performance.csv, agreement.csv, and run-information.csv next to this
 # script. Each task (one scenario, one substream of 500 replications) is
-# cached in the checkpoint directory, so an interrupted run resumes.
+# cached in the checkpoint directory, so an interrupted run resumes, and a
+# later run with the checkpoints in place rebuilds the summaries without
+# repeating the replications. The replications do not call the package; the
+# agreement check in the summaries does.
 
 library(parallel)
 
@@ -19,6 +22,7 @@ out_dir <- file.path("vignettes", "articles", "ngroup-validation")
 cache_dir <- file.path(out_dir, "checkpoints")
 dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
 
+seed <- 45045L
 reps <- 5000L
 chunk <- 500L
 alpha <- 0.05
@@ -259,7 +263,18 @@ steyn <- function(des, y, posthoc) {
 run_task <- function(task) {
   s <- scenarios[task$scenario, ]
   file <- file.path(cache_dir, sprintf("s%03d_c%02d.rds", task$scenario, task$chunk))
-  if (file.exists(file)) return(readRDS(file))
+  if (file.exists(file)) {
+    cached <- tryCatch(readRDS(file), error = function(e) NULL)
+    if (!is.null(cached)) {
+      # Checkpoints of the first run carry no seed and are accepted as they are.
+      if ((!is.null(cached$seed) && !identical(cached$seed, task$seed)) ||
+          !identical(cached$n, chunk)) {
+        stop("Checkpoint ", file, " was made with another seed or chunk size. ",
+             "Empty the checkpoint directory before a new run.")
+      }
+      return(cached)
+    }
+  }
 
   assign(".Random.seed", task$seed, envir = .GlobalEnv)
   k <- s$k
@@ -347,8 +362,10 @@ run_task <- function(task) {
   }
 
   out <- list(scenario = task$scenario, chunk = task$chunk, sums = acc,
-              agree = agree, n = chunk)
-  saveRDS(out, file)
+              agree = agree, n = chunk, seed = task$seed)
+  tmp <- paste0(file, ".tmp")
+  saveRDS(out, tmp)
+  file.rename(tmp, file)
   out
 }
 
@@ -356,10 +373,17 @@ run_task <- function(task) {
 
 if (sys.nframe() == 0L) {
   commit <- tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) NA)
-  started <- Sys.time()
+
+  # The first start of the replications, and the commit they were run from,
+  # are kept with the checkpoints, so a resumed or rebuilt run reports them.
+  start_file <- file.path(cache_dir, "started.rds")
+  if (!file.exists(start_file)) {
+    saveRDS(list(time = Sys.time(), commit = commit), start_file)
+  }
+  first <- readRDS(start_file)
 
   RNGkind("L'Ecuyer-CMRG")
-  set.seed(45045)
+  set.seed(seed)
   tasks <- list()
   stream <- .Random.seed
   for (sc in scenarios$scenario) {
@@ -384,5 +408,6 @@ if (sys.nframe() == 0L) {
   results <- parallel::parLapplyLB(cl, tasks, run_task, chunk.size = 1)
 
   source(file.path(out_dir, "ngroup-summarize.R"))
-  summarize_run(results, commit = commit, started = started, workers = workers)
+  summarize_run(results, cl = cl, simulation_commit = first$commit,
+                agreement_commit = commit, started = first$time, workers = workers)
 }

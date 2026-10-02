@@ -204,13 +204,14 @@ The data also show limits that no analysis removes:
 - **Scale direction.** It is described differently in the article and in
   the data file.
 
-Two parts of the article are not reproduced:
+Two points about the article remain:
 
-- **Table 6.** Its cell statistics (p. 9) do not match the data
-  ([#53](https://github.com/JUhalt/solomonR/issues/53)).
+- **Table 6.** Its cell statistics (p. 9) are not reproduced: they do not
+  match the data ([#53](https://github.com/JUhalt/solomonR/issues/53)).
 - **Overlapping comparisons.** The three four-group comparisons reuse
-  groups, so they are not independent. A single model for all six groups
-  is planned ([#45](https://github.com/JUhalt/solomonR/issues/45)).
+  groups, so they are not independent. `fit_solomon_glm(control = "Control")`
+  fits a single model to all six groups; see "Designs With Several
+  Treatments" ([#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

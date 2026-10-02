@@ -52,8 +52,9 @@ the workshop in the pretested groups and 10 weeks after it in all groups
 }
 
 Every pair of conditions forms a Solomon four-group design. The authors
-analyzed three such pairs, reusing groups across them. A single model
-for all six groups is planned in issue #45.
+analyzed three such pairs, reusing groups across them. \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}
+with \code{control = "Control"} fits one model to all six groups (see the
+examples and the article "Designs With Several Treatments").
 
 \strong{Sample and attrition.} The file has 211 participants, and the article
 reports 210 (p. 5). 133 answered the posttest, with attrition that
@@ -109,6 +110,10 @@ with(mai2020, table(pretested, condition, posttest = !is.na(post_behavior)))
 rp <- subset(mai2020, condition \%in\% c("RP", "Control"))
 with(rp, fit_solomon_glm(post_behavior, treat = as.integer(condition == "RP"),
                          pretested = pretested, pretest_score = pre_behavior))
+
+# One model for all six groups.
+fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                control = "Control", data = mai2020)
 }
 \seealso{
 \code{\link[=baseline_solomon]{baseline_solomon()}}, \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \link{elkarkri2025a},

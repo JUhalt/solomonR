@@ -7,8 +7,8 @@
   2009). Give `treat` as a factor or character vector and name the control
   with the new `control` argument.
   - **One model.** It is fitted to all the groups, in place of the
-    overlapping four-group analyses of published studies (McCarthy &
-    Tucker, 2002; Mai et al., 2020).
+    overlapping four-group analyses of published studies (Mai et al., 2020;
+    McCarthy & Tucker, 2002).
   - **Omnibus tests.** Wald tests of each Solomon contrast across the
     conditions. The Pretest x Condition test asks whether pretesting changes
     the effect of any treatment.
@@ -23,8 +23,9 @@
     fit as a 0/1 `treat`.
 * New `fit_solomon_steyn()` carries out the sequence of tests Steyn (2009)
   proposed for designs with one or several treatments: checks of
-  equivalence, history and maturation, testing, reliability, regression to
-  the mean, and attrition, then tests of the treatments' effects. Its post
+  equivalence, history and maturation, testing, the pretest-intervention
+  interaction, reliability, regression to the mean, and attrition, then
+  tests of the treatments' effects. Its post
   hoc tests are Scheffé tests, as in Steyn (2005), or Holm-adjusted pairwise
   t tests (`posthoc`). It is a published proposal, kept for replication and
   teaching, and is experimental: it follows a pre-publication draft of the
@@ -53,6 +54,23 @@
 * With `data`, a bare column name is now always read as that column, even
   when the column's values are themselves names of columns.
 * New article, "Designs With Several Treatments".
+* A simulation study under the protocol posted on #45 (112 scenarios with
+  two or three treatments, 5,000 replications each) is reported in the new
+  article "Designs With Several Treatments: Validating the Joint Model" and
+  on the validation-evidence page.
+  - **Met:** the rules for coverage and for bias. Coverage of the 95%
+    intervals was 0.939 to 0.967, and the familywise error rates of the
+    Holm-adjusted comparisons were at most 0.059.
+  - **Not met:** the rule for error control. With three treatments and 10
+    participants per group, the omnibus tests of Condition | pretested and
+    Condition | unpretested rejected in 0.055 to 0.069 of replications at
+    the .05 level. The Pretest x Condition test rejected in 0.036 to 0.055
+    across all scenarios.
+  - **Consequence:** the analysis of designs with several treatments is
+    experimental, as the protocol set out, and its printed output says so.
+  - **The published alternatives:** overlapping four-group analyses found at
+    least one significant interaction in 8% to 22% of replications when no
+    treatment was sensitized.
 
 ## Longitudinal Solomon designs (#57)
 

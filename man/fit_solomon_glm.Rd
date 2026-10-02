@@ -147,8 +147,10 @@ sensitization (Daniel et al., 2021): in the package's simulation study
 (issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
 sensitization present. Such fits give the classed warning
 \code{solomonR_noncollapsible_warning}; for binary outcomes, estimate the
-Solomon contrasts on a common scale with \code{\link[=marginal_solomon]{marginal_solomon()}}. Identity and
-log links are collapsible and are not affected.
+Solomon contrasts on a common scale with \code{\link[=marginal_solomon]{marginal_solomon()}}. It takes
+the fit of a four-group design: for a design with several treatments,
+subset the data to one treatment and the control and fit the subset.
+Identity and log links are collapsible and are not affected.
 
 Count outcomes: with \code{family = poisson()}, the default HC3 covariance gives
 the robust (quasi-likelihood) inference that Cameron and Trivedi (2013)
@@ -231,13 +233,39 @@ Holm's (1979) procedure by default. It controls the familywise error rate
 intervals are not adjusted. The result has class \code{solomon_ngroup}.
 
 Published studies with several treatments analyzed them as overlapping
-four-group designs, one for each pair of conditions (McCarthy & Tucker,
-2002; Mai et al., 2020). Those analyses reuse the same groups, so their
-tests are dependent, and each extra analysis adds to the chance of a false
-finding. The joint model asks each question once. In Mai et al.'s (2020)
-six-group study, the Pretest x Condition test with conventional
-covariance gives F(2, 127) = 1.86, p = .161. \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}} carries
-out the sequence of tests Steyn (2009) proposed for these designs.
+four-group designs: one for each treatment against the control (McCarthy &
+Tucker, 2002), or one for each pair of conditions (Mai et al., 2020). Those
+analyses reuse the same groups, so their tests are dependent, and each
+extra analysis adds to the chance of a false finding. The joint model asks
+each question once. In Mai et al.'s (2020) six-group study, the Pretest x
+Condition test of the posttests alone (without the pretest as a
+covariate), with conventional covariance, gives F(2, 127) = 1.86,
+p = .161. \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}} carries out the sequence of tests Steyn
+(2009) proposed for these designs.
+
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}} The analysis of designs with several
+treatments is experimental. In the package's simulation study (issue #45;
+112 scenarios with two or three treatments and 10 to 50 participants per
+group, 5,000 replications each):
+\itemize{
+\item the contrasts were unbiased, and coverage of their 95\% intervals was
+0.939 to 0.967;
+\item the familywise error rates of the Holm-adjusted comparisons were at most
+0.059;
+\item the Pretest x Condition test and the test of the conditions averaged
+over pretest rejected a true null hypothesis in 0.036 to 0.055 of
+replications;
+\item with three treatments and 10 participants per group, the omnibus tests
+of Condition | pretested and Condition | unpretested rejected in 0.055
+to 0.069 of replications at the .05 level. The rule for error control
+set before the study was therefore not met, which is why the analysis
+is experimental. With groups that small, judge those two questions by
+the adjusted comparisons.
+}
+
+The study did not cover binary or count outcomes, clustered designs, or
+comparisons given as weights. It is reported in the article "Designs With
+Several Treatments: Validating the Joint Model".
 }
 
 \examples{

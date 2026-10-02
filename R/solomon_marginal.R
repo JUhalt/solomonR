@@ -62,7 +62,20 @@
 
 # Classed warning for link-scale Solomon contrasts from a noncollapsible link
 # with the pretest as a covariate (#43).
-.warn_noncollapsible <- function(link) {
+#
+# marginal_solomon() takes the fit of a four-group design, so the fit of a
+# design with several treatments (`ngroup = TRUE`) is told to subset first.
+.warn_noncollapsible <- function(link, ngroup = FALSE) {
+  advice <- if (ngroup) {
+    paste0(
+      "marginal_solomon() compares the effects on a common scale, and takes ",
+      "the fit of a four-group design: subset the data to one treatment and ",
+      "the control, fit the subset with fit_solomon_glm(), and give that fit ",
+      "to marginal_solomon()."
+    )
+  } else {
+    "Use marginal_solomon() to compare the effects on a common scale."
+  }
   warning(structure(
     class = c("solomonR_noncollapsible_warning", "warning", "condition"),
     list(
@@ -71,8 +84,7 @@
         "contrast compares a treatment effect conditional on the pretest ",
         "(pretested participants) with a marginal one (unpretested participants). ",
         "These differ whenever the pretest predicts the outcome, even without ",
-        "sensitization (Daniel et al., 2021). Use marginal_solomon() to compare ",
-        "the effects on a common scale."
+        "sensitization (Daniel et al., 2021). ", advice
       ),
       call = NULL
     )

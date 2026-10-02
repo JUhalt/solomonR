@@ -97,3 +97,36 @@ test_that("a cell with no counts leaves rate ratios undefined", {
   expect_true(all(is.na(m$effects$estimate[m$effects$scale == "Rate ratio"])))
   expect_false(anyNA(m$effects$estimate[m$effects$scale == "Rate difference"]))
 })
+
+
+test_that("a covariate may not take the name of the exposure offset", {
+
+  d <- count_data()
+  x <- withr::with_seed(5, stats::rnorm(nrow(d)))
+
+  # With `exposure`, the offset column replaced the covariate and entered the
+  # model twice.
+  expect_error(
+    with(d, fit_solomon_glm(visits, treat, pretested,
+                            covariates = data.frame(log_exposure = x),
+                            family = stats::poisson(), exposure = days)),
+    "Rename these covariates, whose names the model uses: log_exposure.",
+    fixed = TRUE
+  )
+  # Without `exposure`, report_solomon() described an offset the model lacks.
+  expect_error(
+    with(d, fit_solomon_glm(visits, treat, pretested,
+                            covariates = data.frame(log_exposure = x),
+                            family = stats::poisson())),
+    "Rename these covariates, whose names the model uses: log_exposure.",
+    fixed = TRUE
+  )
+
+  # Under another name the covariate and the offset both enter.
+  fit <- with(d, fit_solomon_glm(visits, treat, pretested, covariates = data.frame(z = x),
+                                 family = stats::poisson(), exposure = days))
+  expect_identical(deparse1(stats::formula(fit$model)),
+                   "y ~ treat * pretested + z + offset(log_exposure)")
+  expect_equal(fit$data$z, x)
+  expect_equal(fit$data$log_exposure, log(d$days))
+})

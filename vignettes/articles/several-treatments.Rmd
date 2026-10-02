@@ -179,8 +179,10 @@ project, and the true interaction is 3. With 40 participants per group the
 estimates carry sampling error: in this data set the interaction is
 estimated at more than one standard error above its true value. Each
 comparison also has a Pretest x Treatment row: the difference in that
-comparison between pretested and unpretested participants, which is zero in
-these data. The weights of a comparison must sum to zero.
+comparison between pretested and unpretested participants. Its true value
+is zero here, because the data were simulated without sensitization; the
+estimates in those rows differ from zero only by sampling error. The
+weights of a comparison must sum to zero.
 
 ## A published eight-group study
 
@@ -214,7 +216,8 @@ Steyn (2009) proposed a sequence of tests for these designs, in two parts:
 
 - **Checks of internal validity.** Whether the pretested groups were
   equivalent before treatment; history and maturation; the effect of
-  testing; reliability; regression to the mean; and attrition.
+  testing; the pretest-intervention interaction; reliability and
+  instrumentation; regression to the mean; and attrition.
 - **The effects of the treatments.** A one-way analysis of variance of all
   the posttests, then of the treatment groups, with post hoc tests.
 
@@ -232,10 +235,13 @@ designs. It is not the package's recommended analysis, for three reasons:
 
 - **It runs many tests.** Steyn (2009) notes that several analyses of
   variance capitalize on chance.
-- **Its check for sensitization is indirect.** It compares each
-  treatment's pretested group with its unpretested group. That difference
-  mixes the effect of the pretest itself with sensitization. The joint
-  model's Pretest x Treatment contrast separates the two.
+- **It tests sensitization one treatment at a time.** Step 4 tests the
+  Pretest x Intervention interaction for each treatment against the
+  control, in overlapping four-group analyses, each at the nominal level.
+  Its later comparison of each treatment's pretested and unpretested groups
+  (E4) mixes the effect of the pretest itself with sensitization. The joint
+  model gives one Pretest x Condition test for all the treatments, and a
+  Pretest x Treatment contrast for each with adjusted p-values.
 - **Some of its tests treat paired scores as independent.** The help page
   lists these under "Cautions".
 
@@ -250,6 +256,31 @@ solomonR made where the description leaves room.
 ```{r report}
 report_solomon(fit)
 ```
+
+## How well the joint model performs
+
+The joint model was checked in a simulation study with two or three
+treatments and 10 to 50 participants per group, under a protocol posted
+before the study was run. The article
+[Designs With Several Treatments: Validating the Joint Model](ngroup-validation.html)
+reports it. In summary:
+
+- **Contrasts.** They were unbiased, and coverage of their 95% intervals
+  was 0.939 to 0.967.
+- **Adjusted comparisons.** The chance of at least one false rejection in a
+  family of Holm-adjusted comparisons was at most 0.059.
+- **Pretest x Condition test.** It rejected a true null hypothesis in 0.036
+  to 0.055 of replications.
+- **Two omnibus tests at the smallest size.** With three treatments and 10
+  participants per group, the omnibus tests of Condition | pretested and
+  Condition | unpretested rejected in 0.055 to 0.069 of replications at the
+  .05 level. The study's rule for error control was therefore not met, and
+  the analysis of designs with several treatments is labeled experimental.
+  With groups that small, judge those two questions by the adjusted
+  comparisons.
+- **Overlapping four-group analyses.** When no treatment was sensitized,
+  at least one of the separate interaction tests was significant in 8% to
+  22% of replications.
 
 ## What needs a four-group design
 

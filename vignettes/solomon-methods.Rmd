@@ -283,10 +283,11 @@ completely at random (Fitzmaurice et al., 2011).
 
 With k treatments and a control, each with and without a pretest, the
 design has 2(k + 1) groups (Steyn, 2009). Published studies analyzed such
-designs as overlapping four-group designs, one for each pair of conditions
-(McCarthy & Tucker, 2002; Steyn, 2005; Mai et al., 2020). Those analyses
-share groups, so their tests are dependent, and their number is not allowed
-for.
+designs as overlapping four-group designs: one for each treatment against
+the control (McCarthy & Tucker, 2002), those and one with the treatments
+pooled (Steyn, 2005), or one for each pair of conditions (Mai et al.,
+2020). Those analyses share groups, so their tests are dependent, and their
+number is not allowed for.
 
 - **Estimates:** the four Solomon contrasts for each treatment against the
   control, for every pair of conditions, or for planned comparisons given
@@ -298,6 +299,16 @@ for.
   slope across the pretested groups.
 - **Function:** `fit_solomon_glm(control = )`. The article "Designs With
   Several Treatments" works through an example.
+- **Validation:** in the package's simulation study (issue #45), the
+  contrasts were unbiased, coverage of the 95% intervals was 0.939 to
+  0.967, and the familywise error rates of the Holm-adjusted comparisons
+  were at most 0.059. The pre-specified rule for error control was not met:
+  with three treatments and 10 participants per group, the omnibus tests of
+  Condition | pretested and Condition | unpretested rejected in 0.055 to
+  0.069 of replications at the .05 level. The analysis is therefore
+  experimental. Overlapping four-group analyses found at least one
+  significant interaction in 8% to 22% of replications when no treatment
+  was sensitized.
 
 ## Published Solomon proposals
 
@@ -323,19 +334,21 @@ for.
 
 **Label:** published Solomon proposal.
 
-- **Estimates:** none of the Solomon contrasts directly. It is a sequence
-  of tests: of the equivalence of the pretested groups, history and
-  maturation, testing, reliability, regression to the mean, and attrition,
-  and then of the treatments' effects by one-way analyses of variance with
-  post hoc tests (Steyn, 2009). The post hoc tests are the Scheffé tests of
-  Steyn (2005).
+- **Estimates:** no joint estimate of the Solomon contrasts. It is a
+  sequence of tests: of the equivalence of the pretested groups, history
+  and maturation, testing, the pretest-intervention interaction (Tests A-I
+  of Walton Braver & Braver, 1988, for each treatment against the control),
+  reliability, regression to the mean, and attrition, and then of the
+  treatments' effects by one-way analyses of variance with post hoc tests
+  (Steyn, 2009). The post hoc tests are the Scheffé tests of Steyn (2005).
 - **Assumptions:** equal variances and independent groups in each test.
 - **Limitations:** many tests, each at the nominal level; Steyn (2009)
-  notes that several analyses of variance capitalize on chance. Its check
-  for sensitization compares each treatment's pretested and unpretested
-  groups, which mixes the pretest's own effect with sensitization. solomonR
-  follows a pre-publication draft of the article and will be checked
-  against the published version.
+  notes that several analyses of variance capitalize on chance. It tests
+  the pretest-intervention interaction separately for each treatment,
+  unadjusted, and its further comparison of each treatment's pretested and
+  unpretested groups mixes the pretest's own effect with sensitization.
+  solomonR follows a pre-publication draft of the article and will be
+  checked against the published version.
 - **Function:** `fit_solomon_steyn()`, for one or several treatments.
 
 ## solomonR extensions
@@ -415,7 +428,7 @@ analytically or by simulating the package's own GLM test.
 | Multiple imputation with offsets | Contemporary | All four | Yes | Missing posttests shifted by stated offsets |
 | Mixed model for repeated measures | Contemporary | All four, at each occasion | Yes | Dropout missing at random; covariance by pretest condition |
 | Joint model for several treatments | Contemporary | All four, for each comparison | Yes | Common slope; p-values adjusted across comparisons |
-| Steyn's sequence | Published proposal | None directly | In its checks | Equal variances; many unadjusted tests |
+| Steyn's sequence | Published proposal | Per treatment, through Tests A-I; none jointly | In its checks | Equal variances; many unadjusted tests |
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](https://juhalt.github.io/solomonR/articles/references.html) page.

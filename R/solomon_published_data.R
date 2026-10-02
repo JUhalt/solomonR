@@ -112,8 +112,9 @@
 #'   (p. 7; the note to Table 3 on p. 8 says eight weeks).
 #'
 #' Every pair of conditions forms a Solomon four-group design. The authors
-#' analyzed three such pairs, reusing groups across them. A single model
-#' for all six groups is planned in issue #45.
+#' analyzed three such pairs, reusing groups across them. [fit_solomon_glm()]
+#' with `control = "Control"` fits one model to all six groups (see the
+#' examples and the article "Designs With Several Treatments").
 #'
 #' **Sample and attrition.** The file has 211 participants, and the article
 #' reports 210 (p. 5). 133 answered the posttest, with attrition that
@@ -188,6 +189,10 @@
 #' rp <- subset(mai2020, condition %in% c("RP", "Control"))
 #' with(rp, fit_solomon_glm(post_behavior, treat = as.integer(condition == "RP"),
 #'                          pretested = pretested, pretest_score = pre_behavior))
+#'
+#' # One model for all six groups.
+#' fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+#'                 control = "Control", data = mai2020)
 "mai2020"
 
 #' Solomon's (1949) spelling experiment
@@ -332,7 +337,13 @@
 #' groups, seven classes to each, in consultation with the college's
 #' management, and the thesis states that this allocation was not random
 #' (pp. 105–106). The classes had been formed from the order in which
-#' trainees reported for training. The analyses in the thesis, and those
+#' trainees reported for training. The thesis is not consistent on this
+#' point. Its introduction says that participants were divided at random
+#' into eight groups and that the groups were assigned at random to the
+#' conditions (p. 9), and it calls the allocation random again on p. 107.
+#' The method chapter, followed here, gives the detail: the researcher
+#' judged the existing classes to be random groups and made no further
+#' random assignment (pp. 105–106). The analyses in the thesis, and those
 #' below, treat participants as the units, so they do not allow for the
 #' classes. See [baseline_solomon()] for nonrandomized designs and
 #' [validate_solomon()] for clustered ones.
@@ -346,7 +357,11 @@
 #' - **The 2 x 2 ANOVAs of each treatment against the control** (Tables 5.21,
 #'   5.34, and 5.47; pp. 128, 135, 142), within rounding. For Test:
 #'   intervention F = 21.3, pretest F = 4.5 (p = .033), and interaction
-#'   F = 2.0 (p = .152).
+#'   F = 2.0 (p = .152). For Norms, the thesis ran this analysis with 213
+#'   participants in the unpretested group (Table 5.45, pp. 141–142), one
+#'   fewer than in Table 5.59, so its error degrees of freedom are 854 and
+#'   those computed from these statistics are 855. The F statistics for
+#'   Norms (14.0, 0.9, and 0.1) are the same to one decimal.
 #'
 #' The treatments lowered the scores. The thesis analyzed the design as
 #' overlapping four-group designs, one with the treatments pooled and one for

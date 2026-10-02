@@ -27,6 +27,12 @@
 #'   sample sizes. The issue #55 study found no measurement-invariance
 #'   criterion that holds its false-rejection rate in Solomon-sized groups,
 #'   which affects [fit_solomon_sem_latent()] and [invariance_solomon()].
+#'   [fit_solomon_steyn()] follows a pre-publication draft of Steyn's (2009)
+#'   article and will be checked against the published version. The analysis
+#'   of designs with several treatments in [fit_solomon_glm()] is
+#'   experimental, because the rule for error control set before its
+#'   simulation study (issue #45) was not met for two omnibus tests with
+#'   three treatments and 10 participants per group.
 #' - **Deprecated.** A former name that still works, with a warning. Its
 #'   help page names the replacement.
 #'
@@ -55,6 +61,10 @@
 #'
 #' Solomon, R. L. (1949). An extension of control group design. *Psychological
 #' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+#'
+#' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+#' this exemplary model? *Design Principles and Practices: An International
+#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 #'
 #' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
 #' design* (Research Report 99-06). University of Twente.
@@ -177,8 +187,10 @@ stouffer_solomon <- function(p) {
 #' (issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
 #' sensitization present. Such fits give the classed warning
 #' `solomonR_noncollapsible_warning`; for binary outcomes, estimate the
-#' Solomon contrasts on a common scale with [marginal_solomon()]. Identity and
-#' log links are collapsible and are not affected.
+#' Solomon contrasts on a common scale with [marginal_solomon()]. It takes
+#' the fit of a four-group design: for a design with several treatments,
+#' subset the data to one treatment and the control and fit the subset.
+#' Identity and log links are collapsible and are not affected.
 #'
 #' Count outcomes: with `family = poisson()`, the default HC3 covariance gives
 #' the robust (quasi-likelihood) inference that Cameron and Trivedi (2013)
@@ -258,13 +270,37 @@ stouffer_solomon <- function(p) {
 #' intervals are not adjusted. The result has class `solomon_ngroup`.
 #'
 #' Published studies with several treatments analyzed them as overlapping
-#' four-group designs, one for each pair of conditions (McCarthy & Tucker,
-#' 2002; Mai et al., 2020). Those analyses reuse the same groups, so their
-#' tests are dependent, and each extra analysis adds to the chance of a false
-#' finding. The joint model asks each question once. In Mai et al.'s (2020)
-#' six-group study, the Pretest x Condition test with conventional
-#' covariance gives F(2, 127) = 1.86, p = .161. [fit_solomon_steyn()] carries
-#' out the sequence of tests Steyn (2009) proposed for these designs.
+#' four-group designs: one for each treatment against the control (McCarthy &
+#' Tucker, 2002), or one for each pair of conditions (Mai et al., 2020). Those
+#' analyses reuse the same groups, so their tests are dependent, and each
+#' extra analysis adds to the chance of a false finding. The joint model asks
+#' each question once. In Mai et al.'s (2020) six-group study, the Pretest x
+#' Condition test of the posttests alone (without the pretest as a
+#' covariate), with conventional covariance, gives F(2, 127) = 1.86,
+#' p = .161. [fit_solomon_steyn()] carries out the sequence of tests Steyn
+#' (2009) proposed for these designs.
+#'
+#' `r lifecycle::badge("experimental")` The analysis of designs with several
+#' treatments is experimental. In the package's simulation study (issue #45;
+#' 112 scenarios with two or three treatments and 10 to 50 participants per
+#' group, 5,000 replications each):
+#' - the contrasts were unbiased, and coverage of their 95% intervals was
+#'   0.939 to 0.967;
+#' - the familywise error rates of the Holm-adjusted comparisons were at most
+#'   0.059;
+#' - the Pretest x Condition test and the test of the conditions averaged
+#'   over pretest rejected a true null hypothesis in 0.036 to 0.055 of
+#'   replications;
+#' - with three treatments and 10 participants per group, the omnibus tests
+#'   of Condition | pretested and Condition | unpretested rejected in 0.055
+#'   to 0.069 of replications at the .05 level. The rule for error control
+#'   set before the study was therefore not met, which is why the analysis
+#'   is experimental. With groups that small, judge those two questions by
+#'   the adjusted comparisons.
+#'
+#' The study did not cover binary or count outcomes, clustered designs, or
+#' comparisons given as weights. It is reported in the article "Designs With
+#' Several Treatments: Validating the Joint Model".
 #'
 #' @param y_post numeric posttest vector
 #' @param treat 0/1 (or logical) treatment indicator (1 = treatment); or, for
@@ -506,12 +542,25 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     df$pre_obs <- ifelse(df$pretested == 1, y_pre, 0)
   }
 
-  if (!is.null(covariates)) df <- cbind(df, covariates)
+  if (!is.null(covariates)) {
+    # `log_exposure` is reserved with or without `exposure`: report_solomon()
+    # and the clustered permutation test read a column of that name in the
+    # fit's data as the exposure offset.
+    clash <- intersect(names(covariates), c(names(df), "log_exposure"))
+    if (length(clash)) {
+      stop(
+        "Rename these covariates, whose names the model uses: ",
+        paste(clash, collapse = ", "), ".",
+        call. = FALSE
+      )
+    }
+    df <- cbind(df, covariates)
+  }
 
   # One model: treatment + pretest indicator + their interaction + (optional) pre_obs
   rhs <- c("treat*pretested",
            if (!is.null(y_pre)) "pre_obs" else NULL,
-           if (!is.null(covariates)) names(covariates) else NULL)
+           if (!is.null(covariates)) .formula_names(names(covariates)) else NULL)
   if (!is.null(exposure)) {
     if (!is.numeric(exposure) || any(exposure <= 0, na.rm = TRUE)) {
       stop("`exposure` must contain positive numbers.", call. = FALSE)
@@ -537,6 +586,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
   # Robust VCOV
   fit_cr <- fit
+  n_clusters <- NULL
   if (robust == "HC3") {
     vcovM <- sandwich::vcovHC(fit, type = "HC3")
   } else if (robust == "CR2") {
@@ -551,6 +601,9 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     if (anyNA(cluster_fit)) {
       stop("`cluster` is missing for participants included in the model.", call. = FALSE)
     }
+    # The clusters the CR2 covariance is computed from; `cluster` keeps one
+    # value per input row.
+    n_clusters <- length(unique(cluster_fit))
     single <- .cluster_structure(df$treat[used], df$pretested[used], cluster_fit)$single_cluster
     if (length(single)) {
       .stop_confounded_clusters(single)
@@ -765,6 +818,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     robust = robust,
     family = family,
     cluster = cluster,
+    n_clusters = n_clusters,
     conf_level = conf_level,
     call = match.call()
   )

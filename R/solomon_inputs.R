@@ -116,3 +116,11 @@
 
   invisible(n[[1]])
 }
+
+
+# Names as they must be written in a formula: a name that is not
+# syntactic (such as "my cov") is quoted with backticks.
+.formula_names <- function(x) {
+  vapply(x, function(nm) deparse1(as.name(nm), backtick = TRUE),
+         character(1), USE.NAMES = FALSE)
+}
