@@ -17,3 +17,5 @@ articles/cluster-marginal-validation/cache/
 articles/classic-validation/cache/
 !articles/invariance-validation/*.R
 articles/invariance-validation/cache/
+!articles/ngroup-validation/*.R
+articles/ngroup-validation/checkpoints/
