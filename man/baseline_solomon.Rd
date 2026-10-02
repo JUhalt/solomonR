@@ -12,18 +12,28 @@ baseline_solomon(
   mean = NULL,
   sd = NULL,
   conf_level = 0.95,
+  control = NULL,
   data = NULL
 )
 }
 \arguments{
 \item{y_pre, treat, pretested}{Individual data: pretest scores, treatment
 indicator, and pretest indicator. Only pretested participants with a
-pretest score are used.}
+pretest score are used. \code{treat} is a 0/1 (or logical) indicator, or a
+factor or character vector of conditions with the control named by
+\code{control}.}
 
 \item{n, mean, sd}{Alternatively, the pretest sample size, mean, and standard
-deviation of the two pretested groups, treated first.}
+deviation of the two pretested groups, treated first. With \code{control},
+vectors named by condition, one element for each pretested group.}
 
 \item{conf_level}{Confidence level. Default 0.95.}
+
+\item{control}{The control condition when \code{treat} is a factor or
+character vector with more than two conditions, a Solomon N-group
+design; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. With two conditions the result is the
+same as with a 0/1 \code{treat}. With summary statistics, the name of the
+control group in \code{n}, \code{mean}, and \code{sd}.}
 
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_pre = pre}) or as
@@ -32,13 +42,19 @@ strings (\code{y_pre = "pre"}).}
 \value{
 An object of class \code{solomon_baseline} with the group statistics,
 the difference with its interval and t test, and Hedges's g with its
-interval.
+interval. For a design with several treatments, \code{groups} holds the
+statistics of every pretested group, \code{comparisons} has one row for each
+treatment against the control (\code{comparison}, \code{difference}, \code{std.error},
+\code{conf.low}, \code{conf.high}, \code{statistic}, \code{df}, \code{p.value}, \code{g}, \code{g.low},
+and \code{g.high}), and \code{conditions} names the control and the treatments.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Compares the pretest scores of the treated and control pretested groups:
 the check of baseline equivalence that a Solomon design allows. It matters
-most when groups were not formed by random assignment.
+most when groups were not formed by random assignment. In a design with
+several treatments, each treatment's pretested group is compared with the
+pretested control group.
 }
 \details{
 The comparison reports the pretest difference with a t interval (pooled
@@ -46,6 +62,15 @@ variance) and the standardized difference, Hedges's g, with a confidence
 interval from the noncentral t distribution (Cumming & Finch, 2001;
 Kelley, 2007). No equivalence threshold is applied; the estimate and its
 interval are reported for the reader to judge.
+
+Designs with several treatments: give \code{treat} as a factor or character
+vector of conditions and name the control with \code{control}, or give \code{n},
+\code{mean}, and \code{sd} as vectors named by condition together with \code{control}.
+Each treatment is then compared with the control, and each comparison
+uses only the two groups it compares: their pooled SD, t test, and
+Hedges's g are the same as in a four-group analysis of that treatment
+and the control. The p-values are not adjusted for the number of
+comparisons.
 
 \strong{What the design cannot check.} The unpretested arms form the
 posttest-only control group design, which relies on randomization rather
@@ -65,6 +90,10 @@ quasi-experimental Solomon designs (p. 94).
 pre <- elkarkri2025a[elkarkri2025a$pretested == 1, ]
 baseline_solomon(n = pre$n, mean = pre$pre_mean, sd = pre$pre_sd)
 
+# Mai et al. (2020): two treatments, each compared with the control.
+baseline_solomon(pre_behavior, condition, pretested, control = "Control",
+                 data = mai2020)
+
 }
 \references{
 Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
@@ -83,6 +112,10 @@ Publications. https://doi.org/10.4135/9781071802779
 Kelley, K. (2007). Confidence intervals for standardized effect sizes:
 Theory, application, and implementation. \emph{Journal of Statistical Software,
 20}(8), 1–24. https://doi.org/10.18637/jss.v020.i08
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. \emph{Education
+Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
 }
 \seealso{
 \code{\link[=report_solomon]{report_solomon()}} with \code{design = list(assignment = "nonrandom")}.

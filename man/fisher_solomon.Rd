@@ -16,7 +16,8 @@ fisher_solomon(
 \arguments{
 \item{y_post}{Binary posttest outcome coded 0/1 (or logical).}
 
-\item{treat}{Treatment indicator coded 0/1 (or logical).}
+\item{treat}{Treatment indicator coded 0/1 (or logical). Designs with
+several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{pretested}{Pretest indicator coded 0/1 (or logical).}
 

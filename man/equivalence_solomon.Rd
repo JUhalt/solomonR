@@ -9,6 +9,7 @@ equivalence_solomon(
   bounds,
   contrast = "Pretest x Treatment",
   alpha = 0.05,
+  comparison = NULL,
   object = deprecated()
 )
 }
@@ -25,6 +26,10 @@ advance.}
 
 \item{alpha}{Significance level for each one-sided test. Default is 0.05.}
 
+\item{comparison}{For a design with several treatments, the comparison to
+test, one of the \code{comparison} values of \code{fit$effects} (see "Designs with
+several treatments"). Leave it \code{NULL} for a four-group design.}
+
 \item{object}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{fit}.}
 }
 \value{
@@ -34,6 +39,8 @@ standard error, degrees of freedom, both one-sided tests
 (\code{p_equivalence}), the test against zero (\code{statistic}, \code{p_zero}), both
 confidence intervals, the logical results \code{equivalent}, \code{different}, and
 \code{exceeds_bounds}, the \code{outcome}, and a plain-language \code{interpretation}.
+For a design with several treatments, it also holds the \code{comparison},
+its \code{weights} over the conditions, and the \code{conditions} of the fit.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -92,6 +99,16 @@ size of interest in that direction (a minimum-effect test; Murphy & Myors,
 1999).
 }
 
+\section{Designs with several treatments}{
+
+For a \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} fit of a design with several treatments (class
+\code{solomon_ngroup}), name the comparison to test with \code{comparison}, such
+as \code{"RP vs Control"}; it may be left out only when the fit has a single
+comparison. The test uses that comparison's estimate of the chosen
+contrast and its standard error. It is not adjusted for the other
+comparisons of the design.
+}
+
 \examples{
 data(solomon_example)
 fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
@@ -100,6 +117,12 @@ fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 # test. In a real study, justify the smallest effect size of interest and
 # fix the bounds before examining the data.
 equivalence_solomon(fit, bounds = 5)
+
+# A six-group design: test one comparison at a time. The bounds here are
+# again illustrative only.
+fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                        control = "Control", data = mai2020)
+equivalence_solomon(fit6, bounds = 0.3, comparison = "RP vs Control")
 }
 \references{
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,

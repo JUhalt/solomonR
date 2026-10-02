@@ -38,7 +38,8 @@
 #' 2021), and clustered designs.
 #'
 #' @param y_post Numeric posttest scores (continuous).
-#' @param treat Treatment indicator coded 0/1 (or logical).
+#' @param treat Treatment indicator coded 0/1 (or logical). Designs with
+#'   several treatments are not supported; see [fit_solomon_glm()].
 #' @param pretested Pretest indicator coded 0/1 (or logical).
 #' @param y_pre Optional numeric pretest scores. Maximum likelihood, the classic
 #'   analyses, and the SEM ANCOVA require them.
@@ -99,6 +100,7 @@ compare_solomon_methods <- function(
     data, c("y_post", "treat", "pretested", "y_pre"),
     environment(), parent.frame()
   )
+  .stop_ngroup_unsupported(treat, "compare_solomon_methods")
 
   methods <- match.arg(methods, several.ok = TRUE)
   .check_conf_level(conf_level)

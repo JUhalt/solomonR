@@ -86,6 +86,8 @@
 #'
 #' @param y_post Numeric posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
+#'   Designs with several treatments are not supported; see
+#'   [fit_solomon_glm()].
 #' @param pretested Pretest indicator coded 0 = unpretested and 1 = pretested.
 #' @param y_pre Numeric pretest scores. These should be missing by design for
 #'   participants assigned to the unpretested groups.
@@ -173,6 +175,7 @@ fit_solomon_ml <- function(
     data, c("y_post", "treat", "pretested", "y_pre"),
     environment(), parent.frame()
   )
+  .stop_ngroup_unsupported(treat, "fit_solomon_ml")
 
   inference_supplied <- !missing(inference)
   weights <- match.arg(weights)

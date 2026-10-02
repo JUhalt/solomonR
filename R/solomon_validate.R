@@ -1,5 +1,20 @@
 # Solomon cell definitions, in the conventional group order.
-.solomon_cells <- function() {
+#
+# With `conditions` (the control first, then the treatments), the cells of
+# an N-group design: the pretested groups, treatments before the control,
+# then the unpretested groups in the same order. `treat` then holds the
+# condition.
+.solomon_cells <- function(conditions = NULL) {
+  if (!is.null(conditions)) {
+    order <- c(conditions[-1], conditions[1])
+    return(data.frame(
+      group = seq_len(2L * length(order)),
+      cell = c(paste0("Pretested, ", order), paste0("Unpretested, ", order)),
+      pretested = rep(c(1L, 0L), each = length(order)),
+      treat = rep(order, 2L),
+      stringsAsFactors = FALSE
+    ))
+  }
   data.frame(
     group = 1:4,
     cell = c(
@@ -15,16 +30,47 @@
 }
 
 
+# A count in words below ten and in numerals from ten (APA style).
+.count_word <- function(n) {
+  words <- c("one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+  if (n >= 1 && n < 10) words[n] else format(n)
+}
+
+
+# The conditions of an N-group design as returned with a result: the
+# control first, then the treatments. `cond` comes from
+# .solomon_conditions().
+.conditions_table <- function(cond) {
+  data.frame(
+    condition = c(cond$control, cond$treatments),
+    role = c("control", rep("treatment", cond$k)),
+    stringsAsFactors = FALSE
+  )
+}
+
+
+# One line naming an N-group design, for printing.
+.ngroup_design_line <- function(conditions) {
+  treatments <- conditions$condition[conditions$role == "treatment"]
+  control <- conditions$condition[conditions$role == "control"]
+  k <- length(treatments)
+  sprintf(
+    "Solomon N-group design: %s treatments (%s) and a control (%s), %s groups",
+    .count_word(k), paste(treatments, collapse = ", "), control,
+    .count_word(2L * (k + 1L))
+  )
+}
+
+
 # Cluster structure of a Solomon design: clusters and cluster sizes in each
 # cell, the cells that contain a single cluster, and whether treatment and
 # pretesting vary within clusters. Rows with missing assignment or cluster
 # are ignored.
-.cluster_structure <- function(treat, pretested, cluster) {
+.cluster_structure <- function(treat, pretested, cluster, cells = .solomon_cells()) {
   keep <- !is.na(treat) & !is.na(pretested) & !is.na(cluster)
   treat <- treat[keep]
   pretested <- pretested[keep]
   cluster <- as.character(cluster[keep])
-  cells <- .solomon_cells()
 
   per_cell <- t(vapply(seq_len(nrow(cells)), function(i) {
     ids <- cluster[treat == cells$treat[i] & pretested == cells$pretested[i]]
@@ -92,7 +138,7 @@
 #' Distinguish structural and incidental missingness in a Solomon design
 #'
 #' `r lifecycle::badge("stable")`
-#' Classifies missing values in Solomon four-group data and explains the
+#' Classifies missing values in Solomon design data and explains the
 #' supported response to each kind. Pretest scores are *structurally absent*
 #' for participants assigned to the unpretested groups: withholding the
 #' pretest is the experimental manipulation (Solomon, 1949), so those values
@@ -116,7 +162,7 @@
 #' - **Incidental posttest missingness**: missing outcomes. Complete-case
 #'   analysis is unbiased when missingness is unrelated to the outcome given
 #'   the variables in the model (Little & Rubin, 2019); attrition that differs
-#'   across the four groups should be reported.
+#'   across the groups should be reported.
 #' - **Unexpected pretest scores**: pretest values recorded for unpretested
 #'   participants, which usually indicate a coding or assignment error. They
 #'   are ignored by solomonR analyses.
@@ -124,15 +170,26 @@
 #'
 #' Pretest categories are `NA` when `y_pre` is not supplied.
 #'
+#' Designs with several treatments: give `treat` as a factor or character
+#' vector of conditions and name the control with `control`. The counts are
+#' then given for each of the 2(k + 1) groups of a design with k treatments
+#' (Steyn, 2009): each treatment and the control, with and without a
+#' pretest.
+#'
 #' Not supported: this function does not test the missingness mechanism,
 #' perform imputation, or provide sensitivity analyses for outcome
 #' missingness that depends on unobserved values.
 #'
 #' @param y_post Numeric posttest scores.
-#' @param treat Treatment indicator coded 0/1 (or logical).
+#' @param treat Treatment indicator coded 0/1 (or logical); or a factor or
+#'   character vector of conditions, with the control named by `control`.
 #' @param pretested Pretest indicator coded 0/1 (or logical).
 #' @param y_pre Optional numeric pretest scores, missing by design for
 #'   unpretested participants.
+#' @param control The control condition when `treat` is a factor or
+#'   character vector with more than two conditions, a Solomon N-group
+#'   design; see [fit_solomon_glm()]. With two conditions the result is the
+#'   same as with a 0/1 `treat`.
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
@@ -140,7 +197,9 @@
 #'   Solomon cell), `counts` (totals by category), `pattern` (`"none"`,
 #'   `"structural"`, `"incidental"`, or `"mixed"`), and `guidance` (the
 #'   interpretation, supported response, and sources for each category
-#'   present).
+#'   present). For a design with several treatments, `by_cell` has one row
+#'   for each of the 2(k + 1) groups, its `treat` column holds the
+#'   condition, and `conditions` names the control and the treatments.
 #' @references
 #' Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 #' Planned missing data designs in psychological research. *Psychological
@@ -155,11 +214,19 @@
 #' Little, R. J. A., & Rubin, D. B. (2019). *Statistical analysis with missing
 #' data* (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
 #'
+#' Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+#' transfer interventions using Solomon four-group designs. *Education
+#' Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+#'
 #' Rubin, D. B. (1976). Inference and missing data. *Biometrika, 63*(3),
 #' 581–592. https://doi.org/10.1093/biomet/63.3.581
 #'
 #' Solomon, R. L. (1949). An extension of control group design. *Psychological
 #' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+#'
+#' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+#' this exemplary model? *Design Principles and Practices: An International
+#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 #'
 #' White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 #' baseline measurements in randomized trials. *Statistics in Medicine, 24*(7),
@@ -176,15 +243,21 @@
 #' d$y_pre[which(d$pretested == 1)[1]] <- NA
 #' d$y_post[which(d$pretested == 0)[1]] <- NA
 #' with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
+#'
+#' # A six-group design: two treatments and a control (Mai et al., 2020).
+#' check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
+#'                       control = "Control", data = mai2020)
 #' @export
 check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
-                                  data = NULL) {
+                                  control = NULL, data = NULL) {
   .solomon_data_args(
     data, c("y_post", "treat", "pretested", "y_pre"),
     environment(), parent.frame()
   )
 
-  treat <- .solomon_indicator(treat, "treat")
+  design <- .solomon_conditions(treat, control)
+  several <- design$k > 1L
+  treat <- if (several) design$condition else design$treat
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(
     y_post = y_post,
@@ -198,7 +271,11 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
   post_na <- is.na(y_post)
   pre_na <- if (has_pre) is.na(y_pre) else rep(NA, length(y_post))
 
-  cells <- .solomon_cells()
+  cells <- if (several) {
+    .solomon_cells(c(design$control, design$treatments))
+  } else {
+    .solomon_cells()
+  }
 
   counts_by_cell <- t(vapply(seq_len(nrow(cells)), function(i) {
     in_cell <- assigned &
@@ -292,9 +369,10 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
       paste(
         "Complete-case analysis is unbiased when missingness is unrelated to the",
         "outcome given the variables in the model. Report missingness by cell,",
-        "because attrition that differs across the four groups can undermine",
-        "the randomized comparisons, and consider sensitivity analyses if",
-        "missingness may depend on the unobserved outcome."
+        "because attrition that differs across the", .count_word(nrow(cells)),
+        "groups can undermine the randomized comparisons, and consider",
+        "sensitivity analyses if missingness may depend on the unobserved",
+        "outcome."
       ),
       paste(
         "These values are ignored by solomonR analyses. Check assignment and",
@@ -319,36 +397,47 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
   guidance <- guidance[!is.na(guidance$n) & guidance$n > 0, , drop = FALSE]
   rownames(guidance) <- NULL
 
-  structure(
-    list(
-      by_cell = by_cell,
-      counts = counts,
-      pattern = pattern,
-      guidance = guidance,
-      pretest_supplied = has_pre
-    ),
-    class = "solomon_missing"
+  out <- list(
+    by_cell = by_cell,
+    counts = counts,
+    pattern = pattern,
+    guidance = guidance,
+    pretest_supplied = has_pre
   )
+  if (several) {
+    out$conditions <- .conditions_table(design)
+  }
+
+  structure(out, class = "solomon_missing")
 }
 
 
-#' Validate the structure and coding of a Solomon four-group design
+#' Validate the structure and coding of a Solomon design
 #'
 #' `r lifecycle::badge("stable")`
-#' Checks that data can support a Solomon four-group analysis before a model
-#' is fitted: equal input lengths, 0/1 coding of the design indicators, all
-#' four cells present, enough observed outcomes per cell, and the distinction
-#' between structurally absent and incidentally missing values (see
+#' Checks that data can support a Solomon analysis before a model is fitted:
+#' equal input lengths, the coding of the design indicators, all cells
+#' present, enough observed outcomes per cell, and the distinction between
+#' structurally absent and incidentally missing values (see
 #' [check_solomon_missing()]). Problems are returned as a table of issues
 #' rather than stopping at the first one, so every problem is reported at
-#' once.
+#' once. Designs with several treatments are checked too (see `control`).
 #'
 #' @details
-#' Accepted coding: `treat` and `pretested` must be numeric 0/1 or logical.
-#' Factors and character codes are rejected so that group membership is never
-#' inferred from level order. The Solomon design requires all four cells
-#' (Solomon, 1949): pretested treatment, pretested control, unpretested
-#' treatment, and unpretested control.
+#' Accepted coding: `pretested` must be numeric 0/1 or logical, and so must
+#' `treat` unless the control condition is named with `control`. Without
+#' `control`, factors and character codes are rejected so that group
+#' membership is never inferred from level order. The Solomon four-group
+#' design requires all four cells (Solomon, 1949): pretested treatment,
+#' pretested control, unpretested treatment, and unpretested control.
+#'
+#' Designs with several treatments: give `treat` as a factor or character
+#' vector of conditions and name the control with `control`. A design with k
+#' treatments requires all 2(k + 1) cells, each treatment and the control
+#' with and without a pretest: six cells for two treatments and eight for
+#' three (Steyn, 2009). Every check below is then made for each of these
+#' cells. Levels of a factor `treat` that no participant has are left out of
+#' the design, with a note.
 #'
 #' Severity:
 #' - **error**: the data cannot support a Solomon analysis as supplied
@@ -393,7 +482,9 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
 #' @return An object of class `solomon_validation` with `valid` (`TRUE` when
 #'   no errors were found), `issues` (severity, check, and message), `cells`
 #'   (counts by cell, with clusters and cluster sizes when `cluster` is
-#'   supplied), and `missing` (the [check_solomon_missing()] result).
+#'   supplied), and `missing` (the [check_solomon_missing()] result). For a
+#'   design with several treatments, `cells` has one row for each of the
+#'   2(k + 1) cells and `conditions` names the control and the treatments.
 #' @references
 #' El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
 #' pretest sensitisation and the cognitive acceleration through science
@@ -408,6 +499,10 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
 #' Applying the Solomon four-group design. *Health Education Quarterly,
 #' 23*(1), 34–47. https://doi.org/10.1177/109019819602300103
 #'
+#' Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+#' transfer interventions using Solomon four-group designs. *Education
+#' Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+#'
 #' Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 #' cluster-robust variance estimation and hypothesis testing in fixed effects
 #' models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
@@ -415,6 +510,10 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
 #'
 #' Solomon, R. L. (1949). An extension of control group design. *Psychological
 #' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+#'
+#' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+#' this exemplary model? *Design Principles and Practices: An International
+#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 #' @seealso [check_solomon_missing()]
 #' @examples
 #' data(solomon_example)
@@ -430,9 +529,13 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
 #' one_class <- with(solomon_example, 2 * pretested + treat)
 #' with(solomon_example, validate_solomon(y_post, treat, pretested, y_pre,
 #'                                        cluster = one_class))
+#'
+#' # A six-group design: two treatments and a control (Mai et al., 2020).
+#' validate_solomon(post_behavior, condition, pretested, pre_behavior,
+#'                  control = "Control", data = mai2020)
 #' @export
 validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n = 2,
-                             cluster = NULL,
+                             cluster = NULL, control = NULL,
                              data = NULL) {
   .solomon_data_args(
     data, c("y_post", "treat", "pretested", "y_pre", "cluster"),
@@ -454,6 +557,9 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
     )
   }
 
+  # The conditions of a design with several treatments (NULL otherwise).
+  conditions <- NULL
+
   finish <- function(cells = NULL, missing = NULL) {
     table <- if (length(issues)) {
       do.call(rbind, issues)
@@ -465,17 +571,18 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
         stringsAsFactors = FALSE
       )
     }
-    structure(
-      list(
-        valid = !any(table$severity == "error"),
-        issues = table,
-        cells = cells,
-        missing = missing,
-        settings = list(min_cell_n = min_cell_n, pretest_supplied = !is.null(y_pre),
-                        cluster_supplied = !is.null(cluster))
-      ),
-      class = "solomon_validation"
+    out <- list(
+      valid = !any(table$severity == "error"),
+      issues = table,
+      cells = cells,
+      missing = missing,
+      settings = list(min_cell_n = min_cell_n, pretest_supplied = !is.null(y_pre),
+                      cluster_supplied = !is.null(cluster))
     )
+    if (!is.null(conditions)) {
+      out$conditions <- conditions
+    }
+    structure(out, class = "solomon_validation")
   }
 
   lengths_found <- c(
@@ -507,24 +614,48 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
   }
 
   coded <- list()
-  for (name in c("treat", "pretested")) {
-    value <- if (name == "treat") treat else pretested
-    result <- tryCatch(.solomon_indicator(value, name), error = function(e) e)
-    if (inherits(result, "error")) {
-      add_issue("error", "coding", conditionMessage(result))
-    } else {
-      coded[[name]] <- result
-    }
+  design <- tryCatch(.solomon_conditions(treat, control), error = function(e) e)
+  if (inherits(design, "error")) {
+    add_issue("error", "coding", conditionMessage(design))
+  } else {
+    coded$treat <- if (design$k > 1L) design$condition else design$treat
+  }
+  result <- tryCatch(.solomon_indicator(pretested, "pretested"), error = function(e) e)
+  if (inherits(result, "error")) {
+    add_issue("error", "coding", conditionMessage(result))
+  } else {
+    coded$pretested <- result
   }
 
   if (length(issues)) {
     return(finish())
   }
 
-  missing <- check_solomon_missing(y_post, coded$treat, coded$pretested, y_pre)
+  several <- design$k > 1L
+  if (several) {
+    conditions <- .conditions_table(design)
+    missing <- check_solomon_missing(y_post, coded$treat, coded$pretested, y_pre,
+                                     control = design$control)
+  } else {
+    missing <- check_solomon_missing(y_post, coded$treat, coded$pretested, y_pre)
+  }
   cells <- missing$by_cell
   cells$posttest_observed <- cells$n - cells$posttest_missing
   counts <- missing$counts
+
+  if (is.factor(treat)) {
+    unused <- setdiff(levels(treat), as.character(treat[!is.na(treat)]))
+    if (length(unused)) {
+      add_issue(
+        "note", "unused_conditions",
+        paste0(
+          "No participants have these levels of `treat`, which are left out of the design: ",
+          paste(unused, collapse = "; "),
+          "."
+        )
+      )
+    }
+  }
 
   if (counts[["unassigned"]] > 0) {
     add_issue(
@@ -541,7 +672,8 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
     add_issue(
       "error", "empty_cell",
       paste0(
-        "The Solomon design requires all four cells; no participants are in: ",
+        "The Solomon design requires all ", .count_word(nrow(cells)),
+        " cells; no participants are in: ",
         paste(empty, collapse = "; "),
         "."
       )
@@ -628,7 +760,10 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
       )
     }
 
-    clusters <- .cluster_structure(coded$treat, coded$pretested, cluster)
+    clusters <- .cluster_structure(
+      coded$treat, coded$pretested, cluster,
+      cells = if (several) .solomon_cells(conditions$condition) else .solomon_cells()
+    )
     cells <- cbind(cells, clusters$by_cell[, c("clusters", "cluster_size_min", "cluster_size_max")])
     cells[c("clusters", "cluster_size_min", "cluster_size_max")] <-
       lapply(cells[c("clusters", "cluster_size_min", "cluster_size_max")], as.integer)
@@ -694,7 +829,9 @@ print.solomon_validation <- function(x, ...) {
   cat(
     "Solomon design validation: ",
     if (isTRUE(x$valid)) "no errors found" else "errors found",
-    "\n\n",
+    "\n",
+    if (!is.null(x$conditions)) paste0(.ngroup_design_line(x$conditions), "\n"),
+    "\n",
     sep = ""
   )
 
@@ -738,6 +875,9 @@ print.solomon_missing <- function(x, ...) {
   )
 
   cat("Solomon missingness check\n")
+  if (!is.null(x$conditions)) {
+    cat(.ngroup_design_line(x$conditions), "\n", sep = "")
+  }
   cat("Pattern: ", pattern_label, "\n\n", sep = "")
 
   table <- x$by_cell[, c("group", "cell", "n", "posttest_missing",

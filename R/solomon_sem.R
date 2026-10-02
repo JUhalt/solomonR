@@ -35,7 +35,8 @@
 #' observed outcome. The defaults may change after such a study.
 #'
 #' @param y_post numeric posttest
-#' @param treat 0/1 (or logical) treatment indicator
+#' @param treat 0/1 (or logical) treatment indicator. Designs with several
+#'   treatments are not supported; see [fit_solomon_glm()].
 #' @param pretested 0/1 (or logical) pretest indicator
 #' @param y_pre optional pretest score (required if ancova = TRUE)
 #' @param equal_var logical; if TRUE, constrain posttest variances equal across groups
@@ -70,6 +71,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     data, c("y_post", "treat", "pretested", "y_pre"),
     environment(), parent.frame()
   )
+  .stop_ngroup_unsupported(treat, "fit_solomon_sem")
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(

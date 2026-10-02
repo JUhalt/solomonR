@@ -18,21 +18,29 @@ simulate_solomon(
 )
 }
 \arguments{
-\item{n}{Participants per group: one number for all four groups, or four
-numbers in the order pretested treatment, pretested control, unpretested
-treatment, unpretested control.}
+\item{n}{Participants per group: one number for all groups, or one number
+per group. For the four-group design, four numbers in the order
+pretested treatment, pretested control, unpretested treatment,
+unpretested control. For k treatments, 2(k + 1) numbers in the order
+given in "Designs with several treatments". Default 30 per group.}
 
-\item{delta}{Treatment effect among unpretested participants.}
+\item{delta}{Treatment effect among unpretested participants. For a design
+with several treatments, one effect per treatment, named by treatment.
+Default 0.}
 
 \item{sens}{Pretest x Treatment interaction (sensitization): the extra
-treatment effect among pretested participants.}
+treatment effect among pretested participants. For a design with
+several treatments, one number for every treatment or one per
+treatment. Default 0.}
 
 \item{pretest_effect}{Effect of taking the pretest on the posttest, among
 controls. Default 0.}
 
-\item{rho}{Pretest-posttest correlation within the pretested groups.}
+\item{rho}{Pretest-posttest correlation within the pretested groups.
+Default 0.5.}
 
-\item{sigma}{Standard deviation of the scores within each group.}
+\item{sigma}{Standard deviation of the scores within each group.
+Default 1.}
 
 \item{mean}{Mean pretest and control-group posttest score. Default 0.}
 
@@ -47,8 +55,10 @@ unchanged.}
 \value{
 A data frame with \code{y_post}, \code{treat}, \code{pretested}, and \code{y_pre}
 (missing by design in the unpretested groups), in the form the analysis
-functions take. Its \code{"truth"} attribute is a data frame of the true
-estimands, and its \code{"settings"} attribute holds the arguments.
+functions take. \code{treat} is 0/1 for the four-group design and a factor of
+conditions for a design with several treatments. Its \code{"truth"} attribute
+is a data frame of the true estimands, and its \code{"settings"} attribute
+holds the arguments, with the group sizes named by group.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -57,7 +67,8 @@ chosen treatment, pretest, and sensitization effects, and attaches the
 true value of every Solomon estimand. It is a solomonR teaching tool:
 instructors can show that each analysis recovers the effects that were
 built in, and researchers can check an analysis plan on data whose answer
-is known.
+is known. With several treatment effects it simulates a Solomon N-group
+design (see "Designs with several treatments").
 }
 \details{
 \strong{Data-generating model.} It is the model of \code{\link[=power_solomon]{power_solomon()}}, whose
@@ -100,6 +111,38 @@ scores reach a limit.
 effect of about a fifth of a standard deviation in randomized studies;
 the article "Planning a Solomon Study" discusses planning values.
 }
+\section{Designs with several treatments}{
+
+A Solomon N-group design crosses k treatments and a control with
+pretesting, giving 2(k + 1) groups: six for two treatments and eight for
+three (Edmonds & Kennedy, 2017; Steyn, 2009). Give \code{delta} one effect per
+treatment, named by treatment, for example \code{delta = c(A = 0.5, B = 0.2)}.
+Without names the treatments are called \code{"T1"}, \code{"T2"}, and so on; the
+control is \code{"Control"}. \code{sens} is one number for every treatment or one
+per treatment, in the order of \code{delta}; a named \code{sens} is matched to the
+treatments by name.
+
+The model is the one above, with the effects \code{delta[j]} and \code{sens[j]} of
+treatment j: each treatment differs from the control only by its own
+effects. \code{n} is one size for every group, or 2(k + 1) sizes in this order:
+the pretested treatments (in the order of \code{delta}), the pretested control,
+the unpretested treatments, and the unpretested control. Sizes named by
+group, as in the \code{"settings"} attribute (such as \code{"Pretested, A"}), or
+named \code{n1}, \code{n2}, and so on for the groups in that order, may be given in
+any order. Other names are refused. The groups are generated in the order
+above, and the baselines are drawn before the errors.
+
+The \code{treat} column is then a factor whose levels are the treatments and
+\code{"Control"}, so the data go directly to
+\code{fit_solomon_glm(y_post, treat, pretested, y_pre, control = "Control")}.
+The \code{"truth"} attribute has one row for each treatment-control comparison
+and contrast, with the columns \code{comparison} (such as \code{"A vs Control"}),
+\code{contrast}, and \code{true_value}, in the order of the \code{effects} table of that
+fit; a last row gives the pretest effect among controls. With one
+treatment effect the data and the \code{"truth"} attribute are those described
+above.
+}
+
 \examples{
 d <- simulate_solomon(n = 40, delta = 0.5, sens = 0.4, rho = 0.6, seed = 1)
 attr(d, "truth")
@@ -112,8 +155,22 @@ ex <- simulate_solomon(n = 30, delta = 5, pretest_effect = 2, rho = 0.6,
 attr(ex, "truth") <- attr(ex, "settings") <- NULL
 identical(ex, solomon_example)
 
+# A six-group design: two treatments and a control.
+d6 <- simulate_solomon(n = 50, delta = c(A = 0.5, B = 0.2), sens = c(0.3, 0),
+                       rho = 0.6, seed = 1)
+attr(d6, "truth")
+fit_solomon_glm(y_post, treat, pretested, y_pre, control = "Control", data = d6)
+
 }
 \references{
+Edmonds, W. A., & Kennedy, T. D. (2017). \emph{An applied guide to research
+designs: Quantitative, qualitative, and mixed methods} (2nd ed.). SAGE
+Publications. https://doi.org/10.4135/9781071802779
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. \emph{American Educational
 Research Journal, 19}(2), 249–258. https://doi.org/10.3102/00028312019002249

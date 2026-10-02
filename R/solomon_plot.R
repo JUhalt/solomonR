@@ -6,6 +6,9 @@
 #' does. `plot_solomon()` still works, with a deprecation warning, and still
 #' draws in base graphics and returns the cell summaries invisibly.
 #'
+#' `plot_solomon()` draws the four-group design only. For a design with
+#' several treatments, use [plot_solomon_means()] with `control`.
+#'
 #' @param y Numeric vector of posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
 #' @param pretested Pretest indicator coded 0 = not pretested and 1 = pretested.
@@ -15,6 +18,21 @@
 #' plot_solomon_means(y_post, treat, pretested, data = solomon_example)
 #' @export
 plot_solomon <- function(y, treat, pretested) {
+  n_conditions <- length(unique(stats::na.omit(as.vector(treat))))
+  if (n_conditions > 2L) {
+    stop(structure(
+      class = c("solomonR_ngroup_unsupported", "error", "condition"),
+      list(
+        message = paste0(
+          "`plot_solomon()` draws a Solomon four-group design: one treatment ",
+          "and a control. `treat` has ", n_conditions, " conditions. Use ",
+          "`plot_solomon_means(y_post, treat, pretested, control = )` for ",
+          "designs with several treatments."
+        ),
+        call = NULL
+      )
+    ))
+  }
   lifecycle::deprecate_warn("0.9.0", "plot_solomon()", "plot_solomon_means()")
   df <- data.frame(y=y, treat=factor(treat), pretested=factor(pretested))
   agg <- dplyr::summarise(dplyr::group_by(df, pretested, treat),

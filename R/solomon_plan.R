@@ -99,7 +99,9 @@
 #' @section Designs not covered:
 #' Binary and count outcomes, clustered assignment, and longitudinal
 #' follow-ups are not supported; the calculations assume independent,
-#' normally distributed posttests and no missing data.
+#' normally distributed posttests and no missing data. Designs with several
+#' treatments are not supported; plan each treatment-control comparison as a
+#' four-group design.
 #'
 #' @param power Target power, between `alpha` and 1. Default is 0.80.
 #' @param delta Treatment effect among unpretested participants, on the

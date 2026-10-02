@@ -85,8 +85,28 @@ solomon1949 <- data.frame(
   change_se = c(0.9, 0.5, NA, 1.2, 0.6, NA)
 )
 
+# Steyn (2005), Table 5.59 (pp. 151-152): the eight groups of a Solomon design
+# with three treatments, in a study of self-efficacy perceptions among police
+# trainees. The thesis is in Afrikaans; it labels the pretested treatment
+# groups EG1 to EG3, the unpretested treatment groups KG1.1 to KG1.3, the
+# pretested control KG2, and the unpretested control KG3. The treatments
+# (p. 102): EG3 completed a cognitive test, EG2 also marked it, and EG1 also
+# received the test's norms. Rows are in the package's group order.
+steyn2005 <- data.frame(
+  group = c("EG1", "EG2", "EG3", "KG2", "KG1.1", "KG1.2", "KG1.3", "KG3"),
+  condition = factor(rep(c("Norms", "Marking", "Test", "Control"), 2),
+                     levels = c("Norms", "Marking", "Test", "Control")),
+  pretested = rep(c(1L, 0L), each = 4),
+  n = c(218L, 214L, 219L, 218L, 214L, 211L, 220L, 209L),
+  pre_mean = c(155.422, 155.724, 155.644, 156.991, NA, NA, NA, NA),
+  pre_sd = c(12.125, 11.856, 12.784, 11.987, NA, NA, NA, NA),
+  mean = c(155.895, 156.196, 156.142, 158.917, 154.827, 155.739, 153.036, 158.306),
+  sd = c(13.263, 12.545, 13.396, 13.264, 12.324, 12.830, 12.628, 11.878)
+)
+
 save(elkarkri2025a, file = "data/elkarkri2025a.rda", compress = "xz")
 save(mai2020, file = "data/mai2020.rda", compress = "xz")
 save(kvalem1996, file = "data/kvalem1996.rda", compress = "xz")
 save(solomon1949, file = "data/solomon1949.rda", compress = "xz")
 save(lana1959, file = "data/lana1959.rda", compress = "xz")
+save(steyn2005, file = "data/steyn2005.rda", compress = "xz")

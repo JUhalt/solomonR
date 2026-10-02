@@ -48,6 +48,14 @@
 #' size of interest in that direction (a minimum-effect test; Murphy & Myors,
 #' 1999).
 #'
+#' @section Designs with several treatments:
+#' For a [fit_solomon_glm()] fit of a design with several treatments (class
+#' `solomon_ngroup`), name the comparison to test with `comparison`, such
+#' as `"RP vs Control"`; it may be left out only when the fit has a single
+#' comparison. The test uses that comparison's estimate of the chosen
+#' contrast and its standard error. It is not adjusted for the other
+#' comparisons of the design.
+#'
 #' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()].
 #' @param bounds Equivalence bounds on the raw posttest scale: one positive
 #'   number `delta`, giving `c(-delta, delta)`, or `c(lower, upper)` with
@@ -56,6 +64,9 @@
 #' @param contrast Solomon contrast to test. Default is
 #'   `"Pretest x Treatment"`.
 #' @param alpha Significance level for each one-sided test. Default is 0.05.
+#' @param comparison For a design with several treatments, the comparison to
+#'   test, one of the `comparison` values of `fit$effects` (see "Designs with
+#'   several treatments"). Leave it `NULL` for a four-group design.
 #' @param object `r lifecycle::badge("deprecated")` Use `fit`.
 #' @return An object of class `solomon_equivalence` containing the estimate,
 #'   standard error, degrees of freedom, both one-sided tests
@@ -63,6 +74,8 @@
 #'   (`p_equivalence`), the test against zero (`statistic`, `p_zero`), both
 #'   confidence intervals, the logical results `equivalent`, `different`, and
 #'   `exceeds_bounds`, the `outcome`, and a plain-language `interpretation`.
+#'   For a design with several treatments, it also holds the `comparison`,
+#'   its `weights` over the conditions, and the `conditions` of the fit.
 #' @references
 #' Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 #' correlations, and meta-analyses. *Social Psychological and Personality
@@ -90,12 +103,19 @@
 #' # test. In a real study, justify the smallest effect size of interest and
 #' # fix the bounds before examining the data.
 #' equivalence_solomon(fit, bounds = 5)
+#'
+#' # A six-group design: test one comparison at a time. The bounds here are
+#' # again illustrative only.
+#' fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+#'                         control = "Control", data = mai2020)
+#' equivalence_solomon(fit6, bounds = 0.3, comparison = "RP vs Control")
 #' @export
 equivalence_solomon <- function(
     fit,
     bounds,
     contrast = "Pretest x Treatment",
     alpha = 0.05,
+    comparison = NULL,
     object = deprecated()
 ) {
   if (lifecycle::is_present(object)) {
@@ -104,9 +124,10 @@ equivalence_solomon <- function(
   }
 
 
-  if (!inherits(fit, c("solomon_glm", "solomon_ml"))) {
+  if (!inherits(fit, c("solomon_glm", "solomon_ml", "solomon_ngroup"))) {
     stop("`fit` must come from fit_solomon_glm() or fit_solomon_ml().", call. = FALSE)
   }
+  ngroup <- inherits(fit, "solomon_ngroup")
 
   if (missing(bounds)) {
     stop(
@@ -125,6 +146,35 @@ equivalence_solomon <- function(
 
   effects <- fit$effects
 
+  if (ngroup) {
+    comparisons <- unique(effects$comparison)
+    if (is.null(comparison)) {
+      if (length(comparisons) > 1L) {
+        stop(
+          "This design has several comparisons; choose one with `comparison`: ",
+          paste(dQuote(comparisons, FALSE), collapse = ", "), ".",
+          call. = FALSE
+        )
+      }
+      comparison <- comparisons
+    }
+    if (!is.character(comparison) || length(comparison) != 1L ||
+        !comparison %in% comparisons) {
+      stop(
+        "Unknown comparison. Choose one of: ",
+        paste(dQuote(comparisons, FALSE), collapse = ", "), ".",
+        call. = FALSE
+      )
+    }
+    effects <- effects[effects$comparison == comparison, , drop = FALSE]
+  } else if (!is.null(comparison)) {
+    stop(
+      "`comparison` applies to designs with several treatments; this fit has ",
+      "one treatment and a control.",
+      call. = FALSE
+    )
+  }
+
   if (length(contrast) != 1L || !contrast %in% effects$contrast) {
     stop(
       "Unknown contrast. Choose one of: ",
@@ -134,13 +184,27 @@ equivalence_solomon <- function(
   }
 
   row <- effects[effects$contrast == contrast, , drop = FALSE]
+  if (nrow(row) != 1L) {
+    stop(
+      "Found ", nrow(row), " estimates of the ", contrast, " contrast; ",
+      "expected exactly one.",
+      call. = FALSE
+    )
+  }
   df <- if ("df" %in% names(row)) row$df else Inf
 
   result <- .tost(row$estimate, row$std.error, df, bounds, alpha)
 
+  head <- list(contrast = contrast)
+  if (ngroup) {
+    head$comparison <- comparison
+    head$weights <- fit$weights[comparison, ]
+    head$conditions <- fit$conditions
+  }
+
   out <- c(
+    head,
     list(
-      contrast = contrast,
       bounds = bounds,
       alpha = alpha,
       estimate = row$estimate,
@@ -274,6 +338,7 @@ print.solomon_equivalence <- function(x, digits = 3, ...) {
 
   cat("Solomon equivalence test (TOST)\n")
   cat("Contrast: ", x$contrast, "\n", sep = "")
+  if (!is.null(x$comparison)) cat("Comparison: ", x$comparison, "\n", sep = "")
   cat(sprintf(
     "Equivalence bounds (raw scale): [%.*f, %.*f]; alpha = %s\n",
     digits, x$bounds[["lower"]], digits, x$bounds[["upper"]], format(x$alpha)

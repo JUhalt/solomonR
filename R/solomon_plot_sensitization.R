@@ -14,6 +14,13 @@
 
   if (identical(fit$robust, "CR2")) {
     frame <- stats::model.frame(model)
+    if (!is.null(stats::model.offset(frame))) {
+      # A model frame cannot rebuild an exposure offset, so the model is
+      # refitted to the rows of the fit's data that it used.
+      used <- rep(TRUE, nrow(fit$data))
+      if (!is.null(model$na.action)) used[model$na.action] <- FALSE
+      frame <- fit$data[used, , drop = FALSE]
+    }
     fit_cr <- stats::glm(stats::formula(model), data = frame, family = fit$family)
     df <- vapply(seq_len(nrow(L)), function(i) {
       as.data.frame(
@@ -60,6 +67,90 @@
   }
 
   list(L = L, cells = cells, pretest_mean = pre_mean)
+}
+
+# Coefficient vectors for the 2(k + 1) model-adjusted cell means of a
+# solomon_ngroup fit: each condition (the control first) with and without a
+# pretest. The rows are built from the indicator of each treatment and its
+# interaction with pretesting, named in fit$conditions$term, so the
+# difference of differences of a treatment's cell means and the control's is
+# that treatment's Pretest x Treatment coefficient. Pretested cells are at
+# the mean pretest among pretested participants, unpretested cells at the
+# structural pre_obs = 0, and covariates at their model-matrix column means.
+.ngroup_cell_means_design <- function(fit) {
+  X <- stats::model.matrix(fit$model)
+  cn <- colnames(X)
+  conditions <- fit$conditions$condition
+  is_treatment <- fit$conditions$role == "treatment"
+  treatments <- conditions[is_treatment]
+  terms <- fit$conditions$term[is_treatment]
+  interactions <- paste0(terms, ":pretested")
+
+  if (!all(c(terms, "pretested", interactions) %in% cn)) {
+    stop("The fit has no Pretest x Treatment terms.", call. = FALSE)
+  }
+
+  cells <- data.frame(
+    treat = rep(conditions, 2L),
+    pretested = rep(c(1L, 0L), each = length(conditions)),
+    stringsAsFactors = FALSE
+  )
+
+  pre_mean <- if ("pre_obs" %in% cn) mean(X[X[, "pretested"] == 1, "pre_obs"]) else NA_real_
+
+  L <- matrix(0, nrow = nrow(cells), ncol = length(cn), dimnames = list(NULL, cn))
+  L[, "(Intercept)"] <- 1
+  L[, "pretested"] <- cells$pretested
+  for (j in seq_along(terms)) {
+    in_treatment <- as.numeric(cells$treat == treatments[j])
+    L[, terms[j]] <- in_treatment
+    L[, interactions[j]] <- in_treatment * cells$pretested
+  }
+  if ("pre_obs" %in% cn) L[, "pre_obs"] <- cells$pretested * pre_mean
+
+  design_cols <- c("(Intercept)", terms, "pretested", interactions, "pre_obs")
+  for (column in setdiff(cn, design_cols)) {
+    L[, column] <- mean(X[, column])
+  }
+
+  list(L = L, cells = cells, pretest_mean = pre_mean)
+}
+
+# Model-adjusted cell means of a solomon_ngroup fit, with intervals, in the
+# form .sensitization_cells() returns.
+.ngroup_sensitization_cells <- function(fit) {
+  design <- .ngroup_cell_means_design(fit)
+  family <- stats::family(fit$model)
+  link_scale <- !identical(family$family, "gaussian")
+  list(
+    adjusted = cbind(design$cells, .glm_linear_combination(fit, design$L)),
+    pretest_mean = design$pretest_mean,
+    y_label = if (link_scale) {
+      sprintf("Adjusted mean (%s link scale)", family$link)
+    } else {
+      "Adjusted posttest mean"
+    },
+    link_scale = link_scale,
+    inference = .solomon_vcov_label(fit),
+    observed = data.frame(
+      y = fit$data$y,
+      treat = as.character(fit$data$condition),
+      pretested = fit$data$pretested,
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+# The omnibus Pretest x Condition test of a solomon_ngroup fit, as text.
+.ngroup_omnibus_text <- function(fit, test = "Pretest x Condition") {
+  row <- fit$omnibus[fit$omnibus$test == test, , drop = FALSE]
+  statistic <- formatC(row$statistic, format = "f", digits = 2)
+  stat <- if (identical(row$reference, "F")) {
+    sprintf("F(%s, %s) = %s", .df_fmt(row$df1), .df_fmt(row$df2), statistic)
+  } else {
+    sprintf("%s(%s) = %s", intToUtf8(c(0x03C7, 0x00B2)), .df_fmt(row$df1), statistic)
+  }
+  sprintf("%s: %s, %s", test, stat, .apa_p(row$p.value, md = FALSE))
 }
 
 # Model-adjusted cell means, with intervals, for the four Solomon groups,
@@ -144,11 +235,24 @@
 #' The sensitization estimate and interval in the subtitle are taken unchanged
 #' from the fit.
 #'
+#' @section Designs with several treatments:
+#' For a fit from [fit_solomon_glm()] with several treatments and a control,
+#' the figure shows the model-adjusted mean of every condition with and
+#' without a pretest, adjusted as above, with one line for each condition,
+#' the control first. Pretest sensitization appears as a treatment line that
+#' is not parallel to the control line: for each treatment, the difference of
+#' differences between its means and the control's equals its fitted
+#' Pretest x Treatment estimate. The subtitle reports the omnibus
+#' Pretest x Condition test of the fit, which asks whether pretesting changes
+#' the effect of any treatment. `bounds` is not available for these fits; test
+#' equivalence one comparison at a time with [equivalence_solomon()].
+#'
 #' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()].
 #' @param bounds Optional equivalence bounds for the sensitization contrast,
 #'   as one positive number or `c(lower, upper)`. When supplied, the caption
 #'   reports the outcome of [equivalence_solomon()] with these bounds, which
-#'   should be fixed before the data are examined.
+#'   should be fixed before the data are examined. Not available for a design
+#'   with several treatments.
 #' @param alpha Significance level for the equivalence test when `bounds` is
 #'   supplied. Default is 0.05.
 #' @param show_observed Logical; if `TRUE` (default), overlay observed cell
@@ -171,11 +275,20 @@
 #'                                            inference = "satterthwaite"))
 #' plot_sensitization(ml)
 #'
+#' # A six-group design: two treatments and a control.
+#' fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+#'                         control = "Control", data = mai2020)
+#' plot_sensitization(fit6)
+#'
 #' @export
 plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed = TRUE) {
 
-  if (!inherits(fit, c("solomon_glm", "solomon_ml"))) {
+  if (!inherits(fit, c("solomon_glm", "solomon_ml", "solomon_ngroup"))) {
     stop("`fit` must come from fit_solomon_glm() or fit_solomon_ml().", call. = FALSE)
+  }
+
+  if (inherits(fit, "solomon_ngroup")) {
+    return(.plot_ngroup_sensitization(fit, bounds, show_observed))
   }
 
   cells <- .sensitization_cells(fit)
@@ -241,6 +354,72 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
   p +
     ggplot2::labs(x = NULL, y = cells$y_label, colour = NULL, title = "Pretest sensitization",
                   subtitle = subtitle, caption = caption) +
+    ggplot2::theme_minimal(base_size = 12) +
+    ggplot2::theme(legend.position = "bottom")
+}
+
+# plot_sensitization() for a design with several treatments: one line for
+# each condition, the control first, across the pretest conditions.
+.plot_ngroup_sensitization <- function(fit, bounds, show_observed) {
+
+  if (!is.null(bounds)) {
+    stop(
+      "`bounds` is not available for a design with several treatments. Test ",
+      "equivalence for one comparison at a time with ",
+      "`equivalence_solomon(fit, bounds = , comparison = )`.",
+      call. = FALSE
+    )
+  }
+
+  cells <- .ngroup_sensitization_cells(fit)
+  conditions <- fit$conditions$condition
+  control <- conditions[fit$conditions$role == "control"]
+  pretest_status <- function(pretested) {
+    factor(ifelse(pretested == 1L, "Pretested", "Unpretested"),
+           levels = c("Pretested", "Unpretested"))
+  }
+
+  adjusted <- cells$adjusted
+  adjusted$treatment <- factor(adjusted$treat, levels = conditions)
+  adjusted$condition <- pretest_status(adjusted$pretested)
+
+  level <- format(100 * fit$conf_level)
+  adjustment <- if (is.na(cells$pretest_mean)) {
+    "Means from the fitted model"
+  } else {
+    sprintf("Adjusted means: pretested groups at the mean pretest (%s)",
+            formatC(cells$pretest_mean, format = "f", digits = 2))
+  }
+  caption <- sprintf(
+    "%s.\n%s%% intervals: %s; %s.\nSensitization: a treatment line not parallel to the %s line.",
+    adjustment, level, cells$inference, .reference_label(adjusted$df), control
+  )
+
+  dodge <- ggplot2::position_dodge(width = 0.3)
+  p <- ggplot2::ggplot(
+    adjusted,
+    ggplot2::aes(x = condition, y = estimate, colour = treatment, group = treatment)
+  ) +
+    ggplot2::geom_line(position = dodge) +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = conf.low, ymax = conf.high),
+                           width = 0.1, position = dodge) +
+    ggplot2::geom_point(size = 3, position = dodge)
+
+  if (isTRUE(show_observed) && !cells$link_scale) {
+    observed <- stats::aggregate(y ~ treat + pretested, data = cells$observed, FUN = mean)
+    observed$treatment <- factor(observed$treat, levels = conditions)
+    observed$condition <- pretest_status(observed$pretested)
+    p <- p + ggplot2::geom_point(
+      data = observed,
+      ggplot2::aes(x = condition, y = y, colour = treatment, group = treatment),
+      shape = 21, fill = "white", size = 2.5, position = dodge, inherit.aes = FALSE
+    )
+    caption <- paste0(caption, "\nHollow points: observed cell means.")
+  }
+
+  p +
+    ggplot2::labs(x = NULL, y = cells$y_label, colour = NULL, title = "Pretest sensitization",
+                  subtitle = .ngroup_omnibus_text(fit), caption = caption) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(legend.position = "bottom")
 }

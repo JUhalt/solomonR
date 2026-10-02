@@ -22,6 +22,27 @@
 }
 
 .check_power_inputs <- function(delta, rho, sens, sigma, alpha, sims) {
+  # One treatment effect and one sensitization: the four-group design.
+  # Several values would describe several treatments (issue #45).
+  values <- list(delta = delta, sens = sens)
+  for (nm in names(values)) {
+    if (length(values[[nm]]) > 1L) {
+      stop(structure(
+        class = c("solomonR_ngroup_unsupported", "error", "condition"),
+        list(
+          message = paste0(
+            "`", nm, "` must be a single number. Power for designs with ",
+            "several treatments is not available; plan each treatment-control ",
+            "comparison as a four-group design."
+          ),
+          call = NULL
+        )
+      ))
+    }
+    if (length(values[[nm]]) != 1L) {
+      stop("`", nm, "` must be a single number.", call. = FALSE)
+    }
+  }
   if (!is.finite(delta) || !is.finite(sens)) {
     stop("delta and sens must be finite numbers.")
   }
@@ -153,7 +174,9 @@
 #'
 #' Only continuous outcomes are simulated. Binary and count outcomes are not
 #' supported; for binary outcomes see [marginal_solomon()] and its simulation
-#' validation on issue #43.
+#' validation on issue #43. Designs with several treatments are not
+#' supported; compute power for each treatment-control comparison as a
+#' four-group design.
 #'
 #' The arguments follow the order of [plan_solomon()] and
 #' [plot_power_solomon()]: `n`, `delta`, `sens`, `rho`, `sigma`, `alpha`.

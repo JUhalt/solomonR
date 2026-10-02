@@ -12,7 +12,8 @@ plot_sensitization(fit, bounds = NULL, alpha = 0.05, show_observed = TRUE)
 \item{bounds}{Optional equivalence bounds for the sensitization contrast,
 as one positive number or \code{c(lower, upper)}. When supplied, the caption
 reports the outcome of \code{\link[=equivalence_solomon]{equivalence_solomon()}} with these bounds, which
-should be fixed before the data are examined.}
+should be fixed before the data are examined. Not available for a design
+with several treatments.}
 
 \item{alpha}{Significance level for the equivalence test when \code{bounds} is
 supplied. Default is 0.05.}
@@ -56,6 +57,20 @@ inference (van Engelenburg, 1999), or Welch-Satterthwaite t under
 The sensitization estimate and interval in the subtitle are taken unchanged
 from the fit.
 }
+\section{Designs with several treatments}{
+
+For a fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with several treatments and a control,
+the figure shows the model-adjusted mean of every condition with and
+without a pretest, adjusted as above, with one line for each condition,
+the control first. Pretest sensitization appears as a treatment line that
+is not parallel to the control line: for each treatment, the difference of
+differences between its means and the control's equals its fitted
+Pretest x Treatment estimate. The subtitle reports the omnibus
+Pretest x Condition test of the fit, which asks whether pretesting changes
+the effect of any treatment. \code{bounds} is not available for these fits; test
+equivalence one comparison at a time with \code{\link[=equivalence_solomon]{equivalence_solomon()}}.
+}
+
 \examples{
 fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 plot_sensitization(fit)
@@ -64,6 +79,11 @@ plot_sensitization(fit, bounds = 5)
 ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
                                            inference = "satterthwaite"))
 plot_sensitization(ml)
+
+# A six-group design: two treatments and a control.
+fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                        control = "Control", data = mai2020)
+plot_sensitization(fit6)
 
 }
 \references{

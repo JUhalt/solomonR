@@ -9,9 +9,11 @@
 # argument is evaluated in `data`, falling back to the environment the
 # function was called from, as lm() does for the variables in its formula.
 # A value that names columns of `data` selects them: one name gives the
-# column, and several give a data frame. Arguments listed in `as_frame`
-# (such as `covariates`) always give a data frame. With `data = NULL`, the
-# arguments are left as they are.
+# column, and several give a data frame. A bare name of a column gives that
+# column as it is, so a character column whose values happen to be column
+# names (such as a treatment column) is never read as a selection.
+# Arguments listed in `as_frame` (such as `covariates`) always give a data
+# frame. With `data = NULL`, the arguments are left as they are.
 .solomon_data_args <- function(data, args, frame, caller, as_frame = character()) {
 
   if (is.null(data)) {
@@ -27,8 +29,10 @@
       next
     }
     expr <- eval(call("substitute", as.name(nm)), frame)
-    value <- eval(expr, data, caller)
-    if (is.character(value) && length(value) >= 1L && all(value %in% names(data))) {
+    is_column <- is.symbol(expr) && as.character(expr) %in% names(data)
+    value <- if (is_column) data[[as.character(expr)]] else eval(expr, data, caller)
+    if (!is_column && is.character(value) && length(value) >= 1L &&
+        all(value %in% names(data))) {
       value <- if (length(value) == 1L && !nm %in% as_frame) data[[value]] else data[value]
     } else if (nm %in% as_frame && is.symbol(expr) && is.atomic(value) && is.null(dim(value))) {
       # A single bare column name, such as `covariates = age`.

@@ -19,7 +19,8 @@ fit_solomon_sem(
 \arguments{
 \item{y_post}{numeric posttest}
 
-\item{treat}{0/1 (or logical) treatment indicator}
+\item{treat}{0/1 (or logical) treatment indicator. Designs with several
+treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{pretested}{0/1 (or logical) pretest indicator}
 

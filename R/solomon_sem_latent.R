@@ -70,7 +70,9 @@
 #' @param data data.frame containing all variables
 #' @param pre_items character vector of pretest item names (for ANCOVA branch)
 #' @param post_items character vector of posttest item names (required)
-#' @param treat 0/1 (or logical) treatment indicator (length nrow(data))
+#' @param treat 0/1 (or logical) treatment indicator (length nrow(data)).
+#'   Designs with several treatments are not supported; see
+#'   [fit_solomon_glm()].
 #' @param pretested 0/1 (or logical) pretest indicator (length nrow(data))
 #' @param invariance_post measurement invariance for POST; must be "scalar"
 #' @param ancova logical; if TRUE, also fit latent ANCOVA in pretested groups
@@ -153,6 +155,7 @@ fit_solomon_sem_latent <- function(
     partial_pre = NULL,
     check_invariance = TRUE
 ) {
+  .stop_ngroup_unsupported(treat, "fit_solomon_sem_latent")
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
   }

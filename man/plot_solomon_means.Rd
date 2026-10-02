@@ -4,16 +4,29 @@
 \alias{plot_solomon_means}
 \title{Plot Solomon posttest cell means}
 \usage{
-plot_solomon_means(y_post, treat, pretested, conf_level = 0.95, data = NULL)
+plot_solomon_means(
+  y_post,
+  treat,
+  pretested,
+  conf_level = 0.95,
+  control = NULL,
+  data = NULL
+)
 }
 \arguments{
 \item{y_post}{Numeric posttest scores.}
 
-\item{treat}{Treatment indicator coded 0 = control and 1 = treatment.}
+\item{treat}{Treatment indicator coded 0 = control and 1 = treatment; or,
+for a design with several treatments, a factor or character vector of
+conditions, with the control named by \code{control}.}
 
 \item{pretested}{Pretest indicator coded 0 = not pretested and 1 = pretested.}
 
 \item{conf_level}{Confidence level for the intervals. Default is 0.95.}
+
+\item{control}{The control condition, when \code{treat} is a factor or
+character vector. With two conditions the figure is the same as with a
+0/1 \code{treat}.}
 
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
@@ -21,7 +34,9 @@ strings (\code{y_post = "post"}).}
 }
 \value{
 A ggplot object. Its \code{data} element holds the group summaries:
-\code{n}, \code{mean}, \code{sd}, \code{se}, and the interval limits \code{lo} and \code{hi}.
+\code{n}, \code{mean}, \code{sd}, \code{se}, and the interval limits \code{lo} and \code{hi}. Its
+\code{treat} column is 0/1 for a four-group design and holds the condition
+for a design with several treatments.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -32,8 +47,26 @@ within each group. For the model-adjusted means behind the sensitization
 contrast, see \code{\link[=plot_sensitization]{plot_sensitization()}}; for pretest-to-posttest change, see
 \code{\link[=plot_solomon_change]{plot_solomon_change()}}.
 }
+\section{Designs with several treatments}{
+
+For a Solomon N-group design, with k treatments and a control each with
+and without a pretest (Steyn, 2009), give \code{treat} as a factor or character
+vector of conditions and name the control with \code{control}. Each panel then
+shows the k + 1 conditions, the control first, as with the four-group
+design.
+}
+
 \examples{
 plot_solomon_means(y_post, treat, pretested, data = solomon_example)
+
+# A six-group design: two treatments and a control.
+plot_solomon_means(post_behavior, condition, pretested,
+                   control = "Control", data = mai2020)
+}
+\references{
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 }
 \seealso{
 \code{\link[=plot_solomon_change]{plot_solomon_change()}}, \code{\link[=plot_sensitization]{plot_sensitization()}}

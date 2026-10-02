@@ -79,6 +79,28 @@
   ))
 }
 
+# Stop when a function that takes the fit of a four-group design receives
+# the fit of a design with several treatments (issue #45). Used by
+# marginal_solomon() and perm_solomon().
+.stop_ngroup_fit <- function(fit, fun) {
+  if (inherits(fit, "solomon_ngroup")) {
+    stop(structure(
+      class = c("solomonR_ngroup_unsupported", "error", "condition"),
+      list(
+        message = paste0(
+          "`", fun, "()` takes the fit of a Solomon four-group design: one ",
+          "treatment and a control, each with and without a pretest. `fit` ",
+          "comes from a design with several treatments. For this analysis, ",
+          "subset the data to one treatment and the control, and fit the ",
+          "subset with `fit_solomon_glm()`."
+        ),
+        call = NULL
+      )
+    ))
+  }
+  invisible(NULL)
+}
+
 .degenerate_risk <- function(r) any(r < 1e-8 | r > 1 - 1e-8)
 
 # Logistic regression by iteratively reweighted least squares, with the
@@ -239,7 +261,8 @@
 #' @param fit A fit from [fit_solomon_glm()] with `family = binomial()` (logit
 #'   link), `family = poisson()` (log link), or
 #'   `family = "negative_binomial"`, with HC3 or model-based covariance, or,
-#'   for binary outcomes, CR2 covariance.
+#'   for binary outcomes, CR2 covariance. Designs with several treatments are
+#'   not supported; see [fit_solomon_glm()].
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
 #'   outcomes, `"odds_ratio"`. For count outcomes the default is
 #'   `c("difference", "ratio")`.
@@ -314,6 +337,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
                              method = c("bootstrap", "delta", "cluster_summary"), R = 999,
                              seed = NULL, conf_level = fit$conf_level) {
 
+  .stop_ngroup_fit(fit, "marginal_solomon")
   if (!inherits(fit, "solomon_glm")) {
     stop("`fit` must come from fit_solomon_glm().", call. = FALSE)
   }
@@ -599,7 +623,8 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
 #' [marginal_solomon()].
 #'
 #' @param y_post Binary posttest outcome coded 0/1 (or logical).
-#' @param treat Treatment indicator coded 0/1 (or logical).
+#' @param treat Treatment indicator coded 0/1 (or logical). Designs with
+#'   several treatments are not supported; see [fit_solomon_glm()].
 #' @param pretested Pretest indicator coded 0/1 (or logical).
 #' @param alpha Significance level for the historical rule. Default 0.05.
 #' @param data Optional data frame. When supplied, the other data arguments
@@ -645,6 +670,7 @@ fisher_solomon <- function(y_post, treat, pretested, alpha = 0.05,
     data, c("y_post", "treat", "pretested", "y"),
     environment(), parent.frame()
   )
+  .stop_ngroup_unsupported(treat, "fisher_solomon")
   if (lifecycle::is_present(y)) {
     .renamed_arg(!missing(y_post), "y", "y_post", "fisher_solomon")
     y_post <- y

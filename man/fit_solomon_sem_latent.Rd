@@ -26,7 +26,9 @@ fit_solomon_sem_latent(
 
 \item{post_items}{character vector of posttest item names (required)}
 
-\item{treat}{0/1 (or logical) treatment indicator (length nrow(data))}
+\item{treat}{0/1 (or logical) treatment indicator (length nrow(data)).
+Designs with several treatments are not supported; see
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{pretested}{0/1 (or logical) pretest indicator (length nrow(data))}
 

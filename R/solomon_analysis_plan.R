@@ -1,9 +1,29 @@
 # An editable analysis plan for a new Solomon study (issue #81).
 
-.plan_contrasts <- c("ATE (avg over pretest)", "Pretest x Treatment",
-                     "Treatment | pretested", "Treatment | unpretested")
-
 .plan_bullets <- function(x) paste0("- ", x)
+
+# Stop when a plan describes a design with several treatments (issue #45):
+# group sizes beyond the four cells, or one planning value per treatment.
+# plan_solomon() plans four-group designs only, so its results always pass.
+.stop_ngroup_plan <- function(plan) {
+  if (is.null(plan)) return(invisible(NULL))
+  cells <- grep("^n[0-9]+$", names(plan), value = TRUE)
+  s <- attr(plan, "settings")
+  several <- is.list(s) && (length(s$delta) > 1L || length(s$sens) > 1L)
+  if (length(setdiff(cells, c("n1", "n2", "n3", "n4"))) || several) {
+    stop(structure(
+      class = c("solomonR_ngroup_unsupported", "error", "condition"),
+      list(
+        message = paste0(
+          "analysis_plan_solomon() writes plans for the four-group design; ",
+          "plans with several treatments are not yet supported."
+        ),
+        call = NULL
+      )
+    ))
+  }
+  invisible(NULL)
+}
 
 #' Write an analysis plan for a Solomon four-group study
 #'
@@ -45,6 +65,11 @@
 #' of interest, and every sentence can be edited. Prediction and postdiction
 #' must stay distinguishable (Nosek et al., 2018, p. 2602), so the plan
 #' should be registered before the outcomes are seen.
+#'
+#' **The design.** The plan is for the four-group design: one treatment and a
+#' control, each with and without a pretest. Plans for designs with several
+#' treatments are not yet supported; see [fit_solomon_glm()] for their
+#' analysis.
 #'
 #' **The round trip.** The returned object records the confirmatory
 #' contrasts. Passing it to [report_solomon()] as `design = list(plan = )`
@@ -173,6 +198,7 @@ analysis_plan_solomon <- function(plan = NULL,
                           all(c("n1", "n2", "n3", "n4") %in% names(plan)))) {
     stop("`plan` must be a result of plan_solomon().", call. = FALSE)
   }
+  .stop_ngroup_plan(plan)
   if (!(is.character(tipping_groups) && length(tipping_groups) == 1L &&
         tipping_groups %in% names(.tipping_groups)) &&
       !(is.numeric(tipping_groups) && length(tipping_groups) &&

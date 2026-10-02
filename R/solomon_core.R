@@ -233,8 +233,43 @@ stouffer_solomon <- function(p) {
 #' method (Steiger, 2004) and are reported only for conventional Gaussian
 #' fits; no corresponding interval is available with robust covariance.
 #'
+#' @section Designs with several treatments:
+#' A Solomon N-group design crosses k treatments and a control with
+#' pretesting, giving 2(k + 1) groups: six for two treatments and eight for
+#' three (Steyn, 2009). Give `treat` as a factor or character vector of
+#' conditions and name the control with `control`. One model is then fitted
+#' to all the groups, with an indicator for each treatment, and the four
+#' Solomon contrasts are estimated for each comparison:
+#' - each treatment against the control (`contrasts = "control"`, the
+#'   default);
+#' - every pair of conditions (`contrasts = "pairwise"`);
+#' - or comparisons given as weights over the conditions, such as the main
+#'   effects of two treatments crossed factorially:
+#'   `contrasts = list(Lecture = c(Lecture = 0.5, Both = 0.5, Service = -0.5,
+#'   None = -0.5))`. The weights of each comparison must sum to zero.
+#'
+#' Omnibus Wald tests ask whether the conditions differ on each contrast. The
+#' Pretest x Condition test asks whether pretesting changes the effect of any
+#' treatment.
+#'
+#' The p-values of each contrast are adjusted across the comparisons, by
+#' Holm's (1979) procedure by default. It controls the familywise error rate
+#' "for any combination of true hypotheses" (p. 65). The confidence
+#' intervals are not adjusted. The result has class `solomon_ngroup`.
+#'
+#' Published studies with several treatments analyzed them as overlapping
+#' four-group designs, one for each pair of conditions (McCarthy & Tucker,
+#' 2002; Mai et al., 2020). Those analyses reuse the same groups, so their
+#' tests are dependent, and each extra analysis adds to the chance of a false
+#' finding. The joint model asks each question once. In Mai et al.'s (2020)
+#' six-group study, the Pretest x Condition test with conventional
+#' covariance gives F(2, 127) = 1.86, p = .161. [fit_solomon_steyn()] carries
+#' out the sequence of tests Steyn (2009) proposed for these designs.
+#'
 #' @param y_post numeric posttest vector
-#' @param treat 0/1 (or logical) treatment indicator (1 = treatment)
+#' @param treat 0/1 (or logical) treatment indicator (1 = treatment); or, for
+#'   a design with several treatments, a factor or character vector of
+#'   conditions, with the control named by `control`
 #' @param pretested 0/1 (or logical) pretest indicator (1 = group received pretest)
 #' @param y_pre numeric pretest vector: the pretest score for pretested
 #'   participants and `NA` for the others
@@ -255,6 +290,17 @@ stouffer_solomon <- function(p) {
 #'   for each participant, entered as a log offset; requires a log-link family
 #'   such as `poisson()` or `"negative_binomial"`. Contrasts are then log rate
 #'   ratios per unit of exposure.
+#' @param control the control condition, when `treat` is a factor or
+#'   character vector. With two conditions the design is a four-group design
+#'   and the result is the same as with a 0/1 `treat`; with three or more it
+#'   is an N-group design (see "Designs with several treatments").
+#' @param contrasts for designs with several treatments: `"control"` (each
+#'   treatment against the control), `"pairwise"` (every pair of
+#'   conditions), or a named list of weight vectors named by condition, one
+#'   per comparison, each summing to zero.
+#' @param adjust for designs with several treatments: the adjustment of the
+#'   p-values of each contrast across the comparisons, `"holm"` (Holm, 1979;
+#'   the default), `"bonferroni"`, or `"none"`.
 #' @param data optional data frame. When supplied, the other data arguments
 #'   are looked up in it first: give them as bare column names
 #'   (`y_post = post`) or as strings (`y_post = "post"`).
@@ -267,6 +313,14 @@ stouffer_solomon <- function(p) {
 #'   negative-binomial fits, `theta` (its estimate, standard error, and
 #'   \eqn{\alpha = 1/\theta}) for negative-binomial fits, and the settings
 #'   used.
+#'
+#'   For a design with several treatments, an object of class
+#'   `solomon_ngroup`, with the same elements and these changes: `effects`
+#'   has a `comparison` column and the adjusted p-values `p.adjusted`;
+#'   `omnibus` holds the omnibus tests (`statistic`, `df1`, `df2`,
+#'   `p.value`, and `reference`, `"F"` or `"chisq"`); `conditions` names the
+#'   control and the treatments and their model terms; `weights` holds the
+#'   weights of each comparison; and `adjust` names the adjustment.
 #' @references
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 #' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
@@ -286,6 +340,10 @@ stouffer_solomon <- function(p) {
 #' implementation. *Behavior Research Methods, 39*(4), 709–722.
 #' https://doi.org/10.3758/BF03192961
 #'
+#' Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+#' *Scandinavian Journal of Statistics, 6*(2), 65–70.
+#' https://www.jstor.org/stable/4615733
+#'
 #' Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small samples:
 #' Some practical advice. *The Review of Economics and Statistics, 98*(4),
 #' 701–712. https://doi.org/10.1162/REST_a_00552
@@ -302,6 +360,14 @@ stouffer_solomon <- function(p) {
 #' covariance matrix estimators with improved finite sample properties. *Journal
 #' of Econometrics, 29*(3), 305–325.
 #' https://doi.org/10.1016/0304-4076(85)90158-7
+#'
+#' Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+#' transfer interventions using Solomon four-group designs. *Education
+#' Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+#'
+#' McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+#' through service learning. *Journal of Management Education, 26*(6), 629–647.
+#' https://doi.org/10.1177/1052562902238322
 #'
 #' Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 #' cluster-robust variance estimation and hypothesis testing in fixed effects
@@ -321,6 +387,10 @@ stouffer_solomon <- function(p) {
 #' *Psychological Methods, 9*(2), 164–182.
 #' https://doi.org/10.1037/1082-989X.9.2.164
 #'
+#' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+#' this exemplary model? *Design Principles and Practices: An International
+#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+#'
 #' Tipton, E. (2015). Small sample adjustments for robust variance estimation
 #' with meta-regression. *Psychological Methods, 20*(3), 375–393.
 #' https://doi.org/10.1037/met0000011
@@ -333,11 +403,19 @@ stouffer_solomon <- function(p) {
 #'
 #' # The four Solomon contrasts as a data frame.
 #' fit$effects
+#'
+#' # A six-group design: two treatments and a control (Mai et al., 2020).
+#' fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+#'                         control = "Control", data = mai2020)
+#' fit6
 #' @export
 fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
                             cluster = NULL, family = stats::gaussian(),
-                            conf_level = 0.95, exposure = NULL, data = NULL,
+                            conf_level = 0.95, exposure = NULL,
+                            control = NULL, contrasts = "control",
+                            adjust = c("holm", "bonferroni", "none"),
+                            data = NULL,
                             y = deprecated(),
                             pretest_score = deprecated()) {
   .solomon_data_args(
@@ -367,8 +445,25 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
   if (is.character(family)) family <- get(family, mode = "function", envir = parent.frame())
   if (is.function(family)) family <- family()
+  adjust <- match.arg(adjust)
 
-  treat <- .solomon_indicator(treat, "treat")
+  conditions <- .solomon_conditions(treat, control)
+  if (conditions$k > 1L) {
+    return(.fit_solomon_ngroup(
+      y_post, conditions, pretested, y_pre, covariates, robust, cluster,
+      family, negbin, conf_level, exposure, contrasts, adjust, match.call()
+    ))
+  }
+  if (!(is.character(contrasts) && length(contrasts) == 1L &&
+        contrasts %in% c("control", "pairwise"))) {
+    stop(
+      "`contrasts` applies to designs with more than one treatment; this ",
+      "design has one treatment and a control.",
+      call. = FALSE
+    )
+  }
+
+  treat <- conditions$treat
   pretested <- .solomon_indicator(pretested, "pretested")
 
   .solomon_check_lengths(
@@ -760,7 +855,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'   arm even under the sharp null, where this test is exact, so the
 #'   permutation test is preferred for designs with few clusters.
 #'
-#' @param fit An object returned by \code{fit_solomon_glm()}.
+#' @param fit An object returned by \code{fit_solomon_glm()}. Designs with
+#'   several treatments are not supported; see [fit_solomon_glm()].
 #' @param contrast Character string identifying the contrast to test. One of
 #'   \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
 #'   \code{"Treatment | pretested"}, or
@@ -838,6 +934,7 @@ perm_solomon <- function(
     fit <- object
   }
 
+  .stop_ngroup_fit(fit, "perm_solomon")
 
   if (!inherits(fit, "solomon_glm")) {
     stop("`fit` must be from fit_solomon_glm().", call. = FALSE)

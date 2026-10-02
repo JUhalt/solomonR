@@ -196,7 +196,8 @@
 #'
 #' @param data A data frame with the indicators.
 #' @param items Names of at least three indicators.
-#' @param treat,pretested Treatment and pretest indicators (0/1).
+#' @param treat,pretested Treatment and pretest indicators (0/1). Designs with
+#'   several treatments are not supported; see [fit_solomon_glm()].
 #' @param estimator lavaan estimator, default `"MLR"`.
 #' @param partial Optional character vector of freed parameters (see Partial
 #'   invariance).
@@ -258,6 +259,7 @@
 #' @export
 invariance_solomon <- function(data, items, treat, pretested, estimator = "MLR", partial = NULL,
                                alpha = 0.05) {
+  .stop_ngroup_unsupported(treat, "invariance_solomon")
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required; please install.packages('lavaan').", call. = FALSE)
   }

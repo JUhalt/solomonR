@@ -23,7 +23,8 @@
   baseline_solomon = c("cumming2001", "kelley2007"),
   fit_solomon_mi = c("carpenter2023", "vanbuuren2018", "cro2019"),
   tipping_point_solomon = c("white2011", "little2012", "carpenter2023"),
-  fit_solomon_mmrm = c("mallinckrodt2008", "laird1982", "sabanesbove2026")
+  fit_solomon_mmrm = c("mallinckrodt2008", "laird1982", "sabanesbove2026"),
+  fit_solomon_steyn = c("steyn2009", "waltonbraver1988", "holm1979")
 )
 
 # ---- Formatting helpers -----------------------------------------------------------
@@ -54,6 +55,25 @@
   }
 }
 
+# An omnibus test: F(df1, df2) = x, or the chi-square statistic with df1
+# degrees of freedom when `reference` is "chisq" (fixed dispersion).
+.apa_omnibus <- function(statistic, df1, df2, reference, md, digits = 2) {
+  if (identical(reference, "chisq")) {
+    # Greek chi and a superscript two, as \u escapes (R code must be ASCII).
+    sym <- if (md) "*\u03c7*\u00b2" else "\u03c7\u00b2"
+    sprintf("%s(%s) = %s", sym, .apa_df(df1), .apa_num(statistic, digits))
+  } else {
+    sym <- if (md) "*F*" else "F"
+    sprintf("%s(%s, %s) = %s", sym, .apa_df(df1), .apa_df(df2), .apa_num(statistic, digits))
+  }
+}
+
+# Whole numbers below 10 as words, as APA style asks; larger ones as numerals.
+.number_word <- function(n) {
+  words <- c("one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+  if (n >= 1 && n <= 9 && n == round(n)) words[n] else format(n)
+}
+
 .apa_ci <- function(lo, hi, level, digits) {
   sprintf("%s%% CI [%s, %s]", format(100 * level), .apa_num(lo, digits), .apa_num(hi, digits))
 }
@@ -75,6 +95,52 @@
   ifelse(is.na(out), contrast, out)
 }
 
+# Who a comparison of a design with several treatments compares. A
+# comparison of one condition with another (weights +1 and -1) reads "RP
+# relative to Control"; any other set of weights is named, as in "the
+# comparison Lecture". Without weights, a name of the form "A vs B" is read
+# as A relative to B.
+.comparison_clause <- function(comparison, weights = NULL) {
+  if (!is.null(weights)) {
+    plus <- names(weights)[weights == 1]
+    minus <- names(weights)[weights == -1]
+    if (length(plus) == 1L && length(minus) == 1L && sum(weights != 0) == 2L) {
+      return(paste(plus, "relative to", minus))
+    }
+    return(paste("the comparison", comparison))
+  }
+  parts <- regmatches(comparison, regexec("^(.+?) vs (.+)$", comparison))[[1]]
+  if (length(parts) == 3L) paste(parts[2], "relative to", parts[3]) else paste("the comparison", comparison)
+}
+
+# The nonzero weights of a comparison, as "RP = 0.5, GS = 0.5, Control = -1":
+# the treatments first, then the control. `conditions` lists the control
+# first.
+.weights_phrase <- function(weights, conditions) {
+  conditions <- as.character(conditions)
+  v <- weights[c(conditions[-1], conditions[1])]
+  v <- v[v != 0]
+  paste(sprintf("%s = %s", names(v), trimws(formatC(v, digits = 3, format = "fg"))),
+        collapse = ", ")
+}
+
+# .contrast_phrase() for one comparison of a design with several
+# treatments. The phrases keep the words "treatment effect", which
+# .nonrandom_wording() rewrites for nonrandomized designs.
+.ngroup_contrast_phrase <- function(contrast, comparison, weights = NULL) {
+  who <- .comparison_clause(comparison, weights)
+  of <- if (startsWith(who, "the comparison")) paste("for", who) else paste("of", who)
+  phrase <- switch(
+    contrast,
+    "ATE (avg over pretest)" = sprintf("the average treatment effect %s across pretest conditions", of),
+    "Pretest x Treatment" = sprintf("the Pretest x Treatment interaction (pretest sensitization) for %s", who),
+    "Treatment | pretested" = sprintf("the treatment effect %s among pretested participants", of),
+    "Treatment | unpretested" = sprintf("the treatment effect %s among unpretested participants", of),
+    sprintf("%s for %s", contrast, who)
+  )
+  phrase
+}
+
 # One sentence per contrast: estimate, interval, test.
 .contrast_sentences <- function(eff, level, digits, md, stat_name = NULL, scale = "") {
   vapply(seq_len(nrow(eff)), function(i) {
@@ -93,10 +159,30 @@
 
 # Cell sizes in the order pretested treated, pretested control, unpretested
 # treated, unpretested control.
-.cell_counts <- function(treat, pretested) {
+#
+# With `conditions` (the control first, then the treatments), `treat` holds
+# each participant's condition and the 2(k + 1) counts follow the order of
+# .solomon_cells(conditions): the pretested treatments, the pretested
+# control, the unpretested treatments, and the unpretested control.
+.cell_counts <- function(treat, pretested, conditions = NULL) {
   keep <- !is.na(treat) & !is.na(pretested)
   treat <- treat[keep]
   pretested <- pretested[keep]
+  if (!is.null(conditions)) {
+    cells <- .solomon_cells(conditions)
+    treat <- as.character(treat)
+    return(vapply(seq_len(nrow(cells)), function(i) {
+      sum(treat == cells$treat[i] & pretested == cells$pretested[i])
+    }, integer(1)))
+  }
+  # A treatment with more than two conditions would give zero counts below.
+  if (!all(treat %in% c(0, 1))) {
+    stop(
+      "The four-group cell counts need a 0/1 treatment indicator; `treat` has the values ",
+      paste(utils::head(unique(as.character(treat)), 5L), collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
   c(sum(treat == 1 & pretested == 1), sum(treat == 0 & pretested == 1),
     sum(treat == 1 & pretested == 0), sum(treat == 0 & pretested == 0))
 }
@@ -112,7 +198,11 @@
   .report_handlers[[cls[1]]](fit, digits, md)
 }
 
-.report_glm <- function(fit, digits, md) {
+# The phrases that describe a fit_solomon_glm() model (the model, the
+# pretest adjustment, the offset, the covariance estimator, and the scale of
+# the contrasts) and the references they cite. Shared by the four-group and
+# the N-group reports.
+.glm_method_phrases <- function(fit) {
   fam <- fit$family$family
   link <- fit$family$link
   pre <- "pre_obs" %in% names(fit$data)
@@ -158,20 +248,186 @@
   }
   if (pre && !link %in% c("identity", "log")) refs <- c(refs, "daniel2021")
 
-  method <- sprintf(
-    "Posttest outcomes were analyzed with %s containing treatment, pretesting, and their interaction%s%s, with %s.%s",
-    model, adjust, if (exposure) " and the log of exposure as an offset" else "", covariance, scale
+  list(
+    model = model,
+    adjust = adjust,
+    exposure = if (exposure) " and the log of exposure as an offset" else "",
+    covariance = covariance,
+    scale = scale,
+    refs = refs
   )
+}
 
+# The rows of a fit_solomon_glm() data frame that entered the model.
+.glm_rows_used <- function(fit) {
   used <- rep(TRUE, nrow(fit$data))
   if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
+  used
+}
+
+.report_glm <- function(fit, digits, md) {
+  p <- .glm_method_phrases(fit)
+
+  method <- sprintf(
+    "Posttest outcomes were analyzed with %s containing treatment, pretesting, and their interaction%s%s, with %s.%s",
+    p$model, p$adjust, p$exposure, p$covariance, p$scale
+  )
+
+  used <- .glm_rows_used(fit)
 
   list(
     method = method,
     results = .contrast_sentences(fit$effects, fit$conf_level, digits, md),
     table = fit$effects,
-    refs = refs,
+    refs = p$refs,
     cells = .cell_counts(fit$data$treat[used], fit$data$pretested[used])
+  )
+}
+
+# The design of a study with several treatments, for the design statement:
+# the group labels in the order of .solomon_cells(conditions) and the
+# sentence naming the design. `conditions` lists the control first.
+.ngroup_design_parts <- function(conditions) {
+  conditions <- as.character(conditions)
+  control <- conditions[1]
+  treatments <- conditions[-1]
+  k <- length(treatments)
+  cells <- .solomon_cells(conditions)
+  list(
+    groups = paste(ifelse(cells$pretested == 1L, "pretested", "unpretested"), cells$treat),
+    design_text = sprintf(paste0(
+      "The design was a Solomon N-group design, the extension of the four-group design ",
+      "(Solomon, 1949) to several treatments (Steyn, 2009): %s treatment%s (%s) and a ",
+      "control (%s), each with and without a pretest, giving %s groups"
+    ), .number_word(k), if (k == 1L) "" else "s", .series_and(treatments), control,
+    .number_word(2L * (k + 1L))),
+    refs = "steyn2009"
+  )
+}
+
+# Report for a design with several treatments (class solomon_ngroup).
+.report_ngroup <- function(fit, digits, md) {
+  p <- .glm_method_phrases(fit)
+  conditions <- fit$conditions$condition[order(fit$conditions$role != "control")]
+  control <- conditions[1]
+  treatments <- conditions[-1]
+  design <- .ngroup_design_parts(conditions)
+  refs <- c(p$refs, design$refs)
+  w <- fit$weights
+  comparisons <- rownames(w)
+  n_comp <- length(comparisons)
+  om <- fit$omnibus
+
+  # The comparisons: each treatment against the control, every pair of
+  # conditions, or weights the user gave.
+  known <- function(type) {
+    ref <- .ngroup_weights(type, control, treatments)
+    identical(dim(ref), dim(w)) && identical(rownames(ref), comparisons) &&
+      isTRUE(all.equal(unname(ref), unname(w[, colnames(ref), drop = FALSE])))
+  }
+  compared <- if (known("control")) {
+    sprintf("Each treatment was compared with the control (%s)", .series_and(comparisons))
+  } else if (known("pairwise")) {
+    sprintf("Every pair of conditions was compared (%s)", .series_and(comparisons))
+  } else {
+    # Weights the user gave: state them, so that each comparison can be
+    # reproduced (the treatments first, then the control; zeros left out).
+    weight_text <- vapply(comparisons, function(cmp) .weights_phrase(w[cmp, ], conditions), "")
+    sprintf("The comparison%s %s %s defined by weights over the conditions (%s)",
+            if (n_comp > 1L) "s" else "", .series_and(comparisons),
+            if (n_comp > 1L) "were" else "was",
+            if (n_comp > 1L) {
+              paste(sprintf("%s: %s", comparisons, weight_text), collapse = "; ")
+            } else {
+              weight_text
+            })
+  }
+
+  omnibus <- if (identical(fit$robust, "CR2")) {
+    "Omnibus Wald tests, using the small-sample test of Pustejovsky and Tipton (2018) for CR2 covariance,"
+  } else if (all(om$reference == "chisq")) {
+    "Omnibus Wald chi-square tests"
+  } else {
+    "Omnibus Wald F tests"
+  }
+
+  adjusted <- n_comp > 1L && fit$adjust != "none"
+  multiplicity <- if (n_comp == 1L) {
+    character(0)
+  } else if (!adjusted) {
+    "The p-values and confidence intervals were not adjusted for multiple comparisons."
+  } else {
+    refs <- c(refs, "holm1979")
+    sprintf(paste0(
+      "Within each contrast, the p-values of the %s comparisons were adjusted with %s; ",
+      "the confidence intervals were not adjusted."
+    ), .number_word(n_comp), switch(
+      fit$adjust,
+      holm = "Holm's (1979) procedure",
+      bonferroni = "the Bonferroni procedure (see Holm, 1979)"
+    ))
+  }
+
+  method <- paste(c(
+    sprintf(
+      "Posttest outcomes of the %s groups were analyzed jointly with %s containing an indicator for each treatment, pretesting, and their interactions%s%s, with %s.%s",
+      .number_word(2L * (length(treatments) + 1L)), p$model, p$adjust, p$exposure,
+      p$covariance, p$scale
+    ),
+    sprintf(paste0(
+      "%s examined whether the differences between the conditions depended on pretesting ",
+      "(the Pretest x Condition interaction) and whether the conditions differed when ",
+      "averaged over pretest conditions."
+    ), omnibus),
+    sprintf("%s, and the Solomon contrasts were estimated for %s.", compared,
+            if (n_comp > 1L) "each comparison" else "this comparison"),
+    multiplicity
+  ), collapse = " ")
+
+  # Results: the omnibus tests of the interaction and of the conditions
+  # averaged over pretest conditions, then each comparison's contrasts.
+  om_sentence <- function(test) {
+    r <- om[om$test == test, , drop = FALSE]
+    paste0(.apa_omnibus(r$statistic, r$df1, r$df2, r$reference, md, digits), ", ",
+           .apa_p(r$p.value, md))
+  }
+  results <- sprintf(
+    "The omnibus test of the Pretest x Condition interaction (pretest sensitization) gave %s, and the omnibus test of the conditions, averaged over pretest conditions, gave %s.",
+    om_sentence("Pretest x Condition"), om_sentence("Condition (avg over pretest)")
+  )
+
+  label <- if (adjusted) {
+    switch(fit$adjust, holm = "Holm-adjusted", bonferroni = "Bonferroni-adjusted")
+  }
+  e <- fit$effects
+  for (cmp in comparisons) {
+    rows <- e[e$comparison == cmp, , drop = FALSE]
+    sentences <- vapply(seq_len(nrow(rows)), function(i) {
+      r <- rows[i, ]
+      p_text <- if (adjusted) {
+        paste0(.apa_p(r$p.adjusted, md), ", ", label)
+      } else {
+        .apa_p(r$p.value, md)
+      }
+      sprintf("%s was %s, %s, %s, %s.",
+              .capitalize(.ngroup_contrast_phrase(r$contrast, cmp, w[cmp, ])),
+              .apa_num(r$estimate, digits),
+              .apa_ci(r$conf.low, r$conf.high, fit$conf_level, digits),
+              .apa_stat(r$statistic, r$df, md, NULL, digits), p_text)
+    }, "")
+    results <- c(results, paste(sentences, collapse = " "))
+  }
+
+  used <- .glm_rows_used(fit)
+
+  list(
+    method = method,
+    results = results,
+    table = fit$effects,
+    refs = refs,
+    cells = .cell_counts(fit$data$condition[used], fit$data$pretested[used], conditions),
+    groups = design$groups,
+    design_text = design$design_text
   )
 }
 
@@ -357,19 +613,45 @@
 }
 
 .report_equivalence <- function(fit, digits, md) {
+  # A test of one comparison of a design with several treatments carries
+  # `comparison`, its `weights`, and the `conditions`.
+  ngroup <- !is.null(fit$comparison)
+  phrase <- if (ngroup) {
+    .ngroup_contrast_phrase(fit$contrast, fit$comparison, fit$weights)
+  } else {
+    .contrast_phrase(fit$contrast)
+  }
   method <- sprintf(
     "Equivalence of %s was tested with two one-sided tests (Schuirmann, 1987; Lakens, 2017; Lakens et al., 2018) against bounds of [%s, %s], using the standard error of the fitted model.",
-    .contrast_phrase(fit$contrast), .apa_num(fit$bounds[1], digits), .apa_num(fit$bounds[2], digits)
+    phrase, .apa_num(fit$bounds[1], digits), .apa_num(fit$bounds[2], digits)
   )
   results <- sprintf(
     "The estimate was %s, %s; the larger one-sided %s. %s",
     .apa_num(fit$estimate, digits), .apa_ci(fit$conf.low, fit$conf.high, fit$conf_level, digits),
     .apa_p(fit$p_equivalence, md), fit$interpretation
   )
-  list(method = method, results = results,
-       table = data.frame(contrast = fit$contrast, estimate = fit$estimate,
-                          p_equivalence = fit$p_equivalence, outcome = fit$outcome),
-       refs = .solomon_function_refs$equivalence_solomon, cells = NULL)
+  table <- data.frame(contrast = fit$contrast, estimate = fit$estimate,
+                      p_equivalence = fit$p_equivalence, outcome = fit$outcome)
+  out <- list(method = method, results = results, table = table,
+              refs = .solomon_function_refs$equivalence_solomon, cells = NULL)
+  if (ngroup) {
+    conditions <- fit$conditions$condition[order(fit$conditions$role != "control")]
+    design <- .ngroup_design_parts(conditions)
+    # A comparison that is not one condition against another is named in
+    # the text, so its weights are stated.
+    defined <- if (startsWith(.comparison_clause(fit$comparison, fit$weights), "the comparison")) {
+      sprintf("The comparison %s was defined by weights over the conditions (%s).",
+              fit$comparison, .weights_phrase(fit$weights, conditions))
+    }
+    out$method <- paste(c(
+      method, defined, "The test was not adjusted for the other comparisons of the design."
+    ), collapse = " ")
+    out$table <- cbind(data.frame(comparison = fit$comparison), table)
+    out$refs <- c(out$refs, design$refs)
+    out$groups <- design$groups
+    out$design_text <- design$design_text
+  }
+  out
 }
 
 .report_fisher <- function(fit, digits, md) {
@@ -441,8 +723,58 @@
        table = eff, refs = .solomon_function_refs$fit_solomon_sem_latent, cells = NULL)
 }
 
-# Reporting functions by result class.
+# Baseline report for a design with several treatments: the pretests of
+# each treatment's pretested group against those of the pretested control
+# group (baseline_solomon() with `control`).
+.report_baseline_ngroup <- function(fit, digits, md) {
+  conditions <- fit$conditions$condition[order(fit$conditions$role != "control")]
+  design <- .ngroup_design_parts(conditions)
+  g <- fit$groups
+  cmp <- fit[["comparisons"]]
+  m_sym <- if (md) "*M*" else "M"
+  sd_sym <- if (md) "*SD*" else "SD"
+  method <- paste(
+    "Baseline equivalence of the pretested arms was examined by comparing the pretest",
+    "scores of each treatment's pretested group with those of the pretested control group,",
+    "with Hedges's g and a noncentral-t interval (Cumming & Finch, 2001; Kelley, 2007).",
+    "Each comparison used only the two groups it compared, and the p-values were not",
+    "adjusted for the number of comparisons."
+  )
+  scores <- sprintf(
+    "the %s group scored %s = %s (%s = %s)", sub("^Pretested, ", "", g$group),
+    m_sym, .apa_num(g$mean, digits), sd_sym, .apa_num(g$sd, digits)
+  )
+  differences <- vapply(seq_len(nrow(cmp)), function(i) {
+    r <- cmp[i, ]
+    sprintf(
+      "The difference of %s was %s, %s, %s, %s, g = %s, %s.",
+      .comparison_clause(r$comparison), .apa_num(r$difference, digits),
+      .apa_ci(r$conf.low, r$conf.high, fit$conf_level, digits),
+      .apa_stat(r$statistic, r$df, md, "t", digits), .apa_p(r$p.value, md),
+      .apa_num(r[["g"]], digits), .apa_ci(r$g.low, r$g.high, fit$conf_level, digits)
+    )
+  }, "")
+  list(
+    method = method,
+    results = c(
+      sprintf("At pretest, %s.", .series_and(scores)),
+      differences,
+      "The unpretested arms have no pretest, so their baseline could not be checked."
+    ),
+    table = cmp,
+    refs = c(.solomon_function_refs$baseline_solomon, design$refs),
+    cells = NULL,
+    groups = design$groups,
+    design_text = design$design_text
+  )
+}
+
 .report_baseline <- function(fit, digits, md) {
+  # A design with several treatments has one comparison for each treatment.
+  # `[[` matches the name exactly; `$` would match it partially.
+  if (!is.null(fit[["comparisons"]])) {
+    return(.report_baseline_ngroup(fit, digits, md))
+  }
   g <- fit$groups
   method <- paste(
     "Baseline equivalence of the pretested arms was examined by comparing their pretest",
@@ -604,15 +936,41 @@
 
 # Reporting language for nonrandomized designs.
 .nonrandom_wording <- function(x) {
+  # A comparison of a design with several treatments names the conditions it
+  # compares (see .ngroup_contrast_phrase()), which may both be treatments.
+  x <- gsub("treatment effect (of|for) ", "difference \\1 ", x)
   x <- gsub("average treatment effect", "average treatment-control difference", x)
   x <- gsub("treatment effect", "treatment-control difference", x)
   x <- gsub("treatment main effect", "treatment-control main difference", x)
   x
 }
 
+# Reporting functions by result class. Each takes (fit, digits, md), where
+# `md` is TRUE for markdown output, and returns a list with:
+#   method       character: the sentences describing the analysis;
+#   results      character: one element per paragraph of results;
+#   table        data frame: the estimates reported;
+#   refs         character: keys of .solomon_reference_text for every work
+#                the method and results cite (report_solomon() adds
+#                Solomon, 1949);
+#   cells        integer counts analyzed per group, in the order of
+#                `groups`, or NULL when the analysis has no group counts;
+#   groups       optional character: the group labels for `cells` and for
+#                `design$randomized` and `design$measurement`; NULL means
+#                the four Solomon groups (pretested treatment, pretested
+#                control, unpretested treatment, unpretested control);
+#   design_text  optional character: the sentence naming the design,
+#                without its final period; NULL means "The design was a
+#                Solomon four-group design (Solomon, 1949)". For designs
+#                with several treatments, .ngroup_design_parts(conditions)
+#                gives `groups`, `design_text`, and its `refs`.
+# The solomon_steyn handler is .report_steyn() in R/solomon_steyn.R; it is
+# called through a wrapper because that file is collated after this one.
 .report_handlers <- list(
   solomon_baseline = .report_baseline,
   solomon_glm = .report_glm,
+  solomon_ngroup = .report_ngroup,
+  solomon_steyn = function(fit, digits, md) .report_steyn(fit, digits, md),
   solomon_ml = .report_ml,
   solomon_classic = .report_classic,
   solomon_perm = .report_perm,
@@ -629,12 +987,26 @@
 
 # ---- Design reporting ----------------------------------------------------------------
 
-.report_design <- function(cells, design) {
-  groups <- c("pretested treatment", "pretested control", "unpretested treatment",
-              "unpretested control")
+# `groups` and `design_text` come from the report handler (see
+# .report_handlers); NULL gives the four-group design.
+.report_design <- function(cells, design, groups = NULL, design_text = NULL) {
+  four <- is.null(groups)
+  if (four) {
+    groups <- c("pretested treatment", "pretested control", "unpretested treatment",
+                "unpretested control")
+  }
+  n_groups <- length(groups)
   series <- function(x) paste0(paste(x[-length(x)], collapse = ", "), ", and ", x[length(x)])
   out <- character(0)
-  if (!is.null(cells)) {
+  if (!is.null(design_text)) {
+    out <- c(out, paste0(design_text, "."))
+    if (!is.null(cells)) {
+      out <- c(out, sprintf(
+        "The numbers of participants analyzed in the %s groups were %s, respectively.",
+        series(groups), series(cells)
+      ))
+    }
+  } else if (!is.null(cells)) {
     out <- c(out, sprintf(
       "The design was a Solomon four-group design (Solomon, 1949), with %s participants analyzed in the %s groups, respectively.",
       series(cells), series(groups)
@@ -644,9 +1016,11 @@
   }
   if (!is.null(design$randomized)) {
     randomized <- design$randomized
-    if (!is.numeric(randomized) || length(randomized) != 4L) {
-      stop("`design$randomized` must give the number assigned to each of the four groups.",
-           call. = FALSE)
+    if (!is.numeric(randomized) || length(randomized) != n_groups) {
+      stop(sprintf(
+        "`design$randomized` must give the number assigned to each of the %s groups%s.",
+        .number_word(n_groups), if (four) "" else paste0(", in the order ", series(groups))
+      ), call. = FALSE)
     }
     if (is.null(cells)) {
       out <- c(out, sprintf("The numbers assigned were %s.", paste(randomized, collapse = ", ")))
@@ -659,7 +1033,8 @@
     }
   }
   if (identical(design$assignment, "random")) {
-    out <- c(out, "Participants were randomly assigned to the four groups.")
+    out <- c(out, sprintf("Participants were randomly assigned to the %s groups.",
+                          .number_word(n_groups)))
   } else if (identical(design$assignment, "nonrandom")) {
     out <- c(out, paste(
       "The groups were not formed by random assignment, so the contrasts below are",
@@ -692,7 +1067,7 @@
     m <- as.character(design$measurement)
     out <- c(out, if (length(m) == 1L) {
       sprintf("Measurement: %s", m)
-    } else if (length(m) == 4L) {
+    } else if (length(m) == n_groups) {
       sprintf("Measurement by group: %s.", paste(sprintf("%s, %s", groups, m), collapse = "; "))
     } else {
       stop("`design$measurement` must be one description or one per group.", call. = FALSE)
@@ -728,7 +1103,8 @@
 #' [fit_solomon_classic()], [perm_solomon()], [marginal_solomon()],
 #' [equivalence_solomon()], [fisher_solomon()], [solomon_from_summary()],
 #' [fit_solomon_sem()], [fit_solomon_sem_latent()], [baseline_solomon()],
-#' [fit_solomon_mi()], [tipping_point_solomon()], and [fit_solomon_mmrm()].
+#' [fit_solomon_mi()], [tipping_point_solomon()], [fit_solomon_mmrm()], and
+#' [fit_solomon_steyn()].
 #' The references depend
 #' on the options the fit used: for example, a CR2 fit cites Bell and
 #' McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of
@@ -741,6 +1117,22 @@
 #' sensitization analysis was pre-specified, and the measurement procedure
 #' in each group (Recommendation 11 is to use identical measurement protocols
 #' in all arms, p. 34).
+#'
+#' **Designs with several treatments.** For a [fit_solomon_glm()] fit with
+#' `control` and three or more conditions (class `solomon_ngroup`), the
+#' design statement names the treatments, the control, and the 2(k + 1)
+#' groups of the design (Steyn, 2009), with the numbers analyzed in each.
+#' The results give the omnibus tests of the Pretest x Condition interaction
+#' and of the conditions averaged over pretest conditions, then the Solomon
+#' contrasts of each comparison. Their p-values are adjusted within each
+#' contrast across the comparisons, by Holm's (1979) procedure unless the
+#' fit chose another adjustment; the confidence intervals are not adjusted.
+#' Comparisons defined by weights are reported with their weights. An
+#' [equivalence_solomon()] test of one comparison and the
+#' [baseline_solomon()] comparisons of such a design are reported with the
+#' same design statement. solomonR follows a pre-publication draft of Steyn
+#' (2009), to be checked against the published version; see
+#' [fit_solomon_steyn()].
 #'
 #' **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
 #' results describe differences between groups rather than treatment
@@ -769,7 +1161,13 @@
 #'   registered, which sets `prespecified` from the plan's confirmatory
 #'   contrasts; `measurement`, one description of the measurement
 #'   procedure or one per group; and `assignment`, `"random"` or
-#'   `"nonrandom"`.
+#'   `"nonrandom"`. For a design with k treatments, `randomized` (and
+#'   `measurement`, when given per group) has one entry for each of the
+#'   2(k + 1) groups, in this order: the pretested treatments (in the order
+#'   of the levels of `treat`), the pretested control, the unpretested
+#'   treatments, and the unpretested control. For `mai2020`, that is
+#'   pretested RP, pretested GS, pretested Control, unpretested RP,
+#'   unpretested GS, and unpretested Control.
 #' @param digits Decimal places for estimates and statistics. Default 2.
 #' @param format `"text"` (default) or `"markdown"`, which italicizes
 #'   statistical symbols.
@@ -793,9 +1191,22 @@
 #' study including developmental work and expert workshop. *Health Technology
 #' Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550
 #'
+#' Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+#' *Scandinavian Journal of Statistics, 6*(2), 65–70.
+#' https://www.jstor.org/stable/4615733
+#'
+#' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+#' this exemplary model? *Design Principles and Practices: An International
+#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+#'
 #' @examples
 #' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 #' report_solomon(fit, design = list(prespecified = TRUE))
+#'
+#' # A six-group design: two treatments and a control (Mai et al., 2020).
+#' fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+#'                         control = "Control", data = mai2020)
+#' report_solomon(fit6)
 #'
 #' @export
 report_solomon <- function(fit, design = NULL, digits = 2, format = c("text", "markdown")) {
@@ -835,7 +1246,7 @@ report_solomon <- function(fit, design = NULL, digits = 2, format = c("text", "m
     list(
       method = parts$method,
       results = parts$results,
-      design = .report_design(parts$cells, design),
+      design = .report_design(parts$cells, design, parts$groups, parts$design_text),
       table = parts$table,
       references = refs,
       format = format

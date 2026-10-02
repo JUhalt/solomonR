@@ -23,6 +23,10 @@ same means and intervals with ggplot2, as every other plot in the package
 does. \code{plot_solomon()} still works, with a deprecation warning, and still
 draws in base graphics and returns the cell summaries invisibly.
 }
+\details{
+\code{plot_solomon()} draws the four-group design only. For a design with
+several treatments, use \code{\link[=plot_solomon_means]{plot_solomon_means()}} with \code{control}.
+}
 \examples{
 # Use plot_solomon_means() instead:
 plot_solomon_means(y_post, treat, pretested, data = solomon_example)

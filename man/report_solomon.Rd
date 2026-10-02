@@ -17,7 +17,13 @@ pre-specified; \code{plan}, the \code{\link[=analysis_plan_solomon]{analysis_pla
 registered, which sets \code{prespecified} from the plan's confirmatory
 contrasts; \code{measurement}, one description of the measurement
 procedure or one per group; and \code{assignment}, \code{"random"} or
-\code{"nonrandom"}.}
+\code{"nonrandom"}. For a design with k treatments, \code{randomized} (and
+\code{measurement}, when given per group) has one entry for each of the
+2(k + 1) groups, in this order: the pretested treatments (in the order
+of the levels of \code{treat}), the pretested control, the unpretested
+treatments, and the unpretested control. For \code{mai2020}, that is
+pretested RP, pretested GS, pretested Control, unpretested RP,
+unpretested GS, and unpretested Control.}
 
 \item{digits}{Decimal places for estimates and statistics. Default 2.}
 
@@ -40,7 +46,8 @@ Supported objects come from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \
 \code{\link[=fit_solomon_classic]{fit_solomon_classic()}}, \code{\link[=perm_solomon]{perm_solomon()}}, \code{\link[=marginal_solomon]{marginal_solomon()}},
 \code{\link[=equivalence_solomon]{equivalence_solomon()}}, \code{\link[=fisher_solomon]{fisher_solomon()}}, \code{\link[=solomon_from_summary]{solomon_from_summary()}},
 \code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}}, \code{\link[=baseline_solomon]{baseline_solomon()}},
-\code{\link[=fit_solomon_mi]{fit_solomon_mi()}}, \code{\link[=tipping_point_solomon]{tipping_point_solomon()}}, and \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}.
+\code{\link[=fit_solomon_mi]{fit_solomon_mi()}}, \code{\link[=tipping_point_solomon]{tipping_point_solomon()}}, \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}, and
+\code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}}.
 The references depend
 on the options the fit used: for example, a CR2 fit cites Bell and
 McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of
@@ -53,6 +60,22 @@ group, attrition by group when \code{design$randomized} is given, whether the
 sensitization analysis was pre-specified, and the measurement procedure
 in each group (Recommendation 11 is to use identical measurement protocols
 in all arms, p. 34).
+
+\strong{Designs with several treatments.} For a \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} fit with
+\code{control} and three or more conditions (class \code{solomon_ngroup}), the
+design statement names the treatments, the control, and the 2(k + 1)
+groups of the design (Steyn, 2009), with the numbers analyzed in each.
+The results give the omnibus tests of the Pretest x Condition interaction
+and of the conditions averaged over pretest conditions, then the Solomon
+contrasts of each comparison. Their p-values are adjusted within each
+contrast across the comparisons, by Holm's (1979) procedure unless the
+fit chose another adjustment; the confidence intervals are not adjusted.
+Comparisons defined by weights are reported with their weights. An
+\code{\link[=equivalence_solomon]{equivalence_solomon()}} test of one comparison and the
+\code{\link[=baseline_solomon]{baseline_solomon()}} comparisons of such a design are reported with the
+same design statement. solomonR follows a pre-publication draft of Steyn
+(2009), to be checked against the published version; see
+\code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}}.
 
 \strong{Nonrandomized designs.} With \code{design$assignment = "nonrandom"}, the
 results describe differences between groups rather than treatment
@@ -76,6 +99,11 @@ and the conclusions remain the researcher's responsibility.
 fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 report_solomon(fit, design = list(prespecified = TRUE))
 
+# A six-group design: two treatments and a control (Mai et al., 2020).
+fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                        control = "Control", data = mai2020)
+report_solomon(fit6)
+
 }
 \references{
 Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
@@ -91,4 +119,12 @@ Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
 (2021b). Reducing bias in trials from reactions to measurement: The MERIT
 study including developmental work and expert workshop. \emph{Health Technology
 Assessment, 25}(55), 1–72. https://doi.org/10.3310/hta25550
+
+Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+\emph{Scandinavian Journal of Statistics, 6}(2), 65–70.
+https://www.jstor.org/stable/4615733
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 }

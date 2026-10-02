@@ -175,7 +175,8 @@
 #' @param y_post Numeric posttest scores, one per participant and occasion
 #'   (long format), with `NA` for missing posttests.
 #' @param treat Treatment indicator coded 0/1 (or logical), the same in every
-#'   row of a participant.
+#'   row of a participant. Designs with several treatments are not supported;
+#'   see [fit_solomon_glm()].
 #' @param pretested Pretest indicator coded 0/1 (or logical), the same in
 #'   every row of a participant.
 #' @param id Participant identifier.
@@ -249,6 +250,7 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
     data, c("y_post", "treat", "pretested", "id", "occasion", "y_pre"),
     environment(), parent.frame()
   )
+  .stop_ngroup_unsupported(treat, "fit_solomon_mmrm")
   if (!requireNamespace("mmrm", quietly = TRUE)) {
     stop("fit_solomon_mmrm() needs the mmrm package: install.packages(\"mmrm\").", call. = FALSE)
   }

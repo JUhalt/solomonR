@@ -4,17 +4,30 @@
 \alias{check_solomon_missing}
 \title{Distinguish structural and incidental missingness in a Solomon design}
 \usage{
-check_solomon_missing(y_post, treat, pretested, y_pre = NULL, data = NULL)
+check_solomon_missing(
+  y_post,
+  treat,
+  pretested,
+  y_pre = NULL,
+  control = NULL,
+  data = NULL
+)
 }
 \arguments{
 \item{y_post}{Numeric posttest scores.}
 
-\item{treat}{Treatment indicator coded 0/1 (or logical).}
+\item{treat}{Treatment indicator coded 0/1 (or logical); or a factor or
+character vector of conditions, with the control named by \code{control}.}
 
 \item{pretested}{Pretest indicator coded 0/1 (or logical).}
 
 \item{y_pre}{Optional numeric pretest scores, missing by design for
 unpretested participants.}
+
+\item{control}{The control condition when \code{treat} is a factor or
+character vector with more than two conditions, a Solomon N-group
+design; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. With two conditions the result is the
+same as with a 0/1 \code{treat}.}
 
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
@@ -25,11 +38,13 @@ An object of class \code{solomon_missing} with \code{by_cell} (counts by
 Solomon cell), \code{counts} (totals by category), \code{pattern} (\code{"none"},
 \code{"structural"}, \code{"incidental"}, or \code{"mixed"}), and \code{guidance} (the
 interpretation, supported response, and sources for each category
-present).
+present). For a design with several treatments, \code{by_cell} has one row
+for each of the 2(k + 1) groups, its \code{treat} column holds the
+condition, and \code{conditions} names the control and the treatments.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
-Classifies missing values in Solomon four-group data and explains the
+Classifies missing values in Solomon design data and explains the
 supported response to each kind. Pretest scores are \emph{structurally absent}
 for participants assigned to the unpretested groups: withholding the
 pretest is the experimental manipulation (Solomon, 1949), so those values
@@ -54,7 +69,7 @@ participants without biasing the treatment effect (White & Thompson,
 \item \strong{Incidental posttest missingness}: missing outcomes. Complete-case
 analysis is unbiased when missingness is unrelated to the outcome given
 the variables in the model (Little & Rubin, 2019); attrition that differs
-across the four groups should be reported.
+across the groups should be reported.
 \item \strong{Unexpected pretest scores}: pretest values recorded for unpretested
 participants, which usually indicate a coding or assignment error. They
 are ignored by solomonR analyses.
@@ -62,6 +77,12 @@ are ignored by solomonR analyses.
 }
 
 Pretest categories are \code{NA} when \code{y_pre} is not supplied.
+
+Designs with several treatments: give \code{treat} as a factor or character
+vector of conditions and name the control with \code{control}. The counts are
+then given for each of the 2(k + 1) groups of a design with k treatments
+(Steyn, 2009): each treatment and the control, with and without a
+pretest.
 
 Not supported: this function does not test the missingness mechanism,
 perform imputation, or provide sensitivity analyses for outcome
@@ -78,6 +99,10 @@ d <- solomon_example
 d$y_pre[which(d$pretested == 1)[1]] <- NA
 d$y_post[which(d$pretested == 0)[1]] <- NA
 with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
+
+# A six-group design: two treatments and a control (Mai et al., 2020).
+check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
+                      control = "Control", data = mai2020)
 }
 \references{
 Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
@@ -93,11 +118,19 @@ https://doi.org/10.1503/cmaj.110977
 Little, R. J. A., & Rubin, D. B. (2019). \emph{Statistical analysis with missing
 data} (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
 
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. \emph{Education
+Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
+
 Rubin, D. B. (1976). Inference and missing data. \emph{Biometrika, 63}(3),
 581–592. https://doi.org/10.1093/biomet/63.3.581
 
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. \emph{Statistics in Medicine, 24}(7),

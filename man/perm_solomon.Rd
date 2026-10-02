@@ -15,7 +15,8 @@ perm_solomon(
 )
 }
 \arguments{
-\item{fit}{An object returned by \code{fit_solomon_glm()}.}
+\item{fit}{An object returned by \code{fit_solomon_glm()}. Designs with
+several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{contrast}{Character string identifying the contrast to test. One of
 \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},

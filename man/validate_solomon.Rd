@@ -2,7 +2,7 @@
 % Please edit documentation in R/solomon_validate.R
 \name{validate_solomon}
 \alias{validate_solomon}
-\title{Validate the structure and coding of a Solomon four-group design}
+\title{Validate the structure and coding of a Solomon design}
 \usage{
 validate_solomon(
   y_post,
@@ -11,13 +11,15 @@ validate_solomon(
   y_pre = NULL,
   min_cell_n = 2,
   cluster = NULL,
+  control = NULL,
   data = NULL
 )
 }
 \arguments{
 \item{y_post}{Numeric posttest scores.}
 
-\item{treat}{Treatment indicator coded 0/1 (or logical).}
+\item{treat}{Treatment indicator coded 0/1 (or logical); or a factor or
+character vector of conditions, with the control named by \code{control}.}
 
 \item{pretested}{Pretest indicator coded 0/1 (or logical).}
 
@@ -30,6 +32,11 @@ each cell (at least 2).}
 \item{cluster}{Optional cluster identifier (for example, class, school, or
 site), one value per participant.}
 
+\item{control}{The control condition when \code{treat} is a factor or
+character vector with more than two conditions, a Solomon N-group
+design; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. With two conditions the result is the
+same as with a 0/1 \code{treat}.}
+
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
@@ -38,24 +45,35 @@ strings (\code{y_post = "post"}).}
 An object of class \code{solomon_validation} with \code{valid} (\code{TRUE} when
 no errors were found), \code{issues} (severity, check, and message), \code{cells}
 (counts by cell, with clusters and cluster sizes when \code{cluster} is
-supplied), and \code{missing} (the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result).
+supplied), and \code{missing} (the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result). For a
+design with several treatments, \code{cells} has one row for each of the
+2(k + 1) cells and \code{conditions} names the control and the treatments.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
-Checks that data can support a Solomon four-group analysis before a model
-is fitted: equal input lengths, 0/1 coding of the design indicators, all
-four cells present, enough observed outcomes per cell, and the distinction
-between structurally absent and incidentally missing values (see
+Checks that data can support a Solomon analysis before a model is fitted:
+equal input lengths, the coding of the design indicators, all cells
+present, enough observed outcomes per cell, and the distinction between
+structurally absent and incidentally missing values (see
 \code{\link[=check_solomon_missing]{check_solomon_missing()}}). Problems are returned as a table of issues
 rather than stopping at the first one, so every problem is reported at
-once.
+once. Designs with several treatments are checked too (see \code{control}).
 }
 \details{
-Accepted coding: \code{treat} and \code{pretested} must be numeric 0/1 or logical.
-Factors and character codes are rejected so that group membership is never
-inferred from level order. The Solomon design requires all four cells
-(Solomon, 1949): pretested treatment, pretested control, unpretested
-treatment, and unpretested control.
+Accepted coding: \code{pretested} must be numeric 0/1 or logical, and so must
+\code{treat} unless the control condition is named with \code{control}. Without
+\code{control}, factors and character codes are rejected so that group
+membership is never inferred from level order. The Solomon four-group
+design requires all four cells (Solomon, 1949): pretested treatment,
+pretested control, unpretested treatment, and unpretested control.
+
+Designs with several treatments: give \code{treat} as a factor or character
+vector of conditions and name the control with \code{control}. A design with k
+treatments requires all 2(k + 1) cells, each treatment and the control
+with and without a pretest: six cells for two treatments and eight for
+three (Steyn, 2009). Every check below is then made for each of these
+cells. Levels of a factor \code{treat} that no participant has are left out of
+the design, with a note.
 
 Severity:
 \itemize{
@@ -105,6 +123,10 @@ with(no_group_3, validate_solomon(y_post, treat, pretested, y_pre))
 one_class <- with(solomon_example, 2 * pretested + treat)
 with(solomon_example, validate_solomon(y_post, treat, pretested, y_pre,
                                        cluster = one_class))
+
+# A six-group design: two treatments and a control (Mai et al., 2020).
+validate_solomon(post_behavior, condition, pretested, pre_behavior,
+                 control = "Control", data = mai2020)
 }
 \references{
 El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
@@ -120,6 +142,10 @@ L. S. (1996). The effect of sex education on adolescents' use of condoms:
 Applying the Solomon four-group design. \emph{Health Education Quarterly,
 23}(1), 34–47. https://doi.org/10.1177/109019819602300103
 
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. \emph{Education
+Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
+
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects
 models. \emph{Journal of Business & Economic Statistics, 36}(4), 672–683.
@@ -127,6 +153,10 @@ https://doi.org/10.1080/07350015.2016.1247004
 
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 }
 \seealso{
 \code{\link[=check_solomon_missing]{check_solomon_missing()}}

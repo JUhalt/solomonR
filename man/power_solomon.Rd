@@ -103,7 +103,9 @@ conservative figure rather than an exact one.
 
 Only continuous outcomes are simulated. Binary and count outcomes are not
 supported; for binary outcomes see \code{\link[=marginal_solomon]{marginal_solomon()}} and its simulation
-validation on issue #43.
+validation on issue #43. Designs with several treatments are not
+supported; compute power for each treatment-control comparison as a
+four-group design.
 
 The arguments follow the order of \code{\link[=plan_solomon]{plan_solomon()}} and
 \code{\link[=plot_power_solomon]{plot_power_solomon()}}: \code{n}, \code{delta}, \code{sens}, \code{rho}, \code{sigma}, \code{alpha}.

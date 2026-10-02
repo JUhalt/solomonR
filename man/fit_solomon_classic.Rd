@@ -24,7 +24,9 @@ fit_solomon_classic(
 \arguments{
 \item{y_post}{Numeric posttest scores.}
 
-\item{treat}{Treatment indicator coded 0 = control and 1 = treatment.}
+\item{treat}{Treatment indicator coded 0 = control and 1 = treatment.
+Designs with several treatments are not supported; see
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{pretested}{Pretest indicator coded 0 = unpretested and 1 = pretested.}
 
