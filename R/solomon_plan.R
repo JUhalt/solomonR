@@ -57,6 +57,7 @@
 
 #' Sample-size planning for Solomon designs
 #'
+#' `r lifecycle::badge("stable")`
 #' Finds the smallest Solomon four-group design, at a fixed allocation across
 #' the four cells, whose power for each Solomon estimand reaches a target.
 #' [power_solomon()] answers the forward question, the power of a given
@@ -127,21 +128,25 @@
 #'   the basis (`"analytic"` or `"simulation"`), the Monte Carlo standard
 #'   error (`NA` for analytic rows), the target power, `alpha`, and a note.
 #'   Estimands whose true effect is zero, or whose target is not reached by
-#'   `max_n`, return `NA` sizes with an explanatory note.
+#'   `max_n`, return `NA` sizes with an explanatory note. The planning values
+#'   are kept in the attribute `settings`, which [analysis_plan_solomon()]
+#'   reads.
 #'
-#' @seealso [power_solomon()] for the power of a given design.
+#' @seealso [power_solomon()] for the power of a given design, and
+#'   [analysis_plan_solomon()] for an analysis plan built on the result.
 #'
 #' @references
 #' Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 #' studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
-#' 2074-2102.
+#' 2074–2102. https://doi.org/10.1002/sim.8086
 #'
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-#' variance components. *Biometrics Bulletin, 2*(6), 110-114.
+#' variance components. *Biometrics Bulletin, 2*(6), 110–114.
+#' https://doi.org/10.2307/3002019
 #'
 #' Welch, B. L. (1947). The generalization of "Student's" problem when several
-#' different population variances are involved. *Biometrika, 34*(1/2),
-#' 28-35.
+#' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
+#' https://doi.org/10.1093/biomet/34.1-2.28
 #'
 #' @examples
 #' # Equal allocation, a treatment effect of 0.4 SD, and sensitization of 0.2 SD
@@ -277,5 +282,9 @@ plan_solomon <- function(power = 0.80,
 
   res <- do.call(rbind, lapply(estimand, plan_one))
   rownames(res) <- NULL
+  # The planning values, for analysis_plan_solomon().
+  attr(res, "settings") <- list(power = power, delta = delta, sens = sens, rho = rho,
+                                sigma = sigma, alpha = alpha, allocation = allocation,
+                                method = method)
   res
 }

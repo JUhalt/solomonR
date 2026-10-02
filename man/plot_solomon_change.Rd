@@ -10,7 +10,8 @@ plot_solomon_change(
   pretested,
   y_pre,
   show_individuals = FALSE,
-  conf_level = 0.95
+  conf_level = 0.95,
+  data = NULL
 )
 }
 \arguments{
@@ -28,11 +29,16 @@ participant's change as a faint line behind the means. Default \code{FALSE}.}
 
 \item{conf_level}{Confidence level for the intervals, which use the t
 distribution with n - 1 degrees of freedom. Default is 0.95.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 A ggplot object.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Draws mean pretest and posttest scores for the two pretested groups,
 joined to show change, alongside posttest means for the two unpretested
 groups. The unpretested groups appear at posttest only: their missing
@@ -55,6 +61,6 @@ with(solomon_example, plot_solomon_change(y_post, treat, pretested, y_pre))
 
 }
 \references{
-Solomon, R. L. (1949). An extension of control group design.
-\emph{Psychological Bulletin, 46}(2), 137-150.
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 }

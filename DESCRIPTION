@@ -3,15 +3,22 @@ Title: Analyze Solomon Four-Group Designs
 Version: 0.4.0.9000
 Authors@R: 
     person("Joshua", "Uhalt", email = "Josh.Uhalt@gmail.com", role = c("aut","cre"))
-Description: Tools for analyzing Solomon four-group experimental designs using
-    historical Tests A-I, unified generalized linear models with robust
-    covariance estimation, stratified randomization inference, full-information
-    maximum likelihood, and observed- and latent-variable structural equation
-    models. Includes diagnostics, effect sizes, power and sample-size
-    planning, plotting, and teaching-oriented
-    workflows that distinguish historical procedures from contemporary
-    recommendations.
+Description: Tools for planning, analyzing, teaching, and reporting Solomon
+    four-group experiments (Solomon, 1949) <doi:10.1037/h0062958>. The
+    historical analyses are reproduced and labeled as such, from Solomon's
+    improvement scores to the Tests A-I sequence of Walton Braver and Braver
+    (1988) <doi:10.1037/0033-2909.104.1.150> and its published revisions.
+    Contemporary analyses include one generalized linear model for all four
+    groups with robust or cluster-robust standard errors, for continuous,
+    binary, and count outcomes; randomization inference; full-information
+    maximum likelihood (van Engelenburg, 1999); observed- and latent-variable
+    structural equation models with 'lavaan'; and equivalence tests of pretest
+    sensitization. Also includes design checks, power and sample-size
+    planning, simulated teaching data, published data sets, and APA-style
+    reports with method-specific references.
 License: GPL-3
+Copyright: See the file inst/COPYRIGHTS for the copyright holders and
+    licenses of the bundled published data.
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
@@ -23,14 +30,17 @@ Imports:
     sandwich,
     clubSandwich,
     generics,
+    MASS,
     ggplot2,
     tibble,
-    withr
+    withr,
+    lifecycle
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
-    lavaan
+    lavaan,
+    mmrm
 VignetteBuilder: knitr
 URL: https://github.com/JUhalt/solomonR,
     https://juhalt.github.io/solomonR/,

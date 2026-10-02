@@ -5,50 +5,79 @@
 \title{Fit the unified GLM for a Solomon Four-Group design}
 \usage{
 fit_solomon_glm(
-  y,
+  y_post,
   treat,
   pretested,
-  pretest_score = NULL,
+  y_pre = NULL,
   covariates = NULL,
   robust = c("HC3", "none", "CR2"),
   cluster = NULL,
   family = stats::gaussian(),
-  conf_level = 0.95
+  conf_level = 0.95,
+  exposure = NULL,
+  data = NULL,
+  y = deprecated(),
+  pretest_score = deprecated()
 )
 }
 \arguments{
-\item{y}{numeric posttest vector}
+\item{y_post}{numeric posttest vector}
 
 \item{treat}{0/1 (or logical) treatment indicator (1 = treatment)}
 
 \item{pretested}{0/1 (or logical) pretest indicator (1 = group received pretest)}
 
-\item{pretest_score}{numeric vector for those pretested; NA for others}
+\item{y_pre}{numeric pretest vector: the pretest score for pretested
+participants and \code{NA} for the others}
 
-\item{covariates}{optional data.frame of additional covariates}
+\item{covariates}{optional data frame of additional covariates, or, with
+\code{data}, the names of its columns to use}
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
-\item{cluster}{optional clustering id (e.g., class/site), one value per participant}
+\item{cluster}{optional clustering id (e.g., class/site), one value per
+participant. CR2 fits refuse designs in which a Solomon cell contains a
+single cluster, because cluster and condition are then confounded; see
+\code{\link[=validate_solomon]{validate_solomon()}}. A classed warning (\code{solomonR_small_df_warning})
+flags Solomon contrasts whose Satterthwaite degrees of freedom are below
+4, where Tipton (2015) advises that p-values not be trusted.}
 
-\item{family}{model family (default gaussian())}
+\item{family}{model family (default gaussian()), given as a family object,
+a family function, or its name; or \code{"negative_binomial"} for the NB2
+model for counts.}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
+
+\item{exposure}{optional positive exposure (for example, observation time)
+for each participant, entered as a log offset; requires a log-link family
+such as \code{poisson()} or \code{"negative_binomial"}. Contrasts are then log rate
+ratios per unit of exposure.}
+
+\item{data}{optional data frame. When supplied, the other data arguments
+are looked up in it first: give them as bare column names
+(\code{y_post = post}) or as strings (\code{y_post = "post"}).}
+
+\item{y, pretest_score}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{y_post}
+and \code{y_pre}.}
 }
 \value{
 An object of class \code{solomon_glm}: a list with the fitted model,
 coefficient and contrast tables (including degrees of freedom and
 confidence limits \code{conf.low} and \code{conf.high}), the covariance matrix,
-and the settings used.
+the Pearson dispersion statistic for binomial, Poisson, and
+negative-binomial fits, \code{theta} (its estimate, standard error, and
+\eqn{\alpha = 1/\theta}) for negative-binomial fits, and the settings
+used.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Fits one generalized linear model to all four Solomon groups and reports
 four Solomon contrasts: the equal-weighted average treatment effect, the
 Pretest x Treatment (sensitization) contrast, and the treatment effect
 within each pretesting condition.
 }
 \details{
-When \code{pretest_score} is supplied, it enters the model as \code{pre_obs}, equal
+When \code{y_pre} is supplied, it enters the model as \code{pre_obs}, equal
 to the pretest score in the pretested groups and 0 in the unpretested
 groups, so the structurally absent pretests do not remove Groups 3 and 4.
 Regression adjustment for baseline covariates in randomized experiments,
@@ -69,7 +98,11 @@ only in the pretested groups.
 \item \code{robust = "CR2"}: bias-reduced cluster-robust covariance (Bell &
 McCaffrey, 2002) with Satterthwaite degrees of freedom (Pustejovsky &
 Tipton, 2018), computed with the clubSandwich package. Use this when
-participants are nested in clusters such as classrooms or sites.
+participants are nested in clusters such as classrooms or sites. In the
+package's simulation of cluster-randomized Solomon designs (issue #19),
+CR2 tests exceeded the nominal level with four clusters per arm (Type I
+error up to 0.068 with no effect in any cluster); with few clusters, the
+cluster-level randomization test of \code{\link[=perm_solomon]{perm_solomon()}} is preferred.
 }
 
 Tests and confidence intervals use the same reference distribution. For
@@ -78,6 +111,54 @@ freedom when the dispersion is estimated, as in Gaussian models, which is
 the conventional choice when t approximations are used with robust
 standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
 with a fixed dispersion (binomial, Poisson) use the normal distribution.
+With a noncollapsible link (such as the logit) and \code{y_pre}, the
+link-scale contrasts compare a treatment effect conditional on the pretest
+among pretested participants with a marginal effect among unpretested
+participants, who have no pretest. When the pretest predicts the outcome,
+the Pretest x Treatment contrast is then nonzero even without
+sensitization (Daniel et al., 2021): in the package's simulation study
+(issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
+sensitization present. Such fits give the classed warning
+\code{solomonR_noncollapsible_warning}; for binary outcomes, estimate the
+Solomon contrasts on a common scale with \code{\link[=marginal_solomon]{marginal_solomon()}}. Identity and
+log links are collapsible and are not affected.
+
+Count outcomes: with \code{family = poisson()}, the default HC3 covariance gives
+the robust (quasi-likelihood) inference that Cameron and Trivedi (2013)
+describe. The Poisson estimator stays consistent when the counts are not
+Poisson, provided the mean is correctly specified (p. 72), whereas
+model-based standard errors should not be used under overdispersion. The
+Pearson dispersion statistic is returned as \code{dispersion} for description;
+values well above 1 indicate overdispersion. Log-link rate ratios are
+collapsible, so the noncollapsibility caution above does not apply.
+Use \code{exposure} for counts observed over different times or exposures, and
+\code{\link[=marginal_solomon]{marginal_solomon()}} for rate differences. No published Solomon study with
+a count outcome has been identified, so applying these count-data methods
+to the Solomon contrasts is a solomonR extension; its simulation validation
+is on issue #44.
+
+\code{family = "negative_binomial"} fits the NB2 model, with variance
+\eqn{\mu + \alpha\mu^2}, by maximum likelihood using \code{MASS::glm.nb()}
+(Venables & Ripley, 2002). Its coefficient estimates stay consistent when the
+counts are not negative binomial, provided the mean is correctly specified,
+but its model-based standard errors do not, so robust standard errors are
+advised (Cameron & Trivedi, 2013, pp. 84--85); the default HC3 covariance
+provides them. The estimated \eqn{\theta = 1/\alpha} is returned as
+\code{theta}. When the counts show little overdispersion, \eqn{\theta} does not
+converge and a classed warning (\code{solomonR_theta_boundary_warning}) is
+given. Clustered (CR2) negative-binomial fits are not supported.
+
+In the package's pre-registered simulation (issue #62), which reused the
+datasets of issue #44, the NB2 fit with HC3 met the coverage and Type I
+tolerances in 85\% of the overdispersed contrasts with 50 or 100
+participants per cell, against 82\% for robust Poisson. That fell short of
+the 90\% set in advance for recommending it, although its estimates were
+on average 3.5\% more precise with strong overdispersion. Robust Poisson
+therefore remains the recommendation, and Poisson is preferred when there
+is no evidence of overdispersion. Model-based NB2 standard errors fell
+outside the coverage tolerance in 162 of 384 contrasts and should not be
+used.
+
 The degrees of freedom are returned in the \code{df} columns (\code{Inf} for normal
 reference distributions). Imbens and Kolesár (2016) further recommend
 Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
@@ -96,45 +177,71 @@ method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.
 }
 
+\examples{
+fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
+fit
+
+# The four Solomon contrasts as a data frame.
+fit$effects
+}
 \references{
-Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
-for linear regression with multi-stage samples. \emph{Survey Methodology,
-28}(2), 169-181.
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
+linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
+169–181.
 
-Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
-standard error estimators in OLS regression: An introduction and software
-implementation. \emph{Behavior Research Methods, 39}(4), 709-722.
+Cameron, A. C., & Trivedi, P. K. (2013). \emph{Regression analysis of count data}
+(2nd ed.). Cambridge University Press.
+https://doi.org/10.1017/CBO9781139013567
 
-Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
-samples: Some practical advice. \emph{The Review of Economics and Statistics,
-98}(4), 701-712.
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
+528–557. https://doi.org/10.1002/bimj.201900297
+
+Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
+error estimators in OLS regression: An introduction and software
+implementation. \emph{Behavior Research Methods, 39}(4), 709–722.
+https://doi.org/10.3758/BF03192961
+
+Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small samples:
+Some practical advice. \emph{The Review of Economics and Statistics, 98}(4),
+701–712. https://doi.org/10.1162/REST_a_00552
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. \emph{The Annals of Applied Statistics,
-7}(1), 295-318.
+7}(1), 295–318. https://doi.org/10.1214/12-AOAS583
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
-standard errors in the linear regression model. \emph{The American
-Statistician, 54}(3), 217-224.
+standard errors in the linear regression model. \emph{The American Statistician,
+54}(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
 
 MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
-covariance matrix estimators with improved finite sample properties.
-\emph{Journal of Econometrics, 29}(3), 305-325.
+covariance matrix estimators with improved finite sample properties. \emph{Journal
+of Econometrics, 29}(3), 305–325.
+https://doi.org/10.1016/0304-4076(85)90158-7
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
-cluster-robust variance estimation and hypothesis testing in fixed
-effects models. \emph{Journal of Business & Economic Statistics, 36}(4),
-672-683.
+cluster-robust variance estimation and hypothesis testing in fixed effects
+models. \emph{Journal of Business & Economic Statistics, 36}(4), 672–683.
+https://doi.org/10.1080/07350015.2016.1247004
 
 Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
 guide to statistical inference in linear modeling for non-normal or
 heteroskedastic error distributions. \emph{Behavior Research Methods, 57}(12),
-Article 338.
+Article 338. https://doi.org/10.3758/s13428-025-02801-4
 
-Solomon, R. L. (1949). An extension of control group design.
-\emph{Psychological Bulletin, 46}(2), 137-150.
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
-\emph{Psychological Methods, 9}(2), 164-182.
+\emph{Psychological Methods, 9}(2), 164–182.
+https://doi.org/10.1037/1082-989X.9.2.164
+
+Tipton, E. (2015). Small sample adjustments for robust variance estimation
+with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.
+https://doi.org/10.1037/met0000011
+
+Venables, W. N., & Ripley, B. D. (2002). \emph{Modern applied statistics with S}
+(4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
 }

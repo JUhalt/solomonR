@@ -2,7 +2,7 @@
 % Please edit documentation in R/solomon_core.R
 \name{stouffer_solomon}
 \alias{stouffer_solomon}
-\title{Stouffer's Z combiner (Braver & Braver, 1988, Test I)}
+\title{Stouffer's Z combiner (Walton Braver & Braver, 1988, Test I)}
 \usage{
 stouffer_solomon(p)
 }
@@ -10,27 +10,40 @@ stouffer_solomon(p)
 \item{p}{numeric vector of one-tailed p-values (same direction)}
 }
 \value{
-list with z_meta and p_meta (one-tailed)
+list with \code{z_meta}, \code{p_meta_two_tailed}, and \code{p_meta_one_tailed}
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Combine one-tailed p-values that test the \emph{same directional} hypothesis into
-a single Z. This is provided to reproduce the Braver & Braver (1988)
+a single Z. This is provided to reproduce the Walton Braver & Braver (1988)
 meta-analytic option (Test I) for the Solomon four-group design. Use cautiously and document assumptions about homogeneity; see
 the 1988–1990 exchanges for caveats.
 }
+\details{
+Walton Braver and Braver (1988, p. 152) convert the one-tailed p-value of
+each test to z and refer the combined z to a normal table. Their worked
+example reports z = 2.05 with p = .040 (p. 153), the two-tailed value, so
+\code{\link[=fit_solomon_classic]{fit_solomon_classic()}} judges Test I by \code{p_meta_two_tailed}. The one-tailed
+value is also returned.
+}
 \examples{
 stouffer_solomon(c(0.10, 0.11))
+
+# Walton Braver and Braver's (1988, p. 153) example: the ANCOVA (p = .0993)
+# and the t test (p = .2127), halved to one-tailed p-values in the
+# direction of the effect, give z = 2.05 and p = .040.
+stouffer_solomon(c(0.0993, 0.2127) / 2)
 }
 \references{
-Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
-Williams, R. M., Jr. (1949). \emph{The American soldier: Adjustment during
-army life} (Vol. 1). Princeton University Press.
-
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. \emph{Psychological
-Bulletin, 104}(1), 150-154.
-
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-Meta-analysis and the Solomon four-group design. \emph{The Journal of
-Experimental Education, 62}(4), 361-376.
+Meta-analysis and the Solomon four-group design. \emph{The Journal of Experimental
+Education, 62}(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
+
+Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams, R.
+M., Jr. (1949). \emph{The American soldier: Adjustment during army life} (Vol. 1).
+Princeton University Press.
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
+104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 }

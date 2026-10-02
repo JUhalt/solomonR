@@ -1,5 +1,18 @@
+# Global fit indices. A saturated model (df = 0) fits perfectly by
+# construction, so its CFI, RMSEA, and SRMR are not diagnostic; with a
+# robust estimator lavaan also warns that the robust versions are NA. They
+# are therefore not requested for saturated models.
+.sem_fit_measures <- function(fit) {
+  df <- try(unname(lavaan::fitMeasures(fit, "df")), silent = TRUE)
+  if (inherits(df, "try-error")) return(c(cfi = NA, rmsea = NA, srmr = NA, df = NA))
+  if (isTRUE(df == 0)) return(c(cfi = NA, rmsea = NA, srmr = NA, df = 0))
+  fm <- try(lavaan::fitMeasures(fit, c("cfi", "rmsea", "srmr", "df")), silent = TRUE)
+  if (inherits(fm, "try-error")) c(cfi = NA, rmsea = NA, srmr = NA, df = df) else fm
+}
+
 #' SEM analysis for Solomon Four-Group designs (mean-structure; optional ANCOVA)
 #'
+#' `r lifecycle::badge("experimental")`
 #' Two modes:
 #' 1) mean-structure (default): 4-group SEM estimating posttest means for P1, P0, U1, U0,
 #'    and reporting ATE, Sens (Pretest×Treatment), Pre_Eff, Unpre_Eff.
@@ -15,6 +28,12 @@
 #' Tests and confidence intervals for the contrasts are lavaan's Wald
 #' results, which use a large-sample normal reference distribution.
 #'
+#' @section Lifecycle:
+#' Experimental. Its tests rest on large-sample (MLR) theory, and no
+#' simulation study in the package has yet checked their error rates at
+#' Solomon sample sizes. [fit_solomon_glm()] is the validated analysis of an
+#' observed outcome. The defaults may change after such a study.
+#'
 #' @param y_post numeric posttest
 #' @param treat 0/1 (or logical) treatment indicator
 #' @param pretested 0/1 (or logical) pretest indicator
@@ -23,17 +42,34 @@
 #' @param ancova logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)
 #' @param estimator lavaan estimator (default "MLR")
 #' @param conf_level confidence level for intervals (default 0.95)
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #' @references
-#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-#' design: Appropriate statistical analyses. *The Journal of Experimental
-#' Education, 42*(2), 54-55.
+#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+#' Appropriate statistical analyses. *The Journal of Experimental Education,
+#' 42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
 #'
-#' Rosseel, Y. (2012). lavaan: An R package for structural equation
-#' modeling. *Journal of Statistical Software, 48*(2), 1-36.
+#' Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
+#' *Journal of Statistical Software, 48*(2), 1–36.
+#' https://doi.org/10.18637/jss.v048.i02
+#' @return An object of class `solomon_sem` with `mode` (`"mean"` or
+#'   `"ancova_pretested"`), the lavaan `fit`, the contrasts in `effects`
+#'   (estimate, standard error, z, p value, and confidence interval), the
+#'   `fitmeasures`, and `conf_level`.
+#' @examples
+#' if (requireNamespace("lavaan", quietly = TRUE)) {
+#'   with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre))
+#' }
 #' @export
 fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
                             equal_var = FALSE, ancova = FALSE,
-                            estimator = "MLR", conf_level = 0.95) {
+                            estimator = "MLR", conf_level = 0.95,
+                            data = NULL) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(
@@ -97,8 +133,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     names(eff) <- effect_names
     rownames(eff) <- NULL
 
-    fm <- try(lavaan::fitMeasures(fit, c("cfi","rmsea","srmr","df")), silent = TRUE)
-    if (inherits(fm, "try-error")) fm <- c(cfi = NA, rmsea = NA, srmr = NA, df = NA)
+    fm <- .sem_fit_measures(fit)
 
     structure(list(mode = "mean", fit = fit, effects = eff, fitmeasures = fm,
                    conf_level = conf_level),
@@ -155,8 +190,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     names(eff2) <- effect_names
     rownames(eff2) <- NULL
 
-    fm2 <- try(lavaan::fitMeasures(fit2, c("cfi","rmsea","srmr","df")), silent = TRUE)
-    if (inherits(fm2, "try-error")) fm2 <- c(cfi = NA, rmsea = NA, srmr = NA, df = NA)
+    fm2 <- .sem_fit_measures(fit2)
 
     structure(list(mode = "ancova_pretested", fit = fit2, effects = eff2, fitmeasures = fm2,
                    conf_level = conf_level),

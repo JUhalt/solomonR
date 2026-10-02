@@ -19,6 +19,7 @@ the data were examined.}
 A ggplot object.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Plots the four Solomon contrasts from a fitted model: the average
 treatment effect across pretest conditions, the Pretest x Treatment
 sensitization contrast, and the treatment effects among pretested and

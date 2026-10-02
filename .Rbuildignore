@@ -12,3 +12,4 @@
 ^CITATION\.cff$
 ^vignettes/articles$
 ^data-raw$
+^tools$

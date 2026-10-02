@@ -11,6 +11,7 @@
 
 #' Pretest-to-posttest change in a Solomon design
 #'
+#' `r lifecycle::badge("stable")`
 #' Draws mean pretest and posttest scores for the two pretested groups,
 #' joined to show change, alongside posttest means for the two unpretested
 #' groups. The unpretested groups appear at posttest only: their missing
@@ -36,25 +37,33 @@
 #'   participant's change as a faint line behind the means. Default `FALSE`.
 #' @param conf_level Confidence level for the intervals, which use the t
 #'   distribution with n - 1 degrees of freedom. Default is 0.95.
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #'
 #' @return A ggplot object.
 #'
 #' @references
-#' Solomon, R. L. (1949). An extension of control group design.
-#' *Psychological Bulletin, 46*(2), 137-150.
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 #'
 #' @examples
 #' with(solomon_example, plot_solomon_change(y_post, treat, pretested, y_pre))
 #'
 #' @export
 plot_solomon_change <- function(y_post, treat, pretested, y_pre,
-                                show_individuals = FALSE, conf_level = 0.95) {
+                                show_individuals = FALSE, conf_level = 0.95,
+                                data = NULL) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
 
   .check_conf_level(conf_level)
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
-  .solomon_check_lengths(y = y_post, treat = treat, pretested = pretested,
-                         pretest_score = y_pre)
+  .solomon_check_lengths(y_post = y_post, treat = treat, pretested = pretested,
+                         y_pre = y_pre)
 
   d <- data.frame(y_post = y_post, y_pre = y_pre, treat = treat, pretested = pretested)
   d <- d[!is.na(d$treat) & !is.na(d$pretested), ]

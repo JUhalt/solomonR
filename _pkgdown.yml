@@ -4,78 +4,187 @@ template:
   bootstrap: 5
 
 reference:
-  - title: "Modern Solomon analysis"
+  - title: "Decide and plan"
     desc: >
-      Unified regression, likelihood, and randomization-based methods.
+      Sample sizes and power for a Solomon study, before data are collected,
+      and simulated studies with known effects for teaching and for checking
+      an analysis plan.
     contents:
-      - fit_solomon_glm
-      - fit_solomon_ml
-      - perm_solomon
-      - equivalence_solomon
-      - compare_solomon_methods
+      - plan_solomon
+      - power_solomon
+      - plot_power_solomon
+      - analysis_plan_solomon
+      - simulate_solomon
 
-  - title: "Historical Solomon analysis"
+  - title: "Check the design"
     desc: >
-      Classical procedures retained for teaching and methodological replication.
-    contents:
-      - fit_solomon_classic
-      - stouffer_solomon
-      - p_to_z
-
-  - title: "Structural equation models"
-    desc: >
-      Observed- and latent-variable SEM approaches to the Solomon design.
-    contents:
-      - fit_solomon_sem
-      - fit_solomon_sem_latent
-
-  - title: "Design validation and diagnostics"
-    desc: >
-      Check design coding, cell structure, and missingness before analysis.
+      Design coding, cell structure, clustering, missingness, and baseline
+      balance, before analysis.
     contents:
       - validate_solomon
       - check_solomon_missing
       - check_solomon_assumptions
-      - power_solomon
-      - plan_solomon
+      - baseline_solomon
+
+  - title: "Analyze: recommended methods"
+    desc: >
+      One model for all four groups, with robust, likelihood-based, and
+      randomization-based inference.
+    contents:
+      - fit_solomon_glm
+      - fit_solomon_ml
+      - marginal_solomon
+      - perm_solomon
+      - equivalence_solomon
+      - compare_solomon_methods
+
+  - title: "Analyze: missing posttests"
+    desc: >
+      Multiple imputation of missing posttests under missing at random, with
+      delta-adjusted sensitivity analyses and a tipping-point summary.
+    contents:
+      - fit_solomon_mi
+      - tipping_point_solomon
+
+  - title: "Analyze: longitudinal designs"
+    desc: >
+      Several posttest occasions, analyzed with a mixed model for repeated
+      measures that is valid when participants drop out at random.
+    contents:
+      - fit_solomon_mmrm
+
+  - title: "Analyze: latent variables"
+    desc: >
+      Observed- and latent-variable structural equation models, and
+      measurement invariance across the Solomon groups.
+    contents:
+      - fit_solomon_sem
+      - fit_solomon_sem_latent
+      - invariance_solomon
+
+  - title: "Report"
+    desc: >
+      APA 7 results text with the references for the methods used.
+    contents:
+      - report_solomon
+
+  - title: "Synthesize"
+    desc: >
+      Reanalyze published studies from summary statistics and compute effect
+      sizes for meta-analysis.
+    contents:
+      - solomon_from_summary
+      - solomon_effect_sizes
+
+  - title: "History: historical procedures"
+    desc: >
+      Procedures retained for teaching and for reproducing historical
+      analyses, labeled by author and year. They are not the recommended
+      analyses.
+    contents:
+      - fit_solomon_1949
+      - fit_solomon_classic
+      - plot_classic_flow
+      - fisher_solomon
+      - stouffer_solomon
+      - p_to_z
 
   - title: "Plotting"
     contents:
-      - plot_solomon
-      - plot_solomon_gg
+      - plot_solomon_means
+      - plot_tipping_point
       - plot_perm
       - plot_solomon_effects
       - plot_sensitization
       - plot_solomon_design
       - plot_solomon_change
-      - plot_classic_flow
-      - plot_power_solomon
 
   - title: "Data"
     contents:
       - solomon_example
       - solomon_demo
+      - elkarkri2025a
+      - kvalem1996
+      - lana1959
+      - mai2020
+      - solomon1949
+
+  - title: "Deprecated"
+    desc: >
+      Former names that still work, with a warning, through v1.x. Each help
+      page names the replacement.
+    contents:
+      - plot_solomon
+      - plot_solomon_gg
 
   - title: "Package"
+    desc: >
+      An overview of the package, including the lifecycle stages marked by
+      the badge beside each function: stable, experimental, or deprecated.
     contents:
       - starts_with("solomonR")
 
 articles:
-  - title: "Start here"
-    navbar: ~
+  - title: "Decide"
+    navbar: Decide
+    contents:
+      - articles/should-i-use-a-solomon-design
+
+  - title: "Plan"
+    navbar: Plan
+    contents:
+      - articles/planning
+
+  - title: "Analyze"
+    navbar: Analyze
     contents:
       - getting-started
-
-  - title: "Analyses"
-    navbar: Analyses
-    contents:
       - glm-solomon
+      - solomon-methods
+      - articles/sem
+      - articles/missing-and-repeated
+      - articles/worked-example
+
+  - title: "Report"
+    navbar: Report
+    contents:
+      - articles/reporting
+
+  - title: "Synthesize"
+    navbar: Synthesize
+    contents:
+      - articles/synthesis
+
+  - title: "Teach"
+    navbar: Teach
+    contents:
+      - articles/teaching
+
+  - title: "History"
+    navbar: History
+    contents:
+      - articles/history
       - classic-solomon
 
-  - title: "Methods and evidence"
-    navbar: Methods and evidence
+  - title: "Validation evidence"
+    navbar: Validation evidence
     contents:
-      - solomon-methods
       - articles/validation-evidence
       - articles/ml-validation
       - articles/power-validation
+      - articles/plan-validation
+      - articles/binary-validation
+      - articles/count-validation
+      - articles/cluster-validation
+      - articles/cluster-marginal-validation
+      - articles/classic-validation
+      - articles/invariance-validation
+      - articles/mi-validation
+      - articles/mmrm-validation
+
+  - title: "References"
+    navbar: References
+    contents:
+      - articles/references
+      - articles/coverage
+      - articles/citing

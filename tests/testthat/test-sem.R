@@ -285,6 +285,7 @@ test_that("latent Solomon POST model converges and returns four contrasts", {
 
   fit <- fit_solomon_sem_latent(
     data = sim$data,
+    check_invariance = FALSE,  # tested in test-invariance-check.R
     post_items = c(
       "post1",
       "post2",
@@ -339,6 +340,7 @@ test_that("latent Solomon contrasts satisfy their defining algebra", {
 
   fit <- fit_solomon_sem_latent(
     data = sim$data,
+    check_invariance = FALSE,  # tested in test-invariance-check.R
     post_items = c(
       "post1",
       "post2",
@@ -416,6 +418,7 @@ test_that("latent Solomon ANCOVA converges and returns pretested effect", {
 
   fit <- fit_solomon_sem_latent(
     data = sim$data,
+    check_invariance = FALSE,  # tested in test-invariance-check.R
     post_items = c(
       "post1",
       "post2",
@@ -485,6 +488,7 @@ test_that("latent ANCOVA requires PRE indicators", {
   expect_error(
     fit_solomon_sem_latent(
       data = sim$data,
+      check_invariance = FALSE,  # tested in test-invariance-check.R
       post_items = c(
         "post1",
         "post2",
@@ -552,4 +556,15 @@ test_that("ANCOVA SEM print retains model fit information", {
     print(fit),
     "CFI="
   )
+})
+
+test_that("the saturated mean-structure model reports no global fit and no lavaan warnings (#55)", {
+  d <- solomon_example
+  expect_no_warning(fit <- fit_solomon_sem(d$y_post, d$treat, d$pretested))
+  expect_identical(unname(fit$fitmeasures["df"]), 0)
+  expect_true(all(is.na(fit$fitmeasures[c("cfi", "rmsea", "srmr")])))
+  expect_output(print(fit), "not diagnostic")
+
+  ancova <- fit_solomon_sem(d$y_post, d$treat, d$pretested, d$y_pre, ancova = TRUE)
+  expect_gt(unname(ancova$fitmeasures["df"]), 0)
 })

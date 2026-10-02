@@ -59,9 +59,12 @@ effect, the four cell sizes, the total sample size, the achieved power,
 the basis (\code{"analytic"} or \code{"simulation"}), the Monte Carlo standard
 error (\code{NA} for analytic rows), the target power, \code{alpha}, and a note.
 Estimands whose true effect is zero, or whose target is not reached by
-\code{max_n}, return \code{NA} sizes with an explanatory note.
+\code{max_n}, return \code{NA} sizes with an explanatory note. The planning values
+are kept in the attribute \code{settings}, which \code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}}
+reads.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Finds the smallest Solomon four-group design, at a fixed allocation across
 the four cells, whose power for each Solomon estimand reaches a target.
 \code{\link[=power_solomon]{power_solomon()}} answers the forward question, the power of a given
@@ -126,15 +129,17 @@ plan_solomon(power = 0.80, delta = 0.4, sens = 0.2, rho = 0.5,
 \references{
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. \emph{Statistics in Medicine, 38}(11),
-2074-2102.
+2074–2102. https://doi.org/10.1002/sim.8086
 
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. \emph{Biometrics Bulletin, 2}(6), 110-114.
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
 
 Welch, B. L. (1947). The generalization of "Student's" problem when several
-different population variances are involved. \emph{Biometrika, 34}(1/2),
-28-35.
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }
 \seealso{
-\code{\link[=power_solomon]{power_solomon()}} for the power of a given design.
+\code{\link[=power_solomon]{power_solomon()}} for the power of a given design, and
+\code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}} for an analysis plan built on the result.
 }

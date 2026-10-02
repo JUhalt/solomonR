@@ -1,0 +1,327 @@
+# Kvalem et al. (1996), Table 2 and text: condom use at most recent
+# intercourse six months after the intervention, by Solomon cell.
+kvalem_data <- function() {
+  cells <- data.frame(treat = c(1, 1, 0, 0), pretested = c(1, 0, 1, 0),
+                      events = c(51, 21, 76, 69), n = c(73, 49, 148, 133))
+  d <- cells[rep(1:4, cells$n), c("treat", "pretested")]
+  d$y <- unlist(lapply(1:4, function(i) {
+    rep(c(1, 0), c(cells$events[i], cells$n[i] - cells$events[i]))
+  }))
+  d
+}
+
+binary_example <- function() {
+  d <- solomon_example
+  d$passed <- as.integer(d$y_post > 55)
+  d
+}
+
+odds <- function(p) p / (1 - p)
+
+# Pretest-adjusted logistic fits warn about noncollapsibility by design.
+quiet_fit <- function(expr) {
+  suppressWarnings(expr, classes = "solomonR_noncollapsible_warning")
+}
+
+
+test_that("the historical categorical path reproduces Kvalem et al. (1996)", {
+
+  res <- with(kvalem_data(), fisher_solomon(y, treat, pretested))
+
+  expect_equal(round(res$tests$chisq[1], 2), 6.85)
+  expect_equal(round(res$tests$chisq[2], 2), 1.17)
+  expect_true(res$tests$fisher_p[1] < 0.05)
+  expect_true(res$tests$fisher_p[2] > 0.05)
+  expect_true(res$sensitization)
+  expect_output(print(res), "compares significance, not effects")
+})
+
+
+test_that("unadjusted marginal risks are the cell proportions", {
+
+  d <- kvalem_data()
+  fit <- with(d, fit_solomon_glm(y, treat, pretested, family = stats::binomial(), robust = "none"))
+  m <- marginal_solomon(fit, method = "delta")
+
+  expect_equal(m$risks$risk, c(51 / 73, 76 / 148, 21 / 49, 69 / 133), tolerance = 1e-8)
+
+  # Unadjusted odds ratios against the pretest + intervention group, published
+  # as .32, .46, and .46. The counts give 0.324, 0.455, and 0.465, so the last
+  # published value differs from the counts by rounding (0.005).
+  ref <- odds(51 / 73)
+  expect_true(all(abs(odds(m$risks$risk[c(3, 2, 4)]) / ref - c(0.32, 0.46, 0.46)) < 0.006))
+
+  # Without a pretest covariate, the marginal odds-ratio sensitization equals
+  # the logistic interaction.
+  or_sens <- m$effects$estimate[m$effects$scale == "Odds ratio" &
+                                  m$effects$contrast == "Pretest x Treatment"]
+  expect_equal(log(or_sens), unname(stats::coef(fit$model)[["treat:pretested"]]), tolerance = 1e-6)
+})
+
+
+test_that("delta-method risk differences match the binomial standard error", {
+
+  d <- kvalem_data()
+  fit <- with(d, fit_solomon_glm(y, treat, pretested, family = stats::binomial(), robust = "none"))
+  m <- marginal_solomon(fit, scale = "difference", method = "delta")
+  un <- m$effects[m$effects$contrast == "Treatment | unpretested", ]
+
+  p1 <- 21 / 49; p0 <- 69 / 133
+  expect_equal(un$estimate, p1 - p0, tolerance = 1e-8)
+  expect_equal(un$std.error, sqrt(p1 * (1 - p1) / 49 + p0 * (1 - p0) / 133), tolerance = 1e-5)
+})
+
+
+test_that("pretest-adjusted risks are standardized over pretested participants", {
+
+  d <- binary_example()
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
+  m <- marginal_solomon(fit, method = "delta")
+
+  pre <- d[d$pretested == 1, ]
+  predict_risk <- function(t) {
+    nd <- data.frame(treat = t, pretested = 1L, pre_obs = pre$y_pre)
+    mean(stats::predict(fit$model, newdata = nd, type = "response"))
+  }
+  expect_equal(m$risks$risk[1:2], c(predict_risk(1L), predict_risk(0L)), tolerance = 1e-10)
+
+  un <- d[d$pretested == 0, ]
+  expect_equal(m$risks$risk[3:4],
+               c(mean(un$passed[un$treat == 1]), mean(un$passed[un$treat == 0])),
+               tolerance = 1e-6)
+
+  # Each scale's contrasts follow from the risks.
+  r <- m$risks$risk
+  rd <- m$effects[m$effects$scale == "Risk difference", ]
+  expect_equal(rd$estimate[rd$contrast == "Pretest x Treatment"],
+               (r[1] - r[2]) - (r[3] - r[4]), tolerance = 1e-10)
+  rr <- m$effects[m$effects$scale == "Risk ratio", ]
+  expect_equal(rr$estimate[rr$contrast == "ATE (avg over pretest)"],
+               ((r[1] + r[3]) / 2) / ((r[2] + r[4]) / 2), tolerance = 1e-10)
+})
+
+
+test_that("the bootstrap is reproducible, leaves the RNG state alone, and brackets the estimate", {
+
+  d <- binary_example()
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
+
+  set.seed(99)
+  before <- stats::runif(1)
+  set.seed(99)
+  a <- marginal_solomon(fit, scale = "difference", R = 199, seed = 7)
+  after <- stats::runif(1)
+  b <- marginal_solomon(fit, scale = "difference", R = 199, seed = 7)
+
+  expect_equal(before, after)
+  expect_identical(a$effects, b$effects)
+  expect_equal(a$failures, 0L)
+  expect_true(all(a$effects$conf.low <= a$effects$estimate & a$effects$estimate <= a$effects$conf.high))
+  expect_output(print(a), "cell-stratified bootstrap")
+})
+
+
+test_that("ratio scales are undefined with a zero-event cell", {
+
+  d <- kvalem_data()
+  d$y[d$treat == 1 & d$pretested == 0] <- 0L
+  fit <- suppressWarnings(with(d, fit_solomon_glm(y, treat, pretested,
+                                                  family = stats::binomial(), robust = "none")))
+  expect_warning(
+    m <- marginal_solomon(fit, method = "delta"),
+    class = "solomonR_sparse_cell_warning"
+  )
+  expect_true(all(is.na(m$effects$estimate[m$effects$scale != "Risk difference"])))
+  expect_false(anyNA(m$effects$estimate[m$effects$scale == "Risk difference"]))
+})
+
+
+test_that("unsupported fits and arguments are refused", {
+
+  gaussian_fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+  expect_error(marginal_solomon(gaussian_fit), "binomial")
+  expect_error(marginal_solomon(list()), "fit_solomon_glm")
+
+  d <- binary_example()
+  d$site <- rep(seq_len(12), length.out = nrow(d))
+  cr2 <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial(),
+                                           robust = "CR2", cluster = site)))
+  expect_error(marginal_solomon(cr2, method = "bootstrap"), "bootstrap is not offered")
+
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
+  expect_error(marginal_solomon(fit, R = 10), "at least 99")
+})
+
+
+test_that("the bootstrap's IRLS refit matches glm.fit()", {
+
+  d <- binary_example()
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
+  X <- stats::model.matrix(fit$model)
+  y <- fit$model$y
+  withr::with_seed(11, {
+    for (k in 1:5) {
+      idx <- sample.int(nrow(X), replace = TRUE)
+      lean <- .logistic_irls(X[idx, ], y[idx], start = stats::coef(fit$model))
+      full <- suppressWarnings(stats::glm.fit(X[idx, ], y[idx], family = stats::binomial()))
+      expect_true(lean$converged)
+      expect_equal(unname(lean$coefficients), unname(full$coefficients), tolerance = 1e-6)
+    }
+  })
+})
+
+
+test_that("the IRLS refit reports near separation as a failure, not an error", {
+
+  withr::with_seed(1, {
+    x <- c(stats::rnorm(20, -3), stats::rnorm(20, 3))
+  })
+  X <- cbind("(Intercept)" = 1, x = x)
+  # One observation on the wrong side of an otherwise separating covariate,
+  # started far out: fitted risks reach 0 or 1 in floating point.
+  y <- c(rep(0, 19), 1, rep(1, 19), 0)
+  expect_false(.logistic_irls(X, y, start = c(0, 10))$converged)
+  # Complete separation.
+  expect_false(.logistic_irls(X, as.numeric(x > 0), start = c(0, 1))$converged)
+})
+
+
+test_that("noncollapsible links with a pretest covariate warn; collapsible links do not", {
+
+  d <- binary_example()
+  expect_warning(
+    with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())),
+    class = "solomonR_noncollapsible_warning"
+  )
+  expect_warning(
+    with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial(link = "probit"))),
+    class = "solomonR_noncollapsible_warning"
+  )
+  expect_no_warning(with(d, fit_solomon_glm(passed, treat, pretested, family = stats::binomial())))
+  d$count <- stats::rpois(nrow(d), 2)
+  expect_no_warning(with(d, fit_solomon_glm(count, treat, pretested, y_pre, family = stats::poisson())))
+  expect_no_warning(with(d, fit_solomon_glm(y_post, treat, pretested, y_pre)))
+})
+
+test_that("clustered fits use CR2 delta-method intervals with Satterthwaite t (#64)", {
+  set.seed(64)
+  cells <- rep(1:4, each = 6)
+  cluster <- rep(seq_along(cells), each = 15)
+  treat <- c(1, 0, 1, 0)[cells][cluster]
+  pretested <- c(1, 1, 0, 0)[cells][cluster]
+  u <- stats::rnorm(length(cells), 0, 0.4)[cluster]
+  y <- stats::rbinom(length(cluster), 1, stats::plogis(-0.8 + 0.5 * treat + u))
+  fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial(),
+                                   robust = "CR2", cluster = cluster))
+  m <- marginal_solomon(fit, scale = "difference")
+
+  # Without covariates the marginal risks are the cell proportions.
+  prop <- function(t, p) mean(y[treat == t & pretested == p])
+  expect_equal(m$risks$risk, c(prop(1, 1), prop(0, 1), prop(1, 0), prop(0, 0)), tolerance = 1e-8)
+  expect_identical(m$method, "delta")
+  expect_true(all(is.finite(m$effects$df)))
+
+  # The degrees of freedom are those of the delta method's linear
+  # approximation under CR2 (Pustejovsky & Tipton, 2018).
+  b <- stats::coef(fit$model)
+  X <- stats::model.matrix(fit$model)
+  pre <- as.integer(X[, "pretested"])
+  g <- vapply(seq_along(b), function(j) {
+    h <- 1e-6 * max(1, abs(b[[j]]))
+    up <- b; up[j] <- up[j] + h
+    dn <- b; dn[j] <- dn[j] - h
+    (.marginal_all(up, X, pre, "difference") - .marginal_all(dn, X, pre, "difference")) / (2 * h)
+  }, numeric(4))
+  g <- matrix(g, nrow = 4, dimnames = list(NULL, names(b)))
+  fit_cr <- stats::glm(stats::formula(fit$model), data = stats::model.frame(fit$model),
+                       family = stats::binomial())
+  df1 <- as.data.frame(clubSandwich::linear_contrast(fit_cr, vcov = fit$vcov,
+                                                     contrasts = g[4, , drop = FALSE],
+                                                     test = "Satterthwaite"))$df
+  row <- m$effects[m$effects$contrast == "Treatment | unpretested", ]
+  expect_equal(row$df, df1, tolerance = 1e-8)
+  expect_equal(row$conf.high - row$estimate, stats::qt(0.975, df1) * row$std.error, tolerance = 1e-8)
+  expect_equal(row$p.value, 2 * stats::pt(-abs(row$estimate / row$std.error), df1), tolerance = 1e-10)
+})
+
+test_that("clustered count fits are refused until validated (#64)", {
+  set.seed(641)
+  cluster <- rep(1:24, each = 10)
+  treat <- rep(c(1, 0, 1, 0), each = 6)[cluster]
+  pretested <- rep(c(1, 1, 0, 0), each = 6)[cluster]
+  y <- stats::rpois(length(cluster), exp(0.5 + 0.3 * treat))
+  fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::poisson(),
+                                   robust = "CR2", cluster = cluster))
+  expect_error(marginal_solomon(fit), "supported for binary outcomes")
+})
+
+
+test_that("cluster-level summaries follow Hayes and Moulton (2017) with whole clusters in cells (#64)", {
+  set.seed(6401)
+  cells <- rep(1:4, each = 5)
+  cluster <- rep(seq_along(cells), each = 12)
+  treat <- c(1, 0, 1, 0)[cells][cluster]
+  pretested <- c(1, 1, 0, 0)[cells][cluster]
+  u <- stats::rnorm(length(cells), 0, 0.5)[cluster]
+  y <- stats::rbinom(length(cluster), 1, stats::plogis(-0.5 + 0.6 * treat + u))
+  fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial(),
+                                   robust = "CR2", cluster = cluster))
+  m <- marginal_solomon(fit, method = "cluster_summary")
+  expect_identical(m$method, "cluster_summary")
+  expect_identical(unique(m$effects$scale), "Risk difference")
+
+  p_cl <- tapply(y, cluster, mean)
+  cell_of <- tapply(cells[cluster], cluster, `[`, 1)
+  # The simple effect among pretested clusters is Welch's t test on cluster proportions.
+  tt <- stats::t.test(p_cl[cell_of == 1], p_cl[cell_of == 2])
+  row <- m$effects[m$effects$contrast == "Treatment | pretested", ]
+  expect_equal(row$estimate, unname(diff(rev(tt$estimate))), tolerance = 1e-10)
+  expect_equal(row$df, unname(tt$parameter), tolerance = 1e-10)
+  expect_equal(row$p.value, tt$p.value, tolerance = 1e-10)
+  expect_equal(c(row$conf.low, row$conf.high), tt$conf.int[1:2], tolerance = 1e-10)
+  expect_equal(m$risks$risk, c(mean(p_cl[cell_of == 1]), mean(p_cl[cell_of == 2]),
+                               mean(p_cl[cell_of == 3]), mean(p_cl[cell_of == 4])))
+  expect_output(print(m), "cluster-level summaries")
+  rep <- report_solomon(m)
+  expect_true(any(startsWith(rep$references, "Hayes, R. J.")))
+})
+
+test_that("with pretesting within clusters, treated and control clusters are compared (#64)", {
+  set.seed(6402)
+  k <- 12
+  cluster <- rep(seq_len(k), each = 16)
+  treat <- rep(rep(c(1, 0), each = k / 2), each = 16)
+  pretested <- rep(rep(c(1, 0), each = 8), k)
+  y <- stats::rbinom(length(cluster), 1, stats::plogis(-0.3 + 0.5 * treat))
+  fit <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial(),
+                                   robust = "CR2", cluster = cluster))
+  m <- marginal_solomon(fit, method = "cluster_summary")
+  m1 <- tapply(y[pretested == 1], cluster[pretested == 1], mean)
+  m0 <- tapply(y[pretested == 0], cluster[pretested == 0], mean)
+  t_cl <- tapply(treat, cluster, `[`, 1)
+  score <- (m1 + m0) / 2
+  tt <- stats::t.test(score[t_cl == 1], score[t_cl == 0])
+  row <- m$effects[m$effects$contrast == "ATE (avg over pretest)", ]
+  expect_equal(row$estimate, unname(diff(rev(tt$estimate))), tolerance = 1e-10)
+  expect_equal(row$df, unname(tt$parameter), tolerance = 1e-10)
+  expect_match(m$design, "within clusters")
+})
+
+test_that("cluster-level summaries are refused or flagged where they do not apply (#64)", {
+  set.seed(6403)
+  cells <- rep(1:4, each = 3)
+  cluster <- rep(seq_along(cells), each = 10)
+  treat <- c(1, 0, 1, 0)[cells][cluster]
+  pretested <- c(1, 1, 0, 0)[cells][cluster]
+  y <- stats::rbinom(length(cluster), 1, 0.4)
+  # Three clusters per cell also give small CR2 degrees of freedom.
+  cr2 <- suppressWarnings(quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial(),
+                                                    robust = "CR2", cluster = cluster)),
+                          classes = "solomonR_small_df_warning")
+  expect_warning(marginal_solomon(cr2, method = "cluster_summary"),
+                 class = "solomonR_few_clusters_warning")
+  expect_error(marginal_solomon(cr2, scale = "ratio", method = "cluster_summary"),
+               "risk differences only")
+  hc3 <- quiet_fit(fit_solomon_glm(y, treat, pretested, family = stats::binomial()))
+  expect_error(marginal_solomon(hc3, method = "cluster_summary"), "robust = \"CR2\"")
+})

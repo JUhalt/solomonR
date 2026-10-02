@@ -1,0 +1,237 @@
+---
+title: "Worked Example: A Published Solomon Study"
+description: >
+  The full analysis path, from checking the design to drafting the report,
+  on the published individual data of Mai et al. (2020), checked at each
+  step against the published results.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(solomonR)
+```
+
+Mai et al. (2020) tested two interventions meant to help students apply
+what they learned in a time-management workshop:
+
+- relapse prevention (RP);
+- proximal plus distal goal setting (GS).
+
+They published the individual data with the article under a Creative
+Commons Attribution license, and solomonR bundles them as `mai2020` (see
+`?mai2020` for the design, the variables, and the license). Because the
+published results can be recomputed, each step below can be checked against
+the article. This example follows the path of the site's menus: check the
+design, reproduce the published analysis, fit the recommended model, and
+draft the report.
+
+**Acknowledgment.** We thank Nu Nu Mai, Yoshi Takahashi, and Mon Mon Oo
+for making their data publicly available with their article. This example
+reanalyzes their data to teach the package. For the study itself, its
+interventions, its measures, and the authors' conclusions, read the
+published article (Mai et al., 2020).
+
+## The design and the data
+
+Final-year students at a management college took a three-hour workshop.
+
+- **Pretesting.** Before the workshop they were "randomly assigned into
+  either the pretested or unpretested groups based on their roll numbers"
+  (Mai et al., 2020, p. 5). The article does not say how roll numbers were
+  used.
+- **Interventions.** After the workshop, participants in both pretest
+  conditions were randomly assigned to RP, GS, or control (p. 6).
+- **Measures.** Self-reported time-management behavior was measured before
+  the workshop in the pretested groups and after it in all groups (p. 7).
+
+Pretesting crossed with three conditions gives six groups. The authors
+analyzed three Solomon four-group designs, one for each pair of conditions,
+reusing groups across them (Table 2, pp. 4–5). This example analyzes the
+first pair, RP against control.
+
+More than a third of the participants did not answer the posttest, and
+the share differed by group:
+
+```{r data}
+with(mai2020, table(condition, pretested, posttest = !is.na(post_behavior)))
+rp <- subset(mai2020, condition %in% c("RP", "Control"))
+rp$treat <- as.integer(rp$condition == "RP")
+```
+
+## Check the design
+
+`validate_solomon()` checks that the data have the structure of a Solomon
+design, and `check_solomon_missing()` separates the pretests that are absent
+by design from the scores that were lost:
+
+```{r check}
+with(rp, check_solomon_missing(post_behavior, treat, pretested, pre_behavior))
+```
+
+Two points follow for this study:
+
+- **Posttest attrition.** It ranges from 29% to 46% across the four groups.
+  A complete-case analysis is unbiased when missingness is unrelated to the
+  outcome given the variables in the model (Little & Rubin, 2019). Attrition
+  this uneven makes that assumption worth stating, and the numbers lost in
+  each group belong in the report.
+- **Baseline.** Only the pretested arms can be compared at baseline:
+
+```{r baseline}
+with(rp, baseline_solomon(pre_behavior, treat, pretested))
+```
+
+The two arms hardly differed at pretest. Mai et al. (2020, p. 7) compared
+all three pretested groups with a one-way ANOVA, F = 0.78, p = .46, which
+the data reproduce:
+
+```{r baseline-anova}
+summary(aov(pre_behavior ~ condition, data = subset(mai2020, pretested == 1)))
+```
+
+The article prints F(2, 117). The data give 115 error degrees of freedom,
+which matches the 118 pretested participants of its Table 3 (p. 8).
+
+## Reproduce the published analysis
+
+The authors followed the historical approach: a two-by-two ANOVA of the
+posttests to check for pretest sensitization, a check for history effects,
+and then an ANCOVA of the pretested groups (pp. 7–9). `fit_solomon_classic()`
+runs these procedures, together with the rest of the Test A–I sequence of
+Walton Braver and Braver (1988):
+
+```{r classic}
+classic <- with(rp, fit_solomon_classic(post_behavior, treat, pretested, pre_behavior))
+classic
+```
+
+Three published results are reproduced exactly:
+
+- **Test A** is the published sensitization check: F(1, 91) = 3.46,
+  p = .066 (Table 4, p. 8).
+- **Test E** is the published ANCOVA: its F of 3.00 is the square of the
+  t for the mean difference of −0.180 (SE = 0.104, p = .090; Table 7, p. 9).
+- **The history check** compares the unpretested control posttest (O6) with
+  the pretests of the two pretested groups (O1 and O3). It reproduces the
+  differences, t statistics, degrees of freedom, and p values of the first
+  and third rows of Table 5 (p. 8). The published signs are not consistent:
+  the first row subtracts O6 from the pretest, and the third subtracts the
+  pretest from O6. The package always reports O6 minus the pretest.
+
+The second row of Table 5, the only significant history check in the
+article, comes from the goal-setting pair:
+
+```{r history-gs}
+gs <- subset(mai2020, condition %in% c("GS", "Control"))
+with(gs, fit_solomon_classic(post_behavior, as.integer(condition == "GS"),
+                             pretested, pre_behavior))$history
+```
+
+A difference between O6 and a pretest estimates the combined effect of
+history and maturation between the two occasions, if the groups were
+equivalent to begin with (Campbell & Stanley, 1963/1966, p. 25). Here the
+pretests include every pretested participant, but O6 only the 22 of 35
+unpretested controls who answered the posttest. A difference can therefore
+also come from who was lost.
+
+## The recommended analysis
+
+The historical sequence tests parts of the design one at a time. The
+recommended analysis fits one model to all four groups
+(`vignette("glm-solomon")`). It estimates the Pretest x Treatment
+interaction and both simple treatment effects together, adjusts for the
+pretest among pretested participants (Lin, 2013), and uses standard errors
+that do not assume equal variances:
+
+```{r glm}
+fit <- with(rp, fit_solomon_glm(post_behavior, treat, pretested, pre_behavior))
+fit
+```
+
+The interaction test gives nearly the same p as the published ANOVA (.068
+against .066). The model adds the estimate and its interval, which the
+published tests do not show:
+
+```{r sd}
+sd(mai2020$post_behavior, na.rm = TRUE)
+```
+
+The interval for the interaction runs from −0.60 to 0.02 scale points, and
+the posttest standard deviation is 0.38. The data are therefore compatible
+with no sensitization, and also with an interaction of more than one and a
+half standard deviations. A nonsignificant test is not evidence that
+sensitization was absent. That claim needs an equivalence test against a
+smallest effect of interest fixed in advance (see `equivalence_solomon()`).
+
+Which sign is an improvement depends on how the scale is coded, and the
+article and the data file describe the coding differently (see
+`?mai2020`). The results are therefore reported here as signed differences,
+without calling them better or worse.
+
+## Draft the report
+
+`report_solomon()` drafts the method and results. Given the numbers in each
+group, it also reports attrition by group. The numbers are given in the
+order pretested treatment, pretested control, unpretested treatment, and
+unpretested control (see the first table):
+
+```{r report}
+report_solomon(fit, design = list(randomized = c(35, 50, 31, 35),
+                                  assignment = "random"))
+```
+
+Here the "randomized" numbers are the participants in the published data
+file. The article reports that 310 students attended the workshops and that
+data were collected from 210 (pp. 5–6), so the file does not show how many
+were assigned to each group. A report of a new study would give the numbers
+assigned. It would also state whether the sensitization analysis was
+pre-specified, which the report never infers.
+
+## What the example shows
+
+The package reproduces the published tests, and the recommended model adds
+what those tests leave out:
+
+- estimates with confidence intervals;
+- the interaction and both simple effects in one model;
+- attrition reported by group.
+
+The data also show limits that no analysis removes:
+
+- **Attrition.** The posttest was missing for 29% to 46% of each group.
+- **Pretest assignment.** The article does not describe how roll numbers
+  were used.
+- **Scale direction.** It is described differently in the article and in
+  the data file.
+
+Two parts of the article are not reproduced:
+
+- **Table 6.** Its cell statistics (p. 9) do not match the data
+  ([#53](https://github.com/JUhalt/solomonR/issues/53)).
+- **Overlapping comparisons.** The three four-group comparisons reuse
+  groups, so they are not independent. A single model for all six groups
+  is planned ([#45](https://github.com/JUhalt/solomonR/issues/45)).
+
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
+
+## References
+
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
+
+Lin, W. (2013). Agnostic notes on regression adjustments to experimental
+data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
+7*(1), 295–318. https://doi.org/10.1214/12-AOAS583
+
+Little, R. J. A., & Rubin, D. B. (2019). *Statistical analysis with missing
+data* (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150

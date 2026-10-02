@@ -114,7 +114,12 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   f <- tryCatch(stats::formula(x$model), error = function(e) NULL)
   cat("Solomon GLM (unified model)\n")
   if (!is.null(f)) cat("Formula: ", paste(deparse(f), collapse = " "), "\n", sep = "")
-  cat("Covariance: ", .solomon_vcov_label(x), "\n\n", sep = "")
+  cat("Covariance: ", .solomon_vcov_label(x), "\n", sep = "")
+  if (!is.null(x$theta)) {
+    cat(sprintf("Negative binomial (NB2): theta = %.3g (SE %.3g); alpha = 1/theta = %.3g\n",
+                x$theta[["theta"]], x$theta[["std.error"]], x$theta[["alpha"]]))
+  }
+  cat("\n")
 
   level <- if (is.null(x$conf_level)) 0.95 else x$conf_level
   .solomon_glm_tables(x$coefficients, x$effects, digits, level)
@@ -174,12 +179,24 @@ print.solomon_classic <- function(x, digits = 3, ...) {
     )
   )
 
+  flow <- if (is.null(x$settings$flow)) "1988" else x$settings$flow
   cat(
     sprintf(
-      "Historical decision path: %s\n\n",
+      "Historical decision path (%s flow): %s\n",
+      flow,
       x$path_string
     )
   )
+  allocation <- x$settings$alpha_allocation
+  if (!is.null(allocation) && allocation != "none") {
+    lv <- x$settings$alpha_levels
+    cat(sprintf(
+      "Alpha allocation (Sawilowsky, 1996, Table 4, %s): A = %s, %s = %s, H = %s, I = %s\n",
+      allocation, format(lv[["A"]]), x$settings$selected_test, format(lv[["S"]]),
+      format(lv[["H"]]), format(lv[["I"]])
+    ))
+  }
+  cat("\n")
 
   cat("Historical Tests A-I\n")
   cat("--------------------\n")
@@ -229,7 +246,7 @@ print.solomon_classic <- function(x, digits = 3, ...) {
 
     cat(
       sprintf(
-        "%s Test I: %-45s Z = %.2f, p(one-tailed) = %s [%s]\n",
+        "%s Test I: %-45s Z = %.2f, p = %s [%s]\n",
         i_marker,
         x$tests$I$label,
         ii$z,
@@ -255,9 +272,20 @@ print.solomon_classic <- function(x, digits = 3, ...) {
     )
   }
 
+  if (!is.null(x$history) && nrow(x$history) > 0L) {
+    cat("\nHistory/maturation check (historical; Mai et al., 2020)\n")
+    for (i in seq_len(nrow(x$history))) {
+      h <- x$history[i, ]
+      cat(sprintf(
+        "  %s: difference = %.*f, t(%.0f) = %.2f, p = %s\n",
+        h$comparison, digits, h$estimate, h$df, h$statistic, p_fmt(h$p.value)
+      ))
+    }
+  }
+
   if (isTRUE(x$settings$combine_with_stouffer)) {
     cat(
-      "\nCaution: Test I, the Braver & Braver (1988) Stouffer combination, is\n",
+      "\nCaution: Test I, the Walton Braver & Braver (1988) Stouffer combination, is\n",
       "reproduced for historical teaching and replication. Later simulation\n",
       "work (see Sawilowsky et al., 1994) raised concerns about Type I error\n",
       "for the conditional meta-analytic sequence; it is not the default\n",
@@ -299,28 +327,60 @@ print.solomon_perm <- function(x, digits = 2, ...) {
     )
   )
 
-  cat(
-    sprintf(
-      "Observed studentized statistic: z = %.*f\n",
-      digits,
-      x$z_obs
+  if (identical(x$level, "cluster")) {
+    cat(sprintf("Permuted: whole clusters (%s)\n", x$design))
+    cat(
+      "Clusters (treated/control): ",
+      paste(
+        sprintf("%s %d/%d", x$clusters$stratum, x$clusters$treated, x$clusters$control),
+        collapse = "; "
+      ),
+      "\n",
+      sep = ""
     )
-  )
+  }
+
+  if (!is.null(x$estimate)) {
+    cat(sprintf("Estimate: %.*f\n", digits, x$estimate))
+  }
+
+  if (identical(x$statistic, "difference")) {
+    cat(sprintf("Observed statistic (the contrast itself): %.*f\n", digits, x$z_obs))
+  } else {
+    cat(
+      sprintf(
+        "Observed studentized statistic: z = %.*f\n",
+        digits,
+        x$z_obs
+      )
+    )
+  }
 
   cat(
     sprintf(
-      "Permutation p = %s\n",
-      format_p(x$p_perm)
+      "Permutation p = %s%s\n",
+      format_p(x$p_perm),
+      if (isTRUE(x$exact)) " (exact)" else ""
     )
   )
 
-  cat(
-    sprintf(
-      "Valid permutations: %d of %d\n",
-      x$valid_reps,
-      x$reps
+  if (isTRUE(x$exact)) {
+    cat(
+      sprintf(
+        "All %s possible allocations used; smallest attainable p = %s\n",
+        format(x$n_allocations, big.mark = ","),
+        format_p(x$min_p)
+      )
     )
-  )
+  } else {
+    cat(
+      sprintf(
+        "Valid permutations: %d of %d\n",
+        x$valid_reps,
+        x$reps
+      )
+    )
+  }
 
   if (!is.null(x$z_perm)) {
     cat(

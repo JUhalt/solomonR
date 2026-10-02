@@ -142,3 +142,119 @@ test_that("pretested participants without any pretest scores are an error", {
   expect_false(v$valid)
   expect_true("no_pretest_scores" %in% issue_checks(v, "error"))
 })
+
+
+# Clustered designs (#46) ----------------------------------------------------
+
+test_that("one cluster per cell is reported as confounding", {
+
+  d <- demo_data()
+  # One intact class per Solomon condition, as in El Karkri et al. (2025a).
+  d$class <- paste0("class_", 2 * d$pretested + d$treat)
+
+  v <- with(d, validate_solomon(y_post, treat, pretested, y_pre, cluster = class))
+
+  expect_false(v$valid)
+  expect_true("confounded_clusters" %in% issue_checks(v, "error"))
+  expect_equal(v$cells$clusters, rep(1L, 4))
+  expect_match(v$issues$message[v$issues$check == "confounded_clusters"],
+               "completely confounded")
+})
+
+
+test_that("a design with many clusters per cell passes and is described", {
+
+  # Kvalem et al. (1996): 30 intervention classes (15 pretested) and 94
+  # control classes (47 pretested), each class assigned to one condition.
+  classes <- data.frame(
+    class = seq_len(124),
+    treat = rep(c(1L, 1L, 0L, 0L), c(15, 15, 47, 47)),
+    pretested = rep(c(1L, 0L, 1L, 0L), c(15, 15, 47, 47))
+  )
+  d <- classes[rep(seq_len(124), each = 5), ]
+  d$y_post <- withr::with_seed(46, stats::rnorm(nrow(d)))
+  d$y_pre <- ifelse(d$pretested == 1L, withr::with_seed(47, stats::rnorm(nrow(d))), NA_real_)
+
+  v <- with(d, validate_solomon(y_post, treat, pretested, y_pre, cluster = class))
+
+  expect_true(v$valid)
+  expect_equal(v$cells$clusters, c(15L, 47L, 15L, 47L))
+  expect_equal(v$cells$cluster_size_min, rep(5L, 4))
+  note <- v$issues$message[v$issues$check == "clusters"]
+  expect_match(note, "124 clusters; 15 to 47 per cell")
+  expect_match(note, "Treatment is constant within every cluster")
+  expect_match(note, "Pretesting is constant within every cluster")
+  expect_output(print(v), "Clusters")
+})
+
+
+test_that("assignment within clusters and missing cluster ids are reported", {
+
+  d <- demo_data()
+  d$site <- rep(seq_len(8), length.out = nrow(d))
+  d$site[3] <- NA
+
+  v <- with(d, validate_solomon(y_post, treat, pretested, y_pre, cluster = site))
+
+  expect_true(v$valid)
+  expect_true("missing_cluster" %in% issue_checks(v, "warning"))
+  note <- v$issues$message[v$issues$check == "clusters"]
+  expect_match(note, "Treatment varies within")
+  expect_match(note, "Pretesting varies within")
+
+  expect_equal(
+    issue_checks(with(d, validate_solomon(y_post, treat, pretested, y_pre, cluster = site[-1])), "error"),
+    "lengths"
+  )
+})
+
+
+test_that("CR2 fits refuse designs with a single cluster in a cell", {
+
+  d <- demo_data()
+  d$class <- 2 * d$pretested + d$treat
+
+  expect_error(
+    with(d, fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "CR2", cluster = class)),
+    class = "solomonR_confounded_clusters"
+  )
+
+  # Two clusters in every cell are fitted, but the Satterthwaite degrees of
+  # freedom are then below 4 and the classed warning follows Tipton (2015).
+  d$class2 <- paste(d$class, seq_len(nrow(d)) %% 2)
+  expect_warning(
+    fit <- with(d, fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "CR2", cluster = class2)),
+    class = "solomonR_small_df_warning"
+  )
+  expect_s3_class(fit, "solomon_glm")
+  expect_true(any(fit$effects$df < 4))
+})
+
+
+test_that("fewer than four whole clusters in a cell is a warning", {
+
+  d <- demo_data()
+  cell <- 2 * d$pretested + d$treat
+  # Three classes per cell, each class inside one Solomon condition.
+  d$class <- paste(cell, seq_len(nrow(d)) %% 3)
+
+  v <- with(d, validate_solomon(y_post, treat, pretested, y_pre, cluster = class))
+  expect_true(v$valid)
+  expect_true("few_clusters" %in% issue_checks(v, "warning"))
+  expect_match(v$issues$message[v$issues$check == "few_clusters"], "Hayes and Moulton (2017, p. 128)", fixed = TRUE)
+
+  # Four classes per cell: no warning.
+  d$class4 <- paste(cell, seq_len(nrow(d)) %% 4)
+  v4 <- with(d, validate_solomon(y_post, treat, pretested, y_pre, cluster = class4))
+  expect_false("few_clusters" %in% issue_checks(v4, "warning"))
+})
+
+
+test_that("CR2 fits with enough clusters do not warn about degrees of freedom", {
+
+  d <- demo_data()
+  d$site <- rep(seq_len(12), length.out = nrow(d))
+  expect_no_warning(
+    with(d, fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "CR2", cluster = site))
+  )
+})

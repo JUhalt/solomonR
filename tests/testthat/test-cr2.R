@@ -111,7 +111,7 @@ test_that("CR2 output names the estimator and reference distribution", {
 })
 
 
-test_that("perm_solomon refuses clustered fits", {
+test_that("perm_solomon permutes whole clusters in clustered fits", {
 
   d <- make_clustered_solomon()
 
@@ -121,8 +121,8 @@ test_that("perm_solomon refuses clustered fits", {
     cluster = d$cluster
   )
 
-  expect_error(
-    perm_solomon(fit, reps = 10),
-    "not a valid randomization test"
-  )
+  res <- perm_solomon(fit, reps = 10, seed = 1)
+
+  expect_identical(res$level, "cluster")
+  expect_identical(res$clusters$treated, c(4, 4))
 })

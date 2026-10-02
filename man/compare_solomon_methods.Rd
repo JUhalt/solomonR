@@ -10,7 +10,8 @@ compare_solomon_methods(
   pretested,
   y_pre = NULL,
   methods = c("glm", "ml", "classic", "sem"),
-  conf_level = 0.95
+  conf_level = 0.95,
+  data = NULL
 )
 }
 \arguments{
@@ -29,6 +30,10 @@ and the small-sample option), \code{"classic"}, and \code{"sem"} (requires the
 lavaan package).}
 
 \item{conf_level}{Confidence level for intervals. Default is 0.95.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_comparison} with \code{results} (one row per
@@ -39,6 +44,7 @@ excluded and why), and \code{skipped} (requested methods that could not be
 fitted and why).
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Fits several Solomon analyses to the same data and lines up their estimates
 of the four Solomon contrasts, so that differences in pretest adjustment,
 variance assumptions, and reference distributions are visible side by side.
@@ -69,9 +75,9 @@ uncertainty differs.
 Analyses that do not estimate a raw-scale Solomon contrast are listed in
 \code{not_compared} rather than aligned with the others:
 \itemize{
-\item \code{perm_solomon()} tests the sharp null hypothesis of no treatment effect
-for any participant and produces no estimate.
-\item Test I (Braver & Braver, 1988) combines one-tailed p-values.
+\item \code{perm_solomon()} is a randomization test of no treatment effect, not an
+interval estimator of the contrasts.
+\item Test I (Walton Braver & Braver, 1988) combines one-tailed p-values.
 \item \code{fit_solomon_sem_latent()} estimates contrasts on a latent-variable scale.
 \item Hedges' g from \code{fit_solomon_classic()} is a standardized mean difference.
 }
@@ -92,22 +98,23 @@ with(
 )
 }
 \references{
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the Solomon
-four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
-104}(1), 150-154.
-
 Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 Comparing noncollapsible effect estimators and their standard errors after
 adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
-528-557.
+528–557. https://doi.org/10.1002/bimj.201900297
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. \emph{The Annals of Applied Statistics,
-7}(1), 295-318.
+7}(1), 295–318. https://doi.org/10.1214/12-AOAS583
 
 Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your estimand?
 Defining the target quantity connects statistical evidence to theory.
-\emph{American Sociological Review, 86}(3), 532-565.
+\emph{American Sociological Review, 86}(3), 532–565.
+https://doi.org/10.1177/00031224211004187
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
+104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 }
 \seealso{
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, \code{\link[=fit_solomon_classic]{fit_solomon_classic()}},

@@ -3,7 +3,9 @@ print.solomon_sem_latent <- function(x, digits = 3, ...) {
   level <- if (is.null(x$settings$conf_level)) 0.95 else x$settings$conf_level
 
   cat("Solomon SEM (latent)\n")
-  cat(sprintf("POST measurement invariance: %s\n", x$settings$invariance_post))
+  freed <- c(x$settings$partial_post, x$settings$partial_pre)
+  cat(sprintf("POST measurement invariance: %s%s\n", x$settings$invariance_post,
+              if (length(freed)) sprintf(" (partial; freed: %s)", paste(freed, collapse = ", ")) else ""))
   cat("Latent mean reference: U0 (unpretested control) fixed at 0\n")
   if (isTRUE(x$settings$ancova))
     cat(sprintf("Pretested latent ANCOVA: %s (reference: P0)\n", x$settings$invariance_pre))
@@ -11,8 +13,12 @@ print.solomon_sem_latent <- function(x, digits = 3, ...) {
 
   # POST (4-group)
   fm <- x$fitmeasures_post
-  cat(sprintf("POST model fit (4 groups): CFI=%.3f, RMSEA=%.3f, SRMR=%.3f; df=%d\n\n",
+  cat(sprintf("POST model fit (4 groups): CFI=%.3f, RMSEA=%.3f, SRMR=%.3f; df=%d\n",
               fm["cfi"], fm["rmsea"], fm["srmr"], as.integer(fm["df"])))
+  if (!is.null(x$invariance_status)) {
+    cat(sprintf("Invariance check: %s\n", x$invariance_status))
+  }
+  cat("\n")
   ef <- x$effects_post
   ef$`Est (SE)` <- estse_str(ef$estimate, ef$std.error, digits)
   ef$z <- ifelse(is.na(ef$statistic), "", sprintf("%.2f", ef$statistic))

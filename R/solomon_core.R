@@ -13,30 +13,55 @@
 #' and modern inference.
 #'
 #' Key historical references include Huck & Sandler (1973),
-#' Braver & Braver (1988), the Sawilowsky and Markman methodological
+#' Walton Braver & Braver (1988), the Sawilowsky and Markman methodological
 #' exchanges, and van Engelenburg (1999).
 #'
+#' @section Lifecycle:
+#' Each exported function's help page, and the reference index of the
+#' package website, shows the function's lifecycle stage, in the stages of
+#' the lifecycle package (Henry & Wickham, 2026):
+#' - **Stable.** The interface is settled. Any change goes through
+#'   deprecation: the old name keeps working, with a warning, through v1.x.
+#' - **Experimental.** The function is tested, but its interface or defaults
+#'   may change. [fit_solomon_sem()] has no simulation study yet at Solomon
+#'   sample sizes. The issue #55 study found no measurement-invariance
+#'   criterion that holds its false-rejection rate in Solomon-sized groups,
+#'   which affects [fit_solomon_sem_latent()] and [invariance_solomon()].
+#' - **Deprecated.** A former name that still works, with a warning. Its
+#'   help page names the replacement.
+#'
+#' solomonR 0.9.0 settled the interface (issue #83). The outcome arguments
+#' are `y_post` and `y_pre` everywhere, a fitted model is passed as `fit`,
+#' and the planning functions share one argument order: `n` (or `power`),
+#' `delta`, `sens`, `rho`, `sigma`, `alpha`. Each function that takes data
+#' vectors also takes an optional `data` data frame.
+#'
 #' @references
-#' Solomon, R. L. (1949). An extension of control group design.
-#' *Psychological Bulletin, 46*(2), 137-150.
+#' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+#' quasi-experimental designs for research*. Rand McNally. (Original work
+#' published 1963)
 #'
-#' Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
-#' quasi-experimental designs for research*. Rand McNally.
+#' Henry, L., & Wickham, H. (2026). *lifecycle: Manage the life cycle of
+#' your package functions* (Version 1.0.5) \[R package\].
+#' https://doi.org/10.32614/CRAN.package.lifecycle
 #'
-#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-#' design: Appropriate statistical analyses. *The Journal of Experimental
-#' Education, 42*(2), 54-55.
-#'
-#' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-#' Solomon four-group design: A meta-analytic approach. *Psychological
-#' Bulletin, 104*(1), 150-154.
+#' Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+#' Appropriate statistical analyses. *The Journal of Experimental Education,
+#' 42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
 #'
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-#' Meta-analysis and the Solomon four-group design. *The Journal of
-#' Experimental Education, 62*(4), 361-376.
+#' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
+#' Education, 62*(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
 #'
-#' van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-#' four-group design* (Research Report 99-06). University of Twente.
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+#'
+#' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
+#' design* (Research Report 99-06). University of Twente.
+#'
+#' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+#' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
+#' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 #'
 #' @keywords Solomon four-group ANCOVA permutation maximum-likelihood SEM
 #' @name solomonR
@@ -45,55 +70,74 @@ NULL
 # ---- helpers ----
 
 #' Convert p-value to Z (one-tailed) for Stouffer's method
+#'
+#' `r lifecycle::badge("stable")`
+#'
 #' @param p numeric vector of p-values assumed one-tailed and aligned in the same direction
 #' @return numeric Z-scores
 #' @references
-#' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
-#' Williams, R. M., Jr. (1949). *The American soldier: Adjustment during
-#' army life* (Vol. 1). Princeton University Press.
+#' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams, R.
+#' M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol. 1).
+#' Princeton University Press.
+#' @examples
+#' p_to_z(c(0.05, 0.025, 0.5))
 #' @export
 p_to_z <- function(p) {
   stats::qnorm(1 - p)
 }
 
-#' Stouffer's Z combiner (Braver & Braver, 1988, Test I)
+#' Stouffer's Z combiner (Walton Braver & Braver, 1988, Test I)
 #'
+#' `r lifecycle::badge("stable")`
 #' Combine one-tailed p-values that test the *same directional* hypothesis into
-#' a single Z. This is provided to reproduce the Braver & Braver (1988)
+#' a single Z. This is provided to reproduce the Walton Braver & Braver (1988)
 #' meta-analytic option (Test I) for the Solomon four-group design. Use cautiously and document assumptions about homogeneity; see
 #' the 1988–1990 exchanges for caveats.
+#'
+#' Walton Braver and Braver (1988, p. 152) convert the one-tailed p-value of
+#' each test to z and refer the combined z to a normal table. Their worked
+#' example reports z = 2.05 with p = .040 (p. 153), the two-tailed value, so
+#' [fit_solomon_classic()] judges Test I by `p_meta_two_tailed`. The one-tailed
+#' value is also returned.
 #' @param p numeric vector of one-tailed p-values (same direction)
-#' @return list with z_meta and p_meta (one-tailed)
+#' @return list with `z_meta`, `p_meta_two_tailed`, and `p_meta_one_tailed`
 #' @references
-#' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
-#' Williams, R. M., Jr. (1949). *The American soldier: Adjustment during
-#' army life* (Vol. 1). Princeton University Press.
-#'
-#' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-#' Solomon four-group design: A meta-analytic approach. *Psychological
-#' Bulletin, 104*(1), 150-154.
-#'
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-#' Meta-analysis and the Solomon four-group design. *The Journal of
-#' Experimental Education, 62*(4), 361-376.
+#' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
+#' Education, 62*(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
+#'
+#' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams, R.
+#' M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol. 1).
+#' Princeton University Press.
+#'
+#' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+#' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
+#' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 #' @examples
 #' stouffer_solomon(c(0.10, 0.11))
+#'
+#' # Walton Braver and Braver's (1988, p. 153) example: the ANCOVA (p = .0993)
+#' # and the t test (p = .2127), halved to one-tailed p-values in the
+#' # direction of the effect, give z = 2.05 and p = .040.
+#' stouffer_solomon(c(0.0993, 0.2127) / 2)
 #' @export
 stouffer_solomon <- function(p) {
   stopifnot(all(is.finite(p)), all(p > 0 & p < 1))
   z <- p_to_z(p)
   z_meta <- sum(z) / sqrt(length(z))
-  list(z_meta = z_meta, p_meta_one_tailed = 1 - stats::pnorm(z_meta))
+  list(z_meta = z_meta, p_meta_two_tailed = 2 * stats::pnorm(-abs(z_meta)),
+       p_meta_one_tailed = 1 - stats::pnorm(z_meta))
 }
 
 #' Fit the unified GLM for a Solomon Four-Group design
 #'
+#' `r lifecycle::badge("stable")`
 #' Fits one generalized linear model to all four Solomon groups and reports
 #' four Solomon contrasts: the equal-weighted average treatment effect, the
 #' Pretest x Treatment (sensitization) contrast, and the treatment effect
 #' within each pretesting condition.
 #'
-#' When `pretest_score` is supplied, it enters the model as `pre_obs`, equal
+#' When `y_pre` is supplied, it enters the model as `pre_obs`, equal
 #' to the pretest score in the pretested groups and 0 in the unpretested
 #' groups, so the structurally absent pretests do not remove Groups 3 and 4.
 #' Regression adjustment for baseline covariates in randomized experiments,
@@ -112,7 +156,11 @@ stouffer_solomon <- function(p) {
 #' - `robust = "CR2"`: bias-reduced cluster-robust covariance (Bell &
 #'   McCaffrey, 2002) with Satterthwaite degrees of freedom (Pustejovsky &
 #'   Tipton, 2018), computed with the clubSandwich package. Use this when
-#'   participants are nested in clusters such as classrooms or sites.
+#'   participants are nested in clusters such as classrooms or sites. In the
+#'   package's simulation of cluster-randomized Solomon designs (issue #19),
+#'   CR2 tests exceeded the nominal level with four clusters per arm (Type I
+#'   error up to 0.068 with no effect in any cluster); with few clusters, the
+#'   cluster-level randomization test of [perm_solomon()] is preferred.
 #'
 #' Tests and confidence intervals use the same reference distribution. For
 #' `"HC3"` and `"none"` it is the t distribution with residual degrees of
@@ -120,6 +168,54 @@ stouffer_solomon <- function(p) {
 #' the conventional choice when t approximations are used with robust
 #' standard errors (Imbens & Kolesár, 2016; Rajh-Weber et al., 2025). Families
 #' with a fixed dispersion (binomial, Poisson) use the normal distribution.
+#' With a noncollapsible link (such as the logit) and `y_pre`, the
+#' link-scale contrasts compare a treatment effect conditional on the pretest
+#' among pretested participants with a marginal effect among unpretested
+#' participants, who have no pretest. When the pretest predicts the outcome,
+#' the Pretest x Treatment contrast is then nonzero even without
+#' sensitization (Daniel et al., 2021): in the package's simulation study
+#' (issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
+#' sensitization present. Such fits give the classed warning
+#' `solomonR_noncollapsible_warning`; for binary outcomes, estimate the
+#' Solomon contrasts on a common scale with [marginal_solomon()]. Identity and
+#' log links are collapsible and are not affected.
+#'
+#' Count outcomes: with `family = poisson()`, the default HC3 covariance gives
+#' the robust (quasi-likelihood) inference that Cameron and Trivedi (2013)
+#' describe. The Poisson estimator stays consistent when the counts are not
+#' Poisson, provided the mean is correctly specified (p. 72), whereas
+#' model-based standard errors should not be used under overdispersion. The
+#' Pearson dispersion statistic is returned as `dispersion` for description;
+#' values well above 1 indicate overdispersion. Log-link rate ratios are
+#' collapsible, so the noncollapsibility caution above does not apply.
+#' Use `exposure` for counts observed over different times or exposures, and
+#' [marginal_solomon()] for rate differences. No published Solomon study with
+#' a count outcome has been identified, so applying these count-data methods
+#' to the Solomon contrasts is a solomonR extension; its simulation validation
+#' is on issue #44.
+#'
+#' `family = "negative_binomial"` fits the NB2 model, with variance
+#' \eqn{\mu + \alpha\mu^2}, by maximum likelihood using `MASS::glm.nb()`
+#' (Venables & Ripley, 2002). Its coefficient estimates stay consistent when the
+#' counts are not negative binomial, provided the mean is correctly specified,
+#' but its model-based standard errors do not, so robust standard errors are
+#' advised (Cameron & Trivedi, 2013, pp. 84--85); the default HC3 covariance
+#' provides them. The estimated \eqn{\theta = 1/\alpha} is returned as
+#' `theta`. When the counts show little overdispersion, \eqn{\theta} does not
+#' converge and a classed warning (`solomonR_theta_boundary_warning`) is
+#' given. Clustered (CR2) negative-binomial fits are not supported.
+#'
+#' In the package's pre-registered simulation (issue #62), which reused the
+#' datasets of issue #44, the NB2 fit with HC3 met the coverage and Type I
+#' tolerances in 85% of the overdispersed contrasts with 50 or 100
+#' participants per cell, against 82% for robust Poisson. That fell short of
+#' the 90% set in advance for recommending it, although its estimates were
+#' on average 3.5% more precise with strong overdispersion. Robust Poisson
+#' therefore remains the recommendation, and Poisson is preferred when there
+#' is no evidence of overdispersion. Model-based NB2 standard errors fell
+#' outside the coverage tolerance in 162 of 384 contrasts and should not be
+#' used.
+#'
 #' The degrees of freedom are returned in the `df` columns (`Inf` for normal
 #' reference distributions). Imbens and Kolesár (2016) further recommend
 #' Bell-McCaffrey degrees of freedom for heteroskedasticity-robust intervals;
@@ -137,89 +233,163 @@ stouffer_solomon <- function(p) {
 #' method (Steiger, 2004) and are reported only for conventional Gaussian
 #' fits; no corresponding interval is available with robust covariance.
 #'
-#' @param y numeric posttest vector
+#' @param y_post numeric posttest vector
 #' @param treat 0/1 (or logical) treatment indicator (1 = treatment)
 #' @param pretested 0/1 (or logical) pretest indicator (1 = group received pretest)
-#' @param pretest_score numeric vector for those pretested; NA for others
-#' @param covariates optional data.frame of additional covariates
+#' @param y_pre numeric pretest vector: the pretest score for pretested
+#'   participants and `NA` for the others
+#' @param covariates optional data frame of additional covariates, or, with
+#'   `data`, the names of its columns to use
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
-#' @param cluster optional clustering id (e.g., class/site), one value per participant
-#' @param family model family (default gaussian())
+#' @param cluster optional clustering id (e.g., class/site), one value per
+#'   participant. CR2 fits refuse designs in which a Solomon cell contains a
+#'   single cluster, because cluster and condition are then confounded; see
+#'   [validate_solomon()]. A classed warning (`solomonR_small_df_warning`)
+#'   flags Solomon contrasts whose Satterthwaite degrees of freedom are below
+#'   4, where Tipton (2015) advises that p-values not be trusted.
+#' @param family model family (default gaussian()), given as a family object,
+#'   a family function, or its name; or `"negative_binomial"` for the NB2
+#'   model for counts.
 #' @param conf_level confidence level for intervals (default 0.95)
+#' @param exposure optional positive exposure (for example, observation time)
+#'   for each participant, entered as a log offset; requires a log-link family
+#'   such as `poisson()` or `"negative_binomial"`. Contrasts are then log rate
+#'   ratios per unit of exposure.
+#' @param data optional data frame. When supplied, the other data arguments
+#'   are looked up in it first: give them as bare column names
+#'   (`y_post = post`) or as strings (`y_post = "post"`).
+#' @param y,pretest_score `r lifecycle::badge("deprecated")` Use `y_post`
+#'   and `y_pre`.
 #' @return An object of class `solomon_glm`: a list with the fitted model,
 #'   coefficient and contrast tables (including degrees of freedom and
 #'   confidence limits `conf.low` and `conf.high`), the covariance matrix,
-#'   and the settings used.
+#'   the Pearson dispersion statistic for binomial, Poisson, and
+#'   negative-binomial fits, `theta` (its estimate, standard error, and
+#'   \eqn{\alpha = 1/\theta}) for negative-binomial fits, and the settings
+#'   used.
 #' @references
-#' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
-#' for linear regression with multi-stage samples. *Survey Methodology,
-#' 28*(2), 169-181.
+#' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
+#' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
+#' 169–181.
 #'
-#' Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
-#' standard error estimators in OLS regression: An introduction and software
-#' implementation. *Behavior Research Methods, 39*(4), 709-722.
+#' Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
+#' (2nd ed.). Cambridge University Press.
+#' https://doi.org/10.1017/CBO9781139013567
 #'
-#' Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
-#' samples: Some practical advice. *The Review of Economics and Statistics,
-#' 98*(4), 701-712.
+#' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+#' Comparing noncollapsible effect estimators and their standard errors after
+#' adjustment for different covariate sets. *Biometrical Journal, 63*(3),
+#' 528–557. https://doi.org/10.1002/bimj.201900297
+#'
+#' Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
+#' error estimators in OLS regression: An introduction and software
+#' implementation. *Behavior Research Methods, 39*(4), 709–722.
+#' https://doi.org/10.3758/BF03192961
+#'
+#' Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small samples:
+#' Some practical advice. *The Review of Economics and Statistics, 98*(4),
+#' 701–712. https://doi.org/10.1162/REST_a_00552
 #'
 #' Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 #' data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
-#' 7*(1), 295-318.
+#' 7*(1), 295–318. https://doi.org/10.1214/12-AOAS583
 #'
 #' Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
-#' standard errors in the linear regression model. *The American
-#' Statistician, 54*(3), 217-224.
+#' standard errors in the linear regression model. *The American Statistician,
+#' 54*(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
 #'
 #' MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
-#' covariance matrix estimators with improved finite sample properties.
-#' *Journal of Econometrics, 29*(3), 305-325.
+#' covariance matrix estimators with improved finite sample properties. *Journal
+#' of Econometrics, 29*(3), 305–325.
+#' https://doi.org/10.1016/0304-4076(85)90158-7
 #'
 #' Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
-#' cluster-robust variance estimation and hypothesis testing in fixed
-#' effects models. *Journal of Business & Economic Statistics, 36*(4),
-#' 672-683.
+#' cluster-robust variance estimation and hypothesis testing in fixed effects
+#' models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
+#' https://doi.org/10.1080/07350015.2016.1247004
 #'
 #' Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
 #' guide to statistical inference in linear modeling for non-normal or
 #' heteroskedastic error distributions. *Behavior Research Methods, 57*(12),
-#' Article 338.
+#' Article 338. https://doi.org/10.3758/s13428-025-02801-4
 #'
-#' Solomon, R. L. (1949). An extension of control group design.
-#' *Psychological Bulletin, 46*(2), 137-150.
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 #'
 #' Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 #' and tests of close fit in the analysis of variance and contrast analysis.
-#' *Psychological Methods, 9*(2), 164-182.
+#' *Psychological Methods, 9*(2), 164–182.
+#' https://doi.org/10.1037/1082-989X.9.2.164
+#'
+#' Tipton, E. (2015). Small sample adjustments for robust variance estimation
+#' with meta-regression. *Psychological Methods, 20*(3), 375–393.
+#' https://doi.org/10.1037/met0000011
+#'
+#' Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
+#' (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
+#' @examples
+#' fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
+#' fit
+#'
+#' # The four Solomon contrasts as a data frame.
+#' fit$effects
 #' @export
-fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
+fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
                             cluster = NULL, family = stats::gaussian(),
-                            conf_level = 0.95) {
+                            conf_level = 0.95, exposure = NULL, data = NULL,
+                            y = deprecated(),
+                            pretest_score = deprecated()) {
+  .solomon_data_args(
+    data,
+    c("y_post", "treat", "pretested", "y_pre", "covariates", "cluster",
+      "exposure", "y", "pretest_score"),
+    environment(), parent.frame(), as_frame = "covariates"
+  )
+  if (lifecycle::is_present(y)) {
+    .renamed_arg(!missing(y_post), "y", "y_post", "fit_solomon_glm")
+    y_post <- y
+  }
+  if (lifecycle::is_present(pretest_score)) {
+    .renamed_arg(!is.null(y_pre), "pretest_score", "y_pre", "fit_solomon_glm")
+    y_pre <- pretest_score
+  }
   robust <- match.arg(robust)
   .check_conf_level(conf_level)
+  negbin <- identical(family, "negative_binomial")
+  if (negbin) {
+    if (robust == "CR2") {
+      stop("Clustered (CR2) negative-binomial fits are not supported.", call. = FALSE)
+    }
+    # NB2 uses the log link; the Poisson family stands in for the link checks
+    # below and is replaced by the fitted family afterwards.
+    family <- stats::poisson()
+  }
+  if (is.character(family)) family <- get(family, mode = "function", envir = parent.frame())
+  if (is.function(family)) family <- family()
 
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
 
   .solomon_check_lengths(
-    y = y,
+    y_post = y_post,
     treat = treat,
     pretested = pretested,
-    pretest_score = pretest_score,
+    y_pre = y_pre,
     covariates = covariates,
-    cluster = cluster
+    cluster = cluster,
+    exposure = exposure
   )
 
   df <- data.frame(
-    y = y,
+    y = y_post,
     treat = treat,
     pretested = pretested
   )
 
-  if (!is.null(pretest_score)) {
+  if (!is.null(y_pre)) {
 
-    n_incidental <- sum(pretested == 1L & is.na(pretest_score), na.rm = TRUE)
+    n_incidental <- sum(pretested == 1L & is.na(y_pre), na.rm = TRUE)
 
     if (n_incidental > 0L) {
       warning(
@@ -229,27 +399,46 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
       )
     }
 
-    if (any(pretested == 0L & !is.na(pretest_score), na.rm = TRUE)) {
+    if (any(pretested == 0L & !is.na(y_pre), na.rm = TRUE)) {
       warning(
-        "Observed pretest_score values were supplied for unpretested ",
+        "Observed `y_pre` values were supplied for unpretested ",
         "participants; these values are ignored.",
         call. = FALSE
       )
     }
 
-    # Safe pretest covariate: equals pretest_score in pretested rows, 0 otherwise
-    df$pre_obs <- ifelse(df$pretested == 1, pretest_score, 0)
+    # Safe pretest covariate: equals y_pre in pretested rows, 0 otherwise
+    df$pre_obs <- ifelse(df$pretested == 1, y_pre, 0)
   }
 
   if (!is.null(covariates)) df <- cbind(df, covariates)
 
   # One model: treatment + pretest indicator + their interaction + (optional) pre_obs
   rhs <- c("treat*pretested",
-           if (!is.null(pretest_score)) "pre_obs" else NULL,
+           if (!is.null(y_pre)) "pre_obs" else NULL,
            if (!is.null(covariates)) names(covariates) else NULL)
+  if (!is.null(exposure)) {
+    if (!is.numeric(exposure) || any(exposure <= 0, na.rm = TRUE)) {
+      stop("`exposure` must contain positive numbers.", call. = FALSE)
+    }
+    if (!identical(family$link, "log")) {
+      stop("`exposure` requires a log-link family, such as poisson().", call. = FALSE)
+    }
+    df$log_exposure <- log(exposure)
+    rhs <- c(rhs, "offset(log_exposure)")
+  }
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
-  fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
+  if (negbin) {
+    fit <- .fit_negbin(fml, df)
+    family <- stats::family(fit)
+  } else {
+    fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
+  }
+
+  if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
+    .warn_noncollapsible(stats::family(fit)$link)
+  }
 
   # Robust VCOV
   fit_cr <- fit
@@ -267,6 +456,10 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     if (anyNA(cluster_fit)) {
       stop("`cluster` is missing for participants included in the model.", call. = FALSE)
     }
+    single <- .cluster_structure(df$treat[used], df$pretested[used], cluster_fit)$single_cluster
+    if (length(single)) {
+      .stop_confounded_clusters(single)
+    }
 
     # clubSandwich cannot use the NA-padded residuals of an na.exclude fit,
     # so CR2 quantities come from a complete-case refit of the same rows
@@ -282,7 +475,7 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
   # summary.glm(), tests use t with residual df when the dispersion is
   # estimated (e.g., Gaussian models) and the normal distribution when it is
   # fixed (binomial, Poisson).
-  dispersion_fixed <- stats::family(fit)$family %in% c("binomial", "poisson")
+  dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
   # --- tidy coefficients with chosen vcov ---
@@ -453,10 +646,25 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
     stringsAsFactors = FALSE
   )
 
+  if (robust == "CR2") {
+    small_df <- is.finite(effects$df) & effects$df < 4
+    if (any(small_df)) {
+      .warn_cr2_small_df(effects$contrast[small_df], effects$df[small_df])
+    }
+  }
+
+  dispersion <- if (.fixed_dispersion(stats::family(fit))) {
+    sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
+  } else {
+    NA_real_
+  }
+
   out <- list(
     model = fit,
     coefficients = tidy,
     effects = effects,
+    dispersion = dispersion,
+    theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = vcovM,
     data = df,
     robust = robust,
@@ -473,12 +681,17 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 
 #' Permutation test for a Solomon contrast
 #'
+#' `r lifecycle::badge("stable")`
 #' Performs a randomization-based test by permuting treatment assignment
 #' within pretest strata. This preserves the Solomon four-group design while
 #' generating the null distribution for a selected treatment contrast.
+#' Participants are permuted in unclustered designs and whole clusters in
+#' clustered ones.
 #'
 #' @details
-#' The test statistic is the HC3-studentized contrast. The permutation
+#' **Unclustered designs.** Treatment labels of participants are permuted
+#' within pretest strata and the model is refitted for each permutation. The
+#' default statistic is the HC3-studentized contrast. The permutation
 #' p-value is a valid test of the sharp null hypothesis that treatment has no
 #' effect for any participant; the `+1` correction keeps the Monte Carlo
 #' p-value from being zero (Phipson & Smyth, 2010). Studentizing the
@@ -487,65 +700,150 @@ fit_solomon_glm <- function(y, treat, pretested, pretest_score = NULL,
 #' Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness
 #' should be regarded as approximate.
 #'
-#' Randomization inference must permute the unit that was randomized.
-#' Because this function permutes individual participants, it refuses fits
-#' that include a clustering variable. For clustered designs, use the CR2
-#' small-sample tests reported by [fit_solomon_glm()].
+#' **Clustered designs.** Randomization inference must permute the unit that
+#' was randomized, so for fits with a `cluster` variable the treatment labels
+#' of whole clusters are permuted. Two assignment mechanisms are supported:
+#' - whole clusters assigned to the four Solomon conditions, as in Kvalem et
+#'   al. (1996), where treatment labels are permuted among clusters within
+#'   each pretest condition; and
+#' - treatment assigned to clusters and pretesting to participants within
+#'   clusters, where treatment labels are permuted among all clusters and
+#'   every cluster must contain pretested and unpretested participants.
 #'
-#' @param object An object returned by \code{fit_solomon_glm()} without a
-#'   clustering variable.
+#' Designs that assign treatment to participants within clusters are refused,
+#' and stratified or restricted randomization of clusters is not supported.
+#'
+#' The statistic is built from cluster-level summaries (Gail et al., 1996;
+#' Hayes & Moulton, 2017, ch. 10). A Stage 1 model with every term of the fit
+#' except treatment (the pretest indicator, the pretest score, covariates and
+#' any exposure offset) gives each cluster a covariate-adjusted difference
+#' residual: observed minus expected, divided by the number of participants
+#' or, for counts, by the total exposure (Hayes & Moulton, 2017, pp.
+#' 221--224, following Bennett et al., 2002). Because Stage 1 ignores
+#' treatment, the test remains exact under the sharp null hypothesis. When
+#' pretesting is assigned within clusters, each cluster has a pretested and
+#' an unpretested residual, and each contrast compares treated and control
+#' clusters on one combination of the two.
+#'
+#' The contrast is estimated from unweighted means of the cluster residuals,
+#' so each cluster counts once (Hayes & Moulton, 2017, pp. 202--205). It
+#' therefore estimates the average effect across clusters, which can differ
+#' from the participant-weighted contrast of [fit_solomon_glm()] when cluster
+#' sizes vary and effects depend on cluster size. The studentized statistic
+#' divides the contrast by its separate-variances standard error (Hayes &
+#' Moulton, 2017, p. 212), which is the studentization Wu and Ding (2021)
+#' use for weak null hypotheses, applied here with clusters as the units.
+#' Gail et al. (1996, p. 1079) showed that the unstudentized difference can
+#' exceed the nominal level under the weak null hypothesis when the arms have
+#' unequal numbers of clusters and unequal variances.
+#'
+#' When the number of possible allocations is at most `reps`, all of them are
+#' enumerated and the p-value is exact; the smallest attainable p-value is
+#' then reported. Hayes and Moulton (2017, p. 239) note that at least four
+#' clusters per arm are needed for a two-sided p below .05.
+#'
+#' **Simulation evidence.** In the package's pre-registered simulation study
+#' (issue #19; 96 scenarios, 2,000 replications each):
+#' - Under the sharp null hypothesis, both statistics had Type I errors of at
+#'   most 0.063, consistent with the exactness of randomization tests. With
+#'   four clusters per arm, few allocations exist and the test is
+#'   conservative: the attainable level at .05 is 2/70, about 0.03.
+#' - When treatment made treated clusters four times as variable as control
+#'   clusters, so that only the average effect was zero, the studentized
+#'   statistic's Type I error reached 0.065 with equal numbers of treated and
+#'   control clusters, 0.0685 with 15 treated and 47 control clusters per
+#'   pretest condition, and 0.0805 with 4 and 8. The difference statistic
+#'   reached 0.158 with 15 and 47, as Gail et al. (1996) found for unbalanced
+#'   designs. A classed warning (`solomonR_unbalanced_clusters_warning`) is
+#'   therefore given whenever treated and control clusters differ in number.
+#' - The CR2 tests of [fit_solomon_glm()] reached 0.068 with four clusters per
+#'   arm even under the sharp null, where this test is exact, so the
+#'   permutation test is preferred for designs with few clusters.
+#'
+#' @param fit An object returned by \code{fit_solomon_glm()}.
 #' @param contrast Character string identifying the contrast to test. One of
 #'   \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
 #'   \code{"Treatment | pretested"}, or
 #'   \code{"Treatment | unpretested"}.
-#' @param reps Number of permutations. Default is 5000.
+#' @param reps Number of permutations. Default is 5000. In clustered designs
+#'   with at most `reps` possible allocations, every allocation is used.
 #' @param seed Optional random-number seed for reproducibility. The global
 #'   random-number state is restored when the function exits.
 #' @param return_dist Logical. If \code{TRUE}, return the permutation
 #'   distribution in addition to the observed statistic and p-value.
+#' @param statistic `"studentized"` (the default) divides the contrast by its
+#'   standard error; `"difference"` uses the contrast itself.
+#' @param object `r lifecycle::badge("deprecated")` Use `fit`.
 #'
-#' @return A list containing the observed studentized statistic
-#'   (\code{z_obs}) and permutation p-value (\code{p_perm}). If
+#' @return A list of class `solomon_perm` containing the contrast, the
+#'   statistic type, the level permuted (`"participant"` or `"cluster"`), the
+#'   estimated contrast (`estimate`), the observed statistic (\code{z_obs};
+#'   the contrast itself when `statistic = "difference"`), the permutation
+#'   p-value (\code{p_perm}), the number of permutations, and whether the
+#'   p-value is exact. Clustered fits also return the design, the number of
+#'   possible allocations, the smallest attainable p-value when exact, and the
+#'   numbers of treated and control clusters. If
 #'   \code{return_dist = TRUE}, the permutation distribution
 #'   (\code{z_perm}) is also returned.
 #'
 #' @references
+#' Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
+#' analysis of incidence rates in cluster randomized trials. *International
+#' Journal of Epidemiology, 31*(4), 839–846.
+#' https://doi.org/10.1093/ije/31.4.839
+#'
 #' DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
-#' correlation and regression coefficients. *Journal of the American
-#' Statistical Association, 112*(519), 1211-1220.
+#' correlation and regression coefficients. *Journal of the American Statistical
+#' Association, 112*(519), 1211–1220.
+#' https://doi.org/10.1080/01621459.2016.1202117
+#'
+#' Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D. (1996).
+#' On design considerations and randomization-based inference for community
+#' intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
+#' https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q
+#'
+#' Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd
+#' ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+#'
+#' Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig,
+#' L. S. (1996). The effect of sex education on adolescents' use of condoms:
+#' Applying the Solomon four-group design. *Health Education Quarterly,
+#' 23*(1), 34–47. https://doi.org/10.1177/109019819602300103
 #'
 #' Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 #' zero: Calculating exact p-values when permutations are randomly drawn.
 #' *Statistical Applications in Genetics and Molecular Biology, 9*(1),
-#' Article 39.
+#' Article 39. https://doi.org/10.2202/1544-6115.1585
 #'
-#' Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses
-#' in randomized experiments. *Journal of the American Statistical
-#' Association, 116*(536), 1898-1913.
+#' Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in
+#' randomized experiments. *Journal of the American Statistical Association,
+#' 116*(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415
 #'
+#' @examples
+#' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+#' # Few permutations keep the example fast; use the default for analyses.
+#' perm_solomon(fit, reps = 199, seed = 1)
 #' @export
 perm_solomon <- function(
-    object,
+    fit,
     contrast = "ATE (avg over pretest)",
     reps = 5000L,
     seed = NULL,
-    return_dist = FALSE
+    return_dist = FALSE,
+    statistic = c("studentized", "difference"),
+    object = deprecated()
 ) {
-
-  if (!inherits(object, "solomon_glm")) {
-    stop("object must be from fit_solomon_glm().")
+  if (lifecycle::is_present(object)) {
+    .renamed_arg(!missing(fit), "object", "fit", "perm_solomon")
+    fit <- object
   }
 
-  if (!is.null(object$cluster) || identical(object$robust, "CR2")) {
-    stop(
-      "perm_solomon() permutes individual treatment labels within pretest ",
-      "strata, which is not a valid randomization test when treatment was ",
-      "assigned to clusters. Use the CR2 small-sample tests reported by ",
-      "fit_solomon_glm() for clustered designs; cluster-level randomization ",
-      "inference is planned for a future release.",
-      call. = FALSE
-    )
+
+  if (!inherits(fit, "solomon_glm")) {
+    stop("`fit` must be from fit_solomon_glm().", call. = FALSE)
   }
+
+  statistic <- match.arg(statistic)
 
   valid_contrasts <- c(
     "ATE (avg over pretest)",
@@ -571,9 +869,13 @@ perm_solomon <- function(
     withr::local_seed(seed)
   }
 
-  df <- object$data
-  form <- stats::formula(object$model)
-  fam <- stats::family(object$model)
+  if (!is.null(fit$cluster)) {
+    return(.perm_solomon_cluster(fit, contrast, reps, return_dist, statistic))
+  }
+
+  df <- fit$data
+  form <- stats::formula(fit$model)
+  fam <- stats::family(fit$model)
 
   # ------------------------------------------------------------
   # Helper: construct the requested linear contrast
@@ -639,14 +941,6 @@ perm_solomon <- function(
 
     b <- stats::coef(fit)
 
-    V <- sandwich::vcovHC(
-      fit,
-      type = "HC3"
-    )
-
-    # Force coefficient and covariance-matrix order to match.
-    V <- V[names(b), names(b), drop = FALSE]
-
     L <- make_contrast(
       coef_names = names(b),
       contrast = contrast
@@ -655,6 +949,18 @@ perm_solomon <- function(
     Lm <- matrix(L, nrow = 1)
 
     estimate <- as.numeric(Lm %*% b)
+
+    if (statistic == "difference") {
+      return(estimate)
+    }
+
+    V <- sandwich::vcovHC(
+      fit,
+      type = "HC3"
+    )
+
+    # Force coefficient and covariance-matrix order to match.
+    V <- V[names(b), names(b), drop = FALSE]
 
     variance <- as.numeric(
       Lm %*% V %*% t(Lm)
@@ -671,8 +977,13 @@ perm_solomon <- function(
   # Observed statistic
   # ------------------------------------------------------------
 
+  estimate <- as.numeric(
+    make_contrast(names(stats::coef(fit$model)), contrast) %*%
+      stats::coef(fit$model)
+  )
+
   z_obs <- contrast_z(
-    object$model,
+    fit$model,
     contrast
   )
 
@@ -736,10 +1047,14 @@ perm_solomon <- function(
 
   out <- list(
     contrast = contrast,
+    statistic = statistic,
+    level = "participant",
+    estimate = estimate,
     z_obs = z_obs,
     p_perm = p_perm,
     reps = reps,
-    valid_reps = length(z_perm_valid)
+    valid_reps = length(z_perm_valid),
+    exact = FALSE
   )
 
   if (isTRUE(return_dist)) {

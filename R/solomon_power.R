@@ -107,6 +107,7 @@
 
 #' Power simulation for Solomon designs
 #'
+#' `r lifecycle::badge("stable")`
 #' Simulates normally distributed Solomon four-group data and reports the
 #' rejection rate of each Solomon test at the chosen `alpha`, with its Monte
 #' Carlo standard error.
@@ -126,7 +127,7 @@
 #' Tests are computed from the same functions users would call, so reported
 #' power reflects the package's default inference: `fit_solomon_glm()` with
 #' HC3 standard errors and t reference distributions, the 2x2 ANOVA
-#' interaction, and the historical one-tailed Test I (Braver & Braver, 1988).
+#' interaction, and the historical Test I (Walton Braver & Braver, 1988).
 #'
 #' @section Validation:
 #' A pre-specified simulation study of 126 scenarios and 315,000 replications
@@ -150,21 +151,33 @@
 #' With 20 or fewer participants per cell, treat GLM-based power as a
 #' conservative figure rather than an exact one.
 #'
+#' Only continuous outcomes are simulated. Binary and count outcomes are not
+#' supported; for binary outcomes see [marginal_solomon()] and its simulation
+#' validation on issue #43.
+#'
+#' The arguments follow the order of [plan_solomon()] and
+#' [plot_power_solomon()]: `n`, `delta`, `sens`, `rho`, `sigma`, `alpha`.
+#' Before solomonR 0.9.0, `rho` came before `sens` and `alpha` came last, so
+#' a call that passes these by position gets a warning that it was read in
+#' the new order. Naming the arguments avoids the ambiguity.
+#'
 #' @param n Cell sizes: a single number used for all four cells, or four
 #'   sizes given as a list or vector with elements `n1` (pretested treatment),
 #'   `n2` (pretested control), `n3` (unpretested treatment), and `n4`
 #'   (unpretested control).
 #' @param delta Treatment effect among unpretested participants, on the
 #'   posttest scale.
-#' @param rho Pretest-posttest correlation among pretested participants.
 #' @param sens Sensitization: the additional treatment effect among pretested
 #'   participants (0 = none).
+#' @param rho Pretest-posttest correlation among pretested participants.
 #' @param sigma Posttest residual standard deviation in all cells.
+#' @param alpha Significance level. Default is 0.05.
 #' @param sims Number of Monte Carlo replications.
 #' @param stouffer Logical; if `TRUE`, also report the historical Test I
-#'   rejection rate, evaluated one-tailed (treatment > control) as in
-#'   [fit_solomon_classic()].
-#' @param alpha Significance level. Default is 0.05.
+#'   rejection rate: one-tailed p-values in the direction treatment >
+#'   control are combined, and the combined z is judged by its two-tailed
+#'   p-value, as in [fit_solomon_classic()] and Walton Braver and Braver's
+#'   (1988, p. 153) worked example.
 #' @param seed Optional integer seed. The global random number state is
 #'   restored afterwards.
 #'
@@ -176,13 +189,13 @@
 #'   contrast, and all Test I values are `NA` when `stouffer = FALSE`.
 #'
 #' @references
-#' Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-#' Solomon four-group design: A meta-analytic approach. *Psychological
-#' Bulletin, 104*(1), 150-154.
-#'
 #' Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 #' studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
-#' 2074-2102.
+#' 2074–2102. https://doi.org/10.1002/sim.8086
+#'
+#' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+#' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
+#' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 #'
 #' @examples
 #' power_solomon(n = 30, delta = 0.5, sens = 0.2, sims = 50, seed = 1)
@@ -190,13 +203,15 @@
 #' @export
 power_solomon <- function(n = 50,
                           delta = 0.3,
-                          rho = 0.5,
                           sens = 0,
+                          rho = 0.5,
                           sigma = 1,
+                          alpha = 0.05,
                           sims = 2000,
                           stouffer = TRUE,
-                          alpha = 0.05,
                           seed = NULL) {
+
+  .warn_power_solomon_order(sys.call(), sys.function())
 
   cells <- .solomon_power_cells(n)
   sims <- as.integer(sims)
@@ -236,7 +251,7 @@ power_solomon <- function(n = 50,
       )
       eps <- .Machine$double.eps
       p_one <- pmin(pmax(p_one, eps), 1 - eps)
-      stouffer_p <- stouffer_solomon(p_one)$p_meta_one_tailed
+      stouffer_p <- stouffer_solomon(p_one)$p_meta_two_tailed
     }
 
     c(glm_p, aov_p, stouffer_p)
@@ -266,7 +281,7 @@ power_solomon <- function(n = 50,
   data.frame(
     estimand = c(contrasts, "Pretest x Treatment", "Treatment (one-sided)"),
     test = c(rep("GLM (HC3, t)", 4L), "2x2 ANOVA interaction",
-             "Test I (Braver & Braver, 1988)"),
+             "Test I (Walton Braver & Braver, 1988)"),
     true_effect = c(delta + sens / 2, sens, delta + sens, delta, sens, NA_real_),
     power = unname(power),
     mcse = unname(mcse),

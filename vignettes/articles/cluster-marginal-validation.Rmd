@@ -1,0 +1,261 @@
+---
+title: "Clustered Designs: Validating Marginal Risk Contrasts"
+description: >
+  Simulation study of marginal_solomon() on cluster-robust (CR2) logistic
+  fits of cluster-randomized Solomon designs, with a cluster-level comparator.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+
+p <- utils::read.csv("cluster-marginal-validation/performance.csv", stringsAsFactors = FALSE)
+info <- utils::read.csv("cluster-marginal-validation/run-information.csv", stringsAsFactors = FALSE)
+run <- stats::setNames(as.list(info$value), info$item)
+reps <- as.integer(run$replications)
+
+scale_label <- c(difference = "Risk difference", ratio = "Risk ratio", odds_ratio = "Odds ratio")
+method_label <- c(normal = "M1: delta method, normal reference",
+                  satterthwaite = "M2: delta method, Satterthwaite t",
+                  cluster_summary = "M3: cluster-level summaries")
+design_label <- c(A = "A: clusters assigned to the four cells",
+                  B = "B: treatment by cluster, pretesting within clusters")
+alloc_label <- c(small = "Small", moderate = "Moderate", unbalanced = "Unbalanced")
+
+p$null <- abs(p$true_value) < 1e-8
+# Tolerances declared on issue #64 before any run.
+p$bias_ok <- abs(p$bias) <= 2 * p$bias_mcse
+p$cov_ok <- p$coverage >= 0.94 & p$coverage <= 0.96
+p$se_ok <- abs(p$relerr) <= 10
+p$t1_ok <- ifelse(p$null, p$rejection >= 0.04 & p$rejection <= 0.06, TRUE)
+p$rule_ok <- p$cov_ok & p$t1_ok
+p$all_ok <- p$bias_ok & p$cov_ok & p$se_ok & p$t1_ok
+p$supported <- p$fit_failures <= 0.05 * reps
+s <- p[p$supported, ]
+sc <- unique(p[, c("scenario", "design", "allocation", "icc", "pattern", "fit_failures",
+                   "small_df_warnings")])
+
+pct <- function(x) sprintf("%.1f%%", 100 * x)
+rng <- function(x, d = 3) if (length(x)) sprintf(paste0("%.", d, "f to %.", d, "f"), min(x), max(x)) else "--"
+count <- function(ok) sprintf("%d of %d", sum(ok), length(ok))
+m2 <- s[s$method == "satterthwaite", ]
+m1 <- s[s$method == "normal", ]
+m3 <- s[s$method == "cluster_summary", ]
+```
+
+This article reports the simulation validation of `marginal_solomon()` for
+clustered fits: logistic models from `fit_solomon_glm(robust = "CR2")` in
+cluster-randomized Solomon designs. The aims, data-generating mechanisms,
+estimands, methods, performance measures, tolerances, and decision rules
+were posted on [issue #64](https://github.com/JUhalt/solomonR/issues/64)
+before implementation and before any run, following the ADEMP structure of
+Morris et al. (2019). The results below come from package commit
+`r substr(run$commit, 1, 7)` and `r reps` replications per scenario.
+
+## Design
+
+**Designs.** Two ways of assigning clusters, as in the study of
+`perm_solomon()` ([issue #19](https://github.com/JUhalt/solomonR/issues/19)):
+
+- **Design A:** whole clusters are assigned to the four Solomon cells;
+- **Design B:** treatment is assigned to clusters, and half of each cluster
+  (rounded down) is pretested.
+
+**Clusters.** Cluster sizes are uniform from 10 to 30.
+
+| Allocation | Design A (clusters per cell) | Design B (treated, control clusters) |
+|---|---|---|
+| Small | 4 in every cell | 4 and 4 |
+| Moderate | 10 in every cell | 10 and 10 |
+| Unbalanced | 15, 15, 47, 47 | 15 and 47 |
+
+Design A's unbalanced allocation follows the class-randomized trial of
+Kvalem et al. (1996).
+
+**Outcome.** logit Pr(Y = 1) = logit(0.30) + b<sub>T</sub>T +
+b<sub>TP</sub>TP + u, with a normally distributed cluster effect u whose
+variance gives a latent-scale intracluster correlation of 0.02 or 0.10.
+There are three effect patterns: no effects; a treatment effect
+(b<sub>T</sub> = log 1.6); and sensitization (b<sub>TP</sub> = log 1.8). The full factorial
+has `r length(unique(p$scenario))` scenarios.
+
+**Estimands.** The marginal (population-averaged) risk in each cell,
+obtained by numerical integration over the cluster effect, gives the four
+Solomon contrasts as risk differences, log risk ratios, and log odds ratios.
+
+**Methods.**
+
+- **M1:** `marginal_solomon()`'s delta-method standard error with the CR2
+  covariance (Bell & McCaffrey, 2002) and a normal reference distribution.
+- **M2:** the same standard error with a t reference and Satterthwaite
+  degrees of freedom for the delta method's linearized contrast (Pustejovsky
+  & Tipton, 2018). Applying those degrees of freedom to the linearized
+  contrast is solomonR's own step, which this study checks.
+- **M3:** the unweighted mean of the cluster proportions in each arm,
+  compared with a t interval that uses separate variances (Hayes & Moulton,
+  2017, pp. 211–215). It gives risk differences only and is computed in the
+  simulation script as the established comparator.
+
+**Tolerances.** Bias within 2 Monte Carlo standard errors (MCSE); coverage
+of 95% intervals from 0.940 to 0.960; model standard error within 10% of the
+empirical standard error; and, where the true value is zero, a rejection
+rate from 0.040 to 0.060.
+
+## Failures
+
+```{r failures}
+fails <- sum(sc$fit_failures)
+```
+
+`r if (fails == 0) "No logistic fit failed and no cell had only events or only non-events in any dataset, so every scenario is in the supported range." else sprintf("%d datasets had a failed fit.", fails)`
+Degrees of freedom below 4, which the package flags with a warning
+(Tipton, 2015), occurred only with 4 clusters per cell or arm, in up to
+`r pct(max(sc$small_df_warnings) / reps)` of datasets.
+
+## Risk differences
+
+```{r rd}
+rd <- s[s$scale == "difference", ]
+tab <- aggregate(cbind(cells = 1, pass = rule_ok) ~ method + design + allocation, rd, sum)
+tab$allocation <- factor(tab$allocation, names(alloc_label))
+tab <- tab[order(match(tab$method, names(method_label)), tab$design, tab$allocation), ]
+knitr::kable(data.frame(
+  Method = method_label[tab$method], Design = tab$design,
+  Allocation = alloc_label[as.character(tab$allocation)],
+  `Contrasts within the coverage and Type I tolerances` = sprintf("%d of %d", tab$pass, tab$cells),
+  check.names = FALSE
+), row.names = FALSE, align = "lllr",
+caption = "Both intracluster correlations and all three effect patterns.")
+```
+
+**Decision rule 1 (support).** M2 met the coverage and Type I tolerances in
+`r count(m2$rule_ok[m2$scale == "difference"])` risk-difference
+scenario-contrasts (`r pct(mean(m2$rule_ok[m2$scale == "difference"]))`),
+above the 90% the rule requires, so `marginal_solomon()` accepts CR2 fits
+with the M2 intervals. Its coverage ranged from
+`r rng(m2$coverage[m2$scale == "difference"])` and its Type I error, where
+the true value is zero, from
+`r rng(m2$rejection[m2$scale == "difference" & m2$null])`. The four
+shortfalls all had an intracluster correlation of 0.10:
+
+```{r rd-short}
+short <- rd[rd$method == "satterthwaite" & !rd$rule_ok, ]
+short <- merge(short, rd[rd$method == "cluster_summary", c("scenario", "contrast", "coverage", "rejection", "rule_ok")],
+               by = c("scenario", "contrast"), suffixes = c("", "_m3"))
+short <- short[order(short$design, short$allocation), ]
+knitr::kable(data.frame(
+  Design = short$design, Allocation = alloc_label[short$allocation], Pattern = short$pattern,
+  Contrast = short$contrast,
+  `M2 coverage` = sprintf("%.4f", short$coverage), `M2 rejection` = sprintf("%.4f", short$rejection),
+  `M3 coverage` = sprintf("%.4f", short$coverage_m3),
+  `M3 within tolerance` = ifelse(short$rule_ok_m3, "yes", "no"),
+  check.names = FALSE
+), row.names = FALSE, align = "lllllrrl",
+caption = "Risk-difference scenario-contrasts where M2 fell outside the tolerances. The Monte Carlo standard error of a coverage near 0.95 is about 0.005.")
+```
+
+Each shortfall is within about one Monte Carlo standard error of a
+tolerance bound, and one of them (coverage 0.9605) errs on the conservative
+side. Relative errors of the model standard error ranged from
+`r rng(m2$relerr[m2$scale == "difference"], 1)` percent, and bias was within
+2 MCSE in `r count(m2$bias_ok[m2$scale == "difference"])` scenario-contrasts;
+the largest absolute bias was
+`r sprintf("%.4f", max(abs(m2$bias[m2$scale == "difference"])))` on the risk
+scale.
+
+**Decision rule 2 (reference distribution).** M1 covered less than 0.940 in
+`r sum(m1$coverage < 0.94 & m1$scale == "difference")` risk-difference
+scenario-contrasts (as low as
+`r sprintf("%.3f", min(m1$coverage[m1$scale == "difference"]))`), and its
+Type I error reached
+`r sprintf("%.3f", max(m1$rejection[m1$null]))`. Because M2 was within
+tolerance in scenario-contrasts where M1 fell below 0.940, the normal
+reference is not used for clustered fits.
+
+**Decision rule 3 (cluster-level summaries).** M3 met the tolerances in
+`r sum(short$rule_ok_m3)` of the `r nrow(short)` scenario-contrasts where
+M2 did not; all of them assign pretesting within clusters. As the rule
+requires, the help page of `marginal_solomon()` recommends a cluster-level
+analysis for such designs when clustering is strong, and
+`marginal_solomon(method = "cluster_summary")` now computes it exactly as
+this study's comparator did. The evidence for it is thin: M2's
+shortfalls there are small, and M3 met the tolerances less often across all
+scenarios (`r count(m3$rule_ok)`), mostly by covering more than 96% of the
+time with 4 clusters per cell or arm (coverage from
+`r rng(m3$coverage)`).
+
+## Risk ratios and odds ratios
+
+```{r ratios}
+ra <- s[s$scale != "difference" & s$method == "satterthwaite", ]
+tab <- aggregate(cbind(cells = 1, pass = rule_ok, over = coverage > 0.96, under = coverage < 0.94) ~
+                   scale + allocation, ra, sum)
+tab$allocation <- factor(tab$allocation, names(alloc_label))
+tab <- tab[order(tab$scale, tab$allocation), ]
+knitr::kable(data.frame(
+  Scale = scale_label[tab$scale], Allocation = alloc_label[as.character(tab$allocation)],
+  `Within tolerances` = sprintf("%d of %d", tab$pass, tab$cells),
+  `Coverage above 0.96` = tab$over, `Coverage below 0.94` = tab$under,
+  check.names = FALSE
+), row.names = FALSE, align = "llrrr",
+caption = "M2 on the ratio scales, both designs and intracluster correlations.")
+```
+
+Applied separately, as the protocol specifies, rule 1 is met for odds ratios
+(`r count(ra$rule_ok[ra$scale == "odds_ratio"])`) but not for risk ratios
+(`r count(ra$rule_ok[ra$scale == "ratio"])`, below 90%). The risk-ratio
+shortfalls were almost all conservative: coverage above 0.96 in
+`r sum(ra$scale == "ratio" & ra$coverage > 0.96)` scenario-contrasts (up to
+`r sprintf("%.3f", max(ra$coverage[ra$scale == "ratio"]))`), mostly with 4
+clusters per cell or arm. Risk-ratio intervals from clustered fits are
+therefore wider than necessary with few clusters, not too narrow; the help
+page says so.
+
+## Summary
+
+- `marginal_solomon()` now accepts logistic fits with CR2 covariance. Its
+  risk-difference and odds-ratio intervals, which use Satterthwaite degrees of freedom, met the
+  tolerances in almost every scenario, including 4 clusters per arm.
+- Risk-ratio intervals are conservative with 4 clusters per cell or arm.
+- A normal reference distribution is too liberal with few clusters and is
+  not used.
+- Degrees of freedom below 4 occur with 4 clusters per cell or arm and are
+  flagged with a warning.
+- For designs with pretesting assigned within clusters and strong
+  clustering, a cluster-level analysis is recommended as an alternative for
+  risk differences, on thin evidence.
+
+## Reproducibility
+
+The script, `cluster-marginal-validation/cluster-marginal-simulation.R`, and
+its results, `performance.csv` and `run-information.csv`, are in the package
+repository. The run took from `r run$started` to `r run$finished` on
+`r run$workers` workers (`r run$R_version`).
+
+All works cited in solomonR are listed, with notes on how the package uses
+them, on the [References](references.html) page.
+
+## References
+Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
+for linear regression with multi-stage samples. *Survey Methodology,
+28*(2), 169–181.
+
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd
+ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+
+Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig,
+L. S. (1996). The effect of sex education on adolescents' use of condoms:
+Applying the Solomon four-group design. *Health Education Quarterly,
+23*(1), 34–47. https://doi.org/10.1177/109019819602300103
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
+2074–2102. https://doi.org/10.1002/sim.8086
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed effects
+models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
+https://doi.org/10.1080/07350015.2016.1247004
+
+Tipton, E. (2015). Small sample adjustments for robust variance estimation
+with meta-regression. *Psychological Methods, 20*(3), 375–393.
+https://doi.org/10.1037/met0000011

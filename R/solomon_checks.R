@@ -10,6 +10,7 @@ bf_test <- function(y, group) {
 
 #' Descriptive assumption diagnostics for Solomon analyses
 #'
+#' `r lifecycle::badge("stable")`
 #' Reports Brown-Forsythe tests of equal posttest variance (Brown & Forsythe,
 #' 1974), Shapiro-Wilk normality tests within cells, and a test of
 #' homogeneous pretest-posttest slopes among pretested participants with
@@ -28,21 +29,31 @@ bf_test <- function(y, group) {
 #' @param treat 0/1 (or logical) treatment indicator
 #' @param pretested 0/1 (or logical) pretest indicator
 #' @param y_pre numeric pretest (NA for unpretested)
+#' @param data Optional data frame. When supplied, the other data arguments
+#'   are looked up in it first, as bare column names (`y_post = post`) or as
+#'   strings (`y_post = "post"`).
 #' @return An object of class `solomon_checks`.
 #' @references
 #' Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of
 #' variances. *Journal of the American Statistical Association, 69*(346),
-#' 364-367.
+#' 364–367. https://doi.org/10.1080/01621459.1974.10482955
 #'
 #' Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
-#' standard errors in the linear regression model. *The American
-#' Statistician, 54*(3), 217-224.
+#' standard errors in the linear regression model. *The American Statistician,
+#' 54*(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
 #'
 #' Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 #' variances. *British Journal of Mathematical and Statistical Psychology,
-#' 57*(1), 173-181.
+#' 57*(1), 173–181. https://doi.org/10.1348/000711004849222
+#' @examples
+#' with(solomon_example, check_solomon_assumptions(y_post, treat, pretested, y_pre))
 #' @export
-check_solomon_assumptions <- function(y_post, treat, pretested, y_pre) {
+check_solomon_assumptions <- function(y_post, treat, pretested, y_pre,
+                                      data = NULL) {
+  .solomon_data_args(
+    data, c("y_post", "treat", "pretested", "y_pre"),
+    environment(), parent.frame()
+  )
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(

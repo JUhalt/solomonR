@@ -12,7 +12,8 @@ fit_solomon_sem(
   equal_var = FALSE,
   ancova = FALSE,
   estimator = "MLR",
-  conf_level = 0.95
+  conf_level = 0.95,
+  data = NULL
 )
 }
 \arguments{
@@ -31,8 +32,19 @@ fit_solomon_sem(
 \item{estimator}{lavaan estimator (default "MLR")}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
+}
+\value{
+An object of class \code{solomon_sem} with \code{mode} (\code{"mean"} or
+\code{"ancova_pretested"}), the lavaan \code{fit}, the contrasts in \code{effects}
+(estimate, standard error, z, p value, and confidence interval), the
+\code{fitmeasures}, and \code{conf_level}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 Two modes:
 \enumerate{
 \item mean-structure (default): 4-group SEM estimating posttest means for P1, P0, U1, U0,
@@ -51,11 +63,25 @@ pretested groups.
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
 }
-\references{
-Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
-design: Appropriate statistical analyses. \emph{The Journal of Experimental
-Education, 42}(2), 54-55.
+\section{Lifecycle}{
 
-Rosseel, Y. (2012). lavaan: An R package for structural equation
-modeling. \emph{Journal of Statistical Software, 48}(2), 1-36.
+Experimental. Its tests rest on large-sample (MLR) theory, and no
+simulation study in the package has yet checked their error rates at
+Solomon sample sizes. \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} is the validated analysis of an
+observed outcome. The defaults may change after such a study.
+}
+
+\examples{
+if (requireNamespace("lavaan", quietly = TRUE)) {
+  with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre))
+}
+}
+\references{
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
+Appropriate statistical analyses. \emph{The Journal of Experimental Education,
+42}(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
+
+Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
+\emph{Journal of Statistical Software, 48}(2), 1–36.
+https://doi.org/10.18637/jss.v048.i02
 }

@@ -51,6 +51,7 @@ color.}
 A ggplot object.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Draws power against sample size for each Solomon estimand, so the effect of
 cell size, effect size, pretest-posttest correlation, and sensitization on
 a planned study can be seen rather than read from a table. A horizontal

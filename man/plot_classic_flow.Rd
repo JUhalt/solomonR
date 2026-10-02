@@ -4,23 +4,32 @@
 \alias{plot_classic_flow}
 \title{Historical Solomon decision path}
 \usage{
-plot_classic_flow(fit = NULL)
+plot_classic_flow(fit = NULL, flow = c("1988", "1990", "1995"))
 }
 \arguments{
 \item{fit}{Optional fit from \code{\link[=fit_solomon_classic]{fit_solomon_classic()}}. Without one, the
 generic diagram is drawn.}
+
+\item{flow}{Version of the sequence to draw when \code{fit} is not given:
+\code{"1988"}, \code{"1990"}, or \code{"1995"}. With a fit, the fit's own version is
+used.}
 }
 \value{
 A ggplot object.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Draws the conditional Tests A-I sequence implemented in
 \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} as a decision tree. Test A (the Pretest x Treatment
 interaction) decides the branch. If it is significant, Tests B and C
 examine the treatment effect within each pretest condition. If not, Test D
 examines the treatment main effect, followed if necessary by the selected
-pretested-groups test (E, F, or G), Test H, and finally Test I, the Braver
-and Braver (1988) Stouffer combination.
+pretested-groups test (E, F, or G), Test H, and finally Test I, the
+Walton Braver and Braver (1988) Stouffer combination. In the original
+1988 sequence each of these is reached only if the one before it is
+nonsignificant; in the 1990 amendment (Braver & Walton Braver, 1990), all
+of them are run once Test D is nonsignificant. The 1995 revision removed
+Test D (Walton Braver & Braver, 1995, as cited in Sawilowsky, 1996, p. 2).
 }
 \details{
 Given a fitted classic analysis, the tests it visited are highlighted with
@@ -36,14 +45,26 @@ level; see \code{vignette("solomon-methods")}.
 plot_classic_flow()
 classic <- with(solomon_example, fit_solomon_classic(y_post, treat, pretested, y_pre))
 plot_classic_flow(classic)
+plot_classic_flow(flow = "1990")
+plot_classic_flow(flow = "1995")
 
 }
 \references{
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the Solomon
-four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
-104}(1), 150-154.
+Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+four-group designs reconsidered: A reply to Sawilowsky and Markman.
+\emph{Perceptual and Motor Skills, 71}(1), 321–322.
+https://doi.org/10.2466/pms.1990.71.1.321
+
+Sawilowsky, S. S. (1996, June 23). \emph{Controlling experiment-wise Type I error
+of meta-analysis in the Solomon four-group design} [Paper presentation].
+First International Conference on Multiple Comparisons, Tel Aviv, Israel.
+\url{https://digitalcommons.wayne.edu/coe_tbf/29/}
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
-Meta-analysis and the Solomon four-group design. \emph{The Journal of
-Experimental Education, 62}(4), 361-376.
+Meta-analysis and the Solomon four-group design. \emph{The Journal of Experimental
+Education, 62}(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
+104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 }

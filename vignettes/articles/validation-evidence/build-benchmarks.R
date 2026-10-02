@@ -97,7 +97,223 @@ pw_long <- long_measures(
   )
 )
 
-benchmarks <- rbind(ml_long, pw_long)
+# ---- plan_solomon() re-simulation (#24) -------------------------------------------
+
+pl <- read_study("plan-validation", "performance.csv")
+pl_run <- read_study("plan-validation", "run-information.csv")
+
+pl_long <- long_measures(
+  pl,
+  study = "plan-resimulation",
+  design = sprintf("allocation=%s; delta=%s; sens=%s; rho=%s; cells=%d/%d/%d/%d",
+                   pl$allocation, pl$delta, pl$sens, pl$rho, pl$n1, pl$n2, pl$n3, pl$n4),
+  method = "plan_solomon() analytic plan, re-simulated with GLM (HC3, t)",
+  estimand = pl$estimand,
+  null_effect = rep(FALSE, nrow(pl)),
+  measures = list(
+    simulated_power = c(value = "simulated_power", mcse = "mcse"),
+    analytic_power = c(value = "analytic_power", mcse = NA),
+    difference_from_target = c(value = "difference", mcse = "mcse")
+  ),
+  n_successful = pl_run$sims - pl$failures,
+  n_failed = pl$failures,
+  notes = list(
+    analytic_power = function(d) rep("normal-theory power of the returned design", nrow(d)),
+    difference_from_target = function(d) sprintf("target power %s", d$target_power)
+  )
+)
+
+# ---- Binary outcomes: marginal_solomon() and fisher_solomon() (#43) ----------------
+
+bi <- read_study("binary-validation", "performance.csv")
+bi_info <- read_study("binary-validation", "run-information.csv")
+bi_run <- stats::setNames(as.list(bi_info$value), bi_info$item)
+
+bi_scale <- c(difference = "risk difference", ratio = "log risk ratio", odds_ratio = "log odds ratio")
+bi_method <- c(
+  bootstrap = "marginal_solomon(), cell-stratified bootstrap",
+  delta = "marginal_solomon(), delta method (HC3)",
+  unadjusted = "marginal_solomon() without the pretest, delta method (HC3)"
+)
+bi_m <- bi[bi$method %in% names(bi_method), ]
+bi_m$failed <- ifelse(bi_m$method == "bootstrap", bi_m$fit_failures + bi_m$interval_failures,
+                      ifelse(bi_m$method == "delta", bi_m$fit_failures, bi_m$unadjusted_failures))
+bi_design <- function(d) {
+  sprintf("n per cell=%d; control risk=%s; pretest log-odds=%s; pattern=%s",
+          d$n, d$control_risk, d$bX, d$pattern)
+}
+bi_long <- long_measures(
+  bi_m,
+  study = "binary-outcomes",
+  design = bi_design(bi_m),
+  method = unname(bi_method[bi_m$method]),
+  estimand = sprintf("%s (%s)", bi_m$contrast, bi_scale[bi_m$scale]),
+  null_effect = abs(bi_m$true_value) < 1e-8,
+  measures = list(
+    bias = c(value = "bias", mcse = "bias_mcse"),
+    empirical_se = c(value = "empse", mcse = "empse_mcse"),
+    relative_se_error_pct = c(value = "relerr", mcse = "relerr_mcse"),
+    coverage = c(value = "coverage", mcse = "coverage_mcse"),
+    rejection_rate = c(value = "rejection", mcse = "rejection_mcse")
+  ),
+  n_successful = bi_m$n_used,
+  n_failed = bi_m$failed
+)
+bi_c <- bi[bi$method == "conditional_logit" & bi$contrast == "Pretest x Treatment", ]
+bi_c_long <- long_measures(
+  bi_c,
+  study = "binary-outcomes",
+  design = bi_design(bi_c),
+  method = "fit_solomon_glm(family = binomial()), HC3, normal reference",
+  estimand = "Pretest x Treatment (conditional log odds ratio vs marginal)",
+  null_effect = bi_c$pattern != "sensitization",
+  measures = list(
+    mean_estimate = c(value = "mean_estimate", mcse = NA),
+    rejection_rate = c(value = "rejection", mcse = "rejection_mcse")
+  ),
+  n_successful = bi_c$n_used,
+  n_failed = bi_c$fit_failures,
+  notes = list(mean_estimate = function(d) rep("no single true value: mixes conditional and marginal effects", nrow(d)))
+)
+bi_h <- bi[bi$method == "historical_fisher_rule", ]
+bi_h_long <- long_measures(
+  bi_h,
+  study = "binary-outcomes",
+  design = bi_design(bi_h),
+  method = "fisher_solomon() historical rule (El Karkri et al., 2025b)",
+  estimand = "Pretest x Treatment (declared by significance in pretested groups only)",
+  null_effect = bi_h$pattern != "sensitization",
+  measures = list(rate_declared = c(value = "rejection", mcse = "rejection_mcse")),
+  n_successful = bi_h$n_used,
+  n_failed = rep(0, nrow(bi_h))
+)
+
+# ---- Count outcomes: fit_solomon_glm(poisson) and marginal_solomon() (#44) -------
+
+co <- read_study("count-validation", "performance.csv")
+co_info <- read_study("count-validation", "run-information.csv")
+co_run <- stats::setNames(as.list(co_info$value), co_info$item)
+co_method <- c(
+  hc3 = "fit_solomon_glm(family = poisson()), HC3",
+  model_based = "fit_solomon_glm(family = poisson()), model-based",
+  marginal_delta = "marginal_solomon(), delta method (HC3)"
+)
+co_scale <- c(log_rate_ratio_link = "log rate ratio, model contrast",
+              rate_difference = "rate difference",
+              log_rate_ratio = "log rate ratio, marginal")
+co_long <- long_measures(
+  co,
+  study = "count-outcomes",
+  design = sprintf("n per cell=%d; control rate=%s; overdispersion=%s; pretest log-rate=%s; pattern=%s",
+                   co$n, co$control_rate, co$alpha, co$bX, co$pattern),
+  method = unname(co_method[co$method]),
+  estimand = sprintf("%s (%s)", co$contrast, co_scale[co$scale]),
+  null_effect = abs(co$true_value) < 1e-8,
+  measures = list(
+    bias = c(value = "bias", mcse = "bias_mcse"),
+    empirical_se = c(value = "empse", mcse = "empse_mcse"),
+    relative_se_error_pct = c(value = "relerr", mcse = "relerr_mcse"),
+    coverage = c(value = "coverage", mcse = "coverage_mcse"),
+    rejection_rate = c(value = "rejection", mcse = "rejection_mcse")
+  ),
+  n_successful = co$n_used,
+  n_failed = co$fit_failures
+)
+
+# ---- Clustered designs: cluster-level randomization inference (#19) ---------------
+
+cl <- read_study("cluster-validation", "performance.csv")
+cl_info <- read_study("cluster-validation", "run-information.csv")
+cl_run <- stats::setNames(as.list(cl_info$value), cl_info$item)
+cl_method <- c(
+  perm_studentized = "perm_solomon(), whole clusters, studentized",
+  perm_difference = "perm_solomon(), whole clusters, difference",
+  cr2 = "fit_solomon_glm(robust = \"CR2\"), Satterthwaite t"
+)
+cl_design_label <- c(A = "clusters assigned to the four conditions",
+                     B = "treatment by cluster, pretesting within clusters")
+cl_long <- long_measures(
+  cl,
+  study = "clustered-designs",
+  design = sprintf("design=%s; allocation=%s; treated/control variance ratio=%s; pattern=%s; outcome=%s",
+                   cl_design_label[cl$design], cl$allocation, cl$psi, cl$pattern, cl$outcome),
+  method = unname(cl_method[cl$method]),
+  estimand = cl$contrast,
+  null_effect = cl$null_contrast,
+  measures = list(rejection_rate = c(value = "rejection", mcse = "rejection_mcse")),
+  n_successful = cl$n_used,
+  n_failed = cl$failures,
+  notes = list(rejection_rate = function(d) ifelse(
+    !is.na(d$exact) & d$exact,
+    sprintf("every allocation enumerated; smallest attainable p = %.4f", d$min_p),
+    ""
+  ))
+)
+
+# ---- Negative-binomial option for counts (#62) -------------------------------------
+# The Poisson rows of this study reproduce the count study exactly, so only
+# the negative-binomial rows are added.
+
+nb_all <- read_study("count-validation", "nb-performance.csv")
+nb_info <- read_study("count-validation", "nb-run-information.csv")
+nb_run <- stats::setNames(as.list(nb_info$value), nb_info$item)
+nb <- nb_all[nb_all$model == "negative_binomial", ]
+nb_method <- c(
+  hc3 = "fit_solomon_glm(family = \"negative_binomial\"), HC3",
+  model_based = "fit_solomon_glm(family = \"negative_binomial\"), model-based",
+  marginal_delta = "marginal_solomon() on the NB2 fit, delta method (HC3)"
+)
+nb_long <- long_measures(
+  nb,
+  study = "negative-binomial",
+  design = sprintf("n per cell=%d; control rate=%s; overdispersion=%s; pretest log-rate=%s; pattern=%s",
+                   nb$n, nb$control_rate, nb$alpha, nb$bX, nb$pattern),
+  method = unname(nb_method[nb$method]),
+  estimand = sprintf("%s (%s)", nb$contrast, co_scale[nb$scale]),
+  null_effect = abs(nb$true_value) < 1e-8,
+  measures = list(
+    bias = c(value = "bias", mcse = "bias_mcse"),
+    empirical_se = c(value = "empse", mcse = "empse_mcse"),
+    relative_se_error_pct = c(value = "relerr", mcse = "relerr_mcse"),
+    coverage = c(value = "coverage", mcse = "coverage_mcse"),
+    rejection_rate = c(value = "rejection", mcse = "rejection_mcse")
+  ),
+  n_successful = nb$n_used,
+  n_failed = nb$fit_failures
+)
+
+# ---- Marginal contrasts from clustered fits (#64) ---------------------------------
+
+cm <- read_study("cluster-marginal-validation", "performance.csv")
+cm_info <- read_study("cluster-marginal-validation", "run-information.csv")
+cm_run <- stats::setNames(as.list(cm_info$value), cm_info$item)
+cm_method <- c(
+  normal = "marginal_solomon() on a CR2 fit, delta method, normal reference",
+  satterthwaite = "marginal_solomon() on a CR2 fit, delta method, Satterthwaite t",
+  cluster_summary = "Cluster-level summaries, separate-variances t (Hayes & Moulton, 2017)"
+)
+cm_scale <- c(difference = "risk difference", ratio = "log risk ratio", odds_ratio = "log odds ratio")
+cm_long <- long_measures(
+  cm,
+  study = "cluster-marginal",
+  design = sprintf("design=%s; allocation=%s; ICC=%s; pattern=%s",
+                   cl_design_label[cm$design], cm$allocation, cm$icc, cm$pattern),
+  method = unname(cm_method[cm$method]),
+  estimand = sprintf("%s (%s)", cm$contrast, cm_scale[cm$scale]),
+  null_effect = abs(cm$true_value) < 1e-8,
+  measures = list(
+    bias = c(value = "bias", mcse = "bias_mcse"),
+    empirical_se = c(value = "empse", mcse = NA),
+    relative_se_error_pct = c(value = "relerr", mcse = "relerr_mcse"),
+    coverage = c(value = "coverage", mcse = "coverage_mcse"),
+    rejection_rate = c(value = "rejection", mcse = "rejection_mcse")
+  ),
+  n_successful = cm$n_used,
+  n_failed = cm$fit_failures
+)
+
+benchmarks <- rbind(ml_long, pw_long, pl_long, bi_long, bi_c_long, bi_h_long, co_long, cl_long, nb_long,
+                    cm_long)
 numeric_cols <- vapply(benchmarks, is.numeric, logical(1))
 benchmarks[numeric_cols] <- lapply(benchmarks[numeric_cols], function(v) signif(v, 6))
 
@@ -107,26 +323,262 @@ site <- "https://juhalt.github.io/solomonR/articles"
 issue <- function(n) sprintf("https://github.com/JUhalt/solomonR/issues/%d", n)
 
 studies <- data.frame(
-  study = c("ml-inference", "power-simulation"),
-  title = c("Inference for fit_solomon_ml()", "Rejection rates from power_solomon()"),
-  issues = c("#10; #22", "#18"),
-  protocol = c(issue(10), issue(18)),
-  article = c(file.path(site, "ml-validation.html"), file.path(site, "power-validation.html")),
-  scenarios = c(length(unique(ml$scenario)), length(unique(pw$scenario))),
+  study = c("ml-inference", "power-simulation", "plan-resimulation", "binary-outcomes",
+            "count-outcomes", "clustered-designs", "negative-binomial", "cluster-marginal"),
+  title = c("Inference for fit_solomon_ml()", "Rejection rates from power_solomon()",
+            "Designs from plan_solomon()", "Binary outcomes: marginal_solomon()",
+            "Count outcomes: Poisson fits and marginal_solomon()",
+            "Clustered designs: cluster-level randomization inference",
+            "Count outcomes: the negative-binomial option",
+            "Clustered designs: marginal risk contrasts"),
+  issues = c("#10; #22", "#18", "#24", "#43", "#44", "#19", "#62", "#64"),
+  protocol = c(issue(10), issue(18), issue(24), issue(43), issue(44), issue(19), issue(62), issue(64)),
+  article = c(file.path(site, "ml-validation.html"), file.path(site, "power-validation.html"),
+              file.path(site, "plan-validation.html"), file.path(site, "binary-validation.html"),
+              file.path(site, "count-validation.html"), file.path(site, "cluster-validation.html"),
+              file.path(site, "count-validation.html#the-negative-binomial-option"),
+              file.path(site, "cluster-marginal-validation.html")),
+  scenarios = c(length(unique(ml$scenario)), length(unique(pw$scenario)), nrow(pl),
+                length(unique(bi$scenario)), length(unique(co$scenario)), length(unique(cl$scenario)),
+                length(unique(nb$scenario)), length(unique(cm$scenario))),
   replications = c(
     format(ml_run$nsim),
-    sprintf("%d under the complete null; %d elsewhere", pw_run$sims_null, pw_run$sims_alternative)
+    sprintf("%d under the complete null; %d elsewhere", pw_run$sims_null, pw_run$sims_alternative),
+    sprintf("%d per planned design", pl_run$sims),
+    sprintf("%s per scenario; %s bootstrap resamples", bi_run$replications, bi_run$bootstrap_R),
+    sprintf("%s per scenario", co_run$replications),
+    sprintf("%s per scenario; 999 permutations per test, or every allocation when there are at most 999",
+            cl_run$replications),
+    sprintf("%s per scenario (the datasets of the count study)", nb_run$replications),
+    sprintf("%s per scenario", cm_run$replications)
   ),
-  methods = c(paste(unique(ml$method), collapse = "; "), paste(unique(pw$test), collapse = "; ")),
-  estimands = c(paste(unique(ml$contrast), collapse = "; "), paste(unique(pw$estimand), collapse = "; ")),
-  package_commit = c(ml_run$git_commit, pw_run$git_commit),
-  r_version = c(ml_run$r_version, pw_run$r_version),
-  started = c(ml_run$started, pw_run$started),
-  finished = c(ml_run$finished, pw_run$finished),
+  methods = c(paste(unique(ml$method), collapse = "; "), paste(unique(pw$test), collapse = "; "),
+              "plan_solomon() analytic plans; GLM (HC3, t)",
+              paste(c(unname(bi_method), "fit_solomon_glm(family = binomial())", "fisher_solomon()"), collapse = "; "),
+              paste(unname(co_method), collapse = "; "),
+              paste(unname(cl_method), collapse = "; "),
+              paste(unname(nb_method), collapse = "; "),
+              paste(unname(cm_method), collapse = "; ")),
+  estimands = c(paste(unique(ml$contrast), collapse = "; "), paste(unique(pw$estimand), collapse = "; "),
+                paste(unique(pl$estimand), collapse = "; "),
+                "Solomon contrasts as risk differences, risk ratios, and odds ratios",
+                "Solomon contrasts as rate differences and rate ratios",
+                "Type I error and power for the Solomon contrasts in cluster-randomized designs",
+                "Solomon contrasts as rate differences and rate ratios",
+                "Marginal Solomon contrasts as risk differences, risk ratios, and odds ratios in cluster-randomized designs"),
+  package_commit = c(ml_run$git_commit, pw_run$git_commit, pl_run$git_commit, substr(bi_run$commit, 1, 7),
+                     substr(co_run$commit, 1, 7), substr(cl_run$commit, 1, 7), substr(nb_run$commit, 1, 7),
+                     substr(cm_run$commit, 1, 7)),
+  r_version = c(ml_run$r_version, pw_run$r_version, pl_run$r_version, sub("R version ([0-9.]+).*", "\\1", bi_run$R_version),
+                sub("R version ([0-9.]+).*", "\\1", co_run$R_version),
+                sub("R version ([0-9.]+).*", "\\1", cl_run$R_version),
+                sub("R version ([0-9.]+).*", "\\1", nb_run$R_version),
+                sub("R version ([0-9.]+).*", "\\1", cm_run$R_version)),
+  started = c(ml_run$started, pw_run$started, pl_run$started, sub(" UTC", "", bi_run$started),
+              sub(" UTC", "", co_run$started), sub(" UTC", "", cl_run$started),
+              sub(" UTC", "", nb_run$started), sub(" UTC", "", cm_run$started)),
+  finished = c(ml_run$finished, pw_run$finished, pl_run$finished, sub(" UTC", "", bi_run$finished),
+               sub(" UTC", "", co_run$finished), sub(" UTC", "", cl_run$finished),
+               sub(" UTC", "", nb_run$finished), sub(" UTC", "", cm_run$finished)),
   failed_fits = c(sum(ml$n_failed[ml$contrast == ml$contrast[1]]),
-                  sum(pw$failures[pw$test == pw$test[1] & pw$estimand == pw$estimand[1]])),
+                  sum(pw$failures[pw$test == pw$test[1] & pw$estimand == pw$estimand[1]]),
+                  sum(pl$failures),
+                  sum(unique(bi[, c("scenario", "fit_failures")])$fit_failures),
+                  sum(unique(co[, c("scenario", "fit_failures")])$fit_failures),
+                  sum(unique(cl[, c("scenario", "rep_errors")])$rep_errors),
+                  sum(unique(nb[, c("scenario", "fit_failures")])$fit_failures),
+                  sum(unique(cm[, c("scenario", "fit_failures")])$fit_failures)),
   stringsAsFactors = FALSE
 )
+
+# ---- Historical Tests A-I: replication of published error rates (#51) --------------
+# Every condition is a complete null, so each rate is a Type I error rate.
+
+hc <- read_study("classic-validation", "performance.csv")
+hc_info <- read_study("classic-validation", "run-information.csv")
+hc_run <- stats::setNames(as.list(hc_info$value), hc_info$item)
+hc_measure <- c(A = "Test A reached and rejects", D = "Test D reached and rejects",
+                E = "Test E reached and rejects", H = "Test H reached and rejects",
+                I = "Test I reached and rejects", any = "any rejection (experiment-wise)",
+                decisive = "Test A, D, or I rejects (1990 amendment)")
+hc_long <- data.frame(
+  study = "historical-tests",
+  scenario = hc$condition,
+  design = sprintf("distribution=%s; n per group=%d; pretest-posttest r=%s", hc$dist, hc$n, hc$r),
+  method = sprintf("fit_solomon_classic(flow = \"%s\"%s), Test I %s", hc$flow,
+                   ifelse(hc$allocation == "none", "", sprintf(", alpha_allocation = \"%s\"", hc$allocation)),
+                   sub("_", "-", hc$criterion)),
+  estimand = unname(hc_measure[hc$measure]),
+  null_effect = TRUE,
+  measure = "rejection_rate",
+  value = signif(hc$rate, 6),
+  mcse = signif(hc$mcse, 6),
+  n_successful = hc$replications - hc$failures,
+  n_failed = hc$failures,
+  note = "",
+  stringsAsFactors = FALSE
+)
+benchmarks <- rbind(benchmarks, hc_long)
+studies <- rbind(studies, data.frame(
+  study = "historical-tests",
+  title = "Historical Tests A-I: replication of published error rates",
+  issues = "#50; #51",
+  protocol = issue(51),
+  article = file.path(site, "classic-validation.html"),
+  scenarios = length(unique(hc$condition)),
+  replications = sprintf("%s per condition", hc_run$replications),
+  methods = "fit_solomon_classic(), 1988, 1990, and 1995 flows and Sawilowsky's (1996) alpha allocations; Test I one-tailed and two-tailed",
+  estimands = "Conditional and experiment-wise Type I error rates of the historical sequence",
+  package_commit = substr(hc_run$commit, 1, 7),
+  r_version = sub("R version ([0-9.]+).*", "\\1", hc_run$R_version),
+  started = sub(" UTC", "", hc_run$started),
+  finished = sub(" UTC", "", hc_run$finished),
+  failed_fits = sum(unique(hc[, c("condition", "failures")])$failures),
+  stringsAsFactors = FALSE
+))
+
+# ---- Measurement invariance criteria for latent contrasts (#55) --------------------
+# Rejection rates of each criterion at each step, and the bias and coverage of the
+# latent sensitization contrast under the scalar and partial models.
+
+iv <- read_study("invariance-validation", "performance.csv")
+iv_info <- read_study("invariance-validation", "run-information.csv")
+iv_run <- stats::setNames(as.list(iv_info$value), iv_info$item)
+iv_pattern <- c("no noninvariance", "intercept +0.3 in the pretested groups",
+                "intercept +0.6 in the pretested groups", "intercept +0.6 in U0 only",
+                "loading -0.3 in the pretested groups")
+iv_method <- c(chisq = "invariance_solomon(), scaled chi-square difference (alpha = .05)",
+               chen = "invariance_solomon(), change in fit (Chen, 2007)",
+               both = "invariance_solomon(), both criteria",
+               scalar_model = "fit_solomon_sem_latent(), scalar model",
+               partial_model = "fit_solomon_sem_latent(), last intercept freed")
+iv_estimand <- c(reject_metric = "Rejection of metric invariance",
+                 reject_scalar = "Rejection of scalar invariance",
+                 sens_bias = "Sens (latent Pretest x Treatment)",
+                 sens_coverage = "Sens (latent Pretest x Treatment)")
+iv_measure <- c(reject_metric = "rejection_rate", reject_scalar = "rejection_rate",
+                sens_bias = "bias", sens_coverage = "coverage")
+# A rejection is correct only for the step the pattern makes noninvariant.
+iv_null <- ifelse(iv$measure == "reject_metric", iv$pattern != 5,
+                  ifelse(iv$measure == "reject_scalar", iv$pattern %in% c(1, 5), FALSE))
+iv_long <- data.frame(
+  study = "invariance-criteria",
+  scenario = iv$scenario,
+  design = sprintf("indicators=%d; n per group=%d; pattern=%s", iv$k, iv$n, iv_pattern[iv$pattern]),
+  method = unname(iv_method[iv$criterion]),
+  estimand = unname(iv_estimand[iv$measure]),
+  null_effect = iv_null | iv$measure %in% c("sens_bias", "sens_coverage"),
+  measure = unname(iv_measure[iv$measure]),
+  value = signif(iv$value, 6),
+  mcse = signif(iv$mcse, 6),
+  n_successful = iv$replications - iv$failures,
+  n_failed = iv$failures,
+  note = "",
+  stringsAsFactors = FALSE
+)
+benchmarks <- rbind(benchmarks, iv_long)
+studies <- rbind(studies, data.frame(
+  study = "invariance-criteria",
+  title = "Latent contrasts: measurement-invariance criteria",
+  issues = "#55",
+  protocol = issue(55),
+  article = file.path(site, "invariance-validation.html"),
+  scenarios = length(unique(iv$scenario)),
+  replications = sprintf("%s per scenario", iv_run$replications),
+  methods = paste(unname(iv_method), collapse = "; "),
+  estimands = "False rejection and detection of metric and scalar noninvariance; bias and coverage of the latent sensitization contrast",
+  package_commit = substr(iv_run$commit, 1, 7),
+  r_version = sub("R version ([0-9.]+).*", "\\1", iv_run$R_version),
+  started = sub(" UTC", "", iv_run$started),
+  finished = sub(" UTC", "", iv_run$finished),
+  failed_fits = sum(unique(iv[, c("scenario", "failures")])$failures),
+  stringsAsFactors = FALSE
+))
+
+# ---- Missing posttests: multiple imputation and offsets (#82) --------------------
+# Bias, coverage, and rejection of the four Solomon contrasts for the
+# complete-case analysis, MI under missing at random, and MI with the true
+# offsets.
+
+mi <- read_study("mi-validation", "performance.csv")
+mi_info <- read_study("mi-validation", "run-information.csv")
+mi_run <- stats::setNames(as.list(mi_info$value), mi_info$item)
+mi_offsets <- c(A = "none (missing at random)", B = "-0.5 SD in all groups",
+                C = "-0.5 SD in the treatment groups", D = "-0.5 SD in the pretested treatment group")
+mi_method <- c(complete_case = "fit_solomon_glm() on complete cases, HC3",
+               mi_mar = "fit_solomon_mi(delta = 0), m = 100",
+               mi_true = "fit_solomon_mi(delta = true offsets), m = 100")
+mi_design <- sprintf("n per group=%d; missing=%s; offsets=%s", mi$n, mi$missing,
+                     mi_offsets[mi$offsets])
+mi_long <- long_measures(
+  mi, "missing-posttests", mi_design, unname(mi_method[mi$method]), mi$contrast,
+  abs(mi$true_value) < 1e-8,
+  list(bias = c(value = "bias", mcse = "bias_mcse"),
+       coverage = c(value = "coverage", mcse = "coverage_mcse"),
+       rejection_rate = c(value = "rejection", mcse = "rejection_mcse"),
+       relative_se_error = c(value = "relerr", mcse = "relerr_mcse")),
+  mi$replications - mi$failures, mi$failures
+)
+benchmarks <- rbind(benchmarks, mi_long)
+studies <- rbind(studies, data.frame(
+  study = "missing-posttests",
+  title = "Missing posttests: multiple imputation with offsets",
+  issues = "#82",
+  protocol = issue(82),
+  article = file.path(site, "mi-validation.html"),
+  scenarios = length(unique(mi$scenario)),
+  replications = sprintf("%s per scenario", mi_run$replications),
+  methods = paste(unname(mi_method), collapse = "; "),
+  estimands = "Solomon contrasts on the means of all randomized participants, with missing posttests shifted by known offsets",
+  package_commit = substr(mi_run$commit, 1, 7),
+  r_version = sub("R version ([0-9.]+).*", "\\1", mi_run$R_version),
+  started = sub(" UTC", "", mi_run$started),
+  finished = sub(" UTC", "", mi_run$finished),
+  failed_fits = sum(unique(mi[, c("scenario", "method", "contrast", "failures")])$failures),
+  stringsAsFactors = FALSE
+))
+
+# ---- Longitudinal designs: fit_solomon_mmrm() (#57) --------------------------------
+# Bias, coverage, and rejection of the Solomon contrasts at three occasions and
+# of the change in sensitization, under monotone dropout missing at random.
+
+mm <- read_study("mmrm-validation", "performance.csv")
+mm_info <- read_study("mmrm-validation", "run-information.csv")
+mm_run <- stats::setNames(as.list(mm_info$value), mm_info$item)
+mm_method <- c(mmrm_kr = "fit_solomon_mmrm(), Kenward-Roger",
+               mmrm_satterthwaite = "fit_solomon_mmrm(), Satterthwaite",
+               mmrm_normal = "fit_solomon_mmrm() estimates, normal reference",
+               complete_case = "fit_solomon_glm() per occasion on complete cases, HC3",
+               mmrm_shared_kr = "MMRM with one shared covariance, Kenward-Roger")
+mm_design <- sprintf("n per group=%d; dropout=%s; sensitization=%s", mm$n, mm$dropout,
+                     mm$sensitization)
+mm_long <- long_measures(
+  mm, "longitudinal-mmrm", mm_design, unname(mm_method[mm$method]), mm$estimand,
+  abs(mm$true_value) < 1e-8,
+  list(bias = c(value = "bias", mcse = "bias_mcse"),
+       coverage = c(value = "coverage", mcse = "coverage_mcse"),
+       rejection_rate = c(value = "rejection", mcse = "rejection_mcse"),
+       relative_se_error = c(value = "relerr", mcse = "relerr_mcse")),
+  mm$replications - mm$failures, mm$failures
+)
+benchmarks <- rbind(benchmarks, mm_long)
+studies <- rbind(studies, data.frame(
+  study = "longitudinal-mmrm",
+  title = "Longitudinal designs: mixed model for repeated measures",
+  issues = "#57",
+  protocol = issue(57),
+  article = file.path(site, "mmrm-validation.html"),
+  scenarios = length(unique(mm$scenario)),
+  replications = sprintf("%s per scenario", mm_run$replications),
+  methods = paste(unname(mm_method), collapse = "; "),
+  estimands = "Solomon contrasts at each of three occasions and the change in sensitization, under monotone dropout missing at random",
+  package_commit = substr(mm_run$commit, 1, 7),
+  r_version = sub("R version ([0-9.]+).*", "\\1", mm_run$R_version),
+  started = sub(" UTC", "", mm_run$started),
+  finished = sub(" UTC", "", mm_run$finished),
+  failed_fits = sum(unique(mm[, c("scenario", "method", "estimand", "failures")])$failures),
+  stringsAsFactors = FALSE
+))
 
 dir.create("validation-evidence", showWarnings = FALSE)
 utils::write.csv(studies, file.path("validation-evidence", "studies.csv"), row.names = FALSE)

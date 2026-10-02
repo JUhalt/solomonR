@@ -92,7 +92,7 @@ benchmark <- function(cells, delta, rho, sens) {
     ),
     data.frame(
       estimand = "Treatment (one-sided)",
-      test = "Test I (Braver & Braver, 1988)",
+      test = "Test I (Walton Braver & Braver, 1988)",
       analytic_power = NA_real_,
       analytic_se = NA_real_,
       analytic_df = NA_real_

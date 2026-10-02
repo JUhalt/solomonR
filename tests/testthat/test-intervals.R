@@ -187,7 +187,7 @@ test_that("classic tests carry t intervals and Hedges g a noncentral t interval"
   expect_equal(classic$tests$E$result$conf.high, unname(ci_e["treat", 2]), tolerance = 1e-8)
 
   expect_null(classic$tests$I$result$conf.low)
-  expect_equal(classic$tests$I$result$procedure, "Braver & Braver (1988)")
+  expect_equal(classic$tests$I$result$procedure, "Walton Braver & Braver (1988)")
 
   un <- solomon_demo[solomon_demo$pretested == 0, ]
   expected <- .smd_ci(
@@ -198,7 +198,7 @@ test_that("classic tests carry t intervals and Hedges g a noncentral t interval"
 
   expect_equal(classic$g_post[["lower"]], expected[["lower"]], tolerance = 1e-8)
   expect_equal(classic$g_post[["upper"]], expected[["upper"]], tolerance = 1e-8)
-  expect_output(print(classic), "Braver & Braver \\(1988\\)")
+  expect_output(print(classic), "Walton Braver & Braver \\(1988\\)")
 })
 
 

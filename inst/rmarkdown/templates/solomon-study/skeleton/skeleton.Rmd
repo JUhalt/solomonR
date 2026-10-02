@@ -1,0 +1,99 @@
+---
+title: "Solomon four-group study: analysis"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+library(solomonR)
+knitr::opts_chunk$set(comment = "")
+```
+
+This document runs a Solomon four-group analysis in the order of its
+pre-specified plan. It runs as written on the package's example data.
+Replace the data and the plan's descriptions with your own; if your columns
+have other names, name them in each call (for example,
+`fit_solomon_glm(score2, group, took_pretest, score1, data = d)`).
+
+## 1. The analysis plan
+
+Write and register the plan before the outcomes are seen
+(`?analysis_plan_solomon`). The same object is passed to the report in the
+last step, which then states whether the sensitization analysis was
+pre-specified.
+
+```{r plan}
+plan <- analysis_plan_solomon(
+  outcome = "[the primary outcome]",
+  treatment = "[the treatment, and the control condition]",
+  sensitization = "test"
+)
+# print(plan) shows the Markdown; analysis_plan_solomon(..., file = "plan.md") saves it.
+```
+
+## 2. The data
+
+The columns are `y_post` (posttest), `treat` (1 = treatment), `pretested`
+(1 = pretested), and `y_pre` (pretest, `NA` in the unpretested groups).
+
+```{r data}
+d <- solomon_example # Replace with your data.
+```
+
+## 3. Check the design
+
+```{r design}
+validate_solomon(y_post, treat, pretested, y_pre, data = d)
+check_solomon_missing(y_post, treat, pretested, y_pre, data = d)
+```
+
+## 4. Describe the baseline
+
+Only the pretested groups have a pretest. The difference is described, not
+tested, and it does not change the planned model.
+
+```{r baseline}
+baseline_solomon(y_pre, treat, pretested, data = d)
+```
+
+## 5. The planned model
+
+```{r model}
+fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)
+fit
+plot_solomon_effects(fit)
+```
+
+If the plan tests that sensitization is negligible
+(`sensitization = "equivalence"`), run the equivalence test here with the
+bound the plan fixed:
+
+```{r equivalence, eval = FALSE}
+equivalence_solomon(fit, bounds = 3) # The plan's equivalence_bound.
+```
+
+## 6. Sensitivity analysis for missing posttests
+
+This step runs only when posttests are missing. The groups shifted follow
+the plan.
+
+```{r sensitivity}
+if (anyNA(d$y_post)) {
+  tp <- tipping_point_solomon(y_post, treat, pretested, y_pre,
+                              groups = plan$settings$tipping_groups, seed = 1, data = d)
+  print(tp)
+  plot_tipping_point(tp)
+} else {
+  cat("No posttests are missing.\n")
+}
+```
+
+## 7. Report
+
+```{r report}
+report_solomon(fit, design = list(plan = plan))
+```
+
+## Deviations from the plan
+
+[Record here, with dates and reasons, any analysis that departed from the
+plan, and report them with the results.]

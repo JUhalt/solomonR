@@ -5,14 +5,15 @@
 \title{Equivalence test for a Solomon contrast}
 \usage{
 equivalence_solomon(
-  object,
+  fit,
   bounds,
   contrast = "Pretest x Treatment",
-  alpha = 0.05
+  alpha = 0.05,
+  object = deprecated()
 )
 }
 \arguments{
-\item{object}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}.}
+\item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}.}
 
 \item{bounds}{Equivalence bounds on the raw posttest scale: one positive
 number \code{delta}, giving \code{c(-delta, delta)}, or \code{c(lower, upper)} with
@@ -23,6 +24,8 @@ advance.}
 \code{"Pretest x Treatment"}.}
 
 \item{alpha}{Significance level for each one-sided test. Default is 0.05.}
+
+\item{object}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{fit}.}
 }
 \value{
 An object of class \code{solomon_equivalence} containing the estimate,
@@ -33,6 +36,7 @@ confidence intervals, the logical results \code{equivalent}, \code{different}, a
 \code{exceeds_bounds}, the \code{outcome}, and a plain-language \code{interpretation}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Tests whether a Solomon contrast, by default the Pretest x Treatment
 (sensitization) contrast, is small enough to be considered negligible,
 using the two one-sided tests (TOST) procedure (Schuirmann, 1987; Lakens,
@@ -100,18 +104,20 @@ equivalence_solomon(fit, bounds = 5)
 \references{
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. \emph{Social Psychological and Personality
-Science, 8}(4), 355-362.
+Science, 8}(4), 355–362. https://doi.org/10.1177/1948550617697177
 
 Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing for
 psychological research: A tutorial. \emph{Advances in Methods and Practices in
-Psychological Science, 1}(2), 259-269.
+Psychological Science, 1}(2), 259–269.
+https://doi.org/10.1177/2515245918770963
 
 Murphy, K. R., & Myors, B. (1999). Testing the hypothesis that treatments
 have negligible effects: Minimum-effect tests in the general linear model.
-\emph{Journal of Applied Psychology, 84}(2), 234-248.
+\emph{Journal of Applied Psychology, 84}(2), 234–248.
+https://doi.org/10.1037/0021-9010.84.2.234
 
 Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 and the power approach for assessing the equivalence of average
-bioavailability. \emph{Journal of Pharmacokinetics and Biopharmaceutics,
-15}(6), 657-680.
+bioavailability. \emph{Journal of Pharmacokinetics and Biopharmaceutics, 15}(6),
+657–680. https://doi.org/10.1007/BF01068419
 }

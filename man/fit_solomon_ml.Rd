@@ -12,7 +12,8 @@ fit_solomon_ml(
   weights = c("equal"),
   control = list(),
   conf_level = 0.95,
-  inference = c("wald", "satterthwaite")
+  inference = c("wald", "satterthwaite"),
+  data = NULL
 )
 }
 \arguments{
@@ -37,11 +38,16 @@ pretested and unpretested treatment effects.}
 \code{"wald"} (default) for van Engelenburg's (1999) large-sample Wald
 inference, or \code{"satterthwaite"} for the small-sample option. The point
 estimates are the same. See the Inference options section.}
+
+\item{data}{Optional data frame. When supplied, the other data arguments
+are looked up in it first, as bare column names (\code{y_post = post}) or as
+strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_ml}.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Fits the maximum-likelihood regression model described by van Engelenburg
 (1999). Pretest information is incorporated for the pretested groups while
 structurally missing pretests in the unpretested groups are handled through
@@ -91,14 +97,21 @@ equal and unequal residual variances, at that size and every larger size
 studied.
 }
 
+\examples{
+# With fewer than 40 participants per cell, use the small-sample
+# (Satterthwaite) inference; see "Inference options".
+with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
+                                     inference = "satterthwaite"))
+}
 \references{
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. \emph{Biometrics Bulletin, 2}(6), 110-114.
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
 
-van Engelenburg, G. (1999). Statistical analysis for the Solomon
-four-group design. University of Twente Research Report 99-06.
+van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
+design} (Research Report 99-06). University of Twente.
 
 Welch, B. L. (1947). The generalization of "Student's" problem when several
-different population variances are involved. \emph{Biometrika, 34}(1/2),
-28-35.
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }
