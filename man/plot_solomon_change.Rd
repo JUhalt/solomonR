@@ -68,7 +68,7 @@ behind each analysis.
 For a Solomon N-group design, with k treatments and a control each with
 and without a pretest (Steyn, 2009), give \code{treat} as a factor or character
 vector of conditions and name the control with \code{control}. The figure then
-shows all 2(k + 1) groups: colour marks the condition, the control first as
+shows all 2(k + 1) groups: color marks the condition, the control first as
 in \code{\link[=plot_sensitization]{plot_sensitization()}}, and the point shape marks whether the group was
 pretested.
 }

@@ -428,10 +428,10 @@ only, no group is expected to: the pretested groups match the pretested
 control, and the unpretested groups match the unpretested control. Its
 decision path then usually stops at step E2 and its conclusion does not
 raise the caution. The E4 tests are still printed, marked as off the
-decision path. In the `r nrow(s1_path)` replications of the S1 scenarios
-that the agreement check ran through the function, E4 was on its decision
-path in `r sum(s1_path$e4_on_path)`. This count was not planned in the
-protocol and is descriptive. In the same way, the S2 rate counts
+decision path. The agreement check ran the function on 20 replications of
+each S1 scenario, with each post hoc test: E4 was on its decision path in
+`r sum(s1_path$e4_on_path)` of those `r format(nrow(s1_path), big.mark = ",")`
+fits. This count was not planned in the protocol and is descriptive. In the same way, the S2 rate counts
 significant E5 post hoc pairs whenever no E4 test is significant, whereas
 the function's conclusion reads the E5 one-way analysis of variance, and
 only when E5 is on its path.
@@ -475,7 +475,8 @@ once, by a time limit of the session that started it, after 303 of its
 1,120 tasks, and was resumed from the saved tasks. A resumed run gives the
 same results as an uninterrupted one, because each task has its own
 random-number substream. The start time of this run was taken from its log
-file.
+file. The replications finished at 17:47 UTC; the finish time above is that
+of the rebuilt summaries.
 
 The script, `ngroup-simulation.R`, and the files `performance.csv`,
 `agreement.csv`, and `run-information.csv` are in the package repository
