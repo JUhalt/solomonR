@@ -1,5 +1,59 @@
 # solomonR (development version)
 
+## Designs with several treatments (#45)
+
+* `fit_solomon_glm()` now analyzes Solomon N-group designs: k treatments and
+  a control, each with and without a pretest, giving 2(k + 1) groups (Steyn,
+  2009). Give `treat` as a factor or character vector and name the control
+  with the new `control` argument.
+  - **One model.** It is fitted to all the groups, in place of the
+    overlapping four-group analyses of published studies (McCarthy &
+    Tucker, 2002; Mai et al., 2020).
+  - **Omnibus tests.** Wald tests of each Solomon contrast across the
+    conditions. The Pretest x Condition test asks whether pretesting changes
+    the effect of any treatment.
+  - **Comparisons.** The four Solomon contrasts for each treatment against
+    the control, for every pair of conditions (`contrasts = "pairwise"`), or
+    for planned comparisons given as weights, such as the main effects of a
+    factorial design.
+  - **Multiplicity.** The p-values of each contrast are adjusted across the
+    comparisons by Holm's (1979) procedure (`adjust`).
+  - The result has class `solomon_ngroup`. Results for four-group designs
+    are unchanged, and a two-condition factor with `control` gives the same
+    fit as a 0/1 `treat`.
+* New `fit_solomon_steyn()` carries out the sequence of tests Steyn (2009)
+  proposed for designs with one or several treatments: checks of
+  equivalence, history and maturation, testing, reliability, regression to
+  the mean, and attrition, then tests of the treatments' effects. Its post
+  hoc tests are Scheffé tests, as in Steyn (2005), or Holm-adjusted pairwise
+  t tests (`posthoc`). It is a published proposal, kept for replication and
+  teaching, and is experimental: it follows a pre-publication draft of the
+  article and will be checked against the published version.
+* New data set `steyn2005`: the group statistics of Steyn's (2005)
+  eight-group study, which reproduce its published analyses of variance and
+  Scheffé tests.
+* These functions now accept designs with several treatments:
+  - `validate_solomon()`, `check_solomon_missing()`,
+    `check_solomon_assumptions()`, and `baseline_solomon()`, with `control`;
+  - `plot_solomon_design()` (also `treatments`, for a schematic without
+    data), `plot_solomon_means()`, and `plot_solomon_change()`, with
+    `control`, and `plot_sensitization()` and `plot_solomon_effects()`, for
+    an N-group fit;
+  - `equivalence_solomon()`, with the new `comparison` argument;
+  - `report_solomon()`, for N-group fits and for `fit_solomon_steyn()`
+    results;
+  - `simulate_solomon()`, with one `delta` (and `sens`) per treatment;
+  - `solomon_from_summary()`, with `treat`, `pretested`, and `control`.
+* The other analyses take one treatment and a control. Given more, they
+  stop with a classed error, `solomonR_ngroup_unsupported`, that says how to
+  proceed. `power_solomon()` and `plan_solomon()` give a clear error for
+  more than one `delta` or `sens`.
+* `plot_sensitization()` now works for clustered (CR2) fits with an
+  `exposure` offset.
+* With `data`, a bare column name is now always read as that column, even
+  when the column's values are themselves names of columns.
+* New article, "Designs With Several Treatments".
+
 ## Longitudinal Solomon designs (#57)
 
 * New `fit_solomon_mmrm()` analyzes a Solomon design with several posttest

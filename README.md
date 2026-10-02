@@ -414,6 +414,7 @@ A useful starting point is:
 | Check design coding and missingness | `validate_solomon()`, `check_solomon_missing()` |
 | Sensitivity analysis for missing posttests | `fit_solomon_mi()`, `tipping_point_solomon()` |
 | Several posttest occasions, with dropout | `fit_solomon_mmrm()` |
+| Several treatments (six- and eight-group designs) | `fit_solomon_glm(control = )` |
 | Model diagnostics | `check_solomon_assumptions()` |
 
 For many ordinary randomized Solomon experiments with continuous

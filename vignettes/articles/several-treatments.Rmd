@@ -1,0 +1,297 @@
+---
+title: "Designs With Several Treatments"
+description: >
+  Solomon six- and eight-group designs: one model for all the groups,
+  comparisons of each treatment with the control, planned comparisons for
+  factorial designs, and Steyn's (2009) sequence of tests.
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(solomonR)
+```
+
+A Solomon design can compare more than one treatment. With k treatments
+and one control, each with and without a pretest, it has 2(k + 1) groups:
+six for two treatments and eight for three (Steyn, 2009). Edmonds and
+Kennedy (2017, pp. 93–101) call these Solomon six-group and eight-group
+designs. Two control groups serve every treatment, so the design needs
+fewer participants than a separate four-group study of each treatment
+(Steyn, 2009).
+
+This article shows how to analyze such a design with solomonR:
+
+- one model for all the groups, in place of a separate analysis for each
+  pair of conditions;
+- comparisons of each treatment with the control, with p-values adjusted
+  for their number;
+- planned comparisons, such as the main effects of two treatments crossed
+  factorially;
+- the sequence of tests that Steyn (2009) proposed.
+
+## The design
+
+```{r design, fig.width = 7, fig.height = 4.2, fig.alt = "Schematic of a Solomon six-group design: two treatments and a control, each with and without a pretest."}
+plot_solomon_design(treatments = 2)
+```
+
+The example is the study of Mai et al. (2020), bundled as `mai2020`.
+Participants were randomly assigned to relapse prevention (`RP`), goal
+setting (`GS`), or a control condition, and to be pretested or not.
+
+```{r validate}
+validate_solomon(post_behavior, condition, pretested, pre_behavior,
+                 control = "Control", data = mai2020)
+```
+
+`control` names the control condition. solomonR never guesses it from the
+order of the conditions.
+
+## Why one model
+
+Published studies with several treatments analyzed them as overlapping
+four-group designs. Mai et al. (2020) ran three: relapse prevention against
+control, goal setting against control, and relapse prevention against goal
+setting. McCarthy and Tucker (2002) ran one for each of three treatments
+against the control. Each analysis tests the pretest-by-treatment
+interaction:
+
+```{r overlapping}
+pairs <- list(c("RP", "Control"), c("GS", "Control"), c("RP", "GS"))
+overlapping <- do.call(rbind, lapply(pairs, function(p) {
+  d <- subset(mai2020, condition %in% p & !is.na(post_behavior))
+  d$treat <- as.integer(d$condition == p[1])
+  a <- anova(lm(post_behavior ~ treat * pretested, data = d))
+  data.frame(comparison = paste(p, collapse = " vs "),
+             F = round(a["treat:pretested", "F value"], 3),
+             p = round(a["treat:pretested", "Pr(>F)"], 3))
+}))
+overlapping
+```
+
+These are the F values of the authors' Table 4. Two things make them hard
+to interpret together:
+
+- **The tests are dependent.** Every group appears in two of the three
+  analyses.
+- **Their number is not allowed for.** Three tests at the .05 level reject
+  at least one true null hypothesis more often than 5% of the time.
+
+One model for all six groups asks the question once. Does pretesting change
+the effect of any treatment?
+
+```{r joint-conventional}
+joint <- fit_solomon_glm(post_behavior, condition, pretested,
+                         control = "Control", robust = "none", data = mai2020)
+joint$omnibus
+```
+
+The Pretest x Condition test has two numerator degrees of freedom, one for
+each treatment. This fit uses the posttests alone and conventional standard
+errors, to match the analysis of variance in the article.
+
+## The joint model
+
+By default the model also adjusts for the pretest in the pretested groups
+and uses HC3 standard errors, as for the four-group design:
+
+```{r joint}
+fit <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                       control = "Control", data = mai2020)
+fit
+```
+
+The output has three parts:
+
+- **Omnibus tests.** Each asks whether the conditions differ on one
+  contrast.
+- **Contrasts.** The four Solomon contrasts of the four-group design, for
+  each treatment against the control.
+- **Adjusted p-values.** Each contrast's p-values are adjusted across the
+  comparisons by Holm's (1979) procedure, which controls the chance of at
+  least one false rejection in that family. The confidence intervals are
+  not adjusted.
+
+`contrasts = "pairwise"` adds the comparisons between treatments:
+
+```{r pairwise}
+pairwise <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                            control = "Control", contrasts = "pairwise",
+                            data = mai2020)
+subset(pairwise$effects, contrast == "Pretest x Treatment",
+       c(comparison, estimate, std.error, p.value, p.adjusted))
+```
+
+Only 133 of the 211 participants gave a posttest, and the loss differed by
+group:
+
+```{r missing}
+check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
+                      control = "Control", data = mai2020)
+```
+
+## Plots
+
+`plot_sensitization()` shows the model's posttest means by pretest
+condition, one line per condition. Lines that are not parallel to the
+control's indicate sensitization.
+
+```{r plot-sens, fig.width = 7, fig.height = 4.5, fig.alt = "Model-based posttest means with and without a pretest for relapse prevention, goal setting, and control."}
+plot_sensitization(fit)
+```
+
+`plot_solomon_effects()` shows every contrast with its confidence interval:
+
+```{r plot-effects, fig.width = 7, fig.height = 5, fig.alt = "Estimates and confidence intervals of the four Solomon contrasts for each treatment against the control."}
+plot_solomon_effects(fit)
+```
+
+## Planned comparisons: a factorial design
+
+McCarthy and Tucker's (2002) eight groups crossed two treatments, a lecture
+and a service-learning project, with pretesting: students received the
+lecture, the project, both, or neither. In such a design the questions of
+interest are the main effect of each treatment and their interaction, not
+only each condition against the control. Give them as weights over the
+conditions. The data here are simulated with known effects: the lecture
+adds 2 points, the project 4, and together they add 9.
+
+```{r factorial}
+d <- simulate_solomon(n = 40, delta = c(Lecture = 2, Service = 4, Both = 9),
+                      rho = 0.5, sigma = 10, mean = 50, seed = 2002)
+factorial <- fit_solomon_glm(
+  y_post, treat, pretested, y_pre, control = "Control", data = d,
+  contrasts = list(
+    "Lecture (main effect)" = c(Lecture = 0.5, Both = 0.5, Service = -0.5, Control = -0.5),
+    "Service (main effect)" = c(Service = 0.5, Both = 0.5, Lecture = -0.5, Control = -0.5),
+    "Lecture x Service" = c(Both = 1, Lecture = -1, Service = -1, Control = 1)
+  )
+)
+shown <- subset(factorial$effects,
+                contrast %in% c("ATE (avg over pretest)", "Pretest x Treatment"),
+                c(comparison, contrast, estimate, std.error, p.adjusted))
+shown$p.adjusted <- round(shown$p.adjusted, 3)
+print(shown, digits = 3, row.names = FALSE)
+```
+
+The true main effects are 3.5 points for the lecture and 5.5 for the
+project, and the true interaction is 3. With 40 participants per group the
+estimates carry sampling error: in this data set the interaction is
+estimated at more than one standard error above its true value. Each
+comparison also has a Pretest x Treatment row: the difference in that
+comparison between pretested and unpretested participants, which is zero in
+these data. The weights of a comparison must sum to zero.
+
+## A published eight-group study
+
+Steyn (2005) ran the eight-group study that Steyn (2009) describes: three
+treatments and a control, each with and without a pretest, with 1,723
+police trainees. Each treatment gave participants more information about
+their own ability, and the outcome was a questionnaire of self-efficacy
+perceptions. The thesis reports each group's size, mean, and standard
+deviation (pp. 151–152), bundled as `steyn2005`. `solomon_from_summary()`
+analyzes a design from those statistics:
+
+```{r steyn2005}
+steyn2005[, c("group", "condition", "pretested", "n", "mean", "sd")]
+with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
+                                     pretested = pretested, control = "Control"))
+```
+
+The thesis analyzed the study as overlapping four-group designs and then
+compared the eight posttest means. The joint model gives one test of
+sensitization, the Pretest x Condition row, and the comparisons of each
+treatment with the control. All three treatments lowered the scores.
+
+Two cautions apply to this reanalysis, as to the original analysis.
+Existing classes, not participants, were allocated to the eight groups, and
+not at random (Steyn, 2005, pp. 105–106). The analysis treats participants
+as the units, so it does not allow for the classes.
+
+## Steyn's (2009) sequence of tests
+
+Steyn (2009) proposed a sequence of tests for these designs, in two parts:
+
+- **Checks of internal validity.** Whether the pretested groups were
+  equivalent before treatment; history and maturation; the effect of
+  testing; reliability; regression to the mean; and attrition.
+- **The effects of the treatments.** A one-way analysis of variance of all
+  the posttests, then of the treatment groups, with post hoc tests.
+
+`fit_solomon_steyn()` carries it out and labels each step. Its post hoc
+tests are Scheffé tests, which Steyn (2005, p. 153) used:
+
+```{r steyn}
+steyn <- fit_solomon_steyn(post_behavior, condition, pretested, pre_behavior,
+                           control = "Control", data = mai2020)
+steyn
+```
+
+The sequence is included because it is the published proposal for these
+designs. It is not the package's recommended analysis, for three reasons:
+
+- **It runs many tests.** Steyn (2009) notes that several analyses of
+  variance capitalize on chance.
+- **Its check for sensitization is indirect.** It compares each
+  treatment's pretested group with its unpretested group. That difference
+  mixes the effect of the pretest itself with sensitization. The joint
+  model's Pretest x Treatment contrast separates the two.
+- **Some of its tests treat paired scores as independent.** The help page
+  lists these under "Cautions".
+
+solomonR follows a pre-publication draft of Steyn's article. It will be
+checked against the published version, and the help page lists every choice
+solomonR made where the description leaves room.
+
+## Reporting
+
+`report_solomon()` writes the method and results with their references:
+
+```{r report}
+report_solomon(fit)
+```
+
+## What needs a four-group design
+
+The joint model, the design checks, the plots above, `baseline_solomon()`,
+`equivalence_solomon()`, `solomon_from_summary()`, and `simulate_solomon()`
+accept designs with several treatments. The other analyses take one
+treatment and a control, and say so when given more: full-information
+maximum likelihood, the historical test sequence, randomization tests,
+marginal contrasts, structural equation models, multiple imputation, and
+repeated posttests. To use one of them, analyze one treatment and the
+control at a time:
+
+```{r subset}
+rp <- subset(mai2020, condition %in% c("RP", "Control") & !is.na(post_behavior))
+rp$treat <- as.integer(rp$condition == "RP")
+fit_solomon_ml(post_behavior, treat, pretested, pre_behavior,
+               inference = "satterthwaite", data = rp)$effects[, 1:5]
+```
+
+## References
+
+Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
+designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
+Publications. https://doi.org/10.4135/9781071802779
+
+Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+*Scandinavian Journal of Statistics, 6*(2), 65–70.
+https://www.jstor.org/stable/4615733
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+through service learning. *Journal of Management Education, 26*(6), 629–647.
+https://doi.org/10.1177/1052562902238322
+
+Steyn, R. (2005). *Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies* [Self-evaluation and the forming of
+self-efficacy perceptions] [Doctoral thesis, University of South Africa].
+Unisa Institutional Repository. https://hdl.handle.net/10500/1745
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588

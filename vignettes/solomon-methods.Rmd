@@ -277,6 +277,28 @@ completely at random (Fitzmaurice et al., 2011).
   complete-case analyses were biased by up to 0.09 SD, and a covariance
   shared by all four groups misstated standard errors by up to 17%.
 
+### Designs with several treatments
+
+**Label:** contemporary recommendation, applied to the Solomon design.
+
+With k treatments and a control, each with and without a pretest, the
+design has 2(k + 1) groups (Steyn, 2009). Published studies analyzed such
+designs as overlapping four-group designs, one for each pair of conditions
+(McCarthy & Tucker, 2002; Steyn, 2005; Mai et al., 2020). Those analyses
+share groups, so their tests are dependent, and their number is not allowed
+for.
+
+- **Estimates:** the four Solomon contrasts for each treatment against the
+  control, for every pair of conditions, or for planned comparisons given
+  as weights, from one model fitted to all the groups.
+- **Tests:** omnibus Wald tests of each contrast across the conditions,
+  then the comparisons, with p-values adjusted within each contrast by
+  Holm's (1979) procedure. The confidence intervals are not adjusted.
+- **Assumptions:** those of the unified model; a common pretest-posttest
+  slope across the pretested groups.
+- **Function:** `fit_solomon_glm(control = )`. The article "Designs With
+  Several Treatments" works through an example.
+
 ## Published Solomon proposals
 
 ### Full-information maximum likelihood
@@ -296,6 +318,25 @@ completely at random (Fitzmaurice et al., 2011).
   Welch-Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch, 1947);
   the function warns when groups are small and no option has been chosen.
 - **Function:** `fit_solomon_ml()`.
+
+### Steyn's sequence of tests
+
+**Label:** published Solomon proposal.
+
+- **Estimates:** none of the Solomon contrasts directly. It is a sequence
+  of tests: of the equivalence of the pretested groups, history and
+  maturation, testing, reliability, regression to the mean, and attrition,
+  and then of the treatments' effects by one-way analyses of variance with
+  post hoc tests (Steyn, 2009). The post hoc tests are the Scheffé tests of
+  Steyn (2005).
+- **Assumptions:** equal variances and independent groups in each test.
+- **Limitations:** many tests, each at the nominal level; Steyn (2009)
+  notes that several analyses of variance capitalize on chance. Its check
+  for sensitization compares each treatment's pretested and unpretested
+  groups, which mixes the pretest's own effect with sensitization. solomonR
+  follows a pre-publication draft of the article and will be checked
+  against the published version.
+- **Function:** `fit_solomon_steyn()`, for one or several treatments.
 
 ## solomonR extensions
 
@@ -373,6 +414,8 @@ analytically or by simulating the package's own GLM test.
 | SEM (latent) | solomonR extension | All four (latent scale) | Optional | Scalar invariance |
 | Multiple imputation with offsets | Contemporary | All four | Yes | Missing posttests shifted by stated offsets |
 | Mixed model for repeated measures | Contemporary | All four, at each occasion | Yes | Dropout missing at random; covariance by pretest condition |
+| Joint model for several treatments | Contemporary | All four, for each comparison | Yes | Common slope; p-values adjusted across comparisons |
+| Steyn's sequence | Published proposal | None directly | In its checks | Equal variances; many unadjusted tests |
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](https://juhalt.github.io/solomonR/articles/references.html) page.
@@ -443,6 +486,10 @@ Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect
 size and related estimators. *Journal of Educational Statistics, 6*(2),
 107–128. https://doi.org/10.3102/10769986006002107
 
+Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+*Scandinavian Journal of Statistics, 6*(2), 65–70.
+https://www.jstor.org/stable/4615733
+
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 Appropriate statistical analyses. *The Journal of Experimental Education,
 42*(2), 54–55. https://doi.org/10.1080/00220973.1973.11011460
@@ -488,10 +535,18 @@ covariance matrix estimators with improved finite sample properties.
 *Journal of Econometrics, 29*(3), 305–325.
 https://doi.org/10.1016/0304-4076(85)90158-7
 
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
 Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
 (2008). Recommendations for the primary analysis of continuous endpoints in
 longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
 https://doi.org/10.1177/009286150804200402
+
+McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+through service learning. *Journal of Management Education, 26*(6), 629–647.
+https://doi.org/10.1177/1052562902238322
 
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. *Psychometrika, 58*(4), 525–543.
@@ -540,6 +595,15 @@ Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
 *Psychological Methods, 9*(2), 164–182.
 https://doi.org/10.1037/1082-989X.9.2.164
+
+Steyn, R. (2005). *Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies* [Self-evaluation and the forming of
+self-efficacy perceptions] [Doctoral thesis, University of South Africa].
+Unisa Institutional Repository. https://hdl.handle.net/10500/1745
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams,
 R. M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol.
