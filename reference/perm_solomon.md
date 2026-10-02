@@ -1,29 +1,31 @@
 # Permutation test for a Solomon contrast
 
-Performs a randomization-based test by permuting treatment assignment
-within pretest strata. This preserves the Solomon four-group design
-while generating the null distribution for a selected treatment
-contrast.
+**\[stable\]** Performs a randomization-based test by permuting
+treatment assignment within pretest strata. This preserves the Solomon
+four-group design while generating the null distribution for a selected
+treatment contrast. Participants are permuted in unclustered designs and
+whole clusters in clustered ones.
 
 ## Usage
 
 ``` r
 perm_solomon(
-  object,
+  fit,
   contrast = "ATE (avg over pretest)",
   reps = 5000L,
   seed = NULL,
-  return_dist = FALSE
+  return_dist = FALSE,
+  statistic = c("studentized", "difference"),
+  object = deprecated()
 )
 ```
 
 ## Arguments
 
-- object:
+- fit:
 
   An object returned by
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-  without a clustering variable.
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 - contrast:
 
@@ -33,7 +35,8 @@ perm_solomon(
 
 - reps:
 
-  Number of permutations. Default is 5000.
+  Number of permutations. Default is 5000. In clustered designs with at
+  most `reps` possible allocations, every allocation is used.
 
 - seed:
 
@@ -45,15 +48,32 @@ perm_solomon(
   Logical. If `TRUE`, return the permutation distribution in addition to
   the observed statistic and p-value.
 
+- statistic:
+
+  `"studentized"` (the default) divides the contrast by its standard
+  error; `"difference"` uses the contrast itself.
+
+- object:
+
+  **\[deprecated\]** Use `fit`.
+
 ## Value
 
-A list containing the observed studentized statistic (`z_obs`) and
-permutation p-value (`p_perm`). If `return_dist = TRUE`, the permutation
-distribution (`z_perm`) is also returned.
+A list of class `solomon_perm` containing the contrast, the statistic
+type, the level permuted (`"participant"` or `"cluster"`), the estimated
+contrast (`estimate`), the observed statistic (`z_obs`; the contrast
+itself when `statistic = "difference"`), the permutation p-value
+(`p_perm`), the number of permutations, and whether the p-value is
+exact. Clustered fits also return the design, the number of possible
+allocations, the smallest attainable p-value when exact, and the numbers
+of treated and control clusters. If `return_dist = TRUE`, the
+permutation distribution (`z_perm`) is also returned.
 
 ## Details
 
-The test statistic is the HC3-studentized contrast. The permutation
+**Unclustered designs.** Treatment labels of participants are permuted
+within pretest strata and the model is refitted for each permutation.
+The default statistic is the HC3-studentized contrast. The permutation
 p-value is a valid test of the sharp null hypothesis that treatment has
 no effect for any participant; the `+1` correction keeps the Monte Carlo
 p-value from being zero (Phipson & Smyth, 2010). Studentizing the
@@ -62,23 +82,125 @@ average effect is hypothesized to be zero (DiCiccio & Romano, 2017; Wu &
 Ding, 2021); for the Pretest x Treatment contrast that robustness should
 be regarded as approximate.
 
-Randomization inference must permute the unit that was randomized.
-Because this function permutes individual participants, it refuses fits
-that include a clustering variable. For clustered designs, use the CR2
-small-sample tests reported by
-[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+**Clustered designs.** Randomization inference must permute the unit
+that was randomized, so for fits with a `cluster` variable the treatment
+labels of whole clusters are permuted. Two assignment mechanisms are
+supported:
+
+- whole clusters assigned to the four Solomon conditions, as in Kvalem
+  et al. (1996), where treatment labels are permuted among clusters
+  within each pretest condition; and
+
+- treatment assigned to clusters and pretesting to participants within
+  clusters, where treatment labels are permuted among all clusters and
+  every cluster must contain pretested and unpretested participants.
+
+Designs that assign treatment to participants within clusters are
+refused, and stratified or restricted randomization of clusters is not
+supported.
+
+The statistic is built from cluster-level summaries (Gail et al., 1996;
+Hayes & Moulton, 2017, ch. 10). A Stage 1 model with every term of the
+fit except treatment (the pretest indicator, the pretest score,
+covariates and any exposure offset) gives each cluster a
+covariate-adjusted difference residual: observed minus expected, divided
+by the number of participants or, for counts, by the total exposure
+(Hayes & Moulton, 2017, pp. 221–224, following Bennett et al., 2002).
+Because Stage 1 ignores treatment, the test remains exact under the
+sharp null hypothesis. When pretesting is assigned within clusters, each
+cluster has a pretested and an unpretested residual, and each contrast
+compares treated and control clusters on one combination of the two.
+
+The contrast is estimated from unweighted means of the cluster
+residuals, so each cluster counts once (Hayes & Moulton, 2017, pp.
+202–205). It therefore estimates the average effect across clusters,
+which can differ from the participant-weighted contrast of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+when cluster sizes vary and effects depend on cluster size. The
+studentized statistic divides the contrast by its separate-variances
+standard error (Hayes & Moulton, 2017, p. 212), which is the
+studentization Wu and Ding (2021) use for weak null hypotheses, applied
+here with clusters as the units. Gail et al. (1996, p. 1079) showed that
+the unstudentized difference can exceed the nominal level under the weak
+null hypothesis when the arms have unequal numbers of clusters and
+unequal variances.
+
+When the number of possible allocations is at most `reps`, all of them
+are enumerated and the p-value is exact; the smallest attainable p-value
+is then reported. Hayes and Moulton (2017, p. 239) note that at least
+four clusters per arm are needed for a two-sided p below .05.
+
+**Simulation evidence.** In the package's pre-registered simulation
+study (issue \#19; 96 scenarios, 2,000 replications each):
+
+- Under the sharp null hypothesis, both statistics had Type I errors of
+  at most 0.063, consistent with the exactness of randomization tests.
+  With four clusters per arm, few allocations exist and the test is
+  conservative: the attainable level at .05 is 2/70, about 0.03.
+
+- When treatment made treated clusters four times as variable as control
+  clusters, so that only the average effect was zero, the studentized
+  statistic's Type I error reached 0.065 with equal numbers of treated
+  and control clusters, 0.0685 with 15 treated and 47 control clusters
+  per pretest condition, and 0.0805 with 4 and 8. The difference
+  statistic reached 0.158 with 15 and 47, as Gail et al. (1996) found
+  for unbalanced designs. A classed warning
+  (`solomonR_unbalanced_clusters_warning`) is therefore given whenever
+  treated and control clusters differ in number.
+
+- The CR2 tests of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  reached 0.068 with four clusters per arm even under the sharp null,
+  where this test is exact, so the permutation test is preferred for
+  designs with few clusters.
 
 ## References
 
+Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for
+the analysis of incidence rates in cluster randomized trials.
+*International Journal of Epidemiology, 31*(4), 839–846.
+https://doi.org/10.1093/ije/31.4.839
+
 DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
 correlation and regression coefficients. *Journal of the American
-Statistical Association, 112*(519), 1211-1220.
+Statistical Association, 112*(519), 1211–1220.
+https://doi.org/10.1080/01621459.2016.1202117
+
+Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D.
+(1996). On design considerations and randomization-based inference for
+community intervention trials. *Statistics in Medicine, 15*(11),
+1069–1092.
+https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q
+
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd
+ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+
+Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., &
+Bakketeig, L. S. (1996). The effect of sex education on adolescents' use
+of condoms: Applying the Solomon four-group design. *Health Education
+Quarterly, 23*(1), 34–47. https://doi.org/10.1177/109019819602300103
 
 Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 zero: Calculating exact p-values when permutations are randomly drawn.
 *Statistical Applications in Genetics and Molecular Biology, 9*(1),
-Article 39.
+Article 39. https://doi.org/10.2202/1544-6115.1585
 
 Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses
 in randomized experiments. *Journal of the American Statistical
-Association, 116*(536), 1898-1913.
+Association, 116*(536), 1898–1913.
+https://doi.org/10.1080/01621459.2020.1750415
+
+## Examples
+
+``` r
+fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+# Few permutations keep the example fast; use the default for analyses.
+perm_solomon(fit, reps = 199, seed = 1)
+#> Solomon randomization test
+#> --------------------------
+#> Contrast: ATE (avg over pretest)
+#> Estimate: 2.66
+#> Observed studentized statistic: z = 1.68
+#> Permutation p = .090
+#> Valid permutations: 199 of 199
+```

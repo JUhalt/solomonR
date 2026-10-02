@@ -1,8 +1,8 @@
 # Sample-size planning for Solomon designs
 
-Finds the smallest Solomon four-group design, at a fixed allocation
-across the four cells, whose power for each Solomon estimand reaches a
-target.
+**\[stable\]** Finds the smallest Solomon four-group design, at a fixed
+allocation across the four cells, whose power for each Solomon estimand
+reaches a target.
 [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
 answers the forward question, the power of a given design;
 `plan_solomon()` answers the inverse.
@@ -89,7 +89,10 @@ the four cell sizes, the total sample size, the achieved power, the
 basis (`"analytic"` or `"simulation"`), the Monte Carlo standard error
 (`NA` for analytic rows), the target power, `alpha`, and a note.
 Estimands whose true effect is zero, or whose target is not reached by
-`max_n`, return `NA` sizes with an explanatory note.
+`max_n`, return `NA` sizes with an explanatory note. The planning values
+are kept in the attribute `settings`, which
+[`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
+reads.
 
 ## Details
 
@@ -146,19 +149,22 @@ normally distributed posttests and no missing data.
 
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine,
-38*(11), 2074-2102.
+38*(11), 2074–2102. https://doi.org/10.1002/sim.8086
 
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. *Biometrics Bulletin, 2*(6), 110-114.
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+https://doi.org/10.2307/3002019
 
 Welch, B. L. (1947). The generalization of "Student's" problem when
 several different population variances are involved. *Biometrika,
-34*(1/2), 28-35.
+34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
 
 ## See also
 
 [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
-for the power of a given design.
+for the power of a given design, and
+[`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
+for an analysis plan built on the result.
 
 ## Examples
 

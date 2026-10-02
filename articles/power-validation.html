@@ -33,17 +33,52 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Decide</h6></li>
+    <li><a class="dropdown-item" href="../articles/should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plan</h6></li>
+    <li><a class="dropdown-item" href="../articles/planning.html">Planning a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
     <li><a class="dropdown-item" href="../articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
+    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
+    <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Synthesize</h6></li>
+    <li><a class="dropdown-item" href="../articles/synthesis.html">Reanalysis and Synthesis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Teach</h6></li>
+    <li><a class="dropdown-item" href="../articles/teaching.html">Teaching with solomonR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>History</h6></li>
+    <li><a class="dropdown-item" href="../articles/history.html">A History of the Solomon Design and Its Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
-    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Validation evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></li>
+    <li><a class="dropdown-item" href="../articles/classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></li>
+    <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
+    <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
+    <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
+    <li><a class="dropdown-item" href="../articles/coverage.html">Coverage of the Published Methodology</a></li>
+    <li><a class="dropdown-item" href="../articles/citing.html">How to Cite solomonR and the Methods It Implements</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -116,7 +151,11 @@ per cell, plus the unequal allocations 60/60/20/20 and 20/20/60/60;</li>
 <p><strong>Methods.</strong> The three procedures
 <code><a href="../reference/power_solomon.html">power_solomon()</a></code> reports: the unified GLM with HC3 standard
 errors and t reference distributions, the 2x2 ANOVA interaction, and the
-historical one-tailed Test I (Braver &amp; Braver, 1988).</p>
+historical Test I (Walton Braver &amp; Braver, 1988). When this study
+ran, Test I was judged one-tailed. Since then,
+<code><a href="../reference/power_solomon.html">power_solomon()</a></code> uses the two-tailed p of the combined z, as
+in Walton Braver and Braver’s worked example (1988, p. 153). The Test I
+rows below are those of the one-tailed version.</p>
 <p><strong>Analytic benchmarks.</strong> Normal-theory rejection
 probabilities computed from the design: a two-sample t test for the
 unpretested contrast, an ANCOVA comparison with residual variance
@@ -140,6 +179,10 @@ of 2 with proportionally scaled effects.</p>
 <h2 id="fit-failures">Fit failures<a class="anchor" aria-label="anchor" href="#fit-failures"></a>
 </h2>
 <table class="table">
+<colgroup>
+<col width="53%">
+<col width="46%">
+</colgroup>
 <thead><tr class="header">
 <th align="left">Test</th>
 <th align="right">Failed fits across all scenarios</th>
@@ -154,7 +197,7 @@ of 2 with proportionally scaled effects.</p>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">Test I (Braver &amp; Braver, 1988)</td>
+<td align="left">Test I (Walton Braver &amp; Braver, 1988)</td>
 <td align="right">0</td>
 </tr>
 </tbody>
@@ -209,14 +252,14 @@ of 2 with proportionally scaled effects.</p>
 </tr>
 </tbody>
 </table>
-<p><img src="power-validation_files/figure-html/type1-plot-1.png" class="r-plt" alt="" width="768"></p>
+<p><img src="power-validation_files/figure-html/type1-plot-1.png" class="r-plt" alt="Rejection rates under a true null for each test and allocation, one point per scenario, with the 0.04 to 0.06 tolerance band shaded." width="768"></p>
 <p>The shaded band is the pre-declared tolerance. Each point is one
 scenario.</p>
 </div>
 <div class="section level2">
 <h2 id="agreement-with-analytic-power">Agreement with analytic power<a class="anchor" aria-label="anchor" href="#agreement-with-analytic-power"></a>
 </h2>
-<p><img src="power-validation_files/figure-html/agreement-plot-1.png" class="r-plt" alt="" width="768"></p>
+<p><img src="power-validation_files/figure-html/agreement-plot-1.png" class="r-plt" alt="Simulated power plotted against analytic power for each test, one point per scenario, with the line of equality dashed." width="768"></p>
 <table class="table">
 <caption>Mean difference between simulated and analytic power</caption>
 <colgroup>
@@ -358,11 +401,11 @@ rate is not compared with a two-sided benchmark.</p>
 <caption>Rejection rates with proportionally scaled effects and residual
 SD</caption>
 <colgroup>
-<col width="34%">
-<col width="37%">
-<col width="7%">
-<col width="7%">
-<col width="13%">
+<col width="32%">
+<col width="42%">
+<col width="6%">
+<col width="6%">
+<col width="12%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Estimand</th>
@@ -409,7 +452,7 @@ SD</caption>
 </tr>
 <tr class="even">
 <td align="left">Treatment (one-sided)</td>
-<td align="left">Test I (Braver &amp; Braver, 1988)</td>
+<td align="left">Test I (Walton Braver &amp; Braver, 1988)</td>
 <td align="left">0.986</td>
 <td align="left">0.986</td>
 <td align="left">+0.000</td>
@@ -486,18 +529,20 @@ pretest missingness.</p>
 the package repository. It was run at 2a944c8 plus #18 rebuild
 (solomon_power.R md5 180d6330d91d) with R 4.6.1, base seed 20260916, and
 the replication counts above.</p>
+<p>All works cited in solomonR are listed, with notes on how the package
+uses them, on the <a href="references.html">References</a> page.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<p>Braver, M. W., &amp; Braver, S. L. (1988). Statistical treatment of
-the Solomon four-group design: A meta-analytic approach.
-<em>Psychological Bulletin, 104</em>, 150-154.</p>
 <p>Morris, T. P., White, I. R., &amp; Crowther, M. J. (2019). Using
 simulation studies to evaluate statistical methods. <em>Statistics in
-Medicine, 38</em>, 2074-2102.</p>
+Medicine, 38</em>(11), 2074–2102. <a href="https://doi.org/10.1002/sim.8086" class="external-link uri">https://doi.org/10.1002/sim.8086</a></p>
 <p>Solomon, R. L. (1949). An extension of control group design.
-<em>Psychological Bulletin, 46</em>, 137-150.</p>
+<em>Psychological Bulletin, 46</em>(2), 137–150. <a href="https://doi.org/10.1037/h0062958" class="external-link uri">https://doi.org/10.1037/h0062958</a></p>
+<p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical
+treatment of the Solomon four-group design: A meta-analytic approach.
+<em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

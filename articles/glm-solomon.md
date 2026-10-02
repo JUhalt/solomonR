@@ -98,15 +98,10 @@ default, is a sound starting point for continuous outcomes.
 
 ``` r
 
-fit <- with(
-  solomon_example,
-  fit_solomon_glm(
-    y = y_post,
-    treat = treat,
-    pretested = pretested,
-    pretest_score = y_pre,
-    robust = "HC3"
-  )
+fit <- fit_solomon_glm(
+  y_post, treat, pretested, y_pre,
+  robust = "HC3",
+  data = solomon_example
 )
 
 fit
@@ -496,6 +491,7 @@ perm
     ## Solomon randomization test
     ## --------------------------
     ## Contrast: ATE (avg over pretest)
+    ## Estimate: 2.66
     ## Observed studentized statistic: z = 1.68
     ## Permutation p = .097
     ## Valid permutations: 1000 of 1000
@@ -525,14 +521,37 @@ The null distribution can be visualized with:
 plot_perm(perm)
 ```
 
-![](glm-solomon_files/figure-html/unnamed-chunk-6-1.png)
+![Histogram of the permutation distribution of the test statistic, with
+the observed value
+marked.](glm-solomon_files/figure-html/perm-plot-1.png)
 
 Randomization inference is justified by the assignment mechanism, not
 merely by a small sample size. If treatment was randomized at the
-cluster level, permutation must likewise occur at the cluster level.
+cluster level, permutation must likewise occur at the cluster level. For
+fits with a `cluster` variable,
 [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
-permutes individuals, so it refuses fits that include a clustering
-variable; use the CR2 tests above for clustered designs.
+permutes whole clusters:
+
+``` r
+
+fit_cl <- fit_solomon_glm(
+  y_post, treat, pretested, y_pre,
+  robust = "CR2",
+  cluster = cluster_id
+)
+
+perm_solomon(fit_cl, contrast = "Treatment | unpretested")
+```
+
+Two assignment mechanisms are supported: whole clusters assigned to the
+four Solomon conditions, and treatment assigned to clusters with
+pretesting assigned to participants within them. The statistic is built
+from covariate-adjusted cluster-level summaries, each cluster counts
+once, and small designs are enumerated exactly (Gail et al., 1996; Hayes
+& Moulton, 2017). Designs that assign treatment to participants within
+clusters are refused. The help page,
+[`?perm_solomon`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+gives the details and the simulation evidence.
 
 ## A likelihood-based alternative
 
@@ -612,7 +631,7 @@ classic
     ## Classic Solomon analysis (historical teaching workflow)
     ## -------------------------------------------------------
     ## Selected pretested-group method: Test E (ancova)
-    ## Historical decision path: A -> D -> E -> H -> I
+    ## Historical decision path (1988 flow): A -> D -> E -> H -> I
     ## 
     ## Historical Tests A-I
     ## --------------------
@@ -627,15 +646,19 @@ classic
     ##        Test F: Gain-score treatment effect                   F(1, 58) = 0.46, p = 0.499
     ##        Test G: Repeated-measures Treatment x Time interaction F(1, 58) = 0.46, p = 0.499
     ## [PATH] Test H: Posttest-only treatment effect                t(58) = 1.66, p = 0.103
-    ## [PATH] Test I: Braver & Braver (1988) Stouffer combination   Z = 1.69, p(one-tailed) = 0.045 [E + H (ANCOVA + posttest-only)]
+    ## [PATH] Test I: Walton Braver & Braver (1988) Stouffer combination Z = 1.69, p = 0.090 [E + H (ANCOVA + posttest-only)]
     ## 
     ## Historical interpretation
     ## -------------------------
-    ## Historical pathway: Test I produces a significant Stouffer combination. This result is retained for historical replication and should be interpreted in light of later Type I error critiques. 
+    ## Historical pathway: no treatment test in the selected A-I sequence reaches the specified alpha level. 
     ## 
     ## Groups 3-4 effect size: Hedges g = 0.423, 95% CI [-0.086, 0.938] (noncentral t)
     ## 
-    ## Caution: Test I, the Braver & Braver (1988) Stouffer combination, is
+    ## History/maturation check (historical; Mai et al., 2020)
+    ##   O6 - O1: control posttest vs. treated-group pretest: difference = 1.467, t(58) = 0.54, p = 0.590
+    ##   O6 - O3: control posttest vs. control-group pretest: difference = 1.533, t(58) = 0.61, p = 0.543
+    ## 
+    ## Caution: Test I, the Walton Braver & Braver (1988) Stouffer combination, is
     ## reproduced for historical teaching and replication. Later simulation
     ## work (see Sawilowsky et al., 1994) raised concerns about Type I error
     ## for the conditional meta-analytic sequence; it is not the default
@@ -762,10 +785,10 @@ with(
     ##   only); common residual variance; unpretested groups.
     ## 
     ## Not compared:
-    ## - perm_solomon(): Tests the sharp null hypothesis of no treatment effect for
-    ##   any participant; it does not estimate a contrast.
-    ## - Test I (Braver & Braver, 1988): Combines one-tailed p-values from two
-    ##   tests; it does not estimate a contrast.
+    ## - perm_solomon(): A randomization test of no treatment effect; it gives no
+    ##   interval for the contrast.
+    ## - Test I (Walton Braver & Braver, 1988): Combines one-tailed p-values from
+    ##   two tests; it does not estimate a contrast.
     ## - fit_solomon_sem_latent(): Estimates contrasts on a latent-variable scale,
     ##   not the observed posttest scale.
     ## - Hedges' g (fit_solomon_classic()): A standardized mean difference, not a
@@ -815,47 +838,66 @@ Planned additions include:
 See `ROADMAP.md` in the package repository for the current development
 plan.
 
+All works cited in solomonR are listed, with notes on how the package
+uses them, on the
+[References](https://juhalt.github.io/solomonR/articles/references.html)
+page.
+
 ## References
 
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard
 errors for linear regression with multi-stage samples. *Survey
-Methodology, 28*, 169-181.
+Methodology, 28*(2), 169–181.
+
+Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D.
+(1996). On design considerations and randomization-based inference for
+community intervention trials. *Statistics in Medicine, 15*(11),
+1069–1092.
+<https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
 
 Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
 standard error estimators in OLS regression: An introduction and
-software implementation. *Behavior Research Methods, 39*, 709-722.
+software implementation. *Behavior Research Methods, 39*(4), 709–722.
+<https://doi.org/10.3758/BF03192961>
+
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd
+ed.). Chapman and Hall/CRC. <https://doi.org/10.4324/9781315370286>
 
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality
-Science, 8*, 355-362.
+Science, 8*(4), 355–362. <https://doi.org/10.1177/1948550617697177>
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman’s critique. *The Annals of Applied
-Statistics, 7*, 295-318.
+Statistics, 7*(1), 295–318. <https://doi.org/10.1214/12-AOAS583>
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
 standard errors in the linear regression model. *The American
-Statistician, 54*, 217-224.
+Statistician, 54*(3), 217–224.
+<https://doi.org/10.1080/00031305.2000.10474549>
 
 MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
 covariance matrix estimators with improved finite sample properties.
-*Journal of Econometrics, 29*, 305-325.
+*Journal of Econometrics, 29*(3), 305–325.
+<https://doi.org/10.1016/0304-4076(85)90158-7>
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
-effects models. *Journal of Business & Economic Statistics, 36*,
-672-683.
+effects models. *Journal of Business & Economic Statistics, 36*(4),
+672–683. <https://doi.org/10.1080/07350015.2016.1247004>
 
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. *Biometrics Bulletin, 2*, 110-114.
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+<https://doi.org/10.2307/3002019>
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
-contrast analysis. *Psychological Methods, 9*, 164-182.
+contrast analysis. *Psychological Methods, 9*(2), 164–182.
+<https://doi.org/10.1037/1082-989X.9.2.164>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente.
 
 Welch, B. L. (1947). The generalization of “Student’s” problem when
-several different population variances are involved. *Biometrika, 34*,
-28-35.
+several different population variances are involved. *Biometrika,
+34*(1–2), 28–35. <https://doi.org/10.1093/biomet/34.1-2.28>

@@ -1,0 +1,263 @@
+# Coverage of the Published Methodology
+
+solomonR aims to capture the published methodology for the Solomon
+four-group design, from Solomon (1949) to the present. This page makes
+that aim checkable, source by source. For each work in the
+Solomon-design section of the
+[References](https://juhalt.github.io/solomonR/articles/references.md)
+page, it gives:
+
+- what the work contributes to the analysis of the design;
+- where solomonR implements or uses it;
+- its status.
+
+A check in the package’s repository (`tools/check-references.R`) fails
+if a work on the Solomon design is added to the bibliography without an
+entry here.
+
+The status column uses six labels:
+
+- **Historical.** The procedure is reproduced for teaching and
+  replication. It is not the recommended analysis.
+- **Implemented.** The procedure is available as a current method.
+- **Data.** The published data or numbers are bundled and reproduced.
+- **Evidence.** The empirical findings inform planning or guidance.
+- **Guidance.** The recommendations shape the package’s advice and
+  reports.
+- **Planned** or **Not yet reviewed.** An open issue tracks the work.
+
+## Foundations (1949–1973)
+
+| Source | Contribution to the analysis of the design | In solomonR | Status |
+|----|----|----|----|
+| Solomon (1949) | The three- and four-group designs. An inferred pretest for the unpretested groups, improvement scores, and the interaction term I (pp. 141–147). The fourth group shows the effect of outside events and time. | [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md), `solomon1949`; the history check of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md); every Solomon estimand | Historical; Data |
+| Campbell (1957) | The interaction of testing and treatment as sensitization (p. 302). The first recommendation of the 2 x 2 analysis of variance of the four posttests and of the t test of the unpretested control against the pretests, in place of the inferred-pretest gain analysis (p. 303). | Tests A–D and the history check of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md); the history article | Historical |
+| Lana (1959) | An attitude experiment with the Solomon design that found no pretest-by-treatment interaction, analyzed by a 2 x 2 analysis of variance of the posttest means (pp. 295–298). | `lana1959`, whose published ANOVA [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md) reproduces; the history article | Data (reproduced); Evidence |
+| Entwisle (1961) | Training experiments with pretested and unpretested pupils paired on sex and IQ: no overall pretest effect, but a Pretesting x IQ x Sex interaction (pp. 612–613). | The history article | Evidence |
+| Campbell & Stanley (1963/1966) | The design as Design 5 (p. 24). The 2 x 2 analysis of variance of the posttests, then an analysis of covariance of the pretested groups (p. 25). The unpretested control against the pretests as a check of history and maturation (p. 25). The static-group comparison (p. 12). | Tests A–D and the history check of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md); the caveat on nonrandomized designs in [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md) and [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md) | Historical |
+| Bracht & Glass (1968) | Pretest sensitization, posttest sensitization, and the timing of measurement as threats to external validity (p. 439); a review finding the pretest effect most likely with self-reported attitudes and personality (p. 463). | The history article | Evidence |
+| Lana (1969/2009) | A review of pretest sensitization: sensitization with pretests that involve learning or recall (pp. 101–103), an “overwhelming lack” of it with attitude pretests (pp. 103–104), and the 2 x 2 posttest analysis (pp. 99–100). | The history article | Evidence |
+| Solomon & Lessac (1968) | The four-group design in developmental studies: the inferred pretest judges absolute improvement or deterioration, and the interaction is a difference of differences in a 2 x 2 factorial (pp. 146–147). | The inferred pretest of [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md); the history article | Historical |
+| Huck & Sandler (1973) | The analysis of covariance of the pretested groups remains valid when pretesting has a main effect. After a significant interaction, the unpretested groups’ t test answers whether the treatment works (pp. 54–55). | Tests E and H of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md) | Historical |
+
+## The test sequence and its critics (1982–2000)
+
+| Source | Contribution to the analysis of the design | In solomonR | Status |
+|----|----|----|----|
+| Willson & Putnam (1982) | A meta-analysis of pretest effects and pretest-by-treatment interactions in 32 studies. | Planning values in “Planning a Solomon Study”; defaults discussed in [`simulate_solomon()`](https://juhalt.github.io/solomonR/reference/simulate_solomon.md) | Evidence |
+| Walton Braver & Braver (1988) | The Test A–I decision sequence, ending in a Stouffer combination of the pretested and unpretested comparisons (Test I). | `fit_solomon_classic(flow = "1988")`, [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md), [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md) | Historical |
+| Sawilowsky & Markman (1990a) | A counterexample in which Test I misses an effect that one of its component tests detects. | The history article | Evidence |
+| Braver & Walton Braver (1990) | The 1990 amendment: once Tests A and D are nonsignificant, every test through Test I is run. | `fit_solomon_classic(flow = "1990")` | Historical |
+| Sawilowsky & Markman (1990b) | The rejoinder, calling for systematic study of the procedure. | The history article | Evidence |
+| Sawilowsky et al. (1994) | Monte Carlo evidence of an inflated experiment-wise Type I error for the sequence. | Reproduced in “Historical Tests: Replicating the Published Error Rates”; the caution printed with Test I | Data (reproduced) |
+| Sawilowsky (1996) | Error rates with nonnormal data, the 1995 revision without Test D, and two methods of alpha allocation. | `fit_solomon_classic(flow = "1995", alpha_allocation = ...)`; reproduced in the replication article | Historical; Data (reproduced) |
+| Kvalem et al. (1996) | A cluster-randomized school trial with a binary outcome, analyzed at the individual level. | `kvalem1996`; tests of [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md) and [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md); the allocation in the cluster-level [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md) simulation | Data |
+| van Engelenburg (1999) | Full-information maximum likelihood for the design, treating the absent pretests as structurally missing. | [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md), validated by simulation | Implemented |
+| Sawilowsky (2000) | Rank-transform tests fail for interactions. | The reason the package has no rank-transform test of sensitization; [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md) is its distribution-free option | Guidance |
+
+## Recent work (2002–2025)
+
+| Source | Contribution to the analysis of the design | In solomonR | Status |
+|----|----|----|----|
+| McCarthy & Tucker (2002) | A nonrandomized eight-group design crossing two interventions with pretesting. | Not yet used | Planned ([\#45](https://github.com/JUhalt/solomonR/issues/45)) |
+| Morris (2008) | Effect sizes for pretest–posttest–control designs; the pooled-pretest-SD estimator and its variance. | [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md) for the pretested pair | Implemented |
+| Steyn (2009) | Analyses of four-, six-, and eight-group designs, as cited by Edmonds and Kennedy (2017). | Awaiting the article | Not yet reviewed ([\#45](https://github.com/JUhalt/solomonR/issues/45)) |
+| McCambridge et al. (2011) | A systematic review of Solomon studies of behavior change: too little evidence to settle whether assessment biases trials. | The getting-started guide and the planning, decision, and reporting articles | Evidence |
+| Edmonds & Kennedy (2017) | Solomon four-, six-, and eight-group designs, and the threats of nonrandomized designs (pp. 7–8, 93–101). | [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md); the nonrandomized wording of [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md); N-group designs planned | Guidance; Planned ([\#45](https://github.com/JUhalt/solomonR/issues/45)) |
+| Mai et al. (2020) | A randomized six-group design analyzed as overlapping four-group designs, with published individual data. | `mai2020` and the worked example, which reproduce its Tables 4, 5, and 7; the history check of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md) | Data; Historical |
+| French et al. (2021a) | The MERIT recommendations on measurement reactivity in trials, including when a Solomon design is warranted. | “Should I Use a Solomon Design?”; the history article | Guidance |
+| French et al. (2021b) | The full MERIT report, including its recommendations on reporting measurement in trials. | The measurement items of [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md); the reporting and decision articles | Guidance |
+| El Karkri et al. (2025a) | A classroom Solomon study with full cell statistics and one intact class per condition. | `elkarkri2025a`; tests of [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md) and [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md); the class–condition check of [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md) | Data |
+| El Karkri et al. (2025b) | An analysis path for categorical outcomes, judging sensitization by the significance of the two simple effects. | [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md), with the caution of Gelman and Stern (2006) | Historical |
+
+## What the package adds
+
+Some methods in solomonR are not specific to the Solomon design. The
+package applies general methods to the design’s estimands, and each
+function cites its sources:
+
+- one model for all four groups with robust standard errors
+  ([`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md));
+- randomization inference
+  ([`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md));
+- equivalence tests of sensitization
+  ([`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md));
+- latent-variable models and measurement invariance
+  ([`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
+  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md));
+- marginal contrasts for binary and count outcomes
+  ([`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md));
+- clustered designs;
+- multiple imputation of missing posttests, with a tipping-point
+  sensitivity analysis
+  ([`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md),
+  [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md));
+- designs with several posttest occasions
+  ([`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md));
+- planning
+  ([`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md),
+  [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)),
+  analysis plans for preregistration
+  ([`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)),
+  and reporting
+  ([`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)).
+
+These sources are in the “Methods references” section of the
+[References](https://juhalt.github.io/solomonR/articles/references.md)
+page, and “How to Cite solomonR and the Methods It Implements” lists
+them by function. Where the package combines methods in a way no source
+describes, the documentation labels the combination a solomonR
+extension. An example is
+[`simulate_solomon()`](https://juhalt.github.io/solomonR/reference/simulate_solomon.md),
+which adds a pretesting effect to the validated simulation model of
+[`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md).
+
+## Sources identified but not yet read
+
+One identified work has not yet been read: Steyn (2009), listed above,
+which has been requested through interlibrary loan. It is tracked in
+[\#80](https://github.com/JUhalt/solomonR/issues/80) and
+[\#45](https://github.com/JUhalt/solomonR/issues/45), and it is not
+cited as a source for any procedure until it has been read.
+
+## References
+
+Bracht, G. H., & Glass, G. V. (1968). The external validity of
+experiments. *American Educational Research Journal, 5*(4), 437–474.
+<https://doi.org/10.3102/00028312005004437>
+
+Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+four-group designs reconsidered: A reply to Sawilowsky and Markman.
+*Perceptual and Motor Skills, 71*(1), 321–322.
+<https://doi.org/10.2466/pms.1990.71.1.321>
+
+Campbell, D. T. (1957). Factors relevant to the validity of experiments
+in social settings. *Psychological Bulletin, 54*(4), 297–312.
+<https://doi.org/10.1037/h0040950>
+
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
+
+Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
+designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
+Publications. <https://doi.org/10.4135/9781071802779>
+
+El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact
+of pretest sensitisation and the cognitive acceleration through science
+education programme in the Solomon four-group design. *Brain Sciences,
+16*(1), Article 64. <https://doi.org/10.3390/brainsci16010064>
+
+El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025b). Methodological
+aspects of the Solomon four-group design: Detecting pre-test
+sensitisation and analysing qualitative and quantitative variables in
+education research. *Review of Education, 13*(1), Article e70050.
+<https://doi.org/10.1002/rev3.70050>
+
+Entwisle, D. R. (1961). Interactive effects of pretesting. *Educational
+and Psychological Measurement, 21*(3), 607–620.
+<https://doi.org/10.1177/001316446102100307>
+
+French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
+Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
+(2021a). Reducing bias in trials due to reactions to measurement:
+Experts produced recommendations informed by evidence. *Journal of
+Clinical Epidemiology, 139*, 130–139.
+<https://doi.org/10.1016/j.jclinepi.2021.06.028>
+
+French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M.,
+Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
+(2021b). Reducing bias in trials from reactions to measurement: The
+MERIT study including developmental work and expert workshop. *Health
+Technology Assessment, 25*(55), 1–72. <https://doi.org/10.3310/hta25550>
+
+Gelman, A., & Stern, H. (2006). The difference between “significant” and
+“not significant” is not itself statistically significant. *The American
+Statistician, 60*(4), 328–331.
+<https://doi.org/10.1198/000313006X152649>
+
+Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
+design: Appropriate statistical analyses. *The Journal of Experimental
+Education, 42*(2), 54–55.
+<https://doi.org/10.1080/00220973.1973.11011460>
+
+Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., &
+Bakketeig, L. S. (1996). The effect of sex education on adolescents’ use
+of condoms: Applying the Solomon four-group design. *Health Education
+Quarterly, 23*(1), 34–47. <https://doi.org/10.1177/109019819602300103>
+
+Lana, R. E. (1959). Pretest-treatment interaction effects in attitudinal
+studies. *Psychological Bulletin, 56*(4), 293–300.
+<https://doi.org/10.1037/h0044646>
+
+Lana, R. E. (2009). Pretest sensitization. In R. Rosenthal & R. L.
+Rosnow, *Artifacts in behavioral research: Robert Rosenthal and Ralph L.
+Rosnow’s classic books* (pp. 93–109). Oxford University Press.
+<https://doi.org/10.1093/acprof:oso/9780195385540.003.0004> (Original
+work published 1969)
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
+of transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
+
+McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011).
+Can research assessments themselves cause bias in behaviour change
+trials? A systematic review of evidence from Solomon 4-group studies.
+*PLoS ONE, 6*(10), Article e25223.
+<https://doi.org/10.1371/journal.pone.0025223>
+
+McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+through service learning. *Journal of Management Education, 26*(6),
+629–647. <https://doi.org/10.1177/1052562902238322>
+
+Morris, S. B. (2008). Estimating effect sizes from
+pretest-posttest-control group designs. *Organizational Research
+Methods, 11*(2), 364–386. <https://doi.org/10.1177/1094428106291059>
+
+Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I
+error of meta-analysis in the Solomon four-group design* \[Paper
+presentation\]. First International Conference on Multiple Comparisons,
+Tel Aviv, Israel. <https://digitalcommons.wayne.edu/coe_tbf/29/>
+
+Sawilowsky, S. S. (2000). Review of the rank transform in designed
+experiments. *Perceptual and Motor Skills, 90*(2), 489–497.
+<https://doi.org/10.2466/pms.2000.90.2.489>
+
+Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
+Meta-analysis and the Solomon four-group design. *The Journal of
+Experimental Education, 62*(4), 361–376.
+<https://doi.org/10.1080/00220973.1994.9944140>
+
+Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power
+of meta-analysis in the Solomon four-group design. *Perceptual and Motor
+Skills, 71*(1), 177–178. <https://doi.org/10.2466/pms.1990.71.1.177>
+
+Sawilowsky, S. S., & Markman, B. S. (1990b). Rejoinder to Braver and
+Walton Braver. *Perceptual and Motor Skills, 71*(2), 424–426.
+<https://doi.org/10.2466/pms.1990.71.2.424>
+
+Solomon, R. L. (1949). An extension of control group design.
+*Psychological Bulletin, 46*(2), 137–150.
+<https://doi.org/10.1037/h0062958>
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. *Psychological
+Bulletin, 70*(3, Pt. 1), 145–150. <https://doi.org/10.1037/h0026147>
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+<https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
+
+van Engelenburg, G. (1999). *Statistical analysis for the Solomon
+four-group design* (Research Report 99-06). University of Twente.
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
+the Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154.
+<https://doi.org/10.1037/0033-2909.104.1.150>
+
+Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
+sensitization effects in experimental design. *American Educational
+Research Journal, 19*(2), 249–258.
+<https://doi.org/10.3102/00028312019002249>

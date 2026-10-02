@@ -1,26 +1,27 @@
 # Equivalence test for a Solomon contrast
 
-Tests whether a Solomon contrast, by default the Pretest x Treatment
-(sensitization) contrast, is small enough to be considered negligible,
-using the two one-sided tests (TOST) procedure (Schuirmann, 1987;
-Lakens, 2017). A nonsignificant sensitization test is not evidence that
-sensitization is absent; an equivalence test against a prespecified
+**\[stable\]** Tests whether a Solomon contrast, by default the Pretest
+x Treatment (sensitization) contrast, is small enough to be considered
+negligible, using the two one-sided tests (TOST) procedure (Schuirmann,
+1987; Lakens, 2017). A nonsignificant sensitization test is not evidence
+that sensitization is absent; an equivalence test against a prespecified
 smallest effect size of interest (SESOI) can provide that evidence.
 
 ## Usage
 
 ``` r
 equivalence_solomon(
-  object,
+  fit,
   bounds,
   contrast = "Pretest x Treatment",
-  alpha = 0.05
+  alpha = 0.05,
+  object = deprecated()
 )
 ```
 
 ## Arguments
 
-- object:
+- fit:
 
   A fit from
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
@@ -41,6 +42,10 @@ equivalence_solomon(
 - alpha:
 
   Significance level for each one-sided test. Default is 0.05.
+
+- object:
+
+  **\[deprecated\]** Use `fit`.
 
 ## Value
 
@@ -104,20 +109,22 @@ effect size of interest in that direction (a minimum-effect test; Murphy
 
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality
-Science, 8*(4), 355-362.
+Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177
 
 Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing
 for psychological research: A tutorial. *Advances in Methods and
-Practices in Psychological Science, 1*(2), 259-269.
+Practices in Psychological Science, 1*(2), 259–269.
+https://doi.org/10.1177/2515245918770963
 
 Murphy, K. R., & Myors, B. (1999). Testing the hypothesis that
 treatments have negligible effects: Minimum-effect tests in the general
-linear model. *Journal of Applied Psychology, 84*(2), 234-248.
+linear model. *Journal of Applied Psychology, 84*(2), 234–248.
+https://doi.org/10.1037/0021-9010.84.2.234
 
 Schuirmann, D. J. (1987). A comparison of the two one-sided tests
 procedure and the power approach for assessing the equivalence of
 average bioavailability. *Journal of Pharmacokinetics and
-Biopharmaceutics, 15*(6), 657-680.
+Biopharmaceutics, 15*(6), 657–680. https://doi.org/10.1007/BF01068419
 
 ## Examples
 

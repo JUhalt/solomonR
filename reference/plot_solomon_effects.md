@@ -1,10 +1,10 @@
 # Forest plot of the Solomon contrasts
 
-Plots the four Solomon contrasts from a fitted model: the average
-treatment effect across pretest conditions, the Pretest x Treatment
-sensitization contrast, and the treatment effects among pretested and
-unpretested participants, each with its confidence interval and a
-reference line at zero.
+**\[stable\]** Plots the four Solomon contrasts from a fitted model: the
+average treatment effect across pretest conditions, the Pretest x
+Treatment sensitization contrast, and the treatment effects among
+pretested and unpretested participants, each with its confidence
+interval and a reference line at zero.
 
 ## Usage
 

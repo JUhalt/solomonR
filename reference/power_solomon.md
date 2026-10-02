@@ -1,8 +1,8 @@
 # Power simulation for Solomon designs
 
-Simulates normally distributed Solomon four-group data and reports the
-rejection rate of each Solomon test at the chosen `alpha`, with its
-Monte Carlo standard error.
+**\[stable\]** Simulates normally distributed Solomon four-group data
+and reports the rejection rate of each Solomon test at the chosen
+`alpha`, with its Monte Carlo standard error.
 
 ## Usage
 
@@ -10,12 +10,12 @@ Monte Carlo standard error.
 power_solomon(
   n = 50,
   delta = 0.3,
-  rho = 0.5,
   sens = 0,
+  rho = 0.5,
   sigma = 1,
+  alpha = 0.05,
   sims = 2000,
   stouffer = TRUE,
-  alpha = 0.05,
   seed = NULL
 )
 ```
@@ -34,18 +34,22 @@ power_solomon(
   Treatment effect among unpretested participants, on the posttest
   scale.
 
-- rho:
-
-  Pretest-posttest correlation among pretested participants.
-
 - sens:
 
   Sensitization: the additional treatment effect among pretested
   participants (0 = none).
 
+- rho:
+
+  Pretest-posttest correlation among pretested participants.
+
 - sigma:
 
   Posttest residual standard deviation in all cells.
+
+- alpha:
+
+  Significance level. Default is 0.05.
 
 - sims:
 
@@ -53,13 +57,12 @@ power_solomon(
 
 - stouffer:
 
-  Logical; if `TRUE`, also report the historical Test I rejection rate,
-  evaluated one-tailed (treatment \> control) as in
-  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md).
-
-- alpha:
-
-  Significance level. Default is 0.05.
+  Logical; if `TRUE`, also report the historical Test I rejection rate:
+  one-tailed p-values in the direction treatment \> control are
+  combined, and the combined z is judged by its two-tailed p-value, as
+  in
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  and Walton Braver and Braver's (1988, p. 153) worked example.
 
 - seed:
 
@@ -93,8 +96,7 @@ Tests are computed from the same functions users would call, so reported
 power reflects the package's default inference:
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
 with HC3 standard errors and t reference distributions, the 2x2 ANOVA
-interaction, and the historical one-tailed Test I (Braver & Braver,
-1988).
+interaction, and the historical Test I (Walton Braver & Braver, 1988).
 
 ## Validation
 
@@ -123,32 +125,46 @@ package website reports the study in full.
 With 20 or fewer participants per cell, treat GLM-based power as a
 conservative figure rather than an exact one.
 
-## References
+Only continuous outcomes are simulated. Binary and count outcomes are
+not supported; for binary outcomes see
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+and its simulation validation on issue \#43.
 
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. *Psychological
-Bulletin, 104*(1), 150-154.
+The arguments follow the order of
+[`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+and
+[`plot_power_solomon()`](https://juhalt.github.io/solomonR/reference/plot_power_solomon.md):
+`n`, `delta`, `sens`, `rho`, `sigma`, `alpha`. Before solomonR 0.9.0,
+`rho` came before `sens` and `alpha` came last, so a call that passes
+these by position gets a warning that it was read in the new order.
+Naming the arguments avoids the ambiguity.
+
+## References
 
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine,
-38*(11), 2074-2102.
+38*(11), 2074–2102. https://doi.org/10.1002/sim.8086
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
+the Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 
 ## Examples
 
 ``` r
 power_solomon(n = 30, delta = 0.5, sens = 0.2, sims = 50, seed = 1)
-#>                  estimand                           test true_effect power
-#> 1  ATE (avg over pretest)                   GLM (HC3, t)         0.6  0.90
-#> 2     Pretest x Treatment                   GLM (HC3, t)         0.2  0.12
-#> 3   Treatment | pretested                   GLM (HC3, t)         0.7  0.80
-#> 4 Treatment | unpretested                   GLM (HC3, t)         0.5  0.52
-#> 5     Pretest x Treatment          2x2 ANOVA interaction         0.2  0.08
-#> 6   Treatment (one-sided) Test I (Braver & Braver, 1988)          NA  0.96
-#>         mcse sims failures alpha
-#> 1 0.04242641   50        0  0.05
-#> 2 0.04595650   50        0  0.05
-#> 3 0.05656854   50        0  0.05
-#> 4 0.07065409   50        0  0.05
-#> 5 0.03836665   50        0  0.05
-#> 6 0.02771281   50        0  0.05
+#>                  estimand                                  test true_effect
+#> 1  ATE (avg over pretest)                          GLM (HC3, t)         0.6
+#> 2     Pretest x Treatment                          GLM (HC3, t)         0.2
+#> 3   Treatment | pretested                          GLM (HC3, t)         0.7
+#> 4 Treatment | unpretested                          GLM (HC3, t)         0.5
+#> 5     Pretest x Treatment                 2x2 ANOVA interaction         0.2
+#> 6   Treatment (one-sided) Test I (Walton Braver & Braver, 1988)          NA
+#>   power       mcse sims failures alpha
+#> 1  0.90 0.04242641   50        0  0.05
+#> 2  0.12 0.04595650   50        0  0.05
+#> 3  0.80 0.05656854   50        0  0.05
+#> 4  0.52 0.07065409   50        0  0.05
+#> 5  0.08 0.03836665   50        0  0.05
+#> 6  0.92 0.03836665   50        0  0.05
 ```

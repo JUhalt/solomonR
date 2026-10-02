@@ -7,6 +7,34 @@ explains where each recommendation comes from. For the full origin,
 assumptions, and limitations of every method, see
 [`vignette("solomon-methods")`](https://juhalt.github.io/solomonR/articles/solomon-methods.md).
 
+## The path through a Solomon study
+
+This guide covers the analysis. The steps before and after it each have
+their own article:
+
+1.  **Decide** whether a Solomon design suits the question: [Should I
+    Use a Solomon
+    Design?](https://juhalt.github.io/solomonR/articles/should-i-use-a-solomon-design.html)
+2.  **Plan** the sample size: [Planning a Solomon
+    Study](https://juhalt.github.io/solomonR/articles/planning.html)
+3.  **Analyze** the data: this guide, with the details of every method
+    in
+    [`vignette("solomon-methods")`](https://juhalt.github.io/solomonR/articles/solomon-methods.md).
+4.  **Report** the design, the estimates, and the references: [Reporting
+    a Solomon
+    Study](https://juhalt.github.io/solomonR/articles/reporting.html)
+5.  **Synthesize** published studies: [Reanalysis and
+    Synthesis](https://juhalt.github.io/solomonR/articles/synthesis.html)
+
+The historical analysis has its own place:
+
+- [A History of the Solomon Design and Its
+  Analysis](https://juhalt.github.io/solomonR/articles/history.html)
+  tells how it developed.
+- [`vignette("classic-solomon")`](https://juhalt.github.io/solomonR/articles/classic-solomon.md)
+  shows how to reproduce it. It is kept for teaching and replication,
+  not recommended for new studies.
+
 ``` r
 
 library(solomonR)
@@ -75,6 +103,14 @@ head(solomon_example)
 Pretest scores are missing for Groups 3 and 4 by design: those
 participants never took the pretest.
 
+Every analysis function takes the same data arguments, in the same
+order: the posttest `y_post`, the treatment indicator `treat` (1 =
+treatment), the pretest indicator `pretested` (1 = pretested), and the
+pretest `y_pre`. Pass them as vectors, or give a data frame as `data`
+and name its columns. The columns need not have these names: with your
+own data you might write
+`fit_solomon_glm(score2, group, took_pretest, score1, data = mydata)`.
+
 ## Step 1: Check the design
 
 Before fitting a model, confirm that all four groups are present, the
@@ -83,10 +119,7 @@ expect.
 
 ``` r
 
-with(
-  solomon_example,
-  validate_solomon(y_post, treat, pretested, y_pre)
-)
+validate_solomon(y_post, treat, pretested, y_pre, data = solomon_example)
 #> Solomon design validation: no errors found
 #> 
 #>  Group                   Cell  n Post missing Pre absent (design) Pre missing
@@ -112,10 +145,7 @@ their own supported responses (White & Thompson, 2005; Little & Rubin,
 
 ``` r
 
-with(
-  solomon_example,
-  check_solomon_missing(y_post, treat, pretested, y_pre)
-)
+check_solomon_missing(y_post, treat, pretested, y_pre, data = solomon_example)
 #> Solomon missingness check
 #> Pattern: structural pretest absence only (expected in a Solomon design)
 #> 
@@ -142,38 +172,37 @@ with(
 ```
 
 A schematic of the design, in the notation of Campbell and Stanley
-(1963), shows each group’s size and posttest mean, and flags any group
-that is empty or too small to estimate its variability:
+(1963/1966), shows each group’s size and posttest mean, and flags any
+group that is empty or too small to estimate its variability:
 
 ``` r
 
-with(solomon_example, plot_solomon_design(y_post, treat, pretested))
+plot_solomon_design(y_post, treat, pretested, data = solomon_example)
 ```
 
-![](getting-started_files/figure-html/design-plot-1.png)
+![Diagram of the four Solomon groups, showing each group's size and
+posttest mean.](getting-started_files/figure-html/design-plot-1.png)
 
 ## Step 2: See how the design was analyzed historically
 
 Early treatments of the design analyzed posttest scores with a
 two-by-two analysis of variance and moved on to further tests depending
-on which earlier tests were significant (Campbell & Stanley, 1963; Huck
-& Sandler, 1973). Braver and Braver (1988) added a meta-analytic
-combination, Test I.
+on which earlier tests were significant (Campbell & Stanley, 1963/1966,
+p. 25; Huck & Sandler, 1973). Walton Braver and Braver (1988) added a
+meta-analytic combination, Test I.
 [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
 reproduces this sequence and marks the tests the historical path reaches
 with `[PATH]`.
 
 ``` r
 
-classic <- with(
-  solomon_example,
-  fit_solomon_classic(y_post, treat, pretested, y_pre)
-)
+classic <- fit_solomon_classic(y_post, treat, pretested, y_pre,
+                               data = solomon_example)
 classic
 #> Classic Solomon analysis (historical teaching workflow)
 #> -------------------------------------------------------
 #> Selected pretested-group method: Test E (ancova)
-#> Historical decision path: A -> D -> E -> H -> I
+#> Historical decision path (1988 flow): A -> D -> E -> H -> I
 #> 
 #> Historical Tests A-I
 #> --------------------
@@ -188,15 +217,19 @@ classic
 #>        Test F: Gain-score treatment effect                   F(1, 58) = 0.46, p = 0.499
 #>        Test G: Repeated-measures Treatment x Time interaction F(1, 58) = 0.46, p = 0.499
 #> [PATH] Test H: Posttest-only treatment effect                t(58) = 1.66, p = 0.103
-#> [PATH] Test I: Braver & Braver (1988) Stouffer combination   Z = 1.69, p(one-tailed) = 0.045 [E + H (ANCOVA + posttest-only)]
+#> [PATH] Test I: Walton Braver & Braver (1988) Stouffer combination Z = 1.69, p = 0.090 [E + H (ANCOVA + posttest-only)]
 #> 
 #> Historical interpretation
 #> -------------------------
-#> Historical pathway: Test I produces a significant Stouffer combination. This result is retained for historical replication and should be interpreted in light of later Type I error critiques. 
+#> Historical pathway: no treatment test in the selected A-I sequence reaches the specified alpha level. 
 #> 
 #> Groups 3-4 effect size: Hedges g = 0.423, 95% CI [-0.086, 0.938] (noncentral t)
 #> 
-#> Caution: Test I, the Braver & Braver (1988) Stouffer combination, is
+#> History/maturation check (historical; Mai et al., 2020)
+#>   O6 - O1: control posttest vs. treated-group pretest: difference = 1.467, t(58) = 0.54, p = 0.590
+#>   O6 - O3: control posttest vs. control-group pretest: difference = 1.533, t(58) = 0.61, p = 0.543
+#> 
+#> Caution: Test I, the Walton Braver & Braver (1988) Stouffer combination, is
 #> reproduced for historical teaching and replication. Later simulation
 #> work (see Sawilowsky et al., 1994) raised concerns about Type I error
 #> for the conditional meta-analytic sequence; it is not the default
@@ -226,10 +259,7 @@ freedom.
 
 ``` r
 
-fit <- with(
-  solomon_example,
-  fit_solomon_glm(y_post, treat, pretested, y_pre)
-)
+fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 fit
 #> Solomon GLM (unified model)
 #> Formula: y ~ treat * pretested + pre_obs
@@ -329,7 +359,10 @@ plot_power_solomon(
 )
 ```
 
-![](getting-started_files/figure-html/power-curves-1.png)
+![Power curves for the average treatment effect and the two simple
+treatment effects across sample sizes, with crosses marking the designs
+that reach 90%
+power.](getting-started_files/figure-html/power-curves-1.png)
 
 ## Step 4: Ask whether sensitization is negligible
 
@@ -380,7 +413,10 @@ estimate above. Hollow points show the observed means:
 plot_sensitization(fit, bounds = 5)
 ```
 
-![](getting-started_files/figure-html/sensitization-plot-1.png)
+![Model-based posttest means by treatment for pretested and unpretested
+participants, with observed means as hollow points and the equivalence
+bounds for the
+interaction.](getting-started_files/figure-html/sensitization-plot-1.png)
 
 A forest plot shows all four Solomon contrasts at once, with the
 equivalence bounds shaded on the sensitization row:
@@ -390,7 +426,9 @@ equivalence bounds shaded on the sensitization row:
 plot_solomon_effects(fit, bounds = 5)
 ```
 
-![](getting-started_files/figure-html/effects-plot-1.png)
+![Forest plot of the four Solomon contrasts with 95% intervals, with the
+equivalence bounds shaded on the sensitization
+row.](getting-started_files/figure-html/effects-plot-1.png)
 
 The sensitization interval extends beyond the shaded band, so these data
 cannot rule out sensitization as large as 5 points. The figure shows the
@@ -407,12 +445,10 @@ target (Lin, 2013).
 
 ``` r
 
-with(
-  solomon_example,
-  compare_solomon_methods(
-    y_post, treat, pretested, y_pre,
-    methods = c("glm", "ml", "classic")
-  )
+compare_solomon_methods(
+  y_post, treat, pretested, y_pre,
+  methods = c("glm", "ml", "classic"),
+  data = solomon_example
 )
 #> Solomon method comparison (continuous posttest; treatment minus control)
 #> All rows target the same population contrasts; they differ in pretest
@@ -474,10 +510,10 @@ with(
 #>   only); common residual variance; unpretested groups.
 #> 
 #> Not compared:
-#> - perm_solomon(): Tests the sharp null hypothesis of no treatment effect for
-#>   any participant; it does not estimate a contrast.
-#> - Test I (Braver & Braver, 1988): Combines one-tailed p-values from two
-#>   tests; it does not estimate a contrast.
+#> - perm_solomon(): A randomization test of no treatment effect; it gives no
+#>   interval for the contrast.
+#> - Test I (Walton Braver & Braver, 1988): Combines one-tailed p-values from
+#>   two tests; it does not estimate a contrast.
 #> - fit_solomon_sem_latent(): Estimates contrasts on a latent-variable scale,
 #>   not the observed posttest scale.
 #> - Hedges' g (fit_solomon_classic()): A standardized mean difference, not a
@@ -494,10 +530,7 @@ option:
 
 ``` r
 
-ml <- with(
-  solomon_example,
-  fit_solomon_ml(y_post, treat, pretested, y_pre)
-)
+ml <- fit_solomon_ml(y_post, treat, pretested, y_pre, data = solomon_example)
 #> Warning: The smallest Solomon cell has 30 participants. In the package's
 #> simulation validation, maximum-likelihood Wald intervals were too narrow with
 #> fewer than 40 participants per cell. Consider inference = "satterthwaite", or
@@ -507,10 +540,8 @@ ml <- with(
 
 ``` r
 
-ml_small <- with(
-  solomon_example,
-  fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "satterthwaite")
-)
+ml_small <- fit_solomon_ml(y_post, treat, pretested, y_pre,
+                           inference = "satterthwaite", data = solomon_example)
 ml_small
 #> Solomon full-information maximum-likelihood model
 #> -------------------------------------------------
@@ -547,7 +578,52 @@ confidence interval, and how sensitization was assessed. For these data:
 > CI \[-8.2, 4.3\]. An equivalence test against a prespecified smallest
 > effect of interest of 5 points was inconclusive.
 
-An automated reporting helper is planned for a later release.
+[`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+drafts such a paragraph, with the APA 7 references for exactly the
+methods the analysis used. What was pre-specified must be supplied; the
+helper never infers it, and the interpretation remains yours:
+
+``` r
+
+report_solomon(fit, design = list(prespecified = TRUE))
+#> The design was a Solomon four-group design (Solomon, 1949), with 30, 30, 30,
+#> and 30 participants analyzed in the pretested treatment, pretested control,
+#> unpretested treatment, and unpretested control groups, respectively. The
+#> analysis of pretest sensitization was pre-specified.
+#> 
+#> Posttest outcomes were analyzed with a linear model containing treatment,
+#> pretesting, and their interaction, adjusting for the pretest score among
+#> pretested participants (Lin, 2013), with HC3 heteroskedasticity-consistent
+#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).
+#> 
+#> The average treatment effect across pretest conditions was 2.66, 95% CI
+#> [-0.47, 5.80], t(115) = 1.68, p = .095.
+#> The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI
+#> [-8.21, 4.33], t(115) = -0.61, p = .541.
+#> The treatment effect among pretested participants was 1.69, 95% CI [-2.76,
+#> 6.15], t(115) = 0.75, p = .453.
+#> The treatment effect among unpretested participants was 3.63, 95% CI [-0.78,
+#> 8.05], t(115) = 1.63, p = .106.
+#> 
+#> References
+#> 
+#> Lin, W. (2013). Agnostic notes on regression adjustments to experimental
+#>     data: Reexamining Freedman's critique. The Annals of Applied Statistics,
+#>     7(1), 295–318. https://doi.org/10.1214/12-AOAS583
+#> 
+#> Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+#>     standard errors in the linear regression model. The American
+#>     Statistician, 54(3), 217–224.
+#>     https://doi.org/10.1080/00031305.2000.10474549
+#> 
+#> MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+#>     covariance matrix estimators with improved finite sample properties.
+#>     Journal of Econometrics, 29(3), 305–325.
+#>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Solomon, R. L. (1949). An extension of control group design. Psychological
+#>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
+```
 
 ## A second example: when estimators disagree
 
@@ -561,10 +637,8 @@ pretest and posttest are slightly *negatively* correlated.
 ``` r
 
 data(solomon_demo)
-demo_classic <- with(
-  solomon_demo,
-  fit_solomon_classic(y_post, treat, pretested, y_pre)
-)
+demo_classic <- fit_solomon_classic(y_post, treat, pretested, y_pre,
+                                    data = solomon_demo)
 data.frame(
   analysis = c("Unadjusted (Test B)", "ANCOVA (Test E)", "Gain score (Test F)"),
   estimate = round(c(
@@ -591,10 +665,13 @@ gains.
 
 | Goal | Function | Why |
 |----|----|----|
+| Plan the study and register its analysis | [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md), [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md) | Sample size, then an editable plan for preregistration |
 | Check coding, groups, and missing data | [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md), [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md) | Catch problems before modeling |
 | Primary analysis of a continuous outcome | [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md) | One prespecified model with explicit contrasts and HC3 standard errors |
 | Participants nested in classrooms or sites | `fit_solomon_glm(robust = "CR2", cluster = ...)` | Cluster-robust small-sample tests (Pustejovsky & Tipton, 2018) |
 | Test whether sensitization is negligible | [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md) | A nonsignificant test is not evidence of absence |
+| Missing posttests | [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md), [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md) | How far missing posttests would have to depart from missing at random to change a conclusion |
+| Posttests on several occasions | [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md) | Valid when participants drop out depending on earlier scores |
 | Inference that rests only on random assignment | [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md) | Randomization test of no treatment effect |
 | Likelihood-based analysis | [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md) | Separate residual variances; use `inference = "satterthwaite"` with small groups |
 | Outcomes measured by several items | [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md) | Latent contrasts under measurement invariance |
@@ -606,11 +683,11 @@ gains.
 **Historical sources**
 
 - Solomon (1949) introduced the design and the problem it solves.
-- Campbell and Stanley (1963) placed it among the true experimental
-  designs and described the posttest analysis of variance followed by
-  ANCOVA.
+- Campbell and Stanley (1963/1966, pp. 13, 24–25) placed it among the
+  true experimental designs and described the posttest analysis of
+  variance followed by ANCOVA.
 - Huck and Sandler (1973) discussed appropriate analyses for the design.
-- Braver and Braver (1988) proposed combining the pretested and
+- Walton Braver and Braver (1988) proposed combining the pretested and
   unpretested comparisons with Stouffer’s method (Test I).
 - Sawilowsky et al. (1994) showed by simulation that the conditional
   sequence ending in Test I inflates experiment-wise Type I error.
@@ -632,70 +709,86 @@ gains.
 - McCambridge et al. (2011) review the empirical evidence on whether
   research assessments sensitize participants.
 
+All works cited in solomonR are listed, with notes on how the package
+uses them, on the
+[References](https://juhalt.github.io/solomonR/articles/references.html)
+page.
+
 ## References
 
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. *Psychological
-Bulletin, 104*, 150-154.
-
-Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
-quasi-experimental designs for research*. Rand McNally.
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
 
 Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
 standard error estimators in OLS regression: An introduction and
-software implementation. *Behavior Research Methods, 39*, 709-722.
+software implementation. *Behavior Research Methods, 39*(4), 709–722.
+<https://doi.org/10.3758/BF03192961>
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
-Education, 42*, 54-55.
+Education, 42*(2), 54–55.
+<https://doi.org/10.1080/00220973.1973.11011460>
 
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality
-Science, 8*, 355-362.
+Science, 8*(4), 355–362. <https://doi.org/10.1177/1948550617697177>
 
 Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing
 for psychological research: A tutorial. *Advances in Methods and
-Practices in Psychological Science, 1*, 259-269.
+Practices in Psychological Science, 1*(2), 259–269.
+<https://doi.org/10.1177/2515245918770963>
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman’s critique. *The Annals of Applied
-Statistics, 7*, 295-318.
+Statistics, 7*(1), 295–318. <https://doi.org/10.1214/12-AOAS583>
 
 Little, R. J. A., & Rubin, D. B. (2019). *Statistical analysis with
-missing data* (3rd ed.). Wiley.
+missing data* (3rd ed.). Wiley. <https://doi.org/10.1002/9781119482260>
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
 standard errors in the linear regression model. *The American
-Statistician, 54*, 217-224.
+Statistician, 54*(3), 217–224.
+<https://doi.org/10.1080/00031305.2000.10474549>
 
 Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your
 estimand? Defining the target quantity connects statistical evidence to
-theory. *American Sociological Review, 86*, 532-565.
+theory. *American Sociological Review, 86*(3), 532–565.
+<https://doi.org/10.1177/00031224211004187>
 
 McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011).
 Can research assessments themselves cause bias in behaviour change
 trials? A systematic review of evidence from Solomon 4-group studies.
-*PLoS ONE, 6*(10), e25223.
+*PLoS ONE, 6*(10), Article e25223.
+<https://doi.org/10.1371/journal.pone.0025223>
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
-effects models. *Journal of Business & Economic Statistics, 36*,
-672-683.
+effects models. *Journal of Business & Economic Statistics, 36*(4),
+672–683. <https://doi.org/10.1080/07350015.2016.1247004>
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
-Experimental Education, 62*, 361-376.
+Experimental Education, 62*(4), 361–376.
+<https://doi.org/10.1080/00220973.1994.9944140>
 
 Solomon, R. L. (1949). An extension of control group design.
-*Psychological Bulletin, 46*, 137-150.
+*Psychological Bulletin, 46*(2), 137–150.
+<https://doi.org/10.1037/h0062958>
+
+Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had
+more power in randomized studies and more bias in nonrandomized studies.
+*Journal of Clinical Epidemiology, 59*(9), 920–925.
+<https://doi.org/10.1016/j.jclinepi.2006.02.007>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente.
 
-Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had
-more power in randomized studies and more bias in nonrandomized studies.
-*Journal of Clinical Epidemiology, 59*, 920-925.
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
+the Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154.
+<https://doi.org/10.1037/0033-2909.104.1.150>
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. *Statistics in Medicine,
-24*, 993-1007.
+24*(7), 993–1007. <https://doi.org/10.1002/sim.1981>

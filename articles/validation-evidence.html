@@ -33,17 +33,52 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Decide</h6></li>
+    <li><a class="dropdown-item" href="../articles/should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plan</h6></li>
+    <li><a class="dropdown-item" href="../articles/planning.html">Planning a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
     <li><a class="dropdown-item" href="../articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
+    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
+    <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Synthesize</h6></li>
+    <li><a class="dropdown-item" href="../articles/synthesis.html">Reanalysis and Synthesis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Teach</h6></li>
+    <li><a class="dropdown-item" href="../articles/teaching.html">Teaching with solomonR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>History</h6></li>
+    <li><a class="dropdown-item" href="../articles/history.html">A History of the Solomon Design and Its Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
-    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Validation evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></li>
+    <li><a class="dropdown-item" href="../articles/classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></li>
+    <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
+    <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
+    <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
+    <li><a class="dropdown-item" href="../articles/coverage.html">Coverage of the Published Methodology</a></li>
+    <li><a class="dropdown-item" href="../articles/citing.html">How to Cite solomonR and the Methods It Implements</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -86,20 +121,21 @@ before any results were examined;</li>
 article.</li>
 </ul>
 <p>The evidence covers the scenarios each study examined. It is not a
-validation of every Solomon design: non-normal errors, clustered
-assignment, binary and count outcomes, and incidental missing data are
-outside every study below unless a study says otherwise.</p>
+validation of every Solomon design: non-normal continuous errors and
+incidental missing data are outside every study below unless a study
+says otherwise. Binary and count outcomes, and cluster-randomized
+designs, are covered by their own studies.</p>
 <div class="section level2">
 <h2 id="studies">Studies<a class="anchor" aria-label="anchor" href="#studies"></a>
 </h2>
 <table class="table">
 <colgroup>
-<col width="19%">
-<col width="4%">
-<col width="5%">
-<col width="23%">
-<col width="40%">
-<col width="6%">
+<col width="13%">
+<col width="2%">
+<col width="2%">
+<col width="21%">
+<col width="57%">
+<col width="2%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Study</th>
@@ -126,8 +162,125 @@ rates from power_solomon()</a></td>
 <td align="left"><a href="https://github.com/JUhalt/solomonR/issues/18" class="external-link">#18</a></td>
 <td align="right">126</td>
 <td align="left">5000 under the complete null; 2000 elsewhere</td>
-<td align="left">GLM (HC3, t)<br>2x2 ANOVA interaction<br>Test I (Braver
-&amp; Braver, 1988)</td>
+<td align="left">GLM (HC3, t)<br>2x2 ANOVA interaction<br>Test I (Walton
+Braver &amp; Braver, 1988)</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/plan-validation.html">Designs
+from plan_solomon()</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/24" class="external-link">#24</a></td>
+<td align="right">56</td>
+<td align="left">2000 per planned design</td>
+<td align="left">plan_solomon() analytic plans<br>GLM (HC3, t)</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/binary-validation.html">Binary
+outcomes: marginal_solomon()</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/43" class="external-link">#43</a></td>
+<td align="right">48</td>
+<td align="left">2000 per scenario; 999 bootstrap resamples</td>
+<td align="left">marginal_solomon(), cell-stratified
+bootstrap<br>marginal_solomon(), delta method
+(HC3)<br>marginal_solomon() without the pretest, delta method
+(HC3)<br>fit_solomon_glm(family = binomial())<br>fisher_solomon()</td>
+<td align="right">3758</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/count-validation.html">Count
+outcomes: Poisson fits and marginal_solomon()</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/44" class="external-link">#44</a></td>
+<td align="right">96</td>
+<td align="left">2000 per scenario</td>
+<td align="left">fit_solomon_glm(family = poisson()),
+HC3<br>fit_solomon_glm(family = poisson()),
+model-based<br>marginal_solomon(), delta method (HC3)</td>
+<td align="right">21</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/cluster-validation.html">Clustered
+designs: cluster-level randomization inference</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/19" class="external-link">#19</a></td>
+<td align="right">96</td>
+<td align="left">2000 per scenario; 999 permutations per test, or every
+allocation when there are at most 999</td>
+<td align="left">perm_solomon(), whole clusters,
+studentized<br>perm_solomon(), whole clusters,
+difference<br>fit_solomon_glm(robust = “CR2”), Satterthwaite t</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/count-validation.html#the-negative-binomial-option">Count
+outcomes: the negative-binomial option</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/62" class="external-link">#62</a></td>
+<td align="right">96</td>
+<td align="left">2000 per scenario (the datasets of the count
+study)</td>
+<td align="left">fit_solomon_glm(family = “negative_binomial”),
+HC3<br>fit_solomon_glm(family = “negative_binomial”),
+model-based<br>marginal_solomon() on the NB2 fit, delta method
+(HC3)</td>
+<td align="right">25</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/cluster-marginal-validation.html">Clustered
+designs: marginal risk contrasts</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/64" class="external-link">#64</a></td>
+<td align="right">36</td>
+<td align="left">2000 per scenario</td>
+<td align="left">marginal_solomon() on a CR2 fit, delta method, normal
+reference<br>marginal_solomon() on a CR2 fit, delta method,
+Satterthwaite t<br>Cluster-level summaries, separate-variances t (Hayes
+&amp; Moulton, 2017)</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/classic-validation.html">Historical
+Tests A-I: replication of published error rates</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/51" class="external-link">#50; #51</a></td>
+<td align="right">30</td>
+<td align="left">20000 per condition</td>
+<td align="left">fit_solomon_classic(), 1988, 1990, and 1995 flows and
+Sawilowsky’s (1996) alpha allocations<br>Test I one-tailed and
+two-tailed</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/invariance-validation.html">Latent
+contrasts: measurement-invariance criteria</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/55" class="external-link">#55</a></td>
+<td align="right">45</td>
+<td align="left">1000 per scenario</td>
+<td align="left">invariance_solomon(), scaled chi-square difference
+(alpha = .05)<br>invariance_solomon(), change in fit (Chen,
+2007)<br>invariance_solomon(), both
+criteria<br>fit_solomon_sem_latent(), scalar
+model<br>fit_solomon_sem_latent(), last intercept freed</td>
+<td align="right">24</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/mi-validation.html">Missing
+posttests: multiple imputation with offsets</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/82" class="external-link">#82</a></td>
+<td align="right">24</td>
+<td align="left">2000 per scenario</td>
+<td align="left">fit_solomon_glm() on complete cases,
+HC3<br>fit_solomon_mi(delta = 0), m = 100<br>fit_solomon_mi(delta = true
+offsets), m = 100</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/mmrm-validation.html">Longitudinal
+designs: mixed model for repeated measures</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/57" class="external-link">#57</a></td>
+<td align="right">12</td>
+<td align="left">2000 per scenario</td>
+<td align="left">fit_solomon_mmrm(),
+Kenward-Roger<br>fit_solomon_mmrm(), Satterthwaite<br>fit_solomon_mmrm()
+estimates, normal reference<br>fit_solomon_glm() per occasion on
+complete cases, HC3<br>MMRM with one shared covariance,
+Kenward-Roger</td>
 <td align="right">0</td>
 </tr>
 </tbody>
@@ -248,10 +401,10 @@ whichever is larger.</li>
 <caption>Across all scenarios; results by allocation are in the full
 article.</caption>
 <colgroup>
-<col width="25%">
+<col width="29%">
 <col width="14%">
-<col width="26%">
-<col width="33%">
+<col width="25%">
+<col width="31%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Method</th>
@@ -273,7 +426,7 @@ article.</caption>
 <td align="left">100%</td>
 </tr>
 <tr class="odd">
-<td align="left">Test I (Braver &amp; Braver, 1988)</td>
+<td align="left">Test I (Walton Braver &amp; Braver, 1988)</td>
 <td align="left">0.050</td>
 <td align="left">100%</td>
 <td align="left">no analytic benchmark</td>
@@ -284,6 +437,594 @@ article.</caption>
 The GLM tests are conservative with 20 or fewer participants per cell,
 following the HC3 standard errors the package uses by default. See the
 <a href="https://juhalt.github.io/solomonR/articles/power-validation.html">full
+article</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="sample-size-planning">Sample-size planning<a class="anchor" aria-label="anchor" href="#sample-size-planning"></a>
+</h2>
+<p><code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> was checked by re-simulating the designs
+it returns with the package’s own GLM test. The registered criterion was
+that, from 30 participants per cell, re-simulated power falls within
+0.02 of the target.</p>
+<table class="table">
+<colgroup>
+<col width="18%">
+<col width="8%">
+<col width="35%">
+<col width="21%">
+<col width="16%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Smallest cell</th>
+<th align="right">Plans</th>
+<th align="right">Within 0.02 of the target</th>
+<th align="left">Mean difference</th>
+<th align="right">Failed fits</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">30 or more</td>
+<td align="right">39</td>
+<td align="right">37</td>
+<td align="left">+0.000</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">under 30</td>
+<td align="right">17</td>
+<td align="right">14</td>
+<td align="left">-0.005</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p>Below 30 participants per cell, analytic plans run slightly short,
+following the HC3 conservatism found for <code><a href="../reference/power_solomon.html">power_solomon()</a></code>.
+For small designs, <code>plan_solomon(method = "simulation")</code>
+plans for the package’s own test directly. See the <a href="https://juhalt.github.io/solomonR/articles/plan-validation.html">full
+article</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="binary-outcomes">Binary outcomes<a class="anchor" aria-label="anchor" href="#binary-outcomes"></a>
+</h2>
+<p><code><a href="../reference/marginal_solomon.html">marginal_solomon()</a></code> was checked on the risk-difference,
+risk-ratio, and odds-ratio scales, with bootstrap and delta-method
+intervals, against the same registered tolerances as above plus a model
+standard error within 10% of the empirical one. A scenario in which more
+than 5% of datasets failed is outside a method’s supported range.</p>
+<table class="table">
+<caption>Across supported scenarios; results by design are in the full
+article.</caption>
+<colgroup>
+<col width="49%">
+<col width="13%">
+<col width="36%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Method</th>
+<th align="left">Scale</th>
+<th align="left">Supported contrasts meeting every tolerance</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">marginal_solomon(), delta method (HC3)</td>
+<td align="left">risk difference</td>
+<td align="left">147 of 160</td>
+</tr>
+<tr class="even">
+<td align="left">marginal_solomon(), delta method (HC3)</td>
+<td align="left">log odds ratio</td>
+<td align="left">81 of 160</td>
+</tr>
+<tr class="odd">
+<td align="left">marginal_solomon(), delta method (HC3)</td>
+<td align="left">log risk ratio</td>
+<td align="left">58 of 160</td>
+</tr>
+<tr class="even">
+<td align="left">marginal_solomon() without the pretest, delta method
+(HC3)</td>
+<td align="left">risk difference</td>
+<td align="left">148 of 160</td>
+</tr>
+<tr class="odd">
+<td align="left">marginal_solomon() without the pretest, delta method
+(HC3)</td>
+<td align="left">log odds ratio</td>
+<td align="left">88 of 160</td>
+</tr>
+<tr class="even">
+<td align="left">marginal_solomon() without the pretest, delta method
+(HC3)</td>
+<td align="left">log risk ratio</td>
+<td align="left">56 of 160</td>
+</tr>
+<tr class="odd">
+<td align="left">marginal_solomon(), cell-stratified bootstrap</td>
+<td align="left">risk difference</td>
+<td align="left">90 of 108</td>
+</tr>
+<tr class="even">
+<td align="left">marginal_solomon(), cell-stratified bootstrap</td>
+<td align="left">log odds ratio</td>
+<td align="left">62 of 108</td>
+</tr>
+<tr class="odd">
+<td align="left">marginal_solomon(), cell-stratified bootstrap</td>
+<td align="left">log risk ratio</td>
+<td align="left">49 of 108</td>
+</tr>
+</tbody>
+</table>
+<p>Risk differences are validated across the supported range. Risk
+ratios and odds ratios are conservative with 20 to 50 participants per
+cell. With 20 per cell and a control risk of 0.1, too many datasets have
+a cell without events for any method. See the <a href="https://juhalt.github.io/solomonR/articles/binary-validation.html">full
+article</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="count-outcomes">Count outcomes<a class="anchor" aria-label="anchor" href="#count-outcomes"></a>
+</h2>
+<p>Poisson fits of <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> and the rate contrasts
+of <code><a href="../reference/marginal_solomon.html">marginal_solomon()</a></code> were checked with and without
+overdispersion, against the same tolerances as the binary study.</p>
+<table class="table">
+<caption>Across supported scenarios; results by design are in the full
+article.</caption>
+<colgroup>
+<col width="10%">
+<col width="35%">
+<col width="22%">
+<col width="31%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Counts</th>
+<th align="left">Method</th>
+<th align="left">Scale</th>
+<th align="left">Supported contrasts meeting every tolerance</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Poisson</td>
+<td align="left">fit_solomon_glm(family = poisson()), HC3</td>
+<td align="left">log rate ratio, model contrast</td>
+<td align="left">148 of 192</td>
+</tr>
+<tr class="even">
+<td align="left">Poisson</td>
+<td align="left">fit_solomon_glm(family = poisson()), model-based</td>
+<td align="left">log rate ratio, model contrast</td>
+<td align="left">104 of 192</td>
+</tr>
+<tr class="odd">
+<td align="left">Poisson</td>
+<td align="left">marginal_solomon(), delta method (HC3)</td>
+<td align="left">log rate ratio, marginal</td>
+<td align="left">156 of 192</td>
+</tr>
+<tr class="even">
+<td align="left">Poisson</td>
+<td align="left">marginal_solomon(), delta method (HC3)</td>
+<td align="left">rate difference</td>
+<td align="left">178 of 192</td>
+</tr>
+<tr class="odd">
+<td align="left">overdispersed</td>
+<td align="left">fit_solomon_glm(family = poisson()), HC3</td>
+<td align="left">log rate ratio, model contrast</td>
+<td align="left">129 of 192</td>
+</tr>
+<tr class="even">
+<td align="left">overdispersed</td>
+<td align="left">fit_solomon_glm(family = poisson()), model-based</td>
+<td align="left">log rate ratio, model contrast</td>
+<td align="left">0 of 192</td>
+</tr>
+<tr class="odd">
+<td align="left">overdispersed</td>
+<td align="left">marginal_solomon(), delta method (HC3)</td>
+<td align="left">log rate ratio, marginal</td>
+<td align="left">143 of 192</td>
+</tr>
+<tr class="even">
+<td align="left">overdispersed</td>
+<td align="left">marginal_solomon(), delta method (HC3)</td>
+<td align="left">rate difference</td>
+<td align="left">162 of 192</td>
+</tr>
+</tbody>
+</table>
+<p>Model-based standard errors fail under overdispersion, which is why
+the package’s default is the robust covariance. See the <a href="https://juhalt.github.io/solomonR/articles/count-validation.html">full
+article</a>.</p>
+<div class="section level3">
+<h3 id="the-negative-binomial-option">The negative-binomial option<a class="anchor" aria-label="anchor" href="#the-negative-binomial-option"></a>
+</h3>
+<p>The NB2 fit of
+<code>fit_solomon_glm(family = "negative_binomial")</code> was checked
+on the same datasets, against the same tolerances.</p>
+<table class="table">
+<caption>Log rate-ratio contrasts across supported scenarios.</caption>
+<colgroup>
+<col width="11%">
+<col width="47%">
+<col width="41%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Counts</th>
+<th align="left">Method</th>
+<th align="left">Contrasts within the coverage and Type I
+tolerances</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Poisson</td>
+<td align="left">fit_solomon_glm(family = “negative_binomial”), HC3</td>
+<td align="left">176 of 192</td>
+</tr>
+<tr class="even">
+<td align="left">Poisson</td>
+<td align="left">fit_solomon_glm(family = “negative_binomial”),
+model-based</td>
+<td align="left">125 of 192</td>
+</tr>
+<tr class="odd">
+<td align="left">overdispersed</td>
+<td align="left">fit_solomon_glm(family = “negative_binomial”), HC3</td>
+<td align="left">147 of 192</td>
+</tr>
+<tr class="even">
+<td align="left">overdispersed</td>
+<td align="left">fit_solomon_glm(family = “negative_binomial”),
+model-based</td>
+<td align="left">97 of 192</td>
+</tr>
+</tbody>
+</table>
+<p>The NB2 fit with HC3 did slightly better than robust Poisson with
+strong overdispersion but fell short of the threshold fixed for
+recommending it, so robust Poisson remains the recommendation. Its
+model-based standard errors should not be used. See the <a href="https://juhalt.github.io/solomonR/articles/count-validation.html#the-negative-binomial-option">full
+article</a>.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="clustered-designs">Clustered designs<a class="anchor" aria-label="anchor" href="#clustered-designs"></a>
+</h2>
+<p>The cluster-level randomization tests of <code><a href="../reference/perm_solomon.html">perm_solomon()</a></code>
+were checked for Type I error in cluster-randomized Solomon designs,
+with equal and unequal numbers of treated and control clusters, and
+compared with the CR2 tests of <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>. The
+tolerance is a Type I error from 0.040 to 0.060.</p>
+<table class="table">
+<caption>Null contrasts across both assignment mechanisms, both
+outcomes, and all variance ratios.</caption>
+<colgroup>
+<col width="10%">
+<col width="47%">
+<col width="21%">
+<col width="20%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Allocation</th>
+<th align="left">Method</th>
+<th align="left">Within 0.040 to 0.060</th>
+<th align="left">Largest Type I error</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">equal</td>
+<td align="left">fit_solomon_glm(robust = “CR2”), Satterthwaite t</td>
+<td align="left">102 of 120</td>
+<td align="left">0.077</td>
+</tr>
+<tr class="even">
+<td align="left">equal</td>
+<td align="left">perm_solomon(), whole clusters, difference</td>
+<td align="left">68 of 120</td>
+<td align="left">0.066</td>
+</tr>
+<tr class="odd">
+<td align="left">equal</td>
+<td align="left">perm_solomon(), whole clusters, studentized</td>
+<td align="left">71 of 120</td>
+<td align="left">0.065</td>
+</tr>
+<tr class="even">
+<td align="left">unequal</td>
+<td align="left">fit_solomon_glm(robust = “CR2”), Satterthwaite t</td>
+<td align="left">87 of 120</td>
+<td align="left">0.076</td>
+</tr>
+<tr class="odd">
+<td align="left">unequal</td>
+<td align="left">perm_solomon(), whole clusters, difference</td>
+<td align="left">47 of 120</td>
+<td align="left">0.158</td>
+</tr>
+<tr class="even">
+<td align="left">unequal</td>
+<td align="left">perm_solomon(), whole clusters, studentized</td>
+<td align="left">99 of 120</td>
+<td align="left">0.081</td>
+</tr>
+</tbody>
+</table>
+<p>The permutation tests are exact under the sharp null hypothesis; with
+four clusters per arm they are conservative, because few allocations
+exist. With unequal numbers of clusters and more variable treated
+clusters, the unstudentized difference rejects far too often, as Gail et
+al. (1996) found; the studentized statistic reduces but does not remove
+that excess. CR2 tests exceed the nominal level with four clusters per
+arm. See the <a href="https://juhalt.github.io/solomonR/articles/cluster-validation.html">full
+article</a>.</p>
+<div class="section level3">
+<h3 id="marginal-risk-contrasts-from-clustered-fits">Marginal risk contrasts from clustered fits<a class="anchor" aria-label="anchor" href="#marginal-risk-contrasts-from-clustered-fits"></a>
+</h3>
+<p><code><a href="../reference/marginal_solomon.html">marginal_solomon()</a></code> on logistic fits with CR2 covariance
+was checked in the same two cluster-randomized designs, against the
+coverage and Type I tolerances.</p>
+<table class="table">
+<caption>Both designs, all allocations, both intracluster
+correlations.</caption>
+<colgroup>
+<col width="11%">
+<col width="50%">
+<col width="37%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Scale</th>
+<th align="left">Method</th>
+<th align="left">Contrasts within the coverage and Type I
+tolerances</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">log odds ratio</td>
+<td align="left">marginal_solomon() on a CR2 fit, delta method, normal
+reference</td>
+<td align="left">36 of 144</td>
+</tr>
+<tr class="even">
+<td align="left">log odds ratio</td>
+<td align="left">marginal_solomon() on a CR2 fit, delta method,
+Satterthwaite t</td>
+<td align="left">137 of 144</td>
+</tr>
+<tr class="odd">
+<td align="left">log risk ratio</td>
+<td align="left">marginal_solomon() on a CR2 fit, delta method, normal
+reference</td>
+<td align="left">47 of 144</td>
+</tr>
+<tr class="even">
+<td align="left">log risk ratio</td>
+<td align="left">marginal_solomon() on a CR2 fit, delta method,
+Satterthwaite t</td>
+<td align="left">111 of 144</td>
+</tr>
+<tr class="odd">
+<td align="left">risk difference</td>
+<td align="left">Cluster-level summaries, separate-variances t (Hayes
+&amp; Moulton, 2017)</td>
+<td align="left">119 of 144</td>
+</tr>
+<tr class="even">
+<td align="left">risk difference</td>
+<td align="left">marginal_solomon() on a CR2 fit, delta method, normal
+reference</td>
+<td align="left">28 of 144</td>
+</tr>
+<tr class="odd">
+<td align="left">risk difference</td>
+<td align="left">marginal_solomon() on a CR2 fit, delta method,
+Satterthwaite t</td>
+<td align="left">140 of 144</td>
+</tr>
+</tbody>
+</table>
+<p>With Satterthwaite degrees of freedom, the intervals met the
+tolerances for risk differences and odds ratios in almost every scenario
+and were conservative for risk ratios with four clusters per cell or
+arm; a normal reference was too liberal. See the <a href="https://juhalt.github.io/solomonR/articles/cluster-marginal-validation.html">full
+article</a>.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="historical-tests-a-i">Historical Tests A-I<a class="anchor" aria-label="anchor" href="#historical-tests-a-i"></a>
+</h2>
+<p><code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code> was checked against the published
+Type I error rates of the historical sequence (Sawilowsky et al., 1994;
+Sawilowsky, 1996). Every condition is a complete null, so each rate is a
+Type I error rate.</p>
+<table class="table">
+<caption>Normal data, 30 per group; nominal alpha .05 at each
+step.</caption>
+<colgroup>
+<col width="65%">
+<col width="34%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Method</th>
+<th align="left">Experiment-wise Type I error</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">fit_solomon_classic(flow = “1988”), Test I
+one-tailed</td>
+<td align="left">0.151</td>
+</tr>
+<tr class="even">
+<td align="left">fit_solomon_classic(flow = “1988”), Test I
+two-tailed</td>
+<td align="left">0.137</td>
+</tr>
+<tr class="odd">
+<td align="left">fit_solomon_classic(flow = “1995”), Test I
+one-tailed</td>
+<td align="left">0.142</td>
+</tr>
+<tr class="even">
+<td align="left">fit_solomon_classic(flow = “1995”), Test I
+two-tailed</td>
+<td align="left">0.135</td>
+</tr>
+</tbody>
+</table>
+<p>Tests A to H agreed with the published rates for normal data. Test I
+rejected far more often than published, which a post hoc investigation
+traced to the published studies’ computation of Test I. As defined, the
+sequence falsely declares an effect nearly three times as often as its
+nominal level. See the <a href="https://juhalt.github.io/solomonR/articles/classic-validation.html">full
+article</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="latent-contrasts-measurement-invariance">Latent contrasts: measurement invariance<a class="anchor" aria-label="anchor" href="#latent-contrasts-measurement-invariance"></a>
+</h2>
+<p><code><a href="../reference/invariance_solomon.html">invariance_solomon()</a></code> reports two published criteria for
+each step of the invariance sequence:</p>
+<ul>
+<li>the scaled chi-square difference test (Satorra &amp; Bentler,
+2001);</li>
+<li>the change in fit, judged against Chen’s (2007) cutoffs.</li>
+</ul>
+<p>The study asked whether either criterion is reliable enough in
+Solomon-sized groups for <code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> to refuse
+latent mean contrasts when it flags noninvariance. The table gives the
+largest false-rejection rate of each criterion when invariance
+holds.</p>
+<table style="width:100%;" class="table">
+<caption>Largest false-rejection rate across 3, 4, and 6 indicators and
+both steps; tolerance .060.</caption>
+<colgroup>
+<col width="51%">
+<col width="15%">
+<col width="15%">
+<col width="16%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Criterion</th>
+<th align="left">30 per group</th>
+<th align="left">60 per group</th>
+<th align="left">120 per group</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">both criteria</td>
+<td align="left">0.135</td>
+<td align="left">0.097</td>
+<td align="left">0.063</td>
+</tr>
+<tr class="even">
+<td align="left">change in fit (Chen, 2007)</td>
+<td align="left">0.400</td>
+<td align="left">0.301</td>
+<td align="left">0.075</td>
+</tr>
+<tr class="odd">
+<td align="left">scaled chi-square difference (alpha = .05)</td>
+<td align="left">0.144</td>
+<td align="left">0.100</td>
+<td align="left">0.080</td>
+</tr>
+</tbody>
+</table>
+<p>No criterion kept false rejections at or below .060, so, under the
+rules posted before the run, <code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> warns
+rather than refuses when a criterion flags noninvariance. The study also
+found that a pretest-induced shift common to both pretested groups
+leaves the sensitization contrast unbiased, while a shift in one group
+biases it. See the <a href="https://juhalt.github.io/solomonR/articles/invariance-validation.html">full
+article</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="missing-posttests">Missing posttests<a class="anchor" aria-label="anchor" href="#missing-posttests"></a>
+</h2>
+<p><code><a href="../reference/fit_solomon_mi.html">fit_solomon_mi()</a></code> multiply imputes missing posttests and
+shifts the imputed values of each group by an offset, the
+pattern-mixture sensitivity analysis of Carpenter et al. (2023, section
+10.3). The study generated posttests missing at random and posttests
+whose missing values were shifted by known offsets, and analyzed them
+with the true offsets. The table gives the coverage of 95% intervals by
+group size.</p>
+<table class="table">
+<caption>Coverage of 95% intervals with the true offsets, over 4
+contrasts and 8 scenarios per size; tolerance .940 to .960.</caption>
+<thead><tr class="header">
+<th align="right">Per group</th>
+<th align="left">Lowest coverage</th>
+<th align="left">Highest coverage</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="right">30</td>
+<td align="left">0.946</td>
+<td align="left">0.967</td>
+</tr>
+<tr class="even">
+<td align="right">60</td>
+<td align="left">0.947</td>
+<td align="left">0.960</td>
+</tr>
+<tr class="odd">
+<td align="right">120</td>
+<td align="left">0.942</td>
+<td align="left">0.959</td>
+</tr>
+</tbody>
+</table>
+<p>With 60 or more per group, coverage and Type I error were within
+tolerance in every scenario; with 30 per group, intervals were
+conservative. The pre-specified rule for validation was not met (84 of
+96 cells, against 90%), so the functions stay experimental. The analyses
+that assume missing at random biased the sensitization contrast by 0.10
+to 0.16 SD when the departure was confined to one pretested group. See
+the <a href="https://juhalt.github.io/solomonR/articles/mi-validation.html">full
+article</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="longitudinal-designs">Longitudinal designs<a class="anchor" aria-label="anchor" href="#longitudinal-designs"></a>
+</h2>
+<p><code><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code> estimates the Solomon contrasts at
+each posttest occasion with a mixed model for repeated measures
+(Mallinckrodt et al., 2008). The study generated monotone dropout that
+depended on the last posttest (missing at random) and compared the model
+with per-occasion complete-case analyses. The table gives, for the
+treatment contrasts at the last occasion under heavy dropout, the mean
+bias and the lowest coverage.</p>
+<table class="table">
+<caption>Treatment contrasts at the third occasion, heavy dropout, 30 to
+120 per group.</caption>
+<colgroup>
+<col width="63%">
+<col width="17%">
+<col width="18%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Method</th>
+<th align="left">Mean bias (SD)</th>
+<th align="left">Lowest coverage</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">fit_solomon_glm() per occasion on complete cases,
+HC3</td>
+<td align="left">-0.072</td>
+<td align="left">0.927</td>
+</tr>
+<tr class="even">
+<td align="left">fit_solomon_mmrm(), Kenward-Roger</td>
+<td align="left">-0.004</td>
+<td align="left">0.941</td>
+</tr>
+</tbody>
+</table>
+<p>With Kenward-Roger degrees of freedom, the model met every tolerance
+in 145 of 156 cells; the pre-specified rule for choosing the default
+also required every cell with 60 or more per group and was not met, so
+the function stays experimental. A covariance shared by all four groups
+misstated the standard errors, which is why the function estimates it
+separately for pretested and unpretested participants. See the <a href="https://juhalt.github.io/solomonR/articles/mmrm-validation.html">full
 article</a>.</p>
 </div>
 <div class="section level2">
@@ -298,15 +1039,39 @@ article</a>.</p>
 <li>adding a section for it to
 <code>validation-evidence/build-benchmarks.R</code>.</li>
 </ol>
-<p>The re-simulation check of <code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> (issue #24) is
-the next study to be added in this format.</p>
+<p>All works cited in solomonR are listed, with notes on how the package
+uses them, on the <a href="references.html">References</a> page.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
+<p>Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M.,
+Quartagno, M., &amp; Kenward, M. G. (2023). <em>Multiple imputation and
+its application</em> (2nd ed.). Wiley. <a href="https://doi.org/10.1002/9781119756118" class="external-link uri">https://doi.org/10.1002/9781119756118</a></p>
+<p>Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
+measurement invariance. <em>Structural Equation Modeling: A
+Multidisciplinary Journal, 14</em>(3), 464–504. <a href="https://doi.org/10.1080/10705510701301834" class="external-link uri">https://doi.org/10.1080/10705510701301834</a></p>
+<p>Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., &amp; Pee, D.
+(1996). On design considerations and randomization-based inference for
+community intervention trials. <em>Statistics in Medicine, 15</em>(11),
+1069–1092. <a href="https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q" class="external-link uri">https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q</a></p>
+<p>Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., &amp;
+Mancuso, J. P. (2008). Recommendations for the primary analysis of
+continuous endpoints in longitudinal clinical trials. <em>Drug
+Information Journal, 42</em>(4), 303–319. <a href="https://doi.org/10.1177/009286150804200402" class="external-link uri">https://doi.org/10.1177/009286150804200402</a></p>
 <p>Morris, T. P., White, I. R., &amp; Crowther, M. J. (2019). Using
 simulation studies to evaluate statistical methods. <em>Statistics in
-Medicine, 38</em>, 2074-2102.</p>
+Medicine, 38</em>(11), 2074–2102. <a href="https://doi.org/10.1002/sim.8086" class="external-link uri">https://doi.org/10.1002/sim.8086</a></p>
+<p>Satorra, A., &amp; Bentler, P. M. (2001). A scaled difference
+chi-square test statistic for moment structure analysis.
+<em>Psychometrika, 66</em>(4), 507–514. <a href="https://doi.org/10.1007/BF02296192" class="external-link uri">https://doi.org/10.1007/BF02296192</a></p>
+<p>Sawilowsky, S. S. (1996, June 23). <em>Controlling experiment-wise
+Type I error of meta-analysis in the Solomon four-group design</em>
+[Paper presentation]. First International Conference on Multiple
+Comparisons, Tel Aviv, Israel. <a href="https://digitalcommons.wayne.edu/coe_tbf/29/" class="external-link uri">https://digitalcommons.wayne.edu/coe_tbf/29/</a></p>
+<p>Sawilowsky, S. S., Kelley, D. L., Blair, R. C., &amp; Markman, B. S.
+(1994). Meta-analysis and the Solomon four-group design. <em>The Journal
+of Experimental Education, 62</em>(4), 361–376. <a href="https://doi.org/10.1080/00220973.1994.9944140" class="external-link uri">https://doi.org/10.1080/00220973.1994.9944140</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -99,7 +99,9 @@ Wald inference.
     #> Warning in scale_x_log10(breaks = cell_sizes): log-10
     #> transformation introduced infinite values.
 
-![](ml-validation_files/figure-html/coverage-plot-1.png)
+![Coverage of 95% intervals by cell size for each method and contrast,
+with the 0.94 to 0.96 tolerance band
+shaded.](ml-validation_files/figure-html/coverage-plot-1.png)
 
 Coverage is averaged over the correlation and sensitization conditions;
 the shaded band is the pre-declared tolerance. Scenario-level values and
@@ -294,18 +296,24 @@ is identical to the code committed with this article. Later changes
 affected only documentation and the warning threshold, and the
 simulation suppresses warnings.
 
+All works cited in solomonR are listed, with notes on how the package
+uses them, on the
+[References](https://juhalt.github.io/solomonR/articles/references.md)
+page.
+
 ## References
 
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
-studies to evaluate statistical methods. *Statistics in Medicine, 38*,
-2074-2102.
+studies to evaluate statistical methods. *Statistics in Medicine,
+38*(11), 2074–2102. <https://doi.org/10.1002/sim.8086>
 
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. *Biometrics Bulletin, 2*, 110-114.
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+<https://doi.org/10.2307/3002019>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente.
 
 Welch, B. L. (1947). The generalization of “Student’s” problem when
-several different population variances are involved. *Biometrika, 34*,
-28-35.
+several different population variances are involved. *Biometrika,
+34*(1–2), 28–35. <https://doi.org/10.1093/biomet/34.1-2.28>

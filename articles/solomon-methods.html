@@ -33,17 +33,52 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Decide</h6></li>
+    <li><a class="dropdown-item" href="../articles/should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plan</h6></li>
+    <li><a class="dropdown-item" href="../articles/planning.html">Planning a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
     <li><a class="dropdown-item" href="../articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
+    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
+    <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Synthesize</h6></li>
+    <li><a class="dropdown-item" href="../articles/synthesis.html">Reanalysis and Synthesis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Teach</h6></li>
+    <li><a class="dropdown-item" href="../articles/teaching.html">Teaching with solomonR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>History</h6></li>
+    <li><a class="dropdown-item" href="../articles/history.html">A History of the Solomon Design and Its Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
-    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Validation evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></li>
+    <li><a class="dropdown-item" href="../articles/classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></li>
+    <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
+    <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
+    <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
+    <li><a class="dropdown-item" href="../articles/coverage.html">Coverage of the Published Methodology</a></li>
+    <li><a class="dropdown-item" href="../articles/citing.html">How to Cite solomonR and the Methods It Implements</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -122,8 +157,9 @@ package extensions are tested against the methods they build on.</p>
 </h2>
 <p>Solomon (1949) added two posttest-only groups to the pretest-posttest
 control-group design so that the effect of taking a pretest could be
-separated from the effect of the treatment. Campbell and Stanley (1963)
-later classified it among the true experimental designs.</p>
+separated from the effect of the treatment. Campbell and Stanley
+(1963/1966, pp. 13, 24) later classified it among the true experimental
+designs.</p>
 <table class="table">
 <thead><tr class="header">
 <th align="center">Group</th>
@@ -217,14 +253,15 @@ simple treatment effects; D: the equal-weighted average).</li>
 distributed errors, and equal variances across the four groups.</li>
 <li>
 <strong>Limitations:</strong> the pretest scores in Groups 1 and 2
-are ignored, which gives up precision. Campbell and Stanley (1963)
-suggested analyzing the posttest scores with a two-by-two analysis of
-variance and, when neither the pretesting effect nor the interaction was
-significant, reanalyzing the pretested groups with ANCOVA for greater
-power. Choosing later tests according to earlier significance tests
-makes the overall procedure conditional.</li>
+are ignored, which gives up precision. Campbell and Stanley (1963/1966,
+p. 25) suggested analyzing the posttest scores with a two-by-two
+analysis of variance and, if the main and interactive effects of
+pretesting are negligible, an analysis of covariance of the pretested
+groups’ posttests with the pretest as covariate. Choosing later tests
+according to earlier significance tests makes the overall procedure
+conditional.</li>
 <li>
-<strong>Sources:</strong> Campbell and Stanley (1963); Huck and
+<strong>Sources:</strong> Campbell and Stanley (1963/1966); Huck and
 Sandler (1973).</li>
 </ul>
 </div>
@@ -279,7 +316,8 @@ errors, equal variances in the two groups.</li>
 <strong>Estimates:</strong> nothing directly. Test I combines
 one-tailed p-values from the pretested and unpretested treatment
 comparisons with Stouffer’s method (Stouffer et al., 1949), as proposed
-by Braver and Braver (1988).</li>
+by Walton Braver and Braver (1988). The combined z is judged by its
+two-tailed p-value, as in their worked example (p. 153).</li>
 <li>
 <strong>Assumptions:</strong> both tests address the same
 directional hypothesis, and the combination is specified in
@@ -293,8 +331,8 @@ al., 1994). The proposal was debated in published exchanges between the
 two research groups. <code>solomonR</code> reproduces Test I for
 replication but does not recommend it as a default analysis.</li>
 <li>
-<strong>Sources:</strong> Braver and Braver (1988); Sawilowsky et
-al. (1994).</li>
+<strong>Sources:</strong> Walton Braver and Braver (1988);
+Sawilowsky et al. (1994).</li>
 </ul>
 </div>
 </div>
@@ -348,9 +386,16 @@ it from being zero (Phipson &amp; Smyth, 2010). Studentized statistics
 make such tests robust when only an average effect is hypothesized to be
 zero (DiCiccio &amp; Romano, 2017; Wu &amp; Ding, 2021).</li>
 <li>
-<strong>Limitations:</strong> the permuted unit must be the
-randomized unit, so cluster-randomized studies are not supported
-yet.</li>
+<strong>Clustered designs:</strong> the permuted unit must be the
+randomized unit, so for fits with a <code>cluster</code> variable whole
+clusters are permuted. The statistic uses covariate-adjusted
+cluster-level summaries (Gail et al., 1996; Hayes &amp; Moulton, 2017,
+ch. 10), and designs with few enough allocations are enumerated
+exactly.</li>
+<li>
+<strong>Limitations:</strong> designs that assign treatment to
+participants within clusters, and stratified or restricted randomization
+of clusters, are not supported.</li>
 </ul>
 </div>
 <div class="section level3">
@@ -394,6 +439,20 @@ indicator retain participants without biasing the treatment effect
 missing-data mechanisms follows Rubin (1976) and Little and Rubin
 (2019).</li>
 <li>
+<strong>Missing posttests:</strong> if posttests are missing at
+random given group and, in the pretested groups, the pretest, the model
+fitted to the observed posttests is a valid main analysis, and multiple
+imputation under the same assumption agrees with it (Carpenter et al.,
+2023, p. 256). Whether the conclusion survives departures from that
+assumption is a sensitivity analysis. <code><a href="../reference/fit_solomon_mi.html">fit_solomon_mi()</a></code>
+shifts the imputed posttests of each group by a chosen offset (Carpenter
+et al., 2023, section 10.3), and <code><a href="../reference/tipping_point_solomon.html">tipping_point_solomon()</a></code>
+reports the offset at which a contrast’s conclusion changes (White et
+al., 2011). Offsets that differ between the pretested groups bear on the
+sensitization contrast: in the package’s simulation study, a departure
+confined to one pretested group biased the analyses that assume missing
+at random by 0.10 to 0.16 SD.</li>
+<li>
 <strong>Tools:</strong> <code><a href="../reference/check_solomon_missing.html">check_solomon_missing()</a></code> and
 <code><a href="../reference/validate_solomon.html">validate_solomon()</a></code> report each category.</li>
 </ul>
@@ -407,6 +466,67 @@ or was not significant can distort Type I error rates (Zimmerman, 2004).
 <code><a href="../reference/check_solomon_assumptions.html">check_solomon_assumptions()</a></code> therefore reports
 Brown-Forsythe tests (Brown &amp; Forsythe, 1974), normality tests, and
 a slope-homogeneity test as descriptions rather than gates.</p>
+</div>
+<div class="section level3">
+<h3 id="nonrandomized-solomon-designs">Nonrandomized Solomon designs<a class="anchor" aria-label="anchor" href="#nonrandomized-solomon-designs"></a>
+</h3>
+<p><strong>Label:</strong> contemporary recommendation.</p>
+<p>Solomon designs are often run with intact groups, as in El Karkri et
+al. (2025a), who assigned one class to each condition. Without random
+assignment, the contrasts are differences between groups rather than
+treatment effects. Selection bias is the largest threat to internal
+validity in quasi-experimental research (Edmonds &amp; Kennedy, 2017,
+p. 7), and with instrumentation it is the threat most common in
+quasi-experimental Solomon designs (p. 94).</p>
+<ul>
+<li>
+<strong>Baseline in the pretested arms.</strong>
+<code><a href="../reference/baseline_solomon.html">baseline_solomon()</a></code> compares the pretested groups’ pretests.
+In El Karkri et al. (2025a, p. 10), the pretested classes already
+differed at baseline, 9.61 against 7.86.</li>
+<li>
+<strong>No baseline in the unpretested arms.</strong> The
+unpretested arms form the posttest-only control group design, which
+relies on randomization rather than a pretest for the equivalence of its
+groups (Campbell &amp; Stanley, 1963/1966, p. 25). Without random
+assignment they form a static-group comparison, for which there are “no
+formal means of certifying that the groups would have been equivalent”
+(p. 12). Selection bias in their comparison, which isolates pretest
+sensitization, therefore cannot be checked or adjusted for with the
+study’s own data.</li>
+<li>
+<strong>Reporting.</strong>
+<code>report_solomon(fit, design = list(assignment = "nonrandom"))</code>
+describes differences rather than effects and names these threats.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="repeated-posttests">Repeated posttests<a class="anchor" aria-label="anchor" href="#repeated-posttests"></a>
+</h3>
+<p><strong>Label:</strong> contemporary recommendation, applied to the
+Solomon design.</p>
+<p>When the posttest is measured on several occasions,
+<code><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code> fits a mixed model for repeated measures
+with an unstructured within-participant covariance estimated by
+restricted maximum likelihood (Laird &amp; Ware, 1982; Mallinckrodt et
+al., 2008). Likelihood-based analyses remain valid when participants
+drop out depending on their earlier observed scores, whereas
+per-occasion analyses of those still observed, and unweighted
+generalized estimating equations, require missingness completely at
+random (Fitzmaurice et al., 2011).</p>
+<ul>
+<li>
+<strong>Covariance by pretest condition.</strong> Estimating the
+covariance separately for pretested and unpretested participants is
+solomonR’s adaptation: the pretest adjustment makes the residual
+covariance differ between them by design.</li>
+<li>
+<strong>Evidence.</strong> In the package’s simulation study, the
+contrasts were unbiased under such dropout, with coverage of 0.937 to
+0.962. Per-occasion complete-case analyses were biased by up to 0.09 SD,
+and a covariance shared by all four groups misstated standard errors by
+up to 17%.</li>
+</ul>
 </div>
 </div>
 <div class="section level2">
@@ -608,132 +728,177 @@ either analytically or by simulating the package’s own GLM test.</p>
 <td>Optional</td>
 <td>Scalar invariance</td>
 </tr>
+<tr class="odd">
+<td>Multiple imputation with offsets</td>
+<td>Contemporary</td>
+<td>All four</td>
+<td>Yes</td>
+<td>Missing posttests shifted by stated offsets</td>
+</tr>
+<tr class="even">
+<td>Mixed model for repeated measures</td>
+<td>Contemporary</td>
+<td>All four, at each occasion</td>
+<td>Yes</td>
+<td>Dropout missing at random; covariance by pretest condition</td>
+</tr>
 </tbody>
 </table>
+<p>All works cited in solomonR are listed, with notes on how the package
+uses them, on the <a href="https://juhalt.github.io/solomonR/articles/references.html">References</a>
+page.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <p>Bell, R. M., &amp; McCaffrey, D. F. (2002). Bias reduction in
 standard errors for linear regression with multi-stage samples.
-<em>Survey Methodology, 28</em>, 169-181.</p>
-<p>Braver, M. W., &amp; Braver, S. L. (1988). Statistical treatment of
-the Solomon four-group design: A meta-analytic approach.
-<em>Psychological Bulletin, 104</em>, 150-154.</p>
+<em>Survey Methodology, 28</em>(2), 169–181.</p>
 <p>Brown, M. B., &amp; Forsythe, A. B. (1974). Robust tests for the
 equality of variances. <em>Journal of the American Statistical
-Association, 69</em>, 364-367.</p>
-<p>Campbell, D. T., &amp; Stanley, J. C. (1963). <em>Experimental and
-quasi-experimental designs for research</em>. Rand McNally.</p>
+Association, 69</em>(346), 364–367. <a href="https://doi.org/10.1080/01621459.1974.10482955" class="external-link uri">https://doi.org/10.1080/01621459.1974.10482955</a></p>
+<p>Campbell, D. T., &amp; Stanley, J. C. (1966). <em>Experimental and
+quasi-experimental designs for research</em>. Rand McNally. (Original
+work published 1963)</p>
+<p>Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M.,
+Quartagno, M., &amp; Kenward, M. G. (2023). <em>Multiple imputation and
+its application</em> (2nd ed.). Wiley. <a href="https://doi.org/10.1002/9781119756118" class="external-link uri">https://doi.org/10.1002/9781119756118</a></p>
 <p>Cumming, G., &amp; Finch, S. (2001). A primer on the understanding,
 use, and calculation of confidence intervals that are based on central
 and noncentral distributions. <em>Educational and Psychological
-Measurement, 61</em>, 532-574.</p>
+Measurement, 61</em>(4), 532–574. <a href="https://doi.org/10.1177/00131640121971374" class="external-link uri">https://doi.org/10.1177/00131640121971374</a></p>
 <p>DiCiccio, C. J., &amp; Romano, J. P. (2017). Robust permutation tests
 for correlation and regression coefficients. <em>Journal of the American
-Statistical Association, 112</em>, 1211-1220.</p>
+Statistical Association, 112</em>(519), 1211–1220. <a href="https://doi.org/10.1080/01621459.2016.1202117" class="external-link uri">https://doi.org/10.1080/01621459.2016.1202117</a></p>
+<p>Edmonds, W. A., &amp; Kennedy, T. D. (2017). <em>An applied guide to
+research designs: Quantitative, qualitative, and mixed methods</em> (2nd
+ed.). SAGE Publications. <a href="https://doi.org/10.4135/9781071802779" class="external-link uri">https://doi.org/10.4135/9781071802779</a></p>
+<p>El Karkri, M., Quesada, A., &amp; Romero-Ariza, M. (2025a). The dual
+impact of pretest sensitisation and the cognitive acceleration through
+science education programme in the Solomon four-group design. <em>Brain
+Sciences, 16</em>(1), Article 64. <a href="https://doi.org/10.3390/brainsci16010064" class="external-link uri">https://doi.org/10.3390/brainsci16010064</a></p>
+<p>Fitzmaurice, G. M., Laird, N. M., &amp; Ware, J. H. (2011).
+<em>Applied longitudinal analysis</em> (2nd ed.). Wiley. <a href="https://doi.org/10.1002/9781119513469" class="external-link uri">https://doi.org/10.1002/9781119513469</a></p>
+<p>Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., &amp; Pee, D.
+(1996). On design considerations and randomization-based inference for
+community intervention trials. <em>Statistics in Medicine, 15</em>(11),
+1069–1092. <a href="https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q" class="external-link uri">https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q</a></p>
 <p>Graham, J. W., Taylor, B. J., Olchowski, A. E., &amp; Cumsille, P. E.
 (2006). Planned missing data designs in psychological research.
-<em>Psychological Methods, 11</em>, 323-343.</p>
+<em>Psychological Methods, 11</em>(4), 323–343. <a href="https://doi.org/10.1037/1082-989X.11.4.323" class="external-link uri">https://doi.org/10.1037/1082-989X.11.4.323</a></p>
 <p>Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J.
 R., Altman, D. G., &amp; Moons, K. G. M. (2012). Missing covariate data
 in clinical research: When and when not to use the missing-indicator
-method for analysis. <em>Canadian Medical Association Journal, 184</em>,
-1265-1269.</p>
+method for analysis. <em>Canadian Medical Association Journal,
+184</em>(11), 1265–1269. <a href="https://doi.org/10.1503/cmaj.110977" class="external-link uri">https://doi.org/10.1503/cmaj.110977</a></p>
 <p>Hayes, A. F., &amp; Cai, L. (2007). Using
 heteroskedasticity-consistent standard error estimators in OLS
 regression: An introduction and software implementation. <em>Behavior
-Research Methods, 39</em>, 709-722.</p>
+Research Methods, 39</em>(4), 709–722. <a href="https://doi.org/10.3758/BF03192961" class="external-link uri">https://doi.org/10.3758/BF03192961</a></p>
+<p>Hayes, R. J., &amp; Moulton, L. H. (2017). <em>Cluster randomised
+trials</em> (2nd ed.). Chapman and Hall/CRC. <a href="https://doi.org/10.4324/9781315370286" class="external-link uri">https://doi.org/10.4324/9781315370286</a></p>
 <p>Hedges, L. V. (1981). Distribution theory for Glass’s estimator of
 effect size and related estimators. <em>Journal of Educational
-Statistics, 6</em>, 107-128.</p>
+Statistics, 6</em>(2), 107–128. <a href="https://doi.org/10.3102/10769986006002107" class="external-link uri">https://doi.org/10.3102/10769986006002107</a></p>
 <p>Huck, S. W., &amp; Sandler, H. M. (1973). A note on the Solomon
 4-group design: Appropriate statistical analyses. <em>The Journal of
-Experimental Education, 42</em>, 54-55.</p>
+Experimental Education, 42</em>(2), 54–55. <a href="https://doi.org/10.1080/00220973.1973.11011460" class="external-link uri">https://doi.org/10.1080/00220973.1973.11011460</a></p>
 <p>Imbens, G. W., &amp; Kolesár, M. (2016). Robust standard errors in
 small samples: Some practical advice. <em>The Review of Economics and
-Statistics, 98</em>, 701-712.</p>
+Statistics, 98</em>(4), 701–712. <a href="https://doi.org/10.1162/REST_a_00552" class="external-link uri">https://doi.org/10.1162/REST_a_00552</a></p>
 <p>Kelley, K. (2007). Confidence intervals for standardized effect
 sizes: Theory, application, and implementation. <em>Journal of
-Statistical Software, 20</em>(8), 1-24.</p>
+Statistical Software, 20</em>(8), 1–24. <a href="https://doi.org/10.18637/jss.v020.i08" class="external-link uri">https://doi.org/10.18637/jss.v020.i08</a></p>
+<p>Laird, N. M., &amp; Ware, J. H. (1982). Random-effects models for
+longitudinal data. <em>Biometrics, 38</em>(4), 963–974. <a href="https://doi.org/10.2307/2529876" class="external-link uri">https://doi.org/10.2307/2529876</a></p>
 <p>Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. <em>Social Psychological and
-Personality Science, 8</em>, 355-362.</p>
+Personality Science, 8</em>(4), 355–362. <a href="https://doi.org/10.1177/1948550617697177" class="external-link uri">https://doi.org/10.1177/1948550617697177</a></p>
 <p>Lakens, D., Scheel, A. M., &amp; Isager, P. M. (2018). Equivalence
 testing for psychological research: A tutorial. <em>Advances in Methods
-and Practices in Psychological Science, 1</em>, 259-269.</p>
+and Practices in Psychological Science, 1</em>(2), 259–269. <a href="https://doi.org/10.1177/2515245918770963" class="external-link uri">https://doi.org/10.1177/2515245918770963</a></p>
 <p>Lin, W. (2013). Agnostic notes on regression adjustments to
 experimental data: Reexamining Freedman’s critique. <em>The Annals of
-Applied Statistics, 7</em>, 295-318.</p>
+Applied Statistics, 7</em>(1), 295–318. <a href="https://doi.org/10.1214/12-AOAS583" class="external-link uri">https://doi.org/10.1214/12-AOAS583</a></p>
 <p>Little, R. J. A., &amp; Rubin, D. B. (2019). <em>Statistical analysis
-with missing data</em> (3rd ed.). Wiley.</p>
+with missing data</em> (3rd ed.). Wiley. <a href="https://doi.org/10.1002/9781119482260" class="external-link uri">https://doi.org/10.1002/9781119482260</a></p>
 <p>Long, J. S., &amp; Ervin, L. H. (2000). Using heteroscedasticity
 consistent standard errors in the linear regression model. <em>The
-American Statistician, 54</em>, 217-224.</p>
+American Statistician, 54</em>(3), 217–224. <a href="https://doi.org/10.1080/00031305.2000.10474549" class="external-link uri">https://doi.org/10.1080/00031305.2000.10474549</a></p>
 <p>Lundberg, I., Johnson, R., &amp; Stewart, B. M. (2021). What is your
 estimand? Defining the target quantity connects statistical evidence to
-theory. <em>American Sociological Review, 86</em>, 532-565.</p>
+theory. <em>American Sociological Review, 86</em>(3), 532–565. <a href="https://doi.org/10.1177/00031224211004187" class="external-link uri">https://doi.org/10.1177/00031224211004187</a></p>
 <p>MacKinnon, J. G., &amp; White, H. (1985). Some
 heteroskedasticity-consistent covariance matrix estimators with improved
-finite sample properties. <em>Journal of Econometrics, 29</em>,
-305-325.</p>
+finite sample properties. <em>Journal of Econometrics, 29</em>(3),
+305–325. <a href="https://doi.org/10.1016/0304-4076(85)90158-7" class="external-link uri">https://doi.org/10.1016/0304-4076(85)90158-7</a></p>
+<p>Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., &amp;
+Mancuso, J. P. (2008). Recommendations for the primary analysis of
+continuous endpoints in longitudinal clinical trials. <em>Drug
+Information Journal, 42</em>(4), 303–319. <a href="https://doi.org/10.1177/009286150804200402" class="external-link uri">https://doi.org/10.1177/009286150804200402</a></p>
 <p>Meredith, W. (1993). Measurement invariance, factor analysis and
-factorial invariance. <em>Psychometrika, 58</em>, 525-543.</p>
+factorial invariance. <em>Psychometrika, 58</em>(4), 525–543. <a href="https://doi.org/10.1007/BF02294825" class="external-link uri">https://doi.org/10.1007/BF02294825</a></p>
 <p>Phipson, B., &amp; Smyth, G. K. (2010). Permutation p-values should
 never be zero: Calculating exact p-values when permutations are randomly
 drawn. <em>Statistical Applications in Genetics and Molecular Biology,
-9</em>(1), Article 39.</p>
+9</em>(1), Article 39. <a href="https://doi.org/10.2202/1544-6115.1585" class="external-link uri">https://doi.org/10.2202/1544-6115.1585</a></p>
 <p>Pustejovsky, J. E., &amp; Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
 effects models. <em>Journal of Business &amp; Economic Statistics,
-36</em>, 672-683.</p>
+36</em>(4), 672–683. <a href="https://doi.org/10.1080/07350015.2016.1247004" class="external-link uri">https://doi.org/10.1080/07350015.2016.1247004</a></p>
 <p>Rajh-Weber, H., Huber, S. E., &amp; Arendasy, M. (2025). A
 practice-oriented guide to statistical inference in linear modeling for
 non-normal or heteroskedastic error distributions. <em>Behavior Research
-Methods, 57</em>, Article 338.</p>
+Methods, 57</em>(12), Article 338. <a href="https://doi.org/10.3758/s13428-025-02801-4" class="external-link uri">https://doi.org/10.3758/s13428-025-02801-4</a></p>
 <p>Rosseel, Y. (2012). lavaan: An R package for structural equation
-modeling. <em>Journal of Statistical Software, 48</em>(2), 1-36.</p>
+modeling. <em>Journal of Statistical Software, 48</em>(2), 1–36. <a href="https://doi.org/10.18637/jss.v048.i02" class="external-link uri">https://doi.org/10.18637/jss.v048.i02</a></p>
 <p>Rubin, D. B. (1976). Inference and missing data. <em>Biometrika,
-63</em>, 581-592.</p>
+63</em>(3), 581–592. <a href="https://doi.org/10.1093/biomet/63.3.581" class="external-link uri">https://doi.org/10.1093/biomet/63.3.581</a></p>
 <p>Satterthwaite, F. E. (1946). An approximate distribution of estimates
-of variance components. <em>Biometrics Bulletin, 2</em>, 110-114.</p>
+of variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114. <a href="https://doi.org/10.2307/3002019" class="external-link uri">https://doi.org/10.2307/3002019</a></p>
 <p>Sawilowsky, S. S., Kelley, D. L., Blair, R. C., &amp; Markman, B. S.
 (1994). Meta-analysis and the Solomon four-group design. <em>The Journal
-of Experimental Education, 62</em>, 361-376.</p>
+of Experimental Education, 62</em>(4), 361–376. <a href="https://doi.org/10.1080/00220973.1994.9944140" class="external-link uri">https://doi.org/10.1080/00220973.1994.9944140</a></p>
 <p>Schuirmann, D. J. (1987). A comparison of the two one-sided tests
 procedure and the power approach for assessing the equivalence of
 average bioavailability. <em>Journal of Pharmacokinetics and
-Biopharmaceutics, 15</em>, 657-680.</p>
+Biopharmaceutics, 15</em>(6), 657–680. <a href="https://doi.org/10.1007/BF01068419" class="external-link uri">https://doi.org/10.1007/BF01068419</a></p>
 <p>Solomon, R. L. (1949). An extension of control group design.
-<em>Psychological Bulletin, 46</em>, 137-150.</p>
+<em>Psychological Bulletin, 46</em>(2), 137–150. <a href="https://doi.org/10.1037/h0062958" class="external-link uri">https://doi.org/10.1037/h0062958</a></p>
 <p>Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
-contrast analysis. <em>Psychological Methods, 9</em>, 164-182.</p>
+contrast analysis. <em>Psychological Methods, 9</em>(2), 164–182. <a href="https://doi.org/10.1037/1082-989X.9.2.164" class="external-link uri">https://doi.org/10.1037/1082-989X.9.2.164</a></p>
 <p>Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &amp;
 Williams, R. M., Jr. (1949). <em>The American soldier: Adjustment during
 army life</em> (Vol. 1). Princeton University Press.</p>
 <p>Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline
 had more power in randomized studies and more bias in nonrandomized
-studies. <em>Journal of Clinical Epidemiology, 59</em>, 920-925.</p>
-<p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon
-four-group design</em> (Research Report 99-06). University of
-Twente.</p>
+studies. <em>Journal of Clinical Epidemiology, 59</em>(9), 920–925. <a href="https://doi.org/10.1016/j.jclinepi.2006.02.007" class="external-link uri">https://doi.org/10.1016/j.jclinepi.2006.02.007</a></p>
 <p>Vandenberg, R. J., &amp; Lance, C. E. (2000). A review and synthesis
 of the measurement invariance literature: Suggestions, practices, and
 recommendations for organizational research. <em>Organizational Research
-Methods, 3</em>, 4-70.</p>
+Methods, 3</em>(1), 4–70. <a href="https://doi.org/10.1177/109442810031002" class="external-link uri">https://doi.org/10.1177/109442810031002</a></p>
+<p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon
+four-group design</em> (Research Report 99-06). University of
+Twente.</p>
+<p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical
+treatment of the Solomon four-group design: A meta-analytic approach.
+<em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>
 <p>Welch, B. L. (1947). The generalization of “Student’s” problem when
 several different population variances are involved. <em>Biometrika,
-34</em>, 28-35.</p>
+34</em>(1–2), 28–35. <a href="https://doi.org/10.1093/biomet/34.1-2.28" class="external-link uri">https://doi.org/10.1093/biomet/34.1-2.28</a></p>
+<p>White, I. R., Horton, N. J., Carpenter, J., &amp; Pocock, S. J.
+(2011). Strategy for intention to treat analysis in randomised trials
+with missing outcome data. <em>BMJ, 342</em>, Article d40. <a href="https://doi.org/10.1136/bmj.d40" class="external-link uri">https://doi.org/10.1136/bmj.d40</a></p>
 <p>White, I. R., &amp; Thompson, S. G. (2005). Adjusting for partially
 missing baseline measurements in randomized trials. <em>Statistics in
-Medicine, 24</em>, 993-1007.</p>
+Medicine, 24</em>(7), 993–1007. <a href="https://doi.org/10.1002/sim.1981" class="external-link uri">https://doi.org/10.1002/sim.1981</a></p>
 <p>Wu, J., &amp; Ding, P. (2021). Randomization tests for weak null
 hypotheses in randomized experiments. <em>Journal of the American
-Statistical Association, 116</em>, 1898-1913.</p>
+Statistical Association, 116</em>(536), 1898–1913. <a href="https://doi.org/10.1080/01621459.2020.1750415" class="external-link uri">https://doi.org/10.1080/01621459.2020.1750415</a></p>
 <p>Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. <em>British Journal of Mathematical and Statistical
-Psychology, 57</em>, 173-181.</p>
+Psychology, 57</em>(1), 173–181. <a href="https://doi.org/10.1348/000711004849222" class="external-link uri">https://doi.org/10.1348/000711004849222</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

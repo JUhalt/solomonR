@@ -33,17 +33,52 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Decide</h6></li>
+    <li><a class="dropdown-item" href="../articles/should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plan</h6></li>
+    <li><a class="dropdown-item" href="../articles/planning.html">Planning a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
     <li><a class="dropdown-item" href="../articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
+    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
+    <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Synthesize</h6></li>
+    <li><a class="dropdown-item" href="../articles/synthesis.html">Reanalysis and Synthesis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Teach</h6></li>
+    <li><a class="dropdown-item" href="../articles/teaching.html">Teaching with solomonR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>History</h6></li>
+    <li><a class="dropdown-item" href="../articles/history.html">A History of the Solomon Design and Its Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
-    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Validation evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></li>
+    <li><a class="dropdown-item" href="../articles/classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></li>
+    <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
+    <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
+    <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
+    <li><a class="dropdown-item" href="../articles/coverage.html">Coverage of the Published Methodology</a></li>
+    <li><a class="dropdown-item" href="../articles/citing.html">How to Cite solomonR and the Methods It Implements</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -192,7 +227,7 @@ against Wald inference.</p>
 </h2>
 <pre><code><span><span class="co">#&gt; Warning in scale_x_log10(breaks = cell_sizes): <span style="color: #00BB00;">log-10</span></span></span>
 <span><span class="co">#&gt; transformation introduced infinite values.</span></span></code></pre>
-<p><img src="ml-validation_files/figure-html/coverage-plot-1.png" class="r-plt" alt="" width="768"></p>
+<p><img src="ml-validation_files/figure-html/coverage-plot-1.png" class="r-plt" alt="Coverage of 95% intervals by cell size for each method and contrast, with the 0.94 to 0.96 tolerance band shaded." width="768"></p>
 <p>Coverage is averaged over the correlation and sensitization
 conditions; the shaded band is the pre-declared tolerance.
 Scenario-level values and their MCSEs are in
@@ -760,21 +795,23 @@ estimation and inference code of <code><a href="../reference/fit_solomon_ml.html
 <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> is identical to the code committed with
 this article. Later changes affected only documentation and the warning
 threshold, and the simulation suppresses warnings.</p>
+<p>All works cited in solomonR are listed, with notes on how the package
+uses them, on the <a href="references.html">References</a> page.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <p>Morris, T. P., White, I. R., &amp; Crowther, M. J. (2019). Using
 simulation studies to evaluate statistical methods. <em>Statistics in
-Medicine, 38</em>, 2074-2102.</p>
+Medicine, 38</em>(11), 2074–2102. <a href="https://doi.org/10.1002/sim.8086" class="external-link uri">https://doi.org/10.1002/sim.8086</a></p>
 <p>Satterthwaite, F. E. (1946). An approximate distribution of estimates
-of variance components. <em>Biometrics Bulletin, 2</em>, 110-114.</p>
+of variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114. <a href="https://doi.org/10.2307/3002019" class="external-link uri">https://doi.org/10.2307/3002019</a></p>
 <p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon
 four-group design</em> (Research Report 99-06). University of
 Twente.</p>
 <p>Welch, B. L. (1947). The generalization of “Student’s” problem when
 several different population variances are involved. <em>Biometrika,
-34</em>, 28-35.</p>
+34</em>(1–2), 28–35. <a href="https://doi.org/10.1093/biomet/34.1-2.28" class="external-link uri">https://doi.org/10.1093/biomet/34.1-2.28</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

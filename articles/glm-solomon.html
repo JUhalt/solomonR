@@ -33,17 +33,52 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Decide</h6></li>
+    <li><a class="dropdown-item" href="../articles/should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plan</h6></li>
+    <li><a class="dropdown-item" href="../articles/planning.html">Planning a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
     <li><a class="dropdown-item" href="../articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
+    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
+    <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Synthesize</h6></li>
+    <li><a class="dropdown-item" href="../articles/synthesis.html">Reanalysis and Synthesis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Teach</h6></li>
+    <li><a class="dropdown-item" href="../articles/teaching.html">Teaching with solomonR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>History</h6></li>
+    <li><a class="dropdown-item" href="../articles/history.html">A History of the Solomon Design and Its Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
-    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Validation evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></li>
+    <li><a class="dropdown-item" href="../articles/classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></li>
+    <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
+    <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
+    <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
+    <li><a class="dropdown-item" href="../articles/coverage.html">Coverage of the Published Methodology</a></li>
+    <li><a class="dropdown-item" href="../articles/citing.html">How to Cite solomonR and the Methods It Implements</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -211,15 +246,10 @@ pretend that Groups 3 and 4 actually had baseline scores of zero.</p>
 <p>The unified model with HC3 heteroskedasticity-consistent covariance,
 the default, is a sound starting point for continuous outcomes.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
-<span>  <span class="va">solomon_example</span>,</span>
-<span>  <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
-<span>    y <span class="op">=</span> <span class="va">y_post</span>,</span>
-<span>    treat <span class="op">=</span> <span class="va">treat</span>,</span>
-<span>    pretested <span class="op">=</span> <span class="va">pretested</span>,</span>
-<span>    pretest_score <span class="op">=</span> <span class="va">y_pre</span>,</span>
-<span>    robust <span class="op">=</span> <span class="st">"HC3"</span></span>
-<span>  <span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
+<span>  <span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>,</span>
+<span>  robust <span class="op">=</span> <span class="st">"HC3"</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">solomon_example</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">fit</span></span></code></pre></div>
@@ -630,6 +660,7 @@ inferential approach.</p>
 <pre><code><span><span class="co">## Solomon randomization test</span></span>
 <span><span class="co">## --------------------------</span></span>
 <span><span class="co">## Contrast: ATE (avg over pretest)</span></span>
+<span><span class="co">## Estimate: 2.66</span></span>
 <span><span class="co">## Observed studentized statistic: z = 1.68</span></span>
 <span><span class="co">## Permutation p = .097</span></span>
 <span><span class="co">## Valid permutations: 1000 of 1000</span></span>
@@ -649,13 +680,28 @@ p =
 <p>The null distribution can be visualized with:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_perm.html">plot_perm</a></span><span class="op">(</span><span class="va">perm</span><span class="op">)</span></span></code></pre></div>
-<p><img src="glm-solomon_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="glm-solomon_files/figure-html/perm-plot-1.png" class="r-plt" alt="Histogram of the permutation distribution of the test statistic, with the observed value marked." width="672"></p>
 <p>Randomization inference is justified by the assignment mechanism, not
 merely by a small sample size. If treatment was randomized at the
-cluster level, permutation must likewise occur at the cluster level.
-<code><a href="../reference/perm_solomon.html">perm_solomon()</a></code> permutes individuals, so it refuses fits
-that include a clustering variable; use the CR2 tests above for
-clustered designs.</p>
+cluster level, permutation must likewise occur at the cluster level. For
+fits with a <code>cluster</code> variable, <code><a href="../reference/perm_solomon.html">perm_solomon()</a></code>
+permutes whole clusters:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span></span>
+<span>  <span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>,</span>
+<span>  robust <span class="op">=</span> <span class="st">"CR2"</span>,</span>
+<span>  cluster <span class="op">=</span> <span class="va">cluster_id</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/perm_solomon.html">perm_solomon</a></span><span class="op">(</span><span class="va">fit_cl</span>, contrast <span class="op">=</span> <span class="st">"Treatment | unpretested"</span><span class="op">)</span></span></code></pre></div>
+<p>Two assignment mechanisms are supported: whole clusters assigned to
+the four Solomon conditions, and treatment assigned to clusters with
+pretesting assigned to participants within them. The statistic is built
+from covariate-adjusted cluster-level summaries, each cluster counts
+once, and small designs are enumerated exactly (Gail et al., 1996; Hayes
+&amp; Moulton, 2017). Designs that assign treatment to participants
+within clusters are refused. The help page, <code><a href="../reference/perm_solomon.html">?perm_solomon</a></code>,
+gives the details and the simulation evidence.</p>
 </div>
 <div class="section level2">
 <h2 id="a-likelihood-based-alternative">A likelihood-based alternative<a class="anchor" aria-label="anchor" href="#a-likelihood-based-alternative"></a>
@@ -663,7 +709,7 @@ clustered designs.</p>
 <p><code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> provides a full-information
 maximum-likelihood analysis inspired by van Engelenburg’s treatment of
 the Solomon four-group design.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span></span>
@@ -711,7 +757,7 @@ which applies Welch-Satterthwaite degrees of freedom (Satterthwaite,
 </h2>
 <p>For teaching or reproducing the classical Tests A-I workflow,
 use:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span></span>
@@ -726,7 +772,7 @@ use:</p>
 <pre><code><span><span class="co">## Classic Solomon analysis (historical teaching workflow)</span></span>
 <span><span class="co">## -------------------------------------------------------</span></span>
 <span><span class="co">## Selected pretested-group method: Test E (ancova)</span></span>
-<span><span class="co">## Historical decision path: A -&gt; D -&gt; E -&gt; H -&gt; I</span></span>
+<span><span class="co">## Historical decision path (1988 flow): A -&gt; D -&gt; E -&gt; H -&gt; I</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Historical Tests A-I</span></span>
 <span><span class="co">## --------------------</span></span>
@@ -741,21 +787,25 @@ use:</p>
 <span><span class="co">##        Test F: Gain-score treatment effect                   F(1, 58) = 0.46, p = 0.499</span></span>
 <span><span class="co">##        Test G: Repeated-measures Treatment x Time interaction F(1, 58) = 0.46, p = 0.499</span></span>
 <span><span class="co">## [PATH] Test H: Posttest-only treatment effect                t(58) = 1.66, p = 0.103</span></span>
-<span><span class="co">## [PATH] Test I: Braver &amp; Braver (1988) Stouffer combination   Z = 1.69, p(one-tailed) = 0.045 [E + H (ANCOVA + posttest-only)]</span></span>
+<span><span class="co">## [PATH] Test I: Walton Braver &amp; Braver (1988) Stouffer combination Z = 1.69, p = 0.090 [E + H (ANCOVA + posttest-only)]</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Historical interpretation</span></span>
 <span><span class="co">## -------------------------</span></span>
-<span><span class="co">## Historical pathway: Test I produces a significant Stouffer combination. This result is retained for historical replication and should be interpreted in light of later Type I error critiques. </span></span>
+<span><span class="co">## Historical pathway: no treatment test in the selected A-I sequence reaches the specified alpha level. </span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Groups 3-4 effect size: Hedges g = 0.423, 95% CI [-0.086, 0.938] (noncentral t)</span></span>
 <span><span class="co">## </span></span>
-<span><span class="co">## Caution: Test I, the Braver &amp; Braver (1988) Stouffer combination, is</span></span>
+<span><span class="co">## History/maturation check (historical; Mai et al., 2020)</span></span>
+<span><span class="co">##   O6 - O1: control posttest vs. treated-group pretest: difference = 1.467, t(58) = 0.54, p = 0.590</span></span>
+<span><span class="co">##   O6 - O3: control posttest vs. control-group pretest: difference = 1.533, t(58) = 0.61, p = 0.543</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Caution: Test I, the Walton Braver &amp; Braver (1988) Stouffer combination, is</span></span>
 <span><span class="co">## reproduced for historical teaching and replication. Later simulation</span></span>
 <span><span class="co">## work (see Sawilowsky et al., 1994) raised concerns about Type I error</span></span>
 <span><span class="co">## for the conditional meta-analytic sequence; it is not the default</span></span>
 <span><span class="co">## modern inferential recommendation in solomonR.</span></span></code></pre>
 <p>See:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"classic-solomon"</span>, package <span class="op">=</span> <span class="st">"solomonR"</span><span class="op">)</span></span></code></pre></div>
 <p>for a detailed explanation of the historical sequence and its
 limitations.</p>
@@ -766,7 +816,7 @@ limitations.</p>
 <p><code>solomonR</code> also includes observed- and latent-variable SEM
 approaches.</p>
 <p>An observed four-group mean model can be fit with:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/fit_solomon_sem.html">fit_solomon_sem</a></span><span class="op">(</span></span>
 <span>  <span class="va">y_post</span>,</span>
 <span>  <span class="va">treat</span>,</span>
@@ -791,7 +841,7 @@ package:</p>
 </h2>
 <p><code><a href="../reference/compare_solomon_methods.html">compare_solomon_methods()</a></code> fits several analyses to the
 same data and lines up their estimates of each Solomon contrast.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/compare_solomon_methods.html">compare_solomon_methods</a></span><span class="op">(</span></span>
@@ -862,10 +912,10 @@ same data and lines up their estimates of each Solomon contrast.</p>
 <span><span class="co">##   only); common residual variance; unpretested groups.</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Not compared:</span></span>
-<span><span class="co">## - perm_solomon(): Tests the sharp null hypothesis of no treatment effect for</span></span>
-<span><span class="co">##   any participant; it does not estimate a contrast.</span></span>
-<span><span class="co">## - Test I (Braver &amp; Braver, 1988): Combines one-tailed p-values from two</span></span>
-<span><span class="co">##   tests; it does not estimate a contrast.</span></span>
+<span><span class="co">## - perm_solomon(): A randomization test of no treatment effect; it gives no</span></span>
+<span><span class="co">##   interval for the contrast.</span></span>
+<span><span class="co">## - Test I (Walton Braver &amp; Braver, 1988): Combines one-tailed p-values from</span></span>
+<span><span class="co">##   two tests; it does not estimate a contrast.</span></span>
 <span><span class="co">## - fit_solomon_sem_latent(): Estimates contrasts on a latent-variable scale,</span></span>
 <span><span class="co">##   not the observed posttest scale.</span></span>
 <span><span class="co">## - Hedges' g (fit_solomon_classic()): A standardized mean difference, not a</span></span>
@@ -912,45 +962,54 @@ on whether an earlier significance test crossed
 </ul>
 <p>See <code>ROADMAP.md</code> in the package repository for the current
 development plan.</p>
+<p>All works cited in solomonR are listed, with notes on how the package
+uses them, on the <a href="https://juhalt.github.io/solomonR/articles/references.html">References</a>
+page.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <p>Bell, R. M., &amp; McCaffrey, D. F. (2002). Bias reduction in
 standard errors for linear regression with multi-stage samples.
-<em>Survey Methodology, 28</em>, 169-181.</p>
+<em>Survey Methodology, 28</em>(2), 169–181.</p>
+<p>Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., &amp; Pee, D.
+(1996). On design considerations and randomization-based inference for
+community intervention trials. <em>Statistics in Medicine, 15</em>(11),
+1069–1092. <a href="https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q" class="external-link uri">https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q</a></p>
 <p>Hayes, A. F., &amp; Cai, L. (2007). Using
 heteroskedasticity-consistent standard error estimators in OLS
 regression: An introduction and software implementation. <em>Behavior
-Research Methods, 39</em>, 709-722.</p>
+Research Methods, 39</em>(4), 709–722. <a href="https://doi.org/10.3758/BF03192961" class="external-link uri">https://doi.org/10.3758/BF03192961</a></p>
+<p>Hayes, R. J., &amp; Moulton, L. H. (2017). <em>Cluster randomised
+trials</em> (2nd ed.). Chapman and Hall/CRC. <a href="https://doi.org/10.4324/9781315370286" class="external-link uri">https://doi.org/10.4324/9781315370286</a></p>
 <p>Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. <em>Social Psychological and
-Personality Science, 8</em>, 355-362.</p>
+Personality Science, 8</em>(4), 355–362. <a href="https://doi.org/10.1177/1948550617697177" class="external-link uri">https://doi.org/10.1177/1948550617697177</a></p>
 <p>Lin, W. (2013). Agnostic notes on regression adjustments to
 experimental data: Reexamining Freedman’s critique. <em>The Annals of
-Applied Statistics, 7</em>, 295-318.</p>
+Applied Statistics, 7</em>(1), 295–318. <a href="https://doi.org/10.1214/12-AOAS583" class="external-link uri">https://doi.org/10.1214/12-AOAS583</a></p>
 <p>Long, J. S., &amp; Ervin, L. H. (2000). Using heteroscedasticity
 consistent standard errors in the linear regression model. <em>The
-American Statistician, 54</em>, 217-224.</p>
+American Statistician, 54</em>(3), 217–224. <a href="https://doi.org/10.1080/00031305.2000.10474549" class="external-link uri">https://doi.org/10.1080/00031305.2000.10474549</a></p>
 <p>MacKinnon, J. G., &amp; White, H. (1985). Some
 heteroskedasticity-consistent covariance matrix estimators with improved
-finite sample properties. <em>Journal of Econometrics, 29</em>,
-305-325.</p>
+finite sample properties. <em>Journal of Econometrics, 29</em>(3),
+305–325. <a href="https://doi.org/10.1016/0304-4076(85)90158-7" class="external-link uri">https://doi.org/10.1016/0304-4076(85)90158-7</a></p>
 <p>Pustejovsky, J. E., &amp; Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
 effects models. <em>Journal of Business &amp; Economic Statistics,
-36</em>, 672-683.</p>
+36</em>(4), 672–683. <a href="https://doi.org/10.1080/07350015.2016.1247004" class="external-link uri">https://doi.org/10.1080/07350015.2016.1247004</a></p>
 <p>Satterthwaite, F. E. (1946). An approximate distribution of estimates
-of variance components. <em>Biometrics Bulletin, 2</em>, 110-114.</p>
+of variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114. <a href="https://doi.org/10.2307/3002019" class="external-link uri">https://doi.org/10.2307/3002019</a></p>
 <p>Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
-contrast analysis. <em>Psychological Methods, 9</em>, 164-182.</p>
+contrast analysis. <em>Psychological Methods, 9</em>(2), 164–182. <a href="https://doi.org/10.1037/1082-989X.9.2.164" class="external-link uri">https://doi.org/10.1037/1082-989X.9.2.164</a></p>
 <p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon
 four-group design</em> (Research Report 99-06). University of
 Twente.</p>
 <p>Welch, B. L. (1947). The generalization of “Student’s” problem when
 several different population variances are involved. <em>Biometrika,
-34</em>, 28-35.</p>
+34</em>(1–2), 28–35. <a href="https://doi.org/10.1093/biomet/34.1-2.28" class="external-link uri">https://doi.org/10.1093/biomet/34.1-2.28</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -40,8 +40,13 @@ The grid crosses:
 **Methods.** The three procedures
 [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
 reports: the unified GLM with HC3 standard errors and t reference
-distributions, the 2x2 ANOVA interaction, and the historical one-tailed
-Test I (Braver & Braver, 1988).
+distributions, the 2x2 ANOVA interaction, and the historical Test I
+(Walton Braver & Braver, 1988). When this study ran, Test I was judged
+one-tailed. Since then,
+[`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+uses the two-tailed p of the combined z, as in Walton Braver and
+Braver’s worked example (1988, p. 153). The Test I rows below are those
+of the one-tailed version.
 
 **Analytic benchmarks.** Normal-theory rejection probabilities computed
 from the design: a two-sample t test for the unpretested contrast, an
@@ -66,11 +71,11 @@ proportionally scaled effects.
 
 ## Fit failures
 
-| Test                           | Failed fits across all scenarios |
-|:-------------------------------|---------------------------------:|
-| GLM (HC3, t)                   |                                0 |
-| 2x2 ANOVA interaction          |                                0 |
-| Test I (Braver & Braver, 1988) |                                0 |
+| Test                                  | Failed fits across all scenarios |
+|:--------------------------------------|---------------------------------:|
+| GLM (HC3, t)                          |                                0 |
+| 2x2 ANOVA interaction                 |                                0 |
+| Test I (Walton Braver & Braver, 1988) |                                0 |
 
 ## Type I error
 
@@ -81,14 +86,18 @@ proportionally scaled effects.
 
 Mean rejection rate where the true effect is zero (nominal .05) {.table}
 
-![](power-validation_files/figure-html/type1-plot-1.png)
+![Rejection rates under a true null for each test and allocation, one
+point per scenario, with the 0.04 to 0.06 tolerance band
+shaded.](power-validation_files/figure-html/type1-plot-1.png)
 
 The shaded band is the pre-declared tolerance. Each point is one
 scenario.
 
 ## Agreement with analytic power
 
-![](power-validation_files/figure-html/agreement-plot-1.png)
+![Simulated power plotted against analytic power for each test, one
+point per scenario, with the line of equality
+dashed.](power-validation_files/figure-html/agreement-plot-1.png)
 
 | Test | 10 per cell | 20 per cell | 30 per cell | 60/60/20/20 | 20/20/60/60 | 50 per cell | 100 per cell |
 |:---|:---|:---|:---|:---|:---|:---|:---|
@@ -129,7 +138,7 @@ rate is not compared with a two-sided benchmark.
 | Treatment \| pretested | GLM (HC3, t) | 0.938 | 0.938 | +0.000 |
 | Treatment \| unpretested | GLM (HC3, t) | 0.455 | 0.455 | +0.000 |
 | Pretest x Treatment | 2x2 ANOVA interaction | 0.134 | 0.134 | +0.000 |
-| Treatment (one-sided) | Test I (Braver & Braver, 1988) | 0.986 | 0.986 | +0.000 |
+| Treatment (one-sided) | Test I (Walton Braver & Braver, 1988) | 0.986 | 0.986 | +0.000 |
 
 Rejection rates with proportionally scaled effects and residual SD
 {.table}
@@ -199,15 +208,22 @@ repository. It was run at 2a944c8 plus \#18 rebuild (solomon_power.R md5
 180d6330d91d) with R 4.6.1, base seed 20260916, and the replication
 counts above.
 
+All works cited in solomonR are listed, with notes on how the package
+uses them, on the
+[References](https://juhalt.github.io/solomonR/articles/references.md)
+page.
+
 ## References
 
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. *Psychological
-Bulletin, 104*, 150-154.
-
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
-studies to evaluate statistical methods. *Statistics in Medicine, 38*,
-2074-2102.
+studies to evaluate statistical methods. *Statistics in Medicine,
+38*(11), 2074–2102. <https://doi.org/10.1002/sim.8086>
 
 Solomon, R. L. (1949). An extension of control group design.
-*Psychological Bulletin, 46*, 137-150.
+*Psychological Bulletin, 46*(2), 137–150.
+<https://doi.org/10.1037/h0062958>
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
+the Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154.
+<https://doi.org/10.1037/0033-2909.104.1.150>

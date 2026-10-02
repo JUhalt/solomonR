@@ -18,9 +18,9 @@ therefore distinguishes the historical procedure from the package’s
 modern model-based and randomization-based approaches.
 
 The implementation draws especially on the historical discussions of
-Huck and Sandler (1973), Braver and Braver (1988), and later simulation
-work examining the operating characteristics of conditional Solomon
-procedures.
+Huck and Sandler (1973), Walton Braver and Braver (1988), and later
+simulation work examining the operating characteristics of conditional
+Solomon procedures.
 
 ## The four groups
 
@@ -106,7 +106,7 @@ classic
 #> Classic Solomon analysis (historical teaching workflow)
 #> -------------------------------------------------------
 #> Selected pretested-group method: Test E (ancova)
-#> Historical decision path: A -> D -> E -> H -> I
+#> Historical decision path (1988 flow): A -> D -> E -> H -> I
 #> 
 #> Historical Tests A-I
 #> --------------------
@@ -121,15 +121,19 @@ classic
 #>        Test F: Gain-score treatment effect                   F(1, 58) = 0.46, p = 0.499
 #>        Test G: Repeated-measures Treatment x Time interaction F(1, 58) = 0.46, p = 0.499
 #> [PATH] Test H: Posttest-only treatment effect                t(58) = 1.66, p = 0.103
-#> [PATH] Test I: Braver & Braver (1988) Stouffer combination   Z = 1.69, p(one-tailed) = 0.045 [E + H (ANCOVA + posttest-only)]
+#> [PATH] Test I: Walton Braver & Braver (1988) Stouffer combination Z = 1.69, p = 0.090 [E + H (ANCOVA + posttest-only)]
 #> 
 #> Historical interpretation
 #> -------------------------
-#> Historical pathway: Test I produces a significant Stouffer combination. This result is retained for historical replication and should be interpreted in light of later Type I error critiques. 
+#> Historical pathway: no treatment test in the selected A-I sequence reaches the specified alpha level. 
 #> 
 #> Groups 3-4 effect size: Hedges g = 0.423, 95% CI [-0.086, 0.938] (noncentral t)
 #> 
-#> Caution: Test I, the Braver & Braver (1988) Stouffer combination, is
+#> History/maturation check (historical; Mai et al., 2020)
+#>   O6 - O1: control posttest vs. treated-group pretest: difference = 1.467, t(58) = 0.54, p = 0.590
+#>   O6 - O3: control posttest vs. control-group pretest: difference = 1.533, t(58) = 0.61, p = 0.543
+#> 
+#> Caution: Test I, the Walton Braver & Braver (1988) Stouffer combination, is
 #> reproduced for historical teaching and replication. Later simulation
 #> work (see Sawilowsky et al., 1994) raised concerns about Type I error
 #> for the conditional meta-analytic sequence; it is not the default
@@ -154,7 +158,9 @@ route these data took, with the p-value of each test reached:
 plot_classic_flow(classic)
 ```
 
-![](classic-solomon_files/figure-html/classic-flow-1.png)
+![Decision tree of the historical Test A to I sequence, with the path
+taken by the example data
+highlighted.](classic-solomon_files/figure-html/classic-flow-1.png)
 
 The caption repeats the caution discussed below: the sequence ending in
 Test I is kept for teaching and replication, not as a recommended
@@ -242,7 +248,9 @@ only:
 with(solomon_example, plot_solomon_change(y_post, treat, pretested, y_pre))
 ```
 
-![](classic-solomon_files/figure-html/change-plot-1.png)
+![Pretest and posttest means of the two pretested groups, beside the
+posttest means of the two unpretested
+groups.](classic-solomon_files/figure-html/change-plot-1.png)
 
 ### Test G: repeated-measures formulation
 
@@ -302,10 +310,10 @@ cat(
 #> Hedges' g = 0.42, 95% CI [-0.09, 0.94]
 ```
 
-## Test I: Braver & Braver (1988) Stouffer combination
+## Test I: Walton Braver & Braver (1988) Stouffer combination
 
-Braver and Braver (1988) proposed combining evidence from the pretested
-and unpretested treatment comparisons using Stouffer’s method.
+Walton Braver and Braver (1988) proposed combining evidence from the
+pretested and unpretested treatment comparisons using Stouffer’s method.
 
 When requested, `solomonR` reproduces this historical analysis using
 **directional one-tailed p-values aligned with the same treatment
@@ -333,12 +341,97 @@ cat(
     }
   )
 )
-#> Stouffer Z = 1.69, p = .045
+#> Stouffer Z = 1.69, p = .090
 ```
 
 This detail matters. A directional one-tailed p-value is not obtained
 correctly by mechanically dividing every two-sided p-value by two
-without considering the sign of the effect.
+without considering the sign of the effect. The package’s replication of
+the published error rates found that the published simulations appear to
+have combined the tests without regard to sign. `solomonR` refers the
+combined z to its two-tailed p-value, as Walton Braver and Braver report
+it in their worked example (1988, p. 153). That is why they report far
+fewer Test I rejections than the procedure as defined produces (see
+[Historical Tests: Replicating the Published Error
+Rates](https://juhalt.github.io/solomonR/articles/classic-validation.html)).
+
+## Versions of the decision sequence
+
+The sequence changed after it was published, and
+[`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+reproduces each version through its `flow` argument.
+
+- **1988, the default.** In the original sequence, testing stops at the
+  first significant test among D, the selected pretested-groups test,
+  and H; Test I is reached only when all of them are nonsignificant
+  (Walton Braver & Braver, 1988, pp. 151–153).
+- **1990.** Replying to Sawilowsky and Markman (1990a), the authors
+  agreed that using the meta-analysis selectively introduces selection
+  bias. Once Tests A and D are nonsignificant, the analyst “should
+  complete all the tests through Test I” (Braver & Walton Braver, 1990,
+  p. 322), and Test I is regarded as the most definitive test.
+- **1995.** A later revision removed Test D. It is unpublished and known
+  from Sawilowsky (1996, p. 2), so it is cited as Walton Braver and
+  Braver (1995, as cited in Sawilowsky, 1996). The remaining tests
+  follow the 1988 rule, as in Sawilowsky’s simulation of the revised
+  sequence.
+
+``` r
+
+classic_1990 <- with(
+  solomon_example,
+  fit_solomon_classic(y_post, treat, pretested, y_pre, flow = "1990")
+)
+
+classic_1990$path_string
+#> [1] "A -> D -> E -> H -> I"
+classic_1990$conclusion
+#> [1] "Historical pathway (1990 amendment): Tests A and D are nonsignificant, so every test through Test I is run and Test I is regarded as the most definitive. Test I does not reach the specified alpha level (Test E p = 0.444, Test H p = 0.103, Test I p = 0.090). Interpret this in light of later Type I error critiques."
+```
+
+The tests themselves are identical in every version; only the path and
+the conclusion differ. For the 1995 version, `alpha_allocation` applies
+the test-wise significance levels that Sawilowsky (1996, Table 4)
+proposed to control the experiment-wise error rate:
+
+``` r
+
+classic_1995 <- with(
+  solomon_example,
+  fit_solomon_classic(y_post, treat, pretested, y_pre, flow = "1995",
+                      alpha_allocation = "method2_conservative")
+)
+
+classic_1995$path_string
+#> [1] "A -> E -> H -> I"
+```
+
+## History and maturation
+
+The four-group design also allows a check that does not involve the
+treatment. The unpretested control group’s posttest (O6) was measured at
+the same time as the other posttests, but its participants received
+neither the pretest nor the treatment. Comparing it with the pretests of
+the pretested groups (O1 and O3), which were measured before any
+treatment, estimates the combined effect of history and maturation
+between the two occasions. Mai et al. (2020, p. 8) report these
+comparisons as independent-samples t tests, which
+[`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+returns as `history`:
+
+``` r
+
+classic$history
+#>                                            comparison estimate statistic df
+#> 1 O6 - O1: control posttest vs. treated-group pretest 1.466667 0.5415318 58
+#> 2 O6 - O3: control posttest vs. control-group pretest 1.533333 0.6121767 58
+#>     p.value  conf.low conf.high
+#> 1 0.5902153 -3.954718  6.888051
+#> 2 0.5428135 -3.480416  6.547082
+```
+
+The check assumes random assignment and a measure that is comparable at
+the two occasions.
 
 ## Why Test I is treated cautiously
 
@@ -352,6 +445,14 @@ Later simulation work showed that conditional analysis sequences can
 have undesirable experiment-wise Type I error properties. In particular,
 choosing later tests based on the statistical significance of earlier
 tests changes the operating characteristics of the overall procedure.
+Sawilowsky et al. (1994) found that the 1988 sequence falsely declared
+an effect about 14% of the time at a nominal 5% per test.
+
+The package’s own replication found similar rates for the sequence as
+Walton Braver and Braver define it. With Test I judged two-tailed, as in
+their worked example, the rate was 13.5% to 13.7% for the 1988 and 1995
+versions, and Sawilowsky’s (1996) alpha allocations stayed above their
+targets.
 
 For contemporary applied work, researchers should therefore consider a
 single prespecified model or a randomization-based analysis rather than
@@ -380,18 +481,47 @@ purposes.
 | Model latent outcomes | [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md) |
 
 The historical procedure is therefore preserved rather than erased,
-while modern methods are available alongside it.
+while modern methods are available alongside it. [A History of the
+Solomon Design and Its
+Analysis](https://juhalt.github.io/solomonR/articles/history.html) tells
+how each version arose and how the debate over it unfolded.
+
+All works cited in solomonR are listed, with notes on how the package
+uses them, on the
+[References](https://juhalt.github.io/solomonR/articles/references.html)
+page.
 
 ## References
 
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. *Psychological
-Bulletin, 104*, 150-154.
+Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
+four-group designs reconsidered: A reply to Sawilowsky and Markman.
+*Perceptual and Motor Skills, 71*(1), 321–322.
+<https://doi.org/10.2466/pms.1990.71.1.321>
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
-Education, 42*, 54-55.
+Education, 42*(2), 54–55.
+<https://doi.org/10.1080/00220973.1973.11011460>
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
+of transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
+
+Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I
+error of meta-analysis in the Solomon four-group design* \[Paper
+presentation\]. First International Conference on Multiple Comparisons,
+Tel Aviv, Israel. <https://digitalcommons.wayne.edu/coe_tbf/29/>
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
-Experimental Education, 62*, 361-376.
+Experimental Education, 62*(4), 361–376.
+<https://doi.org/10.1080/00220973.1994.9944140>
+
+Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power
+of meta-analysis in the Solomon four-group design. *Perceptual and Motor
+Skills, 71*(1), 177–178. <https://doi.org/10.2466/pms.1990.71.1.177>
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
+the Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154.
+<https://doi.org/10.1037/0033-2909.104.1.150>

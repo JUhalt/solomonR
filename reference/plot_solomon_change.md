@@ -1,10 +1,10 @@
 # Pretest-to-posttest change in a Solomon design
 
-Draws mean pretest and posttest scores for the two pretested groups,
-joined to show change, alongside posttest means for the two unpretested
-groups. The unpretested groups appear at posttest only: their missing
-pretest is the experimental manipulation (Solomon, 1949), not missing
-data, and the figure labels it that way.
+**\[stable\]** Draws mean pretest and posttest scores for the two
+pretested groups, joined to show change, alongside posttest means for
+the two unpretested groups. The unpretested groups appear at posttest
+only: their missing pretest is the experimental manipulation (Solomon,
+1949), not missing data, and the figure labels it that way.
 
 ## Usage
 
@@ -15,7 +15,8 @@ plot_solomon_change(
   pretested,
   y_pre,
   show_individuals = FALSE,
-  conf_level = 0.95
+  conf_level = 0.95,
+  data = NULL
 )
 ```
 
@@ -48,6 +49,12 @@ plot_solomon_change(
   Confidence level for the intervals, which use the t distribution with
   n - 1 degrees of freedom. Default is 0.95.
 
+- data:
+
+  Optional data frame. When supplied, the other data arguments are
+  looked up in it first, as bare column names (`y_post = post`) or as
+  strings (`y_post = "post"`).
+
 ## Value
 
 A ggplot object.
@@ -69,7 +76,8 @@ for the estimand behind each analysis.
 ## References
 
 Solomon, R. L. (1949). An extension of control group design.
-*Psychological Bulletin, 46*(2), 137-150.
+*Psychological Bulletin, 46*(2), 137–150.
+https://doi.org/10.1037/h0062958
 
 ## Examples
 

@@ -18,17 +18,52 @@
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Decide</h6></li>
+    <li><a class="dropdown-item" href="articles/should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plan</h6></li>
+    <li><a class="dropdown-item" href="articles/planning.html">Planning a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
+    <li><a class="dropdown-item" href="articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
     <li><a class="dropdown-item" href="articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
+    <li><a class="dropdown-item" href="articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
+    <li><a class="dropdown-item" href="articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
+    <li><a class="dropdown-item" href="articles/reporting.html">Reporting a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Synthesize</h6></li>
+    <li><a class="dropdown-item" href="articles/synthesis.html">Reanalysis and Synthesis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Teach</h6></li>
+    <li><a class="dropdown-item" href="articles/teaching.html">Teaching with solomonR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>History</h6></li>
+    <li><a class="dropdown-item" href="articles/history.html">A History of the Solomon Design and Its Analysis</a></li>
     <li><a class="dropdown-item" href="articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
-    <li><a class="dropdown-item" href="articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Validation evidence</h6></li>
     <li><a class="dropdown-item" href="articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="articles/plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></li>
+    <li><a class="dropdown-item" href="articles/binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="articles/count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="articles/cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></li>
+    <li><a class="dropdown-item" href="articles/cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></li>
+    <li><a class="dropdown-item" href="articles/classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></li>
+    <li><a class="dropdown-item" href="articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
+    <li><a class="dropdown-item" href="articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
+    <li><a class="dropdown-item" href="articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
+    <li><a class="dropdown-item" href="articles/references.html">References and the Solomon Literature</a></li>
+    <li><a class="dropdown-item" href="articles/coverage.html">Coverage of the Published Methodology</a></li>
+    <li><a class="dropdown-item" href="articles/citing.html">How to Cite solomonR and the Methods It Implements</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -50,6 +85,7 @@
 <div id="solomonr-roadmap" class="section level1">
 
 <p><code>solomonR</code> aims to provide a comprehensive R ecosystem for the Solomon four-group design: preserving its methodological history, supporting teaching and replication, and providing defensible modern analysis, visualization, design-planning, and reporting tools.</p>
+<p>Sources cited in this roadmap are listed in APA Style (7th ed.) on the <a href="https://juhalt.github.io/solomonR/articles/references.html">References</a> page of the package site.</p>
 <p>The roadmap distinguishes historically important methods from contemporary recommendations and from new extensions introduced by <code>solomonR</code>.</p>
 <p>The primary audience is graduate students (Master’s and doctoral) and applied researchers who need to plan, analyze, interpret, and report a Solomon four-group study. Every procedure should be traceable to published methodology or clearly labeled as a <code>solomonR</code>-specific extension.</p>
 <p><strong>Distribution:</strong> releases are published on <a href="https://juhalt.r-universe.dev/solomonR" class="external-link">R-universe</a>. CRAN submission is planned for v1.0.0.</p>
@@ -59,7 +95,7 @@
 <strong>Preserve the history</strong>
 <ul><li>Reproduce the major historical approaches faithfully.</li>
 <li>Identify which procedures are historical rather than currently recommended.</li>
-<li>Preserve methodological debates, including the Braver &amp; Braver / Sawilowsky et al. meta-analytic controversy.</li>
+<li>Preserve methodological debates, including the Walton Braver &amp; Braver / Sawilowsky et al. meta-analytic controversy.</li>
 </ul></li>
 <li>
 <strong>Teach the design</strong>
@@ -258,114 +294,157 @@
 </ul><hr></div>
 </div>
 <div class="section level2">
+<h2 id="status-of-the-open-releases">Status of the open releases<a class="anchor" aria-label="anchor" href="#status-of-the-open-releases"></a></h2>
+<p>Work for v0.5.0 through v0.8.0 is in review as a stack of pull requests, each built on the one before it and merged in order. An item is checked when its pull request is merged. “In review” gives the pull request.</p>
+<hr></div>
+<div class="section level2">
 <h2 id="v050---extended-outcomes-and-designs">v0.5.0 - Extended outcomes and designs<a class="anchor" aria-label="anchor" href="#v050---extended-outcomes-and-designs"></a></h2>
-<p><strong>Status:</strong> Active development — <a href="https://github.com/JUhalt/solomonR/milestone/3" class="external-link">v0.5.0 milestone</a>.</p>
-<ul class="task-list"><li>
-<label><input type="checkbox">Binary outcomes</label>
-<ul><li>Logistic models</li>
-<li>Risk difference</li>
-<li>Risk ratio</li>
-<li>Odds ratio</li>
+<p><strong>Milestone:</strong> <a href="https://github.com/JUhalt/solomonR/milestone/3" class="external-link">v0.5.0</a></p>
+<p><strong>Goal:</strong> Extend the Solomon estimands beyond continuous outcomes and two conditions, and make clustered designs safe to analyze.</p>
+<ul class="task-list"><li><p><label><input type="checkbox">Verified APA 7 attribution (DOIs, the Walton Braver &amp; Braver correction, a canonical bibliography page) and roadmap alignment — <a href="https://github.com/JUhalt/solomonR/issues/42" class="external-link">#42</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/59" class="external-link">PR #59</a></label></p></li>
+<li>
+<p><label><input type="checkbox">Binary outcomes — <a href="https://github.com/JUhalt/solomonR/issues/43" class="external-link">#43</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/61" class="external-link">PR #61</a></label></p>
+<ul><li>Risk difference, risk ratio, and odds ratio for each Solomon contrast</li>
+<li>The historical chi-square and Fisher path (El Karkri et al., 2025b)</li>
+<li>Published example: Kvalem et al. (1996)</li>
 </ul></li>
 <li>
-<label><input type="checkbox">Count outcomes</label>
-<ul><li>Poisson / negative-binomial models</li>
-<li>Rate ratios</li>
-</ul></li>
-<li>
-<label><input type="checkbox">Mixed / multilevel Solomon models</label>
-<ul><li>Clustered assignment</li>
-<li>Classrooms / schools / sites</li>
-<li>Cluster-level randomization inference — <a href="https://github.com/JUhalt/solomonR/issues/19" class="external-link">#19</a>
+<p><label><input type="checkbox">Count outcomes — <a href="https://github.com/JUhalt/solomonR/issues/44" class="external-link">#44</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/63" class="external-link">PR #63</a></label></p>
+<ul><li>Robust Poisson models, rate ratios and rate differences, exposure offsets</li>
+<li>Negative-binomial option for strongly overdispersed counts — <a href="https://github.com/JUhalt/solomonR/issues/62" class="external-link">#62</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/66" class="external-link">PR #66</a>
 </li>
 </ul></li>
 <li>
-<label><input type="checkbox">Longitudinal Solomon models</label>
-<ul><li>Repeated follow-ups</li>
-<li>Treatment x Pretest x Time</li>
+<p><label><input type="checkbox">Solomon N-group designs: more than two conditions — <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a></label></p>
+<ul><li>One model with planned contrasts in place of overlapping four-group analyses (Edmonds &amp; Kennedy, 2017; Mai et al., 2020)</li>
+<li>Waiting for Steyn (2009), requested through interlibrary loan. v1.0.0 waits for this item.</li>
 </ul></li>
 <li>
-<label><input type="checkbox">Modified Solomon designs</label>
-<ul><li>More than two treatment conditions</li>
+<p><label><input type="checkbox">Clustered designs</label></p>
+<ul><li>Detect designs that confound clusters with conditions — <a href="https://github.com/JUhalt/solomonR/issues/46" class="external-link">#46</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/60" class="external-link">PR #60</a>
+</li>
+<li>Cluster-level randomization inference — <a href="https://github.com/JUhalt/solomonR/issues/19" class="external-link">#19</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/65" class="external-link">PR #65</a>
+</li>
 </ul></li>
-<li>
-<label><input type="checkbox">Quasi-experimental Solomon designs</label>
-<ul><li>Explicitly distinguish causal interpretation from randomized designs</li>
-</ul></li>
+<li><p><label><input type="checkbox"><code><a href="reference/plot_sensitization.html">plot_sensitization()</a></code> for <code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> fits — <a href="https://github.com/JUhalt/solomonR/issues/47" class="external-link">#47</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/60" class="external-link">PR #60</a></label></p></li>
 </ul><hr></div>
 <div class="section level2">
 <h2 id="v060---teaching-and-reporting">v0.6.0 - Teaching and reporting<a class="anchor" aria-label="anchor" href="#v060---teaching-and-reporting"></a></h2>
 <p><strong>Milestone:</strong> <a href="https://github.com/JUhalt/solomonR/milestone/4" class="external-link">v0.6.0</a></p>
-<ul class="task-list"><li><label><input type="checkbox">Complete introductory vignette — the getting-started guide moved to v0.3.0 (<a href="https://github.com/JUhalt/solomonR/issues/17" class="external-link">#17</a>); extend it here as needed.</label></li>
-<li><label><input type="checkbox">Expand the existing historical-analysis vignette; define additional coverage when scoped.</label></li>
-<li><label><input type="checkbox">Expand the existing modern-analysis vignette; define additional coverage when scoped.</label></li>
-<li><label><input type="checkbox">SEM / latent-variable vignette</label></li>
-<li><label><input type="checkbox">Power / planning vignette</label></li>
-<li><label><input type="checkbox">Single worked social-psychology example across methods</label></li>
-<li><label><input type="checkbox">APA-style reporting helper</label></li>
-<li><label><input type="checkbox">Method-selection guide — initial guidance ships with v0.3.0 (<a href="https://github.com/JUhalt/solomonR/issues/9" class="external-link">#9</a>, <a href="https://github.com/JUhalt/solomonR/issues/17" class="external-link">#17</a>)</label></li>
-<li><label><input type="checkbox">Historical timeline / decision-tree documentation</label></li>
-<li><label><input type="checkbox">Expanded pkgdown site</label></li>
+<p><strong>Goal:</strong> Organize the package around the path a researcher follows — decide, plan, analyze, report, synthesize — with historical and contemporary methods clearly separated at every step.</p>
+<ul><li>
+<strong>Decide</strong>
+<ul class="task-list"><li><label><input type="checkbox">Article: Should I use a Solomon design? — <a href="https://github.com/JUhalt/solomonR/issues/48" class="external-link">#48</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/76" class="external-link">PR #76</a></label></li>
+</ul></li>
+<li>
+<strong>Plan</strong>
+<ul class="task-list"><li><label><input type="checkbox">Planning article with literature-based planning values — <a href="https://github.com/JUhalt/solomonR/issues/49" class="external-link">#49</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/69" class="external-link">PR #69</a></label></li>
+</ul></li>
+<li>
+<strong>Analyze</strong>
+<ul class="task-list"><li><label><input type="checkbox">History article and versioned historical decision flows (1988, 1990, 1995) — <a href="https://github.com/JUhalt/solomonR/issues/50" class="external-link">#50</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/67" class="external-link">PR #67</a> and <a href="https://github.com/JUhalt/solomonR/pull/76" class="external-link">PR #76</a></label></li>
+<li><label><input type="checkbox">Replicate the published error rates of the historical test sequence — <a href="https://github.com/JUhalt/solomonR/issues/51" class="external-link">#51</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/76" class="external-link">PR #76</a></label></li>
+<li><label><input type="checkbox">SEM and latent-variable article, and measurement invariance — <a href="https://github.com/JUhalt/solomonR/issues/55" class="external-link">#55</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/70" class="external-link">PR #70</a> and <a href="https://github.com/JUhalt/solomonR/pull/75" class="external-link">PR #75</a></label></li>
+</ul></li>
+<li>
+<strong>Report</strong>
+<ul class="task-list"><li><label><input type="checkbox"><code><a href="reference/report_solomon.html">report_solomon()</a></code>: APA 7 results text with method-specific references — <a href="https://github.com/JUhalt/solomonR/issues/52" class="external-link">#52</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/71" class="external-link">PR #71</a></label></li>
+</ul></li>
+<li>
+<strong>Synthesize</strong>
+<ul class="task-list"><li><label><input type="checkbox">Reanalysis from summary statistics and meta-analytic effect sizes — <a href="https://github.com/JUhalt/solomonR/issues/53" class="external-link">#53</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/68" class="external-link">PR #68</a></label></li>
+</ul></li>
+<li>
+<strong>Throughout</strong>
+<ul class="task-list"><li><label><input type="checkbox">Worked examples with published Solomon data — <a href="https://github.com/JUhalt/solomonR/issues/54" class="external-link">#54</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/72" class="external-link">PR #72</a> and <a href="https://github.com/JUhalt/solomonR/pull/86" class="external-link">PR #86</a></label></li>
+<li><label><input type="checkbox">Site and core vignettes organized around the path — <a href="https://github.com/JUhalt/solomonR/issues/56" class="external-link">#56</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/77" class="external-link">PR #77</a></label></li>
+</ul></li>
+</ul><p>The earlier v0.6 items are covered as follows: the introductory, historical, and modern-analysis vignettes and the method-selection guide by #56; the planning vignette by #49; the single worked example by #54; the historical timeline and decision tree by #50; the APA-style reporting helper by #52; and the SEM vignette by #55.</p>
+<hr></div>
+<div class="section level2">
+<h2 id="v070---longitudinal-quasi-experimental-and-clustered-extensions">v0.7.0 - Longitudinal, quasi-experimental, and clustered extensions<a class="anchor" aria-label="anchor" href="#v070---longitudinal-quasi-experimental-and-clustered-extensions"></a></h2>
+<p><strong>Milestone:</strong> <a href="https://github.com/JUhalt/solomonR/milestone/6" class="external-link">v0.7.0</a></p>
+<ul class="task-list"><li>
+<label><input type="checkbox">Longitudinal Solomon designs: Treatment x Pretest x Time — <a href="https://github.com/JUhalt/solomonR/issues/57" class="external-link">#57</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/94" class="external-link">PR #94</a>. Its simulation study is reported; the function stays experimental because the pre-specified rule for the default degrees of freedom was not met</label>
+<ul><li>The protocol, its two amendments, and the sources read are on the issue.</li>
+</ul></li>
+<li><label><input type="checkbox">Quasi-experimental Solomon designs, with the loss of causal warrant made explicit — <a href="https://github.com/JUhalt/solomonR/issues/58" class="external-link">#58</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/73" class="external-link">PR #73</a></label></li>
+<li><label><input type="checkbox">Marginal risk and rate contrasts for clustered Solomon designs — <a href="https://github.com/JUhalt/solomonR/issues/64" class="external-link">#64</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/74" class="external-link">PR #74</a></label></li>
+</ul><hr></div>
+<div class="section level2">
+<h2 id="v080---methodological-feature-freeze">v0.8.0 - Methodological feature freeze<a class="anchor" aria-label="anchor" href="#v080---methodological-feature-freeze"></a></h2>
+<p><strong>Milestone:</strong> <a href="https://github.com/JUhalt/solomonR/milestone/7" class="external-link">v0.8.0</a></p>
+<p><strong>Goal:</strong> Complete the historical record from Solomon (1949) onward, the teaching toolkit, and the research workflow for new studies; audit coverage of the published methodology; and freeze the analyses intended for the v1.0 paper.</p>
+<ul><li>
+<strong>History</strong>
+<ul class="task-list"><li><label><input type="checkbox">Solomon’s (1949) original analysis and data — <a href="https://github.com/JUhalt/solomonR/issues/78" class="external-link">#78</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/87" class="external-link">PR #87</a></label></li>
+</ul></li>
+<li>
+<strong>Teaching</strong>
+<ul class="task-list"><li><label><input type="checkbox">Simulated data with known effects and classroom exercises — <a href="https://github.com/JUhalt/solomonR/issues/79" class="external-link">#79</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/88" class="external-link">PR #88</a></label></li>
+</ul></li>
+<li>
+<strong>Coverage</strong>
+<ul class="task-list"><li>
+<label><input type="checkbox">Literature coverage audit before the feature freeze — <a href="https://github.com/JUhalt/solomonR/issues/80" class="external-link">#80</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/89" class="external-link">PR #89</a></label>
+<ul><li>The coverage article and its check are done, and every identified source has been read except Steyn (2009), which is on interlibrary loan.</li>
+</ul></li>
+</ul></li>
+<li>
+<strong>Research workflow</strong>
+<ul class="task-list"><li><label><input type="checkbox">Analysis plan and study template for new Solomon studies — <a href="https://github.com/JUhalt/solomonR/issues/81" class="external-link">#81</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/93" class="external-link">PR #93</a></label></li>
+<li><label><input type="checkbox">Sensitivity analysis for missing posttests — <a href="https://github.com/JUhalt/solomonR/issues/82" class="external-link">#82</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/92" class="external-link">PR #92</a>. Its simulation study is reported; the functions stay experimental because the pre-specified rule for validation was not met</label></li>
+</ul></li>
+</ul><p>At the freeze, the simulation conditions, the worked example, and the validation of every primary estimand and inferential procedure are final, and drafting of the companion manuscript begins.</p>
+<hr></div>
+<div class="section level2">
+<h2 id="v090---release-candidate">v0.9.0 - Release candidate<a class="anchor" aria-label="anchor" href="#v090---release-candidate"></a></h2>
+<p><strong>Milestone:</strong> <a href="https://github.com/JUhalt/solomonR/milestone/8" class="external-link">v0.9.0</a></p>
+<ul><li>
+<label><input type="checkbox">Stable public API: consistent argument names and lifecycle labels — <a href="https://github.com/JUhalt/solomonR/issues/83" class="external-link">#83</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/91" class="external-link">PR #91</a></label>
+<ul><li>
+<code>y_post</code> and <code>y_pre</code> everywhere, <code>fit</code> for fitted models, one order for the planning arguments, an optional <code>data</code> argument, one posttest plot (<code><a href="reference/plot_solomon_means.html">plot_solomon_means()</a></code>), and a lifecycle badge on every function. Former names still work, with a warning, through v1.x.</li>
+</ul></li>
+<li>
+<label><input type="checkbox">CRAN pre-submission readiness — <a href="https://github.com/JUhalt/solomonR/issues/84" class="external-link">#84</a></label>
+<ul><li>Nothing is submitted without the maintainer’s sign-off.</li>
+</ul></li>
+<li>Complete reproducible simulations, and manuscript tables and figures.</li>
+<li>A public preprint when appropriate.</li>
 </ul><hr></div>
 </div>
 <div class="section level1">
 <h1 id="v100---stable-comprehensive-release">v1.0.0 - Stable comprehensive release<a class="anchor" aria-label="anchor" href="#v100---stable-comprehensive-release"></a></h1>
 <p><strong>Milestone:</strong> <a href="https://github.com/JUhalt/solomonR/milestone/5" class="external-link">v1.0.0</a>. Distribution remains R-universe until this release.</p>
-<p>Candidate requirements:</p>
-<ul><li>Stable public API</li>
-<li>Historical workflow validated</li>
-<li>GLM and ML estimands validated</li>
-<li>Randomization inference validated</li>
-<li>Power simulation validated</li>
-<li>Core visualizations complete</li>
-<li>SEM pathway documented and tested</li>
-<li>Strong automated test suite</li>
-<li>Clean R CMD check</li>
-<li>Cross-platform CI checks</li>
-<li>Public documentation website</li>
-<li>CRAN-ready package</li>
-<li>Reproducible manuscript examples and simulations</li>
-<li>Companion methodological/software manuscript</li>
-</ul><hr><div class="section level2">
-<h2 id="publication-milestone">Publication milestone<a class="anchor" aria-label="anchor" href="#publication-milestone"></a></h2>
-<p>Development of the companion methodological/software manuscript will continue alongside package development.</p>
-<div class="section level3">
-<h3 id="v08x---methodological-feature-freeze">v0.8.x - Methodological feature freeze<a class="anchor" aria-label="anchor" href="#v08x---methodological-feature-freeze"></a></h3>
-<ul><li>Freeze major analyses intended for the v1.0 paper</li>
-<li>Finalize simulation conditions</li>
-<li>Finalize worked example</li>
-<li>Validate all primary estimands and inferential procedures</li>
-<li>Begin full manuscript drafting</li>
-</ul></div>
-<div class="section level3">
-<h3 id="v09x---release-candidate-and-manuscript-freeze">v0.9.x - Release candidate and manuscript freeze<a class="anchor" aria-label="anchor" href="#v09x---release-candidate-and-manuscript-freeze"></a></h3>
-<ul><li>Stable candidate API</li>
-<li>Complete reproducible simulations</li>
-<li>Complete manuscript tables and figures</li>
-<li>Public preprint when appropriate</li>
-<li>CRAN pre-submission checks</li>
-</ul></div>
-<div class="section level3">
-<h3 id="v100---stable-package--manuscript-submission">v1.0.0 - Stable package + manuscript submission<a class="anchor" aria-label="anchor" href="#v100---stable-package--manuscript-submission"></a></h3>
-<ul><li>Stable public release</li>
-<li>Submit to CRAN</li>
-<li>Archive release and reproducible materials</li>
-<li>Submit companion peer-reviewed methodological/software paper</li>
+<p>v1.0.0 is the release in which <code>solomonR</code> captures the published methodology for the Solomon four-group design to date: its history, contemporary analysis, extensions, planning, and reporting, each traced to its source. The release, and any CRAN submission, wait for the maintainer’s sign-off (<a href="https://github.com/JUhalt/solomonR/issues/85" class="external-link">#85</a>).</p>
+<p>Requirements, with status as of the current pull-request stack:</p>
+<ul class="task-list"><li><label><input type="checkbox">Stable public API — <a href="https://github.com/JUhalt/solomonR/issues/83" class="external-link">#83</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/91" class="external-link">PR #91</a></label></li>
+<li><label><input type="checkbox">Historical workflow validated against published results — <a href="https://github.com/JUhalt/solomonR/issues/51" class="external-link">#51</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/76" class="external-link">PR #76</a></label></li>
+<li><label><input type="checkbox" checked>GLM and ML estimands validated</label></li>
+<li><label><input type="checkbox">Randomization inference validated, including cluster-level designs — <a href="https://github.com/JUhalt/solomonR/issues/19" class="external-link">#19</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/65" class="external-link">PR #65</a></label></li>
+<li><label><input type="checkbox" checked>Power and sample-size planning validated</label></li>
+<li><label><input type="checkbox" checked>Core visualizations complete</label></li>
+<li><label><input type="checkbox">SEM pathway documented and tested — <a href="https://github.com/JUhalt/solomonR/issues/55" class="external-link">#55</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/75" class="external-link">PR #75</a></label></li>
+<li><label><input type="checkbox">Published Solomon methodology covered (v0.5.0–v0.8.0), checked source by source in the coverage article — <a href="https://github.com/JUhalt/solomonR/issues/80" class="external-link">#80</a></label></li>
+<li><label><input type="checkbox" checked>Strong automated test suite</label></li>
+<li><label><input type="checkbox" checked>Clean R CMD check</label></li>
+<li><label><input type="checkbox" checked>Cross-platform CI checks (Windows, macOS, and Ubuntu release, oldrel, and devel)</label></li>
+<li><label><input type="checkbox" checked>Public documentation website</label></li>
+<li><label><input type="checkbox">CRAN-ready package — <a href="https://github.com/JUhalt/solomonR/issues/84" class="external-link">#84</a></label></li>
+<li><label><input type="checkbox">Reproducible manuscript examples and simulations</label></li>
+<li><label><input type="checkbox">Companion methodological/software manuscript</label></li>
+<li><label><input type="checkbox">Release archived, and CRAN submission after sign-off — <a href="https://github.com/JUhalt/solomonR/issues/85" class="external-link">#85</a></label></li>
 </ul><p>Publication acceptance is not required before the v1.0 release.</p>
-</div>
-</div>
 </div>
 <div class="section level1">
 <h1 id="later--exploratory">Later / exploratory<a class="anchor" aria-label="anchor" href="#later--exploratory"></a></h1>
 <p>These are intentionally outside the initial release path. Proposals become release commitments only when their scope and acceptance criteria are agreed in a linked issue and assigned to a milestone.</p>
-<ul><li><p><a href="https://github.com/JUhalt/solomonR/issues/11" class="external-link">Proposal: reproducible simulation benchmark reports with Monte Carlo uncertainty (#11)</a>. This research-informed reporting extension would build on existing ML-validation and method-comparison work; no additional release scope is committed.</p></li>
-<li><p>Bayesian Solomon modeling</p></li>
-<li><p>Rank-based / nonparametric unified methods</p></li>
-<li><p>Multivariate outcomes</p></li>
-<li><p>Latent change-score Solomon models</p></li>
-<li><p>Missing-data sensitivity analyses</p></li>
-<li><p>Optimal allocation algorithms</p></li>
-<li><p>Shiny teaching / design application</p></li>
+<ul><li>Bayesian Solomon modeling</li>
+<li>Rank-based / nonparametric unified methods: aligned-rank or permutation approaches only, since rank-transform tests are unsuitable for interactions (Sawilowsky, 2000)</li>
+<li>Multivariate outcomes</li>
+<li>Latent change-score Solomon models</li>
+<li>Optimal allocation algorithms</li>
+<li>Shiny teaching / design application</li>
 </ul></div>
 
 

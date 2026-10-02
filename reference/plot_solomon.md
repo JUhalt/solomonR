@@ -1,10 +1,11 @@
-# Plot Solomon Posttest Cell Means
+# Plot Solomon posttest cell means in base graphics (deprecated)
 
-Displays posttest means and 95% confidence intervals for the four cells
-of a Solomon four-group design. Intervals use the t distribution with
-n - 1 degrees of freedom within each cell. For the model-adjusted means
-behind the sensitization contrast, see
-[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md).
+**\[deprecated\]** `plot_solomon()` is replaced by
+[`plot_solomon_means()`](https://juhalt.github.io/solomonR/reference/plot_solomon_means.md),
+which draws the same means and intervals with ggplot2, as every other
+plot in the package does. `plot_solomon()` still works, with a
+deprecation warning, and still draws in base graphics and returns the
+cell summaries invisibly.
 
 ## Usage
 
@@ -29,3 +30,10 @@ plot_solomon(y, treat, pretested)
 ## Value
 
 Invisibly returns a data frame containing cell summaries.
+
+## Examples
+
+``` r
+# Use plot_solomon_means() instead:
+plot_solomon_means(y_post, treat, pretested, data = solomon_example)
+```

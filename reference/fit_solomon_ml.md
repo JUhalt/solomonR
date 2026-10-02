@@ -1,7 +1,7 @@
 # Full-information ML analysis for a Solomon Four-Group Design
 
-Fits the maximum-likelihood regression model described by van
-Engelenburg (1999). Pretest information is incorporated for the
+**\[stable\]** Fits the maximum-likelihood regression model described by
+van Engelenburg (1999). Pretest information is incorporated for the
 pretested groups while structurally missing pretests in the unpretested
 groups are handled through a separate residual variance.
 
@@ -16,7 +16,8 @@ fit_solomon_ml(
   weights = c("equal"),
   control = list(),
   conf_level = 0.95,
-  inference = c("wald", "satterthwaite")
+  inference = c("wald", "satterthwaite"),
+  data = NULL
 )
 ```
 
@@ -60,6 +61,12 @@ fit_solomon_ml(
   (default) for van Engelenburg's (1999) large-sample Wald inference, or
   `"satterthwaite"` for the small-sample option. The point estimates are
   the same. See the Inference options section.
+
+- data:
+
+  Optional data frame. When supplied, the other data arguments are
+  looked up in it first, as bare column names (`y_post = post`) or as
+  strings (`y_post = "post"`).
 
 ## Value
 
@@ -113,11 +120,38 @@ studied.
 ## References
 
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. *Biometrics Bulletin, 2*(6), 110-114.
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+https://doi.org/10.2307/3002019
 
-van Engelenburg, G. (1999). Statistical analysis for the Solomon
-four-group design. University of Twente Research Report 99-06.
+van Engelenburg, G. (1999). *Statistical analysis for the Solomon
+four-group design* (Research Report 99-06). University of Twente.
 
 Welch, B. L. (1947). The generalization of "Student's" problem when
 several different population variances are involved. *Biometrika,
-34*(1/2), 28-35.
+34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
+
+## Examples
+
+``` r
+# With fewer than 40 participants per cell, use the small-sample
+# (Satterthwaite) inference; see "Inference options".
+with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
+                                     inference = "satterthwaite"))
+#> Solomon full-information maximum-likelihood model
+#> -------------------------------------------------
+#> Method: van Engelenburg (1999)
+#> Inference: small-sample (t; Welch-Satterthwaite df for combined contrasts)
+#> 
+#> Centered pretest mean: 49.600
+#> Residual SD, unpretested: 8.345
+#> Residual SD, pretested:   8.298
+#> 
+#> Key Solomon estimands
+#> ---------------------
+#> ATE (avg over pretest)       2.663 (SE = 1.552), t(115.0) = 1.72, p = 0.089, 95% CI [-0.411, 5.738]
+#> Pretest x Treatment          -1.940 (SE = 3.104), t(115.0) = -0.62, p = 0.533, 95% CI [-8.088, 4.209]
+#> Treatment | pretested        1.693 (SE = 2.198), t(57) = 0.77, p = 0.444, 95% CI [-2.708, 6.095]
+#> Treatment | unpretested      3.633 (SE = 2.192), t(58) = 1.66, p = 0.103, 95% CI [-0.754, 8.020]
+#> 
+#> logLik = -424.53; optimizer convergence = 0
+```

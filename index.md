@@ -116,15 +116,10 @@ and estimates four Solomon-specific contrasts:
 
 ``` r
 
-fit <- with(
-  solomon_example,
-  fit_solomon_glm(
-    y = y_post,
-    treat = treat,
-    pretested = pretested,
-    pretest_score = y_pre,
-    robust = "HC3"
-  )
+fit <- fit_solomon_glm(
+  y_post, treat, pretested, y_pre,
+  robust = "HC3",
+  data = solomon_example
 )
 
 fit
@@ -203,10 +198,10 @@ The package distinguishes between:
 - tests that were actually reached along the historical **decision
   path**.
 
-Test I, the Braver & Braver (1988) Stouffer combination, is included for
-teaching and replication, but it is **not the default modern inferential
-recommendation**. Later simulation work raised concerns about Type I
-error in conditional versions of this procedure.
+Test I, the Walton Braver & Braver (1988) Stouffer combination, is
+included for teaching and replication, but it is **not the default
+modern inferential recommendation**. Later simulation work raised
+concerns about Type I error in conditional versions of this procedure.
 
 ------------------------------------------------------------------------
 
@@ -244,12 +239,11 @@ plot_perm(perm)
 ```
 
 Randomization inference should reflect the design that actually
-generated the treatment assignments. Because
+generated the treatment assignments. For fits with a `cluster` variable,
 [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
-permutes individual participants, it refuses fits that include a
-clustering variable; use the CR2 tests from
-[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-for cluster-randomized studies.
+permutes whole clusters. It uses covariate-adjusted cluster-level
+summaries, with exact enumeration when the design is small (Gail et al.,
+1996; Hayes & Moulton, 2017).
 
 ------------------------------------------------------------------------
 
@@ -417,15 +411,19 @@ A useful starting point is:
 
 | Goal | Suggested `solomonR` approach |
 |----|----|
+| Plan a study and pre-register its analysis | [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md), [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md) |
 | Modern primary analysis | [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md) |
 | Randomization-based inference | [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md) |
 | Test whether sensitization is negligible | [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md) |
 | Compare analyses and their estimands | [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md) |
 | Full-information likelihood | [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md) |
-| Teach or reproduce historical methods | [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md) |
+| Teach or reproduce historical methods | [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md), [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md) |
+| Teach with data whose effects are known | [`simulate_solomon()`](https://juhalt.github.io/solomonR/reference/simulate_solomon.md) |
 | Observed-variable SEM | [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md) |
 | Multi-item / latent outcome | [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md) |
 | Check design coding and missingness | [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md), [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md) |
+| Sensitivity analysis for missing posttests | [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md), [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md) |
+| Several posttest occasions, with dropout | [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md) |
 | Model diagnostics | [`check_solomon_assumptions()`](https://juhalt.github.io/solomonR/reference/check_solomon_assumptions.md) |
 
 For many ordinary randomized Solomon experiments with continuous
@@ -531,18 +529,34 @@ history that produced it.
 ## Roadmap
 
 Development plans are maintained in
-[`ROADMAP.md`](https://juhalt.github.io/solomonR/ROADMAP.md), with
-committed v0.5 work tracked in the [v0.5.0
-milestone](https://github.com/JUhalt/solomonR/milestone/3) and [GitHub
-issues](https://github.com/JUhalt/solomonR/issues).
+[`ROADMAP.md`](https://juhalt.github.io/solomonR/ROADMAP.md). Each
+planned item is a [GitHub
+issue](https://github.com/JUhalt/solomonR/issues) on one of these
+milestones:
 
-Major planned additions include:
+- [v0.5.0](https://github.com/JUhalt/solomonR/milestone/3): binary and
+  count outcomes, Solomon N-group designs (more than two conditions),
+  and clustered designs;
+- [v0.6.0](https://github.com/JUhalt/solomonR/milestone/4): teaching and
+  reporting, organized around deciding, planning, analyzing, reporting,
+  and synthesizing Solomon studies;
+- [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6): longitudinal
+  and quasi-experimental Solomon designs, and marginal contrasts for
+  clustered designs;
+- [v0.8.0](https://github.com/JUhalt/solomonR/milestone/7): the
+  methodological feature freeze, with Solomon’s (1949) original
+  analysis, a teaching toolkit, an audit of the literature’s coverage,
+  and a workflow for new studies;
+- [v0.9.0](https://github.com/JUhalt/solomonR/milestone/8): the release
+  candidate, with a stable API and CRAN pre-submission checks.
 
-- Solomon-specific visualizations;
-- redesigned sample-size and power planning;
-- binary and count outcomes;
-- clustered and longitudinal designs;
-- expanded teaching and reporting tools.
+Version 1.0.0 is the release in which `solomonR` covers the published
+Solomon four-group methodology to date. Every source the package draws
+on is listed on the
+[References](https://juhalt.github.io/solomonR/articles/references.html)
+page, and the article [Coverage of the Published
+Methodology](https://juhalt.github.io/solomonR/articles/coverage.html)
+maps each work on the design to what the package does with it.
 
 ------------------------------------------------------------------------
 
@@ -561,51 +575,68 @@ citation("solomonR")
 
 ## References
 
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. *Psychological
-Bulletin, 104*, 150-154.
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
 
-Campbell, D. T., & Stanley, J. C. (1963). *Experimental and
-quasi-experimental designs for research*. Rand McNally.
+Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D.
+(1996). On design considerations and randomization-based inference for
+community intervention trials. *Statistics in Medicine, 15*(11),
+1069–1092.
+<https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
 
 Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent
 standard error estimators in OLS regression: An introduction and
-software implementation. *Behavior Research Methods, 39*, 709-722.
+software implementation. *Behavior Research Methods, 39*(4), 709–722.
+<https://doi.org/10.3758/BF03192961>
+
+Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd
+ed.). Chapman and Hall/CRC. <https://doi.org/10.4324/9781315370286>
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
-Education, 42*, 54-55.
+Education, 42*(2), 54–55.
+<https://doi.org/10.1080/00220973.1973.11011460>
 
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality
-Science, 8*, 355-362.
+Science, 8*(4), 355–362. <https://doi.org/10.1177/1948550617697177>
 
 Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
 standard errors in the linear regression model. *The American
-Statistician, 54*, 217-224.
+Statistician, 54*(3), 217–224.
+<https://doi.org/10.1080/00031305.2000.10474549>
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
-effects models. *Journal of Business & Economic Statistics, 36*,
-672-683.
+effects models. *Journal of Business & Economic Statistics, 36*(4),
+672–683. <https://doi.org/10.1080/07350015.2016.1247004>
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
-Experimental Education, 62*, 361-376.
+Experimental Education, 62*(4), 361–376.
+<https://doi.org/10.1080/00220973.1994.9944140>
 
 Solomon, R. L. (1949). An extension of control group design.
-*Psychological Bulletin, 46*, 137-150.
+*Psychological Bulletin, 46*(2), 137–150.
+<https://doi.org/10.1037/h0062958>
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
-contrast analysis. *Psychological Methods, 9*, 164-182.
+contrast analysis. *Psychological Methods, 9*(2), 164–182.
+<https://doi.org/10.1037/1082-989X.9.2.164>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente.
 
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
+the Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154.
+<https://doi.org/10.1037/0033-2909.104.1.150>
+
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. *British Journal of Mathematical and Statistical Psychology,
-57*, 173-181.
+57*(1), 173–181. <https://doi.org/10.1348/000711004849222>
 
 ------------------------------------------------------------------------
 

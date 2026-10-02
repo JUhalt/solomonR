@@ -1,9 +1,9 @@
 # Compare Solomon analyses and their estimands
 
-Fits several Solomon analyses to the same data and lines up their
-estimates of the four Solomon contrasts, so that differences in pretest
-adjustment, variance assumptions, and reference distributions are
-visible side by side. Stating the target quantity explicitly is what
+**\[stable\]** Fits several Solomon analyses to the same data and lines
+up their estimates of the four Solomon contrasts, so that differences in
+pretest adjustment, variance assumptions, and reference distributions
+are visible side by side. Stating the target quantity explicitly is what
 makes such comparisons meaningful (Lundberg et al., 2021).
 
 ## Usage
@@ -15,7 +15,8 @@ compare_solomon_methods(
   pretested,
   y_pre = NULL,
   methods = c("glm", "ml", "classic", "sem"),
-  conf_level = 0.95
+  conf_level = 0.95,
+  data = NULL
 )
 ```
 
@@ -48,6 +49,12 @@ compare_solomon_methods(
 - conf_level:
 
   Confidence level for intervals. Default is 0.95.
+
+- data:
+
+  Optional data frame. When supplied, the other data arguments are
+  looked up in it first, as bare column names (`y_post = post`) or as
+  strings (`y_post = "post"`).
 
 ## Value
 
@@ -83,10 +90,10 @@ Analyses that do not estimate a raw-scale Solomon contrast are listed in
 `not_compared` rather than aligned with the others:
 
 - [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
-  tests the sharp null hypothesis of no treatment effect for any
-  participant and produces no estimate.
+  is a randomization test of no treatment effect, not an interval
+  estimator of the contrasts.
 
-- Test I (Braver & Braver, 1988) combines one-tailed p-values.
+- Test I (Walton Braver & Braver, 1988) combines one-tailed p-values.
 
 - [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
   estimates contrasts on a latent-variable scale.
@@ -101,22 +108,23 @@ al., 2021), and clustered designs.
 
 ## References
 
-Braver, M. W., & Braver, S. L. (1988). Statistical treatment of the
-Solomon four-group design: A meta-analytic approach. *Psychological
-Bulletin, 104*(1), 150-154.
-
 Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from
 oranges: Comparing noncollapsible effect estimators and their standard
 errors after adjustment for different covariate sets. *Biometrical
-Journal, 63*(3), 528-557.
+Journal, 63*(3), 528–557. https://doi.org/10.1002/bimj.201900297
 
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. *The Annals of Applied
-Statistics, 7*(1), 295-318.
+Statistics, 7*(1), 295–318. https://doi.org/10.1214/12-AOAS583
 
 Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your
 estimand? Defining the target quantity connects statistical evidence to
-theory. *American Sociological Review, 86*(3), 532-565.
+theory. *American Sociological Review, 86*(3), 532–565.
+https://doi.org/10.1177/00031224211004187
+
+Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
+the Solomon four-group design: A meta-analytic approach. *Psychological
+Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 
 ## See also
 
@@ -196,10 +204,10 @@ with(
 #>   only); common residual variance; unpretested groups.
 #> 
 #> Not compared:
-#> - perm_solomon(): Tests the sharp null hypothesis of no treatment effect for
-#>   any participant; it does not estimate a contrast.
-#> - Test I (Braver & Braver, 1988): Combines one-tailed p-values from two
-#>   tests; it does not estimate a contrast.
+#> - perm_solomon(): A randomization test of no treatment effect; it gives no
+#>   interval for the contrast.
+#> - Test I (Walton Braver & Braver, 1988): Combines one-tailed p-values from
+#>   two tests; it does not estimate a contrast.
 #> - fit_solomon_sem_latent(): Estimates contrasts on a latent-variable scale,
 #>   not the observed posttest scale.
 #> - Hedges' g (fit_solomon_classic()): A standardized mean difference, not a

@@ -18,17 +18,52 @@
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Decide</h6></li>
+    <li><a class="dropdown-item" href="../articles/should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plan</h6></li>
+    <li><a class="dropdown-item" href="../articles/planning.html">Planning a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
     <li><a class="dropdown-item" href="../articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
+    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
+    <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Synthesize</h6></li>
+    <li><a class="dropdown-item" href="../articles/synthesis.html">Reanalysis and Synthesis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Teach</h6></li>
+    <li><a class="dropdown-item" href="../articles/teaching.html">Teaching with solomonR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>History</h6></li>
+    <li><a class="dropdown-item" href="../articles/history.html">A History of the Solomon Design and Its Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
-    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Validation evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></li>
+    <li><a class="dropdown-item" href="../articles/classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></li>
+    <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
+    <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
+    <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
+    <li><a class="dropdown-item" href="../articles/coverage.html">Coverage of the Published Methodology</a></li>
+    <li><a class="dropdown-item" href="../articles/citing.html">How to Cite solomonR and the Methods It Implements</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -46,33 +81,105 @@
     </div>
 
     <div class="section ">
-      <h3>Start here</h3>
+      <h3>Decide</h3>
+      <div class="section-desc"></div>
+
+      <dl><dt><a href="should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></dt>
+        <dd><p>When pretest sensitization is a real threat, what the Solomon four-group design costs, and what the alternatives are.</p>
+      </dd></dl></div>
+    <div class="section ">
+      <h3>Plan</h3>
+      <div class="section-desc"></div>
+
+      <dl><dt><a href="planning.html">Planning a Solomon Study</a></dt>
+        <dd><p>Choosing sample sizes for a Solomon four-group study with plan_solomon(), power_solomon(), and plot_power_solomon(), using planning values from the published literature.</p>
+      </dd></dl></div>
+    <div class="section ">
+      <h3>Analyze</h3>
       <div class="section-desc"></div>
 
       <dl><dt><a href="getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></dt>
         <dd>
+        </dd><dt><a href="glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></dt>
+        <dd>
+        </dd><dt><a href="solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></dt>
+        <dd>
+        </dd><dt><a href="sem.html">Structural Equation Models for Solomon Designs</a></dt>
+        <dd><p>Observed- and latent-variable SEM for the Solomon four-group design: the four-group mean structure, the pretested-groups ANCOVA, latent outcomes, and measurement invariance across the Solomon groups.</p>
+        </dd><dt><a href="missing-and-repeated.html">Missing and Repeated Posttests</a></dt>
+        <dd><p>How to analyze a Solomon study when some posttests are missing, and when the posttest is measured on several occasions and participants drop out.</p>
+        </dd><dt><a href="worked-example.html">Worked Example: A Published Solomon Study</a></dt>
+        <dd><p>The full analysis path, from checking the design to drafting the report, on the published individual data of Mai et al. (2020), checked at each step against the published results.</p>
       </dd></dl></div>
     <div class="section ">
-      <h3>Analyses</h3>
+      <h3>Report</h3>
       <div class="section-desc"></div>
 
-      <dl><dt><a href="glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></dt>
-        <dd>
+      <dl><dt><a href="reporting.html">Reporting a Solomon Study</a></dt>
+        <dd><p>What to report from a Solomon four-group study, and how report_solomon() drafts the results, the design statement, and the references.</p>
+      </dd></dl></div>
+    <div class="section ">
+      <h3>Synthesize</h3>
+      <div class="section-desc"></div>
+
+      <dl><dt><a href="synthesis.html">Reanalysis and Synthesis</a></dt>
+        <dd><p>Reanalyzing a published Solomon study from its summary statistics, and computing effect sizes for a meta-analysis.</p>
+      </dd></dl></div>
+    <div class="section ">
+      <h3>Teach</h3>
+      <div class="section-desc"></div>
+
+      <dl><dt><a href="teaching.html">Teaching with solomonR</a></dt>
+        <dd><p>Six lessons with exercises and solutions for teaching the Solomon four-group design: what each group contributes, sensitization, the design’s history, the historical test sequence, absence of evidence, and real studies.</p>
+      </dd></dl></div>
+    <div class="section ">
+      <h3>History</h3>
+      <div class="section-desc"></div>
+
+      <dl><dt><a href="history.html">A History of the Solomon Design and Its Analysis</a></dt>
+        <dd><p>From Solomon (1949) to the MERIT recommendations: how the four-group design was proposed, how its analysis was debated, and which historical procedures solomonR reproduces.</p>
         </dd><dt><a href="classic-solomon.html">The Classic Solomon Four-Group Analysis</a></dt>
         <dd>
       </dd></dl></div>
     <div class="section ">
-      <h3>Methods and evidence</h3>
+      <h3>Validation evidence</h3>
       <div class="section-desc"></div>
 
-      <dl><dt><a href="solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></dt>
-        <dd>
-        </dd><dt><a href="validation-evidence.html">Validation Evidence</a></dt>
+      <dl><dt><a href="validation-evidence.html">Validation Evidence</a></dt>
         <dd>
         </dd><dt><a href="ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></dt>
         <dd>
         </dd><dt><a href="power-validation.html">Validating power_solomon(): A Simulation Study</a></dt>
         <dd>
+        </dd><dt><a href="plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></dt>
+        <dd>
+        </dd><dt><a href="binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></dt>
+        <dd><p>Simulation study of the marginal Solomon contrasts for binary outcomes, the conditional logistic contrast, and the historical categorical rule.</p>
+        </dd><dt><a href="count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></dt>
+        <dd><p>Simulation study of the Solomon contrasts for count outcomes, with and without overdispersion, from fit_solomon_glm(family = poisson()) and marginal_solomon().</p>
+        </dd><dt><a href="cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></dt>
+        <dd><p>Simulation study of perm_solomon() for cluster-randomized Solomon designs, with raw and studentized cluster-level statistics, compared with CR2 tests from fit_solomon_glm().</p>
+        </dd><dt><a href="cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></dt>
+        <dd><p>Simulation study of marginal_solomon() on cluster-robust (CR2) logistic fits of cluster-randomized Solomon designs, with a cluster-level comparator.</p>
+        </dd><dt><a href="classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></dt>
+        <dd><p>Replication of the published Type I error rates of the Walton Braver and Braver sequence of Tests A-I, its 1995 revision, and Sawilowsky’s alpha allocations, with fit_solomon_classic().</p>
+        </dd><dt><a href="invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></dt>
+        <dd><p>Simulation study of which measurement-invariance criterion should govern latent Solomon mean contrasts, how often each criterion falsely rejects or detects noninvariance in Solomon-sized groups, and how noninvariance biases the sensitization contrast.</p>
+        </dd><dt><a href="mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></dt>
+        <dd><p>Simulation study of fit_solomon_mi(): multiple imputation of missing posttests under missing at random and under known departures from it.</p>
+        </dd><dt><a href="mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></dt>
+        <dd><p>Simulation study of fit_solomon_mmrm(): the Solomon contrasts at each of three posttest occasions under dropout that is missing at random.</p>
+      </dd></dl></div>
+    <div class="section ">
+      <h3>References</h3>
+      <div class="section-desc"></div>
+
+      <dl><dt><a href="references.html">References and the Solomon Literature</a></dt>
+        <dd><p>Every source solomonR draws on, in APA Style (7th ed.), with a note on what each Solomon-design work contributes and where the package uses it.</p>
+        </dd><dt><a href="coverage.html">Coverage of the Published Methodology</a></dt>
+        <dd><p>Every published work on the Solomon design that solomonR draws on, what it contributes to the analysis of the design, and where the package implements it, or why it does not yet.</p>
+        </dd><dt><a href="citing.html">How to Cite solomonR and the Methods It Implements</a></dt>
+        <dd><p>Cite the package and the published methods behind each analysis.</p>
       </dd></dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

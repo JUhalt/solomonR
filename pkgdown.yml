@@ -2,14 +2,35 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  articles/binary-validation: binary-validation.html
+  articles/citing: citing.html
   classic-solomon: classic-solomon.html
+  articles/classic-validation: classic-validation.html
+  articles/cluster-marginal-validation: cluster-marginal-validation.html
+  articles/cluster-validation: cluster-validation.html
+  articles/count-validation: count-validation.html
+  articles/coverage: coverage.html
   getting-started: getting-started.html
   glm-solomon: glm-solomon.html
+  articles/history: history.html
+  articles/invariance-validation: invariance-validation.html
+  articles/mi-validation: mi-validation.html
+  articles/missing-and-repeated: missing-and-repeated.html
   articles/ml-validation: ml-validation.html
+  articles/mmrm-validation: mmrm-validation.html
+  articles/plan-validation: plan-validation.html
+  articles/planning: planning.html
   articles/power-validation: power-validation.html
+  articles/references: references.html
+  articles/reporting: reporting.html
+  articles/sem: sem.html
+  articles/should-i-use-a-solomon-design: should-i-use-a-solomon-design.html
   solomon-methods: solomon-methods.html
+  articles/synthesis: synthesis.html
+  articles/teaching: teaching.html
   articles/validation-evidence: validation-evidence.html
-last_built: 2026-09-25T16:35Z
+  articles/worked-example: worked-example.html
+last_built: 2026-10-02T20:28Z
 urls:
   reference: https://juhalt.github.io/solomonR/reference
   article: https://juhalt.github.io/solomonR/articles

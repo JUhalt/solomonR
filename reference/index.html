@@ -18,17 +18,52 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Decide</h6></li>
+    <li><a class="dropdown-item" href="../articles/should-i-use-a-solomon-design.html">Should I Use a Solomon Design?</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plan</h6></li>
+    <li><a class="dropdown-item" href="../articles/planning.html">Planning a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a></li>
     <li><a class="dropdown-item" href="../articles/glm-solomon.html">Modern Analysis of the Solomon Four-Group Design</a></li>
+    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
+    <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Synthesize</h6></li>
+    <li><a class="dropdown-item" href="../articles/synthesis.html">Reanalysis and Synthesis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Teach</h6></li>
+    <li><a class="dropdown-item" href="../articles/teaching.html">Teaching with solomonR</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>History</h6></li>
+    <li><a class="dropdown-item" href="../articles/history.html">A History of the Solomon Design and Its Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/classic-solomon.html">The Classic Solomon Four-Group Analysis</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Methods and evidence</h6></li>
-    <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Validation evidence</h6></li>
     <li><a class="dropdown-item" href="../articles/validation-evidence.html">Validation Evidence</a></li>
     <li><a class="dropdown-item" href="../articles/ml-validation.html">Validating fit_solomon_ml(): A Simulation Study</a></li>
     <li><a class="dropdown-item" href="../articles/power-validation.html">Validating power_solomon(): A Simulation Study</a></li>
+    <li><a class="dropdown-item" href="../articles/plan-validation.html">Checking plan_solomon(): Re-simulating Planned Designs</a></li>
+    <li><a class="dropdown-item" href="../articles/binary-validation.html">Binary Outcomes: Validating marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/count-validation.html">Count Outcomes: Validating Poisson Fits and marginal_solomon()</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-validation.html">Clustered Designs: Validating Cluster-Level Randomization Inference</a></li>
+    <li><a class="dropdown-item" href="../articles/cluster-marginal-validation.html">Clustered Designs: Validating Marginal Risk Contrasts</a></li>
+    <li><a class="dropdown-item" href="../articles/classic-validation.html">Historical Tests: Replicating the Published Error Rates</a></li>
+    <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
+    <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
+    <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
+    <li><a class="dropdown-item" href="../articles/coverage.html">Coverage of the Published Methodology</a></li>
+    <li><a class="dropdown-item" href="../articles/citing.html">How to Cite solomonR and the Methods It Implements</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -46,53 +81,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="modern-solomon-analysis">Modern Solomon analysis<a class="anchor" aria-label="anchor" href="#modern-solomon-analysis"></a></h2>
+      <h2 id="decide-and-plan">Decide and plan<a class="anchor" aria-label="anchor" href="#decide-and-plan"></a></h2>
 
-      <div class="section-desc"><p>Unified regression, likelihood, and randomization-based methods.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>
-
-        </dt>
-        <dd>Fit the unified GLM for a Solomon Four-Group design</dd>
-
-        <dt>
-
-          <code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>
-
-        </dt>
-        <dd>Full-information ML analysis for a Solomon Four-Group Design</dd>
-
-        <dt>
-
-          <code><a href="perm_solomon.html">perm_solomon()</a></code>
-
-        </dt>
-        <dd>Permutation test for a Solomon contrast</dd>
-
-        <dt>
-
-          <code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>
-
-        </dt>
-        <dd>Equivalence test for a Solomon contrast</dd>
-
-        <dt>
-
-          <code><a href="compare_solomon_methods.html">compare_solomon_methods()</a></code>
-
-        </dt>
-        <dd>Compare Solomon analyses and their estimands</dd>
-      </dl></div><div class="section level2">
-      <h2 id="historical-solomon-analysis">Historical Solomon analysis<a class="anchor" aria-label="anchor" href="#historical-solomon-analysis"></a></h2>
-
-      <div class="section-desc"><p>Classical procedures retained for teaching and methodological replication.</p></div>
+      <div class="section-desc"><p>Sample sizes and power for a Solomon study, before data are collected, and simulated studies with known effects for teaching and for checking an analysis plan.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -101,51 +92,42 @@
 
       <dl><dt>
 
-          <code><a href="fit_solomon_classic.html">fit_solomon_classic()</a></code>
-
+          <code><a href="plan_solomon.html">plan_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
-        <dd>Historical Solomon Four-Group Analysis</dd>
+        <dd>Sample-size planning for Solomon designs</dd>
 
         <dt>
 
-          <code><a href="stouffer_solomon.html">stouffer_solomon()</a></code>
-
+          <code><a href="power_solomon.html">power_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
-        <dd>Stouffer's Z combiner (Braver &amp; Braver, 1988, Test I)</dd>
+        <dd>Power simulation for Solomon designs</dd>
 
         <dt>
 
-          <code><a href="p_to_z.html">p_to_z()</a></code>
-
+          <code><a href="plot_power_solomon.html">plot_power_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
-        <dd>Convert p-value to Z (one-tailed) for Stouffer's method</dd>
+        <dd>Power curves for a Solomon design</dd>
+
+        <dt>
+
+          <code><a href="analysis_plan_solomon.html">analysis_plan_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Write an analysis plan for a Solomon four-group study</dd>
+
+        <dt>
+
+          <code><a href="simulate_solomon.html">simulate_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Simulate a Solomon four-group study with known effects</dd>
       </dl></div><div class="section level2">
-      <h2 id="structural-equation-models">Structural equation models<a class="anchor" aria-label="anchor" href="#structural-equation-models"></a></h2>
+      <h2 id="check-the-design">Check the design<a class="anchor" aria-label="anchor" href="#check-the-design"></a></h2>
 
-      <div class="section-desc"><p>Observed- and latent-variable SEM approaches to the Solomon design.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="fit_solomon_sem.html">fit_solomon_sem()</a></code>
-
-        </dt>
-        <dd>SEM analysis for Solomon Four-Group designs (mean-structure; optional ANCOVA)</dd>
-
-        <dt>
-
-          <code><a href="fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code>
-
-        </dt>
-        <dd>Latent SEM for Solomon Four-Group designs (POST means; optional latent ANCOVA)</dd>
-      </dl></div><div class="section level2">
-      <h2 id="design-validation-and-diagnostics">Design validation and diagnostics<a class="anchor" aria-label="anchor" href="#design-validation-and-diagnostics"></a></h2>
-
-      <div class="section-desc"><p>Check design coding, cell structure, and missingness before analysis.</p></div>
+      <div class="section-desc"><p>Design coding, cell structure, clustering, missingness, and baseline balance, before analysis.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -155,37 +137,240 @@
       <dl><dt>
 
           <code><a href="validate_solomon.html">validate_solomon()</a></code>
-
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
         <dd>Validate the structure and coding of a Solomon four-group design</dd>
 
         <dt>
 
           <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code>
-
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
         <dd>Distinguish structural and incidental missingness in a Solomon design</dd>
 
         <dt>
 
           <code><a href="check_solomon_assumptions.html">check_solomon_assumptions()</a></code>
-
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
         <dd>Descriptive assumption diagnostics for Solomon analyses</dd>
 
         <dt>
 
-          <code><a href="power_solomon.html">power_solomon()</a></code>
-
+          <code><a href="baseline_solomon.html">baseline_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
-        <dd>Power simulation for Solomon designs</dd>
+        <dd>Baseline comparison of the pretested arms</dd>
+      </dl></div><div class="section level2">
+      <h2 id="analyze-recommended-methods">Analyze: recommended methods<a class="anchor" aria-label="anchor" href="#analyze-recommended-methods"></a></h2>
+
+      <div class="section-desc"><p>One model for all four groups, with robust, likelihood-based, and randomization-based inference.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Fit the unified GLM for a Solomon Four-Group design</dd>
 
         <dt>
 
-          <code><a href="plan_solomon.html">plan_solomon()</a></code>
-
+          <code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
-        <dd>Sample-size planning for Solomon designs</dd>
+        <dd>Full-information ML analysis for a Solomon Four-Group Design</dd>
+
+        <dt>
+
+          <code><a href="marginal_solomon.html">marginal_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Marginal Solomon contrasts for binary and count outcomes</dd>
+
+        <dt>
+
+          <code><a href="perm_solomon.html">perm_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Permutation test for a Solomon contrast</dd>
+
+        <dt>
+
+          <code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Equivalence test for a Solomon contrast</dd>
+
+        <dt>
+
+          <code><a href="compare_solomon_methods.html">compare_solomon_methods()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Compare Solomon analyses and their estimands</dd>
+      </dl></div><div class="section level2">
+      <h2 id="analyze-missing-posttests">Analyze: missing posttests<a class="anchor" aria-label="anchor" href="#analyze-missing-posttests"></a></h2>
+
+      <div class="section-desc"><p>Multiple imputation of missing posttests under missing at random, with delta-adjusted sensitivity analyses and a tipping-point summary.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="fit_solomon_mi.html">fit_solomon_mi()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Solomon analysis with multiply imputed posttests</dd>
+
+        <dt>
+
+          <code><a href="tipping_point_solomon.html">tipping_point_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Tipping-point analysis for missing posttests</dd>
+      </dl></div><div class="section level2">
+      <h2 id="analyze-longitudinal-designs">Analyze: longitudinal designs<a class="anchor" aria-label="anchor" href="#analyze-longitudinal-designs"></a></h2>
+
+      <div class="section-desc"><p>Several posttest occasions, analyzed with a mixed model for repeated measures that is valid when participants drop out at random.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Mixed model for repeated measures in a longitudinal Solomon design</dd>
+      </dl></div><div class="section level2">
+      <h2 id="analyze-latent-variables">Analyze: latent variables<a class="anchor" aria-label="anchor" href="#analyze-latent-variables"></a></h2>
+
+      <div class="section-desc"><p>Observed- and latent-variable structural equation models, and measurement invariance across the Solomon groups.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="fit_solomon_sem.html">fit_solomon_sem()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>SEM analysis for Solomon Four-Group designs (mean-structure; optional ANCOVA)</dd>
+
+        <dt>
+
+          <code><a href="fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Latent SEM for Solomon Four-Group designs (POST means; optional latent ANCOVA)</dd>
+
+        <dt>
+
+          <code><a href="invariance_solomon.html">invariance_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Measurement invariance across the four Solomon groups</dd>
+      </dl></div><div class="section level2">
+      <h2 id="report">Report<a class="anchor" aria-label="anchor" href="#report"></a></h2>
+
+      <div class="section-desc"><p>APA 7 results text with the references for the methods used.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="report_solomon.html">report_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>APA 7 results text for a Solomon analysis</dd>
+      </dl></div><div class="section level2">
+      <h2 id="synthesize">Synthesize<a class="anchor" aria-label="anchor" href="#synthesize"></a></h2>
+
+      <div class="section-desc"><p>Reanalyze published studies from summary statistics and compute effect sizes for meta-analysis.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="solomon_from_summary.html">solomon_from_summary()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Solomon analysis from summary statistics</dd>
+
+        <dt>
+
+          <code><a href="solomon_effect_sizes.html">solomon_effect_sizes()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Solomon effect sizes for meta-analysis</dd>
+      </dl></div><div class="section level2">
+      <h2 id="history-historical-procedures">History: historical procedures<a class="anchor" aria-label="anchor" href="#history-historical-procedures"></a></h2>
+
+      <div class="section-desc"><p>Procedures retained for teaching and for reproducing historical analyses, labeled by author and year. They are not the recommended analyses.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="fit_solomon_1949.html">fit_solomon_1949()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Solomon's (1949) improvement-score analysis</dd>
+
+        <dt>
+
+          <code><a href="fit_solomon_classic.html">fit_solomon_classic()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Historical Solomon Four-Group Analysis</dd>
+
+        <dt>
+
+          <code><a href="plot_classic_flow.html">plot_classic_flow()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Historical Solomon decision path</dd>
+
+        <dt>
+
+          <code><a href="fisher_solomon.html">fisher_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Historical categorical analysis of a binary Solomon outcome</dd>
+
+        <dt>
+
+          <code><a href="stouffer_solomon.html">stouffer_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Stouffer's Z combiner (Walton Braver &amp; Braver, 1988, Test I)</dd>
+
+        <dt>
+
+          <code><a href="p_to_z.html">p_to_z()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
+        </dt>
+        <dd>Convert p-value to Z (one-tailed) for Stouffer's method</dd>
       </dl></div><div class="section level2">
       <h2 id="plotting">Plotting<a class="anchor" aria-label="anchor" href="#plotting"></a></h2>
 
@@ -198,66 +383,52 @@
 
       <dl><dt>
 
-          <code><a href="plot_solomon.html">plot_solomon()</a></code>
-
+          <code><a href="plot_solomon_means.html">plot_solomon_means()</a></code>
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
-        <dd>Plot Solomon Posttest Cell Means</dd>
+        <dd>Plot Solomon posttest cell means</dd>
 
         <dt>
 
-          <code><a href="plot_solomon_gg.html">plot_solomon_gg()</a></code>
-
+          <code><a href="plot_tipping_point.html">plot_tipping_point()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
         </dt>
-        <dd>Plot Solomon Posttest Cell Means with ggplot2</dd>
+        <dd>Plot a tipping-point analysis</dd>
 
         <dt>
 
           <code><a href="plot_perm.html">plot_perm()</a></code>
-
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
         <dd>Plot permutation distribution for a Solomon contrast</dd>
 
         <dt>
 
           <code><a href="plot_solomon_effects.html">plot_solomon_effects()</a></code>
-
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
         <dd>Forest plot of the Solomon contrasts</dd>
 
         <dt>
 
           <code><a href="plot_sensitization.html">plot_sensitization()</a></code>
-
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
         <dd>Pretest sensitization figure</dd>
 
         <dt>
 
           <code><a href="plot_solomon_design.html">plot_solomon_design()</a></code>
-
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
         <dd>Schematic of the Solomon four-group design</dd>
 
         <dt>
 
           <code><a href="plot_solomon_change.html">plot_solomon_change()</a></code>
-
+          <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
         <dd>Pretest-to-posttest change in a Solomon design</dd>
-
-        <dt>
-
-          <code><a href="plot_classic_flow.html">plot_classic_flow()</a></code>
-
-        </dt>
-        <dd>Historical Solomon decision path</dd>
-
-        <dt>
-
-          <code><a href="plot_power_solomon.html">plot_power_solomon()</a></code>
-
-        </dt>
-        <dd>Power curves for a Solomon design</dd>
       </dl></div><div class="section level2">
       <h2 id="data">Data<a class="anchor" aria-label="anchor" href="#data"></a></h2>
 
@@ -281,10 +452,68 @@
 
         </dt>
         <dd>Demo Solomon four-group data set (second example)</dd>
+
+        <dt>
+
+          <code><a href="elkarkri2025a.html">elkarkri2025a</a></code>
+
+        </dt>
+        <dd>Pretest and posttest statistics from El Karkri et al. (2025a)</dd>
+
+        <dt>
+
+          <code><a href="kvalem1996.html">kvalem1996</a></code>
+
+        </dt>
+        <dd>Condom use in the Solomon study of Kvalem et al. (1996)</dd>
+
+        <dt>
+
+          <code><a href="lana1959.html">lana1959</a></code>
+
+        </dt>
+        <dd>Posttest statistics from Lana's (1959) attitude experiment</dd>
+
+        <dt>
+
+          <code><a href="mai2020.html">mai2020</a></code>
+
+        </dt>
+        <dd>Transfer-intervention data from Mai et al. (2020)</dd>
+
+        <dt>
+
+          <code><a href="solomon1949.html">solomon1949</a></code>
+
+        </dt>
+        <dd>Solomon's (1949) spelling experiment</dd>
+      </dl></div><div class="section level2">
+      <h2 id="deprecated">Deprecated<a class="anchor" aria-label="anchor" href="#deprecated"></a></h2>
+
+      <div class="section-desc"><p>Former names that still work, with a warning, through v1.x. Each help page names the replacement.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="plot_solomon.html">plot_solomon()</a></code>
+          <span class="badge lifecycle lifecycle-deprecated">deprecated</span>
+        </dt>
+        <dd>Plot Solomon posttest cell means in base graphics (deprecated)</dd>
+
+        <dt>
+
+          <code><a href="plot_solomon_gg.html">plot_solomon_gg()</a></code>
+          <span class="badge lifecycle lifecycle-deprecated">deprecated</span>
+        </dt>
+        <dd>Plot Solomon posttest cell means with ggplot2 (deprecated)</dd>
       </dl></div><div class="section level2">
       <h2 id="package">Package<a class="anchor" aria-label="anchor" href="#package"></a></h2>
 
-
+      <div class="section-desc"><p>An overview of the package, including the lifecycle stages marked by the badge beside each function: stable, experimental, or deprecated.</p></div>
 
       <dl></dl></div><div class="section level2">
 

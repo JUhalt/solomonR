@@ -2,6 +2,738 @@
 
 ## solomonR (development version)
 
+### Longitudinal Solomon designs ([\#57](https://github.com/JUhalt/solomonR/issues/57))
+
+- New
+  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
+  analyzes a Solomon design with several posttest occasions by a mixed
+  model for repeated measures, following Mallinckrodt et al. (2008):
+  occasion by treatment by pretesting, the pretest adjustment of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  with a slope at each occasion, and an unstructured covariance by REML
+  (Laird & Ware, 1982), estimated separately for pretested and
+  unpretested participants. It reports the four Solomon contrasts at
+  each occasion and the change in sensitization, with Kenward-Roger or
+  Satterthwaite degrees of freedom, and falls back to other covariance
+  structures by AIC if the unstructured model does not converge. It
+  needs the mmrm package (Sabanes Bove et al., 2026), now a suggested
+  dependency.
+- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  reports it.
+- [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
+  gains `occasions` and `primary_occasion`. With several posttest
+  occasions, the plan’s primary analysis is
+  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md),
+  its confirmatory contrasts are those at the primary occasion, and its
+  missing-data section states the assumption about dropout. The
+  tipping-point analysis is not offered there, because it imputes from
+  the pretest alone.
+- A simulation study under the protocol posted on
+  [\#57](https://github.com/JUhalt/solomonR/issues/57) (12 scenarios,
+  2,000 replications each) is reported in the new article “Longitudinal
+  Designs: Validating the Repeated-Measures Analysis” and on the
+  validation-evidence page. Under dropout that was missing at random,
+  the contrasts were unbiased, with coverage of 0.937 to 0.962, while
+  per-occasion complete-case analyses were biased by up to 0.09 SD. A
+  covariance shared by all four groups misstated the standard errors.
+  The pre-specified rule for the default degrees of freedom was not met,
+  so the function stays experimental, with Kenward-Roger as the default.
+
+### Analysis plan and study template ([\#81](https://github.com/JUhalt/solomonR/issues/81))
+
+- New
+  [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
+  writes an editable Markdown analysis plan for a new Solomon study, for
+  preregistration or a protocol.
+  - **Structure.** It follows the sections of van ’t Veer and
+    Giner-Sorolla’s (2016) template, and each part names the SPIRIT 2013
+    item it answers (Chan et al., 2013).
+  - **Solomon-specific content.** Hypotheses for the treatment effect
+    and for sensitization, including the expected shape of the
+    interaction; an equivalence test when sensitization is claimed to be
+    negligible (Lakens, 2017); the pretest-posttest interval (Entwisle,
+    1961); identical measurement in all groups (French et al., 2021b);
+    the planned model and confirmatory contrasts; missing posttests with
+    a tipping-point sensitivity analysis (White et al., 2011); and a
+    table for deviations (Nosek et al., 2018).
+  - **Planned sample.** Group sizes and planning values come from a
+    [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+    result, which now keeps its planning values in a `settings`
+    attribute.
+- `report_solomon(design = list(plan = ))` states from the plan whether
+  the sensitization analysis was pre-specified, and names the plan’s
+  date and confirmatory contrasts.
+- New R Markdown template, “Solomon four-group study”
+  (`rmarkdown::draft("study.Rmd", "solomon-study", package = "solomonR")`),
+  runs a planned analysis in order, from the design check to the report.
+
+### Sensitivity analysis for missing posttests ([\#82](https://github.com/JUhalt/solomonR/issues/82))
+
+- New
+  [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md)
+  multiply imputes missing posttests and combines the four Solomon
+  contrasts with Rubin’s rules (Carpenter et al., 2023).
+  - **Imputation.** A normal linear model, fitted separately in each
+    Solomon group, on the pretest in the pretested groups. Pretests
+    absent by design are never imputed.
+  - **Offsets.** `delta` shifts the imputed posttests of each group by a
+    fixed amount: the delta-adjusted pattern-mixture analysis of
+    Carpenter et al. (2023, section 10.3), with offsets per group as in
+    Little et al. (2012). Offsets that differ between the pretested and
+    unpretested groups bear on the sensitization contrast.
+  - **Inference.** Tests and intervals use t with the small-sample
+    degrees of freedom of Barnard and Rubin (1999, as cited in van
+    Buuren, 2018). The output reports each contrast’s fraction of
+    missing information and the Monte Carlo error from the finite number
+    of imputations (default `m = 100`).
+- New
+  [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md)
+  repeats the analysis over a range of offsets and reports where each
+  contrast’s conclusion changes, as White et al. (2011) recommend.
+  [`plot_tipping_point()`](https://juhalt.github.io/solomonR/reference/plot_tipping_point.md)
+  draws it.
+- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  reports both, with their references.
+- A simulation study under the protocol posted on
+  [\#82](https://github.com/JUhalt/solomonR/issues/82) (24 scenarios,
+  2,000 replications each) is reported in the new article “Missing
+  Posttests: Validating the Sensitivity Analysis” and on the
+  validation-evidence page. With 60 or more participants per group,
+  intervals had nominal coverage and Type I error when the offsets were
+  right; with 30 per group they were conservative. The pre-specified
+  rule for validation was not met (84 of 96 cells, against 90%), so both
+  functions stay experimental. The analyses that assume missing at
+  random biased the sensitization contrast by 0.10 to 0.16 SD when the
+  departure was confined to one pretested group.
+- The APA sort in
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  and `tools/check-references.R` now compares the first author’s surname
+  and initials before the other authors, so that “Little, R. J.”
+  precedes “Little, R. J. A.”.
+
+### A stable interface ([\#83](https://github.com/JUhalt/solomonR/issues/83))
+
+The public interface is now settled. Former names keep working, with a
+deprecation warning, through v1.x.
+
+- **One name for each argument.**
+  - [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+    takes `y_post` and `y_pre` (formerly `y` and `pretest_score`), and
+    [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md)
+    takes `y_post` (formerly `y`), as every other function does.
+  - A fitted model is passed as `fit`:
+    [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
+    and
+    [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+    formerly took `object`.
+    [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
+    takes `y_post` or `fit` (formerly `x`), and a fit passed by position
+    still works.
+  - [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)’s
+    `combine_with_stouffer` is now `stouffer`, as in
+    [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md).
+- **One order for the planning functions.**
+  [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+  now takes `n`, `delta`, `sens`, `rho`, `sigma`, and `alpha` in that
+  order, as
+  [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+  and
+  [`plot_power_solomon()`](https://juhalt.github.io/solomonR/reference/plot_power_solomon.md)
+  do. Formerly `rho` came before `sens`, so a call that passes them by
+  position gets a warning that it was read in the new order.
+- **A `data` argument.** Every function that takes data vectors also
+  takes an optional data frame, `data`, whose columns can be named bare
+  or as strings, for example
+  `fit_solomon_glm(post, group, took_pretest, pre, data = mydata)`. With
+  `data`, `covariates` can be a vector of column names.
+- **One posttest plot.** New
+  [`plot_solomon_means()`](https://juhalt.github.io/solomonR/reference/plot_solomon_means.md)
+  draws the four posttest means with t intervals in ggplot2, as the
+  other plots do, and takes `conf_level`.
+  [`plot_solomon()`](https://juhalt.github.io/solomonR/reference/plot_solomon.md)
+  (base graphics) and
+  [`plot_solomon_gg()`](https://juhalt.github.io/solomonR/reference/plot_solomon_gg.md)
+  are deprecated.
+- **Lifecycle stages.** Each function’s help page, and the reference
+  index, shows a lifecycle badge (Henry & Wickham, 2026). Every function
+  is stable except
+  [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md),
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
+  and
+  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md),
+  which are experimental;
+  [`?solomonR`](https://juhalt.github.io/solomonR/reference/solomonR.md)
+  gives the reasons.
+- solomonR now imports lifecycle, which ggplot2 already imports.
+
+### Examples for every exported function ([\#84](https://github.com/JUhalt/solomonR/issues/84), first part)
+
+- [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md),
+  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+  [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md),
+  [`check_solomon_assumptions()`](https://juhalt.github.io/solomonR/reference/check_solomon_assumptions.md),
+  [`p_to_z()`](https://juhalt.github.io/solomonR/reference/p_to_z.md),
+  and
+  [`plot_perm()`](https://juhalt.github.io/solomonR/reference/plot_perm.md)
+  now have runnable examples on their help pages. Each runs in under 3
+  seconds.
+- The help page of
+  [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+  now documents its return value.
+
+### Coverage of the published methodology ([\#80](https://github.com/JUhalt/solomonR/issues/80))
+
+- New article “Coverage of the Published Methodology” (References menu)
+  maps every work on the Solomon design in the bibliography to what it
+  contributes, where solomonR implements it, and its status. It also
+  lists the sources that have been identified but not yet read.
+- `tools/check-references.R` now fails if a work on the Solomon design
+  is in the bibliography without a coverage entry.
+- Five more works on the design were read and added to the bibliography,
+  the coverage article, and the history article:
+  - Campbell (1957), the first to reject the inferred-pretest analysis
+    and to recommend the 2 x 2 analysis of variance of the posttests and
+    the t test for history and maturation (p. 303).
+    [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+    and
+    [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md)
+    now credit him.
+  - Entwisle (1961), on pretest effects that depend on participants’ sex
+    and ability.
+  - Bracht and Glass (1968), on pretest sensitization as a threat to
+    external validity.
+  - Solomon and Lessac (1968), on the design in developmental studies.
+  - Lana’s (1969/2009) review, which found sensitization with pretests
+    that involve learning but not with attitude pretests, at odds with
+    Bracht and Glass (1968).
+- New `lana1959` holds the posttest statistics of Lana’s (1959) attitude
+  experiment, one of the first built on the Solomon design.
+  [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+  reproduces its published analysis of variance (treatment F = 5.36
+  against the published 5.35), and a test checks it.
+- The history article has new sections on Campbell (1957) and on the
+  first experiments, and its timeline adds them.
+- The bibliography notes that still said “planned” for work now done
+  (MERIT, the 1990 exchange, the decision and history articles) are
+  updated. Lana (1959) and McCarthy and Tucker (2002) are marked as not
+  yet used.
+
+### Teaching toolkit ([\#79](https://github.com/JUhalt/solomonR/issues/79))
+
+- New
+  [`simulate_solomon()`](https://juhalt.github.io/solomonR/reference/simulate_solomon.md)
+  generates a randomized Solomon study with chosen treatment, pretest,
+  and sensitization effects, and attaches the true value of every
+  estimand. It uses the data-generating model of
+  [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+  (validated in [\#18](https://github.com/JUhalt/solomonR/issues/18)),
+  with a pretesting main effect and a location added. With
+  `solomon_example`’s settings and seed it reproduces `solomon_example`
+  exactly, and a test checks this.
+- New article “Teaching with solomonR” (Teach menu), with six lessons
+  and exercises whose solutions can be revealed:
+  - what each group contributes;
+  - building in sensitization;
+  - Solomon’s (1949) own analysis;
+  - the error rate of the historical test sequence;
+  - why a nonsignificant interaction is not evidence of absence;
+  - what published studies can and cannot support.
+
+### Solomon’s (1949) original analysis ([\#78](https://github.com/JUhalt/solomonR/issues/78))
+
+- New
+  [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md)
+  reproduces the analysis Solomon (1949) proposed with the design. The
+  unpretested groups get an inferred pretest mean, each group gets an
+  improvement score, and the interaction is I = d1 - (d2 + d3) in the
+  three-group design, or I = d1 - (d2 + d3 - d4) in the four-group
+  design (pp. 141-147). It works from individual data or group means.
+  Like Solomon, it reports point estimates without a test. It is labeled
+  historical, with Campbell and Stanley’s (1963/1966, p. 25) verdict on
+  gain-score analyses.
+- The documentation shows that in the four-group design the inferred
+  pretest cancels. I then equals the two-by-two posttest interaction
+  contrast, less the pretest difference between the pretested groups.
+- New `solomon1949` holds the group means of Solomon’s spelling
+  experiment (Tables II and III, pp. 144-145). The function reproduces
+  his published interactions, -2.2 and -3.1.
+- The history article computes Solomon’s analysis, and its
+  implementation table starts with it.
+
+### Individual data from a published study ([\#54](https://github.com/JUhalt/solomonR/issues/54), second part)
+
+- New `mai2020` holds the individual data of Mai et al. (2020), a
+  randomized Solomon design with pretesting crossed with relapse
+  prevention, goal setting, and a control condition. The authors
+  published the data with the article under CC BY 4.0. The help page
+  gives the license, the changes made, and the points where the article
+  and the data disagree. `inst/COPYRIGHTS` and the `Copyright` field of
+  `DESCRIPTION` record the copyright holders.
+- The data reproduce the authors’ Table 4 ANOVAs, Table 5 history
+  checks, and the first two ANCOVAs of Table 7. Tests check the Table 4
+  values.
+- The help page and the worked example thank the authors for making
+  their data public and point readers to the published article.
+- New article “Worked Example: A Published Solomon Study” carries the
+  relapse-prevention comparison from checking the design to drafting the
+  report. It reproduces the published tests with
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  and fits the recommended model with
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+
+### The site follows the research path ([\#56](https://github.com/JUhalt/solomonR/issues/56))
+
+- The article menu now follows the path a researcher takes: Decide,
+  Plan, Analyze, Report, and Synthesize. History and Validation evidence
+  have their own menus, and every article sits in exactly one group. The
+  function reference is grouped the same way, with the historical
+  procedures in a separate group.
+- The getting-started guide opens with the path and links each step’s
+  article.
+- New articles:
+  - “Reporting a Solomon Study” shows what to report, including the
+    MERIT measurement items, and how
+    [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+    drafts it.
+  - “Reanalysis and Synthesis” covers reanalysis from summary statistics
+    and effect sizes for meta-analysis.
+  - “How to Cite solomonR and the Methods It Implements” is generated
+    from the package’s reference registry.
+- Every article’s reference list links to the canonical bibliography.
+- The historical-analysis vignette covers the 1995 flow, the alpha
+  allocations, and what the replication found.
+
+### Nonrandomized Solomon designs ([\#58](https://github.com/JUhalt/solomonR/issues/58))
+
+- New
+  [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)
+  compares the two pretested arms at pretest, from individual scores or
+  from published summary statistics, with the mean difference, a pooled
+  t test, and Hedges’s g with its noncentral-t confidence interval. The
+  unpretested arms have no pretest, so their baseline cannot be checked;
+  the printout says so.
+- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  gains `design$assignment` (`"random"` or `"nonrandom"`). For
+  nonrandomized designs, results speak of differences between groups
+  rather than treatment effects, and the design statement names the
+  threats that random assignment would otherwise control, following
+  Edmonds and Kennedy (2017, pp. 7–8, 94). It adds that the unpretested
+  arms have no baseline and, without random assignment, form a
+  static-group comparison whose groups cannot be shown equivalent
+  (Campbell & Stanley, 1963/1966, pp. 12, 25). Baseline comparisons are
+  reported too.
+- `elkarkri2025a` gains the pretest means and standard deviations of the
+  two pretested classes (El Karkri et al., 2025a, Table 7, p. 10), which
+  differed at pretest.
+- The methods vignette has a new section on nonrandomized Solomon
+  designs.
+
+### Marginal contrasts for clustered fits ([\#64](https://github.com/JUhalt/solomonR/issues/64))
+
+- [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  now accepts logistic fits with `robust = "CR2"`; clustered count fits,
+  which the study did not cover, are refused with a pointer to
+  alternatives. Delta-method standard errors use the CR2 covariance
+  (Bell & McCaffrey, 2002), and intervals and tests use the t
+  distribution with Satterthwaite degrees of freedom for the linearized
+  contrast (Pustejovsky & Tipton, 2018). Effects gain a `df` column, and
+  degrees of freedom below 4 give the classed small-df warning (Tipton,
+  2015). The bootstrap is refused for clustered fits, because it
+  resamples participants rather than clusters.
+- A simulation study under a protocol posted on
+  [\#64](https://github.com/JUhalt/solomonR/issues/64) before any run
+  (36 scenarios, 2,000 replications each) supports these intervals: they
+  met the coverage and Type I tolerances for risk differences in 140 of
+  144 scenario-contrasts and for odds ratios in 137 of 144, and were
+  conservative for risk ratios with four clusters per cell or arm. A
+  normal reference was too liberal (Type I error up to 0.12) and is not
+  used. The new article “Clustered Designs: Validating Marginal Risk
+  Contrasts” reports the study, and the Validation Evidence page
+  includes it.
+- For designs with pretesting assigned within clusters and strong
+  clustering, the help page recommends a cluster-level analysis as an
+  alternative for risk differences (Hayes & Moulton, 2017), as the
+  protocol’s third decision rule requires.
+- New `marginal_solomon(method = "cluster_summary")` for clustered
+  binary fits. It compares the unweighted means of cluster-level
+  proportions with t intervals that use separate variances and
+  Satterthwaite degrees of freedom (Hayes & Moulton, 2017, pp. 211–215),
+  as the pre-registered study’s comparator did. It works whether whole
+  clusters were assigned to the four cells or pretesting was assigned
+  within clusters. It warns below four clusters per arm (p. 128).
+
+### Measurement invariance for latent models ([\#55](https://github.com/JUhalt/solomonR/issues/55), second part)
+
+- New
+  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)
+  tests measurement invariance of a set of indicators across the four
+  Solomon groups: configural, metric, and scalar models in the sequence
+  Vandenberg and Lance (2000) recommend. At each step it reports the
+  chi-square difference test, scaled for robust estimators (Satorra &
+  Bentler, 2001), and the change in CFI, RMSEA, and SRMR against the
+  cutoffs of Chen (2007). It gives the decision under each criterion.
+  The two criteria can disagree, so the function decides nothing for the
+  user. A criterion whose statistic cannot be computed is reported as
+  undetermined.
+- [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+  now runs
+  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)
+  on the POST indicators first. It warns (class
+  `solomonR_invariance_warning`) when a criterion does not support
+  scalar or partial scalar invariance, and it stores the result in
+  `invariance`. It never refuses the contrasts.
+  `check_invariance = FALSE` skips the check.
+- The choice between refusing and warning comes from a simulation study
+  whose decision rules were posted on
+  [\#55](https://github.com/JUhalt/solomonR/issues/55) before any run:
+  45 scenarios with 1,000 replications each, with 3, 4, or 6 indicators
+  and 30, 60, or 120 per group. No criterion kept false rejections of
+  invariance at or below .060. The scaled chi-square test falsely
+  rejected at rates of .068 to .144, and Chen’s cutoffs at up to .400
+  with 30 per group. The study also found which noninvariance matters. A
+  pretest-induced intercept shift common to both pretested groups left
+  the sensitization contrast unbiased, while a shift in one group biased
+  it by 0.07 to 0.16 latent SD, and freeing that intercept removed the
+  bias. New article “Latent Contrasts: Validating the Invariance Check”,
+  and a new entry on the validation evidence page.
+- New article “Structural Equation Models for Solomon Designs” covers
+  observed and latent SEM, measurement invariance, partial invariance,
+  and the invariance check.
+- [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+  gains `partial_post` and `partial_pre` for partial-invariance models
+  (Byrne et al., 1989). The freed parameters must involve only a
+  minority of the indicators (Vandenberg & Lance, 2000, p. 38), and at
+  least two indicators must stay fully invariant.
+
+### History, the 1995 flow, and the published error rates ([\#48](https://github.com/JUhalt/solomonR/issues/48), [\#50](https://github.com/JUhalt/solomonR/issues/50), [\#51](https://github.com/JUhalt/solomonR/issues/51))
+
+- [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  and
+  [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
+  gain `flow = "1995"`, the revision that removed Test D (Walton Braver
+  & Braver, 1995, as cited in Sawilowsky, 1996, p. 2). The remaining
+  tests follow the 1988 rule, as in Sawilowsky’s (1996) simulation of
+  the revised sequence. The default, 1988, is unchanged.
+- New `alpha_allocation` option for the 1995 flow: Sawilowsky’s (1996,
+  Table 4) Methods 1 and 2, under Bradley’s conservative and liberal
+  robustness criteria as he applied them, with the published test-wise
+  levels. [`print()`](https://rdrr.io/r/base/print.html),
+  [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md),
+  and
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  show the levels used.
+- Campbell and Stanley is now cited as the 1966 Rand McNally book, the
+  edition whose page numbers the package gives, with the original 1963
+  date (APA 7, republished work). The history/maturation check cites
+  Campbell and Stanley (1963/1966, p. 25) and Solomon (1949,
+  pp. 146–148) for its rationale, and the methods vignette’s description
+  of their recommended analysis now follows their wording (p. 25).
+- A simulation study under a protocol posted on
+  [\#51](https://github.com/JUhalt/solomonR/issues/51) before any run
+  replicated the published Type I error rates of the historical sequence
+  (Sawilowsky et al., 1994; Sawilowsky, 1996), with 30 conditions and
+  20,000 replications each.
+  - Tests A to H agreed with the published rates for normal data.
+  - Test I rejected far more often than published under both a
+    one-tailed and a two-tailed criterion. A post hoc investigation
+    reproduced the published rates only when the two-sided p-values of
+    Tests E and H were converted to z as if one-tailed, which differs
+    from Walton Braver and Braver’s definition.
+  - As defined, with Test I judged two-tailed, the 1988 and 1995
+    sequences falsely declare an effect 13.5% to 13.7% of the time (14%
+    to 15% with a one-tailed Test I).
+  - Sawilowsky’s allocations exceed their robustness limits (.056 to
+    .081 with a two-tailed Test I). The help page of
+    [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+    reports these results.
+- **Test I is now judged by the two-tailed p of the combined z**,
+  following Walton Braver and Braver’s worked example (1988, p. 153: z =
+  2.05, p = .040). This follows the maintainer’s decision after
+  [\#51](https://github.com/JUhalt/solomonR/issues/51) to keep to the
+  literature.
+  - What changes: the path and conclusion of
+    [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+    when Test I is reached, and the Test I rates of
+    [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md).
+  - What is unchanged: the components are still the one-tailed p-values
+    in the direction of the effect.
+  - What is kept: the one-tailed value, as `p_one_tailed`.
+    [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md)
+    gains `p_meta_two_tailed`.
+- New articles:
+  - “A History of the Solomon Design and Its Analysis”, from
+    Solomon (1949) to the MERIT recommendations
+    ([\#50](https://github.com/JUhalt/solomonR/issues/50));
+  - “Should I Use a Solomon Design?”, which comes first in the site’s
+    article menu and adapts the MERIT decision flow chart (French et
+    al., 2021b) under its CC BY 4.0 license
+    ([\#48](https://github.com/JUhalt/solomonR/issues/48));
+  - “Historical Tests: Replicating the Published Error Rates”
+    ([\#51](https://github.com/JUhalt/solomonR/issues/51)), which also
+    joins the Validation Evidence page.
+
+### Published data sets ([\#54](https://github.com/JUhalt/solomonR/issues/54), first part)
+
+- New data sets `elkarkri2025a` and `kvalem1996` hold the published
+  Solomon results of El Karkri et al. (2025a; posttest statistics of
+  four intact classes) and Kvalem et al. (1996; condom use in a
+  class-randomized trial), with their sources, designs, and caveats on
+  the help pages. Tests reproduce the published ANOVA and chi-square
+  results from them.
+
+### Reporting ([\#52](https://github.com/JUhalt/solomonR/issues/52))
+
+- New
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  turns a fitted Solomon analysis into APA 7 results sentences, a design
+  statement, and the APA 7 references for exactly the methods and
+  options the analysis used (for example, CR2 standard errors, the 1990
+  decision flow, or cluster-level permutation). It supports the fits of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md),
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md),
+  [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md),
+  [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md),
+  [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md),
+  and
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
+  in plain text or Markdown.
+- The design statement follows the MERIT recommendations (French et al.,
+  2021b): group sizes, attrition by group, whether the sensitization
+  analysis was pre-specified (supplied, never inferred), and the
+  measurement procedure in each group.
+- Every registered reference matches the canonical bibliography, which
+  `tools/check-references.R` now also checks, and a test fails if an
+  exported analysis function has no registered references.
+
+### SEM fit measures ([\#55](https://github.com/JUhalt/solomonR/issues/55), first part)
+
+- [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+  and
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+  no longer request global fit indices for saturated models (df = 0),
+  where they are not diagnostic. This removes the lavaan warnings about
+  robust CFI and RMSEA that the four-group mean-structure model
+  produced; such fits report `df = 0` and missing indices, and print
+  that global fit is not diagnostic.
+
+### Planning article ([\#49](https://github.com/JUhalt/solomonR/issues/49))
+
+- New article “Planning a Solomon Study”: how to choose sample sizes
+  with
+  [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md),
+  [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md),
+  and
+  [`plot_power_solomon()`](https://juhalt.github.io/solomonR/reference/plot_power_solomon.md),
+  with planning values from the meta-analysis of Willson and
+  Putnam (1982) and the caution of McCambridge et al. (2011). It shows
+  why sensitization needs about four times the sample of the average
+  treatment effect, how the pretest-posttest correlation and the
+  allocation change the plan, and when to plan by simulation.
+
+### Reanalysis from summary statistics and effect sizes ([\#53](https://github.com/JUhalt/solomonR/issues/53))
+
+- New
+  [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+  reanalyzes a published Solomon study from the posttest n, mean, and SD
+  of the four groups: the two-way ANOVA with Type III sums of squares,
+  Tests A-D, the pretest main effect, and the simple effects, with
+  confidence intervals. It reproduces the F tests of El Karkri et
+  al. (2025a) from their Table 8 within rounding.
+- New
+  [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md)
+  returns effect sizes for meta-analysis in `yi`/`vi` form:
+  Morris’s (2008) d_ppc2 for the pretested pair, with its Eq. 25
+  variance, and Hedges’s g for the unpretested pair. The Eq. 25 variance
+  reproduces all 54 theoretical values in Morris’s Tables 2 and 3, and
+  the help page states its underestimation when treatment inflates
+  posttest variance.
+
+### Versioned historical decision flows ([\#50](https://github.com/JUhalt/solomonR/issues/50), in progress)
+
+- [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  and
+  [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
+  gain `flow`. `"1988"`, the default, keeps the original sequence of
+  Walton Braver and Braver
+  1988. and leaves existing results unchanged; `"1990"` follows the
+        authors’ amendment (Braver & Walton Braver, 1990), in which
+        every test through Test I is run once Tests A and D are
+        nonsignificant and Test I is regarded as the most definitive.
+- [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  returns a history/maturation check (`history`): the unpretested
+  control posttest (O6) compared with the pretests of the pretested
+  groups (O1, O3) by independent-samples t tests, as Mai et al.
+  2020. report. It is printed as a historical check.
+- The decision rules are now a separate internal function with a test
+  for each published rule.
+
+### Negative-binomial option for counts ([\#62](https://github.com/JUhalt/solomonR/issues/62))
+
+- `fit_solomon_glm(family = "negative_binomial")` fits the NB2 model by
+  maximum likelihood with
+  [`MASS::glm.nb()`](https://rdrr.io/pkg/MASS/man/glm.nb.html) (Venables
+  & Ripley, 2002), with the same Solomon model and exposure offsets as
+  the Poisson fit and HC3 standard errors by default (Cameron & Trivedi,
+  2013). It returns and prints the estimated theta, and gives a classed
+  warning (`solomonR_theta_boundary_warning`) when theta does not
+  converge because the counts show little overdispersion.
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  accepts these fits. MASS is a new import.
+- The simulation study registered on
+  [\#62](https://github.com/JUhalt/solomonR/issues/62) reused the
+  datasets of [\#44](https://github.com/JUhalt/solomonR/issues/44). The
+  NB2 fit met the coverage and Type I tolerances in 85% of overdispersed
+  contrasts with 50 or 100 participants per cell, against 82% for robust
+  Poisson, short of the 90% fixed in advance for recommending it; robust
+  Poisson remains the recommendation. Model-based NB2 standard errors
+  should not be used. The count article reports the study.
+
+### Cluster-level randomization inference ([\#19](https://github.com/JUhalt/solomonR/issues/19))
+
+- [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+  now accepts clustered fits and permutes whole clusters. It supports
+  clusters assigned to the four Solomon conditions (permuted within
+  pretest conditions) and treatment by cluster with pretesting within
+  clusters (permuted across clusters); designs that assign treatment
+  within clusters are refused. The statistic uses covariate-adjusted
+  cluster-level summaries (Gail et al., 1996; Hayes & Moulton, 2017),
+  and every allocation is enumerated, with an exact p-value, when there
+  are at most `reps`.
+- New `statistic` argument: `"studentized"` (default) or `"difference"`.
+  Results report the estimate, the level permuted, whether the p-value
+  is exact, and the numbers of treated and control clusters.
+- A classed warning (`solomonR_unbalanced_clusters_warning`) is given
+  when treated and control clusters differ in number.
+- New article “Clustered Designs: Validating Cluster-Level Randomization
+  Inference” reports the simulation study registered on
+  [\#19](https://github.com/JUhalt/solomonR/issues/19) (96 scenarios,
+  2,000 replications each), and the “Validation Evidence” tables include
+  it. The permutation tests were exact under the sharp null hypothesis.
+  With unequal numbers of clusters and more variable treated clusters,
+  the studentized statistic’s Type I error reached 0.08 and the raw
+  difference’s 0.16. CR2 tests exceeded the nominal level with four
+  clusters per arm, so the permutation test is recommended for designs
+  with few clusters.
+- [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  points clustered designs to
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md);
+  marginal contrasts for clustered fits are planned in
+  [\#64](https://github.com/JUhalt/solomonR/issues/64).
+
+### Count outcomes ([\#44](https://github.com/JUhalt/solomonR/issues/44))
+
+- [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  gains `exposure`, a log offset for counts observed over different
+  times or exposures (log-link families only), and returns the Pearson
+  dispersion statistic for binomial and Poisson fits.
+- [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  accepts Poisson fits: the Solomon contrasts as rate differences and
+  rate ratios per unit of exposure, standardized over each pretest
+  condition, with delta-method intervals from the robust covariance
+  (Cameron & Trivedi, 2013).
+- New article “Count Outcomes: Validating Poisson Fits and
+  marginal_solomon()” reports the simulation study registered on
+  [\#44](https://github.com/JUhalt/solomonR/issues/44) (96 scenarios,
+  2,000 replications each). Robust (HC3) inference is valid for Poisson
+  and mildly overdispersed counts and somewhat anticonservative with
+  strong overdispersion and 20 to 50 participants per cell; model-based
+  standard errors fail under overdispersion.
+
+### Binary outcomes ([\#43](https://github.com/JUhalt/solomonR/issues/43))
+
+- New
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  estimates the Solomon contrasts for binary outcomes as risk
+  differences, risk ratios, or odds ratios from marginal (standardized)
+  risks, following Daniel et al. (2021) and Localio et al. (2007).
+  Intervals come from a bootstrap that resamples within the four Solomon
+  cells, or from the delta method.
+- New
+  [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md)
+  reproduces the historical categorical analysis of El Karkri et
+  al. (2025b), with a caution that its rule compares significance, not
+  effects.
+- [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  now warns (`solomonR_noncollapsible_warning`) when a noncollapsible
+  link such as the logit is combined with `pretest_score`: its Pretest x
+  Treatment contrast then compares a conditional with a marginal effect
+  and is nonzero without sensitization.
+- New article “Binary Outcomes: Validating marginal_solomon()” reports
+  the simulation study registered on
+  [\#43](https://github.com/JUhalt/solomonR/issues/43) (48 scenarios,
+  2,000 replications each), and the “Validation Evidence” tables include
+  it. Risk differences are validated across the supported range; risk
+  ratios and odds ratios are conservative with 20 to 50 participants per
+  cell.
+
+### Clustered designs ([\#46](https://github.com/JUhalt/solomonR/issues/46))
+
+- [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md)
+  gains a `cluster` argument. It reports the number of clusters and
+  cluster sizes in each cell, and whether treatment and pretesting were
+  assigned to whole clusters or within them. A cell made up of a single
+  cluster is an error, because cluster and condition are then completely
+  confounded, as when each Solomon condition is one intact class.
+- `fit_solomon_glm(robust = "CR2")` refuses such designs with a classed
+  error (`solomonR_confounded_clusters`) instead of reporting
+  cluster-robust standard errors that cannot be estimated.
+- When whole clusters are randomized, a cell with two or three clusters
+  is a warning, following the rule of thumb that four clusters per arm
+  is an absolute minimum (Hayes & Moulton, 2017, p. 128).
+- CR2 fits give a classed warning (`solomonR_small_df_warning`) when a
+  Solomon contrast has Satterthwaite degrees of freedom below 4, where
+  Tipton
+  2015. advises that p-values not be trusted.
+
+### Sensitization figure for maximum-likelihood fits ([\#47](https://github.com/JUhalt/solomonR/issues/47))
+
+- [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+  now accepts
+  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+  fits. Intervals for the adjusted cell means use the fit’s own
+  inference: the normal reference under the default Wald inference, or
+  Welch-Satterthwaite t under `inference = "satterthwaite"`.
+  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+  now stores what those intervals need; its estimates, standard errors,
+  and intervals are unchanged.
+- The figure’s caption now puts the adjustment and the interval method
+  on separate lines, so it is no longer cut off at common figure widths.
+
+### Attribution ([\#42](https://github.com/JUhalt/solomonR/issues/42))
+
+- Every reference is now in APA Style (7th ed.) with its DOI, verified
+  against Crossref, and a new “References and the Solomon Literature”
+  article is the package’s canonical reference list. It adds the Solomon
+  literature the package draws on or plans to, each with a note on its
+  contribution.
+- Corrected the attribution of the 1988 meta-analytic procedure (Test I)
+  to Walton Braver and Braver (1988), as the authors cite their own
+  article. Earlier documentation and output wrote “Braver & Braver
+  (1988)” and “Braver, M. W.”. Printed labels change accordingly,
+  including the `test` column of
+  [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+  and the committed validation tables; no numeric result changes.
+- The roadmap and README now link each planned item to its issue, with a
+  new v0.7.0 milestone for longitudinal and quasi-experimental designs.
+
+### Validation evidence
+
+- The “Validation Evidence” article and its shared tables now include a
+  re-simulation check of
+  [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
+  ([\#24](https://github.com/JUhalt/solomonR/issues/24)). Fifty-six
+  analytically planned designs were re-simulated with the package’s GLM
+  test, with no failed fits. From 30 participants per cell, 37 of 39
+  plans reached the 80% target within 0.02, and the two exceptions were
+  above it. A new article, “Checking plan_solomon()”, reports every
+  plan.
+
 ## solomonR 0.4.0
 
 ### Validation evidence in one format ([\#11](https://github.com/JUhalt/solomonR/issues/11))

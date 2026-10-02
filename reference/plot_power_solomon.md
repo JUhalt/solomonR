@@ -1,10 +1,10 @@
 # Power curves for a Solomon design
 
-Draws power against sample size for each Solomon estimand, so the effect
-of cell size, effect size, pretest-posttest correlation, and
-sensitization on a planned study can be seen rather than read from a
-table. A horizontal line marks the target power, and each curve is
-annotated with the design
+**\[stable\]** Draws power against sample size for each Solomon
+estimand, so the effect of cell size, effect size, pretest-posttest
+correlation, and sensitization on a planned study can be seen rather
+than read from a table. A horizontal line marks the target power, and
+each curve is annotated with the design
 [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
 returns for that target.
 
