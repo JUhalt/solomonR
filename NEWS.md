@@ -28,12 +28,16 @@
   tests of the treatments' effects. Its post
   hoc tests are Scheffé tests, as in Steyn (2005), or Holm-adjusted pairwise
   t tests (`posthoc`). It is a published proposal, kept for replication and
-  teaching, and is experimental: it follows a pre-publication draft of the
-  article, which the author provided (R. Steyn, personal communication, September 30, 2026), and will be
-  checked against the published version.
+  teaching. It follows a pre-publication draft of the article, dated March
+  2, 2009, which the author provided (R. Steyn, personal communication,
+  September 30, 2026); the published article was not available for
+  comparison.
 * New data set `steyn2005`: the group statistics of Steyn's (2005)
   eight-group study, which reproduce its published analyses of variance and
   Scheffé tests.
+* References to Steyn (2009) now give the journal's title as registered
+  with Crossref: *Design Principles and Practices: An International
+  Journal—Annual Review*.
 * These functions now accept designs with several treatments:
   - `validate_solomon()`, `check_solomon_missing()`,
     `check_solomon_assumptions()`, and `baseline_solomon()`, with `control`;

@@ -63,5 +63,5 @@
   sawilowsky1996 = "Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error of meta-analysis in the Solomon four-group design* [Paper presentation]. First International Conference on Multiple Comparisons, Tel Aviv, Israel. https://digitalcommons.wayne.edu/coe_tbf/29/",
   holm1979 = "Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics, 6*(2), 65\u201370. https://www.jstor.org/stable/4615733",
   steyn2005 = "Steyn, R. (2005). *Self-evaluasie en die vorming van selfdoeltreffendheidspersepsies* [Self-evaluation and the forming of self-efficacy perceptions] [Doctoral thesis, University of South Africa]. Unisa Institutional Repository. https://hdl.handle.net/10500/1745",
-  steyn2009 = "Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on this exemplary model? *Design Principles and Practices: An International Journal, 3*(1), 383\u2013394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588"
+  steyn2009 = "Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on this exemplary model? *Design Principles and Practices: An International Journal\u2014Annual Review, 3*(1), 383\u2013394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588"
 )

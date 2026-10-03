@@ -3,8 +3,8 @@
 # Steyn proposed a sequence of tests for the Solomon four-group design and
 # its extension to k interventions and a control, each with and without a
 # pretest: 2(k + 1) groups. solomonR follows a pre-publication draft of the
-# article, dated March 2, 2009;
-# it will be checked against the published version. Where the draft leaves
+# article, dated March 2, 2009, which the author provided; the published
+# article was not available for comparison. Where the draft leaves
 # a choice open, the choice solomonR made is listed in the "Operationalization"
 # section of the help page.
 #
@@ -200,7 +200,7 @@
 
 #' Steyn's (2009) analysis of the extended Solomon design
 #'
-#' `r lifecycle::badge("experimental")`
+#' `r lifecycle::badge("stable")`
 #' Carries out the sequence of tests Steyn (2009) proposed for the Solomon
 #' four-group design and for its extension to several interventions, the
 #' extended Solomon design: k interventions and a control, each with and
@@ -220,8 +220,8 @@
 #' of the unpretested group of intervention 1 (CG2.1); and `Of` the posttest
 #' of the unpretested control (CG3). With one intervention the number is
 #' dropped (`Oa`, `Ob`, `Oe`; EG, CG2). The steps below follow a
-#' pre-publication draft of the article, dated March 2, 2009; they will
-#' be checked against the published version. In Steyn's order:
+#' pre-publication draft of the article, dated March 2, 2009 (see Source).
+#' In Steyn's order:
 #' 1. **Equivalence after randomization.** The pretests of the pretested
 #'    groups are compared: a t test for one intervention, a one-way ANOVA
 #'    otherwise. If they differ, Steyn advises post hoc tests to locate the
@@ -354,11 +354,12 @@
 #'   comparisons.
 #' - The package's recommended analysis is `fit_solomon_glm(control = )`.
 #'
-#' @section Lifecycle:
-#' Experimental. This function follows a pre-publication draft of Steyn's
-#' (2009) article, dated March 2, 2009, which the author provided
-#' (R. Steyn, personal communication, September 30, 2026). It will be checked against the
-#' published version.
+#' @section Source:
+#' This function follows a pre-publication draft of Steyn's (2009)
+#' article, dated March 2, 2009, which the author provided (R. Steyn,
+#' personal communication, September 30, 2026). The published article was
+#' not available for comparison. The draft has no page numbers, so none are
+#' cited.
 #'
 #' @section Acknowledgment:
 #' We thank Renier Steyn for providing the draft of his article, and for
@@ -436,7 +437,7 @@
 #'
 #' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 #' this exemplary model? *Design Principles and Practices: An International
-#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+#' Journal—Annual Review, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 #'
 #' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 #' Solomon four-group design: A meta-analytic approach. *Psychological

@@ -139,7 +139,7 @@
 #'
 #' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 #' this exemplary model? *Design Principles and Practices: An International
-#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+#' Journal—Annual Review, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 #'
 #' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 #' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,

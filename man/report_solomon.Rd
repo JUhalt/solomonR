@@ -74,8 +74,7 @@ Comparisons defined by weights are reported with their weights. An
 \code{\link[=equivalence_solomon]{equivalence_solomon()}} test of one comparison and the
 \code{\link[=baseline_solomon]{baseline_solomon()}} comparisons of such a design are reported with the
 same design statement. solomonR follows a pre-publication draft of Steyn
-(2009), to be checked against the published version; see
-\code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}}.
+(2009), which the author provided; see \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}}.
 
 \strong{Nonrandomized designs.} With \code{design$assignment = "nonrandom"}, the
 results describe differences between groups rather than treatment
@@ -126,5 +125,5 @@ https://www.jstor.org/stable/4615733
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? \emph{Design Principles and Practices: An International
-Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+Journal—Annual Review, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 }
