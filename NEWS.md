@@ -1,3 +1,5 @@
+# solomonR (development version)
+
 # solomonR 0.8.0
 
 This release brings together the work planned for v0.5.0 through v0.8.0,
