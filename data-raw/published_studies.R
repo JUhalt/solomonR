@@ -104,9 +104,49 @@ steyn2005 <- data.frame(
   sd = c(13.263, 12.545, 13.396, 13.264, 12.324, 12.830, 12.628, 11.878)
 )
 
+# Jordaan (2014), Table 7.3 (p. 112): the three subscales of the Coping
+# Strategy Indicator in a Solomon four-group design with three posttest
+# occasions: after the six-month program, and 3 and 6 months later (p. 98).
+# Groups (Table 7.3 note): 1 = program with pretest, 2 = program without,
+# 3 = control with pretest, 4 = control without. Group sizes from Table 7.14
+# (p. 122); every analysis in the thesis has 92 error degrees of freedom, so
+# all 96 participants have every posttest.
+jordaan_one <- function(subscale, pre, post, fu1, fu2) {
+  occ <- c("Pretest", "Posttest", "Follow-up 1", "Follow-up 2")
+  rows <- rbind(
+    data.frame(group = c(1L, 3L), occasion = "Pretest", mean = pre[c(1, 3)], sd = pre[c(2, 4)]),
+    data.frame(group = 1:4, occasion = "Posttest", mean = post[c(1, 3, 5, 7)], sd = post[c(2, 4, 6, 8)]),
+    data.frame(group = 1:4, occasion = "Follow-up 1", mean = fu1[c(1, 3, 5, 7)], sd = fu1[c(2, 4, 6, 8)]),
+    data.frame(group = 1:4, occasion = "Follow-up 2", mean = fu2[c(1, 3, 5, 7)], sd = fu2[c(2, 4, 6, 8)])
+  )
+  data.frame(subscale = subscale, group = rows$group,
+             treat = as.integer(rows$group %in% c(1L, 2L)),
+             pretested = as.integer(rows$group %in% c(1L, 3L)),
+             occasion = factor(rows$occasion, levels = occ),
+             n = c(22L, 21L, 22L, 31L)[rows$group], mean = rows$mean, sd = rows$sd)
+}
+jordaan2014 <- rbind(
+  jordaan_one("Social support", pre = c(27.23, 3.05, 24.09, 4.33),
+              post = c(28.86, 3.28, 25.76, 4.89, 24.05, 5.31, 26.74, 4.38),
+              fu1 = c(28.59, 2.36, 27.71, 3.51, 26.59, 5.08, 26.55, 4.10),
+              fu2 = c(28.00, 3.62, 26.81, 4.08, 26.05, 4.56, 27.39, 3.88)),
+  jordaan_one("Problem solving", pre = c(27.00, 3.67, 24.68, 3.67),
+              post = c(28.68, 4.10, 29.52, 3.44, 25.82, 6.39, 28.55, 5.47),
+              fu1 = c(29.00, 3.69, 27.95, 4.52, 28.00, 5.55, 28.39, 4.57),
+              fu2 = c(30.23, 3.49, 28.62, 3.47, 28.64, 4.17, 30.35, 2.65)),
+  jordaan_one("Avoidance", pre = c(24.00, 4.34, 23.18, 2.97),
+              post = c(21.68, 4.19, 22.10, 3.75, 21.68, 3.53, 23.06, 3.84),
+              fu1 = c(23.32, 5.28, 21.24, 3.39, 23.32, 4.39, 22.65, 3.31),
+              fu2 = c(21.73, 4.44, 21.90, 3.21, 22.82, 4.31, 22.10, 3.27))
+)
+jordaan2014$subscale <- factor(jordaan2014$subscale,
+                               levels = c("Social support", "Problem solving", "Avoidance"))
+rownames(jordaan2014) <- NULL
+
 save(elkarkri2025a, file = "data/elkarkri2025a.rda", compress = "xz")
 save(mai2020, file = "data/mai2020.rda", compress = "xz")
 save(kvalem1996, file = "data/kvalem1996.rda", compress = "xz")
 save(solomon1949, file = "data/solomon1949.rda", compress = "xz")
 save(lana1959, file = "data/lana1959.rda", compress = "xz")
 save(steyn2005, file = "data/steyn2005.rda", compress = "xz")
+save(jordaan2014, file = "data/jordaan2014.rda", compress = "xz")

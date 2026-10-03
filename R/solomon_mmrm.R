@@ -222,7 +222,9 @@
 #' variance components. *Biometrics Bulletin, 2*(6), 110–114.
 #' https://doi.org/10.2307/3002019
 #'
-#' @seealso [fit_solomon_glm()] for a single posttest occasion.
+#' @seealso [fit_solomon_glm()] for a single posttest occasion; [jordaan2014]
+#'   and the article "Worked Example: Repeated Posttests" for a published
+#'   study with three posttest occasions.
 #'
 #' @examples
 #' \donttest{

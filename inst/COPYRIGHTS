@@ -24,9 +24,10 @@ The package also bundles data from published studies.
    original file and the build script are in data-raw/ in the package
    repository.
 
-2. elkarkri2025a, kvalem1996, lana1959, solomon1949, and steyn2005
-   (data/elkarkri2025a.rda, data/kvalem1996.rda, data/lana1959.rda,
-   data/solomon1949.rda, data/steyn2005.rda)
+2. elkarkri2025a, jordaan2014, kvalem1996, lana1959, solomon1949, and
+   steyn2005 (data/elkarkri2025a.rda, data/jordaan2014.rda,
+   data/kvalem1996.rda, data/lana1959.rda, data/solomon1949.rda,
+   data/steyn2005.rda)
 
    These hold summary statistics and counts reported in the cited
    publications (see their help pages). They are published numbers, reused

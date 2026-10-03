@@ -406,3 +406,78 @@
 #' with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
 #'                                      pretested = pretested, control = "Control"))
 "steyn2005"
+
+#' Group statistics from Jordaan's (2014) study with three posttest occasions
+#'
+#' The sample sizes, means, and standard deviations of a Solomon four-group
+#' design measured on three posttest occasions: an evaluation of a life
+#' skills program for young adult male offenders (Jordaan, 2014, Table 7.3,
+#' p. 112). The outcomes are the three subscales of the Coping Strategy
+#' Indicator. Numbers reported in the publication are reused with citation.
+#'
+#' @details
+#' **Design.** 120 offenders aged 21 to 25 with long sentences were selected
+#' by systematic random sampling in a maximum-security correctional center
+#' and assigned at random to the program or the control condition. Half of
+#' each condition was assigned at random to be pretested (pp. 86–87). The
+#' program ran for six months; the control group followed the center's
+#' normal daily activities (p. 87). All groups were tested after the
+#' program and again 3 and 6 months later (p. 98).
+#'
+#' **Attrition.** Transfers removed 17 offenders from the program groups and
+#' 7 from the control groups, leaving 96 (p. 109). Those 96 completed every
+#' posttest: every analysis in the thesis has 92 error degrees of freedom.
+#' Because more were lost from the program groups, the groups analyzed are
+#' not guaranteed to be comparable, even though they were randomized.
+#'
+#' **Measures.** Each subscale of the Coping Strategy Indicator has 11 items
+#' scored from 1 (not at all) to 3 (a lot), so scores range from 11 to 33.
+#' High scores on problem solving and on seeking social support, and low
+#' scores on avoidance, indicate better coping (p. 92).
+#'
+#' **Known results.** These statistics reproduce, within rounding, the
+#' 2 x 2 analyses of variance of the posttests on each occasion (Tables
+#' 7.4–7.19, pp. 113–127). The Pretest x Treatment interaction F values are:
+#' - **Social support:** 9.678 (p = .002) after the program, 0.266 at 3
+#'   months, and 2.306 at 6 months.
+#' - **Problem solving:** 0.819, 0.563, and 5.556 (p = .021).
+#' - **Avoidance:** 0.373, 0.688, and 0.327.
+#'
+#' The thesis followed the decision sequence of Walton Braver and Braver
+#' (1988) on each occasion separately ([fit_solomon_classic()]). The
+#' correlations between occasions are not reported, so analyses of change
+#' across occasions cannot be reproduced; see the article "Worked Example:
+#' Repeated Posttests".
+#'
+#' @format A data frame with 42 rows, one per subscale, group, and occasion,
+#'   and 8 variables:
+#' \describe{
+#'   \item{subscale}{`Social support`, `Problem solving`, or `Avoidance`.}
+#'   \item{group}{The group's number in the thesis: 1 = program with
+#'     pretest, 2 = program without pretest, 3 = control with pretest,
+#'     4 = control without pretest.}
+#'   \item{treat}{1 for the program groups, 0 for the control groups.}
+#'   \item{pretested}{1 if the group was pretested, 0 if not.}
+#'   \item{occasion}{`Pretest` (groups 1 and 3 only), `Posttest` (after the
+#'     program), `Follow-up 1` (3 months later), or `Follow-up 2` (6 months
+#'     later).}
+#'   \item{n}{Sample size.}
+#'   \item{mean, sd}{Mean and standard deviation.}
+#' }
+#'
+#' @source Jordaan, J. (2014). *The development and evaluation of a life
+#' skills programme for young adult prisoners* \[Doctoral thesis, University
+#' of the Free State\]. KovsieScholar. https://hdl.handle.net/11660/832
+#'
+#' @references
+#' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
+#' Solomon four-group design: A meta-analytic approach. *Psychological
+#' Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
+#'
+#' @seealso [solomon_from_summary()], [fit_solomon_mmrm()], [steyn2005]
+#'
+#' @examples
+#' # Problem solving, 6 months after the program (Table 7.13, p. 121).
+#' ps6 <- subset(jordaan2014, subscale == "Problem solving" & occasion == "Follow-up 2")
+#' with(ps6, solomon_from_summary(n, mean, sd, treat = treat, pretested = pretested))
+"jordaan2014"

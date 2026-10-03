@@ -157,6 +157,21 @@ Appropriate statistical analyses. *The Journal of Experimental Education,
 > an unpretested population. *In solomonR:* Tests E and H of
 > `fit_solomon_classic()`.
 
+Jordaan, J. (2014). *The development and evaluation of a life skills
+programme for young adult prisoners* [Doctoral thesis, University of the
+Free State]. KovsieScholar. https://hdl.handle.net/11660/832
+
+> A randomized Solomon four-group design with three posttest occasions:
+> after a six-month program for young adult male offenders, and 3 and 6
+> months later (pp. 86–87, 98). Each occasion was analyzed separately by the
+> sequence of Walton Braver and Braver (1988). Of the nine Pretest x
+> Treatment interactions on the Coping Strategy Indicator, two were
+> significant, one after the program and one 6 months later (Tables
+> 7.4–7.19, pp. 113–127). *In solomonR:* the data set `jordaan2014`, whose
+> published analyses are reproduced, and the article "Worked Example:
+> Repeated Posttests"
+> ([#57](https://github.com/JUhalt/solomonR/issues/57)).
+
 Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig, L.
 S. (1996). The effect of sex education on adolescents' use of condoms:
 Applying the Solomon four-group design. *Health Education Quarterly, 23*(1),

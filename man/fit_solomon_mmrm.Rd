@@ -183,5 +183,7 @@ variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
 https://doi.org/10.2307/3002019
 }
 \seealso{
-\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for a single posttest occasion.
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for a single posttest occasion; \link{jordaan2014}
+and the article "Worked Example: Repeated Posttests" for a published
+study with three posttest occasions.
 }
