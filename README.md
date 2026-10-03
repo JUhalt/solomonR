@@ -40,14 +40,22 @@ should start with the article [Getting Started: Analyzing a Solomon
 Four-Group
 Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 
-> **Release status:** `v0.4.0` is the current stable release. It adds
-> validated power and sample-size planning (`power_solomon()`,
-> `plan_solomon()`); figures for the design, pretest sensitization, the
-> Solomon contrasts, pretest-to-posttest change, the historical decision
-> path, and power; and a single index of the package’s simulation
-> evidence. The API may continue to evolve before version 1.0.
-> Development version `0.4.0.9000` is working toward `v0.5.0`: extended
-> outcomes and designs.
+> **Release status:** `v0.8.0` is the current stable release. It brings
+> together the work planned for v0.5.0 through v0.8.0:
+>
+> - binary and count outcomes, designs with several treatments, and
+>   clustered designs with cluster-level randomization inference;
+> - nonrandomized designs, designs with several posttest occasions, and
+>   sensitivity analyses for missing posttests;
+> - APA-style reports, reanalysis from summary statistics, and analysis
+>   plans for new studies;
+> - Solomon’s (1949) original analysis, the published versions of the
+>   historical test sequence, teaching data, and published data sets
+>   with worked examples.
+>
+> Former function and argument names keep working, with a warning,
+> through v1.x. Functions marked experimental may still change before
+> version 1.0; each help page shows the function’s lifecycle stage.
 
 ------------------------------------------------------------------------
 
@@ -518,24 +526,16 @@ history that produced it.
 
 Development plans are maintained in [`ROADMAP.md`](ROADMAP.md). Each
 planned item is a [GitHub
-issue](https://github.com/JUhalt/solomonR/issues) on one of these
-milestones:
+issue](https://github.com/JUhalt/solomonR/issues) on a milestone. The
+milestones v0.5.0 through v0.8.0 were released together as `v0.8.0`. Two
+remain:
 
-- [v0.5.0](https://github.com/JUhalt/solomonR/milestone/3): binary and
-  count outcomes, Solomon N-group designs (more than two conditions),
-  and clustered designs;
-- [v0.6.0](https://github.com/JUhalt/solomonR/milestone/4): teaching and
-  reporting, organized around deciding, planning, analyzing, reporting,
-  and synthesizing Solomon studies;
-- [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6): longitudinal
-  and quasi-experimental Solomon designs, and marginal contrasts for
-  clustered designs;
-- [v0.8.0](https://github.com/JUhalt/solomonR/milestone/7): the
-  methodological feature freeze, with Solomon’s (1949) original
-  analysis, a teaching toolkit, an audit of the literature’s coverage,
-  and a workflow for new studies;
 - [v0.9.0](https://github.com/JUhalt/solomonR/milestone/8): the release
-  candidate, with a stable API and CRAN pre-submission checks.
+  candidate, with CRAN pre-submission checks;
+- [v1.0.0](https://github.com/JUhalt/solomonR/milestone/5): the
+  remaining sources named by Steyn (2009), the archived release, the
+  companion manuscript, and the CRAN submission, after the maintainer’s
+  review.
 
 Version 1.0.0 is the release in which `solomonR` covers the published
 Solomon four-group methodology to date. Every source the package draws
@@ -611,6 +611,11 @@ Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
 contrast analysis. *Psychological Methods, 9*(2), 164–182.
 <https://doi.org/10.1037/1082-989X.9.2.164>
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal—Annual Review, 3*(1), 383–394.
+<https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente. ERIC.

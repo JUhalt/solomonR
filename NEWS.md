@@ -1,4 +1,8 @@
-# solomonR (development version)
+# solomonR 0.8.0
+
+This release brings together the work planned for v0.5.0 through v0.8.0,
+and the stable interface planned for v0.9.0 (#83). Versions 0.5.0, 0.6.0,
+and 0.7.0 were not released separately.
 
 ## Designs with several treatments (#45)
 
