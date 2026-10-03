@@ -109,7 +109,7 @@ four-group design.
 
 The arguments follow the order of \code{\link[=plan_solomon]{plan_solomon()}} and
 \code{\link[=plot_power_solomon]{plot_power_solomon()}}: \code{n}, \code{delta}, \code{sens}, \code{rho}, \code{sigma}, \code{alpha}.
-Before solomonR 0.9.0, \code{rho} came before \code{sens} and \code{alpha} came last, so
+Before solomonR 0.8.0, \code{rho} came before \code{sens} and \code{alpha} came last, so
 a call that passes these by position gets a warning that it was read in
 the new order. Naming the arguments avoids the ambiguity.
 }

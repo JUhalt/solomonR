@@ -40,20 +40,30 @@ should start with the article [Getting Started: Analyzing a Solomon
 Four-Group
 Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 
-> **Release status:** `v0.4.0` is the current stable release. It adds
-> validated power and sample-size planning (`power_solomon()`,
-> `plan_solomon()`); figures for the design, pretest sensitization, the
-> Solomon contrasts, pretest-to-posttest change, the historical decision
-> path, and power; and a single index of the package’s simulation
-> evidence. The API may continue to evolve before version 1.0.
-> Development version `0.4.0.9000` is working toward `v0.5.0`: extended
-> outcomes and designs.
+> **Release status:** `v0.8.0` is the current stable release. It brings
+> together the work planned for v0.5.0 through v0.8.0:
+>
+> - binary and count outcomes, designs with several treatments, and
+>   clustered designs with cluster-level randomization inference;
+> - nonrandomized designs, designs with several posttest occasions, and
+>   sensitivity analyses for missing posttests;
+> - APA-style reports, reanalysis from summary statistics, and analysis
+>   plans for new studies;
+> - Solomon’s (1949) original analysis, the published versions of the
+>   historical test sequence, teaching data, and published data sets
+>   with worked examples.
+>
+> Former function and argument names keep working, with a warning,
+> through v1.x, when the arguments that follow a former argument name
+> are also named. Functions marked experimental may still change before
+> version 1.0; each help page shows the function’s lifecycle stage.
 
 ------------------------------------------------------------------------
 
 ## The Solomon four-group design
 
-The Solomon design combines a randomized treatment comparison with an
+The Solomon design (Solomon, 1949), Design 5 in Campbell and Stanley
+(1963/1966, p. 24), combines a randomized treatment comparison with an
 experimental manipulation of whether participants receive a pretest.
 
 | Group | Pretest | Treatment | Posttest |
@@ -192,9 +202,10 @@ classic <- with(
 classic
 ```
 
-`fit_solomon_classic()` calculates the historical **Tests A-I** and
-shows the decision path that would have been reached under the
-traditional conditional workflow.
+`fit_solomon_classic()` calculates the historical **Tests A-I** of
+Walton Braver and Braver (1988), whose Tests E and H follow Huck and
+Sandler (1973), and shows the decision path that would have been reached
+under the traditional conditional workflow.
 
 The package distinguishes between:
 
@@ -205,7 +216,8 @@ The package distinguishes between:
 Test I, the Walton Braver & Braver (1988) Stouffer combination, is
 included for teaching and replication, but it is **not the default
 modern inferential recommendation**. Later simulation work raised
-concerns about Type I error in conditional versions of this procedure.
+concerns about Type I error in conditional versions of this procedure
+(Sawilowsky et al., 1994).
 
 ------------------------------------------------------------------------
 
@@ -250,7 +262,7 @@ cluster-level summaries, with exact enumeration when the design is small
 ## Full-information maximum likelihood
 
 `fit_solomon_ml()` implements a full-information likelihood approach
-inspired by van Engelenburg’s treatment of the Solomon design.
+inspired by van Engelenburg’s (1999) treatment of the Solomon design.
 
 Unlike analyses that simply discard structurally missing pretests, the
 likelihood recognizes that Groups 3 and 4 were **never intended to have
@@ -277,10 +289,10 @@ The ML model estimates the same central Solomon quantities:
 - treatment effect among pretested participants; and
 - treatment effect among unpretested participants.
 
-By default it uses van Engelenburg’s large-sample Wald inference. With
-small groups, use `inference = "satterthwaite"`, a small-sample option
-with Welch-Satterthwaite degrees of freedom; `fit_solomon_ml()` warns
-when groups are small and no option has been chosen.
+By default it uses van Engelenburg’s (1999) large-sample Wald inference.
+With small groups, use `inference = "satterthwaite"`, a small-sample
+option with Welch-Satterthwaite degrees of freedom; `fit_solomon_ml()`
+warns when groups are small and no option has been chosen.
 
 ------------------------------------------------------------------------
 
@@ -331,10 +343,13 @@ For multi-item outcomes, `fit_solomon_sem_latent()` estimates Solomon
 contrasts at the latent-variable level.
 
 Latent mean comparisons require **scalar measurement invariance** across
-the four Solomon groups. `solomonR` enforces this requirement rather
-than silently interpreting latent means from configural or metric-only
-models. For identification, the latent mean of the unpretested control
-group is fixed at 0; the Solomon contrasts do not depend on this choice.
+the four Solomon groups, or partial scalar invariance with the freed
+parameters chosen before the analysis (`partial_post`, `partial_pre`).
+`solomonR` imposes these constraints rather than silently interpreting
+latent means from configural or metric-only models, and checks them
+first with `invariance_solomon()`. For identification, the latent mean
+of the unpretested control group is fixed at 0; the Solomon contrasts do
+not depend on this choice.
 
 See:
 
@@ -471,8 +486,11 @@ degrees of freedom alongside each test.
 
 ### Latent means
 
-Latent Solomon mean contrasts require scalar measurement invariance.
-Partial invariance workflows are not yet automated.
+Latent Solomon mean contrasts require scalar, or partial scalar,
+measurement invariance. `fit_solomon_sem_latent()` checks it with
+`invariance_solomon()` and warns, rather than refusing, when a criterion
+does not support it: no criterion studied held its false-rejection rate
+in Solomon-sized groups (issue \#55).
 
 ### Power
 
@@ -518,24 +536,16 @@ history that produced it.
 
 Development plans are maintained in [`ROADMAP.md`](ROADMAP.md). Each
 planned item is a [GitHub
-issue](https://github.com/JUhalt/solomonR/issues) on one of these
-milestones:
+issue](https://github.com/JUhalt/solomonR/issues) on a milestone. The
+milestones v0.5.0 through v0.8.0 were released together as `v0.8.0`. Two
+remain:
 
-- [v0.5.0](https://github.com/JUhalt/solomonR/milestone/3): binary and
-  count outcomes, Solomon N-group designs (more than two conditions),
-  and clustered designs;
-- [v0.6.0](https://github.com/JUhalt/solomonR/milestone/4): teaching and
-  reporting, organized around deciding, planning, analyzing, reporting,
-  and synthesizing Solomon studies;
-- [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6): longitudinal
-  and quasi-experimental Solomon designs, and marginal contrasts for
-  clustered designs;
-- [v0.8.0](https://github.com/JUhalt/solomonR/milestone/7): the
-  methodological feature freeze, with Solomon’s (1949) original
-  analysis, a teaching toolkit, an audit of the literature’s coverage,
-  and a workflow for new studies;
 - [v0.9.0](https://github.com/JUhalt/solomonR/milestone/8): the release
-  candidate, with a stable API and CRAN pre-submission checks.
+  candidate, with CRAN pre-submission checks;
+- [v1.0.0](https://github.com/JUhalt/solomonR/milestone/5): the
+  remaining sources named by Steyn (2009), the archived release, the
+  companion manuscript, and the CRAN submission, after the maintainer’s
+  review.
 
 Version 1.0.0 is the release in which `solomonR` covers the published
 Solomon four-group methodology to date. Every source the package draws
@@ -611,6 +621,11 @@ Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
 contrast analysis. *Psychological Methods, 9*(2), 164–182.
 <https://doi.org/10.1037/1082-989X.9.2.164>
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal—Annual Review, 3*(1), 383–394.
+<https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente. ERIC.

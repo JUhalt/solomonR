@@ -18,7 +18,7 @@ A ggplot object.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}
-\code{plot_solomon_gg()} was renamed \code{\link[=plot_solomon_means]{plot_solomon_means()}} in solomonR 0.9.0,
+\code{plot_solomon_gg()} was renamed \code{\link[=plot_solomon_means]{plot_solomon_means()}} in solomonR 0.8.0,
 so that each plot in the package is named for what it shows. It still
 works, with a deprecation warning, and returns the plot that
 \code{plot_solomon_means()} draws.

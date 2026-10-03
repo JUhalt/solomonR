@@ -33,7 +33,7 @@ plot_solomon <- function(y, treat, pretested) {
       )
     ))
   }
-  lifecycle::deprecate_warn("0.9.0", "plot_solomon()", "plot_solomon_means()")
+  lifecycle::deprecate_warn("0.8.0", "plot_solomon()", "plot_solomon_means()")
   df <- data.frame(y=y, treat=factor(treat), pretested=factor(pretested))
   agg <- dplyr::summarise(dplyr::group_by(df, pretested, treat),
                           n=dplyr::n(), mean=mean(y), sd=stats::sd(y))

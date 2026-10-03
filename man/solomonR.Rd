@@ -28,7 +28,8 @@ package website, shows the function's lifecycle stage, in the stages of
 the lifecycle package (Henry & Wickham, 2026):
 \itemize{
 \item \strong{Stable.} The interface is settled. Any change goes through
-deprecation: the old name keeps working, with a warning, through v1.x.
+deprecation: the old name keeps working, with a warning, through v1.x,
+when the arguments that follow a former argument name are also named.
 \item \strong{Experimental.} The function is tested, but its interface or defaults
 may change. \code{\link[=fit_solomon_sem]{fit_solomon_sem()}} has no simulation study yet at Solomon
 sample sizes. The issue #55 study found no measurement-invariance
@@ -37,12 +38,16 @@ which affects \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}} an
 The analysis of designs with several treatments in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} is
 experimental, because the rule for error control set before its
 simulation study (issue #45) was not met for two omnibus tests with
-three treatments and 10 participants per group.
+three treatments and 10 participants per group. The pre-specified
+rules of their simulation studies were not met for \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}
+(issue #57) and for \code{\link[=fit_solomon_mi]{fit_solomon_mi()}}, \code{\link[=tipping_point_solomon]{tipping_point_solomon()}}, and
+\code{\link[=plot_tipping_point]{plot_tipping_point()}} (issue #82). \code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}} stays
+experimental until researchers have used it (issue #81).
 \item \strong{Deprecated.} A former name that still works, with a warning. Its
 help page names the replacement.
 }
 
-solomonR 0.9.0 settled the interface (issue #83). The outcome arguments
+solomonR 0.8.0 settled the interface (issue #83). The outcome arguments
 are \code{y_post} and \code{y_pre} everywhere, a fitted model is passed as \code{fit},
 and the planning functions share one argument order: \code{n} (or \code{power}),
 \code{delta}, \code{sens}, \code{rho}, \code{sigma}, \code{alpha}. Each function that takes data
