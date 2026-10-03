@@ -152,7 +152,9 @@ dropout rates by group, see \code{attrition$counts} and
 group.
 \item \strong{Effects of the interventions.} For one intervention: E1, a one-way
 ANOVA of the four posttest groups, and E2, a t test of \code{Ob} plus \code{Oe}
-against \code{Od} plus \code{Of}. For several:
+against \code{Od} plus \code{Of}; Steyn (2009) credits these two comparisons to
+his doctoral thesis (Steyn, 2001, as cited in Steyn, 2009). For
+several:
 \itemize{
 \item E1, a one-way ANOVA of all 2(k + 1) posttest groups;
 \item E2, post hoc tests of every pair of groups, summarized by whether

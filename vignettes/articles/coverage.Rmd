@@ -39,8 +39,9 @@ The status column uses six labels:
 | Entwisle (1961) | Training experiments with pretested and unpretested pupils paired on sex and IQ: no overall pretest effect, but a Pretesting x IQ x Sex interaction (pp. 612–613). | The history article | Evidence |
 | Campbell & Stanley (1963/1966) | The design as Design 5 (p. 24). The 2 x 2 analysis of variance of the posttests, then an analysis of covariance of the pretested groups (p. 25). The unpretested control against the pretests as a check of history and maturation (p. 25). The static-group comparison (p. 12). | Tests A–D and the history check of `fit_solomon_classic()`; the caveat on nonrandomized designs in `baseline_solomon()` and `report_solomon()` | Historical |
 | Bracht & Glass (1968) | Pretest sensitization, posttest sensitization, and the timing of measurement as threats to external validity (p. 439); a review finding the pretest effect most likely with self-reported attitudes and personality (p. 463). | The history article | Evidence |
-| Lana (1969/2009) | A review of pretest sensitization: sensitization with pretests that involve learning or recall (pp. 101–103), an "overwhelming lack" of it with attitude pretests (pp. 103–104), and the 2 x 2 posttest analysis (pp. 99–100). | The history article | Evidence |
 | Solomon & Lessac (1968) | The four-group design in developmental studies: the inferred pretest judges absolute improvement or deterioration, and the interaction is a difference of differences in a 2 x 2 factorial (pp. 146–147). | The inferred pretest of `fit_solomon_1949()`; the history article | Historical |
+| Lana (1969/2009) | A review of pretest sensitization: sensitization with pretests that involve learning or recall (pp. 101–103), an "overwhelming lack" of it with attitude pretests (pp. 103–104), and the 2 x 2 posttest analysis (pp. 99–100). | The history article | Evidence |
+| Lessac & Solomon (1969) | The full report of the beagle experiment that Solomon and Lessac (1968, p. 149) summarized, with isolation for a year from 12 weeks of age (pp. 15–16). Analyses of variance of the posttests for isolation, pretesting, and their interaction, and Mann–Whitney U tests of posttests against the pretests of the pretested groups, which separate a loss of existing abilities from a failure to develop (pp. 18–23). The pretest protected the isolates on some tests and impaired them on another (pp. 19, 21–24). | The history article | Evidence |
 | Huck & Sandler (1973) | The analysis of covariance of the pretested groups remains valid when pretesting has a main effect. After a significant interaction, the unpretested groups' t test answers whether the treatment works (pp. 54–55). | Tests E and H of `fit_solomon_classic()` | Historical |
 
 ## The test sequence and its critics (1982–2000)
@@ -115,6 +116,75 @@ September 30, 2026). The draft has no page numbers, so none are cited.
 The published article was not available for comparison, and
 `fit_solomon_steyn()` follows the draft
 ([#45](https://github.com/JUhalt/solomonR/issues/45)).
+
+## Sources named but not read
+
+Steyn (2005), Steyn and Mynhardt (2008), and the draft of Steyn (2009; R.
+Steyn, personal communication, September 30, 2026) cite a research-methods
+textbook, *Foundations of Behavioral Research*, by Kerlinger (1986) and, in
+its fourth edition, by Kerlinger and Lee (2000). The textbook has not been
+read. Each point these works take from it about the Solomon design is stated
+in a primary source in the bibliography:
+
+- **The analysis is complicated.** The design's six sets of observations
+  are hard to combine in a single statistic (Kerlinger & Lee, 2000, as cited
+  in Steyn & Mynhardt, 2008, p. 568). Steyn (2005, p. 103) cites both
+  editions for the same point, and the draft of Steyn (2009) cites them as
+  offering little guidance on the calculations before it sets out its own
+  sequence of tests. Campbell and Stanley (1963/1966, p. 25) had made the
+  point: no single statistical procedure uses all six sets of observations
+  at once. Walton Braver and Braver (1988, p. 150) named uncertainty about
+  the design's statistical treatment as perhaps the main reason for its
+  underuse, and Sawilowsky et al. (1994, p. 363) repeat Campbell and
+  Stanley's point.
+- **The design controls the threats to internal validity.** The draft of
+  Steyn (2009) cites both editions for this point. Campbell and Stanley
+  (1963/1966, p. 8, Table 1) mark Design 5 as controlling every threat to
+  internal validity they list, and Huck and Sandler (1973, p. 54) say the
+  design controls them all.
+- **Random assignment to all four groups.** The draft of Steyn (2009) cites
+  Kerlinger (1986) and Solomon (1949) for this point. Solomon (1949,
+  pp. 140–141) allowed groups that were either matched or randomly drawn.
+  Random assignment is part of Design 5 in Campbell and Stanley (1963/1966,
+  p. 24), and Huck and Sandler (1973, p. 54) make it the first step of the
+  design.
+
+Steyn (2005, p. 109) also lists both editions among the literature's
+approaches to the design, with Solomon (1949), before adopting the approach
+of Walton Braver and Braver (1988). The remaining citations are general
+rather than specific to the Solomon design: Kerlinger and Lee (2000, as
+cited in Steyn, 2005, p. 111) for the .05 significance level and for
+reporting effect sizes; and, in the draft of Steyn (2009), a definition of
+research design and the claim that well-conceived research gives
+representative observations. The procedures solomonR takes from Steyn's
+work come from Walton Braver and Braver (1988), Scheffé's (1953) method,
+and the draft's own sequence of tests. APA Style cites a source known only
+through another work as a secondary source, so the reference list gives the
+works that cite the textbook, not the textbook.
+
+Steyn's (2001) doctoral thesis, from Potchefstroom University for Christian
+Higher Education, has not been read either: no copy was found. Stadler and
+Kotze (2006) report that it evaluated an outdoor experiential learning
+program for members of the Public Order Police with "a four-group design
+with a pre-, post- and post-post test" (p. 27). Its quantitative results
+showed a positive influence on the participants' view of humanity (p. 27),
+but no significant difference in general self-efficacy scores between the
+experimental and control groups over the three occasions (p. 30). Steyn
+advised future researchers to avoid the four-group design, because the
+design is too complex and its interdependency makes the hypotheses
+difficult to accept without reservation (Steyn, 2001, as cited in Stadler &
+Kotze, 2006, p. 27). He later extended it to eight groups (Steyn, 2005) and
+argued for the extension (Steyn, 2009). Steyn (2005, p. 109) lists the
+thesis among the approaches to the Solomon four-group design. The draft of
+Steyn (2009) cites it for repeating the posttest 1 week and 3 months after
+the intervention, to show whether an effect is sustained, and for comparing
+the treated groups' posttests with the untreated groups': a one-way analysis
+of variance of the four posttests, and a t test of the two treated groups
+combined against the two untreated groups combined. `fit_solomon_steyn()`
+carries out both comparisons (E1 and E2). None of these works reports the
+thesis's sample sizes, assignment, or results in enough detail to
+reproduce. Designs with several posttest occasions are analyzed by
+`fit_solomon_mmrm()` ([#96](https://github.com/JUhalt/solomonR/issues/96)).
 
 ## References
 
@@ -197,6 +267,10 @@ classic books* (pp. 93–109). Oxford University Press.
 https://doi.org/10.1093/acprof:oso/9780195385540.003.0004 (Original work
 published 1969)
 
+Lessac, M. S., & Solomon, R. L. (1969). Effects of early isolation on the
+later adaptive behavior of beagles: A methodological demonstration.
+*Developmental Psychology, 1*(1), 14–25. https://doi.org/10.1037/h0026778
+
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
@@ -246,6 +320,11 @@ Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 Solomon, R. L., & Lessac, M. S. (1968). A control group design for
 experimental studies of developmental processes. *Psychological Bulletin,
 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+
+Stadler, K., & Kotze, M. E. (2006). The influence of a ropes course
+development programme on the self-concept and self-efficacy of young career
+officers. *SA Journal of Industrial Psychology, 32*(1), 25–32.
+https://doi.org/10.4102/sajip.v32i1.225
 
 Steyn, R. (2005). *Self-evaluasie en die vorming van
 selfdoeltreffendheidspersepsies* [Self-evaluation and the forming of

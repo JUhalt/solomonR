@@ -12,9 +12,29 @@
 * `?steyn2005` cites Steyn and Mynhardt (2008), the English report of the
   eight-group study: its account of the assignment, its 2 x 2 results, and
   where they differ from the thesis.
+* Lessac and Solomon (1969), the full report of the beagle experiment that
+  Solomon and Lessac (1968) summarized, is added to the references, the
+  coverage table, and the history article.
+* The coverage article records the sources Steyn names that were not
+  read: Kerlinger's textbook (1986; Kerlinger & Lee, 2000), whose points
+  about the design are all stated in primary sources the package cites,
+  and Steyn's (2001) thesis, of which no copy was found. The thesis is
+  described through Stadler and Kotze (2006), now in the references.
+* `?fit_solomon_steyn` notes that Steyn (2009) credits the E1 and E2
+  comparisons for one intervention to Steyn (2001).
 * Both works are in the references, and Steyn and Mynhardt (2008) in the
   coverage article. Scheffé (1953) is cited with its printed pages,
   87–104; Crossref gives 87–110.
+
+## Preparing for the CRAN checks (#84, third part)
+
+* The links in the README to the license and the roadmap now point to the
+  repository. Both files are left out of the built package, where the
+  links were broken (a win-builder NOTE).
+* The package description names the American Psychological Association
+  in full.
+* New `cran-comments.md` records the check results for the eventual CRAN
+  submission. Nothing has been submitted.
 
 # solomonR 0.8.0
 

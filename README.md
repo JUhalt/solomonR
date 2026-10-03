@@ -12,7 +12,7 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 [![R-universe
 version](https://JUhalt.r-universe.dev/solomonR/badges/version)](https://JUhalt.r-universe.dev/solomonR)
 [![License:
-GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg)](LICENSE.md)
+GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg)](https://github.com/JUhalt/solomonR/blob/master/LICENSE.md)
 <!-- badges: end -->
 
 **solomonR** is an R package for analyzing, teaching, and studying the
@@ -536,8 +536,9 @@ history that produced it.
 
 ## Roadmap
 
-Development plans are maintained in [`ROADMAP.md`](ROADMAP.md). Each
-planned item is a [GitHub
+Development plans are maintained in
+[`ROADMAP.md`](https://github.com/JUhalt/solomonR/blob/master/ROADMAP.md).
+Each planned item is a [GitHub
 issue](https://github.com/JUhalt/solomonR/issues) on a milestone. The
 milestones v0.5.0 through v0.8.0 were released together as `v0.8.0`. Two
 remain:
@@ -648,7 +649,8 @@ variances. *British Journal of Mathematical and Statistical Psychology,
 
 solomonR `v0.3.0` and later is licensed under the **GNU General Public
 License, version 3 only** (SPDX: `GPL-3.0-only`). See
-[LICENSE.md](LICENSE.md) for the full terms and
+[`LICENSE.md`](https://github.com/JUhalt/solomonR/blob/master/LICENSE.md)
+for the full terms and
 [inst/NOTICE](https://github.com/JUhalt/solomonR/blob/master/inst/NOTICE)
 for copyright and retained historical notices.
 
