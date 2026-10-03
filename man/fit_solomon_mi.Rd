@@ -83,7 +83,8 @@ missing posttests are then drawn from the model (Carpenter et al.,
 \code{delta[j]}: those with a missing posttest are assumed to differ from
 those observed by an offset in each group, as in the pattern-mixture
 analysis of Little et al. (2012, p. 1358), and "a clinically plausible
-amount" is added to the imputed outcomes (White et al., 2011).
+amount" is added to the imputed outcomes (White et al., 2011, "Perform
+Sensitivity Analyses" section, para. 1).
 \item \strong{Analysis and pooling.} Each completed data set is analyzed with the
 model of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (computed directly, since the design is
 the same in every completed data set), and the contrasts are combined
@@ -108,8 +109,11 @@ describes the options for them.
 \strong{Number of imputations.} The default \code{m = 100} follows Carpenter et al.
 (2023, p. 56), who note that p-values accurate to about .005 need at
 least 100 imputations and advise erring "towards too many imputations
-rather than too few". The \code{mc_se} column gives the Monte Carlo standard
-error of each estimate due to the finite number of imputations.
+rather than too few". With much missing information, more are needed: in
+the worked example on \code{mai2020}, where the fraction of missing information
+is about 0.4, p-values varied by about .01 from one seed to another with
+100 imputations. The \code{mc_se} column gives the Monte Carlo standard error
+of each estimate due to the finite number of imputations.
 }
 
 \section{Validation}{

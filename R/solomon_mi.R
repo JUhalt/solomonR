@@ -200,7 +200,8 @@
 #'    `delta[j]`: those with a missing posttest are assumed to differ from
 #'    those observed by an offset in each group, as in the pattern-mixture
 #'    analysis of Little et al. (2012, p. 1358), and "a clinically plausible
-#'    amount" is added to the imputed outcomes (White et al., 2011).
+#'    amount" is added to the imputed outcomes (White et al., 2011, "Perform
+#'    Sensitivity Analyses" section, para. 1).
 #' 4. **Analysis and pooling.** Each completed data set is analyzed with the
 #'    model of [fit_solomon_glm()] (computed directly, since the design is
 #'    the same in every completed data set), and the contrasts are combined
@@ -224,8 +225,11 @@
 #' **Number of imputations.** The default `m = 100` follows Carpenter et al.
 #' (2023, p. 56), who note that p-values accurate to about .005 need at
 #' least 100 imputations and advise erring "towards too many imputations
-#' rather than too few". The `mc_se` column gives the Monte Carlo standard
-#' error of each estimate due to the finite number of imputations.
+#' rather than too few". With much missing information, more are needed: in
+#' the worked example on `mai2020`, where the fraction of missing information
+#' is about 0.4, p-values varied by about .01 from one seed to another with
+#' 100 imputations. The `mc_se` column gives the Monte Carlo standard error
+#' of each estimate due to the finite number of imputations.
 #'
 #' @section Validation:
 #' A simulation study under a protocol posted on issue #82 before any run
@@ -424,7 +428,8 @@ print.solomon_mi <- function(x, digits = 3, ...) {
 #' Repeats [fit_solomon_mi()] over a range of offsets added to the imputed
 #' posttests of chosen Solomon groups, and reports the smallest offset in
 #' each direction at which the conclusion about a contrast changes. White et
-#' al. (2011) suggest reporting "how large an amount should be added to or
+#' al. (2011, "Perform Sensitivity Analyses" section, para. 1) suggest
+#' reporting "how large an amount should be added to or
 #' subtracted from imputed outcomes" without changing the interpretation, and
 #' Little et al. (2012, p. 1358) call a finding robust if it holds over the
 #' plausible offsets.
@@ -437,8 +442,12 @@ print.solomon_mi <- function(x, digits = 3, ...) {
 #' contrast.
 #'
 #' **Common random numbers.** Every offset uses the same imputation draws,
-#' so the estimates change smoothly with the offset and the tipping point is
-#' not blurred by Monte Carlo noise.
+#' so the estimates change smoothly with the offset. The location of the
+#' tipping point still carries Monte Carlo error from the imputations: in
+#' the worked example on `mai2020`, the tipping point for sensitization
+#' ranged from 0.1 to 0.5 standard deviations across seeds with 100
+#' imputations and was 0.3 with 2,000. Before reporting a tipping point,
+#' increase `m` or compare a few seeds.
 #'
 #' @section Lifecycle:
 #' Experimental, with [fit_solomon_mi()], whose validation study it shares.
