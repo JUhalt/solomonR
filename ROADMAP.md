@@ -573,7 +573,8 @@ final, and drafting of the companion manuscript begins.
 
 ## v0.9.0 - Release candidate
 
-**Milestone:** [v0.9.0](https://github.com/JUhalt/solomonR/milestone/8)
+**Status:** Active development — [v0.9.0
+milestone](https://github.com/JUhalt/solomonR/milestone/8).
 
 Stable public API: consistent argument names and lifecycle labels —
 [\#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR

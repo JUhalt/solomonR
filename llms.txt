@@ -42,6 +42,8 @@ Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 > through v1.x, when the arguments that follow a former argument name
 > are also named. Functions marked experimental may still change before
 > version 1.0; each help page shows the function’s lifecycle stage.
+> Development version `0.8.0.9000` is working toward `v0.9.0`: the
+> release candidate, with CRAN pre-submission checks.
 
 ------------------------------------------------------------------------
 
