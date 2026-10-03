@@ -224,6 +224,13 @@ deprecation warning, through v1.x.
   pages. Each runs in under 3 seconds.
 * The help page of `fit_solomon_sem()` now documents its return value.
 
+## Preparing for the CRAN checks (#84, second part)
+
+* The package description gives its references in the form CRAN asks for:
+  authors (year) with a link.
+* References to van Engelenburg (1999) now give its ERIC record, which
+  holds the full text.
+
 ## Coverage of the published methodology (#80)
 
 * New article "Coverage of the Published Methodology" (References menu)
