@@ -356,8 +356,15 @@
 #'
 #' @section Lifecycle:
 #' Experimental. This function follows a pre-publication draft of Steyn's
-#' (2009) article, dated March 2, 2009, and will be checked against the
+#' (2009) article, dated March 2, 2009, which the author provided
+#' (R. Steyn, personal communication, September 30, 2026). It will be checked against the
 #' published version.
+#'
+#' @section Acknowledgment:
+#' We thank Renier Steyn for providing the draft of his article, and for
+#' noting that his model is intended for situations with a large amount of
+#' data and ample time (R. Steyn, personal communication, September 30,
+#' 2026).
 #'
 #' @param y_post Numeric posttest scores, with `NA` for participants who
 #'   dropped out.

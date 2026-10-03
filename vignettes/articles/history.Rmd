@@ -336,8 +336,9 @@ with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
                                      pretested = pretested, control = "Control"))
 ```
 
-solomonR follows a pre-publication draft of Steyn's (2009) article and will
-be checked against the published version.
+solomonR follows a pre-publication draft of Steyn's (2009) article, which
+the author provided (R. Steyn, personal communication, September 30, 2026), and will be checked
+against the published version.
 
 ## After the debate (2011–2025)
 
