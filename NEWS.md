@@ -29,7 +29,8 @@
   hoc tests are Scheffé tests, as in Steyn (2005), or Holm-adjusted pairwise
   t tests (`posthoc`). It is a published proposal, kept for replication and
   teaching, and is experimental: it follows a pre-publication draft of the
-  article and will be checked against the published version.
+  article, which the author provided (R. Steyn, personal communication, September 30, 2026), and will be
+  checked against the published version.
 * New data set `steyn2005`: the group statistics of Steyn's (2005)
   eight-group study, which reproduce its published analyses of variance and
   Scheffé tests.
@@ -157,6 +158,20 @@
   cells, against 90%), so both functions stay experimental. The analyses
   that assume missing at random biased the sensitization contrast by 0.10
   to 0.16 SD when the departure was confined to one pretested group.
+* The worked example on the data of Mai et al. (2020) now includes the
+  sensitivity analysis, with 2,000 imputations, because 100 left the
+  tipping point for sensitization varying from seed to seed. Under missing
+  at random, multiple imputation agrees with the complete-case model. The
+  conclusion about the average treatment effect does not change when the
+  imputed posttests of both relapse-prevention groups are shifted by up to
+  one standard deviation in either direction. The Pretest x Treatment
+  contrast would become significant if the missing posttests of the
+  pretested relapse-prevention group were about 0.3 standard deviations
+  lower than the imputation model predicts.
+* The help pages of `fit_solomon_mi()` and `tipping_point_solomon()` say
+  that with much missing information, 100 imputations can leave the
+  p-values and the tipping point varying from seed to seed, and give a
+  locator for their quotations of White et al. (2011).
 * The APA sort in `report_solomon()` and `tools/check-references.R` now
   compares the first author's surname and initials before the other
   authors, so that "Little, R. J." precedes "Little, R. J. A.".

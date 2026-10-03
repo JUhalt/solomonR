@@ -22,8 +22,8 @@ Commons Attribution license, and solomonR bundles them as `mai2020` (see
 `?mai2020` for the design, the variables, and the license). Because the
 published results can be recomputed, each step below can be checked against
 the article. This example follows the path of the site's menus: check the
-design, reproduce the published analysis, fit the recommended model, and
-draft the report.
+design, reproduce the published analysis, fit the recommended model, ask how
+much the missing posttests could matter, and draft the report.
 
 **Acknowledgment.** We thank Nu Nu Mai, Yoshi Takahashi, and Mon Mon Oo
 for making their data publicly available with their article. This example
@@ -74,7 +74,8 @@ Two points follow for this study:
   A complete-case analysis is unbiased when missingness is unrelated to the
   outcome given the variables in the model (Little & Rubin, 2019). Attrition
   this uneven makes that assumption worth stating, and the numbers lost in
-  each group belong in the report.
+  each group belong in the report. The section "Missing posttests" below
+  asks how much the conclusions depend on it.
 - **Baseline.** Only the pretested arms can be compared at baseline:
 
 ```{r baseline}
@@ -168,6 +169,150 @@ article and the data file describe the coding differently (see
 `?mai2020`). The results are therefore reported here as signed differences,
 without calling them better or worse.
 
+## Missing posttests
+
+```{r missing-counts, include = FALSE}
+n_missing <- sum(is.na(rp$post_behavior))
+lost <- function(t, p) {
+  with(rp, c(missing = sum(is.na(post_behavior[treat == t & pretested == p])),
+             n = sum(treat == t & pretested == p)))
+}
+lost_rp_pre <- lost(1, 1)
+lost_ctl_pre <- lost(0, 1)
+```
+
+Posttests are missing for `r n_missing` of the `r nrow(rp)` participants in
+this comparison. The model above is valid if they are missing at random:
+if, within each group and, in the pretested groups, at a given pretest
+score, whether a posttest is missing does not depend on what it would have
+been (Little & Rubin, 2019). Because whether a posttest is missing may then
+depend on the pretest, the model also needs the posttest to depend on the
+pretest in the same way in both pretested groups, as it assumes. The data
+cannot show whether missingness is at random. A sensitivity analysis asks
+instead how far the missing posttests would have to depart from that
+assumption before a conclusion changed (White et al., 2011).
+
+`fit_solomon_mi()` and `tipping_point_solomon()`, used below, are
+experimental: their simulation study did not meet its pre-specified rule
+for validation (see `?fit_solomon_mi`). It studied 30, 60, and 120
+participants per group with 10% to 30% of posttests missing. With 30 per
+group, the size closest to this study's, the intervals were conservative,
+and this study's attrition, 29% to 46%, goes beyond the proportions
+studied.
+
+### The same assumption, by multiple imputation
+
+`fit_solomon_mi()` imputes the missing posttests in each group, from the
+pretest in the pretested groups, and combines the analyses of the completed
+data sets. The analyses below use 2,000 imputations rather than the default
+100, with a fixed seed so the results can be reproduced. With this much
+missing information, 100 imputations leave noticeable Monte Carlo error.
+With 100 imputations, the tipping point for sensitization found below
+ranged from 0.1 to 0.5 standard deviations across 40 seeds; with 2,000, it
+was 0.3 standard deviations for each of the 30 seeds tried.
+
+```{r mi}
+mar <- with(rp, fit_solomon_mi(post_behavior, treat, pretested, pre_behavior,
+                               m = 2000, seed = 82))
+mar
+```
+
+```{r mi-compare, include = FALSE}
+cc <- fit$effects
+mi <- mar$effects
+largest_gap <- max(abs(cc$estimate - mi$estimate))
+```
+
+Under the same assumption, multiple imputation agrees with the
+complete-case model. Theory predicts this when the imputation model is the
+same as the analysis model (Carpenter et al., 2023, pp. 255–256). Here the
+imputation model lets the pretest slope differ between the two pretested
+groups, so the agreement also suggests that the model's common slope does
+no harm: the largest difference between the estimates is
+`r sprintf("%.3f", largest_gap)` scale points. The fraction of missing
+information (`fmi`) of `r sprintf("%.2f", min(mi$fmi))` to
+`r sprintf("%.2f", max(mi$fmi))` shows how much the missing posttests weigh
+on each contrast.
+
+### The treatment effect
+
+`tipping_point_solomon()` repeats the imputation with the imputed posttests
+of chosen groups shifted by an offset, over a range of offsets: by default,
+21 offsets from minus to plus one pooled within-group standard deviation of
+the observed posttests. For the average effect of relapse prevention, the
+offsets go to both treatment groups:
+
+```{r tipping-ate}
+tp <- with(rp, tipping_point_solomon(post_behavior, treat, pretested, pre_behavior,
+                                     groups = "treatment", m = 2000, seed = 82))
+tp$tipping_sd
+```
+
+```{r tipping-ate-text, include = FALSE}
+ate_text <- if (all(is.na(tp$tipping_sd))) {
+  paste("Neither value is reached (NA): the conclusion did not change within",
+        "the range tried. The average effect stays nonsignificant even if the",
+        "missing posttests of both relapse-prevention groups were a full",
+        "standard deviation higher, or lower, than the imputation model predicts.")
+} else {
+  sprintf("The conclusion about the average effect changes at %s standard deviations.",
+          paste(stats::na.omit(round(tp$tipping_sd, 1)), collapse = " and "))
+}
+```
+
+`r ate_text`
+
+### Sensitization
+
+The Pretest x Treatment contrast is closer to the line. An offset confined
+to any one group moves it by about the offset times the share of that
+group's posttests that are missing, so the group with the most missing
+posttests can change the conclusion at the smallest offset. Here the offsets
+go to the pretested relapse-prevention group alone (`groups = 1`), where
+`r lost_rp_pre[["missing"]]` of `r lost_rp_pre[["n"]]` posttests are
+missing:
+
+```{r tipping-sens, fig.width = 7, fig.height = 4.5, fig.alt = "Pooled Pretest x Treatment contrast with its confidence band as the offset added to the imputed posttests of the pretested relapse-prevention group goes from minus to plus one pooled within-group standard deviation."}
+tp_sens <- with(rp, tipping_point_solomon(post_behavior, treat, pretested, pre_behavior,
+                                          contrast = "Pretest x Treatment", groups = 1,
+                                          m = 2000, seed = 82))
+tp_sens$tipping_sd
+plot_tipping_point(tp_sens)
+```
+
+```{r tipping-sens-values, include = FALSE}
+sens_mar <- tp_sens$results[abs(tp_sens$results$delta) < 1e-12, ]
+neg <- tp_sens$tipping_sd[["negative"]]
+pos <- tp_sens$tipping_sd[["positive"]]
+tp_ctl <- with(rp, tipping_point_solomon(post_behavior, treat, pretested, pre_behavior,
+                                         contrast = "Pretest x Treatment", groups = 2,
+                                         m = 2000, seed = 82))
+ctl <- stats::na.omit(tp_ctl$tipping_sd)
+```
+
+Assuming missing at random, the contrast is not significant
+(p = `r sub("^0", "", sprintf("%.3f", sens_mar$p.value))`).
+`r if (!is.na(neg)) sprintf("It would be significant at the .05 level if the missing posttests of the pretested relapse-prevention group were about %.1f standard deviations lower on the scale than the imputation model predicts.", abs(neg)) else "It stays nonsignificant for every lower offset tried."`
+`r if (!is.na(pos)) sprintf("It would also be significant if they were about %.1f standard deviations higher.", pos) else "No higher offset in the range changes the conclusion."`
+`r if (length(ctl)) sprintf("The same analysis for the pretested control group (groups = 2), where %d of %d posttests are missing, changes the conclusion at %s standard deviations.", lost_ctl_pre[["missing"]], lost_ctl_pre[["n"]], paste(sprintf("%+.1f", ctl), collapse = " and ")) else sprintf("The same analysis for the pretested control group (groups = 2), where %d of %d posttests are missing, does not change the conclusion within the range.", lost_ctl_pre[["missing"]], lost_ctl_pre[["n"]])`
+
+Whether departures of these sizes are plausible is a substantive judgment,
+and White et al. (2011) advise specifying sensitivity analyses in detail
+before the unblinded data are seen. Two facts bear on it here. Many
+posttests are missing in both pretested groups: almost a third in the
+relapse-prevention group and nearly half in the control group. And because
+the article and the data file describe the scale's direction differently
+(see `?mai2020`), "lower" and "higher" cannot be read as better or worse. A report would state the
+conclusion under missing at random and add how large a departure, in which
+group, would change it.
+
+`report_solomon()` writes the method, the offsets explored, and the tipping
+points, with their references:
+
+```{r report-tipping}
+report_solomon(tp_sens)
+```
+
 ## Draft the report
 
 `report_solomon()` drafts the method and results. Given the numbers in each
@@ -196,9 +341,15 @@ what those tests leave out:
 - the interaction and both simple effects in one model;
 - attrition reported by group.
 
+The experimental functions `fit_solomon_mi()` and `tipping_point_solomon()`
+add a sensitivity analysis of how much the conclusions about the average
+effect and about sensitization depend on why posttests are missing.
+
 The data also show limits that no analysis removes:
 
 - **Attrition.** The posttest was missing for 29% to 46% of each group.
+  The sensitivity analysis shows how far the conclusions about the average
+  effect and sensitization depend on why; it cannot remove that dependence.
 - **Pretest assignment.** The article does not describe how roll numbers
   were used.
 - **Scale direction.** It is described differently in the article and in
@@ -222,6 +373,10 @@ Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
 published 1963)
 
+Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
+M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd
+ed.). Wiley. https://doi.org/10.1002/9781119756118
+
 Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
 7*(1), 295–318. https://doi.org/10.1214/12-AOAS583
@@ -236,3 +391,7 @@ Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. *Psychological
 Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
+
+White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
+for intention to treat analysis in randomised trials with missing outcome
+data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40

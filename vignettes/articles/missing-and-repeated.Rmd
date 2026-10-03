@@ -96,9 +96,10 @@ the conclusion did not change within the range tried). Here the effect
 would lose its statistical significance only if the missing treatment-group
 posttests were about `r abs(round(tp$tipping_sd[["negative"]], 1))`
 standard deviations lower than the imputation model predicts.
-Whether such an offset is plausible is a substantive judgment. White et al. (2011) suggest
-fixing the plausible range in advance, and `analysis_plan_solomon()`
-includes this analysis in the plan.
+Whether such an offset is plausible is a substantive judgment. White et al.
+(2011) advise specifying sensitivity analyses in detail before the
+unblinded data are seen, and `analysis_plan_solomon()` includes this
+analysis in the plan.
 
 ### Sensitization and the pretested groups
 
