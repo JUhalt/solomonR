@@ -348,7 +348,7 @@ https://doi.org/10.1037/1082-989X.9.2.164
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? \emph{Design Principles and Practices: An International
-Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+Journal—Annual Review, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 Tipton, E. (2015). Small sample adjustments for robust variance estimation
 with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.

@@ -1131,8 +1131,7 @@
 #' [equivalence_solomon()] test of one comparison and the
 #' [baseline_solomon()] comparisons of such a design are reported with the
 #' same design statement. solomonR follows a pre-publication draft of Steyn
-#' (2009), to be checked against the published version; see
-#' [fit_solomon_steyn()].
+#' (2009), which the author provided; see [fit_solomon_steyn()].
 #'
 #' **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
 #' results describe differences between groups rather than treatment
@@ -1197,7 +1196,7 @@
 #'
 #' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 #' this exemplary model? *Design Principles and Practices: An International
-#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+#' Journal—Annual Review, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 #'
 #' @examples
 #' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))

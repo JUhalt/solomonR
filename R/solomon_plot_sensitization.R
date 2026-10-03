@@ -262,7 +262,8 @@
 #'
 #' @references
 #' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
-#' design* (Research Report 99-06). University of Twente.
+#' design* (Research Report 99-06). University of Twente. ERIC.
+#' https://eric.ed.gov/?id=ED435692
 #'
 #' @seealso [equivalence_solomon()], [plot_solomon_effects()]
 #'

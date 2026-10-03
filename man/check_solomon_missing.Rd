@@ -130,7 +130,7 @@ Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? \emph{Design Principles and Practices: An International
-Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+Journal—Annual Review, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. \emph{Statistics in Medicine, 24}(7),

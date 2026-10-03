@@ -88,7 +88,8 @@ plot_sensitization(fit6)
 }
 \references{
 van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
-design} (Research Report 99-06). University of Twente.
+design} (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692
 }
 \seealso{
 \code{\link[=equivalence_solomon]{equivalence_solomon()}}, \code{\link[=plot_solomon_effects]{plot_solomon_effects()}}

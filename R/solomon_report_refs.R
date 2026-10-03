@@ -31,7 +31,7 @@
   venables2002 = "Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S* (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2",
   daniel2021 = "Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges: Comparing noncollapsible effect estimators and their standard errors after adjustment for different covariate sets. *Biometrical Journal, 63*(3), 528\u2013557. https://doi.org/10.1002/bimj.201900297",
   localio2007 = "Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and confidence intervals were easily computed indirectly from multivariable logistic regression. *Journal of Clinical Epidemiology, 60*(9), 874\u2013882. https://doi.org/10.1016/j.jclinepi.2006.12.001",
-  vanengelenburg1999 = "van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group design* (Research Report 99-06). University of Twente.",
+  vanengelenburg1999 = "van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group design* (Research Report 99-06). University of Twente. ERIC. https://eric.ed.gov/?id=ED435692",
   satterthwaite1946 = "Satterthwaite, F. E. (1946). An approximate distribution of estimates of variance components. *Biometrics Bulletin, 2*(6), 110\u2013114. https://doi.org/10.2307/3002019",
   welch1947 = "Welch, B. L. (1947). The generalization of \"Student's\" problem when several different population variances are involved. *Biometrika, 34*(1\u20132), 28\u201335. https://doi.org/10.1093/biomet/34.1-2.28",
   waltonbraver1988 = "Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the Solomon four-group design: A meta-analytic approach. *Psychological Bulletin, 104*(1), 150\u2013154. https://doi.org/10.1037/0033-2909.104.1.150",
@@ -63,5 +63,5 @@
   sawilowsky1996 = "Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error of meta-analysis in the Solomon four-group design* [Paper presentation]. First International Conference on Multiple Comparisons, Tel Aviv, Israel. https://digitalcommons.wayne.edu/coe_tbf/29/",
   holm1979 = "Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics, 6*(2), 65\u201370. https://www.jstor.org/stable/4615733",
   steyn2005 = "Steyn, R. (2005). *Self-evaluasie en die vorming van selfdoeltreffendheidspersepsies* [Self-evaluation and the forming of self-efficacy perceptions] [Doctoral thesis, University of South Africa]. Unisa Institutional Repository. https://hdl.handle.net/10500/1745",
-  steyn2009 = "Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on this exemplary model? *Design Principles and Practices: An International Journal, 3*(1), 383\u2013394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588"
+  steyn2009 = "Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on this exemplary model? *Design Principles and Practices: An International Journal\u2014Annual Review, 3*(1), 383\u2013394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588"
 )
