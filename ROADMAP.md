@@ -312,9 +312,10 @@ helper by #52; and the SEM vignette by #55.
 
 **Milestone:** [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6)
 
-- [ ] Longitudinal Solomon designs: Treatment x Pretest x Time — [#57](https://github.com/JUhalt/solomonR/issues/57); merged in [PR #94](https://github.com/JUhalt/solomonR/pull/94). Its simulation study is reported; the function stays experimental because the pre-specified rule for the default degrees of freedom was not met
-  - Open: a worked example that reproduces a published longitudinal
-    Solomon result, where the design allows.
+- [x] Longitudinal Solomon designs: Treatment x Pretest x Time — [#57](https://github.com/JUhalt/solomonR/issues/57); merged in [PR #94](https://github.com/JUhalt/solomonR/pull/94) and [PR #99](https://github.com/JUhalt/solomonR/pull/99). Its simulation study is reported; the function stays experimental because the pre-specified rule for the default degrees of freedom was not met
+  - A worked example reproduces the published analyses of Jordaan (2014),
+    a Solomon study with three posttest occasions, from its group
+    statistics (`jordaan2014`).
   - The protocol, its two amendments, and the sources read are on the
     issue.
 - [x] Quasi-experimental Solomon designs, with the loss of causal warrant

@@ -117,3 +117,32 @@ test_that("steyn2005 reproduces Steyn's (2005) eight-group analyses", {
   expect_equal(round(f_joint[["Pretest x Condition"]], 2), 1)
   expect_equal(joint$anova$df[joint$anova$source == "Error"], 1715)
 })
+
+test_that("jordaan2014 reproduces Jordaan's (2014) analyses on each occasion", {
+  d <- jordaan2014
+  expect_identical(nrow(d), 42L)
+  expect_identical(sum(d$n[d$subscale == "Problem solving" & d$occasion == "Posttest"]), 96L)
+  # Tables 7.4-7.19 (pp. 113-127): the 2 x 2 ANOVA of each subscale on each
+  # occasion; pretest, treatment, and interaction F, and the error mean square.
+  published <- list(
+    "Social support" = rbind(c(0.047, 4.241, 9.678, 20.340), c(0.323, 3.828, 0.266, 15.333),
+                             c(0.008, 0.682, 2.306, 16.278)),
+    "Problem solving" = rbind(c(2.931, 3.386, 0.819, 25.489), c(0.119, 0.087, 0.563, 21.416),
+                              c(0.006, 0.011, 5.556, 11.663)),
+    "Avoidance" = rbind(c(1.282, 0.373, 0.373, 14.731), c(2.633, 0.688, 0.688, 16.853),
+                        c(0.120, 0.667, 0.327, 14.458))
+  )
+  occasions <- c("Posttest", "Follow-up 1", "Follow-up 2")
+  for (s in names(published)) for (k in seq_along(occasions)) {
+    x <- d[d$subscale == s & d$occasion == occasions[k], ]
+    fit <- solomon_from_summary(x$n, x$mean, x$sd, treat = x$treat, pretested = x$pretested)
+    f <- stats::setNames(fit$anova$F, fit$anova$source)
+    pub <- published[[s]][k, ]
+    # The published means and SDs are rounded to two decimals.
+    expect_lt(abs(f[["Pretest"]] - pub[1]), 0.05)
+    expect_lt(abs(f[["Treatment"]] - pub[2]), 0.05)
+    expect_lt(abs(f[["Treatment x Pretest"]] - pub[3]), 0.05)
+    expect_lt(abs(fit$mse - pub[4]), 0.03)
+    expect_equal(fit$df_error, 92)
+  }
+})

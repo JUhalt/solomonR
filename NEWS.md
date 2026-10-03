@@ -106,6 +106,18 @@
   by all four groups misstated the standard errors. The pre-specified rule
   for the default degrees of freedom was not met, so the function stays
   experimental, with Kenward-Roger as the default.
+* New data set `jordaan2014`: the group statistics of Jordaan's (2014)
+  randomized Solomon study with three posttest occasions, on the three
+  subscales of the Coping Strategy Indicator. They reproduce the 27 F
+  values of the thesis's nine analyses of variance, one per subscale and
+  occasion.
+* New article, "Worked Example: Repeated Posttests". It reproduces the
+  published analyses of `jordaan2014` with `solomon_from_summary()` and
+  `fit_solomon_mmrm()`. It also shows that a change in sensitization across
+  occasions cannot be judged from group statistics alone: for social
+  support, the drop in the Pretest x Treatment interaction from the
+  posttest to 6 months has p = .149 if the correlation between occasions
+  is 0.2 and p = .005 if it is 0.8.
 
 ## Analysis plan and study template (#81)
 

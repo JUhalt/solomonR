@@ -223,6 +223,10 @@ confirmatory, and `report_solomon()` reports the fit:
 report_solomon(mm, digits = 1)$method
 ```
 
+For a published study with three posttest occasions, reproduced from its
+group statistics, see
+[Worked Example: Repeated Posttests](repeated-posttests-example.html).
+
 ## References
 
 Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,

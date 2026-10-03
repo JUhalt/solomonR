@@ -118,3 +118,46 @@ test_that("print and report describe the model", {
   expect_true(any(grepl("^Mallinckrodt, C. H.", r$references)))
   expect_true(any(grepl("^Sabanes Bove, D.", r$references)))
 })
+
+test_that("fit_solomon_mmrm() reproduces the per-occasion analyses of jordaan2014", {
+  skip_if_not_installed("mmrm")
+  # Data with exactly the published means and SDs on every occasion and an
+  # assumed correlation between occasions, as in the article "Worked Example:
+  # Repeated Posttests".
+  rebuild <- function(stats, r) {
+    post <- subset(stats, occasion != "Pretest")
+    occasions <- levels(droplevels(post$occasion))
+    do.call(rbind, lapply(split(post, post$group), function(g) {
+      g <- g[order(g$occasion), ]
+      R <- matrix(r, nrow(g), nrow(g))
+      diag(R) <- 1
+      y <- MASS::mvrnorm(g$n[1], mu = g$mean, Sigma = diag(g$sd) %*% R %*% diag(g$sd),
+                         empirical = TRUE)
+      data.frame(id = paste(g$group[1], row(y), sep = "-"), treat = g$treat[1],
+                 pretested = g$pretested[1],
+                 occasion = factor(as.character(g$occasion)[col(y)], levels = occasions),
+                 y_post = as.vector(y))
+    }))
+  }
+  ps <- subset(jordaan2014, subscale == "Problem solving")
+  anova_f <- vapply(c("Posttest", "Follow-up 1", "Follow-up 2"), function(o) {
+    x <- ps[ps$occasion == o, ]
+    a <- solomon_from_summary(x$n, x$mean, x$sd, treat = x$treat, pretested = x$pretested)$anova
+    a$F[a$source == "Treatment x Pretest"]
+  }, numeric(1))
+  se_change <- numeric(0)
+  for (r in c(0.3, 0.7)) {
+    set.seed(57)
+    e <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, data = rebuild(ps, r))$effects
+    px <- e[e$contrast == "Pretest x Treatment", ]
+    # With every posttest observed, each occasion's contrast is the separate
+    # analysis of variance, whatever the correlation between occasions.
+    expect_equal(unname(px$statistic^2), unname(anova_f), tolerance = 1e-4)
+    expect_equal(px$df, rep(92, 3), tolerance = 1e-3)
+    ch <- e[e$contrast == "Change in Pretest x Treatment", ]
+    expect_equal(ch$estimate, 3.32 - 1.89, tolerance = 1e-6)
+    se_change <- c(se_change, ch$std.error)
+  }
+  # The change across occasions depends on the correlation.
+  expect_gt(se_change[1], se_change[2])
+})
