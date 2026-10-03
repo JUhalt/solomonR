@@ -24,7 +24,7 @@
   fit_solomon_mi = c("carpenter2023", "vanbuuren2018", "cro2019"),
   tipping_point_solomon = c("white2011", "little2012", "carpenter2023"),
   fit_solomon_mmrm = c("mallinckrodt2008", "laird1982", "sabanesbove2026"),
-  fit_solomon_steyn = c("steyn2009", "waltonbraver1988", "holm1979")
+  fit_solomon_steyn = c("steyn2009", "waltonbraver1988", "scheffe1953")
 )
 
 # ---- Formatting helpers -----------------------------------------------------------

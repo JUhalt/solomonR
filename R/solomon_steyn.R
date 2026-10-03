@@ -98,8 +98,10 @@
 # The post hoc tests: every pair of groups, with a pooled SD. `statistic` and
 # `p.value` are the pairwise t and its unadjusted p-value; `p.adjusted` is
 # the post hoc p-value, which the decisions of the sequence read.
-# - "scheffe": Scheffe tests, as in Steyn (2005, Table 5.61, p. 153). For G
-#   groups and N scores, F_S = t^2 / (G - 1), referred to F(G - 1, N - G).
+# - "scheffe": Scheffe's (1953) tests, as in Steyn (2005, Table 5.61,
+#   p. 153). For G groups and N scores, F_S = t^2 / (G - 1), referred to
+#   F(G - 1, N - G): the pair differs at alpha exactly when |t| > S, with
+#   S^2 = (G - 1) F_alpha(G - 1, N - G) (Scheffe, 1953, pp. 88-89, 97).
 # - "holm": Holm's (1979) adjustment of the pairwise t tests, as in
 #   stats::pairwise.t.test() with its defaults.
 # Pairs are in utils::combn() order: (1, 2), (1, 3), ..., (2, 3), ...
@@ -287,15 +289,27 @@
 #' - **Post hoc tests.** Steyn (2009) names no post hoc test. In the study
 #'   the article describes, Steyn (2005, Table 5.61, p. 153) used Scheffé
 #'   tests after the one-way ANOVA of the eight posttest groups, so they are
-#'   the default (`posthoc = "scheffe"`). `posthoc = "holm"` gives pairwise
-#'   t tests with a pooled SD and Holm's (1979) adjustment, the default of
-#'   [stats::pairwise.t.test()], which is less conservative for pairwise
-#'   comparisons. Both use the pooled error variance of the groups in the
-#'   ANOVA. For a pair of groups among G groups with N scores in all, the
+#'   the default (`posthoc = "scheffe"`). They are the method of Scheffé
+#'   (1953). For a pair of groups among G groups with N scores in all, the
 #'   Scheffé statistic is the squared pairwise t divided by G - 1, on G - 1
-#'   and N - G degrees of freedom. In step 1 the post hoc tests follow a
-#'   significant ANOVA of more than two groups; in step 2, and in step 8
-#'   with several interventions (E2 and E5), they are always computed.
+#'   and N - G degrees of freedom, with the pooled error variance of the
+#'   groups in the ANOVA. The pair differs at `alpha` exactly when
+#'   Scheffé's criterion holds: |t| exceeds S, where S^2 is G - 1 times the
+#'   upper `alpha` point of F(G - 1, N - G) (Scheffé, 1953, pp. 87–89, 97).
+#'   Scheffé's procedure protects every contrast among the groups, not only
+#'   the pairs, so it is conservative when only pairs are compared; for
+#'   pairs of equally precise means (equal group sizes), Scheffé
+#'   recommended Tukey's method instead (pp. 89, 92–93, 96–97). Because the
+#'   F test rejects exactly when some contrast is significant (pp. 87,
+#'   95–96), no pair can differ unless the ANOVA of the same groups is
+#'   significant, and a significant ANOVA need not yield a pair that
+#'   differs; step 2 then reports a pattern Steyn's rule does not cover.
+#'   `posthoc = "holm"` gives pairwise t tests with the same pooled SD and
+#'   Holm's (1979) adjustment, the default of [stats::pairwise.t.test()],
+#'   which covers the pairwise comparisons only. In step 1 the post hoc
+#'   tests follow a significant ANOVA of more than two groups; in step 2,
+#'   and in step 8 with several interventions (E2 and E5), they are always
+#'   computed.
 #' - **Two-way ANOVA.** Type III sums of squares, with effect coding, one
 #'   analysis for each intervention against the control.
 #' - **History classification.** Two sets "differ" when their post hoc
@@ -328,7 +342,10 @@
 #'   effect only when the interventions raise the scores; when they lower
 #'   them, as in Steyn (2005), the greatest effect is the lowest mean.
 #'   Read `highest` with the direction of the outcome and the post hoc
-#'   tests.
+#'   tests. In the English report of that study, Steyn and Mynhardt (2008,
+#'   pp. 569–570) ranked the treatments by the difference between treated
+#'   and untreated means and by d, from separate 2 x 2 analyses, without a
+#'   test of the differences between treatments.
 #' - **Missing scores.** Participants with a missing posttest stay in the
 #'   data for the attrition step and are left out of the posttest analyses.
 #'   The pretest analyses use the pretested participants with a pretest.
@@ -343,8 +360,11 @@
 #'   across them.
 #' - A nonsignificant test is not evidence that groups are equivalent, or
 #'   that a threat is absent.
-#' - The one-way ANOVA of `Oc`, `Od`, and `Of` treats the paired scores of
-#'   `Oc` and `Od`, which come from the same participants, as independent.
+#' - The one-way ANOVA of `Oc`, `Od`, and `Of`, and its post hoc tests,
+#'   treat the paired scores of `Oc` and `Od`, which come from the same
+#'   participants, as independent. Scheffé's (1953, p. 87) tests take the
+#'   covariances of the group means as known; here that of `Oc` and `Od` is
+#'   taken to be zero.
 #' - The chi-square test for the variance treats the variance of `Oc` as a
 #'   known value and ignores the pairing of `Oc` and `Od`.
 #' - A difference between `Ob` and `Oe` (E4) mixes a pretest main effect
@@ -383,7 +403,7 @@
 #'   step adds a one-way ANOVA with the unpretested control's posttests
 #'   (`Of`) as a further group. Default `FALSE`.
 #' @param posthoc The post hoc tests of pairs of groups: `"scheffe"` (the
-#'   default), Scheffé tests, as in Steyn (2005); or `"holm"`, pairwise t
+#'   default), Scheffé's (1953) tests, as in Steyn (2005); or `"holm"`, pairwise t
 #'   tests with Holm's (1979) adjustment. Both use a pooled SD. See the
 #'   Operationalization section.
 #' @param data Optional data frame. When supplied, the other data arguments
@@ -430,6 +450,10 @@
 #' *Scandinavian Journal of Statistics, 6*(2), 65–70.
 #' https://www.jstor.org/stable/4615733
 #'
+#' Scheffé, H. (1953). A method for judging all contrasts in the analysis of
+#' variance. *Biometrika, 40*(1–2), 87–104.
+#' https://doi.org/10.1093/biomet/40.1-2.87
+#'
 #' Steyn, R. (2005). *Self-evaluasie en die vorming van
 #' selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of
 #' self-efficacy perceptions\] \[Doctoral thesis, University of South Africa\].
@@ -438,6 +462,10 @@
 #' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 #' this exemplary model? *Design Principles and Practices: An International
 #' Journal—Annual Review, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+#'
+#' Steyn, R., & Mynhardt, J. (2008). Factors that influence the forming of
+#' self-evaluation and self-efficacy perceptions. *South African Journal of
+#' Psychology, 38*(3), 563–573. https://doi.org/10.1177/008124630803800310
 #'
 #' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 #' Solomon four-group design: A meta-analytic approach. *Psychological
@@ -1500,11 +1528,11 @@ print.solomon_steyn <- function(x, digits = 3, ...) {
 .report_steyn <- function(fit, digits, md) {
   s <- fit$settings
   k <- s$k
-  # The post hoc tests are cited when the fit holds some: Steyn (2005) for
-  # Scheffe tests, Holm (1979) for Holm's adjustment.
+  # The post hoc tests are cited when the fit holds some: Scheffe (1953) and
+  # Steyn (2005) for Scheffe tests, Holm (1979) for Holm's adjustment.
   scheffe <- identical(s$posthoc, "scheffe")
   has_posthoc <- .steyn_has_posthoc(fit)
-  posthoc_ref <- if (scheffe) "steyn2005" else "holm1979"
+  posthoc_ref <- if (scheffe) c("scheffe1953", "steyn2005") else "holm1979"
   refs <- c("steyn2009", if (has_posthoc) posthoc_ref)
   alpha_txt <- sub("^0", "", format(s$alpha))
   italic <- function(x) if (md) paste0("*", x, "*") else x
@@ -1571,8 +1599,8 @@ print.solomon_steyn <- function(x, digits = 3, ...) {
     if (!has_posthoc) {
       "."
     } else if (scheffe) {
-      paste0(", and the post hoc tests were ", .steyn_posthoc_name("scheffe"),
-             ", as in Steyn (2005).")
+      paste0(", and the post hoc tests were Scheff\u00e9's (1953) tests, as in ",
+             "Steyn (2005).")
     } else {
       paste0(", and pairwise comparisons used t tests with a pooled standard deviation ",
              "and Holm's (1979) adjustment.")

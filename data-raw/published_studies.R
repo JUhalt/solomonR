@@ -92,6 +92,8 @@ solomon1949 <- data.frame(
 # pretested control KG2, and the unpretested control KG3. The treatments
 # (p. 102): EG3 completed a cognitive test, EG2 also marked it, and EG1 also
 # received the test's norms. Rows are in the package's group order.
+# Reported in English by Steyn and Mynhardt (2008), whose Table 1 (p. 567)
+# gives the same group sizes and labels the KG groups CG.
 steyn2005 <- data.frame(
   group = c("EG1", "EG2", "EG3", "KG2", "KG1.1", "KG1.2", "KG1.3", "KG3"),
   condition = factor(rep(c("Norms", "Marking", "Test", "Control"), 2),

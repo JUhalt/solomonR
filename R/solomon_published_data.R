@@ -316,8 +316,9 @@
 #' eight groups of a Solomon design with three treatments: a study of how
 #' information about one's own ability changes self-efficacy perceptions, with
 #' 1,723 police trainees (Steyn, 2005, Table 5.59, pp. 151–152). It is the
-#' eight-group study that Steyn (2009) describes. Numbers reported in the
-#' publication are reused with citation.
+#' eight-group study that Steyn (2009) describes, and Steyn and Mynhardt
+#' (2008) report it in English. Numbers reported in the publication are
+#' reused with citation.
 #'
 #' @details
 #' **Design.** Three treatments and a control, each with and without a
@@ -341,9 +342,13 @@
 #' point. Its introduction says that participants were divided at random
 #' into eight groups and that the groups were assigned at random to the
 #' conditions (p. 9), and it calls the allocation random again on p. 107.
+#' So does the English report, which does not mention the classes (Steyn &
+#' Mynhardt, 2008, pp. 566–567).
 #' The method chapter, followed here, gives the detail: the researcher
 #' judged the existing classes to be random groups and made no further
-#' random assignment (pp. 105–106). The analyses in the thesis, and those
+#' random assignment (pp. 105–106), and balanced the groups by sex: each
+#' held five men's classes and two women's classes (Steyn, 2005, p. 106).
+#' The analyses in the thesis, and those
 #' below, treat participants as the units, so they do not allow for the
 #' classes. See [baseline_solomon()] for nonrandomized designs and
 #' [validate_solomon()] for clustered ones.
@@ -351,17 +356,31 @@
 #' **Known results.** These statistics reproduce the analyses in the thesis:
 #' - **One-way ANOVA of the eight posttest groups** (Table 5.60, p. 152):
 #'   F(7, 1715) = 4.545.
-#' - **Scheffé tests** (Table 5.61, p. 153), within .001. Only the
+#' - **Scheffé's (1953) tests** (Table 5.61, p. 153), within .001. Only the
 #'   unpretested Test group differs from the two control groups (p = .002
 #'   and p = .011).
 #' - **The 2 x 2 ANOVAs of each treatment against the control** (Tables 5.21,
-#'   5.34, and 5.47; pp. 128, 135, 142), within rounding. For Test:
-#'   intervention F = 21.3, pretest F = 4.5 (p = .033), and interaction
-#'   F = 2.0 (p = .152). For Norms, the thesis ran this analysis with 213
+#'   5.34, and 5.47; pp. 128, 135, 142; Steyn & Mynhardt, 2008, Table 2,
+#'   p. 569), within rounding. For Test: intervention F = 21.3, pretest
+#'   F = 4.5 (p = .033), and interaction F = 2.0 (p = .152). For Marking:
+#'   9.3 (p = .002), 0.4 (p = .538), and 0.0 (p = .929). For Norms, the thesis ran this analysis with 213
 #'   participants in the unpretested group (Table 5.45, pp. 141–142), one
 #'   fewer than in Table 5.59, so its error degrees of freedom are 854 and
 #'   those computed from these statistics are 855. The F statistics for
 #'   Norms (14.0, 0.9, and 0.1) are the same to one decimal.
+#'
+#' Steyn and Mynhardt (2008) report only these three analyses, judged at
+#' the .01 level (p. 568), so they read the pretest effect for Test
+#' (p = .033) as no effect (p. 568); the thesis calls it significant at .05
+#' (p. 128). Their means of the treated and untreated groups reproduce as
+#' unweighted averages of the two groups' means. Their effect size d
+#' divides the difference by what they call the mean standard deviation
+#' (p. 568): 13.00, 12.696, and 12.803 (Table 2, p. 569), the "Totaal"
+#' rows of the thesis (Tables 5.19, 5.32, and 5.45; pp. 127, 134, 142). For
+#' Norms, their means and that standard deviation follow the 213
+#' participants of Table 5.45, not the 214 of Table 5.59 and of their own
+#' Table 1 (p. 567). Their text gives the Marking pretest p as .583
+#' (p. 568); their Table 2 and these statistics give .538.
 #'
 #' The treatments lowered the scores. The thesis analyzed the design as
 #' overlapping four-group designs, one with the treatments pooled and one for
@@ -392,9 +411,17 @@
 #' Unisa Institutional Repository. https://hdl.handle.net/10500/1745
 #'
 #' @references
+#' Scheffé, H. (1953). A method for judging all contrasts in the analysis of
+#' variance. *Biometrika, 40*(1–2), 87–104.
+#' https://doi.org/10.1093/biomet/40.1-2.87
+#'
 #' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 #' this exemplary model? *Design Principles and Practices: An International
 #' Journal—Annual Review, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+#'
+#' Steyn, R., & Mynhardt, J. (2008). Factors that influence the forming of
+#' self-evaluation and self-efficacy perceptions. *South African Journal of
+#' Psychology, 38*(3), 563–573. https://doi.org/10.1177/008124630803800310
 #'
 #' @seealso [solomon_from_summary()], [fit_solomon_steyn()], [mai2020],
 #'   [lana1959]

@@ -646,14 +646,14 @@ test_that("the report has the structure of the other report parts", {
   fit <- mai_fit()
   parts <- .report_steyn(fit, 2, FALSE)
   expect_true(all(c("method", "results", "table", "refs", "cells") %in% names(parts)))
-  expect_true(all(c("steyn2009", "steyn2005", "waltonbraver1988") %in% parts$refs))
+  expect_true(all(c("steyn2009", "scheffe1953", "steyn2005", "waltonbraver1988") %in% parts$refs))
   expect_false("holm1979" %in% parts$refs)
   expect_identical(parts$cells, fit$n$n_post)
   expect_identical(length(parts$groups), 6L)
   expect_match(parts$method, "Steyn (2009)", fixed = TRUE)
   expect_match(parts$method,
                paste0("the post hoc tests were Scheff", intToUtf8(233),
-                      " tests, as in Steyn (2005)."), fixed = TRUE)
+                      "'s (1953) tests, as in Steyn (2005)."), fixed = TRUE)
   expect_false(grepl("Holm", parts$method, fixed = TRUE))
   expect_true(any(grepl("F(2, 115) = 0.78", parts$results, fixed = TRUE)))
 
@@ -661,6 +661,7 @@ test_that("the report has the structure of the other report parts", {
   holm <- .report_steyn(mai_fit(posthoc = "holm"), 2, FALSE)
   expect_true(all(c("steyn2009", "holm1979", "waltonbraver1988") %in% holm$refs))
   expect_false("steyn2005" %in% holm$refs)
+  expect_false("scheffe1953" %in% holm$refs)
   expect_match(holm$method, "Holm's (1979) adjustment.", fixed = TRUE)
   expect_false(grepl("Scheff", holm$method, fixed = TRUE))
   expect_identical(holm$results, parts$results)
