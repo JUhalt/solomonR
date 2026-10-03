@@ -223,7 +223,7 @@ analysis_plan_solomon(
 )
 #> # Analysis plan for a Solomon four-group study
 #> 
-#> Drafted with solomonR 0.4.0.9000 on 2026-10-03. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
+#> Drafted with solomonR 0.8.0 on 2026-10-03. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
 #> 
 #> ## 1. Hypotheses (SPIRIT 12)
 #> 

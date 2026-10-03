@@ -2,7 +2,7 @@
 
 **\[deprecated\]** `plot_solomon_gg()` was renamed
 [`plot_solomon_means()`](https://juhalt.github.io/solomonR/reference/plot_solomon_means.md)
-in solomonR 0.9.0, so that each plot in the package is named for what it
+in solomonR 0.8.0, so that each plot in the package is named for what it
 shows. It still works, with a deprecation warning, and returns the plot
 that
 [`plot_solomon_means()`](https://juhalt.github.io/solomonR/reference/plot_solomon_means.md)

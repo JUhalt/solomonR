@@ -25,7 +25,8 @@ package website, shows the function's lifecycle stage, in the stages of
 the lifecycle package (Henry & Wickham, 2026):
 
 - **Stable.** The interface is settled. Any change goes through
-  deprecation: the old name keeps working, with a warning, through v1.x.
+  deprecation: the old name keeps working, with a warning, through v1.x,
+  when the arguments that follow a former argument name are also named.
 
 - **Experimental.** The function is tested, but its interface or
   defaults may change.
@@ -40,12 +41,22 @@ the lifecycle package (Henry & Wickham, 2026):
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
   is experimental, because the rule for error control set before its
   simulation study (issue \#45) was not met for two omnibus tests with
-  three treatments and 10 participants per group.
+  three treatments and 10 participants per group. The pre-specified
+  rules of their simulation studies were not met for
+  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
+  (issue \#57) and for
+  [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md),
+  [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md),
+  and
+  [`plot_tipping_point()`](https://juhalt.github.io/solomonR/reference/plot_tipping_point.md)
+  (issue \#82).
+  [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
+  stays experimental until researchers have used it (issue \#81).
 
 - **Deprecated.** A former name that still works, with a warning. Its
   help page names the replacement.
 
-solomonR 0.9.0 settled the interface (issue \#83). The outcome arguments
+solomonR 0.8.0 settled the interface (issue \#83). The outcome arguments
 are `y_post` and `y_pre` everywhere, a fitted model is passed as `fit`,
 and the planning functions share one argument order: `n` (or `power`),
 `delta`, `sens`, `rho`, `sigma`, `alpha`. Each function that takes data

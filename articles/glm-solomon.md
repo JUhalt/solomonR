@@ -825,18 +825,9 @@ whether an earlier significance test crossed $`p=.05`$.
 
 ## Where solomonR is heading
 
-The package is under active development.
-
-Planned additions include:
-
-- Solomon-specific visualization;
-- redesigned power and sample-size planning;
-- generalized outcomes;
-- clustered and longitudinal extensions; and
-- expanded SEM workflows.
-
-See `ROADMAP.md` in the package repository for the current development
-plan.
+`ROADMAP.md` in the package repository lists the work that remains
+before version 1.0.0: the CRAN pre-submission checks, the last sources
+of the literature audit, and the release itself.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

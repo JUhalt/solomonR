@@ -344,19 +344,20 @@ tables
 
 ------------------------------------------------------------------------
 
-## Status of the open releases
+## v0.5.0 to v0.8.0: one release
 
-The work for v0.5.0 through v0.9.0 was reviewed as a stack of pull
-requests and merged into the development version on October 2 and 3,
-2026. None of these versions has been released yet. An item is checked
-when its pull request is merged and its issue is closed; each item names
-its pull requests.
+The work for v0.5.0 through v0.8.0, and the stable interface and the
+first CRAN-readiness changes planned for v0.9.0, was reviewed as a stack
+of pull requests, merged on October 2 and 3, 2026, and released together
+as solomonR 0.8.0 on October 3, 2026. Versions 0.5.0, 0.6.0, and 0.7.0
+were not released separately. Each item below names its pull requests.
 
 ------------------------------------------------------------------------
 
-## v0.5.0 - Extended outcomes and designs
+## v0.5.0 - Extended outcomes and designs (completed)
 
-**Milestone:** [v0.5.0](https://github.com/JUhalt/solomonR/milestone/3)
+**Status:** Released October 3, 2026, in solomonR 0.8.0 — [v0.5.0
+milestone](https://github.com/JUhalt/solomonR/milestone/3).
 
 **Goal:** Extend the Solomon estimands beyond continuous outcomes and
 two conditions, and make clustered designs safe to analyze.
@@ -421,9 +422,10 @@ fits — [\#47](https://github.com/JUhalt/solomonR/issues/47); merged in
 
 ------------------------------------------------------------------------
 
-## v0.6.0 - Teaching and reporting
+## v0.6.0 - Teaching and reporting (completed)
 
-**Milestone:** [v0.6.0](https://github.com/JUhalt/solomonR/milestone/4)
+**Status:** Released October 3, 2026, in solomonR 0.8.0 — [v0.6.0
+milestone](https://github.com/JUhalt/solomonR/milestone/4).
 
 **Goal:** Organize the package around the path a researcher follows —
 decide, plan, analyze, report, synthesize — with historical and
@@ -489,9 +491,10 @@ reporting helper by \#52; and the SEM vignette by \#55.
 
 ------------------------------------------------------------------------
 
-## v0.7.0 - Longitudinal, quasi-experimental, and clustered extensions
+## v0.7.0 - Longitudinal, quasi-experimental, and clustered extensions (completed)
 
-**Milestone:** [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6)
+**Status:** Released October 3, 2026, in solomonR 0.8.0 — [v0.7.0
+milestone](https://github.com/JUhalt/solomonR/milestone/6).
 
 Longitudinal Solomon designs: Treatment x Pretest x Time —
 [\#57](https://github.com/JUhalt/solomonR/issues/57); merged in [PR
@@ -516,9 +519,10 @@ Marginal risk and rate contrasts for clustered Solomon designs —
 
 ------------------------------------------------------------------------
 
-## v0.8.0 - Methodological feature freeze
+## v0.8.0 - Methodological feature freeze (completed)
 
-**Milestone:** [v0.8.0](https://github.com/JUhalt/solomonR/milestone/7)
+**Status:** Released October 3, 2026, in solomonR 0.8.0 — [v0.8.0
+milestone](https://github.com/JUhalt/solomonR/milestone/7).
 
 **Goal:** Complete the historical record from Solomon (1949) onward, the
 teaching toolkit, and the research workflow for new studies; audit
@@ -543,8 +547,10 @@ Literature coverage audit before the feature freeze —
 [\#80](https://github.com/JUhalt/solomonR/issues/80); merged in [PR
 \#89](https://github.com/JUhalt/solomonR/pull/89)
 
-- Every identified source has been read, Steyn (2009) in a
-  pre-publication draft that the author provided.
+- Every source identified in the audit has been read, Steyn (2009) in a
+  pre-publication draft that the author provided. The further sources
+  that Steyn (2009) names are tracked in
+  [\#96](https://github.com/JUhalt/solomonR/issues/96).
 
 **Research workflow**
 
@@ -578,11 +584,16 @@ Stable public API: consistent argument names and lifecycle labels —
   plot
   ([`plot_solomon_means()`](https://juhalt.github.io/solomonR/reference/plot_solomon_means.md)),
   and a lifecycle badge on every function. Former names still work, with
-  a warning, through v1.x.
+  a warning, through v1.x, when the arguments that follow a former
+  argument name are also named.
 
 CRAN pre-submission readiness —
 [\#84](https://github.com/JUhalt/solomonR/issues/84)
 
+- Examples for every exported function and the CRAN form of the
+  package’s references were released in 0.8.0 ([PR
+  \#90](https://github.com/JUhalt/solomonR/pull/90), [PR
+  \#98](https://github.com/JUhalt/solomonR/pull/98)).
 - Nothing is submitted without the maintainer’s sign-off.
 
 Complete reproducible simulations, and manuscript tables and figures.

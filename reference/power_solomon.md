@@ -136,7 +136,7 @@ The arguments follow the order of
 [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)
 and
 [`plot_power_solomon()`](https://juhalt.github.io/solomonR/reference/plot_power_solomon.md):
-`n`, `delta`, `sens`, `rho`, `sigma`, `alpha`. Before solomonR 0.9.0,
+`n`, `delta`, `sens`, `rho`, `sigma`, `alpha`. Before solomonR 0.8.0,
 `rho` came before `sens` and `alpha` came last, so a call that passes
 these by position gets a warning that it was read in the new order.
 Naming the arguments avoids the ambiguity.

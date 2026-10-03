@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -117,13 +117,20 @@
 <p>The goal is not to replace the history of the Solomon design with a single new procedure. Instead, <code>solomonR</code> makes the historical methods transparent while providing modern alternatives in one reproducible workflow.</p>
 <p><code>solomonR</code> is written for graduate students and applied researchers who need to analyze, interpret, and report a Solomon study. Each function’s help page cites the methodological sources it implements. New users should start with the article <a href="https://juhalt.github.io/solomonR/articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a>.</p>
 <blockquote>
-<p><strong>Release status:</strong> <code>v0.4.0</code> is the current stable release. It adds validated power and sample-size planning (<code><a href="reference/power_solomon.html">power_solomon()</a></code>, <code><a href="reference/plan_solomon.html">plan_solomon()</a></code>); figures for the design, pretest sensitization, the Solomon contrasts, pretest-to-posttest change, the historical decision path, and power; and a single index of the package’s simulation evidence. The API may continue to evolve before version 1.0. Development version <code>0.4.0.9000</code> is working toward <code>v0.5.0</code>: extended outcomes and designs.</p>
+<p><strong>Release status:</strong> <code>v0.8.0</code> is the current stable release. It brings together the work planned for v0.5.0 through v0.8.0:</p>
+<ul>
+<li>binary and count outcomes, designs with several treatments, and clustered designs with cluster-level randomization inference;</li>
+<li>nonrandomized designs, designs with several posttest occasions, and sensitivity analyses for missing posttests;</li>
+<li>APA-style reports, reanalysis from summary statistics, and analysis plans for new studies;</li>
+<li>Solomon’s (1949) original analysis, the published versions of the historical test sequence, teaching data, and published data sets with worked examples.</li>
+</ul>
+<p>Former function and argument names keep working, with a warning, through v1.x, when the arguments that follow a former argument name are also named. Functions marked experimental may still change before version 1.0; each help page shows the function’s lifecycle stage.</p>
 </blockquote>
 <hr>
 <div class="section level2">
 <h2 id="the-solomon-four-group-design">The Solomon four-group design<a class="anchor" aria-label="anchor" href="#the-solomon-four-group-design"></a>
 </h2>
-<p>The Solomon design combines a randomized treatment comparison with an experimental manipulation of whether participants receive a pretest.</p>
+<p>The Solomon design (Solomon, 1949), Design 5 in Campbell and Stanley (1963/1966, p. 24), combines a randomized treatment comparison with an experimental manipulation of whether participants receive a pretest.</p>
 <table class="table">
 <thead><tr>
 <th align="center">Group</th>
@@ -246,13 +253,13 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">classic</span></span></code></pre></div>
-<p><code><a href="reference/fit_solomon_classic.html">fit_solomon_classic()</a></code> calculates the historical <strong>Tests A-I</strong> and shows the decision path that would have been reached under the traditional conditional workflow.</p>
+<p><code><a href="reference/fit_solomon_classic.html">fit_solomon_classic()</a></code> calculates the historical <strong>Tests A-I</strong> of Walton Braver and Braver (1988), whose Tests E and H follow Huck and Sandler (1973), and shows the decision path that would have been reached under the traditional conditional workflow.</p>
 <p>The package distinguishes between:</p>
 <ul>
 <li>tests that were <strong>calculated</strong>, and</li>
 <li>tests that were actually reached along the historical <strong>decision path</strong>.</li>
 </ul>
-<p>Test I, the Walton Braver &amp; Braver (1988) Stouffer combination, is included for teaching and replication, but it is <strong>not the default modern inferential recommendation</strong>. Later simulation work raised concerns about Type I error in conditional versions of this procedure.</p>
+<p>Test I, the Walton Braver &amp; Braver (1988) Stouffer combination, is included for teaching and replication, but it is <strong>not the default modern inferential recommendation</strong>. Later simulation work raised concerns about Type I error in conditional versions of this procedure (Sawilowsky et al., 1994).</p>
 <hr>
 </div>
 <div class="section level2">
@@ -280,7 +287,7 @@
 <div class="section level2">
 <h2 id="full-information-maximum-likelihood">Full-information maximum likelihood<a class="anchor" aria-label="anchor" href="#full-information-maximum-likelihood"></a>
 </h2>
-<p><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> implements a full-information likelihood approach inspired by van Engelenburg’s treatment of the Solomon design.</p>
+<p><code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> implements a full-information likelihood approach inspired by van Engelenburg’s (1999) treatment of the Solomon design.</p>
 <p>Unlike analyses that simply discard structurally missing pretests, the likelihood recognizes that Groups 3 and 4 were <strong>never intended to have pretest observations</strong>.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
@@ -301,7 +308,7 @@
 <li>treatment effect among pretested participants; and</li>
 <li>treatment effect among unpretested participants.</li>
 </ul>
-<p>By default it uses van Engelenburg’s large-sample Wald inference. With small groups, use <code>inference = "satterthwaite"</code>, a small-sample option with Welch-Satterthwaite degrees of freedom; <code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warns when groups are small and no option has been chosen.</p>
+<p>By default it uses van Engelenburg’s (1999) large-sample Wald inference. With small groups, use <code>inference = "satterthwaite"</code>, a small-sample option with Welch-Satterthwaite degrees of freedom; <code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warns when groups are small and no option has been chosen.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -342,7 +349,7 @@
 <h3 id="latent-outcomes">Latent outcomes<a class="anchor" aria-label="anchor" href="#latent-outcomes"></a>
 </h3>
 <p>For multi-item outcomes, <code><a href="reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> estimates Solomon contrasts at the latent-variable level.</p>
-<p>Latent mean comparisons require <strong>scalar measurement invariance</strong> across the four Solomon groups. <code>solomonR</code> enforces this requirement rather than silently interpreting latent means from configural or metric-only models. For identification, the latent mean of the unpretested control group is fixed at 0; the Solomon contrasts do not depend on this choice.</p>
+<p>Latent mean comparisons require <strong>scalar measurement invariance</strong> across the four Solomon groups, or partial scalar invariance with the freed parameters chosen before the analysis (<code>partial_post</code>, <code>partial_pre</code>). <code>solomonR</code> imposes these constraints rather than silently interpreting latent means from configural or metric-only models, and checks them first with <code><a href="reference/invariance_solomon.html">invariance_solomon()</a></code>. For identification, the latent mean of the unpretested control group is fixed at 0; the Solomon contrasts do not depend on this choice.</p>
 <p>See:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="op">?</span><span class="va">fit_solomon_sem_latent</span></span></code></pre></div>
@@ -499,7 +506,7 @@
 <div class="section level3">
 <h3 id="latent-means">Latent means<a class="anchor" aria-label="anchor" href="#latent-means"></a>
 </h3>
-<p>Latent Solomon mean contrasts require scalar measurement invariance. Partial invariance workflows are not yet automated.</p>
+<p>Latent Solomon mean contrasts require scalar, or partial scalar, measurement invariance. <code><a href="reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> checks it with <code><a href="reference/invariance_solomon.html">invariance_solomon()</a></code> and warns, rather than refusing, when a criterion does not support it: no criterion studied held its false-rejection rate in Solomon-sized groups (issue #55).</p>
 </div>
 <div class="section level3">
 <h3 id="power">Power<a class="anchor" aria-label="anchor" href="#power"></a>
@@ -533,18 +540,12 @@
 <div class="section level2">
 <h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>
 </h2>
-<p>Development plans are maintained in <a href="ROADMAP.html"><code>ROADMAP.md</code></a>. Each planned item is a <a href="https://github.com/JUhalt/solomonR/issues" class="external-link">GitHub issue</a> on one of these milestones:</p>
+<p>Development plans are maintained in <a href="ROADMAP.html"><code>ROADMAP.md</code></a>. Each planned item is a <a href="https://github.com/JUhalt/solomonR/issues" class="external-link">GitHub issue</a> on a milestone. The milestones v0.5.0 through v0.8.0 were released together as <code>v0.8.0</code>. Two remain:</p>
 <ul>
 <li>
-<a href="https://github.com/JUhalt/solomonR/milestone/3" class="external-link">v0.5.0</a>: binary and count outcomes, Solomon N-group designs (more than two conditions), and clustered designs;</li>
+<a href="https://github.com/JUhalt/solomonR/milestone/8" class="external-link">v0.9.0</a>: the release candidate, with CRAN pre-submission checks;</li>
 <li>
-<a href="https://github.com/JUhalt/solomonR/milestone/4" class="external-link">v0.6.0</a>: teaching and reporting, organized around deciding, planning, analyzing, reporting, and synthesizing Solomon studies;</li>
-<li>
-<a href="https://github.com/JUhalt/solomonR/milestone/6" class="external-link">v0.7.0</a>: longitudinal and quasi-experimental Solomon designs, and marginal contrasts for clustered designs;</li>
-<li>
-<a href="https://github.com/JUhalt/solomonR/milestone/7" class="external-link">v0.8.0</a>: the methodological feature freeze, with Solomon’s (1949) original analysis, a teaching toolkit, an audit of the literature’s coverage, and a workflow for new studies;</li>
-<li>
-<a href="https://github.com/JUhalt/solomonR/milestone/8" class="external-link">v0.9.0</a>: the release candidate, with a stable API and CRAN pre-submission checks.</li>
+<a href="https://github.com/JUhalt/solomonR/milestone/5" class="external-link">v1.0.0</a>: the remaining sources named by Steyn (2009), the archived release, the companion manuscript, and the CRAN submission, after the maintainer’s review.</li>
 </ul>
 <p>Version 1.0.0 is the release in which <code>solomonR</code> covers the published Solomon four-group methodology to date. Every source the package draws on is listed on the <a href="https://juhalt.github.io/solomonR/articles/references.html">References</a> page, and the article <a href="https://juhalt.github.io/solomonR/articles/coverage.html">Coverage of the Published Methodology</a> maps each work on the design to what the package does with it.</p>
 <hr>
@@ -572,6 +573,7 @@
 <p>Sawilowsky, S. S., Kelley, D. L., Blair, R. C., &amp; Markman, B. S. (1994). Meta-analysis and the Solomon four-group design. <em>The Journal of Experimental Education, 62</em>(4), 361–376. <a href="https://doi.org/10.1080/00220973.1994.9944140" class="external-link uri">https://doi.org/10.1080/00220973.1994.9944140</a></p>
 <p>Solomon, R. L. (1949). An extension of control group design. <em>Psychological Bulletin, 46</em>(2), 137–150. <a href="https://doi.org/10.1037/h0062958" class="external-link uri">https://doi.org/10.1037/h0062958</a></p>
 <p>Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals and tests of close fit in the analysis of variance and contrast analysis. <em>Psychological Methods, 9</em>(2), 164–182. <a href="https://doi.org/10.1037/1082-989X.9.2.164" class="external-link uri">https://doi.org/10.1037/1082-989X.9.2.164</a></p>
+<p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on this exemplary model? <em>Design Principles and Practices: An International Journal—Annual Review, 3</em>(1), 383–394. <a href="https://doi.org/10.18848/1833-1874/CGP/v03i01/37588" class="external-link uri">https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</a></p>
 <p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group design</em> (Research Report 99-06). University of Twente. ERIC. <a href="https://eric.ed.gov/?id=ED435692" class="external-link uri">https://eric.ed.gov/?id=ED435692</a></p>
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical treatment of the Solomon four-group design: A meta-analytic approach. <em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>
 <p>Zimmerman, D. W. (2004). A note on preliminary tests of equality of variances. <em>British Journal of Mathematical and Statistical Psychology, 57</em>(1), 173–181. <a href="https://doi.org/10.1348/000711004849222" class="external-link uri">https://doi.org/10.1348/000711004849222</a></p>

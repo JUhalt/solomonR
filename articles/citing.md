@@ -12,7 +12,7 @@ citation("solomonR")
 #> To cite solomonR in publications, please use:
 #> 
 #>   Uhalt J (2026). _solomonR: Analyze Solomon Four-Group Designs_. R
-#>   package version 0.4.0.9000, <https://juhalt.github.io/solomonR/>.
+#>   package version 0.8.0, <https://juhalt.github.io/solomonR/>.
 #> 
 #> A BibTeX entry for LaTeX users is
 #> 
@@ -20,7 +20,7 @@ citation("solomonR")
 #>     title = {{solomonR}: Analyze Solomon Four-Group Designs},
 #>     author = {Joshua Uhalt},
 #>     year = {2026},
-#>     note = {R package version 0.4.0.9000},
+#>     note = {R package version 0.8.0},
 #>     url = {https://juhalt.github.io/solomonR/},
 #>   }
 ```

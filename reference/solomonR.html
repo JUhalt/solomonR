@@ -17,7 +17,7 @@ and latent-variable structural equation models."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -122,7 +122,8 @@ exchanges, and van Engelenburg (1999).</p>
 <p>Each exported function's help page, and the reference index of the
 package website, shows the function's lifecycle stage, in the stages of
 the lifecycle package (Henry &amp; Wickham, 2026):</p><ul><li><p><strong>Stable.</strong> The interface is settled. Any change goes through
-deprecation: the old name keeps working, with a warning, through v1.x.</p></li>
+deprecation: the old name keeps working, with a warning, through v1.x,
+when the arguments that follow a former argument name are also named.</p></li>
 <li><p><strong>Experimental.</strong> The function is tested, but its interface or defaults
 may change. <code><a href="fit_solomon_sem.html">fit_solomon_sem()</a></code> has no simulation study yet at Solomon
 sample sizes. The issue #55 study found no measurement-invariance
@@ -131,10 +132,14 @@ which affects <code><a href="fit_solomon_sem_latent.html">fit_solomon_sem_latent
 The analysis of designs with several treatments in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> is
 experimental, because the rule for error control set before its
 simulation study (issue #45) was not met for two omnibus tests with
-three treatments and 10 participants per group.</p></li>
+three treatments and 10 participants per group. The pre-specified
+rules of their simulation studies were not met for <code><a href="fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code>
+(issue #57) and for <code><a href="fit_solomon_mi.html">fit_solomon_mi()</a></code>, <code><a href="tipping_point_solomon.html">tipping_point_solomon()</a></code>, and
+<code><a href="plot_tipping_point.html">plot_tipping_point()</a></code> (issue #82). <code><a href="analysis_plan_solomon.html">analysis_plan_solomon()</a></code> stays
+experimental until researchers have used it (issue #81).</p></li>
 <li><p><strong>Deprecated.</strong> A former name that still works, with a warning. Its
 help page names the replacement.</p></li>
-</ul><p>solomonR 0.9.0 settled the interface (issue #83). The outcome arguments
+</ul><p>solomonR 0.8.0 settled the interface (issue #83). The outcome arguments
 are <code>y_post</code> and <code>y_pre</code> everywhere, a fitted model is passed as <code>fit</code>,
 and the planning functions share one argument order: <code>n</code> (or <code>power</code>),
 <code>delta</code>, <code>sens</code>, <code>rho</code>, <code>sigma</code>, <code>alpha</code>. Each function that takes data

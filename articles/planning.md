@@ -195,7 +195,7 @@ draft <- analysis_plan_solomon(
 cat(head(draft$text, 12), sep = "\n")
 #> # Analysis plan for a Solomon four-group study
 #> 
-#> Drafted with solomonR 0.4.0.9000 on 2026-10-03. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
+#> Drafted with solomonR 0.8.0 on 2026-10-03. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
 #> 
 #> ## 1. Hypotheses (SPIRIT 12)
 #> 
@@ -217,11 +217,14 @@ that the sensitization analysis was pre-specified.
 
 ## The historical test sequence
 
-These plans are for the package’s recommended analysis. Planning for the
-historical sequence of Tests A–I, and the power cost of the alpha
-allocations Sawilowsky (1996) proposed to control its experiment-wise
-error, will be added with [issue
-\#51](https://github.com/JUhalt/solomonR/issues/51).
+These plans are for the package’s recommended analysis. The package does
+not plan for the historical sequence of Tests A–I as a whole, or for the
+alpha allocations Sawilowsky (1996) proposed to control its
+experiment-wise error. `power_solomon(stouffer = TRUE)` reports the
+rejection rate of Test I alone, and the article [Historical Tests:
+Replicating the Published Error
+Rates](https://juhalt.github.io/solomonR/articles/classic-validation.md)
+reports the error rates of the sequence.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the
