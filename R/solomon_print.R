@@ -18,9 +18,15 @@ estse_str <- function(est, se, digits = 3) {
 .solomon_vcov_label <- function(x) {
 
   if (identical(x$robust, "CR2")) {
+    # The clusters of the participants in the model, counted at fit time.
+    n_clusters <- x$n_clusters
+    if (is.null(n_clusters)) {
+      # objects saved by earlier versions
+      n_clusters <- length(unique(stats::na.omit(x$cluster)))
+    }
     return(sprintf(
       "CR2 cluster-robust (%d clusters); Satterthwaite t tests",
-      length(unique(stats::na.omit(x$cluster)))
+      n_clusters
     ))
   }
 
@@ -47,6 +53,13 @@ estse_str <- function(est, se, digits = 3) {
     "Inf",
     ifelse(abs(df - round(df)) < 1e-8, sprintf("%.0f", df), sprintf("%.1f", df))
   )
+}
+
+# A model formula on one line. deparse() breaks a long formula into several
+# lines and indents the continuation lines; trimming them leaves one space
+# between terms.
+.formula_line <- function(f) {
+  paste(trimws(deparse(f, width.cutoff = 500L)), collapse = " ")
 }
 
 # Print the coefficient and key-contrast tables of a solomon_glm fit.
@@ -113,7 +126,7 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   # header + formula (without the environment garbage)
   f <- tryCatch(stats::formula(x$model), error = function(e) NULL)
   cat("Solomon GLM (unified model)\n")
-  if (!is.null(f)) cat("Formula: ", paste(deparse(f), collapse = " "), "\n", sep = "")
+  if (!is.null(f)) cat("Formula: ", .formula_line(f), "\n", sep = "")
   cat("Covariance: ", .solomon_vcov_label(x), "\n", sep = "")
   if (!is.null(x$theta)) {
     cat(sprintf("Negative binomial (NB2): theta = %.3g (SE %.3g); alpha = 1/theta = %.3g\n",

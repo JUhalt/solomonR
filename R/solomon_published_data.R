@@ -112,8 +112,9 @@
 #'   (p. 7; the note to Table 3 on p. 8 says eight weeks).
 #'
 #' Every pair of conditions forms a Solomon four-group design. The authors
-#' analyzed three such pairs, reusing groups across them. A single model
-#' for all six groups is planned in issue #45.
+#' analyzed three such pairs, reusing groups across them. [fit_solomon_glm()]
+#' with `control = "Control"` fits one model to all six groups (see the
+#' examples and the article "Designs With Several Treatments").
 #'
 #' **Sample and attrition.** The file has 211 participants, and the article
 #' reports 210 (p. 5). 133 answered the posttest, with attrition that
@@ -188,6 +189,10 @@
 #' rp <- subset(mai2020, condition %in% c("RP", "Control"))
 #' with(rp, fit_solomon_glm(post_behavior, treat = as.integer(condition == "RP"),
 #'                          pretested = pretested, pretest_score = pre_behavior))
+#'
+#' # One model for all six groups.
+#' fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+#'                 control = "Control", data = mai2020)
 "mai2020"
 
 #' Solomon's (1949) spelling experiment
@@ -304,3 +309,100 @@
 #' lana1959
 #' with(lana1959, solomon_from_summary(n, mean, sd))
 "lana1959"
+
+#' Group statistics from Steyn's (2005) eight-group study
+#'
+#' The sample size, pretest and posttest means, and standard deviations of the
+#' eight groups of a Solomon design with three treatments: a study of how
+#' information about one's own ability changes self-efficacy perceptions, with
+#' 1,723 police trainees (Steyn, 2005, Table 5.59, pp. 151–152). It is the
+#' eight-group study that Steyn (2009) describes. Numbers reported in the
+#' publication are reused with citation.
+#'
+#' @details
+#' **Design.** Three treatments and a control, each with and without a
+#' pretest (pp. 103–105). Each treatment added a source of information about
+#' the participant's ability (p. 102):
+#' - **Test.** Completing a 60-item cognitive test.
+#' - **Marking.** Completing the test and marking one's own answers.
+#' - **Norms.** Completing and marking the test, and receiving the test's
+#'   norms.
+#'
+#' The outcome is the total score on a 45-item questionnaire of self-efficacy
+#' perceptions (p. 94). The posttest followed the treatment after a break of
+#' 10 minutes (p. 107).
+#'
+#' **Assignment.** Participants were not randomized individually. Fifty-six
+#' existing classes of a police training college were allocated to the eight
+#' groups, seven classes to each, in consultation with the college's
+#' management, and the thesis states that this allocation was not random
+#' (pp. 105–106). The classes had been formed from the order in which
+#' trainees reported for training. The thesis is not consistent on this
+#' point. Its introduction says that participants were divided at random
+#' into eight groups and that the groups were assigned at random to the
+#' conditions (p. 9), and it calls the allocation random again on p. 107.
+#' The method chapter, followed here, gives the detail: the researcher
+#' judged the existing classes to be random groups and made no further
+#' random assignment (pp. 105–106). The analyses in the thesis, and those
+#' below, treat participants as the units, so they do not allow for the
+#' classes. See [baseline_solomon()] for nonrandomized designs and
+#' [validate_solomon()] for clustered ones.
+#'
+#' **Known results.** These statistics reproduce the analyses in the thesis:
+#' - **One-way ANOVA of the eight posttest groups** (Table 5.60, p. 152):
+#'   F(7, 1715) = 4.545.
+#' - **Scheffé tests** (Table 5.61, p. 153), within .001. Only the
+#'   unpretested Test group differs from the two control groups (p = .002
+#'   and p = .011).
+#' - **The 2 x 2 ANOVAs of each treatment against the control** (Tables 5.21,
+#'   5.34, and 5.47; pp. 128, 135, 142), within rounding. For Test:
+#'   intervention F = 21.3, pretest F = 4.5 (p = .033), and interaction
+#'   F = 2.0 (p = .152). For Norms, the thesis ran this analysis with 213
+#'   participants in the unpretested group (Table 5.45, pp. 141–142), one
+#'   fewer than in Table 5.59, so its error degrees of freedom are 854 and
+#'   those computed from these statistics are 855. The F statistics for
+#'   Norms (14.0, 0.9, and 0.1) are the same to one decimal.
+#'
+#' The treatments lowered the scores. The thesis analyzed the design as
+#' overlapping four-group designs, one with the treatments pooled and one for
+#' each treatment, and then as a one-way analysis of variance of the eight
+#' posttests (pp. 103–105). The joint model of [solomon_from_summary()] tests
+#' the Pretest x Condition interaction once, F(3, 1715) = 1.00, p = .392.
+#'
+#' **Language.** The thesis is in Afrikaans. The condition labels are
+#' solomonR's.
+#'
+#' @format A data frame with 8 rows, one per group, and 8 variables:
+#' \describe{
+#'   \item{group}{The group's label in the thesis: `EG1` to `EG3` are the
+#'     pretested treatment groups, `KG1.1` to `KG1.3` the unpretested
+#'     treatment groups, `KG2` the pretested control, and `KG3` the
+#'     unpretested control.}
+#'   \item{condition}{`Norms`, `Marking`, `Test`, or `Control`.}
+#'   \item{pretested}{1 if the group was pretested, 0 if not.}
+#'   \item{n}{Sample size.}
+#'   \item{pre_mean, pre_sd}{Pretest mean and standard deviation (pretested
+#'     groups only).}
+#'   \item{mean, sd}{Posttest mean and standard deviation.}
+#' }
+#'
+#' @source Steyn, R. (2005). *Self-evaluasie en die vorming van
+#' selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of
+#' self-efficacy perceptions\] \[Doctoral thesis, University of South Africa\].
+#' Unisa Institutional Repository. https://hdl.handle.net/10500/1745
+#'
+#' @references
+#' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+#' this exemplary model? *Design Principles and Practices: An International
+#' Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+#'
+#' @seealso [solomon_from_summary()], [fit_solomon_steyn()], [mai2020],
+#'   [lana1959]
+#'
+#' @examples
+#' steyn2005
+#'
+#' # One model for all eight groups.
+#' with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
+#'                                      pretested = pretested, control = "Control"))
+"steyn2005"

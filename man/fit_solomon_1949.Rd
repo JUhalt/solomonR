@@ -21,7 +21,8 @@ fit_solomon_1949(
 training (treatment) and pretest indicators coded 0/1, and pretest
 scores, missing by design for unpretested participants. A design with no
 participant who is neither pretested nor trained is analyzed as the
-three-group design.}
+three-group design. Designs with several treatments are not supported;
+see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{post_mean, pre_mean}{Alternatively, group means: \code{post_mean} has three
 values (experimental, Control I, Control II) for the three-group design

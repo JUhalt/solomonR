@@ -250,7 +250,8 @@
 #' was not met: 84 of 96 cells and 62 of 64.
 #'
 #' @param y_post Numeric posttest scores, with `NA` for missing posttests.
-#' @param treat Treatment indicator coded 0/1 (or logical).
+#' @param treat Treatment indicator coded 0/1 (or logical). Designs with
+#'   several treatments are not supported; see [fit_solomon_glm()].
 #' @param pretested Pretest indicator coded 0/1 (or logical).
 #' @param y_pre Optional numeric pretest scores, missing by design for
 #'   unpretested participants.
@@ -320,6 +321,7 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
     data, c("y_post", "treat", "pretested", "y_pre"),
     environment(), parent.frame()
   )
+  .stop_ngroup_unsupported(treat, "fit_solomon_mi")
   robust <- match.arg(robust)
   .check_conf_level(conf_level)
   delta <- .mi_delta(delta)
@@ -493,6 +495,7 @@ tipping_point_solomon <- function(y_post, treat, pretested, y_pre = NULL,
     data, c("y_post", "treat", "pretested", "y_pre"),
     environment(), parent.frame()
   )
+  .stop_ngroup_unsupported(treat, "tipping_point_solomon")
   robust <- match.arg(robust)
   valid <- c("ATE (avg over pretest)", "Pretest x Treatment",
              "Treatment | pretested", "Treatment | unpretested")

@@ -2,13 +2,15 @@
 % Please edit documentation in R/solomon_plot_design.R
 \name{plot_solomon_design}
 \alias{plot_solomon_design}
-\title{Schematic of the Solomon four-group design}
+\title{Schematic of a Solomon design}
 \usage{
 plot_solomon_design(
   y_post = NULL,
   treat = NULL,
   pretested = NULL,
   fit = NULL,
+  control = NULL,
+  treatments = NULL,
   data = NULL,
   x = deprecated()
 )
@@ -18,13 +20,22 @@ plot_solomon_design(
 \code{pretested}. A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} given here is used as \code{fit}.}
 
 \item{treat}{Treatment indicator coded 0 = control and 1 = treatment, when
-\code{y_post} is given.}
+\code{y_post} is given; or, for a design with several treatments, a factor or
+character vector of conditions, with the control named by \code{control}.}
 
 \item{pretested}{Pretest indicator coded 0 = unpretested and 1 = pretested,
 when \code{y_post} is given.}
 
 \item{fit}{Optional fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, used instead of
 \code{y_post}, \code{treat}, and \code{pretested}.}
+
+\item{control}{The control condition, when \code{treat} is a factor or
+character vector. With \code{treatments}, an optional label for the control
+(default \code{"Control"} with treatment labels, \code{"control"} with a number).}
+
+\item{treatments}{For the teaching schematic without data: the number of
+treatments, or a character vector of treatment labels. \code{NULL} (the
+default) or \code{1} draws the four-group design.}
 
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
@@ -50,9 +61,30 @@ and posttest mean. Groups with no participants, or with fewer than two
 observed posttest scores, are flagged, using the same rule as
 \code{\link[=validate_solomon]{validate_solomon()}}.
 }
+\section{Designs with several treatments}{
+
+A Solomon N-group design crosses k treatments and a control with
+pretesting, giving 2(k + 1) groups: six for two treatments and eight for
+three (Steyn, 2009). The rows run in the order solomonR uses for these
+designs: the pretested treatment groups, the pretested control group, then
+the unpretested groups in the same order. With two or more treatments, X1,
+X2, and so on mark the treatments, and the subtitle gives the key.
+
+To draw such a design, give a fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with several
+treatments, or data with \code{treat} as a factor or character vector of
+conditions and the control named by \code{control}. For the teaching schematic
+without data, give \code{treatments}: the number of treatments
+(\code{treatments = 2}) or their labels (\code{treatments = c("RP", "GS")}).
+}
+
 \examples{
 plot_solomon_design()
 plot_solomon_design(y_post, treat, pretested, data = solomon_example)
+
+# A six-group design: two treatments and a control.
+plot_solomon_design(treatments = 2)
+plot_solomon_design(post_behavior, condition, pretested,
+                    control = "Control", data = mai2020)
 
 }
 \references{
@@ -62,4 +94,8 @@ published 1963)
 
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 }

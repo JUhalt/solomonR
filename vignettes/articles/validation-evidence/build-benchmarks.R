@@ -580,6 +580,62 @@ studies <- rbind(studies, data.frame(
   stringsAsFactors = FALSE
 ))
 
+# ---- Designs with several treatments: fit_solomon_glm(control = ) (#45) ------------
+# Type I error of the omnibus tests, familywise error of the Holm-adjusted
+# comparisons, bias, and coverage with two or three treatments, beside the
+# overlapping four-group analyses and the tests of Steyn's (2009) sequence.
+
+ng <- read_study("ngroup-validation", "performance.csv")
+ng_info <- read_study("ngroup-validation", "run-information.csv")
+ng_run <- stats::setNames(as.list(ng_info$value), ng_info$item)
+ng_method <- c(M1 = "fit_solomon_glm(control = ), pretest-adjusted, HC3",
+               M2 = "fit_solomon_glm(control = ), posttests only, HC3",
+               M3 = "fit_solomon_glm(control = ), posttests only, conventional",
+               M4 = "Overlapping four-group ANOVAs, unadjusted",
+               M5 = "Tests of Steyn's (2009) sequence, Scheffe post hoc tests",
+               M5h = "Tests of Steyn's (2009) sequence, Holm-adjusted pairwise t tests")
+ng_estimand <- ifelse(is.na(ng$contrast), "Sequence outcome", ng$contrast)
+ng_has_comparison <- !is.na(ng$comparison) & nzchar(ng$comparison)
+ng_estimand[ng_has_comparison] <- paste0(ng_estimand[ng_has_comparison], ": ",
+                                         ng$comparison[ng_has_comparison])
+ng_long <- data.frame(
+  study = "several-treatments",
+  scenario = ng$scenario,
+  design = sprintf("treatments=%d; n per group=%s; rho=%s; spread=%s; effects=%s",
+                   ng$k, ng$n, ng$rho, ng$spread, ng$effects),
+  method = unname(ng_method[ng$method]),
+  estimand = ng_estimand,
+  null_effect = abs(ng$true_value) < 1e-12,
+  measure = ng$measure,
+  value = ng$estimate,
+  mcse = ng$mcse,
+  n_successful = ng$reps,
+  n_failed = 0L,
+  note = ifelse(is.na(ng$true_value),
+                "An outcome of Steyn's sequence, as the protocol defined it; no single null hypothesis", ""),
+  stringsAsFactors = FALSE
+)
+benchmarks <- rbind(benchmarks, ng_long)
+studies <- rbind(studies, data.frame(
+  study = "several-treatments",
+  title = "Designs with several treatments: the joint model",
+  issues = "#45",
+  protocol = issue(45),
+  article = file.path(site, "ngroup-validation.html"),
+  scenarios = length(unique(ng$scenario)),
+  replications = sprintf("%s per scenario", ng_run$replications_per_scenario),
+  methods = paste(unname(ng_method), collapse = "; "),
+  estimands = "Solomon contrasts of each treatment against the control and of every pair of conditions, omnibus tests, and Holm families, with two or three treatments",
+  package_commit = sprintf("%s (replications); %s (agreement check)",
+                           substr(ng_run$simulation_commit, 1, 7),
+                           substr(ng_run$agreement_commit, 1, 7)),
+  r_version = sub("R version ([0-9.]+).*", "\\1", ng_run$R_version),
+  started = sub(" UTC", "", ng_run$started),
+  finished = sub(" UTC", "", ng_run$finished),
+  failed_fits = 0L,
+  stringsAsFactors = FALSE
+))
+
 dir.create("validation-evidence", showWarnings = FALSE)
 utils::write.csv(studies, file.path("validation-evidence", "studies.csv"), row.names = FALSE)
 utils::write.csv(benchmarks, file.path("validation-evidence", "benchmarks.csv"), row.names = FALSE)

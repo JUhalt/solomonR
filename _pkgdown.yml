@@ -28,8 +28,9 @@ reference:
 
   - title: "Analyze: recommended methods"
     desc: >
-      One model for all four groups, with robust, likelihood-based, and
-      randomization-based inference.
+      One model for all the groups, with robust, likelihood-based, and
+      randomization-based inference. fit_solomon_glm() also analyzes designs
+      with several treatments.
     contents:
       - fit_solomon_glm
       - fit_solomon_ml
@@ -85,6 +86,7 @@ reference:
       - fit_solomon_1949
       - fit_solomon_classic
       - plot_classic_flow
+      - fit_solomon_steyn
       - fisher_solomon
       - stouffer_solomon
       - p_to_z
@@ -108,6 +110,7 @@ reference:
       - lana1959
       - mai2020
       - solomon1949
+      - steyn2005
 
   - title: "Deprecated"
     desc: >
@@ -143,6 +146,7 @@ articles:
       - solomon-methods
       - articles/sem
       - articles/missing-and-repeated
+      - articles/several-treatments
       - articles/worked-example
 
   - title: "Report"
@@ -181,6 +185,7 @@ articles:
       - articles/invariance-validation
       - articles/mi-validation
       - articles/mmrm-validation
+      - articles/ngroup-validation
 
   - title: "References"
     navbar: References

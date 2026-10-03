@@ -11,13 +11,16 @@ plot_solomon_change(
   y_pre,
   show_individuals = FALSE,
   conf_level = 0.95,
+  control = NULL,
   data = NULL
 )
 }
 \arguments{
 \item{y_post}{Numeric posttest scores.}
 
-\item{treat}{Treatment indicator coded 0 = control and 1 = treatment.}
+\item{treat}{Treatment indicator coded 0 = control and 1 = treatment; or,
+for a design with several treatments, a factor or character vector of
+conditions, with the control named by \code{control}.}
 
 \item{pretested}{Pretest indicator coded 0 = unpretested and 1 = pretested.}
 
@@ -29,6 +32,10 @@ participant's change as a faint line behind the means. Default \code{FALSE}.}
 
 \item{conf_level}{Confidence level for the intervals, which use the t
 distribution with n - 1 degrees of freedom. Default is 0.95.}
+
+\item{control}{The control condition, when \code{treat} is a factor or
+character vector. With two conditions the figure is the same as with a
+0/1 \code{treat}.}
 
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
@@ -56,11 +63,29 @@ Solomon contrasts the package reports compare posttests, adjusting for the
 pretest where one exists; see \code{\link[=compare_solomon_methods]{compare_solomon_methods()}} for the estimand
 behind each analysis.
 }
+\section{Designs with several treatments}{
+
+For a Solomon N-group design, with k treatments and a control each with
+and without a pretest (Steyn, 2009), give \code{treat} as a factor or character
+vector of conditions and name the control with \code{control}. The figure then
+shows all 2(k + 1) groups: color marks the condition, the control first as
+in \code{\link[=plot_sensitization]{plot_sensitization()}}, and the point shape marks whether the group was
+pretested.
+}
+
 \examples{
 with(solomon_example, plot_solomon_change(y_post, treat, pretested, y_pre))
+
+# A six-group design: two treatments and a control.
+plot_solomon_change(post_behavior, condition, pretested, pre_behavior,
+                    control = "Control", data = mai2020)
 
 }
 \references{
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 }

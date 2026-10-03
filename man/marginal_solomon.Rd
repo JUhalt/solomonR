@@ -17,7 +17,8 @@ marginal_solomon(
 \item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \code{family = binomial()} (logit
 link), \code{family = poisson()} (log link), or
 \code{family = "negative_binomial"}, with HC3 or model-based covariance, or,
-for binary outcomes, CR2 covariance.}
+for binary outcomes, CR2 covariance. Designs with several treatments are
+not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
 outcomes, \code{"odds_ratio"}. For count outcomes the default is

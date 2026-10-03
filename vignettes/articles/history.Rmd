@@ -308,6 +308,37 @@ solomonR's replication of these published rates, including both readings of
 Test I's criterion, is reported in "Historical Tests: Replicating the
 Published Error Rates".
 
+## More than one treatment (2002–2020)
+
+Other work extended the design to compare several treatments:
+
+- **McCarthy and Tucker (2002).** An eight-group study crossed two
+  treatments with pretesting. It was analyzed as three two-by-two analyses
+  of variance, one for each treatment and one for their combination, each
+  against the control groups (pp. 637–640).
+- **Steyn (2005, 2009).** Steyn ran an eight-group study of three
+  treatments (Steyn, 2005, pp. 103–105). He then set out the design for k
+  treatments, with 2(k + 1) groups, and a sequence of tests of internal
+  validity and of the treatments' effects (Steyn, 2009). He noted that the
+  sequence's several analyses of variance capitalize on chance. Steyn (2009)
+  also describes repeating the posttest, to see whether effects last.
+- **Mai et al. (2020).** A randomized six-group study, analyzed as three
+  overlapping four-group designs, with published individual data.
+
+In each study, one design was analyzed as several four-group designs that
+share groups. `fit_solomon_glm(control = )` fits one model to all the groups
+instead, and `fit_solomon_steyn()` reproduces Steyn's sequence; see "Designs
+With Several Treatments". Steyn's (2005, pp. 151–152) group statistics are
+bundled as `steyn2005`:
+
+```{r steyn2005}
+with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
+                                     pretested = pretested, control = "Control"))
+```
+
+solomonR follows a pre-publication draft of Steyn's (2009) article and will
+be checked against the published version.
+
 ## After the debate (2011–2025)
 
 Later work turned from the test sequence to the design's purpose:
@@ -335,7 +366,8 @@ Later work turned from the test sequence to the design's purpose:
 | 1995 revision without Test D | Walton Braver & Braver (1995, as cited in Sawilowsky, 1996) | `fit_solomon_classic(flow = "1995")` | historical |
 | Alpha allocations | Sawilowsky (1996) | `fit_solomon_classic(alpha_allocation = ...)` | historical |
 | Categorical rule | El Karkri et al. (2025b) | `fisher_solomon()` | historical |
-| One model for all four groups, with robust standard errors | contemporary practice; see the methods guide | `fit_solomon_glm()` | recommended |
+| Sequence of tests for designs with one or several treatments | Steyn (2009); post hoc tests as in Steyn (2005) | `fit_solomon_steyn()`, data `steyn2005` | historical |
+| One model for all the groups, with robust standard errors; for several treatments, omnibus tests and Holm-adjusted comparisons | contemporary practice; see the methods guide | `fit_solomon_glm()` | recommended |
 
 `plot_classic_flow()` draws each version of the sequence:
 
@@ -405,10 +437,18 @@ classic books* (pp. 93–109). Oxford University Press.
 https://doi.org/10.1093/acprof:oso/9780195385540.003.0004 (Original work
 published 1969)
 
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
 McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011). Can
 research assessments themselves cause bias in behaviour change trials? A
 systematic review of evidence from Solomon 4-group studies. *PLoS ONE,
 6*(10), Article e25223. https://doi.org/10.1371/journal.pone.0025223
+
+McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+through service learning. *Journal of Management Education, 26*(6), 629–647.
+https://doi.org/10.1177/1052562902238322
 
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
 of meta-analysis in the Solomon four-group design* [Paper presentation].
@@ -434,6 +474,15 @@ Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 Solomon, R. L., & Lessac, M. S. (1968). A control group design for
 experimental studies of developmental processes. *Psychological Bulletin,
 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+
+Steyn, R. (2005). *Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies* [Self-evaluation and the forming of
+self-efficacy perceptions] [Doctoral thesis, University of South Africa].
+Unisa Institutional Repository. https://hdl.handle.net/10500/1745
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. *Psychological

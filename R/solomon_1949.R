@@ -64,7 +64,8 @@
 #'   training (treatment) and pretest indicators coded 0/1, and pretest
 #'   scores, missing by design for unpretested participants. A design with no
 #'   participant who is neither pretested nor trained is analyzed as the
-#'   three-group design.
+#'   three-group design. Designs with several treatments are not supported;
+#'   see [fit_solomon_glm()].
 #' @param post_mean,pre_mean Alternatively, group means: `post_mean` has three
 #'   values (experimental, Control I, Control II) for the three-group design
 #'   or four (adding Control III) for the four-group design, and `pre_mean`
@@ -120,6 +121,7 @@ fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pr
     data, c("y_post", "treat", "pretested", "y_pre"),
     environment(), parent.frame()
   )
+  .stop_ngroup_unsupported(treat, "fit_solomon_1949")
   inferred_pretest <- match.arg(inferred_pretest)
   individual <- !is.null(y_post)
   if (individual == !is.null(post_mean)) {

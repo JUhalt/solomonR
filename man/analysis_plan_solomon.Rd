@@ -110,6 +110,11 @@ of interest, and every sentence can be edited. Prediction and postdiction
 must stay distinguishable (Nosek et al., 2018, p. 2602), so the plan
 should be registered before the outcomes are seen.
 
+\strong{The design.} The plan is for the four-group design: one treatment and a
+control, each with and without a pretest. Plans for designs with several
+treatments are not yet supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for their
+analysis.
+
 \strong{The round trip.} The returned object records the confirmatory
 contrasts. Passing it to \code{\link[=report_solomon]{report_solomon()}} as \code{design = list(plan = )}
 makes the report state whether the sensitization analysis was

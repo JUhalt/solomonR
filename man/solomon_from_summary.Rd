@@ -4,13 +4,34 @@
 \alias{solomon_from_summary}
 \title{Solomon analysis from summary statistics}
 \usage{
-solomon_from_summary(n, mean, sd, conf_level = 0.95)
+solomon_from_summary(
+  n,
+  mean,
+  sd,
+  conf_level = 0.95,
+  treat = NULL,
+  pretested = NULL,
+  control = NULL
+)
 }
 \arguments{
 \item{n, mean, sd}{Posttest sample size, mean, and standard deviation of the
-four groups, in the order above.}
+four groups, in the order above. With \code{treat} and \code{pretested}, one value
+for every group of the design, in any order.}
 
 \item{conf_level}{Confidence level for intervals. Default 0.95.}
+
+\item{treat}{Optional condition of each group, in the order of \code{n}: a
+character vector or factor, with the control named by \code{control}, or a
+0/1 treatment indicator. Needed for a design with several treatments.
+The treatments are reported in the order of the factor's levels, or in
+the order they first appear in a character vector.}
+
+\item{pretested}{1 (or \code{TRUE}) for each pretested group and 0 for the
+others, in the order of \code{n}. Needed with \code{treat}.}
+
+\item{control}{The control condition, when \code{treat} is a character vector
+or factor.}
 }
 \value{
 An object of class \code{solomon_summary_fit} with \code{contrasts} (Tests
@@ -18,11 +39,23 @@ A-D, the pretest main effect, and the simple effects: estimate, standard
 error, t, degrees of freedom, p-value, confidence interval, F, and Type
 III sum of squares), an \code{anova} table, the \code{cells}, the error mean
 square and degrees of freedom, and the settings.
+
+For a design with several treatments, an object of class
+\code{solomon_summary_ngroup} with \code{contrasts} (for each comparison of a
+treatment with the control and each of the four contrasts: estimate,
+standard error, t, p-value, Holm-adjusted p-value \code{p.adjusted}, degrees
+of freedom, and confidence interval), the omnibus tests in \code{anova}
+(Type III sum of squares, df, mean square, F, p-value), the \code{cells} in
+the package's group order, the \code{conditions} (control first), \code{adjust}
+(\code{"holm"}), the error mean square and degrees of freedom, and the
+settings.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 Reanalyzes a published Solomon four-group study from the sample size,
 mean, and standard deviation of the posttest in each of the four groups.
+With \code{treat} and \code{pretested} it also reanalyzes designs with several
+treatments (see "Designs with several treatments").
 }
 \details{
 The four groups are given in the order used throughout the package:
@@ -41,6 +74,30 @@ groups (Tests E-G) need the individual data. Rounded published statistics
 reproduce published tests only to within rounding: for El Karkri et al.
 (2025a), the interaction F is 11.46 against the published 11.48.
 }
+\section{Designs with several treatments}{
+
+A Solomon N-group design has k treatments and a control, each with and
+without a pretest: 2(k + 1) groups (Edmonds & Kennedy, 2017; Steyn, 2009).
+Give \code{n}, \code{mean}, and \code{sd} for every group, in any order, and say which
+group each value belongs to with \code{treat} (its condition) and \code{pretested}
+(1 for a pretested group), naming the control with \code{control}.
+
+The analysis is the cell-means model of the posttest with a pooled error
+variance on N - 2(k + 1) degrees of freedom. For each treatment against
+the control it gives the four Solomon contrasts with t tests and
+confidence intervals. They equal those of
+\code{fit_solomon_glm(y_post, treat, pretested, control = , robust = "none")}
+on the individual data, without the pretest as a covariate. The p-values
+of each contrast are adjusted across the k comparisons by Holm's (1979)
+procedure. The confidence intervals are not adjusted.
+
+The omnibus F tests are those of the two-way ANOVA with Type III sums of
+squares: Condition (k df), Pretest (1 df), and Pretest x Condition (k
+df). Each is a Wald test of contrasts of the unweighted cell means, as in
+the four-group analysis. The result has class \code{solomon_summary_ngroup}.
+With two conditions, the result is the four-group analysis above.
+}
+
 \examples{
 # El Karkri et al. (2025a), Table 8
 solomon_from_summary(
@@ -49,17 +106,45 @@ solomon_from_summary(
   sd = c(2.26, 2.29, 1.98, 2.11)
 )
 
+# A six-group design: two treatments and a control. Posttest statistics
+# computed from the data of Mai et al. (2020); see mai2020.
+solomon_from_summary(
+  n = c(24, 23, 27, 22, 15, 22),
+  mean = c(2.929167, 3.168116, 3.112346, 3.128788, 3.152184, 3.018548),
+  sd = c(0.434203, 0.369613, 0.355440, 0.383150, 0.374069, 0.354758),
+  treat = c("RP", "GS", "Control", "RP", "GS", "Control"),
+  pretested = c(1, 1, 1, 0, 0, 0),
+  control = "Control"
+)
+
 }
 \references{
+Edmonds, W. A., & Kennedy, T. D. (2017). \emph{An applied guide to research
+designs: Quantitative, qualitative, and mixed methods} (2nd ed.). SAGE
+Publications. https://doi.org/10.4135/9781071802779
+
 El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
 pretest sensitisation and the cognitive acceleration through science
 education programme in the Solomon four-group design. \emph{Brain Sciences,
 16}(1), Article 64. https://doi.org/10.3390/brainsci16010064
+
+Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+\emph{Scandinavian Journal of Statistics, 6}(2), 65–70.
+https://www.jstor.org/stable/4615733
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. \emph{Education
+Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
 104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 }
 \seealso{
-\code{\link[=solomon_effect_sizes]{solomon_effect_sizes()}} for effect sizes for meta-analysis.
+\code{\link[=solomon_effect_sizes]{solomon_effect_sizes()}} for effect sizes for meta-analysis, and
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for the analysis of the individual data.
 }

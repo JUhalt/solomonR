@@ -19,7 +19,8 @@ invariance_solomon(
 
 \item{items}{Names of at least three indicators.}
 
-\item{treat, pretested}{Treatment and pretest indicators (0/1).}
+\item{treat, pretested}{Treatment and pretest indicators (0/1). Designs with
+several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{estimator}{lavaan estimator, default \code{"MLR"}.}
 

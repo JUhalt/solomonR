@@ -15,6 +15,9 @@ fit_solomon_glm(
   family = stats::gaussian(),
   conf_level = 0.95,
   exposure = NULL,
+  control = NULL,
+  contrasts = "control",
+  adjust = c("holm", "bonferroni", "none"),
   data = NULL,
   y = deprecated(),
   pretest_score = deprecated()
@@ -23,7 +26,9 @@ fit_solomon_glm(
 \arguments{
 \item{y_post}{numeric posttest vector}
 
-\item{treat}{0/1 (or logical) treatment indicator (1 = treatment)}
+\item{treat}{0/1 (or logical) treatment indicator (1 = treatment); or, for
+a design with several treatments, a factor or character vector of
+conditions, with the control named by \code{control}}
 
 \item{pretested}{0/1 (or logical) pretest indicator (1 = group received pretest)}
 
@@ -53,6 +58,20 @@ for each participant, entered as a log offset; requires a log-link family
 such as \code{poisson()} or \code{"negative_binomial"}. Contrasts are then log rate
 ratios per unit of exposure.}
 
+\item{control}{the control condition, when \code{treat} is a factor or
+character vector. With two conditions the design is a four-group design
+and the result is the same as with a 0/1 \code{treat}; with three or more it
+is an N-group design (see "Designs with several treatments").}
+
+\item{contrasts}{for designs with several treatments: \code{"control"} (each
+treatment against the control), \code{"pairwise"} (every pair of
+conditions), or a named list of weight vectors named by condition, one
+per comparison, each summing to zero.}
+
+\item{adjust}{for designs with several treatments: the adjustment of the
+p-values of each contrast across the comparisons, \code{"holm"} (Holm, 1979;
+the default), \code{"bonferroni"}, or \code{"none"}.}
+
 \item{data}{optional data frame. When supplied, the other data arguments
 are looked up in it first: give them as bare column names
 (\code{y_post = post}) or as strings (\code{y_post = "post"}).}
@@ -68,6 +87,14 @@ the Pearson dispersion statistic for binomial, Poisson, and
 negative-binomial fits, \code{theta} (its estimate, standard error, and
 \eqn{\alpha = 1/\theta}) for negative-binomial fits, and the settings
 used.
+
+For a design with several treatments, an object of class
+\code{solomon_ngroup}, with the same elements and these changes: \code{effects}
+has a \code{comparison} column and the adjusted p-values \code{p.adjusted};
+\code{omnibus} holds the omnibus tests (\code{statistic}, \code{df1}, \code{df2},
+\code{p.value}, and \code{reference}, \code{"F"} or \code{"chisq"}); \code{conditions} names the
+control and the treatments and their model terms; \code{weights} holds the
+weights of each comparison; and \code{adjust} names the adjustment.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -120,8 +147,10 @@ sensitization (Daniel et al., 2021): in the package's simulation study
 (issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
 sensitization present. Such fits give the classed warning
 \code{solomonR_noncollapsible_warning}; for binary outcomes, estimate the
-Solomon contrasts on a common scale with \code{\link[=marginal_solomon]{marginal_solomon()}}. Identity and
-log links are collapsible and are not affected.
+Solomon contrasts on a common scale with \code{\link[=marginal_solomon]{marginal_solomon()}}. It takes
+the fit of a four-group design: for a design with several treatments,
+subset the data to one treatment and the control and fit the subset.
+Identity and log links are collapsible and are not affected.
 
 Count outcomes: with \code{family = poisson()}, the default HC3 covariance gives
 the robust (quasi-likelihood) inference that Cameron and Trivedi (2013)
@@ -177,12 +206,79 @@ method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.
 }
 
+\section{Designs with several treatments}{
+
+A Solomon N-group design crosses k treatments and a control with
+pretesting, giving 2(k + 1) groups: six for two treatments and eight for
+three (Steyn, 2009). Give \code{treat} as a factor or character vector of
+conditions and name the control with \code{control}. One model is then fitted
+to all the groups, with an indicator for each treatment, and the four
+Solomon contrasts are estimated for each comparison:
+\itemize{
+\item each treatment against the control (\code{contrasts = "control"}, the
+default);
+\item every pair of conditions (\code{contrasts = "pairwise"});
+\item or comparisons given as weights over the conditions, such as the main
+effects of two treatments crossed factorially:
+\code{contrasts = list(Lecture = c(Lecture = 0.5, Both = 0.5, Service = -0.5, None = -0.5))}. The weights of each comparison must sum to zero.
+}
+
+Omnibus Wald tests ask whether the conditions differ on each contrast. The
+Pretest x Condition test asks whether pretesting changes the effect of any
+treatment.
+
+The p-values of each contrast are adjusted across the comparisons, by
+Holm's (1979) procedure by default. It controls the familywise error rate
+"for any combination of true hypotheses" (p. 65). The confidence
+intervals are not adjusted. The result has class \code{solomon_ngroup}.
+
+Published studies with several treatments analyzed them as overlapping
+four-group designs: one for each treatment against the control (McCarthy &
+Tucker, 2002), or one for each pair of conditions (Mai et al., 2020). Those
+analyses reuse the same groups, so their tests are dependent, and each
+extra analysis adds to the chance of a false finding. The joint model asks
+each question once. In Mai et al.'s (2020) six-group study, the Pretest x
+Condition test of the posttests alone (without the pretest as a
+covariate), with conventional covariance, gives F(2, 127) = 1.86,
+p = .161. \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}} carries out the sequence of tests Steyn
+(2009) proposed for these designs.
+
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}} The analysis of designs with several
+treatments is experimental. In the package's simulation study (issue #45;
+112 scenarios with two or three treatments and 10 to 50 participants per
+group, 5,000 replications each):
+\itemize{
+\item the contrasts were unbiased, and coverage of their 95\% intervals was
+0.939 to 0.967;
+\item the familywise error rates of the Holm-adjusted comparisons were at most
+0.059;
+\item the Pretest x Condition test and the test of the conditions averaged
+over pretest rejected a true null hypothesis in 0.036 to 0.055 of
+replications;
+\item with three treatments and 10 participants per group, the omnibus tests
+of Condition | pretested and Condition | unpretested rejected in 0.055
+to 0.069 of replications at the .05 level. The rule for error control
+set before the study was therefore not met, which is why the analysis
+is experimental. With groups that small, judge those two questions by
+the adjusted comparisons.
+}
+
+The study did not cover binary or count outcomes, clustered designs, or
+comparisons given as weights. It is reported in the article "Designs With
+Several Treatments: Validating the Joint Model".
+}
+
 \examples{
 fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 fit
 
 # The four Solomon contrasts as a data frame.
 fit$effects
+
+# A six-group design: two treatments and a control (Mai et al., 2020).
+fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                        control = "Control", data = mai2020)
+fit6
 }
 \references{
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
@@ -203,6 +299,10 @@ error estimators in OLS regression: An introduction and software
 implementation. \emph{Behavior Research Methods, 39}(4), 709–722.
 https://doi.org/10.3758/BF03192961
 
+Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+\emph{Scandinavian Journal of Statistics, 6}(2), 65–70.
+https://www.jstor.org/stable/4615733
+
 Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small samples:
 Some practical advice. \emph{The Review of Economics and Statistics, 98}(4),
 701–712. https://doi.org/10.1162/REST_a_00552
@@ -219,6 +319,14 @@ MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
 covariance matrix estimators with improved finite sample properties. \emph{Journal
 of Econometrics, 29}(3), 305–325.
 https://doi.org/10.1016/0304-4076(85)90158-7
+
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. \emph{Education
+Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+through service learning. \emph{Journal of Management Education, 26}(6), 629–647.
+https://doi.org/10.1177/1052562902238322
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects
@@ -237,6 +345,10 @@ Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
 \emph{Psychological Methods, 9}(2), 164–182.
 https://doi.org/10.1037/1082-989X.9.2.164
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? \emph{Design Principles and Practices: An International
+Journal, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 Tipton, E. (2015). Small sample adjustments for robust variance estimation
 with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.

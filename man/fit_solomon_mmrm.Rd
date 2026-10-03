@@ -21,7 +21,8 @@ fit_solomon_mmrm(
 (long format), with \code{NA} for missing posttests.}
 
 \item{treat}{Treatment indicator coded 0/1 (or logical), the same in every
-row of a participant.}
+row of a participant. Designs with several treatments are not supported;
+see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{pretested}{Pretest indicator coded 0/1 (or logical), the same in
 every row of a participant.}

@@ -17,7 +17,8 @@ compare_solomon_methods(
 \arguments{
 \item{y_post}{Numeric posttest scores (continuous).}
 
-\item{treat}{Treatment indicator coded 0/1 (or logical).}
+\item{treat}{Treatment indicator coded 0/1 (or logical). Designs with
+several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
 \item{pretested}{Pretest indicator coded 0/1 (or logical).}
 

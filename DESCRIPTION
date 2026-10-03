@@ -8,9 +8,10 @@ Description: Tools for planning, analyzing, teaching, and reporting Solomon
     historical analyses are reproduced and labeled as such, from Solomon's
     improvement scores to the Tests A-I sequence of Walton Braver and Braver
     (1988) <doi:10.1037/0033-2909.104.1.150> and its published revisions.
-    Contemporary analyses include one generalized linear model for all four
-    groups with robust or cluster-robust standard errors, for continuous,
-    binary, and count outcomes; randomization inference; full-information
+    Contemporary analyses include one generalized linear model for all the
+    groups, of four-group designs and of designs with several treatments,
+    with robust or cluster-robust standard errors, for continuous, binary,
+    and count outcomes; randomization inference; full-information
     maximum likelihood (van Engelenburg, 1999); observed- and latent-variable
     structural equation models with 'lavaan'; and equivalence tests of pretest
     sensitization. Also includes design checks, power and sample-size

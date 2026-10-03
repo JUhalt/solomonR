@@ -513,6 +513,43 @@ errors, which is why the function estimates it separately for pretested and
 unpretested participants. See the
 [full article](`r studies$article[studies$study == "longitudinal-mmrm"]`).
 
+## Designs with several treatments
+
+`fit_solomon_glm(control = )` fits one model to all the groups of a design
+with several treatments, tests each Solomon contrast across the conditions,
+and adjusts the comparisons by Holm's procedure. The study checked those
+tests, and the bias and coverage of the contrasts, with two or three
+treatments and 10 to 50 participants per group. The table gives the Type I
+error of each omnibus test with HC3 standard errors.
+
+```{r several-treatments}
+st <- benchmarks[benchmarks$study == "several-treatments", ]
+hc <- st[grepl("HC3", st$method), ]
+om <- hc[hc$measure == "type1_omnibus", ]
+tab <- merge(stats::aggregate(value ~ estimand, om, mean),
+             stats::aggregate(value ~ estimand, om, max), by = "estimand")
+knitr::kable(data.frame(`Omnibus test` = tab$estimand, `Mean Type I error` = num(tab$value.x),
+                        Highest = num(tab$value.y), check.names = FALSE),
+             row.names = FALSE, caption = "Omnibus tests of the joint model, HC3, where the null hypothesis holds.")
+holm <- hc[hc$measure %in% c("fwer_holm_control", "fwer_holm_pairwise"), ]
+ovl <- st[st$measure == "any_interaction_pairs" & grepl("effects=S[012]", st$design), ]
+cov <- hc[hc$measure == "coverage" & grepl(" vs Control$", hc$estimand), ]
+```
+
+The familywise error rates of the Holm-adjusted comparisons were
+`r num(min(holm$value))` to `r num(max(holm$value))`, and coverage of the
+95% intervals of each treatment against the control was
+`r num(min(cov$value))` to `r num(max(cov$value))`. The pre-specified rule
+for error control was not met: with three treatments and 10 participants
+per group, the omnibus tests of Condition | pretested and Condition |
+unpretested rejected in up to `r num(max(om$value))` of replications. The
+analysis of designs with several treatments is therefore labeled
+experimental. Overlapping four-group analyses of every pair of conditions,
+the published practice, found at least one significant interaction in
+`r num(min(ovl$value))` to `r num(max(ovl$value))` of replications when no
+treatment was sensitized. See the
+[full article](`r studies$article[studies$study == "several-treatments"]`).
+
 ## Adding a study
 
 A new study joins this page by:
