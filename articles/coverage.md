@@ -118,8 +118,9 @@ which adds a pretesting effect to the validated simulation model of
 ## Sources read in a version other than the published one
 
 Steyn (2009) has been read in a pre-publication draft, dated March 2,
-2009. The draft has no page numbers, so none are cited. The published
-article has been requested, and
+2009, which the author provided (R. Steyn, personal communication,
+September 30, 2026). The draft has no page numbers, so none are cited.
+The published article has been requested, and
 [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
 will be checked against it
 ([\#45](https://github.com/JUhalt/solomonR/issues/45)).

@@ -110,7 +110,7 @@ per-imputation `estimates` and `std_errors`, and the settings used.
     those observed by an offset in each group, as in the pattern-mixture
     analysis of Little et al. (2012, p. 1358), and "a clinically
     plausible amount" is added to the imputed outcomes (White et al.,
-    2011).
+    2011, "Perform Sensitivity Analyses" section, para. 1).
 
 4.  **Analysis and pooling.** Each completed data set is analyzed with
     the model of
@@ -138,8 +138,11 @@ describes the options for them.
 **Number of imputations.** The default `m = 100` follows Carpenter et
 al. (2023, p. 56), who note that p-values accurate to about .005 need at
 least 100 imputations and advise erring "towards too many imputations
-rather than too few". The `mc_se` column gives the Monte Carlo standard
-error of each estimate due to the finite number of imputations.
+rather than too few". With much missing information, more are needed: in
+the worked example on `mai2020`, where the fraction of missing
+information is about 0.4, p-values varied by about .01 from one seed to
+another with 100 imputations. The `mc_se` column gives the Monte Carlo
+standard error of each estimate due to the finite number of imputations.
 
 ## Validation
 

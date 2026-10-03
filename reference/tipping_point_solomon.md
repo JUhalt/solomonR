@@ -4,11 +4,11 @@
 [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md)
 over a range of offsets added to the imputed posttests of chosen Solomon
 groups, and reports the smallest offset in each direction at which the
-conclusion about a contrast changes. White et al. (2011) suggest
-reporting "how large an amount should be added to or subtracted from
-imputed outcomes" without changing the interpretation, and Little et al.
-(2012, p. 1358) call a finding robust if it holds over the plausible
-offsets.
+conclusion about a contrast changes. White et al. (2011, "Perform
+Sensitivity Analyses" section, para. 1) suggest reporting "how large an
+amount should be added to or subtracted from imputed outcomes" without
+changing the interpretation, and Little et al. (2012, p. 1358) call a
+finding robust if it holds over the plausible offsets.
 
 ## Usage
 
@@ -111,8 +111,12 @@ pretested treatment group alone (`groups = 1`), bear on the
 sensitization contrast.
 
 **Common random numbers.** Every offset uses the same imputation draws,
-so the estimates change smoothly with the offset and the tipping point
-is not blurred by Monte Carlo noise.
+so the estimates change smoothly with the offset. The location of the
+tipping point still carries Monte Carlo error from the imputations: in
+the worked example on `mai2020`, the tipping point for sensitization
+ranged from 0.1 to 0.5 standard deviations across seeds with 100
+imputations and was 0.3 with 2,000. Before reporting a tipping point,
+increase `m` or compare a few seeds.
 
 ## Lifecycle
 

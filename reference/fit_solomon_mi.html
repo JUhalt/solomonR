@@ -206,7 +206,8 @@ missing posttests are then drawn from the model (Carpenter et al.,
 <code>delta[j]</code>: those with a missing posttest are assumed to differ from
 those observed by an offset in each group, as in the pattern-mixture
 analysis of Little et al. (2012, p. 1358), and "a clinically plausible
-amount" is added to the imputed outcomes (White et al., 2011).</p></li>
+amount" is added to the imputed outcomes (White et al., 2011, "Perform
+Sensitivity Analyses" section, para. 1).</p></li>
 <li><p><strong>Analysis and pooling.</strong> Each completed data set is analyzed with the
 model of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> (computed directly, since the design is
 the same in every completed data set), and the contrasts are combined
@@ -227,8 +228,11 @@ describes the options for them.</p>
 <p><strong>Number of imputations.</strong> The default <code>m = 100</code> follows Carpenter et al.
 (2023, p. 56), who note that p-values accurate to about .005 need at
 least 100 imputations and advise erring "towards too many imputations
-rather than too few". The <code>mc_se</code> column gives the Monte Carlo standard
-error of each estimate due to the finite number of imputations.</p>
+rather than too few". With much missing information, more are needed: in
+the worked example on <code>mai2020</code>, where the fraction of missing information
+is about 0.4, p-values varied by about .01 from one seed to another with
+100 imputations. The <code>mc_se</code> column gives the Monte Carlo standard error
+of each estimate due to the finite number of imputations.</p>
     </div>
     <div class="section level2">
     <h2 id="validation">Validation<a class="anchor" aria-label="anchor" href="#validation"></a></h2>

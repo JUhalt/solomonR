@@ -367,9 +367,10 @@ Journal, 3*(1), 383–394.
 > instrumentation, regression to the mean, and attrition), followed by
 > tests of the interventions’ effects. Edmonds and Kennedy (2017) cite
 > it for analyses of four-, six-, and eight-group designs. solomonR
-> follows a pre-publication draft of the article, dated March 2, 2009;
-> it is to be checked against the published version. *In solomonR:* the
-> design of `fit_solomon_glm(control = )` and
+> follows a pre-publication draft of the article, dated March 2, 2009,
+> which the author provided (R. Steyn, personal communication, September
+> 30, 2026); it is to be checked against the published version. *In
+> solomonR:* the design of `fit_solomon_glm(control = )` and
 > [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
 > ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 

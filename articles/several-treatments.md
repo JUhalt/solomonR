@@ -516,9 +516,13 @@ reasons:
 - **Some of its tests treat paired scores as independent.** The help
   page lists these under “Cautions”.
 
-solomonR follows a pre-publication draft of Steyn’s article. It will be
-checked against the published version, and the help page lists every
-choice solomonR made where the description leaves room.
+R. Steyn (personal communication, September 30, 2026) notes that the
+model his article proposes is intended for situations with a large
+amount of data and ample time. solomonR follows a pre-publication draft
+of Steyn’s article, which the author provided (R. Steyn, personal
+communication, September 30, 2026). It will be checked against the
+published version, and the help page lists every choice solomonR made
+where the description leaves room.
 
 ## Reporting
 

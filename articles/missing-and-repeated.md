@@ -146,8 +146,9 @@ posttests (`NA` means the conclusion did not change within the range
 tried). Here the effect would lose its statistical significance only if
 the missing treatment-group posttests were about 1.2 standard deviations
 lower than the imputation model predicts. Whether such an offset is
-plausible is a substantive judgment. White et al. (2011) suggest fixing
-the plausible range in advance, and
+plausible is a substantive judgment. White et al. (2011) advise
+specifying sensitivity analyses in detail before the unblinded data are
+seen, and
 [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
 includes this analysis in the plan.
 
