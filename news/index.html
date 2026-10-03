@@ -33,6 +33,7 @@
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
     <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><a class="dropdown-item" href="../articles/repeated-posttests-example.html">Worked Example: Repeated Posttests</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
     <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
@@ -140,6 +141,8 @@
 <li>
 <code><a href="../reference/analysis_plan_solomon.html">analysis_plan_solomon()</a></code> gains <code>occasions</code> and <code>primary_occasion</code>. With several posttest occasions, the plan’s primary analysis is <code><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code>, its confirmatory contrasts are those at the primary occasion, and its missing-data section states the assumption about dropout. The tipping-point analysis is not offered there, because it imputes from the pretest alone.</li>
 <li>A simulation study under the protocol posted on <a href="https://github.com/JUhalt/solomonR/issues/57" class="external-link">#57</a> (12 scenarios, 2,000 replications each) is reported in the new article “Longitudinal Designs: Validating the Repeated-Measures Analysis” and on the validation-evidence page. Under dropout that was missing at random, the contrasts were unbiased, with coverage of 0.937 to 0.962, while per-occasion complete-case analyses were biased by up to 0.09 SD. A covariance shared by all four groups misstated the standard errors. The pre-specified rule for the default degrees of freedom was not met, so the function stays experimental, with Kenward-Roger as the default.</li>
+<li>New data set <code>jordaan2014</code>: the group statistics of Jordaan’s (2014) randomized Solomon study with three posttest occasions, on the three subscales of the Coping Strategy Indicator. They reproduce the 27 F values of the thesis’s nine analyses of variance, one per subscale and occasion.</li>
+<li>New article, “Worked Example: Repeated Posttests”. It reproduces the published analyses of <code>jordaan2014</code> with <code><a href="../reference/solomon_from_summary.html">solomon_from_summary()</a></code> and <code><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code>. It also shows that a change in sensitization across occasions cannot be judged from group statistics alone: for social support, the drop in the Pretest x Treatment interaction from the posttest to 6 months has p = .149 if the correlation between occasions is 0.2 and p = .005 if it is 0.8.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="analysis-plan-and-study-template-development-version">Analysis plan and study template (<a href="https://github.com/JUhalt/solomonR/issues/81" class="external-link">#81</a>)<a class="anchor" aria-label="anchor" href="#analysis-plan-and-study-template-development-version"></a></h3>

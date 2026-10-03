@@ -399,6 +399,10 @@ report_solomon(mm, digits = 1)$method
 #> [1] "Posttest outcomes at 3 occasions were analyzed with a mixed model for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013), with an unstructured within-participant covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood (Laird & Ware, 1982). Tests used Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011). The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that missing posttests are missing at random."
 ```
 
+For a published study with three posttest occasions, reproduced from its
+group statistics, see [Worked Example: Repeated
+Posttests](https://juhalt.github.io/solomonR/articles/repeated-posttests-example.md).
+
 ## References
 
 Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M.,

@@ -158,6 +158,9 @@ analyses.
   : Demo Solomon four-group data set (second example)
 - [`elkarkri2025a`](https://juhalt.github.io/solomonR/reference/elkarkri2025a.md)
   : Pretest and posttest statistics from El Karkri et al. (2025a)
+- [`jordaan2014`](https://juhalt.github.io/solomonR/reference/jordaan2014.md)
+  : Group statistics from Jordaan's (2014) study with three posttest
+  occasions
 - [`kvalem1996`](https://juhalt.github.io/solomonR/reference/kvalem1996.md)
   : Condom use in the Solomon study of Kvalem et al. (1996)
 - [`lana1959`](https://juhalt.github.io/solomonR/reference/lana1959.md)

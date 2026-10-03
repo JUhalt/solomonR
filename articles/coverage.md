@@ -64,6 +64,7 @@ The status column uses six labels:
 | Morris (2008) | Effect sizes for pretest–posttest–control designs; the pooled-pretest-SD estimator and its variance. | [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md) for the pretested pair | Implemented |
 | Steyn (2009) | The design extended to k treatments, with 2(k + 1) groups, and to repeated posttests. A sequence of tests of internal validity (equivalence, history and maturation, testing, the pretest-intervention interaction, reliability, regression to the mean, attrition) and of the treatments’ effects. | [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md); the design of `fit_solomon_glm(control = )`. solomonR follows a pre-publication draft, which the author provided. | Historical; Implemented |
 | McCambridge et al. (2011) | A systematic review of Solomon studies of behavior change: too little evidence to settle whether assessment biases trials. | The getting-started guide and the planning, decision, and reporting articles | Evidence |
+| Jordaan (2014) | A randomized four-group study with three posttest occasions, each analyzed separately by the sequence of Walton Braver and Braver (1988), with full cell statistics on every occasion (pp. 98, 112–127). | `jordaan2014`, whose published analyses [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md) and [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md) reproduce; “Worked Example: Repeated Posttests” | Data (reproduced) |
 | Edmonds & Kennedy (2017) | Solomon four-, six-, and eight-group designs, and the threats of nonrandomized designs (pp. 7–8, 93–101). | [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md); the nonrandomized wording of [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md); designs with several treatments in `fit_solomon_glm(control = )` | Guidance |
 | Mai et al. (2020) | A randomized six-group design analyzed as overlapping four-group designs, with published individual data. | `mai2020` and the worked example, which reproduce its Tables 4, 5, and 7; the history check of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md); the six-group example of `fit_solomon_glm(control = )` | Data; Historical |
 | French et al. (2021a) | The MERIT recommendations on measurement reactivity in trials, including when a Solomon design is warranted. | “Should I Use a Solomon Design?”; the history article | Guidance |
@@ -189,6 +190,10 @@ Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
 Education, 42*(2), 54–55.
 <https://doi.org/10.1080/00220973.1973.11011460>
+
+Jordaan, J. (2014). *The development and evaluation of a life skills
+programme for young adult prisoners* \[Doctoral thesis, University of
+the Free State\]. KovsieScholar. <https://hdl.handle.net/11660/832>
 
 Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., &
 Bakketeig, L. S. (1996). The effect of sex education on adolescents’ use

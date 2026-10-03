@@ -56,6 +56,14 @@
   report, on the published individual data of Mai et al. (2020), checked
   at each step against the published results.
 
+- [Worked Example: Repeated
+  Posttests](https://juhalt.github.io/solomonR/articles/repeated-posttests-example.md):
+
+  A published Solomon study with three posttest occasions (Jordaan,
+  2014): its analyses reproduced from the published group statistics,
+  the same data analyzed with one model for all occasions, and what the
+  published statistics can and cannot say about change in sensitization.
+
 ### Report
 
 - [Reporting a Solomon

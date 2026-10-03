@@ -192,7 +192,10 @@ https://doi.org/10.2307/3002019
 ## See also
 
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-for a single posttest occasion.
+for a single posttest occasion;
+[jordaan2014](https://juhalt.github.io/solomonR/reference/jordaan2014.md)
+and the article "Worked Example: Repeated Posttests" for a published
+study with three posttest occasions.
 
 ## Examples
 

@@ -50,6 +50,7 @@
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
     <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
+    <li><a class="dropdown-item" href="../articles/repeated-posttests-example.html">Worked Example: Repeated Posttests</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
     <li><a class="dropdown-item" href="../articles/reporting.html">Reporting a Solomon Study</a></li>
@@ -479,6 +480,9 @@ fit:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/report_solomon.html">report_solomon</a></span><span class="op">(</span><span class="va">mm</span>, digits <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">method</span></span>
 <span><span class="co">#&gt; [1] "Posttest outcomes at 3 occasions were analyzed with a mixed model for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013), with an unstructured within-participant covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood (Laird &amp; Ware, 1982). Tests used Kenward-Roger degrees of freedom (Kenward &amp; Roger, 1997, as cited in Fitzmaurice et al., 2011). The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that missing posttests are missing at random."</span></span></code></pre></div>
+<p>For a published study with three posttest occasions, reproduced from
+its group statistics, see <a href="repeated-posttests-example.html">Worked Example: Repeated
+Posttests</a>.</p>
 </div>
 </div>
 <div class="section level2">
