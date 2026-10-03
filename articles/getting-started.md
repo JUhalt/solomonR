@@ -672,6 +672,7 @@ gains.
 | Test whether sensitization is negligible | [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md) | A nonsignificant test is not evidence of absence |
 | Missing posttests | [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md), [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md) | How far missing posttests would have to depart from missing at random to change a conclusion |
 | Posttests on several occasions | [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md) | Valid when participants drop out depending on earlier scores |
+| Several treatments and a control | `fit_solomon_glm(control = )` | One model for all the groups, with comparisons adjusted for their number |
 | Inference that rests only on random assignment | [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md) | Randomization test of no treatment effect |
 | Likelihood-based analysis | [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md) | Separate residual variances; use `inference = "satterthwaite"` with small groups |
 | Outcomes measured by several items | [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md) | Latent contrasts under measurement invariance |

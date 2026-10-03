@@ -88,9 +88,9 @@ Publications. <https://doi.org/10.4135/9781071802779>
 > [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md),
 > the nonrandomized wording and threats paragraph of
 > [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-> ([\#58](https://github.com/JUhalt/solomonR/issues/58)), and Solomon
-> N-group designs (planned,
-> [\#45](https://github.com/JUhalt/solomonR/issues/45)).
+> ([\#58](https://github.com/JUhalt/solomonR/issues/58)), and designs
+> with several treatments in `fit_solomon_glm(control = )`
+> ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact
 of pretest sensitisation and the cognitive acceleration through science
@@ -223,9 +223,10 @@ Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
 > `mai2020` data (CC BY 4.0) and the worked-example article, which
 > reproduce its Tables 4, 5, and 7; the history/maturation check of
 > [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md),
-> which follows its comparisons of O6 with O1 and O3; Solomon N-group
-> designs (planned,
-> [\#45](https://github.com/JUhalt/solomonR/issues/45)).
+> which follows its comparisons of O6 with O1 and O3; the six-group
+> example of `fit_solomon_glm(control = )` and of the article “Designs
+> With Several Treatments”
+> ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011).
 Can research assessments themselves cause bias in behaviour change
@@ -243,8 +244,10 @@ through service learning. *Journal of Management Education, 26*(6),
 629–647. <https://doi.org/10.1177/1052562902238322>
 
 > A nonrandomized Solomon eight-group design crossing two interventions
-> with pretesting. *In solomonR:* an example for Solomon N-group designs
-> (planned, [\#45](https://github.com/JUhalt/solomonR/issues/45)).
+> with pretesting. *In solomonR:* the planned comparisons of
+> `fit_solomon_glm(control = , contrasts = )` and the factorial example
+> in “Designs With Several Treatments”
+> ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 Morris, S. B. (2008). Estimating effect sizes from
 pretest-posttest-control group designs. *Organizational Research
@@ -332,13 +335,42 @@ Bulletin, 70*(3, Pt. 1), 145–150. <https://doi.org/10.1037/h0026147>
 > [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md);
 > the history article.
 
+Steyn, R. (2005). *Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of
+self-efficacy perceptions\] \[Doctoral thesis, University of South
+Africa\]. Unisa Institutional Repository.
+<https://hdl.handle.net/10500/1745>
+
+> The eight-group study that Steyn (2009) describes: three treatments
+> and a control, each with and without a pretest, with 1,723 police
+> trainees (pp. 103–106). Existing classes were allocated to the eight
+> groups, not at random (pp. 105–106). It was analyzed as overlapping
+> four-group designs by the sequence of Walton Braver and Braver (1988),
+> then by a one-way analysis of variance of the eight posttests with
+> Scheffé tests (pp. 151–153). The thesis is in Afrikaans. *In
+> solomonR:* the data set `steyn2005`, whose published analyses of
+> variance and Scheffé tests are reproduced from its group statistics;
+> the default post hoc tests of
+> [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md).
+
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
 Journal, 3*(1), 383–394.
 <https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
 
-> Cited by Edmonds and Kennedy (2017) for analyses of four-, six-, and
-> eight-group designs. Not yet reviewed for solomonR
+> Extends the four-group design to k interventions, each given with and
+> without a pretest, alongside a pretested and an unpretested control
+> group: 2(k + 1) groups, six for two interventions and eight for three.
+> It sets out a sequence of checks of internal validity (equivalence
+> after randomization, history and maturation, the testing effect, the
+> pretest-intervention interaction, test-retest reliability and
+> instrumentation, regression to the mean, and attrition), followed by
+> tests of the interventions’ effects. Edmonds and Kennedy (2017) cite
+> it for analyses of four-, six-, and eight-group designs. solomonR
+> follows a pre-publication draft of the article, dated March 2, 2009;
+> it is to be checked against the published version. *In solomonR:* the
+> design of `fit_solomon_glm(control = )` and
+> [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
 > ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
@@ -359,7 +391,9 @@ Bulletin, 104*(1), 150–154.
 > [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md),
 > [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md),
 > and
-> [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md).
+> [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md);
+> step 4 of
+> [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md).
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational
@@ -478,6 +512,19 @@ effect size and related estimators. *Journal of Educational Statistics,
 Henry, L., & Wickham, H. (2026). *lifecycle: Manage the life cycle of
 your package functions* (Version 1.0.5) \[R package\].
 <https://doi.org/10.32614/CRAN.package.lifecycle>
+
+Holm, S. (1979). A simple sequentially rejective multiple test
+procedure. *Scandinavian Journal of Statistics, 6*(2), 65–70.
+<https://www.jstor.org/stable/4615733>
+
+> A sequentially rejective form of the Bonferroni test that controls the
+> familywise error rate “for any combination of true hypotheses”
+> (p. 65); it also describes the classical Bonferroni test. *In
+> solomonR:* the default adjustment for families of comparisons in
+> designs with several treatments, `fit_solomon_glm(adjust = )`, and the
+> post hoc tests of
+> [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+> ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
 samples: Some practical advice. *The Review of Economics and Statistics,

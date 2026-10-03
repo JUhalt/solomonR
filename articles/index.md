@@ -42,6 +42,13 @@
   when the posttest is measured on several occasions and participants
   drop out.
 
+- [Designs With Several
+  Treatments](https://juhalt.github.io/solomonR/articles/several-treatments.md):
+
+  Solomon six- and eight-group designs: one model for all the groups,
+  comparisons of each treatment with the control, planned comparisons
+  for factorial designs, and Steyn’s (2009) sequence of tests.
+
 - [Worked Example: A Published Solomon
   Study](https://juhalt.github.io/solomonR/articles/worked-example.md):
 
@@ -156,6 +163,15 @@
 
   Simulation study of fit_solomon_mmrm(): the Solomon contrasts at each
   of three posttest occasions under dropout that is missing at random.
+
+- [Designs With Several Treatments: Validating the Joint
+  Model](https://juhalt.github.io/solomonR/articles/ngroup-validation.md):
+
+  Simulation study of fit_solomon_glm() for Solomon designs with two or
+  three treatments: Type I error of the omnibus tests, familywise error
+  of the Holm-adjusted comparisons, bias, and coverage, beside the error
+  rates of overlapping four-group analyses and of the tests of
+  Steyn’s (2009) sequence.
 
 ### References
 

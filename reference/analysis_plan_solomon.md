@@ -141,6 +141,12 @@ of interest, and every sentence can be edited. Prediction and
 postdiction must stay distinguishable (Nosek et al., 2018, p. 2602), so
 the plan should be registered before the outcomes are seen.
 
+**The design.** The plan is for the four-group design: one treatment and
+a control, each with and without a pretest. Plans for designs with
+several treatments are not yet supported; see
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+for their analysis.
+
 **The round trip.** The returned object records the confirmatory
 contrasts. Passing it to
 [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
@@ -217,7 +223,7 @@ analysis_plan_solomon(
 )
 #> # Analysis plan for a Solomon four-group study
 #> 
-#> Drafted with solomonR 0.4.0.9000 on 2026-10-02. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
+#> Drafted with solomonR 0.4.0.9000 on 2026-10-03. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
 #> 
 #> ## 1. Hypotheses (SPIRIT 12)
 #> 

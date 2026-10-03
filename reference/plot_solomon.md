@@ -31,6 +31,13 @@ plot_solomon(y, treat, pretested)
 
 Invisibly returns a data frame containing cell summaries.
 
+## Details
+
+`plot_solomon()` draws the four-group design only. For a design with
+several treatments, use
+[`plot_solomon_means()`](https://juhalt.github.io/solomonR/reference/plot_solomon_means.md)
+with `control`.
+
 ## Examples
 
 ``` r

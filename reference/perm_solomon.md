@@ -26,6 +26,8 @@ perm_solomon(
 
   An object returned by
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  Designs with several treatments are not supported; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 - contrast:
 

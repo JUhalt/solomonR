@@ -1,6 +1,6 @@
 # Distinguish structural and incidental missingness in a Solomon design
 
-**\[stable\]** Classifies missing values in Solomon four-group data and
+**\[stable\]** Classifies missing values in Solomon design data and
 explains the supported response to each kind. Pretest scores are
 *structurally absent* for participants assigned to the unpretested
 groups: withholding the pretest is the experimental manipulation
@@ -11,7 +11,14 @@ literature (Rubin, 1976; Little & Rubin, 2019).
 ## Usage
 
 ``` r
-check_solomon_missing(y_post, treat, pretested, y_pre = NULL, data = NULL)
+check_solomon_missing(
+  y_post,
+  treat,
+  pretested,
+  y_pre = NULL,
+  control = NULL,
+  data = NULL
+)
 ```
 
 ## Arguments
@@ -22,7 +29,8 @@ check_solomon_missing(y_post, treat, pretested, y_pre = NULL, data = NULL)
 
 - treat:
 
-  Treatment indicator coded 0/1 (or logical).
+  Treatment indicator coded 0/1 (or logical); or a factor or character
+  vector of conditions, with the control named by `control`.
 
 - pretested:
 
@@ -32,6 +40,13 @@ check_solomon_missing(y_post, treat, pretested, y_pre = NULL, data = NULL)
 
   Optional numeric pretest scores, missing by design for unpretested
   participants.
+
+- control:
+
+  The control condition when `treat` is a factor or character vector
+  with more than two conditions, a Solomon N-group design; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  With two conditions the result is the same as with a 0/1 `treat`.
 
 - data:
 
@@ -45,7 +60,9 @@ An object of class `solomon_missing` with `by_cell` (counts by Solomon
 cell), `counts` (totals by category), `pattern` (`"none"`,
 `"structural"`, `"incidental"`, or `"mixed"`), and `guidance` (the
 interpretation, supported response, and sources for each category
-present).
+present). For a design with several treatments, `by_cell` has one row
+for each of the 2(k + 1) groups, its `treat` column holds the condition,
+and `conditions` names the control and the treatments.
 
 ## Details
 
@@ -67,7 +84,7 @@ Categories:
 - **Incidental posttest missingness**: missing outcomes. Complete-case
   analysis is unbiased when missingness is unrelated to the outcome
   given the variables in the model (Little & Rubin, 2019); attrition
-  that differs across the four groups should be reported.
+  that differs across the groups should be reported.
 
 - **Unexpected pretest scores**: pretest values recorded for unpretested
   participants, which usually indicate a coding or assignment error.
@@ -76,6 +93,12 @@ Categories:
 - **Unassigned participants**: missing treatment or pretest assignment.
 
 Pretest categories are `NA` when `y_pre` is not supplied.
+
+Designs with several treatments: give `treat` as a factor or character
+vector of conditions and name the control with `control`. The counts are
+then given for each of the 2(k + 1) groups of a design with k treatments
+(Steyn, 2009): each treatment and the control, with and without a
+pretest.
 
 Not supported: this function does not test the missingness mechanism,
 perform imputation, or provide sensitivity analyses for outcome
@@ -97,12 +120,21 @@ for analysis. *Canadian Medical Association Journal, 184*(11),
 Little, R. J. A., & Rubin, D. B. (2019). *Statistical analysis with
 missing data* (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
 
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
+of transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
 Rubin, D. B. (1976). Inference and missing data. *Biometrika, 63*(3),
 581–592. https://doi.org/10.1093/biomet/63.3.581
 
 Solomon, R. L. (1949). An extension of control group design.
 *Psychological Bulletin, 46*(2), 137–150.
 https://doi.org/10.1037/h0062958
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. *Statistics in Medicine,
@@ -191,6 +223,48 @@ with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
 #>   Response: Complete-case analysis is unbiased when missingness is unrelated
 #>     to the outcome given the variables in the model. Report missingness by
 #>     cell, because attrition that differs across the four groups can undermine
+#>     the randomized comparisons, and consider sensitivity analyses if
+#>     missingness may depend on the unobserved outcome.
+#>   Sources: Rubin (1976); Little & Rubin (2019)
+
+# A six-group design: two treatments and a control (Mai et al., 2020).
+check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
+                      control = "Control", data = mai2020)
+#> Solomon missingness check
+#> Solomon N-group design: two treatments (RP, GS) and a control (Control), six groups
+#> Pattern: structural pretest absence and incidental missingness
+#> 
+#>  Group                 Cell  n Post missing Pre absent (design) Pre missing
+#>      1        Pretested, RP 35           11                   0           0
+#>      2        Pretested, GS 33           10                   0           0
+#>      3   Pretested, Control 50           23                   0           0
+#>      4      Unpretested, RP 31            9                  31           0
+#>      5      Unpretested, GS 27           12                  27           0
+#>      6 Unpretested, Control 35           13                  35           0
+#>  Pre unexpected
+#>               0
+#>               0
+#>               0
+#>               0
+#>               0
+#>               0
+#> 
+#> Structural pretest absence (n = 93)
+#>   Participants assigned to the unpretested groups were never pretested; the
+#>   absence of a pretest is the experimental manipulation.
+#>   Response: Do not impute. Use analyses that respect the design, such as
+#>     fit_solomon_glm(), fit_solomon_ml(), fit_solomon_classic(), or SEM.
+#>     Unlike planned missing-data designs, where unmeasured values exist and
+#>     can be imputed, an imputed pretest here would describe a measurement that
+#>     never occurred.
+#>   Sources: Solomon (1949); Graham et al. (2006)
+#> 
+#> Incidental posttest missingness (n = 78)
+#>   Posttest scores are missing, so these participants are excluded from
+#>   complete-case analyses.
+#>   Response: Complete-case analysis is unbiased when missingness is unrelated
+#>     to the outcome given the variables in the model. Report missingness by
+#>     cell, because attrition that differs across the six groups can undermine
 #>     the randomized comparisons, and consider sensitivity analyses if
 #>     missingness may depend on the unobserved outcome.
 #>   Sources: Rubin (1976); Little & Rubin (2019)

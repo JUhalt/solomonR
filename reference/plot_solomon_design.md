@@ -1,4 +1,4 @@
-# Schematic of the Solomon four-group design
+# Schematic of a Solomon design
 
 **\[stable\]** Draws the Solomon (1949) four-group design in the
 notation of Campbell and Stanley (1963/1966, p. 6): each row is a
@@ -15,6 +15,8 @@ plot_solomon_design(
   treat = NULL,
   pretested = NULL,
   fit = NULL,
+  control = NULL,
+  treatments = NULL,
   data = NULL,
   x = deprecated()
 )
@@ -32,7 +34,8 @@ plot_solomon_design(
 - treat:
 
   Treatment indicator coded 0 = control and 1 = treatment, when `y_post`
-  is given.
+  is given; or, for a design with several treatments, a factor or
+  character vector of conditions, with the control named by `control`.
 
 - pretested:
 
@@ -44,6 +47,18 @@ plot_solomon_design(
   Optional fit from
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
   used instead of `y_post`, `treat`, and `pretested`.
+
+- control:
+
+  The control condition, when `treat` is a factor or character vector.
+  With `treatments`, an optional label for the control (default
+  `"Control"` with treatment labels, `"control"` with a number).
+
+- treatments:
+
+  For the teaching schematic without data: the number of treatments, or
+  a character vector of treatment labels. `NULL` (the default) or `1`
+  draws the four-group design.
 
 - data:
 
@@ -67,6 +82,24 @@ size and posttest mean. Groups with no participants, or with fewer than
 two observed posttest scores, are flagged, using the same rule as
 [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md).
 
+## Designs with several treatments
+
+A Solomon N-group design crosses k treatments and a control with
+pretesting, giving 2(k + 1) groups: six for two treatments and eight for
+three (Steyn, 2009). The rows run in the order solomonR uses for these
+designs: the pretested treatment groups, the pretested control group,
+then the unpretested groups in the same order. With two or more
+treatments, X1, X2, and so on mark the treatments, and the subtitle
+gives the key.
+
+To draw such a design, give a fit from
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+with several treatments, or data with `treat` as a factor or character
+vector of conditions and the control named by `control`. For the
+teaching schematic without data, give `treatments`: the number of
+treatments (`treatments = 2`) or their labels
+(`treatments = c("RP", "GS")`).
+
 ## References
 
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
@@ -77,11 +110,23 @@ Solomon, R. L. (1949). An extension of control group design.
 *Psychological Bulletin, 46*(2), 137–150.
 https://doi.org/10.1037/h0062958
 
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+
 ## Examples
 
 ``` r
 plot_solomon_design()
 
 plot_solomon_design(y_post, treat, pretested, data = solomon_example)
+
+
+# A six-group design: two treatments and a control.
+plot_solomon_design(treatments = 2)
+
+plot_solomon_design(post_behavior, condition, pretested,
+                    control = "Control", data = mai2020)
 
 ```

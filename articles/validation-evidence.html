@@ -46,6 +46,7 @@
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -74,6 +75,7 @@
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -130,11 +132,11 @@ designs, are covered by their own studies.</p>
 </h2>
 <table class="table">
 <colgroup>
-<col width="13%">
-<col width="2%">
-<col width="2%">
-<col width="21%">
-<col width="57%">
+<col width="11%">
+<col width="1%">
+<col width="1%">
+<col width="17%">
+<col width="64%">
 <col width="2%">
 </colgroup>
 <thead><tr class="header">
@@ -281,6 +283,20 @@ Kenward-Roger<br>fit_solomon_mmrm(), Satterthwaite<br>fit_solomon_mmrm()
 estimates, normal reference<br>fit_solomon_glm() per occasion on
 complete cases, HC3<br>MMRM with one shared covariance,
 Kenward-Roger</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://juhalt.github.io/solomonR/articles/ngroup-validation.html">Designs
+with several treatments: the joint model</a></td>
+<td align="left"><a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a></td>
+<td align="right">112</td>
+<td align="left">5000 per scenario</td>
+<td align="left">fit_solomon_glm(control = ), pretest-adjusted,
+HC3<br>fit_solomon_glm(control = ), posttests only,
+HC3<br>fit_solomon_glm(control = ), posttests only,
+conventional<br>Overlapping four-group ANOVAs, unadjusted<br>Tests of
+Steyn’s (2009) sequence, Scheffe post hoc tests<br>Tests of Steyn’s
+(2009) sequence, Holm-adjusted pairwise t tests</td>
 <td align="right">0</td>
 </tr>
 </tbody>
@@ -1025,6 +1041,59 @@ also required every cell with 60 or more per group and was not met, so
 the function stays experimental. A covariance shared by all four groups
 misstated the standard errors, which is why the function estimates it
 separately for pretested and unpretested participants. See the <a href="https://juhalt.github.io/solomonR/articles/mmrm-validation.html">full
+article</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a>
+</h2>
+<p><code>fit_solomon_glm(control = )</code> fits one model to all the
+groups of a design with several treatments, tests each Solomon contrast
+across the conditions, and adjusts the comparisons by Holm’s procedure.
+The study checked those tests, and the bias and coverage of the
+contrasts, with two or three treatments and 10 to 50 participants per
+group. The table gives the Type I error of each omnibus test with HC3
+standard errors.</p>
+<table class="table">
+<caption>Omnibus tests of the joint model, HC3, where the null
+hypothesis holds.</caption>
+<thead><tr class="header">
+<th align="left">Omnibus test</th>
+<th align="left">Mean Type I error</th>
+<th align="left">Highest</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Condition (avg over pretest)</td>
+<td align="left">0.046</td>
+<td align="left">0.054</td>
+</tr>
+<tr class="even">
+<td align="left">Condition | pretested</td>
+<td align="left">0.054</td>
+<td align="left">0.069</td>
+</tr>
+<tr class="odd">
+<td align="left">Condition | unpretested</td>
+<td align="left">0.055</td>
+<td align="left">0.066</td>
+</tr>
+<tr class="even">
+<td align="left">Pretest x Condition</td>
+<td align="left">0.046</td>
+<td align="left">0.055</td>
+</tr>
+</tbody>
+</table>
+<p>The familywise error rates of the Holm-adjusted comparisons were
+0.012 to 0.059, and coverage of the 95% intervals of each treatment
+against the control was 0.939 to 0.967. The pre-specified rule for error
+control was not met: with three treatments and 10 participants per
+group, the omnibus tests of Condition | pretested and Condition |
+unpretested rejected in up to 0.069 of replications. The analysis of
+designs with several treatments is therefore labeled experimental.
+Overlapping four-group analyses of every pair of conditions, the
+published practice, found at least one significant interaction in 0.111
+to 0.217 of replications when no treatment was sensitized. See the <a href="https://juhalt.github.io/solomonR/articles/ngroup-validation.html">full
 article</a>.</p>
 </div>
 <div class="section level2">

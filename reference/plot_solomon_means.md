@@ -12,7 +12,14 @@ for pretest-to-posttest change, see
 ## Usage
 
 ``` r
-plot_solomon_means(y_post, treat, pretested, conf_level = 0.95, data = NULL)
+plot_solomon_means(
+  y_post,
+  treat,
+  pretested,
+  conf_level = 0.95,
+  control = NULL,
+  data = NULL
+)
 ```
 
 ## Arguments
@@ -23,7 +30,9 @@ plot_solomon_means(y_post, treat, pretested, conf_level = 0.95, data = NULL)
 
 - treat:
 
-  Treatment indicator coded 0 = control and 1 = treatment.
+  Treatment indicator coded 0 = control and 1 = treatment; or, for a
+  design with several treatments, a factor or character vector of
+  conditions, with the control named by `control`.
 
 - pretested:
 
@@ -32,6 +41,11 @@ plot_solomon_means(y_post, treat, pretested, conf_level = 0.95, data = NULL)
 - conf_level:
 
   Confidence level for the intervals. Default is 0.95.
+
+- control:
+
+  The control condition, when `treat` is a factor or character vector.
+  With two conditions the figure is the same as with a 0/1 `treat`.
 
 - data:
 
@@ -42,7 +56,24 @@ plot_solomon_means(y_post, treat, pretested, conf_level = 0.95, data = NULL)
 ## Value
 
 A ggplot object. Its `data` element holds the group summaries: `n`,
-`mean`, `sd`, `se`, and the interval limits `lo` and `hi`.
+`mean`, `sd`, `se`, and the interval limits `lo` and `hi`. Its `treat`
+column is 0/1 for a four-group design and holds the condition for a
+design with several treatments.
+
+## Designs with several treatments
+
+For a Solomon N-group design, with k treatments and a control each with
+and without a pretest (Steyn, 2009), give `treat` as a factor or
+character vector of conditions and name the control with `control`. Each
+panel then shows the k + 1 conditions, the control first, as with the
+four-group design.
+
+## References
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 ## See also
 
@@ -53,4 +84,9 @@ A ggplot object. Its `data` element holds the group summaries: `n`,
 
 ``` r
 plot_solomon_means(y_post, treat, pretested, data = solomon_example)
+
+
+# A six-group design: two treatments and a control.
+plot_solomon_means(post_behavior, condition, pretested,
+                   control = "Control", data = mai2020)
 ```

@@ -27,7 +27,13 @@ report_solomon(fit, design = NULL, digits = 2, format = c("text", "markdown"))
   result the study registered, which sets `prespecified` from the plan's
   confirmatory contrasts; `measurement`, one description of the
   measurement procedure or one per group; and `assignment`, `"random"`
-  or `"nonrandom"`.
+  or `"nonrandom"`. For a design with k treatments, `randomized` (and
+  `measurement`, when given per group) has one entry for each of the
+  2(k + 1) groups, in this order: the pretested treatments (in the order
+  of the levels of `treat`), the pretested control, the unpretested
+  treatments, and the unpretested control. For `mai2020`, that is
+  pretested RP, pretested GS, pretested Control, unpretested RP,
+  unpretested GS, and unpretested Control.
 
 - digits:
 
@@ -60,8 +66,9 @@ Supported objects come from
 [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md),
 [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md),
 [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md),
+[`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md),
 and
-[`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md).
+[`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md).
 The references depend on the options the fit used: for example, a CR2
 fit cites Bell and McCaffrey (2002) and Pustejovsky and Tipton (2018),
 and the 1990 flow of the classic analysis adds Braver and Walton Braver
@@ -74,6 +81,26 @@ each group, attrition by group when `design$randomized` is given,
 whether the sensitization analysis was pre-specified, and the
 measurement procedure in each group (Recommendation 11 is to use
 identical measurement protocols in all arms, p. 34).
+
+**Designs with several treatments.** For a
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+fit with `control` and three or more conditions (class
+`solomon_ngroup`), the design statement names the treatments, the
+control, and the 2(k + 1) groups of the design (Steyn, 2009), with the
+numbers analyzed in each. The results give the omnibus tests of the
+Pretest x Condition interaction and of the conditions averaged over
+pretest conditions, then the Solomon contrasts of each comparison. Their
+p-values are adjusted within each contrast across the comparisons, by
+Holm's (1979) procedure unless the fit chose another adjustment; the
+confidence intervals are not adjusted. Comparisons defined by weights
+are reported with their weights. An
+[`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
+test of one comparison and the
+[`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)
+comparisons of such a design are reported with the same design
+statement. solomonR follows a pre-publication draft of Steyn (2009), to
+be checked against the published version; see
+[`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md).
 
 **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
 results describe differences between groups rather than treatment
@@ -109,6 +136,15 @@ Locock, L., Sutton, S., McCambridge, J., & MERIT Collaborative Group.
 (2021b). Reducing bias in trials from reactions to measurement: The
 MERIT study including developmental work and expert workshop. *Health
 Technology Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550
+
+Holm, S. (1979). A simple sequentially rejective multiple test
+procedure. *Scandinavian Journal of Statistics, 6*(2), 65–70.
+https://www.jstor.org/stable/4615733
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 ## Examples
 
@@ -152,5 +188,81 @@ report_solomon(fit, design = list(prespecified = TRUE))
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
+#> 
+
+# A six-group design: two treatments and a control (Mai et al., 2020).
+fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                        control = "Control", data = mai2020)
+report_solomon(fit6)
+#> The design was a Solomon N-group design, the extension of the four-group
+#> design (Solomon, 1949) to several treatments (Steyn, 2009): two treatments
+#> (RP and GS) and a control (Control), each with and without a pretest, giving
+#> six groups. The numbers of participants analyzed in the pretested RP,
+#> pretested GS, pretested Control, unpretested RP, unpretested GS, and
+#> unpretested Control groups were 24, 23, 27, 22, 15, and 22, respectively.
+#> 
+#> Posttest outcomes of the six groups were analyzed jointly with a linear model
+#> containing an indicator for each treatment, pretesting, and their
+#> interactions, adjusting for the pretest score among pretested participants
+#> (Lin, 2013), with HC3 heteroskedasticity-consistent standard errors
+#> (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F tests examined
+#> whether the differences between the conditions depended on pretesting (the
+#> Pretest x Condition interaction) and whether the conditions differed when
+#> averaged over pretest conditions. Each treatment was compared with the
+#> control (RP vs Control and GS vs Control), and the Solomon contrasts were
+#> estimated for each comparison. Within each contrast, the p-values of the two
+#> comparisons were adjusted with Holm's (1979) procedure; the confidence
+#> intervals were not adjusted.
+#> 
+#> The omnibus test of the Pretest x Condition interaction (pretest
+#> sensitization) gave F(2, 126) = 1.74, p = .179, and the omnibus test of the
+#> conditions, averaged over pretest conditions, gave F(2, 126) = 1.10, p =
+#> .336.
+#> The average treatment effect of RP relative to Control across pretest
+#> conditions was -0.03, 95% CI [-0.19, 0.12], t(126) = -0.44, p = .659,
+#> Holm-adjusted. The Pretest x Treatment interaction (pretest sensitization)
+#> for RP relative to Control was -0.29, 95% CI [-0.60, 0.02], t(126) = -1.85, p
+#> = .133, Holm-adjusted. The treatment effect of RP relative to Control among
+#> pretested participants was -0.18, 95% CI [-0.39, 0.03], t(126) = -1.67, p =
+#> .193, Holm-adjusted. The treatment effect of RP relative to Control among
+#> unpretested participants was 0.11, 95% CI [-0.12, 0.34], t(126) = 0.97, p =
+#> .585, Holm-adjusted.
+#> The average treatment effect of GS relative to Control across pretest
+#> conditions was 0.09, 95% CI [-0.07, 0.25], t(126) = 1.10, p = .551,
+#> Holm-adjusted. The Pretest x Treatment interaction (pretest sensitization)
+#> for GS relative to Control was -0.09, 95% CI [-0.41, 0.23], t(126) = -0.57, p
+#> = .571, Holm-adjusted. The treatment effect of GS relative to Control among
+#> pretested participants was 0.04, 95% CI [-0.15, 0.24], t(126) = 0.43, p =
+#> .670, Holm-adjusted. The treatment effect of GS relative to Control among
+#> unpretested participants was 0.13, 95% CI [-0.12, 0.38], t(126) = 1.06, p =
+#> .585, Holm-adjusted.
+#> 
+#> References
+#> 
+#> Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+#>     Scandinavian Journal of Statistics, 6(2), 65–70.
+#>     https://www.jstor.org/stable/4615733
+#> 
+#> Lin, W. (2013). Agnostic notes on regression adjustments to experimental
+#>     data: Reexamining Freedman's critique. The Annals of Applied Statistics,
+#>     7(1), 295–318. https://doi.org/10.1214/12-AOAS583
+#> 
+#> Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
+#>     standard errors in the linear regression model. The American
+#>     Statistician, 54(3), 217–224.
+#>     https://doi.org/10.1080/00031305.2000.10474549
+#> 
+#> MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+#>     covariance matrix estimators with improved finite sample properties.
+#>     Journal of Econometrics, 29(3), 305–325.
+#>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Solomon, R. L. (1949). An extension of control group design. Psychological
+#>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
+#> 
+#> Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on this
+#>     exemplary model? Design Principles and Practices: An International
+#>     Journal, 3(1), 383–394.
+#>     https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 #> 
 ```

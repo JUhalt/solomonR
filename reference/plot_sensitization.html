@@ -39,6 +39,7 @@ appears as lines that are not parallel."></head><body>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -67,6 +68,7 @@ appears as lines that are not parallel."></head><body>
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -115,7 +117,8 @@ appears as lines that are not parallel.</p>
 <dd><p>Optional equivalence bounds for the sensitization contrast,
 as one positive number or <code>c(lower, upper)</code>. When supplied, the caption
 reports the outcome of <code><a href="equivalence_solomon.html">equivalence_solomon()</a></code> with these bounds, which
-should be fixed before the data are examined.</p></dd>
+should be fixed before the data are examined. Not available for a design
+with several treatments.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
@@ -155,6 +158,21 @@ inference (van Engelenburg, 1999), or Welch-Satterthwaite t under
 from the fit.</p>
     </div>
     <div class="section level2">
+    <h2 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a></h2>
+
+
+<p>For a fit from <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> with several treatments and a control,
+the figure shows the model-adjusted mean of every condition with and
+without a pretest, adjusted as above, with one line for each condition,
+the control first. Pretest sensitization appears as a treatment line that
+is not parallel to the control line: for each treatment, the difference of
+differences between its means and the control's equals its fitted
+Pretest x Treatment estimate. The subtitle reports the omnibus
+Pretest x Condition test of the fit, which asks whether pretesting changes
+the effect of any treatment. <code>bounds</code> is not available for these fits; test
+equivalence one comparison at a time with <code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>.</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group
 design</em> (Research Report 99-06). University of Twente.</p>
@@ -176,6 +194,12 @@ design</em> (Research Report 99-06). University of Twente.</p>
 <span class="r-in"><span>                                           inference <span class="op">=</span> <span class="st">"satterthwaite"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">plot_sensitization</span><span class="op">(</span><span class="va">ml</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_sensitization-3.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A six-group design: two treatments and a control.</span></span></span>
+<span class="r-in"><span><span class="va">fit6</span> <span class="op">&lt;-</span> <span class="fu"><a href="fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">condition</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span>,</span></span>
+<span class="r-in"><span>                        control <span class="op">=</span> <span class="st">"Control"</span>, data <span class="op">=</span> <span class="va">mai2020</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">plot_sensitization</span><span class="op">(</span><span class="va">fit6</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="plot_sensitization-4.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

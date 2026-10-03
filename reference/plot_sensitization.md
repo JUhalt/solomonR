@@ -27,6 +27,7 @@ plot_sensitization(fit, bounds = NULL, alpha = 0.05, show_observed = TRUE)
   reports the outcome of
   [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
   with these bounds, which should be fixed before the data are examined.
+  Not available for a design with several treatments.
 
 - alpha:
 
@@ -76,6 +77,22 @@ reference distribution:
 The sensitization estimate and interval in the subtitle are taken
 unchanged from the fit.
 
+## Designs with several treatments
+
+For a fit from
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+with several treatments and a control, the figure shows the
+model-adjusted mean of every condition with and without a pretest,
+adjusted as above, with one line for each condition, the control first.
+Pretest sensitization appears as a treatment line that is not parallel
+to the control line: for each treatment, the difference of differences
+between its means and the control's equals its fitted Pretest x
+Treatment estimate. The subtitle reports the omnibus Pretest x Condition
+test of the fit, which asks whether pretesting changes the effect of any
+treatment. `bounds` is not available for these fits; test equivalence
+one comparison at a time with
+[`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md).
+
 ## References
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
@@ -98,5 +115,11 @@ plot_sensitization(fit, bounds = 5)
 ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
                                            inference = "satterthwaite"))
 plot_sensitization(ml)
+
+
+# A six-group design: two treatments and a control.
+fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                        control = "Control", data = mai2020)
+plot_sensitization(fit6)
 
 ```

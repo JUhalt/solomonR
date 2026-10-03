@@ -311,6 +311,68 @@ solomonR’s replication of these published rates, including both readings
 of Test I’s criterion, is reported in “Historical Tests: Replicating the
 Published Error Rates”.
 
+## More than one treatment (2002–2020)
+
+Other work extended the design to compare several treatments:
+
+- **McCarthy and Tucker (2002).** An eight-group study crossed two
+  treatments with pretesting. It was analyzed as three two-by-two
+  analyses of variance, one for each treatment and one for their
+  combination, each against the control groups (pp. 637–640).
+- **Steyn (2005, 2009).** Steyn ran an eight-group study of three
+  treatments (Steyn, 2005, pp. 103–105). He then set out the design for
+  k treatments, with 2(k + 1) groups, and a sequence of tests of
+  internal validity and of the treatments’ effects (Steyn, 2009). He
+  noted that the sequence’s several analyses of variance capitalize on
+  chance. Steyn (2009) also describes repeating the posttest, to see
+  whether effects last.
+- **Mai et al. (2020).** A randomized six-group study, analyzed as three
+  overlapping four-group designs, with published individual data.
+
+In each study, one design was analyzed as several four-group designs
+that share groups. `fit_solomon_glm(control = )` fits one model to all
+the groups instead, and
+[`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+reproduces Steyn’s sequence; see “Designs With Several Treatments”.
+Steyn’s (2005, pp. 151–152) group statistics are bundled as `steyn2005`:
+
+``` r
+
+with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
+                                     pretested = pretested, control = "Control"))
+#> Solomon analysis from summary statistics, N-group design
+#> --------------------------------------------------------
+#> Conditions: Norms, Marking, Test; control: Control. With and without a pretest: 8 groups.
+#> Pooled error variance: 163.370 on 1715 df (equal variances assumed)
+#> 
+#> Two-way ANOVA on the posttest (Type III sums of squares)
+#>   Condition            SS = 3937.177  df = 3  F = 8.03  p < .001
+#>   Pretest              SS =  739.550  df = 1  F = 4.53  p = 0.034
+#>   Pretest x Condition  SS =  489.696  df = 3  F = 1.00  p = 0.392
+#>   Error                SS = 280179.215  df = 1715
+#> 
+#> Contrasts with 95% confidence intervals
+#> Comparison          Contrast                       Est (SE)      t    df      p  p adj.            95% CI
+#> Norms vs Control    ATE (avg over pretest)   -3.251 (0.872)  -3.73  1715  <.001   <.001  [-4.961, -1.540]
+#> Marking vs Control  ATE (avg over pretest)   -2.644 (0.876)  -3.02  1715  0.003   0.003  [-4.362, -0.926]
+#> Test vs Control     ATE (avg over pretest)   -4.023 (0.869)  -4.63  1715  <.001   <.001  [-5.727, -2.318]
+#> Norms vs Control    Pretest x Treatment       0.457 (1.745)   0.26  1715  0.793   1.000   [-2.965, 3.879]
+#> Marking vs Control  Pretest x Treatment      -0.154 (1.752)  -0.09  1715  0.930   1.000   [-3.590, 3.282]
+#> Test vs Control     Pretest x Treatment       2.495 (1.738)   1.44  1715  0.151   0.454   [-0.913, 5.903]
+#> Norms vs Control    Treatment | pretested    -3.022 (1.224)  -2.47  1715  0.014   0.041  [-5.423, -0.621]
+#> Marking vs Control  Treatment | pretested    -2.721 (1.230)  -2.21  1715  0.027   0.047  [-5.133, -0.309]
+#> Test vs Control     Treatment | pretested    -2.775 (1.223)  -2.27  1715  0.023   0.047  [-5.173, -0.377]
+#> Norms vs Control    Treatment | unpretested  -3.479 (1.243)  -2.80  1715  0.005   0.010  [-5.917, -1.041]
+#> Marking vs Control  Treatment | unpretested  -2.567 (1.247)  -2.06  1715  0.040   0.040  [-5.014, -0.120]
+#> Test vs Control     Treatment | unpretested  -5.270 (1.235)  -4.27  1715  <.001   <.001  [-7.692, -2.848]
+#> 
+#> p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 3 comparisons.
+#> Confidence intervals are not adjusted.
+```
+
+solomonR follows a pre-publication draft of Steyn’s (2009) article and
+will be checked against the published version.
+
 ## After the debate (2011–2025)
 
 Later work turned from the test sequence to the design’s purpose:
@@ -339,7 +401,8 @@ Later work turned from the test sequence to the design’s purpose:
 | 1995 revision without Test D | Walton Braver & Braver (1995, as cited in Sawilowsky, 1996) | `fit_solomon_classic(flow = "1995")` | historical |
 | Alpha allocations | Sawilowsky (1996) | `fit_solomon_classic(alpha_allocation = ...)` | historical |
 | Categorical rule | El Karkri et al. (2025b) | [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md) | historical |
-| One model for all four groups, with robust standard errors | contemporary practice; see the methods guide | [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md) | recommended |
+| Sequence of tests for designs with one or several treatments | Steyn (2009); post hoc tests as in Steyn (2005) | [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md), data `steyn2005` | historical |
+| One model for all the groups, with robust standard errors; for several treatments, omnibus tests and Holm-adjusted comparisons | contemporary practice; see the methods guide | [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md) | recommended |
 
 [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
 draws each version of the sequence:
@@ -419,11 +482,19 @@ Rosnow’s classic books* (pp. 93–109). Oxford University Press.
 <https://doi.org/10.1093/acprof:oso/9780195385540.003.0004> (Original
 work published 1969)
 
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
+of transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
+
 McCambridge, J., Butor-Bhavsar, K., Witton, J., & Elbourne, D. (2011).
 Can research assessments themselves cause bias in behaviour change
 trials? A systematic review of evidence from Solomon 4-group studies.
 *PLoS ONE, 6*(10), Article e25223.
 <https://doi.org/10.1371/journal.pone.0025223>
+
+McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
+through service learning. *Journal of Management Education, 26*(6),
+629–647. <https://doi.org/10.1177/1052562902238322>
 
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I
 error of meta-analysis in the Solomon four-group design* \[Paper
@@ -450,6 +521,17 @@ Solomon, R. L. (1949). An extension of control group design.
 Solomon, R. L., & Lessac, M. S. (1968). A control group design for
 experimental studies of developmental processes. *Psychological
 Bulletin, 70*(3, Pt. 1), 145–150. <https://doi.org/10.1037/h0026147>
+
+Steyn, R. (2005). *Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of
+self-efficacy perceptions\] \[Doctoral thesis, University of South
+Africa\]. Unisa Institutional Repository.
+<https://hdl.handle.net/10500/1745>
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+<https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological

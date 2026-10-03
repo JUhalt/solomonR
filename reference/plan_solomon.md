@@ -143,7 +143,9 @@ design exists to answer.
 
 Binary and count outcomes, clustered assignment, and longitudinal
 follow-ups are not supported; the calculations assume independent,
-normally distributed posttests and no missing data.
+normally distributed posttests and no missing data. Designs with several
+treatments are not supported; plan each treatment-control comparison as
+a four-group design.
 
 ## References
 

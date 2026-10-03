@@ -46,6 +46,7 @@
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -74,6 +75,7 @@
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -528,6 +530,49 @@ and a covariance shared by all four groups misstated standard errors by
 up to 17%.</li>
 </ul>
 </div>
+<div class="section level3">
+<h3 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a>
+</h3>
+<p><strong>Label:</strong> contemporary recommendation, applied to the
+Solomon design.</p>
+<p>With k treatments and a control, each with and without a pretest, the
+design has 2(k + 1) groups (Steyn, 2009). Published studies analyzed
+such designs as overlapping four-group designs: one for each treatment
+against the control (McCarthy &amp; Tucker, 2002), those and one with
+the treatments pooled (Steyn, 2005), or one for each pair of conditions
+(Mai et al., 2020). Those analyses share groups, so their tests are
+dependent, and their number is not allowed for.</p>
+<ul>
+<li>
+<strong>Estimates:</strong> the four Solomon contrasts for each
+treatment against the control, for every pair of conditions, or for
+planned comparisons given as weights, from one model fitted to all the
+groups.</li>
+<li>
+<strong>Tests:</strong> omnibus Wald tests of each contrast across
+the conditions, then the comparisons, with p-values adjusted within each
+contrast by Holm’s (1979) procedure. The confidence intervals are not
+adjusted.</li>
+<li>
+<strong>Assumptions:</strong> those of the unified model; a common
+pretest-posttest slope across the pretested groups.</li>
+<li>
+<strong>Function:</strong> <code>fit_solomon_glm(control = )</code>.
+The article “Designs With Several Treatments” works through an
+example.</li>
+<li>
+<strong>Validation:</strong> in the package’s simulation study
+(issue #45), the contrasts were unbiased, coverage of the 95% intervals
+was 0.939 to 0.967, and the familywise error rates of the Holm-adjusted
+comparisons were at most 0.059. The pre-specified rule for error control
+was not met: with three treatments and 10 participants per group, the
+omnibus tests of Condition | pretested and Condition | unpretested
+rejected in 0.055 to 0.069 of replications at the .05 level. The
+analysis is therefore experimental. Overlapping four-group analyses
+found at least one significant interaction in 8% to 22% of replications
+when no treatment was sensitized.</li>
+</ul>
+</div>
 </div>
 <div class="section level2">
 <h2 id="published-solomon-proposals">Published Solomon proposals<a class="anchor" aria-label="anchor" href="#published-solomon-proposals"></a>
@@ -556,6 +601,36 @@ variances and Welch-Satterthwaite degrees of freedom (Satterthwaite,
 option has been chosen.</li>
 <li>
 <strong>Function:</strong> <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="steyns-sequence-of-tests">Steyn’s sequence of tests<a class="anchor" aria-label="anchor" href="#steyns-sequence-of-tests"></a>
+</h3>
+<p><strong>Label:</strong> published Solomon proposal.</p>
+<ul>
+<li>
+<strong>Estimates:</strong> no joint estimate of the Solomon
+contrasts. It is a sequence of tests: of the equivalence of the
+pretested groups, history and maturation, testing, the
+pretest-intervention interaction (Tests A-I of Walton Braver &amp;
+Braver, 1988, for each treatment against the control), reliability,
+regression to the mean, and attrition, and then of the treatments’
+effects by one-way analyses of variance with post hoc tests (Steyn,
+2009). The post hoc tests are the Scheffé tests of Steyn (2005).</li>
+<li>
+<strong>Assumptions:</strong> equal variances and independent groups
+in each test.</li>
+<li>
+<strong>Limitations:</strong> many tests, each at the nominal level;
+Steyn (2009) notes that several analyses of variance capitalize on
+chance. It tests the pretest-intervention interaction separately for
+each treatment, unadjusted, and its further comparison of each
+treatment’s pretested and unpretested groups mixes the pretest’s own
+effect with sensitization. solomonR follows a pre-publication draft of
+the article and will be checked against the published version.</li>
+<li>
+<strong>Function:</strong> <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>, for one
+or several treatments.</li>
 </ul>
 </div>
 </div>
@@ -742,6 +817,20 @@ either analytically or by simulating the package’s own GLM test.</p>
 <td>Yes</td>
 <td>Dropout missing at random; covariance by pretest condition</td>
 </tr>
+<tr class="odd">
+<td>Joint model for several treatments</td>
+<td>Contemporary</td>
+<td>All four, for each comparison</td>
+<td>Yes</td>
+<td>Common slope; p-values adjusted across comparisons</td>
+</tr>
+<tr class="even">
+<td>Steyn’s sequence</td>
+<td>Published proposal</td>
+<td>Per treatment, through Tests A-I; none jointly</td>
+<td>In its checks</td>
+<td>Equal variances; many unadjusted tests</td>
+</tr>
 </tbody>
 </table>
 <p>All works cited in solomonR are listed, with notes on how the package
@@ -800,6 +889,8 @@ trials</em> (2nd ed.). Chapman and Hall/CRC. <a href="https://doi.org/10.4324/97
 <p>Hedges, L. V. (1981). Distribution theory for Glass’s estimator of
 effect size and related estimators. <em>Journal of Educational
 Statistics, 6</em>(2), 107–128. <a href="https://doi.org/10.3102/10769986006002107" class="external-link uri">https://doi.org/10.3102/10769986006002107</a></p>
+<p>Holm, S. (1979). A simple sequentially rejective multiple test
+procedure. <em>Scandinavian Journal of Statistics, 6</em>(2), 65–70. <a href="https://www.jstor.org/stable/4615733" class="external-link uri">https://www.jstor.org/stable/4615733</a></p>
 <p>Huck, S. W., &amp; Sandler, H. M. (1973). A note on the Solomon
 4-group design: Appropriate statistical analyses. <em>The Journal of
 Experimental Education, 42</em>(2), 54–55. <a href="https://doi.org/10.1080/00220973.1973.11011460" class="external-link uri">https://doi.org/10.1080/00220973.1973.11011460</a></p>
@@ -832,10 +923,16 @@ theory. <em>American Sociological Review, 86</em>(3), 532–565. <a href="https:
 heteroskedasticity-consistent covariance matrix estimators with improved
 finite sample properties. <em>Journal of Econometrics, 29</em>(3),
 305–325. <a href="https://doi.org/10.1016/0304-4076(85)90158-7" class="external-link uri">https://doi.org/10.1016/0304-4076(85)90158-7</a></p>
+<p>Mai, N. N., Takahashi, Y., &amp; Oo, M. M. (2020). Testing the
+effectiveness of transfer interventions using Solomon four-group
+designs. <em>Education Sciences, 10</em>(4), Article 92. <a href="https://doi.org/10.3390/educsci10040092" class="external-link uri">https://doi.org/10.3390/educsci10040092</a></p>
 <p>Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., &amp;
 Mancuso, J. P. (2008). Recommendations for the primary analysis of
 continuous endpoints in longitudinal clinical trials. <em>Drug
 Information Journal, 42</em>(4), 303–319. <a href="https://doi.org/10.1177/009286150804200402" class="external-link uri">https://doi.org/10.1177/009286150804200402</a></p>
+<p>McCarthy, A. M., &amp; Tucker, M. L. (2002). Encouraging community
+service through service learning. <em>Journal of Management Education,
+26</em>(6), 629–647. <a href="https://doi.org/10.1177/1052562902238322" class="external-link uri">https://doi.org/10.1177/1052562902238322</a></p>
 <p>Meredith, W. (1993). Measurement invariance, factor analysis and
 factorial invariance. <em>Psychometrika, 58</em>(4), 525–543. <a href="https://doi.org/10.1007/BF02294825" class="external-link uri">https://doi.org/10.1007/BF02294825</a></p>
 <p>Phipson, B., &amp; Smyth, G. K. (2010). Permutation p-values should
@@ -868,6 +965,13 @@ Biopharmaceutics, 15</em>(6), 657–680. <a href="https://doi.org/10.1007/BF0106
 <p>Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
 contrast analysis. <em>Psychological Methods, 9</em>(2), 164–182. <a href="https://doi.org/10.1037/1082-989X.9.2.164" class="external-link uri">https://doi.org/10.1037/1082-989X.9.2.164</a></p>
+<p>Steyn, R. (2005). <em>Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies</em> [Self-evaluation and the forming of
+self-efficacy perceptions] [Doctoral thesis, University of South
+Africa]. Unisa Institutional Repository. <a href="https://hdl.handle.net/10500/1745" class="external-link uri">https://hdl.handle.net/10500/1745</a></p>
+<p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve
+on this exemplary model? <em>Design Principles and Practices: An
+International Journal, 3</em>(1), 383–394. <a href="https://doi.org/10.18848/1833-1874/CGP/v03i01/37588" class="external-link uri">https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</a></p>
 <p>Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &amp;
 Williams, R. M., Jr. (1949). <em>The American soldier: Adjustment during
 army life</em> (Vol. 1). Princeton University Press.</p>

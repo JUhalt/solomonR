@@ -34,7 +34,9 @@ fit_solomon_classic(
 
 - treat:
 
-  Treatment indicator coded 0 = control and 1 = treatment.
+  Treatment indicator coded 0 = control and 1 = treatment. Designs with
+  several treatments are not supported; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 - pretested:
 

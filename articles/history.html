@@ -48,6 +48,7 @@
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -76,6 +77,7 @@
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -458,6 +460,69 @@ readings of Test I’s criterion, is reported in “Historical Tests:
 Replicating the Published Error Rates”.</p>
 </div>
 <div class="section level2">
+<h2 id="more-than-one-treatment-20022020">More than one treatment (2002–2020)<a class="anchor" aria-label="anchor" href="#more-than-one-treatment-20022020"></a>
+</h2>
+<p>Other work extended the design to compare several treatments:</p>
+<ul>
+<li>
+<strong>McCarthy and Tucker (2002).</strong> An eight-group study
+crossed two treatments with pretesting. It was analyzed as three
+two-by-two analyses of variance, one for each treatment and one for
+their combination, each against the control groups (pp. 637–640).</li>
+<li>
+<strong>Steyn (2005, 2009).</strong> Steyn ran an eight-group study
+of three treatments (Steyn, 2005, pp. 103–105). He then set out the
+design for k treatments, with 2(k + 1) groups, and a sequence of tests
+of internal validity and of the treatments’ effects (Steyn, 2009). He
+noted that the sequence’s several analyses of variance capitalize on
+chance. Steyn (2009) also describes repeating the posttest, to see
+whether effects last.</li>
+<li>
+<strong>Mai et al. (2020).</strong> A randomized six-group study,
+analyzed as three overlapping four-group designs, with published
+individual data.</li>
+</ul>
+<p>In each study, one design was analyzed as several four-group designs
+that share groups. <code>fit_solomon_glm(control = )</code> fits one
+model to all the groups instead, and <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>
+reproduces Steyn’s sequence; see “Designs With Several Treatments”.
+Steyn’s (2005, pp. 151–152) group statistics are bundled as
+<code>steyn2005</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">steyn2005</span>, <span class="fu"><a href="../reference/solomon_from_summary.html">solomon_from_summary</a></span><span class="op">(</span><span class="va">n</span>, <span class="va">mean</span>, <span class="va">sd</span>, treat <span class="op">=</span> <span class="va">condition</span>,</span>
+<span>                                     pretested <span class="op">=</span> <span class="va">pretested</span>, control <span class="op">=</span> <span class="st">"Control"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Solomon analysis from summary statistics, N-group design</span></span>
+<span><span class="co">#&gt; --------------------------------------------------------</span></span>
+<span><span class="co">#&gt; Conditions: Norms, Marking, Test; control: Control. With and without a pretest: 8 groups.</span></span>
+<span><span class="co">#&gt; Pooled error variance: 163.370 on 1715 df (equal variances assumed)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Two-way ANOVA on the posttest (Type III sums of squares)</span></span>
+<span><span class="co">#&gt;   Condition            SS = 3937.177  df = 3  F = 8.03  p &lt; .001</span></span>
+<span><span class="co">#&gt;   Pretest              SS =  739.550  df = 1  F = 4.53  p = 0.034</span></span>
+<span><span class="co">#&gt;   Pretest x Condition  SS =  489.696  df = 3  F = 1.00  p = 0.392</span></span>
+<span><span class="co">#&gt;   Error                SS = 280179.215  df = 1715</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Contrasts with 95% confidence intervals</span></span>
+<span><span class="co">#&gt; Comparison          Contrast                       Est (SE)      t    df      p  p adj.            95% CI</span></span>
+<span><span class="co">#&gt; Norms vs Control    ATE (avg over pretest)   -3.251 (0.872)  -3.73  1715  &lt;.001   &lt;.001  [-4.961, -1.540]</span></span>
+<span><span class="co">#&gt; Marking vs Control  ATE (avg over pretest)   -2.644 (0.876)  -3.02  1715  0.003   0.003  [-4.362, -0.926]</span></span>
+<span><span class="co">#&gt; Test vs Control     ATE (avg over pretest)   -4.023 (0.869)  -4.63  1715  &lt;.001   &lt;.001  [-5.727, -2.318]</span></span>
+<span><span class="co">#&gt; Norms vs Control    Pretest x Treatment       0.457 (1.745)   0.26  1715  0.793   1.000   [-2.965, 3.879]</span></span>
+<span><span class="co">#&gt; Marking vs Control  Pretest x Treatment      -0.154 (1.752)  -0.09  1715  0.930   1.000   [-3.590, 3.282]</span></span>
+<span><span class="co">#&gt; Test vs Control     Pretest x Treatment       2.495 (1.738)   1.44  1715  0.151   0.454   [-0.913, 5.903]</span></span>
+<span><span class="co">#&gt; Norms vs Control    Treatment | pretested    -3.022 (1.224)  -2.47  1715  0.014   0.041  [-5.423, -0.621]</span></span>
+<span><span class="co">#&gt; Marking vs Control  Treatment | pretested    -2.721 (1.230)  -2.21  1715  0.027   0.047  [-5.133, -0.309]</span></span>
+<span><span class="co">#&gt; Test vs Control     Treatment | pretested    -2.775 (1.223)  -2.27  1715  0.023   0.047  [-5.173, -0.377]</span></span>
+<span><span class="co">#&gt; Norms vs Control    Treatment | unpretested  -3.479 (1.243)  -2.80  1715  0.005   0.010  [-5.917, -1.041]</span></span>
+<span><span class="co">#&gt; Marking vs Control  Treatment | unpretested  -2.567 (1.247)  -2.06  1715  0.040   0.040  [-5.014, -0.120]</span></span>
+<span><span class="co">#&gt; Test vs Control     Treatment | unpretested  -5.270 (1.235)  -4.27  1715  &lt;.001   &lt;.001  [-7.692, -2.848]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 3 comparisons.</span></span>
+<span><span class="co">#&gt; Confidence intervals are not adjusted.</span></span></code></pre></div>
+<p>solomonR follows a pre-publication draft of Steyn’s (2009) article
+and will be checked against the published version.</p>
+</div>
+<div class="section level2">
 <h2 id="after-the-debate-20112025">After the debate (2011–2025)<a class="anchor" aria-label="anchor" href="#after-the-debate-20112025"></a>
 </h2>
 <p>Later work turned from the test sequence to the design’s purpose:</p>
@@ -557,7 +622,16 @@ Sandler (1973)</td>
 <td>historical</td>
 </tr>
 <tr class="even">
-<td>One model for all four groups, with robust standard errors</td>
+<td>Sequence of tests for designs with one or several treatments</td>
+<td>Steyn (2009); post hoc tests as in Steyn (2005)</td>
+<td>
+<code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>, data <code>steyn2005</code>
+</td>
+<td>historical</td>
+</tr>
+<tr class="odd">
+<td>One model for all the groups, with robust standard errors; for
+several treatments, omnibus tests and Holm-adjusted comparisons</td>
 <td>contemporary practice; see the methods guide</td>
 <td><code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code></td>
 <td>recommended</td>
@@ -566,7 +640,7 @@ Sandler (1973)</td>
 </table>
 <p><code><a href="../reference/plot_classic_flow.html">plot_classic_flow()</a></code> draws each version of the
 sequence:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_classic_flow.html">plot_classic_flow</a></span><span class="op">(</span>flow <span class="op">=</span> <span class="st">"1995"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="history_files/figure-html/flows-1.png" class="r-plt" alt="The historical Tests A-I decision sequence in its 1995 version, without Test D." width="768"></p>
 <p>All works cited in solomonR are listed, with notes on how the package
@@ -618,10 +692,16 @@ L. Rosnow, <em>Artifacts in behavioral research: Robert Rosenthal and
 Ralph L. Rosnow’s classic books</em> (pp. 93–109). Oxford University
 Press. <a href="https://doi.org/10.1093/acprof:oso/9780195385540.003.0004" class="external-link uri">https://doi.org/10.1093/acprof:oso/9780195385540.003.0004</a>
 (Original work published 1969)</p>
+<p>Mai, N. N., Takahashi, Y., &amp; Oo, M. M. (2020). Testing the
+effectiveness of transfer interventions using Solomon four-group
+designs. <em>Education Sciences, 10</em>(4), Article 92. <a href="https://doi.org/10.3390/educsci10040092" class="external-link uri">https://doi.org/10.3390/educsci10040092</a></p>
 <p>McCambridge, J., Butor-Bhavsar, K., Witton, J., &amp; Elbourne, D.
 (2011). Can research assessments themselves cause bias in behaviour
 change trials? A systematic review of evidence from Solomon 4-group
 studies. <em>PLoS ONE, 6</em>(10), Article e25223. <a href="https://doi.org/10.1371/journal.pone.0025223" class="external-link uri">https://doi.org/10.1371/journal.pone.0025223</a></p>
+<p>McCarthy, A. M., &amp; Tucker, M. L. (2002). Encouraging community
+service through service learning. <em>Journal of Management Education,
+26</em>(6), 629–647. <a href="https://doi.org/10.1177/1052562902238322" class="external-link uri">https://doi.org/10.1177/1052562902238322</a></p>
 <p>Sawilowsky, S. S. (1996, June 23). <em>Controlling experiment-wise
 Type I error of meta-analysis in the Solomon four-group design</em>
 [Paper presentation]. First International Conference on Multiple
@@ -640,6 +720,13 @@ and Walton Braver. <em>Perceptual and Motor Skills, 71</em>(2), 424–426.
 <p>Solomon, R. L., &amp; Lessac, M. S. (1968). A control group design
 for experimental studies of developmental processes. <em>Psychological
 Bulletin, 70</em>(3, Pt. 1), 145–150. <a href="https://doi.org/10.1037/h0026147" class="external-link uri">https://doi.org/10.1037/h0026147</a></p>
+<p>Steyn, R. (2005). <em>Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies</em> [Self-evaluation and the forming of
+self-efficacy perceptions] [Doctoral thesis, University of South
+Africa]. Unisa Institutional Repository. <a href="https://hdl.handle.net/10500/1745" class="external-link uri">https://hdl.handle.net/10500/1745</a></p>
+<p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve
+on this exemplary model? <em>Design Principles and Practices: An
+International Journal, 3</em>(1), 383–394. <a href="https://doi.org/10.18848/1833-1874/CGP/v03i01/37588" class="external-link uri">https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</a></p>
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical
 treatment of the Solomon four-group design: A meta-analytic approach.
 <em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>

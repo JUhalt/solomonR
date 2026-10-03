@@ -128,7 +128,9 @@ conservative figure rather than an exact one.
 Only continuous outcomes are simulated. Binary and count outcomes are
 not supported; for binary outcomes see
 [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
-and its simulation validation on issue \#43.
+and its simulation validation on issue \#43. Designs with several
+treatments are not supported; compute power for each treatment-control
+comparison as a four-group design.
 
 The arguments follow the order of
 [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)

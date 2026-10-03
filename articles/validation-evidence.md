@@ -360,6 +360,37 @@ misstated the standard errors, which is why the function estimates it
 separately for pretested and unpretested participants. See the [full
 article](https://juhalt.github.io/solomonR/articles/mmrm-validation.html).
 
+## Designs with several treatments
+
+`fit_solomon_glm(control = )` fits one model to all the groups of a
+design with several treatments, tests each Solomon contrast across the
+conditions, and adjusts the comparisons by Holm’s procedure. The study
+checked those tests, and the bias and coverage of the contrasts, with
+two or three treatments and 10 to 50 participants per group. The table
+gives the Type I error of each omnibus test with HC3 standard errors.
+
+| Omnibus test                 | Mean Type I error | Highest |
+|:-----------------------------|:------------------|:--------|
+| Condition (avg over pretest) | 0.046             | 0.054   |
+| Condition \| pretested       | 0.054             | 0.069   |
+| Condition \| unpretested     | 0.055             | 0.066   |
+| Pretest x Condition          | 0.046             | 0.055   |
+
+Omnibus tests of the joint model, HC3, where the null hypothesis holds.
+{.table}
+
+The familywise error rates of the Holm-adjusted comparisons were 0.012
+to 0.059, and coverage of the 95% intervals of each treatment against
+the control was 0.939 to 0.967. The pre-specified rule for error control
+was not met: with three treatments and 10 participants per group, the
+omnibus tests of Condition \| pretested and Condition \| unpretested
+rejected in up to 0.069 of replications. The analysis of designs with
+several treatments is therefore labeled experimental. Overlapping
+four-group analyses of every pair of conditions, the published practice,
+found at least one significant interaction in 0.111 to 0.217 of
+replications when no treatment was sensitized. See the [full
+article](https://juhalt.github.io/solomonR/articles/ngroup-validation.html).
+
 ## Adding a study
 
 A new study joins this page by:

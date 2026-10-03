@@ -39,6 +39,7 @@ within each pretesting condition."></head><body>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -67,6 +68,7 @@ within each pretesting condition."></head><body>
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -111,6 +113,9 @@ within each pretesting condition.</p>
 <span>  family <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  conf_level <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  exposure <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  control <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  contrasts <span class="op">=</span> <span class="st">"control"</span>,</span>
+<span>  adjust <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"holm"</span>, <span class="st">"bonferroni"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  y <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  pretest_score <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
@@ -126,7 +131,9 @@ within each pretesting condition.</p>
 
 
 <dt id="arg-treat">treat<a class="anchor" aria-label="anchor" href="#arg-treat"></a></dt>
-<dd><p>0/1 (or logical) treatment indicator (1 = treatment)</p></dd>
+<dd><p>0/1 (or logical) treatment indicator (1 = treatment); or, for
+a design with several treatments, a factor or character vector of
+conditions, with the control named by <code>control</code></p></dd>
 
 
 <dt id="arg-pretested">pretested<a class="anchor" aria-label="anchor" href="#arg-pretested"></a></dt>
@@ -173,6 +180,26 @@ such as <code><a href="https://rdrr.io/r/stats/family.html" class="external-link
 ratios per unit of exposure.</p></dd>
 
 
+<dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
+<dd><p>the control condition, when <code>treat</code> is a factor or
+character vector. With two conditions the design is a four-group design
+and the result is the same as with a 0/1 <code>treat</code>; with three or more it
+is an N-group design (see "Designs with several treatments").</p></dd>
+
+
+<dt id="arg-contrasts">contrasts<a class="anchor" aria-label="anchor" href="#arg-contrasts"></a></dt>
+<dd><p>for designs with several treatments: <code>"control"</code> (each
+treatment against the control), <code>"pairwise"</code> (every pair of
+conditions), or a named list of weight vectors named by condition, one
+per comparison, each summing to zero.</p></dd>
+
+
+<dt id="arg-adjust">adjust<a class="anchor" aria-label="anchor" href="#arg-adjust"></a></dt>
+<dd><p>for designs with several treatments: the adjustment of the
+p-values of each contrast across the comparisons, <code>"holm"</code> (Holm, 1979;
+the default), <code>"bonferroni"</code>, or <code>"none"</code>.</p></dd>
+
+
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>optional data frame. When supplied, the other data arguments
 are looked up in it first: give them as bare column names
@@ -193,6 +220,13 @@ the Pearson dispersion statistic for binomial, Poisson, and
 negative-binomial fits, <code>theta</code> (its estimate, standard error, and
 \(\alpha = 1/\theta\)) for negative-binomial fits, and the settings
 used.</p>
+<p>For a design with several treatments, an object of class
+<code>solomon_ngroup</code>, with the same elements and these changes: <code>effects</code>
+has a <code>comparison</code> column and the adjusted p-values <code>p.adjusted</code>;
+<code>omnibus</code> holds the omnibus tests (<code>statistic</code>, <code>df1</code>, <code>df2</code>,
+<code>p.value</code>, and <code>reference</code>, <code>"F"</code> or <code>"chisq"</code>); <code>conditions</code> names the
+control and the treatments and their model terms; <code>weights</code> holds the
+weights of each comparison; and <code>adjust</code> names the adjustment.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -238,8 +272,10 @@ sensitization (Daniel et al., 2021): in the package's simulation study
 (issue #43) it averaged 0.08 to 0.21 on the log-odds scale with no
 sensitization present. Such fits give the classed warning
 <code>solomonR_noncollapsible_warning</code>; for binary outcomes, estimate the
-Solomon contrasts on a common scale with <code><a href="marginal_solomon.html">marginal_solomon()</a></code>. Identity and
-log links are collapsible and are not affected.</p>
+Solomon contrasts on a common scale with <code><a href="marginal_solomon.html">marginal_solomon()</a></code>. It takes
+the fit of a four-group design: for a design with several treatments,
+subset the data to one treatment and the control and fit the subset.
+Identity and log links are collapsible and are not affected.</p>
 <p>Count outcomes: with <code>family = poisson()</code>, the default HC3 covariance gives
 the robust (quasi-likelihood) inference that Cameron and Trivedi (2013)
 describe. The Poisson estimator stays consistent when the counts are not
@@ -289,6 +325,58 @@ method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.</p>
     </div>
     <div class="section level2">
+    <h2 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a></h2>
+
+
+<p>A Solomon N-group design crosses k treatments and a control with
+pretesting, giving 2(k + 1) groups: six for two treatments and eight for
+three (Steyn, 2009). Give <code>treat</code> as a factor or character vector of
+conditions and name the control with <code>control</code>. One model is then fitted
+to all the groups, with an indicator for each treatment, and the four
+Solomon contrasts are estimated for each comparison:</p><ul><li><p>each treatment against the control (<code>contrasts = "control"</code>, the
+default);</p></li>
+<li><p>every pair of conditions (<code>contrasts = "pairwise"</code>);</p></li>
+<li><p>or comparisons given as weights over the conditions, such as the main
+effects of two treatments crossed factorially:
+<code>contrasts = list(Lecture = c(Lecture = 0.5, Both = 0.5, Service = -0.5, None = -0.5))</code>. The weights of each comparison must sum to zero.</p></li>
+</ul><p>Omnibus Wald tests ask whether the conditions differ on each contrast. The
+Pretest x Condition test asks whether pretesting changes the effect of any
+treatment.</p>
+<p>The p-values of each contrast are adjusted across the comparisons, by
+Holm's (1979) procedure by default. It controls the familywise error rate
+"for any combination of true hypotheses" (p. 65). The confidence
+intervals are not adjusted. The result has class <code>solomon_ngroup</code>.</p>
+<p>Published studies with several treatments analyzed them as overlapping
+four-group designs: one for each treatment against the control (McCarthy &amp;
+Tucker, 2002), or one for each pair of conditions (Mai et al., 2020). Those
+analyses reuse the same groups, so their tests are dependent, and each
+extra analysis adds to the chance of a false finding. The joint model asks
+each question once. In Mai et al.'s (2020) six-group study, the Pretest x
+Condition test of the posttests alone (without the pretest as a
+covariate), with conventional covariance, gives F(2, 127) = 1.86,
+p = .161. <code><a href="fit_solomon_steyn.html">fit_solomon_steyn()</a></code> carries out the sequence of tests Steyn
+(2009) proposed for these designs.</p>
+<p><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="figures/lifecycle-experimental.svg" alt="[Experimental]"></a> The analysis of designs with several
+treatments is experimental. In the package's simulation study (issue #45;
+112 scenarios with two or three treatments and 10 to 50 participants per
+group, 5,000 replications each):</p><ul><li><p>the contrasts were unbiased, and coverage of their 95% intervals was
+0.939 to 0.967;</p></li>
+<li><p>the familywise error rates of the Holm-adjusted comparisons were at most
+0.059;</p></li>
+<li><p>the Pretest x Condition test and the test of the conditions averaged
+over pretest rejected a true null hypothesis in 0.036 to 0.055 of
+replications;</p></li>
+<li><p>with three treatments and 10 participants per group, the omnibus tests
+of Condition | pretested and Condition | unpretested rejected in 0.055
+to 0.069 of replications at the .05 level. The rule for error control
+set before the study was therefore not met, which is why the analysis
+is experimental. With groups that small, judge those two questions by
+the adjusted comparisons.</p></li>
+</ul><p>The study did not cover binary or count outcomes, clustered designs, or
+comparisons given as weights. It is reported in the article "Designs With
+Several Treatments: Validating the Joint Model".</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Bell, R. M., &amp; McCaffrey, D. F. (2002). Bias reduction in standard errors for
 linear regression with multi-stage samples. <em>Survey Methodology, 28</em>(2),
@@ -304,6 +392,9 @@ adjustment for different covariate sets. <em>Biometrical Journal, 63</em>(3),
 error estimators in OLS regression: An introduction and software
 implementation. <em>Behavior Research Methods, 39</em>(4), 709–722.
 https://doi.org/10.3758/BF03192961</p>
+<p>Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+<em>Scandinavian Journal of Statistics, 6</em>(2), 65–70.
+https://www.jstor.org/stable/4615733</p>
 <p>Imbens, G. W., &amp; Kolesár, M. (2016). Robust standard errors in small samples:
 Some practical advice. <em>The Review of Economics and Statistics, 98</em>(4),
 701–712. https://doi.org/10.1162/REST_a_00552</p>
@@ -317,6 +408,12 @@ standard errors in the linear regression model. <em>The American Statistician,
 covariance matrix estimators with improved finite sample properties. <em>Journal
 of Econometrics, 29</em>(3), 305–325.
 https://doi.org/10.1016/0304-4076(85)90158-7</p>
+<p>Mai, N. N., Takahashi, Y., &amp; Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. <em>Education
+Sciences, 10</em>(4), Article 92. https://doi.org/10.3390/educsci10040092</p>
+<p>McCarthy, A. M., &amp; Tucker, M. L. (2002). Encouraging community service
+through service learning. <em>Journal of Management Education, 26</em>(6), 629–647.
+https://doi.org/10.1177/1052562902238322</p>
 <p>Pustejovsky, J. E., &amp; Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects
 models. <em>Journal of Business &amp; Economic Statistics, 36</em>(4), 672–683.
@@ -331,6 +428,9 @@ Bulletin, 46</em>(2), 137–150. https://doi.org/10.1037/h0062958</p>
 and tests of close fit in the analysis of variance and contrast analysis.
 <em>Psychological Methods, 9</em>(2), 164–182.
 https://doi.org/10.1037/1082-989X.9.2.164</p>
+<p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? <em>Design Principles and Practices: An International
+Journal, 3</em>(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</p>
 <p>Tipton, E. (2015). Small sample adjustments for robust variance estimation
 with meta-regression. <em>Psychological Methods, 20</em>(3), 375–393.
 https://doi.org/10.1037/met0000011</p>
@@ -374,6 +474,42 @@ https://doi.org/10.1037/met0000011</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2 -8.2144330  4.334759 0.003250361    NA    NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3 -2.7647416  6.151735 0.004898871    NA    NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4 -0.7819436  8.048610 0.022581961    NA    NA</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A six-group design: two treatments and a control (Mai et al., 2020).</span></span></span>
+<span class="r-in"><span><span class="va">fit6</span> <span class="op">&lt;-</span> <span class="fu">fit_solomon_glm</span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">condition</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span>,</span></span>
+<span class="r-in"><span>                        control <span class="op">=</span> <span class="st">"Control"</span>, data <span class="op">=</span> <span class="va">mai2020</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit6</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Solomon GLM (unified model), N-group design</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Conditions: RP, GS; control: Control. With and without a pretest: 6 groups.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ (treat_RP + treat_GS) * pretested + pre_obs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 126)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Omnibus tests</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Test                                 Statistic      p</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Condition (avg over pretest)  F(2, 126) = 1.10  0.336</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Condition           F(2, 126) = 1.74  0.179</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Condition | pretested         F(2, 126) = 2.23  0.112</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Condition | unpretested       F(2, 126) = 0.73  0.485</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Contrasts</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Comparison     Contrast                       Est (SE)      t   df      p  p adj.           95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control  ATE (avg over pretest)   -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control  ATE (avg over pretest)    0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control  Pretest x Treatment      -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control  Pretest x Treatment      -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control  Treatment | pretested    -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control  Treatment | pretested     0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control  Treatment | unpretested   0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control  Treatment | unpretested   0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 2 comparisons.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Confidence intervals are not adjusted.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Experimental: in the package's simulation study (issue #45), the omnibus</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tests of Condition | pretested and Condition | unpretested rejected in up</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> to 6.9% of replications at the .05 level with three treatments and 10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> participants per group. No other test, and no family of adjusted</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> comparisons, failed the study's rule. See ?fit_solomon_glm.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

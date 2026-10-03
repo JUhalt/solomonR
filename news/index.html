@@ -31,6 +31,7 @@
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -59,6 +60,7 @@
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -83,6 +85,52 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="solomonr-development-version">solomonR (development version)<a class="anchor" aria-label="anchor" href="#solomonr-development-version"></a></h2>
+<div class="section level3">
+<h3 id="designs-with-several-treatments-development-version">Designs with several treatments (<a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>)<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments-development-version"></a></h3>
+<ul><li>
+<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> now analyzes Solomon N-group designs: k treatments and a control, each with and without a pretest, giving 2(k + 1) groups (Steyn, 2009). Give <code>treat</code> as a factor or character vector and name the control with the new <code>control</code> argument.
+<ul><li>
+<strong>One model.</strong> It is fitted to all the groups, in place of the overlapping four-group analyses of published studies (Mai et al., 2020; McCarthy &amp; Tucker, 2002).</li>
+<li>
+<strong>Omnibus tests.</strong> Wald tests of each Solomon contrast across the conditions. The Pretest x Condition test asks whether pretesting changes the effect of any treatment.</li>
+<li>
+<strong>Comparisons.</strong> The four Solomon contrasts for each treatment against the control, for every pair of conditions (<code>contrasts = "pairwise"</code>), or for planned comparisons given as weights, such as the main effects of a factorial design.</li>
+<li>
+<strong>Multiplicity.</strong> The p-values of each contrast are adjusted across the comparisons by Holm’s (1979) procedure (<code>adjust</code>).</li>
+<li>The result has class <code>solomon_ngroup</code>. Results for four-group designs are unchanged, and a two-condition factor with <code>control</code> gives the same fit as a 0/1 <code>treat</code>.</li>
+</ul></li>
+<li>New <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> carries out the sequence of tests Steyn (2009) proposed for designs with one or several treatments: checks of equivalence, history and maturation, testing, the pretest-intervention interaction, reliability, regression to the mean, and attrition, then tests of the treatments’ effects. Its post hoc tests are Scheffé tests, as in Steyn (2005), or Holm-adjusted pairwise t tests (<code>posthoc</code>). It is a published proposal, kept for replication and teaching, and is experimental: it follows a pre-publication draft of the article and will be checked against the published version.</li>
+<li>New data set <code>steyn2005</code>: the group statistics of Steyn’s (2005) eight-group study, which reproduce its published analyses of variance and Scheffé tests.</li>
+<li>These functions now accept designs with several treatments:
+<ul><li>
+<code><a href="../reference/validate_solomon.html">validate_solomon()</a></code>, <code><a href="../reference/check_solomon_missing.html">check_solomon_missing()</a></code>, <code><a href="../reference/check_solomon_assumptions.html">check_solomon_assumptions()</a></code>, and <code><a href="../reference/baseline_solomon.html">baseline_solomon()</a></code>, with <code>control</code>;</li>
+<li>
+<code><a href="../reference/plot_solomon_design.html">plot_solomon_design()</a></code> (also <code>treatments</code>, for a schematic without data), <code><a href="../reference/plot_solomon_means.html">plot_solomon_means()</a></code>, and <code><a href="../reference/plot_solomon_change.html">plot_solomon_change()</a></code>, with <code>control</code>, and <code><a href="../reference/plot_sensitization.html">plot_sensitization()</a></code> and <code><a href="../reference/plot_solomon_effects.html">plot_solomon_effects()</a></code>, for an N-group fit;</li>
+<li>
+<code><a href="../reference/equivalence_solomon.html">equivalence_solomon()</a></code>, with the new <code>comparison</code> argument;</li>
+<li>
+<code><a href="../reference/report_solomon.html">report_solomon()</a></code>, for N-group fits and for <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> results;</li>
+<li>
+<code><a href="../reference/simulate_solomon.html">simulate_solomon()</a></code>, with one <code>delta</code> (and <code>sens</code>) per treatment;</li>
+<li>
+<code><a href="../reference/solomon_from_summary.html">solomon_from_summary()</a></code>, with <code>treat</code>, <code>pretested</code>, and <code>control</code>.</li>
+</ul></li>
+<li>The other analyses take one treatment and a control. Given more, they stop with a classed error, <code>solomonR_ngroup_unsupported</code>, that says how to proceed. <code><a href="../reference/power_solomon.html">power_solomon()</a></code> and <code><a href="../reference/plan_solomon.html">plan_solomon()</a></code> give a clear error for more than one <code>delta</code> or <code>sens</code>.</li>
+<li>
+<code><a href="../reference/plot_sensitization.html">plot_sensitization()</a></code> now works for clustered (CR2) fits with an <code>exposure</code> offset.</li>
+<li>With <code>data</code>, a bare column name is now always read as that column, even when the column’s values are themselves names of columns.</li>
+<li>New article, “Designs With Several Treatments”.</li>
+<li>A simulation study under the protocol posted on <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a> (112 scenarios with two or three treatments, 5,000 replications each) is reported in the new article “Designs With Several Treatments: Validating the Joint Model” and on the validation-evidence page.
+<ul><li>
+<strong>Met:</strong> the rules for coverage and for bias. Coverage of the 95% intervals was 0.939 to 0.967, and the familywise error rates of the Holm-adjusted comparisons were at most 0.059.</li>
+<li>
+<strong>Not met:</strong> the rule for error control. With three treatments and 10 participants per group, the omnibus tests of Condition | pretested and Condition | unpretested rejected in 0.055 to 0.069 of replications at the .05 level. The Pretest x Condition test rejected in 0.036 to 0.055 across all scenarios.</li>
+<li>
+<strong>Consequence:</strong> the analysis of designs with several treatments is experimental, as the protocol set out, and its printed output says so.</li>
+<li>
+<strong>The published alternatives:</strong> overlapping four-group analyses found at least one significant interaction in 8% to 22% of replications when no treatment was sensitized.</li>
+</ul></li>
+</ul></div>
 <div class="section level3">
 <h3 id="longitudinal-solomon-designs-development-version">Longitudinal Solomon designs (<a href="https://github.com/JUhalt/solomonR/issues/57" class="external-link">#57</a>)<a class="anchor" aria-label="anchor" href="#longitudinal-solomon-designs-development-version"></a></h3>
 <ul><li>New <code><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code> analyzes a Solomon design with several posttest occasions by a mixed model for repeated measures, following Mallinckrodt et al. (2008): occasion by treatment by pretesting, the pretest adjustment of <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> with a slope at each occasion, and an unstructured covariance by REML (Laird &amp; Ware, 1982), estimated separately for pretested and unpretested participants. It reports the four Solomon contrasts at each occasion and the change in sensitization, with Kenward-Roger or Satterthwaite degrees of freedom, and falls back to other covariance structures by AIC if the unstructured model does not converge. It needs the mmrm package (Sabanes Bove et al., 2026), now a suggested dependency.</li>

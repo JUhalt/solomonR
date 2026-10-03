@@ -41,6 +41,7 @@ and latent-variable structural equation models."></head><body>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -69,6 +70,7 @@ and latent-variable structural equation models."></head><body>
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -124,7 +126,13 @@ deprecation: the old name keeps working, with a warning, through v1.x.</p></li>
 may change. <code><a href="fit_solomon_sem.html">fit_solomon_sem()</a></code> has no simulation study yet at Solomon
 sample sizes. The issue #55 study found no measurement-invariance
 criterion that holds its false-rejection rate in Solomon-sized groups,
-which affects <code><a href="fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> and <code><a href="invariance_solomon.html">invariance_solomon()</a></code>.</p></li>
+which affects <code><a href="fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> and <code><a href="invariance_solomon.html">invariance_solomon()</a></code>.
+<code><a href="fit_solomon_steyn.html">fit_solomon_steyn()</a></code> follows a pre-publication draft of Steyn's (2009)
+article and will be checked against the published version. The analysis
+of designs with several treatments in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> is
+experimental, because the rule for error control set before its
+simulation study (issue #45) was not met for two omnibus tests with
+three treatments and 10 participants per group.</p></li>
 <li><p><strong>Deprecated.</strong> A former name that still works, with a warning. Its
 help page names the replacement.</p></li>
 </ul><p>solomonR 0.9.0 settled the interface (issue #83). The outcome arguments
@@ -149,6 +157,9 @@ Meta-analysis and the Solomon four-group design. <em>The Journal of Experimental
 Education, 62</em>(4), 361–376. https://doi.org/10.1080/00220973.1994.9944140</p>
 <p>Solomon, R. L. (1949). An extension of control group design. <em>Psychological
 Bulletin, 46</em>(2), 137–150. https://doi.org/10.1037/h0062958</p>
+<p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? <em>Design Principles and Practices: An International
+Journal, 3</em>(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</p>
 <p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group
 design</em> (Research Report 99-06). University of Twente.</p>
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical treatment of the

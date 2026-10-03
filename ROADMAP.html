@@ -31,6 +31,7 @@
     <li><a class="dropdown-item" href="articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -59,6 +60,7 @@
     <li><a class="dropdown-item" href="articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="articles/references.html">References and the Solomon Literature</a></li>
@@ -315,9 +317,14 @@
 </li>
 </ul></li>
 <li>
-<p><label><input type="checkbox">Solomon N-group designs: more than two conditions — <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a></label></p>
-<ul><li>One model with planned contrasts in place of overlapping four-group analyses (Edmonds &amp; Kennedy, 2017; Mai et al., 2020)</li>
-<li>Waiting for Steyn (2009), requested through interlibrary loan. v1.0.0 waits for this item.</li>
+<p><label><input type="checkbox">Solomon N-group designs: more than two conditions — <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/95" class="external-link">PR #95</a></label></p>
+<ul><li>One model with planned contrasts in place of overlapping four-group analyses (Edmonds &amp; Kennedy, 2017; Mai et al., 2020): <code>fit_solomon_glm(control = , contrasts = )</code>
+</li>
+<li>Its simulation study is reported. The analysis is experimental, because the pre-specified rule for error control was not met for two omnibus tests with three treatments and 10 participants per group</li>
+<li>Steyn’s (2009) sequence of tests, <code><a href="reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>, and the <code>steyn2005</code> data (Steyn, 2005)</li>
+<li>Steyn (2009) has been read in a pre-publication draft, dated March 2,
+<ol start="2009" style="list-style-type: decimal"><li>The published article has been requested, and <code><a href="reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> stays experimental until it has been checked against that version. Whether v1.0.0 waits for that check is decided at sign-off (<a href="https://github.com/JUhalt/solomonR/issues/85" class="external-link">#85</a>).</li>
+</ol></li>
 </ul></li>
 <li>
 <p><label><input type="checkbox">Clustered designs</label></p>
@@ -387,7 +394,7 @@
 <strong>Coverage</strong>
 <ul class="task-list"><li>
 <label><input type="checkbox">Literature coverage audit before the feature freeze — <a href="https://github.com/JUhalt/solomonR/issues/80" class="external-link">#80</a>; in review, <a href="https://github.com/JUhalt/solomonR/pull/89" class="external-link">PR #89</a></label>
-<ul><li>The coverage article and its check are done, and every identified source has been read except Steyn (2009), which is on interlibrary loan.</li>
+<ul><li>The coverage article and its check are done, and every identified source has been read, Steyn (2009) in a pre-publication draft. The check against the published article is tracked in <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>.</li>
 </ul></li>
 </ul></li>
 <li>

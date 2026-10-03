@@ -1,13 +1,14 @@
-# Validate the structure and coding of a Solomon four-group design
+# Validate the structure and coding of a Solomon design
 
-**\[stable\]** Checks that data can support a Solomon four-group
-analysis before a model is fitted: equal input lengths, 0/1 coding of
-the design indicators, all four cells present, enough observed outcomes
-per cell, and the distinction between structurally absent and
-incidentally missing values (see
+**\[stable\]** Checks that data can support a Solomon analysis before a
+model is fitted: equal input lengths, the coding of the design
+indicators, all cells present, enough observed outcomes per cell, and
+the distinction between structurally absent and incidentally missing
+values (see
 [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)).
 Problems are returned as a table of issues rather than stopping at the
-first one, so every problem is reported at once.
+first one, so every problem is reported at once. Designs with several
+treatments are checked too (see `control`).
 
 ## Usage
 
@@ -19,6 +20,7 @@ validate_solomon(
   y_pre = NULL,
   min_cell_n = 2,
   cluster = NULL,
+  control = NULL,
   data = NULL
 )
 ```
@@ -31,7 +33,8 @@ validate_solomon(
 
 - treat:
 
-  Treatment indicator coded 0/1 (or logical).
+  Treatment indicator coded 0/1 (or logical); or a factor or character
+  vector of conditions, with the control named by `control`.
 
 - pretested:
 
@@ -52,6 +55,13 @@ validate_solomon(
   Optional cluster identifier (for example, class, school, or site), one
   value per participant.
 
+- control:
+
+  The control condition when `treat` is a factor or character vector
+  with more than two conditions, a Solomon N-group design; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  With two conditions the result is the same as with a 0/1 `treat`.
+
 - data:
 
   Optional data frame. When supplied, the other data arguments are
@@ -65,15 +75,26 @@ errors were found), `issues` (severity, check, and message), `cells`
 (counts by cell, with clusters and cluster sizes when `cluster` is
 supplied), and `missing` (the
 [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
-result).
+result). For a design with several treatments, `cells` has one row for
+each of the 2(k + 1) cells and `conditions` names the control and the
+treatments.
 
 ## Details
 
-Accepted coding: `treat` and `pretested` must be numeric 0/1 or logical.
-Factors and character codes are rejected so that group membership is
-never inferred from level order. The Solomon design requires all four
-cells (Solomon, 1949): pretested treatment, pretested control,
-unpretested treatment, and unpretested control.
+Accepted coding: `pretested` must be numeric 0/1 or logical, and so must
+`treat` unless the control condition is named with `control`. Without
+`control`, factors and character codes are rejected so that group
+membership is never inferred from level order. The Solomon four-group
+design requires all four cells (Solomon, 1949): pretested treatment,
+pretested control, unpretested treatment, and unpretested control.
+
+Designs with several treatments: give `treat` as a factor or character
+vector of conditions and name the control with `control`. A design with
+k treatments requires all 2(k + 1) cells, each treatment and the control
+with and without a pretest: six cells for two treatments and eight for
+three (Steyn, 2009). Every check below is then made for each of these
+cells. Levels of a factor `treat` that no participant has are left out
+of the design, with a note.
 
 Severity:
 
@@ -126,6 +147,10 @@ Bakketeig, L. S. (1996). The effect of sex education on adolescents' use
 of condoms: Applying the Solomon four-group design. *Health Education
 Quarterly, 23*(1), 34–47. https://doi.org/10.1177/109019819602300103
 
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
+of transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
 effects models. *Journal of Business & Economic Statistics, 36*(4),
@@ -134,6 +159,11 @@ effects models. *Journal of Business & Economic Statistics, 36*(4),
 Solomon, R. L. (1949). An extension of control group design.
 *Psychological Bulletin, 46*(2), 137–150.
 https://doi.org/10.1037/h0062958
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 ## See also
 
@@ -206,4 +236,29 @@ with(solomon_example, validate_solomon(y_post, treat, pretested, y_pre,
 #> [NOTE] 4 clusters; 1 to 1 per cell, with 30 to 30 participants per cluster.
 #>   Treatment is constant within every cluster (assigned to whole clusters).
 #>   Pretesting is constant within every cluster (assigned to whole clusters).
+
+# A six-group design: two treatments and a control (Mai et al., 2020).
+validate_solomon(post_behavior, condition, pretested, pre_behavior,
+                 control = "Control", data = mai2020)
+#> Solomon design validation: no errors found
+#> Solomon N-group design: two treatments (RP, GS) and a control (Control), six groups
+#> 
+#>  Group                 Cell  n Post missing Pre absent (design) Pre missing
+#>      1        Pretested, RP 35           11                   0           0
+#>      2        Pretested, GS 33           10                   0           0
+#>      3   Pretested, Control 50           23                   0           0
+#>      4      Unpretested, RP 31            9                  31           0
+#>      5      Unpretested, GS 27           12                  27           0
+#>      6 Unpretested, Control 35           13                  35           0
+#>  Pre unexpected
+#>               0
+#>               0
+#>               0
+#>               0
+#>               0
+#>               0
+#> 
+#> [WARNING] 78 participant(s) are missing posttest scores and are excluded from
+#>   complete-case analyses; see check_solomon_missing().
+#> [NOTE] Cell sizes range from 27 to 50.
 ```

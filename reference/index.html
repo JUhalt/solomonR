@@ -31,6 +31,7 @@
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -59,6 +60,7 @@
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -139,7 +141,7 @@
           <code><a href="validate_solomon.html">validate_solomon()</a></code>
           <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
-        <dd>Validate the structure and coding of a Solomon four-group design</dd>
+        <dd>Validate the structure and coding of a Solomon design</dd>
 
         <dt>
 
@@ -164,7 +166,7 @@
       </dl></div><div class="section level2">
       <h2 id="analyze-recommended-methods">Analyze: recommended methods<a class="anchor" aria-label="anchor" href="#analyze-recommended-methods"></a></h2>
 
-      <div class="section-desc"><p>One model for all four groups, with robust, likelihood-based, and randomization-based inference.</p></div>
+      <div class="section-desc"><p>One model for all the groups, with robust, likelihood-based, and randomization-based inference. fit_solomon_glm() also analyzes designs with several treatments.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -353,6 +355,13 @@
 
         <dt>
 
+          <code><a href="fit_solomon_steyn.html">fit_solomon_steyn()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Steyn's (2009) analysis of the extended Solomon design</dd>
+
+        <dt>
+
           <code><a href="fisher_solomon.html">fisher_solomon()</a></code>
           <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
@@ -421,7 +430,7 @@
           <code><a href="plot_solomon_design.html">plot_solomon_design()</a></code>
           <span class="badge lifecycle lifecycle-stable">stable</span>
         </dt>
-        <dd>Schematic of the Solomon four-group design</dd>
+        <dd>Schematic of a Solomon design</dd>
 
         <dt>
 
@@ -487,6 +496,13 @@
 
         </dt>
         <dd>Solomon's (1949) spelling experiment</dd>
+
+        <dt>
+
+          <code><a href="steyn2005.html">steyn2005</a></code>
+
+        </dt>
+        <dd>Group statistics from Steyn's (2005) eight-group study</dd>
       </dl></div><div class="section level2">
       <h2 id="deprecated">Deprecated<a class="anchor" aria-label="anchor" href="#deprecated"></a></h2>
 

@@ -18,19 +18,21 @@ articles:
   articles/missing-and-repeated: missing-and-repeated.html
   articles/ml-validation: ml-validation.html
   articles/mmrm-validation: mmrm-validation.html
+  articles/ngroup-validation: ngroup-validation.html
   articles/plan-validation: plan-validation.html
   articles/planning: planning.html
   articles/power-validation: power-validation.html
   articles/references: references.html
   articles/reporting: reporting.html
   articles/sem: sem.html
+  articles/several-treatments: several-treatments.html
   articles/should-i-use-a-solomon-design: should-i-use-a-solomon-design.html
   solomon-methods: solomon-methods.html
   articles/synthesis: synthesis.html
   articles/teaching: teaching.html
   articles/validation-evidence: validation-evidence.html
   articles/worked-example: worked-example.html
-last_built: 2026-10-02T20:28Z
+last_built: 2026-10-03T01:34Z
 urls:
   reference: https://juhalt.github.io/solomonR/reference
   article: https://juhalt.github.io/solomonR/articles

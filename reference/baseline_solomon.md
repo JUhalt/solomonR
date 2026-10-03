@@ -3,7 +3,8 @@
 **\[stable\]** Compares the pretest scores of the treated and control
 pretested groups: the check of baseline equivalence that a Solomon
 design allows. It matters most when groups were not formed by random
-assignment.
+assignment. In a design with several treatments, each treatment's
+pretested group is compared with the pretested control group.
 
 ## Usage
 
@@ -16,6 +17,7 @@ baseline_solomon(
   mean = NULL,
   sd = NULL,
   conf_level = 0.95,
+  control = NULL,
   data = NULL
 )
 ```
@@ -26,15 +28,27 @@ baseline_solomon(
 
   Individual data: pretest scores, treatment indicator, and pretest
   indicator. Only pretested participants with a pretest score are used.
+  `treat` is a 0/1 (or logical) indicator, or a factor or character
+  vector of conditions with the control named by `control`.
 
 - n, mean, sd:
 
   Alternatively, the pretest sample size, mean, and standard deviation
-  of the two pretested groups, treated first.
+  of the two pretested groups, treated first. With `control`, vectors
+  named by condition, one element for each pretested group.
 
 - conf_level:
 
   Confidence level. Default 0.95.
+
+- control:
+
+  The control condition when `treat` is a factor or character vector
+  with more than two conditions, a Solomon N-group design; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  With two conditions the result is the same as with a 0/1 `treat`. With
+  summary statistics, the name of the control group in `n`, `mean`, and
+  `sd`.
 
 - data:
 
@@ -46,7 +60,11 @@ baseline_solomon(
 
 An object of class `solomon_baseline` with the group statistics, the
 difference with its interval and t test, and Hedges's g with its
-interval.
+interval. For a design with several treatments, `groups` holds the
+statistics of every pretested group, `comparisons` has one row for each
+treatment against the control (`comparison`, `difference`, `std.error`,
+`conf.low`, `conf.high`, `statistic`, `df`, `p.value`, `g`, `g.low`, and
+`g.high`), and `conditions` names the control and the treatments.
 
 ## Details
 
@@ -55,6 +73,15 @@ variance) and the standardized difference, Hedges's g, with a confidence
 interval from the noncentral t distribution (Cumming & Finch, 2001;
 Kelley, 2007). No equivalence threshold is applied; the estimate and its
 interval are reported for the reader to judge.
+
+Designs with several treatments: give `treat` as a factor or character
+vector of conditions and name the control with `control`, or give `n`,
+`mean`, and `sd` as vectors named by condition together with `control`.
+Each treatment is then compared with the control, and each comparison
+uses only the two groups it compares: their pooled SD, t test, and
+Hedges's g are the same as in a four-group analysis of that treatment
+and the control. The p-values are not adjusted for the number of
+comparisons.
 
 **What the design cannot check.** The unpretested arms form the
 posttest-only control group design, which relies on randomization rather
@@ -88,6 +115,10 @@ Kelley, K. (2007). Confidence intervals for standardized effect sizes:
 Theory, application, and implementation. *Journal of Statistical
 Software, 20*(8), 1–24. https://doi.org/10.18637/jss.v020.i08
 
+Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
+of transfer interventions using Solomon four-group designs. *Education
+Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
 ## See also
 
 [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
@@ -106,6 +137,31 @@ baseline_solomon(n = pre$n, mean = pre$pre_mean, sd = pre$pre_sd)
 #> 
 #> Difference: 1.75, 95% CI [-0.39, 3.89], t(32) = 1.66, p = .106
 #> Hedges's g: 0.63, 95% CI [-0.14, 1.42] (noncentral t)
+#> 
+#> The unpretested arms have no pretest, so their baseline cannot be checked
+#> or adjusted for with the study's own data.
+
+# Mai et al. (2020): two treatments, each compared with the control.
+baseline_solomon(pre_behavior, condition, pretested, control = "Control",
+                 data = mai2020)
+#> Baseline comparison of the pretested arms
+#> -----------------------------------------
+#> Solomon N-group design: two treatments (RP, GS) and a control (Control), six groups
+#> 
+#>   Pretested, RP          n = 35, M = 3.15, SD = 0.35
+#>   Pretested, GS          n = 33, M = 3.22, SD = 0.36
+#>   Pretested, Control     n = 50, M = 3.13, SD = 0.34
+#> 
+#> RP vs Control
+#>   Difference: 0.02, 95% CI [-0.13, 0.17], t(83) = 0.26, p = .797
+#>   Hedges's g: 0.06, 95% CI [-0.38, 0.49] (noncentral t)
+#> 
+#> GS vs Control
+#>   Difference: 0.10, 95% CI [-0.06, 0.25], t(81) = 1.22, p = .225
+#>   Hedges's g: 0.27, 95% CI [-0.17, 0.72] (noncentral t)
+#> 
+#> Each comparison uses the two groups it compares; the p-values are not
+#> adjusted for the number of comparisons.
 #> 
 #> The unpretested arms have no pretest, so their baseline cannot be checked
 #> or adjusted for with the study's own data.

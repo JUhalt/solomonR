@@ -33,7 +33,9 @@ invariance_solomon(
 
 - treat, pretested:
 
-  Treatment and pretest indicators (0/1).
+  Treatment and pretest indicators (0/1). Designs with several
+  treatments are not supported; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 - estimator:
 

@@ -26,7 +26,9 @@ marginal_solomon(
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
   with `family = binomial()` (logit link), `family = poisson()` (log
   link), or `family = "negative_binomial"`, with HC3 or model-based
-  covariance, or, for binary outcomes, CR2 covariance.
+  covariance, or, for binary outcomes, CR2 covariance. Designs with
+  several treatments are not supported; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 - scale:
 

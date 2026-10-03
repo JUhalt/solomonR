@@ -43,6 +43,7 @@ smallest effect size of interest (SESOI) can provide that evidence."></head><bod
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -71,6 +72,7 @@ smallest effect size of interest (SESOI) can provide that evidence."></head><bod
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -111,6 +113,7 @@ smallest effect size of interest (SESOI) can provide that evidence.</p>
 <span>  <span class="va">bounds</span>,</span>
 <span>  contrast <span class="op">=</span> <span class="st">"Pretest x Treatment"</span>,</span>
 <span>  alpha <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>  comparison <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  object <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -139,6 +142,12 @@ advance.</p></dd>
 <dd><p>Significance level for each one-sided test. Default is 0.05.</p></dd>
 
 
+<dt id="arg-comparison">comparison<a class="anchor" aria-label="anchor" href="#arg-comparison"></a></dt>
+<dd><p>For a design with several treatments, the comparison to
+test, one of the <code>comparison</code> values of <code>fit$effects</code> (see "Designs with
+several treatments"). Leave it <code>NULL</code> for a four-group design.</p></dd>
+
+
 <dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
 <dd><p><a href="https://lifecycle.r-lib.org/articles/stages.html#deprecated" class="external-link"><img src="figures/lifecycle-deprecated.svg" alt="[Deprecated]"></a> Use <code>fit</code>.</p></dd>
 
@@ -150,7 +159,9 @@ standard error, degrees of freedom, both one-sided tests
 (<code>t_lower</code>, <code>p_lower</code>, <code>t_upper</code>, <code>p_upper</code>), the equivalence p-value
 (<code>p_equivalence</code>), the test against zero (<code>statistic</code>, <code>p_zero</code>), both
 confidence intervals, the logical results <code>equivalent</code>, <code>different</code>, and
-<code>exceeds_bounds</code>, the <code>outcome</code>, and a plain-language <code>interpretation</code>.</p>
+<code>exceeds_bounds</code>, the <code>outcome</code>, and a plain-language <code>interpretation</code>.
+For a design with several treatments, it also holds the <code>comparison</code>,
+its <code>weights</code> over the conditions, and the <code>conditions</code> of the fit.</p>
     </div>
     <div class="section level2">
     <h2 id="choosing-equivalence-bounds">Choosing equivalence bounds<a class="anchor" aria-label="anchor" href="#choosing-equivalence-bounds"></a></h2>
@@ -199,6 +210,17 @@ size of interest in that direction (a minimum-effect test; Murphy &amp; Myors,
 1999).</p>
     </div>
     <div class="section level2">
+    <h2 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a></h2>
+
+
+<p>For a <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> fit of a design with several treatments (class
+<code>solomon_ngroup</code>), name the comparison to test with <code>comparison</code>, such
+as <code>"RP vs Control"</code>; it may be left out only when the fit has a single
+comparison. The test uses that comparison's estimate of the chosen
+contrast and its standard error. It is not adjusted for the other
+comparisons of the design.</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. <em>Social Psychological and Personality
@@ -238,6 +260,30 @@ bioavailability. <em>Journal of Pharmacokinetics and Biopharmaceutics, 15</em>(6
 <span class="r-out co"><span class="r-pr">#&gt;</span> Upper bound test:   t(115) = -2.19, p = 0.015</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Equivalence (TOST): p = 0.168</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Test against zero:  t(115) = -0.61, p = 0.541</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Conclusion: Inconclusive: the contrast is neither different from zero nor</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   statistically equivalent.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Equivalence bounds must be justified and fixed before the data are examined;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> see ?equivalence_solomon.</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A six-group design: test one comparison at a time. The bounds here are</span></span></span>
+<span class="r-in"><span><span class="co"># again illustrative only.</span></span></span>
+<span class="r-in"><span><span class="va">fit6</span> <span class="op">&lt;-</span> <span class="fu"><a href="fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">condition</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span>,</span></span>
+<span class="r-in"><span>                        control <span class="op">=</span> <span class="st">"Control"</span>, data <span class="op">=</span> <span class="va">mai2020</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">equivalence_solomon</span><span class="op">(</span><span class="va">fit6</span>, bounds <span class="op">=</span> <span class="fl">0.3</span>, comparison <span class="op">=</span> <span class="st">"RP vs Control"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Solomon equivalence test (TOST)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Contrast: Pretest x Treatment</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Comparison: RP vs Control</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Equivalence bounds (raw scale): [-0.300, 0.300]; alpha = 0.05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Inference: HC3 heteroskedasticity-consistent; t tests (df = 126)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Estimate = -0.290 (SE = 0.156)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 90% CI [-0.549, -0.030] (equivalence); 95% CI [-0.599, 0.020] (test against zero)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lower bound test:   t(126) = 0.07, p = 0.474</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Upper bound test:   t(126) = -3.77, p = &lt;.001</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Equivalence (TOST): p = 0.474</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Test against zero:  t(126) = -1.85, p = 0.066</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Conclusion: Inconclusive: the contrast is neither different from zero nor</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   statistically equivalent.</span>

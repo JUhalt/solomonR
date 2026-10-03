@@ -43,6 +43,7 @@ non-pre-tested groups&quot; (p. 7)."></head><body>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -71,6 +72,7 @@ non-pre-tested groups&quot; (p. 7)."></head><body>
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -125,7 +127,8 @@ non-pre-tested groups" (p. 7).</p>
 
 
 <dt id="arg-treat">treat<a class="anchor" aria-label="anchor" href="#arg-treat"></a></dt>
-<dd><p>Treatment indicator coded 0/1 (or logical).</p></dd>
+<dd><p>Treatment indicator coded 0/1 (or logical). Designs with
+several treatments are not supported; see <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>.</p></dd>
 
 
 <dt id="arg-pretested">pretested<a class="anchor" aria-label="anchor" href="#arg-pretested"></a></dt>

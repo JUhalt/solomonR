@@ -59,12 +59,13 @@ The status column uses six labels:
 
 | Source | Contribution to the analysis of the design | In solomonR | Status |
 |----|----|----|----|
-| McCarthy & Tucker (2002) | A nonrandomized eight-group design crossing two interventions with pretesting. | Not yet used | Planned ([\#45](https://github.com/JUhalt/solomonR/issues/45)) |
+| McCarthy & Tucker (2002) | A nonrandomized eight-group design crossing two interventions with pretesting, analyzed as three overlapping four-group designs (pp. 637–640). | The planned comparisons of `fit_solomon_glm(control = , contrasts = )`; the factorial example in “Designs With Several Treatments” | Guidance |
+| Steyn (2005) | An eight-group study with three treatments and 1,723 participants, in which existing classes were allocated to the groups (pp. 103–106). Analyzed as overlapping four-group designs, then by a one-way analysis of variance of the eight posttests with Scheffé tests (pp. 151–153). | `steyn2005`, whose published analyses [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md) and the package’s tests reproduce; the default post hoc tests of [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md) | Data (reproduced) |
 | Morris (2008) | Effect sizes for pretest–posttest–control designs; the pooled-pretest-SD estimator and its variance. | [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md) for the pretested pair | Implemented |
-| Steyn (2009) | Analyses of four-, six-, and eight-group designs, as cited by Edmonds and Kennedy (2017). | Awaiting the article | Not yet reviewed ([\#45](https://github.com/JUhalt/solomonR/issues/45)) |
+| Steyn (2009) | The design extended to k treatments, with 2(k + 1) groups, and to repeated posttests. A sequence of tests of internal validity (equivalence, history and maturation, testing, the pretest-intervention interaction, reliability, regression to the mean, attrition) and of the treatments’ effects. | [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md); the design of `fit_solomon_glm(control = )`. solomonR follows a pre-publication draft, to be checked against the published article. | Historical; Implemented |
 | McCambridge et al. (2011) | A systematic review of Solomon studies of behavior change: too little evidence to settle whether assessment biases trials. | The getting-started guide and the planning, decision, and reporting articles | Evidence |
-| Edmonds & Kennedy (2017) | Solomon four-, six-, and eight-group designs, and the threats of nonrandomized designs (pp. 7–8, 93–101). | [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md); the nonrandomized wording of [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md); N-group designs planned | Guidance; Planned ([\#45](https://github.com/JUhalt/solomonR/issues/45)) |
-| Mai et al. (2020) | A randomized six-group design analyzed as overlapping four-group designs, with published individual data. | `mai2020` and the worked example, which reproduce its Tables 4, 5, and 7; the history check of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md) | Data; Historical |
+| Edmonds & Kennedy (2017) | Solomon four-, six-, and eight-group designs, and the threats of nonrandomized designs (pp. 7–8, 93–101). | [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md); the nonrandomized wording of [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md); designs with several treatments in `fit_solomon_glm(control = )` | Guidance |
+| Mai et al. (2020) | A randomized six-group design analyzed as overlapping four-group designs, with published individual data. | `mai2020` and the worked example, which reproduce its Tables 4, 5, and 7; the history check of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md); the six-group example of `fit_solomon_glm(control = )` | Data; Historical |
 | French et al. (2021a) | The MERIT recommendations on measurement reactivity in trials, including when a Solomon design is warranted. | “Should I Use a Solomon Design?”; the history article | Guidance |
 | French et al. (2021b) | The full MERIT report, including its recommendations on reporting measurement in trials. | The measurement items of [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md); the reporting and decision articles | Guidance |
 | El Karkri et al. (2025a) | A classroom Solomon study with full cell statistics and one intact class per condition. | `elkarkri2025a`; tests of [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md) and [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md); the class–condition check of [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md) | Data |
@@ -76,8 +77,10 @@ Some methods in solomonR are not specific to the Solomon design. The
 package applies general methods to the design’s estimands, and each
 function cites its sources:
 
-- one model for all four groups with robust standard errors
-  ([`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md));
+- one model for all the groups with robust standard errors
+  ([`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)),
+  and, for designs with several treatments, omnibus tests and
+  comparisons adjusted by Holm’s (1979) procedure;
 - randomization inference
   ([`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md));
 - equivalence tests of sensitization
@@ -112,13 +115,14 @@ extension. An example is
 which adds a pretesting effect to the validated simulation model of
 [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md).
 
-## Sources identified but not yet read
+## Sources read in a version other than the published one
 
-One identified work has not yet been read: Steyn (2009), listed above,
-which has been requested through interlibrary loan. It is tracked in
-[\#80](https://github.com/JUhalt/solomonR/issues/80) and
-[\#45](https://github.com/JUhalt/solomonR/issues/45), and it is not
-cited as a source for any procedure until it has been read.
+Steyn (2009) has been read in a pre-publication draft, dated March 2,
+2009. The draft has no page numbers, so none are cited. The published
+article has been requested, and
+[`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+will be checked against it
+([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 ## References
 
@@ -175,6 +179,10 @@ Gelman, A., & Stern, H. (2006). The difference between “significant” and
 “not significant” is not itself statistically significant. *The American
 Statistician, 60*(4), 328–331.
 <https://doi.org/10.1198/000313006X152649>
+
+Holm, S. (1979). A simple sequentially rejective multiple test
+procedure. *Scandinavian Journal of Statistics, 6*(2), 65–70.
+<https://www.jstor.org/stable/4615733>
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group
 design: Appropriate statistical analyses. *The Journal of Experimental
@@ -243,6 +251,12 @@ Solomon, R. L. (1949). An extension of control group design.
 Solomon, R. L., & Lessac, M. S. (1968). A control group design for
 experimental studies of developmental processes. *Psychological
 Bulletin, 70*(3, Pt. 1), 145–150. <https://doi.org/10.1037/h0026147>
+
+Steyn, R. (2005). *Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of
+self-efficacy perceptions\] \[Doctoral thesis, University of South
+Africa\]. Unisa Institutional Repository.
+<https://hdl.handle.net/10500/1745>
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International

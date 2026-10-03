@@ -5,7 +5,9 @@ four-group study with chosen treatment, pretest, and sensitization
 effects, and attaches the true value of every Solomon estimand. It is a
 solomonR teaching tool: instructors can show that each analysis recovers
 the effects that were built in, and researchers can check an analysis
-plan on data whose answer is known.
+plan on data whose answer is known. With several treatment effects it
+simulates a Solomon N-group design (see "Designs with several
+treatments").
 
 ## Usage
 
@@ -28,18 +30,24 @@ simulate_solomon(
 
 - n:
 
-  Participants per group: one number for all four groups, or four
-  numbers in the order pretested treatment, pretested control,
-  unpretested treatment, unpretested control.
+  Participants per group: one number for all groups, or one number per
+  group. For the four-group design, four numbers in the order pretested
+  treatment, pretested control, unpretested treatment, unpretested
+  control. For k treatments, 2(k + 1) numbers in the order given in
+  "Designs with several treatments". Default 30 per group.
 
 - delta:
 
-  Treatment effect among unpretested participants.
+  Treatment effect among unpretested participants. For a design with
+  several treatments, one effect per treatment, named by treatment.
+  Default 0.
 
 - sens:
 
   Pretest x Treatment interaction (sensitization): the extra treatment
-  effect among pretested participants.
+  effect among pretested participants. For a design with several
+  treatments, one number for every treatment or one per treatment.
+  Default 0.
 
 - pretest_effect:
 
@@ -48,11 +56,11 @@ simulate_solomon(
 
 - rho:
 
-  Pretest-posttest correlation within the pretested groups.
+  Pretest-posttest correlation within the pretested groups. Default 0.5.
 
 - sigma:
 
-  Standard deviation of the scores within each group.
+  Standard deviation of the scores within each group. Default 1.
 
 - mean:
 
@@ -75,8 +83,10 @@ simulate_solomon(
 
 A data frame with `y_post`, `treat`, `pretested`, and `y_pre` (missing
 by design in the unpretested groups), in the form the analysis functions
-take. Its `"truth"` attribute is a data frame of the true estimands, and
-its `"settings"` attribute holds the arguments.
+take. `treat` is 0/1 for the four-group design and a factor of
+conditions for a design with several treatments. Its `"truth"` attribute
+is a data frame of the true estimands, and its `"settings"` attribute
+holds the arguments, with the group sizes named by group.
 
 ## Details
 
@@ -128,7 +138,48 @@ scores reach a limit.
 effect of about a fifth of a standard deviation in randomized studies;
 the article "Planning a Solomon Study" discusses planning values.
 
+## Designs with several treatments
+
+A Solomon N-group design crosses k treatments and a control with
+pretesting, giving 2(k + 1) groups: six for two treatments and eight for
+three (Edmonds & Kennedy, 2017; Steyn, 2009). Give `delta` one effect
+per treatment, named by treatment, for example
+`delta = c(A = 0.5, B = 0.2)`. Without names the treatments are called
+`"T1"`, `"T2"`, and so on; the control is `"Control"`. `sens` is one
+number for every treatment or one per treatment, in the order of
+`delta`; a named `sens` is matched to the treatments by name.
+
+The model is the one above, with the effects `delta[j]` and `sens[j]` of
+treatment j: each treatment differs from the control only by its own
+effects. `n` is one size for every group, or 2(k + 1) sizes in this
+order: the pretested treatments (in the order of `delta`), the pretested
+control, the unpretested treatments, and the unpretested control. Sizes
+named by group, as in the `"settings"` attribute (such as
+`"Pretested, A"`), or named `n1`, `n2`, and so on for the groups in that
+order, may be given in any order. Other names are refused. The groups
+are generated in the order above, and the baselines are drawn before the
+errors.
+
+The `treat` column is then a factor whose levels are the treatments and
+`"Control"`, so the data go directly to
+`fit_solomon_glm(y_post, treat, pretested, y_pre, control = "Control")`.
+The `"truth"` attribute has one row for each treatment-control
+comparison and contrast, with the columns `comparison` (such as
+`"A vs Control"`), `contrast`, and `true_value`, in the order of the
+`effects` table of that fit; a last row gives the pretest effect among
+controls. With one treatment effect the data and the `"truth"` attribute
+are those described above.
+
 ## References
+
+Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
+designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
+Publications. https://doi.org/10.4135/9781071802779
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational
@@ -183,4 +234,51 @@ ex <- simulate_solomon(n = 30, delta = 5, pretest_effect = 2, rho = 0.6,
 attr(ex, "truth") <- attr(ex, "settings") <- NULL
 identical(ex, solomon_example)
 #> [1] TRUE
+
+# A six-group design: two treatments and a control.
+d6 <- simulate_solomon(n = 50, delta = c(A = 0.5, B = 0.2), sens = c(0.3, 0),
+                       rho = 0.6, seed = 1)
+attr(d6, "truth")
+#>     comparison                 contrast true_value
+#> 1 A vs Control   ATE (avg over pretest)       0.65
+#> 2 B vs Control   ATE (avg over pretest)       0.20
+#> 3 A vs Control      Pretest x Treatment       0.30
+#> 4 B vs Control      Pretest x Treatment       0.00
+#> 5 A vs Control    Treatment | pretested       0.80
+#> 6 B vs Control    Treatment | pretested       0.20
+#> 7 A vs Control  Treatment | unpretested       0.50
+#> 8 B vs Control  Treatment | unpretested       0.20
+#> 9      Control Pretest effect | control       0.00
+fit_solomon_glm(y_post, treat, pretested, y_pre, control = "Control", data = d6)
+#> Solomon GLM (unified model), N-group design
+#> Conditions: A, B; control: Control. With and without a pretest: 6 groups.
+#> Formula: y ~ (treat_A + treat_B) * pretested + pre_obs
+#> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 293)
+#> 
+#> Omnibus tests
+#> Test                                  Statistic      p
+#> Condition (avg over pretest)  F(2, 293) = 15.00  <.001
+#> Pretest x Condition            F(2, 293) = 1.15  0.318
+#> Condition | pretested         F(2, 293) = 17.50  <.001
+#> Condition | unpretested        F(2, 293) = 3.07  0.048
+#> 
+#> Contrasts
+#> Comparison    Contrast                      Est (SE)     t   df      p  p adj.           95% CI
+#> A vs Control  ATE (avg over pretest)   0.767 (0.144)  5.32  293  <.001   <.001   [0.483, 1.052]
+#> B vs Control  ATE (avg over pretest)   0.197 (0.130)  1.52  293  0.130   0.130  [-0.059, 0.453]
+#> A vs Control  Pretest x Treatment      0.438 (0.289)  1.52  293  0.130   0.261  [-0.130, 1.006]
+#> B vs Control  Pretest x Treatment      0.194 (0.260)  0.74  293  0.457   0.457  [-0.318, 0.705]
+#> A vs Control  Treatment | pretested    0.986 (0.174)  5.66  293  <.001   <.001   [0.644, 1.329]
+#> B vs Control  Treatment | pretested    0.294 (0.170)  1.73  293  0.084   0.084  [-0.040, 0.628]
+#> A vs Control  Treatment | unpretested  0.549 (0.230)  2.38  293  0.018   0.036   [0.096, 1.002]
+#> B vs Control  Treatment | unpretested  0.100 (0.197)  0.51  293  0.611   0.611  [-0.287, 0.488]
+#> 
+#> p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 2 comparisons.
+#> Confidence intervals are not adjusted.
+#> 
+#> Experimental: in the package's simulation study (issue #45), the omnibus
+#> tests of Condition | pretested and Condition | unpretested rejected in up
+#> to 6.9% of replications at the .05 level with three treatments and 10
+#> participants per group. No other test, and no family of adjusted
+#> comparisons, failed the study's rule. See ?fit_solomon_glm.
 ```

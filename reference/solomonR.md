@@ -36,6 +36,14 @@ the lifecycle package (Henry & Wickham, 2026):
   [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
   and
   [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md).
+  [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+  follows a pre-publication draft of Steyn's (2009) article and will be
+  checked against the published version. The analysis of designs with
+  several treatments in
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  is experimental, because the rule for error control set before its
+  simulation study (issue \#45) was not met for two omnibus tests with
+  three treatments and 10 participants per group.
 
 - **Deprecated.** A former name that still works, with a warning. Its
   help page names the replacement.
@@ -68,6 +76,11 @@ https://doi.org/10.1080/00220973.1994.9944140
 Solomon, R. L. (1949). An extension of control group design.
 *Psychological Bulletin, 46*(2), 137–150.
 https://doi.org/10.1037/h0062958
+
+Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? *Design Principles and Practices: An International
+Journal, 3*(1), 383–394.
+https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente.

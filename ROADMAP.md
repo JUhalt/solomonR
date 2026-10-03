@@ -381,12 +381,24 @@ in review, [PR \#63](https://github.com/JUhalt/solomonR/pull/63)
   \#66](https://github.com/JUhalt/solomonR/pull/66)
 
 Solomon N-group designs: more than two conditions —
-[\#45](https://github.com/JUhalt/solomonR/issues/45)
+[\#45](https://github.com/JUhalt/solomonR/issues/45); in review, [PR
+\#95](https://github.com/JUhalt/solomonR/pull/95)
 
 - One model with planned contrasts in place of overlapping four-group
-  analyses (Edmonds & Kennedy, 2017; Mai et al., 2020)
-- Waiting for Steyn (2009), requested through interlibrary loan. v1.0.0
-  waits for this item.
+  analyses (Edmonds & Kennedy, 2017; Mai et al., 2020):
+  `fit_solomon_glm(control = , contrasts = )`
+- Its simulation study is reported. The analysis is experimental,
+  because the pre-specified rule for error control was not met for two
+  omnibus tests with three treatments and 10 participants per group
+- Steyn’s (2009) sequence of tests,
+  [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md),
+  and the `steyn2005` data (Steyn, 2005)
+- Steyn (2009) has been read in a pre-publication draft, dated March 2,
+  2009. The published article has been requested, and
+        [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+        stays experimental until it has been checked against that
+        version. Whether v1.0.0 waits for that check is decided at
+        sign-off ([\#85](https://github.com/JUhalt/solomonR/issues/85)).
 
 Clustered designs
 
@@ -524,8 +536,9 @@ Literature coverage audit before the feature freeze —
 \#89](https://github.com/JUhalt/solomonR/pull/89)
 
 - The coverage article and its check are done, and every identified
-  source has been read except Steyn (2009), which is on interlibrary
-  loan.
+  source has been read, Steyn (2009) in a pre-publication draft. The
+  check against the published article is tracked in
+  [\#45](https://github.com/JUhalt/solomonR/issues/45).
 
 **Research workflow**
 

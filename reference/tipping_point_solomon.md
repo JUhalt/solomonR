@@ -37,7 +37,9 @@ tipping_point_solomon(
 
 - treat:
 
-  Treatment indicator coded 0/1 (or logical).
+  Treatment indicator coded 0/1 (or logical). Designs with several
+  treatments are not supported; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 - pretested:
 

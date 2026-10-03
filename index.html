@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Analyze Solomon Four-Group Designs">
-<meta name="description" content="Tools for planning, analyzing, teaching, and reporting Solomon four-group experiments (Solomon, 1949) &lt;doi:10.1037/h0062958&gt;. The historical analyses are reproduced and labeled as such, from Solomons improvement scores to the Tests A-I sequence of Walton Braver and Braver (1988) &lt;doi:10.1037/0033-2909.104.1.150&gt; and its published revisions. Contemporary analyses include one generalized linear model for all four groups with robust or cluster-robust standard errors, for continuous, binary, and count outcomes; randomization inference; full-information maximum likelihood (van Engelenburg, 1999); observed- and latent-variable structural equation models with lavaan'; and equivalence tests of pretest sensitization. Also includes design checks, power and sample-size planning, simulated teaching data, published data sets, and APA-style reports with method-specific references.">
-<meta property="og:description" content="Tools for planning, analyzing, teaching, and reporting Solomon four-group experiments (Solomon, 1949) &lt;doi:10.1037/h0062958&gt;. The historical analyses are reproduced and labeled as such, from Solomons improvement scores to the Tests A-I sequence of Walton Braver and Braver (1988) &lt;doi:10.1037/0033-2909.104.1.150&gt; and its published revisions. Contemporary analyses include one generalized linear model for all four groups with robust or cluster-robust standard errors, for continuous, binary, and count outcomes; randomization inference; full-information maximum likelihood (van Engelenburg, 1999); observed- and latent-variable structural equation models with lavaan'; and equivalence tests of pretest sensitization. Also includes design checks, power and sample-size planning, simulated teaching data, published data sets, and APA-style reports with method-specific references.">
+<meta name="description" content="Tools for planning, analyzing, teaching, and reporting Solomon four-group experiments (Solomon, 1949) &lt;doi:10.1037/h0062958&gt;. The historical analyses are reproduced and labeled as such, from Solomons improvement scores to the Tests A-I sequence of Walton Braver and Braver (1988) &lt;doi:10.1037/0033-2909.104.1.150&gt; and its published revisions. Contemporary analyses include one generalized linear model for all the groups, of four-group designs and of designs with several treatments, with robust or cluster-robust standard errors, for continuous, binary, and count outcomes; randomization inference; full-information maximum likelihood (van Engelenburg, 1999); observed- and latent-variable structural equation models with lavaan'; and equivalence tests of pretest sensitization. Also includes design checks, power and sample-size planning, simulated teaching data, published data sets, and APA-style reports with method-specific references.">
+<meta property="og:description" content="Tools for planning, analyzing, teaching, and reporting Solomon four-group experiments (Solomon, 1949) &lt;doi:10.1037/h0062958&gt;. The historical analyses are reproduced and labeled as such, from Solomons improvement scores to the Tests A-I sequence of Walton Braver and Braver (1988) &lt;doi:10.1037/0033-2909.104.1.150&gt; and its published revisions. Contemporary analyses include one generalized linear model for all the groups, of four-group designs and of designs with several treatments, with robust or cluster-robust standard errors, for continuous, binary, and count outcomes; randomization inference; full-information maximum likelihood (van Engelenburg, 1999); observed- and latent-variable structural equation models with lavaan'; and equivalence tests of pretest sensitization. Also includes design checks, power and sample-size planning, simulated teaching data, published data sets, and APA-style reports with method-specific references.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -48,6 +48,7 @@
     <li><a class="dropdown-item" href="articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -76,6 +77,7 @@
     <li><a class="dropdown-item" href="articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="articles/references.html">References and the Solomon Literature</a></li>
@@ -455,6 +457,10 @@
 <tr>
 <td>Several posttest occasions, with dropout</td>
 <td><code><a href="reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code></td>
+</tr>
+<tr>
+<td>Several treatments (six- and eight-group designs)</td>
+<td><code>fit_solomon_glm(control = )</code></td>
 </tr>
 <tr>
 <td>Model diagnostics</td>

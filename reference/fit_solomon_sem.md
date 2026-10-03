@@ -35,7 +35,9 @@ fit_solomon_sem(
 
 - treat:
 
-  0/1 (or logical) treatment indicator
+  0/1 (or logical) treatment indicator. Designs with several treatments
+  are not supported; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 - pretested:
 

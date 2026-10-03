@@ -30,7 +30,9 @@ fit_solomon_1949(
   Individual data: posttest scores, training (treatment) and pretest
   indicators coded 0/1, and pretest scores, missing by design for
   unpretested participants. A design with no participant who is neither
-  pretested nor trained is analyzed as the three-group design.
+  pretested nor trained is analyzed as the three-group design. Designs
+  with several treatments are not supported; see
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 - post_mean, pre_mean:
 

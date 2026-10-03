@@ -424,6 +424,7 @@ A useful starting point is:
 | Check design coding and missingness | [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md), [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md) |
 | Sensitivity analysis for missing posttests | [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md), [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md) |
 | Several posttest occasions, with dropout | [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md) |
+| Several treatments (six- and eight-group designs) | `fit_solomon_glm(control = )` |
 | Model diagnostics | [`check_solomon_assumptions()`](https://juhalt.github.io/solomonR/reference/check_solomon_assumptions.md) |
 
 For many ordinary randomized Solomon experiments with continuous

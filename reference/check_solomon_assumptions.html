@@ -39,6 +39,7 @@ complete scores."></head><body>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -67,6 +68,7 @@ complete scores."></head><body>
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -100,7 +102,14 @@ complete scores.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">check_solomon_assumptions</span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, data <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">check_solomon_assumptions</span><span class="op">(</span></span>
+<span>  <span class="va">y_post</span>,</span>
+<span>  <span class="va">treat</span>,</span>
+<span>  <span class="va">pretested</span>,</span>
+<span>  <span class="va">y_pre</span>,</span>
+<span>  control <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  data <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -112,7 +121,8 @@ complete scores.</p>
 
 
 <dt id="arg-treat">treat<a class="anchor" aria-label="anchor" href="#arg-treat"></a></dt>
-<dd><p>0/1 (or logical) treatment indicator</p></dd>
+<dd><p>0/1 (or logical) treatment indicator; or a factor or
+character vector of conditions, with the control named by <code>control</code></p></dd>
 
 
 <dt id="arg-pretested">pretested<a class="anchor" aria-label="anchor" href="#arg-pretested"></a></dt>
@@ -123,6 +133,13 @@ complete scores.</p>
 <dd><p>numeric pretest (NA for unpretested)</p></dd>
 
 
+<dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
+<dd><p>The control condition when <code>treat</code> is a factor or
+character vector with more than two conditions, a Solomon N-group
+design; see <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>. With two conditions the result is the
+same as with a 0/1 <code>treat</code>.</p></dd>
+
+
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (<code>y_post = post</code>) or as
@@ -131,7 +148,15 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_checks</code>.</p>
+    <p>An object of class <code>solomon_checks</code> with the p-values
+<code>brown_forsythe_4cell_p</code> (all four posttest cells),
+<code>brown_forsythe_unpre_p</code> (the unpretested cells), <code>shapiro_p_by_cell</code>
+(one p-value for each cell, named by the pretest indicator and the
+treatment, such as <code>1.0</code>), and <code>ancova_slope_homogeneity_p</code>. For a
+design with several treatments, the test across all the posttest cells
+is <code>brown_forsythe_cells_p</code>, the cells of <code>shapiro_p_by_cell</code> are named
+by the pretest indicator and the condition, such as <code>1.RP</code>, and
+<code>conditions</code> names the control and the treatments.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -143,6 +168,13 @@ the unified GLM regardless of these results (Long &amp; Ervin, 2000). A small
 slope-homogeneity p-value is substantively informative: it suggests that
 the treatment effect among pretested participants depends on the pretest
 score.</p>
+<p>Designs with several treatments: give <code>treat</code> as a factor or character
+vector of conditions and name the control with <code>control</code>. The tests then
+cover all 2(k + 1) cells of a design with k treatments (Steyn, 2009): the
+Brown-Forsythe tests compare all the posttest cells and the k + 1
+unpretested groups, and the slope-homogeneity test is a test on k degrees
+of freedom that the pretest-posttest slope is the same in the k + 1
+pretested groups.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -152,6 +184,12 @@ variances. <em>Journal of the American Statistical Association, 69</em>(346),
 <p>Long, J. S., &amp; Ervin, L. H. (2000). Using heteroscedasticity consistent
 standard errors in the linear regression model. <em>The American Statistician,
 54</em>(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549</p>
+<p>Mai, N. N., Takahashi, Y., &amp; Oo, M. M. (2020). Testing the effectiveness of
+transfer interventions using Solomon four-group designs. <em>Education
+Sciences, 10</em>(4), Article 92. https://doi.org/10.3390/educsci10040092</p>
+<p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? <em>Design Principles and Practices: An International
+Journal, 3</em>(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</p>
 <p>Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. <em>British Journal of Mathematical and Statistical Psychology,
 57</em>(1), 173–181. https://doi.org/10.1348/000711004849222</p>
@@ -165,6 +203,24 @@ variances. <em>British Journal of Mathematical and Statistical Psychology,
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Equal variance, unpretested cells (Brown-Forsythe)   p = 0.297</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Normality within cells (Shapiro-Wilk, smallest p)    p = 0.006</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Homogeneous slopes, pretested groups (Treat x Pre)   p = 0.108</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> These p-values describe the data; they are not gates for choosing an</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> analysis. Selecting a test because a preliminary assumption test was or</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> was not significant can distort Type I error rates (Zimmerman, 2004).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> HC3 robust standard errors are a reasonable default for the unified GLM</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> regardless of these results (Long &amp; Ervin, 2000). A small slope p-value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> suggests the treatment effect in pretested groups depends on the pretest</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> score, which is substantively informative.</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A six-group design: two treatments and a control (Mai et al., 2020).</span></span></span>
+<span class="r-in"><span><span class="fu">check_solomon_assumptions</span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">condition</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span>,</span></span>
+<span class="r-in"><span>                          control <span class="op">=</span> <span class="st">"Control"</span>, data <span class="op">=</span> <span class="va">mai2020</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Solomon assumption diagnostics (descriptive)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Solomon N-group design: two treatments (RP, GS) and a control (Control), six groups</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Equal variance, all posttest cells (Brown-Forsythe)  p = 0.865</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Equal variance, unpretested cells (Brown-Forsythe)   p = 0.966</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Normality within cells (Shapiro-Wilk, smallest p)    p = 0.069</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Homogeneous slopes, pretested groups (Treat x Pre)   p = 0.692</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> These p-values describe the data; they are not gates for choosing an</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> analysis. Selecting a test because a preliminary assumption test was or</span>

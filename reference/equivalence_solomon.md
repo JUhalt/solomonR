@@ -15,6 +15,7 @@ equivalence_solomon(
   bounds,
   contrast = "Pretest x Treatment",
   alpha = 0.05,
+  comparison = NULL,
   object = deprecated()
 )
 ```
@@ -43,6 +44,12 @@ equivalence_solomon(
 
   Significance level for each one-sided test. Default is 0.05.
 
+- comparison:
+
+  For a design with several treatments, the comparison to test, one of
+  the `comparison` values of `fit$effects` (see "Designs with several
+  treatments"). Leave it `NULL` for a four-group design.
+
 - object:
 
   **\[deprecated\]** Use `fit`.
@@ -55,6 +62,8 @@ standard error, degrees of freedom, both one-sided tests (`t_lower`,
 (`p_equivalence`), the test against zero (`statistic`, `p_zero`), both
 confidence intervals, the logical results `equivalent`, `different`, and
 `exceeds_bounds`, the `outcome`, and a plain-language `interpretation`.
+For a design with several treatments, it also holds the `comparison`,
+its `weights` over the conditions, and the `conditions` of the fit.
 
 ## Choosing equivalence bounds
 
@@ -105,6 +114,16 @@ beyond one bound, which rejects effects no larger than the smallest
 effect size of interest in that direction (a minimum-effect test; Murphy
 & Myors, 1999).
 
+## Designs with several treatments
+
+For a
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+fit of a design with several treatments (class `solomon_ngroup`), name
+the comparison to test with `comparison`, such as `"RP vs Control"`; it
+may be left out only when the fit has a single comparison. The test uses
+that comparison's estimate of the chosen contrast and its standard
+error. It is not adjusted for the other comparisons of the design.
+
 ## References
 
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
@@ -148,6 +167,30 @@ equivalence_solomon(fit, bounds = 5)
 #> Upper bound test:   t(115) = -2.19, p = 0.015
 #> Equivalence (TOST): p = 0.168
 #> Test against zero:  t(115) = -0.61, p = 0.541
+#> 
+#> Conclusion: Inconclusive: the contrast is neither different from zero nor
+#>   statistically equivalent.
+#> Equivalence bounds must be justified and fixed before the data are examined;
+#> see ?equivalence_solomon.
+
+# A six-group design: test one comparison at a time. The bounds here are
+# again illustrative only.
+fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                        control = "Control", data = mai2020)
+equivalence_solomon(fit6, bounds = 0.3, comparison = "RP vs Control")
+#> Solomon equivalence test (TOST)
+#> Contrast: Pretest x Treatment
+#> Comparison: RP vs Control
+#> Equivalence bounds (raw scale): [-0.300, 0.300]; alpha = 0.05
+#> Inference: HC3 heteroskedasticity-consistent; t tests (df = 126)
+#> 
+#> Estimate = -0.290 (SE = 0.156)
+#> 90% CI [-0.549, -0.030] (equivalence); 95% CI [-0.599, 0.020] (test against zero)
+#> 
+#> Lower bound test:   t(126) = 0.07, p = 0.474
+#> Upper bound test:   t(126) = -3.77, p = <.001
+#> Equivalence (TOST): p = 0.474
+#> Test against zero:  t(126) = -1.85, p = 0.066
 #> 
 #> Conclusion: Inconclusive: the contrast is neither different from zero nor
 #>   statistically equivalent.

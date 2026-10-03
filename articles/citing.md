@@ -70,6 +70,7 @@ includes them, and each function’s help page lists them all.
 | [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md) | Carpenter et al. (2023); van Buuren (2018); Cro et al. (2019) |
 | [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md) | White et al. (2011); Little et al. (2012); Carpenter et al. (2023) |
 | [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md) | Mallinckrodt et al. (2008); Laird & Ware (1982); Sabanes Bove et al. (2026) |
+| [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md) | Steyn (2009); Walton Braver & Braver (1988); Holm (1979) |
 
 The full entries, with notes on how the package uses each work, are on
 the

@@ -43,6 +43,7 @@ plot_solomon_change()."></head><body>
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -71,6 +72,7 @@ plot_solomon_change()."></head><body>
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -106,7 +108,14 @@ contrast, see <code><a href="plot_sensitization.html">plot_sensitization()</a></
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_solomon_means</span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, conf_level <span class="op">=</span> <span class="fl">0.95</span>, data <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_solomon_means</span><span class="op">(</span></span>
+<span>  <span class="va">y_post</span>,</span>
+<span>  <span class="va">treat</span>,</span>
+<span>  <span class="va">pretested</span>,</span>
+<span>  conf_level <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  control <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  data <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -118,7 +127,9 @@ contrast, see <code><a href="plot_sensitization.html">plot_sensitization()</a></
 
 
 <dt id="arg-treat">treat<a class="anchor" aria-label="anchor" href="#arg-treat"></a></dt>
-<dd><p>Treatment indicator coded 0 = control and 1 = treatment.</p></dd>
+<dd><p>Treatment indicator coded 0 = control and 1 = treatment; or,
+for a design with several treatments, a factor or character vector of
+conditions, with the control named by <code>control</code>.</p></dd>
 
 
 <dt id="arg-pretested">pretested<a class="anchor" aria-label="anchor" href="#arg-pretested"></a></dt>
@@ -127,6 +138,12 @@ contrast, see <code><a href="plot_sensitization.html">plot_sensitization()</a></
 
 <dt id="arg-conf-level">conf_level<a class="anchor" aria-label="anchor" href="#arg-conf-level"></a></dt>
 <dd><p>Confidence level for the intervals. Default is 0.95.</p></dd>
+
+
+<dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
+<dd><p>The control condition, when <code>treat</code> is a factor or
+character vector. With two conditions the figure is the same as with a
+0/1 <code>treat</code>.</p></dd>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
@@ -138,7 +155,25 @@ strings (<code>y_post = "post"</code>).</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A ggplot object. Its <code>data</code> element holds the group summaries:
-<code>n</code>, <code>mean</code>, <code>sd</code>, <code>se</code>, and the interval limits <code>lo</code> and <code>hi</code>.</p>
+<code>n</code>, <code>mean</code>, <code>sd</code>, <code>se</code>, and the interval limits <code>lo</code> and <code>hi</code>. Its
+<code>treat</code> column is 0/1 for a four-group design and holds the condition
+for a design with several treatments.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a></h2>
+
+
+<p>For a Solomon N-group design, with k treatments and a control each with
+and without a pretest (Steyn, 2009), give <code>treat</code> as a factor or character
+vector of conditions and name the control with <code>control</code>. Each panel then
+shows the k + 1 conditions, the control first, as with the four-group
+design.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
+    <p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
+this exemplary model? <em>Design Principles and Practices: An International
+Journal, 3</em>(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -149,6 +184,11 @@ strings (<code>y_post = "post"</code>).</p></dd>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">plot_solomon_means</span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, data <span class="op">=</span> <span class="va">solomon_example</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_solomon_means-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A six-group design: two treatments and a control.</span></span></span>
+<span class="r-in"><span><span class="fu">plot_solomon_means</span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">condition</span>, <span class="va">pretested</span>,</span></span>
+<span class="r-in"><span>                   control <span class="op">=</span> <span class="st">"Control"</span>, data <span class="op">=</span> <span class="va">mai2020</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="plot_solomon_means-2.png" alt="" width="700" height="433"></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

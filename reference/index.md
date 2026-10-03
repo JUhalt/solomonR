@@ -25,8 +25,7 @@ Design coding, cell structure, clustering, missingness, and baseline
 balance, before analysis.
 
 - [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md)
-  **\[stable\]** : Validate the structure and coding of a Solomon
-  four-group design
+  **\[stable\]** : Validate the structure and coding of a Solomon design
 - [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
   **\[stable\]** : Distinguish structural and incidental missingness in
   a Solomon design
@@ -38,8 +37,9 @@ balance, before analysis.
 
 ## Analyze: recommended methods
 
-One model for all four groups, with robust, likelihood-based, and
-randomization-based inference.
+One model for all the groups, with robust, likelihood-based, and
+randomization-based inference. fit_solomon_glm() also analyzes designs
+with several treatments.
 
 - [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
   **\[stable\]** : Fit the unified GLM for a Solomon Four-Group design
@@ -120,6 +120,9 @@ analyses.
   **\[stable\]** : Historical Solomon Four-Group Analysis
 - [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
   **\[stable\]** : Historical Solomon decision path
+- [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+  **\[experimental\]** : Steyn's (2009) analysis of the extended Solomon
+  design
 - [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md)
   **\[stable\]** : Historical categorical analysis of a binary Solomon
   outcome
@@ -143,7 +146,7 @@ analyses.
 - [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
   **\[stable\]** : Pretest sensitization figure
 - [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
-  **\[stable\]** : Schematic of the Solomon four-group design
+  **\[stable\]** : Schematic of a Solomon design
 - [`plot_solomon_change()`](https://juhalt.github.io/solomonR/reference/plot_solomon_change.md)
   **\[stable\]** : Pretest-to-posttest change in a Solomon design
 
@@ -163,6 +166,8 @@ analyses.
   Transfer-intervention data from Mai et al. (2020)
 - [`solomon1949`](https://juhalt.github.io/solomonR/reference/solomon1949.md)
   : Solomon's (1949) spelling experiment
+- [`steyn2005`](https://juhalt.github.io/solomonR/reference/steyn2005.md)
+  : Group statistics from Steyn's (2005) eight-group study
 
 ## Deprecated
 

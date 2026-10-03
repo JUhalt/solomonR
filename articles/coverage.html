@@ -48,6 +48,7 @@
     <li><a class="dropdown-item" href="../articles/solomon-methods.html">Solomon Methods: History, Recommendations, and Extensions</a></li>
     <li><a class="dropdown-item" href="../articles/sem.html">Structural Equation Models for Solomon Designs</a></li>
     <li><a class="dropdown-item" href="../articles/missing-and-repeated.html">Missing and Repeated Posttests</a></li>
+    <li><a class="dropdown-item" href="../articles/several-treatments.html">Designs With Several Treatments</a></li>
     <li><a class="dropdown-item" href="../articles/worked-example.html">Worked Example: A Published Solomon Study</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Report</h6></li>
@@ -76,6 +77,7 @@
     <li><a class="dropdown-item" href="../articles/invariance-validation.html">Latent Contrasts: Validating the Invariance Check</a></li>
     <li><a class="dropdown-item" href="../articles/mi-validation.html">Missing Posttests: Validating the Sensitivity Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/mmrm-validation.html">Longitudinal Designs: Validating the Repeated-Measures Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/ngroup-validation.html">Designs With Several Treatments: Validating the Joint Model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>References</h6></li>
     <li><a class="dropdown-item" href="../articles/references.html">References and the Solomon Literature</a></li>
@@ -378,11 +380,28 @@ absent pretests as structurally missing.</td>
 <tr class="odd">
 <td>McCarthy &amp; Tucker (2002)</td>
 <td>A nonrandomized eight-group design crossing two interventions with
-pretesting.</td>
-<td>Not yet used</td>
-<td>Planned (<a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>)</td>
+pretesting, analyzed as three overlapping four-group designs
+(pp. 637–640).</td>
+<td>The planned comparisons of
+<code>fit_solomon_glm(control = , contrasts = )</code>; the factorial
+example in “Designs With Several Treatments”</td>
+<td>Guidance</td>
 </tr>
 <tr class="even">
+<td>Steyn (2005)</td>
+<td>An eight-group study with three treatments and 1,723 participants,
+in which existing classes were allocated to the groups (pp. 103–106).
+Analyzed as overlapping four-group designs, then by a one-way analysis
+of variance of the eight posttests with Scheffé tests
+(pp. 151–153).</td>
+<td>
+<code>steyn2005</code>, whose published analyses
+<code><a href="../reference/solomon_from_summary.html">solomon_from_summary()</a></code> and the package’s tests reproduce;
+the default post hoc tests of <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>
+</td>
+<td>Data (reproduced)</td>
+</tr>
+<tr class="odd">
 <td>Morris (2008)</td>
 <td>Effect sizes for pretest–posttest–control designs; the
 pooled-pretest-SD estimator and its variance.</td>
@@ -390,14 +409,20 @@ pooled-pretest-SD estimator and its variance.</td>
 <code><a href="../reference/solomon_effect_sizes.html">solomon_effect_sizes()</a></code> for the pretested pair</td>
 <td>Implemented</td>
 </tr>
-<tr class="odd">
-<td>Steyn (2009)</td>
-<td>Analyses of four-, six-, and eight-group designs, as cited by
-Edmonds and Kennedy (2017).</td>
-<td>Awaiting the article</td>
-<td>Not yet reviewed (<a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>)</td>
-</tr>
 <tr class="even">
+<td>Steyn (2009)</td>
+<td>The design extended to k treatments, with 2(k + 1) groups, and to
+repeated posttests. A sequence of tests of internal validity
+(equivalence, history and maturation, testing, the pretest-intervention
+interaction, reliability, regression to the mean, attrition) and of the
+treatments’ effects.</td>
+<td>
+<code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>; the design of
+<code>fit_solomon_glm(control = )</code>. solomonR follows a
+pre-publication draft, to be checked against the published article.</td>
+<td>Historical; Implemented</td>
+</tr>
+<tr class="odd">
 <td>McCambridge et al. (2011)</td>
 <td>A systematic review of Solomon studies of behavior change: too
 little evidence to settle whether assessment biases trials.</td>
@@ -405,34 +430,37 @@ little evidence to settle whether assessment biases trials.</td>
 articles</td>
 <td>Evidence</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Edmonds &amp; Kennedy (2017)</td>
 <td>Solomon four-, six-, and eight-group designs, and the threats of
 nonrandomized designs (pp. 7–8, 93–101).</td>
 <td>
 <code><a href="../reference/baseline_solomon.html">baseline_solomon()</a></code>; the nonrandomized wording of
-<code><a href="../reference/report_solomon.html">report_solomon()</a></code>; N-group designs planned</td>
-<td>Guidance; Planned (<a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>)</td>
+<code><a href="../reference/report_solomon.html">report_solomon()</a></code>; designs with several treatments in
+<code>fit_solomon_glm(control = )</code>
+</td>
+<td>Guidance</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Mai et al. (2020)</td>
 <td>A randomized six-group design analyzed as overlapping four-group
 designs, with published individual data.</td>
 <td>
 <code>mai2020</code> and the worked example, which reproduce its
 Tables 4, 5, and 7; the history check of
-<code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>
+<code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>; the six-group example of
+<code>fit_solomon_glm(control = )</code>
 </td>
 <td>Data; Historical</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>French et al. (2021a)</td>
 <td>The MERIT recommendations on measurement reactivity in trials,
 including when a Solomon design is warranted.</td>
 <td>“Should I Use a Solomon Design?”; the history article</td>
 <td>Guidance</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>French et al. (2021b)</td>
 <td>The full MERIT report, including its recommendations on reporting
 measurement in trials.</td>
@@ -440,7 +468,7 @@ measurement in trials.</td>
 reporting and decision articles</td>
 <td>Guidance</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>El Karkri et al. (2025a)</td>
 <td>A classroom Solomon study with full cell statistics and one intact
 class per condition.</td>
@@ -451,7 +479,7 @@ the class–condition check of <code><a href="../reference/validate_solomon.html
 </td>
 <td>Data</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>El Karkri et al. (2025b)</td>
 <td>An analysis path for categorical outcomes, judging sensitization by
 the significance of the two simple effects.</td>
@@ -470,8 +498,10 @@ the significance of the two simple effects.</td>
 package applies general methods to the design’s estimands, and each
 function cites its sources:</p>
 <ul>
-<li>one model for all four groups with robust standard errors
-(<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>);</li>
+<li>one model for all the groups with robust standard errors
+(<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>), and, for designs with several
+treatments, omnibus tests and comparisons adjusted by Holm’s (1979)
+procedure;</li>
 <li>randomization inference (<code><a href="../reference/perm_solomon.html">perm_solomon()</a></code>);</li>
 <li>equivalence tests of sensitization
 (<code><a href="../reference/equivalence_solomon.html">equivalence_solomon()</a></code>);</li>
@@ -499,12 +529,12 @@ the combination a solomonR extension. An example is
 validated simulation model of <code><a href="../reference/power_solomon.html">power_solomon()</a></code>.</p>
 </div>
 <div class="section level2">
-<h2 id="sources-identified-but-not-yet-read">Sources identified but not yet read<a class="anchor" aria-label="anchor" href="#sources-identified-but-not-yet-read"></a>
+<h2 id="sources-read-in-a-version-other-than-the-published-one">Sources read in a version other than the published one<a class="anchor" aria-label="anchor" href="#sources-read-in-a-version-other-than-the-published-one"></a>
 </h2>
-<p>One identified work has not yet been read: Steyn (2009), listed
-above, which has been requested through interlibrary loan. It is tracked
-in <a href="https://github.com/JUhalt/solomonR/issues/80" class="external-link">#80</a> and <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>, and it is
-not cited as a source for any procedure until it has been read.</p>
+<p>Steyn (2009) has been read in a pre-publication draft, dated March 2,
+2009. The draft has no page numbers, so none are cited. The published
+article has been requested, and <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> will be
+checked against it (<a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>).</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
@@ -548,6 +578,8 @@ The MERIT study including developmental work and expert workshop.
 <p>Gelman, A., &amp; Stern, H. (2006). The difference between
 “significant” and “not significant” is not itself statistically
 significant. <em>The American Statistician, 60</em>(4), 328–331. <a href="https://doi.org/10.1198/000313006X152649" class="external-link uri">https://doi.org/10.1198/000313006X152649</a></p>
+<p>Holm, S. (1979). A simple sequentially rejective multiple test
+procedure. <em>Scandinavian Journal of Statistics, 6</em>(2), 65–70. <a href="https://www.jstor.org/stable/4615733" class="external-link uri">https://www.jstor.org/stable/4615733</a></p>
 <p>Huck, S. W., &amp; Sandler, H. M. (1973). A note on the Solomon
 4-group design: Appropriate statistical analyses. <em>The Journal of
 Experimental Education, 42</em>(2), 54–55. <a href="https://doi.org/10.1080/00220973.1973.11011460" class="external-link uri">https://doi.org/10.1080/00220973.1973.11011460</a></p>
@@ -595,6 +627,10 @@ and Walton Braver. <em>Perceptual and Motor Skills, 71</em>(2), 424–426.
 <p>Solomon, R. L., &amp; Lessac, M. S. (1968). A control group design
 for experimental studies of developmental processes. <em>Psychological
 Bulletin, 70</em>(3, Pt. 1), 145–150. <a href="https://doi.org/10.1037/h0026147" class="external-link uri">https://doi.org/10.1037/h0026147</a></p>
+<p>Steyn, R. (2005). <em>Self-evaluasie en die vorming van
+selfdoeltreffendheidspersepsies</em> [Self-evaluation and the forming of
+self-efficacy perceptions] [Doctoral thesis, University of South
+Africa]. Unisa Institutional Repository. <a href="https://hdl.handle.net/10500/1745" class="external-link uri">https://hdl.handle.net/10500/1745</a></p>
 <p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve
 on this exemplary model? <em>Design Principles and Practices: An
 International Journal, 3</em>(1), 383–394. <a href="https://doi.org/10.18848/1833-1874/CGP/v03i01/37588" class="external-link uri">https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</a></p>

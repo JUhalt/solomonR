@@ -24,12 +24,14 @@
 <url><loc>https://juhalt.github.io/solomonR/articles/missing-and-repeated.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/ml-validation.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/mmrm-validation.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/articles/ngroup-validation.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/plan-validation.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/planning.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/power-validation.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/references.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/reporting.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/sem.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/articles/several-treatments.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/should-i-use-a-solomon-design.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/solomon-methods.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/articles/synthesis.html</loc></url>
@@ -55,6 +57,7 @@
 <url><loc>https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/fit_solomon_sem.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/hedges_g_ci.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/index.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/invariance_solomon.html</loc></url>
@@ -86,6 +89,7 @@
 <url><loc>https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/solomon_example.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/solomon_from_summary.html</loc></url>
+<url><loc>https://juhalt.github.io/solomonR/reference/steyn2005.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/stouffer_solomon.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/tipping_point_solomon.html</loc></url>
 <url><loc>https://juhalt.github.io/solomonR/reference/validate_solomon.html</loc></url>
