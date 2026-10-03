@@ -99,8 +99,9 @@
 <strong>Multiplicity.</strong> The p-values of each contrast are adjusted across the comparisons by Holm’s (1979) procedure (<code>adjust</code>).</li>
 <li>The result has class <code>solomon_ngroup</code>. Results for four-group designs are unchanged, and a two-condition factor with <code>control</code> gives the same fit as a 0/1 <code>treat</code>.</li>
 </ul></li>
-<li>New <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> carries out the sequence of tests Steyn (2009) proposed for designs with one or several treatments: checks of equivalence, history and maturation, testing, the pretest-intervention interaction, reliability, regression to the mean, and attrition, then tests of the treatments’ effects. Its post hoc tests are Scheffé tests, as in Steyn (2005), or Holm-adjusted pairwise t tests (<code>posthoc</code>). It is a published proposal, kept for replication and teaching, and is experimental: it follows a pre-publication draft of the article, which the author provided (R. Steyn, personal communication, September 30, 2026), and will be checked against the published version.</li>
+<li>New <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> carries out the sequence of tests Steyn (2009) proposed for designs with one or several treatments: checks of equivalence, history and maturation, testing, the pretest-intervention interaction, reliability, regression to the mean, and attrition, then tests of the treatments’ effects. Its post hoc tests are Scheffé tests, as in Steyn (2005), or Holm-adjusted pairwise t tests (<code>posthoc</code>). It is a published proposal, kept for replication and teaching. It follows a pre-publication draft of the article, dated March 2, 2009, which the author provided (R. Steyn, personal communication, September 30, 2026); the published article was not available for comparison.</li>
 <li>New data set <code>steyn2005</code>: the group statistics of Steyn’s (2005) eight-group study, which reproduce its published analyses of variance and Scheffé tests.</li>
+<li>References to Steyn (2009) now give the journal’s title as registered with Crossref: <em>Design Principles and Practices: An International Journal—Annual Review</em>.</li>
 <li>These functions now accept designs with several treatments:
 <ul><li>
 <code><a href="../reference/validate_solomon.html">validate_solomon()</a></code>, <code><a href="../reference/check_solomon_missing.html">check_solomon_missing()</a></code>, <code><a href="../reference/check_solomon_assumptions.html">check_solomon_assumptions()</a></code>, and <code><a href="../reference/baseline_solomon.html">baseline_solomon()</a></code>, with <code>control</code>;</li>
@@ -198,6 +199,11 @@
 <ul><li>
 <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>, <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>, <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>, <code><a href="../reference/perm_solomon.html">perm_solomon()</a></code>, <code><a href="../reference/fit_solomon_sem.html">fit_solomon_sem()</a></code>, <code><a href="../reference/check_solomon_assumptions.html">check_solomon_assumptions()</a></code>, <code><a href="../reference/p_to_z.html">p_to_z()</a></code>, and <code><a href="../reference/plot_perm.html">plot_perm()</a></code> now have runnable examples on their help pages. Each runs in under 3 seconds.</li>
 <li>The help page of <code><a href="../reference/fit_solomon_sem.html">fit_solomon_sem()</a></code> now documents its return value.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="preparing-for-the-cran-checks-second-part-development-version">Preparing for the CRAN checks (<a href="https://github.com/JUhalt/solomonR/issues/84" class="external-link">#84</a>, second part)<a class="anchor" aria-label="anchor" href="#preparing-for-the-cran-checks-second-part-development-version"></a></h3>
+<ul><li>The package description gives its references in the form CRAN asks for: authors (year) with a link.</li>
+<li>References to van Engelenburg (1999) now give its ERIC record, which holds the full text.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="coverage-of-the-published-methodology-development-version">Coverage of the published methodology (<a href="https://github.com/JUhalt/solomonR/issues/80" class="external-link">#80</a>)<a class="anchor" aria-label="anchor" href="#coverage-of-the-published-methodology-development-version"></a></h3>

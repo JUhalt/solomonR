@@ -628,7 +628,8 @@ contrast analysis. *Psychological Methods, 9*(2), 164–182.
 <https://doi.org/10.1037/1082-989X.9.2.164>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-four-group design* (Research Report 99-06). University of Twente.
+four-group design* (Research Report 99-06). University of Twente. ERIC.
+<https://eric.ed.gov/?id=ED435692>
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological
@@ -777,7 +778,7 @@ analyses.
 - [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
   **\[stable\]** : Historical Solomon decision path
 - [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
-  **\[experimental\]** : Steyn's (2009) analysis of the extended Solomon
+  **\[stable\]** : Steyn's (2009) analysis of the extended Solomon
   design
 - [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md)
   **\[stable\]** : Historical categorical analysis of a binary Solomon

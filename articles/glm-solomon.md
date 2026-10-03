@@ -896,7 +896,8 @@ contrast analysis. *Psychological Methods, 9*(2), 164–182.
 <https://doi.org/10.1037/1082-989X.9.2.164>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-four-group design* (Research Report 99-06). University of Twente.
+four-group design* (Research Report 99-06). University of Twente. ERIC.
+<https://eric.ed.gov/?id=ED435692>
 
 Welch, B. L. (1947). The generalization of “Student’s” problem when
 several different population variances are involved. *Biometrika,

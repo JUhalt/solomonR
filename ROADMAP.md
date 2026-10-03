@@ -346,9 +346,11 @@ tables
 
 ## Status of the open releases
 
-Work for v0.5.0 through v0.8.0 is in review as a stack of pull requests,
-each built on the one before it and merged in order. An item is checked
-when its pull request is merged. “In review” gives the pull request.
+The work for v0.5.0 through v0.9.0 was reviewed as a stack of pull
+requests and merged into the development version on October 2 and 3,
+2026. None of these versions has been released yet. An item is checked
+when its pull request is merged and its issue is closed; each item names
+its pull requests.
 
 ------------------------------------------------------------------------
 
@@ -361,28 +363,30 @@ two conditions, and make clustered designs safe to analyze.
 
 Verified APA 7 attribution (DOIs, the Walton Braver & Braver correction,
 a canonical bibliography page) and roadmap alignment —
-[\#42](https://github.com/JUhalt/solomonR/issues/42); in review, [PR
+[\#42](https://github.com/JUhalt/solomonR/issues/42); merged in [PR
 \#59](https://github.com/JUhalt/solomonR/pull/59)
 
 Binary outcomes — [\#43](https://github.com/JUhalt/solomonR/issues/43);
-in review, [PR \#61](https://github.com/JUhalt/solomonR/pull/61)
+merged in [PR \#61](https://github.com/JUhalt/solomonR/pull/61)
 
 - Risk difference, risk ratio, and odds ratio for each Solomon contrast
 - The historical chi-square and Fisher path (El Karkri et al., 2025b)
 - Published example: Kvalem et al. (1996)
 
 Count outcomes — [\#44](https://github.com/JUhalt/solomonR/issues/44);
-in review, [PR \#63](https://github.com/JUhalt/solomonR/pull/63)
+merged in [PR \#63](https://github.com/JUhalt/solomonR/pull/63)
 
 - Robust Poisson models, rate ratios and rate differences, exposure
   offsets
 - Negative-binomial option for strongly overdispersed counts —
-  [\#62](https://github.com/JUhalt/solomonR/issues/62); in review, [PR
+  [\#62](https://github.com/JUhalt/solomonR/issues/62); merged in [PR
   \#66](https://github.com/JUhalt/solomonR/pull/66)
 
 Solomon N-group designs: more than two conditions —
-[\#45](https://github.com/JUhalt/solomonR/issues/45); in review, [PR
-\#95](https://github.com/JUhalt/solomonR/pull/95)
+[\#45](https://github.com/JUhalt/solomonR/issues/45); merged in [PR
+\#95](https://github.com/JUhalt/solomonR/pull/95), [PR
+\#97](https://github.com/JUhalt/solomonR/pull/97), and [PR
+\#98](https://github.com/JUhalt/solomonR/pull/98)
 
 - One model with planned contrasts in place of overlapping four-group
   analyses (Edmonds & Kennedy, 2017; Mai et al., 2020):
@@ -393,26 +397,26 @@ Solomon N-group designs: more than two conditions —
 - Steyn’s (2009) sequence of tests,
   [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md),
   and the `steyn2005` data (Steyn, 2005)
-- Steyn (2009) has been read in a pre-publication draft, dated March 2,
-  2009. The published article has been requested, and
-        [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
-        stays experimental until it has been checked against that
-        version. Whether v1.0.0 waits for that check is decided at
-        sign-off ([\#85](https://github.com/JUhalt/solomonR/issues/85)).
+- Steyn (2009) was read in a pre-publication draft, dated March 2, 2009,
+  which the author provided. The published article was not available for
+  comparison, so
+  [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+  follows the draft. It is stable, and its help page lists each choice
+  the draft leaves open
 
 Clustered designs
 
 - Detect designs that confound clusters with conditions —
-  [\#46](https://github.com/JUhalt/solomonR/issues/46); in review, [PR
+  [\#46](https://github.com/JUhalt/solomonR/issues/46); merged in [PR
   \#60](https://github.com/JUhalt/solomonR/pull/60)
 - Cluster-level randomization inference —
-  [\#19](https://github.com/JUhalt/solomonR/issues/19); in review, [PR
+  [\#19](https://github.com/JUhalt/solomonR/issues/19); merged in [PR
   \#65](https://github.com/JUhalt/solomonR/pull/65)
 
 [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
 for
 [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-fits — [\#47](https://github.com/JUhalt/solomonR/issues/47); in review,
+fits — [\#47](https://github.com/JUhalt/solomonR/issues/47); merged in
 [PR \#60](https://github.com/JUhalt/solomonR/pull/60)
 
 ------------------------------------------------------------------------
@@ -428,28 +432,28 @@ contemporary methods clearly separated at every step.
 **Decide**
 
 Article: Should I use a Solomon design? —
-[\#48](https://github.com/JUhalt/solomonR/issues/48); in review, [PR
+[\#48](https://github.com/JUhalt/solomonR/issues/48); merged in [PR
 \#76](https://github.com/JUhalt/solomonR/pull/76)
 
 **Plan**
 
 Planning article with literature-based planning values —
-[\#49](https://github.com/JUhalt/solomonR/issues/49); in review, [PR
+[\#49](https://github.com/JUhalt/solomonR/issues/49); merged in [PR
 \#69](https://github.com/JUhalt/solomonR/pull/69)
 
 **Analyze**
 
 History article and versioned historical decision flows (1988, 1990,
-1995) — [\#50](https://github.com/JUhalt/solomonR/issues/50); in review,
+1995) — [\#50](https://github.com/JUhalt/solomonR/issues/50); merged in
 [PR \#67](https://github.com/JUhalt/solomonR/pull/67) and [PR
 \#76](https://github.com/JUhalt/solomonR/pull/76)
 
 Replicate the published error rates of the historical test sequence —
-[\#51](https://github.com/JUhalt/solomonR/issues/51); in review, [PR
+[\#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR
 \#76](https://github.com/JUhalt/solomonR/pull/76)
 
 SEM and latent-variable article, and measurement invariance —
-[\#55](https://github.com/JUhalt/solomonR/issues/55); in review, [PR
+[\#55](https://github.com/JUhalt/solomonR/issues/55); merged in [PR
 \#70](https://github.com/JUhalt/solomonR/pull/70) and [PR
 \#75](https://github.com/JUhalt/solomonR/pull/75)
 
@@ -457,24 +461,24 @@ SEM and latent-variable article, and measurement invariance —
 
 [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md):
 APA 7 results text with method-specific references —
-[\#52](https://github.com/JUhalt/solomonR/issues/52); in review, [PR
+[\#52](https://github.com/JUhalt/solomonR/issues/52); merged in [PR
 \#71](https://github.com/JUhalt/solomonR/pull/71)
 
 **Synthesize**
 
 Reanalysis from summary statistics and meta-analytic effect sizes —
-[\#53](https://github.com/JUhalt/solomonR/issues/53); in review, [PR
+[\#53](https://github.com/JUhalt/solomonR/issues/53); merged in [PR
 \#68](https://github.com/JUhalt/solomonR/pull/68)
 
 **Throughout**
 
 Worked examples with published Solomon data —
-[\#54](https://github.com/JUhalt/solomonR/issues/54); in review, [PR
+[\#54](https://github.com/JUhalt/solomonR/issues/54); merged in [PR
 \#72](https://github.com/JUhalt/solomonR/pull/72) and [PR
 \#86](https://github.com/JUhalt/solomonR/pull/86)
 
 Site and core vignettes organized around the path —
-[\#56](https://github.com/JUhalt/solomonR/issues/56); in review, [PR
+[\#56](https://github.com/JUhalt/solomonR/issues/56); merged in [PR
 \#77](https://github.com/JUhalt/solomonR/pull/77)
 
 The earlier v0.6 items are covered as follows: the introductory,
@@ -490,20 +494,22 @@ reporting helper by \#52; and the SEM vignette by \#55.
 **Milestone:** [v0.7.0](https://github.com/JUhalt/solomonR/milestone/6)
 
 Longitudinal Solomon designs: Treatment x Pretest x Time —
-[\#57](https://github.com/JUhalt/solomonR/issues/57); in review, [PR
+[\#57](https://github.com/JUhalt/solomonR/issues/57); merged in [PR
 \#94](https://github.com/JUhalt/solomonR/pull/94). Its simulation study
 is reported; the function stays experimental because the pre-specified
 rule for the default degrees of freedom was not met
 
+- Open: a worked example that reproduces a published longitudinal
+  Solomon result, where the design allows.
 - The protocol, its two amendments, and the sources read are on the
   issue.
 
 Quasi-experimental Solomon designs, with the loss of causal warrant made
-explicit — [\#58](https://github.com/JUhalt/solomonR/issues/58); in
-review, [PR \#73](https://github.com/JUhalt/solomonR/pull/73)
+explicit — [\#58](https://github.com/JUhalt/solomonR/issues/58); merged
+in [PR \#73](https://github.com/JUhalt/solomonR/pull/73)
 
 Marginal risk and rate contrasts for clustered Solomon designs —
-[\#64](https://github.com/JUhalt/solomonR/issues/64); in review, [PR
+[\#64](https://github.com/JUhalt/solomonR/issues/64); merged in [PR
 \#74](https://github.com/JUhalt/solomonR/pull/74)
 
 ------------------------------------------------------------------------
@@ -520,35 +526,34 @@ for the v1.0 paper.
 **History**
 
 Solomon’s (1949) original analysis and data —
-[\#78](https://github.com/JUhalt/solomonR/issues/78); in review, [PR
+[\#78](https://github.com/JUhalt/solomonR/issues/78); merged in [PR
 \#87](https://github.com/JUhalt/solomonR/pull/87)
 
 **Teaching**
 
 Simulated data with known effects and classroom exercises —
-[\#79](https://github.com/JUhalt/solomonR/issues/79); in review, [PR
+[\#79](https://github.com/JUhalt/solomonR/issues/79); merged in [PR
 \#88](https://github.com/JUhalt/solomonR/pull/88)
 
 **Coverage**
 
 Literature coverage audit before the feature freeze —
-[\#80](https://github.com/JUhalt/solomonR/issues/80); in review, [PR
+[\#80](https://github.com/JUhalt/solomonR/issues/80); merged in [PR
 \#89](https://github.com/JUhalt/solomonR/pull/89)
 
-- The coverage article and its check are done, and every identified
-  source has been read, Steyn (2009) in a pre-publication draft. The
-  check against the published article is tracked in
-  [\#45](https://github.com/JUhalt/solomonR/issues/45).
+- Every identified source has been read, Steyn (2009) in a
+  pre-publication draft that the author provided.
 
 **Research workflow**
 
 Analysis plan and study template for new Solomon studies —
-[\#81](https://github.com/JUhalt/solomonR/issues/81); in review, [PR
+[\#81](https://github.com/JUhalt/solomonR/issues/81); merged in [PR
 \#93](https://github.com/JUhalt/solomonR/pull/93)
 
 Sensitivity analysis for missing posttests —
-[\#82](https://github.com/JUhalt/solomonR/issues/82); in review, [PR
-\#92](https://github.com/JUhalt/solomonR/pull/92). Its simulation study
+[\#82](https://github.com/JUhalt/solomonR/issues/82); merged in [PR
+\#92](https://github.com/JUhalt/solomonR/pull/92) and [PR
+\#97](https://github.com/JUhalt/solomonR/pull/97). Its simulation study
 is reported; the functions stay experimental because the pre-specified
 rule for validation was not met
 
@@ -563,7 +568,7 @@ final, and drafting of the companion manuscript begins.
 **Milestone:** [v0.9.0](https://github.com/JUhalt/solomonR/milestone/8)
 
 Stable public API: consistent argument names and lifecycle labels —
-[\#83](https://github.com/JUhalt/solomonR/issues/83); in review, [PR
+[\#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR
 \#91](https://github.com/JUhalt/solomonR/pull/91)
 
 - `y_post` and `y_pre` everywhere, `fit` for fitted models, one order
@@ -596,20 +601,20 @@ to its source. The release, and any CRAN submission, wait for the
 maintainer’s sign-off
 ([\#85](https://github.com/JUhalt/solomonR/issues/85)).
 
-Requirements, with status as of the current pull-request stack:
+Requirements, with their status:
 
 Stable public API —
-[\#83](https://github.com/JUhalt/solomonR/issues/83); in review, [PR
+[\#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR
 \#91](https://github.com/JUhalt/solomonR/pull/91)
 
 Historical workflow validated against published results —
-[\#51](https://github.com/JUhalt/solomonR/issues/51); in review, [PR
+[\#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR
 \#76](https://github.com/JUhalt/solomonR/pull/76)
 
 GLM and ML estimands validated
 
 Randomization inference validated, including cluster-level designs —
-[\#19](https://github.com/JUhalt/solomonR/issues/19); in review, [PR
+[\#19](https://github.com/JUhalt/solomonR/issues/19); merged in [PR
 \#65](https://github.com/JUhalt/solomonR/pull/65)
 
 Power and sample-size planning validated
@@ -617,12 +622,16 @@ Power and sample-size planning validated
 Core visualizations complete
 
 SEM pathway documented and tested —
-[\#55](https://github.com/JUhalt/solomonR/issues/55); in review, [PR
+[\#55](https://github.com/JUhalt/solomonR/issues/55); merged in [PR
 \#75](https://github.com/JUhalt/solomonR/pull/75)
 
 Published Solomon methodology covered (v0.5.0–v0.8.0), checked source by
 source in the coverage article —
 [\#80](https://github.com/JUhalt/solomonR/issues/80)
+
+The further sources that Steyn (2009) names, read and added where they
+bear on the design —
+[\#96](https://github.com/JUhalt/solomonR/issues/96)
 
 Strong automated test suite
 

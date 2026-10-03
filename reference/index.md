@@ -121,7 +121,7 @@ analyses.
 - [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
   **\[stable\]** : Historical Solomon decision path
 - [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
-  **\[experimental\]** : Steyn's (2009) analysis of the extended Solomon
+  **\[stable\]** : Steyn's (2009) analysis of the extended Solomon
   design
 - [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md)
   **\[stable\]** : Historical categorical analysis of a binary Solomon

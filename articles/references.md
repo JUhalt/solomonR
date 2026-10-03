@@ -355,7 +355,7 @@ Africa\]. Unisa Institutional Repository.
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
-Journal, 3*(1), 383–394.
+Journal—Annual Review, 3*(1), 383–394.
 <https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
 
 > Extends the four-group design to k interventions, each given with and
@@ -369,13 +369,14 @@ Journal, 3*(1), 383–394.
 > it for analyses of four-, six-, and eight-group designs. solomonR
 > follows a pre-publication draft of the article, dated March 2, 2009,
 > which the author provided (R. Steyn, personal communication, September
-> 30, 2026); it is to be checked against the published version. *In
+> 30, 2026); the published article was not available for comparison. *In
 > solomonR:* the design of `fit_solomon_glm(control = )` and
 > [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
 > ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-four-group design* (Research Report 99-06). University of Twente.
+four-group design* (Research Report 99-06). University of Twente. ERIC.
+<https://eric.ed.gov/?id=ED435692>
 
 > Proposes full-information maximum likelihood for the Solomon design,
 > treating the absent pretests as structurally missing. *In solomonR:*

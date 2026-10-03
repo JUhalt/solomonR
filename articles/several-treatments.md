@@ -520,8 +520,8 @@ R. Steyn (personal communication, September 30, 2026) notes that the
 model his article proposes is intended for situations with a large
 amount of data and ample time. solomonR follows a pre-publication draft
 of Steyn’s article, which the author provided (R. Steyn, personal
-communication, September 30, 2026). It will be checked against the
-published version, and the help page lists every choice solomonR made
+communication, September 30, 2026). The published article was not
+available for comparison. The help page lists every choice solomonR made
 where the description leaves room.
 
 ## Reporting
@@ -600,7 +600,7 @@ report_solomon(fit)
 #> 
 #> Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on this
 #>     exemplary model? Design Principles and Practices: An International
-#>     Journal, 3(1), 383–394.
+#>     Journal—Annual Review, 3(1), 383–394.
 #>     https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 ```
 
@@ -684,5 +684,5 @@ Africa\]. Unisa Institutional Repository.
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
-Journal, 3*(1), 383–394.
+Journal—Annual Review, 3*(1), 383–394.
 <https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>

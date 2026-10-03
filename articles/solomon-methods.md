@@ -366,8 +366,8 @@ dependent, and their number is not allowed for.
   the pretest-intervention interaction separately for each treatment,
   unadjusted, and its further comparison of each treatment’s pretested
   and unpretested groups mixes the pretest’s own effect with
-  sensitization. solomonR follows a pre-publication draft of the article
-  and will be checked against the published version.
+  sensitization. solomonR follows a pre-publication draft of the
+  article, which the author provided.
 - **Function:**
   [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md),
   for one or several treatments.
@@ -656,7 +656,7 @@ Africa\]. Unisa Institutional Repository.
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
-Journal, 3*(1), 383–394.
+Journal—Annual Review, 3*(1), 383–394.
 <https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
 
 Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., &
@@ -674,7 +674,8 @@ recommendations for organizational research. *Organizational Research
 Methods, 3*(1), 4–70. <https://doi.org/10.1177/109442810031002>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-four-group design* (Research Report 99-06). University of Twente.
+four-group design* (Research Report 99-06). University of Twente. ERIC.
+<https://eric.ed.gov/?id=ED435692>
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological

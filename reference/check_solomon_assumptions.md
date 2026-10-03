@@ -98,7 +98,7 @@ Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
-Journal, 3*(1), 383–394.
+Journal—Annual Review, 3*(1), 383–394.
 https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of

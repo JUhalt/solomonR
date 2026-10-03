@@ -1,7 +1,7 @@
 # solomonR: Analyze Solomon Four-Group Designs
 
 Tools for planning, analyzing, teaching, and reporting Solomon
-four-group experiments (Solomon, 1949)
+four-group experiments, introduced by Solomon (1949)
 [doi:10.1037/h0062958](https://doi.org/10.1037/h0062958) . The
 historical analyses are reproduced and labeled as such, from Solomon's
 improvement scores to the Tests A-I sequence of Walton Braver and Braver
@@ -11,12 +11,12 @@ and its published revisions. Contemporary analyses include one
 generalized linear model for all the groups, of four-group designs and
 of designs with several treatments, with robust or cluster-robust
 standard errors, for continuous, binary, and count outcomes;
-randomization inference; full-information maximum likelihood (van
-Engelenburg, 1999); observed- and latent-variable structural equation
-models with 'lavaan'; and equivalence tests of pretest sensitization.
-Also includes design checks, power and sample-size planning, simulated
-teaching data, published data sets, and APA-style reports with
-method-specific references.
+randomization inference; full-information maximum likelihood, following
+van Engelenburg (1999) <https://eric.ed.gov/?id=ED435692>; observed- and
+latent-variable structural equation models with 'lavaan'; and
+equivalence tests of pretest sensitization. Also includes design checks,
+power and sample-size planning, simulated teaching data, published data
+sets, and APA-style reports with method-specific references.
 
 ## See also
 

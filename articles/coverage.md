@@ -62,7 +62,7 @@ The status column uses six labels:
 | McCarthy & Tucker (2002) | A nonrandomized eight-group design crossing two interventions with pretesting, analyzed as three overlapping four-group designs (pp. 637–640). | The planned comparisons of `fit_solomon_glm(control = , contrasts = )`; the factorial example in “Designs With Several Treatments” | Guidance |
 | Steyn (2005) | An eight-group study with three treatments and 1,723 participants, in which existing classes were allocated to the groups (pp. 103–106). Analyzed as overlapping four-group designs, then by a one-way analysis of variance of the eight posttests with Scheffé tests (pp. 151–153). | `steyn2005`, whose published analyses [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md) and the package’s tests reproduce; the default post hoc tests of [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md) | Data (reproduced) |
 | Morris (2008) | Effect sizes for pretest–posttest–control designs; the pooled-pretest-SD estimator and its variance. | [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md) for the pretested pair | Implemented |
-| Steyn (2009) | The design extended to k treatments, with 2(k + 1) groups, and to repeated posttests. A sequence of tests of internal validity (equivalence, history and maturation, testing, the pretest-intervention interaction, reliability, regression to the mean, attrition) and of the treatments’ effects. | [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md); the design of `fit_solomon_glm(control = )`. solomonR follows a pre-publication draft, to be checked against the published article. | Historical; Implemented |
+| Steyn (2009) | The design extended to k treatments, with 2(k + 1) groups, and to repeated posttests. A sequence of tests of internal validity (equivalence, history and maturation, testing, the pretest-intervention interaction, reliability, regression to the mean, attrition) and of the treatments’ effects. | [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md); the design of `fit_solomon_glm(control = )`. solomonR follows a pre-publication draft, which the author provided. | Historical; Implemented |
 | McCambridge et al. (2011) | A systematic review of Solomon studies of behavior change: too little evidence to settle whether assessment biases trials. | The getting-started guide and the planning, decision, and reporting articles | Evidence |
 | Edmonds & Kennedy (2017) | Solomon four-, six-, and eight-group designs, and the threats of nonrandomized designs (pp. 7–8, 93–101). | [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md); the nonrandomized wording of [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md); designs with several treatments in `fit_solomon_glm(control = )` | Guidance |
 | Mai et al. (2020) | A randomized six-group design analyzed as overlapping four-group designs, with published individual data. | `mai2020` and the worked example, which reproduce its Tables 4, 5, and 7; the history check of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md); the six-group example of `fit_solomon_glm(control = )` | Data; Historical |
@@ -120,9 +120,9 @@ which adds a pretesting effect to the validated simulation model of
 Steyn (2009) has been read in a pre-publication draft, dated March 2,
 2009, which the author provided (R. Steyn, personal communication,
 September 30, 2026). The draft has no page numbers, so none are cited.
-The published article has been requested, and
+The published article was not available for comparison, and
 [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
-will be checked against it
+follows the draft
 ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
 
 ## References
@@ -261,11 +261,12 @@ Africa\]. Unisa Institutional Repository.
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
-Journal, 3*(1), 383–394.
+Journal—Annual Review, 3*(1), 383–394.
 <https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-four-group design* (Research Report 99-06). University of Twente.
+four-group design* (Research Report 99-06). University of Twente. ERIC.
+<https://eric.ed.gov/?id=ED435692>
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological

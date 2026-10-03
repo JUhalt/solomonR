@@ -96,7 +96,8 @@ one comparison at a time with
 ## References
 
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-four-group design* (Research Report 99-06). University of Twente.
+four-group design* (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692
 
 ## See also
 

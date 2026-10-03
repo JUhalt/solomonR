@@ -372,7 +372,7 @@ with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
 
 solomonR follows a pre-publication draft of Steyn’s (2009) article,
 which the author provided (R. Steyn, personal communication, September
-30, 2026), and will be checked against the published version.
+30, 2026). The published article was not available for comparison.
 
 ## After the debate (2011–2025)
 
@@ -531,7 +531,7 @@ Africa\]. Unisa Institutional Repository.
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
-Journal, 3*(1), 383–394.
+Journal—Annual Review, 3*(1), 383–394.
 <https://doi.org/10.18848/1833-1874/CGP/v03i01/37588>
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
