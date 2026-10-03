@@ -1,8 +1,9 @@
 # solomonR 0.8.0
 
 This release brings together the work planned for v0.5.0 through v0.8.0,
-and the stable interface planned for v0.9.0 (#83). Versions 0.5.0, 0.6.0,
-and 0.7.0 were not released separately.
+and the stable interface (#83) and the first CRAN-readiness changes (#84)
+planned for v0.9.0. Versions 0.5.0, 0.6.0, and 0.7.0 were not released
+separately.
 
 ## Designs with several treatments (#45)
 
@@ -147,6 +148,7 @@ and 0.7.0 were not released separately.
 * New R Markdown template, "Solomon four-group study"
   (`rmarkdown::draft("study.Rmd", "solomon-study", package = "solomonR")`),
   runs a planned analysis in order, from the design check to the report.
+* `analysis_plan_solomon()` is experimental until researchers have used it.
 
 ## Sensitivity analysis for missing posttests (#82)
 
@@ -175,9 +177,13 @@ and 0.7.0 were not released separately.
   With 60 or more participants per group, intervals had nominal coverage
   and Type I error when the offsets were right; with 30 per group they were
   conservative. The pre-specified rule for validation was not met (84 of 96
-  cells, against 90%), so both functions stay experimental. The analyses
-  that assume missing at random biased the sensitization contrast by 0.10
-  to 0.16 SD when the departure was confined to one pretested group.
+  cells, against 90%), so both functions, and `plot_tipping_point()`, stay
+  experimental. The analyses that assume missing at random biased the
+  sensitization contrast by 0.10 to 0.16 SD when the departure was
+  confined to one pretested group.
+* New article "Missing and Repeated Posttests" (Analyze menu) shows the
+  sensitivity analysis for missing posttests and the repeated-measures
+  analysis of #57 on simulated data with known effects.
 * The worked example on the data of Mai et al. (2020) now includes the
   sensitivity analysis, with 2,000 imputations, because 100 left the
   tipping point for sensitization varying from seed to seed. Under missing
@@ -199,7 +205,8 @@ and 0.7.0 were not released separately.
 ## A stable interface (#83)
 
 The public interface is now settled. Former names keep working, with a
-deprecation warning, through v1.x.
+deprecation warning, through v1.x, when the arguments that follow a former
+argument name are also named.
 
 * **One name for each argument.**
   - `fit_solomon_glm()` takes `y_post` and `y_pre` (formerly `y` and
@@ -214,8 +221,9 @@ deprecation warning, through v1.x.
 * **One order for the planning functions.** `power_solomon()` now takes
   `n`, `delta`, `sens`, `rho`, `sigma`, and `alpha` in that order, as
   `plan_solomon()` and `plot_power_solomon()` do. Formerly `rho` came
-  before `sens`, so a call that passes them by position gets a warning that
-  it was read in the new order.
+  before `sens`, and `alpha` came after `sims` and `stouffer`, so a call
+  that passes these by position gets a warning that it was read in the new
+  order.
 * **A `data` argument.** Every function that takes data vectors also takes
   an optional data frame, `data`, whose columns can be named bare or as
   strings, for example `fit_solomon_glm(post, group, took_pretest, pre,
@@ -226,10 +234,12 @@ deprecation warning, through v1.x.
   `conf_level`. `plot_solomon()` (base graphics) and `plot_solomon_gg()`
   are deprecated.
 * **Lifecycle stages.** Each function's help page, and the reference index,
-  shows a lifecycle badge (Henry & Wickham, 2026). Every function is stable
-  except `fit_solomon_sem()`, `fit_solomon_sem_latent()`, and
-  `invariance_solomon()`, which are experimental; `?solomonR` gives the
-  reasons.
+  shows a lifecycle badge (Henry & Wickham, 2026). In this release, the
+  experimental functions are `fit_solomon_sem()`,
+  `fit_solomon_sem_latent()`, `invariance_solomon()`, `fit_solomon_mmrm()`,
+  `fit_solomon_mi()`, `tipping_point_solomon()`, `plot_tipping_point()`,
+  and `analysis_plan_solomon()`, with the analysis of several treatments
+  in `fit_solomon_glm()`; `?solomonR` gives the reasons.
 * solomonR now imports lifecycle, which ggplot2 already imports.
 
 ## Examples for every exported function (#84, first part)
@@ -252,7 +262,8 @@ deprecation warning, through v1.x.
 * New article "Coverage of the Published Methodology" (References menu)
   maps every work on the Solomon design in the bibliography to what it
   contributes, where solomonR implements it, and its status. It also
-  lists the sources that have been identified but not yet read.
+  names the source read in a version other than the published one,
+  Steyn (2009).
 * `tools/check-references.R` now fails if a work on the Solomon design is
   in the bibliography without a coverage entry.
 * Five more works on the design were read and added to the bibliography,
@@ -553,7 +564,7 @@ deprecation warning, through v1.x.
   and the help page states its underestimation when treatment inflates
   posttest variance.
 
-## Versioned historical decision flows (#50, in progress)
+## Versioned historical decision flows (#50, first part)
 
 * `fit_solomon_classic()` and `plot_classic_flow()` gain `flow`. `"1988"`,
   the default, keeps the original sequence of Walton Braver and Braver
@@ -608,8 +619,8 @@ deprecation warning, through v1.x.
   studentized statistic's Type I error reached 0.08 and the raw difference's
   0.16. CR2 tests exceeded the nominal level with four clusters per arm, so
   the permutation test is recommended for designs with few clusters.
-* `marginal_solomon()` points clustered designs to `perm_solomon()`; marginal
-  contrasts for clustered fits are planned in #64.
+* `marginal_solomon()` pointed clustered designs to `perm_solomon()`; #64,
+  below, added marginal contrasts for clustered binary fits.
 
 ## Count outcomes (#44)
 
@@ -638,7 +649,7 @@ deprecation warning, through v1.x.
   El Karkri et al. (2025b), with a caution that its rule compares
   significance, not effects.
 * `fit_solomon_glm()` now warns (`solomonR_noncollapsible_warning`) when a
-  noncollapsible link such as the logit is combined with `pretest_score`:
+  noncollapsible link such as the logit is combined with `y_pre`:
   its Pretest x Treatment contrast then compares a conditional with a
   marginal effect and is nonzero without sensitization.
 * New article "Binary Outcomes: Validating marginal_solomon()" reports the

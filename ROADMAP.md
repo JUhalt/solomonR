@@ -227,9 +227,10 @@ data collection begins.
 
 ## v0.5.0 to v0.8.0: one release
 
-The work for v0.5.0 through v0.8.0, and the stable interface planned for
-v0.9.0, was reviewed as a stack of pull requests, merged on October 2 and
-3, 2026, and released together as solomonR 0.8.0 on October 3, 2026.
+The work for v0.5.0 through v0.8.0, and the stable interface and the first
+CRAN-readiness changes planned for v0.9.0, was reviewed as a stack of pull
+requests, merged on October 2 and 3, 2026, and released together as
+solomonR 0.8.0 on October 3, 2026.
 Versions 0.5.0, 0.6.0, and 0.7.0 were not released separately. Each item
 below names its pull requests.
 
@@ -339,8 +340,10 @@ for the v1.0 paper.
   - [x] Simulated data with known effects and classroom exercises — [#79](https://github.com/JUhalt/solomonR/issues/79); merged in [PR #88](https://github.com/JUhalt/solomonR/pull/88)
 - **Coverage**
   - [x] Literature coverage audit before the feature freeze — [#80](https://github.com/JUhalt/solomonR/issues/80); merged in [PR #89](https://github.com/JUhalt/solomonR/pull/89)
-    - Every identified source has been read, Steyn (2009) in a
-      pre-publication draft that the author provided.
+    - Every source identified in the audit has been read, Steyn (2009) in
+      a pre-publication draft that the author provided. The further
+      sources that Steyn (2009) names are tracked in
+      [#96](https://github.com/JUhalt/solomonR/issues/96).
 - **Research workflow**
   - [x] Analysis plan and study template for new Solomon studies — [#81](https://github.com/JUhalt/solomonR/issues/81); merged in [PR #93](https://github.com/JUhalt/solomonR/pull/93)
   - [x] Sensitivity analysis for missing posttests — [#82](https://github.com/JUhalt/solomonR/issues/82); merged in [PR #92](https://github.com/JUhalt/solomonR/pull/92) and [PR #97](https://github.com/JUhalt/solomonR/pull/97). Its simulation study is reported; the functions stay experimental because the pre-specified rule for validation was not met
@@ -359,8 +362,13 @@ final, and drafting of the companion manuscript begins.
   - `y_post` and `y_pre` everywhere, `fit` for fitted models, one order
     for the planning arguments, an optional `data` argument, one posttest
     plot (`plot_solomon_means()`), and a lifecycle badge on every
-    function. Former names still work, with a warning, through v1.x.
+    function. Former names still work, with a warning, through v1.x, when
+    the arguments that follow a former argument name are also named.
 - [ ] CRAN pre-submission readiness — [#84](https://github.com/JUhalt/solomonR/issues/84)
+  - Examples for every exported function and the CRAN form of the
+    package's references were released in 0.8.0
+    ([PR #90](https://github.com/JUhalt/solomonR/pull/90),
+    [PR #98](https://github.com/JUhalt/solomonR/pull/98)).
   - Nothing is submitted without the maintainer's sign-off.
 - Complete reproducible simulations, and manuscript tables and figures.
 - A public preprint when appropriate.

@@ -61,14 +61,16 @@ Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 >   worked examples.
 >
 > Former function and argument names keep working, with a warning, through
-> v1.x. Functions marked experimental may still change before version 1.0;
-> each help page shows the function's lifecycle stage.
+> v1.x, when the arguments that follow a former argument name are also
+> named. Functions marked experimental may still change before version
+> 1.0; each help page shows the function's lifecycle stage.
 
 ---
 
 ## The Solomon four-group design
 
-The Solomon design combines a randomized treatment comparison with an
+The Solomon design (Solomon, 1949), Design 5 in Campbell and Stanley
+(1963/1966, p. 24), combines a randomized treatment comparison with an
 experimental manipulation of whether participants receive a pretest.
 
 | Group | Pretest | Treatment | Posttest |
@@ -207,9 +209,10 @@ classic <- with(
 classic
 ```
 
-`fit_solomon_classic()` calculates the historical **Tests A-I** and
-shows the decision path that would have been reached under the
-traditional conditional workflow.
+`fit_solomon_classic()` calculates the historical **Tests A-I** of
+Walton Braver and Braver (1988), whose Tests E and H follow Huck and
+Sandler (1973), and shows the decision path that would have been reached
+under the traditional conditional workflow.
 
 The package distinguishes between:
 
@@ -220,7 +223,8 @@ The package distinguishes between:
 Test I, the Walton Braver & Braver (1988) Stouffer combination, is included for
 teaching and replication, but it is **not the default modern inferential
 recommendation**. Later simulation work raised concerns about Type I
-error in conditional versions of this procedure.
+error in conditional versions of this procedure (Sawilowsky et al.,
+1994).
 
 ---
 
@@ -265,7 +269,7 @@ the design is small (Gail et al., 1996; Hayes & Moulton, 2017).
 ## Full-information maximum likelihood
 
 `fit_solomon_ml()` implements a full-information likelihood approach
-inspired by van Engelenburg's treatment of the Solomon design.
+inspired by van Engelenburg's (1999) treatment of the Solomon design.
 
 Unlike analyses that simply discard structurally missing pretests, the
 likelihood recognizes that Groups 3 and 4 were **never intended to have
@@ -292,7 +296,7 @@ The ML model estimates the same central Solomon quantities:
 - treatment effect among pretested participants; and
 - treatment effect among unpretested participants.
 
-By default it uses van Engelenburg's large-sample Wald inference. With
+By default it uses van Engelenburg's (1999) large-sample Wald inference. With
 small groups, use `inference = "satterthwaite"`, a small-sample option
 with Welch-Satterthwaite degrees of freedom; `fit_solomon_ml()` warns when
 groups are small and no option has been chosen.
@@ -346,9 +350,11 @@ For multi-item outcomes, `fit_solomon_sem_latent()` estimates Solomon
 contrasts at the latent-variable level.
 
 Latent mean comparisons require **scalar measurement invariance** across
-the four Solomon groups. `solomonR` enforces this requirement rather
-than silently interpreting latent means from configural or metric-only
-models. For identification, the latent mean of the unpretested control
+the four Solomon groups, or partial scalar invariance with the freed
+parameters chosen before the analysis (`partial_post`, `partial_pre`).
+`solomonR` imposes these constraints rather than silently interpreting
+latent means from configural or metric-only models, and checks them
+first with `invariance_solomon()`. For identification, the latent mean of the unpretested control
 group is fixed at 0; the Solomon contrasts do not depend on this choice.
 
 See:
@@ -486,8 +492,11 @@ freedom alongside each test.
 
 ### Latent means
 
-Latent Solomon mean contrasts require scalar measurement invariance.
-Partial invariance workflows are not yet automated.
+Latent Solomon mean contrasts require scalar, or partial scalar,
+measurement invariance. `fit_solomon_sem_latent()` checks it with
+`invariance_solomon()` and warns, rather than refusing, when a criterion
+does not support it: no criterion studied held its false-rejection rate
+in Solomon-sized groups (issue #55).
 
 ### Power
 

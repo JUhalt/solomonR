@@ -48,10 +48,12 @@
 # Called when an argument was supplied under its former name, before its
 # value is copied to the new name. Deprecated names keep working through
 # v1.x.
-.renamed_arg <- function(new_supplied, old, new, fun, when = "0.9.0") {
+.renamed_arg <- function(new_supplied, old, new, fun, when = "0.8.0") {
 
   if (new_supplied) {
-    stop("Supply `", new, "` only; `", old, "` is its former name.", call. = FALSE)
+    stop("Supply `", new, "` only; `", old, "` is its former name. If you used `", old,
+         "`, name the arguments that follow it as well: given by position, they ",
+         "now fill `", new, "` first.", call. = FALSE)
   }
 
   # The frame that called the exported function, so that lifecycle
@@ -69,10 +71,10 @@
 }
 
 
-# power_solomon() took `rho` before `sens`, and `alpha` last, until 0.9.0.
+# power_solomon() took `rho` before `sens`, and `alpha` last, until 0.8.0.
 # A call that passed any of those by position is now read differently, so
 # it gets a warning that names the new reading.
-.power_solomon_before_0_9 <- function(n = 50, delta = 0.3, rho = 0.5, sens = 0,
+.power_solomon_before_0_8 <- function(n = 50, delta = 0.3, rho = 0.5, sens = 0,
                                       sigma = 1, sims = 2000, stouffer = TRUE,
                                       alpha = 0.05, seed = NULL) NULL
 
@@ -83,7 +85,7 @@
   }
 
   now <- as.list(match.call(current, call))[-1L]
-  before <- as.list(match.call(.power_solomon_before_0_9, call))[-1L]
+  before <- as.list(match.call(.power_solomon_before_0_8, call))[-1L]
 
   moved <- names(now)[!vapply(names(now), function(nm) {
     identical(now[[nm]], before[[nm]])
@@ -91,7 +93,7 @@
 
   if (length(moved)) {
     warning(
-      "power_solomon()'s arguments were reordered in solomonR 0.9.0 to match ",
+      "power_solomon()'s arguments were reordered in solomonR 0.8.0 to match ",
       "plan_solomon() and plot_power_solomon(): n, delta, sens, rho, sigma, ",
       "alpha. This call passed ", paste0("`", moved, "`", collapse = ", "),
       " by position, and they were read in the new order. Name the ",

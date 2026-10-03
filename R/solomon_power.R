@@ -180,7 +180,7 @@
 #'
 #' The arguments follow the order of [plan_solomon()] and
 #' [plot_power_solomon()]: `n`, `delta`, `sens`, `rho`, `sigma`, `alpha`.
-#' Before solomonR 0.9.0, `rho` came before `sens` and `alpha` came last, so
+#' Before solomonR 0.8.0, `rho` came before `sens` and `alpha` came last, so
 #' a call that passes these by position gets a warning that it was read in
 #' the new order. Naming the arguments avoids the ambiguity.
 #'

@@ -181,7 +181,7 @@ test_that("power_solomon() follows the planning order and flags positional calls
 
   expect_warning(
     positional <- power_solomon(10, 0.3, 0.2, sims = 5, seed = 1),
-    "reordered in solomonR 0.9.0"
+    "reordered in solomonR 0.8.0"
   )
   expect_equal(positional, named)
 
