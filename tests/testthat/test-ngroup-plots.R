@@ -144,12 +144,24 @@ test_that("the teaching schematic draws 2(k + 1) groups with the right title", {
 
 test_that("the key to the treatment marks fits a figure of ordinary width", {
 
-  # A long key is broken between entries, never inside one.
+  # A long key is broken between entries, never inside one, by the rule that
+  # breaks the other figure text: lines of at most 74 characters, which fit
+  # a figure 7 inches wide at the size of a subtitle (#108).
   twelve <- plot_solomon_design(treatments = 5)
   lines <- strsplit(twelve$labels$subtitle, "\n", fixed = TRUE)[[1]]
-  expect_equal(lines[-1], c("X1 = treatment 1; X2 = treatment 2; X3 = treatment 3;",
-                            "X4 = treatment 4; X5 = treatment 5"))
-  expect_true(all(nchar(lines) <= 64L))
+  expect_equal(lines[-1], c("X1 = treatment 1; X2 = treatment 2; X3 = treatment 3; X4 = treatment 4;",
+                            "X5 = treatment 5"))
+  expect_true(all(nchar(lines) <= .figure_text_chars(.figure_subtitle_size)))
+  expect_equal(.figure_text_chars(.figure_subtitle_size), 74L)
+  six <- c("Relapse prevention", "Goal setting")
+  expect_equal(.solomon_design_key(c("X1", "X2"), six),
+               "X1 = Relapse prevention; X2 = Goal setting")
+  # A key of 74 characters keeps one line; one of 75 is broken.
+  fits <- .solomon_design_key(c("X1", "X2"), c(strrep("a", 31), strrep("b", 31)))
+  expect_equal(nchar(fits), 74L)
+  expect_false(grepl("\n", fits, fixed = TRUE))
+  expect_equal(.solomon_design_key(c("X1", "X2"), c(strrep("a", 31), strrep("b", 32))),
+               paste0("X1 = ", strrep("a", 31), ";\nX2 = ", strrep("b", 32)))
 
   long <- c("Motivational interviewing with booster sessions",
             "Relapse prevention with a workbook and weekly calls")

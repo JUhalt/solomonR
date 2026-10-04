@@ -30,6 +30,19 @@ flagged_mai2020 <- function() {
   d
 }
 
+# Data for a design with k treatments, T1 to Tk, and a control: 2(k + 1)
+# groups of 12.
+k_treatment_data <- function(k) {
+  d <- expand.grid(id = 1:12, condition = c("Control", paste0("T", seq_len(k))),
+                   pretested = c(1, 0), stringsAsFactors = FALSE)
+  d$y <- withr::with_seed(2, stats::rnorm(nrow(d), 50, 10))
+  d
+}
+
+k_treatment_design <- function(k, data = k_treatment_data(k)) {
+  plot_solomon_design(y, condition, pretested, control = "Control", data = data)
+}
+
 
 # ---- plot_classic_flow() -------------------------------------------------------
 
@@ -176,34 +189,118 @@ test_that("the plot_solomon_design() key and caption fit the figure", {
     plot_solomon_design(y_post, treat, pretested, data = sparse),
     plot_solomon_design(post_behavior, condition, pretested, control = "Control",
                         data = flagged_mai2020()),
-    plot_solomon_design(treatments = 5)
+    plot_solomon_design(treatments = 5),
+    k_treatment_design(4), k_treatment_design(5)
   )
   for (p in figures) {
     expect_figure_text_fits(p, pkgdown_size)
   }
+  # The longest key, broken by the rule of the other figure text (#108).
+  expect_figure_text_fits(plot_solomon_design(treatments = 5), c(7, 4.5))
 })
 
 
 test_that("plot_solomon_design() sets aside the width of the group sizes and means", {
 
+  # Adjacent column headings of the schematic run into each other when the
+  # mean of their widths is wider than a column.
+  headings_fit <- function(headings, column) {
+    all((utils::head(headings, -1) + utils::tail(headings, -1)) / 2 < column)
+  }
+  four <- plot_solomon_design(y_post, treat, pretested, data = solomon_example)
   cases <- list(
-    list(plot_solomon_design(y_post, treat, pretested, data = solomon_example), c(8, 3.5)),
-    list(plot_solomon_design(y_post, treat, pretested, data = solomon_example), pkgdown_size),
+    list(four, c(8, 3.5)),
+    list(four, pkgdown_size),
     list(plot_solomon_design(post_behavior, condition, pretested, control = "Control",
-                             data = mai2020), pkgdown_size)
+                             data = mai2020), pkgdown_size),
+    list(k_treatment_design(3), pkgdown_size)
   )
   for (case in cases) {
     layout <- design_layout(case[[1]], case[[2]])
     # The text beside the schematic has the room it needs, whatever the font.
     expect_gte(layout$reserved + 1e-6, layout$needed)
-    # Adjacent column headings of the schematic do not run into each other.
-    headings <- layout$headings
-    expect_true(all((utils::head(headings, -1) + utils::tail(headings, -1)) / 2 < layout$column))
+    expect_true(headings_fit(layout$headings, layout$column))
   }
+
+  # With ten or more groups each summary takes one line, which leaves the
+  # schematic less room: the headings fit with the metrics of the pdf()
+  # device (Helvetica, close to Arial on Windows), but not with the whole
+  # allowance for DejaVu Sans.
+  for (k in 4:5) {
+    layout <- design_layout(k_treatment_design(k), pkgdown_size)
+    expect_gte(layout$reserved + 1e-6, layout$needed)
+    expect_true(headings_fit(layout$headings_pdf, layout$column_pdf))
+  }
+
+  # A theme added to the returned plot keeps the width set aside.
+  layout <- design_layout(four + ggplot2::theme_bw(), pkgdown_size)
+  expect_gte(layout$reserved + 1e-6, layout$needed)
 
   # Without data, nothing is set aside.
   local_figure_device(pkgdown_size[1], 3.5)
   g <- ggplot2::ggplotGrob(plot_solomon_design())
   right <- g$layout[g$layout$name == "axis-r", ]
   expect_equal(grid::convertWidth(g$widths[right$l], "in", valueOnly = TRUE), 0)
+})
+
+
+test_that("the plot_solomon_design() summaries do not run into each other", {
+
+  # Up to eight groups, each summary takes two lines; with ten or more, one.
+  # Neighbouring summaries are at least twice as far apart as the lines of
+  # one summary, so that each line is read with its own group.
+  four <- plot_solomon_design(y_post, treat, pretested, data = solomon_example)
+  eight_flagged <- k_treatment_data(3)
+  eight_flagged <- eight_flagged[!(eight_flagged$condition == "T2" & eight_flagged$pretested == 0), ]
+  ten_flagged <- k_treatment_data(4)
+  ten_flagged <- ten_flagged[!(ten_flagged$condition == "T2" & ten_flagged$pretested == 0), ]
+  cases <- list(
+    list(four, c(8, 3.5), 2L),
+    list(four, pkgdown_size, 2L),
+    list(plot_solomon_design(post_behavior, condition, pretested, control = "Control",
+                             data = flagged_mai2020()), pkgdown_size, 2L),
+    list(k_treatment_design(3), pkgdown_size, 2L),
+    list(k_treatment_design(3, eight_flagged), pkgdown_size, 2L),
+    list(k_treatment_design(4), pkgdown_size, 1L),
+    list(k_treatment_design(4, ten_flagged), pkgdown_size, 1L),
+    list(k_treatment_design(4), c(7, 4.2), 1L),
+    list(k_treatment_design(5), pkgdown_size, 1L)
+  )
+  for (case in cases) {
+    text <- design_summary_layer(case[[1]])$data$text
+    lines <- lengths(strsplit(text[!grepl("empty", text, fixed = TRUE)], "\n", fixed = TRUE))
+    expect_true(all(lines == case[[3]]))
+    spacing <- design_summary_spacing(case[[1]], case[[2]])
+    expect_gt(spacing$within, 0)
+    expect_true(all(spacing$between > 2 * spacing$within))
+  }
+})
+
+
+test_that("a theme added to plot_solomon_design() does not draw the summaries twice", {
+
+  # The width of the summaries is set aside by a hidden secondary axis that
+  # carries the same text. A complete theme added to the plot does not
+  # reveal it, nor its ticks or line (#108).
+  visible_count <- function(p, labels) {
+    local_figure_device(pkgdown_size[1], pkgdown_size[2])
+    g <- ggplot2::ggplotGrob(p)
+    drawn <- drawn_text(g)
+    drawn <- drawn[visible_colour(drawn$col), ]
+    right <- g$grobs[[which(g$layout$name == "axis-r")]]
+    list(counts = vapply(labels, function(l) sum(drawn$label == l), integer(1)),
+         lines = drawn_lines(right))
+  }
+  for (p in list(plot_solomon_design(y_post, treat, pretested, data = solomon_example),
+                 k_treatment_design(4))) {
+    labels <- design_summary_layer(p)$data$text
+    themes <- list(NULL, ggplot2::theme_bw(), ggplot2::theme_classic(), ggplot2::theme_grey(),
+                   ggplot2::theme_void(),
+                   ggplot2::theme(axis.text = ggplot2::element_text(colour = "red")))
+    for (theme in themes) {
+      shown <- visible_count(if (is.null(theme)) p else p + theme, labels)
+      expect_equal(unname(shown$counts), rep(1L, length(labels)))
+      expect_equal(shown$lines, 0L)
+    }
+  }
 })

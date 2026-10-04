@@ -126,24 +126,86 @@ classic_flow_layout <- function(p, size) {
        width = size[1])
 }
 
+# The layer of plot_solomon_design() that draws the group sizes and means.
+design_summary_layer <- function(p) {
+  Filter(function(l) "text" %in% names(l$data), p$layers)[[1]]
+}
+
 # Widths, in inches, that plot_solomon_design() sets aside to the right of
 # the schematic and that its group sizes and means need, and the widths of
-# the column headings and of a column of the schematic when every width that
-# depends on the font is widened by the allowance.
+# the column headings and of a column of the schematic, with and without
+# the allowance for wider fonts. With the allowance, every width that
+# depends on the font is widened by it.
 design_layout <- function(p, size) {
   local_figure_device(size[1], size[2])
   g <- ggplot2::ggplotGrob(p)
   geometry <- figure_geometry(g, size[1], size[2])
   right <- g$layout[g$layout$name == "axis-r", ]
-  summaries <- Filter(function(l) "text" %in% names(l$data), p$layers)[[1]]$data
+  layer <- design_summary_layer(p)
   params <- ggplot2::ggplot_build(p)$layout$panel_params[[1]]
   wide_panel <- size[1] - (size[1] - geometry$panel_width) * font_allowance
+  headings <- text_extent(levels(p$data$step), 0.8 * 12)[1, ]
   list(
     reserved = sum(geometry$widths[right$l:right$r]),
-    needed = max(text_extent(summaries$text, 3.5 * ggplot2::.pt)[1, ]),
-    headings = text_extent(levels(p$data$step), 0.8 * 12)[1, ] * font_allowance,
-    column = wide_panel / diff(params$x.range)
+    needed = max(text_extent(layer$data$text, layer$aes_params$size * ggplot2::.pt)[1, ]),
+    headings = headings * font_allowance,
+    column = wide_panel / diff(params$x.range),
+    headings_pdf = headings,
+    column_pdf = geometry$panel_width / diff(params$x.range)
   )
+}
+
+# Space, in inches, between neighbouring group summaries of
+# plot_solomon_design() drawn at `size`, from the bottom of one to the top
+# of the next, and the space between the lines of one summary: the distance
+# from one line to the next less the height of a line. Each summary is
+# centred on its row.
+design_summary_spacing <- function(p, size) {
+  local_figure_device(size[1], size[2])
+  g <- ggplot2::ggplotGrob(p)
+  geometry <- figure_geometry(g, size[1], size[2])
+  layer <- design_summary_layer(p)
+  s <- layer$data[order(as.integer(layer$data$row)), ]
+  fontsize <- layer$aes_params$size * ggplot2::.pt
+  # geom_text() sets lines 1.2 apart unless the layer says otherwise.
+  lineheight <- if (is.null(layer$aes_params$lineheight)) 1.2 else layer$aes_params$lineheight
+  params <- ggplot2::ggplot_build(p)$layout$panel_params[[1]]
+  pitch <- geometry$panel_height / diff(params$y.range)
+  heights <- text_extent(s$text, fontsize, lineheight)[2, ]
+  line <- text_extent("posttest mean 56.23", fontsize, lineheight)[2]
+  list(between = pitch - (utils::head(heights, -1) + utils::tail(heights, -1)) / 2,
+       within = lineheight * 1.2 * fontsize / 72 - line)
+}
+
+# Labels and colours of the text a gtable draws, from every text grob in it.
+# A colour set on an enclosing grob is passed down to the grobs inside it.
+drawn_text <- function(grob, col = "black") {
+  if (!is.null(grob$gp$col)) {
+    col <- grob$gp$col
+  }
+  if (inherits(grob, "text")) {
+    labels <- as.character(grob$label)
+    return(data.frame(label = labels, col = rep_len(col, length(labels)),
+                      stringsAsFactors = FALSE))
+  }
+  children <- if (inherits(grob, "gtable")) grob$grobs else if (inherits(grob, "gTree")) grob$children else list()
+  rows <- lapply(children, drawn_text, col = col)
+  do.call(rbind, c(list(data.frame(label = character(), col = character(),
+                                   stringsAsFactors = FALSE)), rows))
+}
+
+# Whether text in each colour can be seen: not NA, and not fully transparent.
+visible_colour <- function(col) {
+  !is.na(col) & grDevices::col2rgb(ifelse(is.na(col), "transparent", col), alpha = TRUE)["alpha", ] > 0
+}
+
+# Line grobs drawn in a cell of a gtable, such as axis ticks or an axis line.
+drawn_lines <- function(grob) {
+  if (inherits(grob, c("polyline", "segments", "lines"))) {
+    return(1L)
+  }
+  children <- if (inherits(grob, "gtable")) grob$grobs else if (inherits(grob, "gTree")) grob$children else list()
+  sum(vapply(children, drawn_lines, integer(1)))
 }
 
 # Width, in inches, of the legends of a plot, and of the figure inside its

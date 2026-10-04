@@ -35,7 +35,7 @@ Imports:
     clubSandwich,
     generics,
     MASS,
-    ggplot2,
+    ggplot2 (>= 3.5.0),
     tibble,
     withr,
     lifecycle

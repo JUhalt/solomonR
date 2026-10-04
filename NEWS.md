@@ -23,13 +23,27 @@
 * `plot_solomon_design()` sets the title and key from the left edge of the
   figure for the four-group design too, with the notation on one line and
   `X = treatment` on the next, as for designs with several treatments. The
-  group sizes and means are given the width they need beside the
-  schematic, so they are no longer cut off at the right edge; each is set
-  on two lines, which leaves the schematic room for its column headings.
+  key to the treatment marks is broken by the same rule as the other
+  figure text. The group sizes and means are given the width they need
+  beside the schematic, so they are no longer cut off at the right edge,
+  also when a theme such as `ggplot2::theme_bw()` is added to the plot.
+  With up to eight groups each is set on two lines, which leaves the
+  schematic room for its column headings; with ten or more groups, whose
+  rows are too short for two lines, each takes one line, as before.
+* The plot returned by `plot_solomon_design()` now draws the rows at the
+  positions 1, 2, and so on, from the bottom, on a continuous y scale
+  labeled with the groups, instead of on a discrete scale of the group
+  labels. A layer added by group label maps `y` to the row's position, for
+  example `y = match(label, levels(p$data$row))`; mapping `y` to the
+  label itself now gives an error.
+* solomonR now requires ggplot2 3.5.0 or later, for the theme of a single
+  guide that keeps the space set aside for the group summaries hidden.
 * A layout test draws each figure at the sizes used in the vignettes and
   at the pkgdown default, and checks that no title, subtitle, caption, or
   legend is wider than its place in the figure, that no edge label of
-  `plot_classic_flow()` covers a node, and that its arrows meet the nodes.
+  `plot_classic_flow()` covers a node, that its arrows meet the nodes, and
+  that the group summaries of `plot_solomon_design()` are drawn once,
+  without running into each other.
 
 ## Sources named by Steyn (2009) (#96, first part)
 

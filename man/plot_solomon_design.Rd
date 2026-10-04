@@ -44,7 +44,12 @@ strings (\code{y_post = "post"}).}
 \item{x}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{y_post} or \code{fit}.}
 }
 \value{
-A ggplot object.
+A ggplot object. The rows are drawn at the positions 1, 2, and so
+on, from the bottom, on a continuous y scale labeled with the groups.
+In the plot's data, \code{row} is a factor of the group labels whose levels
+run from the bottom row to the top, so \code{as.integer(row)} is a group's
+position. A layer added by group label maps \code{y} to that position, for
+example \code{y = match(label, levels(p$data$row))} for a plot \code{p}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -64,7 +69,9 @@ observed posttest scores, are flagged, using the same rule as
 The key and the caption are broken into lines for a figure at least 7
 inches wide. The group sizes and means are given the width they need
 beside the schematic, so that they are not cut off at the edge of the
-figure.
+figure, also when a theme is added to the returned plot. With up to eight
+groups, each group's size and mean are set on two lines; with ten or
+more, whose rows are shorter, on one.
 }
 \section{Designs with several treatments}{
 
