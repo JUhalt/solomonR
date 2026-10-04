@@ -348,10 +348,13 @@ number is not allowed for.
   adjustment Newman et al. cautioned against (p. 98); their adjusted means
   are taken at the pretested groups' mean pretest instead (p. 101). The
   four Solomon contrasts do not depend on where the pretest is centered.
-- **Checks:** with `robust = "none"`, the model reproduces the paper's
-  pretest slope (.55264, p. 98), its within-groups sum of squares (62.39),
-  and its tests of the treatment (F = 21.01) and the interaction (F = 0.21,
-  printed as .22) (Table 3, p. 100). Its estimate of Treatment \| pretested
+- **Checks:** the paper tests the interaction as the restriction
+  b1 = b3 + b2 − b4 on the group coefficients (p. 98), the difference of
+  differences that the Pretest x Treatment contrast estimates. With
+  `robust = "none"`, the model reproduces the paper's pretest slope
+  (.55264, p. 98), its within-groups sum of squares (62.39), and its tests
+  of the treatment (F = 21.01) and the interaction (F = 0.21, printed as
+  .22) (Table 3, p. 100). Its estimate of Treatment \| pretested
   equals the ANCOVA estimate (Test E), and its estimate of Treatment \|
   unpretested equals Test C. The package tests these identities.
 - **Function:** `fit_solomon_glm()`.

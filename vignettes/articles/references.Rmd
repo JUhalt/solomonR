@@ -103,10 +103,13 @@ https://doi.org/10.1177/0193841X9501900404
 > ([#16](https://github.com/JUhalt/solomonR/issues/16)), so the
 > sensitization contrast has its own test, and `invariance_solomon()`
 > extends the loading tests to configural, metric, and scalar tests across
-> all four groups ([#55](https://github.com/JUhalt/solomonR/issues/55)). A
-> latent maturation contrast and a pretest main effect, after the authors'
-> comparisons, are planned
-> ([#117](https://github.com/JUhalt/solomonR/issues/117)).
+> all four groups ([#55](https://github.com/JUhalt/solomonR/issues/55)).
+> Four elements of the authors' analyses are planned
+> ([#117](https://github.com/JUhalt/solomonR/issues/117)): a latent
+> maturation contrast (pp. 420–422), a pretest main-effect contrast
+> (p. 426), the latent pretest difference between the pretested groups as a
+> baseline check (p. 423; Table 4, p. 425), and a standardized latent
+> contrast using the pooled latent standard deviation (p. 426).
 
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
@@ -373,12 +376,13 @@ https://eric.ed.gov/?id=ED316556
 > fabricated raw scores for 14 participants per group (Table 2, p. 7) for
 > which Test H is significant, t(26) = 2.07, p = .048 (Table 5, p. 10), and
 > Test E is not (Table 4, p. 9), and Test I, as the authors compute it, is
-> not significant (pp. 3–4). Their Test I halves Test E's two-sided p-value
-> without regard to the sign of its effect, which is negative in these
-> data, and is judged one-tailed (pp. 3–4). The error entry of their
-> analysis of covariance, 1200.04 (Table 4, p. 9), is a misprint: it is
-> neither the error mean square (45.93) nor the error sum of squares
-> (1148.14) of their scores. *In solomonR:* the known-result test of
+> not significant (pp. 3–4). They judge their Test I one-tailed (pp. 3–4).
+> The manuscript does not describe how it was computed; its z values (1.98
+> and .08) correspond to halving each two-sided p-value without regard to
+> the sign of Test E's effect, which is negative in these data. The error
+> entry of their analysis of covariance, 1200.04 (Table 4, p. 9), is a
+> misprint: it is neither the error mean square (45.93) nor the error sum
+> of squares (1148.14) of their scores. *In solomonR:* the known-result test of
 > `fit_solomon_classic()`, which reproduces Tests E and H from the scores,
 > and the worked examples in the historical-analysis vignette
 > ([#109](https://github.com/JUhalt/solomonR/issues/109)).

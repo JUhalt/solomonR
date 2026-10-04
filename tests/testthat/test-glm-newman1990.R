@@ -30,6 +30,34 @@ test_that("fit_solomon_glm() reproduces Newman et al. (1990, Table 3, p. 100)", 
   # Interaction F, printed as .22; the data give 0.213 (.89 / 4.16 = .214).
   expect_equal(stat("Pretest x Treatment")^2, 0.213, tolerance = 1e-2)
 
+  # Their equation 7 (p. 98): group indicators, Group 4 the reference, and
+  # the pretest coded 0 where it was not given. It has the same fitted values
+  # as the package's parameterization.
+  g <- with(d, data.frame(post = post, x1 = treat * pretested, x2 = (1 - treat) * pretested,
+                          x3 = treat * (1 - pretested), pre = ifelse(is.na(pre), 0, pre)))
+  full <- stats::lm(post ~ x1 + x2 + x3 + pre, data = g)
+  expect_equal(unname(stats::fitted(full)), unname(stats::fitted(fit$model)))
+  reg_ss <- function(m) sum((stats::fitted(m) - mean(g$post))^2)
+  expect_equal(round(reg_ss(full), 2), 161.61)                     # SS7, p. 100
+  # The interaction as the restriction b1 = b3 + b2 - b4, with b4 = 0 for the
+  # reference group (p. 98); SS9 = 160.72 (p. 100). Its F is the squared t of
+  # the Pretest x Treatment contrast.
+  interaction <- stats::lm(post ~ I(x1 + x2) + I(x1 + x3) + pre, data = g)
+  expect_equal(round(reg_ss(interaction), 2), 160.72)
+  f_int <- stats::anova(interaction, full)$F[2]
+  expect_equal(f_int, stat("Pretest x Treatment")^2)
+  # The treatment as b1 + b3 = b2 + b4; SS10 = 74.21 and F = 21.01 (p. 100).
+  # Its F is the squared t of the average treatment effect.
+  treatment <- stats::lm(post ~ I(x1 + x2) + I(x3 - x1) + pre, data = g)
+  expect_equal(round(reg_ss(treatment), 2), 74.21)
+  expect_equal(stats::anova(treatment, full)$F[2], stat("ATE (avg over pretest)")^2)
+  # Table 3's pretesting row (SS 1.51, F .36) is b1 + b2 = b3 + b4, a
+  # comparison at a pretest score of 0 that is not one of the four Solomon
+  # contrasts; the package does not report it. SS11 = 160.10 (p. 100).
+  pretesting <- stats::lm(post ~ I(x2 - x1) + I(x3 + x1) + pre, data = g)
+  expect_equal(round(reg_ss(pretesting), 2), 160.10)
+  expect_equal(round(stats::anova(pretesting, full)$F[2], 2), 0.36)
+
   # Adjusted means of the pretested groups at their pooled pretest mean, 6:
   # 12.45 and 7.55 as printed (p. 101). Their difference is the estimate of
   # Treatment | pretested.

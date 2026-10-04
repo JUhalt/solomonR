@@ -249,8 +249,9 @@ test_that("the Sawilowsky and Markman (1988) counterexample reproduces Tests E a
   expect_equal(round(h$statistic, 2), 2.07)
   expect_equal(round(h$p.value, 3), 0.048)
   # pp. 3-4: (1.98 + .08) / sqrt(2) = 1.4567, p = .072, judged one-tailed.
-  # Test E's two-sided p is halved without regard to the sign of its effect,
-  # which is negative; they rounded the two z values before combining them.
+  # The manuscript does not describe the computation. The two z values match
+  # halving each two-sided p-value without regard to the sign of Test E's
+  # effect, which is negative, and rounding before combining them.
   expect_lt(e$estimate, 0)
   z_sm <- sum(stats::qnorm(c(e$p.value, h$p.value) / 2, lower.tail = FALSE)) / sqrt(2)
   expect_lt(abs(z_sm - 1.4567), 0.005)

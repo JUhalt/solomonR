@@ -388,7 +388,7 @@ maintainer's sign-off ([#85](https://github.com/JUhalt/solomonR/issues/85)).
 Requirements, with their status:
 
 - [x] Stable public API — [#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR #91](https://github.com/JUhalt/solomonR/pull/91)
-- [x] Historical workflow checked against published results — [#51](https://github.com/JUhalt/solomonR/issues/51), [#109](https://github.com/JUhalt/solomonR/issues/109); merged in [PR #76](https://github.com/JUhalt/solomonR/pull/76)
+- [x] Historical workflow checked against published results — [#51](https://github.com/JUhalt/solomonR/issues/51), merged in [PR #76](https://github.com/JUhalt/solomonR/pull/76); [#109](https://github.com/JUhalt/solomonR/issues/109), pull request pending (PR number to be added when it is opened)
   - The computations reproduce. Tests A, D, E, H, and I and the 1988 path
     reproduce the worked example of Walton Braver and Braver (1988, p. 153;
     `waltonbraver1988`). Tests E and H reproduce the counterexample of

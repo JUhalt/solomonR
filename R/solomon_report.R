@@ -5,9 +5,11 @@
 # The references each exported analysis function rests on, as keys of
 # .solomon_reference_text. report_solomon() cites these, plus the
 # option-specific references of a particular fit. A unit test checks that
-# every exported analysis function is registered here.
+# every exported analysis function is registered here. fit_solomon_glm() has
+# no core reference: Newman et al. (1990), whose model it fits when a pretest
+# is supplied, is cited with the pretest adjustment (.glm_method_phrases()).
 .solomon_function_refs <- list(
-  fit_solomon_glm = "newman1990",
+  fit_solomon_glm = character(0),
   fit_solomon_ml = "vanengelenburg1999",
   marginal_solomon = c("localio2007", "daniel2021"),
   perm_solomon = "phipson2010",

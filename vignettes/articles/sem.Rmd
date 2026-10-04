@@ -225,6 +225,15 @@ equation models.
   delivered to intact classes, although the school, the unit assigned to
   the program, was the appropriate unit (p. 432, note 3).
 
+solomonR shares the core of their method: a multiple-group model with a
+mean structure (pp. 414, 420), equal loadings tested before latent means
+are compared, and latent means compared with the indicators' means held
+equal (pp. 420–426). For the pretested groups, Dukes et al. also held the
+path from each pretest factor to its posttest factor equal across the two
+groups (p. 423). That is the common slope of the latent analysis of
+covariance in `fit_solomon_sem_latent(ancova = TRUE)`; they tested the
+equality, and the package imposes it.
+
 solomonR fits the four groups in one model. Its latent mean structure is
 identified by fixing the unpretested control's mean at 0
 ([#16](https://github.com/JUhalt/solomonR/issues/16)), so the
@@ -237,6 +246,18 @@ not compare. The SEM functions make no adjustment for clusters. When
 clusters such as schools were assigned to conditions, analyze at the level
 of assignment, or analyze observed scores with
 `fit_solomon_glm(robust = "CR2", cluster = )`.
+
+Four elements of their analyses are planned for the SEM functions
+([#117](https://github.com/JUhalt/solomonR/issues/117)):
+
+- a latent maturation contrast, comparing the pretested control's pretest
+  with the unpretested control's posttest (pp. 420–422);
+- a pretest main-effect contrast, the effect they describe (p. 426);
+- the latent pretest difference between the pretested groups, as a
+  baseline check in the latent analysis of covariance (p. 423; Table 4,
+  p. 425);
+- a standardized latent contrast, using the pooled latent standard
+  deviation (p. 426).
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

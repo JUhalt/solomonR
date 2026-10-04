@@ -63,6 +63,22 @@ test_that("references follow the options the fit used", {
   expect_identical(c1990$references, .apa_sort(c1990$references))
 })
 
+test_that("the registered references of fit_solomon_glm() are cited whatever its options", {
+  # The registry lists the references a function rests on whatever options
+  # are chosen; "How to Cite solomonR" prints them as such. Newman et al.
+  # (1990) is cited only when a pretest enters the model, so it is not a
+  # core reference (#105).
+  d <- solomon_example
+  core <- gsub("*", "", unname(.solomon_reference_text[.solomon_function_refs$fit_solomon_glm]),
+               fixed = TRUE)
+  with_pre <- report_solomon(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre))
+  without_pre <- report_solomon(fit_solomon_glm(d$y_post, d$treat, d$pretested, robust = "none"))
+  expect_true(all(core %in% with_pre$references))
+  expect_true(all(core %in% without_pre$references))
+  expect_true(any(startsWith(with_pre$references, "Newman, I., Benz, C.")))
+  expect_false(any(startsWith(without_pre$references, "Newman")))
+})
+
 test_that("reports for the teaching data are stable", {
   local_edition(3)
   d <- solomon_example

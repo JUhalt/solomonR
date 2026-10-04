@@ -291,9 +291,10 @@ problem differently, with meta-analysis:
     groups), stopping at the first significant test;
   - Test I is reached only when all of these are nonsignificant
     (pp. 151–153).
-- **Error rates.** They argued that the significance level at each step is
-  best read as a probability conditional on having reached that step
-  (p. 153, footnote 3).
+- **Error rates.** Because the experiment-wise error rate of a sequence of
+  tests is hard to specify in advance, they suggested treating the
+  significance level at each step as conditional on reaching that step and
+  on the null hypothesis being true there (p. 153, footnote 3).
 
 Their worked example reports Test I as z = 2.05, p = .040 (p. 153). That p
 is two-tailed.
@@ -327,9 +328,8 @@ The procedure drew an immediate exchange in *Perceptual and Motor Skills*.
 ## The pretest as a covariate for all four groups (1990)
 
 Newman et al. (1990) returned to the single model with the pretest as a
-covariate. Solomon (1949, p. 146) had written that more sophisticated
-procedures, such as an adaptation of the analysis of covariance, might
-improve the evaluation of results, and Newman et al. quoted that remark
+covariate. Solomon (1949, p. 146) had suggested that an adapted analysis of
+covariance might improve the analysis, and Newman et al. quoted him
 (p. 92). Their model, which they call a pseudo-analysis of covariance
 (pp. 94, 98), fits the posttests of the four groups in one regression, with
 an indicator for each group and the pretest as a covariate where it was

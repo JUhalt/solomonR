@@ -159,9 +159,14 @@ stouffer_solomon <- function(p) {
 #' and pretest indicators in place of their group indicators (equation 7,
 #' p. 98); the two forms give the same fitted values. Each group keeps its
 #' own mean, so the pretest slope is estimated within the pretested groups,
-#' and the unpretested groups' means are not adjusted (p. 98). With
-#' `robust = "none"`, the fit reproduces their worked example (Table 3,
-#' p. 100). The four Solomon contrasts do not depend on the 0 coding. The
+#' and the unpretested groups' means are not adjusted (p. 98). They tested
+#' the interaction as the restriction b1 = b3 + b2 - b4 on the group
+#' coefficients (p. 98), the difference of differences that the Pretest x
+#' Treatment contrast estimates. With `robust = "none"`, the fit reproduces
+#' their pretest slope (.55264, p. 98), their within-groups sum of squares,
+#' and their tests of the treatment (F = 21.01) and the interaction
+#' (F = 0.21, printed .22) (Table 3, p. 100). The four Solomon contrasts do
+#' not depend on the 0 coding. The
 #' `pretested` coefficient does: it compares the two control groups at a
 #' pretest score of 0, which treats the unpretested participants as if they
 #' had scored 0, the adjustment Newman et al. cautioned against (p. 98).

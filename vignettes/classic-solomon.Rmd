@@ -407,11 +407,13 @@ each published value beside its reproduction.
 
 Sawilowsky and Markman (1988) answered with fabricated scores (Table 2,
 p. 7) for which Test H is significant, t(26) = 2.07, p = .048 (Table 5,
-p. 10), and Test I, as they computed it, is not (pp. 3–4). They halved Test
-E's two-sided p-value without regard to the sign of its effect, which is
-negative in their data, and judged the combined z one-tailed (pp. 3–4).
-That halving differs from the reading that reproduces the published
-simulation rates, described under Test I above. The package's tests
+p. 10), and Test I, as they computed it, is not; they judged the combined
+z one-tailed (pp. 3–4). The manuscript does not say how the two z values
+were obtained. Their values, 1.98 and .08, correspond to halving each
+two-sided p-value without regard to the sign of Test E's effect, which is
+negative in their data; this is solomonR's reconstruction from the
+numbers. That halving differs from the reading that reproduces the
+published simulation rates, described under Test I above. The package's tests
 reproduce their Tests E and H from the scores. Its own Test I is
 directional, as Walton Braver and Braver (1988, p. 152) define it, so it
 gives z = 1.34, not their 1.46. The two worked examples also judge Test I

@@ -53,15 +53,17 @@ the four-group design.
 
 `fit_solomon_glm()` avoids this problem internally. For the optional
 pretest covariate, the model uses the observed pretest score among
-pretested participants and a design-safe value among participants for
-whom the pretest was never administered.
+pretested participants and a design-safe value, 0, among participants for
+whom the pretest was never administered. This is the model Newman et al.
+(1990) proposed for the design, which they call a pseudo-analysis of
+covariance (pp. 94, 98).
 
-The pretest indicator remains in the model, so this coding does not
-pretend that Groups 3 and 4 actually had baseline scores of zero. This is
-the model Newman et al. (1990) proposed for the design, which they call a
-pseudo-analysis of covariance (pp. 94, 98). They cautioned against
-adjustments that treat unpretested participants as having a pretest score
-of zero (p. 98).
+The pretest indicator remains in the model, so each group keeps its own
+mean, and the four Solomon contrasts do not depend on the 0 coding. One
+coefficient does: the `pretested` coefficient compares the two control
+groups at a pretest score of 0. That treats the unpretested participants
+as if they had scored 0, the adjustment Newman et al. cautioned against
+(p. 98), so interpret the four contrasts rather than that coefficient.
 
 ## Example data
 

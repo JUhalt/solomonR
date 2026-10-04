@@ -12,17 +12,23 @@
   families and exposure offsets, the noncollapsibility warning and
   `marginal_solomon()`, additional covariates, designs with several
   treatments, and randomization and equivalence tests.
-* `?fit_solomon_glm` gives the model's source, and Newman et al.'s caution
-  against treating the unpretested as having a pretest score of zero.
-* A new known-result test reproduces their worked example (Table 3,
-  p. 100). The printed interaction F of .22 is 0.21 from their data.
+* `?fit_solomon_glm` and the methods guide give the model's source, the
+  interaction restriction as Newman et al. printed it, and their caution
+  against treating the unpretested as having a pretest score of zero, which
+  applies to the `pretested` coefficient but not to the four Solomon
+  contrasts.
+* A new known-result test reproduces their worked example: the pretest
+  slope, the within-groups sum of squares, and the tests of the treatment
+  and the interaction (Table 3, p. 100). The printed interaction F of .22
+  is 0.21 from their data.
 * `report_solomon()` and `analysis_plan_solomon()` cite Newman et al.
-  (1990) with Lin (2013) where they describe the pretest adjustment, and
-  the citation table of "How to Cite solomonR" lists it for
-  `fit_solomon_glm()`.
+  (1990) with Lin (2013) where they describe the pretest adjustment. "How
+  to Cite solomonR" explains that `fit_solomon_glm()` cites them when a
+  pretest is supplied.
 * Williams and Newman (1982), who fitted one model to all six sets of
   observations in answer to Campbell and Stanley, are added with Newman et
-  al. (1990) to the history and coverage articles and the references.
+  al. (1990) to the history, coverage, and citation articles and the
+  references.
 
 ## Dukes et al. (1995), the latent-variable precedent (#106)
 
@@ -31,9 +37,11 @@
   functions in the SEM article, the methods guide, the coverage article,
   and the references. The SEM article sets their three two-group models,
   which test loadings, impose equal intercepts, and do not test the
-  interaction, beside the package's four-group model and invariance tests.
-  The SEM functions are unchanged; the further elements of their method are
-  planned under #117.
+  interaction, beside the package's four-group model and invariance tests,
+  and names what the two share. The SEM functions are unchanged; four
+  further elements of their method (a latent maturation contrast, a pretest
+  main effect, a latent baseline check, and a standardized latent contrast)
+  are planned under #117.
 
 ## The worked example of Walton Braver and Braver (1988) (#109)
 

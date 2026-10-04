@@ -542,8 +542,8 @@
 #' - **The 1988 sequence:** Tests A, D, E, and H are not significant and
 #'   Test I is, the path that [fit_solomon_classic()] returns.
 #' - **The power remark:** Groups 3 and 4 alone, with 28 participants each,
-#'   would give t(54) = 1.807 (two-tailed p = .076), as the authors state
-#'   (p. 153).
+#'   would give t(54) = 1.807, p > .07, as the authors state (p. 153); the
+#'   exact two-tailed p is .076.
 #'
 #' [fit_solomon_classic()] takes individual scores. Scores built to have
 #' exactly these means, variances, and correlations give the published
@@ -552,8 +552,10 @@
 #' these data.
 #'
 #' **Caveats.** The sequence reaches Test I only when every earlier test is
-#' nonsignificant, and the authors read the significance level at each step
-#' as conditional on reaching that step (p. 153, note 3). Sawilowsky and
+#' nonsignificant. Because the experiment-wise error rate of the sequence is
+#' hard to specify in advance, the authors suggest treating the significance
+#' level at each step as conditional on reaching that step and on the null
+#' hypothesis being true there (p. 153, note 3). Sawilowsky and
 #' Markman (1988, pp. 3–4; Table 2, p. 7) constructed data in which Test H is
 #' significant and their computation of Test I is not. Braver and Walton
 #' Braver (1990, p. 322) replied and amended the sequence (`flow = "1990"`).
