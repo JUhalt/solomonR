@@ -101,9 +101,16 @@ whose estimates MLR shares.
 When scalar invariance fails, latent means can still be compared if the
 noninvariant parameters are freed and enough indicators stay invariant
 (Byrne et al., 1989, p. 458). `partial` names the freed parameters in
-lavaan syntax (for example, `"item3 ~ 1"` for an intercept). They must
-be chosen on substantive grounds, not by searching the data (Byrne et
-al., 1989, p. 465), and must involve only a minority of the indicators
+lavaan syntax: `"item3 ~ 1"` for an intercept, or `"F =~ item3"` for a
+loading. Only intercepts and loadings, the parameters the metric and
+scalar models hold equal, can be freed. The model has one factor, so any
+factor name before `=~` refers to it, including the `POST` of
+[`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md).
+The loading of the first indicator is fixed at 1 to set the latent
+scale; if it is freed, lavaan keeps it at 1 in the pretested treated
+group only and estimates it in the other three. Freed parameters must be
+chosen on substantive grounds, not by searching the data (Byrne et al.,
+1989, p. 465), and must involve only a minority of the indicators
 (Vandenberg & Lance, 2000, p. 38); at least two indicators must stay
 fully invariant. The function never chooses them.
 

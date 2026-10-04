@@ -64,6 +64,7 @@ includes them, and each function’s help page lists them all.
 | [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md) | Stouffer et al. (1949); Walton Braver & Braver (1988) |
 | [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md) | Rosseel (2012) |
 | [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md) | Rosseel (2012); Meredith (1993); Vandenberg & Lance (2000) |
+| [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md) | Rosseel (2012); Meredith (1993); Vandenberg & Lance (2000); Satorra & Bentler (2001); Chen (2007) |
 | [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md) | Walton Braver & Braver (1988) |
 | [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md) | Morris (2008); Hedges (1981) |
 | [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md) | Cumming & Finch (2001); Kelley (2007) |
@@ -76,6 +77,16 @@ The full entries, with notes on how the package uses each work, are on
 the
 [References](https://juhalt.github.io/solomonR/articles/references.md)
 page.
+
+[`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+takes the result of every function in the table except the two below,
+which it leaves out on purpose. Cite their methods from the table and
+from their help pages.
+
+| Function | Why report_solomon() leaves it out |
+|:---|:---|
+| [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md) | It combines the z statistics of tests computed elsewhere. Test I of the historical sequence, which is that combination, is reported with [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md). |
+| [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md) | It computes effect sizes and their sampling variances to be combined in a meta-analysis of several studies, not the results of one study. |
 
 ## Historical procedures
 

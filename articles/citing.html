@@ -161,8 +161,8 @@ whatever options are chosen. Options add references of their own;
 page lists them all.</p>
 <table class="table">
 <colgroup>
-<col width="26%">
-<col width="73%">
+<col width="21%">
+<col width="78%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Function</th>
@@ -219,33 +219,38 @@ al. (2018)</td>
 (2000)</td>
 </tr>
 <tr class="even">
+<td align="left"><code><a href="../reference/invariance_solomon.html">invariance_solomon()</a></code></td>
+<td align="left">Rosseel (2012); Meredith (1993); Vandenberg &amp; Lance
+(2000); Satorra &amp; Bentler (2001); Chen (2007)</td>
+</tr>
+<tr class="odd">
 <td align="left"><code><a href="../reference/solomon_from_summary.html">solomon_from_summary()</a></code></td>
 <td align="left">Walton Braver &amp; Braver (1988)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code><a href="../reference/solomon_effect_sizes.html">solomon_effect_sizes()</a></code></td>
 <td align="left">Morris (2008); Hedges (1981)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code><a href="../reference/baseline_solomon.html">baseline_solomon()</a></code></td>
 <td align="left">Cumming &amp; Finch (2001); Kelley (2007)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code><a href="../reference/fit_solomon_mi.html">fit_solomon_mi()</a></code></td>
 <td align="left">Carpenter et al. (2023); van Buuren (2018); Cro et
 al. (2019)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code><a href="../reference/tipping_point_solomon.html">tipping_point_solomon()</a></code></td>
 <td align="left">White et al. (2011); Little et al. (2012); Carpenter et
 al. (2023)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code></td>
 <td align="left">Mallinckrodt et al. (2008); Laird &amp; Ware (1982);
 Sabanes Bove et al. (2026)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code></td>
 <td align="left">Steyn (2009); Walton Braver &amp; Braver (1988);
 Scheffé (1953)</td>
@@ -254,6 +259,33 @@ Scheffé (1953)</td>
 </table>
 <p>The full entries, with notes on how the package uses each work, are
 on the <a href="references.html">References</a> page.</p>
+<p><code><a href="../reference/report_solomon.html">report_solomon()</a></code> takes the result of every function in
+the table except the two below, which it leaves out on purpose. Cite
+their methods from the table and from their help pages.</p>
+<table class="table">
+<colgroup>
+<col width="13%">
+<col width="86%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Function</th>
+<th align="left">Why report_solomon() leaves it out</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code><a href="../reference/stouffer_solomon.html">stouffer_solomon()</a></code></td>
+<td align="left">It combines the z statistics of tests computed
+elsewhere. Test I of the historical sequence, which is that combination,
+is reported with <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>.</td>
+</tr>
+<tr class="even">
+<td align="left"><code><a href="../reference/solomon_effect_sizes.html">solomon_effect_sizes()</a></code></td>
+<td align="left">It computes effect sizes and their sampling variances
+to be combined in a meta-analysis of several studies, not the results of
+one study.</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section level2">
 <h2 id="historical-procedures">Historical procedures<a class="anchor" aria-label="anchor" href="#historical-procedures"></a>

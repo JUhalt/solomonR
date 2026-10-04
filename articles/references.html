@@ -538,6 +538,21 @@ interactions. <em>In solomonR:</em> the planning values in the article
 <div class="section level2">
 <h2 id="methods-references">Methods references<a class="anchor" aria-label="anchor" href="#methods-references"></a>
 </h2>
+<p>Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A.
+M., &amp; Rao, S. M. (2018). Journal article reporting standards for
+quantitative research in psychology: The APA Publications and
+Communications Board task force report. <em>American Psychologist,
+73</em>(1), 3–25. <a href="https://doi.org/10.1037/amp0000191" class="external-link uri">https://doi.org/10.1037/amp0000191</a></p>
+<blockquote>
+<p>The Journal Article Reporting Standards of the American Psychological
+Association for quantitative research (JARS-Quant). Their table for
+structural equation modeling (Table 7) asks for the software and its
+version, the estimation method, the handling of missing data, the basis
+of identification, global fit statistics, the difference tests between
+models, and the parameters fixed or freed. <em>In solomonR:</em> what
+<code><a href="../reference/report_solomon.html">report_solomon()</a></code> gives for latent structural equation
+models and measurement invariance tests (<a href="https://github.com/JUhalt/solomonR/issues/112" class="external-link">#112</a>).</p>
+</blockquote>
 <p>Bell, R. M., &amp; McCaffrey, D. F. (2002). Bias reduction in
 standard errors for linear regression with multi-stage samples.
 <em>Survey Methodology, 28</em>(2), 169–181.</p>
@@ -688,10 +703,38 @@ drawn. <em>Statistical Applications in Genetics and Molecular Biology,
 cluster-robust variance estimation and hypothesis testing in fixed
 effects models. <em>Journal of Business &amp; Economic Statistics,
 36</em>(4), 672–683. <a href="https://doi.org/10.1080/07350015.2016.1247004" class="external-link uri">https://doi.org/10.1080/07350015.2016.1247004</a></p>
+<p>Putnick, D. L., &amp; Bornstein, M. H. (2016). Measurement invariance
+conventions and reporting: The state of the art and future directions
+for psychological research. <em>Developmental Review, 41</em>, 71–90. <a href="https://doi.org/10.1016/j.dr.2016.06.004" class="external-link uri">https://doi.org/10.1016/j.dr.2016.06.004</a></p>
+<blockquote>
+<p>A review of the measurement invariance tests in 126 articles
+published over one year (2013–2014). For reporting, it proposes the
+sample sizes, the handling of missing data, the number and sizes of the
+groups, the fit criteria, and a table of the models with their degrees
+of freedom, fit statistics, comparisons, difference tests, and
+decisions. <em>In solomonR:</em> the report
+<code><a href="../reference/report_solomon.html">report_solomon()</a></code> writes for
+<code><a href="../reference/invariance_solomon.html">invariance_solomon()</a></code>, and the invariance statement of its
+latent structural equation model reports (<a href="https://github.com/JUhalt/solomonR/issues/112" class="external-link">#112</a>).</p>
+</blockquote>
 <p>Rajh-Weber, H., Huber, S. E., &amp; Arendasy, M. (2025). A
 practice-oriented guide to statistical inference in linear modeling for
 non-normal or heteroskedastic error distributions. <em>Behavior Research
 Methods, 57</em>(12), Article 338. <a href="https://doi.org/10.3758/s13428-025-02801-4" class="external-link uri">https://doi.org/10.3758/s13428-025-02801-4</a></p>
+<p>Romano, J. P. (1990). On the behavior of randomization tests without
+a group invariance assumption. <em>Journal of the American Statistical
+Association, 85</em>(411), 686–692. <a href="https://doi.org/10.1080/01621459.1990.10474928" class="external-link uri">https://doi.org/10.1080/01621459.1990.10474928</a></p>
+<blockquote>
+<p>A randomization test is exact when the distribution of the data is
+unchanged by the permutations, as under the sharp null hypothesis.
+Without that group invariance, a permutation test of a difference in
+means keeps its level for the hypothesis of equal means, even
+asymptotically, only when the samples are equal in size or the variances
+are equal. <em>In solomonR:</em> the warning of
+<code>perm_solomon(statistic = "difference")</code> when treated and
+control participants differ in number within a pretest condition, and
+the wording of <code><a href="../reference/report_solomon.html">report_solomon()</a></code> for that statistic (<a href="https://github.com/JUhalt/solomonR/issues/113" class="external-link">#113</a>).</p>
+</blockquote>
 <p>Rosseel, Y. (2012). lavaan: An R package for structural equation
 modeling. <em>Journal of Statistical Software, 48</em>(2), 1–36. <a href="https://doi.org/10.18637/jss.v048.i02" class="external-link uri">https://doi.org/10.18637/jss.v048.i02</a></p>
 <p>Rubin, D. B. (1976). Inference and missing data. <em>Biometrika,
@@ -780,6 +823,18 @@ Medicine, 24</em>(7), 993–1007. <a href="https://doi.org/10.1002/sim.1981" cla
 <p>Wu, J., &amp; Ding, P. (2021). Randomization tests for weak null
 hypotheses in randomized experiments. <em>Journal of the American
 Statistical Association, 116</em>(536), 1898–1913. <a href="https://doi.org/10.1080/01621459.2020.1750415" class="external-link uri">https://doi.org/10.1080/01621459.2020.1750415</a></p>
+<p>Yuan, K.-H., &amp; Bentler, P. M. (2000). Three likelihood-based
+methods for mean and covariance structure analysis with nonnormal
+missing data. <em>Sociological Methodology, 30</em>(1), 165–200. <a href="https://doi.org/10.1111/0081-1750.00078" class="external-link uri">https://doi.org/10.1111/0081-1750.00078</a></p>
+<blockquote>
+<p>Maximum likelihood estimation with incomplete, nonnormal data, with
+robust standard errors and a rescaled test statistic. lavaan’s MLR
+estimator, the default of the latent SEM functions, gives Huber-White
+standard errors and a scaled statistic asymptotically equal to the
+Yuan-Bentler statistic. <em>In solomonR:</em> how
+<code><a href="../reference/report_solomon.html">report_solomon()</a></code> describes the MLR estimator and its scaled
+chi-square (<a href="https://github.com/JUhalt/solomonR/issues/112" class="external-link">#112</a>).</p>
+</blockquote>
 <p>Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. <em>British Journal of Mathematical and Statistical
 Psychology, 57</em>(1), 173–181. <a href="https://doi.org/10.1348/000711004849222" class="external-link uri">https://doi.org/10.1348/000711004849222</a></p>

@@ -157,8 +157,10 @@ distribution in addition to the observed statistic and p-value.</p></dd>
 
 
 <dt id="arg-statistic">statistic<a class="anchor" aria-label="anchor" href="#arg-statistic"></a></dt>
-<dd><p><code>"studentized"</code> (the default) divides the contrast by its
-standard error; <code>"difference"</code> uses the contrast itself.</p></dd>
+<dd><p><code>"studentized"</code> (the default, and recommended) divides
+the contrast by its standard error; <code>"difference"</code> uses the contrast
+itself, which tests only the sharp null hypothesis (see "The difference
+statistic").</p></dd>
 
 
 <dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
@@ -190,6 +192,20 @@ statistic makes permutation tests asymptotically robust when only an
 average effect is hypothesized to be zero (DiCiccio &amp; Romano, 2017;
 Wu &amp; Ding, 2021); for the Pretest x Treatment contrast that robustness
 should be regarded as approximate.</p>
+<p><strong>The difference statistic.</strong> <code>statistic = "difference"</code> tests only the
+sharp null hypothesis. A permutation test of a difference in means is
+exact when the two arms' outcomes have the same distribution, but when
+only the average effect is zero it keeps its level, even asymptotically,
+only if the arms are equal in size or in variance (Romano, 1990). In a
+check for issue #113 (1,000 replications of 199 permutations; the average
+treatment effect; 8 treated and 24 control participants in each pretest
+condition; a treated standard deviation twice the control one; no
+effect), the Type I error at .05 was 0.144 (Monte Carlo standard error
+0.011) for the difference statistic and 0.064 (0.008) for the studentized
+statistic. A classed warning (<code>solomonR_unbalanced_arms_warning</code>) is
+therefore given when the difference statistic is chosen and treated and
+control participants differ in number in a pretest condition that the
+contrast uses. The studentized default is recommended.</p>
 <p><strong>Clustered designs.</strong> Randomization inference must permute the unit that
 was randomized, so for fits with a <code>cluster</code> variable the treatment labels
 of whole clusters are permuted. Two assignment mechanisms are supported:</p><ul><li><p>whole clusters assigned to the four Solomon conditions, as in Kvalem et
@@ -238,7 +254,10 @@ control clusters, 0.0685 with 15 treated and 47 control clusters per
 pretest condition, and 0.0805 with 4 and 8. The difference statistic
 reached 0.158 with 15 and 47, as Gail et al. (1996) found for unbalanced
 designs. A classed warning (<code>solomonR_unbalanced_clusters_warning</code>) is
-therefore given whenever treated and control clusters differ in number.</p></li>
+therefore given, for either statistic, whenever treated and control
+clusters differ in number. It also has the class
+<code>solomonR_unbalanced_arms_warning</code> of the participant-level warning, so
+one handler can catch both.</p></li>
 <li><p>The CR2 tests of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> reached 0.068 with four clusters per
 arm even under the sharp null, where this test is exact, so the
 permutation test is preferred for designs with few clusters.</p></li>
@@ -271,6 +290,10 @@ Applying the Solomon four-group design. <em>Health Education Quarterly,
 zero: Calculating exact p-values when permutations are randomly drawn.
 <em>Statistical Applications in Genetics and Molecular Biology, 9</em>(1),
 Article 39. https://doi.org/10.2202/1544-6115.1585</p>
+<p>Romano, J. P. (1990). On the behavior of randomization tests without a
+group invariance assumption. <em>Journal of the American Statistical
+Association, 85</em>(411), 686–692.
+https://doi.org/10.1080/01621459.1990.10474928</p>
 <p>Wu, J., &amp; Ding, P. (2021). Randomization tests for weak null hypotheses in
 randomized experiments. <em>Journal of the American Statistical Association,
 116</em>(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415</p>

@@ -345,8 +345,9 @@ steyn2005[, c("group", "condition", "pretested", "n", "mean", "sd")]
 #> 6 KG1.2   Marking         0 211 155.739 12.830
 #> 7 KG1.3      Test         0 220 153.036 12.628
 #> 8   KG3   Control         0 209 158.306 11.878
-with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
-                                     pretested = pretested, control = "Control"))
+s2005 <- with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
+                                              pretested = pretested, control = "Control"))
+s2005
 #> Solomon analysis from summary statistics, N-group design
 #> --------------------------------------------------------
 #> Conditions: Norms, Marking, Test; control: Control. With and without a pretest: 8 groups.
@@ -386,6 +387,19 @@ Two cautions apply to this reanalysis, as to the original analysis.
 Existing classes, not participants, were allocated to the eight groups,
 and not at random (Steyn, 2005, pp. 105–106). The analysis treats
 participants as the units, so it does not allow for the classes.
+
+[`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+drafts the method and results of the reanalysis. Because the classes
+were not allocated at random, `assignment = "nonrandom"` makes it
+describe differences between groups rather than treatment effects. The
+omnibus tests and the first comparison:
+
+``` r
+
+report_solomon(s2005, design = list(assignment = "nonrandom"))$results[1:2]
+#> [1] "The omnibus test of the Pretest x Condition interaction (pretest sensitization) gave F(3, 1715) = 1.00, p = .392; the omnibus test of the conditions, averaged over pretest conditions, gave F(3, 1715) = 8.03, p < .001; and the test of pretesting, averaged over the conditions, gave F(1, 1715) = 4.53, p = .034."                                                                                                                                                                                                                                                                                                                    
+#> [2] "The average difference of Norms relative to Control across pretest conditions was -3.25, 95% CI [-4.96, -1.54], t(1715) = -3.73, p < .001, Holm-adjusted. The Pretest x Treatment interaction (pretest sensitization) for Norms relative to Control was 0.46, 95% CI [-2.96, 3.88], t(1715) = 0.26, p = 1.000, Holm-adjusted. The difference of Norms relative to Control among pretested participants was -3.02, 95% CI [-5.42, -0.62], t(1715) = -2.47, p = .041, Holm-adjusted. The difference of Norms relative to Control among unpretested participants was -3.48, 95% CI [-5.92, -1.04], t(1715) = -2.80, p = .010, Holm-adjusted."
+```
 
 ## Steyn’s (2009) sequence of tests
 

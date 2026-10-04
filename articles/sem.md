@@ -68,9 +68,14 @@ across the four groups.
 
 - **Identification.** The latent mean of the unpretested control group
   is fixed at 0; the contrasts are differences between latent means, so
-  they do not depend on that choice.
+  they do not depend on that choice. With the default `std_lv = TRUE`,
+  the latent variance is fixed at 1 in the pretested treated group, so
+  the contrasts are in standard deviations of the latent posttest there.
 - **Optional ANCOVA.** With `ancova = TRUE` and pretest indicators, a
-  latent ANCOVA in the pretested groups is added.
+  latent ANCOVA in the pretested groups is added. With `std_lv = TRUE`,
+  its adjusted effect is in residual standard deviations of the latent
+  posttest given the latent pretest, a different unit from that of the
+  four-group contrasts.
 
 The example data below are simulated for this article. Four indicators
 measure one construct in every group, and the treatment raises the
@@ -264,12 +269,54 @@ group only would bias the sensitization contrast, and there the partial
 model matters. `check_invariance = FALSE` skips the check when
 invariance was established elsewhere.
 
+## Reporting latent models
+
+[`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+drafts the methods and results of a latent fit. It gives what the
+reporting standards for structural equation models ask for (Appelbaum et
+al., 2018):
+
+- **The estimation.** The software and its version, the estimator, and
+  how missing values were handled.
+- **The model.** The constraints across groups, any freed parameters,
+  and how the latent scale was identified.
+- **The fit.** The chi-square test, CFI, RMSEA, and SRMR.
+
+Its statement about invariance follows the fit’s own check, so for the
+partial model above it names the freed intercept:
+
+``` r
+
+report_solomon(fit_partial)$method
+#> [1] "Latent posttest means were compared across the four Solomon groups in a multiple-group structural equation model in which four posttest indicators (y1, y2, y3, and y4) measured one latent posttest, fitted with lavaan (Version 0.7-2; Rosseel, 2012) by maximum likelihood with Huber-White robust standard errors and a scaled test statistic asymptotically equal to the Yuan-Bentler statistic (MLR; Yuan & Bentler, 2000), using full-information maximum likelihood for missing indicator values. The loadings and intercepts of the indicators were constrained to be equal across the four groups, the scalar measurement invariance that latent mean comparisons require (Meredith, 1993; Vandenberg & Lance, 2000), except the intercept of y4, which was estimated separately in each group (partial invariance; Byrne et al., 1989). For identification, the latent posttest mean of the unpretested control group was fixed at 0, and the latent variance at 1 in the pretested treated group; the contrasts are therefore in standard deviations of the latent posttest in that group. Measurement invariance was tested by comparing configural, metric, and scalar models in sequence, with the same parameters freed (Vandenberg & Lance, 2000); the scaled chi-square difference test (Satorra & Bentler, 2001) and the change in fit (Chen, 2007) both supported partial scalar invariance. The contrasts between latent means were tested with Wald z tests."
+```
+
+For
+[`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)
+results, it reports the fit of each model, the comparisons between them,
+and the decision under each criterion, the minimal information Putnick
+and Bornstein (2016) propose for invariance tests:
+
+``` r
+
+report_solomon(inv)$results
+#> [1] "The configural model gave a scaled χ²(8) = 1.98, p = .982 (unscaled χ²(8) = 1.93), CFI = 1.000, RMSEA = .000, and SRMR = .007; the metric model gave a scaled χ²(17) = 8.71, p = .949 (unscaled χ²(17) = 8.51), CFI = 1.000, RMSEA = .000, and SRMR = .041; and the scalar model gave a scaled χ²(26) = 23.35, p = .613 (unscaled χ²(26) = 23.33), CFI = 1.000, RMSEA = .000, and SRMR = .056."
+#> [2] "Constraining the loadings to be equal (metric against configural) gave a scaled Δχ²(9) = 6.71, p = .667, ΔCFI = .000, ΔRMSEA = .000, and ΔSRMR = .034; constraining the intercepts as well (scalar against metric) gave a scaled Δχ²(9) = 14.25, p = .114, ΔCFI = .000, ΔRMSEA = .000, and ΔSRMR = .015."                                                                                      
+#> [3] "The scaled chi-square difference test and the change in fit both supported scalar invariance."
+```
+
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the
 [References](https://juhalt.github.io/solomonR/articles/references.md)
 page.
 
 ## References
+
+Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &
+Rao, S. M. (2018). Journal article reporting standards for quantitative
+research in psychology: The APA Publications and Communications Board
+task force report. *American Psychologist, 73*(1), 3–25.
+<https://doi.org/10.1037/amp0000191>
 
 Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
 equivalence of factor covariance and mean structures: The issue of
@@ -298,6 +345,11 @@ Education, 42*(2), 54–55.
 Meredith, W. (1993). Measurement invariance, factor analysis and
 factorial invariance. *Psychometrika, 58*(4), 525–543.
 <https://doi.org/10.1007/BF02294825>
+
+Putnick, D. L., & Bornstein, M. H. (2016). Measurement invariance
+conventions and reporting: The state of the art and future directions
+for psychological research. *Developmental Review, 41*, 71–90.
+<https://doi.org/10.1016/j.dr.2016.06.004>
 
 Rosseel, Y. (2012). lavaan: An R package for structural equation
 modeling. *Journal of Statistical Software, 48*(2), 1–36.

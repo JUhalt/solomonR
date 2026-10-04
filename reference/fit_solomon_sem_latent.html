@@ -189,8 +189,11 @@ POST residual variance are fixed at 1 in P1.</p></dd>
 
 <dt id="arg-partial-post-partial-pre">partial_post, partial_pre<a class="anchor" aria-label="anchor" href="#arg-partial-post-partial-pre"></a></dt>
 <dd><p>Optional freed parameters of the POST or
-PRE indicators for a partial-invariance model, in lavaan syntax (for
-example, <code>"post3 ~ 1"</code>); see <code><a href="invariance_solomon.html">invariance_solomon()</a></code>.</p></dd>
+PRE indicators for a partial-invariance model, in lavaan syntax:
+intercepts (<code>"post3 ~ 1"</code>) or loadings (<code>"POST =~ post3"</code>), the
+parameters the scalar model holds equal. A loading is freed on the
+factor its indicator measures (<code>POST</code> or <code>PRE</code>) whatever factor name is
+written before <code>=~</code>. See <code><a href="invariance_solomon.html">invariance_solomon()</a></code>.</p></dd>
 
 
 <dt id="arg-check-invariance">check_invariance<a class="anchor" aria-label="anchor" href="#arg-check-invariance"></a></dt>
@@ -210,6 +213,8 @@ scalar (or, with <code>partial_post</code>, partial scalar) invariance. Set it t
 <li><p><code>fitmeasures_pre</code> (optional)</p></li>
 <li><p><code>invariance</code>: the <code><a href="invariance_solomon.html">invariance_solomon()</a></code> result, or <code>NULL</code> when
 the check was not run, and <code>invariance_status</code>, a one-line summary</p></li>
+<li><p><code>settings</code>: the options used, including the estimator and any
+freed parameters, which <code><a href="report_solomon.html">report_solomon()</a></code> reports</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -229,6 +234,19 @@ unpretested control group (U0) is fixed at 0 and the other latent means are
 estimated relative to it. In the pretested ANCOVA model, the pretested
 control group (P0) is the reference. The Solomon contrasts are differences
 between latent means, so they do not depend on the reference choice.</p>
+<p>The unit of the contrasts is set by <code>std_lv</code>. With <code>std_lv = TRUE</code>,
+lavaan fixes the variance of the latent POST at 1 in the pretested
+treated group (P1), so the four-group contrasts are in standard
+deviations of the latent posttest in P1. In the ANCOVA model it fixes
+the latent PRE mean at 0 and its variance at 1, and the residual variance
+of the latent POST at 1, all in P1, so the adjusted effect is in residual
+standard deviations of the latent posttest given the latent pretest, a
+smaller unit than that of the four-group contrasts whenever the pretest
+predicts the posttest. With <code>std_lv = FALSE</code>, the loading of the first
+indicator of each factor is fixed at 1, and both analyses are on the
+scale of the first POST indicator. If <code>partial_post</code> frees that marker
+loading, lavaan keeps it at 1 in P1 only and estimates it in the other
+groups, so the scale is that of the first indicator in P1.</p>
 <p>Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.</p>
     </div>
