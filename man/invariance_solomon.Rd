@@ -88,11 +88,17 @@ likelihood fit, whose estimates MLR shares.
 When scalar invariance fails, latent means can still be compared if the
 noninvariant parameters are freed and enough indicators stay invariant
 (Byrne et al., 1989, p. 458). \code{partial} names the freed parameters in
-lavaan syntax (for example, \code{"item3 ~ 1"} for an intercept). They must be
-chosen on substantive grounds, not by searching the data (Byrne et al.,
-1989, p. 465), and must involve only a minority of the indicators
-(Vandenberg & Lance, 2000, p. 38); at least two indicators must stay
-fully invariant. The function never chooses them.
+lavaan syntax: \code{"item3 ~ 1"} for an intercept, or \code{"F =~ item3"} for a
+loading. Only intercepts and loadings, the parameters the metric and
+scalar models hold equal, can be freed. The model has one factor, so any
+factor name before \verb{=~} refers to it, including the \code{POST} of
+\code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}}. The loading of the first indicator is fixed
+at 1 to set the latent scale; if it is freed, lavaan keeps it at 1 in the
+pretested treated group only and estimates it in the other three. Freed
+parameters must be chosen on substantive grounds, not by searching the
+data (Byrne et al., 1989, p. 465), and must involve only a minority of
+the indicators (Vandenberg & Lance, 2000, p. 38); at least two indicators
+must stay fully invariant. The function never chooses them.
 }
 
 \section{Lifecycle}{

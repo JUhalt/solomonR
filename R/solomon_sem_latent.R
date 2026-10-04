@@ -28,6 +28,20 @@
 #' control group (P0) is the reference. The Solomon contrasts are differences
 #' between latent means, so they do not depend on the reference choice.
 #'
+#' The unit of the contrasts is set by `std_lv`. With `std_lv = TRUE`,
+#' lavaan fixes the variance of the latent POST at 1 in the pretested
+#' treated group (P1), so the four-group contrasts are in standard
+#' deviations of the latent posttest in P1. In the ANCOVA model it fixes
+#' the latent PRE mean at 0 and its variance at 1, and the residual variance
+#' of the latent POST at 1, all in P1, so the adjusted effect is in residual
+#' standard deviations of the latent posttest given the latent pretest, a
+#' smaller unit than that of the four-group contrasts whenever the pretest
+#' predicts the posttest. With `std_lv = FALSE`, the loading of the first
+#' indicator of each factor is fixed at 1, and both analyses are on the
+#' scale of the first POST indicator. If `partial_post` frees that marker
+#' loading, lavaan keeps it at 1 in P1 only and estimates it in the other
+#' groups, so the scale is that of the first indicator in P1.
+#'
 #' Tests and confidence intervals for the contrasts are lavaan's Wald
 #' results, which use a large-sample normal reference distribution.
 #'
@@ -78,8 +92,11 @@
 #' @param ancova logical; if TRUE, also fit latent ANCOVA in pretested groups
 #' @param invariance_pre measurement invariance for the pretested branch; must be "scalar"
 #' @param partial_post,partial_pre Optional freed parameters of the POST or
-#'   PRE indicators for a partial-invariance model, in lavaan syntax (for
-#'   example, `"post3 ~ 1"`); see [invariance_solomon()].
+#'   PRE indicators for a partial-invariance model, in lavaan syntax:
+#'   intercepts (`"post3 ~ 1"`) or loadings (`"POST =~ post3"`), the
+#'   parameters the scalar model holds equal. A loading is freed on the
+#'   factor its indicator measures (`POST` or `PRE`) whatever factor name is
+#'   written before `=~`. See [invariance_solomon()].
 #' @param estimator lavaan estimator, default "MLR" (robust)
 #' @param std_lv logical; if TRUE (default), lavaan's `std.lv = TRUE`: the
 #'   latent variance is fixed at 1 in the first group, the pretested
@@ -101,6 +118,8 @@
 #'     \item `fitmeasures_pre` (optional)
 #'     \item `invariance`: the [invariance_solomon()] result, or `NULL` when
 #'       the check was not run, and `invariance_status`, a one-line summary
+#'     \item `settings`: the options used, including the estimator and any
+#'       freed parameters, which [report_solomon()] reports
 #'   }
 #' @references
 #' Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
@@ -208,6 +227,11 @@ fit_solomon_sem_latent <- function(
   if (length(post_items) < 2) stop("post_items must have at least 2 indicators for a latent POST factor.")
   .check_partial(partial_post, post_items)
   .check_partial(partial_pre, pre_items)
+  # A freed loading must name the model's factor, or lavaan leaves it
+  # constrained (issue #112): POST for the posttest items, PRE for the
+  # pretest items.
+  partial_post <- .partial_for_model(partial_post, list(POST = post_items))
+  partial_pre <- .partial_for_model(partial_pre, list(PRE = pre_items))
 
   # Invariance check (issue #55): no criterion was reliable enough in
   # Solomon-sized groups to refuse the contrasts, so the check is run,
@@ -358,6 +382,7 @@ fit_solomon_sem_latent <- function(
       invariance_pre = invariance_pre,
       partial_post = partial_post,
       partial_pre = partial_pre,
+      estimator = estimator,
       std_lv = std_lv,
       conf_level = conf_level
     )

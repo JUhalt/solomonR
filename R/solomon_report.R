@@ -18,6 +18,8 @@
   stouffer_solomon = c("stouffer1949", "waltonbraver1988"),
   fit_solomon_sem = "rosseel2012",
   fit_solomon_sem_latent = c("rosseel2012", "meredith1993", "vandenberg2000"),
+  invariance_solomon = c("rosseel2012", "meredith1993", "vandenberg2000", "satorra2001",
+                         "chen2007"),
   solomon_from_summary = "waltonbraver1988",
   solomon_effect_sizes = c("morris2008", "hedges1981"),
   baseline_solomon = c("cumming2001", "kelley2007"),
@@ -27,11 +29,39 @@
   fit_solomon_steyn = c("steyn2009", "waltonbraver1988", "scheffe1953")
 )
 
+# ---- What report_solomon() leaves out ----------------------------------------------
+#
+# Exported analysis functions whose results report_solomon() does not report,
+# each with the reason (issue #111). ?report_solomon and the article "How to
+# Cite solomonR and the Methods It Implements" list them, and a unit test
+# checks that the result of every other analysis function has a handler in
+# .report_handlers.
+.report_exclusions <- c(
+  stouffer_solomon = paste(
+    "It combines the z statistics of tests computed elsewhere. Test I of the",
+    "historical sequence, which is that combination, is reported with",
+    "`fit_solomon_classic()`."
+  ),
+  solomon_effect_sizes = paste(
+    "It computes effect sizes and their sampling variances to be combined in a",
+    "meta-analysis of several studies, not the results of one study."
+  )
+)
+
 # ---- Formatting helpers -----------------------------------------------------------
 
 .apa_num <- function(x, digits) {
   out <- formatC(x, format = "f", digits = digits)
   sub("^-(0\\.?0*)$", "\\1", out)
+}
+
+# A number that cannot exceed 1 in absolute value, without the leading zero
+# (APA 7): fit indexes and their changes. Three decimals by default, the
+# precision of Chen's (2007) cutoffs for the change in fit.
+.apa_unit <- function(x, digits = 3) {
+  out <- formatC(x, format = "f", digits = digits)
+  out <- sub("^(-?)0\\.", "\\1.", out)
+  sub("^-(\\.0+)$", "\\1", out)
 }
 
 .apa_p <- function(p, md) {
@@ -255,8 +285,9 @@
 .report_parts <- function(fit, digits, md) {
   cls <- intersect(class(fit), names(.report_handlers))
   if (!length(cls)) {
-    stop("report_solomon() does not yet support objects of class ",
-         paste(class(fit), collapse = "/"), ".", call. = FALSE)
+    stop("report_solomon() does not support objects of class ",
+         paste(class(fit), collapse = "/"), ". See ?report_solomon for the analyses it ",
+         "reports and the results it leaves out on purpose.", call. = FALSE)
   }
   .report_handlers[[cls[1]]](fit, digits, md)
 }
@@ -388,6 +419,65 @@
   )
 }
 
+# The multiplicity statement of a design with several treatments: nothing
+# for one comparison; otherwise whether, and how, the p-values of each
+# contrast were adjusted across the `n_comp` comparisons. Returns the
+# sentence, its references, and whether the p-values were adjusted.
+.ngroup_multiplicity <- function(n_comp, adjust) {
+  if (n_comp == 1L) {
+    return(list(text = character(0), refs = character(0), adjusted = FALSE))
+  }
+  if (identical(adjust, "none")) {
+    return(list(
+      text = "The p-values and confidence intervals were not adjusted for multiple comparisons.",
+      refs = character(0), adjusted = FALSE
+    ))
+  }
+  list(
+    text = sprintf(paste0(
+      "Within each contrast, the p-values of the %s comparisons were adjusted with %s; ",
+      "the confidence intervals were not adjusted."
+    ), .number_word(n_comp), switch(
+      adjust,
+      holm = "Holm's (1979) procedure",
+      bonferroni = "the Bonferroni procedure (see Holm, 1979)"
+    )),
+    refs = "holm1979",
+    adjusted = TRUE
+  )
+}
+
+# One results paragraph per comparison of a design with several treatments:
+# each Solomon contrast with its estimate, confidence interval, test, and
+# p-value, the adjusted p-value (labeled) when `adjusted`. `weights` holds
+# one row of condition weights per comparison, or is NULL when every
+# comparison is named "A vs B". The pretest effects are reported separately.
+.ngroup_comparison_paragraphs <- function(effects, comparisons, weights, adjusted, adjust,
+                                          conf_level, digits, md) {
+  label <- if (adjusted) {
+    switch(adjust, holm = "Holm-adjusted", bonferroni = "Bonferroni-adjusted")
+  }
+  vapply(comparisons, function(cmp) {
+    rows <- effects[effects$comparison == cmp &
+                      effects$contrast %in% .solomon_contrast_order, , drop = FALSE]
+    w <- if (is.null(weights)) NULL else weights[cmp, ]
+    sentences <- vapply(seq_len(nrow(rows)), function(i) {
+      r <- rows[i, ]
+      p_text <- if (adjusted) {
+        paste0(.apa_p(r$p.adjusted, md), ", ", label)
+      } else {
+        .apa_p(r$p.value, md)
+      }
+      sprintf("%s was %s, %s, %s, %s.",
+              .capitalize(.ngroup_contrast_phrase(r$contrast, cmp, w)),
+              .apa_num(r$estimate, digits),
+              .apa_ci(r$conf.low, r$conf.high, conf_level, digits),
+              .apa_stat(r$statistic, r$df, md, NULL, digits), p_text)
+    }, "")
+    paste(sentences, collapse = " ")
+  }, "", USE.NAMES = FALSE)
+}
+
 # Report for a design with several treatments (class solomon_ngroup).
 .report_ngroup <- function(fit, digits, md) {
   p <- .glm_method_phrases(fit)
@@ -434,22 +524,8 @@
     "Omnibus Wald F tests"
   }
 
-  adjusted <- n_comp > 1L && fit$adjust != "none"
-  multiplicity <- if (n_comp == 1L) {
-    character(0)
-  } else if (!adjusted) {
-    "The p-values and confidence intervals were not adjusted for multiple comparisons."
-  } else {
-    refs <- c(refs, "holm1979")
-    sprintf(paste0(
-      "Within each contrast, the p-values of the %s comparisons were adjusted with %s; ",
-      "the confidence intervals were not adjusted."
-    ), .number_word(n_comp), switch(
-      fit$adjust,
-      holm = "Holm's (1979) procedure",
-      bonferroni = "the Bonferroni procedure (see Holm, 1979)"
-    ))
-  }
+  mult <- .ngroup_multiplicity(n_comp, fit$adjust)
+  refs <- c(refs, mult$refs)
 
   method <- paste(c(
     sprintf(
@@ -464,7 +540,7 @@
     ), omnibus),
     sprintf("%s, and the Solomon contrasts were estimated for %s.", compared,
             if (n_comp > 1L) "each comparison" else "this comparison"),
-    multiplicity
+    mult$text
   ), collapse = " ")
 
   # Results: the omnibus tests of the interaction and of the conditions
@@ -479,27 +555,9 @@
     om_sentence("Pretest x Condition"), om_sentence("Condition (avg over pretest)")
   )
 
-  label <- if (adjusted) {
-    switch(fit$adjust, holm = "Holm-adjusted", bonferroni = "Bonferroni-adjusted")
-  }
-  e <- fit$effects
-  for (cmp in comparisons) {
-    rows <- e[e$comparison == cmp & e$contrast %in% .solomon_contrast_order, , drop = FALSE]
-    sentences <- vapply(seq_len(nrow(rows)), function(i) {
-      r <- rows[i, ]
-      p_text <- if (adjusted) {
-        paste0(.apa_p(r$p.adjusted, md), ", ", label)
-      } else {
-        .apa_p(r$p.value, md)
-      }
-      sprintf("%s was %s, %s, %s, %s.",
-              .capitalize(.ngroup_contrast_phrase(r$contrast, cmp, w[cmp, ])),
-              .apa_num(r$estimate, digits),
-              .apa_ci(r$conf.low, r$conf.high, fit$conf_level, digits),
-              .apa_stat(r$statistic, r$df, md, NULL, digits), p_text)
-    }, "")
-    results <- c(results, paste(sentences, collapse = " "))
-  }
+  results <- c(results, .ngroup_comparison_paragraphs(
+    fit$effects, comparisons, w, mult$adjusted, fit$adjust, fit$conf_level, digits, md
+  ))
 
   # The pretest effect in each condition and averaged over the conditions
   # (issue #104); the treatments' pretest effects are adjusted across the
@@ -682,7 +740,12 @@
   cluster <- identical(fit$level, "cluster")
   refs <- character(0)
   statistic <- if (identical(fit$statistic, "difference")) {
-    "the difference between groups as the statistic"
+    # The difference statistic tests only the sharp null hypothesis (#113).
+    refs <- c(refs, "romano1990")
+    sprintf(paste0(
+      "the difference between groups as the statistic (a test of the sharp null ",
+      "hypothesis of no treatment effect %s; Romano, 1990)"
+    ), if (cluster) "in any cluster" else "for any participant")
   } else {
     if (cluster) {
       refs <- c(refs, "wu2021")
@@ -854,6 +917,59 @@
        refs = .solomon_function_refs$solomon_from_summary, cells = fit$cells$n)
 }
 
+# Report for the summary statistics of a design with several treatments
+# (class solomon_summary_ngroup, issue #111): the omnibus F tests of the
+# two-way analysis of variance, then the Holm-adjusted Solomon contrasts of
+# each treatment against the control, worded as in .report_ngroup().
+.report_summary_ngroup <- function(fit, digits, md) {
+  conditions <- fit$conditions$condition[order(fit$conditions$role != "control")]
+  design <- .ngroup_design_parts(conditions)
+  comparisons <- unique(fit$contrasts$comparison)
+  n_comp <- length(comparisons)
+  mult <- .ngroup_multiplicity(n_comp, fit$adjust)
+  a <- fit$anova
+  omnibus <- function(src) {
+    r <- a[a$source == src, , drop = FALSE]
+    paste0(.apa_omnibus(r$F, r$df, fit$df_error, "F", md, digits), ", ", .apa_p(r$p.value, md))
+  }
+  method <- paste(c(
+    sprintf(paste0(
+      "The published cell statistics of the %s groups were reanalyzed with a two-way analysis ",
+      "of variance of the posttest, Condition x Pretest, with Type III sums of squares and a ",
+      "pooled error variance, which assumes equal variances in the groups."
+    ), .number_word(nrow(fit$cells))),
+    paste0(
+      "Omnibus F tests examined whether the differences between the conditions depended on ",
+      "pretesting (the Pretest x Condition interaction), whether the conditions differed when ",
+      "averaged over pretest conditions, and whether pretesting had an effect when averaged ",
+      "over the conditions."
+    ),
+    sprintf(paste0(
+      "Each treatment was compared with the control (%s), and the Solomon contrasts were ",
+      "estimated for %s with t tests on the pooled error variance."
+    ), .series_and(comparisons), if (n_comp > 1L) "each comparison" else "this comparison"),
+    mult$text
+  ), collapse = " ")
+  results <- c(
+    sprintf(paste0(
+      "The omnibus test of the Pretest x Condition interaction (pretest sensitization) gave %s; ",
+      "the omnibus test of the conditions, averaged over pretest conditions, gave %s; and the ",
+      "test of pretesting, averaged over the conditions, gave %s."
+    ), omnibus("Pretest x Condition"), omnibus("Condition"), omnibus("Pretest")),
+    .ngroup_comparison_paragraphs(fit$contrasts, comparisons, NULL, mult$adjusted, fit$adjust,
+                                  fit$conf_level, digits, md)
+  )
+  list(
+    method = method,
+    results = results,
+    table = fit$contrasts,
+    refs = c(mult$refs, design$refs),
+    cells = fit$cells$n,
+    groups = design$groups,
+    design_text = design$design_text
+  )
+}
+
 .report_sem <- function(fit, digits, md) {
   refs <- .solomon_function_refs$fit_solomon_sem
   method <- if (identical(fit$mode, "ancova_pretested")) {
@@ -868,17 +984,609 @@
        table = eff, refs = refs, cells = NULL)
 }
 
-.report_sem_latent <- function(fit, digits, md) {
-  level <- if (is.null(fit$settings$conf_level)) 0.95 else fit$settings$conf_level
-  method <- paste(
-    "Latent posttest means were compared across the four Solomon groups in a multiple-group",
-    "structural equation model (Rosseel, 2012) with scalar measurement invariance",
-    "(Meredith, 1993; Vandenberg & Lance, 2000)."
+# ---- Latent SEM and measurement invariance (issue #112) ---------------------------
+#
+# What these reports give follows the reporting standards for structural
+# equation models (Appelbaum et al., 2018, Table 7) and for measurement
+# invariance (Putnick & Bornstein, 2016): the software and its version, the
+# estimator, the handling of missing data, the group sizes, the
+# identification of the latent scale, the global fit of each model, the
+# difference tests between models with their criteria, and the parameters
+# freed.
+
+# The four Solomon groups as lavaan labels them in fit_solomon_sem_latent()
+# and invariance_solomon().
+.sem_group_names <- c(P1 = "pretested treated", P0 = "pretested control",
+                      U1 = "unpretested treated", U0 = "unpretested control")
+
+.need_lavaan <- function() {
+  if (!requireNamespace("lavaan", quietly = TRUE)) {
+    stop("Package 'lavaan' is needed to report this fit; please install.packages('lavaan').",
+         call. = FALSE)
+  }
+}
+
+# The numbers of participants in a multiple-group lavaan fit, in the order
+# P1, P0, U1, U0 of .sem_group_names (the four-group order of the report).
+.sem_group_sizes <- function(fit) {
+  n <- lavaan::lavInspect(fit, "nobs")
+  labels <- lavaan::lavInspect(fit, "group.label")
+  as.integer(n[match(names(.sem_group_names), labels)])
+}
+
+# The software, the estimator, and its references for the method statement.
+# `estimator` is the value given to fit_solomon_sem_latent() or
+# invariance_solomon(); `scaled` says whether the fit has a scaled test
+# statistic as well as the standard one.
+.sem_estimator <- function(estimator, fit) {
+  version <- tryCatch(as.character(fit@version), error = function(e) "")
+  software <- if (length(version) == 1L && nzchar(version)) {
+    sprintf("lavaan (Version %s; Rosseel, 2012)", version)
+  } else {
+    "lavaan (Rosseel, 2012)"
+  }
+  tests <- lavaan::lavInspect(fit, "options")$test
+  scaled <- any(!tests %in% c("standard", "none"))
+  est <- toupper(estimator)
+  if (est == "MLR") {
+    text <- paste(
+      "maximum likelihood with Huber-White robust standard errors and a scaled test",
+      "statistic asymptotically equal to the Yuan-Bentler statistic (MLR; Yuan & Bentler, 2000)"
+    )
+    refs <- "yuan2000"
+  } else if (est == "ML" && !scaled) {
+    text <- "maximum likelihood (ML)"
+    refs <- character(0)
+  } else {
+    label <- if (scaled) {
+      robust <- lavaan::lavInspect(fit, "test")
+      robust <- robust[!names(robust) %in% c("standard", "none")]
+      tolower(robust[[1]]$label)
+    }
+    text <- sprintf("the %s estimator%s", estimator,
+                    if (scaled) sprintf(", with a scaled test statistic (%s)", label) else "")
+    refs <- character(0)
+  }
+  list(software = software, text = text, refs = refs, scaled = scaled)
+}
+
+# One sentence on the global fit of a lavaan model: the chi-square test, CFI,
+# RMSEA, and SRMR. With a scaled test the chi-square is the scaled one; the
+# CFI and RMSEA, as fit_solomon_sem_latent() stores and prints them, are
+# those of the unscaled maximum likelihood chi-square, which is also given.
+.sem_fit_sentence <- function(subject, fit, scaled, digits, md) {
+  df <- unname(lavaan::fitMeasures(fit, "df"))
+  if (isTRUE(df == 0)) {
+    return(sprintf("%s has no degrees of freedom, so its global fit cannot be tested.", subject))
+  }
+  fm <- lavaan::fitMeasures(fit, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr",
+                                   if (scaled) c("chisq.scaled", "df.scaled", "pvalue.scaled")))
+  chi <- function(stat, d) .apa_omnibus(stat, d, NA, "chisq", md, digits)
+  indexes <- sprintf("CFI = %s, RMSEA = %s, and SRMR = %s", .apa_unit(fm[["cfi"]]),
+                     .apa_unit(fm[["rmsea"]]), .apa_unit(fm[["srmr"]]))
+  if (scaled) {
+    sprintf(
+      "%s gave a scaled %s, %s, %s; the CFI and RMSEA are computed from the unscaled maximum likelihood %s.",
+      subject, chi(fm[["chisq.scaled"]], fm[["df.scaled"]]), .apa_p(fm[["pvalue.scaled"]], md),
+      indexes, chi(fm[["chisq"]], fm[["df"]])
+    )
+  } else {
+    sprintf("%s gave %s, %s, %s.", subject, chi(fm[["chisq"]], fm[["df"]]),
+            .apa_p(fm[["pvalue"]], md), indexes)
+  }
+}
+
+# The equality classes of the parameters of a multiple-group lavaan
+# parameter table, one per row (NA for rows that are not parameters).
+# lavaan holds a parameter equal across groups by a label shared between
+# groups or by an equality constraint ("==") between parameter labels; two
+# rows are in one class when either links them.
+.sem_equal_classes <- function(pt) {
+  rows <- which(nzchar(pt$plabel))
+  nodes <- pt$plabel[rows]
+  parent <- stats::setNames(nodes, nodes)
+  find <- function(x) {
+    while (parent[[x]] != x) x <- parent[[x]]
+    x
+  }
+  unite <- function(a, b) {
+    ra <- find(a)
+    rb <- find(b)
+    if (ra != rb) parent[[rb]] <<- ra
+  }
+  labels <- pt$label[rows]
+  for (l in unique(labels[nzchar(labels)])) {
+    same <- nodes[labels == l]
+    for (x in same[-1]) unite(same[1], x)
+  }
+  node_of <- function(x) {
+    if (x %in% nodes) return(x)
+    i <- which(labels == x)
+    if (length(i)) nodes[i[1]] else NA_character_
+  }
+  for (i in which(pt$op == "==")) {
+    a <- node_of(pt$lhs[i])
+    b <- node_of(pt$rhs[i])
+    if (!is.na(a) && !is.na(b)) unite(a, b)
+  }
+  out <- rep(NA_character_, nrow(pt))
+  out[rows] <- vapply(nodes, find, "")
+  out
+}
+
+# The loadings and intercepts that a fitted multiple-group model does not
+# hold equal across its groups, read from its parameter table rather than
+# from the options it was given (issue #112). `factors` maps each factor to
+# its indicators, and `labels` are the group labels in the order of the
+# table's groups. One row per such parameter: `status` is "separate" (free
+# in every group, with no two groups equal), "marker" (fixed at `value` in
+# the groups `fixed` and free in the others, as a freed marker loading is),
+# or "partly" (equal in some groups only).
+.sem_freed_pt <- function(pt, factors, labels) {
+  cls <- .sem_equal_classes(pt)
+  out <- list()
+  for (f in names(factors)) {
+    for (item in factors[[f]]) {
+      for (type in c("loading", "intercept")) {
+        rows <- if (type == "loading") {
+          which(pt$op == "=~" & pt$lhs == f & pt$rhs == item & pt$group > 0L)
+        } else {
+          which(pt$op == "~1" & pt$lhs == item & pt$group > 0L)
+        }
+        if (!length(rows)) next
+        fixed <- pt$free[rows] == 0L
+        free_cls <- cls[rows][!fixed]
+        status <- if (all(fixed)) {
+          NA_character_
+        } else if (any(fixed)) {
+          "marker"
+        } else if (length(unique(free_cls)) == 1L) {
+          NA_character_
+        } else if (length(unique(free_cls)) == length(free_cls)) {
+          "separate"
+        } else {
+          "partly"
+        }
+        if (is.na(status)) next
+        out[[length(out) + 1L]] <- data.frame(
+          item = item, type = type, status = status,
+          fixed = paste(labels[pt$group[rows][fixed]], collapse = ","),
+          value = if (any(fixed)) pt$ustart[rows][fixed][1] else NA_real_,
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+  }
+  if (!length(out)) {
+    return(data.frame(item = character(0), type = character(0), status = character(0),
+                      fixed = character(0), value = numeric(0), stringsAsFactors = FALSE))
+  }
+  do.call(rbind, out)
+}
+
+.sem_freed <- function(fit, factors) {
+  .sem_freed_pt(lavaan::parTable(fit), factors, lavaan::lavInspect(fit, "group.label"))
+}
+
+# The groups `groups` (lavaan labels) of a model with groups `labels`, in
+# words: "in the pretested treated group", or "in every group".
+.sem_where <- function(groups, labels) {
+  if (length(groups) == length(labels) && length(labels) > 1L) {
+    return(if (length(labels) == 2L) "in both groups" else "in every group")
+  }
+  sprintf("in the %s group%s", .series_and(.sem_group_names[groups]),
+          if (length(groups) > 1L) "s" else "")
+}
+
+# The freed parameters of .sem_freed() in words, as the parameters and what
+# was done with them, joined by `link`: with link = "", "the intercept of y4
+# was estimated separately in each group"; with link = ", which", "the
+# intercept of y4, which was estimated separately in each group".
+# Parameters treated alike are listed together.
+.freed_phrases <- function(freed, labels, link = "") {
+  if (!nrow(freed)) return(character(0))
+  noun <- sprintf("the %s of %s", freed$type, freed$item)
+  what <- vapply(seq_len(nrow(freed)), function(i) {
+    switch(freed$status[i],
+      separate = "estimated separately in each group",
+      partly = "held equal in only some of the groups",
+      marker = {
+        fixed <- strsplit(freed$fixed[i], ",", fixed = TRUE)[[1]]
+        others <- setdiff(labels, fixed)
+        sprintf("fixed at %s %s to set the latent scale and estimated %s",
+                format(freed$value[i]), .sem_where(fixed, labels),
+                if (length(others) == 1L) {
+                  sprintf("freely in the %s group", .sem_group_names[[others]])
+                } else {
+                  "separately in each of the other groups"
+                })
+      })
+  }, "")
+  vapply(unique(what), function(w) {
+    nouns <- noun[what == w]
+    sprintf("%s%s %s %s", .series_and(nouns), link, if (length(nouns) > 1L) "were" else "was", w)
+  }, "", USE.NAMES = FALSE)
+}
+
+# ", except the intercept of y4, which was estimated separately in each
+# group (partial invariance; Byrne et al., 1989)", or "" with nothing freed.
+.freed_clause <- function(freed, labels) {
+  phrases <- .freed_phrases(freed, labels, link = ", which")
+  if (!length(phrases)) return("")
+  sprintf(", except %s (partial invariance; Byrne et al., 1989)",
+          paste(phrases, collapse = ", and "))
+}
+
+# How the scale of latent variable `factor` is set in a fitted model: its
+# variance (or, for an outcome, its residual variance) fixed at 1, or a
+# marker loading fixed at 1, with the groups where it is fixed.
+.sem_scale <- function(pt, factor, labels) {
+  var_fixed <- pt$op == "~~" & pt$lhs == factor & pt$rhs == factor & pt$free == 0L &
+    pt$group > 0L
+  if (any(var_fixed)) {
+    return(list(type = "variance", groups = labels[sort(unique(pt$group[var_fixed]))]))
+  }
+  load_fixed <- pt$op == "=~" & pt$lhs == factor & pt$free == 0L & pt$group > 0L
+  item <- pt$rhs[load_fixed][1]
+  list(type = "marker", item = item,
+       groups = labels[sort(unique(pt$group[load_fixed & pt$rhs == item]))])
+}
+
+# Each invariance criterion's decision: "supported scalar invariance",
+# "supported only metric invariance", or no decision when a statistic was
+# unavailable. `target` is "scalar" or "partial scalar".
+.invariance_verdicts <- function(supported, target) {
+  vapply(supported, function(level) {
+    if (level == "undetermined") {
+      "reached no decision, because a statistic could not be computed"
+    } else if (level == target) {
+      sprintf("supported %s invariance", target)
+    } else {
+      sprintf("supported only %s invariance", level)
+    }
+  }, "")
+}
+
+.chisq_criterion <- function(scaled) {
+  if (scaled) {
+    "the scaled chi-square difference test (Satorra & Bentler, 2001)"
+  } else {
+    "the chi-square difference test"
+  }
+}
+
+# The method sentence on the invariance check of fit_solomon_sem_latent(),
+# with its references. `n_items` is the number of posttest indicators; the
+# check needs at least three. `freed` is .sem_freed() of the four-group
+# model; whether the check freed the same parameters is read from the
+# check's own scalar model.
+.latent_check_sentence <- function(fit, n_items, freed) {
+  inv <- fit$invariance
+  if (is.null(inv)) {
+    text <- if (n_items < 3L) {
+      "Measurement invariance was not tested, because the test needs at least three indicators."
+    } else {
+      "Measurement invariance was not tested in this analysis."
+    }
+    return(list(text = text, refs = character(0)))
+  }
+  target <- if (is.null(inv$partial)) "scalar" else "partial scalar"
+  verdict <- .invariance_verdicts(inv$supported, target)
+  support <- inv$supported == target
+  scalar <- inv$fits$scalar
+  freed_check <- .sem_freed(scalar, stats::setNames(list(inv$items),
+                                                    .sem_factor_name(scalar)))
+  key <- function(x) sort(paste(x$type, x$item))
+  freed_note <- if (!nrow(freed_check)) {
+    if (nrow(freed)) ", with no parameters freed" else ""
+  } else if (identical(key(freed_check), key(freed))) {
+    ", with the same parameters freed"
+  } else {
+    sprintf(", with %s freed", .series_and(sprintf("the %s of %s", freed_check$type,
+                                                   freed_check$item)))
+  }
+  tested <- sprintf(
+    "Measurement invariance was tested by comparing configural, metric, and scalar models in sequence%s (Vandenberg & Lance, 2000)",
+    freed_note
   )
+  criteria <- if (identical(verdict[["chisq"]], verdict[["chen2007"]])) {
+    sprintf("%s and the change in fit (Chen, 2007) both %s", .chisq_criterion(isTRUE(inv$scaled)),
+            verdict[["chisq"]])
+  } else {
+    sprintf("%s %s, and the change in fit (Chen, 2007) %s", .chisq_criterion(isTRUE(inv$scaled)),
+            verdict[["chisq"]], verdict[["chen2007"]])
+  }
+  text <- if (all(support)) {
+    sprintf("%s; %s.", tested, criteria)
+  } else {
+    sprintf("%s: %s, so %s the %s invariance that the latent mean contrasts assume.",
+            tested, criteria,
+            if (any(support)) "only one criterion supported" else "neither criterion supported",
+            target)
+  }
+  list(text = text, refs = c("chen2007", if (isTRUE(inv$scaled)) "satorra2001"))
+}
+
+# The factor of a one-factor lavaan model, such as the F of
+# invariance_solomon().
+.sem_factor_name <- function(fit) {
+  pt <- lavaan::parTable(fit)
+  unique(pt$lhs[pt$op == "=~"])[1]
+}
+
+# The identification of the latent ANCOVA of fit_solomon_sem_latent() and
+# the unit of its adjusted effect, read from its parameter table `ptp`
+# (groups `labels_pre`). `post_scale` and `labels` are the scale and group
+# labels of the four-group model, whose contrasts may be in another unit.
+# With std_lv = TRUE, lavaan fixes the latent pretest mean and variance and
+# the residual variance of the latent posttest in the first group (P1), so
+# the effect is in residual standard deviations of the latent posttest.
+.ancova_identification <- function(ptp, labels_pre, post_scale, labels) {
+  where <- function(g) .sem_where(g, labels_pre)
+  pre_scale <- .sem_scale(ptp, "PRE", labels_pre)
+  anc_scale <- .sem_scale(ptp, "POST", labels_pre)
+  mean_fixed <- ptp$op == "~1" & ptp$lhs == "PRE" & ptp$free == 0L & ptp$group > 0L
+  mean_groups <- labels_pre[sort(unique(ptp$group[mean_fixed]))]
+  pre <- if (pre_scale$type == "variance" && setequal(pre_scale$groups, mean_groups)) {
+    sprintf("the latent pretest mean at 0 and its variance at 1 %s", where(mean_groups))
+  } else {
+    c(if (length(mean_groups)) sprintf("the latent pretest mean at 0 %s", where(mean_groups)),
+      if (pre_scale$type == "variance") {
+        sprintf("the latent pretest variance at 1 %s", where(pre_scale$groups))
+      } else {
+        sprintf("the loading of %s at 1 %s", pre_scale$item, where(pre_scale$groups))
+      })
+  }
+  post <- if (anc_scale$type == "variance") {
+    sprintf("the residual variance of the latent posttest at 1 %s", where(anc_scale$groups))
+  } else {
+    sprintf("the loading of %s at 1 %s", anc_scale$item, where(anc_scale$groups))
+  }
+  fixed <- c(pre, post, "the latent posttest intercept at 0 in the pretested control group")
+  unit <- if (anc_scale$type == "variance") {
+    sprintf(paste0(
+      "the adjusted effect is therefore in residual standard deviations of the latent posttest, ",
+      "given the latent pretest, %s, not in the unit of the four-group contrasts"
+    ), where(anc_scale$groups))
+  } else {
+    all_anc <- length(anc_scale$groups) == length(labels_pre)
+    same <- post_scale$type == "marker" && identical(post_scale$item, anc_scale$item) &&
+      (if (all_anc) length(post_scale$groups) == length(labels) else
+        identical(sort(post_scale$groups), sort(anc_scale$groups)))
+    sprintf("the adjusted effect is therefore on the scale of %s%s, %s",
+            anc_scale$item, if (all_anc) "" else paste0(" ", where(anc_scale$groups)),
+            if (same) "as are the four-group contrasts" else "not that of the four-group contrasts")
+  }
+  sprintf("For identification, the model fixed %s; %s.", .series_and(fixed), unit)
+}
+
+# Report for fit_solomon_sem_latent() (issue #112). The invariance sentence
+# follows the fit's own constraints and check rather than asserting scalar
+# invariance.
+.report_sem_latent <- function(fit, digits, md) {
+  .need_lavaan()
+  s <- fit$settings
+  level <- if (is.null(s$conf_level)) 0.95 else s$conf_level
+  fp <- fit$fit_post
+  estimator <- if (is.null(s$estimator)) lavaan::lavInspect(fp, "options")$estimator else s$estimator
+  est <- .sem_estimator(estimator, fp)
+  refs <- c(.solomon_function_refs$fit_solomon_sem_latent, est$refs)
+  pt <- lavaan::parTable(fp)
+  items <- unique(pt$rhs[pt$op == "=~" & pt$lhs == "POST"])
+
+  # The latent scale, read from the fitted model: a latent variance fixed at
+  # 1 (std_lv = TRUE fixes it in the first group only once the loadings are
+  # equal) or a marker loading fixed at 1 (in the first group only when
+  # partial_post frees it).
+  labels <- lavaan::lavInspect(fp, "group.label")
+  post_scale <- .sem_scale(pt, "POST", labels)
+  all_groups <- length(post_scale$groups) == length(labels)
+  scale <- if (post_scale$type == "variance") {
+    if (all_groups) {
+      "and the latent variance at 1 in every group"
+    } else {
+      sprintf("and the latent variance at 1 %s; the contrasts are therefore in standard deviations of the latent posttest in %s",
+              .sem_where(post_scale$groups, labels),
+              if (length(post_scale$groups) > 1L) "those groups" else "that group")
+    }
+  } else if (all_groups) {
+    sprintf("and the loading of %s at 1, which puts the latent posttest on the scale of %s",
+            post_scale$item, post_scale$item)
+  } else {
+    sprintf("and the loading of %s at 1 %s, which puts the latent posttest on the scale of %s in %s",
+            post_scale$item, .sem_where(post_scale$groups, labels), post_scale$item,
+            if (length(post_scale$groups) > 1L) "those groups" else "that group")
+  }
+
+  # The freed parameters come from the fitted model, not from the options,
+  # so that the report states what lavaan estimated.
+  freed_post <- .sem_freed(fp, list(POST = items))
+  if (nrow(freed_post)) refs <- c(refs, "byrne1989")
+  check <- .latent_check_sentence(fit, length(items), freed_post)
+  refs <- c(refs, check$refs)
+
+  method <- c(
+    sprintf(paste0(
+      "Latent posttest means were compared across the four Solomon groups in a multiple-group ",
+      "structural equation model in which %s posttest indicators (%s) measured one latent ",
+      "posttest, fitted with %s by %s, using full-information maximum likelihood for missing ",
+      "indicator values."
+    ), .number_word(length(items)), .series_and(items), est$software, est$text),
+    sprintf(paste0(
+      "The loadings and intercepts of the indicators were constrained to be equal across the ",
+      "four groups, the scalar measurement invariance that latent mean comparisons require ",
+      "(Meredith, 1993; Vandenberg & Lance, 2000)%s."
+    ), .freed_clause(freed_post, labels)),
+    sprintf(paste0(
+      "For identification, the latent posttest mean of the unpretested control group was ",
+      "fixed at 0, %s."
+    ), scale),
+    check$text,
+    "The contrasts between latent means were tested with Wald z tests."
+  )
+
   eff <- as.data.frame(fit$effects_post)
-  list(method = method,
-       results = .contrast_sentences(eff, level, digits, md, "z"),
-       table = eff, refs = .solomon_function_refs$fit_solomon_sem_latent, cells = NULL)
+  results <- c(
+    .sem_fit_sentence("The four-group model", fp, est$scaled, digits, md),
+    paste(.contrast_sentences(eff, level, digits, md, "z"), collapse = " ")
+  )
+
+  if (!is.null(fit$fit_pre)) {
+    refs <- c(refs, "huck1973")
+    ptp <- lavaan::parTable(fit$fit_pre)
+    labels_pre <- lavaan::lavInspect(fit$fit_pre, "group.label")
+    pre_items <- unique(ptp$rhs[ptp$op == "=~" & ptp$lhs == "PRE"])
+    freed_pre <- .sem_freed_pt(ptp, list(PRE = pre_items, POST = items), labels_pre)
+    if (nrow(freed_pre)) refs <- c(refs, "byrne1989")
+    method <- c(method, sprintf(paste0(
+      "A latent analysis of covariance in the two pretested groups (Huck & Sandler, 1973) ",
+      "regressed the latent posttest on a latent pretest measured by %s indicators (%s), with ",
+      "a common slope. The loadings and intercepts of the pretest and posttest indicators were ",
+      "constrained to be equal in the two groups%s. %s The invariance of this model was not tested."
+    ), .number_word(length(pre_items)), .series_and(pre_items),
+    .freed_clause(freed_pre, labels_pre), .ancova_identification(ptp, labels_pre, post_scale, labels)))
+    e <- fit$effects_pre[fit$effects_pre$contrast == "Pre_Eff", , drop = FALSE][1, ]
+    results <- c(results, paste(
+      .sem_fit_sentence("The latent analysis of covariance", fit$fit_pre, est$scaled, digits, md),
+      sprintf(
+        "In it, the treatment effect among pretested participants, adjusted for the latent pretest, was %s, %s, %s, %s.",
+        .apa_num(e$estimate, digits), .apa_ci(e$conf.low, e$conf.high, level, digits),
+        .apa_stat(e$statistic, Inf, md, "z", digits), .apa_p(e$p.value, md)
+      )
+    ))
+  }
+
+  list(method = paste(method, collapse = " "), results = results, table = eff, refs = refs,
+       cells = .sem_group_sizes(fp))
+}
+
+# Report for invariance_solomon() (issue #112): the minimal information
+# Putnick and Bornstein (2016) propose, namely the group sizes, the handling
+# of missing data, the criteria, and each model's fit with the comparisons
+# and decisions.
+.report_invariance <- function(fit, digits, md) {
+  .need_lavaan()
+  configural <- fit$fits$configural
+  est <- .sem_estimator(fit$estimator, configural)
+  scaled_diff <- isTRUE(fit$scaled)
+  partial <- fit$partial
+  target <- if (is.null(partial)) "scalar" else "partial scalar"
+  items <- fit$items
+  cut <- fit$cutoffs
+  # The freed parameters as the scalar model estimated them.
+  scalar <- fit$fits$scalar
+  freed <- .sem_freed(scalar, stats::setNames(list(items), .sem_factor_name(scalar)))
+  labels <- lavaan::lavInspect(scalar, "group.label")
+  refs <- c(.solomon_function_refs$invariance_solomon, est$refs,
+            if (nrow(freed)) "byrne1989")
+  if (!scaled_diff) refs <- setdiff(refs, "satorra2001")
+
+  n_total <- sum(fit$sizes)
+  equal <- length(unique(fit$sizes)) == 1L
+  setting <- if (n_total > 300 && equal) {
+    "for a total N above 300 with equal group sizes"
+  } else if (n_total <= 300 && !equal) {
+    "for a total N of 300 or less with unequal group sizes"
+  } else {
+    paste("for a total N of 300 or less with unequal group sizes, the smaller of",
+          "Chen's two sets, as Chen gives none for these sample sizes")
+  }
+
+  method <- paste(c(
+    sprintf(paste0(
+      "Measurement invariance (Meredith, 1993) of %s indicators (%s) across the four Solomon ",
+      "groups was tested with multiple-group confirmatory factor analyses, fitted with %s by ",
+      "%s, using full-information maximum likelihood for missing values."
+    ), .number_word(length(items)), .series_and(items), est$software, est$text),
+    paste0(
+      "Configural, metric (equal loadings), and scalar (equal loadings and intercepts) models ",
+      "were fitted in sequence, and each was compared with the one before it (Vandenberg & ",
+      "Lance, 2000)."
+    ),
+    if (nrow(freed)) {
+      sprintf("In the metric and scalar models, %s (partial invariance; Byrne et al., 1989).",
+              paste(.freed_phrases(freed, labels), collapse = ", and "))
+    },
+    sprintf(paste0(
+      "Noninvariance was judged by %s at alpha = %s and by the change in fit: a drop in CFI of ",
+      "at least %s together with a rise in RMSEA of at least %s or in SRMR of at least %s ",
+      "(loadings) or %s (intercepts), the cutoffs of Chen (2007) %s."
+    ), .chisq_criterion(scaled_diff), sub("^0", "", format(fit$alpha)), .apa_unit(cut$cfi),
+    .apa_unit(cut$rmsea), .apa_unit(cut$srmr[["metric"]]), .apa_unit(cut$srmr[["scalar"]]),
+    setting),
+    if (est$scaled) {
+      paste("Each model's chi-square test is the scaled one, given with the unscaled maximum",
+            "likelihood chi-square, from which the CFI and RMSEA are computed.")
+    }
+  ), collapse = " ")
+
+  # Each model's chi-square test with its p-value: the scaled statistic for
+  # a robust estimator, as in the fit sentence of fit_solomon_sem_latent(),
+  # with the unscaled one whose CFI and RMSEA are reported.
+  m <- fit$models
+  saturated <- m$df == 0
+  test_stats <- function(i, what) {
+    if (isTRUE(saturated[i])) return(stats::setNames(rep(NA_real_, length(what)), what))
+    fm <- lavaan::fitMeasures(fit$fits[[m$model[i]]], what)
+    stats::setNames(as.numeric(fm), what)
+  }
+  chi_cols <- c("pvalue", if (est$scaled) c("chisq.scaled", "df.scaled", "pvalue.scaled"))
+  chisq_tests <- do.call(rbind, lapply(seq_len(nrow(m)), test_stats, what = chi_cols))
+  chi_text <- function(stat, d) .apa_omnibus(stat, d, NA, "chisq", md, digits)
+  model_phrase <- vapply(seq_len(nrow(m)), function(i) {
+    if (isTRUE(saturated[i])) {
+      return(sprintf("the %s model, with no degrees of freedom, fit exactly", m$model[i]))
+    }
+    test <- if (est$scaled) {
+      sprintf("a scaled %s, %s (unscaled %s)",
+              chi_text(chisq_tests[i, "chisq.scaled"], chisq_tests[i, "df.scaled"]),
+              .apa_p(chisq_tests[i, "pvalue.scaled"], md), chi_text(m$chisq[i], m$df[i]))
+    } else {
+      sprintf("%s, %s", chi_text(m$chisq[i], m$df[i]), .apa_p(chisq_tests[i, "pvalue"], md))
+    }
+    sprintf("the %s model gave %s, CFI = %s, RMSEA = %s, and SRMR = %s", m$model[i], test,
+            .apa_unit(m$cfi[i]), .apa_unit(m$rmsea[i]), .apa_unit(m$srmr[i]))
+  }, "")
+  models <- paste0(.capitalize(paste(model_phrase[-length(model_phrase)], collapse = "; ")),
+                   "; and ", model_phrase[length(model_phrase)], ".")
+
+  tt <- fit$tests
+  step <- function(i, what) {
+    chi <- if (is.na(tt$chisq_diff[i])) {
+      sprintf("the %schi-square difference could not be computed", if (scaled_diff) "scaled " else "")
+    } else {
+      sprintf("%s\u0394%s, %s", if (scaled_diff) "a scaled " else "",
+              .apa_omnibus(tt$chisq_diff[i], tt$df_diff[i], NA, "chisq", md, digits),
+              .apa_p(tt$p.value[i], md))
+    }
+    sprintf("%s gave %s, \u0394CFI = %s, \u0394RMSEA = %s, and \u0394SRMR = %s", what, chi,
+            .apa_unit(tt$delta_cfi[i]), .apa_unit(tt$delta_rmsea[i]), .apa_unit(tt$delta_srmr[i]))
+  }
+  steps <- paste0(
+    step(1L, "Constraining the loadings to be equal (metric against configural)"), "; ",
+    step(2L, "constraining the intercepts as well (scalar against metric)"), "."
+  )
+
+  verdict <- .invariance_verdicts(fit$supported, target)
+  chisq_test <- if (scaled_diff) "The scaled chi-square difference test" else "The chi-square difference test"
+  decisions <- if (identical(verdict[["chisq"]], verdict[["chen2007"]])) {
+    sprintf("%s and the change in fit both %s.", chisq_test, verdict[["chisq"]])
+  } else {
+    sprintf("%s %s, and the change in fit %s.", chisq_test, verdict[["chisq"]],
+            verdict[["chen2007"]])
+  }
+
+  na_row <- tt[1L, , drop = FALSE]
+  na_row[] <- NA
+  tests <- as.data.frame(chisq_tests)
+  names(tests) <- sub(".", "_", names(tests), fixed = TRUE)
+  table <- cbind(m[c("model", "chisq", "df")], tests, m[c("cfi", "rmsea", "srmr")],
+                 compared_with = c(NA, "configural", "metric"),
+                 rbind(na_row, tt)[, setdiff(names(tt), "comparison")])
+  rownames(table) <- NULL
+
+  list(method = method, results = c(models, steps, decisions), table = table, refs = refs,
+       cells = .sem_group_sizes(configural))
 }
 
 # Baseline report for a design with several treatments: the pretests of
@@ -1094,6 +1802,76 @@
        cells = .cell_counts(fit$data$treat, fit$data$pretested))
 }
 
+# Report for Solomon's (1949) improvement-score analysis (class
+# solomon_1949, issue #111): his inferred pretest, the improvements, and the
+# interaction I, with the fact that he gave no test for it. The three-group
+# design has its own design statement and group labels.
+.report_1949 <- function(fit, digits, md) {
+  g <- fit$groups
+  four <- identical(fit$design, "four-group")
+  k <- nrow(g)
+  I <- if (md) "*I*" else "I"
+  d <- if (md) sprintf("*d*~%d~", seq_len(k)) else sprintf("d%d", seq_len(k))
+  formula <- if (four) {
+    sprintf("%s = %s - (%s + %s - %s)", I, d[1], d[2], d[3], d[4])
+  } else {
+    sprintf("%s = %s - (%s + %s)", I, d[1], d[2], d[3])
+  }
+  inferred <- if (identical(fit$inferred_method, "pooled")) {
+    "the mean of the pooled pretested groups (Solomon, 1949, p. 141)"
+  } else {
+    "the average of the two pretested groups' pretest means, as in Solomon's tables"
+  }
+  method <- paste(
+    sprintf("Solomon's (1949) improvement-score analysis of the %s design was reproduced.", fit$design),
+    sprintf(paste0(
+      "The pretest mean of %s was inferred as %s, and each group's ",
+      "improvement was its posttest mean minus its observed or inferred pretest mean."
+    ), if (four) "the unpretested groups" else "Control Group II", inferred),
+    sprintf("The interaction is %s (Solomon, 1949, p. %d), where %s are the improvements of the experimental group and Control Groups %s.",
+            formula, if (four) 147L else 143L, .series_and(d),
+            if (four) "I, II, and III" else "I and II")
+  )
+  results <- c(
+    sprintf("The inferred pretest mean was %s. The improvements were %s, and the interaction was %s = %s.",
+            .apa_num(fit$inferred_pretest, digits),
+            .series_and(sprintf("%s = %s", d, .apa_num(g$change, digits))), I,
+            .apa_num(fit$I, digits)),
+    if (four) {
+      sprintf("The interaction equals the posttest interaction contrast, %s, less the pretest difference between the two pretested groups, %s.",
+              .apa_num(fit$posttest_contrast, digits), .apa_num(fit$pretest_difference, digits))
+    },
+    sprintf(paste0(
+      "Solomon (1949) gave no standard error or test for %s and judged the interaction from ",
+      "the variability of the scores (p. 144); Campbell and Stanley (1963/1966, p. 25) later ",
+      "judged his gain-score analysis unacceptable."
+    ), I)
+  )
+  out <- list(
+    method = method,
+    results = results,
+    table = g,
+    refs = .solomon_function_refs$fit_solomon_1949,
+    cells = if (anyNA(g$n)) NULL else as.integer(g$n)
+  )
+  if (!four) {
+    out$groups <- c("experimental", "Control I", "Control II")
+    out$design_text <- paste(
+      "The design was Solomon's (1949) three-group design: an experimental group and",
+      "Control Group I, both pretested, and Control Group II, not pretested; the",
+      "experimental group and Control Group II were trained"
+    )
+    # The design has one unpretested group, so it has no comparison of
+    # unpretested groups to form a static-group comparison.
+    out$baseline_text <- paste(
+      "Baseline differences can be examined only between the experimental group and",
+      "Control Group I, the two pretested groups; Control Group II has no baseline, so the",
+      "pretest mean inferred for it assumes an equivalence of the groups that cannot be checked."
+    )
+  }
+  out
+}
+
 # Reporting language for nonrandomized designs.
 .nonrandom_wording <- function(x) {
   # A comparison of a design with several treatments names the conditions it
@@ -1123,7 +1901,11 @@
 #                without its final period; NULL means "The design was a
 #                Solomon four-group design (Solomon, 1949)". For designs
 #                with several treatments, .ngroup_design_parts(conditions)
-#                gives `groups`, `design_text`, and its `refs`.
+#                gives `groups`, `design_text`, and its `refs`;
+#   baseline_text optional character: for design$assignment = "nonrandom",
+#                the sentence on which groups have a baseline; NULL means
+#                the one for designs with pretested and unpretested arms,
+#                whose unpretested arms form a static-group comparison.
 # The solomon_steyn handler is .report_steyn() in R/solomon_steyn.R; it is
 # called through a wrapper because that file is collated after this one.
 .report_handlers <- list(
@@ -1138,8 +1920,11 @@
   solomon_equivalence = .report_equivalence,
   solomon_fisher = .report_fisher,
   solomon_summary_fit = .report_summary_fit,
+  solomon_summary_ngroup = .report_summary_ngroup,
+  solomon_1949 = .report_1949,
   solomon_sem = .report_sem,
   solomon_sem_latent = .report_sem_latent,
+  solomon_invariance = .report_invariance,
   solomon_mi = .report_mi,
   solomon_tipping = .report_tipping,
   solomon_mmrm = .report_mmrm
@@ -1147,9 +1932,10 @@
 
 # ---- Design reporting ----------------------------------------------------------------
 
-# `groups` and `design_text` come from the report handler (see
-# .report_handlers); NULL gives the four-group design.
-.report_design <- function(cells, design, groups = NULL, design_text = NULL) {
+# `groups`, `design_text`, and `baseline_text` come from the report handler
+# (see .report_handlers); NULL gives the four-group design.
+.report_design <- function(cells, design, groups = NULL, design_text = NULL,
+                           baseline_text = NULL) {
   four <- is.null(groups)
   if (four) {
     groups <- c("pretested treatment", "pretested control", "unpretested treatment",
@@ -1196,15 +1982,20 @@
     out <- c(out, sprintf("Participants were randomly assigned to the %s groups.",
                           .number_word(n_groups)))
   } else if (identical(design$assignment, "nonrandom")) {
+    if (is.null(baseline_text)) {
+      baseline_text <- paste(
+        "Baseline differences can be examined only in the",
+        "pretested arms; the unpretested arms, whose comparison isolates pretest",
+        "sensitization, have no baseline and form a static-group comparison, whose",
+        "groups cannot be shown to have been equivalent (Campbell & Stanley, 1963/1966)."
+      )
+    }
     out <- c(out, paste(
       "The groups were not formed by random assignment, so the contrasts below are",
       "differences between groups rather than treatment effects. Selection bias, the",
       "largest threat to internal validity in quasi-experimental research, and",
       "instrumentation are the threats most relevant to a nonrandomized Solomon design",
-      "(Edmonds & Kennedy, 2017). Baseline differences can be examined only in the",
-      "pretested arms; the unpretested arms, whose comparison isolates pretest",
-      "sensitization, have no baseline and form a static-group comparison, whose",
-      "groups cannot be shown to have been equivalent (Campbell & Stanley, 1963/1966)."
+      "(Edmonds & Kennedy, 2017).", baseline_text
     ))
   }
   if (!is.null(design$plan)) {
@@ -1260,16 +2051,34 @@
 #'
 #' @details
 #' Supported objects come from [fit_solomon_glm()], [fit_solomon_ml()],
-#' [fit_solomon_classic()], [perm_solomon()], [marginal_solomon()],
-#' [equivalence_solomon()], [fisher_solomon()], [solomon_from_summary()],
-#' [fit_solomon_sem()], [fit_solomon_sem_latent()], [baseline_solomon()],
-#' [fit_solomon_mi()], [tipping_point_solomon()], [fit_solomon_mmrm()], and
-#' [fit_solomon_steyn()].
+#' [fit_solomon_classic()], [fit_solomon_1949()], [perm_solomon()],
+#' [marginal_solomon()], [equivalence_solomon()], [fisher_solomon()],
+#' [solomon_from_summary()] (for four-group designs and for designs with
+#' several treatments), [fit_solomon_sem()], [fit_solomon_sem_latent()],
+#' [invariance_solomon()], [baseline_solomon()], [fit_solomon_mi()],
+#' [tipping_point_solomon()], [fit_solomon_mmrm()], and [fit_solomon_steyn()].
 #' The references depend
 #' on the options the fit used: for example, a CR2 fit cites Bell and
 #' McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of
 #' the classic analysis adds Braver and Walton Braver (1990). Every reference
 #' matches the package's canonical APA 7 bibliography.
+#'
+#' **What the report leaves out.** Two analysis functions are not reported,
+#' on purpose:
+#'
+#' - [stouffer_solomon()] combines the z statistics of tests computed
+#'   elsewhere. Test I of the historical sequence, which is that
+#'   combination, is reported with [fit_solomon_classic()].
+#' - [solomon_effect_sizes()] computes effect sizes and their sampling
+#'   variances to be combined in a meta-analysis of several studies, not the
+#'   results of one study.
+#'
+#' Their help pages give the references for their methods. The design
+#' checks ([validate_solomon()], [check_solomon_missing()], and
+#' [check_solomon_assumptions()]), planning and power ([plan_solomon()],
+#' [power_solomon()], and [analysis_plan_solomon()]), [simulate_solomon()],
+#' and [compare_solomon_methods()] do not analyze a study's results and are
+#' not reported either. Any other object is refused with an error.
 #'
 #' The design statement follows the MERIT recommendations on reporting
 #' measurement in trials (French et al., 2021b): the numbers analyzed in each
@@ -1290,8 +2099,39 @@
 #' Comparisons defined by weights are reported with their weights. An
 #' [equivalence_solomon()] test of one comparison and the
 #' [baseline_solomon()] comparisons of such a design are reported with the
-#' same design statement. solomonR follows a pre-publication draft of Steyn
-#' (2009), which the author provided; see [fit_solomon_steyn()].
+#' same design statement. So is a [solomon_from_summary()] analysis of the
+#' design's cell statistics, whose results give the omnibus F tests of the
+#' two-way analysis of variance (including the test of pretesting) and the
+#' Holm-adjusted contrasts of each treatment against the control. solomonR
+#' follows a pre-publication draft of Steyn (2009), which the author
+#' provided; see [fit_solomon_steyn()].
+#'
+#' **Latent structural equation models.** For [fit_solomon_sem_latent()],
+#' the report gives what the reporting standards for structural equation
+#' models ask for (Appelbaum et al., 2018, Table 7): the software and its
+#' version, the estimator, the handling of missing data, the numbers in each
+#' group, how the latent scale was identified (the latent posttest mean of
+#' the unpretested control group is fixed at 0, and a latent variance or a
+#' marker loading is fixed at 1) and so the unit of the contrasts, the
+#' chi-square test, the CFI, RMSEA, and SRMR, and any parameters freed for
+#' partial invariance. The invariance statement follows the fit rather than
+#' asserting scalar invariance: it states the constraints the model imposed,
+#' names the loadings and intercepts the fitted model left free to differ
+#' across groups (read from the model, not from `partial_post` and
+#' `partial_pre`), and gives the result of the invariance check under each
+#' criterion, including when the check did not support the invariance the
+#' contrasts assume or was not run. For the latent analysis of covariance,
+#' it states the constraints that identify that model and the unit of its
+#' adjusted effect, which with `std_lv = TRUE` is a residual standard
+#' deviation of the latent posttest, not the unit of the four-group
+#' contrasts. With the default MLR estimator, the chi-square is the scaled
+#' one, and the CFI and RMSEA are those of the unscaled maximum likelihood
+#' chi-square, as the fit prints them. For [invariance_solomon()], the
+#' report gives the minimal information Putnick and Bornstein (2016)
+#' propose for invariance tests: the group sizes, the handling of missing
+#' data, the criteria, and the fit of each model (its chi-square test, CFI,
+#' RMSEA, and SRMR) with the comparisons and the decision under each
+#' criterion.
 #'
 #' **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
 #' results describe differences between groups rather than treatment
@@ -1304,7 +2144,10 @@
 #' pretested arms ([baseline_solomon()]): without random assignment the
 #' unpretested arms form a static-group comparison, whose groups cannot be
 #' shown to have been equivalent (Campbell & Stanley, 1963/1966, pp. 12,
-#' 25).
+#' 25). Solomon's three-group design ([fit_solomon_1949()]) has one
+#' unpretested group and so no such comparison; its report says instead
+#' that the pretest mean inferred for Control Group II assumes an
+#' equivalence of the groups that cannot be checked.
 #'
 #' **What the report does not decide.** It states results; it does not
 #' interpret them. Whether the analysis was pre-specified must be supplied,
@@ -1336,6 +2179,12 @@
 #'   `references` (APA 7 reference entries, in APA order).
 #'
 #' @references
+#' Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &
+#' Rao, S. M. (2018). Journal article reporting standards for quantitative
+#' research in psychology: The APA Publications and Communications Board task
+#' force report. *American Psychologist, 73*(1), 3–25.
+#' https://doi.org/10.1037/amp0000191
+#'
 #' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally. (Original work
 #' published 1963)
@@ -1353,6 +2202,11 @@
 #' Holm, S. (1979). A simple sequentially rejective multiple test procedure.
 #' *Scandinavian Journal of Statistics, 6*(2), 65–70.
 #' https://www.jstor.org/stable/4615733
+#'
+#' Putnick, D. L., & Bornstein, M. H. (2016). Measurement invariance
+#' conventions and reporting: The state of the art and future directions for
+#' psychological research. *Developmental Review, 41*, 71–90.
+#' https://doi.org/10.1016/j.dr.2016.06.004
 #'
 #' Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 #' this exemplary model? *Design Principles and Practices: An International
@@ -1405,7 +2259,8 @@ report_solomon <- function(fit, design = NULL, digits = 2, format = c("text", "m
     list(
       method = parts$method,
       results = parts$results,
-      design = .report_design(parts$cells, design, parts$groups, parts$design_text),
+      design = .report_design(parts$cells, design, parts$groups, parts$design_text,
+                              parts$baseline_text),
       table = parts$table,
       references = refs,
       format = format
