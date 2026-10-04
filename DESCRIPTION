@@ -17,8 +17,9 @@ Description: Tools for planning, analyzing, teaching, and reporting Solomon
     <https://eric.ed.gov/?id=ED435692>; observed- and latent-variable
     structural equation models with 'lavaan'; and equivalence tests of pretest
     sensitization. Also includes design checks, power and sample-size
-    planning, simulated teaching data, published data sets, and APA-style
-    reports with method-specific references.
+    planning, simulated teaching data, published data sets, and reports in
+    the style of the American Psychological Association, with
+    method-specific references.
 License: GPL-3
 Copyright: See the file inst/COPYRIGHTS for the copyright holders and
     licenses of the bundled published data.

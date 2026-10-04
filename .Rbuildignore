@@ -10,6 +10,7 @@
 ^\.git$
 ^\.github$
 ^ROADMAP\.md$
+^cran-comments\.md$
 ^CITATION\.cff$
 ^vignettes/articles$
 ^data-raw$

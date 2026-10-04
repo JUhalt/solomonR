@@ -265,7 +265,9 @@
 #'    group.
 #' 8. **Effects of the interventions.** For one intervention: E1, a one-way
 #'    ANOVA of the four posttest groups, and E2, a t test of `Ob` plus `Oe`
-#'    against `Od` plus `Of`. For several:
+#'    against `Od` plus `Of`; Steyn (2009) credits these two comparisons to
+#'    his doctoral thesis (Steyn, 2001, as cited in Steyn, 2009). For
+#'    several:
 #'    - E1, a one-way ANOVA of all 2(k + 1) posttest groups;
 #'    - E2, post hoc tests of every pair of groups, summarized by whether
 #'      each intervention group differs from `Od` and from `Of`;
