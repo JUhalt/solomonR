@@ -81,7 +81,11 @@
 #'   PRE indicators for a partial-invariance model, in lavaan syntax (for
 #'   example, `"post3 ~ 1"`); see [invariance_solomon()].
 #' @param estimator lavaan estimator, default "MLR" (robust)
-#' @param std_lv logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale
+#' @param std_lv logical; if TRUE (default), lavaan's `std.lv = TRUE`: the
+#'   latent variance is fixed at 1 in the first group, the pretested
+#'   treatment group (P1), so latent contrasts are in that group's latent SD
+#'   units. In the latent ANCOVA (`ancova = TRUE`) the PRE variance and the
+#'   POST residual variance are fixed at 1 in P1.
 #' @param conf_level confidence level for intervals (default 0.95)
 #' @param check_invariance If `TRUE` (the default), run [invariance_solomon()]
 #'   on the POST indicators first, and warn when a criterion does not support
@@ -272,7 +276,10 @@ fit_solomon_sem_latent <- function(
   fit_post <- lavaan::sem(
     model         = mod_post,
     data          = data4,
-    group         = "group4",                       # <- PASS NAME, NOT VECTOR
+    group         = "group4",
+    # Fix the group order: the labels mu_P1 ... mu_U0 are positional, and
+    # lavaan otherwise orders groups by their first appearance in the data.
+    group.label   = c("P1", "P0", "U1", "U0"),
     std.lv        = std_lv,
     meanstructure = TRUE,
     estimator     = estimator,
@@ -314,7 +321,8 @@ fit_solomon_sem_latent <- function(
     fit_pre <- lavaan::sem(
       model         = mod_pre,
       data          = data2,
-      group         = "grp2",                           # <- NAME, NOT VECTOR
+      group         = "grp2",
+      group.label   = c("P1", "P0"),
       std.lv        = std_lv,
       meanstructure = TRUE,
       estimator     = estimator,
