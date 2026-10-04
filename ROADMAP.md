@@ -291,7 +291,7 @@ contemporary methods clearly separated at every step.
   - [x] Planning article with literature-based planning values — [#49](https://github.com/JUhalt/solomonR/issues/49); merged in [PR #69](https://github.com/JUhalt/solomonR/pull/69)
 - **Analyze**
   - [x] History article and versioned historical decision flows (1988, 1990, 1995) — [#50](https://github.com/JUhalt/solomonR/issues/50); merged in [PR #67](https://github.com/JUhalt/solomonR/pull/67) and [PR #76](https://github.com/JUhalt/solomonR/pull/76)
-  - [x] Replicate the published error rates of the historical test sequence — [#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR #76](https://github.com/JUhalt/solomonR/pull/76)
+  - [x] Replication study of the published error rates of the historical test sequence: Tests A–H and the flow logic agree for normal data, but the published Test I rates, and Test A for uniform and gamma data, were not reproduced — [#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR #76](https://github.com/JUhalt/solomonR/pull/76)
   - [x] SEM and latent-variable article, and measurement invariance — [#55](https://github.com/JUhalt/solomonR/issues/55); merged in [PR #70](https://github.com/JUhalt/solomonR/pull/70) and [PR #75](https://github.com/JUhalt/solomonR/pull/75)
 - **Report**
   - [x] `report_solomon()`: APA 7 results text with method-specific references — [#52](https://github.com/JUhalt/solomonR/issues/52); merged in [PR #71](https://github.com/JUhalt/solomonR/pull/71)
@@ -388,7 +388,17 @@ maintainer's sign-off ([#85](https://github.com/JUhalt/solomonR/issues/85)).
 Requirements, with their status:
 
 - [x] Stable public API — [#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR #91](https://github.com/JUhalt/solomonR/pull/91)
-- [x] Historical workflow validated against published results — [#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR #76](https://github.com/JUhalt/solomonR/pull/76)
+- [x] Historical workflow checked against published results — [#51](https://github.com/JUhalt/solomonR/issues/51), [#109](https://github.com/JUhalt/solomonR/issues/109); merged in [PR #76](https://github.com/JUhalt/solomonR/pull/76)
+  - The computations reproduce. Tests A, D, E, H, and I and the 1988 path
+    reproduce the worked example of Walton Braver and Braver (1988, p. 153;
+    `waltonbraver1988`). Tests E and H reproduce the counterexample of
+    Sawilowsky and Markman (1988, ERIC ED316556), and Test A from its
+    summary statistics matches Braver and Walton Braver (1990, p. 322).
+  - The Monte Carlo rates reproduce only in part. The published Type I
+    error tables were not reproduced as a whole (the Test I rates, and
+    Test A for uniform and gamma data), so the flows are not described as
+    validated; see "Historical Tests: Replicating the Published Error
+    Rates".
 - [x] GLM and ML estimands validated
 - [x] Randomization inference validated, including cluster-level designs — [#19](https://github.com/JUhalt/solomonR/issues/19); merged in [PR #65](https://github.com/JUhalt/solomonR/pull/65)
 - [x] Power and sample-size planning validated

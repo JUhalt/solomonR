@@ -57,7 +57,11 @@ pretested participants and a design-safe value among participants for
 whom the pretest was never administered.
 
 The pretest indicator remains in the model, so this coding does not
-pretend that Groups 3 and 4 actually had baseline scores of zero.
+pretend that Groups 3 and 4 actually had baseline scores of zero. This is
+the model Newman et al. (1990) proposed for the design, which they call a
+pseudo-analysis of covariance (pp. 94, 98). They cautioned against
+adjustments that treat unpretested participants as having a pretest score
+of zero (p. 98).
 
 ## Example data
 
@@ -631,6 +635,10 @@ MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
 covariance matrix estimators with improved finite sample properties.
 *Journal of Econometrics, 29*(3), 305–325.
 https://doi.org/10.1016/0304-4076(85)90158-7
+
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+Solomon four group design. *Multiple Linear Regression Viewpoints, 17*(2),
+91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects

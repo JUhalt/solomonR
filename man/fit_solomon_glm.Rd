@@ -107,10 +107,24 @@ within each pretesting condition.
 When \code{y_pre} is supplied, it enters the model as \code{pre_obs}, equal
 to the pretest score in the pretested groups and 0 in the unpretested
 groups, so the structurally absent pretests do not remove Groups 3 and 4.
-Regression adjustment for baseline covariates in randomized experiments,
-and the case for pairing it with heteroskedasticity-robust standard errors,
-is discussed by Lin (2013). Pretested participants with a missing pretest
-score are excluded with a warning; incidental missingness is never imputed.
+This is the model Newman et al. (1990) proposed for the design, which they
+call a pseudo-analysis of covariance (pp. 94, 98), written with treatment
+and pretest indicators in place of their group indicators (equation 7,
+p. 98); the two forms give the same fitted values. Each group keeps its
+own mean, so the pretest slope is estimated within the pretested groups,
+and the unpretested groups' means are not adjusted (p. 98). With
+\code{robust = "none"}, the fit reproduces their worked example (Table 3,
+p. 100). The four Solomon contrasts do not depend on the 0 coding. The
+\code{pretested} coefficient does: it compares the two control groups at a
+pretest score of 0, which treats the unpretested participants as if they
+had scored 0, the adjustment Newman et al. cautioned against (p. 98).
+solomonR adds the named contrasts with confidence intervals, robust and
+cluster-robust inference, other families, and designs with several
+treatments. Regression adjustment for baseline covariates in randomized
+experiments, and the case for pairing it with heteroskedasticity-robust
+standard errors, is discussed by Lin (2013). Pretested participants with a
+missing pretest score are excluded with a warning; incidental missingness
+is never imputed.
 }
 \section{Inference}{
 
@@ -327,6 +341,10 @@ Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
 McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 through service learning. \emph{Journal of Management Education, 26}(6), 629–647.
 https://doi.org/10.1177/1052562902238322
+
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+Solomon four group design. \emph{Multiple Linear Regression Viewpoints, 17}(2),
+91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects

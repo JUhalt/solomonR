@@ -21,9 +21,11 @@ scores. This article shows the package's two SEM functions:
   comparisons require.
 
 The SEM functions use lavaan (Rosseel, 2012), and their tests and intervals
-are lavaan's large-sample Wald results. They are a solomonR extension built
-on established SEM methods, not a procedure proposed for the Solomon design
-in the literature.
+are lavaan's large-sample Wald results. Latent-variable analysis of a
+Solomon design has a published precedent, Dukes et al. (1995), which the
+last section compares with the package's approach. The four-group models
+of the SEM functions, and the observed-variable model, are solomonR
+extensions built on established SEM methods.
 
 ## Observed outcomes
 
@@ -191,6 +193,51 @@ only would bias the sensitization contrast, and there the partial model
 matters. `check_invariance = FALSE` skips the check when invariance was
 established elsewhere.
 
+## Dukes et al. (1995) and solomonR
+
+Dukes et al. (1995) evaluated a school drug-prevention program with a
+Solomon design and four latent outcomes measured by self-report items
+(pp. 412, 414). They compared latent means in multisample structural
+equation models.
+
+- **Three two-group models.** They fitted three separate two-group models
+  rather than one model of the four groups (p. 420): the pretested
+  control's pretest against the unpretested control's posttest, for
+  maturation, and the program against the control within the pretested and
+  within the unpretested groups.
+- **Loadings tested, intercepts imposed.** In each comparison, equal factor
+  loadings were tested by chi-square difference tests. The latent means
+  were then compared with the indicators' means held equal, a constraint
+  that was imposed, not tested (pp. 420–426).
+- **No test of the interaction.** Pretest effects were judged by comparing
+  which program effects were significant in the two program comparisons
+  (p. 426), the comparison Gelman and Stern (2006) caution against. The
+  abstract calls the pretest reactive for one outcome, resistance to peer
+  pressure (p. 409). The results are more consistent with a pretest main
+  effect, seen in one of that outcome's two indicators, than with
+  sensitization. The paper reports no test of the interaction, and
+  solomonR's approximate re-analyses find none, either in the difference
+  between the two latent program effects (Table 4, p. 425) or in two-by-two
+  analyses of the two indicators' classroom posttest means (Table 2,
+  pp. 415–416).
+- **Classroom means.** They analyzed 440 classroom means (pp. 413, 417).
+  Such means are more stable and precise (p. 412), and the program was
+  delivered to intact classes, although the school, the unit assigned to
+  the program, was the appropriate unit (p. 432, note 3).
+
+solomonR fits the four groups in one model. Its latent mean structure is
+identified by fixing the unpretested control's mean at 0
+([#16](https://github.com/JUhalt/solomonR/issues/16)), so the
+sensitization contrast, the average treatment effect, and both simple
+effects have their own Wald tests on one scale. `invariance_solomon()`
+tests configural, metric, and scalar invariance across all four groups
+([#55](https://github.com/JUhalt/solomonR/issues/55)), including the
+posttests of pretested against unpretested groups, which Dukes et al. did
+not compare. The SEM functions make no adjustment for clusters. When
+clusters such as schools were assigned to conditions, analyze at the level
+of assignment, or analyze observed scores with
+`fit_solomon_glm(robust = "CR2", cluster = )`.
+
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.
 
@@ -213,6 +260,15 @@ Cheung, G. W., & Rensvold, R. B. (2002). Evaluating goodness-of-fit indexes
 for testing measurement invariance. *Structural Equation Modeling: A
 Multidisciplinary Journal, 9*(2), 233–255.
 https://doi.org/10.1207/S15328007SEM0902_5
+
+Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of D.A.R.E.
+(Drug Abuse Resistance Education), using a Solomon four-group design with
+latent variables. *Evaluation Review, 19*(4), 409–435.
+https://doi.org/10.1177/0193841X9501900404
+
+Gelman, A., & Stern, H. (2006). The difference between "significant" and
+"not significant" is not itself statistically significant. *The American
+Statistician, 60*(4), 328–331. https://doi.org/10.1198/000313006X152649
 
 Huck, S. W., & Sandler, H. M. (1973). A note on the Solomon 4-group design:
 Appropriate statistical analyses. *The Journal of Experimental Education,

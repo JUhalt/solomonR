@@ -120,6 +120,7 @@ McNally
 Mellor
 Moher
 Molenberghs
+Multisample
 Muthén
 Mynhardt
 Myors
@@ -209,6 +210,7 @@ Toeplitz
 Totaal
 Trivedi
 Twente
+Ullman
 Unclustered
 Unisa
 Unpre
@@ -246,6 +248,7 @@ configural
 df
 directionally
 doi
+edu
 educsci
 eric
 estimand
@@ -257,6 +260,7 @@ familywise
 frac
 gatekeeping
 ggplot
+glmj
 hdl
 heteroskedastic
 heteroskedasticity
@@ -280,6 +284,7 @@ mathrm
 misspecified
 mmrm
 mmrm's
+multisample
 multivariable
 nd
 noncentral
@@ -291,6 +296,7 @@ nonnormal
 nonrandomized
 nonsignificant
 nrow
+ojs
 pkgdown
 pms
 pnas
@@ -305,6 +311,8 @@ programme
 randomised
 rejective
 relicense
+reparameterization
+reparameterizes
 roadmap
 rssa
 runnable
@@ -319,12 +327,14 @@ subscale
 subscales
 substream
 th
+ua
 unblinded
 unclustered
 undercovered
 underpowered
 underuse
 unpretested
+unrounded
 unstudentized
 varepsilon
 variabilities

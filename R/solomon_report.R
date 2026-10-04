@@ -7,7 +7,7 @@
 # option-specific references of a particular fit. A unit test checks that
 # every exported analysis function is registered here.
 .solomon_function_refs <- list(
-  fit_solomon_glm = character(0),
+  fit_solomon_glm = "newman1990",
   fit_solomon_ml = "vanengelenburg1999",
   marginal_solomon = c("localio2007", "daniel2021"),
   perm_solomon = "phipson2010",
@@ -241,8 +241,8 @@
     "model-based standard errors"
   )
   adjust <- if (pre) {
-    refs <- c(refs, "lin2013")
-    ", adjusting for the pretest score among pretested participants (Lin, 2013)"
+    refs <- c(refs, "lin2013", "newman1990")
+    ", adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990)"
   } else {
     ""
   }
@@ -826,7 +826,7 @@
     ),
     missing, total, 100 * missing / total, m,
     if (pretest) ", on the pretest in the pretested groups" else "",
-    if (pretest) ", adjusting for the pretest score among pretested participants" else "",
+    if (pretest) ", adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990)" else "",
     if (robust == "HC3") "HC3 heteroskedasticity-consistent standard errors" else "model-based standard errors"
   )
 }
@@ -844,7 +844,7 @@
     ), .mi_offset_phrase(fit$delta, digits))
   })
   if (fit$robust == "HC3") refs <- c(refs, "mackinnon1985", "long2000")
-  if (fit$pretest) refs <- c(refs, "lin2013")
+  if (fit$pretest) refs <- c(refs, "lin2013", "newman1990")
   list(
     method = method,
     results = .contrast_sentences(fit$effects, fit$conf_level, digits, md),
@@ -890,7 +890,7 @@
               .apa_p(row$p.value, md))
     })
   }
-  if (pretest) refs <- c(refs, "lin2013")
+  if (pretest) refs <- c(refs, "lin2013", "newman1990")
   list(
     method = method,
     results = results,
@@ -904,12 +904,12 @@
   refs <- .solomon_function_refs$fit_solomon_mmrm
   kr <- fit$df_method == "kenward-roger"
   refs <- c(refs, if (kr) "fitzmaurice2011" else "satterthwaite1946")
-  if (fit$pretest) refs <- c(refs, "lin2013")
+  if (fit$pretest) refs <- c(refs, "lin2013", "newman1990")
   method <- paste0(
     "Posttest outcomes at ", length(fit$occasions), " occasions were analyzed with a mixed model ",
     "for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, ",
     "and all their interactions",
-    if (fit$pretest) ", adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013)" else "",
+    if (fit$pretest) ", adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013; Newman et al., 1990)" else "",
     ", with ", if (fit$covariance == "unstructured") "an unstructured" else paste("a", fit$covariance),
     " within-participant covariance",
     if (fit$grouped) " estimated separately for pretested and unpretested participants" else "",

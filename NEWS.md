@@ -1,5 +1,56 @@
 # solomonR (development version)
 
+## Credit for the unified model (#105)
+
+* The model of `fit_solomon_glm()` is now credited to Newman, Benz, and
+  Williams (1990), who proposed it for the Solomon design: one regression
+  for the four groups, with the pretest as a covariate coded 0 for the
+  unpretested. The methods guide lists it as a published Solomon proposal,
+  no longer a solomonR extension, and names the package's additions: the
+  four contrasts as named estimates with confidence intervals, HC3 and CR2
+  standard errors with Satterthwaite degrees of freedom for CR2, other
+  families and exposure offsets, the noncollapsibility warning and
+  `marginal_solomon()`, additional covariates, designs with several
+  treatments, and randomization and equivalence tests.
+* `?fit_solomon_glm` gives the model's source, and Newman et al.'s caution
+  against treating the unpretested as having a pretest score of zero.
+* A new known-result test reproduces their worked example (Table 3,
+  p. 100). The printed interaction F of .22 is 0.21 from their data.
+* `report_solomon()` and `analysis_plan_solomon()` cite Newman et al.
+  (1990) with Lin (2013) where they describe the pretest adjustment, and
+  the citation table of "How to Cite solomonR" lists it for
+  `fit_solomon_glm()`.
+* Williams and Newman (1982), who fitted one model to all six sets of
+  observations in answer to Campbell and Stanley, are added with Newman et
+  al. (1990) to the history and coverage articles and the references.
+
+## Dukes et al. (1995), the latent-variable precedent (#106)
+
+* Dukes, Ullman, and Stein (1995), a Solomon evaluation analyzed with
+  latent variables, is cited as a published precedent for the SEM
+  functions in the SEM article, the methods guide, the coverage article,
+  and the references. The SEM article sets their three two-group models,
+  which test loadings, impose equal intercepts, and do not test the
+  interaction, beside the package's four-group model and invariance tests.
+  The SEM functions are unchanged; the further elements of their method are
+  planned under #117.
+
+## The worked example of Walton Braver and Braver (1988) (#109)
+
+* New data set `waltonbraver1988`: the hypothetical data of the worked
+  example of Walton Braver and Braver (1988, Table 3, p. 153). Its
+  known-result test reproduces the published Tests A, D, E, H, and I, the
+  pretest main effect, the 1988 path, and the power remark within rounding.
+* A known-result test reproduces Tests E and H of the counterexample of
+  Sawilowsky and Markman (1988), read in its ERIC version, and shows that
+  its printed error entry, 1200.04, is a misprint.
+* "The Classic Solomon Four-Group Analysis" gains a section on these
+  published worked examples, and states more precisely the reading of
+  Test I that reproduces the published simulation rates.
+* The roadmap no longer calls the historical workflow validated. It states
+  that the computations reproduce and the published Monte Carlo rates only
+  in part.
+
 ## Sources named by Steyn (2009) (#96, first part)
 
 * The default post hoc tests of `fit_solomon_steyn()` are now credited to

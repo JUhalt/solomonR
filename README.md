@@ -131,8 +131,9 @@ data(solomon_example)
 head(solomon_example)
 ```
 
-The principal modern observed-variable analysis fits one unified model
-and estimates four Solomon-specific contrasts:
+The principal modern observed-variable analysis fits one unified model,
+the model Newman et al. (1990) proposed for the design, and estimates
+four Solomon-specific contrasts:
 
 ``` r
 fit <- fit_solomon_glm(
@@ -605,6 +606,11 @@ Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent
 standard errors in the linear regression model. *The American
 Statistician, 54*(3), 217–224.
 <https://doi.org/10.1080/00031305.2000.10474549>
+
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. *Multiple Linear Regression
+Viewpoints, 17*(2), 91–103.
+<https://ojs.lib.ua.edu/glmj/article/view/125>
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
