@@ -193,7 +193,7 @@ computes these tests as Tests A–H. Its `history` component compares the
 unpretested control posttest with the pretests, as Campbell and Stanley
 describe.
 
-Two papers of 1968 carried the design further:
+Three works of 1968 and 1969 carried the design further:
 
 - **Bracht and Glass (1968)** listed pretest sensitization, posttest
   sensitization, and the timing of measurement among the threats to
@@ -216,6 +216,22 @@ Two papers of 1968 carried the design further:
   factorial, with the interaction as a difference of differences, and
   still used the pretested groups’ combined mean as the best estimate of
   the unpretested groups’ starting point (pp. 146–147).
+
+Lessac and Solomon (1969) reported in full the beagle experiment that
+Solomon and Lessac (1968, p. 149) had summarized. One beagle from each
+of six litters was placed in each group: two groups were isolated for a
+year from 12 weeks of age, and one isolated and one control group were
+pretested (pp. 15–16). They analyzed the posttests by analyses of
+variance of isolation and pretesting, and compared posttests with the
+pretests of the pretested groups, usually combined, by Mann–Whitney U
+tests (pp. 18–22). The adult controls matched the puppies’ pretests on
+all but one test, so the isolates’ deficits were read as a loss of
+abilities they had already shown, not a failure to develop (p. 23). The
+pretest also interacted with the isolation. It protected the isolates’
+avoidance learning (pp. 21–23) but deepened their impairment when the
+runway’s start box was rotated (pp. 19, 24). Without the four-group
+design, they wrote, they could have shown neither the loss of existing
+abilities nor the varied effects of the pretest (p. 24).
 
 ## How often does pretesting matter? (1982)
 
@@ -482,6 +498,11 @@ Rosnow, *Artifacts in behavioral research: Robert Rosenthal and Ralph L.
 Rosnow’s classic books* (pp. 93–109). Oxford University Press.
 <https://doi.org/10.1093/acprof:oso/9780195385540.003.0004> (Original
 work published 1969)
+
+Lessac, M. S., & Solomon, R. L. (1969). Effects of early isolation on
+the later adaptive behavior of beagles: A methodological demonstration.
+*Developmental Psychology, 1*(1), 14–25.
+<https://doi.org/10.1037/h0026778>
 
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
 of transfer interventions using Solomon four-group designs. *Education

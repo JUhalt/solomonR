@@ -16,7 +16,8 @@ van Engelenburg (1999) <https://eric.ed.gov/?id=ED435692>; observed- and
 latent-variable structural equation models with 'lavaan'; and
 equivalence tests of pretest sensitization. Also includes design checks,
 power and sample-size planning, simulated teaching data, published data
-sets, and APA-style reports with method-specific references.
+sets, and reports in the style of the American Psychological
+Association, with method-specific references.
 
 ## See also
 

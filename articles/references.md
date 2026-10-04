@@ -229,6 +229,28 @@ work published 1969)
 > and Glass (1968, p. 463). *In solomonR:* the history article and the
 > coverage article.
 
+Lessac, M. S., & Solomon, R. L. (1969). Effects of early isolation on
+the later adaptive behavior of beagles: A methodological demonstration.
+*Developmental Psychology, 1*(1), 14–25.
+<https://doi.org/10.1037/h0026778>
+
+> The full report of Lessac’s (1965) dissertation experiment, which
+> Solomon and Lessac (1968, p. 149) had summarized as an application of
+> the four-group design. One beagle from each of six litters was placed
+> in each group; the two isolated groups spent a year in solid-walled
+> cages from 12 weeks of age, and one isolated and one control group
+> were pretested (pp. 15–16). Analyses of variance of the posttests
+> tested isolation, pretesting, and their interaction, and Mann–Whitney
+> U tests compared posttests with the pretests of the pretested groups,
+> usually combined (pp. 18–22). Because the adult controls matched the
+> puppies’ pretests on all but one test, the isolates’ deficits were
+> read as a loss of existing abilities, not a failure to develop
+> (p. 23). The pretest protected the isolates’ avoidance learning
+> (pp. 21–23) but deepened their impairment when the runway’s start box
+> was rotated (pp. 19, 24). Steyn and Mynhardt (2008, p. 567) cite it
+> for the design. *In solomonR:* the history article
+> ([\#96](https://github.com/JUhalt/solomonR/issues/96)).
+
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
 of transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
@@ -711,6 +733,22 @@ Schuirmann, D. J. (1987). A comparison of the two one-sided tests
 procedure and the power approach for assessing the equivalence of
 average bioavailability. *Journal of Pharmacokinetics and
 Biopharmaceutics, 15*(6), 657–680. <https://doi.org/10.1007/BF01068419>
+
+Stadler, K., & Kotze, M. E. (2006). The influence of a ropes course
+development programme on the self-concept and self-efficacy of young
+career officers. *SA Journal of Industrial Psychology, 32*(1), 25–32.
+<https://doi.org/10.4102/sajip.v32i1.225>
+
+> Not a study of the Solomon design: two pretested groups from two
+> institutions, each selected at random within its institution, were
+> measured before a three-day ropes course, on its last day, and 8 weeks
+> later, in a design the authors call quasi-experimental (pp. 25, 27).
+> It is the only published account found of Steyn’s (2001) doctoral
+> study of an outdoor experiential learning program with members of the
+> Public Order Police, which used “a four-group design with a pre-,
+> post- and post-post test” (p. 27). *In solomonR:* the coverage
+> article, which records Steyn (2001) as not read
+> ([\#96](https://github.com/JUhalt/solomonR/issues/96)).
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
