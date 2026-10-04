@@ -42,7 +42,11 @@ Designs with several treatments are not supported; see
 
 \item{estimator}{lavaan estimator, default "MLR" (robust)}
 
-\item{std_lv}{logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale}
+\item{std_lv}{logical; if TRUE (default), lavaan's \code{std.lv = TRUE}: the
+latent variance is fixed at 1 in the first group, the pretested
+treatment group (P1), so latent contrasts are in that group's latent SD
+units. In the latent ANCOVA (\code{ancova = TRUE}) the PRE variance and the
+POST residual variance are fixed at 1 in P1.}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
 

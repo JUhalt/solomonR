@@ -98,6 +98,29 @@
   says so for a difference test, citing Romano (1990), now in the
   references.
 
+# solomonR 0.8.1
+
+A patch release. It fixes a bug in 0.8.0 that gave wrong contrasts in
+`fit_solomon_sem()` and `fit_solomon_sem_latent()` when the data did not
+begin with a pretested, treated participant (#119): refit any such
+analysis. It also includes the documentation, attribution, and
+CRAN-readiness changes made since 0.8.0.
+
+## SEM group order (bug fix)
+
+* `fit_solomon_sem()` and `fit_solomon_sem_latent()` gave wrong contrasts
+  when the data did not begin with a pretested, treated participant. Their
+  models label the four group means by position, and lavaan orders groups
+  by their first appearance in the data, so with other row orders the
+  labels were attached to the wrong groups: on `solomon_example` with an
+  unpretested control first, the average treatment effect came out as
+  -2.68 instead of 2.68. The group order is now fixed. Results from data
+  that began with a pretested, treated participant, including every
+  example in the documentation, are unchanged.
+* The `std_lv` documentation of `fit_solomon_sem_latent()` now says that
+  the latent variance is fixed at 1 in the pretested treatment group, so
+  latent contrasts are in that group's latent SD units.
+
 ## Sources named by Steyn (2009) (#96, first part)
 
 * The default post hoc tests of `fit_solomon_steyn()` are now credited to
