@@ -232,7 +232,9 @@ CRAN-readiness changes planned for v0.9.0, was reviewed as a stack of pull
 requests, merged on October 2 and 3, 2026, and released together as
 solomonR 0.8.0 on October 3, 2026.
 Versions 0.5.0, 0.6.0, and 0.7.0 were not released separately. Each item
-below names its pull requests.
+below names its pull requests. A patch, 0.8.1 (October 4, 2026), fixed
+wrong contrasts in the SEM functions with some row orders
+([#119](https://github.com/JUhalt/solomonR/issues/119)).
 
 ---
 
