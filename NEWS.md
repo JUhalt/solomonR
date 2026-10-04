@@ -1,5 +1,33 @@
 # solomonR (development version)
 
+## Figure text that fits the figure (#108)
+
+* `plot_classic_flow()`, `plot_solomon_change()`, and
+  `plot_solomon_design()` no longer cut off their captions, subtitles, and
+  keys. An internal helper breaks figure text into lines for a figure 7
+  inches wide, the narrowest width at which the vignettes draw these
+  figures; pkgdown draws them 7.29 inches wide. The line length allows for
+  DejaVu Sans, the wider default font on Linux and on the package website.
+  Captions are set flush left under the whole figure.
+* `plot_classic_flow()` keeps the caution of Sawilowsky et al. (1994) whole
+  and never breaks the path in the subtitle. Edge labels are set beside
+  the arrows instead of on them, so that "not significant" no longer sits
+  on a node, and each arrow runs from the bottom of one node to the top of
+  the next. A visited test's p-value is set beside its name, so that the
+  tree fits a figure 4.5 inches high, as on the reference page.
+* `plot_solomon_change()` sets the four groups two by two in its legend,
+  which was cut off at 7 inches in DejaVu Sans.
+* `plot_solomon_design()` sets the title and key from the left edge of the
+  figure for the four-group design too, with the notation on one line and
+  `X = treatment` on the next, as for designs with several treatments. The
+  group sizes and means are given the width they need beside the
+  schematic, so they are no longer cut off at the right edge; each is set
+  on two lines, which leaves the schematic room for its column headings.
+* A layout test draws each figure at the sizes used in the vignettes and
+  at the pkgdown default, and checks that no title, subtitle, caption, or
+  legend is wider than its place in the figure, that no edge label of
+  `plot_classic_flow()` covers a node, and that its arrows meet the nodes.
+
 ## Sources named by Steyn (2009) (#96, first part)
 
 * The default post hoc tests of `fit_solomon_steyn()` are now credited to
