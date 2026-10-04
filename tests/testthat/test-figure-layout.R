@@ -65,6 +65,9 @@ test_that("the plot_classic_flow() title, subtitle, and caption fit the figure",
 test_that("plot_classic_flow() sets its labels beside the arrows, off the nodes", {
 
   fit <- classic_fit()
+  # The fitted 1990 flow has the longest caption, six lines, and so the
+  # shortest panel.
+  fit_1990 <- plot_classic_flow(classic_fit(flow = "1990"))
   cases <- list(
     list(plot_classic_flow(fit), c(7, 5.5)),
     list(plot_classic_flow(flow = "1995"), c(8, 5)),
@@ -72,7 +75,10 @@ test_that("plot_classic_flow() sets its labels beside the arrows, off the nodes"
     list(plot_classic_flow(fit), pkgdown_size),
     list(plot_classic_flow(flow = "1990"), pkgdown_size),
     list(plot_classic_flow(flow = "1995"), pkgdown_size),
-    list(plot_classic_flow(significant_classic_fit()), pkgdown_size)
+    list(plot_classic_flow(significant_classic_fit()), pkgdown_size),
+    list(fit_1990, pkgdown_size),
+    list(fit_1990, c(7, 4.5)),
+    list(fit_1990, c(7, 5.5))
   )
   for (case in cases) {
     layout <- classic_flow_layout(case[[1]], case[[2]])
@@ -95,6 +101,37 @@ test_that("plot_classic_flow() sets its labels beside the arrows, off the nodes"
     expect_true(all(ends$end - ends$top > -0.02))
     expect_true(all(ends$end - ends$top < 0.2))
     expect_true(all(ends$bottom - ends$start > -0.02))
+  }
+})
+
+
+test_that("plot_classic_flow() fits its arrows to the panel its caption leaves", {
+
+  # At 4.5 inches high, the height the figure is laid out for, the estimate
+  # of the panel height follows the lines of the subtitle and the caption,
+  # and every arrow stops 0.01 inch short of the nodes it joins.
+  figures <- list(
+    plot_classic_flow(), plot_classic_flow(flow = "1995"), plot_classic_flow(classic_fit()),
+    plot_classic_flow(classic_fit(flow = "1990")),
+    plot_classic_flow(classic_fit(flow = "1995", alpha_allocation = "method2_conservative"))
+  )
+  count_lines <- function(text) length(strsplit(text, "\n", fixed = TRUE)[[1]])
+  panel_height <- function(p, size) {
+    local_figure_device(size[1], size[2])
+    figure_geometry(ggplot2::ggplotGrob(p), size[1], size[2])$panel_height
+  }
+  captions <- vapply(figures, function(p) count_lines(p$labels$caption), integer(1))
+  expect_equal(range(captions), c(2L, 6L))
+  for (p in figures) {
+    estimate <- .classic_flow_panel_height(count_lines(p$labels$subtitle),
+                                           count_lines(p$labels$caption))
+    expect_lt(abs(estimate - panel_height(p, c(7, 4.5))), 0.01)
+
+    layout <- classic_flow_layout(p, c(7, 4.5))
+    ends <- merge(layout$arrows, layout$nodes[, c("node", "top")], by.x = "to", by.y = "node")
+    ends <- merge(ends, layout$nodes[, c("node", "bottom")], by.x = "from", by.y = "node")
+    expect_true(all(abs(ends$end - ends$top - 0.01) < 0.005))
+    expect_true(all(abs(ends$bottom - ends$start - 0.01) < 0.005))
   }
 })
 

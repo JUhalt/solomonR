@@ -13,8 +13,11 @@
   and never breaks the path in the subtitle. Edge labels are set beside
   the arrows instead of on them, so that "not significant" no longer sits
   on a node, and each arrow runs from the bottom of one node to the top of
-  the next. A visited test's p-value is set beside its name, so that the
-  tree fits a figure 4.5 inches high, as on the reference page.
+  the next. The arrows are fitted to the panel that the subtitle and the
+  caption leave in a figure 4.5 inches high, so that they also meet the
+  nodes under the six-line caption of a fitted 1990 flow. A visited
+  test's p-value is set beside its name, so that the tree fits a figure
+  4.5 inches high, as on the reference page.
 * `plot_solomon_change()` sets the four groups two by two in its legend,
   which was cut off at 7 inches in DejaVu Sans.
 * `plot_solomon_design()` sets the title and key from the left edge of the

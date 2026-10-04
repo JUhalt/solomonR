@@ -180,8 +180,11 @@ plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990", "1995")) {
     )
     caption <- paste0(fit$conclusion, "\n", caution)
   }
+  caption <- .wrap_figure_text(caption, .figure_caption_size)
 
-  segments <- .classic_flow_segments(nodes, edges)
+  # The arrows are fitted to the panel left by the subtitle and the caption.
+  count_lines <- function(text) length(strsplit(text, "\n", fixed = TRUE)[[1]])
+  segments <- .classic_flow_segments(nodes, edges, count_lines(subtitle), count_lines(caption))
   labelled <- segments[nzchar(segments$label), ]
 
   ggplot2::ggplot() +
@@ -207,7 +210,7 @@ plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990", "1995")) {
     ggplot2::coord_cartesian(xlim = c(-3.4, 3.4), ylim = range(nodes$y) + c(-0.6, 0.6),
                              expand = FALSE, clip = "off") +
     ggplot2::labs(title = "Historical Solomon decision path", subtitle = subtitle,
-                  caption = .wrap_figure_text(caption, .figure_caption_size)) +
+                  caption = caption) +
     ggplot2::theme_void(base_size = 12) +
     # theme_void() has no plot margins; these are the margins of the other
     # figures, so that the title and the caption do not touch the edges.
@@ -221,13 +224,33 @@ plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990", "1995")) {
 .classic_flow_node_size <- 3.2
 .classic_flow_edge_size <- 3
 
-# Half the height of a node of `lines` lines of text, in y units. One y unit
-# is about 0.6 inches when the tree has five levels and the figure is 4.5
-# inches high, as pkgdown draws it, with the title, the subtitle, and a
-# four-line caption; in a larger figure a y unit is longer and the estimate
-# leaves a small gap between an arrow and the node it meets.
-.classic_flow_half_height <- function(lines) {
-  0.1 * lines + 0.08
+# Height, in inches, of the panel when the figure is drawn 4.5 inches high,
+# the smallest height it is laid out for, with `subtitle_lines` lines of
+# subtitle and `caption_lines` lines of caption. The title, the plot margins,
+# and the space around the subtitle and the caption take 0.546 inches, and
+# each line of the subtitle or the caption takes 1.08 times its point size
+# (a line height of 0.9, in lines set 1.2 times the size of their text), as
+# measured on the pdf() device.
+.classic_flow_panel_height <- function(subtitle_lines, caption_lines, height = 4.5) {
+  height - 0.546 -
+    1.08 * (subtitle_lines * .figure_subtitle_size + caption_lines * .figure_caption_size) / 72
+}
+
+# Half the height, in y units, of a node of `lines` lines of text, in a tree
+# whose y range is `span` units, with `subtitle_lines` lines of subtitle and
+# `caption_lines` lines of caption. The height of a node is
+# 1.2 * (lines - 1) + 1.46 times the size of its text: its lines, set 1.2
+# times the size of the text apart, with a padding of a quarter line above
+# and below and room for the descent of the last line. A y unit is the
+# height of the panel of a figure 4.5 inches high over `span`, and the
+# estimate adds 0.01 inch, so that an arrow stops just short of the node it
+# meets; in a taller figure a y unit is longer and the gap a little wider.
+# A longer caption leaves a shorter panel and so a shorter y unit, which the
+# estimate follows.
+.classic_flow_half_height <- function(lines, span, subtitle_lines, caption_lines) {
+  half <- (1.2 * (lines - 1) + 1.46) * .classic_flow_node_size * ggplot2::.pt / 72 / 2
+  unit <- .classic_flow_panel_height(subtitle_lines, caption_lines) / span
+  (half + 0.01) / unit
 }
 
 # Edges of the tree, with arrows that run from the bottom of one node to the
@@ -235,9 +258,13 @@ plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990", "1995")) {
 # the right of a vertical arrow and, for an arrow leaving Test A, above its
 # midpoint on the side it leads to. A label set this way never covers a node
 # or its own arrow.
-.classic_flow_segments <- function(nodes, edges) {
+.classic_flow_segments <- function(nodes, edges, subtitle_lines, caption_lines) {
   nodes$half <- .classic_flow_half_height(
-    lengths(regmatches(nodes$label, gregexpr("\n", nodes$label, fixed = TRUE))) + 1L
+    lengths(regmatches(nodes$label, gregexpr("\n", nodes$label, fixed = TRUE))) + 1L,
+    # The y range of the panel: the levels of the tree and 0.6 units above
+    # and below them.
+    span = diff(range(nodes$y)) + 1.2,
+    subtitle_lines = subtitle_lines, caption_lines = caption_lines
   )
   ends <- nodes[, c("node", "x", "y", "half")]
   segments <- merge(edges, ends, by.x = "from", by.y = "node")
