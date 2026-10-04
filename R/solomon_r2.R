@@ -12,12 +12,18 @@
 # does not apply.
 #
 # For non-Gaussian GLMs, this quantity is not reported.
+#
+# `added_variance` is variance a contrast carries beyond L'VL, such as that
+# of the estimated mean pretest at which the pretest effects are evaluated
+# (issue #104). The statistic then uses the total variance, and no interval
+# is reported, because the noncentral F pivot no longer applies.
 contrast_r2_ci <- function(
     model,
     L,
     vcov,
     conf = 0.95,
-    conventional = FALSE
+    conventional = FALSE,
+    added_variance = 0
 ) {
 
   unavailable <- function(type) {
@@ -63,7 +69,8 @@ contrast_r2_ci <- function(
 
   variance <- as.numeric(
     t(L_full) %*% V %*% L_full
-  )
+  ) + added_variance
+  if (added_variance != 0) conventional <- FALSE
 
   if (!is.finite(variance) || variance <= 0) {
     return(unavailable("wald_partial"))

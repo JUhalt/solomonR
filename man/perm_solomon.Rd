@@ -21,7 +21,15 @@ several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solo
 \item{contrast}{Character string identifying the contrast to test. One of
 \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
 \code{"Treatment | pretested"}, or
-\code{"Treatment | unpretested"}.}
+\code{"Treatment | unpretested"}. The pretest effects of the fit are not
+tested: permuting treatment labels says nothing about them, and with a
+pretest covariate the pretest labels cannot be permuted. For a binary
+fit with a pretest covariate on a noncollapsible link such as the logit,
+\code{"Pretest x Treatment"} gives a classed warning
+(\code{solomonR_link_scale_warning}): on that scale the contrast is nonzero
+whenever the pretest predicts the outcome, even without sensitization
+(Daniel et al., 2021), so a rejection need not reflect sensitization;
+see \code{\link[=marginal_solomon]{marginal_solomon()}}.}
 
 \item{reps}{Number of permutations. Default is 5000. In clustered designs
 with at most \code{reps} possible allocations, every allocation is used.}
@@ -32,8 +40,10 @@ random-number state is restored when the function exits.}
 \item{return_dist}{Logical. If \code{TRUE}, return the permutation
 distribution in addition to the observed statistic and p-value.}
 
-\item{statistic}{\code{"studentized"} (the default) divides the contrast by its
-standard error; \code{"difference"} uses the contrast itself.}
+\item{statistic}{\code{"studentized"} (the default, and recommended) divides
+the contrast by its standard error; \code{"difference"} uses the contrast
+itself, which tests only the sharp null hypothesis (see "The difference
+statistic").}
 
 \item{object}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{fit}.}
 }
@@ -68,6 +78,21 @@ statistic makes permutation tests asymptotically robust when only an
 average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
 Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness
 should be regarded as approximate.
+
+\strong{The difference statistic.} \code{statistic = "difference"} tests only the
+sharp null hypothesis. A permutation test of a difference in means is
+exact when the two arms' outcomes have the same distribution, but when
+only the average effect is zero it keeps its level, even asymptotically,
+only if the arms are equal in size or in variance (Romano, 1990). In a
+check for issue #113 (1,000 replications of 199 permutations; the average
+treatment effect; 8 treated and 24 control participants in each pretest
+condition; a treated standard deviation twice the control one; no
+effect), the Type I error at .05 was 0.144 (Monte Carlo standard error
+0.011) for the difference statistic and 0.064 (0.008) for the studentized
+statistic. A classed warning (\code{solomonR_unbalanced_arms_warning}) is
+therefore given when the difference statistic is chosen and treated and
+control participants differ in number in a pretest condition that the
+contrast uses. The studentized default is recommended.
 
 \strong{Clustered designs.} Randomization inference must permute the unit that
 was randomized, so for fits with a \code{cluster} variable the treatment labels
@@ -127,7 +152,10 @@ control clusters, 0.0685 with 15 treated and 47 control clusters per
 pretest condition, and 0.0805 with 4 and 8. The difference statistic
 reached 0.158 with 15 and 47, as Gail et al. (1996) found for unbalanced
 designs. A classed warning (\code{solomonR_unbalanced_clusters_warning}) is
-therefore given whenever treated and control clusters differ in number.
+therefore given, for either statistic, whenever treated and control
+clusters differ in number. It also has the class
+\code{solomonR_unbalanced_arms_warning} of the participant-level warning, so
+one handler can catch both.
 \item The CR2 tests of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} reached 0.068 with four clusters per
 arm even under the sharp null, where this test is exact, so the
 permutation test is preferred for designs with few clusters.
@@ -143,6 +171,11 @@ Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
 analysis of incidence rates in cluster randomized trials. \emph{International
 Journal of Epidemiology, 31}(4), 839–846.
 https://doi.org/10.1093/ije/31.4.839
+
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
+528–557. https://doi.org/10.1002/bimj.201900297
 
 DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
 correlation and regression coefficients. \emph{Journal of the American Statistical
@@ -166,6 +199,11 @@ Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 zero: Calculating exact p-values when permutations are randomly drawn.
 \emph{Statistical Applications in Genetics and Molecular Biology, 9}(1),
 Article 39. https://doi.org/10.2202/1544-6115.1585
+
+Romano, J. P. (1990). On the behavior of randomization tests without a
+group invariance assumption. \emph{Journal of the American Statistical
+Association, 85}(411), 686–692.
+https://doi.org/10.1080/01621459.1990.10474928
 
 Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in
 randomized experiments. \emph{Journal of the American Statistical Association,

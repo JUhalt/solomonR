@@ -16,10 +16,12 @@ test_that("the N-group report gives the omnibus tests, each comparison, and Holm
                fixed = TRUE)
   expect_match(results, "averaged over pretest conditions, gave F(2, 127) = 1.26, p = .288", fixed = TRUE)
 
-  # One paragraph per comparison, each with its four contrasts.
-  expect_length(r$results, 3L)
+  # One paragraph per comparison, each with its four contrasts, and one for
+  # the pretest effects (#104).
+  expect_length(r$results, 4L)
   expect_match(r$results[2], "^The average treatment effect of RP relative to Control across pretest conditions")
   expect_match(r$results[3], "^The average treatment effect of GS relative to Control across pretest conditions")
+  expect_match(r$results[4], "^The pretest effect \\(pretested minus unpretested participants\\) was")
   for (who in c("RP relative to Control", "GS relative to Control")) {
     expect_match(results, paste("Pretest x Treatment interaction (pretest sensitization) for", who), fixed = TRUE)
     expect_match(results, paste("treatment effect of", who, "among pretested participants"), fixed = TRUE)
@@ -32,7 +34,8 @@ test_that("the N-group report gives the omnibus tests, each comparison, and Holm
   expect_equal(sens$p.adjusted, 2 * sens$p.value)
   expect_match(results, "t(127) = -1.88, p = .126, Holm-adjusted.", fixed = TRUE)
   expect_false(grepl("p = .063", results, fixed = TRUE))
-  expect_identical(lengths(regmatches(results, gregexpr("Holm-adjusted", results))), 8L)
+  # Eight treatment contrasts and the pretest effects of the two treatments.
+  expect_identical(lengths(regmatches(results, gregexpr("Holm-adjusted", results))), 10L)
 
   expect_match(r$method, "Holm's (1979) procedure", fixed = TRUE)
   expect_match(r$method, "confidence intervals were not adjusted", fixed = TRUE)
@@ -152,7 +155,8 @@ test_that("pairwise and weighted comparisons are described", {
   expect_match(pw$method, "Every pair of conditions was compared (RP vs Control, GS vs Control, and RP vs GS)",
                fixed = TRUE)
   expect_match(pw$method, "the three comparisons", fixed = TRUE)
-  expect_length(pw$results, 4L)
+  # The omnibus tests, three comparisons, and the pretest effects (#104).
+  expect_length(pw$results, 5L)
   expect_match(pw$results[4], "treatment effect of RP relative to GS among pretested", fixed = TRUE)
 
   custom <- report_solomon(mai_fit(robust = "none",
@@ -163,9 +167,21 @@ test_that("pairwise and weighted comparisons are described", {
   # The weights are stated, so that the comparison can be reproduced.
   expect_match(custom$method, "(RP = 0.5, GS = 0.5, Control = -1), and the Solomon contrasts were estimated for this comparison.",
                fixed = TRUE)
-  # A single comparison needs no adjustment.
-  expect_false(any(startsWith(custom$references, "Holm")))
-  expect_false(any(grepl("Holm-adjusted", custom$results)))
+  # A single comparison needs no adjustment; only the pretest effects of the
+  # two treatments are adjusted, across the treatments (#104).
+  expect_false(grepl("Holm-adjusted", custom$results[2], fixed = TRUE))
+  expect_match(custom$results[3],
+               "in the RP condition, 95% CI \\[[^]]+\\], t\\(127\\) = [-.0-9]+, p = [.0-9]+, Holm-adjusted;")
+  expect_match(custom$results[3],
+               "in the Control condition, 95% CI \\[[^]]+\\], t\\(127\\) = [-.0-9]+, p = [.0-9]+;")
+  expect_match(custom$method, "the p-values of the two treatments' pretest effects were adjusted",
+               fixed = TRUE)
+  expect_true(any(startsWith(custom$references, "Holm")))
+  # Without an adjustment, Holm is not cited.
+  custom_none <- report_solomon(mai_fit(robust = "none", adjust = "none",
+                                        contrasts = list(Any = c(RP = 0.5, GS = 0.5, Control = -1))))
+  expect_false(any(startsWith(custom_none$references, "Holm")))
+  expect_false(any(grepl("Holm-adjusted", custom_none$results)))
 
   several <- report_solomon(mai_fit(
     robust = "none",
@@ -333,6 +349,59 @@ test_that("equivalence tests of one comparison are reported with the N-group des
   expect_match(rc$method,
                "The comparison Any was defined by weights over the conditions (RP = 0.5, GS = 0.5, Control = -1).",
                fixed = TRUE)
+})
+
+test_that("summary statistics of an N-group design give the report of the individual data (#111)", {
+  # Exact cell statistics of mai2020's posttests.
+  d <- mai2020[!is.na(mai2020$post_behavior), ]
+  cell <- interaction(d$condition, d$pretested, drop = TRUE, sep = ":")
+  key <- strsplit(levels(cell), ":", fixed = TRUE)
+  s <- solomon_from_summary(
+    n = as.vector(tapply(d$post_behavior, cell, length)),
+    mean = as.vector(tapply(d$post_behavior, cell, mean)),
+    sd = as.vector(tapply(d$post_behavior, cell, stats::sd)),
+    treat = vapply(key, `[`, "", 1), pretested = as.numeric(vapply(key, `[`, "", 2)),
+    control = "Control"
+  )
+  expect_s3_class(s, "solomon_summary_ngroup")
+  r <- report_solomon(s)
+  g <- report_solomon(mai_fit(robust = "none"))
+
+  # The contrasts are those of fit_solomon_glm(robust = "none") without the
+  # pretest, word for word, with the same Holm adjustment. The report of the
+  # individual data then gives the pretest effects (#104), which the summary
+  # fit does not estimate.
+  expect_identical(r$results[-1], g$results[1 + seq_len(length(r$results) - 1)])
+  expect_match(g$results[length(r$results) + 1], "pretest effect", ignore.case = TRUE)
+  expect_match(r$results[2], "t(127) = -1.88, p = .126, Holm-adjusted.", fixed = TRUE)
+
+  # The omnibus F tests: the same two tests, and the test of pretesting.
+  expect_match(r$results[1], "Pretest x Condition interaction (pretest sensitization) gave F(2, 127) = 1.86, p = .161;",
+               fixed = TRUE)
+  expect_match(r$results[1], "averaged over pretest conditions, gave F(2, 127) = 1.26, p = .288;",
+               fixed = TRUE)
+  pre <- s$anova[s$anova$source == "Pretest", ]
+  expect_match(r$results[1], sprintf("averaged over the conditions, gave F(1, 127) = %s, p = %s.",
+                                     .apa_num(pre$F, 2), sub("^0", "", sprintf("%.3f", pre$p.value))),
+               fixed = TRUE)
+  # The pretest test is the contrast of the unweighted pretested and
+  # unpretested cell means, squared.
+  m <- tapply(d$post_behavior, cell, mean)
+  n <- tapply(d$post_behavior, cell, length)
+  w <- ifelse(grepl(":1$", names(m)), 1, -1) / 3
+  expect_equal(pre$F, sum(w * m)^2 / (s$mse * sum(w^2 / n)))
+
+  expect_match(r$method, "Holm's (1979) procedure", fixed = TRUE)
+  expect_match(r$method, "pooled error variance, which assumes equal variances", fixed = TRUE)
+  expect_match(r$method, "Each treatment was compared with the control (RP vs Control and GS vs Control)",
+               fixed = TRUE)
+  expect_identical(r$design, g$design)
+  expect_true(any(startsWith(r$references, "Holm, S. (1979).")))
+  expect_true(any(startsWith(r$references, "Steyn, R. (2009).")))
+  expect_identical(r$table, s$contrasts)
+  expect_match(report_solomon(s, format = "markdown")$results[1], "*F*(2, 127) = 1.86, *p* = .161",
+               fixed = TRUE)
+  expect_error(report_solomon(s, design = list(randomized = 1:4)), "six groups")
 })
 
 test_that("fit_solomon_steyn() results are dispatched to .report_steyn()", {

@@ -100,8 +100,12 @@ bundled \link{solomon_example} data.
 \item among pretested participants, \code{delta + sens};
 \item the Pretest x Treatment interaction, \code{sens};
 \item the equal-weighted average treatment effect, \code{delta + sens / 2};
-\item the pretest effect among controls, \code{pretest_effect}.
+\item the pretest effect among controls, \code{pretest_effect};
+\item among treated participants, \code{pretest_effect + sens};
+\item and their average, the pretest main effect, \code{pretest_effect + sens / 2}.
 }
+
+Its rows follow the order of the \code{effects} table of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
 
 Rounding and limits (\code{digits}, \code{limits}) make the scores look like test
 scores, but they shift the true values slightly, and more so when many
@@ -138,9 +142,12 @@ The \code{treat} column is then a factor whose levels are the treatments and
 The \code{"truth"} attribute has one row for each treatment-control comparison
 and contrast, with the columns \code{comparison} (such as \code{"A vs Control"}),
 \code{contrast}, and \code{true_value}, in the order of the \code{effects} table of that
-fit; a last row gives the pretest effect among controls. With one
-treatment effect the data and the \code{"truth"} attribute are those described
-above.
+fit. Its last rows give the pretest effects: among controls
+(\code{pretest_effect}), among the participants of each treatment j
+(\code{pretest_effect + sens[j]}), and their average over the k + 1
+conditions (\code{pretest_effect + sum(sens) / (k + 1)}, with comparison
+\code{"All conditions"}). With one treatment effect the data and the \code{"truth"}
+attribute are those described above.
 }
 
 \examples{

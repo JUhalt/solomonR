@@ -25,9 +25,10 @@ test_that("Solomon ML converges and returns expected components", {
     5L
   )
 
+  # The four treatment contrasts and the three pretest effects (#104).
   expect_equal(
     nrow(fit$effects),
-    4L
+    7L
   )
 
   expect_true(

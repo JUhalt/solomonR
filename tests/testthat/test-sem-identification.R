@@ -137,7 +137,9 @@ test_that("SEM contrasts do not depend on the order of the rows (group order)", 
   set.seed(1)
   d3 <- d[sample(nrow(d)), ]
 
-  glm <- fit_solomon_glm(y_post, treat, pretested, data = d)$effects$estimate
+  # The SEM reports the four treatment contrasts, not the pretest effects.
+  ge <- fit_solomon_glm(y_post, treat, pretested, data = d)$effects
+  glm <- ge$estimate[!grepl("^Pretest (effect|main effect)", ge$contrast)]
   for (dd in list(d, d2, d3)) {
     f <- suppressWarnings(fit_solomon_sem(y_post, treat, pretested, data = dd))
     expect_equal(f$effects$estimate, glm, tolerance = 1e-4)

@@ -365,8 +365,12 @@ test_that("pretested cells are evaluated at the mean pretest, covariates at thei
   expected_control_un <- b[["(Intercept)"]] + b[["genderMale"]] * male
   expect_equal(ngroup_cell(p, "Control", "Unpretested"), expected_control_un, tolerance = 1e-10)
 
+  # The model's pretest is centered at fit$pretest_mean (#104), so the mean
+  # of the centered pretests is zero; the caption gives the pretest's own
+  # mean.
+  expect_equal(pre_mean, 0, tolerance = 1e-10)
   expect_match(p$labels$caption, sprintf("mean pretest \\(%s\\)",
-                                         formatC(pre_mean, format = "f", digits = 2)))
+                                         formatC(fit$pretest_mean, format = "f", digits = 2)))
 })
 
 
@@ -437,11 +441,14 @@ test_that("the forest plot has one row per comparison within each contrast", {
   built <- ggplot2::ggplot_build(p)
   expect_equal(nrow(built$layout$layout), 4L)
 
+  # The treatment contrasts are drawn; the pretest effects of each condition
+  # (#104) are not.
   key <- function(d) paste(d$comparison, d$contrast)
-  plotted <- p$data[match(key(fit$effects), key(p$data)), ]
-  expect_equal(plotted$estimate, fit$effects$estimate)
-  expect_equal(plotted$conf.low, fit$effects$conf.low)
-  expect_equal(plotted$conf.high, fit$effects$conf.high)
+  drawn <- fit$effects[fit$effects$contrast %in% .solomon_contrast_order, ]
+  plotted <- p$data[match(key(drawn), key(p$data)), ]
+  expect_equal(plotted$estimate, drawn$estimate)
+  expect_equal(plotted$conf.low, drawn$conf.low)
+  expect_equal(plotted$conf.high, drawn$conf.high)
 
   pairwise <- plot_solomon_effects(mai_fit(contrasts = "pairwise"))
   expect_equal(nrow(pairwise$data), 12L)
@@ -493,7 +500,8 @@ test_that("CR2 fits keep their contrast-specific degrees of freedom", {
   e <- plot_solomon_effects(fit)
   expect_match(e$labels$caption, "contrast-specific df", fixed = TRUE)
   key <- function(x) paste(x$comparison, x$contrast)
-  expect_equal(e$data$df[match(key(fit$effects), key(e$data))], fit$effects$df)
+  drawn <- fit$effects[fit$effects$contrast %in% .solomon_contrast_order, ]
+  expect_equal(e$data$df[match(key(drawn), key(e$data))], drawn$df)
 })
 
 

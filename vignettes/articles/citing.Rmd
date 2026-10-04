@@ -69,6 +69,19 @@ knitr::kable(data.frame(
 The full entries, with notes on how the package uses each work, are on the
 [References](references.html) page.
 
+`report_solomon()` takes the result of every function in the table except
+the two below, which it leaves out on purpose. Cite their methods from the
+table and from their help pages.
+
+```{r exclusions, echo = FALSE}
+excluded <- solomonR:::.report_exclusions
+knitr::kable(data.frame(
+  Function = sprintf("`%s()`", names(excluded)),
+  `Why report_solomon() leaves it out` = unname(excluded),
+  check.names = FALSE
+), row.names = FALSE, align = "ll")
+```
+
 ## Historical procedures
 
 If you reproduce a historical analysis, cite its original source. When the

@@ -55,7 +55,10 @@ test_that("each contrast equals the joint model of the individual data", {
   fit <- mai_summary()
   glm_fit <- fit_solomon_glm(post_behavior, condition, pretested, control = "Control",
                              robust = "none", data = subset(mai2020, !is.na(post_behavior)))
-  e <- glm_fit$effects
+  # The treatment contrasts; the joint model also reports the pretest
+  # effects (#104), which the summary analysis does not.
+  e <- glm_fit$effects[glm_fit$effects$contrast %in% .solomon_contrast_order, ]
+  rownames(e) <- NULL
   s <- fit$contrasts
   expect_identical(s$comparison, e$comparison)
   expect_identical(s$contrast, e$contrast)
@@ -101,7 +104,10 @@ test_that("an unbalanced eight-group design matches the individual-data analyses
                              data = d)
   cols <- c("comparison", "contrast", "estimate", "std.error", "statistic", "p.value",
             "p.adjusted", "df", "conf.low", "conf.high")
-  expect_equal(fit$contrasts[, cols], glm_fit$effects[, cols], tolerance = 1e-8)
+  # The treatment contrasts of the joint model, which also reports the
+  # pretest effects (#104).
+  treatment <- glm_fit$effects$contrast %in% .solomon_contrast_order
+  expect_equal(fit$contrasts[, cols], glm_fit$effects[treatment, cols], tolerance = 1e-8)
   # The omnibus tests of the joint model for Condition and Pretest x Condition.
   expect_equal(fit$anova$F[c(1, 3)], glm_fit$omnibus$statistic[1:2], tolerance = 1e-8)
   expect_equal(fit$anova$p.value[c(1, 3)], glm_fit$omnibus$p.value[1:2], tolerance = 1e-8)
