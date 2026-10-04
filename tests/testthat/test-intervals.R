@@ -142,7 +142,12 @@ test_that("partial R2 intervals are reported only for conventional Gaussian fits
 
   expect_equal(conventional$effects$r2_lo[1], expected[["lower"]])
   expect_equal(conventional$effects$r2_hi[1], expected[["upper"]])
-  expect_true(all(conventional$effects$r2_lo <= conventional$effects$r2_hi))
+  # The treatment contrasts have intervals. The pretest effects do not: their
+  # variance includes that of the mean pretest, so the noncentral F pivot
+  # does not apply (#104).
+  treatment <- !conventional$effects$contrast %in% .solomon_pretest_order
+  expect_true(all(conventional$effects$r2_lo[treatment] <= conventional$effects$r2_hi[treatment]))
+  expect_true(all(is.na(conventional$effects$r2_lo[!treatment])))
 
   hc3 <- with(solomon_demo, fit_solomon_glm(y_post, treat, pretested, y_pre))
 

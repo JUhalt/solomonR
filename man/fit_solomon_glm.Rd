@@ -85,8 +85,10 @@ coefficient and contrast tables (including degrees of freedom and
 confidence limits \code{conf.low} and \code{conf.high}), the covariance matrix,
 the Pearson dispersion statistic for binomial, Poisson, and
 negative-binomial fits, \code{theta} (its estimate, standard error, and
-\eqn{\alpha = 1/\theta}) for negative-binomial fits, and the settings
-used.
+\eqn{\alpha = 1/\theta}) for negative-binomial fits, \code{pretest_mean}
+(the mean pretest at which the pretest is centered; \code{NA} without
+\code{y_pre}), and the settings used. The contrast table, \code{effects}, has the
+four treatment contrasts followed by the three pretest effects.
 
 For a design with several treatments, an object of class
 \code{solomon_ngroup}, with the same elements and these changes: \code{effects}
@@ -101,12 +103,20 @@ weights of each comparison; and \code{adjust} names the adjustment.
 Fits one generalized linear model to all four Solomon groups and reports
 four Solomon contrasts: the equal-weighted average treatment effect, the
 Pretest x Treatment (sensitization) contrast, and the treatment effect
-within each pretesting condition.
+within each pretesting condition. It also reports the pretest (testing)
+effect among controls, among treated participants, and averaged over the
+two (see "The pretest effect").
 }
 \details{
-When \code{y_pre} is supplied, it enters the model as \code{pre_obs}, equal
-to the pretest score in the pretested groups and 0 in the unpretested
-groups, so the structurally absent pretests do not remove Groups 3 and 4.
+When \code{y_pre} is supplied, it enters the model as \code{pre_obs}: in the
+pretested groups, the pretest score minus the mean pretest of the
+pretested participants in the model (returned as \code{pretest_mean}), and in
+the unpretested groups 0, so the structurally absent pretests do not
+remove Groups 3 and 4. Centering changes neither the fitted values nor the
+treatment contrasts; it makes the pretesting coefficient the pretest effect
+among controls at that mean, as in \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}. Without centering,
+the coefficient would compare the groups at a pretest score of zero, far
+outside the data.
 Regression adjustment for baseline covariates in randomized experiments,
 and the case for pairing it with heteroskedasticity-robust standard errors,
 is discussed by Lin (2013). Pretested participants with a missing pretest
@@ -206,6 +216,86 @@ method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.
 }
 
+\section{The pretest effect}{
+
+Solomon (1949) added the unpretested groups to separate the effect of
+taking the pretest from the effect of the treatment, and Campbell and
+Stanley (1963/1966, p. 25) list the main effect of testing among the
+quantities the design estimates. The effects table reports it after the
+four treatment contrasts, as pretested minus unpretested participants:
+\itemize{
+\item \verb{Pretest effect | control}: among control participants;
+\item \verb{Pretest effect | treated}: among treated participants;
+\item \verb{Pretest main effect}: the equal-weighted average of the two.
+}
+
+The two pretest effects differ by the Pretest x Treatment contrast: an
+interaction can be read as a treatment effect that depends on pretesting
+or as a pretest effect that depends on treatment.
+
+With \code{y_pre}, the pretested groups are compared with the unpretested
+groups at the pretested participants' mean pretest, where the centered
+pretest is zero. Unpretested participants were never measured, but with
+random assignment their expected pretest equals that of the pretested
+participants, whose combined mean is its best estimate (Solomon & Lessac,
+1968, pp. 146--147). Each pretest effect is therefore the pretest-adjusted
+mean of a pretested group minus the mean of the unpretested group in the
+same treatment condition: the differences between the adjusted means that
+\code{\link[=plot_sensitization]{plot_sensitization()}} draws. Without \code{y_pre}, the pretest effects are
+differences between the fitted cell means.
+
+That mean pretest is an estimate of the expected pretest, not a fixed
+value, and the pretest effects shift by b for each point it shifts, where
+b is the pretest slope. Their standard errors therefore include its sampling
+variance, about b^2 s^2 / n for n pretested participants whose pretests
+have variance s^2. The estimating equation of the mean is stacked with
+those of the model (Stefanski & Boos, 2002): each pretest effect gains b^2
+times the variance of the mean and 2b times the covariance of the mean
+with the contrast, estimated in the fit's covariance type:
+\itemize{
+\item with model-based covariance, the variance of the mean is s^2 / n, and
+the covariance is zero, as it is when the model is correctly specified;
+\item with HC3, the variance is in its jackknife form, and the covariance is
+estimated from the HC3-scaled influence of each participant on the
+coefficients;
+\item with CR2, the variance is the CR2 variance of the mean, and the
+covariance is estimated from cluster sums with the factor G / (G - 1)
+for G clusters. The degrees of freedom combine the Satterthwaite degrees
+of freedom of the contrast and of the mean by the Welch-Satterthwaite
+formula (Satterthwaite, 1946; Welch, 1947).
+}
+
+With HC3 and model-based covariance, the reference distribution keeps the
+residual degrees of freedom of the model. The treatment contrasts do not
+depend on the mean, so their standard errors are unchanged. The coefficient
+table reports the pretesting coefficient with the model's standard error,
+which treats the mean as fixed, and the Wald R-squared of a pretest effect
+uses its full standard error and has no interval.
+
+Treating the mean as fixed leaves its variance out at every sample size.
+In a simulation check of this correction (not a pre-registered study;
+1,000 to 4,000 replications in each of 10 scenarios), with a
+pretest-posttest correlation of .8 the 95\% intervals of the pretest main
+effect that treat the mean as fixed covered 0.90 of the time, with 30 and
+with 100 participants per cell. With its variance included, the intervals
+of the pretest effects covered 0.937 to 0.958 of the time, within the
+Monte Carlo tolerance in all 82 cells: HC3, model-based, and CR2 fits of
+four-group designs, including one whose pretest slope differed between
+the treatment conditions, a design with two treatments, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}
+with either inference, \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}, and the delta method of
+\code{\link[=marginal_solomon]{marginal_solomon()}}.
+
+On a link other than the identity, with \code{y_pre}, the pretest effects
+compare the pretested participants' fitted mean at the mean pretest with
+the unpretested participants' mean over their unmeasured pretests. With a
+nonlinear link, a mean at the average pretest is not the average of the
+means over the pretests, so these contrasts differ from the marginal pretest
+effect even when the pretest has no effect. This holds for the log link
+too, although its treatment rate ratios are collapsible.
+\code{\link[=marginal_solomon]{marginal_solomon()}} estimates the pretest effects on a common scale, from
+standardized risks or rates (Daniel et al., 2021).
+}
+
 \section{Designs with several treatments}{
 
 A Solomon N-group design crosses k treatments and a control with
@@ -232,6 +322,17 @@ Holm's (1979) procedure by default. It controls the familywise error rate
 "for any combination of true hypotheses" (p. 65). The confidence
 intervals are not adjusted. The result has class \code{solomon_ngroup}.
 
+The effects table ends with the pretest effect in each condition (see
+"The pretest effect"), with \code{comparison} naming the condition:
+\verb{Pretest effect | control} for the control and \verb{Pretest effect | treated}
+for each treatment, whose p-values are adjusted across the treatments.
+The \verb{Pretest main effect}, with \code{comparison} \code{"All conditions"}, is their
+equal-weighted average over the k + 1 conditions. Steyn (2009) tests the
+pretest main effect separately for each intervention, in the two-way
+analysis of variance of that intervention's groups and the control groups
+that \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}} carries out; this row averages over all the
+conditions and is adjusted for the pretest score.
+
 Published studies with several treatments analyzed them as overlapping
 four-group designs: one for each treatment against the control (McCarthy &
 Tucker, 2002), or one for each pair of conditions (Mai et al., 2020). Those
@@ -248,8 +349,8 @@ treatments is experimental. In the package's simulation study (issue #45;
 112 scenarios with two or three treatments and 10 to 50 participants per
 group, 5,000 replications each):
 \itemize{
-\item the contrasts were unbiased, and coverage of their 95\% intervals was
-0.939 to 0.967;
+\item the treatment contrasts were unbiased, and coverage of their 95\%
+intervals was 0.939 to 0.967;
 \item the familywise error rates of the Holm-adjusted comparisons were at most
 0.059;
 \item the Pretest x Condition test and the test of the conditions averaged
@@ -263,9 +364,10 @@ is experimental. With groups that small, judge those two questions by
 the adjusted comparisons.
 }
 
-The study did not cover binary or count outcomes, clustered designs, or
-comparisons given as weights. It is reported in the article "Designs With
-Several Treatments: Validating the Joint Model".
+The study did not cover the pretest effects, which were added later
+(issue #104), binary or count outcomes, clustered designs, or comparisons
+given as weights. It is reported in the article "Designs With Several
+Treatments: Validating the Joint Model".
 }
 
 \examples{
@@ -288,6 +390,10 @@ linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
 Cameron, A. C., & Trivedi, P. K. (2013). \emph{Regression analysis of count data}
 (2nd ed.). Cambridge University Press.
 https://doi.org/10.1017/CBO9781139013567
+
+Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
+quasi-experimental designs for research}. Rand McNally. (Original work
+published 1963)
 
 Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 Comparing noncollapsible effect estimators and their standard errors after
@@ -338,8 +444,20 @@ guide to statistical inference in linear modeling for non-normal or
 heteroskedastic error distributions. \emph{Behavior Research Methods, 57}(12),
 Article 338. https://doi.org/10.3758/s13428-025-02801-4
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
+
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. \emph{Psychological Bulletin,
+70}(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+
+Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation. \emph{The
+American Statistician, 56}(1), 29–38.
+https://doi.org/10.1198/000313002753631330
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
@@ -356,4 +474,8 @@ https://doi.org/10.1037/met0000011
 
 Venables, W. N., & Ripley, B. D. (2002). \emph{Modern applied statistics with S}
 (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }

@@ -98,6 +98,111 @@
   says so for a difference test, citing Romano (1990), now in the
   references.
 
+## The pretest effect (#104)
+
+* The effects tables of `fit_solomon_glm()`, `fit_solomon_ml()`, and
+  `fit_solomon_mmrm()` (at each occasion) now report the pretest (testing)
+  effect, the question Solomon (1949) added the unpretested groups to
+  answer and that Campbell and Stanley (1963/1966, p. 25) list among the
+  design's estimates. Three rows follow the four treatment contrasts:
+  `Pretest effect | control` and `Pretest effect | treated` (pretested
+  minus unpretested participants in each treatment condition), and
+  `Pretest main effect`, their average. The two differ by the
+  Pretest x Treatment contrast.
+* The pretest is now centered at the mean pretest of the pretested
+  participants in the model (`pretest_mean` in the fit), in
+  `fit_solomon_glm()`, its several-treatment path, and `fit_solomon_mmrm()`,
+  as `fit_solomon_ml()` already did. The pretesting coefficient, which
+  compared the groups at a pretest score of zero (-26.2 on
+  `solomon_example`), is now the pretest effect among controls at that mean
+  (3.42). With random assignment, the unpretested groups' expected pretest
+  equals that mean (Solomon & Lessac, 1968, pp. 146–147), so each pretest
+  effect is the difference between the adjusted means that
+  `plot_sensitization()` draws. The treatment contrasts, their standard
+  errors, and the fitted values are unchanged.
+* The standard errors of the pretest effects include the sampling variance
+  of the mean pretest at which they are evaluated, an estimate of the
+  unpretested groups' expected pretest, by stacking its estimating equation
+  with the model's (Stefanski & Boos, 2002): about b^2 s^2 / n for a pretest
+  slope b, pretest variance s^2, and n pretested participants, with the
+  covariance between the mean and the coefficients under HC3 and CR2
+  covariance. Treating the mean as fixed made the intervals too narrow at
+  every sample size. The same holds for `fit_solomon_ml()` (Wald and
+  small-sample inference), the several-treatment path, `fit_solomon_mmrm()`
+  (with each occasion's slope), and the delta method of
+  `marginal_solomon()`, which adds the sampling variance of the pretested
+  and unpretested samples' standardization. CR2, small-sample ML, and MMRM
+  degrees of freedom combine those of the contrast and of the mean
+  (Satterthwaite, 1946; Welch, 1947). The coefficient tables still report
+  the pretesting coefficient with the standard error that treats the mean
+  as fixed.
+* For designs with several treatments, the effects table ends with the
+  pretest effect of each condition (`comparison` names the condition) and
+  the main effect over the conditions (`"All conditions"`). The treatments'
+  pretest effects are adjusted across the treatments, so with one
+  comparison and an adjustment the printed table now shows the adjusted
+  p-values for them. The help page no longer credits the main effect over
+  all conditions to Steyn (2009), who tests the pretest main effect for each
+  intervention against the control, and it says that the simulation study
+  of issue #45 covered the treatment contrasts, not the pretest effects.
+* `marginal_solomon()` reports the pretest effects as risk or rate
+  differences and ratios, and odds ratios, from the standardized cell risks
+  or rates. Its cluster-level summaries keep the four treatment contrasts
+  that their study validated.
+* `equivalence_solomon()` accepts the pretest effects; for a design with
+  several treatments, `comparison` names the condition.
+* `report_solomon()` writes a sentence on the pretest effects for
+  `fit_solomon_glm()`, `fit_solomon_ml()`, and `fit_solomon_mmrm()` fits,
+  and for each occasion of the last. The print methods state where the
+  pretest is centered.
+* On a link other than the identity, the pretest effects compare a fitted
+  mean at the mean pretest with a marginal mean, so they are not marginal
+  effects, even on the log link; the help pages, the printed fit, and the
+  report say so and point to `marginal_solomon()`, which estimates marginal
+  effects by standardization (Daniel et al., 2021).
+* `perm_solomon()` refuses the pretest effects with an explanation:
+  permuting treatment labels does not test them.
+* The `"truth"` attribute of `simulate_solomon()` adds the pretest effects
+  among treated participants and on average, in the order of the effects
+  table.
+* `compare_solomon_methods()` still compares the four treatment contrasts.
+* The teaching article's Lesson 1 and Step 3 of "Getting Started" read the
+  pretest effect from the effects table, not from a coefficient.
+
+## The scale of link-scale contrasts (#114)
+
+* `equivalence_solomon()` records the scale of the contrast (`scale`), and
+  its print method, the report, and the captions of
+  `plot_solomon_effects()` and `plot_sensitization()` name it: outcome
+  units for an identity link, log odds ratios for a logistic model, log
+  rate ratios for a Poisson or negative-binomial model. The print method no
+  longer calls link-scale bounds "raw scale".
+* A classed warning (`solomonR_link_scale_warning`) is given when
+  `equivalence_solomon()`, `perm_solomon(contrast = "Pretest x
+  Treatment")`, or the equivalence bounds of `plot_solomon_effects()` test,
+  with a pretest covariate, a contrast that does not compare like with
+  like: the Pretest x Treatment contrast on a noncollapsible link such as
+  the logit (Daniel et al., 2021), and the pretest effects on any link but
+  the identity. It points to `marginal_solomon()`. The Pretest x Treatment
+  contrast on the log link, a ratio of rate ratios, is collapsible and does
+  not warn.
+* The report of a `fit_solomon_glm()` fit names the scale of its contrasts
+  from the link, such as log risk ratios for a binomial log link, where it
+  called every log-link contrast a log rate ratio.
+
+## Equivalence intervals in the forest plot (#107)
+
+* With `bounds`, `plot_solomon_effects()` now draws the 1 - 2 `alpha`
+  interval of the equivalence test as a thick bar inside the thin
+  `conf_level` interval of each Pretest x Treatment row, for four-group
+  designs and designs with several treatments. Equivalence holds when that
+  interval lies inside the bounds (Schuirmann, 1987; Lakens, 2017); the
+  95% interval the figure drew alone could cross a bound for a contrast
+  that `equivalence_solomon()` found equivalent.
+* The new `alpha` argument matches `equivalence_solomon()`.
+* The caption states both confidence levels, the scale of the bounds, and
+  the TOST outcome, by comparison for designs with several treatments.
+
 # solomonR 0.8.1
 
 A patch release. It fixes a bug in 0.8.0 that gave wrong contrasts in

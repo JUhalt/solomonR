@@ -21,7 +21,15 @@ several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solo
 \item{contrast}{Character string identifying the contrast to test. One of
 \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
 \code{"Treatment | pretested"}, or
-\code{"Treatment | unpretested"}.}
+\code{"Treatment | unpretested"}. The pretest effects of the fit are not
+tested: permuting treatment labels says nothing about them, and with a
+pretest covariate the pretest labels cannot be permuted. For a binary
+fit with a pretest covariate on a noncollapsible link such as the logit,
+\code{"Pretest x Treatment"} gives a classed warning
+(\code{solomonR_link_scale_warning}): on that scale the contrast is nonzero
+whenever the pretest predicts the outcome, even without sensitization
+(Daniel et al., 2021), so a rejection need not reflect sensitization;
+see \code{\link[=marginal_solomon]{marginal_solomon()}}.}
 
 \item{reps}{Number of permutations. Default is 5000. In clustered designs
 with at most \code{reps} possible allocations, every allocation is used.}
@@ -163,6 +171,11 @@ Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
 analysis of incidence rates in cluster randomized trials. \emph{International
 Journal of Epidemiology, 31}(4), 839–846.
 https://doi.org/10.1093/ije/31.4.839
+
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
+528–557. https://doi.org/10.1002/bimj.201900297
 
 DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
 correlation and regression coefficients. \emph{Journal of the American Statistical

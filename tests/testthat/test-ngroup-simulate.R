@@ -40,7 +40,12 @@ test_that("the truth gives each comparison and contrast", {
   expect_equal(value("B vs Control", "Pretest x Treatment"), 3)
   expect_equal(value("B vs Control", "ATE (avg over pretest)"), 3.5)
   expect_equal(value("Control", "Pretest effect | control"), 0.5)
-  expect_identical(nrow(truth), 9L)
+  # The pretest effect in each treatment adds its sensitization, and the
+  # main effect averages the three conditions (#104).
+  expect_equal(value("A", "Pretest effect | treated"), 0.5)
+  expect_equal(value("B", "Pretest effect | treated"), 3.5)
+  expect_equal(value("All conditions", "Pretest main effect"), (0.5 + 0.5 + 3.5) / 3)
+  expect_identical(nrow(truth), 12L)
 })
 
 test_that("fit_solomon_glm() recovers the simulated effects of each treatment", {
@@ -49,7 +54,8 @@ test_that("fit_solomon_glm() recovers the simulated effects of each treatment", 
   expect_s3_class(fit, "solomon_ngroup")
   truth <- attr(d, "truth")
   m <- merge(fit$effects, truth, by = c("comparison", "contrast"))
-  expect_identical(nrow(m), 8L)
+  # The eight treatment contrasts and the four pretest effects (#104).
+  expect_identical(nrow(m), 12L)
   # Generous: each estimate within 4 standard errors of the truth.
   expect_true(all(abs(m$estimate - m$true_value) < 4 * m$std.error))
 })
@@ -61,12 +67,14 @@ test_that("with large samples the truth table lines up with the fitted effects",
   fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, control = "Control", data = d)
   truth <- attr(d, "truth")
   k <- 3L
-  effects_truth <- truth[seq_len(4L * k), ]
-  # The same comparisons and contrasts, in the same row order.
-  expect_identical(fit$effects$comparison, effects_truth$comparison)
-  expect_identical(fit$effects$contrast, effects_truth$contrast)
-  expect_true(all(abs(fit$effects$estimate - effects_truth$true_value) < 4 * fit$effects$std.error))
-  expect_true(all(abs(fit$effects$estimate - effects_truth$true_value) < 0.2))
+  # The same comparisons and contrasts, in the same row order: the four
+  # contrasts of each comparison, then the pretest effects of the control,
+  # each treatment, and all conditions (#104).
+  expect_identical(nrow(truth), 4L * k + k + 2L)
+  expect_identical(fit$effects$comparison, truth$comparison)
+  expect_identical(fit$effects$contrast, truth$contrast)
+  expect_true(all(abs(fit$effects$estimate - truth$true_value) < 4 * fit$effects$std.error))
+  expect_true(all(abs(fit$effects$estimate - truth$true_value) < 0.2))
 
   # The pretest effect among controls and the pretest-posttest correlation.
   ctl <- d[d$treat == "Control", ]
@@ -140,9 +148,11 @@ test_that("the four-group simulation is unchanged", {
   expect_identical(d, solomon_example)
   d1 <- simulate_solomon(n = 10, delta = 1, sens = 0.5, seed = 9)
   expect_type(d1$treat, "integer")
+  # The data are unchanged; the truth adds two pretest effects (#104).
   expect_identical(attr(d1, "truth")$estimand,
                    c("ATE (avg over pretest)", "Pretest x Treatment", "Treatment | pretested",
-                     "Treatment | unpretested", "Pretest effect | control"))
+                     "Treatment | unpretested", "Pretest effect | control",
+                     "Pretest effect | treated", "Pretest main effect"))
 })
 
 test_that("an N-group simulation leaves the global random state alone", {

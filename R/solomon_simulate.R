@@ -42,7 +42,11 @@
 #' - among pretested participants, `delta + sens`;
 #' - the Pretest x Treatment interaction, `sens`;
 #' - the equal-weighted average treatment effect, `delta + sens / 2`;
-#' - the pretest effect among controls, `pretest_effect`.
+#' - the pretest effect among controls, `pretest_effect`;
+#' - among treated participants, `pretest_effect + sens`;
+#' - and their average, the pretest main effect, `pretest_effect + sens / 2`.
+#'
+#' Its rows follow the order of the `effects` table of [fit_solomon_glm()].
 #'
 #' Rounding and limits (`digits`, `limits`) make the scores look like test
 #' scores, but they shift the true values slightly, and more so when many
@@ -78,9 +82,12 @@
 #' The `"truth"` attribute has one row for each treatment-control comparison
 #' and contrast, with the columns `comparison` (such as `"A vs Control"`),
 #' `contrast`, and `true_value`, in the order of the `effects` table of that
-#' fit; a last row gives the pretest effect among controls. With one
-#' treatment effect the data and the `"truth"` attribute are those described
-#' above.
+#' fit. Its last rows give the pretest effects: among controls
+#' (`pretest_effect`), among the participants of each treatment j
+#' (`pretest_effect + sens[j]`), and their average over the k + 1
+#' conditions (`pretest_effect + sum(sens) / (k + 1)`, with comparison
+#' `"All conditions"`). With one treatment effect the data and the `"truth"`
+#' attribute are those described above.
 #'
 #' @param n Participants per group: one number for all groups, or one number
 #'   per group. For the four-group design, four numbers in the order
@@ -187,8 +194,10 @@ simulate_solomon <- function(n = 30, delta = 0, sens = 0, pretest_effect = 0,
 
   attr(d, "truth") <- data.frame(
     estimand = c("ATE (avg over pretest)", "Pretest x Treatment", "Treatment | pretested",
-                 "Treatment | unpretested", "Pretest effect | control"),
-    true_value = c(delta + sens / 2, sens, delta + sens, delta, pretest_effect),
+                 "Treatment | unpretested", "Pretest effect | control",
+                 "Pretest effect | treated", "Pretest main effect"),
+    true_value = c(delta + sens / 2, sens, delta + sens, delta, pretest_effect,
+                   pretest_effect + sens, pretest_effect + sens / 2),
     stringsAsFactors = FALSE
   )
   attr(d, "settings") <- list(n = cells, delta = delta, sens = sens,
@@ -336,9 +345,12 @@ simulate_solomon <- function(n = 30, delta = 0, sens = 0, pretest_effect = 0,
   delta_u <- unname(delta)
   sens_u <- unname(sens)
   attr(d, "truth") <- data.frame(
-    comparison = c(rep(paste(treatments, "vs Control"), length(types)), "Control"),
-    contrast = c(rep(types, each = k), "Pretest effect | control"),
-    true_value = c(delta_u + sens_u / 2, sens_u, delta_u + sens_u, delta_u, pretest_effect),
+    comparison = c(rep(paste(treatments, "vs Control"), length(types)), "Control",
+                   treatments, "All conditions"),
+    contrast = c(rep(types, each = k), "Pretest effect | control",
+                 rep("Pretest effect | treated", k), "Pretest main effect"),
+    true_value = c(delta_u + sens_u / 2, sens_u, delta_u + sens_u, delta_u, pretest_effect,
+                   pretest_effect + sens_u, pretest_effect + sum(sens_u) / (k + 1)),
     stringsAsFactors = FALSE
   )
   attr(d, "settings") <- list(n = sizes, delta = delta, sens = sens,

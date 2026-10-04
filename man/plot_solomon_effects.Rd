@@ -4,16 +4,21 @@
 \alias{plot_solomon_effects}
 \title{Forest plot of the Solomon contrasts}
 \usage{
-plot_solomon_effects(fit, bounds = NULL)
+plot_solomon_effects(fit, bounds = NULL, alpha = 0.05)
 }
 \arguments{
 \item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}},
 \code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, or \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}}.}
 
 \item{bounds}{Optional equivalence bounds for the sensitization contrast,
-as one positive number or \code{c(lower, upper)}, drawn as a shaded band on
-that row. Use the same bounds as \code{\link[=equivalence_solomon]{equivalence_solomon()}}, fixed before
-the data were examined.}
+as one positive number or \code{c(lower, upper)}, on the scale of the
+contrast, drawn as a shaded band on that row with the TOST interval
+(see "Equivalence bounds"). Use the same bounds as
+\code{\link[=equivalence_solomon]{equivalence_solomon()}}, fixed before the data were examined.}
+
+\item{alpha}{Significance level of each one-sided test when \code{bounds} is
+supplied, as in \code{\link[=equivalence_solomon]{equivalence_solomon()}}. The thick interval has
+confidence level 1 - 2 \code{alpha}. Default is 0.05.}
 }
 \value{
 A ggplot object.
@@ -41,13 +46,40 @@ each panel for each comparison, such as \code{"RP vs Control"}, in the order of
 the fit. The intervals are the unadjusted ones the fit reports. The
 caption names the adjustment the fit applied to its p-values, by default
 Holm's (1979) procedure, and says that the intervals are not adjusted.
-With \code{bounds}, the band is drawn on every Pretest x Treatment row.
+With \code{bounds}, the band and the equivalence interval are drawn on every
+Pretest x Treatment row, and the caption gives each comparison's TOST
+outcome, not adjusted for the other comparisons.
+
+The pretest effects of the fit (see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}) are not drawn;
+the figure shows the four treatment contrasts.
+}
+
+\section{Equivalence bounds}{
+
+With \code{bounds}, the Pretest x Treatment row shows the two one-sided tests
+(TOST) of \code{\link[=equivalence_solomon]{equivalence_solomon()}}. Equivalence holds when the 1 - 2
+\code{alpha} interval, the 90\% interval when \code{alpha = 0.05}, lies inside the
+bounds (Schuirmann, 1987; Lakens, 2017), so that interval is drawn as a
+thick bar inside the thin \code{conf_level} interval of the fit, over a shaded
+band at the bounds. The thin interval is the one the fit reports for the
+test against zero; a 95\% interval can cross a bound when the 90\% interval
+does not, and the contrast is still statistically equivalent. The caption
+states both confidence levels, the scale of the bounds, and the TOST
+outcome: equivalent, trivial, different, or inconclusive (Lakens, 2017).
+On a fit with a pretest covariate and a noncollapsible link, such as the
+logit, the figure gives the warning that \code{\link[=equivalence_solomon]{equivalence_solomon()}} gives
+(\code{solomonR_link_scale_warning}): on that scale the Pretest x Treatment
+contrast is nonzero whenever the pretest predicts the outcome, even
+without sensitization.
 }
 
 \examples{
 fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 plot_solomon_effects(fit)
-plot_solomon_effects(fit, bounds = 5)
+
+# Illustrative bounds only; fix them before examining the data. The thick
+# bar is the 90\% interval of the equivalence test.
+plot_solomon_effects(fit, bounds = 7.5)
 
 # A six-group design: two treatments and a control.
 fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
@@ -59,4 +91,13 @@ plot_solomon_effects(fit6)
 Holm, S. (1979). A simple sequentially rejective multiple test procedure.
 \emph{Scandinavian Journal of Statistics, 6}(2), 65–70.
 https://www.jstor.org/stable/4615733
+
+Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
+correlations, and meta-analyses. \emph{Social Psychological and Personality
+Science, 8}(4), 355–362. https://doi.org/10.1177/1948550617697177
+
+Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
+and the power approach for assessing the equivalence of average
+bioavailability. \emph{Journal of Pharmacokinetics and Biopharmaceutics, 15}(6),
+657–680. https://doi.org/10.1007/BF01068419
 }

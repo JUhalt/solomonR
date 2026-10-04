@@ -129,6 +129,11 @@ compare_solomon_methods <- function(
   skipped <- list()
 
   make_rows <- function(method, adjustment, variance, contrast, effects) {
+    # Only the four treatment contrasts are compared; the effects tables of
+    # the GLM and ML fits also hold the pretest effects (issue #104).
+    keep <- rep_len(contrast %in% contrast_levels, NROW(effects))
+    effects <- effects[keep, , drop = FALSE]
+    contrast <- rep_len(contrast, length(keep))[keep]
     data.frame(
       method = method,
       adjustment = adjustment,

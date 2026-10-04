@@ -46,7 +46,10 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_ml}.
+An object of class \code{solomon_ml}, with the coefficients, the
+\code{effects} table (the four Solomon contrasts, then the three pretest
+effects), the residual standard deviations, \code{pretest_mean}, and the
+settings used.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -59,6 +62,12 @@ a separate residual variance.
 The model estimates the treatment effect, pretest effect,
 Treatment x Pretest interaction, pretest-posttest slope, and separate
 residual standard deviations for pretested and unpretested participants.
+The pretest enters as a deviation from its mean among pretested
+participants (returned as \code{pretest_mean}), so the pretest effect \code{bP}
+compares pretested and unpretested controls at that mean. The effects
+table reports the four Solomon contrasts and then the pretest effects
+among controls, among treated participants, and averaged over the two, as
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} does (see its section "The pretest effect").
 }
 \section{Inference options}{
 
@@ -76,6 +85,17 @@ of freedom, and contrasts that combine the conditions (the ATE and
 Pretest x Treatment) use Welch-Satterthwaite degrees of freedom
 (Satterthwaite, 1946; Welch, 1947).
 }
+
+The pretest effects are evaluated at the mean pretest of the pretested
+participants, an estimate whose sampling variance their standard errors
+include (see the section "The pretest effect" of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
+Under the model the mean is independent of the regression estimates, so
+Wald inference adds \code{bX}^2 times the maximum-likelihood variance of the
+mean, and the small-sample option adds \code{bX}^2 s^2 / n, for n pretested
+participants whose pretests have variance s^2, as a third component with
+n - 1 degrees of freedom. The coefficient table gives \code{bP} with the
+standard error of van Engelenburg (1999), which treats the mean as fixed.
+The pretest effects were not part of the validation below.
 
 In the package's simulation validation (issues #10 and #22; 84 scenarios
 with 2,000 replications each, reported in the article "Validating
