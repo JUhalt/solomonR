@@ -173,8 +173,9 @@ participant's identifier.
 ### The model
 
 `fit_solomon_mmrm()` fits a mixed model for repeated measures (Mallinckrodt
-et al., 2008) and reports the four Solomon contrasts at each occasion, and
-the change in sensitization from the first occasion to the last:
+et al., 2008) and reports the four Solomon contrasts and the pretest
+effects at each occasion, and the change in sensitization from the first
+occasion to the last:
 
 ```{r mmrm, eval = has_mmrm}
 mm <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
@@ -196,10 +197,11 @@ followed low scores:
 ```{r per-occasion, eval = has_mmrm}
 late <- long[long$occasion == "12 months" & !is.na(long$y_post), ]
 cc <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = late)
+# The four treatment contrasts, the first four rows of each effects table.
 data.frame(
-  contrast = cc$effects$contrast,
-  complete_case = round(cc$effects$estimate, 2),
-  mmrm = round(mm$effects$estimate[mm$effects$occasion == "12 months"], 2),
+  contrast = cc$effects$contrast[1:4],
+  complete_case = round(cc$effects$estimate[1:4], 2),
+  mmrm = round(mm$effects$estimate[mm$effects$occasion == "12 months"][1:4], 2),
   truth = c(3, 0, 3, 3)
 )
 ```

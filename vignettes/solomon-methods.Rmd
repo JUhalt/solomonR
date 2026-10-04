@@ -49,6 +49,11 @@ posttest scores, always as treatment minus control:
 | Pretest x Treatment | Does the treatment effect depend on pretesting? This is pretest sensitization. |
 | ATE (avg over pretest) | What is the treatment effect averaged equally over both pretest conditions? |
 
+The pretest (testing) effect, pretested minus unpretested participants,
+answers the design's other question (Solomon, 1949): the regression-based
+analyses report it among controls (Group 2 vs. 4), among treated
+participants (Group 1 vs. 3), and averaged over the two.
+
 Naming the target quantity before choosing an estimator makes it clear
 when different analyses answer the same question and when they do not
 (Lundberg et al., 2021).
@@ -316,9 +321,15 @@ number is not allowed for.
 
 **Label:** published Solomon proposal, with contemporary inference.
 
-- **Estimates:** all four contrasts from one model, `y ~ treat * pretested +
-  pre_obs`. `pre_obs` equals the pretest in Groups 1 and 2 and 0 in Groups
-  3 and 4, so no group is dropped. This is the model Newman et al. (1990)
+- **Estimates:** all four contrasts, and the pretest effects among
+  controls, among treated participants, and on average, from one model,
+  `y ~ treat * pretested + pre_obs`. `pre_obs` equals the pretest, centered
+  at the mean of the pretested participants, in Groups 1 and 2 and 0 in
+  Groups 3 and 4, so no group is dropped. The `pretested` coefficient and
+  the pretest effects then compare the groups at that mean, where Newman et
+  al. (1990, p. 101) took their adjusted means, and which is the best
+  estimate of the unpretested groups' pretest under random assignment
+  (Solomon & Lessac, 1968, pp. 146–147). This is the model Newman et al. (1990)
   proposed for the design, which they call a pseudo-analysis of covariance
   (pp. 94, 98). Their equation 7 (p. 98) has an indicator for each group in
   place of the treatment and pretest indicators and gives the same fitted
@@ -327,9 +338,10 @@ number is not allowed for.
   are not adjusted (p. 98). Williams and Newman (1982) had fitted one model
   to all six sets of observations, but with the pretests entered as
   separate groups of scores rather than as a covariate (pp. 83–84).
-- **What solomonR adds:** the four Solomon contrasts as named estimates
-  with confidence intervals, in place of the paper's tests of restricted
-  models (pp. 98–100); HC3 standard errors by default, and CR2
+- **What solomonR adds:** the four Solomon contrasts and the pretest
+  effects as named estimates with confidence intervals, in place of the
+  paper's tests of restricted models (pp. 98–100); HC3 standard errors by
+  default, and CR2
   cluster-robust standard errors with Satterthwaite degrees of freedom;
   logistic, Poisson, and negative-binomial models, exposure offsets, and a
   warning about noncollapsibility, with marginal contrasts from
@@ -342,12 +354,13 @@ number is not allowed for.
   in the pretested groups, so the model is heteroskedastic whenever the
   pretest predicts the posttest. The paper's tests pool the residual
   variance of all four groups (Table 3, p. 100); HC3 or CR2 covariance
-  addresses this. Because of the interaction term, the `pretested`
-  coefficient compares the two control groups at a pretest score of 0. That
-  treats the unpretested participants as if they had scored 0, the
-  adjustment Newman et al. cautioned against (p. 98); their adjusted means
-  are taken at the pretested groups' mean pretest instead (p. 101). The
-  four Solomon contrasts do not depend on where the pretest is centered.
+  addresses this. Without centering, as in the paper, the
+  `pretested` coefficient would compare the two control groups at a
+  pretest score of 0, which treats the unpretested participants as if they
+  had scored 0, the adjustment Newman et al. cautioned against (p. 98);
+  their test of pretesting (Table 3, p. 100) is computed on that coding.
+  The four Solomon contrasts do not depend on where the pretest is
+  centered.
 - **Checks:** the paper tests the interaction as the restriction
   b1 = b3 + b2 − b4 on the group coefficients (p. 98), the difference of
   differences that the Pretest x Treatment contrast estimates. With
@@ -657,6 +670,10 @@ bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics, 15*(6),
 
 Solomon, R. L. (1949). An extension of control group design. *Psychological
 Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. *Psychological Bulletin,
+70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.

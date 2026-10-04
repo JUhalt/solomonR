@@ -27,9 +27,13 @@ test_that("with complete data, each occasion's contrasts equal the per-occasion 
   # differs only between the pretest conditions, whose parameters are
   # separate; generalized least squares then equals least squares
   # occasion by occasion.
+  # The pretest effects too (#104): with every posttest observed, the
+  # pretest is centered at the same mean in both fits.
+  expect_equal(fit$pretest_mean, mean(long$y_pre[long$occasion == 1 & long$pretested == 1]))
   for (t in 1:3) {
     glm <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = long[long$occasion == t, ])
     mm <- fit$effects[fit$effects$occasion == t, ]
+    expect_identical(mm$contrast, glm$effects$contrast)
     expect_equal(mm$estimate, glm$effects$estimate, tolerance = 1e-5)
   }
   sens <- fit$effects$estimate[fit$effects$contrast == "Pretest x Treatment"]
@@ -60,7 +64,68 @@ test_that("without a pretest, one covariance is shared", {
   long <- long_example()
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, data = long)
   expect_false(fit$grouped)
-  expect_equal(nrow(fit$effects), 13L)
+  # Seven contrasts at each of three occasions (four treatment contrasts and
+  # three pretest effects, #104), and the change in sensitization.
+  expect_equal(nrow(fit$effects), 22L)
+  expect_true(is.na(fit$pretest_mean))
+})
+
+test_that("centering the pretest leaves the treatment contrasts unchanged (#104)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
+
+  # The model with the uncentered pretest (the coding before #104).
+  occasions <- as.character(1:3)
+  observed <- data.frame(y = long$y_post, treat = long$treat, pretested = long$pretested,
+                         occ = factor(long$occasion, levels = 1:3), id = factor(long$id),
+                         pre_obs = ifelse(long$pretested == 1, long$y_pre, 0))
+  observed$pgrp <- factor(ifelse(observed$pretested == 1, "pretested", "unpretested"))
+  observed <- observed[!is.na(observed$y), ]
+  raw <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "kenward-roger", 0.95)$effects
+
+  treatment <- !fit$effects$contrast %in% solomonR:::.solomon_pretest_order
+  expect_equal(fit$effects$estimate[treatment], raw$estimate[treatment], tolerance = 1e-6)
+  expect_equal(fit$effects$std.error[treatment], raw$std.error[treatment], tolerance = 1e-6)
+  # Uncentered, the pretest effects compare the groups at a pretest of zero.
+  center <- mean(long$y_pre[long$occasion == 1 & long$pretested == 1])
+  expect_equal(fit$pretest_mean, center)
+  slopes <- mmrm::component(fit$model, "beta_est")[paste0("occ", 1:3, ":pre_obs")]
+  control <- fit$effects$contrast == "Pretest effect | control"
+  expect_equal(fit$effects$estimate[control], raw$estimate[control] + center * unname(slopes),
+               tolerance = 1e-5)
+})
+
+test_that("the pretest effects include the variance of the mean pretest (#104)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
+
+  # The same centered model with the mean treated as fixed.
+  occasions <- as.character(1:3)
+  observed <- data.frame(y = long$y_post, treat = long$treat, pretested = long$pretested,
+                         occ = factor(long$occasion, levels = 1:3), id = factor(long$id),
+                         pre_obs = ifelse(long$pretested == 1, long$y_pre - fit$pretest_mean, 0))
+  observed$pgrp <- factor(ifelse(observed$pretested == 1, "pretested", "unpretested"))
+  observed <- observed[!is.na(observed$y), ]
+  fixed <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "kenward-roger",
+                                          0.95)$effects
+
+  # Every participant is observed at the first occasion, so each pretested
+  # participant counts once in the mean.
+  first <- long$occasion == 1 & long$pretested == 1
+  v_mean <- stats::var(long$y_pre[first]) / sum(first)
+  slopes <- mmrm::component(fit$model, "beta_est")[paste0("occ", 1:3, ":pre_obs")]
+  pretest <- fit$effects$contrast %in% solomonR:::.solomon_pretest_order
+  slope <- unname(slopes[as.integer(fit$effects$occasion[pretest])])
+  v_fixed <- fixed$std.error[pretest]^2
+  v_center <- slope^2 * v_mean
+  expect_equal(fit$effects$estimate, fixed$estimate, tolerance = 1e-8)
+  expect_equal(fit$effects$std.error[pretest], sqrt(v_fixed + v_center), tolerance = 1e-6)
+  expect_equal(fit$effects$df[pretest],
+               (v_fixed + v_center)^2 / (v_fixed^2 / fixed$df[pretest] + v_center^2 / (sum(first) - 1)),
+               tolerance = 1e-6)
+  expect_equal(fit$effects$std.error[!pretest], fixed$std.error[!pretest], tolerance = 1e-8)
 })
 
 test_that("inputs are checked", {
@@ -109,10 +174,14 @@ test_that("print and report describe the model", {
   long <- long_example(missing = 0.2)
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
   expect_output(print(fit), "Covariance: unstructured, separately for pretested and unpretested")
+  expect_output(print(fit), "Pretest centered at the pretested participants' mean")
   r <- report_solomon(fit)
   expect_match(r$method, "mixed model for repeated measures (Mallinckrodt et al., 2008)", fixed = TRUE)
   expect_match(r$method, "Kenward-Roger degrees of freedom", fixed = TRUE)
   expect_true(any(grepl("^At occasion 2, the average treatment effect", r$results)))
+  # One sentence of pretest effects per occasion (#104).
+  expect_equal(sum(grepl("^At occasion [123], the pretest effect \\(pretested minus unpretested",
+                         r$results)), 3L)
   expect_true(any(grepl("^The change in the Pretest x Treatment interaction from occasion 1 to occasion 3",
                         r$results)))
   expect_true(any(grepl("^Mallinckrodt, C. H.", r$references)))

@@ -16,10 +16,12 @@ test_that("the N-group report gives the omnibus tests, each comparison, and Holm
                fixed = TRUE)
   expect_match(results, "averaged over pretest conditions, gave F(2, 127) = 1.26, p = .288", fixed = TRUE)
 
-  # One paragraph per comparison, each with its four contrasts.
-  expect_length(r$results, 3L)
+  # One paragraph per comparison, each with its four contrasts, and one for
+  # the pretest effects (#104).
+  expect_length(r$results, 4L)
   expect_match(r$results[2], "^The average treatment effect of RP relative to Control across pretest conditions")
   expect_match(r$results[3], "^The average treatment effect of GS relative to Control across pretest conditions")
+  expect_match(r$results[4], "^The pretest effect \\(pretested minus unpretested participants\\) was")
   for (who in c("RP relative to Control", "GS relative to Control")) {
     expect_match(results, paste("Pretest x Treatment interaction (pretest sensitization) for", who), fixed = TRUE)
     expect_match(results, paste("treatment effect of", who, "among pretested participants"), fixed = TRUE)
@@ -32,7 +34,8 @@ test_that("the N-group report gives the omnibus tests, each comparison, and Holm
   expect_equal(sens$p.adjusted, 2 * sens$p.value)
   expect_match(results, "t(127) = -1.88, p = .126, Holm-adjusted.", fixed = TRUE)
   expect_false(grepl("p = .063", results, fixed = TRUE))
-  expect_identical(lengths(regmatches(results, gregexpr("Holm-adjusted", results))), 8L)
+  # Eight treatment contrasts and the pretest effects of the two treatments.
+  expect_identical(lengths(regmatches(results, gregexpr("Holm-adjusted", results))), 10L)
 
   expect_match(r$method, "Holm's (1979) procedure", fixed = TRUE)
   expect_match(r$method, "confidence intervals were not adjusted", fixed = TRUE)
@@ -154,7 +157,8 @@ test_that("pairwise and weighted comparisons are described", {
   expect_match(pw$method, "Every pair of conditions was compared (RP vs Control, GS vs Control, and RP vs GS)",
                fixed = TRUE)
   expect_match(pw$method, "the three comparisons", fixed = TRUE)
-  expect_length(pw$results, 4L)
+  # The omnibus tests, three comparisons, and the pretest effects (#104).
+  expect_length(pw$results, 5L)
   expect_match(pw$results[4], "treatment effect of RP relative to GS among pretested", fixed = TRUE)
 
   custom <- report_solomon(mai_fit(robust = "none",
@@ -165,9 +169,21 @@ test_that("pairwise and weighted comparisons are described", {
   # The weights are stated, so that the comparison can be reproduced.
   expect_match(custom$method, "(RP = 0.5, GS = 0.5, Control = -1), and the Solomon contrasts were estimated for this comparison.",
                fixed = TRUE)
-  # A single comparison needs no adjustment.
-  expect_false(any(startsWith(custom$references, "Holm")))
-  expect_false(any(grepl("Holm-adjusted", custom$results)))
+  # A single comparison needs no adjustment; only the pretest effects of the
+  # two treatments are adjusted, across the treatments (#104).
+  expect_false(grepl("Holm-adjusted", custom$results[2], fixed = TRUE))
+  expect_match(custom$results[3],
+               "in the RP condition, 95% CI \\[[^]]+\\], t\\(127\\) = [-.0-9]+, p = [.0-9]+, Holm-adjusted;")
+  expect_match(custom$results[3],
+               "in the Control condition, 95% CI \\[[^]]+\\], t\\(127\\) = [-.0-9]+, p = [.0-9]+;")
+  expect_match(custom$method, "the p-values of the two treatments' pretest effects were adjusted",
+               fixed = TRUE)
+  expect_true(any(startsWith(custom$references, "Holm")))
+  # Without an adjustment, Holm is not cited.
+  custom_none <- report_solomon(mai_fit(robust = "none", adjust = "none",
+                                        contrasts = list(Any = c(RP = 0.5, GS = 0.5, Control = -1))))
+  expect_false(any(startsWith(custom_none$references, "Holm")))
+  expect_false(any(grepl("Holm-adjusted", custom_none$results)))
 
   several <- report_solomon(mai_fit(
     robust = "none",

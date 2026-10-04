@@ -66,7 +66,15 @@
     L[, column] <- mean(X[, column])
   }
 
-  list(L = L, cells = cells, pretest_mean = pre_mean)
+  list(L = L, cells = cells, pretest_mean = .raw_pretest_mean(fit, pre_mean))
+}
+
+# The mean pretest on the pretest's own scale. Fits center `pre_obs` at
+# `fit$pretest_mean` (issue #104), so the mean of the centered values is
+# zero; fits made by earlier versions are uncentered.
+.raw_pretest_mean <- function(fit, pre_mean) {
+  center <- .null_na(fit$pretest_mean)
+  pre_mean + if (is.finite(center)) center else 0
 }
 
 # Coefficient vectors for the 2(k + 1) model-adjusted cell means of a
@@ -113,7 +121,7 @@
     L[, column] <- mean(X[, column])
   }
 
-  list(L = L, cells = cells, pretest_mean = pre_mean)
+  list(L = L, cells = cells, pretest_mean = .raw_pretest_mean(fit, pre_mean))
 }
 
 # Model-adjusted cell means of a solomon_ngroup fit, with intervals, in the
@@ -348,7 +356,7 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
     caption <- paste0(
       caption, "\nEquivalence test with bounds ",
       format(tost$bounds[["lower"]]), " to ", format(tost$bounds[["upper"]]),
-      ": ", tost$outcome, "."
+      " (", .scale_label(tost$scale), "): ", tost$outcome, "."
     )
   }
 

@@ -18,8 +18,10 @@ nb_fit <- function(d, ...) {
                           family = "negative_binomial", exposure = days, ...))
 }
 
-nb_reference <- function(d) {
-  d$pre_obs <- ifelse(d$pretested == 1, d$y_pre, 0)
+# The pretest is centered at the pretested participants' mean (#104).
+nb_reference <- function(d, center = TRUE) {
+  m <- if (center) mean(d$y_pre[d$pretested == 1]) else 0
+  d$pre_obs <- ifelse(d$pretested == 1, d$y_pre - m, 0)
   MASS::glm.nb(visits ~ treat * pretested + pre_obs + offset(log(days)), data = d)
 }
 
@@ -36,6 +38,13 @@ test_that("the NB2 fit reproduces MASS::glm.nb()", {
   expect_equal(as.numeric(stats::logLik(fit$model)), as.numeric(stats::logLik(ref)),
                tolerance = 1e-8)
   expect_true(startsWith(fit$family$family, "Negative Binomial"))
+  # Uncentered, it is the same model: the same likelihood and the same
+  # treatment coefficients.
+  raw <- nb_reference(d, center = FALSE)
+  expect_equal(as.numeric(stats::logLik(fit$model)), as.numeric(stats::logLik(raw)),
+               tolerance = 1e-8)
+  keep <- c("treat", "pre_obs", "treat:pretested")
+  expect_equal(stats::coef(fit$model)[keep], stats::coef(raw)[keep], tolerance = 1e-6)
 })
 
 

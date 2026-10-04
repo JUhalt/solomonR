@@ -52,18 +52,20 @@ formula can cause complete-case deletion of Groups 3 and 4, destroying
 the four-group design.
 
 `fit_solomon_glm()` avoids this problem internally. For the optional
-pretest covariate, the model uses the observed pretest score among
-pretested participants and a design-safe value, 0, among participants for
-whom the pretest was never administered. This is the model Newman et al.
-(1990) proposed for the design, which they call a pseudo-analysis of
-covariance (pp. 94, 98).
+pretest covariate, the model uses the pretest score among pretested
+participants, centered at their mean, and a design-safe value, 0, among
+participants for whom the pretest was never administered. This is the
+model Newman et al. (1990) proposed for the design, which they call a
+pseudo-analysis of covariance (pp. 94, 98); they entered the pretest
+without centering it.
 
 The pretest indicator remains in the model, so each group keeps its own
-mean, and the four Solomon contrasts do not depend on the 0 coding. One
-coefficient does: the `pretested` coefficient compares the two control
-groups at a pretest score of 0. That treats the unpretested participants
-as if they had scored 0, the adjustment Newman et al. cautioned against
-(p. 98), so interpret the four contrasts rather than that coefficient.
+mean, and the four Solomon contrasts do not depend on the centering. The
+`pretested` coefficient does: it compares the two control groups at the
+pretested participants' mean pretest, where Newman et al. took their
+adjusted means (p. 101). Without centering, it would compare them at a
+score of 0, which treats the unpretested participants as if they had
+scored 0, the adjustment Newman et al. cautioned against (p. 98).
 
 ## Example data
 
@@ -109,7 +111,11 @@ fit
 ```
 
 The output contains model coefficients followed by the four principal
-Solomon contrasts.
+Solomon contrasts and the three pretest effects: pretested minus
+unpretested participants among controls, among treated participants, and
+on average. The pretest enters as `pre_obs`, centered at the pretested
+participants' mean, so the pretest effects compare the groups at that
+score (see "The pretest effect" in `?fit_solomon_glm`).
 
 The contrasts can also be accessed directly:
 
