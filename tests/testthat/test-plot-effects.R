@@ -47,11 +47,12 @@ test_that("the caption states the confidence level and reference distribution", 
                fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
   expect_match(plot_solomon_effects(wald)$labels$caption, "normal reference")
   expect_match(plot_solomon_effects(wald)$labels$caption, "Wald inference")
+  expect_match(plot_solomon_effects(wald)$labels$caption, "van Engelenburg, 1999", fixed = TRUE)
 
   small <- with(solomon_example,
                 fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "satterthwaite"))
   expect_match(plot_solomon_effects(small)$labels$caption, "contrast-specific df")
-  expect_match(plot_solomon_effects(small)$labels$caption, "small-sample option")
+  expect_match(plot_solomon_effects(small)$labels$caption, "maximum likelihood; Satterthwaite inference")
 })
 
 

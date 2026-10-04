@@ -32,11 +32,7 @@
       effects = fit$effects,
       conf_level = fit$conf_level,
       scale = "Estimate (posttest scale)",
-      inference = if (identical(fit$inference, "satterthwaite")) {
-        "maximum likelihood; small-sample option"
-      } else {
-        "maximum likelihood; Wald inference"
-      }
+      inference = .ml_inference_label(fit)
     )
   } else if (inherits(fit, "solomon_sem")) {
     list(

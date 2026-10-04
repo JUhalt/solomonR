@@ -18,14 +18,15 @@ test_that("estimators of the same contrast agree where they are algebraically id
 
   adjusted_pretested <- estimates_for(
     comparison, "Treatment | pretested",
-    c("Unified GLM (HC3)", "Maximum likelihood", "Classic Test E (ANCOVA)")
+    c("Unified GLM (HC3)", "Maximum likelihood (Satterthwaite)",
+      "Maximum likelihood (Wald)", "Classic Test E (ANCOVA)")
   )
-  expect_length(adjusted_pretested, 3L)
+  expect_length(adjusted_pretested, 4L)
   expect_lt(diff(range(adjusted_pretested)), 1e-6)
 
   unpretested <- estimates_for(
     comparison, "Treatment | unpretested",
-    c("Unified GLM (HC3)", "Maximum likelihood", "Classic Test C",
+    c("Unified GLM (HC3)", "Maximum likelihood (Satterthwaite)", "Classic Test C",
       "Classic Test H (posttest-only)")
   )
   expect_length(unpretested, 4L)
@@ -35,6 +36,38 @@ test_that("estimators of the same contrast agree where they are algebraically id
   r <- comparison$results
   unpretested_se <- r$std.error[r$contrast == "Treatment | unpretested"]
   expect_gt(length(unique(round(unpretested_se, 8))), 1L)
+})
+
+
+test_that("the ML rows reproduce both inference options, the default first (#115)", {
+
+  data(solomon_demo, package = "solomonR")
+
+  comparison <- with(
+    solomon_demo,
+    compare_solomon_methods(y_post, treat, pretested, y_pre, methods = "ml")
+  )
+  r <- comparison$results
+
+  default <- with(solomon_demo, fit_solomon_ml(y_post, treat, pretested, y_pre))
+  wald <- with(solomon_demo, fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
+
+  satterthwaite_rows <- r[r$method == "Maximum likelihood (Satterthwaite)", ]
+  wald_rows <- r[r$method == "Maximum likelihood (Wald)", ]
+  m <- match(satterthwaite_rows$contrast, default$effects$contrast)
+  expect_equal(satterthwaite_rows$std.error, default$effects$std.error[m])
+  expect_equal(satterthwaite_rows$df, default$effects$df[m])
+  m <- match(wald_rows$contrast, wald$effects$contrast)
+  expect_equal(wald_rows$std.error, wald$effects$std.error[m])
+
+  for (contrast in unique(r$contrast)) {
+    expect_identical(
+      r$method[r$contrast == contrast],
+      c("Maximum likelihood (Satterthwaite)", "Maximum likelihood (Wald)")
+    )
+  }
+  expect_match(wald_rows$variance[1], "van Engelenburg, 1999", fixed = TRUE)
+  expect_output(print(comparison), "Maximum likelihood (Satterthwaite)", fixed = TRUE)
 })
 
 
@@ -111,12 +144,19 @@ test_that("comparison intervals follow each method's reference distribution", {
   )
 
   r <- comparison$results
-  ml <- r[r$method == "Maximum likelihood", ]
+  ml <- r[r$method == "Maximum likelihood (Wald)", ]
   glm <- r[r$method == "Unified GLM (HC3)", ]
 
+  expect_equal(nrow(ml), 4L)
   expect_true(all(ml$reference == "normal"))
   expect_true(all(grepl("^t\\(", glm$reference)))
   expect_equal(ml$conf.high, ml$estimate + stats::qnorm(0.95) * ml$std.error)
+
+  satterthwaite <- r[r$method == "Maximum likelihood (Satterthwaite)", ]
+  expect_equal(nrow(satterthwaite), 4L)
+  expect_true(all(grepl("^t\\(", satterthwaite$reference)))
+  expect_equal(satterthwaite$conf.high,
+               satterthwaite$estimate + stats::qt(0.95, satterthwaite$df) * satterthwaite$std.error)
   expect_error(
     with(solomon_demo, compare_solomon_methods(y_post, treat, pretested, methods = "perm")),
     "should be one of"

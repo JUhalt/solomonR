@@ -17,9 +17,12 @@ print.solomon_ml <- function(x, digits = 3, ...) {
   cat("Method: van Engelenburg (1999)\n")
   cat(
     if (identical(inference, "wald")) {
-      "Inference: Wald (large-sample normal reference)\n\n"
+      "Inference: Wald (van Engelenburg, 1999; large-sample normal reference)\n\n"
     } else {
-      "Inference: small-sample (t; Welch-Satterthwaite df for combined contrasts)\n\n"
+      paste0(
+        "Inference: Satterthwaite (t; residual df within a pretest condition,\n",
+        "  Welch-Satterthwaite df for contrasts that combine them)\n\n"
+      )
     }
   )
 
@@ -98,11 +101,13 @@ print.solomon_ml <- function(x, digits = 3, ...) {
       .wrap_lines(
         sprintf(
           paste(
-            "Note: the smallest cell has %d participants. Wald intervals can be",
-            "too narrow in small samples; see inference = \"satterthwaite\" in",
-            "?fit_solomon_ml."
+            "Note: the smallest cell has %d participants. In the package's",
+            "simulation validation, Wald intervals were too narrow with fewer",
+            "than %d participants per cell; the default,",
+            "inference = \"satterthwaite\", was calibrated. See ?fit_solomon_ml."
           ),
-          x$min_cell_n
+          x$min_cell_n,
+          .solomon_ml_small_cell
         )
       ),
       "\n",

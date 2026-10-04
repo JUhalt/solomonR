@@ -26,9 +26,10 @@ several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solo
 analyses, and the SEM ANCOVA require them.}
 
 \item{methods}{Analyses to include: any of \code{"glm"} (unified GLM with HC3),
-\code{"ml"} (maximum likelihood, reported with both its default Wald inference
-and the small-sample option), \code{"classic"}, and \code{"sem"} (requires the
-lavaan package).}
+\code{"ml"} (maximum likelihood, reported with both its default Satterthwaite
+inference and van Engelenburg's (1999) large-sample Wald inference; see
+\code{\link[=fit_solomon_ml]{fit_solomon_ml()}}), \code{"classic"}, and \code{"sem"} (requires the lavaan
+package).}
 
 \item{conf_level}{Confidence level for intervals. Default is 0.95.}
 
@@ -112,6 +113,10 @@ Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your estimand?
 Defining the target quantity connects statistical evidence to theory.
 \emph{American Sociological Review, 86}(3), 532–565.
 https://doi.org/10.1177/00031224211004187
+
+van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
+design} (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,

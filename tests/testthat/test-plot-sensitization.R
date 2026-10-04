@@ -232,7 +232,13 @@ test_that("ML intervals follow the fit's inference", {
   # Welch-Satterthwaite df are that regression's residual df.
   expect_equal(small$data$df[unpretested], rep(n_unpretested - 2, 2), tolerance = 1e-8)
   expect_equal(small$data$df[!unpretested], rep(n_pretested - 3, 2), tolerance = 1e-8)
-  expect_match(small$labels$caption, "maximum likelihood; small-sample option")
+  expect_match(small$labels$caption, "maximum likelihood; Satterthwaite inference")
+
+  # The default is Satterthwaite inference (#115).
+  default <- plot_sensitization(with(solomon_example,
+                                     fit_solomon_ml(y_post, treat, pretested, y_pre)))
+  expect_equal(default$data$df, small$data$df)
+  expect_equal(default$data$conf.low, small$data$conf.low)
   expect_match(small$labels$caption, "t reference")
 })
 
