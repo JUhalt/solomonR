@@ -244,6 +244,47 @@ same treatment condition: the differences between the adjusted means that
 \code{\link[=plot_sensitization]{plot_sensitization()}} draws. Without \code{y_pre}, the pretest effects are
 differences between the fitted cell means.
 
+That mean pretest is an estimate of the expected pretest, not a fixed
+value, and the pretest effects shift by b for each point it shifts, where
+b is the pretest slope. Their standard errors therefore include its sampling
+variance, about b^2 s^2 / n for n pretested participants whose pretests
+have variance s^2. The estimating equation of the mean is stacked with
+those of the model (Stefanski & Boos, 2002): each pretest effect gains b^2
+times the variance of the mean and 2b times the covariance of the mean
+with the contrast, estimated in the fit's covariance type:
+\itemize{
+\item with model-based covariance, the variance of the mean is s^2 / n, and
+the covariance is zero, as it is when the model is correctly specified;
+\item with HC3, the variance is in its jackknife form, and the covariance is
+estimated from the HC3-scaled influence of each participant on the
+coefficients;
+\item with CR2, the variance is the CR2 variance of the mean, and the
+covariance is estimated from cluster sums with the factor G / (G - 1)
+for G clusters. The degrees of freedom combine the Satterthwaite degrees
+of freedom of the contrast and of the mean by the Welch-Satterthwaite
+formula (Satterthwaite, 1946; Welch, 1947).
+}
+
+With HC3 and model-based covariance, the reference distribution keeps the
+residual degrees of freedom of the model. The treatment contrasts do not
+depend on the mean, so their standard errors are unchanged. The coefficient
+table reports the pretesting coefficient with the model's standard error,
+which treats the mean as fixed, and the Wald R-squared of a pretest effect
+uses its full standard error and has no interval.
+
+Treating the mean as fixed leaves its variance out at every sample size.
+In a simulation check of this correction (not a pre-registered study;
+1,000 to 4,000 replications in each of 10 scenarios), with a
+pretest-posttest correlation of .8 the 95\% intervals of the pretest main
+effect that treat the mean as fixed covered 0.90 of the time, with 30 and
+with 100 participants per cell. With its variance included, the intervals
+of the pretest effects covered 0.937 to 0.958 of the time, within the
+Monte Carlo tolerance in all 82 cells: HC3, model-based, and CR2 fits of
+four-group designs, including one whose pretest slope differed between
+the treatment conditions, a design with two treatments, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}
+with either inference, \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}, and the delta method of
+\code{\link[=marginal_solomon]{marginal_solomon()}}.
+
 On a link other than the identity, with \code{y_pre}, the pretest effects
 compare the pretested participants' fitted mean at the mean pretest with
 the unpretested participants' mean over their unmeasured pretests. With a
@@ -286,9 +327,11 @@ The effects table ends with the pretest effect in each condition (see
 \verb{Pretest effect | control} for the control and \verb{Pretest effect | treated}
 for each treatment, whose p-values are adjusted across the treatments.
 The \verb{Pretest main effect}, with \code{comparison} \code{"All conditions"}, is their
-equal-weighted average over the k + 1 conditions, the main effect of
-pretesting that Steyn (2009) tests for a testing effect, here adjusted
-for the pretest score.
+equal-weighted average over the k + 1 conditions. Steyn (2009) tests the
+pretest main effect separately for each intervention, in the two-way
+analysis of variance of that intervention's groups and the control groups
+that \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}} carries out; this row averages over all the
+conditions and is adjusted for the pretest score.
 
 Published studies with several treatments analyzed them as overlapping
 four-group designs: one for each treatment against the control (McCarthy &
@@ -306,8 +349,8 @@ treatments is experimental. In the package's simulation study (issue #45;
 112 scenarios with two or three treatments and 10 to 50 participants per
 group, 5,000 replications each):
 \itemize{
-\item the contrasts were unbiased, and coverage of their 95\% intervals was
-0.939 to 0.967;
+\item the treatment contrasts were unbiased, and coverage of their 95\%
+intervals was 0.939 to 0.967;
 \item the familywise error rates of the Holm-adjusted comparisons were at most
 0.059;
 \item the Pretest x Condition test and the test of the conditions averaged
@@ -321,9 +364,10 @@ is experimental. With groups that small, judge those two questions by
 the adjusted comparisons.
 }
 
-The study did not cover binary or count outcomes, clustered designs, or
-comparisons given as weights. It is reported in the article "Designs With
-Several Treatments: Validating the Joint Model".
+The study did not cover the pretest effects, which were added later
+(issue #104), binary or count outcomes, clustered designs, or comparisons
+given as weights. It is reported in the article "Designs With Several
+Treatments: Validating the Joint Model".
 }
 
 \examples{
@@ -400,12 +444,20 @@ guide to statistical inference in linear modeling for non-normal or
 heteroskedastic error distributions. \emph{Behavior Research Methods, 57}(12),
 Article 338. https://doi.org/10.3758/s13428-025-02801-4
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
+
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 
 Solomon, R. L., & Lessac, M. S. (1968). A control group design for
 experimental studies of developmental processes. \emph{Psychological Bulletin,
 70}(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+
+Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation. \emph{The
+American Statistician, 56}(1), 29–38.
+https://doi.org/10.1198/000313002753631330
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 and tests of close fit in the analysis of variance and contrast analysis.
@@ -422,4 +474,8 @@ https://doi.org/10.1037/met0000011
 
 Venables, W. N., & Ripley, B. D. (2002). \emph{Modern applied statistics with S}
 (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }

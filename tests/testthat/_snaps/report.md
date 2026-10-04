@@ -27,10 +27,10 @@
       8.05], t(115) = 1.63, p = .106.
       The pretest effect (pretested minus unpretested participants, at the
       pretested participants' mean pretest score of 49.60) was 3.42 among control
-      participants, 95% CI [-1.18, 8.02], t(115) = 1.47, p = .144, and 1.48 among
-      treated participants, 95% CI [-2.79, 5.75], t(115) = 0.69, p = .493; their
-      average, the pretest main effect, was 2.45, 95% CI [-0.69, 5.59], t(115) =
-      1.55, p = .125.
+      participants, 95% CI [-1.30, 8.14], t(115) = 1.44, p = .154, and 1.48 among
+      treated participants, 95% CI [-3.27, 6.23], t(115) = 0.62, p = .538; their
+      average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], t(115) =
+      1.37, p = .174.
       
       References
       

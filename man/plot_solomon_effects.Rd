@@ -66,6 +66,11 @@ test against zero; a 95\% interval can cross a bound when the 90\% interval
 does not, and the contrast is still statistically equivalent. The caption
 states both confidence levels, the scale of the bounds, and the TOST
 outcome: equivalent, trivial, different, or inconclusive (Lakens, 2017).
+On a fit with a pretest covariate and a noncollapsible link, such as the
+logit, the figure gives the warning that \code{\link[=equivalence_solomon]{equivalence_solomon()}} gives
+(\code{solomonR_link_scale_warning}): on that scale the Pretest x Treatment
+contrast is nonzero whenever the pretest predicts the outcome, even
+without sensitization.
 }
 
 \examples{

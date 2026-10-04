@@ -223,6 +223,14 @@ test_that("the print methods say where the pretest is centered", {
   expect_output(print(fit), "centered at the pretested participants' mean (49.600)", fixed = TRUE)
   expect_output(print(summary(fit)), "centered at the pretested participants' mean", fixed = TRUE)
   expect_output(print(fit), "Pretest effect | control", fixed = TRUE)
+  # They also say that the pretest effects' standard errors include the
+  # sampling variance of the mean and that the coefficient's does not.
+  out <- paste(capture.output(print(fit)), collapse = " ")
+  expect_match(out, "their standard errors include the sampling variance of the mean", fixed = TRUE)
+  expect_match(out, "the coefficient of pretested treats it as fixed", fixed = TRUE)
+  ml <- fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald", data = solomon_example)
+  expect_match(paste(capture.output(print(ml)), collapse = " "),
+               "with standard errors that include its sampling variance", fixed = TRUE)
   plain <- fit_solomon_glm(y_post, treat, pretested, data = solomon_example)
   expect_no_match(paste(capture.output(print(plain)), collapse = "\n"), "centered")
 })
@@ -319,6 +327,16 @@ binary_data <- function() {
   d
 }
 
+# The link-scale warning an expression gives, muffled; NULL if none.
+link_warning <- function(expr) {
+  caught <- NULL
+  withCallingHandlers(expr, solomonR_link_scale_warning = function(w) {
+    caught <<- w
+    invokeRestart("muffleWarning")
+  })
+  caught
+}
+
 test_that("link-scale contrasts with a pretest covariate warn where they are not marginal", {
   d <- binary_data()
   logit <- suppressWarnings(
@@ -340,11 +358,19 @@ test_that("link-scale contrasts with a pretest covariate warn where they are not
   expect_no_warning(equivalence_solomon(logit, bounds = 0.5, contrast = "Treatment | unpretested"))
 
   # Log: rate ratios between treatment groups are collapsible, so the
-  # sensitization contrast does not warn; the pretest effects do.
+  # sensitization contrast does not warn; the pretest effects do. Their
+  # warning states the gap between a mean at the mean pretest and the mean
+  # over the pretests without citing Daniel et al. (2021), whose subject is
+  # noncollapsibility.
   expect_no_warning(equivalence_solomon(poisson, bounds = 0.3))
   expect_identical(equivalence_solomon(poisson, bounds = 0.3)$scale, "log rate ratio")
-  expect_warning(equivalence_solomon(poisson, bounds = 0.3, contrast = "Pretest main effect"),
-                 class = "solomonR_link_scale_warning")
+  w <- link_warning(equivalence_solomon(poisson, bounds = 0.3, contrast = "Pretest main effect"))
+  expect_s3_class(w, "solomonR_link_scale_warning")
+  expect_match(conditionMessage(w), "a mean at the average pretest is not the average of the means",
+               fixed = TRUE)
+  expect_no_match(conditionMessage(w), "Daniel")
+  w <- link_warning(equivalence_solomon(logit, bounds = 0.5))
+  expect_match(conditionMessage(w), "even without sensitization (Daniel et al., 2021).", fixed = TRUE)
 
   # Identity link, or no pretest covariate: no warning.
   expect_no_warning(equivalence_solomon(gaussian, bounds = 5, contrast = "Pretest effect | control"))
@@ -381,8 +407,10 @@ test_that("the scale is named in the print, the report, and the figures", {
   expect_match(report_solomon(eq_g)$method, "[-5.00, 5.00] in outcome units", fixed = TRUE)
   expect_no_match(paste(capture.output(print(eq_g)), collapse = "\n"), "raw scale")
 
-  # Figures.
-  p_l <- plot_solomon_effects(logit, bounds = 0.5)
+  # Figures. Bounds on the logit-scale sensitization contrast warn, as in
+  # equivalence_solomon().
+  expect_warning(p_l <- plot_solomon_effects(logit, bounds = 0.5),
+                 class = "solomonR_link_scale_warning")
   expect_identical(p_l$labels$x, "Estimate (log odds ratio scale)")
   expect_match(p_l$labels$caption, "(-0.5 to 0.5) on the log odds ratio scale", fixed = TRUE)
   p_p <- plot_solomon_effects(poisson, bounds = 0.3)
@@ -395,8 +423,12 @@ test_that("the scale is named in the print, the report, and the figures", {
   # The model report names the scale and cautions about the pretest effects.
   r_l <- report_solomon(logit)
   expect_match(r_l$method, "Contrasts are on the log-odds scale (log odds ratios).", fixed = TRUE)
-  expect_true(any(grepl("are not marginal pretest effects (Daniel et al., 2021)", r_l$results,
-                        fixed = TRUE)))
+  # Daniel et al. (2021) are cited for the standardization that estimates
+  # marginal effects, not for the gap between a mean at the mean pretest and
+  # a marginal mean.
+  expect_true(any(grepl(paste0("are not marginal pretest effects; marginal effects can be ",
+                               "estimated from standardized predictions (Daniel et al., 2021)."),
+                        r_l$results, fixed = TRUE)))
   expect_true(any(startsWith(r_l$references, "Daniel, R.")))
   r_p <- report_solomon(poisson)
   expect_match(r_p$method, "Contrasts are log rate ratios.", fixed = TRUE)
@@ -404,4 +436,233 @@ test_that("the scale is named in the print, the report, and the figures", {
                         fixed = TRUE)))
   expect_false(any(grepl("not marginal", report_solomon(gaussian)$results)))
   expect_output(print(poisson), "On the log link, a fitted mean at the mean pretest")
+})
+
+test_that("plot_solomon_effects() warns about bounds on a link-scale sensitization contrast", {
+  d <- binary_data()
+  logit <- suppressWarnings(
+    fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial(), data = d),
+    classes = "solomonR_noncollapsible_warning"
+  )
+  # As equivalence_solomon() and plot_sensitization() do on the same fit.
+  expect_warning(plot_solomon_effects(logit, bounds = 0.5), class = "solomonR_link_scale_warning")
+  expect_warning(plot_sensitization(logit, bounds = 0.5), class = "solomonR_link_scale_warning")
+  expect_no_warning(plot_solomon_effects(logit))
+  expect_no_warning(plot_solomon_effects(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d),
+                                         bounds = 5))
+
+  # Designs with several treatments.
+  d6 <- simulate_solomon(n = 40, delta = c(0.5, 0.3), rho = 0.6, seed = 114)
+  d6$passed <- as.integer(d6$y_post > 0)
+  logit6 <- suppressWarnings(
+    fit_solomon_glm(passed, treat, pretested, y_pre, control = "Control",
+                    family = stats::binomial(), data = d6),
+    classes = "solomonR_noncollapsible_warning"
+  )
+  w <- link_warning(p6 <- plot_solomon_effects(logit6, bounds = 0.5))
+  expect_s3_class(w, "solomonR_link_scale_warning")
+  expect_match(conditionMessage(w), "subset the data to one treatment and the control", fixed = TRUE)
+  expect_s3_class(p6, "ggplot")
+  gaussian6 <- fit_solomon_glm(y_post, treat, pretested, y_pre, control = "Control", data = d6)
+  expect_no_warning(plot_solomon_effects(gaussian6, bounds = 0.5))
+})
+
+
+# ---- the variance of the mean pretest ------------------------------------------------
+
+# The pretest effects are evaluated at the estimated mean pretest, so their
+# standard errors include its sampling variance (#104). These tests compute
+# the standard errors independently, in the model with the uncentered
+# pretest, where a pretest effect is L'b + L["pretested"] * b_x * xbar: its
+# gradient puts xbar on the pretest coefficient, and the mean adds
+# b_x^2 Var(xbar) and, with HC3, twice b_x times its covariance with L'b.
+
+# The uncentered linear model of a four-group (or N-group) design, with each
+# participant's influence on its coefficients, the hat values, and the
+# deviations of the pretests from their mean among the pretested rows used.
+uncentered_parts <- function(formula, d, pretest) {
+  d$pre_raw <- ifelse(d$pretested == 1, d[[pretest]], 0)
+  m <- stats::lm(formula, data = d)
+  X <- stats::model.matrix(m)
+  bread <- solve(crossprod(X))
+  rows <- as.integer(rownames(X))
+  pre <- d$pretested[rows] == 1
+  x <- d[[pretest]][rows]
+  list(
+    model = m, b = stats::coef(m), X = X,
+    influence = (X * stats::residuals(m)) %*% bread,
+    hat = rowSums((X %*% bread) * X),
+    pre = pre, xbar = mean(x[pre]), n_p = sum(pre),
+    dev = ifelse(pre, x - mean(x[pre]), 0), rows = rows
+  )
+}
+
+# The independent standard error of a pretest effect with weights `w` on the
+# uncentered coefficients ("pretested" and its interactions).
+uncentered_se <- function(u, w, robust) {
+  g <- stats::setNames(numeric(length(u$b)), names(u$b))
+  g[names(w)] <- w
+  g["pre_raw"] <- u$xbar
+  b_x <- u$b[["pre_raw"]]
+  if (robust == "HC3") {
+    V <- sandwich::vcovHC(u$model, type = "HC3")
+    added <- b_x^2 * sum(u$dev^2) / (u$n_p - 1)^2 +
+      2 * b_x * sum(drop(u$influence %*% g) / (1 - u$hat) * u$dev / (u$n_p - 1))
+  } else {
+    V <- stats::vcov(u$model)
+    added <- b_x^2 * sum(u$dev^2) / (u$n_p * (u$n_p - 1))
+  }
+  c(fixed = sqrt(drop(t(g) %*% V %*% g)), full = sqrt(drop(t(g) %*% V %*% g) + added))
+}
+
+pretest_weights <- list(
+  c(pretested = 1),
+  c(pretested = 1, "treat:pretested" = 1),
+  c(pretested = 1, "treat:pretested" = 0.5)
+)
+
+test_that("pretest-effect standard errors include the variance of the mean pretest", {
+  d <- solomon_example
+  d$y_post[c(3, 40, 75)] <- NA
+  u <- uncentered_parts(y_post ~ treat * pretested + pre_raw, d, "y_pre")
+  for (robust in c("none", "HC3")) {
+    fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, robust = robust, data = d)
+    for (j in seq_along(pretest_contrasts)) {
+      se <- uncentered_se(u, pretest_weights[[j]], robust)
+      row <- effect_of(fit, pretest_contrasts[j])
+      expect_equal(row$std.error, unname(se["full"]), tolerance = 1e-8)
+      expect_gt(row$std.error, unname(se["fixed"]))
+      # The reference distribution keeps the residual degrees of freedom.
+      expect_equal(row$df, stats::df.residual(u$model))
+      expect_equal(row$conf.high - row$estimate,
+                   stats::qt(0.975, row$df) * row$std.error, tolerance = 1e-10)
+      expect_equal(row$statistic, row$estimate / row$std.error, tolerance = 1e-10)
+      # The Wald R-squared uses the full standard error and has no interval.
+      expect_equal(row$r2, row$statistic^2 / (row$statistic^2 + row$df), tolerance = 1e-10)
+      expect_true(is.na(row$r2_lo))
+    }
+    # The coefficient table keeps the model's standard error, which treats
+    # the mean as fixed.
+    coef_row <- fit$coefficients[fit$coefficients$term == "pretested", ]
+    expect_equal(coef_row$std.error, unname(uncentered_se(u, pretest_weights[[1]], robust)["fixed"]),
+                 tolerance = 1e-8)
+  }
+})
+
+test_that("HC3 pretest-effect standard errors agree with the jackknife", {
+  # The jackknife re-estimates the mean pretest with each participant left
+  # out, so it includes the mean's variance by construction; HC3 is close to
+  # it (MacKinnon & White, 1985).
+  d <- solomon_example
+  fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)
+  estimate <- function(dd) {
+    effect <- fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "none", data = dd)$effects
+    effect$estimate[effect$contrast %in% pretest_contrasts]
+  }
+  full <- estimate(d)
+  jackknife <- t(vapply(seq_len(nrow(d)), function(i) estimate(d[-i, ]) - full, numeric(3)))
+  expect_equal(fit$effects$std.error[fit$effects$contrast %in% pretest_contrasts],
+               sqrt(colSums(jackknife^2)), tolerance = 0.02)
+})
+
+test_that("CR2 pretest effects add the cluster-robust variance of the mean pretest", {
+  d <- solomon_example
+  d$site <- rep(seq_len(12), length.out = nrow(d))
+  fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "CR2", cluster = site, data = d)
+  u <- uncentered_parts(y_post ~ treat * pretested + pre_raw, d, "y_pre")
+  m <- stats::glm(y_post ~ treat * pretested + pre_raw,
+                  data = transform(d, pre_raw = ifelse(pretested == 1, y_pre, 0)))
+  V <- clubSandwich::vcovCR(m, cluster = d$site, type = "CR2")
+  # The CR2 variance of the mean pretest and its Satterthwaite df.
+  pre <- d$pretested == 1
+  xm <- stats::lm(y_pre ~ 1, data = d[pre, ])
+  Vx <- clubSandwich::vcovCR(xm, cluster = d$site[pre], type = "CR2")
+  df_x <- clubSandwich::coef_test(xm, vcov = Vx, test = "Satterthwaite")$df_Satt
+  # Its covariance with the coefficients, from cluster sums with G / (G - 1).
+  cross <- 12 / 11 * colSums(rowsum(u$influence, d$site) * rowsum(u$dev / u$n_p, d$site)[, 1])
+  b_x <- u$b[["pre_raw"]]
+  for (j in seq_along(pretest_contrasts)) {
+    g <- stats::setNames(numeric(length(u$b)), names(u$b))
+    g[names(pretest_weights[[j]])] <- pretest_weights[[j]]
+    g["pre_raw"] <- u$xbar
+    df_g <- as.data.frame(clubSandwich::linear_contrast(m, vcov = V, contrasts = matrix(g, 1),
+                                                        test = "Satterthwaite"))$df
+    v_g <- drop(t(g) %*% V %*% g) + 2 * b_x * sum(g * cross)
+    v_x <- b_x^2 * Vx[1, 1]
+    row <- effect_of(fit, pretest_contrasts[j])
+    expect_equal(row$std.error, sqrt(v_g + v_x), tolerance = 1e-8)
+    expect_equal(row$df, (v_g + v_x)^2 / (v_g^2 / df_g + v_x^2 / df_x), tolerance = 1e-6)
+  }
+})
+
+test_that("pretest effects of designs with several treatments include the mean's variance", {
+  d <- mai2020
+  d$treat_RP <- as.integer(d$condition == "RP")
+  d$treat_GS <- as.integer(d$condition == "GS")
+  fit <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
+                         data = d)
+  u <- uncentered_parts(post_behavior ~ (treat_RP + treat_GS) * pretested + pre_raw, d,
+                        "pre_behavior")
+  weights <- list(
+    Control = c(pretested = 1),
+    RP = c(pretested = 1, "treat_RP:pretested" = 1),
+    GS = c(pretested = 1, "treat_GS:pretested" = 1),
+    "All conditions" = c(pretested = 1, "treat_RP:pretested" = 1 / 3, "treat_GS:pretested" = 1 / 3)
+  )
+  e <- fit$effects[fit$effects$contrast %in% pretest_contrasts, ]
+  for (k in names(weights)) {
+    expect_equal(e$std.error[e$comparison == k], unname(uncentered_se(u, weights[[k]], "HC3")["full"]),
+                 tolerance = 1e-8)
+  }
+  # The treatment contrasts are unchanged.
+  sens <- effect_of(fit, "Pretest x Treatment", "RP vs Control")
+  g <- stats::setNames(numeric(length(u$b)), names(u$b))
+  g["treat_RP:pretested"] <- 1
+  expect_equal(sens$std.error, sqrt(drop(t(g) %*% sandwich::vcovHC(u$model, type = "HC3") %*% g)),
+               tolerance = 1e-10)
+})
+
+test_that("maximum-likelihood pretest effects include the variance of the mean pretest", {
+  d <- solomon_example
+  pre <- d[d$pretested == 1, ]
+  un <- d[d$pretested == 0, ]
+  n_p <- nrow(pre)
+  pre$x_c <- pre$y_pre - mean(pre$y_pre)
+  pf <- stats::lm(y_post ~ treat + x_c, data = pre)
+  uf <- stats::lm(y_post ~ treat, data = un)
+  b_x <- stats::coef(pf)[["x_c"]]
+
+  # The small-sample option: the variances of the two separate regressions
+  # and s^2 / n, with Welch-Satterthwaite degrees of freedom.
+  sat <- fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "satterthwaite", data = d)
+  cells <- list(c(1, 0), c(1, 1), c(1, 0.5))
+  for (j in seq_along(pretest_contrasts)) {
+    cp <- c(cells[[j]], 0)
+    cu <- cells[[j]]
+    v <- c(drop(t(cp) %*% stats::vcov(pf) %*% cp), drop(t(cu) %*% stats::vcov(uf) %*% cu),
+           b_x^2 * stats::var(pre$y_pre) / n_p)
+    df <- c(stats::df.residual(pf), stats::df.residual(uf), n_p - 1)
+    row <- effect_of(sat, pretest_contrasts[j])
+    expect_equal(row$std.error, sqrt(sum(v)), tolerance = 1e-6)
+    expect_equal(row$df, sum(v)^2 / sum(v^2 / df), tolerance = 1e-6)
+  }
+
+  # Wald inference: the inverse information plus b_x^2 times the ML variance
+  # of the mean. The coefficient table keeps the standard error of van
+  # Engelenburg (1999), which treats the mean as fixed.
+  wald <- fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald", data = d)
+  b_ml <- stats::setNames(wald$coefficients$estimate, wald$coefficients$term)
+  Ls <- list(c(bP = 1), c(bP = 1, bTP = 1), c(bP = 1, bTP = 0.5))
+  for (j in seq_along(pretest_contrasts)) {
+    L <- stats::setNames(numeric(5), rownames(wald$vcov))
+    L[names(Ls[[j]])] <- Ls[[j]]
+    expected <- sqrt(drop(t(L) %*% wald$vcov %*% L) +
+                       b_ml[["bX"]]^2 * sum((pre$y_pre - mean(pre$y_pre))^2) / n_p^2)
+    expect_equal(effect_of(wald, pretest_contrasts[j])$std.error, expected, tolerance = 1e-10)
+  }
+  expect_equal(wald$coefficients$std.error[wald$coefficients$term == "bP"],
+               sqrt(wald$vcov["bP", "bP"]), tolerance = 1e-12)
+  # Treatment contrasts are unchanged.
+  expect_equal(effect_of(wald, "Pretest x Treatment")$std.error, sqrt(wald$vcov["bTP", "bTP"]),
+               tolerance = 1e-12)
 })

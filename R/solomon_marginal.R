@@ -65,6 +65,63 @@
   unlist(lapply(scales, function(s) .marginal_contrasts(r, s, count)), use.names = FALSE)
 }
 
+# The sampling variance of the standardization, for the pretest effects of
+# marginal_solomon()'s delta method (issue #104). `rows` index the stacked
+# contrasts (each scale with the contrasts of .marginal_contrast_names()) and
+# must be pretest effects; `grad` is the delta method's gradient with respect
+# to the coefficients `b`. Each marginal risk is a mean of predicted risks
+# over one sample, the pretested or the unpretested participants, so to
+# first order a contrast moves by the sum over the two samples of the mean of
+# a_i: its derivatives with respect to the four risks applied to participant
+# i's predicted risks in the cells of their pretest condition.
+# .center_terms() gives the variance of that sum (`v`, with degrees of
+# freedom `df`) and its covariance with the coefficients, returned as the
+# term 2 grad'cross (`cross`). `model` is the fit the covariance was computed
+# on.
+.marginal_standardization_variance <- function(fit, model, b, X, pretested, scale, count,
+                                               rows, grad) {
+  linkinv <- if (count) exp else stats::plogis
+  b0 <- b
+  b0[is.na(b0)] <- 0
+  b_t <- b0[["treat"]]
+  b_tp <- if ("treat:pretested" %in% names(b0)) b0[["treat:pretested"]] else 0
+  base <- drop(X %*% b0) - X[, "treat"] * b_t -
+    if (b_tp != 0) X[, "treat:pretested"] * b_tp else 0
+  pre <- pretested == 1L
+  f <- cbind(
+    t1p1 = ifelse(pre, linkinv(base + b_t + b_tp), 0),
+    t0p1 = ifelse(pre, linkinv(base), 0),
+    t1p0 = ifelse(pre, 0, linkinv(base + b_t)),
+    t0p0 = ifelse(pre, 0, linkinv(base))
+  )
+  r <- .marginal_risks(b, X, pretested, linkinv)
+  slope <- function(s, x) {
+    switch(s, difference = 1, ratio = 1 / x, odds_ratio = 1 / (x * (1 - x)))
+  }
+  n_contrasts <- length(.marginal_contrast_names())
+  set <- ifelse(pre, "pretested", "unpretested")
+  cluster <- if (identical(fit$robust, "CR2")) fit$cluster[.glm_rows_used(fit)]
+  keep <- !is.na(b)
+
+  parts <- lapply(rows, function(row) {
+    s <- scale[(row - 1L) %/% n_contrasts + 1L]
+    contrast <- .marginal_contrast_names()[(row - 1L) %% n_contrasts + 1L]
+    J <- c(t1p1 = 0, t0p1 = 0, t1p0 = 0, t0p0 = 0)
+    if (contrast == .solomon_pretest_order[1]) {
+      J[c("t0p1", "t0p0")] <- c(slope(s, r[["t0p1"]]), -slope(s, r[["t0p0"]]))
+    } else if (contrast == .solomon_pretest_order[2]) {
+      J[c("t1p1", "t1p0")] <- c(slope(s, r[["t1p1"]]), -slope(s, r[["t1p0"]]))
+    } else {
+      J[c("t1p1", "t0p1")] <- slope(s, (r[["t1p1"]] + r[["t0p1"]]) / 2) / 2
+      J[c("t1p0", "t0p0")] <- -slope(s, (r[["t1p0"]] + r[["t0p0"]]) / 2) / 2
+    }
+    terms <- .center_terms(model, fit$robust, a = drop(f %*% J), set = set, cluster = cluster)
+    c(v = terms$v, cross = 2 * sum(grad[row, keep] * terms$cross), df = terms$df)
+  })
+  parts <- do.call(rbind, parts)
+  list(v = parts[, "v"], cross = parts[, "cross"], df = parts[, "df"])
+}
+
 # A Solomon cell with no counts at all has no rate ratio (the log-link
 # estimate diverges).
 .cell_empty <- function(y, treat, pretested) {
@@ -107,8 +164,8 @@
 # Treatment contrast on a noncollapsible link (any but the identity and the
 # log; Daniel et al., 2021), and the pretest effects (issue #104) on any
 # link but the identity, because a fitted mean at the mean pretest is not
-# the mean over the pretests. Used by equivalence_solomon() and
-# perm_solomon().
+# the mean over the pretests. Used by equivalence_solomon(), perm_solomon(),
+# and plot_solomon_effects(bounds =).
 .warn_link_scale <- function(fit, contrast) {
   if (!inherits(fit, c("solomon_glm", "solomon_ngroup")) ||
       !"pre_obs" %in% names(fit$data)) {
@@ -124,34 +181,40 @@
   }
   if (!affected) return(invisible(NULL))
 
+  # The pretest effects' gap is that between a fitted mean at the mean
+  # pretest and the mean of the fitted means over the pretests, which a
+  # nonlinear link opens; it is stated without a source. The sensitization
+  # contrast's is the noncollapsibility Daniel et al. (2021) describe.
   why <- if (pretest) {
     paste0(
       "compares the pretested participants' fitted mean at the mean pretest with ",
-      "the unpretested participants' mean over their unmeasured pretests. With a ",
-      "nonlinear link these differ even when the pretest has no effect"
+      "the unpretested participants' mean over their unmeasured pretests. Under a ",
+      "nonlinear link, a mean at the average pretest is not the average of the means ",
+      "over the pretests, so these differ even when the pretest has no effect."
     )
   } else {
     paste0(
       "compares a treatment effect conditional on the pretest (pretested ",
       "participants) with a marginal one (unpretested participants). On this scale ",
-      "they differ whenever the pretest predicts the outcome, even without sensitization"
+      "they differ whenever the pretest predicts the outcome, even without sensitization ",
+      "(Daniel et al., 2021)."
     )
   }
   advice <- if (inherits(fit, "solomon_ngroup")) {
     paste0(
-      "marginal_solomon() estimates the contrast on a common scale; it takes the fit ",
-      "of a four-group design, so subset the data to one treatment and the control first."
+      "marginal_solomon() estimates the contrast on a common scale, from standardized ",
+      "risks or rates; it takes the fit of a four-group design, so subset the data to ",
+      "one treatment and the control first."
     )
   } else {
-    "marginal_solomon() estimates the contrast on a common scale."
+    "marginal_solomon() estimates the contrast on a common scale, from standardized risks or rates."
   }
   warning(structure(
     class = c("solomonR_link_scale_warning", "warning", "condition"),
     list(
       message = paste0(
         "The ", contrast, " contrast is on the ", .contrast_scale(family), " scale (",
-        link, " link). With the pretest as a covariate, it ", why,
-        " (Daniel et al., 2021). ", advice
+        link, " link). With the pretest as a covariate, it ", why, " ", advice
       ),
       call = NULL
     )
@@ -293,6 +356,18 @@
 #' are excluded and counted; when more than 10% fail, intervals are not
 #' reported.
 #'
+#' For the pretest effects, the pretested and the unpretested risks are
+#' standardized over different participants, so the sampling variance of
+#' each standardization does not cancel, as it does for the treatment
+#' contrasts, which standardize both arms over the same participants. The
+#' delta method therefore adds it for the pretest effects, with its
+#' covariance with the coefficients under HC3 or CR2 covariance, by stacking
+#' the estimating equations of the standardized means with those of the model
+#' (Stefanski & Boos, 2002), as [fit_solomon_glm()] does for the mean
+#' pretest; for clustered fits, the degrees of freedom are combined by the
+#' Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
+#' bootstrap resamples participants and so includes this variance.
+#'
 #' Count outcomes: for a fit with `family = poisson()` or
 #' `family = "negative_binomial"`, rates per unit of
 #' exposure are standardized in the same way and compared as rate differences
@@ -406,13 +481,25 @@
 #' models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
 #' https://doi.org/10.1080/07350015.2016.1247004
 #'
+#' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+#' variance components. *Biometrics Bulletin, 2*(6), 110–114.
+#' https://doi.org/10.2307/3002019
+#'
 #' Solomon, R. L., & Lessac, M. S. (1968). A control group design for
 #' experimental studies of developmental processes. *Psychological Bulletin,
 #' 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 #'
+#' Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation. *The
+#' American Statistician, 56*(1), 29–38.
+#' https://doi.org/10.1198/000313002753631330
+#'
 #' Tipton, E. (2015). Small sample adjustments for robust variance estimation
 #' with meta-regression. *Psychological Methods, 20*(3), 375–393.
 #' https://doi.org/10.1037/met0000011
+#'
+#' Welch, B. L. (1947). The generalization of "Student's" problem when several
+#' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
+#' https://doi.org/10.1093/biomet/34.1-2.28
 #'
 #' @seealso [fit_solomon_glm()], [fisher_solomon()]
 #'
@@ -595,6 +682,25 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
           fit_cr, vcov = fit$vcov, contrasts = grad[i, , drop = FALSE], test = "Satterthwaite"
         ))$df
       }, numeric(1))
+    }
+    # The pretest effects compare risks standardized over two different
+    # samples, the pretested and the unpretested participants, so the
+    # sampling variance of each sample's standardization does not cancel as
+    # it does for the treatment contrasts, which standardize both arms over
+    # the same participants. It is added for them (issue #104).
+    pretest_rows <- which(rep(.marginal_contrast_names(), length(scale)) %in%
+                            .solomon_pretest_order & is.finite(estimate) & is.finite(std.error))
+    if (length(pretest_rows)) {
+      added <- .marginal_standardization_variance(
+        fit, if (cr2) fit_cr else model, b, X, pretested, scale, count, pretest_rows, grad
+      )
+      v_delta <- std.error[pretest_rows]^2 + added$cross
+      if (cr2) {
+        df[pretest_rows] <- vapply(seq_along(pretest_rows), function(j) {
+          .welch_df(c(v_delta[j], added$v[j]), c(df[pretest_rows[j]], added$df[j]))
+        }, numeric(1))
+      }
+      std.error[pretest_rows] <- sqrt(v_delta + added$v)
     }
     q <- ifelse(is.finite(df), stats::qt(1 - alpha / 2, pmax(df, 1e-8)), stats::qnorm(1 - alpha / 2))
     ci <- cbind(estimate - q * std.error, estimate + q * std.error)

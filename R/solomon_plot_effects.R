@@ -156,6 +156,11 @@
 #' does not, and the contrast is still statistically equivalent. The caption
 #' states both confidence levels, the scale of the bounds, and the TOST
 #' outcome: equivalent, trivial, different, or inconclusive (Lakens, 2017).
+#' On a fit with a pretest covariate and a noncollapsible link, such as the
+#' logit, the figure gives the warning that [equivalence_solomon()] gives
+#' (`solomonR_link_scale_warning`): on that scale the Pretest x Treatment
+#' contrast is nonzero whenever the pretest predicts the outcome, even
+#' without sensitization.
 #'
 #' @param fit A fit from [fit_solomon_glm()], [fit_solomon_ml()],
 #'   [fit_solomon_sem()], or [fit_solomon_sem_latent()].
@@ -244,6 +249,9 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
       stop("`bounds` apply to the Pretest x Treatment contrast, which this fit does not estimate.",
            call. = FALSE)
     }
+    # The same warning as equivalence_solomon() for a link-scale contrast
+    # that does not compare like with like (issue #114).
+    .warn_link_scale(fit, "Pretest x Treatment")
     position <- match("Pretest x Treatment", levels_present)
     p <- p + ggplot2::annotate(
       "rect",
@@ -372,6 +380,7 @@ utils::globalVariables("comparison")
       stop("`bounds` apply to the Pretest x Treatment contrast, which this fit does not estimate.",
            call. = FALSE)
     }
+    .warn_link_scale(fit, "Pretest x Treatment")
     # One band on each Pretest x Treatment row, in that panel only.
     rows <- eff$comparison[eff$contrast == "Pretest x Treatment"]
     position <- match(as.character(rows), levels(eff$comparison))

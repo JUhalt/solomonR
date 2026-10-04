@@ -372,6 +372,17 @@
     vcovM <- stats::vcov(fit)
   }
 
+  # The sampling variance of the mean pretest at which the pretest effects
+  # are evaluated, as in the four-group model (issue #104).
+  center <- if (!is.null(y_pre)) {
+    .center_terms(
+      if (robust == "CR2") fit_cr else fit, robust,
+      a = df$pre_obs[used],
+      set = ifelse(df$pretested[used] == 1L, "pretested", NA_character_),
+      cluster = if (robust == "CR2") cluster_fit
+    )
+  }
+
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
@@ -393,27 +404,32 @@
   cf <- stats::coef(fit)
   cn <- names(cf)
 
+  # The pretest effects also carry the variance of the mean pretest at which
+  # they are evaluated (.center_adjusted()).
   lin_contrast <- function(L) {
-    L <- matrix(L, nrow = 1)
-    est <- as.numeric(L %*% cf)
-    se  <- sqrt(as.numeric(L %*% vcovM %*% t(L)))
-    z   <- est / se
+    Lm <- matrix(L, nrow = 1)
+    est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") {
       as.data.frame(
         clubSandwich::linear_contrast(
           fit_cr,
           vcov = vcovM,
-          contrasts = L,
+          contrasts = Lm,
           test = "Satterthwaite"
         )
       )$df
     } else {
       df_model
     }
+    adj <- .center_adjusted(L, cf, vcovM, center, robust, dfc)
+    se  <- sqrt(adj$variance)
+    dfc <- adj$df
+    z   <- est / se
     p   <- 2 * stats::pt(-abs(z), df = dfc)
     ci  <- .wald_ci(est, se, dfc, conf_level)
     c(estimate = est, std.error = se, statistic = z, p.value = p, df = dfc,
-      conf.low = unname(ci[, "conf.low"]), conf.high = unname(ci[, "conf.high"]))
+      conf.low = unname(ci[, "conf.low"]), conf.high = unname(ci[, "conf.high"]),
+      added = adj$added)
   }
 
   # The four Solomon contrasts of a comparison with weights w over the
@@ -442,7 +458,8 @@
 
   effect_row <- function(L, comparison, contrast) {
     est <- lin_contrast(L)
-    r2 <- contrast_r2_ci(fit, L, vcovM, conf_level, conventional)
+    r2 <- contrast_r2_ci(fit, L, vcovM, conf_level, conventional,
+                         added_variance = est[["added"]])
     data.frame(
       comparison = comparison,
       contrast = contrast,
@@ -696,7 +713,8 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
     cat(if (is.finite(.null_na(x$pretest_mean))) {
       sprintf(paste0(
         "Pretest effects: pretested minus unpretested participants in each condition,\n",
-        "at the pretested participants' mean pretest (%.*f).\n"
+        "at the pretested participants' mean pretest (%.*f), with standard errors\n",
+        "that include the sampling variance of that mean.\n"
       ), digits, x$pretest_mean)
     } else {
       "Pretest effects: pretested minus unpretested participants in each condition.\n"

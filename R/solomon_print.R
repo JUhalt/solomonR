@@ -155,7 +155,9 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   if (!is.finite(center)) return(invisible(NULL))
   cat(.wrap_lines(sprintf(paste(
     "pre_obs: the pretest, centered at the pretested participants' mean (%.*f).",
-    "The pretest effects compare pretested and unpretested participants at that score."
+    "The pretest effects compare pretested and unpretested participants at that score;",
+    "their standard errors include the sampling variance of the mean, and the",
+    "coefficient of pretested treats it as fixed."
   ), digits, center)), "\n", sep = "")
   .link_pretest_note(x)
   invisible(NULL)

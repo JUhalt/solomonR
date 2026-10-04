@@ -96,6 +96,38 @@ test_that("centering the pretest leaves the treatment contrasts unchanged (#104)
                tolerance = 1e-5)
 })
 
+test_that("the pretest effects include the variance of the mean pretest (#104)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
+
+  # The same centered model with the mean treated as fixed.
+  occasions <- as.character(1:3)
+  observed <- data.frame(y = long$y_post, treat = long$treat, pretested = long$pretested,
+                         occ = factor(long$occasion, levels = 1:3), id = factor(long$id),
+                         pre_obs = ifelse(long$pretested == 1, long$y_pre - fit$pretest_mean, 0))
+  observed$pgrp <- factor(ifelse(observed$pretested == 1, "pretested", "unpretested"))
+  observed <- observed[!is.na(observed$y), ]
+  fixed <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "kenward-roger",
+                                          0.95)$effects
+
+  # Every participant is observed at the first occasion, so each pretested
+  # participant counts once in the mean.
+  first <- long$occasion == 1 & long$pretested == 1
+  v_mean <- stats::var(long$y_pre[first]) / sum(first)
+  slopes <- mmrm::component(fit$model, "beta_est")[paste0("occ", 1:3, ":pre_obs")]
+  pretest <- fit$effects$contrast %in% solomonR:::.solomon_pretest_order
+  slope <- unname(slopes[as.integer(fit$effects$occasion[pretest])])
+  v_fixed <- fixed$std.error[pretest]^2
+  v_center <- slope^2 * v_mean
+  expect_equal(fit$effects$estimate, fixed$estimate, tolerance = 1e-8)
+  expect_equal(fit$effects$std.error[pretest], sqrt(v_fixed + v_center), tolerance = 1e-6)
+  expect_equal(fit$effects$df[pretest],
+               (v_fixed + v_center)^2 / (v_fixed^2 / fixed$df[pretest] + v_center^2 / (sum(first) - 1)),
+               tolerance = 1e-6)
+  expect_equal(fit$effects$std.error[!pretest], fixed$std.error[!pretest], tolerance = 1e-8)
+})
+
 test_that("inputs are checked", {
   skip_if_not_installed("mmrm")
   long <- long_example()

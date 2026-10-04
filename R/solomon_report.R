@@ -295,12 +295,15 @@
     sprintf(" Contrasts are on the %s scale.", scale_name)
   )
   # On a link other than the identity, the pretest effects compare a fitted
-  # mean at the mean pretest with a marginal mean (issue #104).
+  # mean at the mean pretest with a marginal mean (issue #104). That gap
+  # needs no source; Daniel et al. (2021) are cited for the standardization
+  # that estimates marginal effects.
   pretest_caution <- if (pre && !identical(link, "identity")) {
     sprintf(paste0(
       "On the %s scale, with the pretest as a covariate, the pretest effects compare ",
       "pretested participants at the mean pretest score with unpretested participants ",
-      "as a whole, so they are not marginal pretest effects (Daniel et al., 2021)."
+      "as a whole, so they are not marginal pretest effects; marginal effects can be ",
+      "estimated from standardized predictions (Daniel et al., 2021)."
     ), if (identical(link, "logit")) "log-odds" else paste(link, "link"))
   }
 

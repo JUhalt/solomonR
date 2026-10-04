@@ -107,6 +107,18 @@ events or only non-events, or a fitted probability within 1e-8 of 0 or 1)
 are excluded and counted; when more than 10\% fail, intervals are not
 reported.
 
+For the pretest effects, the pretested and the unpretested risks are
+standardized over different participants, so the sampling variance of
+each standardization does not cancel, as it does for the treatment
+contrasts, which standardize both arms over the same participants. The
+delta method therefore adds it for the pretest effects, with its
+covariance with the coefficients under HC3 or CR2 covariance, by stacking
+the estimating equations of the standardized means with those of the model
+(Stefanski & Boos, 2002), as \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} does for the mean
+pretest; for clustered fits, the degrees of freedom are combined by the
+Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
+bootstrap resamples participants and so includes this variance.
+
 Count outcomes: for a fit with \code{family = poisson()} or
 \code{family = "negative_binomial"}, rates per unit of
 exposure are standardized in the same way and compared as rate differences
@@ -216,13 +228,25 @@ cluster-robust variance estimation and hypothesis testing in fixed effects
 models. \emph{Journal of Business & Economic Statistics, 36}(4), 672–683.
 https://doi.org/10.1080/07350015.2016.1247004
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
+
 Solomon, R. L., & Lessac, M. S. (1968). A control group design for
 experimental studies of developmental processes. \emph{Psychological Bulletin,
 70}(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 
+Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation. \emph{The
+American Statistician, 56}(1), 29–38.
+https://doi.org/10.1198/000313002753631330
+
 Tipton, E. (2015). Small sample adjustments for robust variance estimation
 with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.
 https://doi.org/10.1037/met0000011
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }
 \seealso{
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fisher_solomon]{fisher_solomon()}}

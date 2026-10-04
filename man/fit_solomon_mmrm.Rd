@@ -83,7 +83,12 @@ controls, among treated participants, and their average compare
 pretested and unpretested participants at that mean pretest, as
 described in the section "The pretest effect" of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
 Pretest effects may fade with time (Entwisle, 1961, p. 610), and these
-estimates show whether they do.
+estimates show whether they do. Their standard errors include the
+sampling variance of the mean pretest, s^2 / n for n pretested
+participants, times the square of that occasion's pretest slope, and
+their degrees of freedom combine those of the contrast with n - 1 by the
+Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
+pretest effects were not part of the validation study below.
 \item \strong{Covariance.} Unstructured within participant, estimated by
 restricted maximum likelihood (Laird & Ware, 1982). With a pretest, it
 is estimated separately for pretested and unpretested participants: the
@@ -195,6 +200,10 @@ https://doi.org/10.32614/CRAN.package.mmrm
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
 https://doi.org/10.2307/3002019
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }
 \seealso{
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for a single posttest occasion; \link{jordaan2014}

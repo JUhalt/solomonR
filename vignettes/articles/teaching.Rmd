@@ -90,11 +90,13 @@ fit$effects[, c("contrast", "estimate", "conf.low", "conf.high")]
 
 The model adjusts the pretested groups for the pretest, so its pretest
 effects compare the pretested groups, at their mean pretest score, with
-the unpretested groups. With random assignment, the unpretested groups
-would have had the same mean pretest, so that is the fair point of
-comparison (Solomon & Lessac, 1968, pp. 146–147). Here the two pretested
-groups started near that mean, so the adjusted pretest effect among
-controls is close to the raw difference above.
+the unpretested groups. With random assignment, the unpretested groups'
+expected pretest equals that of the pretested groups, and the pretested
+groups' mean estimates it, so that is the fair point of comparison
+(Solomon & Lessac, 1968, pp. 146–147). Because the mean is an estimate,
+the standard errors of the pretest effects include its sampling variance.
+Here the two pretested groups started near that mean, so the adjusted
+pretest effect among controls is close to the raw difference above.
 
 </details>
 

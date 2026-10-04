@@ -85,6 +85,15 @@ print.solomon_ml <- function(x, digits = 3, ...) {
     )
   }
 
+  # The pretest effects' standard errors include the variance of the mean
+  # pretest (issue #104); older fits have no pretest-effect rows.
+  if (any(x$effects$contrast %in% .solomon_pretest_order)) {
+    cat("\n", .wrap_lines(paste(
+      "Pretest effects: at the centered pretest mean, with standard errors that",
+      "include its sampling variance."
+    )), "\n", sep = "")
+  }
+
   cat(
     sprintf(
       "\nlogLik = %.2f; optimizer convergence = %d\n",

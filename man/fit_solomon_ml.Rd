@@ -86,6 +86,17 @@ Pretest x Treatment) use Welch-Satterthwaite degrees of freedom
 (Satterthwaite, 1946; Welch, 1947).
 }
 
+The pretest effects are evaluated at the mean pretest of the pretested
+participants, an estimate whose sampling variance their standard errors
+include (see the section "The pretest effect" of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
+Under the model the mean is independent of the regression estimates, so
+Wald inference adds \code{bX}^2 times the maximum-likelihood variance of the
+mean, and the small-sample option adds \code{bX}^2 s^2 / n, for n pretested
+participants whose pretests have variance s^2, as a third component with
+n - 1 degrees of freedom. The coefficient table gives \code{bP} with the
+standard error of van Engelenburg (1999), which treats the mean as fixed.
+The pretest effects were not part of the validation below.
+
 In the package's simulation validation (issues #10 and #22; 84 scenarios
 with 2,000 replications each, reported in the article "Validating
 fit_solomon_ml()" on the package website), both options recovered the
