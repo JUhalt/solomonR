@@ -158,11 +158,12 @@ test_that("the key to the treatment marks fits a figure of ordinary width", {
   expect_equal(.solomon_design_key("X1", "A"), "X1 = A")
 
   # The title and key start at the left edge of the figure, where they have
-  # the whole width; the four-group figure keeps its layout.
+  # the whole width. The four-group figure does the same: aligned with the
+  # panel, its key ran off the right edge (#108).
   expect_equal(twelve$theme$plot.title.position, "plot")
   expect_equal(plot_solomon_design(mai_fit())$theme$plot.title.position, "plot")
-  expect_equal(plot_solomon_design()$theme$plot.title.position, "panel")
-  expect_equal(plot_solomon_design(treatments = 1)$theme$plot.title.position, "panel")
+  expect_equal(plot_solomon_design()$theme$plot.title.position, "plot")
+  expect_equal(plot_solomon_design(treatments = 1)$theme$plot.title.position, "plot")
 })
 
 

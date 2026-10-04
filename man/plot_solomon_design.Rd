@@ -60,6 +60,11 @@ teaching. Given data or a fitted model, it labels each group with its size
 and posttest mean. Groups with no participants, or with fewer than two
 observed posttest scores, are flagged, using the same rule as
 \code{\link[=validate_solomon]{validate_solomon()}}.
+
+The key and the caption are broken into lines for a figure at least 7
+inches wide. The group sizes and means are given the width they need
+beside the schematic, so that they are not cut off at the edge of the
+figure.
 }
 \section{Designs with several treatments}{
 

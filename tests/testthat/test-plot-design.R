@@ -80,6 +80,38 @@ test_that("empty and sparse groups are flagged rather than hidden", {
 })
 
 
+test_that("the key, the caption, and the group summaries are set to fit (#108)", {
+
+  dash <- intToUtf8(0x2014)
+  p <- plot_solomon_design()
+  # The notation on one line and the treatment on the next, as in the
+  # figures of designs with several treatments.
+  expect_equal(p$labels$subtitle,
+               paste0("R = random assignment; O = observation; ", dash,
+                      " = not given by design\nX = treatment"))
+  expect_equal(p$theme$plot.title.position, "plot")
+  expect_null(p$labels$caption)
+
+  # The flagged groups and the rule each start a line; the rule is wrapped.
+  d <- solomon_example[!(solomon_example$treat == 1 & solomon_example$pretested == 0), ]
+  flagged <- with(d, plot_solomon_design(y_post, treat, pretested))
+  expect_equal(
+    strsplit(flagged$labels$caption, "\n", fixed = TRUE)[[1]],
+    c("Flagged: Group 3: unpretested, treatment.",
+      "At least two observed posttest scores per group are needed to estimate within-group",
+      "variability.")
+  )
+  expect_equal(flagged$theme$plot.caption$hjust, 0)
+  expect_equal(flagged$theme$plot.caption.position, "plot")
+
+  # A group's size and its posttest mean are set on two lines.
+  s <- summary_layer(with(solomon_example, plot_solomon_design(y_post, treat, pretested)))
+  g1 <- s[s$row == "Group 1: pretested, treatment", ]
+  expect_equal(g1$text, sprintf("n = %d\nposttest mean %s", g1$n,
+                                formatC(g1$mean, format = "f", digits = 2)))
+})
+
+
 test_that("incomplete or miscoded inputs are refused", {
 
   expect_error(plot_solomon_design(solomon_example$y_post), "`treat` and `pretested` are required")
