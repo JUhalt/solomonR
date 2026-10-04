@@ -639,11 +639,20 @@
   if (satt) refs <- c(refs, "satterthwaite1946", "welch1947")
   method <- paste0(
     "The Solomon contrasts were estimated by full-information maximum likelihood, ",
-    "treating the absent pretests as structurally missing (van Engelenburg, 1999), with ",
+    "treating the absent pretests as structurally missing",
     if (satt) {
-      "t tests using Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch, 1947)."
+      paste0(
+        " (van Engelenburg, 1999). Standard errors used unbiased residual ",
+        "variances within each pretest condition, with t tests on the residual ",
+        "degrees of freedom for contrasts within one condition and on ",
+        "Welch-Satterthwaite degrees of freedom for contrasts that combined the ",
+        "conditions (Satterthwaite, 1946; Welch, 1947)."
+      )
     } else {
-      "Wald z tests."
+      paste0(
+        ", with standard errors from the observed information matrix and ",
+        "large-sample Wald z tests (van Engelenburg, 1999)."
+      )
     }
   )
   list(

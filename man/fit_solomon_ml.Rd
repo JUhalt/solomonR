@@ -12,7 +12,7 @@ fit_solomon_ml(
   weights = c("equal"),
   control = list(),
   conf_level = 0.95,
-  inference = c("wald", "satterthwaite"),
+  inference = c("satterthwaite", "wald"),
   data = NULL
 )
 }
@@ -37,9 +37,11 @@ pretested and unpretested treatment effects.}
 \item{conf_level}{Confidence level for intervals. Default is 0.95.}
 
 \item{inference}{How standard errors, tests, and intervals are computed:
-\code{"wald"} (default) for van Engelenburg's (1999) large-sample Wald
-inference, or \code{"satterthwaite"} for the small-sample option. The point
-estimates are the same. See the Inference options section.}
+\code{"satterthwaite"} (default) for t tests with residual or
+Welch-Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch,
+1947), or \code{"wald"} for van Engelenburg's (1999) large-sample Wald
+inference. The point estimates are the same. See the Inference options
+section.}
 
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
@@ -74,16 +76,16 @@ among controls, among treated participants, and averaged over the two, as
 The point estimates are maximum-likelihood estimates, which coincide with
 separate regressions in the pretested and unpretested groups.
 \itemize{
-\item \code{inference = "wald"} (default) follows van Engelenburg (1999): standard
-errors come from the observed information matrix, and tests and
-intervals use a normal reference distribution, the usual large-sample
-basis for maximum-likelihood inference.
-\item \code{inference = "satterthwaite"} is a small-sample option. Standard errors
-use unbiased residual variances within each pretest condition. Contrasts
-within one condition use t tests with that condition's residual degrees
-of freedom, and contrasts that combine the conditions (the ATE and
+\item \code{inference = "satterthwaite"} (default): standard errors use unbiased
+residual variances within each pretest condition. Contrasts within one
+condition use t tests with that condition's residual degrees of
+freedom, and contrasts that combine the conditions (the ATE and
 Pretest x Treatment) use Welch-Satterthwaite degrees of freedom
 (Satterthwaite, 1946; Welch, 1947).
+\item \code{inference = "wald"} follows van Engelenburg (1999): standard errors
+come from the observed information matrix, and tests and intervals use a
+normal reference distribution, the usual large-sample basis for
+maximum-likelihood inference.
 }
 
 The pretest effects are evaluated at the mean pretest of the pretested
@@ -100,30 +102,43 @@ The pretest effects were not part of the validation below.
 In the package's simulation validation (issues #10 and #22; 84 scenarios
 with 2,000 replications each, reported in the article "Validating
 fit_solomon_ml()" on the package website), both options recovered the
-Solomon contrasts without bias. Wald intervals were too narrow in small
-samples: mean coverage of nominal 95\% intervals was 0.893 with 6
-participants per cell, 0.920 with 10, 0.936 with 20, 0.941 with 30, and
-0.948 with 100, and the Pretest x Treatment test rejected a true null
-hypothesis in 9.9\% of samples with 6 per cell and 5.9\% with 30. The
-small-sample option had mean coverage of 0.949 to 0.950 and Type I error of
-0.050 to 0.053 at every cell size studied, from 6 to 100 per cell.
+Solomon contrasts without bias. Satterthwaite inference had mean coverage
+of nominal 95\% intervals of 0.949 to 0.950 and Type I error of 0.050 to
+0.053 at every cell size studied, from 6 to 100 participants per cell.
+Wald intervals were too narrow in small samples: mean coverage was 0.893
+with 6 participants per cell, 0.920 with 10, 0.936 with 20, 0.941 with
+30, and 0.948 with 100, and the Pretest x Treatment test rejected a true
+null hypothesis in 9.9\% of samples with 6 per cell and 5.9\% with 30.
 
-When the smallest cell has fewer than 40 participants and \code{inference} is
-not supplied, \code{fit_solomon_ml()} issues a warning of class
-\code{solomonR_small_sample_warning} that suggests the small-sample option.
-Supplying \code{inference = "wald"} explicitly keeps the default without the
-warning. The threshold follows a rule set before the validation results
-were examined: 40 is the smallest cell size at which Wald inference had
-mean coverage of at least 0.940 and Type I error of at most 0.060, with
-equal and unequal residual variances, at that size and every larger size
-studied.
+Printed output gives the maximum-likelihood residual standard deviations
+of the two pretest conditions (the square roots of SSE / n, stored in
+\code{sigma}), which Wald standard errors use. For Satterthwaite inference it
+also gives the square roots of the unbiased residual variances (SSE /
+residual df, stored in \code{sigma_unbiased}), which its standard errors use.
+
+Satterthwaite inference became the default because of these results
+(issue #115). In solomonR 0.8.0 and earlier the default was \code{"wald"};
+supply \code{inference = "wald"} to reproduce results from those versions.
+
+When \code{inference = "wald"} and the smallest cell has fewer than 40
+participants, printed output notes that Wald intervals were too narrow at
+such sizes in the validation. The threshold follows a rule set before the
+validation results were examined: 40 is the smallest cell size at which
+Wald inference had mean coverage of at least 0.940 and Type I error of at
+most 0.060, with equal and unequal residual variances, at that size and
+every larger size studied. Even at and above it, Wald inference was
+approximately adequate rather than exact.
 }
 
 \examples{
-# With fewer than 40 participants per cell, use the small-sample
-# (Satterthwaite) inference; see "Inference options".
+# Default: Satterthwaite inference.
+with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre))
+
+# van Engelenburg's (1999) large-sample Wald inference. With 30
+# participants per cell, the printed output notes that these intervals
+# were too narrow at such sizes in the package's validation.
 with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
-                                     inference = "satterthwaite"))
+                                     inference = "wald"))
 }
 \references{
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of

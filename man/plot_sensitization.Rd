@@ -49,9 +49,12 @@ reference distribution:
 \item for \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, t with residual degrees of freedom, Satterthwaite
 t for CR2, or the normal distribution for binomial and Poisson models,
 whose means are shown on the link scale;
-\item for \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, the normal distribution under the default Wald
-inference (van Engelenburg, 1999), or Welch-Satterthwaite t under
-\code{inference = "satterthwaite"}.
+\item for \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, t with the residual degrees of freedom of the
+cell's pretest condition under its default Satterthwaite inference (the
+Welch-Satterthwaite degrees of freedom of Satterthwaite, 1946, and Welch,
+1947, reduce to these for a single condition), or the normal
+distribution under van Engelenburg's (1999) large-sample Wald inference
+(\code{inference = "wald"}).
 }
 
 The sensitization estimate and interval in the subtitle are taken unchanged
@@ -76,8 +79,7 @@ fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 plot_sensitization(fit)
 plot_sensitization(fit, bounds = 5)
 
-ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
-                                           inference = "satterthwaite"))
+ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre))
 plot_sensitization(ml)
 
 # A six-group design: two treatments and a control.
@@ -87,9 +89,17 @@ plot_sensitization(fit6)
 
 }
 \references{
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
+
 van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
 design} (Research Report 99-06). University of Twente. ERIC.
 https://eric.ed.gov/?id=ED435692
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }
 \seealso{
 \code{\link[=equivalence_solomon]{equivalence_solomon()}}, \code{\link[=plot_solomon_effects]{plot_solomon_effects()}}

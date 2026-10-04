@@ -1,5 +1,62 @@
 # solomonR (development version)
 
+## Satterthwaite inference by default in fit_solomon_ml() (#115)
+
+* **A change in default that can alter results.** `fit_solomon_ml()` now
+  uses `inference = "satterthwaite"` unless told otherwise. The point
+  estimates are unchanged, but standard errors are larger, intervals wider,
+  and p-values larger than under the former default, `inference = "wald"`,
+  most of all with small groups; a contrast that was significant before may
+  no longer be. To reproduce results from solomonR 0.8.0 and earlier,
+  supply `inference = "wald"`. The change follows the package's simulation
+  study (#10, #22): Wald intervals had mean coverage of 0.893 with 6
+  participants per cell and 0.920 with 10, and the Pretest x Treatment test
+  rejected a true null hypothesis in 7.7% of samples with 10 per cell,
+  while Satterthwaite inference had mean coverage of 0.949 to 0.950 and
+  Type I error of 0.050 to 0.053 at every cell size studied.
+* `inference = "wald"` remains, documented as van Engelenburg's (1999)
+  large-sample inference.
+* The small-sample warning (class `solomonR_small_sample_warning`) is
+  removed. It recommended what is now the default, and it never fired when
+  `inference = "wald"` was chosen explicitly, which is now the only way to
+  get Wald inference. Printed output still notes when Wald inference is used
+  with fewer than 40 participants in the smallest cell, and the note now
+  gives the threshold.
+* `compare_solomon_methods()` labels its two maximum-likelihood rows
+  "Maximum likelihood (Satterthwaite)", listed first, and "Maximum
+  likelihood (Wald)". They were "Maximum likelihood (small-sample)" and
+  "Maximum likelihood", which named the Wald rows; code that selects rows
+  by these labels needs the new ones.
+* `equivalence_solomon()` described every maximum-likelihood fit as using a
+  large-sample normal reference, even when its tests used t; it now names
+  the fit's inference. The tests themselves already used the fit's degrees
+  of freedom.
+* Printed output, figure captions, and `report_solomon()` say "Satterthwaite
+  inference" where they said "the small-sample option". For a fit with
+  Satterthwaite inference, `report_solomon()` now says which contrasts use
+  residual degrees of freedom and which use Welch-Satterthwaite degrees of
+  freedom; for a Wald fit, it says the Wald tests are large-sample.
+* The printout of a `fit_solomon_ml()` fit, figure captions, and
+  `equivalence_solomon()` cite Satterthwaite (1946) and Welch (1947) for
+  Satterthwaite inference, as they cite van Engelenburg (1999) for Wald
+  inference. `?compare_solomon_methods` and `?plot_solomon_effects` now list
+  the works that their output cites.
+* In the captions of `plot_solomon_effects()` and `plot_sensitization()`,
+  the inference has a line of its own, after the confidence level and the
+  reference distribution, so that each line fits a figure 7 inches wide.
+* The printout of a `fit_solomon_ml()` fit labels its residual standard
+  deviations as maximum-likelihood estimates (the square roots of SSE / n),
+  which Wald standard errors use. For Satterthwaite inference it also gives
+  the square roots of the unbiased residual variances (SSE / residual df),
+  which its standard errors use; the fit stores them in `sigma_unbiased`.
+  Before, the default printout showed only the maximum-likelihood values,
+  which do not reproduce its standard errors.
+* `?fit_solomon_ml`, the getting-started guide, the method guide, the GLM
+  vignette, the README, and the validation articles describe the new
+  default. The validation article and the shared benchmark tables label the
+  methods "ML, Satterthwaite (default)" and "ML, Wald (van Engelenburg,
+  1999)"; the simulation's own results file keeps the labels of the run.
+
 ## Figure text that fits the figure (#108)
 
 * `plot_classic_flow()`, `plot_solomon_change()`, and
