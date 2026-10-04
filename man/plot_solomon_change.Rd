@@ -62,6 +62,8 @@ A change reading of this figure applies only to the pretested groups. The
 Solomon contrasts the package reports compare posttests, adjusting for the
 pretest where one exists; see \code{\link[=compare_solomon_methods]{compare_solomon_methods()}} for the estimand
 behind each analysis.
+
+The caption is broken into lines for a figure at least 7 inches wide.
 }
 \section{Designs with several treatments}{
 
