@@ -56,6 +56,18 @@ test_that("unadjusted marginal risks are the cell proportions", {
   or_sens <- m$effects$estimate[m$effects$scale == "Odds ratio" &
                                   m$effects$contrast == "Pretest x Treatment"]
   expect_equal(log(or_sens), unname(stats::coef(fit$model)[["treat:pretested"]]), tolerance = 1e-6)
+
+  # So does the pretest effect among controls equal the pretesting
+  # coefficient (#104), and among treated participants the pretesting
+  # coefficient plus the interaction.
+  or <- m$effects[m$effects$scale == "Odds ratio", ]
+  b <- stats::coef(fit$model)
+  expect_equal(log(or$estimate[or$contrast == "Pretest effect | control"]),
+               unname(b[["pretested"]]), tolerance = 1e-6)
+  expect_equal(log(or$estimate[or$contrast == "Pretest effect | treated"]),
+               unname(b[["pretested"]] + b[["treat:pretested"]]), tolerance = 1e-6)
+  expect_equal(or$estimate[or$contrast == "Pretest effect | control"],
+               odds(76 / 148) / odds(69 / 133), tolerance = 1e-6)
 })
 
 
@@ -78,9 +90,10 @@ test_that("pretest-adjusted risks are standardized over pretested participants",
   fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre, family = stats::binomial())))
   m <- marginal_solomon(fit, method = "delta")
 
+  # The model's pretest is centered at fit$pretest_mean (#104).
   pre <- d[d$pretested == 1, ]
   predict_risk <- function(t) {
-    nd <- data.frame(treat = t, pretested = 1L, pre_obs = pre$y_pre)
+    nd <- data.frame(treat = t, pretested = 1L, pre_obs = pre$y_pre - fit$pretest_mean)
     mean(stats::predict(fit$model, newdata = nd, type = "response"))
   }
   expect_equal(m$risks$risk[1:2], c(predict_risk(1L), predict_risk(0L)), tolerance = 1e-10)
@@ -98,6 +111,30 @@ test_that("pretest-adjusted risks are standardized over pretested participants",
   rr <- m$effects[m$effects$scale == "Risk ratio", ]
   expect_equal(rr$estimate[rr$contrast == "ATE (avg over pretest)"],
                ((r[1] + r[3]) / 2) / ((r[2] + r[4]) / 2), tolerance = 1e-10)
+
+  # So do the pretest effects (#104): pretested against unpretested risks,
+  # among controls, among treated participants, and averaged over equal
+  # numbers of each.
+  expect_identical(unique(rd$contrast),
+                   c("ATE (avg over pretest)", "Pretest x Treatment", "Treatment | pretested",
+                     "Treatment | unpretested", "Pretest effect | control",
+                     "Pretest effect | treated", "Pretest main effect"))
+  expect_equal(rd$estimate[rd$contrast == "Pretest effect | control"], r[2] - r[4], tolerance = 1e-10)
+  expect_equal(rd$estimate[rd$contrast == "Pretest effect | treated"], r[1] - r[3], tolerance = 1e-10)
+  expect_equal(rd$estimate[rd$contrast == "Pretest main effect"],
+               (r[1] + r[2]) / 2 - (r[3] + r[4]) / 2, tolerance = 1e-10)
+  expect_equal(rr$estimate[rr$contrast == "Pretest main effect"],
+               ((r[1] + r[2]) / 2) / ((r[3] + r[4]) / 2), tolerance = 1e-10)
+  or <- m$effects[m$effects$scale == "Odds ratio", ]
+  expect_equal(or$estimate[or$contrast == "Pretest effect | control"],
+               odds(r[2]) / odds(r[4]), tolerance = 1e-10)
+  # The treated and control pretest effects differ by the interaction.
+  expect_equal(rd$estimate[rd$contrast == "Pretest effect | treated"] -
+                 rd$estimate[rd$contrast == "Pretest effect | control"],
+               rd$estimate[rd$contrast == "Pretest x Treatment"], tolerance = 1e-10)
+  # The delta-method standard error of the pretest effect among controls
+  # combines the two cells: the unpretested cell is a proportion.
+  expect_true(all(is.finite(rd$std.error)))
 })
 
 
@@ -226,13 +263,15 @@ test_that("clustered fits use CR2 delta-method intervals with Satterthwaite t (#
   b <- stats::coef(fit$model)
   X <- stats::model.matrix(fit$model)
   pre <- as.integer(X[, "pretested"])
+  # Seven contrasts on each scale: the four treatment contrasts and the
+  # three pretest effects (#104).
   g <- vapply(seq_along(b), function(j) {
     h <- 1e-6 * max(1, abs(b[[j]]))
     up <- b; up[j] <- up[j] + h
     dn <- b; dn[j] <- dn[j] - h
     (.marginal_all(up, X, pre, "difference") - .marginal_all(dn, X, pre, "difference")) / (2 * h)
-  }, numeric(4))
-  g <- matrix(g, nrow = 4, dimnames = list(NULL, names(b)))
+  }, numeric(7))
+  g <- matrix(g, nrow = 7, dimnames = list(NULL, names(b)))
   fit_cr <- stats::glm(stats::formula(fit$model), data = stats::model.frame(fit$model),
                        family = stats::binomial())
   df1 <- as.data.frame(clubSandwich::linear_contrast(fit_cr, vcov = fit$vcov,
@@ -242,6 +281,14 @@ test_that("clustered fits use CR2 delta-method intervals with Satterthwaite t (#
   expect_equal(row$df, df1, tolerance = 1e-8)
   expect_equal(row$conf.high - row$estimate, stats::qt(0.975, df1) * row$std.error, tolerance = 1e-8)
   expect_equal(row$p.value, 2 * stats::pt(-abs(row$estimate / row$std.error), df1), tolerance = 1e-10)
+
+  # The pretest effect among controls likewise (#104).
+  df5 <- as.data.frame(clubSandwich::linear_contrast(fit_cr, vcov = fit$vcov,
+                                                     contrasts = g[5, , drop = FALSE],
+                                                     test = "Satterthwaite"))$df
+  row5 <- m$effects[m$effects$contrast == "Pretest effect | control", ]
+  expect_equal(row5$estimate, prop(0, 1) - prop(0, 0), tolerance = 1e-8)
+  expect_equal(row5$df, df5, tolerance = 1e-8)
 })
 
 test_that("clustered count fits are refused until validated (#64)", {
@@ -269,6 +316,8 @@ test_that("cluster-level summaries follow Hayes and Moulton (2017) with whole cl
   m <- marginal_solomon(fit, method = "cluster_summary")
   expect_identical(m$method, "cluster_summary")
   expect_identical(unique(m$effects$scale), "Risk difference")
+  # The four treatment contrasts only, which the study validated (#104).
+  expect_identical(m$effects$contrast, .solomon_contrast_order)
 
   p_cl <- tapply(y, cluster, mean)
   cell_of <- tapply(cells[cluster], cluster, `[`, 1)

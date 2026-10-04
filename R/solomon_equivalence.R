@@ -15,11 +15,34 @@
 #' smallest change in posttest scores that would alter a conclusion, or from
 #' prior research.
 #'
-#' Bounds are on the raw posttest scale. To use a standardized SESOI (for
+#' Bounds are on the scale of the contrast, which the printed result names:
+#' outcome units for a linear model (an identity link) and for
+#' [fit_solomon_ml()], log odds ratios for a logistic model, and log rate
+#' ratios for a Poisson or negative-binomial model. Bounds must be set on the
+#' scale of the estimand (Lakens, 2017): bounds of 0.5 on a logistic fit
+#' are odds ratios of 0.61 to 1.65. To use a standardized SESOI (for
 #' example, d = 0.2), multiply it by a standard deviation fixed in advance,
 #' such as one reported in prior studies. Do not use the standard deviation of
 #' the current data: the same standardized bound then implies different raw
 #' bounds in different samples (Lakens, 2017).
+#'
+#' @section Link scales:
+#' With a pretest covariate, some link-scale contrasts do not compare like
+#' with like, and a classed warning (`solomonR_link_scale_warning`) says so:
+#' - the Pretest x Treatment contrast on a noncollapsible link, such as the
+#'   logit, compares a treatment effect conditional on the pretest (pretested
+#'   participants) with a marginal one (unpretested participants), which
+#'   differ whenever the pretest predicts the outcome, even without
+#'   sensitization (Daniel et al., 2021). The log link is collapsible, so its
+#'   Pretest x Treatment contrast, a ratio of rate ratios, is not affected.
+#' - the pretest effects on any link but the identity compare the pretested
+#'   participants' fitted mean at the mean pretest with the unpretested
+#'   participants' mean, which differ under a nonlinear link even when the
+#'   pretest has no effect; see the section "The pretest effect" of
+#'   [fit_solomon_glm()].
+#'
+#' [marginal_solomon()] estimates these contrasts on a common scale, from
+#' standardized risks or rates.
 #'
 #' @section Inference:
 #' Each one-sided test uses the estimate, standard error, and reference
@@ -54,22 +77,28 @@
 #' as `"RP vs Control"`; it may be left out only when the fit has a single
 #' comparison. The test uses that comparison's estimate of the chosen
 #' contrast and its standard error. It is not adjusted for the other
-#' comparisons of the design.
+#' comparisons of the design. For the pretest effects, `comparison` names
+#' the condition: a treatment for `"Pretest effect | treated"`; the control
+#' and `"All conditions"` (for `"Pretest main effect"`) are chosen
+#' automatically.
 #'
 #' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()].
-#' @param bounds Equivalence bounds on the raw posttest scale: one positive
-#'   number `delta`, giving `c(-delta, delta)`, or `c(lower, upper)` with
-#'   `lower < 0 < upper`. There is no default; bounds must be chosen in
-#'   advance.
-#' @param contrast Solomon contrast to test. Default is
-#'   `"Pretest x Treatment"`.
+#' @param bounds Equivalence bounds on the scale of the contrast (see
+#'   "Choosing equivalence bounds"): one positive number `delta`, giving
+#'   `c(-delta, delta)`, or `c(lower, upper)` with `lower < 0 < upper`.
+#'   There is no default; bounds must be chosen in advance.
+#' @param contrast Solomon contrast to test: one of the contrasts of
+#'   `fit$effects`, including the pretest effects (`"Pretest effect |
+#'   control"`, `"Pretest effect | treated"`, and `"Pretest main effect"`).
+#'   Default is `"Pretest x Treatment"`.
 #' @param alpha Significance level for each one-sided test. Default is 0.05.
 #' @param comparison For a design with several treatments, the comparison to
 #'   test, one of the `comparison` values of `fit$effects` (see "Designs with
 #'   several treatments"). Leave it `NULL` for a four-group design.
 #' @param object `r lifecycle::badge("deprecated")` Use `fit`.
-#' @return An object of class `solomon_equivalence` containing the estimate,
-#'   standard error, degrees of freedom, both one-sided tests
+#' @return An object of class `solomon_equivalence` containing the `scale`
+#'   of the contrast (such as `"outcome units"` or `"log odds ratio"`), the
+#'   estimate, standard error, degrees of freedom, both one-sided tests
 #'   (`t_lower`, `p_lower`, `t_upper`, `p_upper`), the equivalence p-value
 #'   (`p_equivalence`), the test against zero (`statistic`, `p_zero`), both
 #'   confidence intervals, the logical results `equivalent`, `different`, and
@@ -77,6 +106,11 @@
 #'   For a design with several treatments, it also holds the `comparison`,
 #'   its `weights` over the conditions, and the `conditions` of the fit.
 #' @references
+#' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+#' Comparing noncollapsible effect estimators and their standard errors after
+#' adjustment for different covariate sets. *Biometrical Journal, 63*(3),
+#' 528–557. https://doi.org/10.1002/bimj.201900297
+#'
 #' Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 #' correlations, and meta-analyses. *Social Psychological and Personality
 #' Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177
@@ -139,19 +173,29 @@ equivalence_solomon <- function(
 
   bounds <- .equivalence_bounds(bounds)
 
-  if (!is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
-      alpha <= 0 || alpha >= 0.5) {
-    stop("`alpha` must be a single number between 0 and 0.5.", call. = FALSE)
-  }
+  .check_tost_alpha(alpha)
 
   effects <- fit$effects
+  pretest <- length(contrast) == 1L && contrast %in% .solomon_pretest_order
 
   if (ngroup) {
-    comparisons <- unique(effects$comparison)
+    # The treatment contrasts are estimated for each comparison and the
+    # pretest effects for each condition, named in `comparison`.
+    pick <- if (length(contrast) == 1L && contrast %in% effects$contrast) {
+      effects$contrast == contrast
+    } else {
+      effects$contrast %in% .solomon_contrast_order
+    }
+    comparisons <- unique(effects$comparison[pick])
     if (is.null(comparison)) {
       if (length(comparisons) > 1L) {
         stop(
-          "This design has several comparisons; choose one with `comparison`: ",
+          if (pretest) {
+            "The pretest effect among treated participants is estimated for each treatment; "
+          } else {
+            "This design has several comparisons; "
+          },
+          "choose one with `comparison`: ",
           paste(dQuote(comparisons, FALSE), collapse = ", "), ".",
           call. = FALSE
         )
@@ -193,12 +237,16 @@ equivalence_solomon <- function(
   }
   df <- if ("df" %in% names(row)) row$df else Inf
 
+  .warn_link_scale(fit, contrast)
+
   result <- .tost(row$estimate, row$std.error, df, bounds, alpha)
 
   head <- list(contrast = contrast)
   if (ngroup) {
     head$comparison <- comparison
-    head$weights <- fit$weights[comparison, ]
+    # A pretest effect is of one condition (or of all), not a comparison
+    # with weights.
+    if (!pretest) head$weights <- fit$weights[comparison, ]
     head$conditions <- fit$conditions
   }
 
@@ -207,6 +255,7 @@ equivalence_solomon <- function(
     list(
       bounds = bounds,
       alpha = alpha,
+      scale = if (inherits(fit, "solomon_ml")) "outcome units" else .contrast_scale(fit$family),
       estimate = row$estimate,
       std.error = row$std.error,
       df = df,
@@ -222,6 +271,17 @@ equivalence_solomon <- function(
   out$interpretation <- .equivalence_message(out)
 
   structure(out, class = "solomon_equivalence")
+}
+
+
+# The significance level of each one-sided test of a TOST. Used by
+# equivalence_solomon() and plot_solomon_effects().
+.check_tost_alpha <- function(alpha) {
+  if (!is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
+      alpha <= 0 || alpha >= 0.5) {
+    stop("`alpha` must be a single number between 0 and 0.5.", call. = FALSE)
+  }
+  invisible(alpha)
 }
 
 
@@ -338,10 +398,16 @@ print.solomon_equivalence <- function(x, digits = 3, ...) {
 
   cat("Solomon equivalence test (TOST)\n")
   cat("Contrast: ", x$contrast, "\n", sep = "")
-  if (!is.null(x$comparison)) cat("Comparison: ", x$comparison, "\n", sep = "")
+  if (!is.null(x$comparison)) {
+    what <- if (x$contrast %in% .solomon_pretest_order) "Condition" else "Comparison"
+    cat(what, ": ", x$comparison, "\n", sep = "")
+  }
+  # Objects made by earlier versions have no scale; their fits were not
+  # recorded with them, so the scale is not guessed.
+  scale <- if (is.null(x$scale)) "scale of the fit" else .scale_label(x$scale)
   cat(sprintf(
-    "Equivalence bounds (raw scale): [%.*f, %.*f]; alpha = %s\n",
-    digits, x$bounds[["lower"]], digits, x$bounds[["upper"]], format(x$alpha)
+    "Equivalence bounds (%s): [%.*f, %.*f]; alpha = %s\n",
+    scale, digits, x$bounds[["lower"]], digits, x$bounds[["upper"]], format(x$alpha)
   ))
   cat("Inference: ", x$inference, "\n\n", sep = "")
 

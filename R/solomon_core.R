@@ -83,6 +83,24 @@ NULL
 
 # ---- helpers ----
 
+# The mean pretest among the pretested participants a model uses: the
+# complete cases of `df`, which holds the model's variables, including the
+# uncentered `pre_obs`. fit_solomon_glm(), its several-treatment path, and
+# fit_solomon_mmrm() center the pretest at this mean, as fit_solomon_ml()
+# does (van Engelenburg, 1999), so that the pretesting coefficient compares
+# pretested and unpretested participants at the pretested participants'
+# mean pretest (issue #104). Centering changes neither the fitted values nor
+# the treatment contrasts. Without any analyzable pretested participant
+# there is nothing to center, and the model's own checks report the problem.
+.pretest_center <- function(df) {
+  used <- stats::complete.cases(df) & df$pretested %in% 1
+  if (!any(used)) return(0)
+  mean(df$pre_obs[used])
+}
+
+# NA for an element that objects made by earlier versions lack.
+.null_na <- function(x) if (is.null(x)) NA_real_ else x
+
 #' Convert p-value to Z (one-tailed) for Stouffer's method
 #'
 #' `r lifecycle::badge("stable")`
@@ -149,11 +167,19 @@ stouffer_solomon <- function(p) {
 #' Fits one generalized linear model to all four Solomon groups and reports
 #' four Solomon contrasts: the equal-weighted average treatment effect, the
 #' Pretest x Treatment (sensitization) contrast, and the treatment effect
-#' within each pretesting condition.
+#' within each pretesting condition. It also reports the pretest (testing)
+#' effect among controls, among treated participants, and averaged over the
+#' two (see "The pretest effect").
 #'
-#' When `y_pre` is supplied, it enters the model as `pre_obs`, equal
-#' to the pretest score in the pretested groups and 0 in the unpretested
-#' groups, so the structurally absent pretests do not remove Groups 3 and 4.
+#' When `y_pre` is supplied, it enters the model as `pre_obs`: in the
+#' pretested groups, the pretest score minus the mean pretest of the
+#' pretested participants in the model (returned as `pretest_mean`), and in
+#' the unpretested groups 0, so the structurally absent pretests do not
+#' remove Groups 3 and 4. Centering changes neither the fitted values nor the
+#' treatment contrasts; it makes the pretesting coefficient the pretest effect
+#' among controls at that mean, as in [fit_solomon_ml()]. Without centering,
+#' the coefficient would compare the groups at a pretest score of zero, far
+#' outside the data.
 #' Regression adjustment for baseline covariates in randomized experiments,
 #' and the case for pairing it with heteroskedasticity-robust standard errors,
 #' is discussed by Lin (2013). Pretested participants with a missing pretest
@@ -249,6 +275,41 @@ stouffer_solomon <- function(p) {
 #' method (Steiger, 2004) and are reported only for conventional Gaussian
 #' fits; no corresponding interval is available with robust covariance.
 #'
+#' @section The pretest effect:
+#' Solomon (1949) added the unpretested groups to separate the effect of
+#' taking the pretest from the effect of the treatment, and Campbell and
+#' Stanley (1963/1966, p. 25) list the main effect of testing among the
+#' quantities the design estimates. The effects table reports it after the
+#' four treatment contrasts, as pretested minus unpretested participants:
+#' - `Pretest effect | control`: among control participants;
+#' - `Pretest effect | treated`: among treated participants;
+#' - `Pretest main effect`: the equal-weighted average of the two.
+#'
+#' The two pretest effects differ by the Pretest x Treatment contrast: an
+#' interaction can be read as a treatment effect that depends on pretesting
+#' or as a pretest effect that depends on treatment.
+#'
+#' With `y_pre`, the pretested groups are compared with the unpretested
+#' groups at the pretested participants' mean pretest, where the centered
+#' pretest is zero. Unpretested participants were never measured, but with
+#' random assignment their expected pretest equals that of the pretested
+#' participants, whose combined mean is its best estimate (Solomon & Lessac,
+#' 1968, pp. 146--147). Each pretest effect is therefore the pretest-adjusted
+#' mean of a pretested group minus the mean of the unpretested group in the
+#' same treatment condition: the differences between the adjusted means that
+#' [plot_sensitization()] draws. Without `y_pre`, the pretest effects are
+#' differences between the fitted cell means.
+#'
+#' On a link other than the identity, with `y_pre`, the pretest effects
+#' compare the pretested participants' fitted mean at the mean pretest with
+#' the unpretested participants' mean over their unmeasured pretests. With a
+#' nonlinear link, a mean at the average pretest is not the average of the
+#' means over the pretests, so these contrasts differ from the marginal pretest
+#' effect even when the pretest has no effect. This holds for the log link
+#' too, although its treatment rate ratios are collapsible.
+#' [marginal_solomon()] estimates the pretest effects on a common scale, from
+#' standardized risks or rates (Daniel et al., 2021).
+#'
 #' @section Designs with several treatments:
 #' A Solomon N-group design crosses k treatments and a control with
 #' pretesting, giving 2(k + 1) groups: six for two treatments and eight for
@@ -272,6 +333,15 @@ stouffer_solomon <- function(p) {
 #' Holm's (1979) procedure by default. It controls the familywise error rate
 #' "for any combination of true hypotheses" (p. 65). The confidence
 #' intervals are not adjusted. The result has class `solomon_ngroup`.
+#'
+#' The effects table ends with the pretest effect in each condition (see
+#' "The pretest effect"), with `comparison` naming the condition:
+#' `Pretest effect | control` for the control and `Pretest effect | treated`
+#' for each treatment, whose p-values are adjusted across the treatments.
+#' The `Pretest main effect`, with `comparison` `"All conditions"`, is their
+#' equal-weighted average over the k + 1 conditions, the main effect of
+#' pretesting that Steyn (2009) tests for a testing effect, here adjusted
+#' for the pretest score.
 #'
 #' Published studies with several treatments analyzed them as overlapping
 #' four-group designs: one for each treatment against the control (McCarthy &
@@ -351,8 +421,10 @@ stouffer_solomon <- function(p) {
 #'   confidence limits `conf.low` and `conf.high`), the covariance matrix,
 #'   the Pearson dispersion statistic for binomial, Poisson, and
 #'   negative-binomial fits, `theta` (its estimate, standard error, and
-#'   \eqn{\alpha = 1/\theta}) for negative-binomial fits, and the settings
-#'   used.
+#'   \eqn{\alpha = 1/\theta}) for negative-binomial fits, `pretest_mean`
+#'   (the mean pretest at which the pretest is centered; `NA` without
+#'   `y_pre`), and the settings used. The contrast table, `effects`, has the
+#'   four treatment contrasts followed by the three pretest effects.
 #'
 #'   For a design with several treatments, an object of class
 #'   `solomon_ngroup`, with the same elements and these changes: `effects`
@@ -369,6 +441,10 @@ stouffer_solomon <- function(p) {
 #' Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
 #' (2nd ed.). Cambridge University Press.
 #' https://doi.org/10.1017/CBO9781139013567
+#'
+#' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+#' quasi-experimental designs for research*. Rand McNally. (Original work
+#' published 1963)
 #'
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after
@@ -421,6 +497,10 @@ stouffer_solomon <- function(p) {
 #'
 #' Solomon, R. L. (1949). An extension of control group design. *Psychological
 #' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+#'
+#' Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+#' experimental studies of developmental processes. *Psychological Bulletin,
+#' 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 #'
 #' Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals
 #' and tests of close fit in the analysis of variance and contrast analysis.
@@ -577,6 +657,15 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
+  # Center the pretest at its mean among the pretested participants in the
+  # model, so that the pretesting coefficient compares pretested and
+  # unpretested participants at that score (issue #104).
+  pretest_mean <- NA_real_
+  if (!is.null(y_pre)) {
+    pretest_mean <- .pretest_center(df)
+    df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
+  }
+
   if (negbin) {
     fit <- .fit_negbin(fml, df)
     family <- stats::family(fit)
@@ -703,100 +792,47 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   L_un <- Z()
   L_un["treat"] <- 1
 
-  c_ate <- lin_contrast(L_ate)
-  c_int <- lin_contrast(L_int)
-  c_pre <- lin_contrast(L_pre)
-  c_un  <- lin_contrast(L_un)
+  # The pretest (testing) effects, pretested minus unpretested participants
+  # with the centered pretest at zero, that is, at the pretested
+  # participants' mean pretest (issue #104):
+  # among controls, beta_pretested; among treated participants,
+  # beta_pretested + beta_treat:pretested; and their equal-weighted average.
+  L_pc <- Z()
+  L_pc["pretested"] <- 1
+  L_pt <- L_pc
+  L_pm <- L_pc
+  if ("treat:pretested" %in% cn) {
+    L_pt["treat:pretested"] <- 1
+    L_pm["treat:pretested"] <- 0.5
+  }
+
+  Ls <- stats::setNames(
+    list(L_ate, L_int, L_pre, L_un, L_pc, L_pt, L_pm),
+    c(.solomon_contrast_order, .solomon_pretest_order)
+  )
 
   # Wald-based partial R^2 for each contrast (intervals only for
   # conventional covariance)
   conventional <- robust == "none"
-  r2_ate <- contrast_r2_ci(fit, L_ate, vcovM, conf_level, conventional)
-  r2_int <- contrast_r2_ci(fit, L_int, vcovM, conf_level, conventional)
-  r2_pre <- contrast_r2_ci(fit, L_pre, vcovM, conf_level, conventional)
-  r2_un  <- contrast_r2_ci(fit, L_un,  vcovM, conf_level, conventional)
-
-  effects <- data.frame(
-    contrast = c(
-      "ATE (avg over pretest)",
-      "Pretest x Treatment",
-      "Treatment | pretested",
-      "Treatment | unpretested"
-    ),
-
-    estimate = c(
-      unname(c_ate["estimate"]),
-      unname(c_int["estimate"]),
-      unname(c_pre["estimate"]),
-      unname(c_un["estimate"])
-    ),
-
-    std.error = c(
-      unname(c_ate["std.error"]),
-      unname(c_int["std.error"]),
-      unname(c_pre["std.error"]),
-      unname(c_un["std.error"])
-    ),
-
-    statistic = c(
-      unname(c_ate["statistic"]),
-      unname(c_int["statistic"]),
-      unname(c_pre["statistic"]),
-      unname(c_un["statistic"])
-    ),
-
-    p.value = c(
-      unname(c_ate["p.value"]),
-      unname(c_int["p.value"]),
-      unname(c_pre["p.value"]),
-      unname(c_un["p.value"])
-    ),
-
-    df = c(
-      unname(c_ate["df"]),
-      unname(c_int["df"]),
-      unname(c_pre["df"]),
-      unname(c_un["df"])
-    ),
-
-    conf.low = c(
-      unname(c_ate["conf.low"]),
-      unname(c_int["conf.low"]),
-      unname(c_pre["conf.low"]),
-      unname(c_un["conf.low"])
-    ),
-
-    conf.high = c(
-      unname(c_ate["conf.high"]),
-      unname(c_int["conf.high"]),
-      unname(c_pre["conf.high"]),
-      unname(c_un["conf.high"])
-    ),
-
-    r2 = c(
-      r2_ate$r2,
-      r2_int$r2,
-      r2_pre$r2,
-      r2_un$r2
-    ),
-
-    r2_lo = c(
-      r2_ate$r2_lo,
-      r2_int$r2_lo,
-      r2_pre$r2_lo,
-      r2_un$r2_lo
-    ),
-
-    r2_hi = c(
-      r2_ate$r2_hi,
-      r2_int$r2_hi,
-      r2_pre$r2_hi,
-      r2_un$r2_hi
-    ),
-
-    row.names = NULL,
-    stringsAsFactors = FALSE
-  )
+  effects <- do.call(rbind, lapply(names(Ls), function(label) {
+    est <- lin_contrast(Ls[[label]])
+    r2 <- contrast_r2_ci(fit, Ls[[label]], vcovM, conf_level, conventional)
+    data.frame(
+      contrast = label,
+      estimate = unname(est["estimate"]),
+      std.error = unname(est["std.error"]),
+      statistic = unname(est["statistic"]),
+      p.value = unname(est["p.value"]),
+      df = unname(est["df"]),
+      conf.low = unname(est["conf.low"]),
+      conf.high = unname(est["conf.high"]),
+      r2 = r2$r2,
+      r2_lo = r2$r2_lo,
+      r2_hi = r2$r2_hi,
+      stringsAsFactors = FALSE
+    )
+  }))
+  rownames(effects) <- NULL
 
   if (robust == "CR2") {
     small_df <- is.finite(effects$df) & effects$df < 4
@@ -819,6 +855,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = vcovM,
     data = df,
+    pretest_mean = pretest_mean,
     robust = robust,
     family = family,
     cluster = cluster,
@@ -918,7 +955,15 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' @param contrast Character string identifying the contrast to test. One of
 #'   \code{"ATE (avg over pretest)"}, \code{"Pretest x Treatment"},
 #'   \code{"Treatment | pretested"}, or
-#'   \code{"Treatment | unpretested"}.
+#'   \code{"Treatment | unpretested"}. The pretest effects of the fit are not
+#'   tested: permuting treatment labels says nothing about them, and with a
+#'   pretest covariate the pretest labels cannot be permuted. For a binary
+#'   fit with a pretest covariate on a noncollapsible link such as the logit,
+#'   \code{"Pretest x Treatment"} gives a classed warning
+#'   (`solomonR_link_scale_warning`): on that scale the contrast is nonzero
+#'   whenever the pretest predicts the outcome, even without sensitization
+#'   (Daniel et al., 2021), so a rejection need not reflect sensitization;
+#'   see [marginal_solomon()].
 #' @param reps Number of permutations. Default is 5000. In clustered designs
 #'   with at most `reps` possible allocations, every allocation is used.
 #' @param seed Optional random-number seed for reproducibility. The global
@@ -945,6 +990,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' analysis of incidence rates in cluster randomized trials. *International
 #' Journal of Epidemiology, 31*(4), 839–846.
 #' https://doi.org/10.1093/ije/31.4.839
+#'
+#' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+#' Comparing noncollapsible effect estimators and their standard errors after
+#' adjustment for different covariate sets. *Biometrical Journal, 63*(3),
+#' 528–557. https://doi.org/10.1002/bimj.201900297
 #'
 #' DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
 #' correlation and regression coefficients. *Journal of the American Statistical
@@ -1007,12 +1057,26 @@ perm_solomon <- function(
     "Treatment | unpretested"
   )
 
+  if (length(contrast) == 1L && contrast %in% .solomon_pretest_order) {
+    stop(
+      "perm_solomon() permutes treatment labels within pretest conditions, so it ",
+      "tests the treatment contrasts, not the pretest effects, which compare the ",
+      "pretest conditions. With a pretest covariate, pretest labels cannot be ",
+      "permuted, because unpretested participants have no pretest score. The fit's ",
+      "own tests of the pretest effects are in `fit$effects`.",
+      call. = FALSE
+    )
+  }
+
   if (!contrast %in% valid_contrasts) {
     stop(
       "Unknown contrast. Choose one of: ",
       paste(valid_contrasts, collapse = ", ")
     )
   }
+
+  # The Pretest x Treatment contrast on a noncollapsible link (issue #114).
+  .warn_link_scale(fit, contrast)
 
   reps <- as.integer(reps)
 

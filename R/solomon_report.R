@@ -89,10 +89,64 @@
     "Treatment | pretested" = "the treatment effect among pretested participants",
     "Pre_Eff" = "the treatment effect among pretested participants",
     "Treatment | unpretested" = "the treatment effect among unpretested participants",
-    "Unpre_Eff" = "the treatment effect among unpretested participants"
+    "Unpre_Eff" = "the treatment effect among unpretested participants",
+    "Pretest effect | control" = "the pretest effect among control participants (pretested compared with unpretested)",
+    "Pretest effect | treated" = "the pretest effect among treated participants (pretested compared with unpretested)",
+    "Pretest main effect" = "the pretest main effect (pretested compared with unpretested participants, averaged over treatment and control)"
   )
   out <- phrase[contrast]
   ifelse(is.na(out), contrast, out)
+}
+
+# One sentence for the pretest effects of a four-group fit (issue #104): the
+# rows "Pretest effect | control", "Pretest effect | treated", and "Pretest
+# main effect" of `eff`. `center` is the mean pretest at which the pretested
+# groups were compared (NA without a pretest covariate); `ratio` words the
+# comparison for ratio scales. Returns character(0) when `eff` has no
+# pretest effects.
+.pretest_sentence <- function(eff, level, digits, md, center = NA_real_, ratio = FALSE,
+                              prefix = "") {
+  rows <- eff[match(.solomon_pretest_order, eff$contrast), , drop = FALSE]
+  if (anyNA(rows$contrast)) return(character(0))
+  part <- function(i, where = NULL) .effect_clause(rows[i, ], level, digits, md, where = where)
+  versus <- if (ratio) {
+    "pretested relative to unpretested participants"
+  } else {
+    "pretested minus unpretested participants"
+  }
+  at <- if (is.finite(center)) {
+    sprintf(", at the pretested participants' mean pretest score of %s", .apa_num(center, digits))
+  } else {
+    ""
+  }
+  sprintf(
+    "%s (%s%s) was %s, and %s; their average, the pretest main effect, was %s.",
+    if (nzchar(prefix)) prefix else "The pretest effect", versus, at,
+    part(1, "among control participants"), part(2, "among treated participants"), part(3)
+  )
+}
+
+# "estimate where, CI, test, p" for one row of an effects table; `where`
+# follows the estimate, as in "3.42 among control participants", `p` names
+# the p-value column, and `p_label` follows it, as in "Holm-adjusted".
+.effect_clause <- function(r, level, digits, md, p = "p.value", p_label = NULL, where = NULL) {
+  test <- if (!is.null(r$statistic) && is.finite(r$statistic)) {
+    df <- if (!is.null(r$df)) r$df else Inf
+    paste0(.apa_stat(r$statistic, df, md, NULL, digits), ", ")
+  } else {
+    ""
+  }
+  paste0(.apa_num(r$estimate, digits), if (!is.null(where)) paste0(" ", where), ", ",
+         .apa_ci(r$conf.low, r$conf.high, level, digits), ", ", test, .apa_p(r[[p]], md),
+         if (!is.null(p_label)) paste0(", ", p_label))
+}
+
+# Treatment-contrast sentences followed by the pretest-effect sentence, for
+# the effects table of a four-group fit.
+.four_group_sentences <- function(eff, level, digits, md, center = NA_real_, ratio = FALSE) {
+  treatment <- eff[!eff$contrast %in% .solomon_pretest_order, , drop = FALSE]
+  c(.contrast_sentences(treatment, level, digits, md),
+    .pretest_sentence(eff, level, digits, md, center, ratio))
 }
 
 # Who a comparison of a design with several treatments compares. A
@@ -128,6 +182,15 @@
 # treatments. The phrases keep the words "treatment effect", which
 # .nonrandom_wording() rewrites for nonrandomized designs.
 .ngroup_contrast_phrase <- function(contrast, comparison, weights = NULL) {
+  # The pretest effects are by condition: `comparison` names the condition.
+  if (contrast %in% .solomon_pretest_order[1:2]) {
+    return(sprintf("the pretest effect in the %s condition (pretested compared with unpretested)",
+                   comparison))
+  }
+  if (identical(contrast, .solomon_pretest_order[3])) {
+    return(paste("the pretest main effect (pretested compared with unpretested participants,",
+                 "averaged over the conditions)"))
+  }
   who <- .comparison_clause(comparison, weights)
   of <- if (startsWith(who, "the comparison")) paste("for", who) else paste("of", who)
   phrase <- switch(
@@ -220,12 +283,25 @@
   } else {
     "a linear model"
   }
-  scale <- if (fam == "binomial" && link == "logit") {
-    " Contrasts are on the log-odds scale."
-  } else if (link == "log") {
-    " Contrasts are log rate ratios."
-  } else {
-    ""
+  # The scale of the contrasts (issue #114).
+  scale_name <- .contrast_scale(fit$family)
+  scale <- switch(
+    scale_name,
+    "outcome units" = "",
+    "log odds ratio" = " Contrasts are on the log-odds scale (log odds ratios).",
+    "log rate ratio" = " Contrasts are log rate ratios.",
+    "log risk ratio" = " Contrasts are log risk ratios.",
+    "log ratio of means" = " Contrasts are log ratios of means.",
+    sprintf(" Contrasts are on the %s scale.", scale_name)
+  )
+  # On a link other than the identity, the pretest effects compare a fitted
+  # mean at the mean pretest with a marginal mean (issue #104).
+  pretest_caution <- if (pre && !identical(link, "identity")) {
+    sprintf(paste0(
+      "On the %s scale, with the pretest as a covariate, the pretest effects compare ",
+      "pretested participants at the mean pretest score with unpretested participants ",
+      "as a whole, so they are not marginal pretest effects (Daniel et al., 2021)."
+    ), if (identical(link, "logit")) "log-odds" else paste(link, "link"))
   }
 
   covariance <- switch(
@@ -246,7 +322,7 @@
   } else {
     ""
   }
-  if (pre && !link %in% c("identity", "log")) refs <- c(refs, "daniel2021")
+  if (pre && !identical(link, "identity")) refs <- c(refs, "daniel2021")
 
   list(
     model = model,
@@ -254,6 +330,7 @@
     exposure = if (exposure) " and the log of exposure as an offset" else "",
     covariance = covariance,
     scale = scale,
+    pretest_caution = pretest_caution,
     refs = refs
   )
 }
@@ -277,7 +354,10 @@
 
   list(
     method = method,
-    results = .contrast_sentences(fit$effects, fit$conf_level, digits, md),
+    results = c(
+      .four_group_sentences(fit$effects, fit$conf_level, digits, md, .null_na(fit$pretest_mean)),
+      p$pretest_caution
+    ),
     table = fit$effects,
     refs = p$refs,
     cells = .cell_counts(fit$data$treat[used], fit$data$pretested[used])
@@ -401,7 +481,7 @@
   }
   e <- fit$effects
   for (cmp in comparisons) {
-    rows <- e[e$comparison == cmp, , drop = FALSE]
+    rows <- e[e$comparison == cmp & e$contrast %in% .solomon_contrast_order, , drop = FALSE]
     sentences <- vapply(seq_len(nrow(rows)), function(i) {
       r <- rows[i, ]
       p_text <- if (adjusted) {
@@ -418,6 +498,16 @@
     results <- c(results, paste(sentences, collapse = " "))
   }
 
+  # The pretest effect in each condition and averaged over the conditions
+  # (issue #104); the treatments' pretest effects are adjusted across the
+  # treatments.
+  pretest <- .ngroup_pretest_sentences(fit, digits, md)
+  if (length(pretest$results)) {
+    method <- paste(c(method, pretest$method), collapse = " ")
+    results <- c(results, pretest$results, p$pretest_caution)
+    refs <- c(refs, pretest$refs)
+  }
+
   used <- .glm_rows_used(fit)
 
   list(
@@ -428,6 +518,57 @@
     cells = .cell_counts(fit$data$condition[used], fit$data$pretested[used], conditions),
     groups = design$groups,
     design_text = design$design_text
+  )
+}
+
+# The method sentence, the results sentence, and the references for the
+# pretest effects of a design with several treatments (issue #104). Empty
+# for fits made by earlier versions, which have no pretest rows.
+.ngroup_pretest_sentences <- function(fit, digits, md) {
+  e <- fit$effects
+  rows <- e[e$contrast %in% .solomon_pretest_order, , drop = FALSE]
+  if (!nrow(rows)) return(list(method = NULL, results = NULL, refs = NULL))
+  level <- fit$conf_level
+  adjusted <- fit$adjust != "none"
+  label <- if (adjusted) switch(fit$adjust, holm = "Holm-adjusted", bonferroni = "Bonferroni-adjusted")
+  by_condition <- rows[rows$contrast != .solomon_pretest_order[3], , drop = FALSE]
+  clauses <- vapply(seq_len(nrow(by_condition)), function(i) {
+    r <- by_condition[i, ]
+    where <- sprintf("in the %s condition", r$comparison)
+    if (adjusted && r$contrast == .solomon_pretest_order[2]) {
+      .effect_clause(r, level, digits, md, "p.adjusted", label, where = where)
+    } else {
+      .effect_clause(r, level, digits, md, where = where)
+    }
+  }, "")
+  n <- length(clauses)
+  listed <- paste0(paste(clauses[-n], collapse = "; "), "; and ", clauses[n])
+  main <- rows[rows$contrast == .solomon_pretest_order[3], , drop = FALSE]
+  center <- .null_na(fit$pretest_mean)
+  at <- if (is.finite(center)) {
+    sprintf(", at the pretested participants' mean pretest score of %s", .apa_num(center, digits))
+  } else {
+    ""
+  }
+  k <- n - 1L
+  list(
+    method = if (adjusted) {
+      sprintf(paste0(
+        "The pretest effect was estimated in each condition, and the p-values of the %s ",
+        "treatments' pretest effects were adjusted with %s."
+      ), .number_word(k), switch(
+        fit$adjust,
+        holm = "Holm's (1979) procedure",
+        bonferroni = "the Bonferroni procedure (see Holm, 1979)"
+      ))
+    } else {
+      "The pretest effect was estimated in each condition."
+    },
+    results = sprintf(
+      "The pretest effect (pretested minus unpretested participants%s) was %s. Averaged over the conditions, the pretest main effect was %s.",
+      at, listed, .effect_clause(main, level, digits, md)
+    ),
+    refs = if (adjusted) "holm1979"
   )
 }
 
@@ -446,7 +587,8 @@
   )
   list(
     method = method,
-    results = .contrast_sentences(fit$effects, fit$conf_level, digits, md),
+    results = .four_group_sentences(fit$effects, fit$conf_level, digits, md,
+                                    .null_na(fit$pretest_mean)),
     table = fit$effects,
     refs = refs,
     cells = .cell_counts(fit$data$treat, fit$data$pretested)
@@ -606,8 +748,10 @@
   results <- unlist(lapply(unique(fit$effects$scale), function(sc) {
     e <- fit$effects[fit$effects$scale == sc, ]
     e$statistic <- NA_real_
+    ratio <- !grepl("difference", sc, fixed = TRUE)
     paste0("On the ", tolower(sc), " scale: ",
-           paste(.contrast_sentences(e, fit$conf_level, digits, md), collapse = " "))
+           paste(.four_group_sentences(e, fit$conf_level, digits, md, ratio = ratio),
+                 collapse = " "))
   }))
   list(method = method, results = results, table = fit$effects, refs = refs, cells = NULL)
 }
@@ -621,9 +765,12 @@
   } else {
     .contrast_phrase(fit$contrast)
   }
+  # The scale of the bounds (issue #114); objects made by earlier versions
+  # have none.
+  on_scale <- if (is.null(fit$scale)) "" else paste0(" ", .scale_phrase(fit$scale))
   method <- sprintf(
-    "Equivalence of %s was tested with two one-sided tests (Schuirmann, 1987; Lakens, 2017; Lakens et al., 2018) against bounds of [%s, %s], using the standard error of the fitted model.",
-    phrase, .apa_num(fit$bounds[1], digits), .apa_num(fit$bounds[2], digits)
+    "Equivalence of %s was tested with two one-sided tests (Schuirmann, 1987; Lakens, 2017; Lakens et al., 2018) against bounds of [%s, %s]%s, using the standard error of the fitted model.",
+    phrase, .apa_num(fit$bounds[1], digits), .apa_num(fit$bounds[2], digits), on_scale
   )
   results <- sprintf(
     "The estimate was %s, %s; the larger one-sided %s. %s",
@@ -638,13 +785,21 @@
     conditions <- fit$conditions$condition[order(fit$conditions$role != "control")]
     design <- .ngroup_design_parts(conditions)
     # A comparison that is not one condition against another is named in
-    # the text, so its weights are stated.
-    defined <- if (startsWith(.comparison_clause(fit$comparison, fit$weights), "the comparison")) {
+    # the text, so its weights are stated. A pretest effect is of a
+    # condition and has no weights.
+    pretest <- fit$contrast %in% .solomon_pretest_order
+    defined <- if (!pretest &&
+                   startsWith(.comparison_clause(fit$comparison, fit$weights), "the comparison")) {
       sprintf("The comparison %s was defined by weights over the conditions (%s).",
               fit$comparison, .weights_phrase(fit$weights, conditions))
     }
     out$method <- paste(c(
-      method, defined, "The test was not adjusted for the other comparisons of the design."
+      method, defined,
+      if (pretest) {
+        "The test was not adjusted for the other conditions of the design."
+      } else {
+        "The test was not adjusted for the other comparisons of the design."
+      }
     ), collapse = " ")
     out$table <- cbind(data.frame(comparison = fit$comparison), table)
     out$refs <- c(out$refs, design$refs)
@@ -922,13 +1077,15 @@
   eff <- fit$effects
   results <- unlist(lapply(unique(eff$occasion), function(o) {
     e <- eff[eff$occasion == o, ]
-    s <- .contrast_sentences(e, fit$conf_level, digits, md)
-    change <- e$contrast == "Change in Pretest x Treatment"
+    treatment <- e[!e$contrast %in% .solomon_pretest_order, , drop = FALSE]
+    s <- .contrast_sentences(treatment, fit$conf_level, digits, md)
+    change <- treatment$contrast == "Change in Pretest x Treatment"
     s[!change] <- paste0("At occasion ", o, ", ", sub("^(.)", "\\L\\1", s[!change], perl = TRUE))
     s[change] <- sub("^Change in Pretest x Treatment",
                      sprintf("The change in the Pretest x Treatment interaction from occasion %s to occasion %s",
                              fit$occasions[1], fit$occasions[length(fit$occasions)]), s[change])
-    s
+    c(s, .pretest_sentence(e, fit$conf_level, digits, md, .null_na(fit$pretest_mean),
+                           prefix = sprintf("At occasion %s, the pretest effect", o)))
   }))
   list(method = method, results = results, table = eff, refs = refs,
        cells = .cell_counts(fit$data$treat, fit$data$pretested))

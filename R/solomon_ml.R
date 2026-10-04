@@ -83,6 +83,12 @@
 #' The model estimates the treatment effect, pretest effect,
 #' Treatment x Pretest interaction, pretest-posttest slope, and separate
 #' residual standard deviations for pretested and unpretested participants.
+#' The pretest enters as a deviation from its mean among pretested
+#' participants (returned as `pretest_mean`), so the pretest effect `bP`
+#' compares pretested and unpretested controls at that mean. The effects
+#' table reports the four Solomon contrasts and then the pretest effects
+#' among controls, among treated participants, and averaged over the two, as
+#' [fit_solomon_glm()] does (see its section "The pretest effect").
 #'
 #' @param y_post Numeric posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
@@ -140,7 +146,10 @@
 #' equal and unequal residual variances, at that size and every larger size
 #' studied.
 #'
-#' @return An object of class \code{solomon_ml}.
+#' @return An object of class \code{solomon_ml}, with the coefficients, the
+#'   `effects` table (the four Solomon contrasts, then the three pretest
+#'   effects), the residual standard deviations, `pretest_mean`, and the
+#'   settings used.
 #'
 #' @references
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
@@ -520,6 +529,17 @@ fit_solomon_ml <- function(
   L_ate["bT"] <- 1
   L_ate["bTP"] <- 0.5
 
+  # The pretest (testing) effects (issue #104): pretested minus unpretested
+  # participants with the centered pretest at zero, that is, at the pretested
+  # participants' mean pretest. Among controls bP; among treated
+  # participants bP + bTP; and their average.
+  L_pc <- Z()
+  L_pc["bP"] <- 1
+  L_pt <- L_pc
+  L_pt["bTP"] <- 1
+  L_pm <- L_pc
+  L_pm["bTP"] <- 0.5
+
   effects <- rbind(
     contrast(
       L_ate,
@@ -536,6 +556,18 @@ fit_solomon_ml <- function(
     contrast(
       L_un,
       "Treatment | unpretested"
+    ),
+    contrast(
+      L_pc,
+      "Pretest effect | control"
+    ),
+    contrast(
+      L_pt,
+      "Pretest effect | treated"
+    ),
+    contrast(
+      L_pm,
+      "Pretest main effect"
     )
   )
 

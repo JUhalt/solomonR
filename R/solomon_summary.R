@@ -8,7 +8,9 @@ summary.solomon_glm <- function(object, digits = 3, ...) {
     n_clusters = object$n_clusters,
     conf_level = object$conf_level,
     coefs      = object$coefficients,
-    effects    = object$effects
+    effects    = object$effects,
+    pretest_mean = object$pretest_mean,
+    family     = object$family
   )
   class(res) <- "summary.solomon_glm"
   res
@@ -21,6 +23,8 @@ print.summary.solomon_glm <- function(x, digits = 3, ...) {
   cat("Formula: ", .formula_line(x$formula), "\n", sep = "")
   cat("Covariance: ", .solomon_vcov_label(x), "\n\n", sep = "")
   .solomon_glm_tables(x$coefs, x$effects, digits, level)
+  if (is.finite(.null_na(x$pretest_mean))) cat("\n")
+  .glm_pretest_note(x, digits)
   invisible(x)
 }
 

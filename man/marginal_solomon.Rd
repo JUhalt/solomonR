@@ -73,8 +73,23 @@ effect within each pretest condition;
 of risk differences, or a ratio of risk ratios or of odds ratios);
 \item \verb{ATE (avg over pretest)}: the effect in a population with equal numbers
 of pretested and unpretested participants, computed from the averaged
+risks;
+\item \verb{Pretest effect | control} and \verb{Pretest effect | treated}: the pretested
+cell compared with the unpretested cell, among control and among
+treated participants (issue #104);
+\item \verb{Pretest main effect}: the pretest effect in a population with equal
+numbers of treated and control participants, computed from the averaged
 risks.
 }
+
+The pretest effects compare two different sets of participants, because
+the unpretested participants have no pretest from which to predict their
+risk had they been pretested. Each set is standardized over its own
+participants, and with random assignment both estimate the same
+population: the expected pretest of the unpretested participants equals
+that of the pretested ones (Solomon & Lessac, 1968, pp. 146–147). Both
+risks are then marginal, so the comparison is on a common scale, unlike
+the link-scale pretest effects of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
 
 Sensitization depends on the scale: an effect can be modified on the
 risk-difference scale and not on the ratio scale, or the reverse. Report
@@ -96,8 +111,11 @@ Count outcomes: for a fit with \code{family = poisson()} or
 \code{family = "negative_binomial"}, rates per unit of
 exposure are standardized in the same way and compared as rate differences
 or rate ratios. Log-link rate ratios are collapsible (Daniel et al., 2021),
-so they agree with the fitted model's coefficients when there are no other
-covariates; rate differences depend on the covariate distribution. For
+so the treatment contrasts' rate ratios agree with the fitted model's
+coefficients when there are no other covariates; rate differences depend on
+the covariate distribution. The pretest effects' rate ratios do not agree
+with the model's pretest effects when the pretest is a covariate, because
+the model compares a rate at the mean pretest with a marginal rate. For
 counts, intervals use the delta method with the fit's (by default robust
 HC3) covariance, which Cameron and Trivedi (2013) recommend under
 overdispersion; a bootstrap for counts has not been evaluated and is not
@@ -136,7 +154,8 @@ recommended alternative for risk differences in such designs when
 clustering is strong. \code{method = "cluster_summary"} computes it, as the
 study did: the unweighted mean of the cluster proportions in each arm,
 compared with a t interval that uses separate variances and Satterthwaite
-degrees of freedom. With pretesting assigned within clusters, each cluster
+degrees of freedom. It gives the four treatment contrasts only, the
+comparisons of treated and control clusters that the study validated. With pretesting assigned within clusters, each cluster
 contributes its pretested and unpretested proportions, and treated and
 control clusters are compared. It warns when an arm has fewer than four
 clusters, the minimum Hayes and Moulton (2017, p. 128) recommend. The differences were small, and the cluster-level comparison met
@@ -196,6 +215,10 @@ Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects
 models. \emph{Journal of Business & Economic Statistics, 36}(4), 672–683.
 https://doi.org/10.1080/07350015.2016.1247004
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. \emph{Psychological Bulletin,
+70}(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 
 Tipton, E. (2015). Small sample adjustments for robust variance estimation
 with meta-regression. \emph{Psychological Methods, 20}(3), 375–393.

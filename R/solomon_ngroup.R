@@ -276,6 +276,14 @@
   }
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
+  # Center the pretest at its mean among the pretested participants in the
+  # model, as in the four-group model (issue #104).
+  pretest_mean <- NA_real_
+  if (!is.null(y_pre)) {
+    pretest_mean <- .pretest_center(df)
+    df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
+  }
+
   if (negbin) {
     fit <- .fit_negbin(fml, df)
     family <- stats::family(fit)
@@ -432,31 +440,62 @@
   conventional <- robust == "none"
   L_by_comparison <- lapply(seq_len(nrow(weights)), function(r) contrast_rows(weights[r, ]))
 
+  effect_row <- function(L, comparison, contrast) {
+    est <- lin_contrast(L)
+    r2 <- contrast_r2_ci(fit, L, vcovM, conf_level, conventional)
+    data.frame(
+      comparison = comparison,
+      contrast = contrast,
+      estimate = unname(est["estimate"]),
+      std.error = unname(est["std.error"]),
+      statistic = unname(est["statistic"]),
+      p.value = unname(est["p.value"]),
+      df = unname(est["df"]),
+      conf.low = unname(est["conf.low"]),
+      conf.high = unname(est["conf.high"]),
+      r2 = r2$r2,
+      r2_lo = r2$r2_lo,
+      r2_hi = r2$r2_hi,
+      stringsAsFactors = FALSE
+    )
+  }
+
   effects <- do.call(rbind, lapply(types, function(type) {
     rows <- lapply(seq_len(nrow(weights)), function(r) {
-      L <- L_by_comparison[[r]][[type]]
-      est <- lin_contrast(L)
-      r2 <- contrast_r2_ci(fit, L, vcovM, conf_level, conventional)
-      data.frame(
-        comparison = rownames(weights)[r],
-        contrast = type,
-        estimate = unname(est["estimate"]),
-        std.error = unname(est["std.error"]),
-        statistic = unname(est["statistic"]),
-        p.value = unname(est["p.value"]),
-        df = unname(est["df"]),
-        conf.low = unname(est["conf.low"]),
-        conf.high = unname(est["conf.high"]),
-        r2 = r2$r2,
-        r2_lo = r2$r2_lo,
-        r2_hi = r2$r2_hi,
-        stringsAsFactors = FALSE
-      )
+      effect_row(L_by_comparison[[r]][[type]], rownames(weights)[r], type)
     })
     block <- do.call(rbind, rows)
     block$p.adjusted <- stats::p.adjust(block$p.value, method = adjust)
     block
   }))
+
+  # The pretest effect in each condition (issue #104): pretested minus
+  # unpretested participants with the centered pretest at zero. The
+  # control's is the pretesting coefficient, and a treatment's adds that
+  # treatment's interaction with pretesting. The main effect weights the
+  # k + 1 conditions equally. The treatments' pretest effects are adjusted
+  # across the treatments, like each contrast across the comparisons.
+  base <- stats::setNames(numeric(length(cn)), cn)
+  base["pretested"] <- 1
+  L_pretest <- c(
+    list(base),
+    lapply(terms, function(term) {
+      L <- base
+      L[paste0(term, ":pretested")] <- 1
+      L
+    }),
+    list(replace(base, paste0(terms, ":pretested"), 1 / (k + 1)))
+  )
+  pretest_block <- do.call(rbind, Map(
+    effect_row, L_pretest,
+    c(cond$control, cond$treatments, "All conditions"),
+    c(.solomon_pretest_order[1], rep(.solomon_pretest_order[2], k), .solomon_pretest_order[3])
+  ))
+  treated <- pretest_block$contrast == .solomon_pretest_order[2]
+  pretest_block$p.adjusted <- pretest_block$p.value
+  pretest_block$p.adjusted[treated] <- stats::p.adjust(pretest_block$p.value[treated],
+                                                       method = adjust)
+  effects <- rbind(effects, pretest_block)
   rownames(effects) <- NULL
   effects <- effects[, c("comparison", "contrast", "estimate", "std.error",
                          "statistic", "p.value", "p.adjusted", "df", "conf.low",
@@ -532,6 +571,7 @@
     theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = vcovM,
     data = df,
+    pretest_mean = pretest_mean,
     robust = robust,
     family = family,
     cluster = cluster,
@@ -611,10 +651,12 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
   adj <- .adjust_label(x$adjust)
   cat("\nContrasts\n")
   e <- x$effects
-  # With one comparison nothing is adjusted, so the adjusted p-values (equal
-  # to the unadjusted ones) are not shown.
-  n_comp <- length(unique(e$comparison))
-  show_adj <- x$adjust != "none" && n_comp > 1L
+  # The treatment contrasts are adjusted across the comparisons, so with one
+  # comparison they are not adjusted; the treatments' pretest effects are
+  # adjusted across the k >= 2 treatments. Older fits have no pretest rows.
+  n_comp <- length(unique(e$comparison[e$contrast %in% .solomon_contrast_order]))
+  pretest_rows <- any(e$contrast %in% .solomon_pretest_order)
+  show_adj <- x$adjust != "none" && (n_comp > 1L || pretest_rows)
   heads <- c("Comparison", "Contrast", "Est (SE)", if (show_df) "t" else "z")
   cols <- list(e$comparison, e$contrast, estse_str(e$estimate, e$std.error, digits),
                sprintf("%.2f", e$statistic))
@@ -631,15 +673,35 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
   )
   .print_columns(heads, cols, left = 2L)
 
-  if (n_comp == 1L) {
-    cat("\nWith one comparison, the p-values need no adjustment for multiple comparisons.\n")
-  } else if (show_adj) {
-    cat(sprintf(paste0(
-      "\np adj.: adjusted by %s within each contrast, across the %d ",
-      "comparisons.\nConfidence intervals are not adjusted.\n"
-    ), adj, n_comp))
+  if (!show_adj) {
+    cat(if (n_comp == 1L) {
+      "\nWith one comparison, the p-values need no adjustment for multiple comparisons.\n"
+    } else {
+      "\nNo adjustment for multiple comparisons.\n"
+    })
   } else {
-    cat("\nNo adjustment for multiple comparisons.\n")
+    cat(if (n_comp == 1L) {
+      "\nWith one comparison, the treatment contrasts need no adjustment for multiple comparisons.\n"
+    } else {
+      sprintf("\np adj.: adjusted by %s within each contrast, across the %d comparisons.\n",
+              adj, n_comp)
+    })
+    if (pretest_rows) {
+      cat(sprintf("%s of the treatments' pretest effects: adjusted by %s across the %d treatments.\n",
+                  "p adj.", adj, k))
+    }
+    cat("Confidence intervals are not adjusted.\n")
+  }
+  if (pretest_rows) {
+    cat(if (is.finite(.null_na(x$pretest_mean))) {
+      sprintf(paste0(
+        "Pretest effects: pretested minus unpretested participants in each condition,\n",
+        "at the pretested participants' mean pretest (%.*f).\n"
+      ), digits, x$pretest_mean)
+    } else {
+      "Pretest effects: pretested minus unpretested participants in each condition.\n"
+    })
+    .link_pretest_note(x)
   }
   cat(.ngroup_lifecycle_note(), sep = "\n")
   invisible(x)

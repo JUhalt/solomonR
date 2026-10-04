@@ -162,6 +162,9 @@ The key estimands are:
 - **Treatment | unpretested** — the treatment effect among participants
   who did not receive the pretest.
 
+It also reports the pretest (testing) effect, pretested minus unpretested
+participants, among controls, among treated participants, and on average.
+
 The model handles the structural absence of pretest scores in Groups 3
 and 4 without discarding those groups.
 

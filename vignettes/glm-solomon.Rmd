@@ -103,7 +103,11 @@ fit
 ```
 
 The output contains model coefficients followed by the four principal
-Solomon contrasts.
+Solomon contrasts and the three pretest effects: pretested minus
+unpretested participants among controls, among treated participants, and
+on average. The pretest enters as `pre_obs`, centered at the pretested
+participants' mean, so the pretest effects compare the groups at that
+score (see "The pretest effect" in `?fit_solomon_glm`).
 
 The contrasts can also be accessed directly:
 

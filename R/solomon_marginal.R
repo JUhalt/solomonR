@@ -32,21 +32,32 @@
   )
 }
 
-# The four Solomon contrasts on one scale from the four marginal risks. The
-# average treatment effect compares risks averaged over equal numbers of
-# pretested and unpretested participants. Ratio scales are undefined when a
-# risk is 0 or 1 (within 1e-8, as under separation), or when a count
+# The four Solomon contrasts and the three pretest effects (issue #104) on
+# one scale from the four marginal risks. The average treatment effect
+# compares risks averaged over equal numbers of pretested and unpretested
+# participants, and the pretest main effect risks averaged over equal
+# numbers of treated and control participants. Ratio scales are undefined
+# when a risk is 0 or 1 (within 1e-8, as under separation), or when a count
 # outcome's rate is 0.
+# (A function, because R/solomon_plot_effects.R, which defines the names,
+# is collated after this file.)
+.marginal_contrast_names <- function() c(.solomon_contrast_order, .solomon_pretest_order)
+
 .marginal_contrasts <- function(r, scale, count = FALSE) {
   g <- switch(scale, difference = identity, ratio = log, odds_ratio = stats::qlogis)
   degenerate <- if (count) any(r < 1e-8) else .degenerate_risk(r)
   if (scale != "difference" && degenerate) {
-    return(stats::setNames(rep(NA_real_, 4), .solomon_contrast_order))
+    return(stats::setNames(rep(NA_real_, length(.marginal_contrast_names())),
+                           .marginal_contrast_names()))
   }
   pre <- g(r[["t1p1"]]) - g(r[["t0p1"]])
   un <- g(r[["t1p0"]]) - g(r[["t0p0"]])
   ate <- g((r[["t1p1"]] + r[["t1p0"]]) / 2) - g((r[["t0p1"]] + r[["t0p0"]]) / 2)
-  stats::setNames(c(ate, pre - un, pre, un), .solomon_contrast_order)
+  pretest_control <- g(r[["t0p1"]]) - g(r[["t0p0"]])
+  pretest_treated <- g(r[["t1p1"]]) - g(r[["t1p0"]])
+  pretest_main <- g((r[["t1p1"]] + r[["t0p1"]]) / 2) - g((r[["t1p0"]] + r[["t0p0"]]) / 2)
+  stats::setNames(c(ate, pre - un, pre, un, pretest_control, pretest_treated, pretest_main),
+                  .marginal_contrast_names())
 }
 
 .marginal_all <- function(b, X, pretested, scales, count = FALSE) {
@@ -85,6 +96,62 @@
         "(pretested participants) with a marginal one (unpretested participants). ",
         "These differ whenever the pretest predicts the outcome, even without ",
         "sensitization (Daniel et al., 2021). ", advice
+      ),
+      call = NULL
+    )
+  ))
+}
+
+# Classed warning when a link-scale contrast that involves pretesting is
+# tested on a fit with a pretest covariate (issue #114): the Pretest x
+# Treatment contrast on a noncollapsible link (any but the identity and the
+# log; Daniel et al., 2021), and the pretest effects (issue #104) on any
+# link but the identity, because a fitted mean at the mean pretest is not
+# the mean over the pretests. Used by equivalence_solomon() and
+# perm_solomon().
+.warn_link_scale <- function(fit, contrast) {
+  if (!inherits(fit, c("solomon_glm", "solomon_ngroup")) ||
+      !"pre_obs" %in% names(fit$data)) {
+    return(invisible(NULL))
+  }
+  family <- stats::family(fit$model)
+  link <- family$link
+  pretest <- contrast %in% .solomon_pretest_order
+  affected <- if (pretest) {
+    !identical(link, "identity")
+  } else {
+    identical(contrast, "Pretest x Treatment") && !link %in% c("identity", "log")
+  }
+  if (!affected) return(invisible(NULL))
+
+  why <- if (pretest) {
+    paste0(
+      "compares the pretested participants' fitted mean at the mean pretest with ",
+      "the unpretested participants' mean over their unmeasured pretests. With a ",
+      "nonlinear link these differ even when the pretest has no effect"
+    )
+  } else {
+    paste0(
+      "compares a treatment effect conditional on the pretest (pretested ",
+      "participants) with a marginal one (unpretested participants). On this scale ",
+      "they differ whenever the pretest predicts the outcome, even without sensitization"
+    )
+  }
+  advice <- if (inherits(fit, "solomon_ngroup")) {
+    paste0(
+      "marginal_solomon() estimates the contrast on a common scale; it takes the fit ",
+      "of a four-group design, so subset the data to one treatment and the control first."
+    )
+  } else {
+    "marginal_solomon() estimates the contrast on a common scale."
+  }
+  warning(structure(
+    class = c("solomonR_link_scale_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "The ", contrast, " contrast is on the ", .contrast_scale(family), " scale (",
+        link, " link). With the pretest as a covariate, it ", why,
+        " (Daniel et al., 2021). ", advice
       ),
       call = NULL
     )
@@ -193,7 +260,22 @@
 #'   of risk differences, or a ratio of risk ratios or of odds ratios);
 #' - `ATE (avg over pretest)`: the effect in a population with equal numbers
 #'   of pretested and unpretested participants, computed from the averaged
+#'   risks;
+#' - `Pretest effect | control` and `Pretest effect | treated`: the pretested
+#'   cell compared with the unpretested cell, among control and among
+#'   treated participants (issue #104);
+#' - `Pretest main effect`: the pretest effect in a population with equal
+#'   numbers of treated and control participants, computed from the averaged
 #'   risks.
+#'
+#' The pretest effects compare two different sets of participants, because
+#' the unpretested participants have no pretest from which to predict their
+#' risk had they been pretested. Each set is standardized over its own
+#' participants, and with random assignment both estimate the same
+#' population: the expected pretest of the unpretested participants equals
+#' that of the pretested ones (Solomon & Lessac, 1968, pp. 146–147). Both
+#' risks are then marginal, so the comparison is on a common scale, unlike
+#' the link-scale pretest effects of [fit_solomon_glm()].
 #'
 #' Sensitization depends on the scale: an effect can be modified on the
 #' risk-difference scale and not on the ratio scale, or the reverse. Report
@@ -215,8 +297,11 @@
 #' `family = "negative_binomial"`, rates per unit of
 #' exposure are standardized in the same way and compared as rate differences
 #' or rate ratios. Log-link rate ratios are collapsible (Daniel et al., 2021),
-#' so they agree with the fitted model's coefficients when there are no other
-#' covariates; rate differences depend on the covariate distribution. For
+#' so the treatment contrasts' rate ratios agree with the fitted model's
+#' coefficients when there are no other covariates; rate differences depend on
+#' the covariate distribution. The pretest effects' rate ratios do not agree
+#' with the model's pretest effects when the pretest is a covariate, because
+#' the model compares a rate at the mean pretest with a marginal rate. For
 #' counts, intervals use the delta method with the fit's (by default robust
 #' HC3) covariance, which Cameron and Trivedi (2013) recommend under
 #' overdispersion; a bootstrap for counts has not been evaluated and is not
@@ -255,7 +340,8 @@
 #' clustering is strong. `method = "cluster_summary"` computes it, as the
 #' study did: the unweighted mean of the cluster proportions in each arm,
 #' compared with a t interval that uses separate variances and Satterthwaite
-#' degrees of freedom. With pretesting assigned within clusters, each cluster
+#' degrees of freedom. It gives the four treatment contrasts only, the
+#' comparisons of treated and control clusters that the study validated. With pretesting assigned within clusters, each cluster
 #' contributes its pretested and unpretested proportions, and treated and
 #' control clusters are compared. It warns when an arm has fewer than four
 #' clusters, the minimum Hayes and Moulton (2017, p. 128) recommend. The differences were small, and the cluster-level comparison met
@@ -319,6 +405,10 @@
 #' cluster-robust variance estimation and hypothesis testing in fixed effects
 #' models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
 #' https://doi.org/10.1080/07350015.2016.1247004
+#'
+#' Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+#' experimental studies of developmental processes. *Psychological Bulletin,
+#' 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 #'
 #' Tipton, E. (2015). Small sample adjustments for robust variance estimation
 #' with meta-regression. *Psychological Methods, 20*(3), 375–393.
@@ -421,8 +511,9 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   } else {
     .cell_separated(y, treat, pretested) || .degenerate_risk(risks)
   }
+  n_contrasts <- length(.marginal_contrast_names())
   if (separated) {
-    estimate[rep(scale, each = 4) != "difference"] <- NA_real_
+    estimate[rep(scale, each = n_contrasts) != "difference"] <- NA_real_
   }
   if (any(scale != "difference") && separated) {
     warning(structure(
@@ -510,13 +601,13 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   }
 
   p.value <- 2 * stats::pt(-abs(estimate / std.error), df)
-  scale_col <- rep(scale, each = 4)
+  scale_col <- rep(scale, each = n_contrasts)
   ratio <- scale_col != "difference"
   report <- function(x) ifelse(ratio, exp(x), x)
 
   effects <- data.frame(
     scale = unname((if (count) .marginal_rate_scales else .marginal_scales)[scale_col]),
-    contrast = rep(.solomon_contrast_order, length(scale)),
+    contrast = rep(.marginal_contrast_names(), length(scale)),
     estimate = report(estimate),
     conf.low = report(ci[, 1]),
     conf.high = report(ci[, 2]),

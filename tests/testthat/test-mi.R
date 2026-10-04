@@ -11,11 +11,15 @@ with_missing <- function(k = 24, seed = 82) {
 test_that("with no missing posttests, the result is fit_solomon_glm()'s", {
   mi <- fit_solomon_mi(y_post, treat, pretested, y_pre, m = 5, data = solomon_example)
   glm <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
-  expect_equal(mi$effects$estimate, glm$effects$estimate)
-  expect_equal(mi$effects$std.error, glm$effects$std.error)
-  expect_equal(mi$effects$df, glm$effects$df)
-  expect_equal(mi$effects$conf.low, glm$effects$conf.low)
-  expect_equal(mi$effects$p.value, glm$effects$p.value)
+  # The four treatment contrasts, which precede the pretest effects of the
+  # GLM's table (#104).
+  glm_eff <- glm$effects[1:4, ]
+  expect_identical(mi$effects$contrast, glm_eff$contrast)
+  expect_equal(mi$effects$estimate, glm_eff$estimate)
+  expect_equal(mi$effects$std.error, glm_eff$std.error)
+  expect_equal(mi$effects$df, glm_eff$df)
+  expect_equal(mi$effects$conf.low, glm_eff$conf.low)
+  expect_equal(mi$effects$p.value, glm_eff$p.value)
   expect_equal(mi$effects$fmi, rep(0, 4))
   expect_equal(mi$effects$mc_se, rep(0, 4))
 })
@@ -32,7 +36,7 @@ test_that("each completed data set is analyzed exactly as fit_solomon_glm() woul
       y <- p$y_post
       y[is.na(y)] <- rnorm(sum(is.na(y)), 50, 10)
       fast <- solomonR:::.mi_analyze(des, y)
-      ref <- fit_solomon_glm(y, p$treat, p$pretested, p$y_pre, robust = robust)$effects
+      ref <- fit_solomon_glm(y, p$treat, p$pretested, p$y_pre, robust = robust)$effects[1:4, ]
       expect_equal(fast$estimate, ref$estimate, tolerance = 1e-10)
       expect_equal(fast$std.error, ref$std.error, tolerance = 1e-10)
       expect_equal(rep(des$df, 4), ref$df)
@@ -105,6 +109,7 @@ test_that("under MCAR, the MAR imputation agrees with the complete-case analysis
   d$y_post[sample(nrow(d), 0.2 * nrow(d))] <- NA
   mi <- fit_solomon_mi(y_post, treat, pretested, y_pre, m = 40, seed = 8, data = d)
   cc <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)
+  cc$effects <- cc$effects[1:4, ]
   # Carpenter et al. (2023, p. 256): MI under MAR agrees with the complete
   # records analysis. The difference is Monte Carlo and model noise, small
   # relative to the standard errors.

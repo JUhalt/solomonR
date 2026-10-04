@@ -70,11 +70,14 @@ published 1963)
 > posttest with the pretests estimates the combined effect of maturation and
 > history (p. 25). Without randomization, a comparison of groups measured
 > only after the treatment is a static-group comparison, whose groups cannot
-> be certified equivalent (p. 12). Page numbers refer to the 1966 book. *In
-> solomonR:* Tests A–D and the history check of `fit_solomon_classic()`;
-> `plot_solomon_design()`; the caveat on the unpretested arms of
-> nonrandomized designs in `baseline_solomon()` and `report_solomon()`
-> ([#58](https://github.com/JUhalt/solomonR/issues/58)).
+> be certified equivalent (p. 12). The design estimates the main effect of
+> testing as well as its interaction with the treatment (p. 25). Page
+> numbers refer to the 1966 book. *In solomonR:* Tests A–D and the history
+> check of `fit_solomon_classic()`; `plot_solomon_design()`; the caveat on
+> the unpretested arms of nonrandomized designs in `baseline_solomon()` and
+> `report_solomon()` ([#58](https://github.com/JUhalt/solomonR/issues/58));
+> the pretest effects of the effects tables
+> ([#104](https://github.com/JUhalt/solomonR/issues/104)).
 
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
@@ -342,7 +345,11 @@ experimental studies of developmental processes. *Psychological Bulletin,
 > the best estimate for the unpretested groups, to judge whether they
 > improved or deteriorated, and the design is treated as a two-by-two
 > factorial whose interaction is a difference of differences (pp. 146–147).
-> *In solomonR:* the inferred pretest of `fit_solomon_1949()`; the history
+> *In solomonR:* the inferred pretest of `fit_solomon_1949()`; the mean
+> pretest at which the pretest effects of `fit_solomon_glm()`,
+> `fit_solomon_ml()`, and `fit_solomon_mmrm()` compare the pretested and
+> unpretested groups, and the standardization of `marginal_solomon()`
+> ([#104](https://github.com/JUhalt/solomonR/issues/104)); the history
 > article.
 
 Steyn, R. (2005). *Self-evaluasie en die vorming van

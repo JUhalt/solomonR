@@ -142,7 +142,35 @@ print.solomon_glm <- function(x, digits = 3, ...) {
     "a Wald-based descriptive approximation when robust covariance is used.\n",
     sep = ""
   )
+  .glm_pretest_note(x, digits)
   invisible(x)
+}
+
+# The note on the pretest effects printed under a solomon_glm fit: where the
+# pretest is centered, and, on a link other than the identity, that the
+# pretest effects compare a fitted mean at the mean pretest with a marginal
+# mean (issue #104).
+.glm_pretest_note <- function(x, digits = 3) {
+  center <- .null_na(x$pretest_mean)
+  if (!is.finite(center)) return(invisible(NULL))
+  cat(.wrap_lines(sprintf(paste(
+    "pre_obs: the pretest, centered at the pretested participants' mean (%.*f).",
+    "The pretest effects compare pretested and unpretested participants at that score."
+  ), digits, center)), "\n", sep = "")
+  .link_pretest_note(x)
+  invisible(NULL)
+}
+
+.link_pretest_note <- function(x) {
+  link <- if (is.null(x$family)) "identity" else x$family$link
+  if (is.finite(.null_na(x$pretest_mean)) && !identical(link, "identity")) {
+    cat(.wrap_lines(sprintf(paste(
+      "On the %s link, a fitted mean at the mean pretest is not the mean over the",
+      "pretests, so the pretest effects are not marginal effects; marginal_solomon()",
+      "estimates them from standardized means."
+    ), link)), "\n", sep = "")
+  }
+  invisible(NULL)
 }
 
 #' @export
