@@ -61,9 +61,14 @@ indicators and compares its means across the four groups.
 
 - **Identification.** The latent mean of the unpretested control group is
   fixed at 0; the contrasts are differences between latent means, so they
-  do not depend on that choice.
+  do not depend on that choice. With the default `std_lv = TRUE`, the
+  latent variance is fixed at 1 in the pretested treated group, so the
+  contrasts are in standard deviations of the latent posttest there.
 - **Optional ANCOVA.** With `ancova = TRUE` and pretest indicators, a latent
-  ANCOVA in the pretested groups is added.
+  ANCOVA in the pretested groups is added. With `std_lv = TRUE`, its
+  adjusted effect is in residual standard deviations of the latent
+  posttest given the latent pretest, a different unit from that of the
+  four-group contrasts.
 
 The example data below are simulated for this article. Four indicators
 measure one construct in every group, and the treatment raises the latent

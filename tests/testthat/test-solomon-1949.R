@@ -77,7 +77,22 @@ test_that("report_solomon() reports Solomon's published analysis (#111)", {
   expect_match(r$results[1], "d1 = 6.7, d2 = 0.7, and d3 = 8.2, and the interaction was I = -2.2.",
                fixed = TRUE)
   expect_match(r$method, "I = d1 - (d2 + d3) (Solomon, 1949, p. 143)", fixed = TRUE)
+  # The three-group design has one unpretested group.
+  expect_match(r$method, "The pretest mean of Control Group II was inferred as", fixed = TRUE)
+  expect_false(grepl("unpretested groups", r$method, fixed = TRUE))
   expect_match(r$results[2], "gave no standard error or test for I", fixed = TRUE)
+  # Without random assignment, it has no comparison of unpretested groups,
+  # so no static-group comparison to describe.
+  nr <- report_solomon(fit_solomon_1949(post_mean = g$mean, pre_mean = g$pre_mean[1:2], n = g$n),
+                       design = list(assignment = "nonrandom"))
+  expect_match(nr$design[3], paste(
+    "Baseline differences can be examined only between the experimental group and Control Group I,",
+    "the two pretested groups; Control Group II has no baseline, so the pretest mean inferred for it",
+    "assumes an equivalence of the groups that cannot be checked."
+  ), fixed = TRUE)
+  expect_false(any(grepl("unpretested arms", nr$design, fixed = TRUE)))
+  expect_false(any(grepl("static-group", nr$design, fixed = TRUE)))
+  expect_match(nr$design[3], "(Edmonds & Kennedy, 2017)", fixed = TRUE)
   expect_match(r$design[1], "Solomon's (1949) three-group design", fixed = TRUE)
   expect_match(r$design[2], sprintf("experimental, Control I, and Control II groups were %s, %s, and %s",
                                     g$n[1], g$n[2], g$n[3]), fixed = TRUE)
@@ -95,6 +110,10 @@ test_that("report_solomon() reports Solomon's published analysis (#111)", {
                                       .apa_num(fit$posttest_contrast, 2)), fixed = TRUE)
   expect_match(r4$design[1], "Solomon four-group design (Solomon, 1949), with 30, 30, 30, and 30",
                fixed = TRUE)
+  expect_match(r4$method, "The pretest mean of the unpretested groups was inferred", fixed = TRUE)
+  # The four-group design keeps the static-group sentence.
+  expect_match(report_solomon(fit, design = list(assignment = "nonrandom"))$design[2],
+               "the unpretested arms, whose comparison isolates pretest sensitization", fixed = TRUE)
   md <- report_solomon(fit, format = "markdown")
   expect_match(md$method, "*I* = *d*~1~ - (*d*~2~ + *d*~3~ - *d*~4~)", fixed = TRUE)
   pooled <- report_solomon(fit_solomon_1949(post_mean = g$mean, pre_mean = g$pre_mean[1:2], n = g$n,

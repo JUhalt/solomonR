@@ -28,22 +28,52 @@
   stats::setNames(as.numeric(fm), c("chisq", "df", "cfi", "rmsea", "srmr"))
 }
 
+# The indicator of a freed parameter: "item3" for the intercept "item3 ~ 1"
+# or the loading "F =~ item3", and NA for any other parameter.
+.partial_item <- function(par) {
+  par <- trimws(par)
+  if (grepl("^[^=~]+~\\s*1$", par)) return(trimws(sub("~\\s*1$", "", par)))
+  if (grepl("^[^=~]+=~[^=~+*]+$", par)) return(trimws(sub("^.*=~", "", par)))
+  NA_character_
+}
+
+# lavaan frees a loading named in `group.partial` only if the factor name
+# matches the model's, and otherwise leaves it constrained without a
+# message. Each freed loading is therefore rewritten to name the factor its
+# indicator measures; `factors` maps each factor name to its indicators
+# (issue #112).
+.partial_for_model <- function(partial, factors) {
+  if (is.null(partial)) return(NULL)
+  vapply(partial, function(par) {
+    if (!grepl("=~", par, fixed = TRUE)) return(par)
+    item <- .partial_item(par)
+    factor <- names(factors)[vapply(factors, function(x) item %in% x, NA)]
+    paste(factor[1], "=~", item)
+  }, "", USE.NAMES = FALSE)
+}
+
 # Partial-invariance specifications must leave most indicators constrained
 # (Vandenberg & Lance, 2000, p. 38) and at least two fully invariant
-# indicators (Byrne et al., 1989, p. 458: one besides the reference).
+# indicators (Byrne et al., 1989, p. 458: one besides the reference). Only
+# loadings and intercepts can be freed, because they are the parameters the
+# invariance models hold equal; freeing anything else would change nothing
+# while the model was described as partially invariant.
 .check_partial <- function(partial, items) {
   if (is.null(partial)) return(invisible(NULL))
   if (!is.character(partial) || !length(partial)) {
     stop("`partial` must be a character vector of lavaan parameters, such as \"item3 ~ 1\".",
          call. = FALSE)
   }
-  freed <- unique(unlist(lapply(partial, function(par) {
-    parts <- trimws(strsplit(par, "=~|~", perl = TRUE)[[1]])
-    intersect(parts, items)
-  })))
-  if (!length(freed)) {
-    stop("`partial` names no parameter of the listed items.", call. = FALSE)
+  freed <- vapply(partial, .partial_item, "", USE.NAMES = FALSE)
+  bad <- partial[is.na(freed) | !freed %in% items]
+  if (length(bad)) {
+    stop(sprintf(paste0(
+      "`partial` names no parameter of the listed items in %s. Each freed parameter must be ",
+      "the intercept (\"item3 ~ 1\") or the loading (\"F =~ item3\") of a listed indicator, ",
+      "the parameters the invariance constraints hold equal."
+    ), paste0("\"", bad, "\"", collapse = ", ")), call. = FALSE)
   }
+  freed <- unique(freed)
   if (length(freed) >= length(items) / 2 || length(items) - length(freed) < 2L) {
     stop(
       "Partial invariance should free the parameters of only a minority of ",
@@ -77,7 +107,7 @@
   # factor name, such as the POST of fit_solomon_sem_latent(), would not
   # match it and lavaan would leave the loading constrained, so the name
   # before "=~" is replaced (issue #112).
-  partial_fit <- if (!is.null(partial)) sub("^\\s*[^=~]*?\\s*=~", "F =~", partial)
+  partial_fit <- .partial_for_model(partial, list(F = items))
   fit_level <- function(equal) {
     args <- list(model = model, data = data, group = "solomon_group",
                  estimator = estimator, missing = "fiml", meanstructure = TRUE,
@@ -187,14 +217,17 @@
 #' When scalar invariance fails, latent means can still be compared if the
 #' noninvariant parameters are freed and enough indicators stay invariant
 #' (Byrne et al., 1989, p. 458). `partial` names the freed parameters in
-#' lavaan syntax (for example, `"item3 ~ 1"` for an intercept, or
-#' `"F =~ item3"` for a loading; the model has one factor, so any factor
-#' name before `=~` refers to it, including the `POST` of
-#' [fit_solomon_sem_latent()]). They must be
-#' chosen on substantive grounds, not by searching the data (Byrne et al.,
-#' 1989, p. 465), and must involve only a minority of the indicators
-#' (Vandenberg & Lance, 2000, p. 38); at least two indicators must stay
-#' fully invariant. The function never chooses them.
+#' lavaan syntax: `"item3 ~ 1"` for an intercept, or `"F =~ item3"` for a
+#' loading. Only intercepts and loadings, the parameters the metric and
+#' scalar models hold equal, can be freed. The model has one factor, so any
+#' factor name before `=~` refers to it, including the `POST` of
+#' [fit_solomon_sem_latent()]. The loading of the first indicator is fixed
+#' at 1 to set the latent scale; if it is freed, lavaan keeps it at 1 in the
+#' pretested treated group only and estimates it in the other three. Freed
+#' parameters must be chosen on substantive grounds, not by searching the
+#' data (Byrne et al., 1989, p. 465), and must involve only a minority of
+#' the indicators (Vandenberg & Lance, 2000, p. 38); at least two indicators
+#' must stay fully invariant. The function never chooses them.
 #'
 #' @section Lifecycle:
 #' Experimental. The issue #55 study found no criterion that holds its
