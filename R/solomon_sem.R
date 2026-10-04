@@ -116,6 +116,9 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
 
     fit <- lavaan::sem(
       mod, data = df, group = "group4",
+      # Fix the group order: the labels mu_P1 ... mu_U0 are positional, and
+      # lavaan otherwise orders groups by their first appearance in the data.
+      group.label = c("P1", "P0", "U1", "U0"),
       meanstructure = TRUE, estimator = estimator,
       std.lv = FALSE, missing = "fiml", fixed.x = TRUE
     )
@@ -167,6 +170,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
 
     fit2 <- lavaan::sem(
       mod2, data = df, group = "grp2",
+      group.label = c("P1", "P0"),
       meanstructure = TRUE, estimator = estimator,
       std.lv = FALSE, missing = "fiml", fixed.x = FALSE
     )
