@@ -179,7 +179,7 @@ step adds a one-way ANOVA with the unpretested control's posttests
 
 <dt id="arg-posthoc">posthoc<a class="anchor" aria-label="anchor" href="#arg-posthoc"></a></dt>
 <dd><p>The post hoc tests of pairs of groups: <code>"scheffe"</code> (the
-default), Scheffé tests, as in Steyn (2005); or <code>"holm"</code>, pairwise t
+default), Scheffé's (1953) tests, as in Steyn (2005); or <code>"holm"</code>, pairwise t
 tests with Holm's (1979) adjustment. Both use a pooled SD. See the
 Operationalization section.</p></dd>
 
@@ -302,15 +302,27 @@ tests, matching the equal-variance one-way ANOVAs.</p></li>
 <li><p><strong>Post hoc tests.</strong> Steyn (2009) names no post hoc test. In the study
 the article describes, Steyn (2005, Table 5.61, p. 153) used Scheffé
 tests after the one-way ANOVA of the eight posttest groups, so they are
-the default (<code>posthoc = "scheffe"</code>). <code>posthoc = "holm"</code> gives pairwise
-t tests with a pooled SD and Holm's (1979) adjustment, the default of
-<code><a href="https://rdrr.io/r/stats/pairwise.t.test.html" class="external-link">stats::pairwise.t.test()</a></code>, which is less conservative for pairwise
-comparisons. Both use the pooled error variance of the groups in the
-ANOVA. For a pair of groups among G groups with N scores in all, the
+the default (<code>posthoc = "scheffe"</code>). They are the method of Scheffé
+(1953). For a pair of groups among G groups with N scores in all, the
 Scheffé statistic is the squared pairwise t divided by G - 1, on G - 1
-and N - G degrees of freedom. In step 1 the post hoc tests follow a
-significant ANOVA of more than two groups; in step 2, and in step 8
-with several interventions (E2 and E5), they are always computed.</p></li>
+and N - G degrees of freedom, with the pooled error variance of the
+groups in the ANOVA. The pair differs at <code>alpha</code> exactly when
+Scheffé's criterion holds: |t| exceeds S, where S^2 is G - 1 times the
+upper <code>alpha</code> point of F(G - 1, N - G) (Scheffé, 1953, pp. 87–89, 97).
+Scheffé's procedure protects every contrast among the groups, not only
+the pairs, so it is conservative when only pairs are compared; for
+pairs of equally precise means (equal group sizes), Scheffé
+recommended Tukey's method instead (pp. 89, 92–93, 96–97). Because the
+F test rejects exactly when some contrast is significant (pp. 87,
+95–96), no pair can differ unless the ANOVA of the same groups is
+significant, and a significant ANOVA need not yield a pair that
+differs; step 2 then reports a pattern Steyn's rule does not cover.
+<code>posthoc = "holm"</code> gives pairwise t tests with the same pooled SD and
+Holm's (1979) adjustment, the default of <code><a href="https://rdrr.io/r/stats/pairwise.t.test.html" class="external-link">stats::pairwise.t.test()</a></code>,
+which covers the pairwise comparisons only. In step 1 the post hoc
+tests follow a significant ANOVA of more than two groups; in step 2,
+and in step 8 with several interventions (E2 and E5), they are always
+computed.</p></li>
 <li><p><strong>Two-way ANOVA.</strong> Type III sums of squares, with effect coding, one
 analysis for each intervention against the control.</p></li>
 <li><p><strong>History classification.</strong> Two sets "differ" when their post hoc
@@ -343,7 +355,10 @@ the post hoc tests of every pair. The highest mean is the greatest
 effect only when the interventions raise the scores; when they lower
 them, as in Steyn (2005), the greatest effect is the lowest mean.
 Read <code>highest</code> with the direction of the outcome and the post hoc
-tests.</p></li>
+tests. In the English report of that study, Steyn and Mynhardt (2008,
+pp. 569–570) ranked the treatments by the difference between treated
+and untreated means and by d, from separate 2 x 2 analyses, without a
+test of the differences between treatments.</p></li>
 <li><p><strong>Missing scores.</strong> Participants with a missing posttest stay in the
 data for the attrition step and are left out of the posttest analyses.
 The pretest analyses use the pretested participants with a pretest.</p></li>
@@ -361,8 +376,11 @@ runs many tests, each at <code>alpha</code>, with no control of the error rate
 across them.</p></li>
 <li><p>A nonsignificant test is not evidence that groups are equivalent, or
 that a threat is absent.</p></li>
-<li><p>The one-way ANOVA of <code>Oc</code>, <code>Od</code>, and <code>Of</code> treats the paired scores of
-<code>Oc</code> and <code>Od</code>, which come from the same participants, as independent.</p></li>
+<li><p>The one-way ANOVA of <code>Oc</code>, <code>Od</code>, and <code>Of</code>, and its post hoc tests,
+treat the paired scores of <code>Oc</code> and <code>Od</code>, which come from the same
+participants, as independent. Scheffé's (1953, p. 87) tests take the
+covariances of the group means as known; here that of <code>Oc</code> and <code>Od</code> is
+taken to be zero.</p></li>
 <li><p>The chi-square test for the variance treats the variance of <code>Oc</code> as a
 known value and ignores the pairing of <code>Oc</code> and <code>Od</code>.</p></li>
 <li><p>A difference between <code>Ob</code> and <code>Oe</code> (E4) mixes a pretest main effect
@@ -396,6 +414,9 @@ data and ample time (R. Steyn, personal communication, September 30,
     <p>Holm, S. (1979). A simple sequentially rejective multiple test procedure.
 <em>Scandinavian Journal of Statistics, 6</em>(2), 65–70.
 https://www.jstor.org/stable/4615733</p>
+<p>Scheffé, H. (1953). A method for judging all contrasts in the analysis of
+variance. <em>Biometrika, 40</em>(1–2), 87–104.
+https://doi.org/10.1093/biomet/40.1-2.87</p>
 <p>Steyn, R. (2005). <em>Self-evaluasie en die vorming van
 selfdoeltreffendheidspersepsies</em> [Self-evaluation and the forming of
 self-efficacy perceptions] [Doctoral thesis, University of South Africa].
@@ -403,6 +424,9 @@ Unisa Institutional Repository. https://hdl.handle.net/10500/1745</p>
 <p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? <em>Design Principles and Practices: An International
 Journal—Annual Review, 3</em>(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</p>
+<p>Steyn, R., &amp; Mynhardt, J. (2008). Factors that influence the forming of
+self-evaluation and self-efficacy perceptions. <em>South African Journal of
+Psychology, 38</em>(3), 563–573. https://doi.org/10.1177/008124630803800310</p>
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. <em>Psychological
 Bulletin, 104</em>(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150</p>

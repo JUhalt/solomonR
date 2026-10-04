@@ -387,8 +387,8 @@ parts:
   all the posttests, then of the treatment groups, with post hoc tests.
 
 [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
-carries it out and labels each step. Its post hoc tests are Scheffé
-tests, which Steyn (2005, p. 153) used:
+carries it out and labels each step. Its post hoc tests are Scheffé’s
+(1953) tests, which Steyn (2005, p. 153) used:
 
 ``` r
 
@@ -675,6 +675,10 @@ Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
 McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 through service learning. *Journal of Management Education, 26*(6),
 629–647. <https://doi.org/10.1177/1052562902238322>
+
+Scheffé, H. (1953). A method for judging all contrasts in the analysis
+of variance. *Biometrika, 40*(1–2), 87–104.
+<https://doi.org/10.1093/biomet/40.1-2.87>
 
 Steyn, R. (2005). *Self-evaluasie en die vorming van
 selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of

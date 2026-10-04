@@ -121,9 +121,9 @@ treatments. The aims, data-generating mechanisms, estimands, methods,
 performance measures, and decision rules were posted on <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">issue #45</a> before
 the study was run, following the ADEMP structure of Morris et al.
 (2019). One amendment was posted before the run. It changed the post hoc
-test of Steyn’s sequence to the Scheffé test that Steyn (2005) used, and
-kept the Holm-adjusted version as a second variant. The study has 5,000
-replications in each of 112 scenarios.</p>
+test of Steyn’s sequence to Scheffé’s (1953) test, which Steyn (2005)
+used, and kept the Holm-adjusted version as a second variant. The study
+has 5,000 replications in each of 112 scenarios.</p>
 <div class="section level2">
 <h2 id="design">Design<a class="anchor" aria-label="anchor" href="#design"></a>
 </h2>
@@ -179,11 +179,11 @@ control follow McCarthy and Tucker (2002); all pairs follow Mai et
 al. (2020).</li>
 <li>
 <strong>M5:</strong> the tests of Steyn’s (2009) sequence, computed
-as <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> computes them, with Scheffé post hoc
-tests. <strong>M5h</strong> uses Holm-adjusted pairwise t tests. As the
-protocol defined them, the outcomes of steps E4 and E5 are counted in
-every replication, whether or not the function’s decision path reaches
-those steps.</li>
+as <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> computes them, with Scheffé’s (1953)
+post hoc tests. <strong>M5h</strong> uses Holm-adjusted pairwise t
+tests. As the protocol defined them, the outcomes of steps E4 and E5 are
+counted in every replication, whether or not the function’s decision
+path reaches those steps.</li>
 </ul>
 <p><strong>Decision rules,</strong> for the HC3 fits (M1 and M2). Each
 allows for Monte Carlo error by a Bonferroni adjustment across the rates
@@ -1380,6 +1380,8 @@ service through service learning. <em>Journal of Management Education,
 <p>Morris, T. P., White, I. R., &amp; Crowther, M. J. (2019). Using
 simulation studies to evaluate statistical methods. <em>Statistics in
 Medicine, 38</em>(11), 2074–2102. <a href="https://doi.org/10.1002/sim.8086" class="external-link uri">https://doi.org/10.1002/sim.8086</a></p>
+<p>Scheffé, H. (1953). A method for judging all contrasts in the
+analysis of variance. <em>Biometrika, 40</em>(1–2), 87–104. <a href="https://doi.org/10.1093/biomet/40.1-2.87" class="external-link uri">https://doi.org/10.1093/biomet/40.1-2.87</a></p>
 <p>Steyn, R. (2005). <em>Self-evaluasie en die vorming van
 selfdoeltreffendheidspersepsies</em> [Self-evaluation and the forming of
 self-efficacy perceptions] [Doctoral thesis, University of South

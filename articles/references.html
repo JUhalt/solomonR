@@ -434,11 +434,13 @@ trainees (pp. 103–106). Existing classes were allocated to the eight
 groups, not at random (pp. 105–106). It was analyzed as overlapping
 four-group designs by the sequence of Walton Braver and Braver (1988),
 then by a one-way analysis of variance of the eight posttests with
-Scheffé tests (pp. 151–153). The thesis is in Afrikaans. <em>In
-solomonR:</em> the data set <code>steyn2005</code>, whose published
-analyses of variance and Scheffé tests are reproduced from its group
-statistics; the default post hoc tests of
-<code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>.</p>
+Scheffé tests (pp. 151–153), the method of Scheffé (1953); because the
+test is particularly strict, the significance level was set at .05
+(p. 151). The thesis is in Afrikaans; Steyn and Mynhardt (2008) report
+the study in English. <em>In solomonR:</em> the data set
+<code>steyn2005</code>, whose published analyses of variance and Scheffé
+tests are reproduced from its group statistics; the default post hoc
+tests of <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>.</p>
 </blockquote>
 <p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve
 on this exemplary model? <em>Design Principles and Practices: An
@@ -458,6 +460,26 @@ author provided (R. Steyn, personal communication, September 30, 2026);
 the published article was not available for comparison. <em>In
 solomonR:</em> the design of <code>fit_solomon_glm(control = )</code>
 and <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> (<a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>).</p>
+</blockquote>
+<p>Steyn, R., &amp; Mynhardt, J. (2008). Factors that influence the
+forming of self-evaluation and self-efficacy perceptions. <em>South
+African Journal of Psychology, 38</em>(3), 563–573. <a href="https://doi.org/10.1177/008124630803800310" class="external-link uri">https://doi.org/10.1177/008124630803800310</a></p>
+<blockquote>
+<p>The English report of the eight-group study in Steyn (2005): three
+treatments, each given with and without a pretest, a pretested and an
+unpretested control group, and 1,723 police trainees (pp. 566–567). It
+says that the participants were allocated to the groups at random
+(pp. 566–567) and does not mention the existing classes that the thesis
+describes. Each treatment was analyzed with the two control groups by a
+2 x 2 analysis of variance of the posttests, through Step 2 of the
+sequence of Walton Braver and Braver (1988), at the .01 level (p. 568).
+No pretest-by-intervention interaction was significant, and the pretest
+main effect of the test-only treatment (p = .033) was judged not
+significant (pp. 568–569). It does not report the eight groups’ means or
+the one-way analysis of the eight posttests. <em>In solomonR:</em> the
+English source cited in <code><a href="../reference/steyn2005.html">?steyn2005</a></code>, whose group statistics
+reproduce its 2 x 2 analyses within rounding; for the Norms treatment
+its means and standard deviation follow Table 5.45 of the thesis (<a href="https://github.com/JUhalt/solomonR/issues/96" class="external-link">#96</a>).</p>
 </blockquote>
 <p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon
 four-group design</em> (Research Report 99-06). University of Twente.
@@ -657,6 +679,24 @@ chi-square test statistic for moment structure analysis.
 <em>Psychometrika, 66</em>(4), 507–514. <a href="https://doi.org/10.1007/BF02296192" class="external-link uri">https://doi.org/10.1007/BF02296192</a></p>
 <p>Satterthwaite, F. E. (1946). An approximate distribution of estimates
 of variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114. <a href="https://doi.org/10.2307/3002019" class="external-link uri">https://doi.org/10.2307/3002019</a></p>
+<p>Scheffé, H. (1953). A method for judging all contrasts in the
+analysis of variance. <em>Biometrika, 40</em>(1–2), 87–104. <a href="https://doi.org/10.1093/biomet/40.1-2.87" class="external-link uri">https://doi.org/10.1093/biomet/40.1-2.87</a></p>
+<blockquote>
+<p>Simultaneous intervals for every contrast among k means: the estimate
+plus or minus S standard errors, where S² is k − 1 times the upper α
+point of F on k − 1 and ν degrees of freedom. All the intervals hold
+together with probability 1 − α, including contrasts suggested by the
+data (pp. 87–89). A contrast is significant when its estimate exceeds S
+standard errors in absolute value, and the F test rejects exactly when
+some contrast is significant (pp. 87, 95–96). The means may rest on
+unequal numbers of observations (pp. 87, 96–98). When only the
+differences between pairs of equally precise means are of interest,
+Scheffé recommends Tukey’s method, whose intervals are shorter (pp. 89,
+92–93, 96–97). Crossref gives the pages as 87–110; the printed article
+ends on p. 104. <em>In solomonR:</em> the default post hoc tests of
+<code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>, the Scheffé tests that Steyn (2005)
+used (<a href="https://github.com/JUhalt/solomonR/issues/96" class="external-link">#96</a>).</p>
+</blockquote>
 <p>Schuirmann, D. J. (1987). A comparison of the two one-sided tests
 procedure and the power approach for assessing the equivalence of
 average bioavailability. <em>Journal of Pharmacokinetics and

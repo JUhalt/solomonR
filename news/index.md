@@ -2,6 +2,26 @@
 
 ## solomonR (development version)
 
+### Sources named by Steyn (2009) ([\#96](https://github.com/JUhalt/solomonR/issues/96), first part)
+
+- The default post hoc tests of
+  [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+  are now credited to Scheffé (1953), whose method they are, as well as
+  to Steyn (2005), who used them, and
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  cites both. The help page states Scheffé’s criterion, its equivalence
+  with the F test, and his advice to prefer Tukey’s method when only
+  pairs of equally precise means are compared. It no longer says,
+  without a source, that Holm’s adjustment is less conservative for
+  pairwise comparisons.
+- [`?steyn2005`](https://juhalt.github.io/solomonR/reference/steyn2005.md)
+  cites Steyn and Mynhardt (2008), the English report of the eight-group
+  study: its account of the assignment, its 2 x 2 results, and where
+  they differ from the thesis.
+- Both works are in the references, and Steyn and Mynhardt (2008) in the
+  coverage article. Scheffé (1953) is cited with its printed pages,
+  87–104; Crossref gives 87–110.
+
 ## solomonR 0.8.0
 
 This release brings together the work planned for v0.5.0 through v0.8.0,

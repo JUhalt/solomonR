@@ -8,8 +8,8 @@ were posted on [issue
 \#45](https://github.com/JUhalt/solomonR/issues/45) before the study was
 run, following the ADEMP structure of Morris et al. (2019). One
 amendment was posted before the run. It changed the post hoc test of
-Steyn’s sequence to the Scheffé test that Steyn (2005) used, and kept
-the Holm-adjusted version as a second variant. The study has 5,000
+Steyn’s sequence to Scheffé’s (1953) test, which Steyn (2005) used, and
+kept the Holm-adjusted version as a second variant. The study has 5,000
 replications in each of 112 scenarios.
 
 ## Design
@@ -52,10 +52,10 @@ without a pretest.
   follow McCarthy and Tucker (2002); all pairs follow Mai et al. (2020).
 - **M5:** the tests of Steyn’s (2009) sequence, computed as
   [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
-  computes them, with Scheffé post hoc tests. **M5h** uses Holm-adjusted
-  pairwise t tests. As the protocol defined them, the outcomes of steps
-  E4 and E5 are counted in every replication, whether or not the
-  function’s decision path reaches those steps.
+  computes them, with Scheffé’s (1953) post hoc tests. **M5h** uses
+  Holm-adjusted pairwise t tests. As the protocol defined them, the
+  outcomes of steps E4 and E5 are counted in every replication, whether
+  or not the function’s decision path reaches those steps.
 
 **Decision rules,** for the HC3 fits (M1 and M2). Each allows for Monte
 Carlo error by a Bonferroni adjustment across the rates it checks:
@@ -409,6 +409,10 @@ through service learning. *Journal of Management Education, 26*(6),
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine,
 38*(11), 2074–2102. <https://doi.org/10.1002/sim.8086>
+
+Scheffé, H. (1953). A method for judging all contrasts in the analysis
+of variance. *Biometrika, 40*(1–2), 87–104.
+<https://doi.org/10.1093/biomet/40.1-2.87>
 
 Steyn, R. (2005). *Self-evaluasie en die vorming van
 selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of
