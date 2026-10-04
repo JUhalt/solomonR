@@ -176,7 +176,11 @@ Designs with several treatments are not supported; see
 
 
 <dt id="arg-std-lv">std_lv<a class="anchor" aria-label="anchor" href="#arg-std-lv"></a></dt>
-<dd><p>logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale</p></dd>
+<dd><p>logical; if TRUE (default), lavaan's <code>std.lv = TRUE</code>: the
+latent variance is fixed at 1 in the first group, the pretested
+treatment group (P1), so latent contrasts are in that group's latent SD
+units. In the latent ANCOVA (<code>ancova = TRUE</code>) the PRE variance and the
+POST residual variance are fixed at 1 in P1.</p></dd>
 
 
 <dt id="arg-conf-level">conf_level<a class="anchor" aria-label="anchor" href="#arg-conf-level"></a></dt>

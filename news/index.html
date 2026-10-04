@@ -87,6 +87,12 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="solomonr-development-version">solomonR (development version)<a class="anchor" aria-label="anchor" href="#solomonr-development-version"></a></h2>
 <div class="section level3">
+<h3 id="sem-group-order-bug-fix-development-version">SEM group order (bug fix)<a class="anchor" aria-label="anchor" href="#sem-group-order-bug-fix-development-version"></a></h3>
+<ul><li>
+<code><a href="../reference/fit_solomon_sem.html">fit_solomon_sem()</a></code> and <code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> gave wrong contrasts when the data did not begin with a pretested, treated participant. Their models label the four group means by position, and lavaan orders groups by their first appearance in the data, so with other row orders the labels were attached to the wrong groups: on <code>solomon_example</code> with an unpretested control first, the average treatment effect came out as -2.68 instead of 2.68. The group order is now fixed. Results from data that began with a pretested, treated participant, including every example in the documentation, are unchanged.</li>
+<li>The <code>std_lv</code> documentation of <code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> now says that the latent variance is fixed at 1 in the pretested treatment group, so latent contrasts are in that group’s latent SD units.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="sources-named-by-steyn-first-part-development-version">Sources named by Steyn (2009) (<a href="https://github.com/JUhalt/solomonR/issues/96" class="external-link">#96</a>, first part)<a class="anchor" aria-label="anchor" href="#sources-named-by-steyn-first-part-development-version"></a></h3>
 <ul><li>The default post hoc tests of <code><a href="../reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> are now credited to Scheffé (1953), whose method they are, as well as to Steyn (2005), who used them, and <code><a href="../reference/report_solomon.html">report_solomon()</a></code> cites both. The help page states Scheffé’s criterion, its equivalence with the F test, and his advice to prefer Tukey’s method when only pairs of equally precise means are compared. It no longer says, without a source, that Holm’s adjustment is less conservative for pairwise comparisons.</li>
 <li>

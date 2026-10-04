@@ -72,7 +72,11 @@ fit_solomon_sem_latent(
 
 - std_lv:
 
-  logical; if TRUE (default), std.lv=TRUE to put factors on SD=1 scale
+  logical; if TRUE (default), lavaan's `std.lv = TRUE`: the latent
+  variance is fixed at 1 in the first group, the pretested treatment
+  group (P1), so latent contrasts are in that group's latent SD units.
+  In the latent ANCOVA (`ancova = TRUE`) the PRE variance and the POST
+  residual variance are fixed at 1 in P1.
 
 - conf_level:
 

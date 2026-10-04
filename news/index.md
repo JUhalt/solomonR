@@ -2,6 +2,26 @@
 
 ## solomonR (development version)
 
+### SEM group order (bug fix)
+
+- [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+  and
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+  gave wrong contrasts when the data did not begin with a pretested,
+  treated participant. Their models label the four group means by
+  position, and lavaan orders groups by their first appearance in the
+  data, so with other row orders the labels were attached to the wrong
+  groups: on `solomon_example` with an unpretested control first, the
+  average treatment effect came out as -2.68 instead of 2.68. The group
+  order is now fixed. Results from data that began with a pretested,
+  treated participant, including every example in the documentation, are
+  unchanged.
+- The `std_lv` documentation of
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+  now says that the latent variance is fixed at 1 in the pretested
+  treatment group, so latent contrasts are in that group’s latent SD
+  units.
+
 ### Sources named by Steyn (2009) ([\#96](https://github.com/JUhalt/solomonR/issues/96), first part)
 
 - The default post hoc tests of
