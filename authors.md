@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/JUhalt/solomonR/blob/master/inst/CITATION)
+[`inst/CITATION`](https://github.com/JUhalt/solomonR/blob/v0.8.1/inst/CITATION)
 
 Uhalt J (2026). *solomonR: Analyze Solomon Four-Group Designs*. R
 package version 0.8.1, <https://juhalt.github.io/solomonR/>.
