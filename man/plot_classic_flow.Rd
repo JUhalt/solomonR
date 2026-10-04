@@ -36,6 +36,10 @@ Given a fitted classic analysis, the tests it visited are highlighted with
 their p-values, following the fit's recorded path exactly, and the caption
 gives its conclusion.
 
+The figure is laid out to be drawn at least 7 inches wide and 4.5 inches
+high, as in the vignettes and on the package website; its caption and
+subtitle are broken into lines for that width.
+
 The figure is a teaching and replication aid, not a recommended workflow.
 Sawilowsky et al. (1994) found that the conditional sequence ending in
 Test I has an experiment-wise Type I error rate well above its nominal

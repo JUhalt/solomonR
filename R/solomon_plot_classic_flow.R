@@ -75,6 +75,10 @@
 #' their p-values, following the fit's recorded path exactly, and the caption
 #' gives its conclusion.
 #'
+#' The figure is laid out to be drawn at least 7 inches wide and 4.5 inches
+#' high, as in the vignettes and on the package website; its caption and
+#' subtitle are broken into lines for that width.
+#'
 #' The figure is a teaching and replication aid, not a recommended workflow.
 #' Sawilowsky et al. (1994) found that the conditional sequence ending in
 #' Test I has an experiment-wise Type I error rate well above its nominal
@@ -148,9 +152,14 @@ plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990", "1995")) {
       result <- fit$tests[[letter]]$result
       if (is.null(result) || is.null(result$p.value)) NA_real_ else as.numeric(result$p.value[1])
     }, numeric(1))
+    # The p-value goes on the first line, beside the test's name, so that a
+    # visited node is no taller than the others.
+    first_break <- regexpr("\n", nodes$label, fixed = TRUE)
     nodes$label <- ifelse(
       nodes$visited & !is.na(p_values),
-      sprintf("%s\np = %s", nodes$label, formatC(p_values, format = "f", digits = 3)),
+      paste0(substr(nodes$label, 1L, first_break - 1L),
+             sprintf(" (p = %s)", formatC(p_values, format = "f", digits = 3)),
+             substring(nodes$label, first_break)),
       nodes$label
     )
 
@@ -164,40 +173,113 @@ plot_classic_flow <- function(fit = NULL, flow = c("1988", "1990", "1995")) {
     } else {
       sprintf("alpha allocation: %s (Sawilowsky, 1996)", allocation)
     }
-    subtitle <- sprintf("Path taken (%s flow): %s (%s)", flow, fit$path_string, alpha_text)
+    # The path is never broken across lines.
+    subtitle <- .fill_figure_text(
+      c(sprintf("Path taken (%s flow): %s", flow, fit$path_string), sprintf("(%s)", alpha_text)),
+      .figure_subtitle_size
+    )
     caption <- paste0(fit$conclusion, "\n", caution)
   }
+  caption <- .wrap_figure_text(caption, .figure_caption_size)
 
-  segments <- merge(edges, nodes[, c("node", "x", "y")], by.x = "from", by.y = "node")
-  names(segments)[names(segments) %in% c("x", "y")] <- c("x_from", "y_from")
-  segments <- merge(segments, nodes[, c("node", "x", "y")], by.x = "to", by.y = "node")
-  names(segments)[names(segments) %in% c("x", "y")] <- c("x_to", "y_to")
-  segments$x_label <- (segments$x_from + segments$x_to) / 2
-  segments$y_label <- (segments$y_from + segments$y_to) / 2
+  # The arrows are fitted to the panel left by the subtitle and the caption.
+  count_lines <- function(text) length(strsplit(text, "\n", fixed = TRUE)[[1]])
+  segments <- .classic_flow_segments(nodes, edges, count_lines(subtitle), count_lines(caption))
+  labelled <- segments[nzchar(segments$label), ]
 
   ggplot2::ggplot() +
     ggplot2::geom_segment(
       data = segments,
-      ggplot2::aes(x = x_from, y = y_from - 0.3, xend = x_to, yend = y_to + 0.3,
+      ggplot2::aes(x = x_from, y = y_start, xend = x_to, yend = y_end,
                    linewidth = visited),
       arrow = ggplot2::arrow(length = ggplot2::unit(0.15, "cm")),
       colour = "grey40"
     ) +
     ggplot2::geom_text(
-      data = segments[nzchar(segments$label), ],
-      ggplot2::aes(x = x_label, y = y_label, label = label),
-      size = 3, colour = "grey30", vjust = -0.4
+      data = labelled,
+      ggplot2::aes(x = x_label, y = y_label, label = label, hjust = hjust, vjust = vjust),
+      size = .classic_flow_edge_size, colour = "grey30"
     ) +
     ggplot2::geom_label(
       data = nodes,
       ggplot2::aes(x = x, y = y, label = label, fill = visited),
-      size = 3.2
+      size = .classic_flow_node_size, lineheight = 1
     ) +
     ggplot2::scale_fill_manual(values = c(`TRUE` = "#cfe3f2", `FALSE` = "white"), guide = "none") +
     ggplot2::scale_linewidth_manual(values = c(`TRUE` = 1.2, `FALSE` = 0.4), guide = "none") +
-    ggplot2::scale_x_continuous(limits = c(-3.4, 3.4)) +
-    ggplot2::scale_y_continuous(limits = c(0.4, 5.6)) +
-    ggplot2::labs(title = "Historical Solomon decision path", subtitle = subtitle, caption = caption) +
+    ggplot2::coord_cartesian(xlim = c(-3.4, 3.4), ylim = range(nodes$y) + c(-0.6, 0.6),
+                             expand = FALSE, clip = "off") +
+    ggplot2::labs(title = "Historical Solomon decision path", subtitle = subtitle,
+                  caption = caption) +
     ggplot2::theme_void(base_size = 12) +
-    ggplot2::theme(plot.caption = ggplot2::element_text(hjust = 0))
+    # theme_void() has no plot margins; these are the margins of the other
+    # figures, so that the title and the caption do not touch the edges.
+    ggplot2::theme(plot.caption = ggplot2::element_text(hjust = 0),
+                   plot.caption.position = "plot",
+                   plot.title.position = "plot",
+                   plot.margin = ggplot2::margin(5.5, 5.5, 5.5, 5.5))
+}
+
+# Text sizes, in millimetres, of the nodes and of the edge labels.
+.classic_flow_node_size <- 3.2
+.classic_flow_edge_size <- 3
+
+# Height, in inches, of the panel when the figure is drawn 4.5 inches high,
+# the smallest height it is laid out for, with `subtitle_lines` lines of
+# subtitle and `caption_lines` lines of caption. The title, the plot margins,
+# and the space around the subtitle and the caption take 0.546 inches, and
+# each line of the subtitle or the caption takes 1.08 times its point size
+# (a line height of 0.9, in lines set 1.2 times the size of their text), as
+# measured on the pdf() device.
+.classic_flow_panel_height <- function(subtitle_lines, caption_lines, height = 4.5) {
+  height - 0.546 -
+    1.08 * (subtitle_lines * .figure_subtitle_size + caption_lines * .figure_caption_size) / 72
+}
+
+# Half the height, in y units, of a node of `lines` lines of text, in a tree
+# whose y range is `span` units, with `subtitle_lines` lines of subtitle and
+# `caption_lines` lines of caption. The height of a node is
+# 1.2 * (lines - 1) + 1.46 times the size of its text: its lines, set 1.2
+# times the size of the text apart, with a padding of a quarter line above
+# and below and room for the descent of the last line. A y unit is the
+# height of the panel of a figure 4.5 inches high over `span`, and the
+# estimate adds 0.01 inch, so that an arrow stops just short of the node it
+# meets; in a taller figure a y unit is longer and the gap a little wider.
+# A longer caption leaves a shorter panel and so a shorter y unit, which the
+# estimate follows.
+.classic_flow_half_height <- function(lines, span, subtitle_lines, caption_lines) {
+  half <- (1.2 * (lines - 1) + 1.46) * .classic_flow_node_size * ggplot2::.pt / 72 / 2
+  unit <- .classic_flow_panel_height(subtitle_lines, caption_lines) / span
+  (half + 0.01) / unit
+}
+
+# Edges of the tree, with arrows that run from the bottom of one node to the
+# top of the next, and labels set beside each arrow rather than on it: to
+# the right of a vertical arrow and, for an arrow leaving Test A, above its
+# midpoint on the side it leads to. A label set this way never covers a node
+# or its own arrow.
+.classic_flow_segments <- function(nodes, edges, subtitle_lines, caption_lines) {
+  nodes$half <- .classic_flow_half_height(
+    lengths(regmatches(nodes$label, gregexpr("\n", nodes$label, fixed = TRUE))) + 1L,
+    # The y range of the panel: the levels of the tree and 0.6 units above
+    # and below them.
+    span = diff(range(nodes$y)) + 1.2,
+    subtitle_lines = subtitle_lines, caption_lines = caption_lines
+  )
+  ends <- nodes[, c("node", "x", "y", "half")]
+  segments <- merge(edges, ends, by.x = "from", by.y = "node")
+  names(segments)[match(c("x", "y", "half"), names(segments))] <- c("x_from", "y_from", "half_from")
+  segments <- merge(segments, ends, by.x = "to", by.y = "node")
+  names(segments)[match(c("x", "y", "half"), names(segments))] <- c("x_to", "y_to", "half_to")
+  segments <- segments[order(match(paste(segments$from, segments$to), paste(edges$from, edges$to))), ]
+  rownames(segments) <- NULL
+
+  segments$y_start <- segments$y_from - segments$half_from
+  segments$y_end <- segments$y_to + segments$half_to
+  side <- sign(segments$x_to - segments$x_from)
+  segments$x_label <- (segments$x_from + segments$x_to) / 2 + ifelse(side < 0, -0.12, 0.12)
+  segments$y_label <- (segments$y_start + segments$y_end) / 2 + ifelse(side == 0, 0, 0.03)
+  segments$hjust <- ifelse(side < 0, 1, 0)
+  segments$vjust <- ifelse(side == 0, 0.5, 0)
+  segments
 }

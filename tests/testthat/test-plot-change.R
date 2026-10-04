@@ -42,6 +42,29 @@ test_that("unpretested groups appear at posttest only, labeled by design", {
 })
 
 
+test_that("the caption is set two sentences or one to a line, flush left (#108)", {
+
+  p <- change_plot()
+  expect_equal(
+    p$labels$caption,
+    paste0("95% t intervals. Pretested groups: 60 participants with both scores.\n",
+           "Unpretested groups are observed at posttest only, by design.")
+  )
+  expect_equal(p$theme$plot.caption$hjust, 0)
+  expect_equal(p$theme$plot.caption.position, "plot")
+
+  # A long line is wrapped between words.
+  d <- solomon_example
+  d$y_pre[which(d$pretested == 1)[1:3]] <- NA
+  lines <- strsplit(change_plot(d)$labels$caption, "\n", fixed = TRUE)[[1]]
+  expect_equal(lines[3:4], c(
+    "3 pretested participant(s) with a missing pretest are excluded from the trajectories, not",
+    "imputed."
+  ))
+  expect_true(all(nchar(lines) <= .figure_text_chars(.figure_caption_size)))
+})
+
+
 test_that("incidental pretest missingness is excluded and reported, not imputed", {
 
   d <- solomon_example

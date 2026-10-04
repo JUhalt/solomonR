@@ -38,8 +38,10 @@ test_that("the highlighted route follows the fitted path exactly", {
   expect_match(a$label, sprintf("p = %s", formatC(fit$tests$A$result$p.value, format = "f", digits = 3)),
                fixed = TRUE)
   expect_match(p$labels$subtitle, fit$path_string, fixed = TRUE)
-  expect_match(p$labels$caption, fit$conclusion, fixed = TRUE)
-  expect_match(p$labels$caption, "Sawilowsky et al., 1994")
+  # The caption is wrapped to the width of the figure (#108).
+  caption <- gsub("\n", " ", p$labels$caption, fixed = TRUE)
+  expect_match(caption, fit$conclusion, fixed = TRUE)
+  expect_match(caption, "Sawilowsky et al., 1994")
 })
 
 
@@ -70,7 +72,13 @@ test_that("the selected pretested-groups test is named", {
   fit <- with(solomon_example,
               fit_solomon_classic(y_post, treat, pretested, y_pre, pretested_test = "gain"))
   nodes <- flow_layer(plot_classic_flow(fit), "GeomLabel")
-  expect_match(nodes$label[nodes$node == "S"], "^Test F\nGain-score treatment effect")
+  # The p-value of a visited test is set beside its name (#108).
+  expect_true("S" %in% nodes$node[nodes$visited])
+  expect_match(nodes$label[nodes$node == "S"],
+               sprintf("^Test F \\(p = %s\\)\nGain-score treatment effect$",
+                       formatC(fit$tests$F$result$p.value, format = "f", digits = 3)))
+  generic <- flow_layer(plot_classic_flow(), "GeomLabel")
+  expect_equal(generic$label[generic$node == "S"], "Test E / F / G\nTreatment in pretested groups")
 })
 
 
