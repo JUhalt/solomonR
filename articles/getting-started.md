@@ -487,44 +487,46 @@ compare_solomon_methods(
 #> precision rather than the target.
 #> 
 #> ATE (avg over pretest)
-#>  Method                            Estimate 95% CI          Reference p    
-#>  Unified GLM (HC3)                 2.663    [-0.474, 5.801] t(115)    0.095
-#>  Maximum likelihood                2.663    [-0.314, 5.641] normal    0.080
-#>  Maximum likelihood (small-sample) 2.663    [-0.411, 5.738] t(115.0)  0.089
-#>  Classic Test D                    2.683    [-0.793, 6.160] t(116)    0.129
+#>  Method                             Estimate 95% CI          Reference p    
+#>  Unified GLM (HC3)                  2.663    [-0.474, 5.801] t(115)    0.095
+#>  Maximum likelihood (Satterthwaite) 2.663    [-0.411, 5.738] t(115.0)  0.089
+#>  Maximum likelihood (Wald)          2.663    [-0.314, 5.641] normal    0.080
+#>  Classic Test D                     2.683    [-0.793, 6.160] t(116)    0.129
 #> 
 #> Pretest x Treatment
-#>  Method                            Estimate 95% CI          Reference p    
-#>  Unified GLM (HC3)                 -1.940   [-8.214, 4.335] t(115)    0.541
-#>  Maximum likelihood                -1.940   [-7.895, 4.016] normal    0.523
-#>  Maximum likelihood (small-sample) -1.940   [-8.088, 4.209] t(115.0)  0.533
-#>  Classic Test A                    -1.900   [-8.853, 5.053] t(116)    0.589
+#>  Method                             Estimate 95% CI          Reference p    
+#>  Unified GLM (HC3)                  -1.940   [-8.214, 4.335] t(115)    0.541
+#>  Maximum likelihood (Satterthwaite) -1.940   [-8.088, 4.209] t(115.0)  0.533
+#>  Maximum likelihood (Wald)          -1.940   [-7.895, 4.016] normal    0.523
+#>  Classic Test A                     -1.900   [-8.853, 5.053] t(116)    0.589
 #> 
 #> Treatment | pretested
-#>  Method                            Estimate 95% CI          Reference p    
-#>  Unified GLM (HC3)                 1.693    [-2.765, 6.152] t(115)    0.453
-#>  Maximum likelihood                1.693    [-2.506, 5.893] normal    0.429
-#>  Maximum likelihood (small-sample) 1.693    [-2.708, 6.095] t(57)     0.444
-#>  Classic Test B                    1.733    [-3.183, 6.650] t(116)    0.486
-#>  Classic Test E (ANCOVA)           1.693    [-2.708, 6.095] t(57)     0.444
-#>  Classic Test F (gain score)       1.667    [-3.239, 6.572] t(58)     0.499
+#>  Method                             Estimate 95% CI          Reference p    
+#>  Unified GLM (HC3)                  1.693    [-2.765, 6.152] t(115)    0.453
+#>  Maximum likelihood (Satterthwaite) 1.693    [-2.708, 6.095] t(57)     0.444
+#>  Maximum likelihood (Wald)          1.693    [-2.506, 5.893] normal    0.429
+#>  Classic Test B                     1.733    [-3.183, 6.650] t(116)    0.486
+#>  Classic Test E (ANCOVA)            1.693    [-2.708, 6.095] t(57)     0.444
+#>  Classic Test F (gain score)        1.667    [-3.239, 6.572] t(58)     0.499
 #> 
 #> Treatment | unpretested
-#>  Method                            Estimate 95% CI          Reference p    
-#>  Unified GLM (HC3)                 3.633    [-0.782, 8.049] t(115)    0.106
-#>  Maximum likelihood                3.633    [-0.590, 7.857] normal    0.092
-#>  Maximum likelihood (small-sample) 3.633    [-0.754, 8.020] t(58)     0.103
-#>  Classic Test C                    3.633    [-1.283, 8.550] t(116)    0.146
-#>  Classic Test H (posttest-only)    3.633    [-0.754, 8.020] t(58)     0.103
+#>  Method                             Estimate 95% CI          Reference p    
+#>  Unified GLM (HC3)                  3.633    [-0.782, 8.049] t(115)    0.106
+#>  Maximum likelihood (Satterthwaite) 3.633    [-0.754, 8.020] t(58)     0.103
+#>  Maximum likelihood (Wald)          3.633    [-0.590, 7.857] normal    0.092
+#>  Classic Test C                     3.633    [-1.283, 8.550] t(116)    0.146
+#>  Classic Test H (posttest-only)     3.633    [-0.754, 8.020] t(58)     0.103
 #> 
 #> Methods:
 #> - Unified GLM (HC3): adjustment = pretest (pretested groups); common residual
 #>   variance; HC3 robust.
-#> - Maximum likelihood: adjustment = pretest (pretested groups); separate
-#>   residual variances by pretest condition; Wald inference (van Engelenburg,
-#>   1999).
-#> - Maximum likelihood (small-sample): adjustment = pretest (pretested groups);
-#>   separate residual variances by pretest condition; Welch-Satterthwaite t.
+#> - Maximum likelihood (Satterthwaite): adjustment = pretest (pretested
+#>   groups); separate residual variances by pretest condition; t with residual
+#>   df, or Welch-Satterthwaite df for combined contrasts (Satterthwaite, 1946;
+#>   Welch, 1947).
+#> - Maximum likelihood (Wald): adjustment = pretest (pretested groups);
+#>   separate residual variances by pretest condition; large-sample Wald
+#>   inference (van Engelenburg, 1999).
 #> - Classic Test D: adjustment = none; common residual variance; four-group
 #>   model.
 #> - Classic Test A: adjustment = none; common residual variance; four-group
@@ -552,36 +554,26 @@ compare_solomon_methods(
 ```
 
 Several estimates are identical, but their intervals differ. The
-maximum-likelihood analysis of van Engelenburg (1999) uses large-sample
-Wald intervals by default. In the package’s simulation validation, those
-intervals were too narrow when groups were small, so
-[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-warns when it is used with small groups and offers a small-sample
-option:
+maximum-likelihood analysis of van Engelenburg (1999),
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+uses t tests by default, with Welch-Satterthwaite degrees of freedom for
+the contrasts that combine the pretested and unpretested groups
+(Satterthwaite, 1946; Welch, 1947):
 
 ``` r
 
 ml <- fit_solomon_ml(y_post, treat, pretested, y_pre, data = solomon_example)
-#> Warning: The smallest Solomon cell has 30 participants. In the package's
-#> simulation validation, maximum-likelihood Wald intervals were too narrow with
-#> fewer than 40 participants per cell. Consider inference = "satterthwaite", or
-#> supply inference = "wald" to keep the default without this warning. See
-#> ?fit_solomon_ml.
-```
-
-``` r
-
-ml_small <- fit_solomon_ml(y_post, treat, pretested, y_pre,
-                           inference = "satterthwaite", data = solomon_example)
-ml_small
+ml
 #> Solomon full-information maximum-likelihood model
 #> -------------------------------------------------
 #> Method: van Engelenburg (1999)
-#> Inference: small-sample (t; Welch-Satterthwaite df for combined contrasts)
+#> Inference: Satterthwaite (Satterthwaite, 1946; Welch, 1947; t with residual
+#>   df within a pretest condition, Welch-Satterthwaite df for contrasts that
+#>   combine them)
 #> 
 #> Centered pretest mean: 49.600
-#> Residual SD, unpretested: 8.345
-#> Residual SD, pretested:   8.298
+#> Residual SD, unpretested: 8.345 (ML); 8.488 (from the unbiased variance; used for SEs)
+#> Residual SD, pretested:   8.298 (ML); 8.513 (from the unbiased variance; used for SEs)
 #> 
 #> Key Solomon estimands
 #> ---------------------
@@ -597,6 +589,45 @@ ml_small
 #> include its sampling variance.
 #> 
 #> logLik = -424.53; optimizer convergence = 0
+```
+
+The large-sample Wald intervals that van Engelenburg described are
+available with `inference = "wald"`. In the package’s simulation
+validation, they were too narrow with fewer than 40 participants per
+cell, and the printed output says so:
+
+``` r
+
+ml_wald <- fit_solomon_ml(y_post, treat, pretested, y_pre,
+                          inference = "wald", data = solomon_example)
+ml_wald
+#> Solomon full-information maximum-likelihood model
+#> -------------------------------------------------
+#> Method: van Engelenburg (1999)
+#> Inference: Wald (van Engelenburg, 1999; large-sample normal reference)
+#> 
+#> Centered pretest mean: 49.600
+#> Residual SD, unpretested: 8.345 (ML; used for SEs)
+#> Residual SD, pretested:   8.298 (ML; used for SEs)
+#> 
+#> Key Solomon estimands
+#> ---------------------
+#> ATE (avg over pretest)       2.663 (SE = 1.519), z = 1.75, p = 0.080, 95% CI [-0.314, 5.641]
+#> Pretest x Treatment          -1.940 (SE = 3.039), z = -0.64, p = 0.523, 95% CI [-7.895, 4.016]
+#> Treatment | pretested        1.693 (SE = 2.142), z = 0.79, p = 0.429, 95% CI [-2.506, 5.893]
+#> Treatment | unpretested      3.633 (SE = 2.155), z = 1.69, p = 0.092, 95% CI [-0.590, 7.857]
+#> Pretest effect | control     3.420 (SE = 2.299), z = 1.49, p = 0.137, 95% CI [-1.086, 7.926]
+#> Pretest effect | treated     1.480 (SE = 2.299), z = 0.64, p = 0.520, 95% CI [-3.026, 5.986]
+#> Pretest main effect          2.450 (SE = 1.726), z = 1.42, p = 0.156, 95% CI [-0.932, 5.832]
+#> 
+#> Pretest effects: at the centered pretest mean, with standard errors that
+#> include its sampling variance.
+#> 
+#> logLik = -424.53; optimizer convergence = 0
+#> Note: the smallest cell has 30 participants. In the package's simulation
+#> validation, Wald intervals were too narrow with fewer than 40 participants
+#> per cell; the default, inference = "satterthwaite", was calibrated. See
+#> ?fit_solomon_ml.
 ```
 
 ## Step 6: Report the results
@@ -717,7 +748,7 @@ gains.
 | Posttests on several occasions | [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md) | Valid when participants drop out depending on earlier scores |
 | Several treatments and a control | `fit_solomon_glm(control = )` | One model for all the groups, with comparisons adjusted for their number |
 | Inference that rests only on random assignment | [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md) | Randomization test of no treatment effect |
-| Likelihood-based analysis | [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md) | Separate residual variances; use `inference = "satterthwaite"` with small groups |
+| Likelihood-based analysis | [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md) | Separate residual variances by pretest condition; Satterthwaite t tests by default |
 | Outcomes measured by several items | [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md) | Latent contrasts under measurement invariance |
 | Teach or reproduce the historical analysis | [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md) | Tests A-I and the historical decision path |
 | See how conclusions depend on the analysis | [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md) | Estimates and intervals side by side |
@@ -811,6 +842,10 @@ cluster-robust variance estimation and hypothesis testing in fixed
 effects models. *Journal of Business & Economic Statistics, 36*(4),
 672–683. <https://doi.org/10.1080/07350015.2016.1247004>
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+<https://doi.org/10.2307/3002019>
+
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
 Experimental Education, 62*(4), 361–376.
@@ -837,6 +872,10 @@ Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological
 Bulletin, 104*(1), 150–154.
 <https://doi.org/10.1037/0033-2909.104.1.150>
+
+Welch, B. L. (1947). The generalization of “Student’s” problem when
+several different population variances are involved. *Biometrika,
+34*(1–2), 28–35. <https://doi.org/10.1093/biomet/34.1-2.28>
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. *Statistics in Medicine,

@@ -140,9 +140,11 @@ confidence level 1 - 2 <code>alpha</code>. Default is 0.05.</p></dd>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Estimates and intervals are taken unchanged from the fitted object, so the
 figure agrees with its printed output, and the caption states the
-confidence level and the reference distribution the model used. Contrasts
-a model does not estimate are omitted and named in the caption rather than
-drawn as zero.</p>
+confidence level, the reference distribution, and the inference the model
+used. For <code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>, that is its default Satterthwaite inference
+(Satterthwaite, 1946; Welch, 1947) or van Engelenburg's (1999)
+large-sample Wald inference. Contrasts a model does not estimate are
+omitted and named in the caption rather than drawn as zero.</p>
     </div>
     <div class="section level2">
     <h2 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a></h2>
@@ -188,10 +190,19 @@ https://www.jstor.org/stable/4615733</p>
 <p>Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. <em>Social Psychological and Personality
 Science, 8</em>(4), 355–362. https://doi.org/10.1177/1948550617697177</p>
+<p>Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114.
+https://doi.org/10.2307/3002019</p>
 <p>Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 and the power approach for assessing the equivalence of average
 bioavailability. <em>Journal of Pharmacokinetics and Biopharmaceutics, 15</em>(6),
 657–680. https://doi.org/10.1007/BF01068419</p>
+<p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group
+design</em> (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692</p>
+<p>Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. <em>Biometrika, 34</em>(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28</p>
     </div>
 
     <div class="section level2">

@@ -234,7 +234,8 @@ Small-sample inference option for
 [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
 with a warning below 40 participants per cell —
 [\#22](https://github.com/JUhalt/solomonR/issues/22). Calibrated at
-every cell size studied.
+every cell size studied. It later became the default, and the warning
+was removed — [\#115](https://github.com/JUhalt/solomonR/issues/115).
 
 Reconcile release documentation, licensing and distribution —
 [\#12](https://github.com/JUhalt/solomonR/issues/12). Released September
@@ -629,6 +630,11 @@ Historical workflow validated against published results —
 \#76](https://github.com/JUhalt/solomonR/pull/76)
 
 GLM and ML estimands validated
+
+Satterthwaite inference by default in
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+since the package’s validation found the former Wald default liberal in
+small samples — [\#115](https://github.com/JUhalt/solomonR/issues/115)
 
 Randomization inference validated, including cluster-level designs —
 [\#19](https://github.com/JUhalt/solomonR/issues/19); merged in [PR

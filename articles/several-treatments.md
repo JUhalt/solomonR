@@ -685,8 +685,7 @@ control at a time:
 
 rp <- subset(mai2020, condition %in% c("RP", "Control") & !is.na(post_behavior))
 rp$treat <- as.integer(rp$condition == "RP")
-fit_solomon_ml(post_behavior, treat, pretested, pre_behavior,
-               inference = "satterthwaite", data = rp)$effects[, 1:5]
+fit_solomon_ml(post_behavior, treat, pretested, pre_behavior, data = rp)$effects[, 1:5]
 #>                   contrast    estimate  std.error  statistic    p.value
 #> 1   ATE (avg over pretest) -0.03467472 0.07605652 -0.4559072 0.64957579
 #> 2      Pretest x Treatment -0.28983011 0.15211304 -1.9053600 0.05998705

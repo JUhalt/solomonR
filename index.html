@@ -309,7 +309,7 @@
 <li>treatment effect among pretested participants; and</li>
 <li>treatment effect among unpretested participants.</li>
 </ul>
-<p>By default it uses van Engelenburg’s (1999) large-sample Wald inference. With small groups, use <code>inference = "satterthwaite"</code>, a small-sample option with Welch-Satterthwaite degrees of freedom; <code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warns when groups are small and no option has been chosen.</p>
+<p>By default it uses t tests, with Welch-Satterthwaite degrees of freedom for the contrasts that combine the pretested and unpretested groups (Satterthwaite, 1946; Welch, 1947); in the package’s simulation validation these were calibrated at every group size studied. <code>inference = "wald"</code> gives van Engelenburg’s (1999) large-sample Wald inference, whose intervals were too narrow with fewer than 40 participants per group.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -571,12 +571,14 @@
 <p>Lakens, D. (2017). Equivalence tests: A practical primer for t tests, correlations, and meta-analyses. <em>Social Psychological and Personality Science, 8</em>(4), 355–362. <a href="https://doi.org/10.1177/1948550617697177" class="external-link uri">https://doi.org/10.1177/1948550617697177</a></p>
 <p>Long, J. S., &amp; Ervin, L. H. (2000). Using heteroscedasticity consistent standard errors in the linear regression model. <em>The American Statistician, 54</em>(3), 217–224. <a href="https://doi.org/10.1080/00031305.2000.10474549" class="external-link uri">https://doi.org/10.1080/00031305.2000.10474549</a></p>
 <p>Pustejovsky, J. E., &amp; Tipton, E. (2018). Small-sample methods for cluster-robust variance estimation and hypothesis testing in fixed effects models. <em>Journal of Business &amp; Economic Statistics, 36</em>(4), 672–683. <a href="https://doi.org/10.1080/07350015.2016.1247004" class="external-link uri">https://doi.org/10.1080/07350015.2016.1247004</a></p>
+<p>Satterthwaite, F. E. (1946). An approximate distribution of estimates of variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114. <a href="https://doi.org/10.2307/3002019" class="external-link uri">https://doi.org/10.2307/3002019</a></p>
 <p>Sawilowsky, S. S., Kelley, D. L., Blair, R. C., &amp; Markman, B. S. (1994). Meta-analysis and the Solomon four-group design. <em>The Journal of Experimental Education, 62</em>(4), 361–376. <a href="https://doi.org/10.1080/00220973.1994.9944140" class="external-link uri">https://doi.org/10.1080/00220973.1994.9944140</a></p>
 <p>Solomon, R. L. (1949). An extension of control group design. <em>Psychological Bulletin, 46</em>(2), 137–150. <a href="https://doi.org/10.1037/h0062958" class="external-link uri">https://doi.org/10.1037/h0062958</a></p>
 <p>Steiger, J. H. (2004). Beyond the F test: Effect size confidence intervals and tests of close fit in the analysis of variance and contrast analysis. <em>Psychological Methods, 9</em>(2), 164–182. <a href="https://doi.org/10.1037/1082-989X.9.2.164" class="external-link uri">https://doi.org/10.1037/1082-989X.9.2.164</a></p>
 <p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on this exemplary model? <em>Design Principles and Practices: An International Journal—Annual Review, 3</em>(1), 383–394. <a href="https://doi.org/10.18848/1833-1874/CGP/v03i01/37588" class="external-link uri">https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</a></p>
 <p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group design</em> (Research Report 99-06). University of Twente. ERIC. <a href="https://eric.ed.gov/?id=ED435692" class="external-link uri">https://eric.ed.gov/?id=ED435692</a></p>
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical treatment of the Solomon four-group design: A meta-analytic approach. <em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>
+<p>Welch, B. L. (1947). The generalization of “Student’s” problem when several different population variances are involved. <em>Biometrika, 34</em>(1–2), 28–35. <a href="https://doi.org/10.1093/biomet/34.1-2.28" class="external-link uri">https://doi.org/10.1093/biomet/34.1-2.28</a></p>
 <p>Zimmerman, D. W. (2004). A note on preliminary tests of equality of variances. <em>British Journal of Mathematical and Statistical Psychology, 57</em>(1), 173–181. <a href="https://doi.org/10.1348/000711004849222" class="external-link uri">https://doi.org/10.1348/000711004849222</a></p>
 <hr>
 </div>

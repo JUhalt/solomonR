@@ -119,8 +119,9 @@ estimands, methods, performance measures, and tolerances were posted to
 <a href="https://github.com/JUhalt/solomonR/issues/10" class="external-link">issue #10</a>
 before any results were examined, following the ADEMP structure of
 Morris, White and Crowther (2019).</p>
-<p>The first run found that the default Wald intervals were too narrow
-in small samples, which led to the small-sample option in <a href="https://github.com/JUhalt/solomonR/issues/22" class="external-link">issue #22</a>.
+<p>The first run found that Wald intervals, then the default, were too
+narrow in small samples, which led to the
+<code>inference = "satterthwaite"</code> option in <a href="https://github.com/JUhalt/solomonR/issues/22" class="external-link">issue #22</a>.
 Before the results reported here were examined, the protocol was amended
 on that issue in three ways:</p>
 <ul>
@@ -131,6 +132,10 @@ on that issue in three ways:</p>
 </ul>
 <p>This run supersedes the first; the first run’s results remain in the
 package’s version history.</p>
+<p>Because of the results reported here, Satterthwaite inference became
+the default of <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> (<a href="https://github.com/JUhalt/solomonR/issues/115" class="external-link">issue #115</a>).
+The run itself predates that change, but every fit in it named its
+inference explicitly, so the change does not affect the results.</p>
 <div class="section level2">
 <h2 id="design">Design<a class="anchor" aria-label="anchor" href="#design"></a>
 </h2>
@@ -140,18 +145,21 @@ calibrated, and whether its 95% intervals reach nominal coverage. Both
 inference options are evaluated:</p>
 <ul>
 <li>
-<code>inference = "wald"</code>, the default, which follows van
-Engelenburg (1999);</li>
+<code>inference = "wald"</code>, van Engelenburg’s (1999)
+large-sample Wald inference, which was the default when the study was
+run;</li>
 <li>
-<code>inference = "satterthwaite"</code>, which uses unbiased
-residual variances within each pretest condition and Welch-Satterthwaite
-degrees of freedom for contrasts that combine them (Satterthwaite, 1946;
-Welch, 1947).</li>
+<code>inference = "satterthwaite"</code>, now the default, which
+uses unbiased residual variances within each pretest condition and
+Welch-Satterthwaite degrees of freedom for contrasts that combine them
+(Satterthwaite, 1946; Welch, 1947).</li>
 </ul>
 <p>Both are compared with the unified GLM using HC3 standard errors and
-t reference distributions. A further aim is to locate the cell size
-below which <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warns that Wald inference may
-be unreliable.</p>
+t reference distributions. A further aim was to locate the cell size
+below which Wald inference may be unreliable. At the time,
+<code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warned below that size when
+<code>inference</code> was not supplied; it now notes it in printed
+output when Wald inference is chosen.</p>
 <p><strong>Data-generating mechanisms.</strong> A full factorial of 84
 scenarios crosses four factors:</p>
 <ul>
@@ -194,28 +202,25 @@ size studied:</p>
 <li>mean sensitization Type I error of at most 0.060.</li>
 </ul>
 <p>These are the liberal edges of the tolerance bands. The warning
-concerns intervals that are too narrow, so over-coverage does not count
-against Wald inference.</p>
+concerned intervals that are too narrow, so over-coverage does not count
+against Wald inference. The same threshold now governs the note printed
+with Wald fits.</p>
 </div>
 <div class="section level2">
 <h2 id="fit-failures">Fit failures<a class="anchor" aria-label="anchor" href="#fit-failures"></a>
 </h2>
 <table class="table">
-<colgroup>
-<col width="54%">
-<col width="45%">
-</colgroup>
 <thead><tr class="header">
 <th align="left">Method</th>
 <th align="right">Failed fits across all scenarios</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ML, Wald (default)</td>
+<td align="left">ML, Satterthwaite (default)</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">ML, Satterthwaite (small-sample option)</td>
+<td align="left">ML, Wald (van Engelenburg, 1999)</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
@@ -238,14 +243,14 @@ Scenario-level values and their MCSEs are in
 <table style="width:100%;" class="table">
 <caption>Mean coverage across scenarios and contrasts</caption>
 <colgroup>
-<col width="44%">
-<col width="6%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
+<col width="40%">
 <col width="7%">
 <col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Method</th>
@@ -259,7 +264,17 @@ Scenario-level values and their MCSEs are in
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ML, Wald (default)</td>
+<td align="left">ML, Satterthwaite (default)</td>
+<td align="left">0.949</td>
+<td align="left">0.950</td>
+<td align="left">0.949</td>
+<td align="left">0.949</td>
+<td align="left">0.950</td>
+<td align="left">0.950</td>
+<td align="left">0.950</td>
+</tr>
+<tr class="even">
+<td align="left">ML, Wald (van Engelenburg, 1999)</td>
 <td align="left">0.893</td>
 <td align="left">0.920</td>
 <td align="left">0.936</td>
@@ -267,16 +282,6 @@ Scenario-level values and their MCSEs are in
 <td align="left">0.943</td>
 <td align="left">0.945</td>
 <td align="left">0.948</td>
-</tr>
-<tr class="even">
-<td align="left">ML, Satterthwaite (small-sample option)</td>
-<td align="left">0.949</td>
-<td align="left">0.950</td>
-<td align="left">0.949</td>
-<td align="left">0.949</td>
-<td align="left">0.950</td>
-<td align="left">0.950</td>
-<td align="left">0.950</td>
 </tr>
 <tr class="odd">
 <td align="left">GLM HC3 (t)</td>
@@ -293,14 +298,14 @@ Scenario-level values and their MCSEs are in
 <table style="width:100%;" class="table">
 <caption>Lowest coverage across scenarios and contrasts</caption>
 <colgroup>
-<col width="44%">
-<col width="6%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
+<col width="40%">
 <col width="7%">
 <col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Method</th>
@@ -314,17 +319,7 @@ Scenario-level values and their MCSEs are in
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ML, Wald (default)</td>
-<td align="left">0.860</td>
-<td align="left">0.891</td>
-<td align="left">0.922</td>
-<td align="left">0.933</td>
-<td align="left">0.932</td>
-<td align="left">0.930</td>
-<td align="left">0.936</td>
-</tr>
-<tr class="even">
-<td align="left">ML, Satterthwaite (small-sample option)</td>
+<td align="left">ML, Satterthwaite (default)</td>
 <td align="left">0.931</td>
 <td align="left">0.933</td>
 <td align="left">0.941</td>
@@ -332,6 +327,16 @@ Scenario-level values and their MCSEs are in
 <td align="left">0.936</td>
 <td align="left">0.935</td>
 <td align="left">0.940</td>
+</tr>
+<tr class="even">
+<td align="left">ML, Wald (van Engelenburg, 1999)</td>
+<td align="left">0.860</td>
+<td align="left">0.891</td>
+<td align="left">0.922</td>
+<td align="left">0.933</td>
+<td align="left">0.932</td>
+<td align="left">0.930</td>
+<td align="left">0.936</td>
 </tr>
 <tr class="odd">
 <td align="left">GLM HC3 (t)</td>
@@ -351,9 +356,9 @@ Scenario-level values and their MCSEs are in
 </h2>
 <table class="table">
 <colgroup>
-<col width="46%">
-<col width="25%">
+<col width="41%">
 <col width="27%">
+<col width="30%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Method</th>
@@ -362,12 +367,12 @@ Scenario-level values and their MCSEs are in
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ML, Wald (default)</td>
+<td align="left">ML, Satterthwaite (default)</td>
 <td align="left">0.028</td>
 <td align="left">17 of 336</td>
 </tr>
 <tr class="even">
-<td align="left">ML, Satterthwaite (small-sample option)</td>
+<td align="left">ML, Wald (van Engelenburg, 1999)</td>
 <td align="left">0.028</td>
 <td align="left">17 of 336</td>
 </tr>
@@ -389,14 +394,14 @@ even for an unbiased estimator.</p>
 <table style="width:100%;" class="table">
 <caption>Mean relative error of model-based standard errors</caption>
 <colgroup>
-<col width="44%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
+<col width="39%">
 <col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Method</th>
@@ -410,17 +415,7 @@ even for an unbiased estimator.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ML, Wald (default)</td>
-<td align="left">-10.8%</td>
-<td align="left">-6.5%</td>
-<td align="left">-3.0%</td>
-<td align="left">-2.3%</td>
-<td align="left">-1.6%</td>
-<td align="left">-1.2%</td>
-<td align="left">-0.4%</td>
-</tr>
-<tr class="even">
-<td align="left">ML, Satterthwaite (small-sample option)</td>
+<td align="left">ML, Satterthwaite (default)</td>
 <td align="left">+0.1%</td>
 <td align="left">-0.2%</td>
 <td align="left">+0.1%</td>
@@ -428,6 +423,16 @@ even for an unbiased estimator.</p>
 <td align="left">-0.1%</td>
 <td align="left">-0.0%</td>
 <td align="left">+0.2%</td>
+</tr>
+<tr class="even">
+<td align="left">ML, Wald (van Engelenburg, 1999)</td>
+<td align="left">-10.8%</td>
+<td align="left">-6.5%</td>
+<td align="left">-3.0%</td>
+<td align="left">-2.3%</td>
+<td align="left">-1.6%</td>
+<td align="left">-1.2%</td>
+<td align="left">-0.4%</td>
 </tr>
 <tr class="odd">
 <td align="left">GLM HC3 (t)</td>
@@ -449,14 +454,14 @@ even for an unbiased estimator.</p>
 <caption>Rejection rate of the Pretest x Treatment test with no
 sensitization (nominal .05)</caption>
 <colgroup>
-<col width="44%">
-<col width="6%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
+<col width="40%">
 <col width="7%">
 <col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="8%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Method</th>
@@ -470,17 +475,7 @@ sensitization (nominal .05)</caption>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ML, Wald (default)</td>
-<td align="left">0.099</td>
-<td align="left">0.077</td>
-<td align="left">0.064</td>
-<td align="left">0.059</td>
-<td align="left">0.057</td>
-<td align="left">0.054</td>
-<td align="left">0.053</td>
-</tr>
-<tr class="even">
-<td align="left">ML, Satterthwaite (small-sample option)</td>
+<td align="left">ML, Satterthwaite (default)</td>
 <td align="left">0.052</td>
 <td align="left">0.052</td>
 <td align="left">0.053</td>
@@ -488,6 +483,16 @@ sensitization (nominal .05)</caption>
 <td align="left">0.051</td>
 <td align="left">0.050</td>
 <td align="left">0.051</td>
+</tr>
+<tr class="even">
+<td align="left">ML, Wald (van Engelenburg, 1999)</td>
+<td align="left">0.099</td>
+<td align="left">0.077</td>
+<td align="left">0.064</td>
+<td align="left">0.059</td>
+<td align="left">0.057</td>
+<td align="left">0.054</td>
+<td align="left">0.053</td>
 </tr>
 <tr class="odd">
 <td align="left">GLM HC3 (t)</td>
@@ -505,11 +510,11 @@ sensitization (nominal .05)</caption>
 <div class="section level2">
 <h2 id="scenarios-meeting-every-tolerance">Scenarios meeting every tolerance<a class="anchor" aria-label="anchor" href="#scenarios-meeting-every-tolerance"></a>
 </h2>
-<table style="width:100%;" class="table">
+<table class="table">
 <caption>Scenarios in which all four contrasts meet every
 tolerance</caption>
 <colgroup>
-<col width="40%">
+<col width="36%">
 <col width="8%">
 <col width="8%">
 <col width="9%">
@@ -530,17 +535,7 @@ tolerance</caption>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ML, Wald (default)</td>
-<td align="left">0 of 12</td>
-<td align="left">0 of 12</td>
-<td align="left">0 of 12</td>
-<td align="left">2 of 12</td>
-<td align="left">3 of 12</td>
-<td align="left">5 of 12</td>
-<td align="left">8 of 12</td>
-</tr>
-<tr class="even">
-<td align="left">ML, Satterthwaite (small-sample option)</td>
+<td align="left">ML, Satterthwaite (default)</td>
 <td align="left">8 of 12</td>
 <td align="left">6 of 12</td>
 <td align="left">11 of 12</td>
@@ -548,6 +543,16 @@ tolerance</caption>
 <td align="left">8 of 12</td>
 <td align="left">9 of 12</td>
 <td align="left">9 of 12</td>
+</tr>
+<tr class="even">
+<td align="left">ML, Wald (van Engelenburg, 1999)</td>
+<td align="left">0 of 12</td>
+<td align="left">0 of 12</td>
+<td align="left">0 of 12</td>
+<td align="left">2 of 12</td>
+<td align="left">3 of 12</td>
+<td align="left">5 of 12</td>
+<td align="left">8 of 12</td>
 </tr>
 <tr class="odd">
 <td align="left">GLM HC3 (t)</td>
@@ -563,7 +568,7 @@ tolerance</caption>
 </table>
 </div>
 <div class="section level2">
-<h2 id="warning-threshold">Warning threshold<a class="anchor" aria-label="anchor" href="#warning-threshold"></a>
+<h2 id="small-cell-threshold-for-wald-inference">Small-cell threshold for Wald inference<a class="anchor" aria-label="anchor" href="#small-cell-threshold-for-wald-inference"></a>
 </h2>
 <table class="table">
 <caption>Wald inference from fit_solomon_ml() against the threshold
@@ -683,9 +688,13 @@ criteria</caption>
 </tr>
 </tbody>
 </table>
-<p>By this rule, the threshold is 40 participants per cell.
-<code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warns when the smallest cell has fewer
-participants and <code>inference</code> was not supplied.</p>
+<p>By this rule, the threshold is 40 participants per cell. When
+<code>inference = "wald"</code> is chosen and the smallest cell has
+fewer participants, the printed output of <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>
+notes that Wald intervals were too narrow at such sizes. Until
+Satterthwaite inference became the default (<a href="https://github.com/JUhalt/solomonR/issues/115" class="external-link">issue #115</a>),
+<code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> also warned below the threshold when
+<code>inference</code> was not supplied.</p>
 </div>
 <div class="section level2">
 <h2 id="conclusions">Conclusions<a class="anchor" aria-label="anchor" href="#conclusions"></a>
@@ -695,8 +704,8 @@ produce the same point estimates. The largest absolute bias was 0.028
 standard-deviation units, at 6 participants per cell. 17 of 336
 scenario-by-contrast estimates (5.1%) fell outside 2 MCSE, close to the
 15 expected by chance. No fit failed.</p>
-<p><strong>Default Wald inference from <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> is
-too liberal in small samples.</strong></p>
+<p><strong>Wald inference from <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> is too
+liberal in small samples.</strong></p>
 <ul>
 <li>
 <strong>Coverage.</strong> Mean coverage of its 95% intervals was
@@ -716,8 +725,8 @@ true null 9.9% of the time at 6 per cell, 7.7% at 10, and 6.4% at
 none of the scenarios with 20 or fewer participants per cell, in 2 of 12
 at 30, 3 of 12 at 40, 5 of 12 at 50, and 8 of 12 at 100.</li>
 </ul>
-<p><strong>The warning threshold is 40 participants per
-cell.</strong></p>
+<p><strong>The small-cell threshold for Wald inference is 40
+participants per cell.</strong></p>
 <ul>
 <li>
 <strong>At 30 per cell,</strong> Wald inference narrowly failed the
@@ -732,7 +741,7 @@ approximately adequate, not exact.</strong> At 40 and 50 per cell its
 mean coverage was still 0.943 and 0.945, and about a quarter of
 scenario-by-contrast coverage values fell below 0.940.</li>
 </ul>
-<p><strong>The small-sample option was calibrated at every cell
+<p><strong>Satterthwaite inference was calibrated at every cell
 size.</strong></p>
 <ul>
 <li>
@@ -770,13 +779,13 @@ was 0.034 at 6 per cell.</li>
 mean coverage by less than 0.01 for every method at every cell size.</p>
 <p><strong>Practical guidance from this validation:</strong></p>
 <ul>
-<li>With fewer than 40 participants in the smallest cell, use
-<code>fit_solomon_ml(inference = "satterthwaite")</code> or
-<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> rather than the default Wald
-intervals.</li>
-<li>The small-sample option can be used at any cell size; with 100
+<li>Satterthwaite inference, the default of
+<code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>, can be used at any cell size; with 100
 participants per cell its results and those of Wald inference are
 close.</li>
+<li>With fewer than 40 participants in the smallest cell, use the
+default or <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> rather than Wald inference
+(<code>inference = "wald"</code>).</li>
 <li>
 <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> with HC3 errs on the conservative
 side with 10 or fewer participants per cell.</li>
@@ -792,12 +801,18 @@ missing posttest scores, and incidental pretest missingness.</p>
 package repository. It was run with R 4.6.1, base seed 20260914, and
 2,000 replications per scenario.</p>
 <p>The run used the development version of the package that implemented
-the small-sample option, based on commit <code>4e1d820</code>;
-<code>run-information.csv</code> records this. In that version, the
-estimation and inference code of <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> and
-<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> is identical to the code committed with
-this article. Later changes affected only documentation and the warning
-threshold, and the simulation suppresses warnings.</p>
+the <code>inference = "satterthwaite"</code> option, based on commit
+<code>4e1d820</code>; <code>run-information.csv</code> records this. In
+that version, the estimation and inference code of
+<code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> and <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> is
+identical to the code committed with this article. Later changes
+affected the documentation, the warning threshold, the removal of the
+warning, and the default of <code>inference</code> (<a href="https://github.com/JUhalt/solomonR/issues/115" class="external-link">issue #115</a>).
+The simulation names the inference of every fit and suppresses warnings,
+so none of these changes affects its results. The results files keep the
+method labels of the run, “ML, Wald (default)” and “ML, Satterthwaite
+(small-sample option)”; this article shows them under their current
+labels.</p>
 <p>All works cited in solomonR are listed, with notes on how the package
 uses them, on the <a href="references.html">References</a> page.</p>
 </div>

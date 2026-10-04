@@ -152,9 +152,12 @@ Observed cell means are shown as hollow points for comparison.</p>
 reference distribution:</p><ul><li><p>for <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>, t with residual degrees of freedom, Satterthwaite
 t for CR2, or the normal distribution for binomial and Poisson models,
 whose means are shown on the link scale;</p></li>
-<li><p>for <code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>, the normal distribution under the default Wald
-inference (van Engelenburg, 1999), or Welch-Satterthwaite t under
-<code>inference = "satterthwaite"</code>.</p></li>
+<li><p>for <code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>, t with the residual degrees of freedom of the
+cell's pretest condition under its default Satterthwaite inference (the
+Welch-Satterthwaite degrees of freedom of Satterthwaite, 1946, and Welch,
+1947, reduce to these for a single condition), or the normal
+distribution under van Engelenburg's (1999) large-sample Wald inference
+(<code>inference = "wald"</code>).</p></li>
 </ul><p>The sensitization estimate and interval in the subtitle are taken unchanged
 from the fit.</p>
     </div>
@@ -175,9 +178,15 @@ equivalence one comparison at a time with <code><a href="equivalence_solomon.htm
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
-    <p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group
+    <p>Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114.
+https://doi.org/10.2307/3002019</p>
+<p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group
 design</em> (Research Report 99-06). University of Twente. ERIC.
 https://eric.ed.gov/?id=ED435692</p>
+<p>Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. <em>Biometrika, 34</em>(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -192,8 +201,7 @@ https://eric.ed.gov/?id=ED435692</p>
 <span class="r-in"><span><span class="fu">plot_sensitization</span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_sensitization-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu"><a href="fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>,</span></span>
-<span class="r-in"><span>                                           inference <span class="op">=</span> <span class="st">"satterthwaite"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu"><a href="fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">plot_sensitization</span><span class="op">(</span><span class="va">ml</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_sensitization-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>

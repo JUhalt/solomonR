@@ -514,7 +514,10 @@ ERIC. <a href="https://eric.ed.gov/?id=ED435692" class="external-link uri">https
 <blockquote>
 <p>Proposes full-information maximum likelihood for the Solomon design,
 treating the absent pretests as structurally missing. <em>In
-solomonR:</em> <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>.</p>
+solomonR:</em> <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>, whose
+<code>inference = "wald"</code> is the large-sample Wald inference of
+this report. The default is Satterthwaite inference, which was
+calibrated in small samples where the Wald intervals were too narrow (<a href="https://github.com/JUhalt/solomonR/issues/115" class="external-link">#115</a>).</p>
 </blockquote>
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical
 treatment of the Solomon four-group design: A meta-analytic approach.

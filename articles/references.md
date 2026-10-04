@@ -456,7 +456,11 @@ four-group design* (Research Report 99-06). University of Twente. ERIC.
 
 > Proposes full-information maximum likelihood for the Solomon design,
 > treating the absent pretests as structurally missing. *In solomonR:*
-> [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md).
+> [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+> whose `inference = "wald"` is the large-sample Wald inference of this
+> report. The default is Satterthwaite inference, which was calibrated
+> in small samples where the Wald intervals were too narrow
+> ([\#115](https://github.com/JUhalt/solomonR/issues/115)).
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological

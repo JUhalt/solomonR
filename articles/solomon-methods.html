@@ -597,14 +597,17 @@ unpretested participants (van Engelenburg, 1999).</li>
 pretest-posttest slope in the pretested groups; equal variances within
 each pretest condition.</li>
 <li>
-<strong>Limitations:</strong> its point estimates coincide with
-separate regressions in the two pretest conditions. Its default Wald
-intervals use a normal reference distribution and were too narrow with
-small groups in the package’s simulation validation. A small-sample
-option, <code>inference = "satterthwaite"</code>, uses unbiased residual
+<strong>Inference:</strong> by default,
+<code>inference = "satterthwaite"</code> uses unbiased residual
 variances and Welch-Satterthwaite degrees of freedom (Satterthwaite,
-1946; Welch, 1947); the function warns when groups are small and no
-option has been chosen.</li>
+1946; Welch, 1947); it was calibrated at every cell size in the
+package’s simulation validation. The large-sample Wald intervals of van
+Engelenburg (1999), available with <code>inference = "wald"</code>, use
+a normal reference distribution and were too narrow with fewer than 40
+participants per cell.</li>
+<li>
+<strong>Limitations:</strong> its point estimates coincide with
+separate regressions in the two pretest conditions.</li>
 <li>
 <strong>Function:</strong> <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>.</li>
 </ul>

@@ -16,7 +16,7 @@ fit_solomon_ml(
   weights = c("equal"),
   control = list(),
   conf_level = 0.95,
-  inference = c("wald", "satterthwaite"),
+  inference = c("satterthwaite", "wald"),
   data = NULL
 )
 ```
@@ -59,10 +59,12 @@ fit_solomon_ml(
 
 - inference:
 
-  How standard errors, tests, and intervals are computed: `"wald"`
-  (default) for van Engelenburg's (1999) large-sample Wald inference, or
-  `"satterthwaite"` for the small-sample option. The point estimates are
-  the same. See the Inference options section.
+  How standard errors, tests, and intervals are computed:
+  `"satterthwaite"` (default) for t tests with residual or
+  Welch-Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch,
+  1947), or `"wald"` for van Engelenburg's (1999) large-sample Wald
+  inference. The point estimates are the same. See the Inference options
+  section.
 
 - data:
 
@@ -94,17 +96,17 @@ does (see its section "The pretest effect").
 The point estimates are maximum-likelihood estimates, which coincide
 with separate regressions in the pretested and unpretested groups.
 
-- `inference = "wald"` (default) follows van Engelenburg (1999):
-  standard errors come from the observed information matrix, and tests
-  and intervals use a normal reference distribution, the usual
-  large-sample basis for maximum-likelihood inference.
+- `inference = "satterthwaite"` (default): standard errors use unbiased
+  residual variances within each pretest condition. Contrasts within one
+  condition use t tests with that condition's residual degrees of
+  freedom, and contrasts that combine the conditions (the ATE and
+  Pretest x Treatment) use Welch-Satterthwaite degrees of freedom
+  (Satterthwaite, 1946; Welch, 1947).
 
-- `inference = "satterthwaite"` is a small-sample option. Standard
-  errors use unbiased residual variances within each pretest condition.
-  Contrasts within one condition use t tests with that condition's
-  residual degrees of freedom, and contrasts that combine the conditions
-  (the ATE and Pretest x Treatment) use Welch-Satterthwaite degrees of
-  freedom (Satterthwaite, 1946; Welch, 1947).
+- `inference = "wald"` follows van Engelenburg (1999): standard errors
+  come from the observed information matrix, and tests and intervals use
+  a normal reference distribution, the usual large-sample basis for
+  maximum-likelihood inference.
 
 The pretest effects are evaluated at the mean pretest of the pretested
 participants, an estimate whose sampling variance their standard errors
@@ -121,24 +123,33 @@ fixed. The pretest effects were not part of the validation below.
 In the package's simulation validation (issues \#10 and \#22; 84
 scenarios with 2,000 replications each, reported in the article
 "Validating fit_solomon_ml()" on the package website), both options
-recovered the Solomon contrasts without bias. Wald intervals were too
-narrow in small samples: mean coverage of nominal 95% intervals was
-0.893 with 6 participants per cell, 0.920 with 10, 0.936 with 20, 0.941
-with 30, and 0.948 with 100, and the Pretest x Treatment test rejected a
-true null hypothesis in 9.9% of samples with 6 per cell and 5.9% with
-30. The small-sample option had mean coverage of 0.949 to 0.950 and Type
-I error of 0.050 to 0.053 at every cell size studied, from 6 to 100 per
-cell.
+recovered the Solomon contrasts without bias. Satterthwaite inference
+had mean coverage of nominal 95% intervals of 0.949 to 0.950 and Type I
+error of 0.050 to 0.053 at every cell size studied, from 6 to 100
+participants per cell. Wald intervals were too narrow in small samples:
+mean coverage was 0.893 with 6 participants per cell, 0.920 with 10,
+0.936 with 20, 0.941 with 30, and 0.948 with 100, and the Pretest x
+Treatment test rejected a true null hypothesis in 9.9% of samples with 6
+per cell and 5.9% with 30.
 
-When the smallest cell has fewer than 40 participants and `inference` is
-not supplied, `fit_solomon_ml()` issues a warning of class
-`solomonR_small_sample_warning` that suggests the small-sample option.
-Supplying `inference = "wald"` explicitly keeps the default without the
-warning. The threshold follows a rule set before the validation results
-were examined: 40 is the smallest cell size at which Wald inference had
-mean coverage of at least 0.940 and Type I error of at most 0.060, with
-equal and unequal residual variances, at that size and every larger size
-studied.
+Printed output gives the maximum-likelihood residual standard deviations
+of the two pretest conditions (the square roots of SSE / n, stored in
+`sigma`), which Wald standard errors use. For Satterthwaite inference it
+also gives the square roots of the unbiased residual variances (SSE /
+residual df, stored in `sigma_unbiased`), which its standard errors use.
+
+Satterthwaite inference became the default because of these results
+(issue \#115). In solomonR 0.8.0 and earlier the default was `"wald"`;
+supply `inference = "wald"` to reproduce results from those versions.
+
+When `inference = "wald"` and the smallest cell has fewer than 40
+participants, printed output notes that Wald intervals were too narrow
+at such sizes in the validation. The threshold follows a rule set before
+the validation results were examined: 40 is the smallest cell size at
+which Wald inference had mean coverage of at least 0.940 and Type I
+error of at most 0.060, with equal and unequal residual variances, at
+that size and every larger size studied. Even at and above it, Wald
+inference was approximately adequate rather than exact.
 
 ## References
 
@@ -157,18 +168,18 @@ several different population variances are involved. *Biometrika,
 ## Examples
 
 ``` r
-# With fewer than 40 participants per cell, use the small-sample
-# (Satterthwaite) inference; see "Inference options".
-with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
-                                     inference = "satterthwaite"))
+# Default: Satterthwaite inference.
+with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre))
 #> Solomon full-information maximum-likelihood model
 #> -------------------------------------------------
 #> Method: van Engelenburg (1999)
-#> Inference: small-sample (t; Welch-Satterthwaite df for combined contrasts)
+#> Inference: Satterthwaite (Satterthwaite, 1946; Welch, 1947; t with residual
+#>   df within a pretest condition, Welch-Satterthwaite df for contrasts that
+#>   combine them)
 #> 
 #> Centered pretest mean: 49.600
-#> Residual SD, unpretested: 8.345
-#> Residual SD, pretested:   8.298
+#> Residual SD, unpretested: 8.345 (ML); 8.488 (from the unbiased variance; used for SEs)
+#> Residual SD, pretested:   8.298 (ML); 8.513 (from the unbiased variance; used for SEs)
 #> 
 #> Key Solomon estimands
 #> ---------------------
@@ -184,4 +195,37 @@ with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
 #> include its sampling variance.
 #> 
 #> logLik = -424.53; optimizer convergence = 0
+
+# van Engelenburg's (1999) large-sample Wald inference. With 30
+# participants per cell, the printed output notes that these intervals
+# were too narrow at such sizes in the package's validation.
+with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
+                                     inference = "wald"))
+#> Solomon full-information maximum-likelihood model
+#> -------------------------------------------------
+#> Method: van Engelenburg (1999)
+#> Inference: Wald (van Engelenburg, 1999; large-sample normal reference)
+#> 
+#> Centered pretest mean: 49.600
+#> Residual SD, unpretested: 8.345 (ML; used for SEs)
+#> Residual SD, pretested:   8.298 (ML; used for SEs)
+#> 
+#> Key Solomon estimands
+#> ---------------------
+#> ATE (avg over pretest)       2.663 (SE = 1.519), z = 1.75, p = 0.080, 95% CI [-0.314, 5.641]
+#> Pretest x Treatment          -1.940 (SE = 3.039), z = -0.64, p = 0.523, 95% CI [-7.895, 4.016]
+#> Treatment | pretested        1.693 (SE = 2.142), z = 0.79, p = 0.429, 95% CI [-2.506, 5.893]
+#> Treatment | unpretested      3.633 (SE = 2.155), z = 1.69, p = 0.092, 95% CI [-0.590, 7.857]
+#> Pretest effect | control     3.420 (SE = 2.299), z = 1.49, p = 0.137, 95% CI [-1.086, 7.926]
+#> Pretest effect | treated     1.480 (SE = 2.299), z = 0.64, p = 0.520, 95% CI [-3.026, 5.986]
+#> Pretest main effect          2.450 (SE = 1.726), z = 1.42, p = 0.156, 95% CI [-0.932, 5.832]
+#> 
+#> Pretest effects: at the centered pretest mean, with standard errors that
+#> include its sampling variance.
+#> 
+#> logLik = -424.53; optimizer convergence = 0
+#> Note: the smallest cell has 30 participants. In the package's simulation
+#> validation, Wald intervals were too narrow with fewer than 40 participants
+#> per cell; the default, inference = "satterthwaite", was calibrated. See
+#> ?fit_solomon_ml.
 ```

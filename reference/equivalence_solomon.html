@@ -212,9 +212,11 @@ standardized risks or rates.</p>
 <p>Each one-sided test uses the estimate, standard error, and reference
 distribution of the fitted model: t with the model's degrees of freedom for
 <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> (Satterthwaite degrees of freedom with CR2); for
-<code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>, the normal distribution with its default Wald inference
-or t with Welch-Satterthwaite degrees of freedom with
-<code>inference = "satterthwaite"</code>. The equivalence p-value is the
+<code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>, t with residual or Welch-Satterthwaite degrees of
+freedom (Satterthwaite, 1946; Welch, 1947) under its default Satterthwaite
+inference, or the normal
+distribution under van Engelenburg's (1999) large-sample Wald inference
+(<code>inference = "wald"</code>). The equivalence p-value is the
 larger of the two one-sided p-values, and the matching interval has
 confidence level 1 - 2 <code>alpha</code> (90\<!-- % when \code{alpha = 0.05}; Lakens, 2017). -->
 The conventional two-sided test against zero is reported alongside, with
@@ -267,10 +269,19 @@ https://doi.org/10.1177/2515245918770963</p>
 have negligible effects: Minimum-effect tests in the general linear model.
 <em>Journal of Applied Psychology, 84</em>(2), 234–248.
 https://doi.org/10.1037/0021-9010.84.2.234</p>
+<p>Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114.
+https://doi.org/10.2307/3002019</p>
 <p>Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 and the power approach for assessing the equivalence of average
 bioavailability. <em>Journal of Pharmacokinetics and Biopharmaceutics, 15</em>(6),
 657–680. https://doi.org/10.1007/BF01068419</p>
+<p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group
+design</em> (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692</p>
+<p>Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. <em>Biometrika, 34</em>(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28</p>
     </div>
 
     <div class="section level2">
