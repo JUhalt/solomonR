@@ -324,9 +324,11 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
     sprintf("Adjusted means: pretested groups at the mean pretest (%s)",
             formatC(cells$pretest_mean, format = "f", digits = 2))
   }
+  # The inference, with its sources, goes on its own line, as in
+  # plot_solomon_effects(), so that each line fits a figure of ordinary width.
   caption <- sprintf(
-    "%s.\n%s%% intervals: %s; %s.",
-    adjustment, level, cells$inference, .reference_label(adjusted$df)
+    "%s.\n%s%% intervals; %s.\nInference: %s.",
+    adjustment, level, .reference_label(adjusted$df), cells$inference
   )
 
   dodge <- ggplot2::position_dodge(width = 0.15)

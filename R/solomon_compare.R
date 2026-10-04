@@ -44,10 +44,11 @@
 #' @param y_pre Optional numeric pretest scores. Maximum likelihood, the classic
 #'   analyses, and the SEM ANCOVA require them.
 #' @param methods Analyses to include: any of `"glm"` (unified GLM with HC3),
-#'   `"ml"` (maximum likelihood, reported with both its default Satterthwaite
-#'   inference and van Engelenburg's (1999) large-sample Wald inference; see
-#'   [fit_solomon_ml()]), `"classic"`, and `"sem"` (requires the lavaan
-#'   package).
+#'   `"ml"` (maximum likelihood; see [fit_solomon_ml()]), `"classic"`, and
+#'   `"sem"` (requires the lavaan package). Maximum likelihood is reported
+#'   twice: with its default Satterthwaite inference (Satterthwaite, 1946;
+#'   Welch, 1947) and with van Engelenburg's (1999) large-sample Wald
+#'   inference.
 #' @param conf_level Confidence level for intervals. Default is 0.95.
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
@@ -73,6 +74,10 @@
 #' *American Sociological Review, 86*(3), 532–565.
 #' https://doi.org/10.1177/00031224211004187
 #'
+#' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+#' variance components. *Biometrics Bulletin, 2*(6), 110–114.
+#' https://doi.org/10.2307/3002019
+#'
 #' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
 #' design* (Research Report 99-06). University of Twente. ERIC.
 #' https://eric.ed.gov/?id=ED435692
@@ -80,6 +85,10 @@
 #' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 #' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
 #' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
+#'
+#' Welch, B. L. (1947). The generalization of "Student's" problem when several
+#' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
+#' https://doi.org/10.1093/biomet/34.1-2.28
 #' @seealso [fit_solomon_glm()], [fit_solomon_ml()], [fit_solomon_classic()],
 #'   [fit_solomon_sem()]
 #' @examples

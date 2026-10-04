@@ -26,10 +26,11 @@ several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solo
 analyses, and the SEM ANCOVA require them.}
 
 \item{methods}{Analyses to include: any of \code{"glm"} (unified GLM with HC3),
-\code{"ml"} (maximum likelihood, reported with both its default Satterthwaite
-inference and van Engelenburg's (1999) large-sample Wald inference; see
-\code{\link[=fit_solomon_ml]{fit_solomon_ml()}}), \code{"classic"}, and \code{"sem"} (requires the lavaan
-package).}
+\code{"ml"} (maximum likelihood; see \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}), \code{"classic"}, and
+\code{"sem"} (requires the lavaan package). Maximum likelihood is reported
+twice: with its default Satterthwaite inference (Satterthwaite, 1946;
+Welch, 1947) and with van Engelenburg's (1999) large-sample Wald
+inference.}
 
 \item{conf_level}{Confidence level for intervals. Default is 0.95.}
 
@@ -114,6 +115,10 @@ Defining the target quantity connects statistical evidence to theory.
 \emph{American Sociological Review, 86}(3), 532–565.
 https://doi.org/10.1177/00031224211004187
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
+
 van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
 design} (Research Report 99-06). University of Twente. ERIC.
 https://eric.ed.gov/?id=ED435692
@@ -121,6 +126,10 @@ https://eric.ed.gov/?id=ED435692
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. \emph{Psychological Bulletin,
 104}(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }
 \seealso{
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, \code{\link[=fit_solomon_classic]{fit_solomon_classic()}},

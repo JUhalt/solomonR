@@ -232,7 +232,13 @@ test_that("ML intervals follow the fit's inference", {
   # Welch-Satterthwaite df are that regression's residual df.
   expect_equal(small$data$df[unpretested], rep(n_unpretested - 2, 2), tolerance = 1e-8)
   expect_equal(small$data$df[!unpretested], rep(n_pretested - 3, 2), tolerance = 1e-8)
-  expect_match(small$labels$caption, "maximum likelihood; Satterthwaite inference")
+  # The default inference is labelled with its sources, as the Wald option is.
+  expect_match(small$labels$caption,
+               "Inference: maximum likelihood; Satterthwaite inference (Satterthwaite, 1946; Welch, 1947).",
+               fixed = TRUE)
+  expect_match(wald$labels$caption,
+               "Inference: maximum likelihood; Wald inference (van Engelenburg, 1999).",
+               fixed = TRUE)
 
   # The default is Satterthwaite inference (#115).
   default <- plot_sensitization(with(solomon_example,
@@ -240,6 +246,27 @@ test_that("ML intervals follow the fit's inference", {
   expect_equal(default$data$df, small$data$df)
   expect_equal(default$data$conf.low, small$data$conf.low)
   expect_match(small$labels$caption, "t reference")
+})
+
+
+test_that("each caption line fits a figure of ordinary width", {
+
+  # A line of a 7-inch figure has 6.8 inches; at the 9.6-point caption size
+  # and a conservative 0.55 em per character, that is 92 characters.
+  max_chars <- floor(6.8 * 72 / (0.55 * 9.6))
+  line_chars <- function(p) nchar(strsplit(p$labels$caption, "\n", fixed = TRUE)[[1]])
+
+  for (fit in list(ml_fit("satterthwaite"), ml_fit("wald"), example_fit())) {
+    p <- plot_sensitization(fit, bounds = 5)
+    expect_true(all(line_chars(p) <= max_chars), info = p$labels$caption)
+  }
+
+  p <- plot_sensitization(ml_fit("satterthwaite"))
+  expect_identical(
+    strsplit(p$labels$caption, "\n", fixed = TRUE)[[1]][2:3],
+    c("95% intervals; t reference, contrast-specific df.",
+      "Inference: maximum likelihood; Satterthwaite inference (Satterthwaite, 1946; Welch, 1947).")
+  )
 })
 
 

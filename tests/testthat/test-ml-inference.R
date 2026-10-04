@@ -141,7 +141,8 @@ test_that("printed output names the inference and notes small cells", {
   expect_output(print(wald), sprintf("fewer than %d participants", .solomon_ml_small_cell))
 
   satterthwaite <- with(d, fit_solomon_ml(y_post, treat, pretested, y_pre))
-  expect_output(print(satterthwaite), "Inference: Satterthwaite")
+  expect_output(print(satterthwaite), "Inference: Satterthwaite (Satterthwaite, 1946; Welch, 1947;",
+                fixed = TRUE)
   expect_output(print(satterthwaite), "t\\(")
   expect_false(any(grepl("Note: the smallest cell", capture.output(print(satterthwaite)))))
 
@@ -150,6 +151,61 @@ test_that("printed output names the inference and notes small cells", {
                  fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
   expect_false(wald40$small_sample)
   expect_false(any(grepl("Note: the smallest cell", capture.output(print(wald40)))))
+})
+
+
+test_that("printed residual SDs are the ones behind the printed SEs (#115)", {
+
+  data(solomon_example, package = "solomonR")
+  d <- solomon_example
+
+  un <- d[d$pretested == 0, ]
+  pre <- d[d$pretested == 1, ]
+  pre$x_c <- pre$y_pre - mean(pre$y_pre)
+  fit_u <- stats::lm(y_post ~ treat, data = un)
+  fit_p <- stats::lm(y_post ~ treat + x_c, data = pre)
+  n_u <- table(un$treat)
+
+  satterthwaite <- with(d, fit_solomon_ml(y_post, treat, pretested, y_pre))
+  expect_equal(satterthwaite$sigma_unbiased,
+               c(unpretested = stats::sigma(fit_u), pretested = stats::sigma(fit_p)))
+
+  # Satterthwaite standard errors use SSE / residual df: the unpretested
+  # treatment effect is a difference of two means.
+  se_u <- effect_row(satterthwaite, "Treatment | unpretested")$std.error
+  expect_equal(se_u, stats::sigma(fit_u) * sqrt(sum(1 / n_u)), tolerance = 1e-10)
+  # The ML SD uses SSE / n, so it is smaller by sqrt((n - p) / n).
+  expect_equal(unname(satterthwaite$sigma["unpretested"]),
+               stats::sigma(fit_u) * sqrt(stats::df.residual(fit_u) / nrow(un)),
+               tolerance = 1e-6)
+
+  out <- capture.output(print(satterthwaite))
+  expect_true(any(out == sprintf(
+    "Residual SD, unpretested: %.3f (ML); %.3f (from the unbiased variance; used for SEs)",
+    satterthwaite$sigma[["unpretested"]], stats::sigma(fit_u)
+  )))
+  expect_true(any(out == sprintf(
+    "Residual SD, pretested:   %.3f (ML); %.3f (from the unbiased variance; used for SEs)",
+    satterthwaite$sigma[["pretested"]], stats::sigma(fit_p)
+  )))
+
+  # Wald standard errors use the ML SDs, and the printout says so.
+  wald <- with(d, fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
+  expect_equal(effect_row(wald, "Treatment | unpretested")$std.error,
+               wald$sigma[["unpretested"]] * sqrt(sum(1 / n_u)), tolerance = 1e-6)
+  out_wald <- capture.output(print(wald))
+  expect_true(any(out_wald == sprintf("Residual SD, unpretested: %.3f (ML; used for SEs)",
+                                      wald$sigma[["unpretested"]])))
+  expect_true(any(out_wald == sprintf("Residual SD, pretested:   %.3f (ML; used for SEs)",
+                                      wald$sigma[["pretested"]])))
+  expect_false(any(grepl("unbiased", out_wald)))
+
+  # Fits saved before `sigma_unbiased` existed show the ML SDs only.
+  old <- satterthwaite
+  old$sigma_unbiased <- NULL
+  expect_true(any(capture.output(print(old)) == sprintf(
+    "Residual SD, unpretested: %.3f (ML)", old$sigma[["unpretested"]]
+  )))
 })
 
 
@@ -183,7 +239,9 @@ test_that("figures and equivalence tests label the inference of an ML fit", {
   satterthwaite <- with(solomon_demo, fit_solomon_ml(y_post, treat, pretested, y_pre))
   wald <- with(solomon_demo, fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
 
-  expect_identical(.ml_inference_label(satterthwaite), "maximum likelihood; Satterthwaite inference")
+  # Both options are labelled with their sources.
+  expect_identical(.ml_inference_label(satterthwaite),
+                   "maximum likelihood; Satterthwaite inference (Satterthwaite, 1946; Welch, 1947)")
   expect_identical(.ml_inference_label(wald),
                    "maximum likelihood; Wald inference (van Engelenburg, 1999)")
 
@@ -195,12 +253,45 @@ test_that("figures and equivalence tests label the inference of an ML fit", {
   # equivalence_solomon() described every ML fit as using a normal reference.
   eq <- equivalence_solomon(satterthwaite, bounds = 2)
   sens <- satterthwaite$effects[satterthwaite$effects$contrast == "Pretest x Treatment", ]
-  expect_identical(eq$inference, "maximum likelihood; Satterthwaite inference")
+  expect_identical(eq$inference, .ml_inference_label(satterthwaite))
   expect_equal(eq$df, sens$df)
-  expect_output(print(eq), "Inference: maximum likelihood; Satterthwaite inference", fixed = TRUE)
+  # The printed label is wrapped to the console width, sources included.
+  eq_out <- capture.output(print(eq))
+  expect_lte(nchar(eq_out[startsWith(eq_out, "Inference: ")]), 78)
+  expect_match(gsub("\\s+", " ", paste(eq_out, collapse = " ")),
+               "Inference: maximum likelihood; Satterthwaite inference (Satterthwaite, 1946; Welch, 1947)",
+               fixed = TRUE)
   expect_output(print(eq), "t(", fixed = TRUE)
 
   eq_wald <- equivalence_solomon(wald, bounds = 2)
   expect_match(eq_wald$inference, "Wald inference (van Engelenburg, 1999)", fixed = TRUE)
   expect_true(is.infinite(eq_wald$df))
+})
+
+
+test_that("help pages list the works that their ML output cites (#115)", {
+
+  # The help page from the source tree when the tests run there, otherwise
+  # from the installed package.
+  rd_references <- function(topic) {
+    path <- testthat::test_path("..", "..", "man", paste0(topic, ".Rd"))
+    rd <- if (file.exists(path)) {
+      tools::parse_Rd(path)
+    } else {
+      tools::Rd_db("solomonR")[[paste0(topic, ".Rd")]]
+    }
+    tags <- vapply(rd, function(section) attr(section, "Rd_tag"), character(1))
+    paste(unlist(rd[tags == "\\references"]), collapse = "")
+  }
+
+  # Each of these functions prints, plots, or tabulates an ML fit's inference
+  # with the citations of .ml_inference_label() or the like.
+  topics <- c("fit_solomon_ml", "compare_solomon_methods", "plot_solomon_effects",
+              "plot_sensitization", "equivalence_solomon")
+  for (topic in topics) {
+    references <- rd_references(topic)
+    expect_match(references, "Satterthwaite, F. E. (1946)", fixed = TRUE, info = topic)
+    expect_match(references, "Welch, B. L. (1947)", fixed = TRUE, info = topic)
+    expect_match(references, "van Engelenburg, G. (1999)", fixed = TRUE, info = topic)
+  }
 })

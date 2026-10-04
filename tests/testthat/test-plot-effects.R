@@ -52,7 +52,37 @@ test_that("the caption states the confidence level and reference distribution", 
   small <- with(solomon_example,
                 fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "satterthwaite"))
   expect_match(plot_solomon_effects(small)$labels$caption, "contrast-specific df")
-  expect_match(plot_solomon_effects(small)$labels$caption, "maximum likelihood; Satterthwaite inference")
+  # The default inference is labelled with its sources, as the Wald option is.
+  expect_match(plot_solomon_effects(small)$labels$caption,
+               "maximum likelihood; Satterthwaite inference (Satterthwaite, 1946; Welch, 1947)",
+               fixed = TRUE)
+})
+
+
+test_that("each caption line fits a figure of ordinary width", {
+
+  # A line of a 7-inch figure has 6.8 inches; at the 9.6-point caption size
+  # and a conservative 0.55 em per character, that is 92 characters.
+  max_chars <- floor(6.8 * 72 / (0.55 * 9.6))
+  line_chars <- function(p) nchar(strsplit(p$labels$caption, "\n", fixed = TRUE)[[1]])
+
+  ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre))
+  wald <- with(solomon_example,
+               fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald"))
+  fits <- list(ml, wald, example_glm(), example_glm(robust = "none"))
+
+  for (fit in fits) {
+    p <- plot_solomon_effects(fit, bounds = 5)
+    expect_true(all(line_chars(p) <= max_chars), info = p$labels$caption)
+  }
+
+  # The inference has a line of its own, after the confidence level and
+  # reference distribution.
+  expect_identical(
+    strsplit(plot_solomon_effects(ml)$labels$caption, "\n", fixed = TRUE)[[1]],
+    c("95% confidence intervals; t reference, contrast-specific df.",
+      "Inference: maximum likelihood; Satterthwaite inference (Satterthwaite, 1946; Welch, 1947).")
+  )
 })
 
 

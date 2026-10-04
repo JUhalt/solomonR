@@ -357,7 +357,7 @@ print.solomon_equivalence <- function(x, digits = 3, ...) {
     "Equivalence bounds (raw scale): [%.*f, %.*f]; alpha = %s\n",
     digits, x$bounds[["lower"]], digits, x$bounds[["upper"]], format(x$alpha)
   ))
-  cat("Inference: ", x$inference, "\n\n", sep = "")
+  cat(.wrap_lines(paste0("Inference: ", x$inference), exdent = 2), "\n\n", sep = "")
 
   cat(sprintf("Estimate = %.*f (SE = %.*f)\n", digits, x$estimate, digits, x$std.error))
   cat(sprintf(

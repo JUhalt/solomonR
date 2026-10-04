@@ -36,6 +36,21 @@
   Satterthwaite inference, `report_solomon()` now says which contrasts use
   residual degrees of freedom and which use Welch-Satterthwaite degrees of
   freedom; for a Wald fit, it says the Wald tests are large-sample.
+* The printout of a `fit_solomon_ml()` fit, figure captions, and
+  `equivalence_solomon()` cite Satterthwaite (1946) and Welch (1947) for
+  Satterthwaite inference, as they cite van Engelenburg (1999) for Wald
+  inference. `?compare_solomon_methods` and `?plot_solomon_effects` now list
+  the works that their output cites.
+* In the captions of `plot_solomon_effects()` and `plot_sensitization()`,
+  the inference has a line of its own, after the confidence level and the
+  reference distribution, so that each line fits a figure 7 inches wide.
+* The printout of a `fit_solomon_ml()` fit labels its residual standard
+  deviations as maximum-likelihood estimates (the square roots of SSE / n),
+  which Wald standard errors use. For Satterthwaite inference it also gives
+  the square roots of the unbiased residual variances (SSE / residual df),
+  which its standard errors use; the fit stores them in `sigma_unbiased`.
+  Before, the default printout showed only the maximum-likelihood values,
+  which do not reproduce its standard errors.
 * `?fit_solomon_ml`, the getting-started guide, the method guide, the GLM
   vignette, the README, and the validation articles describe the new
   default. The validation article and the shared benchmark tables label the

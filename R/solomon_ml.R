@@ -5,11 +5,11 @@
 .solomon_ml_small_cell <- 40L
 
 # Short description of the inference of a fit_solomon_ml() fit, for figure
-# captions and equivalence tests. Fits saved before the `inference` argument
-# existed used Wald inference.
+# captions and equivalence tests, with its sources. Fits saved before the
+# `inference` argument existed used Wald inference.
 .ml_inference_label <- function(fit) {
   if (identical(fit$inference, "satterthwaite")) {
-    "maximum likelihood; Satterthwaite inference"
+    "maximum likelihood; Satterthwaite inference (Satterthwaite, 1946; Welch, 1947)"
   } else {
     "maximum likelihood; Wald inference (van Engelenburg, 1999)"
   }
@@ -126,6 +126,12 @@
 #' with 6 participants per cell, 0.920 with 10, 0.936 with 20, 0.941 with
 #' 30, and 0.948 with 100, and the Pretest x Treatment test rejected a true
 #' null hypothesis in 9.9% of samples with 6 per cell and 5.9% with 30.
+#'
+#' Printed output gives the maximum-likelihood residual standard deviations
+#' of the two pretest conditions (the square roots of SSE / n, stored in
+#' `sigma`), which Wald standard errors use. For Satterthwaite inference it
+#' also gives the square roots of the unbiased residual variances (SSE /
+#' residual df, stored in `sigma_unbiased`), which its standard errors use.
 #'
 #' Satterthwaite inference became the default because of these results
 #' (issue #115). In solomonR 0.8.0 and earlier the default was `"wald"`;
@@ -552,6 +558,12 @@ fit_solomon_ml <- function(
       sigma = c(
         unpretested = unname(sigma_R),
         pretested = unname(sigma_E)
+      ),
+      # Square roots of the unbiased residual variances (SSE / residual df),
+      # which Satterthwaite standard errors use.
+      sigma_unbiased = c(
+        unpretested = stats::sigma(un_fit),
+        pretested = stats::sigma(pre_fit)
       ),
       pretest_mean = x_bar,
       logLik = -opt$value,

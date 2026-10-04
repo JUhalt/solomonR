@@ -90,6 +90,12 @@ with 6 participants per cell, 0.920 with 10, 0.936 with 20, 0.941 with
 30, and 0.948 with 100, and the Pretest x Treatment test rejected a true
 null hypothesis in 9.9\% of samples with 6 per cell and 5.9\% with 30.
 
+Printed output gives the maximum-likelihood residual standard deviations
+of the two pretest conditions (the square roots of SSE / n, stored in
+\code{sigma}), which Wald standard errors use. For Satterthwaite inference it
+also gives the square roots of the unbiased residual variances (SSE /
+residual df, stored in \code{sigma_unbiased}), which its standard errors use.
+
 Satterthwaite inference became the default because of these results
 (issue #115). In solomonR 0.8.0 and earlier the default was \code{"wald"};
 supply \code{inference = "wald"} to reproduce results from those versions.
