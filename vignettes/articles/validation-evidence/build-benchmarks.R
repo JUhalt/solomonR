@@ -40,6 +40,17 @@ long_measures <- function(d, study, design, method, estimand, null_effect, measu
 ml <- read_study("ml-validation", "performance.csv")
 ml_run <- read_study("ml-validation", "run-information.csv")
 
+# The run labeled the methods while Wald inference was the default; use the
+# labels that hold since Satterthwaite inference became the default (#115),
+# as the ml-validation article does.
+ml_method_labels <- c(
+  "ML, Satterthwaite (small-sample option)" = "ML, Satterthwaite (default)",
+  "ML, Wald (default)" = "ML, Wald (van Engelenburg, 1999)",
+  "GLM HC3 (t)" = "GLM HC3 (t)"
+)
+stopifnot(all(ml$method %in% names(ml_method_labels)))
+ml$method <- unname(ml_method_labels[ml$method])
+
 ml_long <- long_measures(
   ml,
   study = "ml-inference",
