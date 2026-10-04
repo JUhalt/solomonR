@@ -25,8 +25,14 @@ should start with the article [Getting Started: Analyzing a Solomon
 Four-Group
 Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 
-> **Release status:** `v0.8.0` is the current stable release. It brings
-> together the work planned for v0.5.0 through v0.8.0:
+> **Release status:** `v0.8.1` is the current stable release. It fixes a
+> bug in v0.8.0 that gave wrong contrasts in
+> [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+> and
+> [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+> when the data did not begin with a pretested, treated participant:
+> refit any such analysis. v0.8.0 brought together the work planned for
+> v0.5.0 through v0.8.0:
 >
 > - binary and count outcomes, designs with several treatments, and
 >   clustered designs with cluster-level randomization inference;
@@ -42,8 +48,6 @@ Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 > through v1.x, when the arguments that follow a former argument name
 > are also named. Functions marked experimental may still change before
 > version 1.0; each help page shows the function’s lifecycle stage.
-> Development version `0.8.0.9000` is working toward `v0.9.0`: the
-> release candidate, with CRAN pre-submission checks.
 
 ------------------------------------------------------------------------
 

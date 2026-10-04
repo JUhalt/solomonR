@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -117,14 +117,14 @@
 <p>The goal is not to replace the history of the Solomon design with a single new procedure. Instead, <code>solomonR</code> makes the historical methods transparent while providing modern alternatives in one reproducible workflow.</p>
 <p><code>solomonR</code> is written for graduate students and applied researchers who need to analyze, interpret, and report a Solomon study. Each function’s help page cites the methodological sources it implements. New users should start with the article <a href="https://juhalt.github.io/solomonR/articles/getting-started.html">Getting Started: Analyzing a Solomon Four-Group Study</a>.</p>
 <blockquote>
-<p><strong>Release status:</strong> <code>v0.8.0</code> is the current stable release. It brings together the work planned for v0.5.0 through v0.8.0:</p>
+<p><strong>Release status:</strong> <code>v0.8.1</code> is the current stable release. It fixes a bug in v0.8.0 that gave wrong contrasts in <code><a href="reference/fit_solomon_sem.html">fit_solomon_sem()</a></code> and <code><a href="reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> when the data did not begin with a pretested, treated participant: refit any such analysis. v0.8.0 brought together the work planned for v0.5.0 through v0.8.0:</p>
 <ul>
 <li>binary and count outcomes, designs with several treatments, and clustered designs with cluster-level randomization inference;</li>
 <li>nonrandomized designs, designs with several posttest occasions, and sensitivity analyses for missing posttests;</li>
 <li>APA-style reports, reanalysis from summary statistics, and analysis plans for new studies;</li>
 <li>Solomon’s (1949) original analysis, the published versions of the historical test sequence, teaching data, and published data sets with worked examples.</li>
 </ul>
-<p>Former function and argument names keep working, with a warning, through v1.x, when the arguments that follow a former argument name are also named. Functions marked experimental may still change before version 1.0; each help page shows the function’s lifecycle stage. Development version <code>0.8.0.9000</code> is working toward <code>v0.9.0</code>: the release candidate, with CRAN pre-submission checks.</p>
+<p>Former function and argument names keep working, with a warning, through v1.x, when the arguments that follow a former argument name are also named. Functions marked experimental may still change before version 1.0; each help page shows the function’s lifecycle stage.</p>
 </blockquote>
 <hr>
 <div class="section level2">

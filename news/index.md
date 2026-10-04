@@ -1,6 +1,15 @@
 # Changelog
 
-## solomonR (development version)
+## solomonR 0.8.1
+
+A patch release. It fixes a bug in 0.8.0 that gave wrong contrasts in
+[`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+and
+[`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+when the data did not begin with a pretested, treated participant
+([\#119](https://github.com/JUhalt/solomonR/issues/119)): refit any such
+analysis. It also includes the documentation, attribution, and
+CRAN-readiness changes made since 0.8.0.
 
 ### SEM group order (bug fix)
 
