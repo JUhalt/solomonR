@@ -72,12 +72,31 @@ c(
 )
 ```
 
-The interaction is the difference between the two treatment effects.
+The interaction is the difference between the two treatment effects. It is
+also the difference between the two pretest effects, among treated
+participants and among controls, so sensitization can be read either way.
 `solomon_example` was simulated with known values (`?solomon_example`): a
 treatment effect of 5 points in both conditions, so a true interaction of
 0, and a pretest effect of 2 points. The sample differences vary around
-those values. `fit_solomon_glm()` estimates the same contrasts
-in one model, and it adjusts the pretested comparison for the pretest.
+those values.
+
+`fit_solomon_glm()` estimates the same contrasts in one model. Read them
+from its effects table, where each has its own row:
+
+```{r lesson1-model}
+fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
+fit$effects[, c("contrast", "estimate", "conf.low", "conf.high")]
+```
+
+The model adjusts the pretested groups for the pretest, so its pretest
+effects compare the pretested groups, at their mean pretest score, with
+the unpretested groups. With random assignment, the unpretested groups'
+expected pretest equals that of the pretested groups, and the pretested
+groups' mean estimates it, so that is the fair point of comparison
+(Solomon & Lessac, 1968, pp. 146–147). Because the mean is an estimate,
+the standard errors of the pretest effects include its sampling variance.
+Here the two pretested groups started near that mean, so the adjusted
+pretest effect among controls is close to the raw difference above.
 
 </details>
 
@@ -111,7 +130,8 @@ contrasts. Which ones change, and why?
 se <- function(rho) {
   d <- simulate_solomon(n = 60, delta = 0.6, sens = -0.4, rho = rho, seed = 2)
   f <- with(d, fit_solomon_glm(y_post, treat, pretested, y_pre))
-  stats::setNames(f$effects$std.error, f$effects$contrast)
+  # The four treatment contrasts are the first four rows.
+  stats::setNames(f$effects$std.error[1:4], f$effects$contrast[1:4])
 }
 round(rbind(`rho = 0` = se(0), `rho = 0.8` = se(0.8)), 3)
 ```
@@ -352,6 +372,10 @@ https://doi.org/10.1080/00220973.1994.9944140
 
 Solomon, R. L. (1949). An extension of control group design. *Psychological
 Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. *Psychological Bulletin,
+70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 Solomon four-group design: A meta-analytic approach. *Psychological

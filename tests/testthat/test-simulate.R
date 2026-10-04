@@ -26,6 +26,9 @@ test_that("simulate_solomon() attaches the true estimands", {
   expect_equal(truth$true_value[truth$estimand == "Treatment | unpretested"], 2)
   expect_equal(truth$true_value[truth$estimand == "ATE (avg over pretest)"], 1.5)
   expect_equal(truth$true_value[truth$estimand == "Pretest effect | control"], 0.5)
+  # The pretest effects among treated participants and on average (#104).
+  expect_equal(truth$true_value[truth$estimand == "Pretest effect | treated"], -0.5)
+  expect_equal(truth$true_value[truth$estimand == "Pretest main effect"], 0)
   expect_true(all(is.na(d$y_pre[d$pretested == 0])))
   expect_false(anyNA(d$y_pre[d$pretested == 1]))
 })
@@ -38,8 +41,10 @@ test_that("fit_solomon_glm() recovers the simulated effects", {
   fit <- fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre)
   truth <- attr(d, "truth")
   eff <- fit$effects
-  for (k in c("ATE (avg over pretest)", "Pretest x Treatment", "Treatment | pretested",
-              "Treatment | unpretested")) {
+  # The truth is in the order of the effects table, pretest effects included
+  # (#104).
+  expect_identical(eff$contrast, truth$estimand)
+  for (k in truth$estimand) {
     row <- eff[eff$contrast == k, ]
     expect_lt(abs(row$estimate - truth$true_value[truth$estimand == k]), 4 * row$std.error)
   }

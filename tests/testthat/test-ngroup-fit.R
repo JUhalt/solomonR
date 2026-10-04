@@ -292,20 +292,40 @@ test_that("one comparison is printed without adjusted p-values", {
   d <- ngroup_data()
   average <- list(avg = c(A = 1 / 3, B = 1 / 3, C = 1 / 3, Control = -1))
 
-  for (adjust in c("holm", "bonferroni", "none")) {
+  # The treatment contrasts of one comparison are not adjusted. The pretest
+  # effects of the three treatments are adjusted across the treatments
+  # (#104), so with an adjustment the column is printed for them.
+  treatment_rows <- function(fit) fit$effects$contrast %in% solomonR:::.solomon_contrast_order
+  fit <- fit_solomon_glm(y_post, condition, pretested, y_pre, control = "Control",
+                         contrasts = average, adjust = "none", data = d)
+  out <- paste(capture.output(print(fit)), collapse = "\n")
+  expect_match(
+    out,
+    "With one comparison, the p-values need no adjustment for multiple comparisons.",
+    fixed = TRUE
+  )
+  expect_no_match(out, "p adj.", fixed = TRUE)
+  expect_no_match(out, "Holm", fixed = TRUE)
+  # The fit keeps the column, which the report and the figures read.
+  expect_identical(fit$effects$p.adjusted, fit$effects$p.value)
+
+  for (adjust in c("holm", "bonferroni")) {
     fit <- fit_solomon_glm(y_post, condition, pretested, y_pre, control = "Control",
                            contrasts = average, adjust = adjust, data = d)
     out <- paste(capture.output(print(fit)), collapse = "\n")
     expect_match(
       out,
-      "With one comparison, the p-values need no adjustment for multiple comparisons.",
+      "With one comparison, the treatment contrasts need no adjustment for multiple comparisons.",
       fixed = TRUE
     )
-    expect_no_match(out, "p adj.", fixed = TRUE)
     expect_no_match(out, "1 comparisons", fixed = TRUE)
-    expect_no_match(out, "Holm", fixed = TRUE)
-    # The fit keeps the column, which the report and the figures read.
-    expect_identical(fit$effects$p.adjusted, fit$effects$p.value)
+    expect_match(out, "across the 3 treatments.", fixed = TRUE)
+    e <- fit$effects
+    expect_identical(e$p.adjusted[treatment_rows(fit)], e$p.value[treatment_rows(fit)])
+    treated <- e$contrast == "Pretest effect | treated"
+    expect_identical(e$comparison[treated], c("A", "B", "C"))
+    expect_equal(e$p.adjusted[treated], stats::p.adjust(e$p.value[treated], method = adjust))
+    expect_identical(e$p.adjusted[!treated], e$p.value[!treated])
   }
 
   # Several comparisons print as before.

@@ -106,11 +106,14 @@ The output has three parts:
 - **Omnibus tests.** Each asks whether the conditions differ on one
   contrast.
 - **Contrasts.** The four Solomon contrasts of the four-group design, for
-  each treatment against the control.
+  each treatment against the control, and then the pretest effect in each
+  condition (pretested minus unpretested participants, at the pretested
+  participants' mean pretest) and averaged over the conditions.
 - **Adjusted p-values.** Each contrast's p-values are adjusted across the
   comparisons by Holm's (1979) procedure, which controls the chance of at
-  least one false rejection in that family. The confidence intervals are
-  not adjusted.
+  least one false rejection in that family; the treatments' pretest effects
+  are adjusted across the treatments. The confidence intervals are not
+  adjusted.
 
 `contrasts = "pairwise"` adds the comparisons between treatments:
 
@@ -140,7 +143,8 @@ control's indicate sensitization.
 plot_sensitization(fit)
 ```
 
-`plot_solomon_effects()` shows every contrast with its confidence interval:
+`plot_solomon_effects()` shows the four contrasts of every comparison with
+their confidence intervals:
 
 ```{r plot-effects, fig.width = 7, fig.height = 5, fig.alt = "Estimates and confidence intervals of the four Solomon contrasts for each treatment against the control."}
 plot_solomon_effects(fit)
