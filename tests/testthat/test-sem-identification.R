@@ -124,3 +124,51 @@ test_that("pretested latent ANCOVA means are identified", {
   expect_true(all(means$se[means$label != "mu_P0"] < 1))
   expect_true(fit$effects_pre$std.error < 1)
 })
+
+
+test_that("SEM contrasts do not depend on the order of the rows (group order)", {
+  testthat::skip_if_not_installed("lavaan")
+
+  d <- solomon_example
+  # Put an unpretested control first: lavaan orders groups by first
+  # appearance unless group.label fixes the order.
+  i <- which(d$treat == 0 & d$pretested == 0)[1]
+  d2 <- d[c(i, setdiff(seq_len(nrow(d)), i)), ]
+  set.seed(1)
+  d3 <- d[sample(nrow(d)), ]
+
+  glm <- fit_solomon_glm(y_post, treat, pretested, data = d)$effects$estimate
+  for (dd in list(d, d2, d3)) {
+    f <- suppressWarnings(fit_solomon_sem(y_post, treat, pretested, data = dd))
+    expect_equal(f$effects$estimate, glm, tolerance = 1e-4)
+  }
+
+  anc <- lapply(list(d, d2, d3), function(dd) {
+    suppressWarnings(fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = TRUE,
+                                     data = dd))
+  })
+  pre_eff <- function(f) {
+    e <- f$ancova_effect
+    if (is.null(e)) e <- f$effects
+    e$estimate[grepl("Pre", e$contrast)][1]
+  }
+  expect_equal(pre_eff(anc[[2]]), pre_eff(anc[[1]]), tolerance = 1e-4)
+  expect_equal(pre_eff(anc[[3]]), pre_eff(anc[[1]]), tolerance = 1e-4)
+})
+
+test_that("latent SEM contrasts do not depend on the order of the rows (group order)", {
+  testthat::skip_if_not_installed("lavaan")
+
+  sim <- make_identification_data(n_cell = 80)
+  set.seed(2)
+  o <- sample(nrow(sim$data))
+  items <- c("post1", "post2", "post3")
+  f1 <- suppressWarnings(fit_solomon_sem_latent(sim$data, items, sim$treat, sim$pretested,
+                                                check_invariance = FALSE))
+  f2 <- suppressWarnings(fit_solomon_sem_latent(sim$data[o, ], items, sim$treat[o],
+                                                sim$pretested[o], check_invariance = FALSE))
+  e1 <- f1$effects_post
+  e2 <- f2$effects_post
+  expect_false(is.null(e1))
+  expect_equal(e2$estimate, e1$estimate, tolerance = 1e-4)
+})
