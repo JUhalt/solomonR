@@ -92,21 +92,13 @@
   conditions
 }
 
-# The key to the treatment marks, as "X1 = RP; X2 = GS", broken between
-# entries so that no line is much longer than `width` characters.
-.solomon_design_key <- function(marks, labels, width = 64L) {
+# The key to the treatment marks, as "X1 = RP; X2 = GS", broken only between
+# entries, by the rule that sets the other text of the package's figures:
+# lines that fit a figure 7 inches wide at the size of a subtitle.
+.solomon_design_key <- function(marks, labels) {
   entries <- sprintf("%s = %s", marks, labels)
-  lines <- character()
-  current <- entries[1]
-  for (entry in entries[-1]) {
-    if (nchar(current) + nchar(entry) + 2L > width) {
-      lines <- c(lines, paste0(current, ";"))
-      current <- entry
-    } else {
-      current <- paste0(current, "; ", entry)
-    }
-  }
-  paste(c(lines, current), collapse = "\n")
+  n <- length(entries)
+  .fill_figure_text(paste0(entries, c(rep(";", n - 1L), "")), .figure_subtitle_size)
 }
 
 # Row labels as drawn on the axis. When a label is longer than `width`
@@ -134,6 +126,13 @@
 #' and posttest mean. Groups with no participants, or with fewer than two
 #' observed posttest scores, are flagged, using the same rule as
 #' [validate_solomon()].
+#'
+#' The key and the caption are broken into lines for a figure at least 7
+#' inches wide. The group sizes and means are given the width they need
+#' beside the schematic, so that they are not cut off at the edge of the
+#' figure, also when a theme is added to the returned plot. With up to eight
+#' groups, each group's size and mean are set on two lines; with ten or
+#' more, whose rows are shorter, on one.
 #'
 #' @section Designs with several treatments:
 #' A Solomon N-group design crosses k treatments and a control with
@@ -169,7 +168,12 @@
 #'   strings (`y_post = "post"`).
 #' @param x `r lifecycle::badge("deprecated")` Use `y_post` or `fit`.
 #'
-#' @return A ggplot object.
+#' @return A ggplot object. The rows are drawn at the positions 1, 2, and so
+#'   on, from the bottom, on a continuous y scale labeled with the groups.
+#'   In the plot's data, `row` is a factor of the group labels whose levels
+#'   run from the bottom row to the top, so `as.integer(row)` is a group's
+#'   position. A layer added by group label maps `y` to that position, for
+#'   example `y = match(label, levels(p$data$row))` for a plot `p`.
 #'
 #' @references
 #' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
@@ -297,15 +301,14 @@ plot_solomon_design <- function(y_post = NULL, treat = NULL, pretested = NULL,
   )
   cells$step <- factor(cells$step, levels = steps)
   cells$row <- factor(cells$label, levels = rev(groups$label))
+  n_rows <- nrow(groups)
 
-  subtitle <- paste0("R = random assignment; O = observation; X = treatment; ",
-                     dash, " = not given by design")
-  if (k > 1L) {
-    subtitle <- paste0(
-      "R = random assignment; O = observation; ", dash, " = not given by design\n",
-      .solomon_design_key(marks, conditions[-1])
-    )
-  }
+  # The notation on the first line, and the key to the treatment marks on the
+  # second, broken between entries when it is long.
+  subtitle <- paste0(
+    "R = random assignment; O = observation; ", dash, " = not given by design\n",
+    if (k > 1L) .solomon_design_key(marks, conditions[-1]) else "X = treatment"
+  )
   caption <- NULL
 
   if (!is.null(observed)) {
@@ -326,52 +329,109 @@ plot_solomon_design <- function(y_post = NULL, treat = NULL, pretested = NULL,
     summaries$text <- ifelse(
       summaries$status == "empty",
       "n = 0 (empty group)",
-      sprintf("n = %d; posttest mean %s%s", summaries$n,
+      sprintf("n = %d%sposttest mean %s%s", summaries$n,
+              if (.solomon_design_summary_lines(n_rows) == 2L) "\n" else "; ",
               ifelse(is.na(summaries$mean), "NA", formatC(summaries$mean, format = "f", digits = 2)),
               ifelse(summaries$status == "sparse", " (sparse)", ""))
     )
     summaries$row <- factor(summaries$row, levels = rev(groups$label))
-    flagged <- summaries$row[summaries$status != "ok"]
+    flagged <- as.character(summaries$row[summaries$status != "ok"])
     if (length(flagged)) {
-      # With several treatments the rule goes on its own line, so that the
-      # longer caption is not cut off.
+      # The flagged groups on the first line, broken only between groups,
+      # and the rule on the next.
+      flagged_text <- .fill_figure_text(
+        paste0(c("Flagged: ", rep("", length(flagged) - 1L)), flagged,
+               c(rep(";", length(flagged) - 1L), ".")),
+        .figure_caption_size
+      )
       caption <- paste0(
-        "Flagged: ", paste(as.character(flagged), collapse = "; "),
-        if (k > 1L) ".\n" else ". ",
-        "At least two observed posttest scores per group are needed to estimate within-group variability."
+        flagged_text, "\n",
+        .wrap_figure_text(
+          "At least two observed posttest scores per group are needed to estimate within-group variability.",
+          .figure_caption_size
+        )
       )
     }
   }
 
-  p <- ggplot2::ggplot(cells, ggplot2::aes(x = step, y = row)) +
+  # Rows are drawn at the positions 1, 2, ..., from the bottom, on a
+  # continuous scale, so that the group sizes and means can be given the
+  # space of a secondary axis. (Secondary axes on discrete scales need
+  # ggplot2 4.0.0.)
+  row_labels <- levels(cells$row)
+  if (k > 1L) {
+    # Long row labels are set on two lines, so that they leave room for the
+    # schematic and the group sizes beside it.
+    row_labels <- .solomon_design_row_labels(row_labels)
+  }
+  summary_axis <- ggplot2::waiver()
+  if (!is.null(observed)) {
+    # The group sizes and means are drawn to the right of the schematic. An
+    # invisible secondary axis with the same text, at the same size, makes
+    # ggplot2 set aside their width, so that they are never cut off at the
+    # edge of the figure. The axis is hidden by the theme of its own guide,
+    # which a theme added to the returned plot, such as theme_bw(), does not
+    # replace, so the text is never drawn twice.
+    summary_axis <- ggplot2::dup_axis(
+      name = NULL,
+      labels = summaries$text[order(as.integer(summaries$row))],
+      guide = ggplot2::guide_axis(theme = ggplot2::theme(
+        axis.text.y.right = ggplot2::element_text(
+          colour = "transparent", size = .solomon_design_summary_size * ggplot2::.pt,
+          lineheight = .solomon_design_summary_lineheight, hjust = 0,
+          margin = ggplot2::margin(0, 0, 0, 0)
+        ),
+        axis.ticks.y.right = ggplot2::element_blank(),
+        axis.ticks.length.y.right = ggplot2::unit(0, "pt"),
+        axis.line.y.right = ggplot2::element_blank()
+      ))
+    )
+  }
+
+  p <- ggplot2::ggplot(cells, ggplot2::aes(x = step, y = as.integer(row))) +
     ggplot2::geom_tile(fill = "grey95", colour = "grey70") +
     ggplot2::geom_text(ggplot2::aes(label = symbol), size = 6) +
     ggplot2::scale_x_discrete(position = "top") +
+    ggplot2::scale_y_continuous(breaks = seq_len(n_rows), labels = row_labels,
+                                sec.axis = summary_axis) +
+    ggplot2::coord_cartesian(xlim = c(0.4, 4.6), ylim = c(0.4, n_rows + 0.6),
+                             expand = FALSE, clip = "off") +
     ggplot2::labs(x = NULL, y = NULL, title = .solomon_design_title(k),
                   subtitle = subtitle, caption = caption) +
     ggplot2::theme_minimal(base_size = 12) +
-    ggplot2::theme(panel.grid = ggplot2::element_blank())
-
-  if (k > 1L) {
-    # The title and the key start at the left edge of the figure: beside the
-    # longer row labels of these designs they would run off the right edge.
-    # Long row labels are set on two lines for the same reason.
-    p <- p +
-      ggplot2::theme(plot.title.position = "plot") +
-      ggplot2::scale_y_discrete(labels = .solomon_design_row_labels)
-  }
+    # The title, the key, and the caption start at the left edge of the
+    # figure, where they have its whole width.
+    ggplot2::theme(panel.grid = ggplot2::element_blank(),
+                   plot.title.position = "plot",
+                   plot.caption = ggplot2::element_text(hjust = 0),
+                   plot.caption.position = "plot")
 
   if (!is.null(observed)) {
     p <- p +
       ggplot2::geom_text(
         data = summaries,
-        ggplot2::aes(x = 4.6, y = row, label = text, colour = status),
-        hjust = 0, size = 3.5, inherit.aes = FALSE
+        ggplot2::aes(x = 4.6, y = as.integer(row), label = text, colour = status),
+        hjust = 0, size = .solomon_design_summary_size,
+        lineheight = .solomon_design_summary_lineheight, inherit.aes = FALSE
       ) +
       ggplot2::scale_colour_manual(values = c(ok = "grey20", sparse = "darkorange3", empty = "firebrick"),
-                                   guide = "none") +
-      ggplot2::coord_cartesian(xlim = c(0.5, 6.2), clip = "off")
+                                   guide = "none")
   }
 
   p
+}
+
+# Size, in millimetres, and line height of the group sizes and means beside
+# the schematic.
+.solomon_design_summary_size <- 3.5
+.solomon_design_summary_lineheight <- 0.9
+
+# Lines in each group summary beside the schematic. With up to eight groups,
+# the size and the mean are set on two lines, "n = 30" over "posttest mean
+# 56.23", so that the text is narrow and the schematic keeps room for its
+# column headings. With ten or more groups, the rows of a figure of the
+# usual height are too short for two lines, and each summary takes one,
+# "n = 30; posttest mean 56.23".
+.solomon_design_summary_lines <- function(n_rows) {
+  if (n_rows <= 8L) 2L else 1L
 }

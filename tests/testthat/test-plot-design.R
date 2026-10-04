@@ -80,6 +80,92 @@ test_that("empty and sparse groups are flagged rather than hidden", {
 })
 
 
+test_that("the key, the caption, and the group summaries are set to fit (#108)", {
+
+  dash <- intToUtf8(0x2014)
+  p <- plot_solomon_design()
+  # The notation on one line and the treatment on the next, as in the
+  # figures of designs with several treatments.
+  expect_equal(p$labels$subtitle,
+               paste0("R = random assignment; O = observation; ", dash,
+                      " = not given by design\nX = treatment"))
+  expect_equal(p$theme$plot.title.position, "plot")
+  expect_null(p$labels$caption)
+
+  # The flagged groups and the rule each start a line; the rule is wrapped.
+  d <- solomon_example[!(solomon_example$treat == 1 & solomon_example$pretested == 0), ]
+  flagged <- with(d, plot_solomon_design(y_post, treat, pretested))
+  expect_equal(
+    strsplit(flagged$labels$caption, "\n", fixed = TRUE)[[1]],
+    c("Flagged: Group 3: unpretested, treatment.",
+      "At least two observed posttest scores per group are needed to estimate within-group",
+      "variability.")
+  )
+  expect_equal(flagged$theme$plot.caption$hjust, 0)
+  expect_equal(flagged$theme$plot.caption.position, "plot")
+
+  # A group's size and its posttest mean are set on two lines.
+  s <- summary_layer(with(solomon_example, plot_solomon_design(y_post, treat, pretested)))
+  g1 <- s[s$row == "Group 1: pretested, treatment", ]
+  expect_equal(g1$text, sprintf("n = %d\nposttest mean %s", g1$n,
+                                formatC(g1$mean, format = "f", digits = 2)))
+})
+
+
+test_that("the group summaries take one line when the design has ten or more groups (#108)", {
+
+  expect_equal(vapply(c(4L, 6L, 8L, 10L, 12L), .solomon_design_summary_lines, integer(1)),
+               c(2L, 2L, 2L, 1L, 1L))
+
+  k_data <- function(k) {
+    d <- expand.grid(id = 1:5, condition = c("Control", paste0("T", seq_len(k))),
+                     pretested = c(1, 0), stringsAsFactors = FALSE)
+    d$y <- seq_len(nrow(d))
+    d
+  }
+  # Group 1 (pretested, T1) holds rows 6 to 10 of the data: a mean of 8.
+  eight <- summary_layer(plot_solomon_design(y, condition, pretested, control = "Control",
+                                             data = k_data(3)))
+  expect_equal(eight$text[eight$row == "Group 1: pretested, T1"], "n = 5\nposttest mean 8.00")
+  ten <- summary_layer(plot_solomon_design(y, condition, pretested, control = "Control",
+                                           data = k_data(4)))
+  expect_equal(ten$text[ten$row == "Group 1: pretested, T1"], "n = 5; posttest mean 8.00")
+  expect_false(any(grepl("\n", ten$text, fixed = TRUE)))
+
+  # A sparse group keeps its flag on one line.
+  d <- k_data(4)
+  d$y[d$condition == "T2" & d$pretested == 0][-1] <- NA
+  sparse <- summary_layer(plot_solomon_design(y, condition, pretested, control = "Control", data = d))
+  expect_match(sparse$text[sparse$row == "Group 7: unpretested, T2"],
+               "^n = 5; posttest mean [0-9.]+ \\(sparse\\)$")
+})
+
+
+test_that("the rows are drawn at the positions 1, 2, and so on, from the bottom (#108)", {
+
+  p <- with(solomon_example, plot_solomon_design(y_post, treat, pretested))
+  params <- ggplot2::ggplot_build(p)$layout$panel_params[[1]]
+  expect_equal(as.numeric(params$y$get_breaks()), 1:4)
+  expect_equal(params$y$get_labels(), levels(p$data$row))
+  expect_equal(levels(p$data$row)[c(1, 4)],
+               c("Group 4: unpretested, control", "Group 1: pretested, treatment"))
+
+  # The hidden secondary axis carries each group's summary in the row order.
+  s <- summary_layer(p)
+  expect_equal(params$y.sec$get_labels(), s$text[order(as.integer(s$row))])
+
+  # A layer added by group label, as the help page shows, lands on its row.
+  extra <- data.frame(step = "Posttest", label = "Group 1: pretested, treatment")
+  q <- p + ggplot2::geom_point(
+    data = extra, ggplot2::aes(x = step, y = match(label, levels(p$data$row))),
+    inherit.aes = FALSE
+  )
+  added <- ggplot2::layer_data(q, length(q$layers))
+  expect_equal(as.numeric(added$y), 4)
+  expect_equal(as.numeric(added$x), 4)
+})
+
+
 test_that("incomplete or miscoded inputs are refused", {
 
   expect_error(plot_solomon_design(solomon_example$y_post), "`treat` and `pretested` are required")

@@ -28,6 +28,8 @@
 #' pretest where one exists; see [compare_solomon_methods()] for the estimand
 #' behind each analysis.
 #'
+#' The caption is broken into lines for a figure at least 7 inches wide.
+#'
 #' @section Designs with several treatments:
 #' For a Solomon N-group design, with k treatments and a control each with
 #' and without a pretest (Steyn, 2009), give `treat` as a factor or character
@@ -142,18 +144,20 @@ plot_solomon_change <- function(y_post, treat, pretested, y_pre,
   rownames(summaries) <- NULL
 
   level <- format(100 * conf_level)
-  # With several treatments the caption is set on two lines, so that it is
-  # not cut off in a figure of ordinary width.
-  caption <- sprintf(
-    "%s%% t intervals. Pretested groups: %d participants with both scores.%sUnpretested groups are observed at posttest only, by design.",
-    level, nrow(complete), if (ngroup) "\n" else " "
+  # One sentence or two per line, each wrapped to the width of the figure.
+  caption <- c(
+    sprintf("%s%% t intervals. Pretested groups: %d participants with both scores.",
+            level, nrow(complete)),
+    "Unpretested groups are observed at posttest only, by design."
   )
   if (incidental > 0L) {
-    caption <- paste0(
-      caption, "\n", incidental, " pretested participant(s) with a missing pretest ",
-      "are excluded from the trajectories, not imputed."
+    caption <- c(
+      caption,
+      paste(incidental, "pretested participant(s) with a missing pretest",
+            "are excluded from the trajectories, not imputed.")
     )
   }
+  caption <- .wrap_figure_text(caption, .figure_caption_size)
 
   p <- if (ngroup) {
     ggplot2::ggplot(summaries, ggplot2::aes(x = time, y = mean, colour = condition, group = group))
@@ -187,11 +191,17 @@ plot_solomon_change <- function(y_post, treat, pretested, y_pre,
   # dodged as the points are; an unpretested group has one point and draws
   # no line.
   line_data <- if (ngroup) summaries else summaries[summaries$design == "pretested", ]
-  if (ngroup) {
-    # A fixed order of the two legends: conditions, then pretest status.
-    p <- p + ggplot2::guides(colour = ggplot2::guide_legend(order = 1),
-                             shape = ggplot2::guide_legend(order = 2))
-  }
+  # A fixed order of the two legends: groups or conditions, then pretest
+  # status. The four groups of the four-group design are set two by two, as
+  # in the design, so that their legend fits the width of the figure.
+  p <- p + ggplot2::guides(
+    colour = if (ngroup) {
+      ggplot2::guide_legend(order = 1)
+    } else {
+      ggplot2::guide_legend(order = 1, nrow = 2, byrow = TRUE)
+    },
+    shape = ggplot2::guide_legend(order = 2)
+  )
   p +
     ggplot2::geom_line(
       data = line_data,
@@ -205,5 +215,9 @@ plot_solomon_change <- function(y_post, treat, pretested, y_pre,
     ggplot2::labs(x = NULL, y = "Mean score", colour = NULL, shape = NULL,
                   title = "Pretest-to-posttest change", caption = caption) +
     ggplot2::theme_minimal(base_size = 12) +
-    ggplot2::theme(legend.position = "bottom", legend.box = "vertical")
+    # The caption is set flush left under the whole figure, where it has the
+    # full width.
+    ggplot2::theme(legend.position = "bottom", legend.box = "vertical",
+                   plot.caption = ggplot2::element_text(hjust = 0),
+                   plot.caption.position = "plot")
 }
