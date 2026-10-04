@@ -1,5 +1,7 @@
 # Changelog
 
+## solomonR (development version)
+
 ## solomonR 0.8.1
 
 A patch release. It fixes a bug in 0.8.0 that gave wrong contrasts in
