@@ -22,20 +22,33 @@
 # variances from the separate unpretested and pretested regressions, with
 # Welch-Satterthwaite degrees of freedom; these reduce to the residual degrees
 # of freedom of one regression when the other contributes nothing.
-.ml_combination <- function(L, parts) {
+#
+# With `center = TRUE`, as for the pretest effects (issue #104), the
+# combination is evaluated at the estimated mean pretest of the pretested
+# participants, which moves it by L["bP"] * bX per unit, so it gains
+# (L["bP"] bX)^2 Var(mean): with Wald inference the ML variance of the mean,
+# and with the small-sample option s^2 / n as a third Welch-Satterthwaite
+# component with n - 1 degrees of freedom. Under the model the mean is
+# independent of the regression estimates.
+.ml_combination <- function(L, parts, center = FALSE) {
   L <- as.numeric(L)
+  k <- if (center && !is.null(parts$center)) {
+    L[match("bP", rownames(parts$V))] * parts$center$slope
+  } else {
+    0
+  }
   if (identical(parts$inference, "wald")) {
-    return(c(variance = as.numeric(t(L) %*% parts$V %*% L), df = Inf))
+    added <- if (k != 0) k^2 * parts$center$variance else 0
+    return(c(variance = as.numeric(t(L) %*% parts$V %*% L) + added, df = Inf))
   }
   c_u <- as.numeric(L %*% parts$M_u)
   c_p <- as.numeric(L %*% parts$M_p)
   v_u <- as.numeric(t(c_u) %*% parts$V_u %*% c_u)
   v_p <- as.numeric(t(c_p) %*% parts$V_p %*% c_p)
-  denominator <- sum(
-    if (v_u > 0) v_u^2 / parts$df_u else 0,
-    if (v_p > 0) v_p^2 / parts$df_p else 0
-  )
-  c(variance = v_u + v_p, df = (v_u + v_p)^2 / denominator)
+  v_x <- if (k != 0) k^2 * parts$center$variance else 0
+  df_x <- if (k != 0) parts$center$df else Inf
+  c(variance = v_u + v_p + v_x,
+    df = .welch_df(c(v_u, v_p, v_x), c(parts$df_u, parts$df_p, df_x)))
 }
 
 # Estimate, standard error, reference df, and interval for each row of `L`,
@@ -78,6 +91,12 @@
 #' The model estimates the treatment effect, pretest effect,
 #' Treatment x Pretest interaction, pretest-posttest slope, and separate
 #' residual standard deviations for pretested and unpretested participants.
+#' The pretest enters as a deviation from its mean among pretested
+#' participants (returned as `pretest_mean`), so the pretest effect `bP`
+#' compares pretested and unpretested controls at that mean. The effects
+#' table reports the four Solomon contrasts and then the pretest effects
+#' among controls, among treated participants, and averaged over the two, as
+#' [fit_solomon_glm()] does (see its section "The pretest effect").
 #'
 #' @param y_post Numeric posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
@@ -116,6 +135,17 @@
 #'   normal reference distribution, the usual large-sample basis for
 #'   maximum-likelihood inference.
 #'
+#' The pretest effects are evaluated at the mean pretest of the pretested
+#' participants, an estimate whose sampling variance their standard errors
+#' include (see the section "The pretest effect" of [fit_solomon_glm()]).
+#' Under the model the mean is independent of the regression estimates, so
+#' Wald inference adds `bX`^2 times the maximum-likelihood variance of the
+#' mean, and the small-sample option adds `bX`^2 s^2 / n, for n pretested
+#' participants whose pretests have variance s^2, as a third component with
+#' n - 1 degrees of freedom. The coefficient table gives `bP` with the
+#' standard error of van Engelenburg (1999), which treats the mean as fixed.
+#' The pretest effects were not part of the validation below.
+#'
 #' In the package's simulation validation (issues #10 and #22; 84 scenarios
 #' with 2,000 replications each, reported in the article "Validating
 #' fit_solomon_ml()" on the package website), both options recovered the
@@ -146,7 +176,10 @@
 #' every larger size studied. Even at and above it, Wald inference was
 #' approximately adequate rather than exact.
 #'
-#' @return An object of class \code{solomon_ml}.
+#' @return An object of class \code{solomon_ml}, with the coefficients, the
+#'   `effects` table (the four Solomon contrasts, then the three pretest
+#'   effects), the residual standard deviations, `pretest_mean`, and the
+#'   settings used.
 #'
 #' @references
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
@@ -418,6 +451,17 @@ fit_solomon_ml <- function(
   # use exactly the fit's inference (see .ml_combination()).
   parts <- list(inference = inference, V = V)
 
+  # The mean pretest at which the pretest effects are evaluated is an
+  # estimate (issue #104): its ML variance for Wald inference, and s^2 / n
+  # with n - 1 degrees of freedom for the small-sample option.
+  n_pre <- sum(idx_pre)
+  ss_x <- sum(df$x_c[idx_pre]^2)
+  parts$center <- list(
+    slope = unname(b["bX"]),
+    variance = if (inference == "wald") ss_x / n_pre^2 else ss_x / (n_pre * (n_pre - 1)),
+    df = if (inference == "wald") Inf else n_pre - 1
+  )
+
   if (inference == "satterthwaite") {
 
     V_u <- stats::vcov(un_fit)
@@ -451,12 +495,12 @@ fit_solomon_ml <- function(
     parts$df_p <- stats::df.residual(pre_fit)
   }
 
-  combination_variance <- function(L) {
-    .ml_combination(L, parts)[["variance"]]
+  combination_variance <- function(L, center = FALSE) {
+    .ml_combination(L, parts, center)[["variance"]]
   }
 
-  combination_df <- function(L) {
-    .ml_combination(L, parts)[["df"]]
+  combination_df <- function(L, center = FALSE) {
+    .ml_combination(L, parts, center)[["df"]]
   }
 
   unit <- function(name) {
@@ -487,13 +531,16 @@ fit_solomon_ml <- function(
   # Solomon estimands
   # ----------------------------------------------------------
 
+  # The pretest effects are evaluated at the estimated mean pretest, whose
+  # variance they also carry (.ml_combination()).
   contrast <- function(L, label) {
 
     L <- L[names(b)]
+    center <- label %in% .solomon_pretest_order
 
     estimate <- sum(L * b)
-    std.error <- sqrt(combination_variance(L))
-    df <- combination_df(L)
+    std.error <- sqrt(combination_variance(L, center))
+    df <- combination_df(L, center)
     statistic <- estimate / std.error
     p.value <- 2 * stats::pt(-abs(statistic), df = df)
     ci <- .wald_ci(estimate, std.error, df, conf_level)
@@ -529,6 +576,17 @@ fit_solomon_ml <- function(
   L_ate["bT"] <- 1
   L_ate["bTP"] <- 0.5
 
+  # The pretest (testing) effects (issue #104): pretested minus unpretested
+  # participants with the centered pretest at zero, that is, at the pretested
+  # participants' mean pretest. Among controls bP; among treated
+  # participants bP + bTP; and their average.
+  L_pc <- Z()
+  L_pc["bP"] <- 1
+  L_pt <- L_pc
+  L_pt["bTP"] <- 1
+  L_pm <- L_pc
+  L_pm["bTP"] <- 0.5
+
   effects <- rbind(
     contrast(
       L_ate,
@@ -545,6 +603,18 @@ fit_solomon_ml <- function(
     contrast(
       L_un,
       "Treatment | unpretested"
+    ),
+    contrast(
+      L_pc,
+      "Pretest effect | control"
+    ),
+    contrast(
+      L_pt,
+      "Pretest effect | treated"
+    ),
+    contrast(
+      L_pm,
+      "Pretest main effect"
     )
   )
 

@@ -16,13 +16,14 @@ equivalence_solomon(
 \arguments{
 \item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}.}
 
-\item{bounds}{Equivalence bounds on the raw posttest scale: one positive
-number \code{delta}, giving \code{c(-delta, delta)}, or \code{c(lower, upper)} with
-\verb{lower < 0 < upper}. There is no default; bounds must be chosen in
-advance.}
+\item{bounds}{Equivalence bounds on the scale of the contrast (see
+"Choosing equivalence bounds"): one positive number \code{delta}, giving
+\code{c(-delta, delta)}, or \code{c(lower, upper)} with \verb{lower < 0 < upper}.
+There is no default; bounds must be chosen in advance.}
 
-\item{contrast}{Solomon contrast to test. Default is
-\code{"Pretest x Treatment"}.}
+\item{contrast}{Solomon contrast to test: one of the contrasts of
+\code{fit$effects}, including the pretest effects (\code{"Pretest effect | control"}, \code{"Pretest effect | treated"}, and \code{"Pretest main effect"}).
+Default is \code{"Pretest x Treatment"}.}
 
 \item{alpha}{Significance level for each one-sided test. Default is 0.05.}
 
@@ -33,8 +34,9 @@ several treatments"). Leave it \code{NULL} for a four-group design.}
 \item{object}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{fit}.}
 }
 \value{
-An object of class \code{solomon_equivalence} containing the estimate,
-standard error, degrees of freedom, both one-sided tests
+An object of class \code{solomon_equivalence} containing the \code{scale}
+of the contrast (such as \code{"outcome units"} or \code{"log odds ratio"}), the
+estimate, standard error, degrees of freedom, both one-sided tests
 (\code{t_lower}, \code{p_lower}, \code{t_upper}, \code{p_upper}), the equivalence p-value
 (\code{p_equivalence}), the test against zero (\code{statistic}, \code{p_zero}), both
 confidence intervals, the logical results \code{equivalent}, \code{different}, and
@@ -59,11 +61,38 @@ before the data are examined, for example in a preregistration (Lakens,
 smallest change in posttest scores that would alter a conclusion, or from
 prior research.
 
-Bounds are on the raw posttest scale. To use a standardized SESOI (for
+Bounds are on the scale of the contrast, which the printed result names:
+outcome units for a linear model (an identity link) and for
+\code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, log odds ratios for a logistic model, and log rate
+ratios for a Poisson or negative-binomial model. Bounds must be set on the
+scale of the estimand (Lakens, 2017): bounds of 0.5 on a logistic fit
+are odds ratios of 0.61 to 1.65. To use a standardized SESOI (for
 example, d = 0.2), multiply it by a standard deviation fixed in advance,
 such as one reported in prior studies. Do not use the standard deviation of
 the current data: the same standardized bound then implies different raw
 bounds in different samples (Lakens, 2017).
+}
+
+\section{Link scales}{
+
+With a pretest covariate, some link-scale contrasts do not compare like
+with like, and a classed warning (\code{solomonR_link_scale_warning}) says so:
+\itemize{
+\item the Pretest x Treatment contrast on a noncollapsible link, such as the
+logit, compares a treatment effect conditional on the pretest (pretested
+participants) with a marginal one (unpretested participants), which
+differ whenever the pretest predicts the outcome, even without
+sensitization (Daniel et al., 2021). The log link is collapsible, so its
+Pretest x Treatment contrast, a ratio of rate ratios, is not affected.
+\item the pretest effects on any link but the identity compare the pretested
+participants' fitted mean at the mean pretest with the unpretested
+participants' mean, which differ under a nonlinear link even when the
+pretest has no effect; see the section "The pretest effect" of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
+}
+
+\code{\link[=marginal_solomon]{marginal_solomon()}} estimates these contrasts on a common scale, from
+standardized risks or rates.
 }
 
 \section{Inference}{
@@ -108,7 +137,10 @@ For a \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} fit of a design with sev
 as \code{"RP vs Control"}; it may be left out only when the fit has a single
 comparison. The test uses that comparison's estimate of the chosen
 contrast and its standard error. It is not adjusted for the other
-comparisons of the design.
+comparisons of the design. For the pretest effects, \code{comparison} names
+the condition: a treatment for \code{"Pretest effect | treated"}; the control
+and \code{"All conditions"} (for \code{"Pretest main effect"}) are chosen
+automatically.
 }
 
 \examples{
@@ -127,6 +159,11 @@ fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
 equivalence_solomon(fit6, bounds = 0.3, comparison = "RP vs Control")
 }
 \references{
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
+528–557. https://doi.org/10.1002/bimj.201900297
+
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. \emph{Social Psychological and Personality
 Science, 8}(4), 355–362. https://doi.org/10.1177/1948550617697177

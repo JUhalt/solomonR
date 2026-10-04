@@ -86,9 +86,11 @@ test_that("pretested groups are evaluated at the mean pretest among the preteste
   p <- plot_sensitization(fit)
 
   pre_mean <- mean(solomon_example$y_pre[solomon_example$pretested == 1])
+  # The model's pretest is centered at that mean (#104).
+  expect_equal(fit$pretest_mean, pre_mean)
   predicted <- stats::predict(
     fit$model,
-    newdata = data.frame(treat = 1L, pretested = 1L, pre_obs = pre_mean)
+    newdata = data.frame(treat = 1L, pretested = 1L, pre_obs = pre_mean - fit$pretest_mean)
   )
   plotted <- p$data$estimate[p$data$treatment == "Treatment" & p$data$condition == "Pretested"]
   expect_equal(plotted, unname(predicted), tolerance = 1e-10)

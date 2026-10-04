@@ -70,8 +70,8 @@ evidence that assessments interact with interventions, and concluded that
 too few rigorous studies exist to say whether such interactions occur
 (McCambridge et al., 2011).
 
-`solomonR` reports four contrasts in mean posttest scores, always as
-treatment minus control:
+`solomonR` answers the first and third questions with four contrasts in
+mean posttest scores, always as treatment minus control:
 
 | Contrast | Meaning |
 |---|---|
@@ -79,6 +79,18 @@ treatment minus control:
 | Treatment \| unpretested | Treatment effect among unpretested participants (Groups 3 vs. 4) |
 | Pretest x Treatment | Difference between those two effects (sensitization) |
 | ATE (avg over pretest) | The two effects averaged with equal weight |
+
+It answers the second question, the pretest (testing) effect, with three
+more, as pretested minus unpretested:
+
+| Contrast | Meaning |
+|---|---|
+| Pretest effect \| control | Pretest effect among controls (Groups 2 vs. 4) |
+| Pretest effect \| treated | Pretest effect among treated participants (Groups 1 vs. 3) |
+| Pretest main effect | The two effects averaged with equal weight |
+
+The two pretest effects differ by the Pretest x Treatment contrast, so
+sensitization is also a pretest effect that depends on the treatment.
 
 ## The example data
 
@@ -160,7 +172,7 @@ analysis of a new study.
 
 Contemporary practice specifies one analysis and its target quantities in
 advance (Lundberg et al., 2021). For a randomized Solomon study with a
-continuous outcome, `fit_solomon_glm()` estimates all four contrasts from a
+continuous outcome, `fit_solomon_glm()` estimates all the contrasts from a
 single model that adjusts for the pretest in the groups that took it. It
 uses heteroskedasticity-consistent (HC3) standard errors by default (Long &
 Ervin, 2000; Hayes & Cai, 2007) with t tests on the residual degrees of
@@ -175,15 +187,30 @@ fit
 effect <- function(name) fit$effects[fit$effects$contrast == name, ]
 ate <- effect("ATE (avg over pretest)")
 sens <- effect("Pretest x Treatment")
+pre_control <- effect("Pretest effect | control")
+pre_main <- effect("Pretest main effect")
 fmt <- function(x, digits = 1) formatC(x, format = "f", digits = digits)
 fmt_p <- function(p) if (p < .001) "< .001" else sub("^0", "", formatC(p, format = "f", digits = 3))
 ```
+
+Read the estimates from the table of key contrasts. The coefficient table
+above it describes the model: the pretest enters as `pre_obs`, centered at
+the pretested participants' mean pretest of `r fmt(fit$pretest_mean, 2)`.
 
 Compare the estimates with the truth. The true ATE is 5 points; this sample
 estimates `r fmt(ate$estimate)` points, with a 95% confidence interval from
 `r fmt(ate$conf.low)` to `r fmt(ate$conf.high)`. The interval contains the
 true value, and it also contains zero, so the test against zero is not
 significant (p = `r fmt_p(ate$p.value)`).
+
+The true pretest effect is 2 points. The model compares the pretested
+groups, at their mean pretest, with the unpretested groups, whose expected
+pretest under random assignment is the same (Solomon & Lessac, 1968,
+pp. 146–147). Among controls it estimates `r fmt(pre_control$estimate)`
+points, 95% CI [`r fmt(pre_control$conf.low)`, `r fmt(pre_control$conf.high)`],
+and averaged over treatment and control `r fmt(pre_main$estimate)` points,
+95% CI [`r fmt(pre_main$conf.low)`, `r fmt(pre_main$conf.high)`]. Both
+intervals contain the truth.
 
 This is not a failure of the method. Estimates vary from sample to sample,
 and with 30 participants per group this design has roughly 85% power for the
@@ -257,17 +284,17 @@ Treatment estimate above. Hollow points show the observed means:
 plot_sensitization(fit, bounds = 5)
 ```
 
-A forest plot shows all four Solomon contrasts at once, with the equivalence
-bounds shaded on the sensitization row:
+A forest plot shows the four treatment contrasts at once, with the
+equivalence bounds shaded on the sensitization row:
 
-```{r effects-plot, fig.width = 7, fig.height = 3.5, fig.alt = "Forest plot of the four Solomon contrasts with 95% intervals, with the equivalence bounds shaded on the sensitization row."}
+```{r effects-plot, fig.width = 7, fig.height = 3.8, fig.alt = "Forest plot of the four Solomon contrasts with 95% intervals; the sensitization row adds the shaded equivalence bounds and the 90% interval of the equivalence test as a thick bar."}
 plot_solomon_effects(fit, bounds = 5)
 ```
 
-The sensitization interval extends beyond the shaded band, so these data
-cannot rule out sensitization as large as 5 points. The figure shows the
-fit's 95% intervals; the equivalence test uses the narrower 90% interval,
-which also extends beyond the bounds.
+The thin bars are the fit's 95% intervals. On the sensitization row, the
+thick bar is the 90% interval that the equivalence test uses (Lakens,
+2017). It extends beyond the shaded band, so these data cannot rule out
+sensitization as large as 5 points.
 
 ## Step 5: Check how the conclusions depend on the analysis
 
@@ -474,6 +501,10 @@ https://doi.org/10.1080/00220973.1994.9944140
 
 Solomon, R. L. (1949). An extension of control group design. *Psychological
 Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. *Psychological Bulletin,
+70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
 
 Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had more
 power in randomized studies and more bias in nonrandomized studies. *Journal
