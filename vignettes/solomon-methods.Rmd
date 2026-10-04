@@ -340,7 +340,8 @@ number is not allowed for.
   of Walton Braver & Braver, 1988, for each treatment against the control),
   reliability, regression to the mean, and attrition, and then of the
   treatments' effects by one-way analyses of variance with post hoc tests
-  (Steyn, 2009). The post hoc tests are the Scheffé tests of Steyn (2005).
+  (Steyn, 2009). The post hoc tests are Scheffé's (1953) tests, as Steyn
+  (2005) used them.
 - **Assumptions:** equal variances and independent groups in each test.
 - **Limitations:** many tests, each at the nominal level; Steyn (2009)
   notes that several analyses of variance capitalize on chance. It tests
@@ -595,6 +596,10 @@ Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
 Experimental Education, 62*(4), 361–376.
 https://doi.org/10.1080/00220973.1994.9944140
+
+Scheffé, H. (1953). A method for judging all contrasts in the analysis of
+variance. *Biometrika, 40*(1–2), 87–104.
+https://doi.org/10.1093/biomet/40.1-2.87
 
 Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 and the power approach for assessing the equivalence of average
