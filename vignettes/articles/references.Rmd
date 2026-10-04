@@ -432,6 +432,22 @@ Journal, 19*(2), 249–258. https://doi.org/10.3102/00028312019002249
 
 ## Methods references
 
+Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &
+Rao, S. M. (2018). Journal article reporting standards for quantitative
+research in psychology: The APA Publications and Communications Board task
+force report. *American Psychologist, 73*(1), 3–25.
+https://doi.org/10.1037/amp0000191
+
+> The Journal Article Reporting Standards of the American Psychological
+> Association for quantitative research (JARS-Quant). Their table for
+> structural equation modeling (Table 7) asks
+> for the software and its version, the estimation method, the handling of
+> missing data, the basis of identification, global fit statistics, the
+> difference tests between models, and the parameters fixed or freed.
+> *In solomonR:* what `report_solomon()` gives for latent structural
+> equation models and measurement invariance tests
+> ([#112](https://github.com/JUhalt/solomonR/issues/112)).
+
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 for linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 169–181.
@@ -633,10 +649,40 @@ cluster-robust variance estimation and hypothesis testing in fixed effects
 models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
 https://doi.org/10.1080/07350015.2016.1247004
 
+Putnick, D. L., & Bornstein, M. H. (2016). Measurement invariance
+conventions and reporting: The state of the art and future directions for
+psychological research. *Developmental Review, 41*, 71–90.
+https://doi.org/10.1016/j.dr.2016.06.004
+
+> A review of the measurement invariance tests in 126 articles published
+> over one year (2013–2014). For reporting, it proposes the sample sizes,
+> the handling of missing data, the number and sizes of the groups, the fit
+> criteria, and a table of the models with their degrees of freedom, fit
+> statistics, comparisons, difference tests, and decisions. *In solomonR:*
+> the report `report_solomon()` writes for `invariance_solomon()`, and the
+> invariance statement of its latent structural equation model reports
+> ([#112](https://github.com/JUhalt/solomonR/issues/112)).
+
 Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
 guide to statistical inference in linear modeling for non-normal or
 heteroskedastic error distributions. *Behavior Research Methods, 57*(12),
 Article 338. https://doi.org/10.3758/s13428-025-02801-4
+
+Romano, J. P. (1990). On the behavior of randomization tests without a
+group invariance assumption. *Journal of the American Statistical
+Association, 85*(411), 686–692.
+https://doi.org/10.1080/01621459.1990.10474928
+
+> A randomization test is exact when the distribution of the data is
+> unchanged by the permutations, as under the sharp null hypothesis.
+> Without that group invariance, a permutation test of a difference in
+> means keeps its level for the hypothesis of equal means, even
+> asymptotically, only when the samples are equal in size or the variances
+> are equal. *In solomonR:*
+> the warning of `perm_solomon(statistic = "difference")` when treated and
+> control participants differ in number within a pretest condition, and the
+> wording of `report_solomon()` for that statistic
+> ([#113](https://github.com/JUhalt/solomonR/issues/113)).
 
 Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
 *Journal of Statistical Software, 48*(2), 1–36.
@@ -747,6 +793,19 @@ baseline measurements in randomized trials. *Statistics in Medicine, 24*(7),
 Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in
 randomized experiments. *Journal of the American Statistical Association,
 116*(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415
+
+Yuan, K.-H., & Bentler, P. M. (2000). Three likelihood-based methods for
+mean and covariance structure analysis with nonnormal missing data.
+*Sociological Methodology, 30*(1), 165–200.
+https://doi.org/10.1111/0081-1750.00078
+
+> Maximum likelihood estimation with incomplete, nonnormal data, with
+> robust standard errors and a rescaled test statistic. lavaan's MLR
+> estimator, the default of the latent SEM functions, gives Huber-White
+> standard errors and a scaled statistic asymptotically equal to the
+> Yuan-Bentler statistic. *In solomonR:* how `report_solomon()` describes
+> the MLR estimator and its scaled chi-square
+> ([#112](https://github.com/JUhalt/solomonR/issues/112)).
 
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. *British Journal of Mathematical and Statistical Psychology,

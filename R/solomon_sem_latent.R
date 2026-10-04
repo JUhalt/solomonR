@@ -97,6 +97,8 @@
 #'     \item `fitmeasures_pre` (optional)
 #'     \item `invariance`: the [invariance_solomon()] result, or `NULL` when
 #'       the check was not run, and `invariance_status`, a one-line summary
+#'     \item `settings`: the options used, including the estimator and any
+#'       freed parameters, which [report_solomon()] reports
 #'   }
 #' @references
 #' Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
@@ -350,6 +352,7 @@ fit_solomon_sem_latent <- function(
       invariance_pre = invariance_pre,
       partial_post = partial_post,
       partial_pre = partial_pre,
+      estimator = estimator,
       std_lv = std_lv,
       conf_level = conf_level
     )

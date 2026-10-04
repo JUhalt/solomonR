@@ -66,3 +66,39 @@ test_that("fit_solomon_1949() rejects incomplete input", {
   expect_error(fit_solomon_1949(post_mean = c(1, 2, 3), pre_mean = 1), "two pretest means")
   expect_error(fit_solomon_1949(y_post = 1:4, treat = c(1, 0, 1, 0)), "need")
 })
+
+test_that("report_solomon() reports Solomon's published analysis (#111)", {
+  # Fifth grade (Solomon, 1949, Table II): i = 3.0, d = 6.7, 0.7, 8.2, I = -2.2.
+  g <- solomon1949[solomon1949$grade == 5, ]
+  r <- report_solomon(fit_solomon_1949(post_mean = g$mean, pre_mean = g$pre_mean[1:2], n = g$n),
+                      digits = 1)
+  expect_s3_class(r, "solomon_report")
+  expect_match(r$results[1], "The inferred pretest mean was 3.0.", fixed = TRUE)
+  expect_match(r$results[1], "d1 = 6.7, d2 = 0.7, and d3 = 8.2, and the interaction was I = -2.2.",
+               fixed = TRUE)
+  expect_match(r$method, "I = d1 - (d2 + d3) (Solomon, 1949, p. 143)", fixed = TRUE)
+  expect_match(r$results[2], "gave no standard error or test for I", fixed = TRUE)
+  expect_match(r$design[1], "Solomon's (1949) three-group design", fixed = TRUE)
+  expect_match(r$design[2], sprintf("experimental, Control I, and Control II groups were %s, %s, and %s",
+                                    g$n[1], g$n[2], g$n[3]), fixed = TRUE)
+  expect_error(report_solomon(fit_solomon_1949(post_mean = g$mean, pre_mean = g$pre_mean[1:2]),
+                              design = list(randomized = 1:4)), "three groups")
+  expect_true(any(startsWith(r$references, "Campbell, D. T., & Stanley")))
+
+  # The four-group design: Table V's interaction and its relation to the
+  # posttest contrast, with the standard design statement.
+  fit <- with(solomon_example, fit_solomon_1949(y_post, treat, pretested, y_pre))
+  r4 <- report_solomon(fit)
+  expect_match(r4$method, "I = d1 - (d2 + d3 - d4) (Solomon, 1949, p. 147)", fixed = TRUE)
+  expect_match(r4$results[1], sprintf("the interaction was I = %s.", .apa_num(fit$I, 2)), fixed = TRUE)
+  expect_match(r4$results[2], sprintf("posttest interaction contrast, %s, less the pretest difference",
+                                      .apa_num(fit$posttest_contrast, 2)), fixed = TRUE)
+  expect_match(r4$design[1], "Solomon four-group design (Solomon, 1949), with 30, 30, 30, and 30",
+               fixed = TRUE)
+  md <- report_solomon(fit, format = "markdown")
+  expect_match(md$method, "*I* = *d*~1~ - (*d*~2~ + *d*~3~ - *d*~4~)", fixed = TRUE)
+  pooled <- report_solomon(fit_solomon_1949(post_mean = g$mean, pre_mean = g$pre_mean[1:2], n = g$n,
+                                            inferred_pretest = "pooled"))
+  expect_match(pooled$method, "the mean of the pooled pretested groups (Solomon, 1949, p. 141)",
+               fixed = TRUE)
+})

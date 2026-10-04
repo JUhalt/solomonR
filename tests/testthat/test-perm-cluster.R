@@ -280,3 +280,18 @@ test_that("unequal numbers of treated and control clusters give a classed warnin
   balanced <- fit_a(make_design_a(per_cell = c(4, 4, 4, 4)))
   expect_no_warning(perm_solomon(balanced, reps = 99, seed = 1))
 })
+
+test_that("the cluster warning shares the class of the participant warning (#113)", {
+  fit <- fit_a(make_design_a(per_cell = c(4, 4, 8, 8)))
+  for (statistic in c("studentized", "difference")) {
+    expect_warning(
+      perm_solomon(fit, "Treatment | pretested", reps = 99, seed = 1, statistic = statistic),
+      class = "solomonR_unbalanced_arms_warning"
+    )
+  }
+  # The cluster difference test reports its sharp null hypothesis.
+  r <- report_solomon(suppressWarnings(
+    perm_solomon(fit, "Treatment | pretested", reps = 99, seed = 1, statistic = "difference")
+  ))
+  expect_match(r$method, "no treatment effect in any cluster; Romano, 1990)", fixed = TRUE)
+})

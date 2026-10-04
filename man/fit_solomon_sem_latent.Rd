@@ -66,6 +66,8 @@ An object of class \code{solomon_sem_latent} with:
 \item \code{fitmeasures_pre} (optional)
 \item \code{invariance}: the \code{\link[=invariance_solomon]{invariance_solomon()}} result, or \code{NULL} when
 the check was not run, and \code{invariance_status}, a one-line summary
+\item \code{settings}: the options used, including the estimator and any
+freed parameters, which \code{\link[=report_solomon]{report_solomon()}} reports
 }
 }
 \description{

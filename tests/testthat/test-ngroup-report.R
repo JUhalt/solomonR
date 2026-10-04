@@ -335,6 +335,56 @@ test_that("equivalence tests of one comparison are reported with the N-group des
                fixed = TRUE)
 })
 
+test_that("summary statistics of an N-group design give the report of the individual data (#111)", {
+  # Exact cell statistics of mai2020's posttests.
+  d <- mai2020[!is.na(mai2020$post_behavior), ]
+  cell <- interaction(d$condition, d$pretested, drop = TRUE, sep = ":")
+  key <- strsplit(levels(cell), ":", fixed = TRUE)
+  s <- solomon_from_summary(
+    n = as.vector(tapply(d$post_behavior, cell, length)),
+    mean = as.vector(tapply(d$post_behavior, cell, mean)),
+    sd = as.vector(tapply(d$post_behavior, cell, stats::sd)),
+    treat = vapply(key, `[`, "", 1), pretested = as.numeric(vapply(key, `[`, "", 2)),
+    control = "Control"
+  )
+  expect_s3_class(s, "solomon_summary_ngroup")
+  r <- report_solomon(s)
+  g <- report_solomon(mai_fit(robust = "none"))
+
+  # The contrasts are those of fit_solomon_glm(robust = "none") without the
+  # pretest, word for word, with the same Holm adjustment.
+  expect_identical(r$results[-1], g$results[-1])
+  expect_match(r$results[2], "t(127) = -1.88, p = .126, Holm-adjusted.", fixed = TRUE)
+
+  # The omnibus F tests: the same two tests, and the test of pretesting.
+  expect_match(r$results[1], "Pretest x Condition interaction (pretest sensitization) gave F(2, 127) = 1.86, p = .161;",
+               fixed = TRUE)
+  expect_match(r$results[1], "averaged over pretest conditions, gave F(2, 127) = 1.26, p = .288;",
+               fixed = TRUE)
+  pre <- s$anova[s$anova$source == "Pretest", ]
+  expect_match(r$results[1], sprintf("averaged over the conditions, gave F(1, 127) = %s, p = %s.",
+                                     .apa_num(pre$F, 2), sub("^0", "", sprintf("%.3f", pre$p.value))),
+               fixed = TRUE)
+  # The pretest test is the contrast of the unweighted pretested and
+  # unpretested cell means, squared.
+  m <- tapply(d$post_behavior, cell, mean)
+  n <- tapply(d$post_behavior, cell, length)
+  w <- ifelse(grepl(":1$", names(m)), 1, -1) / 3
+  expect_equal(pre$F, sum(w * m)^2 / (s$mse * sum(w^2 / n)))
+
+  expect_match(r$method, "Holm's (1979) procedure", fixed = TRUE)
+  expect_match(r$method, "pooled error variance, which assumes equal variances", fixed = TRUE)
+  expect_match(r$method, "Each treatment was compared with the control (RP vs Control and GS vs Control)",
+               fixed = TRUE)
+  expect_identical(r$design, g$design)
+  expect_true(any(startsWith(r$references, "Holm, S. (1979).")))
+  expect_true(any(startsWith(r$references, "Steyn, R. (2009).")))
+  expect_identical(r$table, s$contrasts)
+  expect_match(report_solomon(s, format = "markdown")$results[1], "*F*(2, 127) = 1.86, *p* = .161",
+               fixed = TRUE)
+  expect_error(report_solomon(s, design = list(randomized = 1:4)), "six groups")
+})
+
 test_that("fit_solomon_steyn() results are dispatched to .report_steyn()", {
   expect_true(is.function(.report_handlers$solomon_steyn))
   skip_if_not(exists(".report_steyn", envir = asNamespace("solomonR"), inherits = FALSE))

@@ -73,11 +73,16 @@
 .invariance_steps <- function(data, items, group, estimator, partial, alpha = 0.05) {
   model <- paste0("F =~ ", paste(items, collapse = " + "))
   data$solomon_group <- group
+  # The model has one factor, F. A freed loading written with another
+  # factor name, such as the POST of fit_solomon_sem_latent(), would not
+  # match it and lavaan would leave the loading constrained, so the name
+  # before "=~" is replaced (issue #112).
+  partial_fit <- if (!is.null(partial)) sub("^\\s*[^=~]*?\\s*=~", "F =~", partial)
   fit_level <- function(equal) {
     args <- list(model = model, data = data, group = "solomon_group",
                  estimator = estimator, missing = "fiml", meanstructure = TRUE,
                  group.equal = equal)
-    if (!is.null(partial) && length(equal)) args$group.partial <- partial
+    if (!is.null(partial) && length(equal)) args$group.partial <- partial_fit
     fit <- do.call(lavaan::cfa, args)
     if (!isTRUE(lavaan::lavInspect(fit, "converged"))) {
       stop("A measurement-invariance model did not converge.", call. = FALSE)
@@ -182,7 +187,10 @@
 #' When scalar invariance fails, latent means can still be compared if the
 #' noninvariant parameters are freed and enough indicators stay invariant
 #' (Byrne et al., 1989, p. 458). `partial` names the freed parameters in
-#' lavaan syntax (for example, `"item3 ~ 1"` for an intercept). They must be
+#' lavaan syntax (for example, `"item3 ~ 1"` for an intercept, or
+#' `"F =~ item3"` for a loading; the model has one factor, so any factor
+#' name before `=~` refers to it, including the `POST` of
+#' [fit_solomon_sem_latent()]). They must be
 #' chosen on substantive grounds, not by searching the data (Byrne et al.,
 #' 1989, p. 465), and must involve only a minority of the indicators
 #' (Vandenberg & Lance, 2000, p. 38); at least two indicators must stay

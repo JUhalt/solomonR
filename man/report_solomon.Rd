@@ -43,16 +43,35 @@ used.
 }
 \details{
 Supported objects come from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}},
-\code{\link[=fit_solomon_classic]{fit_solomon_classic()}}, \code{\link[=perm_solomon]{perm_solomon()}}, \code{\link[=marginal_solomon]{marginal_solomon()}},
-\code{\link[=equivalence_solomon]{equivalence_solomon()}}, \code{\link[=fisher_solomon]{fisher_solomon()}}, \code{\link[=solomon_from_summary]{solomon_from_summary()}},
-\code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}}, \code{\link[=baseline_solomon]{baseline_solomon()}},
-\code{\link[=fit_solomon_mi]{fit_solomon_mi()}}, \code{\link[=tipping_point_solomon]{tipping_point_solomon()}}, \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}, and
-\code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}}.
+\code{\link[=fit_solomon_classic]{fit_solomon_classic()}}, \code{\link[=fit_solomon_1949]{fit_solomon_1949()}}, \code{\link[=perm_solomon]{perm_solomon()}},
+\code{\link[=marginal_solomon]{marginal_solomon()}}, \code{\link[=equivalence_solomon]{equivalence_solomon()}}, \code{\link[=fisher_solomon]{fisher_solomon()}},
+\code{\link[=solomon_from_summary]{solomon_from_summary()}} (for four-group designs and for designs with
+several treatments), \code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}},
+\code{\link[=invariance_solomon]{invariance_solomon()}}, \code{\link[=baseline_solomon]{baseline_solomon()}}, \code{\link[=fit_solomon_mi]{fit_solomon_mi()}},
+\code{\link[=tipping_point_solomon]{tipping_point_solomon()}}, \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}, and \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}}.
 The references depend
 on the options the fit used: for example, a CR2 fit cites Bell and
 McCaffrey (2002) and Pustejovsky and Tipton (2018), and the 1990 flow of
 the classic analysis adds Braver and Walton Braver (1990). Every reference
 matches the package's canonical APA 7 bibliography.
+
+\strong{What the report leaves out.} Two analysis functions are not reported,
+on purpose:
+\itemize{
+\item \code{\link[=stouffer_solomon]{stouffer_solomon()}} combines the z statistics of tests computed
+elsewhere. Test I of the historical sequence, which is that
+combination, is reported with \code{\link[=fit_solomon_classic]{fit_solomon_classic()}}.
+\item \code{\link[=solomon_effect_sizes]{solomon_effect_sizes()}} computes effect sizes and their sampling
+variances to be combined in a meta-analysis of several studies, not the
+results of one study.
+}
+
+Their help pages give the references for their methods. The design
+checks (\code{\link[=validate_solomon]{validate_solomon()}}, \code{\link[=check_solomon_missing]{check_solomon_missing()}}, and
+\code{\link[=check_solomon_assumptions]{check_solomon_assumptions()}}), planning and power (\code{\link[=plan_solomon]{plan_solomon()}},
+\code{\link[=power_solomon]{power_solomon()}}, and \code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}}), \code{\link[=simulate_solomon]{simulate_solomon()}},
+and \code{\link[=compare_solomon_methods]{compare_solomon_methods()}} do not analyze a study's results and are
+not reported either. Any other object is refused with an error.
 
 The design statement follows the MERIT recommendations on reporting
 measurement in trials (French et al., 2021b): the numbers analyzed in each
@@ -73,8 +92,32 @@ fit chose another adjustment; the confidence intervals are not adjusted.
 Comparisons defined by weights are reported with their weights. An
 \code{\link[=equivalence_solomon]{equivalence_solomon()}} test of one comparison and the
 \code{\link[=baseline_solomon]{baseline_solomon()}} comparisons of such a design are reported with the
-same design statement. solomonR follows a pre-publication draft of Steyn
-(2009), which the author provided; see \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}}.
+same design statement. So is a \code{\link[=solomon_from_summary]{solomon_from_summary()}} analysis of the
+design's cell statistics, whose results give the omnibus F tests of the
+two-way analysis of variance (including the test of pretesting) and the
+Holm-adjusted contrasts of each treatment against the control. solomonR
+follows a pre-publication draft of Steyn (2009), which the author
+provided; see \code{\link[=fit_solomon_steyn]{fit_solomon_steyn()}}.
+
+\strong{Latent structural equation models.} For \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}},
+the report gives what the reporting standards for structural equation
+models ask for (Appelbaum et al., 2018, Table 7): the software and its
+version, the estimator, the handling of missing data, the numbers in each
+group, how the latent scale was identified (the latent posttest mean of
+the unpretested control group is fixed at 0), the chi-square test, the
+CFI, RMSEA, and SRMR, and any parameters freed for partial invariance.
+The invariance statement follows the fit rather than asserting scalar
+invariance: it states the constraints the model imposed, names the freed
+parameters (\code{partial_post} and \code{partial_pre}), and gives the result of
+the invariance check under each criterion, including when the check did
+not support the invariance the contrasts assume or was not run. With the
+default MLR estimator, the chi-square is the scaled one, and the CFI and
+RMSEA are those of the unscaled maximum likelihood chi-square, as the fit
+prints them. For \code{\link[=invariance_solomon]{invariance_solomon()}}, the report gives the minimal
+information Putnick and Bornstein (2016) propose for invariance tests:
+the group sizes, the handling of missing data, the criteria, and the fit
+of each model with the comparisons and the decision under each
+criterion.
 
 \strong{Nonrandomized designs.} With \code{design$assignment = "nonrandom"}, the
 results describe differences between groups rather than treatment
@@ -105,6 +148,12 @@ report_solomon(fit6)
 
 }
 \references{
+Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &
+Rao, S. M. (2018). Journal article reporting standards for quantitative
+research in psychology: The APA Publications and Communications Board task
+force report. \emph{American Psychologist, 73}(1), 3–25.
+https://doi.org/10.1037/amp0000191
+
 Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
 quasi-experimental designs for research}. Rand McNally. (Original work
 published 1963)
@@ -122,6 +171,11 @@ Assessment, 25}(55), 1–72. https://doi.org/10.3310/hta25550
 Holm, S. (1979). A simple sequentially rejective multiple test procedure.
 \emph{Scandinavian Journal of Statistics, 6}(2), 65–70.
 https://www.jstor.org/stable/4615733
+
+Putnick, D. L., & Bornstein, M. H. (2016). Measurement invariance
+conventions and reporting: The state of the art and future directions for
+psychological research. \emph{Developmental Review, 41}, 71–90.
+https://doi.org/10.1016/j.dr.2016.06.004
 
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? \emph{Design Principles and Practices: An International
