@@ -44,9 +44,11 @@
 #' @param y_pre Optional numeric pretest scores. Maximum likelihood, the classic
 #'   analyses, and the SEM ANCOVA require them.
 #' @param methods Analyses to include: any of `"glm"` (unified GLM with HC3),
-#'   `"ml"` (maximum likelihood, reported with both its default Wald inference
-#'   and the small-sample option), `"classic"`, and `"sem"` (requires the
-#'   lavaan package).
+#'   `"ml"` (maximum likelihood; see [fit_solomon_ml()]), `"classic"`, and
+#'   `"sem"` (requires the lavaan package). Maximum likelihood is reported
+#'   twice: with its default Satterthwaite inference (Satterthwaite, 1946;
+#'   Welch, 1947) and with van Engelenburg's (1999) large-sample Wald
+#'   inference.
 #' @param conf_level Confidence level for intervals. Default is 0.95.
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
@@ -72,9 +74,21 @@
 #' *American Sociological Review, 86*(3), 532–565.
 #' https://doi.org/10.1177/00031224211004187
 #'
+#' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+#' variance components. *Biometrics Bulletin, 2*(6), 110–114.
+#' https://doi.org/10.2307/3002019
+#'
+#' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
+#' design* (Research Report 99-06). University of Twente. ERIC.
+#' https://eric.ed.gov/?id=ED435692
+#'
 #' Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of the
 #' Solomon four-group design: A meta-analytic approach. *Psychological Bulletin,
 #' 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
+#'
+#' Welch, B. L. (1947). The generalization of "Student's" problem when several
+#' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
+#' https://doi.org/10.1093/biomet/34.1-2.28
 #' @seealso [fit_solomon_glm()], [fit_solomon_ml()], [fit_solomon_classic()],
 #'   [fit_solomon_sem()]
 #' @examples
@@ -180,29 +194,36 @@ compare_solomon_methods <- function(
     } else {
       ml <- try_fit(
         fit_solomon_ml(y_post, treat, pretested, y_pre, conf_level = conf_level,
-                       inference = "wald")
+                       inference = "satterthwaite")
       )
       if (inherits(ml, "error")) {
         skipped$ml <- conditionMessage(ml)
       } else {
         rows$ml <- make_rows(
-          "Maximum likelihood",
+          "Maximum likelihood (Satterthwaite)",
           pretest_adjustment,
-          "separate residual variances by pretest condition; Wald inference (van Engelenburg, 1999)",
+          paste(
+            "separate residual variances by pretest condition; t with residual df,",
+            "or Welch-Satterthwaite df for combined contrasts (Satterthwaite, 1946;",
+            "Welch, 1947)"
+          ),
           ml$effects$contrast,
           ml$effects
         )
-        ml_small <- try_fit(
+        ml_wald <- try_fit(
           fit_solomon_ml(y_post, treat, pretested, y_pre, conf_level = conf_level,
-                         inference = "satterthwaite")
+                         inference = "wald")
         )
-        if (!inherits(ml_small, "error")) {
-          rows$ml_small <- make_rows(
-            "Maximum likelihood (small-sample)",
+        if (!inherits(ml_wald, "error")) {
+          rows$ml_wald <- make_rows(
+            "Maximum likelihood (Wald)",
             pretest_adjustment,
-            "separate residual variances by pretest condition; Welch-Satterthwaite t",
-            ml_small$effects$contrast,
-            ml_small$effects
+            paste(
+              "separate residual variances by pretest condition; large-sample Wald",
+              "inference (van Engelenburg, 1999)"
+            ),
+            ml_wald$effects$contrast,
+            ml_wald$effects
           )
         }
       }

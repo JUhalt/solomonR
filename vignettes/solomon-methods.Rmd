@@ -381,13 +381,15 @@ number is not allowed for.
   participants (van Engelenburg, 1999).
 - **Assumptions:** normal errors; a common pretest-posttest slope in the
   pretested groups; equal variances within each pretest condition.
+- **Inference:** by default, `inference = "satterthwaite"` uses unbiased
+  residual variances and Welch-Satterthwaite degrees of freedom
+  (Satterthwaite, 1946; Welch, 1947); it was calibrated at every cell size
+  in the package's simulation validation. The large-sample Wald intervals of
+  van Engelenburg (1999), available with `inference = "wald"`, use a normal
+  reference distribution and were too narrow with fewer than 40 participants
+  per cell.
 - **Limitations:** its point estimates coincide with separate regressions
-  in the two pretest conditions. Its default Wald intervals use a normal
-  reference distribution and were too narrow with small groups in the
-  package's simulation validation. A small-sample option,
-  `inference = "satterthwaite"`, uses unbiased residual variances and
-  Welch-Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch, 1947);
-  the function warns when groups are small and no option has been chosen.
+  in the two pretest conditions.
 - **Function:** `fit_solomon_ml()`.
 
 ### Steyn's sequence of tests

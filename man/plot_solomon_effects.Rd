@@ -34,9 +34,11 @@ reference line at zero.
 \details{
 Estimates and intervals are taken unchanged from the fitted object, so the
 figure agrees with its printed output, and the caption states the
-confidence level and the reference distribution the model used. Contrasts
-a model does not estimate are omitted and named in the caption rather than
-drawn as zero.
+confidence level, the reference distribution, and the inference the model
+used. For \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, that is its default Satterthwaite inference
+(Satterthwaite, 1946; Welch, 1947) or van Engelenburg's (1999)
+large-sample Wald inference. Contrasts a model does not estimate are
+omitted and named in the caption rather than drawn as zero.
 }
 \section{Designs with several treatments}{
 
@@ -96,8 +98,20 @@ Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. \emph{Social Psychological and Personality
 Science, 8}(4), 355–362. https://doi.org/10.1177/1948550617697177
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
+
 Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 and the power approach for assessing the equivalence of average
 bioavailability. \emph{Journal of Pharmacokinetics and Biopharmaceutics, 15}(6),
 657–680. https://doi.org/10.1007/BF01068419
+
+van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
+design} (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }

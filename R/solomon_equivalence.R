@@ -48,9 +48,11 @@
 #' Each one-sided test uses the estimate, standard error, and reference
 #' distribution of the fitted model: t with the model's degrees of freedom for
 #' [fit_solomon_glm()] (Satterthwaite degrees of freedom with CR2); for
-#' [fit_solomon_ml()], the normal distribution with its default Wald inference
-#' or t with Welch-Satterthwaite degrees of freedom with
-#' `inference = "satterthwaite"`. The equivalence p-value is the
+#' [fit_solomon_ml()], t with residual or Welch-Satterthwaite degrees of
+#' freedom (Satterthwaite, 1946; Welch, 1947) under its default Satterthwaite
+#' inference, or the normal
+#' distribution under van Engelenburg's (1999) large-sample Wald inference
+#' (`inference = "wald"`). The equivalence p-value is the
 #' larger of the two one-sided p-values, and the matching interval has
 #' confidence level 1 - 2 `alpha` (90\% when `alpha = 0.05`; Lakens, 2017).
 #' The conventional two-sided test against zero is reported alongside, with
@@ -125,10 +127,22 @@
 #' *Journal of Applied Psychology, 84*(2), 234–248.
 #' https://doi.org/10.1037/0021-9010.84.2.234
 #'
+#' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+#' variance components. *Biometrics Bulletin, 2*(6), 110–114.
+#' https://doi.org/10.2307/3002019
+#'
 #' Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 #' and the power approach for assessing the equivalence of average
 #' bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics, 15*(6),
 #' 657–680. https://doi.org/10.1007/BF01068419
+#'
+#' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
+#' design* (Research Report 99-06). University of Twente. ERIC.
+#' https://eric.ed.gov/?id=ED435692
+#'
+#' Welch, B. L. (1947). The generalization of "Student's" problem when several
+#' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
+#' https://doi.org/10.1093/biomet/34.1-2.28
 #' @examples
 #' data(solomon_example)
 #' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
@@ -260,7 +274,7 @@ equivalence_solomon <- function(
       std.error = row$std.error,
       df = df,
       inference = if (inherits(fit, "solomon_ml")) {
-        "maximum likelihood; large-sample normal reference"
+        .ml_inference_label(fit)
       } else {
         .solomon_vcov_label(fit)
       }
@@ -409,7 +423,7 @@ print.solomon_equivalence <- function(x, digits = 3, ...) {
     "Equivalence bounds (%s): [%.*f, %.*f]; alpha = %s\n",
     scale, digits, x$bounds[["lower"]], digits, x$bounds[["upper"]], format(x$alpha)
   ))
-  cat("Inference: ", x$inference, "\n\n", sep = "")
+  cat(.wrap_lines(paste0("Inference: ", x$inference), exdent = 2), "\n\n", sep = "")
 
   cat(sprintf("Estimate = %.*f (SE = %.*f)\n", digits, x$estimate, digits, x$std.error))
   cat(sprintf(

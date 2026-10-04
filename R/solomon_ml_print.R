@@ -17,10 +17,19 @@ print.solomon_ml <- function(x, digits = 3, ...) {
   cat("Method: van Engelenburg (1999)\n")
   cat(
     if (identical(inference, "wald")) {
-      "Inference: Wald (large-sample normal reference)\n\n"
+      "Inference: Wald (van Engelenburg, 1999; large-sample normal reference)"
     } else {
-      "Inference: small-sample (t; Welch-Satterthwaite df for combined contrasts)\n\n"
-    }
+      .wrap_lines(
+        paste(
+          "Inference: Satterthwaite (Satterthwaite, 1946; Welch, 1947; t with",
+          "residual df within a pretest condition, Welch-Satterthwaite df for",
+          "contrasts that combine them)"
+        ),
+        exdent = 2
+      )
+    },
+    "\n\n",
+    sep = ""
   )
 
   cat(
@@ -30,19 +39,24 @@ print.solomon_ml <- function(x, digits = 3, ...) {
     )
   )
 
-  cat(
-    sprintf(
-      "Residual SD, unpretested: %.3f\n",
-      x$sigma["unpretested"]
-    )
-  )
+  # The ML residual SDs (SSE / n) are the ones Wald standard errors use;
+  # Satterthwaite standard errors use the unbiased residual variances
+  # (SSE / residual df), so both are shown. Fits saved before
+  # `sigma_unbiased` existed show the ML values only.
+  sd_text <- function(group) {
+    ml <- sprintf("%.3f (ML", x$sigma[[group]])
+    if (identical(inference, "wald")) {
+      paste0(ml, "; used for SEs)")
+    } else if (!is.null(x$sigma_unbiased)) {
+      sprintf("%s); %.3f (from the unbiased variance; used for SEs)", ml,
+              x$sigma_unbiased[[group]])
+    } else {
+      paste0(ml, ")")
+    }
+  }
 
-  cat(
-    sprintf(
-      "Residual SD, pretested:   %.3f\n\n",
-      x$sigma["pretested"]
-    )
-  )
+  cat("Residual SD, unpretested: ", sd_text("unpretested"), "\n", sep = "")
+  cat("Residual SD, pretested:   ", sd_text("pretested"), "\n\n", sep = "")
 
   cat("Key Solomon estimands\n")
   cat("---------------------\n")
@@ -107,11 +121,13 @@ print.solomon_ml <- function(x, digits = 3, ...) {
       .wrap_lines(
         sprintf(
           paste(
-            "Note: the smallest cell has %d participants. Wald intervals can be",
-            "too narrow in small samples; see inference = \"satterthwaite\" in",
-            "?fit_solomon_ml."
+            "Note: the smallest cell has %d participants. In the package's",
+            "simulation validation, Wald intervals were too narrow with fewer",
+            "than %d participants per cell; the default,",
+            "inference = \"satterthwaite\", was calibrated. See ?fit_solomon_ml."
           ),
-          x$min_cell_n
+          x$min_cell_n,
+          .solomon_ml_small_cell
         )
       ),
       "\n",

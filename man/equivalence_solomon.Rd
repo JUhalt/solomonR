@@ -100,9 +100,11 @@ standardized risks or rates.
 Each one-sided test uses the estimate, standard error, and reference
 distribution of the fitted model: t with the model's degrees of freedom for
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (Satterthwaite degrees of freedom with CR2); for
-\code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, the normal distribution with its default Wald inference
-or t with Welch-Satterthwaite degrees of freedom with
-\code{inference = "satterthwaite"}. The equivalence p-value is the
+\code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, t with residual or Welch-Satterthwaite degrees of
+freedom (Satterthwaite, 1946; Welch, 1947) under its default Satterthwaite
+inference, or the normal
+distribution under van Engelenburg's (1999) large-sample Wald inference
+(\code{inference = "wald"}). The equivalence p-value is the
 larger of the two one-sided p-values, and the matching interval has
 confidence level 1 - 2 \code{alpha} (90\\% when \code{alpha = 0.05}; Lakens, 2017).
 The conventional two-sided test against zero is reported alongside, with
@@ -176,8 +178,20 @@ have negligible effects: Minimum-effect tests in the general linear model.
 \emph{Journal of Applied Psychology, 84}(2), 234–248.
 https://doi.org/10.1037/0021-9010.84.2.234
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
+https://doi.org/10.2307/3002019
+
 Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 and the power approach for assessing the equivalence of average
 bioavailability. \emph{Journal of Pharmacokinetics and Biopharmaceutics, 15}(6),
 657–680. https://doi.org/10.1007/BF01068419
+
+van Engelenburg, G. (1999). \emph{Statistical analysis for the Solomon four-group
+design} (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 }

@@ -162,7 +162,7 @@ Already delivered in v0.2.0: `fit_solomon_ml()`. Simulation validation and a sma
   contemporary recommendations, and solomonR-specific extensions — [#9](https://github.com/JUhalt/solomonR/issues/9).
 
 - [x] Broaden ML simulation validation — [#10](https://github.com/JUhalt/solomonR/issues/10). Point estimates validated; default Wald intervals too narrow in small samples (extended for #22).
-- [x] Small-sample inference option for `fit_solomon_ml()`, with a warning below 40 participants per cell — [#22](https://github.com/JUhalt/solomonR/issues/22). Calibrated at every cell size studied.
+- [x] Small-sample inference option for `fit_solomon_ml()`, with a warning below 40 participants per cell — [#22](https://github.com/JUhalt/solomonR/issues/22). Calibrated at every cell size studied. It later became the default, and the warning was removed — [#115](https://github.com/JUhalt/solomonR/issues/115).
 
 - [x] Reconcile release documentation, licensing and distribution — [#12](https://github.com/JUhalt/solomonR/issues/12). Released September 15, 2026; R-universe serves 0.3.0 under GPL-3.
 
@@ -402,6 +402,9 @@ Requirements, with their status:
     validated; see "Historical Tests: Replicating the Published Error
     Rates".
 - [x] GLM and ML estimands validated
+- [x] Satterthwaite inference by default in `fit_solomon_ml()`, since the
+  package's validation found the former Wald default liberal in small
+  samples — [#115](https://github.com/JUhalt/solomonR/issues/115)
 - [x] Randomization inference validated, including cluster-level designs — [#19](https://github.com/JUhalt/solomonR/issues/19); merged in [PR #65](https://github.com/JUhalt/solomonR/pull/65)
 - [x] Power and sample-size planning validated
 - [x] Core visualizations complete

@@ -75,11 +75,7 @@
       conf_level = fit$conf_level,
       scale = "Estimate (posttest scale)",
       bounds_scale = .scale_phrase("outcome units"),
-      inference = if (identical(fit$inference, "satterthwaite")) {
-        "maximum likelihood; small-sample option"
-      } else {
-        "maximum likelihood; Wald inference"
-      }
+      inference = .ml_inference_label(fit)
     )
   } else if (inherits(fit, "solomon_sem")) {
     list(
@@ -127,9 +123,11 @@
 #'
 #' Estimates and intervals are taken unchanged from the fitted object, so the
 #' figure agrees with its printed output, and the caption states the
-#' confidence level and the reference distribution the model used. Contrasts
-#' a model does not estimate are omitted and named in the caption rather than
-#' drawn as zero.
+#' confidence level, the reference distribution, and the inference the model
+#' used. For [fit_solomon_ml()], that is its default Satterthwaite inference
+#' (Satterthwaite, 1946; Welch, 1947) or van Engelenburg's (1999)
+#' large-sample Wald inference. Contrasts a model does not estimate are
+#' omitted and named in the caption rather than drawn as zero.
 #'
 #' @section Designs with several treatments:
 #' For a fit from [fit_solomon_glm()] with several treatments and a control,
@@ -184,10 +182,22 @@
 #' correlations, and meta-analyses. *Social Psychological and Personality
 #' Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177
 #'
+#' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+#' variance components. *Biometrics Bulletin, 2*(6), 110–114.
+#' https://doi.org/10.2307/3002019
+#'
 #' Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 #' and the power approach for assessing the equivalence of average
 #' bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics, 15*(6),
 #' 657–680. https://doi.org/10.1007/BF01068419
+#'
+#' van Engelenburg, G. (1999). *Statistical analysis for the Solomon four-group
+#' design* (Research Report 99-06). University of Twente. ERIC.
+#' https://eric.ed.gov/?id=ED435692
+#'
+#' Welch, B. L. (1947). The generalization of "Student's" problem when several
+#' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
+#' https://doi.org/10.1093/biomet/34.1-2.28
 #'
 #' @examples
 #' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
@@ -230,10 +240,13 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
   levels_present <- rev(.solomon_contrast_order[.solomon_contrast_order %in% eff$contrast])
   eff$contrast <- factor(eff$contrast, levels = levels_present)
 
+  # The inference, with its sources, goes on its own line: with the confidence
+  # level and reference distribution, one line is too long for a figure of
+  # ordinary width.
   caption <- sprintf(
-    "%s%% confidence intervals%s; %s; %s.",
+    "%s%% confidence intervals%s; %s.\nInference: %s.",
     format(100 * x$conf_level), if (is.null(bounds)) "" else " (thin bars)",
-    x$inference, .reference_label(eff$df)
+    .reference_label(eff$df), x$inference
   )
   if (length(omitted)) {
     caption <- paste0(caption, "\nNot estimated by this model: ",
@@ -267,7 +280,7 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
       caption, "\nShaded band: equivalence bounds for sensitization (",
       format(bounds[["lower"]]), " to ", format(bounds[["upper"]]), ") ", x$bounds_scale, ".",
       "\n", .tost_caption(tost, alpha, bar = "Thick bar"),
-      " TOST outcome: ", tost$outcome, "."
+      "\nTOST outcome: ", tost$outcome, "."
     )
   }
 

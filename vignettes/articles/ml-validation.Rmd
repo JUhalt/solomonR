@@ -16,14 +16,20 @@ contrast_levels <- c(
   "Treatment | pretested",
   "Treatment | unpretested"
 )
-method_levels <- c(
-  "ML, Wald (default)",
-  "ML, Satterthwaite (small-sample option)",
-  "GLM HC3 (t)"
+# The run labeled the methods while Wald inference was the default; they are
+# shown here as they stand since Satterthwaite inference became the default
+# (#115). validation-evidence/build-benchmarks.R uses the same labels.
+method_labels <- c(
+  "ML, Satterthwaite (small-sample option)" = "ML, Satterthwaite (default)",
+  "ML, Wald (default)" = "ML, Wald (van Engelenburg, 1999)",
+  "GLM HC3 (t)" = "GLM HC3 (t)"
 )
+stopifnot(all(performance$method %in% names(method_labels)))
+method_levels <- unname(method_labels)
+wald_label <- method_labels[["ML, Wald (default)"]]
 
 performance$contrast <- factor(performance$contrast, contrast_levels)
-performance$method <- factor(performance$method, method_levels)
+performance$method <- factor(unname(method_labels[performance$method]), method_levels)
 cell_sizes <- sort(unique(performance$n_cell))
 
 # Tolerances declared in the protocol before any results were examined.
@@ -61,8 +67,8 @@ and tolerances were posted to
 were examined, following the ADEMP structure of Morris, White and Crowther
 (2019).
 
-The first run found that the default Wald intervals were too narrow in small
-samples, which led to the small-sample option in
+The first run found that Wald intervals, then the default, were too narrow
+in small samples, which led to the `inference = "satterthwaite"` option in
 [issue #22](https://github.com/JUhalt/solomonR/issues/22). Before the results
 reported here were examined, the protocol was amended on that issue in three
 ways:
@@ -75,20 +81,30 @@ ways:
 This run supersedes the first; the first run's results remain in the
 package's version history.
 
+Because of the results reported here, Satterthwaite inference became the
+default of `fit_solomon_ml()`
+([issue #115](https://github.com/JUhalt/solomonR/issues/115)). The run
+itself predates that change, but every fit in it named its inference
+explicitly, so the change does not affect the results.
+
 ## Design
 
 **Aims.** Check whether `fit_solomon_ml()` recovers the four Solomon
 contrasts, whether its standard errors are calibrated, and whether its 95%
 intervals reach nominal coverage. Both inference options are evaluated:
 
-- `inference = "wald"`, the default, which follows van Engelenburg (1999);
-- `inference = "satterthwaite"`, which uses unbiased residual variances
-  within each pretest condition and Welch-Satterthwaite degrees of freedom
-  for contrasts that combine them (Satterthwaite, 1946; Welch, 1947).
+- `inference = "wald"`, van Engelenburg's (1999) large-sample Wald
+  inference, which was the default when the study was run;
+- `inference = "satterthwaite"`, now the default, which uses unbiased
+  residual variances within each pretest condition and Welch-Satterthwaite
+  degrees of freedom for contrasts that combine them (Satterthwaite, 1946;
+  Welch, 1947).
 
 Both are compared with the unified GLM using HC3 standard errors and t
-reference distributions. A further aim is to locate the cell size below
-which `fit_solomon_ml()` warns that Wald inference may be unreliable.
+reference distributions. A further aim was to locate the cell size below
+which Wald inference may be unreliable. At the time, `fit_solomon_ml()`
+warned below that size when `inference` was not supplied; it now notes it
+in printed output when Wald inference is chosen.
 
 **Data-generating mechanisms.** A full factorial of `r nrow(unique(performance[, c("n_cell", "sensitization", "rho", "sd_ratio")]))`
 scenarios crosses four factors:
@@ -130,9 +146,9 @@ residual-SD ratio, at that size and at every larger size studied:
 - mean coverage of at least 0.940;
 - mean sensitization Type I error of at most 0.060.
 
-These are the liberal edges of the tolerance bands. The warning concerns
+These are the liberal edges of the tolerance bands. The warning concerned
 intervals that are too narrow, so over-coverage does not count against Wald
-inference.
+inference. The same threshold now governs the note printed with Wald fits.
 
 ## Fit failures
 
@@ -244,11 +260,11 @@ knitr::kable(
 )
 ```
 
-## Warning threshold
+## Small-cell threshold for Wald inference
 
 ```{r threshold}
-wald <- performance[performance$method == method_levels[1], ]
-wald_null <- null[null$method == method_levels[1], ]
+wald <- performance[performance$method == wald_label, ]
+wald_null <- null[null$method == wald_label, ]
 rule <- merge(
   aggregate(coverage ~ n_cell + sd_ratio, data = wald, FUN = mean),
   aggregate(rejection ~ n_cell + sd_ratio, data = wald_null, FUN = mean),
@@ -282,9 +298,13 @@ knitr::kable(
 )
 ```
 
-By this rule, the threshold is `r threshold` participants per cell.
-`fit_solomon_ml()` warns when the smallest cell has fewer participants and
-`inference` was not supplied.
+By this rule, the threshold is `r threshold` participants per cell. When
+`inference = "wald"` is chosen and the smallest cell has fewer participants,
+the printed output of `fit_solomon_ml()` notes that Wald intervals were too
+narrow at such sizes. Until Satterthwaite inference became the default
+([issue #115](https://github.com/JUhalt/solomonR/issues/115)),
+`fit_solomon_ml()` also warned below the threshold when `inference` was not
+supplied.
 
 ## Conclusions
 
@@ -293,8 +313,7 @@ estimates. The largest absolute bias was 0.028 standard-deviation units, at 6
 participants per cell. 17 of 336 scenario-by-contrast estimates (5.1%) fell
 outside 2 MCSE, close to the 15 expected by chance. No fit failed.
 
-**Default Wald inference from `fit_solomon_ml()` is too liberal in small
-samples.**
+**Wald inference from `fit_solomon_ml()` is too liberal in small samples.**
 
 - **Coverage.** Mean coverage of its 95% intervals was 0.893 with 6
   participants per cell, 0.920 with 10, 0.936 with 20, and 0.941 with 30,
@@ -308,7 +327,8 @@ samples.**
   with 20 or fewer participants per cell, in 2 of 12 at 30, 3 of 12 at 40,
   5 of 12 at 50, and 8 of 12 at 100.
 
-**The warning threshold is 40 participants per cell.**
+**The small-cell threshold for Wald inference is 40 participants per
+cell.**
 
 - **At 30 per cell,** Wald inference narrowly failed the rule with unequal
   residual variances: mean coverage was 0.9399 and Type I error 0.063.
@@ -319,7 +339,7 @@ samples.**
   0.945, and about a quarter of scenario-by-contrast coverage values fell
   below 0.940.
 
-**The small-sample option was calibrated at every cell size.**
+**Satterthwaite inference was calibrated at every cell size.**
 
 - **Calibration.** Mean coverage was between 0.949 and 0.950, and Type I
   error between 0.050 and 0.053. Model standard errors were within 0.2% of
@@ -346,11 +366,11 @@ coverage by less than 0.01 for every method at every cell size.
 
 **Practical guidance from this validation:**
 
-- With fewer than 40 participants in the smallest cell, use
-  `fit_solomon_ml(inference = "satterthwaite")` or `fit_solomon_glm()`
-  rather than the default Wald intervals.
-- The small-sample option can be used at any cell size; with 100
-  participants per cell its results and those of Wald inference are close.
+- Satterthwaite inference, the default of `fit_solomon_ml()`, can be used at
+  any cell size; with 100 participants per cell its results and those of
+  Wald inference are close.
+- With fewer than 40 participants in the smallest cell, use the default or
+  `fit_solomon_glm()` rather than Wald inference (`inference = "wald"`).
 - `fit_solomon_glm()` with HC3 errs on the conservative side with 10 or
   fewer participants per cell.
 
@@ -365,11 +385,17 @@ in the package repository. It was run with R `r run$r_version`, base seed
 scenario.
 
 The run used the development version of the package that implemented the
-small-sample option, based on commit `4e1d820`; `run-information.csv` records
-this. In that version, the estimation and inference code of
-`fit_solomon_ml()` and `fit_solomon_glm()` is identical to the code committed
-with this article. Later changes affected only documentation and the warning
-threshold, and the simulation suppresses warnings.
+`inference = "satterthwaite"` option, based on commit `4e1d820`;
+`run-information.csv` records this. In that version, the estimation and
+inference code of `fit_solomon_ml()` and `fit_solomon_glm()` is identical to
+the code committed with this article. Later changes affected the
+documentation, the warning threshold, the removal of the warning, and the
+default of `inference`
+([issue #115](https://github.com/JUhalt/solomonR/issues/115)). The
+simulation names the inference of every fit and suppresses warnings, so
+none of these changes affects its results. The results files keep the
+method labels of the run, "ML, Wald (default)" and "ML, Satterthwaite
+(small-sample option)"; this article shows them under their current labels.
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

@@ -478,8 +478,7 @@ ml <- with(
     y_post,
     treat,
     pretested,
-    y_pre,
-    inference = "satterthwaite"
+    y_pre
   )
 )
 
@@ -493,12 +492,15 @@ rather than as ordinary missing baseline observations.
 The ML and GLM approaches target closely related Solomon effects but use
 different assumptions for uncertainty estimation.
 
-By default, `fit_solomon_ml()` uses van Engelenburg's large-sample Wald
-inference. In the package's simulation validation those intervals were
-too narrow with small groups, so the example above uses the small-sample
-option, `inference = "satterthwaite"`, which applies Welch-Satterthwaite
-degrees of freedom (Satterthwaite, 1946; Welch, 1947). The function warns
-when groups are small and `inference` has not been chosen.
+By default, `fit_solomon_ml()` uses unbiased residual variances within
+each pretest condition, with t tests on the residual degrees of freedom
+for contrasts within one condition and on Welch-Satterthwaite degrees of
+freedom for contrasts that combine them (Satterthwaite, 1946; Welch,
+1947). These were calibrated at every cell size in the package's
+simulation validation. The large-sample Wald
+inference that van Engelenburg described is available with
+`inference = "wald"`; its intervals were too narrow with fewer than 40
+participants per cell.
 
 ## Historical analysis
 
