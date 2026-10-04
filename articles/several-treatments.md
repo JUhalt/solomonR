@@ -141,18 +141,26 @@ fit
 #> Condition | unpretested       F(2, 126) = 0.73  0.485
 #> 
 #> Contrasts
-#> Comparison     Contrast                       Est (SE)      t   df      p  p adj.           95% CI
-#> RP vs Control  ATE (avg over pretest)   -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]
-#> GS vs Control  ATE (avg over pretest)    0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]
-#> RP vs Control  Pretest x Treatment      -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]
-#> GS vs Control  Pretest x Treatment      -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]
-#> RP vs Control  Treatment | pretested    -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]
-#> GS vs Control  Treatment | pretested     0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]
-#> RP vs Control  Treatment | unpretested   0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]
-#> GS vs Control  Treatment | unpretested   0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]
+#> Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI
+#> RP vs Control   ATE (avg over pretest)    -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]
+#> GS vs Control   ATE (avg over pretest)     0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]
+#> RP vs Control   Pretest x Treatment       -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]
+#> GS vs Control   Pretest x Treatment       -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]
+#> RP vs Control   Treatment | pretested     -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]
+#> GS vs Control   Treatment | pretested      0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]
+#> RP vs Control   Treatment | unpretested    0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]
+#> GS vs Control   Treatment | unpretested    0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]
+#> Control         Pretest effect | control   0.097 (0.104)   0.93  126  0.355   0.355  [-0.109, 0.303]
+#> RP              Pretest effect | treated  -0.193 (0.119)  -1.62  126  0.108   0.217  [-0.429, 0.043]
+#> GS              Pretest effect | treated   0.005 (0.125)   0.04  126  0.965   0.965  [-0.241, 0.252]
+#> All conditions  Pretest main effect       -0.030 (0.069)  -0.44  126  0.661   0.661  [-0.166, 0.106]
 #> 
 #> p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 2 comparisons.
+#> p adj. of the treatments' pretest effects: adjusted by Holm's (1979) procedure across the 2 treatments.
 #> Confidence intervals are not adjusted.
+#> Pretest effects: pretested minus unpretested participants in each condition,
+#> at the pretested participants' mean pretest (3.129), with standard errors
+#> that include the sampling variance of that mean.
 #> 
 #> Experimental: in the package's simulation study (issue #45), the omnibus
 #> tests of Condition | pretested and Condition | unpretested rejected in up
@@ -166,10 +174,14 @@ The output has three parts:
 - **Omnibus tests.** Each asks whether the conditions differ on one
   contrast.
 - **Contrasts.** The four Solomon contrasts of the four-group design,
-  for each treatment against the control.
+  for each treatment against the control, and then the pretest effect in
+  each condition (pretested minus unpretested participants, at the
+  pretested participants’ mean pretest) and averaged over the
+  conditions.
 - **Adjusted p-values.** Each contrast’s p-values are adjusted across
   the comparisons by Holm’s (1979) procedure, which controls the chance
-  of at least one false rejection in that family. The confidence
+  of at least one false rejection in that family; the treatments’
+  pretest effects are adjusted across the treatments. The confidence
   intervals are not adjusted.
 
 `contrasts = "pairwise"` adds the comparisons between treatments:
@@ -251,7 +263,8 @@ prevention, goal setting, and
 control.](several-treatments_files/figure-html/plot-sens-1.png)
 
 [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
-shows every contrast with its confidence interval:
+shows the four contrasts of every comparison with their confidence
+intervals:
 
 ``` r
 
@@ -550,7 +563,9 @@ report_solomon(fit)
 #> control (RP vs Control and GS vs Control), and the Solomon contrasts were
 #> estimated for each comparison. Within each contrast, the p-values of the two
 #> comparisons were adjusted with Holm's (1979) procedure; the confidence
-#> intervals were not adjusted.
+#> intervals were not adjusted. The pretest effect was estimated in each
+#> condition, and the p-values of the two treatments' pretest effects were
+#> adjusted with Holm's (1979) procedure.
 #> 
 #> The omnibus test of the Pretest x Condition interaction (pretest
 #> sensitization) gave F(2, 126) = 1.74, p = .179, and the omnibus test of the
@@ -574,6 +589,13 @@ report_solomon(fit)
 #> .670, Holm-adjusted. The treatment effect of GS relative to Control among
 #> unpretested participants was 0.13, 95% CI [-0.12, 0.38], t(126) = 1.06, p =
 #> .585, Holm-adjusted.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 3.13) was 0.10 in the Control
+#> condition, 95% CI [-0.11, 0.30], t(126) = 0.93, p = .355; -0.19 in the RP
+#> condition, 95% CI [-0.43, 0.04], t(126) = -1.62, p = .217, Holm-adjusted; and
+#> 0.01 in the GS condition, 95% CI [-0.24, 0.25], t(126) = 0.04, p = .965,
+#> Holm-adjusted. Averaged over the conditions, the pretest main effect was
+#> -0.03, 95% CI [-0.17, 0.11], t(126) = -0.44, p = .661.
 #> 
 #> References
 #> 
@@ -651,11 +673,14 @@ rp <- subset(mai2020, condition %in% c("RP", "Control") & !is.na(post_behavior))
 rp$treat <- as.integer(rp$condition == "RP")
 fit_solomon_ml(post_behavior, treat, pretested, pre_behavior,
                inference = "satterthwaite", data = rp)$effects[, 1:5]
-#>                  contrast    estimate  std.error  statistic    p.value
-#> 1  ATE (avg over pretest) -0.03467472 0.07605652 -0.4559072 0.64957579
-#> 2     Pretest x Treatment -0.28983011 0.15211304 -1.9053600 0.05998705
-#> 3   Treatment | pretested -0.17958977 0.10365751 -1.7325303 0.08960087
-#> 4 Treatment | unpretested  0.11024033 0.11132609  0.9902470 0.32772427
+#>                   contrast    estimate  std.error  statistic    p.value
+#> 1   ATE (avg over pretest) -0.03467472 0.07605652 -0.4559072 0.64957579
+#> 2      Pretest x Treatment -0.28983011 0.15211304 -1.9053600 0.05998705
+#> 3    Treatment | pretested -0.17958977 0.10365751 -1.7325303 0.08960087
+#> 4  Treatment | unpretested  0.11024033 0.11132609  0.9902470 0.32772427
+#> 5 Pretest effect | control  0.09210908 0.10803703  0.8525695 0.39606671
+#> 6 Pretest effect | treated -0.19772103 0.11092363 -1.7824969 0.07785927
+#> 7      Pretest main effect -0.05280597 0.07876186 -0.6704510 0.50410591
 ```
 
 ## References

@@ -92,19 +92,26 @@ with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 #> Formula: y ~ treat * pretested + pre_obs
 #> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 115)
 #> 
-#> Term             Est (SE)             t   df      p              95% CI
-#> (Intercept)      51.100 (1.739)   29.39  115  <.001    [47.656, 54.544]
-#> treat            3.633 (2.229)     1.63  115  0.106     [-0.782, 8.049]
-#> pretested        -26.219 (5.957)  -4.40  115  <.001  [-38.019, -14.418]
-#> pre_obs          0.598 (0.101)     5.91  115  <.001      [0.397, 0.798]
-#> treat:pretested  -1.940 (3.168)   -0.61  115  0.541     [-8.214, 4.335]
+#> Term             Est (SE)            t   df      p            95% CI
+#> (Intercept)      51.100 (1.739)  29.39  115  <.001  [47.656, 54.544]
+#> treat            3.633 (2.229)    1.63  115  0.106   [-0.782, 8.049]
+#> pretested        3.420 (2.323)    1.47  115  0.144   [-1.182, 8.022]
+#> pre_obs          0.598 (0.101)    5.91  115  <.001    [0.397, 0.798]
+#> treat:pretested  -1.940 (3.168)  -0.61  115  0.541   [-8.214, 4.335]
 #> 
-#> Key contrasts            Est (SE)            t   df      p           95% CI  Wald R2
-#> ATE (avg over pretest)   2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024
-#> Pretest x Treatment      -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003
-#> Treatment | pretested    1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005
-#> Treatment | unpretested  3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023
+#> Key contrasts             Est (SE)            t   df      p           95% CI  Wald R2
+#> ATE (avg over pretest)    2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024
+#> Pretest x Treatment       -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003
+#> Treatment | pretested     1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005
+#> Treatment | unpretested   3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023
+#> Pretest effect | control  3.420 (2.383)    1.44  115  0.154  [-1.301, 8.141]    0.018
+#> Pretest effect | treated  1.480 (2.396)    0.62  115  0.538  [-3.266, 6.226]    0.003
+#> Pretest main effect       2.450 (1.789)    1.37  115  0.174  [-1.094, 5.994]    0.016
 #> 
 #> Wald R2: partial R-squared for conventional Gaussian OLS;
 #> a Wald-based descriptive approximation when robust covariance is used.
+#> pre_obs: the pretest, centered at the pretested participants' mean (49.600).
+#> The pretest effects compare pretested and unpretested participants at that
+#> score; their standard errors include the sampling variance of the mean, and
+#> the coefficient of pretested treats it as fixed.
 ```

@@ -168,13 +168,22 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_ml</code>.</p>
+    <p>An object of class <code>solomon_ml</code>, with the coefficients, the
+<code>effects</code> table (the four Solomon contrasts, then the three pretest
+effects), the residual standard deviations, <code>pretest_mean</code>, and the
+settings used.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The model estimates the treatment effect, pretest effect,
 Treatment x Pretest interaction, pretest-posttest slope, and separate
-residual standard deviations for pretested and unpretested participants.</p>
+residual standard deviations for pretested and unpretested participants.
+The pretest enters as a deviation from its mean among pretested
+participants (returned as <code>pretest_mean</code>), so the pretest effect <code>bP</code>
+compares pretested and unpretested controls at that mean. The effects
+table reports the four Solomon contrasts and then the pretest effects
+among controls, among treated participants, and averaged over the two, as
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> does (see its section "The pretest effect").</p>
     </div>
     <div class="section level2">
     <h2 id="inference-options">Inference options<a class="anchor" aria-label="anchor" href="#inference-options"></a></h2>
@@ -191,7 +200,17 @@ within one condition use t tests with that condition's residual degrees
 of freedom, and contrasts that combine the conditions (the ATE and
 Pretest x Treatment) use Welch-Satterthwaite degrees of freedom
 (Satterthwaite, 1946; Welch, 1947).</p></li>
-</ul><p>In the package's simulation validation (issues #10 and #22; 84 scenarios
+</ul><p>The pretest effects are evaluated at the mean pretest of the pretested
+participants, an estimate whose sampling variance their standard errors
+include (see the section "The pretest effect" of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>).
+Under the model the mean is independent of the regression estimates, so
+Wald inference adds <code>bX</code>^2 times the maximum-likelihood variance of the
+mean, and the small-sample option adds <code>bX</code>^2 s^2 / n, for n pretested
+participants whose pretests have variance s^2, as a third component with
+n - 1 degrees of freedom. The coefficient table gives <code>bP</code> with the
+standard error of van Engelenburg (1999), which treats the mean as fixed.
+The pretest effects were not part of the validation below.</p>
+<p>In the package's simulation validation (issues #10 and #22; 84 scenarios
 with 2,000 replications each, reported in the article "Validating
 fit_solomon_ml()" on the package website), both options recovered the
 Solomon contrasts without bias. Wald intervals were too narrow in small
@@ -245,6 +264,12 @@ https://doi.org/10.1093/biomet/34.1-2.28</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Treatment          -1.940 (SE = 3.104), t(115.0) = -0.62, p = 0.533, 95% CI [-8.088, 4.209]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | pretested        1.693 (SE = 2.198), t(57) = 0.77, p = 0.444, 95% CI [-2.708, 6.095]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | unpretested      3.633 (SE = 2.192), t(58) = 1.66, p = 0.103, 95% CI [-0.754, 8.020]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | control     3.420 (SE = 2.345), t(144.2) = 1.46, p = 0.147, 95% CI [-1.215, 8.055]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | treated     1.480 (SE = 2.345), t(144.2) = 0.63, p = 0.529, 95% CI [-3.155, 6.115]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest main effect          2.450 (SE = 1.758), t(163.7) = 1.39, p = 0.165, 95% CI [-1.021, 5.921]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effects: at the centered pretest mean, with standard errors that</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> include its sampling variance.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> logLik = -424.53; optimizer convergence = 0</span>
 </code></pre></div>

@@ -111,24 +111,36 @@ fit
     ## Formula: y ~ treat * pretested + pre_obs
     ## Covariance: HC3 heteroskedasticity-consistent; t tests (df = 115)
     ## 
-    ## Term             Est (SE)             t   df      p              95% CI
-    ## (Intercept)      51.100 (1.739)   29.39  115  <.001    [47.656, 54.544]
-    ## treat            3.633 (2.229)     1.63  115  0.106     [-0.782, 8.049]
-    ## pretested        -26.219 (5.957)  -4.40  115  <.001  [-38.019, -14.418]
-    ## pre_obs          0.598 (0.101)     5.91  115  <.001      [0.397, 0.798]
-    ## treat:pretested  -1.940 (3.168)   -0.61  115  0.541     [-8.214, 4.335]
+    ## Term             Est (SE)            t   df      p            95% CI
+    ## (Intercept)      51.100 (1.739)  29.39  115  <.001  [47.656, 54.544]
+    ## treat            3.633 (2.229)    1.63  115  0.106   [-0.782, 8.049]
+    ## pretested        3.420 (2.323)    1.47  115  0.144   [-1.182, 8.022]
+    ## pre_obs          0.598 (0.101)    5.91  115  <.001    [0.397, 0.798]
+    ## treat:pretested  -1.940 (3.168)  -0.61  115  0.541   [-8.214, 4.335]
     ## 
-    ## Key contrasts            Est (SE)            t   df      p           95% CI  Wald R2
-    ## ATE (avg over pretest)   2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024
-    ## Pretest x Treatment      -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003
-    ## Treatment | pretested    1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005
-    ## Treatment | unpretested  3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023
+    ## Key contrasts             Est (SE)            t   df      p           95% CI  Wald R2
+    ## ATE (avg over pretest)    2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024
+    ## Pretest x Treatment       -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003
+    ## Treatment | pretested     1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005
+    ## Treatment | unpretested   3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023
+    ## Pretest effect | control  3.420 (2.383)    1.44  115  0.154  [-1.301, 8.141]    0.018
+    ## Pretest effect | treated  1.480 (2.396)    0.62  115  0.538  [-3.266, 6.226]    0.003
+    ## Pretest main effect       2.450 (1.789)    1.37  115  0.174  [-1.094, 5.994]    0.016
     ## 
     ## Wald R2: partial R-squared for conventional Gaussian OLS;
     ## a Wald-based descriptive approximation when robust covariance is used.
+    ## pre_obs: the pretest, centered at the pretested participants' mean (49.600).
+    ## The pretest effects compare pretested and unpretested participants at that
+    ## score; their standard errors include the sampling variance of the mean, and
+    ## the coefficient of pretested treats it as fixed.
 
 The output contains model coefficients followed by the four principal
-Solomon contrasts.
+Solomon contrasts and the three pretest effects: pretested minus
+unpretested participants among controls, among treated participants, and
+on average. The pretest enters as `pre_obs`, centered at the pretested
+participants’ mean, so the pretest effects compare the groups at that
+score (see “The pretest effect” in
+[`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
 
 The contrasts can also be accessed directly:
 
@@ -205,12 +217,15 @@ knitr::kable(
 )
 ```
 
-| Contrast                 | Estimate |   SE |     t |    p | Wald R2 |
-|:-------------------------|---------:|-----:|------:|-----:|--------:|
-| ATE (avg over pretest)   |     2.66 | 1.58 |  1.68 | .095 |    .024 |
-| Pretest x Treatment      |    -1.94 | 3.17 | -0.61 | .541 |    .003 |
-| Treatment \| pretested   |     1.69 | 2.25 |  0.75 | .453 |    .005 |
-| Treatment \| unpretested |     3.63 | 2.23 |  1.63 | .106 |    .023 |
+| Contrast                  | Estimate |   SE |     t |    p | Wald R2 |
+|:--------------------------|---------:|-----:|------:|-----:|--------:|
+| ATE (avg over pretest)    |     2.66 | 1.58 |  1.68 | .095 |    .024 |
+| Pretest x Treatment       |    -1.94 | 3.17 | -0.61 | .541 |    .003 |
+| Treatment \| pretested    |     1.69 | 2.25 |  0.75 | .453 |    .005 |
+| Treatment \| unpretested  |     3.63 | 2.23 |  1.63 | .106 |    .023 |
+| Pretest effect \| control |     3.42 | 2.38 |  1.44 | .154 |    .018 |
+| Pretest effect \| treated |     1.48 | 2.40 |  0.62 | .538 |    .003 |
+| Pretest main effect       |     2.45 | 1.79 |  1.37 | .174 |    .016 |
 
 ## The four Solomon estimands
 
@@ -346,7 +361,7 @@ equivalence_solomon(fit, bounds = 5)
 
     ## Solomon equivalence test (TOST)
     ## Contrast: Pretest x Treatment
-    ## Equivalence bounds (raw scale): [-5.000, 5.000]; alpha = 0.05
+    ## Equivalence bounds (outcome units): [-5.000, 5.000]; alpha = 0.05
     ## Inference: HC3 heteroskedasticity-consistent; t tests (df = 115)
     ## 
     ## Estimate = -1.940 (SE = 3.168)
@@ -422,12 +437,15 @@ knitr::kable(
 )
 ```
 
-| Contrast                 | Wald R2 |
-|:-------------------------|--------:|
-| ATE (avg over pretest)   |    .024 |
-| Pretest x Treatment      |    .003 |
-| Treatment \| pretested   |    .005 |
-| Treatment \| unpretested |    .023 |
+| Contrast                  | Wald R2 |
+|:--------------------------|--------:|
+| ATE (avg over pretest)    |    .024 |
+| Pretest x Treatment       |    .003 |
+| Treatment \| pretested    |    .005 |
+| Treatment \| unpretested  |    .023 |
+| Pretest effect \| control |    .018 |
+| Pretest effect \| treated |    .003 |
+| Pretest main effect       |    .016 |
 
 ## Diagnostics
 
@@ -590,6 +608,12 @@ ml
     ## Pretest x Treatment          -1.940 (SE = 3.104), t(115.0) = -0.62, p = 0.533, 95% CI [-8.088, 4.209]
     ## Treatment | pretested        1.693 (SE = 2.198), t(57) = 0.77, p = 0.444, 95% CI [-2.708, 6.095]
     ## Treatment | unpretested      3.633 (SE = 2.192), t(58) = 1.66, p = 0.103, 95% CI [-0.754, 8.020]
+    ## Pretest effect | control     3.420 (SE = 2.345), t(144.2) = 1.46, p = 0.147, 95% CI [-1.215, 8.055]
+    ## Pretest effect | treated     1.480 (SE = 2.345), t(144.2) = 0.63, p = 0.529, 95% CI [-3.155, 6.115]
+    ## Pretest main effect          2.450 (SE = 1.758), t(163.7) = 1.39, p = 0.165, 95% CI [-1.021, 5.921]
+    ## 
+    ## Pretest effects: at the centered pretest mean, with standard errors that
+    ## include its sampling variance.
     ## 
     ## logLik = -424.53; optimizer convergence = 0
 

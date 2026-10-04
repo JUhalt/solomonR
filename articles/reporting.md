@@ -68,6 +68,12 @@ report_solomon(fit, design = list(
 #> 6.15], t(115) = 0.75, p = .453.
 #> The treatment effect among unpretested participants was 3.63, 95% CI [-0.78,
 #> 8.05], t(115) = 1.63, p = .106.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 49.60) was 3.42 among control
+#> participants, 95% CI [-1.30, 8.14], t(115) = 1.44, p = .154, and 1.48 among
+#> treated participants, 95% CI [-3.27, 6.23], t(115) = 0.62, p = .538; their
+#> average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], t(115) =
+#> 1.37, p = .174.
 #> 
 #> References
 #> 
@@ -106,10 +112,11 @@ as APA style requires:
 ``` r
 
 report_solomon(fit, format = "markdown")$results
-#> [1] "The average treatment effect across pretest conditions was 2.66, 95% CI [-0.47, 5.80], *t*(115) = 1.68, *p* = .095."       
-#> [2] "The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI [-8.21, 4.33], *t*(115) = -0.61, *p* = .541."
-#> [3] "The treatment effect among pretested participants was 1.69, 95% CI [-2.76, 6.15], *t*(115) = 0.75, *p* = .453."            
-#> [4] "The treatment effect among unpretested participants was 3.63, 95% CI [-0.78, 8.05], *t*(115) = 1.63, *p* = .106."
+#> [1] "The average treatment effect across pretest conditions was 2.66, 95% CI [-0.47, 5.80], *t*(115) = 1.68, *p* = .095."                                                                                                                                                                                                                                                                                           
+#> [2] "The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI [-8.21, 4.33], *t*(115) = -0.61, *p* = .541."                                                                                                                                                                                                                                                                                    
+#> [3] "The treatment effect among pretested participants was 1.69, 95% CI [-2.76, 6.15], *t*(115) = 0.75, *p* = .453."                                                                                                                                                                                                                                                                                                
+#> [4] "The treatment effect among unpretested participants was 3.63, 95% CI [-0.78, 8.05], *t*(115) = 1.63, *p* = .106."                                                                                                                                                                                                                                                                                              
+#> [5] "The pretest effect (pretested minus unpretested participants, at the pretested participants' mean pretest score of 49.60) was 3.42 among control participants, 95% CI [-1.30, 8.14], *t*(115) = 1.44, *p* = .154, and 1.48 among treated participants, 95% CI [-3.27, 6.23], *t*(115) = 0.62, *p* = .538; their average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], *t*(115) = 1.37, *p* = .174."
 ```
 
 ## What the helper does not do

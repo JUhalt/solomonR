@@ -242,18 +242,26 @@ groups and uses HC3 standard errors, as for the four-group design:</p>
 <span><span class="co">#&gt; Condition | unpretested       F(2, 126) = 0.73  0.485</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Contrasts</span></span>
-<span><span class="co">#&gt; Comparison     Contrast                       Est (SE)      t   df      p  p adj.           95% CI</span></span>
-<span><span class="co">#&gt; RP vs Control  ATE (avg over pretest)   -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]</span></span>
-<span><span class="co">#&gt; GS vs Control  ATE (avg over pretest)    0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]</span></span>
-<span><span class="co">#&gt; RP vs Control  Pretest x Treatment      -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]</span></span>
-<span><span class="co">#&gt; GS vs Control  Pretest x Treatment      -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]</span></span>
-<span><span class="co">#&gt; RP vs Control  Treatment | pretested    -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]</span></span>
-<span><span class="co">#&gt; GS vs Control  Treatment | pretested     0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]</span></span>
-<span><span class="co">#&gt; RP vs Control  Treatment | unpretested   0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]</span></span>
-<span><span class="co">#&gt; GS vs Control  Treatment | unpretested   0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]</span></span>
+<span><span class="co">#&gt; Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI</span></span>
+<span><span class="co">#&gt; RP vs Control   ATE (avg over pretest)    -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]</span></span>
+<span><span class="co">#&gt; GS vs Control   ATE (avg over pretest)     0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]</span></span>
+<span><span class="co">#&gt; RP vs Control   Pretest x Treatment       -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]</span></span>
+<span><span class="co">#&gt; GS vs Control   Pretest x Treatment       -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]</span></span>
+<span><span class="co">#&gt; RP vs Control   Treatment | pretested     -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]</span></span>
+<span><span class="co">#&gt; GS vs Control   Treatment | pretested      0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]</span></span>
+<span><span class="co">#&gt; RP vs Control   Treatment | unpretested    0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]</span></span>
+<span><span class="co">#&gt; GS vs Control   Treatment | unpretested    0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]</span></span>
+<span><span class="co">#&gt; Control         Pretest effect | control   0.097 (0.104)   0.93  126  0.355   0.355  [-0.109, 0.303]</span></span>
+<span><span class="co">#&gt; RP              Pretest effect | treated  -0.193 (0.119)  -1.62  126  0.108   0.217  [-0.429, 0.043]</span></span>
+<span><span class="co">#&gt; GS              Pretest effect | treated   0.005 (0.125)   0.04  126  0.965   0.965  [-0.241, 0.252]</span></span>
+<span><span class="co">#&gt; All conditions  Pretest main effect       -0.030 (0.069)  -0.44  126  0.661   0.661  [-0.166, 0.106]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 2 comparisons.</span></span>
+<span><span class="co">#&gt; p adj. of the treatments' pretest effects: adjusted by Holm's (1979) procedure across the 2 treatments.</span></span>
 <span><span class="co">#&gt; Confidence intervals are not adjusted.</span></span>
+<span><span class="co">#&gt; Pretest effects: pretested minus unpretested participants in each condition,</span></span>
+<span><span class="co">#&gt; at the pretested participants' mean pretest (3.129), with standard errors</span></span>
+<span><span class="co">#&gt; that include the sampling variance of that mean.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Experimental: in the package's simulation study (issue #45), the omnibus</span></span>
 <span><span class="co">#&gt; tests of Condition | pretested and Condition | unpretested rejected in up</span></span>
@@ -267,11 +275,15 @@ groups and uses HC3 standard errors, as for the four-group design:</p>
 differ on one contrast.</li>
 <li>
 <strong>Contrasts.</strong> The four Solomon contrasts of the
-four-group design, for each treatment against the control.</li>
+four-group design, for each treatment against the control, and then the
+pretest effect in each condition (pretested minus unpretested
+participants, at the pretested participants’ mean pretest) and averaged
+over the conditions.</li>
 <li>
 <strong>Adjusted p-values.</strong> Each contrast’s p-values are
 adjusted across the comparisons by Holm’s (1979) procedure, which
-controls the chance of at least one false rejection in that family. The
+controls the chance of at least one false rejection in that family; the
+treatments’ pretest effects are adjusted across the treatments. The
 confidence intervals are not adjusted.</li>
 </ul>
 <p><code>contrasts = "pairwise"</code> adds the comparisons between
@@ -339,8 +351,8 @@ to the control’s indicate sensitization.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_sensitization.html">plot_sensitization</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <p><img src="several-treatments_files/figure-html/plot-sens-1.png" class="r-plt" alt="Model-based posttest means with and without a pretest for relapse prevention, goal setting, and control." width="672"></p>
-<p><code><a href="../reference/plot_solomon_effects.html">plot_solomon_effects()</a></code> shows every contrast with its
-confidence interval:</p>
+<p><code><a href="../reference/plot_solomon_effects.html">plot_solomon_effects()</a></code> shows the four contrasts of every
+comparison with their confidence intervals:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_solomon_effects.html">plot_solomon_effects</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <p><img src="several-treatments_files/figure-html/plot-effects-1.png" class="r-plt" alt="Estimates and confidence intervals of the four Solomon contrasts for each treatment against the control." width="672"></p>
@@ -629,7 +641,9 @@ their references:</p>
 <span><span class="co">#&gt; control (RP vs Control and GS vs Control), and the Solomon contrasts were</span></span>
 <span><span class="co">#&gt; estimated for each comparison. Within each contrast, the p-values of the two</span></span>
 <span><span class="co">#&gt; comparisons were adjusted with Holm's (1979) procedure; the confidence</span></span>
-<span><span class="co">#&gt; intervals were not adjusted.</span></span>
+<span><span class="co">#&gt; intervals were not adjusted. The pretest effect was estimated in each</span></span>
+<span><span class="co">#&gt; condition, and the p-values of the two treatments' pretest effects were</span></span>
+<span><span class="co">#&gt; adjusted with Holm's (1979) procedure.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The omnibus test of the Pretest x Condition interaction (pretest</span></span>
 <span><span class="co">#&gt; sensitization) gave F(2, 126) = 1.74, p = .179, and the omnibus test of the</span></span>
@@ -653,6 +667,13 @@ their references:</p>
 <span><span class="co">#&gt; .670, Holm-adjusted. The treatment effect of GS relative to Control among</span></span>
 <span><span class="co">#&gt; unpretested participants was 0.13, 95% CI [-0.12, 0.38], t(126) = 1.06, p =</span></span>
 <span><span class="co">#&gt; .585, Holm-adjusted.</span></span>
+<span><span class="co">#&gt; The pretest effect (pretested minus unpretested participants, at the</span></span>
+<span><span class="co">#&gt; pretested participants' mean pretest score of 3.13) was 0.10 in the Control</span></span>
+<span><span class="co">#&gt; condition, 95% CI [-0.11, 0.30], t(126) = 0.93, p = .355; -0.19 in the RP</span></span>
+<span><span class="co">#&gt; condition, 95% CI [-0.43, 0.04], t(126) = -1.62, p = .217, Holm-adjusted; and</span></span>
+<span><span class="co">#&gt; 0.01 in the GS condition, 95% CI [-0.24, 0.25], t(126) = 0.04, p = .965,</span></span>
+<span><span class="co">#&gt; Holm-adjusted. Averaged over the conditions, the pretest main effect was</span></span>
+<span><span class="co">#&gt; -0.03, 95% CI [-0.17, 0.11], t(126) = -0.44, p = .661.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; References</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -731,11 +752,14 @@ control at a time:</p>
 <span><span class="va">rp</span><span class="op">$</span><span class="va">treat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">rp</span><span class="op">$</span><span class="va">condition</span> <span class="op">==</span> <span class="st">"RP"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/fit_solomon_ml.html">fit_solomon_ml</a></span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span>,</span>
 <span>               inference <span class="op">=</span> <span class="st">"satterthwaite"</span>, data <span class="op">=</span> <span class="va">rp</span><span class="op">)</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
-<span><span class="co">#&gt;                  contrast    estimate  std.error  statistic    p.value</span></span>
-<span><span class="co">#&gt; 1  ATE (avg over pretest) -0.03467472 0.07605652 -0.4559072 0.64957579</span></span>
-<span><span class="co">#&gt; 2     Pretest x Treatment -0.28983011 0.15211304 -1.9053600 0.05998705</span></span>
-<span><span class="co">#&gt; 3   Treatment | pretested -0.17958977 0.10365751 -1.7325303 0.08960087</span></span>
-<span><span class="co">#&gt; 4 Treatment | unpretested  0.11024033 0.11132609  0.9902470 0.32772427</span></span></code></pre></div>
+<span><span class="co">#&gt;                   contrast    estimate  std.error  statistic    p.value</span></span>
+<span><span class="co">#&gt; 1   ATE (avg over pretest) -0.03467472 0.07605652 -0.4559072 0.64957579</span></span>
+<span><span class="co">#&gt; 2      Pretest x Treatment -0.28983011 0.15211304 -1.9053600 0.05998705</span></span>
+<span><span class="co">#&gt; 3    Treatment | pretested -0.17958977 0.10365751 -1.7325303 0.08960087</span></span>
+<span><span class="co">#&gt; 4  Treatment | unpretested  0.11024033 0.11132609  0.9902470 0.32772427</span></span>
+<span><span class="co">#&gt; 5 Pretest effect | control  0.09210908 0.10803703  0.8525695 0.39606671</span></span>
+<span><span class="co">#&gt; 6 Pretest effect | treated -0.19772103 0.11092363 -1.7824969 0.07785927</span></span>
+<span><span class="co">#&gt; 7      Pretest main effect -0.05280597 0.07876186 -0.6704510 0.50410591</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

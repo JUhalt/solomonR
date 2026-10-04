@@ -259,21 +259,28 @@ fit
 #> Formula: y ~ treat * pretested + pre_obs
 #> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 90)
 #> 
-#> Term             Est (SE)            t  df      p            95% CI
-#> (Intercept)      3.019 (0.077)   38.99  90  <.001    [2.865, 3.172]
-#> treat            0.110 (0.114)    0.97  90  0.336   [-0.116, 0.337]
-#> pretested        -1.251 (0.535)  -2.34  90  0.022  [-2.313, -0.189]
-#> pre_obs          0.431 (0.163)    2.65  90  0.010    [0.107, 0.754]
-#> treat:pretested  -0.290 (0.157)  -1.84  90  0.068   [-0.602, 0.022]
+#> Term             Est (SE)            t  df      p           95% CI
+#> (Intercept)      3.019 (0.077)   38.99  90  <.001   [2.865, 3.172]
+#> treat            0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]
+#> pretested        0.092 (0.104)    0.89  90  0.378  [-0.114, 0.299]
+#> pre_obs          0.431 (0.163)    2.65  90  0.010   [0.107, 0.754]
+#> treat:pretested  -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]
 #> 
-#> Key contrasts            Est (SE)            t  df      p           95% CI  Wald R2
-#> ATE (avg over pretest)   -0.035 (0.079)  -0.44  90  0.660  [-0.191, 0.121]    0.002
-#> Pretest x Treatment      -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]    0.036
-#> Treatment | pretested    -0.180 (0.108)  -1.66  90  0.100  [-0.395, 0.035]    0.030
-#> Treatment | unpretested  0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]    0.010
+#> Key contrasts             Est (SE)            t  df      p           95% CI  Wald R2
+#> ATE (avg over pretest)    -0.035 (0.079)  -0.44  90  0.660  [-0.191, 0.121]    0.002
+#> Pretest x Treatment       -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]    0.036
+#> Treatment | pretested     -0.180 (0.108)  -1.66  90  0.100  [-0.395, 0.035]    0.030
+#> Treatment | unpretested   0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]    0.010
+#> Pretest effect | control  0.092 (0.105)    0.88  90  0.382  [-0.116, 0.300]    0.009
+#> Pretest effect | treated  -0.198 (0.121)  -1.64  90  0.105  [-0.438, 0.042]    0.029
+#> Pretest main effect       -0.053 (0.081)  -0.65  90  0.518  [-0.214, 0.109]    0.005
 #> 
 #> Wald R2: partial R-squared for conventional Gaussian OLS;
 #> a Wald-based descriptive approximation when robust covariance is used.
+#> pre_obs: the pretest, centered at the pretested participants' mean (3.118).
+#> The pretest effects compare pretested and unpretested participants at that
+#> score; their standard errors include the sampling variance of the mean, and
+#> the coefficient of pretested treats it as fixed.
 ```
 
 The interaction test gives nearly the same p as the published ANOVA
@@ -362,7 +369,7 @@ the same as the analysis model (Carpenter et al., 2023, pp. 255–256).
 Here the imputation model lets the pretest slope differ between the two
 pretested groups, so the agreement also suggests that the model’s common
 slope does no harm: the largest difference between the estimates is
-0.007 scale points. The fraction of missing information (`fmi`) of 0.34
+0.124 scale points. The fraction of missing information (`fmi`) of 0.34
 to 0.40 shows how much the missing posttests weigh on each contrast.
 
 ### The treatment effect
@@ -536,6 +543,12 @@ report_solomon(fit, design = list(randomized = c(35, 50, 31, 35),
 #> 0.04], t(90) = -1.66, p = .100.
 #> The treatment effect among unpretested participants was 0.11, 95% CI [-0.12,
 #> 0.34], t(90) = 0.97, p = .336.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 3.12) was 0.09 among control
+#> participants, 95% CI [-0.12, 0.30], t(90) = 0.88, p = .382, and -0.20 among
+#> treated participants, 95% CI [-0.44, 0.04], t(90) = -1.64, p = .105; their
+#> average, the pretest main effect, was -0.05, 95% CI [-0.21, 0.11], t(90) =
+#> -0.65, p = .518.
 #> 
 #> References
 #> 

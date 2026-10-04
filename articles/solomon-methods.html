@@ -232,6 +232,11 @@ conditions?</td>
 </tr>
 </tbody>
 </table>
+<p>The pretest (testing) effect, pretested minus unpretested
+participants, answers the design’s other question (Solomon, 1949): the
+regression-based analyses report it among controls (Group 2 vs. 4),
+among treated participants (Group 1 vs. 3), and averaged over the
+two.</p>
 <p>Naming the target quantity before choosing an estimator makes it
 clear when different analyses answer the same question and when they do
 not (Lundberg et al., 2021).</p>
@@ -649,10 +654,14 @@ or several treatments.</li>
 recommendations.</p>
 <ul>
 <li>
-<strong>Estimates:</strong> all four contrasts from one model,
-<code>y ~ treat * pretested + pre_obs</code>. <code>pre_obs</code>
-equals the pretest in Groups 1 and 2 and 0 in Groups 3 and 4, so no
-group is dropped.</li>
+<strong>Estimates:</strong> all four contrasts, and the pretest
+effects among controls, among treated participants, and on average, from
+one model, <code>y ~ treat * pretested + pre_obs</code>.
+<code>pre_obs</code> equals the pretest, centered at the mean of the
+pretested participants, in Groups 1 and 2 and 0 in Groups 3 and 4, so no
+group is dropped. The pretest effects compare the groups at that mean,
+the best estimate of the unpretested groups’ pretest under random
+assignment (Solomon &amp; Lessac, 1968, pp. 146–147).</li>
 <li>
 <strong>Assumptions:</strong> a common pretest slope in the
 pretested groups; independent observations (or clusters with CR2).</li>
@@ -969,6 +978,9 @@ average bioavailability. <em>Journal of Pharmacokinetics and
 Biopharmaceutics, 15</em>(6), 657–680. <a href="https://doi.org/10.1007/BF01068419" class="external-link uri">https://doi.org/10.1007/BF01068419</a></p>
 <p>Solomon, R. L. (1949). An extension of control group design.
 <em>Psychological Bulletin, 46</em>(2), 137–150. <a href="https://doi.org/10.1037/h0062958" class="external-link uri">https://doi.org/10.1037/h0062958</a></p>
+<p>Solomon, R. L., &amp; Lessac, M. S. (1968). A control group design
+for experimental studies of developmental processes. <em>Psychological
+Bulletin, 70</em>(3, Pt. 1), 145–150. <a href="https://doi.org/10.1037/h0026147" class="external-link uri">https://doi.org/10.1037/h0026147</a></p>
 <p>Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
 contrast analysis. <em>Psychological Methods, 9</em>(2), 164–182. <a href="https://doi.org/10.1037/1082-989X.9.2.164" class="external-link uri">https://doi.org/10.1037/1082-989X.9.2.164</a></p>

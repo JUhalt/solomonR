@@ -3,7 +3,9 @@
 **\[stable\]** Fits one generalized linear model to all four Solomon
 groups and reports four Solomon contrasts: the equal-weighted average
 treatment effect, the Pretest x Treatment (sensitization) contrast, and
-the treatment effect within each pretesting condition.
+the treatment effect within each pretesting condition. It also reports
+the pretest (testing) effect among controls, among treated participants,
+and averaged over the two (see "The pretest effect").
 
 ## Usage
 
@@ -124,8 +126,10 @@ coefficient and contrast tables (including degrees of freedom and
 confidence limits `conf.low` and `conf.high`), the covariance matrix,
 the Pearson dispersion statistic for binomial, Poisson, and
 negative-binomial fits, `theta` (its estimate, standard error, and
-\\\alpha = 1/\theta\\) for negative-binomial fits, and the settings
-used.
+\\\alpha = 1/\theta\\) for negative-binomial fits, `pretest_mean` (the
+mean pretest at which the pretest is centered; `NA` without `y_pre`),
+and the settings used. The contrast table, `effects`, has the four
+treatment contrasts followed by the three pretest effects.
 
 For a design with several treatments, an object of class
 `solomon_ngroup`, with the same elements and these changes: `effects`
@@ -137,14 +141,20 @@ each comparison; and `adjust` names the adjustment.
 
 ## Details
 
-When `y_pre` is supplied, it enters the model as `pre_obs`, equal to the
-pretest score in the pretested groups and 0 in the unpretested groups,
-so the structurally absent pretests do not remove Groups 3 and 4.
-Regression adjustment for baseline covariates in randomized experiments,
-and the case for pairing it with heteroskedasticity-robust standard
-errors, is discussed by Lin (2013). Pretested participants with a
-missing pretest score are excluded with a warning; incidental
-missingness is never imputed.
+When `y_pre` is supplied, it enters the model as `pre_obs`: in the
+pretested groups, the pretest score minus the mean pretest of the
+pretested participants in the model (returned as `pretest_mean`), and in
+the unpretested groups 0, so the structurally absent pretests do not
+remove Groups 3 and 4. Centering changes neither the fitted values nor
+the treatment contrasts; it makes the pretesting coefficient the pretest
+effect among controls at that mean, as in
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md).
+Without centering, the coefficient would compare the groups at a pretest
+score of zero, far outside the data. Regression adjustment for baseline
+covariates in randomized experiments, and the case for pairing it with
+heteroskedasticity-robust standard errors, is discussed by Lin (2013).
+Pretested participants with a missing pretest score are excluded with a
+warning; incidental missingness is never imputed.
 
 ## Inference
 
@@ -245,6 +255,95 @@ Confidence intervals for the Wald partial R-squared use the noncentral F
 method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.
 
+## The pretest effect
+
+Solomon (1949) added the unpretested groups to separate the effect of
+taking the pretest from the effect of the treatment, and Campbell and
+Stanley (1963/1966, p. 25) list the main effect of testing among the
+quantities the design estimates. The effects table reports it after the
+four treatment contrasts, as pretested minus unpretested participants:
+
+- `Pretest effect | control`: among control participants;
+
+- `Pretest effect | treated`: among treated participants;
+
+- `Pretest main effect`: the equal-weighted average of the two.
+
+The two pretest effects differ by the Pretest x Treatment contrast: an
+interaction can be read as a treatment effect that depends on pretesting
+or as a pretest effect that depends on treatment.
+
+With `y_pre`, the pretested groups are compared with the unpretested
+groups at the pretested participants' mean pretest, where the centered
+pretest is zero. Unpretested participants were never measured, but with
+random assignment their expected pretest equals that of the pretested
+participants, whose combined mean is its best estimate (Solomon &
+Lessac, 1968, pp. 146–147). Each pretest effect is therefore the
+pretest-adjusted mean of a pretested group minus the mean of the
+unpretested group in the same treatment condition: the differences
+between the adjusted means that
+[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+draws. Without `y_pre`, the pretest effects are differences between the
+fitted cell means.
+
+That mean pretest is an estimate of the expected pretest, not a fixed
+value, and the pretest effects shift by b for each point it shifts,
+where b is the pretest slope. Their standard errors therefore include
+its sampling variance, about b^2 s^2 / n for n pretested participants
+whose pretests have variance s^2. The estimating equation of the mean is
+stacked with those of the model (Stefanski & Boos, 2002): each pretest
+effect gains b^2 times the variance of the mean and 2b times the
+covariance of the mean with the contrast, estimated in the fit's
+covariance type:
+
+- with model-based covariance, the variance of the mean is s^2 / n, and
+  the covariance is zero, as it is when the model is correctly
+  specified;
+
+- with HC3, the variance is in its jackknife form, and the covariance is
+  estimated from the HC3-scaled influence of each participant on the
+  coefficients;
+
+- with CR2, the variance is the CR2 variance of the mean, and the
+  covariance is estimated from cluster sums with the factor G / (G - 1)
+  for G clusters. The degrees of freedom combine the Satterthwaite
+  degrees of freedom of the contrast and of the mean by the
+  Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947).
+
+With HC3 and model-based covariance, the reference distribution keeps
+the residual degrees of freedom of the model. The treatment contrasts do
+not depend on the mean, so their standard errors are unchanged. The
+coefficient table reports the pretesting coefficient with the model's
+standard error, which treats the mean as fixed, and the Wald R-squared
+of a pretest effect uses its full standard error and has no interval.
+
+Treating the mean as fixed leaves its variance out at every sample size.
+In a simulation check of this correction (not a pre-registered study;
+1,000 to 4,000 replications in each of 10 scenarios), with a
+pretest-posttest correlation of .8 the 95% intervals of the pretest main
+effect that treat the mean as fixed covered 0.90 of the time, with 30
+and with 100 participants per cell. With its variance included, the
+intervals of the pretest effects covered 0.937 to 0.958 of the time,
+within the Monte Carlo tolerance in all 82 cells: HC3, model-based, and
+CR2 fits of four-group designs, including one whose pretest slope
+differed between the treatment conditions, a design with two treatments,
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+with either inference,
+[`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md),
+and the delta method of
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md).
+
+On a link other than the identity, with `y_pre`, the pretest effects
+compare the pretested participants' fitted mean at the mean pretest with
+the unpretested participants' mean over their unmeasured pretests. With
+a nonlinear link, a mean at the average pretest is not the average of
+the means over the pretests, so these contrasts differ from the marginal
+pretest effect even when the pretest has no effect. This holds for the
+log link too, although its treatment rate ratios are collapsible.
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+estimates the pretest effects on a common scale, from standardized risks
+or rates (Daniel et al., 2021).
+
 ## Designs with several treatments
 
 A Solomon N-group design crosses k treatments and a control with
@@ -273,6 +372,19 @@ Holm's (1979) procedure by default. It controls the familywise error
 rate "for any combination of true hypotheses" (p. 65). The confidence
 intervals are not adjusted. The result has class `solomon_ngroup`.
 
+The effects table ends with the pretest effect in each condition (see
+"The pretest effect"), with `comparison` naming the condition:
+`Pretest effect | control` for the control and
+`Pretest effect | treated` for each treatment, whose p-values are
+adjusted across the treatments. The `Pretest main effect`, with
+`comparison` `"All conditions"`, is their equal-weighted average over
+the k + 1 conditions. Steyn (2009) tests the pretest main effect
+separately for each intervention, in the two-way analysis of variance of
+that intervention's groups and the control groups that
+[`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+carries out; this row averages over all the conditions and is adjusted
+for the pretest score.
+
 Published studies with several treatments analyzed them as overlapping
 four-group designs: one for each treatment against the control (McCarthy
 & Tucker, 2002), or one for each pair of conditions (Mai et al., 2020).
@@ -291,8 +403,8 @@ experimental. In the package's simulation study (issue \#45; 112
 scenarios with two or three treatments and 10 to 50 participants per
 group, 5,000 replications each):
 
-- the contrasts were unbiased, and coverage of their 95% intervals was
-  0.939 to 0.967;
+- the treatment contrasts were unbiased, and coverage of their 95%
+  intervals was 0.939 to 0.967;
 
 - the familywise error rates of the Holm-adjusted comparisons were at
   most 0.059;
@@ -308,7 +420,8 @@ group, 5,000 replications each):
   analysis is experimental. With groups that small, judge those two
   questions by the adjusted comparisons.
 
-The study did not cover binary or count outcomes, clustered designs, or
+The study did not cover the pretest effects, which were added later
+(issue \#104), binary or count outcomes, clustered designs, or
 comparisons given as weights. It is reported in the article "Designs
 With Several Treatments: Validating the Joint Model".
 
@@ -321,6 +434,10 @@ Methodology, 28*(2), 169–181.
 Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count
 data* (2nd ed.). Cambridge University Press.
 https://doi.org/10.1017/CBO9781139013567
+
+Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+quasi-experimental designs for research*. Rand McNally. (Original work
+published 1963)
 
 Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from
 oranges: Comparing noncollapsible effect estimators and their standard
@@ -372,9 +489,21 @@ guide to statistical inference in linear modeling for non-normal or
 heteroskedastic error distributions. *Behavior Research Methods,
 57*(12), Article 338. https://doi.org/10.3758/s13428-025-02801-4
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+https://doi.org/10.2307/3002019
+
 Solomon, R. L. (1949). An extension of control group design.
 *Psychological Bulletin, 46*(2), 137–150.
 https://doi.org/10.1037/h0062958
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. *Psychological
+Bulletin, 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+
+Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation.
+*The American Statistician, 56*(1), 29–38.
+https://doi.org/10.1198/000313002753631330
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
@@ -393,6 +522,10 @@ estimation with meta-regression. *Psychological Methods, 20*(3),
 Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with
 S* (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
 
+Welch, B. L. (1947). The generalization of "Student's" problem when
+several different population variances are involved. *Biometrika,
+34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
+
 ## Examples
 
 ``` r
@@ -402,34 +535,47 @@ fit
 #> Formula: y ~ treat * pretested + pre_obs
 #> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 115)
 #> 
-#> Term             Est (SE)             t   df      p              95% CI
-#> (Intercept)      51.100 (1.739)   29.39  115  <.001    [47.656, 54.544]
-#> treat            3.633 (2.229)     1.63  115  0.106     [-0.782, 8.049]
-#> pretested        -26.219 (5.957)  -4.40  115  <.001  [-38.019, -14.418]
-#> pre_obs          0.598 (0.101)     5.91  115  <.001      [0.397, 0.798]
-#> treat:pretested  -1.940 (3.168)   -0.61  115  0.541     [-8.214, 4.335]
+#> Term             Est (SE)            t   df      p            95% CI
+#> (Intercept)      51.100 (1.739)  29.39  115  <.001  [47.656, 54.544]
+#> treat            3.633 (2.229)    1.63  115  0.106   [-0.782, 8.049]
+#> pretested        3.420 (2.323)    1.47  115  0.144   [-1.182, 8.022]
+#> pre_obs          0.598 (0.101)    5.91  115  <.001    [0.397, 0.798]
+#> treat:pretested  -1.940 (3.168)  -0.61  115  0.541   [-8.214, 4.335]
 #> 
-#> Key contrasts            Est (SE)            t   df      p           95% CI  Wald R2
-#> ATE (avg over pretest)   2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024
-#> Pretest x Treatment      -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003
-#> Treatment | pretested    1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005
-#> Treatment | unpretested  3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023
+#> Key contrasts             Est (SE)            t   df      p           95% CI  Wald R2
+#> ATE (avg over pretest)    2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024
+#> Pretest x Treatment       -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003
+#> Treatment | pretested     1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005
+#> Treatment | unpretested   3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023
+#> Pretest effect | control  3.420 (2.383)    1.44  115  0.154  [-1.301, 8.141]    0.018
+#> Pretest effect | treated  1.480 (2.396)    0.62  115  0.538  [-3.266, 6.226]    0.003
+#> Pretest main effect       2.450 (1.789)    1.37  115  0.174  [-1.094, 5.994]    0.016
 #> 
 #> Wald R2: partial R-squared for conventional Gaussian OLS;
 #> a Wald-based descriptive approximation when robust covariance is used.
+#> pre_obs: the pretest, centered at the pretested participants' mean (49.600).
+#> The pretest effects compare pretested and unpretested participants at that
+#> score; their standard errors include the sampling variance of the mean, and
+#> the coefficient of pretested treats it as fixed.
 
 # The four Solomon contrasts as a data frame.
 fit$effects
-#>                  contrast  estimate std.error  statistic    p.value  df
-#> 1  ATE (avg over pretest)  2.663415  1.583848  1.6816102 0.09535823 115
-#> 2     Pretest x Treatment -1.939837  3.167696 -0.6123810 0.54149471 115
-#> 3   Treatment | pretested  1.693497  2.250717  0.7524252 0.45333277 115
-#> 4 Treatment | unpretested  3.633333  2.229029  1.6300074 0.10583600 115
+#>                   contrast  estimate std.error  statistic    p.value  df
+#> 1   ATE (avg over pretest)  2.663415  1.583848  1.6816102 0.09535823 115
+#> 2      Pretest x Treatment -1.939837  3.167696 -0.6123810 0.54149471 115
+#> 3    Treatment | pretested  1.693497  2.250717  0.7524252 0.45333277 115
+#> 4  Treatment | unpretested  3.633333  2.229029  1.6300074 0.10583600 115
+#> 5 Pretest effect | control  3.419918  2.383175  1.4350264 0.15399366 115
+#> 6 Pretest effect | treated  1.480082  2.395866  0.6177647 0.53795186 115
+#> 7      Pretest main effect  2.450000  1.789210  1.3693193 0.17356774 115
 #>     conf.low conf.high          r2 r2_lo r2_hi
 #> 1 -0.4738832  5.800713 0.023999535    NA    NA
 #> 2 -8.2144330  4.334759 0.003250361    NA    NA
 #> 3 -2.7647416  6.151735 0.004898871    NA    NA
 #> 4 -0.7819436  8.048610 0.022581961    NA    NA
+#> 5 -1.3006916  8.140528 0.017591946    NA    NA
+#> 6 -3.2656680  6.225831 0.003307574    NA    NA
+#> 7 -1.0940810  5.994081 0.016043078    NA    NA
 
 # A six-group design: two treatments and a control (Mai et al., 2020).
 fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
@@ -448,18 +594,26 @@ fit6
 #> Condition | unpretested       F(2, 126) = 0.73  0.485
 #> 
 #> Contrasts
-#> Comparison     Contrast                       Est (SE)      t   df      p  p adj.           95% CI
-#> RP vs Control  ATE (avg over pretest)   -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]
-#> GS vs Control  ATE (avg over pretest)    0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]
-#> RP vs Control  Pretest x Treatment      -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]
-#> GS vs Control  Pretest x Treatment      -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]
-#> RP vs Control  Treatment | pretested    -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]
-#> GS vs Control  Treatment | pretested     0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]
-#> RP vs Control  Treatment | unpretested   0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]
-#> GS vs Control  Treatment | unpretested   0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]
+#> Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI
+#> RP vs Control   ATE (avg over pretest)    -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]
+#> GS vs Control   ATE (avg over pretest)     0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]
+#> RP vs Control   Pretest x Treatment       -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]
+#> GS vs Control   Pretest x Treatment       -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]
+#> RP vs Control   Treatment | pretested     -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]
+#> GS vs Control   Treatment | pretested      0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]
+#> RP vs Control   Treatment | unpretested    0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]
+#> GS vs Control   Treatment | unpretested    0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]
+#> Control         Pretest effect | control   0.097 (0.104)   0.93  126  0.355   0.355  [-0.109, 0.303]
+#> RP              Pretest effect | treated  -0.193 (0.119)  -1.62  126  0.108   0.217  [-0.429, 0.043]
+#> GS              Pretest effect | treated   0.005 (0.125)   0.04  126  0.965   0.965  [-0.241, 0.252]
+#> All conditions  Pretest main effect       -0.030 (0.069)  -0.44  126  0.661   0.661  [-0.166, 0.106]
 #> 
 #> p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 2 comparisons.
+#> p adj. of the treatments' pretest effects: adjusted by Holm's (1979) procedure across the 2 treatments.
 #> Confidence intervals are not adjusted.
+#> Pretest effects: pretested minus unpretested participants in each condition,
+#> at the pretested participants' mean pretest (3.129), with standard errors
+#> that include the sampling variance of that mean.
 #> 
 #> Experimental: in the package's simulation study (issue #45), the omnibus
 #> tests of Condition | pretested and Condition | unpretested rejected in up

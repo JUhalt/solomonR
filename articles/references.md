@@ -68,15 +68,19 @@ published 1963)
 > posttest with the pretests estimates the combined effect of maturation
 > and history (p. 25). Without randomization, a comparison of groups
 > measured only after the treatment is a static-group comparison, whose
-> groups cannot be certified equivalent (p. 12). Page numbers refer to
-> the 1966 book. *In solomonR:* Tests A–D and the history check of
+> groups cannot be certified equivalent (p. 12). The design estimates
+> the main effect of testing as well as its interaction with the
+> treatment (p. 25). Page numbers refer to the 1966 book. *In solomonR:*
+> Tests A–D and the history check of
 > [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md);
 > [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md);
 > the caveat on the unpretested arms of nonrandomized designs in
 > [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)
 > and
 > [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-> ([\#58](https://github.com/JUhalt/solomonR/issues/58)).
+> ([\#58](https://github.com/JUhalt/solomonR/issues/58)); the pretest
+> effects of the effects tables
+> ([\#104](https://github.com/JUhalt/solomonR/issues/104)).
 
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
@@ -370,7 +374,16 @@ Bulletin, 70*(3, Pt. 1), 145–150. <https://doi.org/10.1037/h0026147>
 > factorial whose interaction is a difference of differences
 > (pp. 146–147). *In solomonR:* the inferred pretest of
 > [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md);
-> the history article.
+> the mean pretest at which the pretest effects of
+> [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+> [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+> and
+> [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
+> compare the pretested and unpretested groups, and the standardization
+> of
+> [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+> ([\#104](https://github.com/JUhalt/solomonR/issues/104)); the history
+> article.
 
 Steyn, R. (2005). *Self-evaluasie en die vorming van
 selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of
@@ -749,6 +762,10 @@ career officers. *SA Journal of Industrial Psychology, 32*(1), 25–32.
 > post- and post-post test” (p. 27). *In solomonR:* the coverage
 > article, which records Steyn (2001) as not read
 > ([\#96](https://github.com/JUhalt/solomonR/issues/96)).
+
+Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation.
+*The American Statistician, 56*(1), 29–38.
+<https://doi.org/10.1198/000313002753631330>
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and

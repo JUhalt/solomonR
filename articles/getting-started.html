@@ -218,8 +218,9 @@ review of ten Solomon four-group studies with behavioral outcomes found
 only weak evidence that assessments interact with interventions, and
 concluded that too few rigorous studies exist to say whether such
 interactions occur (McCambridge et al., 2011).</p>
-<p><code>solomonR</code> reports four contrasts in mean posttest scores,
-always as treatment minus control:</p>
+<p><code>solomonR</code> answers the first and third questions with four
+contrasts in mean posttest scores, always as treatment minus
+control:</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -249,6 +250,35 @@ vs. 4)</td>
 </tr>
 </tbody>
 </table>
+<p>It answers the second question, the pretest (testing) effect, with
+three more, as pretested minus unpretested:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Contrast</th>
+<th>Meaning</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Pretest effect | control</td>
+<td>Pretest effect among controls (Groups 2 vs. 4)</td>
+</tr>
+<tr class="even">
+<td>Pretest effect | treated</td>
+<td>Pretest effect among treated participants (Groups 1 vs. 3)</td>
+</tr>
+<tr class="odd">
+<td>Pretest main effect</td>
+<td>The two effects averaged with equal weight</td>
+</tr>
+</tbody>
+</table>
+<p>The two pretest effects differ by the Pretest x Treatment contrast,
+so sensitization is also a pretest effect that depends on the
+treatment.</p>
 </div>
 <div class="section level2">
 <h2 id="the-example-data">The example data<a class="anchor" aria-label="anchor" href="#the-example-data"></a>
@@ -408,7 +438,7 @@ knowing, but it should not be the primary analysis of a new study.</p>
 <p>Contemporary practice specifies one analysis and its target
 quantities in advance (Lundberg et al., 2021). For a randomized Solomon
 study with a continuous outcome, <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>
-estimates all four contrasts from a single model that adjusts for the
+estimates all the contrasts from a single model that adjusts for the
 pretest in the groups that took it. It uses
 heteroskedasticity-consistent (HC3) standard errors by default (Long
 &amp; Ervin, 2000; Hayes &amp; Cai, 2007) with t tests on the residual
@@ -420,25 +450,42 @@ degrees of freedom.</p>
 <span><span class="co">#&gt; Formula: y ~ treat * pretested + pre_obs</span></span>
 <span><span class="co">#&gt; Covariance: HC3 heteroskedasticity-consistent; t tests (df = 115)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Term             Est (SE)             t   df      p              95% CI</span></span>
-<span><span class="co">#&gt; (Intercept)      51.100 (1.739)   29.39  115  &lt;.001    [47.656, 54.544]</span></span>
-<span><span class="co">#&gt; treat            3.633 (2.229)     1.63  115  0.106     [-0.782, 8.049]</span></span>
-<span><span class="co">#&gt; pretested        -26.219 (5.957)  -4.40  115  &lt;.001  [-38.019, -14.418]</span></span>
-<span><span class="co">#&gt; pre_obs          0.598 (0.101)     5.91  115  &lt;.001      [0.397, 0.798]</span></span>
-<span><span class="co">#&gt; treat:pretested  -1.940 (3.168)   -0.61  115  0.541     [-8.214, 4.335]</span></span>
+<span><span class="co">#&gt; Term             Est (SE)            t   df      p            95% CI</span></span>
+<span><span class="co">#&gt; (Intercept)      51.100 (1.739)  29.39  115  &lt;.001  [47.656, 54.544]</span></span>
+<span><span class="co">#&gt; treat            3.633 (2.229)    1.63  115  0.106   [-0.782, 8.049]</span></span>
+<span><span class="co">#&gt; pretested        3.420 (2.323)    1.47  115  0.144   [-1.182, 8.022]</span></span>
+<span><span class="co">#&gt; pre_obs          0.598 (0.101)    5.91  115  &lt;.001    [0.397, 0.798]</span></span>
+<span><span class="co">#&gt; treat:pretested  -1.940 (3.168)  -0.61  115  0.541   [-8.214, 4.335]</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Key contrasts            Est (SE)            t   df      p           95% CI  Wald R2</span></span>
-<span><span class="co">#&gt; ATE (avg over pretest)   2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024</span></span>
-<span><span class="co">#&gt; Pretest x Treatment      -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003</span></span>
-<span><span class="co">#&gt; Treatment | pretested    1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005</span></span>
-<span><span class="co">#&gt; Treatment | unpretested  3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023</span></span>
+<span><span class="co">#&gt; Key contrasts             Est (SE)            t   df      p           95% CI  Wald R2</span></span>
+<span><span class="co">#&gt; ATE (avg over pretest)    2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024</span></span>
+<span><span class="co">#&gt; Pretest x Treatment       -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003</span></span>
+<span><span class="co">#&gt; Treatment | pretested     1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005</span></span>
+<span><span class="co">#&gt; Treatment | unpretested   3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023</span></span>
+<span><span class="co">#&gt; Pretest effect | control  3.420 (2.383)    1.44  115  0.154  [-1.301, 8.141]    0.018</span></span>
+<span><span class="co">#&gt; Pretest effect | treated  1.480 (2.396)    0.62  115  0.538  [-3.266, 6.226]    0.003</span></span>
+<span><span class="co">#&gt; Pretest main effect       2.450 (1.789)    1.37  115  0.174  [-1.094, 5.994]    0.016</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Wald R2: partial R-squared for conventional Gaussian OLS;</span></span>
-<span><span class="co">#&gt; a Wald-based descriptive approximation when robust covariance is used.</span></span></code></pre></div>
+<span><span class="co">#&gt; a Wald-based descriptive approximation when robust covariance is used.</span></span>
+<span><span class="co">#&gt; pre_obs: the pretest, centered at the pretested participants' mean (49.600).</span></span>
+<span><span class="co">#&gt; The pretest effects compare pretested and unpretested participants at that</span></span>
+<span><span class="co">#&gt; score; their standard errors include the sampling variance of the mean, and</span></span>
+<span><span class="co">#&gt; the coefficient of pretested treats it as fixed.</span></span></code></pre></div>
+<p>Read the estimates from the table of key contrasts. The coefficient
+table above it describes the model: the pretest enters as
+<code>pre_obs</code>, centered at the pretested participants’ mean
+pretest of 49.60.</p>
 <p>Compare the estimates with the truth. The true ATE is 5 points; this
 sample estimates 2.7 points, with a 95% confidence interval from -0.5 to
 5.8. The interval contains the true value, and it also contains zero, so
 the test against zero is not significant (p = .095).</p>
+<p>The true pretest effect is 2 points. The model compares the pretested
+groups, at their mean pretest, with the unpretested groups, whose
+expected pretest under random assignment is the same (Solomon &amp;
+Lessac, 1968, pp. 146–147). Among controls it estimates 3.4 points, 95%
+CI [-1.3, 8.1], and averaged over treatment and control 2.4 points, 95%
+CI [-1.1, 6.0]. Both intervals contain the truth.</p>
 <p>This is not a failure of the method. Estimates vary from sample to
 sample, and with 30 participants per group this design has roughly 85%
 power for the ATE and less for the treatment effect within each pretest
@@ -511,7 +558,7 @@ matter:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/equivalence_solomon.html">equivalence_solomon</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solomon equivalence test (TOST)</span></span>
 <span><span class="co">#&gt; Contrast: Pretest x Treatment</span></span>
-<span><span class="co">#&gt; Equivalence bounds (raw scale): [-5.000, 5.000]; alpha = 0.05</span></span>
+<span><span class="co">#&gt; Equivalence bounds (outcome units): [-5.000, 5.000]; alpha = 0.05</span></span>
 <span><span class="co">#&gt; Inference: HC3 heteroskedasticity-consistent; t tests (df = 115)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Estimate = -1.940 (SE = 3.168)</span></span>
@@ -538,15 +585,15 @@ observed means:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_sensitization.html">plot_sensitization</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
 <p><img src="getting-started_files/figure-html/sensitization-plot-1.png" class="r-plt" alt="Model-based posttest means by treatment for pretested and unpretested participants, with observed means as hollow points and the equivalence bounds for the interaction." width="576"></p>
-<p>A forest plot shows all four Solomon contrasts at once, with the
+<p>A forest plot shows the four treatment contrasts at once, with the
 equivalence bounds shaded on the sensitization row:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_solomon_effects.html">plot_solomon_effects</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
-<p><img src="getting-started_files/figure-html/effects-plot-1.png" class="r-plt" alt="Forest plot of the four Solomon contrasts with 95% intervals, with the equivalence bounds shaded on the sensitization row." width="672"></p>
-<p>The sensitization interval extends beyond the shaded band, so these
-data cannot rule out sensitization as large as 5 points. The figure
-shows the fit’s 95% intervals; the equivalence test uses the narrower
-90% interval, which also extends beyond the bounds.</p>
+<p><img src="getting-started_files/figure-html/effects-plot-1.png" class="r-plt" alt="Forest plot of the four Solomon contrasts with 95% intervals; the sensitization row adds the shaded equivalence bounds and the 90% interval of the equivalence test as a thick bar." width="672"></p>
+<p>The thin bars are the fit’s 95% intervals. On the sensitization row,
+the thick bar is the 90% interval that the equivalence test uses
+(Lakens, 2017). It extends beyond the shaded band, so these data cannot
+rule out sensitization as large as 5 points.</p>
 </div>
 <div class="section level2">
 <h2 id="step-5-check-how-the-conclusions-depend-on-the-analysis">Step 5: Check how the conclusions depend on the analysis<a class="anchor" aria-label="anchor" href="#step-5-check-how-the-conclusions-depend-on-the-analysis"></a>
@@ -661,6 +708,12 @@ and offers a small-sample option:</p>
 <span><span class="co">#&gt; Pretest x Treatment          -1.940 (SE = 3.104), t(115.0) = -0.62, p = 0.533, 95% CI [-8.088, 4.209]</span></span>
 <span><span class="co">#&gt; Treatment | pretested        1.693 (SE = 2.198), t(57) = 0.77, p = 0.444, 95% CI [-2.708, 6.095]</span></span>
 <span><span class="co">#&gt; Treatment | unpretested      3.633 (SE = 2.192), t(58) = 1.66, p = 0.103, 95% CI [-0.754, 8.020]</span></span>
+<span><span class="co">#&gt; Pretest effect | control     3.420 (SE = 2.345), t(144.2) = 1.46, p = 0.147, 95% CI [-1.215, 8.055]</span></span>
+<span><span class="co">#&gt; Pretest effect | treated     1.480 (SE = 2.345), t(144.2) = 0.63, p = 0.529, 95% CI [-3.155, 6.115]</span></span>
+<span><span class="co">#&gt; Pretest main effect          2.450 (SE = 1.758), t(163.7) = 1.39, p = 0.165, 95% CI [-1.021, 5.921]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Pretest effects: at the centered pretest mean, with standard errors that</span></span>
+<span><span class="co">#&gt; include its sampling variance.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; logLik = -424.53; optimizer convergence = 0</span></span></code></pre></div>
 </div>
@@ -706,6 +759,12 @@ interpretation remains yours:</p>
 <span><span class="co">#&gt; 6.15], t(115) = 0.75, p = .453.</span></span>
 <span><span class="co">#&gt; The treatment effect among unpretested participants was 3.63, 95% CI [-0.78,</span></span>
 <span><span class="co">#&gt; 8.05], t(115) = 1.63, p = .106.</span></span>
+<span><span class="co">#&gt; The pretest effect (pretested minus unpretested participants, at the</span></span>
+<span><span class="co">#&gt; pretested participants' mean pretest score of 49.60) was 3.42 among control</span></span>
+<span><span class="co">#&gt; participants, 95% CI [-1.30, 8.14], t(115) = 1.44, p = .154, and 1.48 among</span></span>
+<span><span class="co">#&gt; treated participants, 95% CI [-3.27, 6.23], t(115) = 0.62, p = .538; their</span></span>
+<span><span class="co">#&gt; average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], t(115) =</span></span>
+<span><span class="co">#&gt; 1.37, p = .174.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; References</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -938,6 +997,9 @@ effects models. <em>Journal of Business &amp; Economic Statistics,
 of Experimental Education, 62</em>(4), 361–376. <a href="https://doi.org/10.1080/00220973.1994.9944140" class="external-link uri">https://doi.org/10.1080/00220973.1994.9944140</a></p>
 <p>Solomon, R. L. (1949). An extension of control group design.
 <em>Psychological Bulletin, 46</em>(2), 137–150. <a href="https://doi.org/10.1037/h0062958" class="external-link uri">https://doi.org/10.1037/h0062958</a></p>
+<p>Solomon, R. L., &amp; Lessac, M. S. (1968). A control group design
+for experimental studies of developmental processes. <em>Psychological
+Bulletin, 70</em>(3, Pt. 1), 145–150. <a href="https://doi.org/10.1037/h0026147" class="external-link uri">https://doi.org/10.1037/h0026147</a></p>
 <p>Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline
 had more power in randomized studies and more bias in nonrandomized
 studies. <em>Journal of Clinical Epidemiology, 59</em>(9), 920–925. <a href="https://doi.org/10.1016/j.jclinepi.2006.02.007" class="external-link uri">https://doi.org/10.1016/j.jclinepi.2006.02.007</a></p>

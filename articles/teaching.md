@@ -74,15 +74,43 @@ c(
 #>             -1.900000
 ```
 
-The interaction is the difference between the two treatment effects.
-`solomon_example` was simulated with known values
+The interaction is the difference between the two treatment effects. It
+is also the difference between the two pretest effects, among treated
+participants and among controls, so sensitization can be read either
+way. `solomon_example` was simulated with known values
 ([`?solomon_example`](https://juhalt.github.io/solomonR/reference/solomon_example.md)):
 a treatment effect of 5 points in both conditions, so a true interaction
 of 0, and a pretest effect of 2 points. The sample differences vary
 around those values.
+
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-estimates the same contrasts in one model, and it adjusts the pretested
-comparison for the pretest.
+estimates the same contrasts in one model. Read them from its effects
+table, where each has its own row:
+
+``` r
+
+fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
+fit$effects[, c("contrast", "estimate", "conf.low", "conf.high")]
+#>                   contrast  estimate   conf.low conf.high
+#> 1   ATE (avg over pretest)  2.663415 -0.4738832  5.800713
+#> 2      Pretest x Treatment -1.939837 -8.2144330  4.334759
+#> 3    Treatment | pretested  1.693497 -2.7647416  6.151735
+#> 4  Treatment | unpretested  3.633333 -0.7819436  8.048610
+#> 5 Pretest effect | control  3.419918 -1.3006916  8.140528
+#> 6 Pretest effect | treated  1.480082 -3.2656680  6.225831
+#> 7      Pretest main effect  2.450000 -1.0940810  5.994081
+```
+
+The model adjusts the pretested groups for the pretest, so its pretest
+effects compare the pretested groups, at their mean pretest score, with
+the unpretested groups. With random assignment, the unpretested groups’
+expected pretest equals that of the pretested groups, and the pretested
+groups’ mean estimates it, so that is the fair point of comparison
+(Solomon & Lessac, 1968, pp. 146–147). Because the mean is an estimate,
+the standard errors of the pretest effects include its sampling
+variance. Here the two pretested groups started near that mean, so the
+adjusted pretest effect among controls is close to the raw difference
+above.
 
 ## Lesson 2: Building in sensitization
 
@@ -103,6 +131,8 @@ attr(d, "truth")
 #> 3    Treatment | pretested        0.2
 #> 4  Treatment | unpretested        0.6
 #> 5 Pretest effect | control        0.0
+#> 6 Pretest effect | treated       -0.4
+#> 7      Pretest main effect       -0.2
 fit <- with(d, fit_solomon_glm(y_post, treat, pretested, y_pre))
 fit
 #> Solomon GLM (unified model)
@@ -112,18 +142,25 @@ fit
 #> Term             Est (SE)            t   df      p            95% CI
 #> (Intercept)      -0.016 (0.120)  -0.13  235  0.894   [-0.253, 0.221]
 #> treat            0.655 (0.188)    3.49  235  <.001    [0.285, 1.026]
-#> pretested        0.301 (0.149)    2.02  235  0.045    [0.007, 0.595]
+#> pretested        0.319 (0.150)    2.13  235  0.034    [0.024, 0.614]
 #> pre_obs          0.563 (0.057)    9.82  235  <.001    [0.450, 0.676]
 #> treat:pretested  -0.614 (0.234)  -2.63  235  0.009  [-1.075, -0.153]
 #> 
-#> Key contrasts            Est (SE)            t   df      p            95% CI  Wald R2
-#> ATE (avg over pretest)   0.348 (0.117)    2.98  235  0.003    [0.118, 0.579]    0.036
-#> Pretest x Treatment      -0.614 (0.234)  -2.63  235  0.009  [-1.075, -0.153]    0.029
-#> Treatment | pretested    0.041 (0.139)    0.29  235  0.769   [-0.233, 0.315]    0.000
-#> Treatment | unpretested  0.655 (0.188)    3.49  235  <.001    [0.285, 1.026]    0.049
+#> Key contrasts             Est (SE)            t   df      p            95% CI  Wald R2
+#> ATE (avg over pretest)    0.348 (0.117)    2.98  235  0.003    [0.118, 0.579]    0.036
+#> Pretest x Treatment       -0.614 (0.234)  -2.63  235  0.009  [-1.075, -0.153]    0.029
+#> Treatment | pretested     0.041 (0.139)    0.29  235  0.769   [-0.233, 0.315]    0.000
+#> Treatment | unpretested   0.655 (0.188)    3.49  235  <.001    [0.285, 1.026]    0.049
+#> Pretest effect | control  0.319 (0.160)    1.99  235  0.048    [0.003, 0.635]    0.017
+#> Pretest effect | treated  -0.295 (0.189)  -1.56  235  0.121   [-0.668, 0.078]    0.010
+#> Pretest main effect       0.012 (0.131)    0.09  235  0.927   [-0.246, 0.270]    0.000
 #> 
 #> Wald R2: partial R-squared for conventional Gaussian OLS;
 #> a Wald-based descriptive approximation when robust covariance is used.
+#> pre_obs: the pretest, centered at the pretested participants' mean (0.032).
+#> The pretest effects compare pretested and unpretested participants at that
+#> score; their standard errors include the sampling variance of the mean, and
+#> the coefficient of pretested treats it as fixed.
 ```
 
 ``` r
@@ -145,7 +182,8 @@ Solution
 se <- function(rho) {
   d <- simulate_solomon(n = 60, delta = 0.6, sens = -0.4, rho = rho, seed = 2)
   f <- with(d, fit_solomon_glm(y_post, treat, pretested, y_pre))
-  stats::setNames(f$effects$std.error, f$effects$contrast)
+  # The four treatment contrasts are the first four rows.
+  stats::setNames(f$effects$std.error[1:4], f$effects$contrast[1:4])
 }
 round(rbind(`rho = 0` = se(0), `rho = 0.8` = se(0.8)), 3)
 #>           ATE (avg over pretest) Pretest x Treatment Treatment | pretested
@@ -318,7 +356,7 @@ effect of interest fixed in advance (Lakens, 2017; Lakens et al., 2018):
 equivalence_solomon(fit, bounds = 0.2)
 #> Solomon equivalence test (TOST)
 #> Contrast: Pretest x Treatment
-#> Equivalence bounds (raw scale): [-0.200, 0.200]; alpha = 0.05
+#> Equivalence bounds (outcome units): [-0.200, 0.200]; alpha = 0.05
 #> Inference: HC3 heteroskedasticity-consistent; t tests (df = 75)
 #> 
 #> Estimate = 0.205 (SE = 0.437)
@@ -475,6 +513,10 @@ Experimental Education, 62*(4), 361–376.
 Solomon, R. L. (1949). An extension of control group design.
 *Psychological Bulletin, 46*(2), 137–150.
 <https://doi.org/10.1037/h0062958>
+
+Solomon, R. L., & Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. *Psychological
+Bulletin, 70*(3, Pt. 1), 145–150. <https://doi.org/10.1037/h0026147>
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological

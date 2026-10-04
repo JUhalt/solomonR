@@ -106,7 +106,7 @@ reference line at zero.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_solomon_effects</span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_solomon_effects</span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="cn">NULL</span>, alpha <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -120,9 +120,16 @@ reference line at zero.</p>
 
 <dt id="arg-bounds">bounds<a class="anchor" aria-label="anchor" href="#arg-bounds"></a></dt>
 <dd><p>Optional equivalence bounds for the sensitization contrast,
-as one positive number or <code>c(lower, upper)</code>, drawn as a shaded band on
-that row. Use the same bounds as <code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>, fixed before
-the data were examined.</p></dd>
+as one positive number or <code>c(lower, upper)</code>, on the scale of the
+contrast, drawn as a shaded band on that row with the TOST interval
+(see "Equivalence bounds"). Use the same bounds as
+<code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>, fixed before the data were examined.</p></dd>
+
+
+<dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
+<dd><p>Significance level of each one-sided test when <code>bounds</code> is
+supplied, as in <code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>. The thick interval has
+confidence level 1 - 2 <code>alpha</code>. Default is 0.05.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -147,13 +154,44 @@ each panel for each comparison, such as <code>"RP vs Control"</code>, in the ord
 the fit. The intervals are the unadjusted ones the fit reports. The
 caption names the adjustment the fit applied to its p-values, by default
 Holm's (1979) procedure, and says that the intervals are not adjusted.
-With <code>bounds</code>, the band is drawn on every Pretest x Treatment row.</p>
+With <code>bounds</code>, the band and the equivalence interval are drawn on every
+Pretest x Treatment row, and the caption gives each comparison's TOST
+outcome, not adjusted for the other comparisons.</p>
+<p>The pretest effects of the fit (see <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>) are not drawn;
+the figure shows the four treatment contrasts.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="equivalence-bounds">Equivalence bounds<a class="anchor" aria-label="anchor" href="#equivalence-bounds"></a></h2>
+
+
+<p>With <code>bounds</code>, the Pretest x Treatment row shows the two one-sided tests
+(TOST) of <code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>. Equivalence holds when the 1 - 2
+<code>alpha</code> interval, the 90% interval when <code>alpha = 0.05</code>, lies inside the
+bounds (Schuirmann, 1987; Lakens, 2017), so that interval is drawn as a
+thick bar inside the thin <code>conf_level</code> interval of the fit, over a shaded
+band at the bounds. The thin interval is the one the fit reports for the
+test against zero; a 95% interval can cross a bound when the 90% interval
+does not, and the contrast is still statistically equivalent. The caption
+states both confidence levels, the scale of the bounds, and the TOST
+outcome: equivalent, trivial, different, or inconclusive (Lakens, 2017).
+On a fit with a pretest covariate and a noncollapsible link, such as the
+logit, the figure gives the warning that <code><a href="equivalence_solomon.html">equivalence_solomon()</a></code> gives
+(<code>solomonR_link_scale_warning</code>): on that scale the Pretest x Treatment
+contrast is nonzero whenever the pretest predicts the outcome, even
+without sensitization.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Holm, S. (1979). A simple sequentially rejective multiple test procedure.
 <em>Scandinavian Journal of Statistics, 6</em>(2), 65–70.
 https://www.jstor.org/stable/4615733</p>
+<p>Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
+correlations, and meta-analyses. <em>Social Psychological and Personality
+Science, 8</em>(4), 355–362. https://doi.org/10.1177/1948550617697177</p>
+<p>Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
+and the power approach for assessing the equivalence of average
+bioavailability. <em>Journal of Pharmacokinetics and Biopharmaceutics, 15</em>(6),
+657–680. https://doi.org/10.1007/BF01068419</p>
     </div>
 
     <div class="section level2">
@@ -161,7 +199,10 @@ https://www.jstor.org/stable/4615733</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu"><a href="fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">plot_solomon_effects</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_solomon_effects-1.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">plot_solomon_effects</span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Illustrative bounds only; fix them before examining the data. The thick</span></span></span>
+<span class="r-in"><span><span class="co"># bar is the 90% interval of the equivalence test.</span></span></span>
+<span class="r-in"><span><span class="fu">plot_solomon_effects</span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">7.5</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_solomon_effects-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># A six-group design: two treatments and a control.</span></span></span>

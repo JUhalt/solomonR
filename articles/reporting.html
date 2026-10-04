@@ -194,6 +194,12 @@ below are hypothetical.</p>
 <span><span class="co">#&gt; 6.15], t(115) = 0.75, p = .453.</span></span>
 <span><span class="co">#&gt; The treatment effect among unpretested participants was 3.63, 95% CI [-0.78,</span></span>
 <span><span class="co">#&gt; 8.05], t(115) = 1.63, p = .106.</span></span>
+<span><span class="co">#&gt; The pretest effect (pretested minus unpretested participants, at the</span></span>
+<span><span class="co">#&gt; pretested participants' mean pretest score of 49.60) was 3.42 among control</span></span>
+<span><span class="co">#&gt; participants, 95% CI [-1.30, 8.14], t(115) = 1.44, p = .154, and 1.48 among</span></span>
+<span><span class="co">#&gt; treated participants, 95% CI [-3.27, 6.23], t(115) = 0.62, p = .538; their</span></span>
+<span><span class="co">#&gt; average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], t(115) =</span></span>
+<span><span class="co">#&gt; 1.37, p = .174.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; References</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -232,10 +238,11 @@ between groups rather than treatment effects.</li>
 statistical symbols as APA style requires:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/report_solomon.html">report_solomon</a></span><span class="op">(</span><span class="va">fit</span>, format <span class="op">=</span> <span class="st">"markdown"</span><span class="op">)</span><span class="op">$</span><span class="va">results</span></span>
-<span><span class="co">#&gt; [1] "The average treatment effect across pretest conditions was 2.66, 95% CI [-0.47, 5.80], *t*(115) = 1.68, *p* = .095."       </span></span>
-<span><span class="co">#&gt; [2] "The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI [-8.21, 4.33], *t*(115) = -0.61, *p* = .541."</span></span>
-<span><span class="co">#&gt; [3] "The treatment effect among pretested participants was 1.69, 95% CI [-2.76, 6.15], *t*(115) = 0.75, *p* = .453."            </span></span>
-<span><span class="co">#&gt; [4] "The treatment effect among unpretested participants was 3.63, 95% CI [-0.78, 8.05], *t*(115) = 1.63, *p* = .106."</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "The average treatment effect across pretest conditions was 2.66, 95% CI [-0.47, 5.80], *t*(115) = 1.68, *p* = .095."                                                                                                                                                                                                                                                                                           </span></span>
+<span><span class="co">#&gt; [2] "The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI [-8.21, 4.33], *t*(115) = -0.61, *p* = .541."                                                                                                                                                                                                                                                                                    </span></span>
+<span><span class="co">#&gt; [3] "The treatment effect among pretested participants was 1.69, 95% CI [-2.76, 6.15], *t*(115) = 0.75, *p* = .453."                                                                                                                                                                                                                                                                                                </span></span>
+<span><span class="co">#&gt; [4] "The treatment effect among unpretested participants was 3.63, 95% CI [-0.78, 8.05], *t*(115) = 1.63, *p* = .106."                                                                                                                                                                                                                                                                                              </span></span>
+<span><span class="co">#&gt; [5] "The pretest effect (pretested minus unpretested participants, at the pretested participants' mean pretest score of 49.60) was 3.42 among control participants, 95% CI [-1.30, 8.14], *t*(115) = 1.44, *p* = .154, and 1.48 among treated participants, 95% CI [-3.27, 6.23], *t*(115) = 0.62, *p* = .538; their average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], *t*(115) = 1.37, *p* = .174."</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="what-the-helper-does-not-do">What the helper does not do<a class="anchor" aria-label="anchor" href="#what-the-helper-does-not-do"></a>

@@ -179,12 +179,14 @@ effects of pretesting are negligible (p. 25). Comparing the unpretested
 control posttest with the pretests estimates the combined effect of
 maturation and history (p. 25). Without randomization, a comparison of
 groups measured only after the treatment is a static-group comparison,
-whose groups cannot be certified equivalent (p. 12). Page numbers refer
-to the 1966 book. <em>In solomonR:</em> Tests A–D and the history check
-of <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>;
-<code><a href="../reference/plot_solomon_design.html">plot_solomon_design()</a></code>; the caveat on the unpretested arms
-of nonrandomized designs in <code><a href="../reference/baseline_solomon.html">baseline_solomon()</a></code> and
-<code><a href="../reference/report_solomon.html">report_solomon()</a></code> (<a href="https://github.com/JUhalt/solomonR/issues/58" class="external-link">#58</a>).</p>
+whose groups cannot be certified equivalent (p. 12). The design
+estimates the main effect of testing as well as its interaction with the
+treatment (p. 25). Page numbers refer to the 1966 book. <em>In
+solomonR:</em> Tests A–D and the history check of
+<code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>; <code><a href="../reference/plot_solomon_design.html">plot_solomon_design()</a></code>;
+the caveat on the unpretested arms of nonrandomized designs in
+<code><a href="../reference/baseline_solomon.html">baseline_solomon()</a></code> and <code><a href="../reference/report_solomon.html">report_solomon()</a></code> (<a href="https://github.com/JUhalt/solomonR/issues/58" class="external-link">#58</a>); the
+pretest effects of the effects tables (<a href="https://github.com/JUhalt/solomonR/issues/104" class="external-link">#104</a>).</p>
 </blockquote>
 <p>Edmonds, W. A., &amp; Kennedy, T. D. (2017). <em>An applied guide to
 research designs: Quantitative, qualitative, and mixed methods</em> (2nd
@@ -441,7 +443,12 @@ the best estimate for the unpretested groups, to judge whether they
 improved or deteriorated, and the design is treated as a two-by-two
 factorial whose interaction is a difference of differences
 (pp. 146–147). <em>In solomonR:</em> the inferred pretest of
-<code><a href="../reference/fit_solomon_1949.html">fit_solomon_1949()</a></code>; the history article.</p>
+<code><a href="../reference/fit_solomon_1949.html">fit_solomon_1949()</a></code>; the mean pretest at which the pretest
+effects of <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>,
+<code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code>, and <code><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code>
+compare the pretested and unpretested groups, and the standardization of
+<code><a href="../reference/marginal_solomon.html">marginal_solomon()</a></code> (<a href="https://github.com/JUhalt/solomonR/issues/104" class="external-link">#104</a>); the
+history article.</p>
 </blockquote>
 <p>Steyn, R. (2005). <em>Self-evaluasie en die vorming van
 selfdoeltreffendheidspersepsies</em> [Self-evaluation and the forming of
@@ -736,6 +743,8 @@ Order Police, which used “a four-group design with a pre-, post- and
 post-post test” (p. 27). <em>In solomonR:</em> the coverage article,
 which records Steyn (2001) as not read (<a href="https://github.com/JUhalt/solomonR/issues/96" class="external-link">#96</a>).</p>
 </blockquote>
+<p>Stefanski, L. A., &amp; Boos, D. D. (2002). The calculus of
+M-estimation. <em>The American Statistician, 56</em>(1), 29–38. <a href="https://doi.org/10.1198/000313002753631330" class="external-link uri">https://doi.org/10.1198/000313002753631330</a></p>
 <p>Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
 contrast analysis. <em>Psychological Methods, 9</em>(2), 164–182. <a href="https://doi.org/10.1037/1082-989X.9.2.164" class="external-link uri">https://doi.org/10.1037/1082-989X.9.2.164</a></p>

@@ -72,13 +72,22 @@ fit_solomon_ml(
 
 ## Value
 
-An object of class `solomon_ml`.
+An object of class `solomon_ml`, with the coefficients, the `effects`
+table (the four Solomon contrasts, then the three pretest effects), the
+residual standard deviations, `pretest_mean`, and the settings used.
 
 ## Details
 
 The model estimates the treatment effect, pretest effect, Treatment x
 Pretest interaction, pretest-posttest slope, and separate residual
-standard deviations for pretested and unpretested participants.
+standard deviations for pretested and unpretested participants. The
+pretest enters as a deviation from its mean among pretested participants
+(returned as `pretest_mean`), so the pretest effect `bP` compares
+pretested and unpretested controls at that mean. The effects table
+reports the four Solomon contrasts and then the pretest effects among
+controls, among treated participants, and averaged over the two, as
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+does (see its section "The pretest effect").
 
 ## Inference options
 
@@ -96,6 +105,18 @@ with separate regressions in the pretested and unpretested groups.
   residual degrees of freedom, and contrasts that combine the conditions
   (the ATE and Pretest x Treatment) use Welch-Satterthwaite degrees of
   freedom (Satterthwaite, 1946; Welch, 1947).
+
+The pretest effects are evaluated at the mean pretest of the pretested
+participants, an estimate whose sampling variance their standard errors
+include (see the section "The pretest effect" of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
+Under the model the mean is independent of the regression estimates, so
+Wald inference adds `bX`^2 times the maximum-likelihood variance of the
+mean, and the small-sample option adds `bX`^2 s^2 / n, for n pretested
+participants whose pretests have variance s^2, as a third component with
+n - 1 degrees of freedom. The coefficient table gives `bP` with the
+standard error of van Engelenburg (1999), which treats the mean as
+fixed. The pretest effects were not part of the validation below.
 
 In the package's simulation validation (issues \#10 and \#22; 84
 scenarios with 2,000 replications each, reported in the article
@@ -155,6 +176,12 @@ with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
 #> Pretest x Treatment          -1.940 (SE = 3.104), t(115.0) = -0.62, p = 0.533, 95% CI [-8.088, 4.209]
 #> Treatment | pretested        1.693 (SE = 2.198), t(57) = 0.77, p = 0.444, 95% CI [-2.708, 6.095]
 #> Treatment | unpretested      3.633 (SE = 2.192), t(58) = 1.66, p = 0.103, 95% CI [-0.754, 8.020]
+#> Pretest effect | control     3.420 (SE = 2.345), t(144.2) = 1.46, p = 0.147, 95% CI [-1.215, 8.055]
+#> Pretest effect | treated     1.480 (SE = 2.345), t(144.2) = 0.63, p = 0.529, 95% CI [-3.155, 6.115]
+#> Pretest main effect          2.450 (SE = 1.758), t(163.7) = 1.39, p = 0.165, 95% CI [-1.021, 5.921]
+#> 
+#> Pretest effects: at the centered pretest mean, with standard errors that
+#> include its sampling variance.
 #> 
 #> logLik = -424.53; optimizer convergence = 0
 ```

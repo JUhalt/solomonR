@@ -169,6 +169,12 @@ report_solomon(fit, design = list(prespecified = TRUE))
 #> 6.15], t(115) = 0.75, p = .453.
 #> The treatment effect among unpretested participants was 3.63, 95% CI [-0.78,
 #> 8.05], t(115) = 1.63, p = .106.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 49.60) was 3.42 among control
+#> participants, 95% CI [-1.30, 8.14], t(115) = 1.44, p = .154, and 1.48 among
+#> treated participants, 95% CI [-3.27, 6.23], t(115) = 0.62, p = .538; their
+#> average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], t(115) =
+#> 1.37, p = .174.
 #> 
 #> References
 #> 
@@ -212,7 +218,9 @@ report_solomon(fit6)
 #> control (RP vs Control and GS vs Control), and the Solomon contrasts were
 #> estimated for each comparison. Within each contrast, the p-values of the two
 #> comparisons were adjusted with Holm's (1979) procedure; the confidence
-#> intervals were not adjusted.
+#> intervals were not adjusted. The pretest effect was estimated in each
+#> condition, and the p-values of the two treatments' pretest effects were
+#> adjusted with Holm's (1979) procedure.
 #> 
 #> The omnibus test of the Pretest x Condition interaction (pretest
 #> sensitization) gave F(2, 126) = 1.74, p = .179, and the omnibus test of the
@@ -236,6 +244,13 @@ report_solomon(fit6)
 #> .670, Holm-adjusted. The treatment effect of GS relative to Control among
 #> unpretested participants was 0.13, 95% CI [-0.12, 0.38], t(126) = 1.06, p =
 #> .585, Holm-adjusted.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 3.13) was 0.10 in the Control
+#> condition, 95% CI [-0.11, 0.30], t(126) = 0.93, p = .355; -0.19 in the RP
+#> condition, 95% CI [-0.43, 0.04], t(126) = -1.62, p = .217, Holm-adjusted; and
+#> 0.01 in the GS condition, 95% CI [-0.24, 0.25], t(126) = 0.04, p = .965,
+#> Holm-adjusted. Averaged over the conditions, the pretest main effect was
+#> -0.03, 95% CI [-0.17, 0.11], t(126) = -0.44, p = .661.
 #> 
 #> References
 #> 

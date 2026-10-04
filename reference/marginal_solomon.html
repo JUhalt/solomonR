@@ -178,8 +178,22 @@ effect within each pretest condition;</p></li>
 of risk differences, or a ratio of risk ratios or of odds ratios);</p></li>
 <li><p><code>ATE (avg over pretest)</code>: the effect in a population with equal numbers
 of pretested and unpretested participants, computed from the averaged
+risks;</p></li>
+<li><p><code>Pretest effect | control</code> and <code>Pretest effect | treated</code>: the pretested
+cell compared with the unpretested cell, among control and among
+treated participants (issue #104);</p></li>
+<li><p><code>Pretest main effect</code>: the pretest effect in a population with equal
+numbers of treated and control participants, computed from the averaged
 risks.</p></li>
-</ul><p>Sensitization depends on the scale: an effect can be modified on the
+</ul><p>The pretest effects compare two different sets of participants, because
+the unpretested participants have no pretest from which to predict their
+risk had they been pretested. Each set is standardized over its own
+participants, and with random assignment both estimate the same
+population: the expected pretest of the unpretested participants equals
+that of the pretested ones (Solomon &amp; Lessac, 1968, pp. 146–147). Both
+risks are then marginal, so the comparison is on a common scale, unlike
+the link-scale pretest effects of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>.</p>
+<p>Sensitization depends on the scale: an effect can be modified on the
 risk-difference scale and not on the ratio scale, or the reverse. Report
 the scale with every result.</p>
 <p>Intervals use a nonparametric bootstrap by default, resampling participants
@@ -193,12 +207,26 @@ in which the logistic fit fails (no convergence, a Solomon cell with only
 events or only non-events, or a fitted probability within 1e-8 of 0 or 1)
 are excluded and counted; when more than 10% fail, intervals are not
 reported.</p>
+<p>For the pretest effects, the pretested and the unpretested risks are
+standardized over different participants, so the sampling variance of
+each standardization does not cancel, as it does for the treatment
+contrasts, which standardize both arms over the same participants. The
+delta method therefore adds it for the pretest effects, with its
+covariance with the coefficients under HC3 or CR2 covariance, by stacking
+the estimating equations of the standardized means with those of the model
+(Stefanski &amp; Boos, 2002), as <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> does for the mean
+pretest; for clustered fits, the degrees of freedom are combined by the
+Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
+bootstrap resamples participants and so includes this variance.</p>
 <p>Count outcomes: for a fit with <code>family = poisson()</code> or
 <code>family = "negative_binomial"</code>, rates per unit of
 exposure are standardized in the same way and compared as rate differences
 or rate ratios. Log-link rate ratios are collapsible (Daniel et al., 2021),
-so they agree with the fitted model's coefficients when there are no other
-covariates; rate differences depend on the covariate distribution. For
+so the treatment contrasts' rate ratios agree with the fitted model's
+coefficients when there are no other covariates; rate differences depend on
+the covariate distribution. The pretest effects' rate ratios do not agree
+with the model's pretest effects when the pretest is a covariate, because
+the model compares a rate at the mean pretest with a marginal rate. For
 counts, intervals use the delta method with the fit's (by default robust
 HC3) covariance, which Cameron and Trivedi (2013) recommend under
 overdispersion; a bootstrap for counts has not been evaluated and is not
@@ -234,7 +262,8 @@ recommended alternative for risk differences in such designs when
 clustering is strong. <code>method = "cluster_summary"</code> computes it, as the
 study did: the unweighted mean of the cluster proportions in each arm,
 compared with a t interval that uses separate variances and Satterthwaite
-degrees of freedom. With pretesting assigned within clusters, each cluster
+degrees of freedom. It gives the four treatment contrasts only, the
+comparisons of treated and control clusters that the study validated. With pretesting assigned within clusters, each cluster
 contributes its pretested and unpretested proportions, and treated and
 control clusters are compared. It warns when an arm has fewer than four
 clusters, the minimum Hayes and Moulton (2017, p. 128) recommend. The differences were small, and the cluster-level comparison met
@@ -270,9 +299,21 @@ https://doi.org/10.1016/j.jclinepi.2006.12.001</p>
 cluster-robust variance estimation and hypothesis testing in fixed effects
 models. <em>Journal of Business &amp; Economic Statistics, 36</em>(4), 672–683.
 https://doi.org/10.1080/07350015.2016.1247004</p>
+<p>Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114.
+https://doi.org/10.2307/3002019</p>
+<p>Solomon, R. L., &amp; Lessac, M. S. (1968). A control group design for
+experimental studies of developmental processes. <em>Psychological Bulletin,
+70</em>(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147</p>
+<p>Stefanski, L. A., &amp; Boos, D. D. (2002). The calculus of M-estimation. <em>The
+American Statistician, 56</em>(1), 29–38.
+https://doi.org/10.1198/000313002753631330</p>
 <p>Tipton, E. (2015). Small sample adjustments for robust variance estimation
 with meta-regression. <em>Psychological Methods, 20</em>(3), 375–393.
 https://doi.org/10.1037/met0000011</p>
+<p>Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. <em>Biometrika, 34</em>(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -299,25 +340,34 @@ https://doi.org/10.1037/met0000011</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Unpretested, control 0.300</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Risk difference:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 contrast estimate conf.low conf.high p.value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ATE (avg over pretest)    0.136   -0.027     0.300   0.102</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Pretest x Treatment   -0.194   -0.521     0.132   0.244</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Treatment | pretested    0.039   -0.170     0.249   0.715</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Treatment | unpretested    0.233   -0.017     0.484   0.068</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  contrast estimate conf.low conf.high p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ATE (avg over pretest)    0.136   -0.027     0.300   0.102</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest x Treatment   -0.194   -0.521     0.132   0.244</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Treatment | pretested    0.039   -0.170     0.249   0.715</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment | unpretested    0.233   -0.017     0.484   0.068</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | control    0.199   -0.042     0.440   0.106</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | treated    0.004   -0.242     0.251   0.972</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect    0.101   -0.080     0.283   0.272</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Risk ratio:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 contrast estimate conf.low conf.high p.value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ATE (avg over pretest)    1.341    0.934     1.926   0.112</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Pretest x Treatment    0.607    0.278     1.321   0.208</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Treatment | pretested    1.078    0.717     1.622   0.717</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Treatment | unpretested    1.778    0.916     3.450   0.089</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  contrast estimate conf.low conf.high p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ATE (avg over pretest)    1.341    0.934     1.926   0.112</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest x Treatment    0.607    0.278     1.321   0.208</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Treatment | pretested    1.078    0.717     1.622   0.717</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment | unpretested    1.778    0.916     3.450   0.089</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | control    1.662    0.858     3.221   0.132</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | treated    1.008    0.636     1.599   0.972</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect    1.244    0.840     1.841   0.276</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Odds ratio:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 contrast estimate conf.low conf.high p.value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ATE (avg over pretest)    1.734    0.888     3.387    0.11</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Pretest x Treatment    0.439    0.110     1.746    0.24</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Treatment | pretested    1.169    0.505     2.709    0.72</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Treatment | unpretested    2.667    0.890     7.986    0.08</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  contrast estimate conf.low conf.high p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ATE (avg over pretest)    1.734    0.888     3.387    0.11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest x Treatment    0.439    0.110     1.746    0.24</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Treatment | pretested    1.169    0.505     2.709    0.72</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment | unpretested    2.667    0.890     7.986    0.08</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | control    2.321    0.805     6.692    0.12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | treated    1.018    0.377     2.745    0.97</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect    1.506    0.722     3.138    0.27</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Sensitization depends on the scale; report the scale with every result.</span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
@@ -334,25 +384,34 @@ https://doi.org/10.1037/met0000011</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Unpretested, control 0.300</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Risk difference:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 contrast estimate conf.low conf.high p.value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ATE (avg over pretest)    0.136   -0.026     0.281   0.090</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Pretest x Treatment   -0.194   -0.507     0.115   0.234</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Treatment | pretested    0.039   -0.155     0.230   0.705</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Treatment | unpretested    0.233    0.000     0.433   0.061</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  contrast estimate conf.low conf.high p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ATE (avg over pretest)    0.136   -0.026     0.281   0.090</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest x Treatment   -0.194   -0.507     0.115   0.234</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Treatment | pretested    0.039   -0.155     0.230   0.705</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment | unpretested    0.233    0.000     0.433   0.061</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | control    0.199   -0.021     0.428   0.089</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | treated    0.004   -0.225     0.242   0.972</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect    0.101   -0.056     0.281   0.254</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Risk ratio:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 contrast estimate conf.low conf.high p.value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ATE (avg over pretest)    1.341    0.942     1.934    0.11</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Pretest x Treatment    0.607    0.265     1.226    0.22</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Treatment | pretested    1.078    0.748     1.580    0.72</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Treatment | unpretested    1.778    1.000     3.886    0.10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  contrast estimate conf.low conf.high p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ATE (avg over pretest)    1.341    0.942     1.934    0.11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest x Treatment    0.607    0.265     1.226    0.22</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Treatment | pretested    1.078    0.748     1.580    0.72</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment | unpretested    1.778    1.000     3.886    0.10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | control    1.662    0.952     3.705    0.14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | treated    1.008    0.646     1.642    0.97</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect    1.244    0.882     1.945    0.27</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Odds ratio:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 contrast estimate conf.low conf.high p.value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ATE (avg over pretest)    1.734    0.899     3.244   0.099</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Pretest x Treatment    0.439    0.103     1.578   0.248</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Treatment | pretested    1.169    0.519     2.594   0.713</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Treatment | unpretested    2.667    1.000     7.848   0.084</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  contrast estimate conf.low conf.high p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ATE (avg over pretest)    1.734    0.899     3.244   0.099</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest x Treatment    0.439    0.103     1.578   0.248</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Treatment | pretested    1.169    0.519     2.594   0.713</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment | unpretested    2.667    1.000     7.848   0.084</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | control    2.321    0.918     7.382   0.117</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | treated    1.018    0.397     2.753   0.973</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect    1.506    0.800     3.234   0.267</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Sensitization depends on the scale; report the scale with every result.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
@@ -377,18 +436,24 @@ https://doi.org/10.1037/met0000011</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Unpretested, control 0.255</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Rate difference:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 contrast estimate conf.low conf.high p.value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ATE (avg over pretest)    0.053   -0.007     0.113   0.082</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Pretest x Treatment    0.051   -0.068     0.170   0.400</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Treatment | pretested    0.078   -0.002     0.159   0.055</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Treatment | unpretested    0.027   -0.061     0.116   0.544</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  contrast estimate conf.low conf.high p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ATE (avg over pretest)    0.053   -0.007     0.113   0.082</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest x Treatment    0.051   -0.068     0.170   0.400</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Treatment | pretested    0.078   -0.002     0.159   0.055</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment | unpretested    0.027   -0.061     0.116   0.544</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | control   -0.043   -0.120     0.033   0.268</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | treated    0.008   -0.083     0.099   0.865</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect   -0.018   -0.077     0.041   0.557</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Rate ratio:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 contrast estimate conf.low conf.high p.value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ATE (avg over pretest)    1.227    0.976     1.544   0.080</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Pretest x Treatment    1.238    0.780     1.967   0.365</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Treatment | pretested    1.371    0.989     1.903   0.059</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Treatment | unpretested    1.107    0.799     1.535   0.540</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  contrast estimate conf.low conf.high p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ATE (avg over pretest)    1.227    0.976     1.544   0.080</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest x Treatment    1.238    0.780     1.967   0.365</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Treatment | pretested    1.371    0.989     1.903   0.059</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment | unpretested    1.107    0.799     1.535   0.540</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | control    0.830    0.595     1.158   0.272</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Pretest effect | treated    1.028    0.748     1.413   0.866</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect    0.934    0.744     1.173   0.556</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Sensitization depends on the scale; report the scale with every result.</span>
 <span class="r-in"><span></span></span>

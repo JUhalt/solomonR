@@ -260,23 +260,35 @@ the default, is a sound starting point for continuous outcomes.</p>
 <span><span class="co">## Formula: y ~ treat * pretested + pre_obs</span></span>
 <span><span class="co">## Covariance: HC3 heteroskedasticity-consistent; t tests (df = 115)</span></span>
 <span><span class="co">## </span></span>
-<span><span class="co">## Term             Est (SE)             t   df      p              95% CI</span></span>
-<span><span class="co">## (Intercept)      51.100 (1.739)   29.39  115  &lt;.001    [47.656, 54.544]</span></span>
-<span><span class="co">## treat            3.633 (2.229)     1.63  115  0.106     [-0.782, 8.049]</span></span>
-<span><span class="co">## pretested        -26.219 (5.957)  -4.40  115  &lt;.001  [-38.019, -14.418]</span></span>
-<span><span class="co">## pre_obs          0.598 (0.101)     5.91  115  &lt;.001      [0.397, 0.798]</span></span>
-<span><span class="co">## treat:pretested  -1.940 (3.168)   -0.61  115  0.541     [-8.214, 4.335]</span></span>
+<span><span class="co">## Term             Est (SE)            t   df      p            95% CI</span></span>
+<span><span class="co">## (Intercept)      51.100 (1.739)  29.39  115  &lt;.001  [47.656, 54.544]</span></span>
+<span><span class="co">## treat            3.633 (2.229)    1.63  115  0.106   [-0.782, 8.049]</span></span>
+<span><span class="co">## pretested        3.420 (2.323)    1.47  115  0.144   [-1.182, 8.022]</span></span>
+<span><span class="co">## pre_obs          0.598 (0.101)    5.91  115  &lt;.001    [0.397, 0.798]</span></span>
+<span><span class="co">## treat:pretested  -1.940 (3.168)  -0.61  115  0.541   [-8.214, 4.335]</span></span>
 <span><span class="co">## </span></span>
-<span><span class="co">## Key contrasts            Est (SE)            t   df      p           95% CI  Wald R2</span></span>
-<span><span class="co">## ATE (avg over pretest)   2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024</span></span>
-<span><span class="co">## Pretest x Treatment      -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003</span></span>
-<span><span class="co">## Treatment | pretested    1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005</span></span>
-<span><span class="co">## Treatment | unpretested  3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023</span></span>
+<span><span class="co">## Key contrasts             Est (SE)            t   df      p           95% CI  Wald R2</span></span>
+<span><span class="co">## ATE (avg over pretest)    2.663 (1.584)    1.68  115  0.095  [-0.474, 5.801]    0.024</span></span>
+<span><span class="co">## Pretest x Treatment       -1.940 (3.168)  -0.61  115  0.541  [-8.214, 4.335]    0.003</span></span>
+<span><span class="co">## Treatment | pretested     1.693 (2.251)    0.75  115  0.453  [-2.765, 6.152]    0.005</span></span>
+<span><span class="co">## Treatment | unpretested   3.633 (2.229)    1.63  115  0.106  [-0.782, 8.049]    0.023</span></span>
+<span><span class="co">## Pretest effect | control  3.420 (2.383)    1.44  115  0.154  [-1.301, 8.141]    0.018</span></span>
+<span><span class="co">## Pretest effect | treated  1.480 (2.396)    0.62  115  0.538  [-3.266, 6.226]    0.003</span></span>
+<span><span class="co">## Pretest main effect       2.450 (1.789)    1.37  115  0.174  [-1.094, 5.994]    0.016</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Wald R2: partial R-squared for conventional Gaussian OLS;</span></span>
-<span><span class="co">## a Wald-based descriptive approximation when robust covariance is used.</span></span></code></pre>
+<span><span class="co">## a Wald-based descriptive approximation when robust covariance is used.</span></span>
+<span><span class="co">## pre_obs: the pretest, centered at the pretested participants' mean (49.600).</span></span>
+<span><span class="co">## The pretest effects compare pretested and unpretested participants at that</span></span>
+<span><span class="co">## score; their standard errors include the sampling variance of the mean, and</span></span>
+<span><span class="co">## the coefficient of pretested treats it as fixed.</span></span></code></pre>
 <p>The output contains model coefficients followed by the four principal
-Solomon contrasts.</p>
+Solomon contrasts and the three pretest effects: pretested minus
+unpretested participants among controls, among treated participants, and
+on average. The pretest enters as <code>pre_obs</code>, centered at the
+pretested participants’ mean, so the pretest effects compare the groups
+at that score (see “The pretest effect” in
+<code><a href="../reference/fit_solomon_glm.html">?fit_solomon_glm</a></code>).</p>
 <p>The contrasts can also be accessed directly:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">effects_display</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span></span>
@@ -389,6 +401,30 @@ Solomon contrasts.</p>
 <td align="right">1.63</td>
 <td align="right">.106</td>
 <td align="right">.023</td>
+</tr>
+<tr class="odd">
+<td align="left">Pretest effect | control</td>
+<td align="right">3.42</td>
+<td align="right">2.38</td>
+<td align="right">1.44</td>
+<td align="right">.154</td>
+<td align="right">.018</td>
+</tr>
+<tr class="even">
+<td align="left">Pretest effect | treated</td>
+<td align="right">1.48</td>
+<td align="right">2.40</td>
+<td align="right">0.62</td>
+<td align="right">.538</td>
+<td align="right">.003</td>
+</tr>
+<tr class="odd">
+<td align="left">Pretest main effect</td>
+<td align="right">2.45</td>
+<td align="right">1.79</td>
+<td align="right">1.37</td>
+<td align="right">.174</td>
+<td align="right">.016</td>
 </tr>
 </tbody>
 </table>
@@ -514,7 +550,7 @@ points) would be negligible.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/equivalence_solomon.html">equivalence_solomon</a></span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Solomon equivalence test (TOST)</span></span>
 <span><span class="co">## Contrast: Pretest x Treatment</span></span>
-<span><span class="co">## Equivalence bounds (raw scale): [-5.000, 5.000]; alpha = 0.05</span></span>
+<span><span class="co">## Equivalence bounds (outcome units): [-5.000, 5.000]; alpha = 0.05</span></span>
 <span><span class="co">## Inference: HC3 heteroskedasticity-consistent; t tests (df = 115)</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Estimate = -1.940 (SE = 3.168)</span></span>
@@ -605,6 +641,18 @@ applies.</p>
 <tr class="even">
 <td align="left">Treatment | unpretested</td>
 <td align="right">.023</td>
+</tr>
+<tr class="odd">
+<td align="left">Pretest effect | control</td>
+<td align="right">.018</td>
+</tr>
+<tr class="even">
+<td align="left">Pretest effect | treated</td>
+<td align="right">.003</td>
+</tr>
+<tr class="odd">
+<td align="left">Pretest main effect</td>
+<td align="right">.016</td>
 </tr>
 </tbody>
 </table>
@@ -740,6 +788,12 @@ the Solomon four-group design.</p>
 <span><span class="co">## Pretest x Treatment          -1.940 (SE = 3.104), t(115.0) = -0.62, p = 0.533, 95% CI [-8.088, 4.209]</span></span>
 <span><span class="co">## Treatment | pretested        1.693 (SE = 2.198), t(57) = 0.77, p = 0.444, 95% CI [-2.708, 6.095]</span></span>
 <span><span class="co">## Treatment | unpretested      3.633 (SE = 2.192), t(58) = 1.66, p = 0.103, 95% CI [-0.754, 8.020]</span></span>
+<span><span class="co">## Pretest effect | control     3.420 (SE = 2.345), t(144.2) = 1.46, p = 0.147, 95% CI [-1.215, 8.055]</span></span>
+<span><span class="co">## Pretest effect | treated     1.480 (SE = 2.345), t(144.2) = 0.63, p = 0.529, 95% CI [-3.155, 6.115]</span></span>
+<span><span class="co">## Pretest main effect          2.450 (SE = 1.758), t(163.7) = 1.39, p = 0.165, 95% CI [-1.021, 5.921]</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Pretest effects: at the centered pretest mean, with standard errors that</span></span>
+<span><span class="co">## include its sampling variance.</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## logLik = -424.53; optimizer convergence = 0</span></span></code></pre>
 <p>A useful feature of the likelihood formulation is that the

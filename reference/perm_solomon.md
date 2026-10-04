@@ -33,7 +33,16 @@ perm_solomon(
 
   Character string identifying the contrast to test. One of
   `"ATE (avg over pretest)"`, `"Pretest x Treatment"`,
-  `"Treatment | pretested"`, or `"Treatment | unpretested"`.
+  `"Treatment | pretested"`, or `"Treatment | unpretested"`. The pretest
+  effects of the fit are not tested: permuting treatment labels says
+  nothing about them, and with a pretest covariate the pretest labels
+  cannot be permuted. For a binary fit with a pretest covariate on a
+  noncollapsible link such as the logit, `"Pretest x Treatment"` gives a
+  classed warning (`solomonR_link_scale_warning`): on that scale the
+  contrast is nonzero whenever the pretest predicts the outcome, even
+  without sensitization (Daniel et al., 2021), so a rejection need not
+  reflect sensitization; see
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md).
 
 - reps:
 
@@ -162,6 +171,11 @@ Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for
 the analysis of incidence rates in cluster randomized trials.
 *International Journal of Epidemiology, 31*(4), 839–846.
 https://doi.org/10.1093/ije/31.4.839
+
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from
+oranges: Comparing noncollapsible effect estimators and their standard
+errors after adjustment for different covariate sets. *Biometrical
+Journal, 63*(3), 528–557. https://doi.org/10.1002/bimj.201900297
 
 DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
 correlation and regression coefficients. *Journal of the American
