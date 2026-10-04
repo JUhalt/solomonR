@@ -94,3 +94,52 @@ test_that("fit_solomon_sem_latent() fits a stated partial-invariance model", {
   expect_error(fit_solomon_sem_latent(s$data, items, s$treat, s$pretested,
                                       partial_post = c("y3 ~ 1", "y4 ~ 1")), "minority")
 })
+
+test_that("only loadings and intercepts of the listed items can be freed (#112)", {
+  expect_identical(.partial_item("y4 ~ 1"), "y4")
+  expect_identical(.partial_item(" y4~1 "), "y4")
+  expect_identical(.partial_item("POST =~ y3"), "y3")
+  expect_identical(.partial_item("F=~y3"), "y3")
+  expect_true(is.na(.partial_item("y2 ~~ y2")))
+  expect_true(is.na(.partial_item("F =~ y2 + y3")))
+  # A residual variance is not held equal by the invariance models, so
+  # freeing it would change nothing while the model was called partial.
+  expect_error(.check_partial("y2 ~~ y2", items), "names no parameter of the listed items in \"y2 ~~ y2\"",
+               fixed = TRUE)
+  # Every element must name a listed item, not just one of them.
+  expect_error(.check_partial(c("y4 ~ 1", "z ~ 1"), items), "\"z ~ 1\"", fixed = TRUE)
+  expect_silent(.check_partial("F =~ y3", items))
+
+  # Each freed loading names the factor its indicator measures.
+  expect_identical(.partial_for_model(c("F =~ y3", "y4 ~ 1"), list(POST = items)),
+                   c("POST =~ y3", "y4 ~ 1"))
+  expect_identical(.partial_for_model(c("POST =~ p2", "F =~ y3"),
+                                      list(PRE = c("p1", "p2", "p3"), POST = items)),
+                   c("PRE =~ p2", "POST =~ y3"))
+  expect_null(.partial_for_model(NULL, list(POST = items)))
+})
+
+test_that("a loading freed under another factor name is freed in the latent model (#112)", {
+  skip_if_not_installed("lavaan")
+  s <- invariance_data()
+  none <- fit_solomon_sem_latent(s$data, items, s$treat, s$pretested, check_invariance = FALSE)
+  # The invariance check's verdict is not the subject here.
+  as_f <- suppressWarnings(
+    fit_solomon_sem_latent(s$data, items, s$treat, s$pretested, partial_post = "F =~ y3")
+  )
+  as_post <- fit_solomon_sem_latent(s$data, items, s$treat, s$pretested,
+                                    partial_post = "POST =~ y3", check_invariance = FALSE)
+  # lavaan once ignored "F =~ y3", because the model's factor is POST, and
+  # held the loading equal while the invariance check freed it.
+  df <- function(fit) lavaan::fitMeasures(fit$fit_post, "df")[[1]]
+  expect_equal(df(as_f), df(none) - 3)
+  expect_equal(lavaan::fitMeasures(as_f$fit_post, c("chisq", "df")),
+               lavaan::fitMeasures(as_post$fit_post, c("chisq", "df")))
+  expect_equal(as_f$effects_post, as_post$effects_post)
+  pt <- lavaan::parTable(as_f$fit_post)
+  expect_identical(unique(pt$label[pt$op == "=~" & pt$rhs == "y3"]), "")
+  expect_identical(as_f$settings$partial_post, "POST =~ y3")
+  # The model and its invariance check free the same loading.
+  expect_identical(as_f$invariance$models$df[2],
+                   invariance_solomon(s$data, items, s$treat, s$pretested)$models$df[2] - 3)
+})

@@ -87,7 +87,9 @@
 # a cluster permutation test can exceed its nominal level under the weak null
 # hypothesis (Gail et al., 1996, p. 1079). The rates quoted are the largest
 # Type I errors in the package's simulation study (issue #19), all with
-# treated clusters four times as variable as control clusters.
+# treated clusters four times as variable as control clusters. It shares the
+# class solomonR_unbalanced_arms_warning with the participant-level warning
+# (.warn_unbalanced_arms(), issue #113).
 .warn_unbalanced_clusters <- function(statistic, strata, n_treated, n_control) {
   counts <- sprintf("%d treated and %d control", n_treated, n_control)
   if (!identical(names(strata), "all")) counts <- paste0(names(strata), ": ", counts)
@@ -103,7 +105,8 @@
     )
   }
   warning(structure(
-    class = c("solomonR_unbalanced_clusters_warning", "warning", "condition"),
+    class = c("solomonR_unbalanced_clusters_warning", "solomonR_unbalanced_arms_warning",
+              "warning", "condition"),
     list(
       message = paste0(
         "Treated and control clusters differ in number (",
@@ -112,6 +115,35 @@
         "effect is zero it can reject too often if the arm with fewer clusters ",
         "is more variable (Gail et al., 1996). In the package's simulation ",
         "(issue #19), ", evidence, "."
+      ),
+      call = NULL
+    )
+  ))
+}
+
+# Classed warning for the participant-level test with the difference
+# statistic when treated and control participants differ in number within a
+# pretest condition the contrast uses (issue #113). A permutation test of a
+# difference in means is exact for the sharp null hypothesis, but for the
+# hypothesis that only the average effect is zero it keeps its level, even
+# asymptotically, only when the arms are equal in size or in variance
+# (Romano, 1990). The rates quoted are those of the check described in
+# ?perm_solomon. `n_treated` and `n_control` are named by pretest condition.
+.warn_unbalanced_arms <- function(n_treated, n_control) {
+  counts <- sprintf("%s: %d treated and %d control", names(n_treated), as.integer(n_treated),
+                    as.integer(n_control))
+  warning(structure(
+    class = c("solomonR_unbalanced_arms_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "Treated and control participants differ in number (", paste(counts, collapse = "; "),
+        "). With statistic = \"difference\", the test is exact only for the sharp null ",
+        "hypothesis of no effect for any participant; when only the average effect is zero, ",
+        "it can reject too often if the arms also differ in variance (Romano, 1990). In the ",
+        "check described in ?perm_solomon, with 8 treated and 24 control participants per ",
+        "pretest condition and a treated standard deviation twice the control one, its ",
+        "Type I error was 0.14, against 0.06 for the default statistic = \"studentized\", ",
+        "which is recommended."
       ),
       call = NULL
     )

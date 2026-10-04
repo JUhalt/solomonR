@@ -200,8 +200,9 @@ analyzes a design from those statistics:
 
 ```{r steyn2005}
 steyn2005[, c("group", "condition", "pretested", "n", "mean", "sd")]
-with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
-                                     pretested = pretested, control = "Control"))
+s2005 <- with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
+                                              pretested = pretested, control = "Control"))
+s2005
 ```
 
 The thesis analyzed the study as overlapping four-group designs and then
@@ -213,6 +214,15 @@ Two cautions apply to this reanalysis, as to the original analysis.
 Existing classes, not participants, were allocated to the eight groups, and
 not at random (Steyn, 2005, pp. 105–106). The analysis treats participants
 as the units, so it does not allow for the classes.
+
+`report_solomon()` drafts the method and results of the reanalysis. Because
+the classes were not allocated at random, `assignment = "nonrandom"` makes
+it describe differences between groups rather than treatment effects. The
+omnibus tests and the first comparison:
+
+```{r steyn2005-report}
+report_solomon(s2005, design = list(assignment = "nonrandom"))$results[1:2]
+```
 
 ## Steyn's (2009) sequence of tests
 

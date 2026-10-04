@@ -57,6 +57,104 @@
   methods "ML, Satterthwaite (default)" and "ML, Wald (van Engelenburg,
   1999)"; the simulation's own results file keeps the labels of the run.
 
+## A report for every analysis (#111)
+
+* `report_solomon()` now reports `solomon_from_summary()` analyses of
+  designs with several treatments, which gave an error: the omnibus F
+  tests of the two-way analysis of variance (the Pretest x Condition
+  interaction, the conditions, and pretesting) and the Holm-adjusted
+  Solomon contrasts of each treatment against the control. The contrasts
+  are worded, and come out, as for `fit_solomon_glm()` on the individual
+  data. The article "Designs With Several Treatments" shows the report for
+  Steyn's (2005) eight-group study.
+* `report_solomon()` now also reports `fit_solomon_1949()`, Solomon's
+  improvement-score analysis: his inferred pretest, the improvements, and
+  the interaction I, with the facts that Solomon gave no test for I and
+  that Campbell and Stanley (1963/1966) judged the analysis unacceptable.
+  The three-group design has its own design statement, and its one
+  unpretested group is named as such; for a nonrandomized study the report
+  says that the pretest mean inferred for Control Group II assumes an
+  equivalence of the groups that cannot be checked, instead of describing
+  a static-group comparison of unpretested arms the design does not have.
+* `?report_solomon` lists the two analysis functions it leaves out on
+  purpose, `stouffer_solomon()` and `solomon_effect_sizes()`, and why, as
+  does the article "How to Cite solomonR and the Methods It Implements".
+  Other objects are refused with an error that points to that list.
+* A new test fits every exported analysis function, checks that each
+  result class it can return has a report handler or that the function is
+  among the exclusions, and reports each result.
+
+## Latent SEM reports (#112)
+
+* The report of `fit_solomon_sem_latent()` no longer claims scalar
+  measurement invariance whatever the fit did. It states the constraints
+  the model imposed, names the loadings and intercepts that the fitted
+  model left free to differ across groups (read from the model, not from
+  `partial_post` and `partial_pre`), says whether the invariance check
+  freed the same ones, and gives the result of the check under each
+  criterion: both supported the invariance the contrasts assume, only one
+  did, neither did, or invariance was not tested.
+* The report now gives the details the reporting standards for structural
+  equation models ask for (Appelbaum et al., 2018): the lavaan version, the
+  estimator (for MLR, the Yuan-Bentler scaled chi-square; Yuan & Bentler,
+  2000), full-information maximum likelihood for missing values, the group
+  sizes, the identification constraint (the latent posttest mean of the
+  unpretested control group fixed at 0, and how the latent scale was set),
+  the chi-square test, CFI, RMSEA, and SRMR, and the latent ANCOVA when it
+  was fitted. The fit stores its `estimator` in `settings`.
+* For the latent ANCOVA, the report states the constraints that identify
+  it and the unit of its adjusted effect. With `std_lv = TRUE`, lavaan
+  fixes the latent pretest mean and variance and the residual variance of
+  the latent posttest in the pretested treated group, so the effect is in
+  residual standard deviations of the latent posttest, not the unit of the
+  four-group contrasts printed above it. `?fit_solomon_sem_latent` now
+  explains the units.
+* `report_solomon()` now reports `invariance_solomon()` results: each
+  model's fit (its chi-square test with the p-value, scaled for a robust
+  estimator, and the CFI, RMSEA, and SRMR), the difference tests and
+  changes in fit at each step, the
+  criteria and Chen's (2007) cutoffs used, and the decision under each
+  criterion, the minimal information Putnick and Bornstein (2016) propose.
+* A loading freed in `fit_solomon_sem_latent()` as `partial_post = "POST =~
+  y3"` was left constrained in its invariance check, whose factor is named
+  `F`, so the check tested a different model from the one fitted.
+  Written as `"F =~ y3"`, the loading was freed in the check but left
+  constrained in the model, whose factor is `POST`. Both functions now free
+  a loading on the factor its indicator measures, whatever factor name it
+  is given.
+* `partial` in `invariance_solomon()`, and `partial_post` and
+  `partial_pre` in `fit_solomon_sem_latent()`, now accept only intercepts
+  and loadings of the listed indicators, the parameters the invariance
+  models hold equal. Other parameters, such as a residual variance, were
+  accepted but changed nothing while the model was called partially
+  invariant.
+* With `std_lv = FALSE`, freeing the loading of the first indicator, which
+  sets the latent scale, makes lavaan keep it at 1 in the pretested treated
+  group only and estimate it in the other groups. The report and the help
+  pages now say so, and that the latent scale is then that of the first
+  indicator in that group.
+* Appelbaum et al. (2018), Putnick and Bornstein (2016), and Yuan and
+  Bentler (2000) are added to the references.
+
+## The difference statistic of `perm_solomon()` (#113)
+
+* `perm_solomon(statistic = "difference")` now gives a classed warning,
+  `solomonR_unbalanced_arms_warning`, when treated and control participants
+  differ in number in a pretest condition the contrast uses. The difference
+  statistic tests only the sharp null hypothesis; when only the average
+  effect is zero, it can reject too often if the arms differ in size and
+  variance (Romano, 1990). In a check with 8 treated and 24 control
+  participants per pretest condition and a treated standard deviation
+  twice the control one, its Type I error at .05 was 0.144 (Monte Carlo
+  standard error 0.011), against 0.064 (0.008) for the studentized
+  statistic (`tools/perm-difference-check.R`, 1,000 replications).
+* The cluster-level warning, `solomonR_unbalanced_clusters_warning`, now
+  also has that class, so one handler catches both.
+* `?perm_solomon` says the difference statistic tests only the sharp null
+  hypothesis and recommends the studentized default, and `report_solomon()`
+  says so for a difference test, citing Romano (1990), now in the
+  references.
+
 ## The pretest effect (#104)
 
 * The effects tables of `fit_solomon_glm()`, `fit_solomon_ml()`, and
