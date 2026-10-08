@@ -302,7 +302,7 @@ which runs the planned analysis in order.</p></div>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> # Analysis plan for a Solomon four-group study</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Drafted with solomonR 0.8.1.9000 on 2026-10-04. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Drafted with solomonR 0.8.1.9000 on 2026-10-08. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ## 1. Hypotheses (SPIRIT 12)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -339,7 +339,7 @@ which runs the planned analysis in order.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ### Primary analysis (SPIRIT 20a)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013), with HC3 standard errors (MacKinnon &amp; White, 1985; Long &amp; Ervin, 2000).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990), with HC3 standard errors (MacKinnon &amp; White, 1985; Long &amp; Ervin, 2000).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> - **Confirmatory contrasts:** ATE (avg over pretest) and Pretest x Treatment.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> - H1 is tested with the average treatment effect at alpha = .05: [two-sided, or one-sided in the predicted direction].</span>
@@ -386,6 +386,8 @@ which runs the planned analysis in order.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Long, J. S., &amp; Ervin, L. H. (2000). Using heteroscedasticity consistent standard errors in the linear regression model. *The American Statistician, 54*(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> MacKinnon, J. G., &amp; White, H. (1985). Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. *Journal of Econometrics, 29*(3), 305–325. https://doi.org/10.1016/0304-4076(85)90158-7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in analyzing the Solomon four group design. *Multiple Linear Regression Viewpoints, 17*(2), 91–103. https://ojs.lib.ua.edu/glmj/article/view/125</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Nosek, B. A., Ebersole, C. R., DeHaven, A. C., &amp; Mellor, D. T. (2018). The preregistration revolution. *Proceedings of the National Academy of Sciences, 115*(11), 2600–2606. https://doi.org/10.1073/pnas.1708274114</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>

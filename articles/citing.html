@@ -154,7 +154,8 @@ version of the test sequence:</p>
 <span><span class="co">#&gt; [1] "Lin, W. (2013). Agnostic notes on regression adjustments to experimental data: Reexamining Freedman's critique. The Annals of Applied Statistics, 7(1), 295–318. https://doi.org/10.1214/12-AOAS583"                                </span></span>
 <span><span class="co">#&gt; [2] "Long, J. S., &amp; Ervin, L. H. (2000). Using heteroscedasticity consistent standard errors in the linear regression model. The American Statistician, 54(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549"                  </span></span>
 <span><span class="co">#&gt; [3] "MacKinnon, J. G., &amp; White, H. (1985). Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. Journal of Econometrics, 29(3), 305–325. https://doi.org/10.1016/0304-4076(85)90158-7"</span></span>
-<span><span class="co">#&gt; [4] "Solomon, R. L. (1949). An extension of control group design. Psychological Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958"</span></span></code></pre></div>
+<span><span class="co">#&gt; [4] "Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in analyzing the Solomon four group design. Multiple Linear Regression Viewpoints, 17(2), 91–103. https://ojs.lib.ua.edu/glmj/article/view/125"                        </span></span>
+<span><span class="co">#&gt; [5] "Solomon, R. L. (1949). An extension of control group design. Psychological Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958"</span></span></code></pre></div>
 <p>The table lists the references each analysis function rests on,
 whatever options are chosen. Options add references of their own;
 <code><a href="../reference/report_solomon.html">report_solomon()</a></code> includes them, and each function’s help
@@ -257,6 +258,15 @@ Scheffé (1953)</td>
 </tr>
 </tbody>
 </table>
+<p><code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> has no core reference in the table
+because its references depend on the fit. When a pretest is supplied,
+its model is the one Newman et al. (1990) proposed for the Solomon
+design, and <code><a href="../reference/report_solomon.html">report_solomon()</a></code> cites them, with Lin (2013),
+for the pretest adjustment. A single model for the whole design goes
+back to Williams and Newman (1982), who analyzed all six sets of
+observations at once without a covariate. Cite them for that history,
+not as the source of the model that <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>
+fits.</p>
 <p>The full entries, with notes on how the package uses each work, are
 on the <a href="references.html">References</a> page.</p>
 <p><code><a href="../reference/report_solomon.html">report_solomon()</a></code> takes the result of every function in
@@ -310,6 +320,12 @@ rates.</p>
 <p>Braver, S. L., &amp; Walton Braver, M. C. (1990). Meta-analysis for
 Solomon four-group designs reconsidered: A reply to Sawilowsky and
 Markman. <em>Perceptual and Motor Skills, 71</em>(1), 321–322. <a href="https://doi.org/10.2466/pms.1990.71.1.321" class="external-link uri">https://doi.org/10.2466/pms.1990.71.1.321</a></p>
+<p>Lin, W. (2013). Agnostic notes on regression adjustments to
+experimental data: Reexamining Freedman’s critique. <em>The Annals of
+Applied Statistics, 7</em>(1), 295–318. <a href="https://doi.org/10.1214/12-AOAS583" class="external-link uri">https://doi.org/10.1214/12-AOAS583</a></p>
+<p>Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. <em>Multiple Linear Regression
+Viewpoints, 17</em>(2), 91–103. <a href="https://ojs.lib.ua.edu/glmj/article/view/125" class="external-link uri">https://ojs.lib.ua.edu/glmj/article/view/125</a></p>
 <p>Sawilowsky, S. S. (1996, June 23). <em>Controlling experiment-wise
 Type I error of meta-analysis in the Solomon four-group design</em>
 [Paper presentation]. First International Conference on Multiple
@@ -317,6 +333,9 @@ Comparisons, Tel Aviv, Israel. <a href="https://digitalcommons.wayne.edu/coe_tbf
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical
 treatment of the Solomon four-group design: A meta-analytic approach.
 <em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>
+<p>Williams, J. D., &amp; Newman, I. (1982). Using linear models to
+simultaneously analyze a Solomon four group design. <em>Multiple Linear
+Regression Viewpoints, 11</em>(3), 77–90. <a href="https://ojs.lib.ua.edu/glmj/article/view/68" class="external-link uri">https://ojs.lib.ua.edu/glmj/article/view/68</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

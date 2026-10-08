@@ -661,8 +661,9 @@ report_solomon(fit, design = list(prespecified = TRUE))
 #> 
 #> Posttest outcomes were analyzed with a linear model containing treatment,
 #> pretesting, and their interaction, adjusting for the pretest score among
-#> pretested participants (Lin, 2013), with HC3 heteroskedasticity-consistent
-#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).
+#> pretested participants (Lin, 2013; Newman et al., 1990), with HC3
+#> heteroskedasticity-consistent standard errors (MacKinnon & White, 1985; Long
+#> & Ervin, 2000).
 #> 
 #> The average treatment effect across pretest conditions was 2.66, 95% CI
 #> [-0.47, 5.80], t(115) = 1.68, p = .095.
@@ -694,6 +695,10 @@ report_solomon(fit, design = list(prespecified = TRUE))
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958

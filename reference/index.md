@@ -171,6 +171,8 @@ analyses.
   : Solomon's (1949) spelling experiment
 - [`steyn2005`](https://juhalt.github.io/solomonR/reference/steyn2005.md)
   : Group statistics from Steyn's (2005) eight-group study
+- [`waltonbraver1988`](https://juhalt.github.io/solomonR/reference/waltonbraver1988.md)
+  : The worked example of Walton Braver and Braver (1988)
 
 ## Deprecated
 

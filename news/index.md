@@ -2,6 +2,79 @@
 
 ## solomonR (development version)
 
+### Credit for the unified model ([\#105](https://github.com/JUhalt/solomonR/issues/105))
+
+- The model of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  is now credited to Newman, Benz, and Williams (1990), who proposed it
+  for the Solomon design: one regression for the four groups, with the
+  pretest as a covariate coded 0 for the unpretested. The methods guide
+  lists it as a published Solomon proposal, no longer a solomonR
+  extension, and names the package’s additions: the four contrasts as
+  named estimates with confidence intervals, HC3 and CR2 standard errors
+  with Satterthwaite degrees of freedom for CR2, other families and
+  exposure offsets, the noncollapsibility warning and
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  additional covariates, designs with several treatments, and
+  randomization and equivalence tests.
+- [`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  and the methods guide give the model’s source, the interaction
+  restriction as Newman et al. printed it, and their caution against
+  treating the unpretested as having a pretest score of zero. With the
+  pretest now centered
+  ([\#104](https://github.com/JUhalt/solomonR/issues/104)), the
+  `pretested` coefficient compares the groups at the pretested
+  participants’ mean pretest, where Newman et al. took their adjusted
+  means (p. 101); the four Solomon contrasts do not depend on the
+  centering.
+- A new known-result test reproduces their worked example: the pretest
+  slope, the within-groups sum of squares, and the tests of the
+  treatment and the interaction (Table 3, p. 100). The printed
+  interaction F of .22 is 0.21 from their data.
+- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  and
+  [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
+  cite Newman et al.
+  1990. with Lin (2013) where they describe the pretest adjustment. “How
+        to Cite solomonR” explains that
+        [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+        cites them when a pretest is supplied.
+- Williams and Newman (1982), who fitted one model to all six sets of
+  observations in answer to Campbell and Stanley, are added with Newman
+  et al. (1990) to the history, coverage, and citation articles and the
+  references.
+
+### Dukes et al. (1995), the latent-variable precedent ([\#106](https://github.com/JUhalt/solomonR/issues/106))
+
+- Dukes, Ullman, and Stein (1995), a Solomon evaluation analyzed with
+  latent variables, is cited as a published precedent for the SEM
+  functions in the SEM article, the methods guide, the coverage article,
+  and the references. The SEM article sets their three two-group models,
+  which test loadings, impose equal intercepts, and do not test the
+  interaction, beside the package’s four-group model and invariance
+  tests, and names what the two share. The SEM functions are unchanged;
+  four further elements of their method (a latent maturation contrast, a
+  pretest main effect, a latent baseline check, and a standardized
+  latent contrast) are planned under
+  [\#117](https://github.com/JUhalt/solomonR/issues/117).
+
+### The worked example of Walton Braver and Braver (1988) ([\#109](https://github.com/JUhalt/solomonR/issues/109))
+
+- New data set `waltonbraver1988`: the hypothetical data of the worked
+  example of Walton Braver and Braver (1988, Table 3, p. 153). Its
+  known-result test reproduces the published Tests A, D, E, H, and I,
+  the pretest main effect, the 1988 path, and the power remark within
+  rounding.
+- A known-result test reproduces Tests E and H of the counterexample of
+  Sawilowsky and Markman (1988), read in its ERIC version, and shows
+  that its printed error entry, 1200.04, is a misprint.
+- “The Classic Solomon Four-Group Analysis” gains a section on these
+  published worked examples, and states more precisely the reading of
+  Test I that reproduces the published simulation rates.
+- The roadmap no longer calls the historical workflow validated. It
+  states that the computations reproduce and the published Monte Carlo
+  rates only in part.
+
 ### Satterthwaite inference by default in fit_solomon_ml() ([\#115](https://github.com/JUhalt/solomonR/issues/115))
 
 - **A change in default that can alter results.**

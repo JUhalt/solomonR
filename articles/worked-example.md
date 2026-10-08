@@ -244,8 +244,9 @@ therefore also come from who was lost.
 ## The recommended analysis
 
 The historical sequence tests parts of the design one at a time. The
-recommended analysis fits one model to all four groups
-([`vignette("glm-solomon")`](https://juhalt.github.io/solomonR/articles/glm-solomon.md)).
+recommended analysis fits one model to all four groups, as Newman et al.
+(1990) proposed (see
+[`vignette("glm-solomon")`](https://juhalt.github.io/solomonR/articles/glm-solomon.md)).
 It estimates the Pretest x Treatment interaction and both simple
 treatment effects together, adjusts for the pretest among pretested
 participants (Lin, 2013), and uses standard errors that do not assume
@@ -457,13 +458,14 @@ report_solomon(tp_sens)
 #> pretest in the pretested groups (Carpenter et al., 2023). Each completed data
 #> set was analyzed with a linear model containing treatment, pretesting, and
 #> their interaction, adjusting for the pretest score among pretested
-#> participants, with HC3 heteroskedasticity-consistent standard errors, and the
-#> estimates were combined with Rubin's rules, using the small-sample degrees of
-#> freedom of Barnard and Rubin (1999, as cited in van Buuren, 2018). In a
-#> tipping-point sensitivity analysis (White et al., 2011; Little et al., 2012),
-#> the imputed posttests of the pretested treatment group were shifted by
-#> offsets from -0.38 to 0.38 (-1.00 to 1.00 pooled within-group standard
-#> deviations of the observed posttests).
+#> participants (Lin, 2013; Newman et al., 1990), with HC3
+#> heteroskedasticity-consistent standard errors, and the estimates were
+#> combined with Rubin's rules, using the small-sample degrees of freedom of
+#> Barnard and Rubin (1999, as cited in van Buuren, 2018). In a tipping-point
+#> sensitivity analysis (White et al., 2011; Little et al., 2012), the imputed
+#> posttests of the pretested treatment group were shifted by offsets from -0.38
+#> to 0.38 (-1.00 to 1.00 pooled within-group standard deviations of the
+#> observed posttests).
 #> 
 #> Assuming the posttests were missing at random, the Pretest x Treatment
 #> interaction (pretest sensitization) was -0.28, 95% CI [-0.60, 0.03], p =
@@ -500,6 +502,10 @@ report_solomon(tp_sens)
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
 #> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
+#> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
 #> 
@@ -532,8 +538,9 @@ report_solomon(fit, design = list(randomized = c(35, 50, 31, 35),
 #> 
 #> Posttest outcomes were analyzed with a linear model containing treatment,
 #> pretesting, and their interaction, adjusting for the pretest score among
-#> pretested participants (Lin, 2013), with HC3 heteroskedasticity-consistent
-#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).
+#> pretested participants (Lin, 2013; Newman et al., 1990), with HC3
+#> heteroskedasticity-consistent standard errors (MacKinnon & White, 1985; Long
+#> & Ervin, 2000).
 #> 
 #> The average treatment effect across pretest conditions was -0.03, 95% CI
 #> [-0.19, 0.12], t(90) = -0.44, p = .660.
@@ -565,6 +572,10 @@ report_solomon(fit, design = list(randomized = c(35, 50, 31, 35),
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
@@ -640,6 +651,11 @@ missing data* (3rd ed.). Wiley. <https://doi.org/10.1002/9781119482260>
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
 of transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
+
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. *Multiple Linear Regression
+Viewpoints, 17*(2), 91–103.
+<https://ojs.lib.ua.edu/glmj/article/view/125>
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological

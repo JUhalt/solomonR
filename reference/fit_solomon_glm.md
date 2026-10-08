@@ -145,12 +145,29 @@ When `y_pre` is supplied, it enters the model as `pre_obs`: in the
 pretested groups, the pretest score minus the mean pretest of the
 pretested participants in the model (returned as `pretest_mean`), and in
 the unpretested groups 0, so the structurally absent pretests do not
-remove Groups 3 and 4. Centering changes neither the fitted values nor
-the treatment contrasts; it makes the pretesting coefficient the pretest
-effect among controls at that mean, as in
-[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md).
-Without centering, the coefficient would compare the groups at a pretest
-score of zero, far outside the data. Regression adjustment for baseline
+remove Groups 3 and 4. This is the model Newman et al. (1990) proposed
+for the design, which they call a pseudo-analysis of covariance (pp. 94,
+98), written with treatment and pretest indicators in place of their
+group indicators (equation 7, p. 98); the two forms give the same fitted
+values. Each group keeps its own mean, so the pretest slope is estimated
+within the pretested groups, and the unpretested groups' means are not
+adjusted (p. 98). They tested the interaction as the restriction b1 =
+b3 + b2 - b4 on the group coefficients (p. 98), the difference of
+differences that the Pretest x Treatment contrast estimates. With
+`robust = "none"`, the fit reproduces their pretest slope (.55264, p.
+98), their within-groups sum of squares, and their tests of the
+treatment (F = 21.01) and the interaction (F = 0.21, printed .22) (Table
+3, p. 100). Centering changes neither the fitted values nor the
+treatment contrasts; it makes the pretesting coefficient the pretest
+effect among controls at the pretested participants' mean pretest, as in
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+the mean at which Newman et al. took their adjusted means (p. 101).
+Without centering, the coefficient would compare the two control groups
+at a pretest score of 0, which treats the unpretested participants as if
+they had scored 0, the adjustment Newman et al. cautioned against (p.
+98). solomonR adds the named contrasts with confidence intervals, the
+pretest effects, robust and cluster-robust inference, other families,
+and designs with several treatments. Regression adjustment for baseline
 covariates in randomized experiments, and the case for pairing it with
 heteroskedasticity-robust standard errors, is discussed by Lin (2013).
 Pretested participants with a missing pretest score are excluded with a
@@ -478,6 +495,10 @@ Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 through service learning. *Journal of Management Education, 26*(6),
 629–647. https://doi.org/10.1177/1052562902238322
+
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. *Multiple Linear Regression
+Viewpoints, 17*(2), 91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed

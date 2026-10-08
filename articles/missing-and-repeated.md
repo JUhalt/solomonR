@@ -203,13 +203,14 @@ report_solomon(tp)
 #> pretest in the pretested groups (Carpenter et al., 2023). Each completed data
 #> set was analyzed with a linear model containing treatment, pretesting, and
 #> their interaction, adjusting for the pretest score among pretested
-#> participants, with HC3 heteroskedasticity-consistent standard errors, and the
-#> estimates were combined with Rubin's rules, using the small-sample degrees of
-#> freedom of Barnard and Rubin (1999, as cited in van Buuren, 2018). In a
-#> tipping-point sensitivity analysis (White et al., 2011; Little et al., 2012),
-#> the imputed posttests of the pretested treatment and unpretested treatment
-#> groups were shifted by offsets from -25.00 to 10.00 (-2.39 to 0.96 pooled
-#> within-group standard deviations of the observed posttests).
+#> participants (Lin, 2013; Newman et al., 1990), with HC3
+#> heteroskedasticity-consistent standard errors, and the estimates were
+#> combined with Rubin's rules, using the small-sample degrees of freedom of
+#> Barnard and Rubin (1999, as cited in van Buuren, 2018). In a tipping-point
+#> sensitivity analysis (White et al., 2011; Little et al., 2012), the imputed
+#> posttests of the pretested treatment and unpretested treatment groups were
+#> shifted by offsets from -25.00 to 10.00 (-2.39 to 0.96 pooled within-group
+#> standard deviations of the observed posttests).
 #> 
 #> Assuming the posttests were missing at random, the average treatment effect
 #> across pretest conditions was 6.49, 95% CI [3.23, 9.76], p < .001.
@@ -244,6 +245,10 @@ report_solomon(tp)
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
@@ -429,7 +434,7 @@ reports the fit:
 ``` r
 
 report_solomon(mm, digits = 1)$method
-#> [1] "Posttest outcomes at 3 occasions were analyzed with a mixed model for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013), with an unstructured within-participant covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood (Laird & Ware, 1982). Tests used Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011). The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that missing posttests are missing at random."
+#> [1] "Posttest outcomes at 3 occasions were analyzed with a mixed model for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013; Newman et al., 1990), with an unstructured within-participant covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood (Laird & Ware, 1982). Tests used Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011). The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that missing posttests are missing at random."
 ```
 
 For a published study with three posttest occasions, reproduced from its

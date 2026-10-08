@@ -569,14 +569,14 @@ report_solomon(fit)
 #> Posttest outcomes of the six groups were analyzed jointly with a linear model
 #> containing an indicator for each treatment, pretesting, and their
 #> interactions, adjusting for the pretest score among pretested participants
-#> (Lin, 2013), with HC3 heteroskedasticity-consistent standard errors
-#> (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F tests examined
-#> whether the differences between the conditions depended on pretesting (the
-#> Pretest x Condition interaction) and whether the conditions differed when
-#> averaged over pretest conditions. Each treatment was compared with the
-#> control (RP vs Control and GS vs Control), and the Solomon contrasts were
-#> estimated for each comparison. Within each contrast, the p-values of the two
-#> comparisons were adjusted with Holm's (1979) procedure; the confidence
+#> (Lin, 2013; Newman et al., 1990), with HC3 heteroskedasticity-consistent
+#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F
+#> tests examined whether the differences between the conditions depended on
+#> pretesting (the Pretest x Condition interaction) and whether the conditions
+#> differed when averaged over pretest conditions. Each treatment was compared
+#> with the control (RP vs Control and GS vs Control), and the Solomon contrasts
+#> were estimated for each comparison. Within each contrast, the p-values of the
+#> two comparisons were adjusted with Holm's (1979) procedure; the confidence
 #> intervals were not adjusted. The pretest effect was estimated in each
 #> condition, and the p-values of the two treatments' pretest effects were
 #> adjusted with Holm's (1979) procedure.
@@ -630,6 +630,10 @@ report_solomon(fit)
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958

@@ -46,12 +46,19 @@ the four-group design.
 
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
 avoids this problem internally. For the optional pretest covariate, the
-model uses the observed pretest score among pretested participants and a
-design-safe value among participants for whom the pretest was never
-administered.
+model uses the pretest score among pretested participants, centered at
+their mean, and a design-safe value, 0, among participants for whom the
+pretest was never administered. This is the model Newman et al. (1990)
+proposed for the design, which they call a pseudo-analysis of covariance
+(pp. 94, 98); they entered the pretest without centering it.
 
-The pretest indicator remains in the model, so this coding does not
-pretend that Groups 3 and 4 actually had baseline scores of zero.
+The pretest indicator remains in the model, so each group keeps its own
+mean, and the four Solomon contrasts do not depend on the centering. The
+`pretested` coefficient does: it compares the two control groups at the
+pretested participants’ mean pretest, where Newman et al. took their
+adjusted means (p. 101). Without centering, it would compare them at a
+score of 0, which treats the unpretested participants as if they had
+scored 0, the adjustment Newman et al. cautioned against (p. 98).
 
 ## Example data
 
@@ -900,6 +907,11 @@ MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
 covariance matrix estimators with improved finite sample properties.
 *Journal of Econometrics, 29*(3), 305–325.
 <https://doi.org/10.1016/0304-4076(85)90158-7>
+
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. *Multiple Linear Regression
+Viewpoints, 17*(2), 91–103.
+<https://ojs.lib.ua.edu/glmj/article/view/125>
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed

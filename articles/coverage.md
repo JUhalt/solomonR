@@ -46,11 +46,15 @@ The status column uses six labels:
 | Source | Contribution to the analysis of the design | In solomonR | Status |
 |----|----|----|----|
 | Willson & Putnam (1982) | A meta-analysis of pretest effects and pretest-by-treatment interactions in 32 studies. | Planning values in “Planning a Solomon Study”; defaults discussed in [`simulate_solomon()`](https://juhalt.github.io/solomonR/reference/simulate_solomon.md) | Evidence |
-| Walton Braver & Braver (1988) | The Test A–I decision sequence, ending in a Stouffer combination of the pretested and unpretested comparisons (Test I). | `fit_solomon_classic(flow = "1988")`, [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md), [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md) | Historical |
+| Williams & Newman (1982) | One regression for all six sets of observations, in answer to Campbell and Stanley (pp. 77–78): an indicator for each group of scores, with the pretests and posttests of the pretested groups as separate groups and no person vectors (pp. 83–84). Hypotheses tested as restrictions, in a one-way layout or a three-way layout with two empty cells (pp. 83–89; Table 4, p. 89). Also a t test of the unpretested groups, and an analysis of covariance and a repeated-measures analysis of the pretested groups (pp. 79–83). | The history article | Evidence |
+| Walton Braver & Braver (1988) | The Test A–I decision sequence, ending in a Stouffer combination of the pretested and unpretested comparisons (Test I), with a worked example on hypothetical data (Tables 3–5, p. 153). | `fit_solomon_classic(flow = "1988")`, [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md), [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md); `waltonbraver1988`, whose worked example the package’s tests reproduce | Historical; Data (reproduced) |
+| Sawilowsky & Markman (1988) | An ERIC manuscript with the same title as Sawilowsky and Markman (1990a): fabricated scores (Table 2, p. 7) for which Test H is significant and Test I, as the authors compute it, is not (pp. 3–4; Tables 4–5, pp. 9–10). The manuscript does not describe the computation; their z values (1.98 and .08) correspond to halving each two-sided p-value without regard to the sign of Test E’s effect. | The known-result test of [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md), which reproduces Tests E and H; the historical-analysis vignette | Data (reproduced) |
 | Sawilowsky & Markman (1990a) | A counterexample in which Test I misses an effect that one of its component tests detects. | The history article | Evidence |
 | Braver & Walton Braver (1990) | The 1990 amendment: once Tests A and D are nonsignificant, every test through Test I is run. | `fit_solomon_classic(flow = "1990")` | Historical |
 | Sawilowsky & Markman (1990b) | The rejoinder, calling for systematic study of the procedure. | The history article | Evidence |
+| Newman et al. (1990) | One regression for the four groups, which the authors call a pseudo-analysis of covariance: group indicators and the pretest as a covariate, coded 0 where no pretest was given (Table 1, p. 95; equation 7, p. 98). The slope comes from the pretested groups, the unpretested groups’ means are not adjusted, and treatment, pretesting, and the interaction are tested as restrictions (pp. 98–100). A caution against treating unpretested participants as having a pretest of zero (p. 98); adjusted means at the pretested groups’ mean pretest (p. 101). | The model of [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md), a reparameterization of equation 7, whose known-result test reproduces the pretest slope (p. 98), the within-groups sum of squares, and the tests of the treatment (F = 21.01) and the interaction (F = 0.21, printed .22) (Table 3, p. 100); the history article | Implemented; Data (reproduced) |
 | Sawilowsky et al. (1994) | Monte Carlo evidence of an inflated experiment-wise Type I error for the sequence. | Reproduced in “Historical Tests: Replicating the Published Error Rates”; the caution printed with Test I | Data (reproduced) |
+| Dukes et al. (1995) | A school evaluation with four latent outcomes and classroom means as the unit (pp. 412–413). Multisample latent-mean models for three two-group comparisons: maturation (the pretested control’s pretest against the unpretested control’s posttest) and the program effect within each pretest condition, each after chi-square tests of equal loadings, with the indicators’ means held equal (pp. 420–426). Pretesting judged by comparing the two program comparisons, with no test of the interaction (p. 426). | A published precedent for the latent analysis: [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md) fits the four groups in one model and tests the sensitization contrast, and [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md) extends the loading tests to configural, metric, and scalar tests across all four groups; the SEM article. Planned, after the authors’ analyses ([\#117](https://github.com/JUhalt/solomonR/issues/117)): a latent maturation contrast (pp. 420–422), a pretest main-effect contrast (p. 426), the latent pretest difference between the pretested groups as a baseline check (p. 423; Table 4, p. 425), and a standardized latent contrast using the pooled latent standard deviation (p. 426). | Guidance; Planned |
 | Sawilowsky (1996) | Error rates with nonnormal data, the 1995 revision without Test D, and two methods of alpha allocation. | `fit_solomon_classic(flow = "1995", alpha_allocation = ...)`; reproduced in the replication article | Historical; Data (reproduced) |
 | Kvalem et al. (1996) | A cluster-randomized school trial with a binary outcome, analyzed at the individual level. | `kvalem1996`; tests of [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md) and [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md); the allocation in the cluster-level [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md) simulation | Data |
 | van Engelenburg (1999) | Full-information maximum likelihood for the design, treating the absent pretests as structurally missing. | [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md), validated by simulation | Implemented |
@@ -80,17 +84,25 @@ Some methods in solomonR are not specific to the Solomon design. The
 package applies general methods to the design’s estimands, and each
 function cites its sources:
 
-- one model for all the groups with robust standard errors
-  ([`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)),
-  and, for designs with several treatments, omnibus tests and
-  comparisons adjusted by Holm’s (1979) procedure;
+- for the single model of all four groups that Newman et al. (1990)
+  proposed
+  ([`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)):
+  the four Solomon contrasts as named estimates with confidence
+  intervals, robust (HC3) standard errors, cluster-robust (CR2) standard
+  errors with Satterthwaite degrees of freedom, binary and count
+  outcomes with exposure offsets, additional covariates, and, for
+  designs with several treatments, omnibus tests and comparisons
+  adjusted by Holm’s (1979) procedure;
 - randomization inference
   ([`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md));
 - equivalence tests of sensitization
   ([`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md));
-- latent-variable models and measurement invariance
+- latent-variable models of all four groups, and measurement invariance
+  across them
   ([`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
-  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md));
+  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)),
+  which extend the two-group latent-mean comparisons of Dukes et
+  al. (1995);
 - marginal contrasts for binary and count outcomes
   ([`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md));
 - clustered designs;
@@ -220,6 +232,11 @@ Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
 published 1963)
 
+Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of
+D.A.R.E. (Drug Abuse Resistance Education), using a Solomon four-group
+design with latent variables. *Evaluation Review, 19*(4), 409–435.
+<https://doi.org/10.1177/0193841X9501900404>
+
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
 Publications. <https://doi.org/10.4135/9781071802779>
@@ -308,6 +325,11 @@ Morris, S. B. (2008). Estimating effect sizes from
 pretest-posttest-control group designs. *Organizational Research
 Methods, 11*(2), 364–386. <https://doi.org/10.1177/1094428106291059>
 
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. *Multiple Linear Regression
+Viewpoints, 17*(2), 91–103.
+<https://ojs.lib.ua.edu/glmj/article/view/125>
+
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I
 error of meta-analysis in the Solomon four-group design* \[Paper
 presentation\]. First International Conference on Multiple Comparisons,
@@ -321,6 +343,10 @@ Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
 Experimental Education, 62*(4), 361–376.
 <https://doi.org/10.1080/00220973.1994.9944140>
+
+Sawilowsky, S. S., & Markman, B. S. (1988). *Another look at the power
+of meta-analysis in the Solomon four-group design* (ED316556). ERIC.
+<https://eric.ed.gov/?id=ED316556>
 
 Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power
 of meta-analysis in the Solomon four-group design. *Perceptual and Motor
@@ -371,6 +397,11 @@ Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological
 Bulletin, 104*(1), 150–154.
 <https://doi.org/10.1037/0033-2909.104.1.150>
+
+Williams, J. D., & Newman, I. (1982). Using linear models to
+simultaneously analyze a Solomon four group design. *Multiple Linear
+Regression Viewpoints, 11*(3), 77–90.
+<https://ojs.lib.ua.edu/glmj/article/view/68>
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational

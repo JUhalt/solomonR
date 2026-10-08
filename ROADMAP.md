@@ -454,9 +454,11 @@ History article and versioned historical decision flows (1988, 1990,
 [PR \#67](https://github.com/JUhalt/solomonR/pull/67) and [PR
 \#76](https://github.com/JUhalt/solomonR/pull/76)
 
-Replicate the published error rates of the historical test sequence —
-[\#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR
-\#76](https://github.com/JUhalt/solomonR/pull/76)
+Replication study of the published error rates of the historical test
+sequence: Tests A–H and the flow logic agree for normal data, but the
+published Test I rates, and Test A for uniform and gamma data, were not
+reproduced — [\#51](https://github.com/JUhalt/solomonR/issues/51);
+merged in [PR \#76](https://github.com/JUhalt/solomonR/pull/76)
 
 SEM and latent-variable article, and measurement invariance —
 [\#55](https://github.com/JUhalt/solomonR/issues/55); merged in [PR
@@ -625,9 +627,23 @@ Stable public API —
 [\#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR
 \#91](https://github.com/JUhalt/solomonR/pull/91)
 
-Historical workflow validated against published results —
-[\#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR
-\#76](https://github.com/JUhalt/solomonR/pull/76)
+Historical workflow checked against published results —
+[\#51](https://github.com/JUhalt/solomonR/issues/51), merged in [PR
+\#76](https://github.com/JUhalt/solomonR/pull/76);
+[\#109](https://github.com/JUhalt/solomonR/issues/109), merged in [PR
+\#126](https://github.com/JUhalt/solomonR/pull/126)
+
+- The computations reproduce. Tests A, D, E, H, and I and the 1988 path
+  reproduce the worked example of Walton Braver and Braver (1988,
+  p. 153; `waltonbraver1988`). Tests E and H reproduce the
+  counterexample of Sawilowsky and Markman (1988, ERIC ED316556), and
+  Test A from its summary statistics matches Braver and Walton Braver
+  (1990, p. 322).
+- The Monte Carlo rates reproduce only in part. The published Type I
+  error tables were not reproduced as a whole (the Test I rates, and
+  Test A for uniform and gamma data), so the flows are not described as
+  validated; see “Historical Tests: Replicating the Published Error
+  Rates”.
 
 GLM and ML estimands validated
 

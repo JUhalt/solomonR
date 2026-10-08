@@ -163,7 +163,8 @@ design to consider external validity explicitly (Campbell & Stanley,
     estimates the combined effect of maturation and history.
 - **The analysis problem** (p. 25):
   - no single statistical procedure uses all six sets of observations at
-    once;
+    once, a gap that Williams and Newman (1982) set out to fill (see
+    below);
   - the design’s asymmetry rules out an analysis of variance of gain
     scores, and they judged Solomon’s gain-score suggestions
     unacceptable.
@@ -244,10 +245,37 @@ The article “Planning a Solomon Study” uses their estimates as planning
 values. They also frame a question that recurs below: how much should a
 researcher pay to detect an effect that is often small?
 
+## One model for all six observations (1982)
+
+Williams and Newman (1982) took up Campbell and Stanley’s analysis
+problem directly. They quoted the statement that no single procedure
+uses all six sets of observations (p. 77) and replied that, with linear
+models, “a single statistical procedure *can* be employed” that uses
+them all at once (p. 78). They credited the idea to a 1980 conference
+paper by Newman, Benz, and Williams (pp. 78, 90).
+
+- **Six groups of scores.** The pretests and posttests of the pretested
+  groups and the posttests of the unpretested groups were treated as six
+  groups, each with an indicator in one regression (pp. 83–84). Each
+  hypothesis was a restriction on the coefficients, with the design read
+  as a one-way layout of six groups or as a three-way layout of
+  treatment, pretesting, and pretest versus posttest with two empty
+  cells (pp. 83–89; Table 4, p. 89).
+- **No person vectors.** Person vectors had to be excluded (p. 83), so
+  each participant’s pretest and posttest enter as independent scores.
+  In solomonR’s reading of their numbers, this costs precision: the same
+  treatment-by-occasion contrast, with a sum of squares of 20, gives F =
+  9.41 against the within-person error of their repeated-measures
+  analysis (Table 3, p. 83) but F = 4.29 against the error of the
+  six-group model (Table 4, p. 89).
+- **The authors’ caution.** The single analysis might prove no more
+  satisfactory than the usual analyses that split the data in two
+  (p. 78).
+
 ## A single test for the whole design (1988)
 
 Walton Braver and Braver (1988) answered Campbell and Stanley’s analysis
-problem with meta-analysis:
+problem differently, with meta-analysis:
 
 - **Test I.** Treat the pretested and unpretested comparisons as two
   studies of the same effect, and combine their one-tailed p-values with
@@ -262,9 +290,10 @@ problem with meta-analysis:
     groups), stopping at the first significant test;
   - Test I is reached only when all of these are nonsignificant
     (pp. 151–153).
-- **Error rates.** They argued that the significance level at each step
-  is best read as a probability conditional on having reached that step
-  (p. 153, footnote 3).
+- **Error rates.** Because the experiment-wise error rate of a sequence
+  of tests is hard to specify in advance, they suggested treating the
+  significance level at each step as conditional on reaching that step
+  and on the null hypothesis being true there (p. 153, footnote 3).
 
 Their worked example reports Test I as z = 2.05, p = .040 (p. 153). That
 p is two-tailed.
@@ -295,6 +324,67 @@ Skills*.
     has no advantage over a two-group design (p. 424).
   - They called for a systematic study of the method’s properties before
     its use (p. 425).
+
+## The pretest as a covariate for all four groups (1990)
+
+Newman et al. (1990) returned to the single model with the pretest as a
+covariate. Solomon (1949, p. 146) had suggested that an adapted analysis
+of covariance might improve the analysis, and Newman et al. quoted him
+(p. 92). Their model, which they call a pseudo-analysis of covariance
+(pp. 94, 98), fits the posttests of the four groups in one regression,
+with an indicator for each group and the pretest as a covariate where it
+was given, coded 0 elsewhere (Table 1, p. 95; equation 7, p. 98).
+
+- **What the coding does.** Each group keeps its own mean, so the slope
+  comes from the pretested groups alone, and the unpretested groups’
+  means are not adjusted (p. 98).
+- **The caution.** They warned against adjustments that mechanically
+  treat unpretested participants as having a pretest score of zero
+  (p. 98), and took the pretested groups’ adjusted means at their pooled
+  pretest mean (p. 101).
+- **The tests.** Treatment, pretesting, and the interaction were tested
+  as restrictions on the group coefficients, against the pooled error of
+  all four groups (pp. 98–100; Table 3, p. 100).
+
+A single model for the whole design thus dates from Williams and Newman
+(1982), and the form with the pretest as a covariate, which
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+fits, from Newman et al. (1990). With conventional standard errors, the
+package reproduces their example (Table 1, p. 95):
+
+``` r
+
+nbw <- data.frame(
+  treat     = rep(c(1, 0, 1, 0), each = 5),
+  pretested = rep(c(1, 1, 0, 0), each = 5),
+  pre  = c(5, 7, 5, 12, 6, 5, 4, 4, 6, 6, rep(NA, 10)),
+  post = c(15, 12, 10, 17, 11, 8, 7, 8, 6, 6, 11, 8, 10, 9, 12, 9, 8, 6, 3, 4)
+)
+fit <- fit_solomon_glm(post, treat, pretested, pre, data = nbw, robust = "none")
+fit$effects[, c("contrast", "estimate", "statistic", "df")]
+#>                   contrast  estimate statistic df
+#> 1   ATE (avg over pretest) 4.4473684 4.5837121 15
+#> 2      Pretest x Treatment 0.8947368 0.4610835 15
+#> 3    Treatment | pretested 4.8947368 3.3763090 15
+#> 4  Treatment | unpretested 4.0000000 3.1009991 15
+#> 5 Pretest effect | control 1.5526316 1.1158164 15
+#> 6 Pretest effect | treated 2.4473684 1.7588293 15
+#> 7      Pretest main effect 2.0000000 2.0052096 15
+fit$coefficients[fit$coefficients$term == "pre_obs", c("term", "estimate")]
+#> # A tibble: 1 × 2
+#>   term    estimate
+#>   <chr>      <dbl>
+#> 1 pre_obs    0.553
+```
+
+The pretest slope is 0.553, against the published .55264 (p. 98).
+Squared, the t statistics of the average treatment effect and of the
+Pretest x Treatment contrast give their F tests of the treatment and the
+interaction: 21.01 and 0.21, against the printed 21.01 and .22 (Table 3,
+p. 100). solomonR adds the four contrasts as named estimates with
+intervals, robust standard errors for the heteroskedasticity that the
+pretest adjustment creates, and the extensions described in the methods
+guide.
 
 ## The Monte Carlo evidence (1994, 1996)
 
@@ -419,7 +509,7 @@ Later work turned from the test sequence to the design’s purpose:
 | Alpha allocations | Sawilowsky (1996) | `fit_solomon_classic(alpha_allocation = ...)` | historical |
 | Categorical rule | El Karkri et al. (2025b) | [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md) | historical |
 | Sequence of tests for designs with one or several treatments | Steyn (2009); post hoc tests as in Steyn (2005) | [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md), data `steyn2005` | historical |
-| One model for all the groups, with robust standard errors; for several treatments, omnibus tests and Holm-adjusted comparisons | contemporary practice; see the methods guide | [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md) | recommended |
+| One model for all the groups, with the pretest as a covariate where it was given; robust standard errors; for several treatments, omnibus tests and Holm-adjusted comparisons | Newman et al. (1990); the inference and the extension to several treatments from contemporary practice (see the methods guide) | [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md) | recommended |
 
 [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
 draws each version of the sequence:
@@ -518,6 +608,11 @@ McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 through service learning. *Journal of Management Education, 26*(6),
 629–647. <https://doi.org/10.1177/1052562902238322>
 
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. *Multiple Linear Regression
+Viewpoints, 17*(2), 91–103.
+<https://ojs.lib.ua.edu/glmj/article/view/125>
+
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I
 error of meta-analysis in the Solomon four-group design* \[Paper
 presentation\]. First International Conference on Multiple Comparisons,
@@ -559,6 +654,11 @@ Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological
 Bulletin, 104*(1), 150–154.
 <https://doi.org/10.1037/0033-2909.104.1.150>
+
+Williams, J. D., & Newman, I. (1982). Using linear models to
+simultaneously analyze a Solomon four group design. *Multiple Linear
+Regression Viewpoints, 11*(3), 77–90.
+<https://ojs.lib.ua.edu/glmj/article/view/68>
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational

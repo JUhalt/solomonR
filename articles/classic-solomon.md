@@ -348,12 +348,13 @@ This detail matters. A directional one-tailed p-value is not obtained
 correctly by mechanically dividing every two-sided p-value by two
 without considering the sign of the effect. The package’s replication of
 the published error rates found that the published simulations appear to
-have combined the tests without regard to sign. `solomonR` refers the
-combined z to its two-tailed p-value, as Walton Braver and Braver report
-it in their worked example (1988, p. 153). That is why they report far
-fewer Test I rejections than the procedure as defined produces (see
-[Historical Tests: Replicating the Published Error
+have combined the tests without regard to sign, converting each
+two-sided p-value to z as if it were one-tailed. That reading reproduces
+the published Test I rates, which are far lower than the procedure as
+defined produces (see [Historical Tests: Replicating the Published Error
 Rates](https://juhalt.github.io/solomonR/articles/classic-validation.html)).
+`solomonR` refers the combined z to its two-tailed p-value, as Walton
+Braver and Braver report it in their worked example (1988, p. 153).
 
 ## Versions of the decision sequence
 
@@ -405,6 +406,109 @@ classic_1995 <- with(
 classic_1995$path_string
 #> [1] "A -> E -> H -> I"
 ```
+
+## Published worked examples
+
+Walton Braver and Braver (1988) illustrated the sequence with
+hypothetical data: four groups of 14, with the means and variances and
+the pretest-posttest correlations printed in their Table 3 (p. 153). The
+data set `waltonbraver1988` holds those numbers. Table 3 prints
+variances, so `sd` and `pre_sd` are their square roots.
+
+``` r
+
+waltonbraver1988[, c("group", "n", "mean", "var", "pre_mean", "pre_var", "r")]
+#>                    group  n mean  var pre_mean pre_var    r
+#> 1   Pretested, treatment 14 12.4 22.0     10.5    19.3 0.58
+#> 2     Pretested, control 14 10.2 16.5     10.7    17.2 0.62
+#> 3 Unpretested, treatment 14 12.5 19.0       NA      NA   NA
+#> 4   Unpretested, control 14 10.3 22.5       NA      NA   NA
+```
+
+Tests A to D need only the posttest statistics.
+[`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+gives the published two-by-two analysis of variance (Table 4, p. 153):
+no interaction at all (Test A), and a treatment effect (Test D) that is
+not quite significant, F(1, 52) = 3.388, p = .0714.
+
+``` r
+
+with(waltonbraver1988, solomon_from_summary(n, mean, sd))
+#> Solomon analysis from summary statistics
+#> ----------------------------------------
+#> Pooled error variance: 20.000 on 52 df (equal variances assumed)
+#> 
+#> Two-way ANOVA on the posttest (Type III sums of squares)
+#>   Treatment            SS =   67.760  df = 1  F = 3.39  p = 0.071
+#>   Pretest              SS =    0.140  df = 1  F = 0.01  p = 0.934
+#>   Treatment x Pretest  SS =    0.000  df = 1  F = 0.00  p = 1.000
+#>   Error                SS = 1040.000  df = 52
+#> 
+#> Contrasts with 95% confidence intervals
+#>   Test A: Pretest x Treatment               0.000 [-4.797, 4.797], t(52) = 0.00, p = 1.000
+#>   Test B: Treatment | pretested             2.200 [-1.192, 5.592], t(52) = 1.30, p = 0.199
+#>   Test C: Treatment | unpretested           2.200 [-1.192, 5.592], t(52) = 1.30, p = 0.199
+#>   Test D: ATE (avg over pretest)            2.200 [-0.198, 4.598], t(52) = 1.84, p = 0.071
+#>   Pretest main effect                      -0.100 [-2.498, 2.298], t(52) = -0.08, p = 0.934
+```
+
+[`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+takes individual scores. Scores built to have exactly the published
+means, variances, and correlations give the same tests as the original
+scores would, because Tests A to I depend on the data only through those
+statistics:
+
+``` r
+
+set.seed(1988)
+wbb_scores <- do.call(rbind, lapply(seq_len(4), function(i) {
+  g <- waltonbraver1988[i, ]
+  if (g$pretested == 1) {
+    s <- g$r * g$pre_sd * g$sd
+    x <- MASS::mvrnorm(g$n, c(g$pre_mean, g$mean),
+                       matrix(c(g$pre_var, s, s, g$var), 2), empirical = TRUE)
+  } else {
+    x <- cbind(NA, g$mean + g$sd * as.vector(scale(stats::rnorm(g$n))))
+  }
+  data.frame(treat = g$treat, pretested = g$pretested, y_pre = x[, 1], y_post = x[, 2])
+}))
+wbb <- fit_solomon_classic(y_post, treat, pretested, y_pre, data = wbb_scores)
+wbb$path_string
+#> [1] "A -> D -> E -> H -> I"
+wbb$tests$E$result[, c("test", "F", "df", "p.value")]
+#>   test        F df    p.value
+#> 1    E 2.931688 25 0.09923573
+wbb$tests$H$result[, c("test", "statistic", "df", "p.value")]
+#>   test statistic df   p.value
+#> 1    H  1.277799 26 0.2126117
+wbb$tests$I$result[, c("z", "p.value")]
+#>          z    p.value
+#> 1 2.047064 0.04065177
+```
+
+The path is the published one: Tests A, D, E, and H are not significant,
+and Test I is. The published values are F(1, 25) = 2.93, p = .0993, for
+the analysis of covariance (Test E; Table 5); t(26) = 1.28, p = .2127,
+for Test H; and z = 2.05, p = .040, for Test I (p. 153). The published p
+of Test I is the two-tailed p of the rounded z.
+[`?waltonbraver1988`](https://juhalt.github.io/solomonR/reference/waltonbraver1988.md)
+lists each published value beside its reproduction.
+
+Sawilowsky and Markman (1988) answered with fabricated scores (Table 2,
+p. 7) for which Test H is significant, t(26) = 2.07, p = .048 (Table 5,
+p. 10), and Test I, as they computed it, is not; they judged the
+combined z one-tailed (pp. 3–4). The manuscript does not say how the two
+z values were obtained. Their values, 1.98 and .08, correspond to
+halving each two-sided p-value without regard to the sign of Test E’s
+effect, which is negative in their data; this is solomonR’s
+reconstruction from the numbers. That halving differs from the reading
+that reproduces the published simulation rates, described under Test I
+above. The package’s tests reproduce their Tests E and H from the
+scores. Its own Test I is directional, as Walton Braver and Braver
+(1988, p. 152) define it, so it gives z = 1.34, not their 1.46. The two
+worked examples also judge Test I differently, two-tailed in Walton
+Braver and Braver’s and one-tailed in Sawilowsky and Markman’s; the
+package follows the former.
 
 ## History and maturation
 
@@ -516,6 +620,10 @@ Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
 Experimental Education, 62*(4), 361–376.
 <https://doi.org/10.1080/00220973.1994.9944140>
+
+Sawilowsky, S. S., & Markman, B. S. (1988). *Another look at the power
+of meta-analysis in the Solomon four-group design* (ED316556). ERIC.
+<https://eric.ed.gov/?id=ED316556>
 
 Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power
 of meta-analysis in the Solomon four-group design. *Perceptual and Motor

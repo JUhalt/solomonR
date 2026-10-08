@@ -163,11 +163,20 @@ structurally missing by design.</p>
 formula can cause complete-case deletion of Groups 3 and 4, destroying
 the four-group design.</p>
 <p><code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> avoids this problem internally. For
-the optional pretest covariate, the model uses the observed pretest
-score among pretested participants and a design-safe value among
-participants for whom the pretest was never administered.</p>
-<p>The pretest indicator remains in the model, so this coding does not
-pretend that Groups 3 and 4 actually had baseline scores of zero.</p>
+the optional pretest covariate, the model uses the pretest score among
+pretested participants, centered at their mean, and a design-safe value,
+0, among participants for whom the pretest was never administered. This
+is the model Newman et al. (1990) proposed for the design, which they
+call a pseudo-analysis of covariance (pp. 94, 98); they entered the
+pretest without centering it.</p>
+<p>The pretest indicator remains in the model, so each group keeps its
+own mean, and the four Solomon contrasts do not depend on the centering.
+The <code>pretested</code> coefficient does: it compares the two control
+groups at the pretested participants’ mean pretest, where Newman et
+al. took their adjusted means (p. 101). Without centering, it would
+compare them at a score of 0, which treats the unpretested participants
+as if they had scored 0, the adjustment Newman et al. cautioned against
+(p. 98).</p>
 </div>
 <div class="section level2">
 <h2 id="example-data">Example data<a class="anchor" aria-label="anchor" href="#example-data"></a>
@@ -1049,6 +1058,9 @@ American Statistician, 54</em>(3), 217–224. <a href="https://doi.org/10.1080/0
 heteroskedasticity-consistent covariance matrix estimators with improved
 finite sample properties. <em>Journal of Econometrics, 29</em>(3),
 305–325. <a href="https://doi.org/10.1016/0304-4076(85)90158-7" class="external-link uri">https://doi.org/10.1016/0304-4076(85)90158-7</a></p>
+<p>Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. <em>Multiple Linear Regression
+Viewpoints, 17</em>(2), 91–103. <a href="https://ojs.lib.ua.edu/glmj/article/view/125" class="external-link uri">https://ojs.lib.ua.edu/glmj/article/view/125</a></p>
 <p>Pustejovsky, J. E., &amp; Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
 effects models. <em>Journal of Business &amp; Economic Statistics,
