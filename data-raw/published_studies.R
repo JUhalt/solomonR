@@ -145,6 +145,26 @@ jordaan2014$subscale <- factor(jordaan2014$subscale,
                                levels = c("Social support", "Problem solving", "Avoidance"))
 rownames(jordaan2014) <- NULL
 
+# Walton Braver and Braver (1988), Table 3 (p. 153): the hypothetical data of
+# their worked example, 14 per group. The table prints variances, not
+# standard deviations; sd and pre_sd are their square roots. The two pre-post
+# correlations are printed between the rows of Groups 1 and 2 and of Groups 2
+# and 3; .58 is read as Group 1's and .62 as Group 2's, the reading that
+# reproduces their analysis of covariance (Table 5, p. 153).
+waltonbraver1988 <- data.frame(
+  group = factor(groups, levels = groups),
+  pretested = c(1L, 1L, 0L, 0L),
+  treat = c(1L, 0L, 1L, 0L),
+  n = rep(14L, 4),
+  mean = c(12.4, 10.2, 12.5, 10.3),
+  var = c(22.0, 16.5, 19.0, 22.5),
+  sd = sqrt(c(22.0, 16.5, 19.0, 22.5)),
+  pre_mean = c(10.5, 10.7, NA, NA),
+  pre_var = c(19.3, 17.2, NA, NA),
+  pre_sd = sqrt(c(19.3, 17.2, NA, NA)),
+  r = c(0.58, 0.62, NA, NA)
+)
+
 save(elkarkri2025a, file = "data/elkarkri2025a.rda", compress = "xz")
 save(mai2020, file = "data/mai2020.rda", compress = "xz")
 save(kvalem1996, file = "data/kvalem1996.rda", compress = "xz")
@@ -152,3 +172,4 @@ save(solomon1949, file = "data/solomon1949.rda", compress = "xz")
 save(lana1959, file = "data/lana1959.rda", compress = "xz")
 save(steyn2005, file = "data/steyn2005.rda", compress = "xz")
 save(jordaan2014, file = "data/jordaan2014.rda", compress = "xz")
+save(waltonbraver1988, file = "data/waltonbraver1988.rda", compress = "xz")

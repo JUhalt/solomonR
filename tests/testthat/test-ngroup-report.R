@@ -146,7 +146,9 @@ test_that("the references and wording follow the adjustment the fit used", {
                                         control = "Control", data = mai2020))
   expect_true(any(startsWith(hc3$references, "Lin, W.")))
   expect_true(any(startsWith(hc3$references, "MacKinnon")))
-  expect_match(hc3$method, "adjusting for the pretest score among pretested participants (Lin, 2013)",
+  expect_true(any(startsWith(hc3$references, "Newman, I.")))
+  expect_match(hc3$method,
+               "adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990)",
                fixed = TRUE)
 })
 

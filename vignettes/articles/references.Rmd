@@ -79,6 +79,41 @@ published 1963)
 > the pretest effects of the effects tables
 > ([#104](https://github.com/JUhalt/solomonR/issues/104)).
 
+Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of D.A.R.E.
+(Drug Abuse Resistance Education), using a Solomon four-group design with
+latent variables. *Evaluation Review, 19*(4), 409–435.
+https://doi.org/10.1177/0193841X9501900404
+
+> A Solomon evaluation of a school drug-prevention program, with classroom
+> means as the unit of analysis (440 classrooms; pp. 412–413, 417). About
+> half the schools received the program, and half the classes in program
+> and control schools were randomly assigned to take a pretest (p. 412).
+> Four latent outcomes were compared in multisample structural equation
+> models, fitted as three two-group comparisons rather than one four-group
+> model: the pretested control's pretest against the unpretested control's
+> posttest, for maturation, and the program against the control within the
+> pretested and within the unpretested groups (p. 420). Each comparison
+> tested equal factor loadings by chi-square difference tests and then
+> compared latent means with the indicators' means held equal, a constraint
+> imposed rather than tested (pp. 420–426). The abstract calls the pretest
+> reactive for one outcome, resistance to peer pressure (p. 409). The text
+> judges this by comparing the two program comparisons, describes a
+> pretesting difference unrelated to the program, and reports no test of
+> the pretest-by-program interaction (p. 426). *In solomonR:* a published
+> precedent for the latent-variable analysis of the design, discussed in
+> the SEM article. `fit_solomon_sem_latent()` fits all four groups in one
+> model with an identified latent mean structure
+> ([#16](https://github.com/JUhalt/solomonR/issues/16)), so the
+> sensitization contrast has its own test, and `invariance_solomon()`
+> extends the loading tests to configural, metric, and scalar tests across
+> all four groups ([#55](https://github.com/JUhalt/solomonR/issues/55)).
+> Four elements of the authors' analyses are planned
+> ([#117](https://github.com/JUhalt/solomonR/issues/117)): a latent
+> maturation contrast (pp. 420–422), a pretest main-effect contrast
+> (p. 426), the latent pretest difference between the pretested groups as a
+> baseline check (p. 423; Table 4, p. 425), and a standardized latent
+> contrast using the pooled latent standard deviation (p. 426).
+
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
 Publications. https://doi.org/10.4135/9781071802779
@@ -277,6 +312,31 @@ https://doi.org/10.1177/1094428106291059
 > against the paper's worked example and theoretical variances
 > ([#53](https://github.com/JUhalt/solomonR/issues/53)).
 
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+Solomon four group design. *Multiple Linear Regression Viewpoints, 17*(2),
+91–103. https://ojs.lib.ua.edu/glmj/article/view/125
+
+> Fits one regression to the posttests of all four groups, with an
+> indicator for each group and the pretest as a covariate, coded 0 for
+> participants who were not pretested (Table 1, p. 95; equation 7, p. 98).
+> The authors call it a pseudo-analysis of covariance (pp. 94, 98). Because
+> each group keeps its own mean, the pretest slope is the one estimated
+> within the pretested groups, and the unpretested groups' means are not
+> adjusted (p. 98). The authors caution against adjustments that
+> mechanically treat unpretested participants as having a pretest score of
+> zero (p. 98). Treatment, pretesting, and the interaction are tested as
+> restrictions on the group coefficients, the interaction as b1 = b3 + b2 −
+> b4 (pp. 98–99), against the pooled error of all four groups (Table 3,
+> p. 100), and the pretested groups' adjusted means are taken at their
+> pooled pretest mean (p. 101). A 2 x 2 analysis of variance of the
+> posttests is given for comparison (Table 2, p. 97). *In solomonR:* the
+> model of `fit_solomon_glm()`, which reparameterizes equation 7. With
+> `robust = "none"`, the package's known-result test reproduces the
+> paper's pretest slope (.55264, p. 98), its within-groups sum of squares
+> (62.39), and its tests of the treatment (F = 21.01) and of the
+> interaction (F = 0.21, printed as .22) (Table 3, p. 100)
+> ([#105](https://github.com/JUhalt/solomonR/issues/105)).
+
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I error
 of meta-analysis in the Solomon four-group design* [Paper presentation].
 First International Conference on Multiple Comparisons, Tel Aviv, Israel.
@@ -309,6 +369,26 @@ https://doi.org/10.1080/00220973.1994.9944140
 > I, the methods guide, and the replication of its Table 2 in "Historical
 > Tests: Replicating the Published Error Rates"
 > ([#51](https://github.com/JUhalt/solomonR/issues/51)).
+
+Sawilowsky, S. S., & Markman, B. S. (1988). *Another look at the power of
+meta-analysis in the Solomon four-group design* (ED316556). ERIC.
+https://eric.ed.gov/?id=ED316556
+
+> A manuscript with the same title as Sawilowsky and Markman (1990a), read
+> in place of the published article, which was not available. It gives
+> fabricated raw scores for 14 participants per group (Table 2, p. 7) for
+> which Test H is significant, t(26) = 2.07, p = .048 (Table 5, p. 10), and
+> Test E is not (Table 4, p. 9), and Test I, as the authors compute it, is
+> not significant (pp. 3–4). They judge their Test I one-tailed (pp. 3–4).
+> The manuscript does not describe how it was computed; its z values (1.98
+> and .08) correspond to halving each two-sided p-value without regard to
+> the sign of Test E's effect, which is negative in these data. The error
+> entry of their analysis of covariance, 1200.04 (Table 4, p. 9), is a
+> misprint: it is neither the error mean square (45.93) nor the error sum
+> of squares (1148.14) of their scores. *In solomonR:* the known-result test of
+> `fit_solomon_classic()`, which reproduces Tests E and H from the scores,
+> and the worked examples in the historical-analysis vignette
+> ([#109](https://github.com/JUhalt/solomonR/issues/109)).
 
 Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power of
 meta-analysis in the Solomon four-group design. *Perceptual and Motor
@@ -428,9 +508,38 @@ Solomon four-group design: A meta-analytic approach. *Psychological
 Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
 
 > Proposes the Test A–I decision flow ending in a meta-analytic combination
-> of the pretested and unpretested comparisons. *In solomonR:*
+> of the pretested and unpretested comparisons, with a worked example on
+> hypothetical data (Tables 3–5, p. 153). *In solomonR:*
 > `fit_solomon_classic()`, `plot_classic_flow()`, and `stouffer_solomon()`;
-> step 4 of `fit_solomon_steyn()`.
+> step 4 of `fit_solomon_steyn()`; the data set `waltonbraver1988`, whose
+> worked example the package reproduces
+> ([#109](https://github.com/JUhalt/solomonR/issues/109)).
+
+Williams, J. D., & Newman, I. (1982). Using linear models to simultaneously
+analyze a Solomon four group design. *Multiple Linear Regression Viewpoints,
+11*(3), 77–90. https://ojs.lib.ua.edu/glmj/article/view/68
+
+> Answers Campbell and Stanley's statement that no single statistical
+> procedure uses all six sets of observations (quoted on p. 77) with one
+> regression on six group indicators: the pretest and posttest scores of
+> the pretested groups enter as separate groups, beside the posttests of
+> the unpretested groups (pp. 83–84). Person vectors are excluded (p. 83),
+> so each participant's pretest and posttest enter as independent scores.
+> Hypotheses are restrictions on the coefficients, with the design read as
+> a one-way layout of six groups or as a three-way layout of treatment,
+> pretesting, and pretest versus posttest with two empty cells (pp. 83–89;
+> Table 4, p. 89). The paper first analyzes its example, with five
+> participants per group (Table 1, p. 79), in two parts: a t test of the
+> unpretested groups, and an analysis of covariance and a repeated-measures
+> analysis of the pretested groups (pp. 79–83). The authors credit the
+> idea of a single analysis to a 1980 conference paper by Newman, Benz,
+> and Williams (pp. 78, 90), and caution that it may prove no more
+> satisfactory than analyses that split the data in two (p. 78). The paper was presented at
+> the 1982 meeting of the American Educational Research Association and,
+> as the journal notes, was not refereed (p. 77). It cites Campbell and
+> Stanley's statement to p. 24 of the 1966 book, where it is on p. 25.
+> *In solomonR:* the history article
+> ([#105](https://github.com/JUhalt/solomonR/issues/105)).
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational Research

@@ -232,7 +232,8 @@ analysis_plan_solomon <- function(plan = NULL,
   confirmatory <- c("ATE (avg over pretest)", if (sens_confirmatory) "Pretest x Treatment")
   alpha_txt <- sub("^0", "", format(alpha))
   keys <- c("vantveer2016", "chan2013", "solomon1949", "entwisle1961", "french2021b",
-            "lin2013", "mackinnon1985", "long2000", "carpenter2023", "white2011", "nosek2018")
+            "lin2013", "newman1990", "mackinnon1985", "long2000", "carpenter2023", "white2011",
+            "nosek2018")
 
   # ---- Hypotheses --------------------------------------------------------------
   h1 <- switch(
@@ -340,9 +341,9 @@ analysis_plan_solomon <- function(plan = NULL,
     "### Primary analysis (SPIRIT 20a)",
     "",
     if (longitudinal) {
-      "The four Solomon contrasts at each occasion, and the change in the Pretest x Treatment contrast from the first occasion to the last, are estimated with a mixed model for repeated measures, `fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre)` (Mallinckrodt et al., 2008): occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants at each occasion (Lin, 2013), with an unstructured covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood, and Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011, p. 101). If the unstructured model does not converge, the fallback structures of `fit_solomon_mmrm()` are used, chosen by AIC."
+      "The four Solomon contrasts at each occasion, and the change in the Pretest x Treatment contrast from the first occasion to the last, are estimated with a mixed model for repeated measures, `fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre)` (Mallinckrodt et al., 2008): occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants at each occasion (Lin, 2013; Newman et al., 1990), with an unstructured covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood, and Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011, p. 101). If the unstructured model does not converge, the fallback structures of `fit_solomon_mmrm()` are used, chosen by AIC."
     } else {
-      "The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013), with HC3 standard errors (MacKinnon & White, 1985; Long & Ervin, 2000)."
+      "The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990), with HC3 standard errors (MacKinnon & White, 1985; Long & Ervin, 2000)."
     },
     "",
     .plan_bullets(c(

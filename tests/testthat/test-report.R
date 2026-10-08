@@ -192,6 +192,9 @@ test_that("references follow the options the fit used", {
   hc3 <- report_solomon(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre))
   expect_true(any(startsWith(hc3$references, "MacKinnon")))
   expect_true(any(startsWith(hc3$references, "Lin, W.")))
+  # The model is that of Newman et al. (1990), cited with the pretest adjustment (#105).
+  expect_true(any(startsWith(hc3$references, "Newman, I., Benz, C.")))
+  expect_match(hc3$method, "(Lin, 2013; Newman et al., 1990)", fixed = TRUE)
   expect_false(any(startsWith(hc3$references, "Bell")))
   expect_true(any(startsWith(hc3$references, "Solomon, R. L.")))
 
@@ -202,6 +205,7 @@ test_that("references follow the options the fit used", {
   expect_true(any(startsWith(cr2$references, "Bell, R. M.")))
   expect_true(any(startsWith(cr2$references, "Pustejovsky")))
   expect_false(any(startsWith(cr2$references, "Lin, W.")))
+  expect_false(any(startsWith(cr2$references, "Newman")))
 
   c1990 <- report_solomon(fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre, flow = "1990"))
   expect_true(any(startsWith(c1990$references, "Braver, S. L.")))
@@ -211,6 +215,22 @@ test_that("references follow the options the fit used", {
 
   # References are in APA order.
   expect_identical(c1990$references, .apa_sort(c1990$references))
+})
+
+test_that("the registered references of fit_solomon_glm() are cited whatever its options", {
+  # The registry lists the references a function rests on whatever options
+  # are chosen; "How to Cite solomonR" prints them as such. Newman et al.
+  # (1990) is cited only when a pretest enters the model, so it is not a
+  # core reference (#105).
+  d <- solomon_example
+  core <- gsub("*", "", unname(.solomon_reference_text[.solomon_function_refs$fit_solomon_glm]),
+               fixed = TRUE)
+  with_pre <- report_solomon(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre))
+  without_pre <- report_solomon(fit_solomon_glm(d$y_post, d$treat, d$pretested, robust = "none"))
+  expect_true(all(core %in% with_pre$references))
+  expect_true(all(core %in% without_pre$references))
+  expect_true(any(startsWith(with_pre$references, "Newman, I., Benz, C.")))
+  expect_false(any(startsWith(without_pre$references, "Newman")))
 })
 
 test_that("reports for the teaching data are stable", {
@@ -234,7 +254,9 @@ test_that("markdown output italicizes statistics and links DOIs", {
   r <- report_solomon(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre), format = "markdown")
   expect_match(r$results[1], "*t*(115)", fixed = TRUE)
   expect_match(r$results[1], "*p* = ", fixed = TRUE)
-  expect_true(all(grepl("<https://doi.org/", r$references, fixed = TRUE)))
+  # Every URL is linked: DOIs, and the journal page of Newman et al. (1990).
+  expect_true(all(grepl("<https://", r$references, fixed = TRUE)))
+  expect_true(any(grepl("<https://doi.org/", r$references, fixed = TRUE)))
   plain <- report_solomon(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre))
   expect_false(any(grepl("*", plain$references, fixed = TRUE)))
 })
