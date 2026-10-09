@@ -76,8 +76,9 @@ interaction of the four-group \code{anova} table \verb{Treatment x Pretest}.
 \verb{$contrasts} still returns the table, with a deprecation warning;
 \verb{[["contrasts"]]} does not.
 
-The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns the
-table, are the stable interface of the result; see \link{solomon_output}.
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns the table, are the stable interface of the result; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

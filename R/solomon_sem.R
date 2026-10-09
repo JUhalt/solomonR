@@ -146,9 +146,9 @@
 #'     \item `conf_level`: the confidence level of the intervals
 #'   }
 #'
-#'   The `effects` table, `conf_level`, and [tidy()], which returns the
-#'   table, are the stable interface of the result. The lavaan object in
-#'   `fit` is not; see [solomon_output].
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result. The
+#'   lavaan object in `fit` is not; see [solomon_output].
 #' @examples
 #' if (requireNamespace("lavaan", quietly = TRUE)) {
 #'   with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre))

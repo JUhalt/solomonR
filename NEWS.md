@@ -29,8 +29,9 @@ break existing code says what that code needs.
   unpretested participants: `Pretest effect | control`,
   `Pretest effect | treated`, and `Pretest main effect`. Code that takes
   rows by position, or expects four rows, should select them by label.
-  - In the observed model they equal the pretest effects of
-    `fit_solomon_glm()` without a pretest score.
+  - In the observed model their estimates equal those of
+    `fit_solomon_glm()` without a pretest score; the standard errors and
+    the tests are lavaan's, with a normal reference distribution.
   - In the latent model they are differences between latent means, in the
     unit of the other contrasts. The pretest main effect is the effect
     Dukes et al. (1995, p. 426) describe, one of the four elements of their
@@ -240,10 +241,10 @@ break existing code says what that code needs.
   and the references. The SEM article sets their three two-group models,
   which test loadings, impose equal intercepts, and do not test the
   interaction, beside the package's four-group model and invariance tests,
-  and names what the two share. The SEM functions are unchanged; four
-  further elements of their method (a latent maturation contrast, a pretest
-  main effect, a latent baseline check, and a standardized latent contrast)
-  are planned under #117.
+  and names what the two share. Of four further elements of their method,
+  the pretest main effect was added under #110 (see above); the other three
+  (a latent maturation contrast, a latent baseline check, and a
+  standardized latent contrast) are planned under #117.
 
 ## The worked example of Walton Braver and Braver (1988) (#109)
 

@@ -202,8 +202,9 @@
 #'   - `optimizer` (the [stats::optim()] result), `inference_parts`, `data`,
 #'     and `call`, which solomonR's own functions use.
 #'
-#'   The `effects` table, `conf_level`, and [tidy()], which returns the
-#'   table, are the stable interface of the result; see [solomon_output].
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of

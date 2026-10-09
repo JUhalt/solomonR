@@ -150,9 +150,9 @@
 #'   `effects_post`. The old names still work with `$`, with a deprecation
 #'   warning, but not with `[[`.
 #'
-#'   The `effects` table, `conf_level`, and [tidy()], which returns
-#'   `effects`, are the stable interface of the result. The lavaan objects
-#'   and `settings` are not; see [solomon_output].
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns `effects`, are the stable interface of the result. The
+#'   lavaan objects and `settings` are not; see [solomon_output].
 #' @references
 #' Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
 #' equivalence of factor covariance and mean structures: The issue of partial

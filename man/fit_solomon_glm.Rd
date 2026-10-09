@@ -126,8 +126,9 @@ row for each comparison.
 \item \code{adjust}: the adjustment of the p-values.
 }
 
-The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns the
-table, are the stable interface of the result; see \link{solomon_output}.
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns the table, are the stable interface of the result; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -423,7 +424,8 @@ Treatments: Validating the Joint Model".
 fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 fit
 
-# The four Solomon contrasts as a data frame.
+# The four treatment contrasts and the three pretest effects, as a data
+# frame; tidy(fit) returns the same table.
 fit$effects
 
 # A six-group design: two treatments and a control (Mai et al., 2020).

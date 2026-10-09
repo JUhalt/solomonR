@@ -45,12 +45,14 @@
 #' `delta`, `sens`, `rho`, `sigma`, `alpha`. Each function that takes data
 #' vectors also takes an optional `data` data frame.
 #'
-#' solomonR 1.0.0 settled the output (issue #110). Every analysis that
-#' estimates the Solomon contrasts returns them in a table named `effects`,
-#' with one order of columns and one set of contrast labels, beside the
-#' confidence level `conf_level`, and [tidy()] returns that table.
-#' [solomon_output] states which parts of a result are stable and which are
-#' not.
+#' solomonR 1.0.0 settled the output (issue #110). The fits and analyses
+#' listed in [solomon_output] return the Solomon contrasts in a table named
+#' `effects` (`results` in [compare_solomon_methods()] and
+#' [tipping_point_solomon()], whose rows come from several fits), with one
+#' order of columns and one set of contrast labels, beside the confidence
+#' level `conf_level`, and [`tidy()`][solomon_output] returns that table.
+#' [solomon_output] also names the results that have no such table, and
+#' states which parts of a result are stable and which are not.
 #'
 #' @references
 #' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
@@ -661,8 +663,9 @@ stouffer_solomon <- function(p) {
 #'     row for each comparison.
 #'   - `adjust`: the adjustment of the p-values.
 #'
-#'   The `effects` table, `conf_level`, and [tidy()], which returns the
-#'   table, are the stable interface of the result; see [solomon_output].
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #' @references
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 #' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
@@ -767,7 +770,8 @@ stouffer_solomon <- function(p) {
 #' fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 #' fit
 #'
-#' # The four Solomon contrasts as a data frame.
+#' # The four treatment contrasts and the three pretest effects, as a data
+#' # frame; tidy(fit) returns the same table.
 #' fit$effects
 #'
 #' # A six-group design: two treatments and a control (Mai et al., 2020).

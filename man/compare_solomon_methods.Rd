@@ -62,8 +62,8 @@ pretest scores were supplied.
 }
 
 \code{results} has the columns and the labels of an effects table, and
-\code{\link[=tidy]{tidy()}} returns it. See \link{solomon_output} for the columns, the labels,
-and the parts of a result that are stable.
+\code{\link[=solomon_output]{tidy()}} returns it. See \link{solomon_output} for the
+columns, the labels, and the parts of a result that are stable.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

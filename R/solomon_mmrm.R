@@ -265,8 +265,9 @@
 #'     design indicators of each participant), which solomonR's own
 #'     functions use.
 #'
-#'   The `effects` table, `conf_level`, and [tidy()], which returns the
-#'   table, are the stable interface of the result; see [solomon_output].
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Entwisle, D. R. (1961). Interactive effects of pretesting. *Educational and

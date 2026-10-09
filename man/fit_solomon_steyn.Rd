@@ -91,8 +91,9 @@ The elements are named for the steps of Steyn's sequence, and the
 tests are of several kinds, so these tables do not have the columns of
 the effects tables of the other analyses. In particular, \code{effects}
 here is step 8, a list, not a table of the Solomon contrasts, and the
-result has no \code{\link[=tidy]{tidy()}} method. The \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} results in
-\code{classic$fits} have effects tables. See \link{solomon_output}.
+result has no \code{\link[=solomon_output]{tidy()}} method. The
+\code{\link[=fit_solomon_classic]{fit_solomon_classic()}} results in \code{classic$fits} have effects
+tables. See \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

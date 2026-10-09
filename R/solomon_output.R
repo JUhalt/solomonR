@@ -17,7 +17,7 @@ generics::tidy
 #' - `effects`, the table of contrasts, with one order of columns and one
 #'   set of contrast labels in every analysis;
 #' - `conf_level`, the confidence level of its intervals;
-#' - [tidy()], which returns the effects table.
+#' - `tidy()`, which returns the effects table.
 #'
 #' Code that reads a result through them keeps working through v1.x. An
 #' element that is renamed keeps its former name, with a deprecation
@@ -282,6 +282,10 @@ generics::tidy
 #'   columns described under "The effects table", identical to `x$effects`
 #'   (to `x$results` for [compare_solomon_methods()] and
 #'   [tipping_point_solomon()]).
+#'
+#' @references
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 #'
 #' @seealso [report_solomon()], which writes the contrasts as sentences, and
 #'   [plot_solomon_effects()], which draws them.

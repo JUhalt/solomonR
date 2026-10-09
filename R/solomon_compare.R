@@ -74,8 +74,8 @@
 #'     pretest scores were supplied.
 #'
 #'   `results` has the columns and the labels of an effects table, and
-#'   [tidy()] returns it. See [solomon_output] for the columns, the labels,
-#'   and the parts of a result that are stable.
+#'   [`tidy()`][solomon_output] returns it. See [solomon_output] for the
+#'   columns, the labels, and the parts of a result that are stable.
 #' @references
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after

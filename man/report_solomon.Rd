@@ -45,8 +45,8 @@ result, its columns depend on the analysis. "Outside the contract" in
 \item \code{format}: \code{"text"} or \code{"markdown"}.
 }
 
-To compute with the estimates, read them from the fit, with \code{\link[=tidy]{tidy()}},
-not from the sentences.
+To compute with the estimates, read them from the fit, with
+\code{\link[=solomon_output]{tidy()}}, not from the sentences.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

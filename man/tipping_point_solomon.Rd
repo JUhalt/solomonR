@@ -81,8 +81,8 @@ design indicators), which solomonR's own functions use.
 }
 
 \code{results} has the columns and the labels of an effects table, and
-\code{\link[=tidy]{tidy()}} returns it. See \link{solomon_output} for the columns, the labels,
-and the parts of a result that are stable.
+\code{\link[=solomon_output]{tidy()}} returns it. See \link{solomon_output} for the
+columns, the labels, and the parts of a result that are stable.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}

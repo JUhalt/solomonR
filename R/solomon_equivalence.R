@@ -127,9 +127,10 @@
 #'
 #'   The result is for one contrast, with several tests and two intervals,
 #'   so it is a list of values and not an effects table, and it has no
-#'   [tidy()] method. `contrast`, `estimate`, `std.error`, `statistic`,
-#'   `df`, `conf.low`, `conf.high`, and `conf_level` have the names and the
-#'   meanings of the columns of one; see [solomon_output].
+#'   [`tidy()`][solomon_output] method. `contrast`, `estimate`,
+#'   `std.error`, `statistic`, `df`, `conf.low`, `conf.high`, and
+#'   `conf_level` have the names and the meanings of the columns of one;
+#'   see [solomon_output].
 #' @references
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after

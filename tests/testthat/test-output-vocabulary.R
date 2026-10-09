@@ -828,6 +828,31 @@ test_that("the help pages state the contract and link to it", {
     expect_match(rd_section(topic, "\\value"), "solomon_output", fixed = TRUE, info = topic)
   }
   expect_match(rd_section("solomonR", "\\section"), "solomon_output", fixed = TRUE)
+
+  # The work that the contract cites has its reference entry.
+  expect_match(rd_section("solomon_output", "\\references"), "Solomon, R. L. (1949).",
+               fixed = TRUE)
+})
+
+test_that("the help pages link tidy() to the contract, not to the generic's help page", {
+  man <- testthat::test_path("..", "..", "man")
+  testthat::skip_if_not(dir.exists(man), "the source man/ directory is not available")
+  pages <- list.files(man, pattern = "[.]Rd$", full.names = TRUE)
+  text <- vapply(pages, function(page) {
+    paste(readLines(page, encoding = "UTF-8", warn = FALSE), collapse = " ")
+  }, character(1))
+  names(text) <- basename(pages)
+
+  # The help page of the generic, in the generics package, describes a
+  # tibble; solomonR's methods return a data frame and are documented in
+  # ?solomon_output. `\link[=tidy]` resolves to the page of the re-exported
+  # generic, which alone links to the generics package.
+  expect_identical(names(text)[grepl("\\link[=tidy]", text, fixed = TRUE)], character())
+  expect_identical(names(text)[grepl("\\link[generics:tidy]", text, fixed = TRUE)],
+                   "reexports.Rd")
+  to_contract <- names(text)[grepl("\\code{\\link[=solomon_output]{tidy()}}", text, fixed = TRUE)]
+  expect_true(all(c("fit_solomon_glm.Rd", "fit_solomon_sem.Rd", "compare_solomon_methods.Rd",
+                    "report_solomon.Rd", "solomonR.Rd") %in% to_contract))
 })
 
 # ---- Former element names ------------------------------------------------------

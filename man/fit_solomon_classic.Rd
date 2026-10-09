@@ -123,8 +123,9 @@ for existing code and not part of the stable interface. \code{tests}
 holds the same analyses as Tests E, H, and I.
 }
 
-The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns the
-table, are the stable interface of the result; see \link{solomon_output}.
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns the table, are the stable interface of the result; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

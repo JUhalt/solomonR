@@ -295,8 +295,9 @@
 #'   - `pretest` (whether pretest scores were supplied) and `data` (the
 #'     design indicators), which solomonR's own functions use.
 #'
-#'   The `effects` table, `conf_level`, and [tidy()], which returns the
-#'   table, are the stable interface of the result; see [solomon_output].
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
@@ -508,8 +509,8 @@ print.solomon_mi <- function(x, digits = 3, ...) {
 #'     design indicators), which solomonR's own functions use.
 #'
 #'   `results` has the columns and the labels of an effects table, and
-#'   [tidy()] returns it. See [solomon_output] for the columns, the labels,
-#'   and the parts of a result that are stable.
+#'   [`tidy()`][solomon_output] returns it. See [solomon_output] for the
+#'   columns, the labels, and the parts of a result that are stable.
 #'
 #' @references
 #' Little, R. J., D'Agostino, R., Cohen, M. L., Dickersin, K., Emerson, S.

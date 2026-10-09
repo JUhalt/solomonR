@@ -162,8 +162,9 @@
 #'   `$contrasts` still returns the table, with a deprecation warning;
 #'   `[["contrasts"]]` does not.
 #'
-#'   The `effects` table, `conf_level`, and [tidy()], which returns the
-#'   table, are the stable interface of the result; see [solomon_output].
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research

@@ -231,3 +231,17 @@ test_that("the exported functions use one name for each kind of argument", {
   data_args <- unlist(lapply(data_fns, function(f) names(formals(getExportedValue("solomonR", f)))))
   expect_false(any(c("outcome", "posttest", "pretest") %in% data_args))
 })
+
+test_that("no example in a help page passes an argument by a former name", {
+  man <- testthat::test_path("..", "..", "man")
+  testthat::skip_if_not(dir.exists(man), "the source man/ directory is not available")
+  # The former names that no other argument has. (`y`, `x`, and `object`
+  # are also the names of other things, so a search cannot tell them apart.)
+  former <- "\\b(pretest_score|combine_with_stouffer)\\s*="
+  for (page in list.files(man, pattern = "[.]Rd$", full.names = TRUE)) {
+    rd <- tools::parse_Rd(page)
+    tags <- vapply(rd, function(part) attr(part, "Rd_tag"), character(1))
+    examples <- paste(unlist(rd[tags == "\\examples"]), collapse = "")
+    expect_false(grepl(former, examples), label = paste("a former argument name in", basename(page)))
+  }
+})

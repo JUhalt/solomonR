@@ -64,7 +64,7 @@ the argument names are of its input (issue #83):
 \item \code{effects}, the table of contrasts, with one order of columns and one
 set of contrast labels in every analysis;
 \item \code{conf_level}, the confidence level of its intervals;
-\item \code{\link[=tidy]{tidy()}}, which returns the effects table.
+\item \code{tidy()}, which returns the effects table.
 }
 
 Code that reads a result through them keeps working through v1.x. An
@@ -357,6 +357,10 @@ effects[effects$contrast == "Pretest x Treatment",
 ml <- fit_solomon_ml(y_post, treat, pretested, y_pre, data = solomon_example)
 tidy(ml)$contrast
 names(tidy(ml))
+}
+\references{
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 }
 \seealso{
 \code{\link[=report_solomon]{report_solomon()}}, which writes the contrasts as sentences, and

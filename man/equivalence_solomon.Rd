@@ -65,9 +65,10 @@ treatments.
 
 The result is for one contrast, with several tests and two intervals,
 so it is a list of values and not an effects table, and it has no
-\code{\link[=tidy]{tidy()}} method. \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic},
-\code{df}, \code{conf.low}, \code{conf.high}, and \code{conf_level} have the names and the
-meanings of the columns of one; see \link{solomon_output}.
+\code{\link[=solomon_output]{tidy()}} method. \code{contrast}, \code{estimate},
+\code{std.error}, \code{statistic}, \code{df}, \code{conf.low}, \code{conf.high}, and
+\code{conf_level} have the names and the meanings of the columns of one;
+see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

@@ -452,8 +452,9 @@
 #'   tests are of several kinds, so these tables do not have the columns of
 #'   the effects tables of the other analyses. In particular, `effects`
 #'   here is step 8, a list, not a table of the Solomon contrasts, and the
-#'   result has no [tidy()] method. The [fit_solomon_classic()] results in
-#'   `classic$fits` have effects tables. See [solomon_output].
+#'   result has no [`tidy()`][solomon_output] method. The
+#'   [fit_solomon_classic()] results in `classic$fits` have effects
+#'   tables. See [solomon_output].
 #'
 #' @references
 #' Holm, S. (1979). A simple sequentially rejective multiple test procedure.

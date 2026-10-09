@@ -2224,8 +2224,8 @@
 #'   - `references`: the APA 7 reference entries, in APA order.
 #'   - `format`: `"text"` or `"markdown"`.
 #'
-#'   To compute with the estimates, read them from the fit, with [tidy()],
-#'   not from the sentences.
+#'   To compute with the estimates, read them from the fit, with
+#'   [`tidy()`][solomon_output], not from the sentences.
 #'
 #' @references
 #' Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &

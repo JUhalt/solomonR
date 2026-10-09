@@ -465,8 +465,9 @@
 #'       holds the same analyses as Tests E, H, and I.
 #'   }
 #'
-#'   The `effects` table, `conf_level`, and [tidy()], which returns the
-#'   table, are the stable interface of the result; see [solomon_output].
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
