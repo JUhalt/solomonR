@@ -9,8 +9,10 @@
   & Smyth, 2010), so such ties must be counted; when they were missed, the
   p-value was too small. They are now counted, at the participant and the
   cluster level and in `plot_perm()`, by one rule: statistics that differ
-  by less than a small relative tolerance are equal. The tolerance is
-  1e-10 for a linear model and 1e-6 for models fitted by iteration.
+  by less than a small relative tolerance are equal. At the participant
+  level the tolerance is 1e-10 for a linear model and 1e-6 for models
+  fitted by iteration. At the cluster level, where the model is not
+  refitted for each allocation, it is 1e-10 for every model.
 * What remains (#134): in a model fitted by iteration, equal fits usually
   agree to about 1e-7, but where the contrast's cells include a covariate
   they can differ by more, most with a link other than the canonical one,
@@ -39,7 +41,10 @@
 * An observed statistic of exactly zero now gives a p-value of 1, when the
   outcome varies within the pretest conditions the contrast uses. Rounding
   could give less: with 2 of 5 successes in each arm, one test gave .67.
-* Cluster-level tests give the same results as before.
+* Cluster-level tests give the same results as before, with one
+  exception: an observed statistic of exactly zero now gives a p-value of
+  1 there too. Rounding could give less: with 3 treated and 3 control
+  clusters, whose 20 allocations are all used, one test gave .9.
 
 ## Reports of latent models with lavaan 0.7-3 (bug fix)
 
