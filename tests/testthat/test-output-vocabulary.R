@@ -115,6 +115,17 @@ test_that("solomon_from_summary() has `test` first and its own columns last", {
   expect_wald_statistic(four$effects)
 })
 
+test_that("fit_solomon_classic() has `test` first and `F` last, in `effects` and in each result", {
+  d <- solomon_example
+  classic <- fit_solomon_classic(y_post, treat, pretested, y_pre, data = d)
+  expect_effects_table(classic$effects, keys = "test", extras = "F")
+  expect_wald_statistic(classic$effects)
+  for (letter in LETTERS[1:8]) {
+    expect_effects_table(classic$tests[[letter]]$result, keys = "test", extras = "F")
+  }
+  expect_effects_table(classic$pretest_main, keys = "test", extras = "F")
+})
+
 test_that("the multiple-imputation and tipping-point tables have the shared columns", {
   d <- vocabulary_missing_data()
   mi <- fit_solomon_mi(y_post, treat, pretested, y_pre, m = 5, seed = 1, data = d)

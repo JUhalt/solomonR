@@ -42,6 +42,27 @@
   cp^2 * a * (df / (df - 2)) * (1 + delta^2 / a) - delta^2
 }
 
+# The two-way analysis of variance of the posttest of a four-group design,
+# with Type III sums of squares. `tests` holds the t tests of the treatment
+# main effect (Test D), the pretest main effect, and the interaction (Test
+# A), in that order. Each is a contrast of the unweighted cell means with
+# one degree of freedom, so F is the square of t and the sum of squares is F
+# times the error mean square. The interaction is named as the contrast is,
+# Pretest x Treatment (issue #110). solomon_from_summary() and
+# fit_solomon_classic() return this table as `anova`.
+.two_way_anova <- function(tests, mse, df_error) {
+  f <- tests$statistic^2
+  data.frame(
+    source = c("Treatment", "Pretest", "Pretest x Treatment", "Error"),
+    sumsq = c(f * mse, mse * df_error),
+    df = c(1, 1, 1, df_error),
+    meansq = c(f * mse, mse),
+    F = c(f, NA),
+    p.value = c(tests$p.value, NA),
+    stringsAsFactors = FALSE
+  )
+}
+
 #' Solomon analysis from summary statistics
 #'
 #' `r lifecycle::badge("stable")`
@@ -236,22 +257,11 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
     stringsAsFactors = FALSE
   ), keys = "test")
 
-  # The interaction is named as the contrast is, Pretest x Treatment (issue
-  # #110).
-  anova <- data.frame(
-    source = c("Treatment", "Pretest", "Pretest x Treatment", "Error"),
-    sumsq = c(contrasts$sumsq[c(4, 5, 1)], mse * df_error),
-    df = c(1, 1, 1, df_error),
-    meansq = c(contrasts$sumsq[c(4, 5, 1)], mse),
-    F = c(contrasts$F[c(4, 5, 1)], NA),
-    p.value = c(contrasts$p.value[c(4, 5, 1)], NA),
-    stringsAsFactors = FALSE
-  )
-
   structure(
     list(
       effects = contrasts,
-      anova = anova,
+      anova = .two_way_anova(contrasts[match(c("D", "", "A"), contrasts$test), ], mse,
+                             df_error),
       cells = data.frame(group = .solomon_summary_groups, n = n, mean = mean, sd = sd,
                          stringsAsFactors = FALSE),
       mse = mse,

@@ -1,5 +1,24 @@
-# Internal helper: test a linear contrast from an lm object
-.classic_contrast <- function(fit, L, test) {
+# The Solomon contrast that each historical test estimates, under the labels
+# of every effects table (issue #110). Tests B, E, F, and G estimate the
+# treatment effect among pretested participants, each in its own way, and
+# Tests C and H the effect among unpretested participants, so the letter in
+# `test` identifies a row.
+.classic_test_contrasts <- c(
+  A = "Pretest x Treatment",
+  B = "Treatment | pretested",
+  C = "Treatment | unpretested",
+  D = "ATE (avg over pretest)",
+  E = "Treatment | pretested",
+  F = "Treatment | pretested",
+  G = "Treatment | pretested",
+  H = "Treatment | unpretested"
+)
+
+# Internal helper: test a linear contrast from an lm object. `test` is the
+# letter of a historical test; the pretest main effect, which is not one of
+# them, has `test = ""` and its `contrast` label, as in
+# solomon_from_summary().
+.classic_contrast <- function(fit, L, test, contrast = .classic_test_contrasts[[test]]) {
 
   b <- stats::coef(fit)
   V <- stats::vcov(fit)
@@ -29,13 +48,15 @@
 
   data.frame(
     test = test,
+    contrast = contrast,
     estimate = estimate,
     std.error = se,
     statistic = statistic,
     df = df,
-    F = statistic^2,
     p.value = p,
-    row.names = NULL
+    F = statistic^2,
+    row.names = NULL,
+    stringsAsFactors = FALSE
   )
 }
 
@@ -393,11 +414,54 @@
 #' population standardized mean difference (Cumming & Finch, 2001; Kelley,
 #' 2007).
 #'
-#' @return An object of class \code{solomon_classic}. The \code{tests}
-#'   component contains Tests A-I, while \code{path} records the historical
-#'   decision sequence for the observed data under the chosen \code{flow}.
-#'   The \code{history} component holds the history/maturation comparisons,
-#'   and \code{conf_level} the confidence level of the intervals.
+#' @section Analysis of variance:
+#' The `anova` element is the two-by-two analysis of variance of the
+#' posttest, Treatment by Pretest, with Type III sums of squares, in the
+#' format of [solomon_from_summary()]. Each effect has one degree of freedom
+#' and is a contrast of the unweighted cell means, so its F is the square of
+#' a t in `effects`: `Treatment` is Test D, `Pretest x Treatment` is Test A,
+#' and `Pretest` is the pretest main effect. The table equals the `anova`
+#' table that [solomon_from_summary()] gives for the cell sizes, means, and
+#' standard deviations of the posttest.
+#'
+#' Until solomonR 1.0.0 the element was `aov`, the table of [stats::aov()],
+#' whose sums of squares are sequential: treatment ignoring pretesting, then
+#' pretesting adjusted for treatment, then the interaction. With unequal
+#' cell sizes its treatment row was not Test D and its pretest row was not
+#' the pretest main effect; only its interaction row agreed with Test A.
+#' `$aov` now returns `anova`, with a deprecation warning; `[["aov"]]` is
+#' `NULL`. A fit saved by an earlier version has no `anova` table and should
+#' be refitted.
+#'
+#' @return An object of class \code{solomon_classic}, a list with:
+#'   \itemize{
+#'     \item `tests`: Tests A-I, each with its `label` and `result`. The
+#'       result of each of Tests A-H is its row of `effects`, and each holds
+#'       its `model`. Test I holds the Stouffer combination, with every
+#'       variant in `all`.
+#'     \item `path`, `path_string`, and `conclusion`: the historical decision
+#'       sequence for the observed data under the chosen `flow`.
+#'     \item `effects`: Tests A-H, then the pretest main effect, one row
+#'       each, in the columns `test` (the letter; empty for the pretest main
+#'       effect), `contrast`, `estimate`, `std.error`, `statistic` (t), `df`,
+#'       `p.value`, `conf.low`, and `conf.high`, followed by `F` (the square
+#'       of t). `contrast` has the labels of [fit_solomon_glm()]:
+#'       `Pretest x Treatment` (Test A), `Treatment | pretested` (Tests B, E,
+#'       F, and G), `Treatment | unpretested` (Tests C and H),
+#'       `ATE (avg over pretest)` (Test D), and `Pretest main effect`.
+#'     \item `anova`: the two-by-two analysis of variance of the posttest
+#'       with Type III sums of squares, in the columns `source` (`Treatment`,
+#'       `Pretest`, `Pretest x Treatment`, and `Error`), `sumsq`, `df`,
+#'       `meansq`, `F`, and `p.value`; see "Analysis of variance".
+#'     \item `pretest_main`: the row of the pretest main effect.
+#'     \item `history`: the history/maturation comparisons.
+#'     \item `conf_level`: the confidence level of the intervals.
+#'     \item `settings`: the options used.
+#'     \item `g_post`: Hedges' g for Groups 3 and 4, with its interval.
+#'     \item `ancova`, `t_unpretested`, and `stouffer`: legacy elements, kept
+#'       for existing code and not part of the stable interface. `tests`
+#'       holds the same analyses as Tests E, H, and I.
+#'   }
 #'
 #' @references
 #' Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
@@ -594,6 +658,7 @@ fit_solomon_classic <- function(
       "pretested" = 1,
       "treat:pretested" = 0.5
     ),
+    "",
     "Pretest main effect"
   )
 
@@ -748,11 +813,13 @@ fit_solomon_classic <- function(
   # Confidence intervals for Tests A-H (t with residual df)
   # ----------------------------------------------------------
 
+  # Each result has the columns of an effects table (issue #110): `test`,
+  # the columns every effects table has, and then `F`.
   with_ci <- function(res) {
     ci <- .wald_ci(res$estimate, res$std.error, res$df, conf_level)
     res$conf.low <- unname(ci[, "conf.low"])
     res$conf.high <- unname(ci[, "conf.high"])
-    res
+    .effects_table(res, keys = "test")
   }
 
   A <- with_ci(A)
@@ -815,14 +882,31 @@ fit_solomon_classic <- function(
                 "O6 - O3: control posttest vs. control-group pretest")
   )
 
-  # Legacy-friendly objects retained for existing user code.
-  aov_legacy <- broom::tidy(
-    stats::aov(
-      y_post ~ factor(treat) * factor(pretested),
-      data = df
-    )
+  # ----------------------------------------------------------
+  # The effects table and the analysis of variance (issue #110)
+  # ----------------------------------------------------------
+
+  # One row for each of Tests A-H, then the pretest main effect, under the
+  # contrast labels of every other fit.
+  effects <- .effects_table(
+    rbind(A, B, C, D, E, F, G, H, pretest_main),
+    keys = "test"
   )
 
+  # The two-by-two analysis of variance of the posttest, with Type III sums
+  # of squares: Test D, the pretest main effect, and Test A as F tests, in
+  # the format of solomon_from_summary(). (Until 1.0.0 the `aov` element
+  # held the sequential sums of squares of stats::aov(), whose treatment
+  # and pretest rows are not Test D and the pretest main effect when the
+  # cells are unequal.)
+  anova <- .two_way_anova(
+    rbind(D, pretest_main, A),
+    mse = stats::sigma(fit_ad)^2,
+    df_error = stats::df.residual(fit_ad)
+  )
+
+  # Legacy objects retained for existing user code; not part of the stable
+  # interface.
   ancova_legacy <- broom::tidy(fit_e)
 
   t_legacy <- broom::tidy(
@@ -898,6 +982,8 @@ fit_solomon_classic <- function(
       path = path,
       path_string = paste(path, collapse = " -> "),
       conclusion = conclusion,
+      effects = effects,
+      anova = anova,
       pretest_main = pretest_main,
       history = history,
       # At the top level, as in every other fit (issue #110), and in
@@ -914,14 +1000,31 @@ fit_solomon_classic <- function(
         alpha_allocation = alpha_allocation,
         alpha_levels = alpha_levels
       ),
+      g_post = g_post,
 
       # Legacy fields
-      aov = aov_legacy,
       ancova = ancova_legacy,
       t_unpretested = t_legacy,
-      stouffer = stouffer_legacy,
-      g_post = g_post
+      stouffer = stouffer_legacy
     ),
     class = "solomon_classic"
+  )
+}
+
+# `anova` replaced `aov` in 1.0.0 (issue #110); `$` still accepts the former
+# name, with a deprecation warning, and gives the new table. A fit made by
+# an earlier version holds the sequential table, which is not the new one,
+# so `$anova` and `$aov` are NULL for it.
+#' @export
+`$.solomon_classic` <- function(x, name) {
+  .renamed_element(
+    x, name, c(aov = "anova"), "fit_solomon_classic",
+    details = paste(
+      "`anova` has Type III sums of squares, consistent with Tests A and D",
+      "and the pretest main effect, in the columns `source`, `sumsq`, `df`,",
+      "`meansq`, `F`, and `p.value`; `aov` had the sequential sums of squares",
+      "of stats::aov()."
+    ),
+    stored = FALSE
   )
 }

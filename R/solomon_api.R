@@ -110,7 +110,13 @@
 # matches the names of a list, partially when that is unambiguous. `[[` is
 # not covered: `x[["effects_post"]]` is NULL. Deprecated names keep working
 # through v1.x.
-.renamed_element <- function(x, name, renamed, fun, when = "1.0.0", details = NULL) {
+#
+# With `stored = TRUE`, an object made before the rename, which holds the
+# element under its former name, gives it under the new name too. Use
+# `stored = FALSE` when the element was replaced and not only renamed, so
+# that the former element is not passed off as the new one.
+.renamed_element <- function(x, name, renamed, fun, when = "1.0.0", details = NULL,
+                             stored = TRUE) {
 
   if (name %in% names(renamed)) {
     old <- name
@@ -128,7 +134,7 @@
 
   value <- .subset2(x, name, exact = FALSE)
 
-  if (is.null(value) && name %in% renamed) {
+  if (stored && is.null(value) && name %in% renamed) {
     # An object made before the rename holds the element under its former
     # name.
     value <- .subset2(x, names(renamed)[match(name, renamed)])

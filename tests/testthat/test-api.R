@@ -303,6 +303,71 @@ test_that("the classic fit has its confidence level at the top level", {
   expect_identical(fit$settings$conf_level, 0.9)
 })
 
+test_that("the classic fit has `effects` and `anova`, and `aov` is a deprecated alias", {
+  d <- solomon_example
+  fit <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre)
+
+  expect_true(all(c("effects", "anova", "conf_level") %in% names(fit)))
+  expect_false("aov" %in% names(fit))
+  expect_s3_class(fit$effects, "data.frame")
+  expect_identical(names(fit$anova), names(with(elkarkri2025a, solomon_from_summary(n, mean, sd))$anova))
+  # The legacy elements stay.
+  expect_true(all(c("ancova", "t_unpretested", "stouffer") %in% names(fit)))
+
+  # Reading the new names gives no warning, here or in the methods.
+  expect_no_warning(fit$anova)
+  expect_no_warning(fit$effects)
+  expect_no_warning(capture.output(print(fit)))
+  expect_no_warning(capture.output(print(summary(fit))))
+  expect_no_warning(report_solomon(fit))
+  expect_no_warning(plot_classic_flow(fit))
+
+  # The former name gives the new table, with a warning that says what
+  # changed.
+  lifecycle::expect_deprecated(old <- fit$aov)
+  expect_identical(old, fit$anova)
+  lifecycle::expect_deprecated(old <- summary(fit)$aov)
+  expect_identical(old, fit$anova)
+  msg <- deprecation_message(fit$aov)
+  expect_match(msg, paste("The `aov` element of the result of `fit_solomon_classic()` was",
+                          "deprecated in solomonR 1.0.0."), fixed = TRUE)
+  expect_match(msg, "Please use `anova` instead.", fixed = TRUE)
+  expect_match(msg, "Type III sums of squares, consistent with Tests A and D", fixed = TRUE)
+  expect_match(msg, "`aov` had the sequential sums of squares", fixed = TRUE)
+
+  # Only the whole former name is recognized, and only by `$`.
+  expect_no_warning(expect_null(fit$ao))
+  expect_null(fit[["aov"]])
+  # The other elements are read as before, partial matching included.
+  expect_identical(fit$ancova, fit[["ancova"]])
+  expect_identical(fit$path_str, fit[["path_string"]])
+  expect_null(fit$no_such_element)
+  fit$note <- "kept"
+  expect_identical(fit$note, "kept")
+  expect_s3_class(fit, "solomon_classic")
+})
+
+test_that("a classic fit stored by an earlier version does not pass `aov` off as `anova`", {
+  d <- solomon_example
+  fit <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre)
+
+  # The elements that earlier versions stored: the sequential table as
+  # `aov`, and neither `effects` nor `anova`.
+  before <- unclass(fit)
+  before$effects <- NULL
+  before$anova <- NULL
+  before$aov <- broom::tidy(stats::aov(y_post ~ factor(treat) * factor(pretested), data = d))
+  class(before) <- "solomon_classic"
+
+  expect_no_warning(expect_null(before$anova))
+  lifecycle::expect_deprecated(old <- before$aov)
+  expect_null(old)
+  # The stored table is still there for `[[`.
+  expect_identical(before[["aov"]]$term[4], "Residuals")
+  expect_identical(capture.output(print(before)), capture.output(print(fit)))
+  expect_identical(report_solomon(before)$results, report_solomon(fit)$results)
+})
+
 # ---- Deprecated plots ---------------------------------------------------------
 
 test_that("plot_solomon() and plot_solomon_gg() are deprecated but still work", {
