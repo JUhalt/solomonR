@@ -141,18 +141,26 @@ fit
 #> Condition | unpretested       F(2, 126) = 0.73  0.485
 #> 
 #> Contrasts
-#> Comparison     Contrast                       Est (SE)      t   df      p  p adj.           95% CI
-#> RP vs Control  ATE (avg over pretest)   -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]
-#> GS vs Control  ATE (avg over pretest)    0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]
-#> RP vs Control  Pretest x Treatment      -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]
-#> GS vs Control  Pretest x Treatment      -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]
-#> RP vs Control  Treatment | pretested    -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]
-#> GS vs Control  Treatment | pretested     0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]
-#> RP vs Control  Treatment | unpretested   0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]
-#> GS vs Control  Treatment | unpretested   0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]
+#> Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI
+#> RP vs Control   ATE (avg over pretest)    -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]
+#> GS vs Control   ATE (avg over pretest)     0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]
+#> RP vs Control   Pretest x Treatment       -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]
+#> GS vs Control   Pretest x Treatment       -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]
+#> RP vs Control   Treatment | pretested     -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]
+#> GS vs Control   Treatment | pretested      0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]
+#> RP vs Control   Treatment | unpretested    0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]
+#> GS vs Control   Treatment | unpretested    0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]
+#> Control         Pretest effect | control   0.097 (0.104)   0.93  126  0.355   0.355  [-0.109, 0.303]
+#> RP              Pretest effect | treated  -0.193 (0.119)  -1.62  126  0.108   0.217  [-0.429, 0.043]
+#> GS              Pretest effect | treated   0.005 (0.125)   0.04  126  0.965   0.965  [-0.241, 0.252]
+#> All conditions  Pretest main effect       -0.030 (0.069)  -0.44  126  0.661   0.661  [-0.166, 0.106]
 #> 
 #> p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 2 comparisons.
+#> p adj. of the treatments' pretest effects: adjusted by Holm's (1979) procedure across the 2 treatments.
 #> Confidence intervals are not adjusted.
+#> Pretest effects: pretested minus unpretested participants in each condition,
+#> at the pretested participants' mean pretest (3.129), with standard errors
+#> that include the sampling variance of that mean.
 #> 
 #> Experimental: in the package's simulation study (issue #45), the omnibus
 #> tests of Condition | pretested and Condition | unpretested rejected in up
@@ -166,10 +174,14 @@ The output has three parts:
 - **Omnibus tests.** Each asks whether the conditions differ on one
   contrast.
 - **Contrasts.** The four Solomon contrasts of the four-group design,
-  for each treatment against the control.
+  for each treatment against the control, and then the pretest effect in
+  each condition (pretested minus unpretested participants, at the
+  pretested participants’ mean pretest) and averaged over the
+  conditions.
 - **Adjusted p-values.** Each contrast’s p-values are adjusted across
   the comparisons by Holm’s (1979) procedure, which controls the chance
-  of at least one false rejection in that family. The confidence
+  of at least one false rejection in that family; the treatments’
+  pretest effects are adjusted across the treatments. The confidence
   intervals are not adjusted.
 
 `contrasts = "pairwise"` adds the comparisons between treatments:
@@ -251,7 +263,8 @@ prevention, goal setting, and
 control.](several-treatments_files/figure-html/plot-sens-1.png)
 
 [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
-shows every contrast with its confidence interval:
+shows the four contrasts of every comparison with their confidence
+intervals:
 
 ``` r
 
@@ -332,8 +345,9 @@ steyn2005[, c("group", "condition", "pretested", "n", "mean", "sd")]
 #> 6 KG1.2   Marking         0 211 155.739 12.830
 #> 7 KG1.3      Test         0 220 153.036 12.628
 #> 8   KG3   Control         0 209 158.306 11.878
-with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
-                                     pretested = pretested, control = "Control"))
+s2005 <- with(steyn2005, solomon_from_summary(n, mean, sd, treat = condition,
+                                              pretested = pretested, control = "Control"))
+s2005
 #> Solomon analysis from summary statistics, N-group design
 #> --------------------------------------------------------
 #> Conditions: Norms, Marking, Test; control: Control. With and without a pretest: 8 groups.
@@ -373,6 +387,19 @@ Two cautions apply to this reanalysis, as to the original analysis.
 Existing classes, not participants, were allocated to the eight groups,
 and not at random (Steyn, 2005, pp. 105–106). The analysis treats
 participants as the units, so it does not allow for the classes.
+
+[`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+drafts the method and results of the reanalysis. Because the classes
+were not allocated at random, `assignment = "nonrandom"` makes it
+describe differences between groups rather than treatment effects. The
+omnibus tests and the first comparison:
+
+``` r
+
+report_solomon(s2005, design = list(assignment = "nonrandom"))$results[1:2]
+#> [1] "The omnibus test of the Pretest x Condition interaction (pretest sensitization) gave F(3, 1715) = 1.00, p = .392; the omnibus test of the conditions, averaged over pretest conditions, gave F(3, 1715) = 8.03, p < .001; and the test of pretesting, averaged over the conditions, gave F(1, 1715) = 4.53, p = .034."                                                                                                                                                                                                                                                                                                                    
+#> [2] "The average difference of Norms relative to Control across pretest conditions was -3.25, 95% CI [-4.96, -1.54], t(1715) = -3.73, p < .001, Holm-adjusted. The Pretest x Treatment interaction (pretest sensitization) for Norms relative to Control was 0.46, 95% CI [-2.96, 3.88], t(1715) = 0.26, p = 1.000, Holm-adjusted. The difference of Norms relative to Control among pretested participants was -3.02, 95% CI [-5.42, -0.62], t(1715) = -2.47, p = .041, Holm-adjusted. The difference of Norms relative to Control among unpretested participants was -3.48, 95% CI [-5.92, -1.04], t(1715) = -2.80, p = .010, Holm-adjusted."
+```
 
 ## Steyn’s (2009) sequence of tests
 
@@ -542,15 +569,17 @@ report_solomon(fit)
 #> Posttest outcomes of the six groups were analyzed jointly with a linear model
 #> containing an indicator for each treatment, pretesting, and their
 #> interactions, adjusting for the pretest score among pretested participants
-#> (Lin, 2013), with HC3 heteroskedasticity-consistent standard errors
-#> (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F tests examined
-#> whether the differences between the conditions depended on pretesting (the
-#> Pretest x Condition interaction) and whether the conditions differed when
-#> averaged over pretest conditions. Each treatment was compared with the
-#> control (RP vs Control and GS vs Control), and the Solomon contrasts were
-#> estimated for each comparison. Within each contrast, the p-values of the two
-#> comparisons were adjusted with Holm's (1979) procedure; the confidence
-#> intervals were not adjusted.
+#> (Lin, 2013; Newman et al., 1990), with HC3 heteroskedasticity-consistent
+#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F
+#> tests examined whether the differences between the conditions depended on
+#> pretesting (the Pretest x Condition interaction) and whether the conditions
+#> differed when averaged over pretest conditions. Each treatment was compared
+#> with the control (RP vs Control and GS vs Control), and the Solomon contrasts
+#> were estimated for each comparison. Within each contrast, the p-values of the
+#> two comparisons were adjusted with Holm's (1979) procedure; the confidence
+#> intervals were not adjusted. The pretest effect was estimated in each
+#> condition, and the p-values of the two treatments' pretest effects were
+#> adjusted with Holm's (1979) procedure.
 #> 
 #> The omnibus test of the Pretest x Condition interaction (pretest
 #> sensitization) gave F(2, 126) = 1.74, p = .179, and the omnibus test of the
@@ -574,6 +603,13 @@ report_solomon(fit)
 #> .670, Holm-adjusted. The treatment effect of GS relative to Control among
 #> unpretested participants was 0.13, 95% CI [-0.12, 0.38], t(126) = 1.06, p =
 #> .585, Holm-adjusted.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 3.13) was 0.10 in the Control
+#> condition, 95% CI [-0.11, 0.30], t(126) = 0.93, p = .355; -0.19 in the RP
+#> condition, 95% CI [-0.43, 0.04], t(126) = -1.62, p = .217, Holm-adjusted; and
+#> 0.01 in the GS condition, 95% CI [-0.24, 0.25], t(126) = 0.04, p = .965,
+#> Holm-adjusted. Averaged over the conditions, the pretest main effect was
+#> -0.03, 95% CI [-0.17, 0.11], t(126) = -0.44, p = .661.
 #> 
 #> References
 #> 
@@ -594,6 +630,10 @@ report_solomon(fit)
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
@@ -649,13 +689,15 @@ control at a time:
 
 rp <- subset(mai2020, condition %in% c("RP", "Control") & !is.na(post_behavior))
 rp$treat <- as.integer(rp$condition == "RP")
-fit_solomon_ml(post_behavior, treat, pretested, pre_behavior,
-               inference = "satterthwaite", data = rp)$effects[, 1:5]
-#>                  contrast    estimate  std.error  statistic    p.value
-#> 1  ATE (avg over pretest) -0.03467472 0.07605652 -0.4559072 0.64957579
-#> 2     Pretest x Treatment -0.28983011 0.15211304 -1.9053600 0.05998705
-#> 3   Treatment | pretested -0.17958977 0.10365751 -1.7325303 0.08960087
-#> 4 Treatment | unpretested  0.11024033 0.11132609  0.9902470 0.32772427
+fit_solomon_ml(post_behavior, treat, pretested, pre_behavior, data = rp)$effects[, 1:5]
+#>                   contrast    estimate  std.error  statistic    p.value
+#> 1   ATE (avg over pretest) -0.03467472 0.07605652 -0.4559072 0.64957579
+#> 2      Pretest x Treatment -0.28983011 0.15211304 -1.9053600 0.05998705
+#> 3    Treatment | pretested -0.17958977 0.10365751 -1.7325303 0.08960087
+#> 4  Treatment | unpretested  0.11024033 0.11132609  0.9902470 0.32772427
+#> 5 Pretest effect | control  0.09210908 0.10803703  0.8525695 0.39606671
+#> 6 Pretest effect | treated -0.19772103 0.11092363 -1.7824969 0.07785927
+#> 7      Pretest main effect -0.05280597 0.07876186 -0.6704510 0.50410591
 ```
 
 ## References

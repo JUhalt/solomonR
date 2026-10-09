@@ -31,14 +31,17 @@ equivalence_solomon(
 
 - bounds:
 
-  Equivalence bounds on the raw posttest scale: one positive number
-  `delta`, giving `c(-delta, delta)`, or `c(lower, upper)` with
-  `lower < 0 < upper`. There is no default; bounds must be chosen in
-  advance.
+  Equivalence bounds on the scale of the contrast (see "Choosing
+  equivalence bounds"): one positive number `delta`, giving
+  `c(-delta, delta)`, or `c(lower, upper)` with `lower < 0 < upper`.
+  There is no default; bounds must be chosen in advance.
 
 - contrast:
 
-  Solomon contrast to test. Default is `"Pretest x Treatment"`.
+  Solomon contrast to test: one of the contrasts of `fit$effects`,
+  including the pretest effects (`"Pretest effect | control"`,
+  `"Pretest effect | treated"`, and `"Pretest main effect"`). Default is
+  `"Pretest x Treatment"`.
 
 - alpha:
 
@@ -56,9 +59,10 @@ equivalence_solomon(
 
 ## Value
 
-An object of class `solomon_equivalence` containing the estimate,
-standard error, degrees of freedom, both one-sided tests (`t_lower`,
-`p_lower`, `t_upper`, `p_upper`), the equivalence p-value
+An object of class `solomon_equivalence` containing the `scale` of the
+contrast (such as `"outcome units"` or `"log odds ratio"`), the
+estimate, standard error, degrees of freedom, both one-sided tests
+(`t_lower`, `p_lower`, `t_upper`, `p_upper`), the equivalence p-value
 (`p_equivalence`), the test against zero (`statistic`, `p_zero`), both
 confidence intervals, the logical results `equivalent`, `different`, and
 `exceeds_bounds`, the `outcome`, and a plain-language `interpretation`.
@@ -73,11 +77,41 @@ before the data are examined, for example in a preregistration (Lakens,
 smallest change in posttest scores that would alter a conclusion, or
 from prior research.
 
-Bounds are on the raw posttest scale. To use a standardized SESOI (for
-example, d = 0.2), multiply it by a standard deviation fixed in advance,
-such as one reported in prior studies. Do not use the standard deviation
-of the current data: the same standardized bound then implies different
-raw bounds in different samples (Lakens, 2017).
+Bounds are on the scale of the contrast, which the printed result names:
+outcome units for a linear model (an identity link) and for
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+log odds ratios for a logistic model, and log rate ratios for a Poisson
+or negative-binomial model. Bounds must be set on the scale of the
+estimand (Lakens, 2017): bounds of 0.5 on a logistic fit are odds ratios
+of 0.61 to 1.65. To use a standardized SESOI (for example, d = 0.2),
+multiply it by a standard deviation fixed in advance, such as one
+reported in prior studies. Do not use the standard deviation of the
+current data: the same standardized bound then implies different raw
+bounds in different samples (Lakens, 2017).
+
+## Link scales
+
+With a pretest covariate, some link-scale contrasts do not compare like
+with like, and a classed warning (`solomonR_link_scale_warning`) says
+so:
+
+- the Pretest x Treatment contrast on a noncollapsible link, such as the
+  logit, compares a treatment effect conditional on the pretest
+  (pretested participants) with a marginal one (unpretested
+  participants), which differ whenever the pretest predicts the outcome,
+  even without sensitization (Daniel et al., 2021). The log link is
+  collapsible, so its Pretest x Treatment contrast, a ratio of rate
+  ratios, is not affected.
+
+- the pretest effects on any link but the identity compare the pretested
+  participants' fitted mean at the mean pretest with the unpretested
+  participants' mean, which differ under a nonlinear link even when the
+  pretest has no effect; see the section "The pretest effect" of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+estimates these contrasts on a common scale, from standardized risks or
+rates.
 
 ## Inference
 
@@ -87,12 +121,14 @@ for
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
 (Satterthwaite degrees of freedom with CR2); for
 [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
-the normal distribution with its default Wald inference or t with
-Welch-Satterthwaite degrees of freedom with
-`inference = "satterthwaite"`. The equivalence p-value is the larger of
-the two one-sided p-values, and the matching interval has confidence
-level 1 - 2 `alpha` (90\\ The conventional two-sided test against zero
-is reported alongside, with its 1 - `alpha` interval.
+t with residual or Welch-Satterthwaite degrees of freedom
+(Satterthwaite, 1946; Welch, 1947) under its default Satterthwaite
+inference, or the normal distribution under van Engelenburg's (1999)
+large-sample Wald inference (`inference = "wald"`). The equivalence
+p-value is the larger of the two one-sided p-values, and the matching
+interval has confidence level 1 - 2 `alpha` (90\\ The conventional
+two-sided test against zero is reported alongside, with its 1 - `alpha`
+interval.
 
 ## Outcomes
 
@@ -122,9 +158,17 @@ fit of a design with several treatments (class `solomon_ngroup`), name
 the comparison to test with `comparison`, such as `"RP vs Control"`; it
 may be left out only when the fit has a single comparison. The test uses
 that comparison's estimate of the chosen contrast and its standard
-error. It is not adjusted for the other comparisons of the design.
+error. It is not adjusted for the other comparisons of the design. For
+the pretest effects, `comparison` names the condition: a treatment for
+`"Pretest effect | treated"`; the control and `"All conditions"` (for
+`"Pretest main effect"`) are chosen automatically.
 
 ## References
+
+Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from
+oranges: Comparing noncollapsible effect estimators and their standard
+errors after adjustment for different covariate sets. *Biometrical
+Journal, 63*(3), 528–557. https://doi.org/10.1002/bimj.201900297
 
 Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. *Social Psychological and Personality
@@ -140,10 +184,22 @@ treatments have negligible effects: Minimum-effect tests in the general
 linear model. *Journal of Applied Psychology, 84*(2), 234–248.
 https://doi.org/10.1037/0021-9010.84.2.234
 
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+https://doi.org/10.2307/3002019
+
 Schuirmann, D. J. (1987). A comparison of the two one-sided tests
 procedure and the power approach for assessing the equivalence of
 average bioavailability. *Journal of Pharmacokinetics and
 Biopharmaceutics, 15*(6), 657–680. https://doi.org/10.1007/BF01068419
+
+van Engelenburg, G. (1999). *Statistical analysis for the Solomon
+four-group design* (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692
+
+Welch, B. L. (1947). The generalization of "Student's" problem when
+several different population variances are involved. *Biometrika,
+34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
 
 ## Examples
 
@@ -157,7 +213,7 @@ fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
 equivalence_solomon(fit, bounds = 5)
 #> Solomon equivalence test (TOST)
 #> Contrast: Pretest x Treatment
-#> Equivalence bounds (raw scale): [-5.000, 5.000]; alpha = 0.05
+#> Equivalence bounds (outcome units): [-5.000, 5.000]; alpha = 0.05
 #> Inference: HC3 heteroskedasticity-consistent; t tests (df = 115)
 #> 
 #> Estimate = -1.940 (SE = 3.168)
@@ -181,7 +237,7 @@ equivalence_solomon(fit6, bounds = 0.3, comparison = "RP vs Control")
 #> Solomon equivalence test (TOST)
 #> Contrast: Pretest x Treatment
 #> Comparison: RP vs Control
-#> Equivalence bounds (raw scale): [-0.300, 0.300]; alpha = 0.05
+#> Equivalence bounds (outcome units): [-0.300, 0.300]; alpha = 0.05
 #> Inference: HC3 heteroskedasticity-consistent; t tests (df = 126)
 #> 
 #> Estimate = -0.290 (SE = 0.156)

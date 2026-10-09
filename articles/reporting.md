@@ -57,8 +57,9 @@ report_solomon(fit, design = list(
 #> 
 #> Posttest outcomes were analyzed with a linear model containing treatment,
 #> pretesting, and their interaction, adjusting for the pretest score among
-#> pretested participants (Lin, 2013), with HC3 heteroskedasticity-consistent
-#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).
+#> pretested participants (Lin, 2013; Newman et al., 1990), with HC3
+#> heteroskedasticity-consistent standard errors (MacKinnon & White, 1985; Long
+#> & Ervin, 2000).
 #> 
 #> The average treatment effect across pretest conditions was 2.66, 95% CI
 #> [-0.47, 5.80], t(115) = 1.68, p = .095.
@@ -68,6 +69,12 @@ report_solomon(fit, design = list(
 #> 6.15], t(115) = 0.75, p = .453.
 #> The treatment effect among unpretested participants was 3.63, 95% CI [-0.78,
 #> 8.05], t(115) = 1.63, p = .106.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 49.60) was 3.42 among control
+#> participants, 95% CI [-1.30, 8.14], t(115) = 1.44, p = .154, and 1.48 among
+#> treated participants, 95% CI [-3.27, 6.23], t(115) = 0.62, p = .538; their
+#> average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], t(115) =
+#> 1.37, p = .174.
 #> 
 #> References
 #> 
@@ -84,6 +91,10 @@ report_solomon(fit, design = list(
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
@@ -106,10 +117,11 @@ as APA style requires:
 ``` r
 
 report_solomon(fit, format = "markdown")$results
-#> [1] "The average treatment effect across pretest conditions was 2.66, 95% CI [-0.47, 5.80], *t*(115) = 1.68, *p* = .095."       
-#> [2] "The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI [-8.21, 4.33], *t*(115) = -0.61, *p* = .541."
-#> [3] "The treatment effect among pretested participants was 1.69, 95% CI [-2.76, 6.15], *t*(115) = 0.75, *p* = .453."            
-#> [4] "The treatment effect among unpretested participants was 3.63, 95% CI [-0.78, 8.05], *t*(115) = 1.63, *p* = .106."
+#> [1] "The average treatment effect across pretest conditions was 2.66, 95% CI [-0.47, 5.80], *t*(115) = 1.68, *p* = .095."                                                                                                                                                                                                                                                                                           
+#> [2] "The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI [-8.21, 4.33], *t*(115) = -0.61, *p* = .541."                                                                                                                                                                                                                                                                                    
+#> [3] "The treatment effect among pretested participants was 1.69, 95% CI [-2.76, 6.15], *t*(115) = 0.75, *p* = .453."                                                                                                                                                                                                                                                                                                
+#> [4] "The treatment effect among unpretested participants was 3.63, 95% CI [-0.78, 8.05], *t*(115) = 1.63, *p* = .106."                                                                                                                                                                                                                                                                                              
+#> [5] "The pretest effect (pretested minus unpretested participants, at the pretested participants' mean pretest score of 49.60) was 3.42 among control participants, 95% CI [-1.30, 8.14], *t*(115) = 1.44, *p* = .154, and 1.48 among treated participants, 95% CI [-3.27, 6.23], *t*(115) = 0.62, *p* = .538; their average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], *t*(115) = 1.37, *p* = .174."
 ```
 
 ## What the helper does not do

@@ -19,7 +19,7 @@ smallest effect size of interest (SESOI) can provide that evidence."></head><bod
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,7 +93,7 @@ smallest effect size of interest (SESOI) can provide that evidence."></head><bod
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Equivalence test for a Solomon contrast</h1>
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/R/solomon_equivalence.R" class="external-link"><code>R/solomon_equivalence.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/R/solomon_equivalence.R" class="external-link"><code>R/solomon_equivalence.R</code></a></small>
       <div class="d-none name"><code>equivalence_solomon.Rd</code></div>
     </div>
 
@@ -128,15 +128,16 @@ smallest effect size of interest (SESOI) can provide that evidence.</p>
 
 
 <dt id="arg-bounds">bounds<a class="anchor" aria-label="anchor" href="#arg-bounds"></a></dt>
-<dd><p>Equivalence bounds on the raw posttest scale: one positive
-number <code>delta</code>, giving <code>c(-delta, delta)</code>, or <code>c(lower, upper)</code> with
-<code>lower &lt; 0 &lt; upper</code>. There is no default; bounds must be chosen in
-advance.</p></dd>
+<dd><p>Equivalence bounds on the scale of the contrast (see
+"Choosing equivalence bounds"): one positive number <code>delta</code>, giving
+<code>c(-delta, delta)</code>, or <code>c(lower, upper)</code> with <code>lower &lt; 0 &lt; upper</code>.
+There is no default; bounds must be chosen in advance.</p></dd>
 
 
 <dt id="arg-contrast">contrast<a class="anchor" aria-label="anchor" href="#arg-contrast"></a></dt>
-<dd><p>Solomon contrast to test. Default is
-<code>"Pretest x Treatment"</code>.</p></dd>
+<dd><p>Solomon contrast to test: one of the contrasts of
+<code>fit$effects</code>, including the pretest effects (<code>"Pretest effect | control"</code>, <code>"Pretest effect | treated"</code>, and <code>"Pretest main effect"</code>).
+Default is <code>"Pretest x Treatment"</code>.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
@@ -155,8 +156,9 @@ several treatments"). Leave it <code>NULL</code> for a four-group design.</p></d
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_equivalence</code> containing the estimate,
-standard error, degrees of freedom, both one-sided tests
+    <p>An object of class <code>solomon_equivalence</code> containing the <code>scale</code>
+of the contrast (such as <code>"outcome units"</code> or <code>"log odds ratio"</code>), the
+estimate, standard error, degrees of freedom, both one-sided tests
 (<code>t_lower</code>, <code>p_lower</code>, <code>t_upper</code>, <code>p_upper</code>), the equivalence p-value
 (<code>p_equivalence</code>), the test against zero (<code>statistic</code>, <code>p_zero</code>), both
 confidence intervals, the logical results <code>equivalent</code>, <code>different</code>, and
@@ -173,11 +175,35 @@ before the data are examined, for example in a preregistration (Lakens,
 2017; Lakens et al., 2018). Justify them substantively, such as the
 smallest change in posttest scores that would alter a conclusion, or from
 prior research.</p>
-<p>Bounds are on the raw posttest scale. To use a standardized SESOI (for
+<p>Bounds are on the scale of the contrast, which the printed result names:
+outcome units for a linear model (an identity link) and for
+<code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>, log odds ratios for a logistic model, and log rate
+ratios for a Poisson or negative-binomial model. Bounds must be set on the
+scale of the estimand (Lakens, 2017): bounds of 0.5 on a logistic fit
+are odds ratios of 0.61 to 1.65. To use a standardized SESOI (for
 example, d = 0.2), multiply it by a standard deviation fixed in advance,
 such as one reported in prior studies. Do not use the standard deviation of
 the current data: the same standardized bound then implies different raw
 bounds in different samples (Lakens, 2017).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="link-scales">Link scales<a class="anchor" aria-label="anchor" href="#link-scales"></a></h2>
+
+
+<p>With a pretest covariate, some link-scale contrasts do not compare like
+with like, and a classed warning (<code>solomonR_link_scale_warning</code>) says so:</p><ul><li><p>the Pretest x Treatment contrast on a noncollapsible link, such as the
+logit, compares a treatment effect conditional on the pretest (pretested
+participants) with a marginal one (unpretested participants), which
+differ whenever the pretest predicts the outcome, even without
+sensitization (Daniel et al., 2021). The log link is collapsible, so its
+Pretest x Treatment contrast, a ratio of rate ratios, is not affected.</p></li>
+<li><p>the pretest effects on any link but the identity compare the pretested
+participants' fitted mean at the mean pretest with the unpretested
+participants' mean, which differ under a nonlinear link even when the
+pretest has no effect; see the section "The pretest effect" of
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>.</p></li>
+</ul><p><code><a href="marginal_solomon.html">marginal_solomon()</a></code> estimates these contrasts on a common scale, from
+standardized risks or rates.</p>
     </div>
     <div class="section level2">
     <h2 id="inference">Inference<a class="anchor" aria-label="anchor" href="#inference"></a></h2>
@@ -186,9 +212,11 @@ bounds in different samples (Lakens, 2017).</p>
 <p>Each one-sided test uses the estimate, standard error, and reference
 distribution of the fitted model: t with the model's degrees of freedom for
 <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> (Satterthwaite degrees of freedom with CR2); for
-<code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>, the normal distribution with its default Wald inference
-or t with Welch-Satterthwaite degrees of freedom with
-<code>inference = "satterthwaite"</code>. The equivalence p-value is the
+<code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>, t with residual or Welch-Satterthwaite degrees of
+freedom (Satterthwaite, 1946; Welch, 1947) under its default Satterthwaite
+inference, or the normal
+distribution under van Engelenburg's (1999) large-sample Wald inference
+(<code>inference = "wald"</code>). The equivalence p-value is the
 larger of the two one-sided p-values, and the matching interval has
 confidence level 1 - 2 <code>alpha</code> (90\<!-- % when \code{alpha = 0.05}; Lakens, 2017). -->
 The conventional two-sided test against zero is reported alongside, with
@@ -219,11 +247,18 @@ size of interest in that direction (a minimum-effect test; Murphy &amp; Myors,
 as <code>"RP vs Control"</code>; it may be left out only when the fit has a single
 comparison. The test uses that comparison's estimate of the chosen
 contrast and its standard error. It is not adjusted for the other
-comparisons of the design.</p>
+comparisons of the design. For the pretest effects, <code>comparison</code> names
+the condition: a treatment for <code>"Pretest effect | treated"</code>; the control
+and <code>"All conditions"</code> (for <code>"Pretest main effect"</code>) are chosen
+automatically.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
-    <p>Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
+    <p>Daniel, R., Zhang, J., &amp; Farewell, D. (2021). Making apples from oranges:
+Comparing noncollapsible effect estimators and their standard errors after
+adjustment for different covariate sets. <em>Biometrical Journal, 63</em>(3),
+528–557. https://doi.org/10.1002/bimj.201900297</p>
+<p>Lakens, D. (2017). Equivalence tests: A practical primer for t tests,
 correlations, and meta-analyses. <em>Social Psychological and Personality
 Science, 8</em>(4), 355–362. https://doi.org/10.1177/1948550617697177</p>
 <p>Lakens, D., Scheel, A. M., &amp; Isager, P. M. (2018). Equivalence testing for
@@ -234,10 +269,19 @@ https://doi.org/10.1177/2515245918770963</p>
 have negligible effects: Minimum-effect tests in the general linear model.
 <em>Journal of Applied Psychology, 84</em>(2), 234–248.
 https://doi.org/10.1037/0021-9010.84.2.234</p>
+<p>Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114.
+https://doi.org/10.2307/3002019</p>
 <p>Schuirmann, D. J. (1987). A comparison of the two one-sided tests procedure
 and the power approach for assessing the equivalence of average
 bioavailability. <em>Journal of Pharmacokinetics and Biopharmaceutics, 15</em>(6),
 657–680. https://doi.org/10.1007/BF01068419</p>
+<p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon four-group
+design</em> (Research Report 99-06). University of Twente. ERIC.
+https://eric.ed.gov/?id=ED435692</p>
+<p>Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. <em>Biometrika, 34</em>(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28</p>
     </div>
 
     <div class="section level2">
@@ -251,7 +295,7 @@ bioavailability. <em>Journal of Pharmacokinetics and Biopharmaceutics, 15</em>(6
 <span class="r-in"><span><span class="fu">equivalence_solomon</span><span class="op">(</span><span class="va">fit</span>, bounds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Solomon equivalence test (TOST)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Contrast: Pretest x Treatment</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Equivalence bounds (raw scale): [-5.000, 5.000]; alpha = 0.05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Equivalence bounds (outcome units): [-5.000, 5.000]; alpha = 0.05</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Inference: HC3 heteroskedasticity-consistent; t tests (df = 115)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Estimate = -1.940 (SE = 3.168)</span>
@@ -275,7 +319,7 @@ bioavailability. <em>Journal of Pharmacokinetics and Biopharmaceutics, 15</em>(6
 <span class="r-out co"><span class="r-pr">#&gt;</span> Solomon equivalence test (TOST)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Contrast: Pretest x Treatment</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Comparison: RP vs Control</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Equivalence bounds (raw scale): [-0.300, 0.300]; alpha = 0.05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Equivalence bounds (outcome units): [-0.300, 0.300]; alpha = 0.05</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Inference: HC3 heteroskedasticity-consistent; t tests (df = 126)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Estimate = -0.290 (SE = 0.156)</span>

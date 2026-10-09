@@ -56,13 +56,16 @@ Supported objects come from
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
 [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
 [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md),
+[`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md),
 [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
 [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
 [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md),
 [`fisher_solomon()`](https://juhalt.github.io/solomonR/reference/fisher_solomon.md),
-[`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md),
+[`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+(for four-group designs and for designs with several treatments),
 [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md),
 [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
+[`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md),
 [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md),
 [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md),
 [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md),
@@ -74,6 +77,35 @@ fit cites Bell and McCaffrey (2002) and Pustejovsky and Tipton (2018),
 and the 1990 flow of the classic analysis adds Braver and Walton Braver
 (1990). Every reference matches the package's canonical APA 7
 bibliography.
+
+**What the report leaves out.** Two analysis functions are not reported,
+on purpose:
+
+- [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md)
+  combines the z statistics of tests computed elsewhere. Test I of the
+  historical sequence, which is that combination, is reported with
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md).
+
+- [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md)
+  computes effect sizes and their sampling variances to be combined in a
+  meta-analysis of several studies, not the results of one study.
+
+Their help pages give the references for their methods. The design
+checks
+([`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md),
+[`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md),
+and
+[`check_solomon_assumptions()`](https://juhalt.github.io/solomonR/reference/check_solomon_assumptions.md)),
+planning and power
+([`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md),
+[`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md),
+and
+[`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)),
+[`simulate_solomon()`](https://juhalt.github.io/solomonR/reference/simulate_solomon.md),
+and
+[`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
+do not analyze a study's results and are not reported either. Any other
+object is refused with an error.
 
 The design statement follows the MERIT recommendations on reporting
 measurement in trials (French et al., 2021b): the numbers analyzed in
@@ -98,9 +130,44 @@ are reported with their weights. An
 test of one comparison and the
 [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)
 comparisons of such a design are reported with the same design
-statement. solomonR follows a pre-publication draft of Steyn (2009),
+statement. So is a
+[`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+analysis of the design's cell statistics, whose results give the omnibus
+F tests of the two-way analysis of variance (including the test of
+pretesting) and the Holm-adjusted contrasts of each treatment against
+the control. solomonR follows a pre-publication draft of Steyn (2009),
 which the author provided; see
 [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md).
+
+**Latent structural equation models.** For
+[`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
+the report gives what the reporting standards for structural equation
+models ask for (Appelbaum et al., 2018, Table 7): the software and its
+version, the estimator, the handling of missing data, the numbers in
+each group, how the latent scale was identified (the latent posttest
+mean of the unpretested control group is fixed at 0, and a latent
+variance or a marker loading is fixed at 1) and so the unit of the
+contrasts, the chi-square test, the CFI, RMSEA, and SRMR, and any
+parameters freed for partial invariance. The invariance statement
+follows the fit rather than asserting scalar invariance: it states the
+constraints the model imposed, names the loadings and intercepts the
+fitted model left free to differ across groups (read from the model, not
+from `partial_post` and `partial_pre`), and gives the result of the
+invariance check under each criterion, including when the check did not
+support the invariance the contrasts assume or was not run. For the
+latent analysis of covariance, it states the constraints that identify
+that model and the unit of its adjusted effect, which with
+`std_lv = TRUE` is a residual standard deviation of the latent posttest,
+not the unit of the four-group contrasts. With the default MLR
+estimator, the chi-square is the scaled one, and the CFI and RMSEA are
+those of the unscaled maximum likelihood chi-square, as the fit prints
+them. For
+[`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md),
+the report gives the minimal information Putnick and Bornstein (2016)
+propose for invariance tests: the group sizes, the handling of missing
+data, the criteria, and the fit of each model (its chi-square test, CFI,
+RMSEA, and SRMR) with the comparisons and the decision under each
+criterion.
 
 **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
 results describe differences between groups rather than treatment
@@ -114,7 +181,12 @@ in the pretested arms
 ([`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)):
 without random assignment the unpretested arms form a static-group
 comparison, whose groups cannot be shown to have been equivalent
-(Campbell & Stanley, 1963/1966, pp. 12, 25).
+(Campbell & Stanley, 1963/1966, pp. 12, 25). Solomon's three-group
+design
+([`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md))
+has one unpretested group and so no such comparison; its report says
+instead that the pretest mean inferred for Control Group II assumes an
+equivalence of the groups that cannot be checked.
 
 **What the report does not decide.** It states results; it does not
 interpret them. Whether the analysis was pre-specified must be supplied,
@@ -122,6 +194,12 @@ never inferred, and the choice of analysis, the reading of the results,
 and the conclusions remain the researcher's responsibility.
 
 ## References
+
+Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &
+Rao, S. M. (2018). Journal article reporting standards for quantitative
+research in psychology: The APA Publications and Communications Board
+task force report. *American Psychologist, 73*(1), 3–25.
+https://doi.org/10.1037/amp0000191
 
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
@@ -141,6 +219,11 @@ Holm, S. (1979). A simple sequentially rejective multiple test
 procedure. *Scandinavian Journal of Statistics, 6*(2), 65–70.
 https://www.jstor.org/stable/4615733
 
+Putnick, D. L., & Bornstein, M. H. (2016). Measurement invariance
+conventions and reporting: The state of the art and future directions
+for psychological research. *Developmental Review, 41*, 71–90.
+https://doi.org/10.1016/j.dr.2016.06.004
+
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
 Journal—Annual Review, 3*(1), 383–394.
@@ -158,8 +241,9 @@ report_solomon(fit, design = list(prespecified = TRUE))
 #> 
 #> Posttest outcomes were analyzed with a linear model containing treatment,
 #> pretesting, and their interaction, adjusting for the pretest score among
-#> pretested participants (Lin, 2013), with HC3 heteroskedasticity-consistent
-#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).
+#> pretested participants (Lin, 2013; Newman et al., 1990), with HC3
+#> heteroskedasticity-consistent standard errors (MacKinnon & White, 1985; Long
+#> & Ervin, 2000).
 #> 
 #> The average treatment effect across pretest conditions was 2.66, 95% CI
 #> [-0.47, 5.80], t(115) = 1.68, p = .095.
@@ -169,6 +253,12 @@ report_solomon(fit, design = list(prespecified = TRUE))
 #> 6.15], t(115) = 0.75, p = .453.
 #> The treatment effect among unpretested participants was 3.63, 95% CI [-0.78,
 #> 8.05], t(115) = 1.63, p = .106.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 49.60) was 3.42 among control
+#> participants, 95% CI [-1.30, 8.14], t(115) = 1.44, p = .154, and 1.48 among
+#> treated participants, 95% CI [-3.27, 6.23], t(115) = 0.62, p = .538; their
+#> average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], t(115) =
+#> 1.37, p = .174.
 #> 
 #> References
 #> 
@@ -185,6 +275,10 @@ report_solomon(fit, design = list(prespecified = TRUE))
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
@@ -204,15 +298,17 @@ report_solomon(fit6)
 #> Posttest outcomes of the six groups were analyzed jointly with a linear model
 #> containing an indicator for each treatment, pretesting, and their
 #> interactions, adjusting for the pretest score among pretested participants
-#> (Lin, 2013), with HC3 heteroskedasticity-consistent standard errors
-#> (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F tests examined
-#> whether the differences between the conditions depended on pretesting (the
-#> Pretest x Condition interaction) and whether the conditions differed when
-#> averaged over pretest conditions. Each treatment was compared with the
-#> control (RP vs Control and GS vs Control), and the Solomon contrasts were
-#> estimated for each comparison. Within each contrast, the p-values of the two
-#> comparisons were adjusted with Holm's (1979) procedure; the confidence
-#> intervals were not adjusted.
+#> (Lin, 2013; Newman et al., 1990), with HC3 heteroskedasticity-consistent
+#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F
+#> tests examined whether the differences between the conditions depended on
+#> pretesting (the Pretest x Condition interaction) and whether the conditions
+#> differed when averaged over pretest conditions. Each treatment was compared
+#> with the control (RP vs Control and GS vs Control), and the Solomon contrasts
+#> were estimated for each comparison. Within each contrast, the p-values of the
+#> two comparisons were adjusted with Holm's (1979) procedure; the confidence
+#> intervals were not adjusted. The pretest effect was estimated in each
+#> condition, and the p-values of the two treatments' pretest effects were
+#> adjusted with Holm's (1979) procedure.
 #> 
 #> The omnibus test of the Pretest x Condition interaction (pretest
 #> sensitization) gave F(2, 126) = 1.74, p = .179, and the omnibus test of the
@@ -236,6 +332,13 @@ report_solomon(fit6)
 #> .670, Holm-adjusted. The treatment effect of GS relative to Control among
 #> unpretested participants was 0.13, 95% CI [-0.12, 0.38], t(126) = 1.06, p =
 #> .585, Holm-adjusted.
+#> The pretest effect (pretested minus unpretested participants, at the
+#> pretested participants' mean pretest score of 3.13) was 0.10 in the Control
+#> condition, 95% CI [-0.11, 0.30], t(126) = 0.93, p = .355; -0.19 in the RP
+#> condition, 95% CI [-0.43, 0.04], t(126) = -1.62, p = .217, Holm-adjusted; and
+#> 0.01 in the GS condition, 95% CI [-0.24, 0.25], t(126) = 0.04, p = .965,
+#> Holm-adjusted. Averaged over the conditions, the pretest main effect was
+#> -0.03, 95% CI [-0.17, 0.11], t(126) = -0.44, p = .661.
 #> 
 #> References
 #> 
@@ -256,6 +359,10 @@ report_solomon(fit6)
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958

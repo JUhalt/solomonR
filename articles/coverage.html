@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,7 @@
       <h1>Coverage of the Published Methodology</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/vignettes/articles/coverage.Rmd" class="external-link"><code>vignettes/articles/coverage.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/vignettes/articles/coverage.Rmd" class="external-link"><code>vignettes/articles/coverage.Rmd</code></a></small>
       <div class="d-none name"><code>coverage.Rmd</code></div>
     </div>
 
@@ -300,14 +300,41 @@ interactions in 32 studies.</td>
 <td>Evidence</td>
 </tr>
 <tr class="even">
+<td>Williams &amp; Newman (1982)</td>
+<td>One regression for all six sets of observations, in answer to
+Campbell and Stanley (pp. 77–78): an indicator for each group of scores,
+with the pretests and posttests of the pretested groups as separate
+groups and no person vectors (pp. 83–84). Hypotheses tested as
+restrictions, in a one-way layout or a three-way layout with two empty
+cells (pp. 83–89; Table 4, p. 89). Also a t test of the unpretested
+groups, and an analysis of covariance and a repeated-measures analysis
+of the pretested groups (pp. 79–83).</td>
+<td>The history article</td>
+<td>Evidence</td>
+</tr>
+<tr class="odd">
 <td>Walton Braver &amp; Braver (1988)</td>
 <td>The Test A–I decision sequence, ending in a Stouffer combination of
-the pretested and unpretested comparisons (Test I).</td>
+the pretested and unpretested comparisons (Test I), with a worked
+example on hypothetical data (Tables 3–5, p. 153).</td>
 <td>
 <code>fit_solomon_classic(flow = "1988")</code>,
-<code><a href="../reference/stouffer_solomon.html">stouffer_solomon()</a></code>, <code><a href="../reference/plot_classic_flow.html">plot_classic_flow()</a></code>
-</td>
-<td>Historical</td>
+<code><a href="../reference/stouffer_solomon.html">stouffer_solomon()</a></code>, <code><a href="../reference/plot_classic_flow.html">plot_classic_flow()</a></code>;
+<code>waltonbraver1988</code>, whose worked example the package’s tests
+reproduce</td>
+<td>Historical; Data (reproduced)</td>
+</tr>
+<tr class="even">
+<td>Sawilowsky &amp; Markman (1988)</td>
+<td>An ERIC manuscript with the same title as Sawilowsky and Markman
+(1990a): fabricated scores (Table 2, p. 7) for which Test H is
+significant and Test I, as the authors compute it, is not (pp. 3–4;
+Tables 4–5, pp. 9–10). The manuscript does not describe the computation;
+their z values (1.98 and .08) correspond to halving each two-sided
+p-value without regard to the sign of Test E’s effect.</td>
+<td>The known-result test of <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>, which
+reproduces Tests E and H; the historical-analysis vignette</td>
+<td>Data (reproduced)</td>
 </tr>
 <tr class="odd">
 <td>Sawilowsky &amp; Markman (1990a)</td>
@@ -330,12 +357,51 @@ test through Test I is run.</td>
 <td>Evidence</td>
 </tr>
 <tr class="even">
+<td>Newman et al. (1990)</td>
+<td>One regression for the four groups, which the authors call a
+pseudo-analysis of covariance: group indicators and the pretest as a
+covariate, coded 0 where no pretest was given (Table 1, p. 95; equation
+7, p. 98). The slope comes from the pretested groups, the unpretested
+groups’ means are not adjusted, and treatment, pretesting, and the
+interaction are tested as restrictions (pp. 98–100). A caution against
+treating unpretested participants as having a pretest of zero (p. 98);
+adjusted means at the pretested groups’ mean pretest (p. 101).</td>
+<td>The model of <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>, a reparameterization of
+equation 7, whose known-result test reproduces the pretest slope
+(p. 98), the within-groups sum of squares, and the tests of the
+treatment (F = 21.01) and the interaction (F = 0.21, printed .22) (Table
+3, p. 100); the history article</td>
+<td>Implemented; Data (reproduced)</td>
+</tr>
+<tr class="odd">
 <td>Sawilowsky et al. (1994)</td>
 <td>Monte Carlo evidence of an inflated experiment-wise Type I error for
 the sequence.</td>
 <td>Reproduced in “Historical Tests: Replicating the Published Error
 Rates”; the caution printed with Test I</td>
 <td>Data (reproduced)</td>
+</tr>
+<tr class="even">
+<td>Dukes et al. (1995)</td>
+<td>A school evaluation with four latent outcomes and classroom means as
+the unit (pp. 412–413). Multisample latent-mean models for three
+two-group comparisons: maturation (the pretested control’s pretest
+against the unpretested control’s posttest) and the program effect
+within each pretest condition, each after chi-square tests of equal
+loadings, with the indicators’ means held equal (pp. 420–426).
+Pretesting judged by comparing the two program comparisons, with no test
+of the interaction (p. 426).</td>
+<td>A published precedent for the latent analysis:
+<code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> fits the four groups in one model
+and tests the sensitization contrast, and
+<code><a href="../reference/invariance_solomon.html">invariance_solomon()</a></code> extends the loading tests to
+configural, metric, and scalar tests across all four groups; the SEM
+article. Planned, after the authors’ analyses (<a href="https://github.com/JUhalt/solomonR/issues/117" class="external-link">#117</a>): a latent
+maturation contrast (pp. 420–422), a pretest main-effect contrast
+(p. 426), the latent pretest difference between the pretested groups as
+a baseline check (p. 423; Table 4, p. 425), and a standardized latent
+contrast using the pooled latent standard deviation (p. 426).</td>
+<td>Guidance; Planned</td>
 </tr>
 <tr class="odd">
 <td>Sawilowsky (1996)</td>
@@ -538,16 +604,20 @@ the significance of the two simple effects.</td>
 package applies general methods to the design’s estimands, and each
 function cites its sources:</p>
 <ul>
-<li>one model for all the groups with robust standard errors
-(<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>), and, for designs with several
-treatments, omnibus tests and comparisons adjusted by Holm’s (1979)
-procedure;</li>
+<li>for the single model of all four groups that Newman et al. (1990)
+proposed (<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>): the four Solomon contrasts as
+named estimates with confidence intervals, robust (HC3) standard errors,
+cluster-robust (CR2) standard errors with Satterthwaite degrees of
+freedom, binary and count outcomes with exposure offsets, additional
+covariates, and, for designs with several treatments, omnibus tests and
+comparisons adjusted by Holm’s (1979) procedure;</li>
 <li>randomization inference (<code><a href="../reference/perm_solomon.html">perm_solomon()</a></code>);</li>
 <li>equivalence tests of sensitization
 (<code><a href="../reference/equivalence_solomon.html">equivalence_solomon()</a></code>);</li>
-<li>latent-variable models and measurement invariance
-(<code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code>,
-<code><a href="../reference/invariance_solomon.html">invariance_solomon()</a></code>);</li>
+<li>latent-variable models of all four groups, and measurement
+invariance across them (<code><a href="../reference/fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code>,
+<code><a href="../reference/invariance_solomon.html">invariance_solomon()</a></code>), which extend the two-group
+latent-mean comparisons of Dukes et al. (1995);</li>
 <li>marginal contrasts for binary and count outcomes
 (<code><a href="../reference/marginal_solomon.html">marginal_solomon()</a></code>);</li>
 <li>clustered designs;</li>
@@ -666,6 +736,10 @@ experiments in social settings. <em>Psychological Bulletin, 54</em>(4),
 <p>Campbell, D. T., &amp; Stanley, J. C. (1966). <em>Experimental and
 quasi-experimental designs for research</em>. Rand McNally. (Original
 work published 1963)</p>
+<p>Dukes, R. L., Ullman, J. B., &amp; Stein, J. A. (1995). An evaluation
+of D.A.R.E. (Drug Abuse Resistance Education), using a Solomon
+four-group design with latent variables. <em>Evaluation Review,
+19</em>(4), 409–435. <a href="https://doi.org/10.1177/0193841X9501900404" class="external-link uri">https://doi.org/10.1177/0193841X9501900404</a></p>
 <p>Edmonds, W. A., &amp; Kennedy, T. D. (2017). <em>An applied guide to
 research designs: Quantitative, qualitative, and mixed methods</em> (2nd
 ed.). SAGE Publications. <a href="https://doi.org/10.4135/9781071802779" class="external-link uri">https://doi.org/10.4135/9781071802779</a></p>
@@ -728,6 +802,9 @@ service through service learning. <em>Journal of Management Education,
 <p>Morris, S. B. (2008). Estimating effect sizes from
 pretest-posttest-control group designs. <em>Organizational Research
 Methods, 11</em>(2), 364–386. <a href="https://doi.org/10.1177/1094428106291059" class="external-link uri">https://doi.org/10.1177/1094428106291059</a></p>
+<p>Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. <em>Multiple Linear Regression
+Viewpoints, 17</em>(2), 91–103. <a href="https://ojs.lib.ua.edu/glmj/article/view/125" class="external-link uri">https://ojs.lib.ua.edu/glmj/article/view/125</a></p>
 <p>Sawilowsky, S. S. (1996, June 23). <em>Controlling experiment-wise
 Type I error of meta-analysis in the Solomon four-group design</em>
 [Paper presentation]. First International Conference on Multiple
@@ -737,6 +814,9 @@ experiments. <em>Perceptual and Motor Skills, 90</em>(2), 489–497. <a href="ht
 <p>Sawilowsky, S. S., Kelley, D. L., Blair, R. C., &amp; Markman, B. S.
 (1994). Meta-analysis and the Solomon four-group design. <em>The Journal
 of Experimental Education, 62</em>(4), 361–376. <a href="https://doi.org/10.1080/00220973.1994.9944140" class="external-link uri">https://doi.org/10.1080/00220973.1994.9944140</a></p>
+<p>Sawilowsky, S. S., &amp; Markman, B. S. (1988). <em>Another look at
+the power of meta-analysis in the Solomon four-group design</em>
+(ED316556). ERIC. <a href="https://eric.ed.gov/?id=ED316556" class="external-link uri">https://eric.ed.gov/?id=ED316556</a></p>
 <p>Sawilowsky, S. S., &amp; Markman, B. S. (1990a). Another look at the
 power of meta-analysis in the Solomon four-group design. <em>Perceptual
 and Motor Skills, 71</em>(1), 177–178. <a href="https://doi.org/10.2466/pms.1990.71.1.177" class="external-link uri">https://doi.org/10.2466/pms.1990.71.1.177</a></p>
@@ -770,6 +850,9 @@ ERIC. <a href="https://eric.ed.gov/?id=ED435692" class="external-link uri">https
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical
 treatment of the Solomon four-group design: A meta-analytic approach.
 <em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>
+<p>Williams, J. D., &amp; Newman, I. (1982). Using linear models to
+simultaneously analyze a Solomon four group design. <em>Multiple Linear
+Regression Viewpoints, 11</em>(3), 77–90. <a href="https://ojs.lib.ua.edu/glmj/article/view/68" class="external-link uri">https://ojs.lib.ua.edu/glmj/article/view/68</a></p>
 <p>Willson, V. L., &amp; Putnam, R. R. (1982). A meta-analysis of
 pretest sensitization effects in experimental design. <em>American
 Educational Research Journal, 19</em>(2), 249–258. <a href="https://doi.org/10.3102/00028312019002249" class="external-link uri">https://doi.org/10.3102/00028312019002249</a></p>

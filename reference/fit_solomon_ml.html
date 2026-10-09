@@ -15,7 +15,7 @@ a separate residual variance."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,7 +89,7 @@ a separate residual variance."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Full-information ML analysis for a Solomon Four-Group Design</h1>
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/R/solomon_ml.R" class="external-link"><code>R/solomon_ml.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/R/solomon_ml.R" class="external-link"><code>R/solomon_ml.R</code></a></small>
       <div class="d-none name"><code>fit_solomon_ml.Rd</code></div>
     </div>
 
@@ -111,7 +111,7 @@ a separate residual variance.</p>
 <span>  weights <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"equal"</span><span class="op">)</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  conf_level <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  inference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wald"</span>, <span class="st">"satterthwaite"</span><span class="op">)</span>,</span>
+<span>  inference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"satterthwaite"</span>, <span class="st">"wald"</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -155,9 +155,11 @@ pretested and unpretested treatment effects.</p></dd>
 
 <dt id="arg-inference">inference<a class="anchor" aria-label="anchor" href="#arg-inference"></a></dt>
 <dd><p>How standard errors, tests, and intervals are computed:
-<code>"wald"</code> (default) for van Engelenburg's (1999) large-sample Wald
-inference, or <code>"satterthwaite"</code> for the small-sample option. The point
-estimates are the same. See the Inference options section.</p></dd>
+<code>"satterthwaite"</code> (default) for t tests with residual or
+Welch-Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch,
+1947), or <code>"wald"</code> for van Engelenburg's (1999) large-sample Wald
+inference. The point estimates are the same. See the Inference options
+section.</p></dd>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
@@ -168,48 +170,74 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_ml</code>.</p>
+    <p>An object of class <code>solomon_ml</code>, with the coefficients, the
+<code>effects</code> table (the four Solomon contrasts, then the three pretest
+effects), the residual standard deviations, <code>pretest_mean</code>, and the
+settings used.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The model estimates the treatment effect, pretest effect,
 Treatment x Pretest interaction, pretest-posttest slope, and separate
-residual standard deviations for pretested and unpretested participants.</p>
+residual standard deviations for pretested and unpretested participants.
+The pretest enters as a deviation from its mean among pretested
+participants (returned as <code>pretest_mean</code>), so the pretest effect <code>bP</code>
+compares pretested and unpretested controls at that mean. The effects
+table reports the four Solomon contrasts and then the pretest effects
+among controls, among treated participants, and averaged over the two, as
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> does (see its section "The pretest effect").</p>
     </div>
     <div class="section level2">
     <h2 id="inference-options">Inference options<a class="anchor" aria-label="anchor" href="#inference-options"></a></h2>
 
 
 <p>The point estimates are maximum-likelihood estimates, which coincide with
-separate regressions in the pretested and unpretested groups.</p><ul><li><p><code>inference = "wald"</code> (default) follows van Engelenburg (1999): standard
-errors come from the observed information matrix, and tests and
-intervals use a normal reference distribution, the usual large-sample
-basis for maximum-likelihood inference.</p></li>
-<li><p><code>inference = "satterthwaite"</code> is a small-sample option. Standard errors
-use unbiased residual variances within each pretest condition. Contrasts
-within one condition use t tests with that condition's residual degrees
-of freedom, and contrasts that combine the conditions (the ATE and
+separate regressions in the pretested and unpretested groups.</p><ul><li><p><code>inference = "satterthwaite"</code> (default): standard errors use unbiased
+residual variances within each pretest condition. Contrasts within one
+condition use t tests with that condition's residual degrees of
+freedom, and contrasts that combine the conditions (the ATE and
 Pretest x Treatment) use Welch-Satterthwaite degrees of freedom
 (Satterthwaite, 1946; Welch, 1947).</p></li>
-</ul><p>In the package's simulation validation (issues #10 and #22; 84 scenarios
+<li><p><code>inference = "wald"</code> follows van Engelenburg (1999): standard errors
+come from the observed information matrix, and tests and intervals use a
+normal reference distribution, the usual large-sample basis for
+maximum-likelihood inference.</p></li>
+</ul><p>The pretest effects are evaluated at the mean pretest of the pretested
+participants, an estimate whose sampling variance their standard errors
+include (see the section "The pretest effect" of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>).
+Under the model the mean is independent of the regression estimates, so
+Wald inference adds <code>bX</code>^2 times the maximum-likelihood variance of the
+mean, and the small-sample option adds <code>bX</code>^2 s^2 / n, for n pretested
+participants whose pretests have variance s^2, as a third component with
+n - 1 degrees of freedom. The coefficient table gives <code>bP</code> with the
+standard error of van Engelenburg (1999), which treats the mean as fixed.
+The pretest effects were not part of the validation below.</p>
+<p>In the package's simulation validation (issues #10 and #22; 84 scenarios
 with 2,000 replications each, reported in the article "Validating
 fit_solomon_ml()" on the package website), both options recovered the
-Solomon contrasts without bias. Wald intervals were too narrow in small
-samples: mean coverage of nominal 95% intervals was 0.893 with 6
-participants per cell, 0.920 with 10, 0.936 with 20, 0.941 with 30, and
-0.948 with 100, and the Pretest x Treatment test rejected a true null
-hypothesis in 9.9% of samples with 6 per cell and 5.9% with 30. The
-small-sample option had mean coverage of 0.949 to 0.950 and Type I error of
-0.050 to 0.053 at every cell size studied, from 6 to 100 per cell.</p>
-<p>When the smallest cell has fewer than 40 participants and <code>inference</code> is
-not supplied, <code>fit_solomon_ml()</code> issues a warning of class
-<code>solomonR_small_sample_warning</code> that suggests the small-sample option.
-Supplying <code>inference = "wald"</code> explicitly keeps the default without the
-warning. The threshold follows a rule set before the validation results
-were examined: 40 is the smallest cell size at which Wald inference had
-mean coverage of at least 0.940 and Type I error of at most 0.060, with
-equal and unequal residual variances, at that size and every larger size
-studied.</p>
+Solomon contrasts without bias. Satterthwaite inference had mean coverage
+of nominal 95% intervals of 0.949 to 0.950 and Type I error of 0.050 to
+0.053 at every cell size studied, from 6 to 100 participants per cell.
+Wald intervals were too narrow in small samples: mean coverage was 0.893
+with 6 participants per cell, 0.920 with 10, 0.936 with 20, 0.941 with
+30, and 0.948 with 100, and the Pretest x Treatment test rejected a true
+null hypothesis in 9.9% of samples with 6 per cell and 5.9% with 30.</p>
+<p>Printed output gives the maximum-likelihood residual standard deviations
+of the two pretest conditions (the square roots of SSE / n, stored in
+<code>sigma</code>), which Wald standard errors use. For Satterthwaite inference it
+also gives the square roots of the unbiased residual variances (SSE /
+residual df, stored in <code>sigma_unbiased</code>), which its standard errors use.</p>
+<p>Satterthwaite inference became the default because of these results
+(issue #115). In solomonR 0.8.0 and earlier the default was <code>"wald"</code>;
+supply <code>inference = "wald"</code> to reproduce results from those versions.</p>
+<p>When <code>inference = "wald"</code> and the smallest cell has fewer than 40
+participants, printed output notes that Wald intervals were too narrow at
+such sizes in the validation. The threshold follows a rule set before the
+validation results were examined: 40 is the smallest cell size at which
+Wald inference had mean coverage of at least 0.940 and Type I error of at
+most 0.060, with equal and unequal residual variances, at that size and
+every larger size studied. Even at and above it, Wald inference was
+approximately adequate rather than exact.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -226,18 +254,18 @@ https://doi.org/10.1093/biomet/34.1-2.28</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># With fewer than 40 participants per cell, use the small-sample</span></span></span>
-<span class="r-in"><span><span class="co"># (Satterthwaite) inference; see "Inference options".</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu">fit_solomon_ml</span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>,</span></span>
-<span class="r-in"><span>                                     inference <span class="op">=</span> <span class="st">"satterthwaite"</span><span class="op">)</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Default: Satterthwaite inference.</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu">fit_solomon_ml</span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Solomon full-information maximum-likelihood model</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> -------------------------------------------------</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Method: van Engelenburg (1999)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Inference: small-sample (t; Welch-Satterthwaite df for combined contrasts)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Inference: Satterthwaite (Satterthwaite, 1946; Welch, 1947; t with residual</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   df within a pretest condition, Welch-Satterthwaite df for contrasts that</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   combine them)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Centered pretest mean: 49.600</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Residual SD, unpretested: 8.345</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Residual SD, pretested:   8.298</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Residual SD, unpretested: 8.345 (ML); 8.488 (from the unbiased variance; used for SEs)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Residual SD, pretested:   8.298 (ML); 8.513 (from the unbiased variance; used for SEs)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Key Solomon estimands</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ---------------------</span>
@@ -245,8 +273,47 @@ https://doi.org/10.1093/biomet/34.1-2.28</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Treatment          -1.940 (SE = 3.104), t(115.0) = -0.62, p = 0.533, 95% CI [-8.088, 4.209]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | pretested        1.693 (SE = 2.198), t(57) = 0.77, p = 0.444, 95% CI [-2.708, 6.095]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | unpretested      3.633 (SE = 2.192), t(58) = 1.66, p = 0.103, 95% CI [-0.754, 8.020]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | control     3.420 (SE = 2.345), t(144.2) = 1.46, p = 0.147, 95% CI [-1.215, 8.055]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | treated     1.480 (SE = 2.345), t(144.2) = 0.63, p = 0.529, 95% CI [-3.155, 6.115]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest main effect          2.450 (SE = 1.758), t(163.7) = 1.39, p = 0.165, 95% CI [-1.021, 5.921]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effects: at the centered pretest mean, with standard errors that</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> include its sampling variance.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> logLik = -424.53; optimizer convergence = 0</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># van Engelenburg's (1999) large-sample Wald inference. With 30</span></span></span>
+<span class="r-in"><span><span class="co"># participants per cell, the printed output notes that these intervals</span></span></span>
+<span class="r-in"><span><span class="co"># were too narrow at such sizes in the package's validation.</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu">fit_solomon_ml</span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>,</span></span>
+<span class="r-in"><span>                                     inference <span class="op">=</span> <span class="st">"wald"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Solomon full-information maximum-likelihood model</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -------------------------------------------------</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Method: van Engelenburg (1999)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Inference: Wald (van Engelenburg, 1999; large-sample normal reference)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Centered pretest mean: 49.600</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Residual SD, unpretested: 8.345 (ML; used for SEs)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Residual SD, pretested:   8.298 (ML; used for SEs)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Key Solomon estimands</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ---------------------</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ATE (avg over pretest)       2.663 (SE = 1.519), z = 1.75, p = 0.080, 95% CI [-0.314, 5.641]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Treatment          -1.940 (SE = 3.039), z = -0.64, p = 0.523, 95% CI [-7.895, 4.016]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | pretested        1.693 (SE = 2.142), z = 0.79, p = 0.429, 95% CI [-2.506, 5.893]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | unpretested      3.633 (SE = 2.155), z = 1.69, p = 0.092, 95% CI [-0.590, 7.857]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | control     3.420 (SE = 2.299), z = 1.49, p = 0.137, 95% CI [-1.086, 7.926]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | treated     1.480 (SE = 2.299), z = 0.64, p = 0.520, 95% CI [-3.026, 5.986]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest main effect          2.450 (SE = 1.726), z = 1.42, p = 0.156, 95% CI [-0.932, 5.832]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effects: at the centered pretest mean, with standard errors that</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> include its sampling variance.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> logLik = -424.53; optimizer convergence = 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Note: the smallest cell has 30 participants. In the package's simulation</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> validation, Wald intervals were too narrow with fewer than 40 participants</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> per cell; the default, inference = "satterthwaite", was calibrated. See</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ?fit_solomon_ml.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

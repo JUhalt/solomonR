@@ -85,8 +85,10 @@ fit_solomon_sem_latent(
 - partial_post, partial_pre:
 
   Optional freed parameters of the POST or PRE indicators for a
-  partial-invariance model, in lavaan syntax (for example,
-  `"post3 ~ 1"`); see
+  partial-invariance model, in lavaan syntax: intercepts (`"post3 ~ 1"`)
+  or loadings (`"POST =~ post3"`), the parameters the scalar model holds
+  equal. A loading is freed on the factor its indicator measures (`POST`
+  or `PRE`) whatever factor name is written before `=~`. See
   [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md).
 
 - check_invariance:
@@ -121,6 +123,11 @@ An object of class `solomon_sem_latent` with:
   result, or `NULL` when the check was not run, and `invariance_status`,
   a one-line summary
 
+- `settings`: the options used, including the estimator and any freed
+  parameters, which
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  reports
+
 ## Details
 
 Latent mean contrasts require scalar measurement invariance (equal
@@ -143,6 +150,20 @@ are estimated relative to it. In the pretested ANCOVA model, the
 pretested control group (P0) is the reference. The Solomon contrasts are
 differences between latent means, so they do not depend on the reference
 choice.
+
+The unit of the contrasts is set by `std_lv`. With `std_lv = TRUE`,
+lavaan fixes the variance of the latent POST at 1 in the pretested
+treated group (P1), so the four-group contrasts are in standard
+deviations of the latent posttest in P1. In the ANCOVA model it fixes
+the latent PRE mean at 0 and its variance at 1, and the residual
+variance of the latent POST at 1, all in P1, so the adjusted effect is
+in residual standard deviations of the latent posttest given the latent
+pretest, a smaller unit than that of the four-group contrasts whenever
+the pretest predicts the posttest. With `std_lv = FALSE`, the loading of
+the first indicator of each factor is fixed at 1, and both analyses are
+on the scale of the first POST indicator. If `partial_post` frees that
+marker loading, lavaan keeps it at 1 in P1 only and estimates it in the
+other groups, so the scale is that of the first indicator in P1.
 
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.

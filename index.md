@@ -51,6 +51,7 @@ Study](https://juhalt.github.io/solomonR/articles/getting-started.html).
 > through v1.x, when the arguments that follow a former argument name
 > are also named. Functions marked experimental may still change before
 > version 1.0; each help page shows the function’s lifecycle stage.
+> Development version `0.8.2.9000` is working toward `v1.0.0`.
 
 ------------------------------------------------------------------------
 
@@ -128,8 +129,9 @@ data(solomon_example)
 head(solomon_example)
 ```
 
-The principal modern observed-variable analysis fits one unified model
-and estimates four Solomon-specific contrasts:
+The principal modern observed-variable analysis fits one unified model,
+the model Newman et al. (1990) proposed for the design, and estimates
+four Solomon-specific contrasts:
 
 ``` r
 
@@ -152,6 +154,10 @@ The key estimands are:
   who received the pretest;
 - **Treatment \| unpretested** — the treatment effect among participants
   who did not receive the pretest.
+
+It also reports the pretest (testing) effect, pretested minus
+unpretested participants, among controls, among treated participants,
+and on average.
 
 The model handles the structural absence of pretest scores in Groups 3
 and 4 without discarding those groups.
@@ -299,11 +305,13 @@ The ML model estimates the same central Solomon quantities:
 - treatment effect among pretested participants; and
 - treatment effect among unpretested participants.
 
-By default it uses van Engelenburg’s (1999) large-sample Wald inference.
-With small groups, use `inference = "satterthwaite"`, a small-sample
-option with Welch-Satterthwaite degrees of freedom;
-[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-warns when groups are small and no option has been chosen.
+By default it uses t tests, with Welch-Satterthwaite degrees of freedom
+for the contrasts that combine the pretested and unpretested groups
+(Satterthwaite, 1946; Welch, 1947); in the package’s simulation
+validation these were calibrated at every group size studied.
+`inference = "wald"` gives van Engelenburg’s (1999) large-sample Wald
+inference, whose intervals were too narrow with fewer than 40
+participants per group.
 
 ------------------------------------------------------------------------
 
@@ -630,10 +638,19 @@ standard errors in the linear regression model. *The American
 Statistician, 54*(3), 217–224.
 <https://doi.org/10.1080/00031305.2000.10474549>
 
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. *Multiple Linear Regression
+Viewpoints, 17*(2), 91–103.
+<https://ojs.lib.ua.edu/glmj/article/view/125>
+
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed
 effects models. *Journal of Business & Economic Statistics, 36*(4),
 672–683. <https://doi.org/10.1080/07350015.2016.1247004>
+
+Satterthwaite, F. E. (1946). An approximate distribution of estimates of
+variance components. *Biometrics Bulletin, 2*(6), 110–114.
+<https://doi.org/10.2307/3002019>
 
 Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
@@ -662,6 +679,10 @@ Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological
 Bulletin, 104*(1), 150–154.
 <https://doi.org/10.1037/0033-2909.104.1.150>
+
+Welch, B. L. (1947). The generalization of “Student’s” problem when
+several different population variances are involved. *Biometrika,
+34*(1–2), 28–35. <https://doi.org/10.1093/biomet/34.1-2.28>
 
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. *British Journal of Mathematical and Statistical Psychology,

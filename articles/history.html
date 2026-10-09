@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,7 @@
       <h1>A History of the Solomon Design and Its Analysis</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/vignettes/articles/history.Rmd" class="external-link"><code>vignettes/articles/history.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/vignettes/articles/history.Rmd" class="external-link"><code>vignettes/articles/history.Rmd</code></a></small>
       <div class="d-none name"><code>history.Rmd</code></div>
     </div>
 
@@ -278,7 +278,8 @@ estimates the combined effect of maturation and history.</li>
 <strong>The analysis problem</strong> (p. 25):
 <ul>
 <li>no single statistical procedure uses all six sets of observations at
-once;</li>
+once, a gap that Williams and Newman (1982) set out to fill (see
+below);</li>
 <li>the design’s asymmetry rules out an analysis of variance of gain
 scores, and they judged Solomon’s gain-score suggestions
 unacceptable.</li>
@@ -370,10 +371,42 @@ planning values. They also frame a question that recurs below: how much
 should a researcher pay to detect an effect that is often small?</p>
 </div>
 <div class="section level2">
+<h2 id="one-model-for-all-six-observations-1982">One model for all six observations (1982)<a class="anchor" aria-label="anchor" href="#one-model-for-all-six-observations-1982"></a>
+</h2>
+<p>Williams and Newman (1982) took up Campbell and Stanley’s analysis
+problem directly. They quoted the statement that no single procedure
+uses all six sets of observations (p. 77) and replied that, with linear
+models, “a single statistical procedure <em>can</em> be employed” that
+uses them all at once (p. 78). They credited the idea to a 1980
+conference paper by Newman, Benz, and Williams (pp. 78, 90).</p>
+<ul>
+<li>
+<strong>Six groups of scores.</strong> The pretests and posttests of
+the pretested groups and the posttests of the unpretested groups were
+treated as six groups, each with an indicator in one regression
+(pp. 83–84). Each hypothesis was a restriction on the coefficients, with
+the design read as a one-way layout of six groups or as a three-way
+layout of treatment, pretesting, and pretest versus posttest with two
+empty cells (pp. 83–89; Table 4, p. 89).</li>
+<li>
+<strong>No person vectors.</strong> Person vectors had to be
+excluded (p. 83), so each participant’s pretest and posttest enter as
+independent scores. In solomonR’s reading of their numbers, this costs
+precision: the same treatment-by-occasion contrast, with a sum of
+squares of 20, gives F = 9.41 against the within-person error of their
+repeated-measures analysis (Table 3, p. 83) but F = 4.29 against the
+error of the six-group model (Table 4, p. 89).</li>
+<li>
+<strong>The authors’ caution.</strong> The single analysis might
+prove no more satisfactory than the usual analyses that split the data
+in two (p. 78).</li>
+</ul>
+</div>
+<div class="section level2">
 <h2 id="a-single-test-for-the-whole-design-1988">A single test for the whole design (1988)<a class="anchor" aria-label="anchor" href="#a-single-test-for-the-whole-design-1988"></a>
 </h2>
 <p>Walton Braver and Braver (1988) answered Campbell and Stanley’s
-analysis problem with meta-analysis:</p>
+analysis problem differently, with meta-analysis:</p>
 <ul>
 <li>
 <strong>Test I.</strong> Treat the pretested and unpretested
@@ -395,9 +428,11 @@ groups), stopping at the first significant test;</li>
 </ul>
 </li>
 <li>
-<strong>Error rates.</strong> They argued that the significance
-level at each step is best read as a probability conditional on having
-reached that step (p. 153, footnote 3).</li>
+<strong>Error rates.</strong> Because the experiment-wise error rate
+of a sequence of tests is hard to specify in advance, they suggested
+treating the significance level at each step as conditional on reaching
+that step and on the null hypothesis being true there (p. 153, footnote
+3).</li>
 </ul>
 <p>Their worked example reports Test I as z = 2.05, p = .040 (p. 153).
 That p is two-tailed.</p>
@@ -439,6 +474,69 @@ its use (p. 425).</li>
 </ul>
 </li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="the-pretest-as-a-covariate-for-all-four-groups-1990">The pretest as a covariate for all four groups (1990)<a class="anchor" aria-label="anchor" href="#the-pretest-as-a-covariate-for-all-four-groups-1990"></a>
+</h2>
+<p>Newman et al. (1990) returned to the single model with the pretest as
+a covariate. Solomon (1949, p. 146) had suggested that an adapted
+analysis of covariance might improve the analysis, and Newman et
+al. quoted him (p. 92). Their model, which they call a pseudo-analysis
+of covariance (pp. 94, 98), fits the posttests of the four groups in one
+regression, with an indicator for each group and the pretest as a
+covariate where it was given, coded 0 elsewhere (Table 1, p. 95;
+equation 7, p. 98).</p>
+<ul>
+<li>
+<strong>What the coding does.</strong> Each group keeps its own
+mean, so the slope comes from the pretested groups alone, and the
+unpretested groups’ means are not adjusted (p. 98).</li>
+<li>
+<strong>The caution.</strong> They warned against adjustments that
+mechanically treat unpretested participants as having a pretest score of
+zero (p. 98), and took the pretested groups’ adjusted means at their
+pooled pretest mean (p. 101).</li>
+<li>
+<strong>The tests.</strong> Treatment, pretesting, and the
+interaction were tested as restrictions on the group coefficients,
+against the pooled error of all four groups (pp. 98–100; Table 3,
+p. 100).</li>
+</ul>
+<p>A single model for the whole design thus dates from Williams and
+Newman (1982), and the form with the pretest as a covariate, which
+<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> fits, from Newman et al. (1990). With
+conventional standard errors, the package reproduces their example
+(Table 1, p. 95):</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nbw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  treat     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">0</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,</span>
+<span>  pretested <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,</span>
+<span>  pre  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">7</span>, <span class="fl">5</span>, <span class="fl">12</span>, <span class="fl">6</span>, <span class="fl">5</span>, <span class="fl">4</span>, <span class="fl">4</span>, <span class="fl">6</span>, <span class="fl">6</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  post <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">15</span>, <span class="fl">12</span>, <span class="fl">10</span>, <span class="fl">17</span>, <span class="fl">11</span>, <span class="fl">8</span>, <span class="fl">7</span>, <span class="fl">8</span>, <span class="fl">6</span>, <span class="fl">6</span>, <span class="fl">11</span>, <span class="fl">8</span>, <span class="fl">10</span>, <span class="fl">9</span>, <span class="fl">12</span>, <span class="fl">9</span>, <span class="fl">8</span>, <span class="fl">6</span>, <span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">pre</span>, data <span class="op">=</span> <span class="va">nbw</span>, robust <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span>
+<span><span class="va">fit</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"contrast"</span>, <span class="st">"estimate"</span>, <span class="st">"statistic"</span>, <span class="st">"df"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;                   contrast  estimate statistic df</span></span>
+<span><span class="co">#&gt; 1   ATE (avg over pretest) 4.4473684 4.5837121 15</span></span>
+<span><span class="co">#&gt; 2      Pretest x Treatment 0.8947368 0.4610835 15</span></span>
+<span><span class="co">#&gt; 3    Treatment | pretested 4.8947368 3.3763090 15</span></span>
+<span><span class="co">#&gt; 4  Treatment | unpretested 4.0000000 3.1009991 15</span></span>
+<span><span class="co">#&gt; 5 Pretest effect | control 1.5526316 1.1158164 15</span></span>
+<span><span class="co">#&gt; 6 Pretest effect | treated 2.4473684 1.7588293 15</span></span>
+<span><span class="co">#&gt; 7      Pretest main effect 2.0000000 2.0052096 15</span></span>
+<span><span class="va">fit</span><span class="op">$</span><span class="va">coefficients</span><span class="op">[</span><span class="va">fit</span><span class="op">$</span><span class="va">coefficients</span><span class="op">$</span><span class="va">term</span> <span class="op">==</span> <span class="st">"pre_obs"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"term"</span>, <span class="st">"estimate"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
+<span><span class="co">#&gt;   term    estimate</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> pre_obs    0.553</span></span></code></pre></div>
+<p>The pretest slope is 0.553, against the published .55264 (p. 98).
+Squared, the t statistics of the average treatment effect and of the
+Pretest x Treatment contrast give their F tests of the treatment and the
+interaction: 21.01 and 0.21, against the printed 21.01 and .22 (Table 3,
+p. 100). solomonR adds the four contrasts as named estimates with
+intervals, robust standard errors for the heteroskedasticity that the
+pretest adjustment creates, and the extensions described in the methods
+guide.</p>
 </div>
 <div class="section level2">
 <h2 id="the-monte-carlo-evidence-1994-1996">The Monte Carlo evidence (1994, 1996)<a class="anchor" aria-label="anchor" href="#the-monte-carlo-evidence-1994-1996"></a>
@@ -504,7 +602,7 @@ model to all the groups instead, and <code><a href="../reference/fit_solomon_ste
 reproduces Steyn’s sequence; see “Designs With Several Treatments”.
 Steyn’s (2005, pp. 151–152) group statistics are bundled as
 <code>steyn2005</code>:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">steyn2005</span>, <span class="fu"><a href="../reference/solomon_from_summary.html">solomon_from_summary</a></span><span class="op">(</span><span class="va">n</span>, <span class="va">mean</span>, <span class="va">sd</span>, treat <span class="op">=</span> <span class="va">condition</span>,</span>
 <span>                                     pretested <span class="op">=</span> <span class="va">pretested</span>, control <span class="op">=</span> <span class="st">"Control"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solomon analysis from summary statistics, N-group design</span></span>
@@ -647,9 +745,11 @@ Sandler (1973)</td>
 <td>historical</td>
 </tr>
 <tr class="odd">
-<td>One model for all the groups, with robust standard errors; for
-several treatments, omnibus tests and Holm-adjusted comparisons</td>
-<td>contemporary practice; see the methods guide</td>
+<td>One model for all the groups, with the pretest as a covariate where
+it was given; robust standard errors; for several treatments, omnibus
+tests and Holm-adjusted comparisons</td>
+<td>Newman et al. (1990); the inference and the extension to several
+treatments from contemporary practice (see the methods guide)</td>
 <td><code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code></td>
 <td>recommended</td>
 </tr>
@@ -657,7 +757,7 @@ several treatments, omnibus tests and Holm-adjusted comparisons</td>
 </table>
 <p><code><a href="../reference/plot_classic_flow.html">plot_classic_flow()</a></code> draws each version of the
 sequence:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_classic_flow.html">plot_classic_flow</a></span><span class="op">(</span>flow <span class="op">=</span> <span class="st">"1995"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="history_files/figure-html/flows-1.png" class="r-plt" alt="The historical Tests A-I decision sequence in its 1995 version, without Test D." width="768"></p>
 <p>All works cited in solomonR are listed, with notes on how the package
@@ -722,6 +822,9 @@ studies. <em>PLoS ONE, 6</em>(10), Article e25223. <a href="https://doi.org/10.1
 <p>McCarthy, A. M., &amp; Tucker, M. L. (2002). Encouraging community
 service through service learning. <em>Journal of Management Education,
 26</em>(6), 629–647. <a href="https://doi.org/10.1177/1052562902238322" class="external-link uri">https://doi.org/10.1177/1052562902238322</a></p>
+<p>Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. <em>Multiple Linear Regression
+Viewpoints, 17</em>(2), 91–103. <a href="https://ojs.lib.ua.edu/glmj/article/view/125" class="external-link uri">https://ojs.lib.ua.edu/glmj/article/view/125</a></p>
 <p>Sawilowsky, S. S. (1996, June 23). <em>Controlling experiment-wise
 Type I error of meta-analysis in the Solomon four-group design</em>
 [Paper presentation]. First International Conference on Multiple
@@ -750,6 +853,9 @@ International Journal—Annual Review, 3</em>(1), 383–394. <a href="https://do
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical
 treatment of the Solomon four-group design: A meta-analytic approach.
 <em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>
+<p>Williams, J. D., &amp; Newman, I. (1982). Using linear models to
+simultaneously analyze a Solomon four group design. <em>Multiple Linear
+Regression Viewpoints, 11</em>(3), 77–90. <a href="https://ojs.lib.ua.edu/glmj/article/view/68" class="external-link uri">https://ojs.lib.ua.edu/glmj/article/view/68</a></p>
 <p>Willson, V. L., &amp; Putnam, R. R. (1982). A meta-analysis of
 pretest sensitization effects in experimental design. <em>American
 Educational Research Journal, 19</em>(2), 249–258. <a href="https://doi.org/10.3102/00028312019002249" class="external-link uri">https://doi.org/10.3102/00028312019002249</a></p>

@@ -68,15 +68,58 @@ published 1963)
 > posttest with the pretests estimates the combined effect of maturation
 > and history (p. 25). Without randomization, a comparison of groups
 > measured only after the treatment is a static-group comparison, whose
-> groups cannot be certified equivalent (p. 12). Page numbers refer to
-> the 1966 book. *In solomonR:* Tests A–D and the history check of
+> groups cannot be certified equivalent (p. 12). The design estimates
+> the main effect of testing as well as its interaction with the
+> treatment (p. 25). Page numbers refer to the 1966 book. *In solomonR:*
+> Tests A–D and the history check of
 > [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md);
 > [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md);
 > the caveat on the unpretested arms of nonrandomized designs in
 > [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)
 > and
 > [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-> ([\#58](https://github.com/JUhalt/solomonR/issues/58)).
+> ([\#58](https://github.com/JUhalt/solomonR/issues/58)); the pretest
+> effects of the effects tables
+> ([\#104](https://github.com/JUhalt/solomonR/issues/104)).
+
+Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of
+D.A.R.E. (Drug Abuse Resistance Education), using a Solomon four-group
+design with latent variables. *Evaluation Review, 19*(4), 409–435.
+<https://doi.org/10.1177/0193841X9501900404>
+
+> A Solomon evaluation of a school drug-prevention program, with
+> classroom means as the unit of analysis (440 classrooms; pp. 412–413,
+> 417). About half the schools received the program, and half the
+> classes in program and control schools were randomly assigned to take
+> a pretest (p. 412). Four latent outcomes were compared in multisample
+> structural equation models, fitted as three two-group comparisons
+> rather than one four-group model: the pretested control’s pretest
+> against the unpretested control’s posttest, for maturation, and the
+> program against the control within the pretested and within the
+> unpretested groups (p. 420). Each comparison tested equal factor
+> loadings by chi-square difference tests and then compared latent means
+> with the indicators’ means held equal, a constraint imposed rather
+> than tested (pp. 420–426). The abstract calls the pretest reactive for
+> one outcome, resistance to peer pressure (p. 409). The text judges
+> this by comparing the two program comparisons, describes a pretesting
+> difference unrelated to the program, and reports no test of the
+> pretest-by-program interaction (p. 426). *In solomonR:* a published
+> precedent for the latent-variable analysis of the design, discussed in
+> the SEM article.
+> [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+> fits all four groups in one model with an identified latent mean
+> structure ([\#16](https://github.com/JUhalt/solomonR/issues/16)), so
+> the sensitization contrast has its own test, and
+> [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)
+> extends the loading tests to configural, metric, and scalar tests
+> across all four groups
+> ([\#55](https://github.com/JUhalt/solomonR/issues/55)). Four elements
+> of the authors’ analyses are planned
+> ([\#117](https://github.com/JUhalt/solomonR/issues/117)): a latent
+> maturation contrast (pp. 420–422), a pretest main-effect contrast
+> (p. 426), the latent pretest difference between the pretested groups
+> as a baseline check (p. 423; Table 4, p. 425), and a standardized
+> latent contrast using the pooled latent standard deviation (p. 426).
 
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
@@ -297,6 +340,34 @@ Methods, 11*(2), 364–386. <https://doi.org/10.1177/1094428106291059>
 > tested against the paper’s worked example and theoretical variances
 > ([\#53](https://github.com/JUhalt/solomonR/issues/53)).
 
+Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
+analyzing the Solomon four group design. *Multiple Linear Regression
+Viewpoints, 17*(2), 91–103.
+<https://ojs.lib.ua.edu/glmj/article/view/125>
+
+> Fits one regression to the posttests of all four groups, with an
+> indicator for each group and the pretest as a covariate, coded 0 for
+> participants who were not pretested (Table 1, p. 95; equation 7,
+> p. 98). The authors call it a pseudo-analysis of covariance (pp. 94,
+> 98). Because each group keeps its own mean, the pretest slope is the
+> one estimated within the pretested groups, and the unpretested groups’
+> means are not adjusted (p. 98). The authors caution against
+> adjustments that mechanically treat unpretested participants as having
+> a pretest score of zero (p. 98). Treatment, pretesting, and the
+> interaction are tested as restrictions on the group coefficients, the
+> interaction as b1 = b3 + b2 − b4 (pp. 98–99), against the pooled error
+> of all four groups (Table 3, p. 100), and the pretested groups’
+> adjusted means are taken at their pooled pretest mean (p. 101). A 2 x
+> 2 analysis of variance of the posttests is given for comparison (Table
+> 2, p. 97). *In solomonR:* the model of
+> [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+> which reparameterizes equation 7. With `robust = "none"`, the
+> package’s known-result test reproduces the paper’s pretest slope
+> (.55264, p. 98), its within-groups sum of squares (62.39), and its
+> tests of the treatment (F = 21.01) and of the interaction (F = 0.21,
+> printed as .22) (Table 3, p. 100)
+> ([\#105](https://github.com/JUhalt/solomonR/issues/105)).
+
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I
 error of meta-analysis in the Solomon four-group design* \[Paper
 presentation\]. First International Conference on Multiple Comparisons,
@@ -329,6 +400,28 @@ Experimental Education, 62*(4), 361–376.
 > with Test I, the methods guide, and the replication of its Table 2 in
 > “Historical Tests: Replicating the Published Error Rates”
 > ([\#51](https://github.com/JUhalt/solomonR/issues/51)).
+
+Sawilowsky, S. S., & Markman, B. S. (1988). *Another look at the power
+of meta-analysis in the Solomon four-group design* (ED316556). ERIC.
+<https://eric.ed.gov/?id=ED316556>
+
+> A manuscript with the same title as Sawilowsky and Markman (1990a),
+> read in place of the published article, which was not available. It
+> gives fabricated raw scores for 14 participants per group (Table 2,
+> p. 7) for which Test H is significant, t(26) = 2.07, p = .048 (Table
+> 5, p. 10), and Test E is not (Table 4, p. 9), and Test I, as the
+> authors compute it, is not significant (pp. 3–4). They judge their
+> Test I one-tailed (pp. 3–4). The manuscript does not describe how it
+> was computed; its z values (1.98 and .08) correspond to halving each
+> two-sided p-value without regard to the sign of Test E’s effect, which
+> is negative in these data. The error entry of their analysis of
+> covariance, 1200.04 (Table 4, p. 9), is a misprint: it is neither the
+> error mean square (45.93) nor the error sum of squares (1148.14) of
+> their scores. *In solomonR:* the known-result test of
+> [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md),
+> which reproduces Tests E and H from the scores, and the worked
+> examples in the historical-analysis vignette
+> ([\#109](https://github.com/JUhalt/solomonR/issues/109)).
 
 Sawilowsky, S. S., & Markman, B. S. (1990a). Another look at the power
 of meta-analysis in the Solomon four-group design. *Perceptual and Motor
@@ -370,7 +463,16 @@ Bulletin, 70*(3, Pt. 1), 145–150. <https://doi.org/10.1037/h0026147>
 > factorial whose interaction is a difference of differences
 > (pp. 146–147). *In solomonR:* the inferred pretest of
 > [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md);
-> the history article.
+> the mean pretest at which the pretest effects of
+> [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+> [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+> and
+> [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
+> compare the pretested and unpretested groups, and the standardization
+> of
+> [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+> ([\#104](https://github.com/JUhalt/solomonR/issues/104)); the history
+> article.
 
 Steyn, R. (2005). *Self-evaluasie en die vorming van
 selfdoeltreffendheidspersepsies* \[Self-evaluation and the forming of
@@ -443,7 +545,11 @@ four-group design* (Research Report 99-06). University of Twente. ERIC.
 
 > Proposes full-information maximum likelihood for the Solomon design,
 > treating the absent pretests as structurally missing. *In solomonR:*
-> [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md).
+> [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+> whose `inference = "wald"` is the large-sample Wald inference of this
+> report. The default is Satterthwaite inference, which was calibrated
+> in small samples where the Wald intervals were too narrow
+> ([\#115](https://github.com/JUhalt/solomonR/issues/115)).
 
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological
@@ -451,14 +557,45 @@ Bulletin, 104*(1), 150–154.
 <https://doi.org/10.1037/0033-2909.104.1.150>
 
 > Proposes the Test A–I decision flow ending in a meta-analytic
-> combination of the pretested and unpretested comparisons. *In
+> combination of the pretested and unpretested comparisons, with a
+> worked example on hypothetical data (Tables 3–5, p. 153). *In
 > solomonR:*
 > [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md),
 > [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md),
 > and
 > [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md);
 > step 4 of
-> [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md).
+> [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md);
+> the data set `waltonbraver1988`, whose worked example the package
+> reproduces ([\#109](https://github.com/JUhalt/solomonR/issues/109)).
+
+Williams, J. D., & Newman, I. (1982). Using linear models to
+simultaneously analyze a Solomon four group design. *Multiple Linear
+Regression Viewpoints, 11*(3), 77–90.
+<https://ojs.lib.ua.edu/glmj/article/view/68>
+
+> Answers Campbell and Stanley’s statement that no single statistical
+> procedure uses all six sets of observations (quoted on p. 77) with one
+> regression on six group indicators: the pretest and posttest scores of
+> the pretested groups enter as separate groups, beside the posttests of
+> the unpretested groups (pp. 83–84). Person vectors are excluded
+> (p. 83), so each participant’s pretest and posttest enter as
+> independent scores. Hypotheses are restrictions on the coefficients,
+> with the design read as a one-way layout of six groups or as a
+> three-way layout of treatment, pretesting, and pretest versus posttest
+> with two empty cells (pp. 83–89; Table 4, p. 89). The paper first
+> analyzes its example, with five participants per group (Table 1,
+> p. 79), in two parts: a t test of the unpretested groups, and an
+> analysis of covariance and a repeated-measures analysis of the
+> pretested groups (pp. 79–83). The authors credit the idea of a single
+> analysis to a 1980 conference paper by Newman, Benz, and Williams
+> (pp. 78, 90), and caution that it may prove no more satisfactory than
+> analyses that split the data in two (p. 78). The paper was presented
+> at the 1982 meeting of the American Educational Research Association
+> and, as the journal notes, was not refereed (p. 77). It cites Campbell
+> and Stanley’s statement to p. 24 of the 1966 book, where it is on
+> p. 25. *In solomonR:* the history article
+> ([\#105](https://github.com/JUhalt/solomonR/issues/105)).
 
 Willson, V. L., & Putnam, R. R. (1982). A meta-analysis of pretest
 sensitization effects in experimental design. *American Educational
@@ -471,6 +608,22 @@ Research Journal, 19*(2), 249–258.
 > ([\#49](https://github.com/JUhalt/solomonR/issues/49)).
 
 ## Methods references
+
+Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &
+Rao, S. M. (2018). Journal article reporting standards for quantitative
+research in psychology: The APA Publications and Communications Board
+task force report. *American Psychologist, 73*(1), 3–25.
+<https://doi.org/10.1037/amp0000191>
+
+> The Journal Article Reporting Standards of the American Psychological
+> Association for quantitative research (JARS-Quant). Their table for
+> structural equation modeling (Table 7) asks for the software and its
+> version, the estimation method, the handling of missing data, the
+> basis of identification, global fit statistics, the difference tests
+> between models, and the parameters fixed or freed. *In solomonR:* what
+> [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+> gives for latent structural equation models and measurement invariance
+> tests ([\#112](https://github.com/JUhalt/solomonR/issues/112)).
 
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard
 errors for linear regression with multi-stage samples. *Survey
@@ -682,10 +835,45 @@ cluster-robust variance estimation and hypothesis testing in fixed
 effects models. *Journal of Business & Economic Statistics, 36*(4),
 672–683. <https://doi.org/10.1080/07350015.2016.1247004>
 
+Putnick, D. L., & Bornstein, M. H. (2016). Measurement invariance
+conventions and reporting: The state of the art and future directions
+for psychological research. *Developmental Review, 41*, 71–90.
+<https://doi.org/10.1016/j.dr.2016.06.004>
+
+> A review of the measurement invariance tests in 126 articles published
+> over one year (2013–2014). For reporting, it proposes the sample
+> sizes, the handling of missing data, the number and sizes of the
+> groups, the fit criteria, and a table of the models with their degrees
+> of freedom, fit statistics, comparisons, difference tests, and
+> decisions. *In solomonR:* the report
+> [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+> writes for
+> [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md),
+> and the invariance statement of its latent structural equation model
+> reports ([\#112](https://github.com/JUhalt/solomonR/issues/112)).
+
 Rajh-Weber, H., Huber, S. E., & Arendasy, M. (2025). A practice-oriented
 guide to statistical inference in linear modeling for non-normal or
 heteroskedastic error distributions. *Behavior Research Methods,
 57*(12), Article 338. <https://doi.org/10.3758/s13428-025-02801-4>
+
+Romano, J. P. (1990). On the behavior of randomization tests without a
+group invariance assumption. *Journal of the American Statistical
+Association, 85*(411), 686–692.
+<https://doi.org/10.1080/01621459.1990.10474928>
+
+> A randomization test is exact when the distribution of the data is
+> unchanged by the permutations, as under the sharp null hypothesis.
+> Without that group invariance, a permutation test of a difference in
+> means keeps its level for the hypothesis of equal means, even
+> asymptotically, only when the samples are equal in size or the
+> variances are equal. *In solomonR:* the warning of
+> `perm_solomon(statistic = "difference")` when treated and control
+> participants differ in number within a pretest condition, and the
+> wording of
+> [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+> for that statistic
+> ([\#113](https://github.com/JUhalt/solomonR/issues/113)).
 
 Rosseel, Y. (2012). lavaan: An R package for structural equation
 modeling. *Journal of Statistical Software, 48*(2), 1–36.
@@ -750,6 +938,10 @@ career officers. *SA Journal of Industrial Psychology, 32*(1), 25–32.
 > article, which records Steyn (2001) as not read
 > ([\#96](https://github.com/JUhalt/solomonR/issues/96)).
 
+Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation.
+*The American Statistician, 56*(1), 29–38.
+<https://doi.org/10.1198/000313002753631330>
+
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
 contrast analysis. *Psychological Methods, 9*(2), 164–182.
@@ -801,6 +993,20 @@ Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses
 in randomized experiments. *Journal of the American Statistical
 Association, 116*(536), 1898–1913.
 <https://doi.org/10.1080/01621459.2020.1750415>
+
+Yuan, K.-H., & Bentler, P. M. (2000). Three likelihood-based methods for
+mean and covariance structure analysis with nonnormal missing data.
+*Sociological Methodology, 30*(1), 165–200.
+<https://doi.org/10.1111/0081-1750.00078>
+
+> Maximum likelihood estimation with incomplete, nonnormal data, with
+> robust standard errors and a rescaled test statistic. lavaan’s MLR
+> estimator, the default of the latent SEM functions, gives Huber-White
+> standard errors and a scaled statistic asymptotically equal to the
+> Yuan-Bentler statistic. *In solomonR:* how
+> [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+> describes the MLR estimator and its scaled chi-square
+> ([\#112](https://github.com/JUhalt/solomonR/issues/112)).
 
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. *British Journal of Mathematical and Statistical Psychology,

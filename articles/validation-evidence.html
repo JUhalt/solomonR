@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -107,7 +107,7 @@
       <h1>Validation Evidence</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/vignettes/articles/validation-evidence.Rmd" class="external-link"><code>vignettes/articles/validation-evidence.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/vignettes/articles/validation-evidence.Rmd" class="external-link"><code>vignettes/articles/validation-evidence.Rmd</code></a></small>
       <div class="d-none name"><code>validation-evidence.Rmd</code></div>
     </div>
 
@@ -155,8 +155,8 @@ for fit_solomon_ml()</a></td>
 <td align="left"><a href="https://github.com/JUhalt/solomonR/issues/10" class="external-link">#10; #22</a></td>
 <td align="right">84</td>
 <td align="left">2000</td>
-<td align="left">GLM HC3 (t)<br>ML, Satterthwaite (small-sample
-option)<br>ML, Wald (default)</td>
+<td align="left">GLM HC3 (t)<br>ML, Satterthwaite (default)<br>ML, Wald
+(van Engelenburg, 1999)</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
@@ -348,9 +348,11 @@ it combines one-sided p-values.</li>
 <div class="section level2">
 <h2 id="maximum-likelihood-inference">Maximum-likelihood inference<a class="anchor" aria-label="anchor" href="#maximum-likelihood-inference"></a>
 </h2>
-<p><code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> was checked with its default Wald
-inference, its small-sample option, and the unified GLM for comparison.
-The registered tolerances:</p>
+<p><code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> was checked with both of its inference
+options, van Engelenburg’s (1999) large-sample Wald inference and
+Satterthwaite inference with Welch-Satterthwaite degrees of freedom
+(Satterthwaite, 1946; Welch, 1947), and with the unified GLM for
+comparison. The registered tolerances:</p>
 <ul>
 <li>coverage between 0.940 and 0.960;</li>
 <li>Type I error for the sensitization test between 0.040 and
@@ -361,11 +363,11 @@ The registered tolerances:</p>
 <caption>Across all scenarios and contrasts; results by cell size are in
 the full article.</caption>
 <colgroup>
-<col width="34%">
+<col width="30%">
 <col width="12%">
-<col width="13%">
-<col width="24%">
-<col width="15%">
+<col width="14%">
+<col width="25%">
+<col width="16%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Method</th>
@@ -383,14 +385,14 @@ the full article.</caption>
 <td align="left">0.044</td>
 </tr>
 <tr class="even">
-<td align="left">ML, Satterthwaite (small-sample option)</td>
+<td align="left">ML, Satterthwaite (default)</td>
 <td align="left">0.950</td>
 <td align="left">0.931</td>
 <td align="left">96%</td>
 <td align="left">0.051</td>
 </tr>
 <tr class="odd">
-<td align="left">ML, Wald (default)</td>
+<td align="left">ML, Wald (van Engelenburg, 1999)</td>
 <td align="left">0.932</td>
 <td align="left">0.860</td>
 <td align="left">48%</td>
@@ -398,9 +400,11 @@ the full article.</caption>
 </tr>
 </tbody>
 </table>
-<p>The default Wald intervals are too narrow in small samples, which is
-why <code><a href="../reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> warns below 40 participants per cell
-and offers the small-sample option. See the <a href="https://juhalt.github.io/solomonR/articles/ml-validation.html">full
+<p>The Wald intervals are too narrow in small samples, while
+Satterthwaite inference was calibrated at every cell size studied.
+Satterthwaite inference has therefore been the default since <a href="https://github.com/JUhalt/solomonR/issues/115" class="external-link">issue #115</a>, and
+printed output notes when Wald inference is chosen with fewer than 40
+participants per cell. See the <a href="https://juhalt.github.io/solomonR/articles/ml-validation.html">full
 article</a>.</p>
 </div>
 <div class="section level2">
@@ -1135,6 +1139,8 @@ Medicine, 38</em>(11), 2074–2102. <a href="https://doi.org/10.1002/sim.8086" c
 <p>Satorra, A., &amp; Bentler, P. M. (2001). A scaled difference
 chi-square test statistic for moment structure analysis.
 <em>Psychometrika, 66</em>(4), 507–514. <a href="https://doi.org/10.1007/BF02296192" class="external-link uri">https://doi.org/10.1007/BF02296192</a></p>
+<p>Satterthwaite, F. E. (1946). An approximate distribution of estimates
+of variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114. <a href="https://doi.org/10.2307/3002019" class="external-link uri">https://doi.org/10.2307/3002019</a></p>
 <p>Sawilowsky, S. S. (1996, June 23). <em>Controlling experiment-wise
 Type I error of meta-analysis in the Solomon four-group design</em>
 [Paper presentation]. First International Conference on Multiple
@@ -1142,6 +1148,12 @@ Comparisons, Tel Aviv, Israel. <a href="https://digitalcommons.wayne.edu/coe_tbf
 <p>Sawilowsky, S. S., Kelley, D. L., Blair, R. C., &amp; Markman, B. S.
 (1994). Meta-analysis and the Solomon four-group design. <em>The Journal
 of Experimental Education, 62</em>(4), 361–376. <a href="https://doi.org/10.1080/00220973.1994.9944140" class="external-link uri">https://doi.org/10.1080/00220973.1994.9944140</a></p>
+<p>van Engelenburg, G. (1999). <em>Statistical analysis for the Solomon
+four-group design</em> (Research Report 99-06). University of Twente.
+ERIC. <a href="https://eric.ed.gov/?id=ED435692" class="external-link uri">https://eric.ed.gov/?id=ED435692</a></p>
+<p>Welch, B. L. (1947). The generalization of “Student’s” problem when
+several different population variances are involved. <em>Biometrika,
+34</em>(1–2), 28–35. <a href="https://doi.org/10.1093/biomet/34.1-2.28" class="external-link uri">https://doi.org/10.1093/biomet/34.1-2.28</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

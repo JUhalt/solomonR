@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,7 @@
       <h1>Structural Equation Models for Solomon Designs</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/vignettes/articles/sem.Rmd" class="external-link"><code>vignettes/articles/sem.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/vignettes/articles/sem.Rmd" class="external-link"><code>vignettes/articles/sem.Rmd</code></a></small>
       <div class="d-none name"><code>sem.Rmd</code></div>
     </div>
 
@@ -127,9 +127,11 @@ its ANCOVA version for the pretested groups.</li>
 invariance its comparisons require.</li>
 </ul>
 <p>The SEM functions use lavaan (Rosseel, 2012), and their tests and
-intervals are lavaan’s large-sample Wald results. They are a solomonR
-extension built on established SEM methods, not a procedure proposed for
-the Solomon design in the literature.</p>
+intervals are lavaan’s large-sample Wald results. Latent-variable
+analysis of a Solomon design has a published precedent, Dukes et
+al. (1995), which the last section compares with the package’s approach.
+The four-group models of the SEM functions, and the observed-variable
+model, are solomonR extensions built on established SEM methods.</p>
 <div class="section level2">
 <h2 id="observed-outcomes">Observed outcomes<a class="anchor" aria-label="anchor" href="#observed-outcomes"></a>
 </h2>
@@ -182,11 +184,16 @@ several indicators and compares its means across the four groups.</p>
 <li>
 <strong>Identification.</strong> The latent mean of the unpretested
 control group is fixed at 0; the contrasts are differences between
-latent means, so they do not depend on that choice.</li>
+latent means, so they do not depend on that choice. With the default
+<code>std_lv = TRUE</code>, the latent variance is fixed at 1 in the
+pretested treated group, so the contrasts are in standard deviations of
+the latent posttest there.</li>
 <li>
 <strong>Optional ANCOVA.</strong> With <code>ancova = TRUE</code>
 and pretest indicators, a latent ANCOVA in the pretested groups is
-added.</li>
+added. With <code>std_lv = TRUE</code>, its adjusted effect is in
+residual standard deviations of the latent posttest given the latent
+pretest, a different unit from that of the four-group contrasts.</li>
 </ul>
 <p>The example data below are simulated for this article. Four
 indicators measure one construct in every group, and the treatment
@@ -366,12 +373,120 @@ the shift is absorbed into the effect of pretesting. A shift in one
 group only would bias the sensitization contrast, and there the partial
 model matters. <code>check_invariance = FALSE</code> skips the check
 when invariance was established elsewhere.</p>
+</div>
+<div class="section level2">
+<h2 id="reporting-latent-models">Reporting latent models<a class="anchor" aria-label="anchor" href="#reporting-latent-models"></a>
+</h2>
+<p><code><a href="../reference/report_solomon.html">report_solomon()</a></code> drafts the methods and results of a
+latent fit. It gives what the reporting standards for structural
+equation models ask for (Appelbaum et al., 2018):</p>
+<ul>
+<li>
+<strong>The estimation.</strong> The software and its version, the
+estimator, and how missing values were handled.</li>
+<li>
+<strong>The model.</strong> The constraints across groups, any freed
+parameters, and how the latent scale was identified.</li>
+<li>
+<strong>The fit.</strong> The chi-square test, CFI, RMSEA, and
+SRMR.</li>
+</ul>
+<p>Its statement about invariance follows the fit’s own check, so for
+the partial model above it names the freed intercept:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/report_solomon.html">report_solomon</a></span><span class="op">(</span><span class="va">fit_partial</span><span class="op">)</span><span class="op">$</span><span class="va">method</span></span>
+<span><span class="co">#&gt; [1] "Latent posttest means were compared across the four Solomon groups in a multiple-group structural equation model in which four posttest indicators (y1, y2, y3, and y4) measured one latent posttest, fitted with lavaan (Version 0.7-3; Rosseel, 2012) by maximum likelihood with Huber-White robust standard errors and a scaled test statistic asymptotically equal to the Yuan-Bentler statistic (MLR; Yuan &amp; Bentler, 2000), using full-information maximum likelihood for missing indicator values. The loadings and intercepts of the indicators were constrained to be equal across the four groups, the scalar measurement invariance that latent mean comparisons require (Meredith, 1993; Vandenberg &amp; Lance, 2000), except the intercept of y4, which was estimated separately in each group (partial invariance; Byrne et al., 1989). For identification, the latent posttest mean of the unpretested control group was fixed at 0, and the latent variance at 1 in the pretested treated group; the contrasts are therefore in standard deviations of the latent posttest in that group. Measurement invariance was tested by comparing configural, metric, and scalar models in sequence, with the same parameters freed (Vandenberg &amp; Lance, 2000); the scaled chi-square difference test (Satorra &amp; Bentler, 2001) and the change in fit (Chen, 2007) both supported partial scalar invariance. The contrasts between latent means were tested with Wald z tests."</span></span></code></pre></div>
+<p>For <code><a href="../reference/invariance_solomon.html">invariance_solomon()</a></code> results, it reports the fit of
+each model, the comparisons between them, and the decision under each
+criterion, the minimal information Putnick and Bornstein (2016) propose
+for invariance tests:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/report_solomon.html">report_solomon</a></span><span class="op">(</span><span class="va">inv</span><span class="op">)</span><span class="op">$</span><span class="va">results</span></span>
+<span><span class="co">#&gt; [1] "The configural model gave a scaled χ²(8) = 1.98, p = .982 (unscaled χ²(8) = 1.93), CFI = 1.000, RMSEA = .000, and SRMR = .007; the metric model gave a scaled χ²(17) = 8.71, p = .949 (unscaled χ²(17) = 8.51), CFI = 1.000, RMSEA = .000, and SRMR = .041; and the scalar model gave a scaled χ²(26) = 23.35, p = .613 (unscaled χ²(26) = 23.33), CFI = 1.000, RMSEA = .000, and SRMR = .056."</span></span>
+<span><span class="co">#&gt; [2] "Constraining the loadings to be equal (metric against configural) gave a scaled Δχ²(9) = 6.71, p = .667, ΔCFI = .000, ΔRMSEA = .000, and ΔSRMR = .034; constraining the intercepts as well (scalar against metric) gave a scaled Δχ²(9) = 14.25, p = .114, ΔCFI = .000, ΔRMSEA = .000, and ΔSRMR = .015."                                                                                      </span></span>
+<span><span class="co">#&gt; [3] "The scaled chi-square difference test and the change in fit both supported scalar invariance."</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="dukes-et-al--1995-and-solomonr">Dukes et al. (1995) and solomonR<a class="anchor" aria-label="anchor" href="#dukes-et-al--1995-and-solomonr"></a>
+</h2>
+<p>Dukes et al. (1995) evaluated a school drug-prevention program with a
+Solomon design and four latent outcomes measured by self-report items
+(pp. 412, 414). They compared latent means in multisample structural
+equation models.</p>
+<ul>
+<li>
+<strong>Three two-group models.</strong> They fitted three separate
+two-group models rather than one model of the four groups (p. 420): the
+pretested control’s pretest against the unpretested control’s posttest,
+for maturation, and the program against the control within the pretested
+and within the unpretested groups.</li>
+<li>
+<strong>Loadings tested, intercepts imposed.</strong> In each
+comparison, equal factor loadings were tested by chi-square difference
+tests. The latent means were then compared with the indicators’ means
+held equal, a constraint that was imposed, not tested
+(pp. 420–426).</li>
+<li>
+<strong>No test of the interaction.</strong> Pretest effects were
+judged by comparing which program effects were significant in the two
+program comparisons (p. 426), the comparison Gelman and Stern (2006)
+caution against. The abstract calls the pretest reactive for one
+outcome, resistance to peer pressure (p. 409). The results are more
+consistent with a pretest main effect, seen in one of that outcome’s two
+indicators, than with sensitization. The paper reports no test of the
+interaction, and solomonR’s approximate re-analyses find none, either in
+the difference between the two latent program effects (Table 4, p. 425)
+or in two-by-two analyses of the two indicators’ classroom posttest
+means (Table 2, pp. 415–416).</li>
+<li>
+<strong>Classroom means.</strong> They analyzed 440 classroom means
+(pp. 413, 417). Such means are more stable and precise (p. 412), and the
+program was delivered to intact classes, although the school, the unit
+assigned to the program, was the appropriate unit (p. 432, note 3).</li>
+</ul>
+<p>solomonR shares the core of their method: a multiple-group model with
+a mean structure (pp. 414, 420), equal loadings tested before latent
+means are compared, and latent means compared with the indicators’ means
+held equal (pp. 420–426). For the pretested groups, Dukes et al. also
+held the path from each pretest factor to its posttest factor equal
+across the two groups (p. 423). That is the common slope of the latent
+analysis of covariance in
+<code>fit_solomon_sem_latent(ancova = TRUE)</code>; they tested the
+equality, and the package imposes it.</p>
+<p>solomonR fits the four groups in one model. Its latent mean structure
+is identified by fixing the unpretested control’s mean at 0 (<a href="https://github.com/JUhalt/solomonR/issues/16" class="external-link">#16</a>), so the
+sensitization contrast, the average treatment effect, and both simple
+effects have their own Wald tests on one scale.
+<code><a href="../reference/invariance_solomon.html">invariance_solomon()</a></code> tests configural, metric, and scalar
+invariance across all four groups (<a href="https://github.com/JUhalt/solomonR/issues/55" class="external-link">#55</a>), including
+the posttests of pretested against unpretested groups, which Dukes et
+al. did not compare. The SEM functions make no adjustment for clusters.
+When clusters such as schools were assigned to conditions, analyze at
+the level of assignment, or analyze observed scores with
+<code>fit_solomon_glm(robust = "CR2", cluster = )</code>.</p>
+<p>Four elements of their analyses are planned for the SEM functions (<a href="https://github.com/JUhalt/solomonR/issues/117" class="external-link">#117</a>):</p>
+<ul>
+<li>a latent maturation contrast, comparing the pretested control’s
+pretest with the unpretested control’s posttest (pp. 420–422);</li>
+<li>a pretest main-effect contrast, the effect they describe
+(p. 426);</li>
+<li>the latent pretest difference between the pretested groups, as a
+baseline check in the latent analysis of covariance (p. 423; Table 4,
+p. 425);</li>
+<li>a standardized latent contrast, using the pooled latent standard
+deviation (p. 426).</li>
+</ul>
 <p>All works cited in solomonR are listed, with notes on how the package
 uses them, on the <a href="references.html">References</a> page.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
+<p>Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A.
+M., &amp; Rao, S. M. (2018). Journal article reporting standards for
+quantitative research in psychology: The APA Publications and
+Communications Board task force report. <em>American Psychologist,
+73</em>(1), 3–25. <a href="https://doi.org/10.1037/amp0000191" class="external-link uri">https://doi.org/10.1037/amp0000191</a></p>
 <p>Byrne, B. M., Shavelson, R. J., &amp; Muthén, B. (1989). Testing for
 the equivalence of factor covariance and mean structures: The issue of
 partial measurement invariance. <em>Psychological Bulletin, 105</em>(3),
@@ -386,11 +501,21 @@ Multidisciplinary Journal, 14</em>(3), 464–504. <a href="https://doi.org/10.10
 goodness-of-fit indexes for testing measurement invariance.
 <em>Structural Equation Modeling: A Multidisciplinary Journal,
 9</em>(2), 233–255. <a href="https://doi.org/10.1207/S15328007SEM0902_5" class="external-link uri">https://doi.org/10.1207/S15328007SEM0902_5</a></p>
+<p>Dukes, R. L., Ullman, J. B., &amp; Stein, J. A. (1995). An evaluation
+of D.A.R.E. (Drug Abuse Resistance Education), using a Solomon
+four-group design with latent variables. <em>Evaluation Review,
+19</em>(4), 409–435. <a href="https://doi.org/10.1177/0193841X9501900404" class="external-link uri">https://doi.org/10.1177/0193841X9501900404</a></p>
+<p>Gelman, A., &amp; Stern, H. (2006). The difference between
+“significant” and “not significant” is not itself statistically
+significant. <em>The American Statistician, 60</em>(4), 328–331. <a href="https://doi.org/10.1198/000313006X152649" class="external-link uri">https://doi.org/10.1198/000313006X152649</a></p>
 <p>Huck, S. W., &amp; Sandler, H. M. (1973). A note on the Solomon
 4-group design: Appropriate statistical analyses. <em>The Journal of
 Experimental Education, 42</em>(2), 54–55. <a href="https://doi.org/10.1080/00220973.1973.11011460" class="external-link uri">https://doi.org/10.1080/00220973.1973.11011460</a></p>
 <p>Meredith, W. (1993). Measurement invariance, factor analysis and
 factorial invariance. <em>Psychometrika, 58</em>(4), 525–543. <a href="https://doi.org/10.1007/BF02294825" class="external-link uri">https://doi.org/10.1007/BF02294825</a></p>
+<p>Putnick, D. L., &amp; Bornstein, M. H. (2016). Measurement invariance
+conventions and reporting: The state of the art and future directions
+for psychological research. <em>Developmental Review, 41</em>, 71–90. <a href="https://doi.org/10.1016/j.dr.2016.06.004" class="external-link uri">https://doi.org/10.1016/j.dr.2016.06.004</a></p>
 <p>Rosseel, Y. (2012). lavaan: An R package for structural equation
 modeling. <em>Journal of Statistical Software, 48</em>(2), 1–36. <a href="https://doi.org/10.18637/jss.v048.i02" class="external-link uri">https://doi.org/10.18637/jss.v048.i02</a></p>
 <p>Satorra, A., &amp; Bentler, P. M. (2001). A scaled difference

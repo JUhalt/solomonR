@@ -223,7 +223,7 @@ analysis_plan_solomon(
 )
 #> # Analysis plan for a Solomon four-group study
 #> 
-#> Drafted with solomonR 0.8.2 on 2026-10-09. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
+#> Drafted with solomonR 0.8.2.9000 on 2026-10-09. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
 #> 
 #> ## 1. Hypotheses (SPIRIT 12)
 #> 
@@ -260,7 +260,7 @@ analysis_plan_solomon(
 #> 
 #> ### Primary analysis (SPIRIT 20a)
 #> 
-#> The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013), with HC3 standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).
+#> The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990), with HC3 standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).
 #> 
 #> - **Confirmatory contrasts:** ATE (avg over pretest) and Pretest x Treatment.
 #> - H1 is tested with the average treatment effect at alpha = .05: [two-sided, or one-sided in the predicted direction].
@@ -307,6 +307,8 @@ analysis_plan_solomon(
 #> Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent standard errors in the linear regression model. *The American Statistician, 54*(3), 217–224. https://doi.org/10.1080/00031305.2000.10474549
 #> 
 #> MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. *Journal of Econometrics, 29*(3), 305–325. https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the Solomon four group design. *Multiple Linear Regression Viewpoints, 17*(2), 91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The preregistration revolution. *Proceedings of the National Academy of Sciences, 115*(11), 2600–2606. https://doi.org/10.1073/pnas.1708274114
 #> 

@@ -82,11 +82,22 @@ posttests is then a valid main analysis:
 
 fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)
 fit$effects[, c("contrast", "estimate", "std.error", "conf.low", "conf.high", "p.value")]
-#>                  contrast estimate std.error    conf.low conf.high      p.value
-#> 1  ATE (avg over pretest) 6.484859  1.590595  3.34147119  9.628247 7.443972e-05
-#> 2     Pretest x Treatment 2.875273  3.181191 -3.41150206  9.162049 3.675614e-01
-#> 3   Treatment | pretested 7.922496  1.933656  4.10113932 11.743852 6.885790e-05
-#> 4 Treatment | unpretested 5.047222  2.526054  0.05515037 10.039294 4.755416e-02
+#>                   contrast estimate std.error    conf.low conf.high
+#> 1   ATE (avg over pretest) 6.484859  1.590595  3.34147119  9.628247
+#> 2      Pretest x Treatment 2.875273  3.181191 -3.41150206  9.162049
+#> 3    Treatment | pretested 7.922496  1.933656  4.10113932 11.743852
+#> 4  Treatment | unpretested 5.047222  2.526054  0.05515037 10.039294
+#> 5 Pretest effect | control 1.520627  2.237660 -2.90151081  5.942765
+#> 6 Pretest effect | treated 4.395900  2.464161 -0.47385730  9.265658
+#> 7      Pretest main effect 2.958264  1.734824 -0.47015219  6.386680
+#>        p.value
+#> 1 7.443972e-05
+#> 2 3.675614e-01
+#> 3 6.885790e-05
+#> 4 4.755416e-02
+#> 5 4.978509e-01
+#> 6 7.649746e-02
+#> 7 9.026482e-02
 ```
 
 Multiple imputation under the same assumption agrees with it, as it
@@ -192,13 +203,14 @@ report_solomon(tp)
 #> pretest in the pretested groups (Carpenter et al., 2023). Each completed data
 #> set was analyzed with a linear model containing treatment, pretesting, and
 #> their interaction, adjusting for the pretest score among pretested
-#> participants, with HC3 heteroskedasticity-consistent standard errors, and the
-#> estimates were combined with Rubin's rules, using the small-sample degrees of
-#> freedom of Barnard and Rubin (1999, as cited in van Buuren, 2018). In a
-#> tipping-point sensitivity analysis (White et al., 2011; Little et al., 2012),
-#> the imputed posttests of the pretested treatment and unpretested treatment
-#> groups were shifted by offsets from -25.00 to 10.00 (-2.39 to 0.96 pooled
-#> within-group standard deviations of the observed posttests).
+#> participants (Lin, 2013; Newman et al., 1990), with HC3
+#> heteroskedasticity-consistent standard errors, and the estimates were
+#> combined with Rubin's rules, using the small-sample degrees of freedom of
+#> Barnard and Rubin (1999, as cited in van Buuren, 2018). In a tipping-point
+#> sensitivity analysis (White et al., 2011; Little et al., 2012), the imputed
+#> posttests of the pretested treatment and unpretested treatment groups were
+#> shifted by offsets from -25.00 to 10.00 (-2.39 to 0.96 pooled within-group
+#> standard deviations of the observed posttests).
 #> 
 #> Assuming the posttests were missing at random, the average treatment effect
 #> across pretest conditions was 6.49, 95% CI [3.23, 9.76], p < .001.
@@ -233,6 +245,10 @@ report_solomon(tp)
 #>     covariance matrix estimators with improved finite sample properties.
 #>     Journal of Econometrics, 29(3), 305–325.
 #>     https://doi.org/10.1016/0304-4076(85)90158-7
+#> 
+#> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
+#>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
+#>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
@@ -298,8 +314,9 @@ the participant’s identifier.
 
 [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
 fits a mixed model for repeated measures (Mallinckrodt et al., 2008) and
-reports the four Solomon contrasts at each occasion, and the change in
-sensitization from the first occasion to the last:
+reports the four Solomon contrasts and the pretest effects at each
+occasion, and the change in sensitization from the first occasion to the
+last:
 
 ``` r
 
@@ -309,6 +326,8 @@ mm
 #> Occasions: post, 6 months, 12 months
 #> Covariance: unstructured, separately for pretested and unpretested participants (REML)
 #> Degrees of freedom: Kenward-Roger
+#> Pretest centered at the pretested participants' mean: 49.945
+#> Pretest effects: standard errors include the sampling variance of that mean.
 #> 
 #> Observed posttests by group and occasion:
 #>                       post 6 months 12 months
@@ -322,28 +341,46 @@ mm
 #>  post              Pretest x Treatment           -2.072   2.322 222.9 -0.89
 #>  post              Treatment | pretested          4.020   1.434 117.0  2.80
 #>  post              Treatment | unpretested        6.091   1.826 118.0  3.34
+#>  post              Pretest effect | control       2.862   1.727 267.1  1.66
+#>  post              Pretest effect | treated       0.790   1.727 267.1  0.46
+#>  post              Pretest main effect            1.826   1.278 302.1  1.43
 #>  6 months          ATE (avg over pretest)         3.137   1.701 215.3  1.84
 #>  6 months          Pretest x Treatment           -4.237   3.401 215.3 -1.25
 #>  6 months          Treatment | pretested          1.018   2.377 104.6  0.43
 #>  6 months          Treatment | unpretested        5.255   2.433 110.8  2.16
+#>  6 months          Pretest effect | control       4.638   2.461 235.1  1.88
+#>  6 months          Pretest effect | treated       0.401   2.459 234.0  0.16
+#>  6 months          Pretest main effect            2.520   1.778 252.8  1.42
 #>  12 months         ATE (avg over pretest)         1.869   2.055 180.8  0.91
 #>  12 months         Pretest x Treatment           -0.602   4.109 180.8 -0.15
 #>  12 months         Treatment | pretested          1.568   2.531  86.9  0.62
 #>  12 months         Treatment | unpretested        2.170   3.237  99.4  0.67
+#>  12 months         Pretest effect | control       2.607   2.954 188.6  0.88
+#>  12 months         Pretest effect | treated       2.005   2.932 190.5  0.68
+#>  12 months         Pretest main effect            2.306   2.107 198.5  1.09
 #>  12 months vs post Change in Pretest x Treatment  1.470   3.997 184.0  0.37
 #>  p     95% CI           
 #>  <.001 [  2.767,  7.344]
 #>  0.373 [ -6.648,  2.504]
 #>  0.006 [  1.179,  6.860]
 #>  0.001 [  2.475,  9.708]
+#>  0.099 [ -0.538,  6.262]
+#>  0.648 [ -2.610,  4.190]
+#>  0.154 [ -0.690,  4.341]
 #>  0.066 [ -0.215,  6.489]
 #>  0.214 [-10.941,  2.467]
 #>  0.669 [ -3.694,  5.731]
 #>  0.033 [  0.434, 10.076]
+#>  0.061 [ -0.210,  9.486]
+#>  0.871 [ -4.444,  5.247]
+#>  0.158 [ -0.982,  6.021]
 #>  0.364 [ -2.185,  5.923]
 #>  0.884 [ -8.710,  7.506]
 #>  0.537 [ -3.464,  6.599]
 #>  0.504 [ -4.252,  8.592]
+#>  0.379 [ -3.221,  8.434]
+#>  0.495 [ -3.778,  7.788]
+#>  0.275 [ -1.850,  6.461]
 #>  0.714 [ -6.416,  9.356]
 ```
 
@@ -363,10 +400,11 @@ dropout followed low scores:
 
 late <- long[long$occasion == "12 months" & !is.na(long$y_post), ]
 cc <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = late)
+# The four treatment contrasts, the first four rows of each effects table.
 data.frame(
-  contrast = cc$effects$contrast,
-  complete_case = round(cc$effects$estimate, 2),
-  mmrm = round(mm$effects$estimate[mm$effects$occasion == "12 months"], 2),
+  contrast = cc$effects$contrast[1:4],
+  complete_case = round(cc$effects$estimate[1:4], 2),
+  mmrm = round(mm$effects$estimate[mm$effects$occasion == "12 months"][1:4], 2),
   truth = c(3, 0, 3, 3)
 )
 #>                  contrast complete_case  mmrm truth
@@ -396,7 +434,7 @@ reports the fit:
 ``` r
 
 report_solomon(mm, digits = 1)$method
-#> [1] "Posttest outcomes at 3 occasions were analyzed with a mixed model for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013), with an unstructured within-participant covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood (Laird & Ware, 1982). Tests used Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011). The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that missing posttests are missing at random."
+#> [1] "Posttest outcomes at 3 occasions were analyzed with a mixed model for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013; Newman et al., 1990), with an unstructured within-participant covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood (Laird & Ware, 1982). Tests used Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011). The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that missing posttests are missing at random."
 ```
 
 For a published study with three posttest occasions, reproduced from its

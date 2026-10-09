@@ -17,7 +17,7 @@ Attribution 4.0 license (see License)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,7 +91,7 @@ Attribution 4.0 license (see License)."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Transfer-intervention data from Mai et al. (2020)</h1>
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/R/solomon_published_data.R" class="external-link"><code>R/solomon_published_data.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/R/solomon_published_data.R" class="external-link"><code>R/solomon_published_data.R</code></a></small>
       <div class="d-none name"><code>mai2020.Rd</code></div>
     </div>
 
@@ -240,21 +240,28 @@ package's <code>data-raw</code> folder on GitHub. See also <code>inst/COPYRIGHTS
 <span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ treat * pretested + pre_obs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 90)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Term             Est (SE)            t  df      p            95% CI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)      3.019 (0.077)   38.99  90  &lt;.001    [2.865, 3.172]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> treat            0.110 (0.114)    0.97  90  0.336   [-0.116, 0.337]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> pretested        -1.251 (0.535)  -2.34  90  0.022  [-2.313, -0.189]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> pre_obs          0.431 (0.163)    2.65  90  0.010    [0.107, 0.754]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> treat:pretested  -0.290 (0.157)  -1.84  90  0.068   [-0.602, 0.022]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Term             Est (SE)            t  df      p           95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)      3.019 (0.077)   38.99  90  &lt;.001   [2.865, 3.172]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> treat            0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pretested        0.092 (0.104)    0.89  90  0.378  [-0.114, 0.299]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pre_obs          0.431 (0.163)    2.65  90  0.010   [0.107, 0.754]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> treat:pretested  -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Key contrasts            Est (SE)            t  df      p           95% CI  Wald R2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ATE (avg over pretest)   -0.035 (0.079)  -0.44  90  0.660  [-0.191, 0.121]    0.002</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Treatment      -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]    0.036</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | pretested    -0.180 (0.108)  -1.66  90  0.100  [-0.395, 0.035]    0.030</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | unpretested  0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]    0.010</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Key contrasts             Est (SE)            t  df      p           95% CI  Wald R2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ATE (avg over pretest)    -0.035 (0.079)  -0.44  90  0.660  [-0.191, 0.121]    0.002</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Treatment       -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]    0.036</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | pretested     -0.180 (0.108)  -1.66  90  0.100  [-0.395, 0.035]    0.030</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | unpretested   0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]    0.010</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | control  0.092 (0.105)    0.88  90  0.382  [-0.116, 0.300]    0.009</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | treated  -0.198 (0.121)  -1.64  90  0.105  [-0.438, 0.042]    0.029</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest main effect       -0.053 (0.081)  -0.65  90  0.518  [-0.214, 0.109]    0.005</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Wald R2: partial R-squared for conventional Gaussian OLS;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> a Wald-based descriptive approximation when robust covariance is used.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pre_obs: the pretest, centered at the pretested participants' mean (3.118).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> The pretest effects compare pretested and unpretested participants at that</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> score; their standard errors include the sampling variance of the mean, and</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> the coefficient of pretested treats it as fixed.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># One model for all six groups.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">condition</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span>,</span></span>
@@ -272,18 +279,26 @@ package's <code>data-raw</code> folder on GitHub. See also <code>inst/COPYRIGHTS
 <span class="r-out co"><span class="r-pr">#&gt;</span> Condition | unpretested       F(2, 126) = 0.73  0.485</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Contrasts</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Comparison     Contrast                       Est (SE)      t   df      p  p adj.           95% CI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control  ATE (avg over pretest)   -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control  ATE (avg over pretest)    0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control  Pretest x Treatment      -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control  Pretest x Treatment      -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control  Treatment | pretested    -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control  Treatment | pretested     0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control  Treatment | unpretested   0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control  Treatment | unpretested   0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control   ATE (avg over pretest)    -0.035 (0.078)  -0.44  126  0.659   0.659  [-0.189, 0.120]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control   ATE (avg over pretest)     0.088 (0.080)   1.10  126  0.275   0.551  [-0.071, 0.247]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control   Pretest x Treatment       -0.290 (0.156)  -1.85  126  0.066   0.133  [-0.599, 0.020]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control   Pretest x Treatment       -0.091 (0.161)  -0.57  126  0.571   0.571  [-0.409, 0.227]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control   Treatment | pretested     -0.179 (0.107)  -1.67  126  0.097   0.193  [-0.392, 0.033]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control   Treatment | pretested      0.042 (0.099)   0.43  126  0.670   0.670  [-0.154, 0.239]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP vs Control   Treatment | unpretested    0.110 (0.114)   0.97  126  0.335   0.585  [-0.115, 0.336]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS vs Control   Treatment | unpretested    0.134 (0.126)   1.06  126  0.293   0.585  [-0.117, 0.384]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Control         Pretest effect | control   0.097 (0.104)   0.93  126  0.355   0.355  [-0.109, 0.303]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> RP              Pretest effect | treated  -0.193 (0.119)  -1.62  126  0.108   0.217  [-0.429, 0.043]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> GS              Pretest effect | treated   0.005 (0.125)   0.04  126  0.965   0.965  [-0.241, 0.252]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> All conditions  Pretest main effect       -0.030 (0.069)  -0.44  126  0.661   0.661  [-0.166, 0.106]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> p adj.: adjusted by Holm's (1979) procedure within each contrast, across the 2 comparisons.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> p adj. of the treatments' pretest effects: adjusted by Holm's (1979) procedure across the 2 treatments.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Confidence intervals are not adjusted.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effects: pretested minus unpretested participants in each condition,</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> at the pretested participants' mean pretest (3.129), with standard errors</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> that include the sampling variance of that mean.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Experimental: in the package's simulation study (issue #45), the omnibus</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> tests of Condition | pretested and Condition | unpretested rejected in up</span>
