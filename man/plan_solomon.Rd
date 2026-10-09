@@ -54,14 +54,29 @@ evaluation reuses it, so designs are compared on common random numbers.}
 \item{max_n}{Largest size considered for the smallest cell.}
 }
 \value{
-A data frame with one row per estimand: the estimand, its true
-effect, the four cell sizes, the total sample size, the achieved power,
-the basis (\code{"analytic"} or \code{"simulation"}), the Monte Carlo standard
-error (\code{NA} for analytic rows), the target power, \code{alpha}, and a note.
+A data frame with one row for each estimand, in the columns:
+\itemize{
+\item \code{estimand}: the contrast, under the labels of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}:
+\verb{ATE (avg over pretest)}, \verb{Pretest x Treatment},
+\code{Treatment | pretested}, and \code{Treatment | unpretested}.
+\item \code{true_effect}: its true value under the planning values.
+\item \code{n1}, \code{n2}, \code{n3}, and \code{n4}: the four cell sizes; and \code{total_n}, the
+total sample size.
+\item \code{power}: the achieved power.
+\item \code{basis}: \code{"analytic"} or \code{"simulation"}.
+\item \code{mcse}: the Monte Carlo standard error of the power (\code{NA} for
+analytic rows).
+\item \code{target_power} and \code{alpha}: the target power and the significance
+level.
+\item \code{note}: an explanation, where one is needed.
+}
+
 Estimands whose true effect is zero, or whose target is not reached by
 \code{max_n}, return \code{NA} sizes with an explanatory note. The planning values
 are kept in the attribute \code{settings}, which \code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}}
-reads.
+reads. The table describes a planned study, with true effects and no
+estimates, so its column of contrasts is \code{estimand} and it is not an
+effects table; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

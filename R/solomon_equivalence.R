@@ -98,15 +98,38 @@
 #'   test, one of the `comparison` values of `fit$effects` (see "Designs with
 #'   several treatments"). Leave it `NULL` for a four-group design.
 #' @param object `r lifecycle::badge("deprecated")` Use `fit`.
-#' @return An object of class `solomon_equivalence` containing the `scale`
-#'   of the contrast (such as `"outcome units"` or `"log odds ratio"`), the
-#'   estimate, standard error, degrees of freedom, both one-sided tests
-#'   (`t_lower`, `p_lower`, `t_upper`, `p_upper`), the equivalence p-value
-#'   (`p_equivalence`), the test against zero (`statistic`, `p_zero`), both
-#'   confidence intervals, the logical results `equivalent`, `different`, and
-#'   `exceeds_bounds`, the `outcome`, and a plain-language `interpretation`.
-#'   For a design with several treatments, it also holds the `comparison`,
-#'   its `weights` over the conditions, and the `conditions` of the fit.
+#' @return An object of class `solomon_equivalence`, a list with:
+#'   - `contrast`: the label of the contrast tested.
+#'   - `bounds`, `alpha`, and `scale`: the equivalence bounds, the
+#'     significance level, and the scale of the contrast (such as
+#'     `"outcome units"` or `"log odds ratio"`).
+#'   - `estimate`, `std.error`, and `df`: the estimate of the contrast, its
+#'     standard error, and the degrees of freedom of the tests (`Inf` for a
+#'     normal reference distribution), as in the `effects` table of the fit.
+#'   - `inference`: a description of the covariance and the reference
+#'     distribution.
+#'   - `t_lower`, `p_lower`, `t_upper`, and `p_upper`: the two one-sided
+#'     tests, against the lower and the upper bound.
+#'   - `p_equivalence`: the equivalence p-value, the larger of `p_lower` and
+#'     `p_upper`.
+#'   - `statistic` and `p_zero`: the two-sided test against zero.
+#'   - `conf_level`, `conf.low`, and `conf.high`: the 1 - 2 `alpha` interval
+#'     that matches the equivalence test, and its level.
+#'   - `conf_level_zero`, `conf.low_zero`, and `conf.high_zero`: the
+#'     1 - `alpha` interval that matches the test against zero, and its
+#'     level.
+#'   - `equivalent`, `different`, and `exceeds_bounds`: the logical results.
+#'   - `outcome` and `interpretation`: the outcome (see "Outcomes") and a
+#'     plain-language reading of it.
+#'   - `comparison`, `weights` (its weights over the conditions), and
+#'     `conditions` (those of the fit), for a design with several
+#'     treatments.
+#'
+#'   The result is for one contrast, with several tests and two intervals,
+#'   so it is a list of values and not an effects table, and it has no
+#'   [tidy()] method. `contrast`, `estimate`, `std.error`, `statistic`,
+#'   `df`, `conf.low`, `conf.high`, and `conf_level` have the names and the
+#'   meanings of the columns of one; see [solomon_output].
 #' @references
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after

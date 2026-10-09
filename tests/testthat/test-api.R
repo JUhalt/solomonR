@@ -420,6 +420,7 @@ test_that("the exported functions use one name for each kind of argument", {
   ns <- getNamespaceExports("solomonR")
   fns <- ns[vapply(ns, function(f) is.function(getExportedValue("solomonR", f)), logical(1))]
   fns <- setdiff(fns, c("plot_solomon", "plot_solomon_gg"))  # deprecated
+  fns <- setdiff(fns, "tidy")  # the generic of the generics package, re-exported (#110)
   args <- unlist(lapply(fns, function(f) names(formals(getExportedValue("solomonR", f)))))
 
   # Former names survive only as deprecated arguments, after `data`.

@@ -64,8 +64,13 @@ analysis in the pretested treatment group alone is added.}
 UTF-8 Markdown.}
 }
 \value{
-An object of class \code{solomon_analysis_plan}: \code{text} (the Markdown
-lines), \code{settings} (the choices, including \code{confirmatory}), and \code{date}.
+An object of class \code{solomon_analysis_plan}, a list with:
+\itemize{
+\item \code{text}: the lines of the plan, in Markdown.
+\item \code{settings}: the choices the plan states, including \code{confirmatory}.
+\item \code{date}: the date the plan was written.
+}
+
 Printing it shows the Markdown.
 }
 \description{

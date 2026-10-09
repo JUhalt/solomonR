@@ -57,15 +57,32 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_tipping} with \code{results} (one row per
-offset: the offset in posttest units, \code{delta}, and in standard
-deviations, \code{delta_sd}; the pooled result in the columns of
-\code{fit_solomon_mi()$effects}, \code{contrast}, \code{estimate}, \code{std.error},
-\code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and \code{conf.high}; and
-\code{significant}), \code{tipping} (the smallest
-negative and positive offsets at which the conclusion differs from the
-one under MAR, \code{NA} when it does not change within the range), and the
-settings used.
+An object of class \code{solomon_tipping}, a list with:
+\itemize{
+\item \code{results}: one row for each offset, in the columns \code{delta} (the
+offset in posttest units), \code{delta_sd} (the offset in standard
+deviations), and then the pooled result in the columns of
+\code{fit_solomon_mi()$effects}: \code{contrast}, \code{estimate}, \code{std.error},
+\code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and \code{conf.high}, followed
+by \code{significant} (whether \code{p.value} is below \code{alpha}).
+\item \code{tipping}: the smallest negative and positive offsets at which the
+conclusion differs from the one under MAR, \code{NA} when it does not
+change within the range; and \code{tipping_sd}, the same in standard
+deviations.
+\item \code{conf_level}: the confidence level of the intervals, 1 - \code{alpha}.
+\item \code{contrast}, \code{groups} (the groups shifted), \code{alpha}, \code{m}, \code{seed}, and
+\code{robust}: the settings used.
+\item \code{sd}: the pooled within-group standard deviation of the observed
+posttests.
+\item \code{missing}: the posttests missing in each group, as in
+\code{\link[=fit_solomon_mi]{fit_solomon_mi()}}.
+\item \code{pretest} (whether pretest scores were supplied) and \code{data} (the
+design indicators), which solomonR's own functions use.
+}
+
+\code{results} has the columns and the labels of an effects table, and
+\code{\link[=tidy]{tidy()}} returns it. See \link{solomon_output} for the columns, the labels,
+and the parts of a result that are stable.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}

@@ -42,12 +42,22 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_validation} with \code{valid} (\code{TRUE} when
-no errors were found), \code{issues} (severity, check, and message), \code{cells}
-(counts by cell, with clusters and cluster sizes when \code{cluster} is
-supplied), and \code{missing} (the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result). For a
-design with several treatments, \code{cells} has one row for each of the
-2(k + 1) cells and \code{conditions} names the control and the treatments.
+An object of class \code{solomon_validation}, a list with:
+\itemize{
+\item \code{valid}: \code{TRUE} when no errors were found.
+\item \code{issues}: one row for each finding, in the columns \code{severity},
+\code{check}, and \code{message}.
+\item \code{cells}: the counts in each cell, as in \code{by_cell} of
+\code{\link[=check_solomon_missing]{check_solomon_missing()}}, with \code{posttest_observed}, and with the
+clusters and cluster sizes when \code{cluster} is supplied.
+\item \code{missing}: the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result.
+\item \code{settings}: \code{min_cell_n}, and whether pretest scores and clusters
+were supplied.
+}
+
+For a design with several treatments, \code{cells} has one row for each of
+the 2(k + 1) cells and \code{conditions} names the control and the
+treatments.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

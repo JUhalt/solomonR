@@ -12,7 +12,9 @@
 #' @param y Numeric vector of posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
 #' @param pretested Pretest indicator coded 0 = not pretested and 1 = pretested.
-#' @return Invisibly returns a data frame containing cell summaries.
+#' @return Invisibly, a data frame with one row for each cell, in the columns
+#'   `pretested`, `treat`, `n`, `mean`, `sd`, `se`, the limits `lo` and `hi`
+#'   of the 95% interval, and `x`, the position of the cell on the axis.
 #' @examples
 #' # Use plot_solomon_means() instead:
 #' plot_solomon_means(y_post, treat, pretested, data = solomon_example)

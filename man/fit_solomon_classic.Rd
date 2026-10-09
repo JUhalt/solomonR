@@ -112,7 +112,9 @@ with Type III sums of squares, in the columns \code{source} (\code{Treatment},
 \code{Pretest}, \verb{Pretest x Treatment}, and \code{Error}), \code{sumsq}, \code{df},
 \code{meansq}, \code{F}, and \code{p.value}; see "Analysis of variance".
 \item \code{pretest_main}: the row of the pretest main effect.
-\item \code{history}: the history/maturation comparisons.
+\item \code{history}: the history/maturation comparisons, in the columns
+\code{comparison}, \code{estimate}, \code{statistic}, \code{df}, \code{p.value}, \code{conf.low},
+and \code{conf.high}.
 \item \code{conf_level}: the confidence level of the intervals.
 \item \code{settings}: the options used.
 \item \code{g_post}: Hedges' g for Groups 3 and 4, with its interval.
@@ -120,6 +122,9 @@ with Type III sums of squares, in the columns \code{source} (\code{Treatment},
 for existing code and not part of the stable interface. \code{tests}
 holds the same analyses as Tests E, H, and I.
 }
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns the
+table, are the stable interface of the result; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

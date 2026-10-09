@@ -124,30 +124,46 @@
 #' @param control The control condition, when `treat` is a character vector
 #'   or factor.
 #'
-#' @return An object of class `solomon_summary_fit` with `effects` (Tests
-#'   A-D, the pretest main effect, and the simple effects, in the columns
-#'   `test`, `contrast`, `estimate`, `std.error`, `statistic` (t), `df`,
-#'   `p.value`, `conf.low`, and `conf.high`, followed by `F` and the Type III
-#'   sum of squares `sumsq`), an `anova` table (sources `Treatment`,
-#'   `Pretest`, `Pretest x Treatment`, and `Error`; columns `source`,
-#'   `sumsq`, `df`, `meansq`, `F`, and `p.value`), the `cells`, the error
-#'   mean square and degrees of freedom, and the settings.
+#' @return An object of class `solomon_summary_fit`, a list with:
+#'   - `effects`: Tests A-D and the pretest main effect, one row each, in
+#'     the columns `test` (the letter; empty for the pretest main effect),
+#'     `contrast`, `estimate`, `std.error`, `statistic` (t), `df`,
+#'     `p.value`, `conf.low`, and `conf.high`, followed by `F` (the square
+#'     of t) and the Type III sum of squares `sumsq`. `contrast` has the
+#'     labels of [fit_solomon_glm()]: `Pretest x Treatment` (Test A),
+#'     `Treatment | pretested` (Test B), `Treatment | unpretested` (Test C),
+#'     `ATE (avg over pretest)` (Test D), and `Pretest main effect`.
+#'   - `anova`: the two-by-two analysis of variance, in the columns `source`
+#'     (`Treatment`, `Pretest`, `Pretest x Treatment`, and `Error`),
+#'     `sumsq`, `df`, `meansq`, `F`, and `p.value`.
+#'   - `cells`: the summary statistics supplied (`group`, `n`, `mean`, and
+#'     `sd`).
+#'   - `mse` and `df_error`: the error mean square and its degrees of
+#'     freedom.
+#'   - `conf_level`: the confidence level of the intervals.
 #'
 #'   For a design with several treatments, an object of class
-#'   `solomon_summary_ngroup` with `effects` (for each comparison of a
-#'   treatment with the control and each of the four contrasts, in the
-#'   columns `comparison`, `contrast`, `estimate`, `std.error`, `statistic`
-#'   (t), `df`, `p.value`, `conf.low`, and `conf.high`, followed by the
-#'   Holm-adjusted p-value `p.adjusted`), the omnibus tests in `anova`
-#'   (Type III sum of squares, df, mean square, F, p-value), the `cells` in
-#'   the package's group order, the `conditions` (control first), `adjust`
-#'   (`"holm"`), the error mean square and degrees of freedom, and the
-#'   settings.
+#'   `solomon_summary_ngroup`, a list with:
+#'   - `effects`: for each comparison of a treatment with the control, the
+#'     four treatment contrasts, in the columns `comparison`, `contrast`,
+#'     `estimate`, `std.error`, `statistic` (t), `df`, `p.value`,
+#'     `conf.low`, and `conf.high`, followed by the Holm-adjusted p-value
+#'     `p.adjusted`.
+#'   - `anova`: the omnibus tests, in the same columns as above, with the
+#'     sources `Condition`, `Pretest`, `Pretest x Condition`, and `Error`.
+#'   - `cells`: the summary statistics in the package's group order
+#'     (`group`, `condition`, `pretested`, `n`, `mean`, and `sd`).
+#'   - `conditions`: the conditions, control first (`condition` and `role`).
+#'   - `adjust`: the adjustment of the p-values, `"holm"`.
+#'   - `mse`, `df_error`, and `conf_level`, as above.
 #'
 #'   Before solomonR 1.0.0, `effects` was named `contrasts`, and the
 #'   interaction of the four-group `anova` table `Treatment x Pretest`.
 #'   `$contrasts` still returns the table, with a deprecation warning;
 #'   `[["contrasts"]]` does not.
+#'
+#'   The `effects` table, `conf_level`, and [tidy()], which returns the
+#'   table, are the stable interface of the result; see [solomon_output].
 #'
 #' @references
 #' Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
@@ -564,9 +580,15 @@ print.solomon_summary_ngroup <- function(x, digits = 3, ...) {
 #' @param r Pre-post correlation in the pretested groups, needed with
 #'   `mean_pre` and `sd_pre`.
 #'
-#' @return A data frame with one row per pair: the estimator, `yi` (effect
-#'   size), `vi` (sampling variance), `sei` (standard error), and the group
-#'   sizes.
+#' @return A data frame with one row for each pair of groups, in the columns:
+#'   - `pair`: the pair, pretested or unpretested.
+#'   - `estimator`: the effect-size estimator.
+#'   - `yi`, `vi`, and `sei`: the effect size, its sampling variance, and
+#'     its standard error, under the names meta-analysis software uses.
+#'   - `n_treated` and `n_control`: the group sizes.
+#'
+#'   The effect sizes are standardized, so this is not an effects table; see
+#'   [solomon_output].
 #'
 #' @references
 #' Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect

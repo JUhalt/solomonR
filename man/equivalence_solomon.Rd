@@ -34,15 +34,40 @@ several treatments"). Leave it \code{NULL} for a four-group design.}
 \item{object}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{fit}.}
 }
 \value{
-An object of class \code{solomon_equivalence} containing the \code{scale}
-of the contrast (such as \code{"outcome units"} or \code{"log odds ratio"}), the
-estimate, standard error, degrees of freedom, both one-sided tests
-(\code{t_lower}, \code{p_lower}, \code{t_upper}, \code{p_upper}), the equivalence p-value
-(\code{p_equivalence}), the test against zero (\code{statistic}, \code{p_zero}), both
-confidence intervals, the logical results \code{equivalent}, \code{different}, and
-\code{exceeds_bounds}, the \code{outcome}, and a plain-language \code{interpretation}.
-For a design with several treatments, it also holds the \code{comparison},
-its \code{weights} over the conditions, and the \code{conditions} of the fit.
+An object of class \code{solomon_equivalence}, a list with:
+\itemize{
+\item \code{contrast}: the label of the contrast tested.
+\item \code{bounds}, \code{alpha}, and \code{scale}: the equivalence bounds, the
+significance level, and the scale of the contrast (such as
+\code{"outcome units"} or \code{"log odds ratio"}).
+\item \code{estimate}, \code{std.error}, and \code{df}: the estimate of the contrast, its
+standard error, and the degrees of freedom of the tests (\code{Inf} for a
+normal reference distribution), as in the \code{effects} table of the fit.
+\item \code{inference}: a description of the covariance and the reference
+distribution.
+\item \code{t_lower}, \code{p_lower}, \code{t_upper}, and \code{p_upper}: the two one-sided
+tests, against the lower and the upper bound.
+\item \code{p_equivalence}: the equivalence p-value, the larger of \code{p_lower} and
+\code{p_upper}.
+\item \code{statistic} and \code{p_zero}: the two-sided test against zero.
+\item \code{conf_level}, \code{conf.low}, and \code{conf.high}: the 1 - 2 \code{alpha} interval
+that matches the equivalence test, and its level.
+\item \code{conf_level_zero}, \code{conf.low_zero}, and \code{conf.high_zero}: the
+1 - \code{alpha} interval that matches the test against zero, and its
+level.
+\item \code{equivalent}, \code{different}, and \code{exceeds_bounds}: the logical results.
+\item \code{outcome} and \code{interpretation}: the outcome (see "Outcomes") and a
+plain-language reading of it.
+\item \code{comparison}, \code{weights} (its weights over the conditions), and
+\code{conditions} (those of the fit), for a design with several
+treatments.
+}
+
+The result is for one contrast, with several tests and two intervals,
+so it is a list of values and not an effects table, and it has no
+\code{\link[=tidy]{tidy()}} method. \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic},
+\code{df}, \code{conf.low}, \code{conf.high}, and \code{conf_level} have the names and the
+meanings of the columns of one; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

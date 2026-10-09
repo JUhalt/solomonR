@@ -454,7 +454,9 @@
 #'       `Pretest`, `Pretest x Treatment`, and `Error`), `sumsq`, `df`,
 #'       `meansq`, `F`, and `p.value`; see "Analysis of variance".
 #'     \item `pretest_main`: the row of the pretest main effect.
-#'     \item `history`: the history/maturation comparisons.
+#'     \item `history`: the history/maturation comparisons, in the columns
+#'       `comparison`, `estimate`, `statistic`, `df`, `p.value`, `conf.low`,
+#'       and `conf.high`.
 #'     \item `conf_level`: the confidence level of the intervals.
 #'     \item `settings`: the options used.
 #'     \item `g_post`: Hedges' g for Groups 3 and 4, with its interval.
@@ -462,6 +464,9 @@
 #'       for existing code and not part of the stable interface. `tests`
 #'       holds the same analyses as Tests E, H, and I.
 #'   }
+#'
+#'   The `effects` table, `conf_level`, and [tidy()], which returns the
+#'   table, are the stable interface of the result; see [solomon_output].
 #'
 #' @references
 #' Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon

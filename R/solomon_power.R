@@ -204,12 +204,25 @@
 #' @param seed Optional integer seed. The global random number state is
 #'   restored afterwards.
 #'
-#' @return A data frame with one row per test, giving the estimand, the test
-#'   used, the true effect, the rejection rate and its Monte Carlo standard
-#'   error, the replications that produced a usable fit, the number of
-#'   failures, and `alpha`. Test I rows report `NA` for `true_effect`, because
-#'   the combination targets a directional hypothesis rather than a single
-#'   contrast, and all Test I values are `NA` when `stouffer = FALSE`.
+#' @return A data frame with one row for each test, in the columns:
+#'   - `estimand`: the contrast tested, under the labels of
+#'     [fit_solomon_glm()]: `ATE (avg over pretest)`, `Pretest x Treatment`,
+#'     `Treatment | pretested`, and `Treatment | unpretested`; and
+#'     `Treatment (one-sided)` for Test I.
+#'   - `test`: the test used.
+#'   - `true_effect`: the true value of the contrast.
+#'   - `power` and `mcse`: the rejection rate and its Monte Carlo standard
+#'     error.
+#'   - `sims` and `failures`: the replications that produced a usable fit,
+#'     and the number that did not.
+#'   - `alpha`: the significance level.
+#'
+#'   Test I rows report `NA` for `true_effect`, because the combination
+#'   targets a directional hypothesis rather than a single contrast, and all
+#'   Test I values are `NA` when `stouffer = FALSE`. The table describes a
+#'   planned study, with true effects and no estimates, so its column of
+#'   contrasts is `estimand` and it is not an effects table; see
+#'   [solomon_output].
 #'
 #' @references
 #' Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation

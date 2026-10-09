@@ -90,6 +90,10 @@ freed parameters, which \code{\link[=report_solomon]{report_solomon()}} reports
 Before solomonR 1.0.0, \code{fit} and \code{effects} were named \code{fit_post} and
 \code{effects_post}. The old names still work with \code{$}, with a deprecation
 warning, but not with \code{[[}.
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns
+\code{effects}, are the stable interface of the result. The lavaan objects
+and \code{settings} are not; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}

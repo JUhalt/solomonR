@@ -245,11 +245,27 @@
 #' @param alpha Significance level of the chi-square difference test.
 #'   Default 0.05.
 #'
-#' @return An object of class `solomon_invariance`: the three `fits`, the fit
-#'   indexes in `models`, the step `tests` with the decision under each
-#'   criterion, the most constrained level `supported` under each
-#'   (`"configural"`, `"metric"`, `"scalar"`, or `"partial scalar"`), and the
-#'   `cutoffs` applied.
+#' @return An object of class `solomon_invariance`, a list with:
+#'   - `fits`: the three lavaan objects, `configural`, `metric`, and
+#'     `scalar`.
+#'   - `models`: the fit of each model, in the columns `model`, `chisq`,
+#'     `df`, `cfi`, `rmsea`, and `srmr`.
+#'   - `tests`: the two steps, in the columns `comparison`, `chisq_diff`,
+#'     `df_diff`, `p.value`, `delta_cfi`, `delta_rmsea`, `delta_srmr`, and
+#'     the decision under each criterion, `noninvariant_chisq` and
+#'     `noninvariant_chen`.
+#'   - `supported`: the most constrained level supported under each
+#'     criterion, `chisq` and `chen2007`: `"configural"`, `"metric"`,
+#'     `"scalar"`, or `"partial scalar"`.
+#'   - `cutoffs`: the cutoffs of the change-in-fit criterion that were
+#'     applied.
+#'   - `sizes`: the four group sizes.
+#'   - `partial`, `alpha`, `items`, and `estimator`: the settings used.
+#'   - `scaled`: whether the chi-square difference was scaled.
+#'
+#'   The tables compare models and estimate no Solomon contrast, so the
+#'   result has no effects table, and the lavaan objects are not part of
+#'   the stable interface; see [solomon_output].
 #'
 #' @references
 #' Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the

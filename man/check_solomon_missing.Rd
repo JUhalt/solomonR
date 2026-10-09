@@ -34,13 +34,22 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_missing} with \code{by_cell} (counts by
-Solomon cell), \code{counts} (totals by category), \code{pattern} (\code{"none"},
-\code{"structural"}, \code{"incidental"}, or \code{"mixed"}), and \code{guidance} (the
-interpretation, supported response, and sources for each category
-present). For a design with several treatments, \code{by_cell} has one row
-for each of the 2(k + 1) groups, its \code{treat} column holds the
-condition, and \code{conditions} names the control and the treatments.
+An object of class \code{solomon_missing}, a list with:
+\itemize{
+\item \code{by_cell}: the counts in each Solomon cell, in the columns \code{group},
+\code{cell}, \code{pretested}, \code{treat}, \code{n}, \code{posttest_missing},
+\code{pretest_structural}, \code{pretest_incidental}, and \code{pretest_unexpected}.
+\item \code{counts}: the totals by category.
+\item \code{pattern}: \code{"none"}, \code{"structural"}, \code{"incidental"}, or \code{"mixed"}.
+\item \code{guidance}: for each category present, its count, the
+interpretation, the supported response, and the sources (\code{category},
+\code{n}, \code{interpretation}, \code{response}, and \code{sources}).
+\item \code{pretest_supplied}: whether pretest scores were supplied.
+}
+
+For a design with several treatments, \code{by_cell} has one row for each of
+the 2(k + 1) groups, its \code{treat} column holds the condition, and
+\code{conditions} names the control and the treatments.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

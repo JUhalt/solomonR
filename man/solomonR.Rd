@@ -52,6 +52,13 @@ are \code{y_post} and \code{y_pre} everywhere, a fitted model is passed as \code
 and the planning functions share one argument order: \code{n} (or \code{power}),
 \code{delta}, \code{sens}, \code{rho}, \code{sigma}, \code{alpha}. Each function that takes data
 vectors also takes an optional \code{data} data frame.
+
+solomonR 1.0.0 settled the output (issue #110). Every analysis that
+estimates the Solomon contrasts returns them in a table named \code{effects},
+with one order of columns and one set of contrast labels, beside the
+confidence level \code{conf_level}, and \code{\link[=tidy]{tidy()}} returns that table.
+\link{solomon_output} states which parts of a result are stable and which are
+not.
 }
 
 \references{

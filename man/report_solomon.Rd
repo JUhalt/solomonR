@@ -31,9 +31,19 @@ unpretested GS, and unpretested Control.}
 statistical symbols.}
 }
 \value{
-An object of class \code{solomon_report} with \code{method}, \code{results}, and
-\code{design} (character vectors of sentences), \code{table} (the estimates), and
-\code{references} (APA 7 reference entries, in APA order).
+An object of class \code{solomon_report}, a list with:
+\itemize{
+\item \code{method}, \code{results}, and \code{design}: character vectors of sentences.
+\item \code{table}: a data frame of the values that the sentences report. For
+most fits it is the \code{effects} table of the fit (see
+\link{solomon_output}); for the other results its columns depend on the
+analysis.
+\item \code{references}: the APA 7 reference entries, in APA order.
+\item \code{format}: \code{"text"} or \code{"markdown"}.
+}
+
+To compute with the estimates, read them from the fit, with \code{\link[=tidy]{tidy()}},
+not from the sentences.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

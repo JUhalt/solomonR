@@ -37,17 +37,39 @@ state is restored afterwards.}
 \item{conf_level}{Confidence level. Defaults to the fit's.}
 }
 \value{
-An object of class \code{solomon_marginal} with \code{effects} (one row per
-scale and contrast, in the columns \code{scale}, \code{contrast}, \code{estimate},
-\code{std.error}, \code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and \code{conf.high}),
-\code{risks} (binary) or \code{rates} (counts, per unit of exposure) for the four
-cells, and the settings, including the number of failed bootstrap
-resamples. In \code{effects}, the estimate and the interval are on the
+An object of class \code{solomon_marginal}, a list with:
+\itemize{
+\item \code{effects}: one row for each scale and contrast, in the columns
+\code{scale}, \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic}, \code{df},
+\code{p.value}, \code{conf.low}, and \code{conf.high}. On each scale the rows are
+the four treatment contrasts, \verb{ATE (avg over pretest)},
+\verb{Pretest x Treatment}, \code{Treatment | pretested}, and
+\code{Treatment | unpretested}, followed by the three pretest effects,
+\verb{Pretest effect | control}, \verb{Pretest effect | treated}, and
+\verb{Pretest main effect}; \code{method = "cluster_summary"} gives the four
+treatment contrasts. The estimate and the interval are on the
 reporting scale (a difference or a ratio). The standard error and the
-test statistic are on the analysis scale, the difference or the log of
-the ratio, so for a ratio \code{statistic} is \code{log(estimate) / std.error}.
-\code{df} is \code{Inf} for a normal reference distribution, which every fit
-without CR2 covariance uses.
+test statistic are on the analysis scale, the difference or the log
+of the ratio, so for a ratio \code{statistic} is
+\code{log(estimate) / std.error}. \code{df} is \code{Inf} for a normal reference
+distribution, which every fit without CR2 covariance uses.
+\item \code{conf_level}: the confidence level of the intervals.
+\item \code{risks} (binary outcomes) or \code{rates} (counts, per unit of exposure):
+the value in each of the four cells (\code{cell}, \code{treat}, \code{pretested},
+and \code{risk} or \code{rate}). The other of the two is \code{NULL}.
+\item \code{outcome}: \code{"binary"} or \code{"count"}.
+\item \code{method}: the method of inference, and \code{vcov}, a description of the
+covariance the delta method used (\code{NA} for the other methods).
+\item \code{R} and \code{failures}: with \code{method = "bootstrap"}, the number of
+resamples and the number that failed.
+\item \code{dispersion} and \code{theta}: as in the fit.
+\item \code{pretest_adjusted}: whether the fit adjusted for the pretest.
+\item \code{design} and \code{clusters} (the number of clusters in each cell), with
+\code{method = "cluster_summary"}.
+}
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns the
+table, are the stable interface of the result; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

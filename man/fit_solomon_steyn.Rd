@@ -69,7 +69,8 @@ in E5, or \code{NA}; see the Operationalization section).
 \item \code{conclusions}: one plain-language summary for each step.
 \item \code{notes}: skipped steps and data notes.
 \item \code{n}: counts of participants, posttests, and pretests in each group.
-\item \code{conditions}: the control and the interventions.
+\item \code{conditions}: the control and the interventions (\code{condition} and
+\code{role}).
 \item \code{settings}: \code{alpha}, \code{include_unpretested_control}, \code{posthoc}, \code{k},
 and \code{pretest} (whether pretest scores were supplied).
 }
@@ -85,6 +86,13 @@ hoc p-value of a pair of groups: Scheffé's, or Holm-adjusted, as
 (Steyn's reading, where he gives one). For a post hoc test, \code{statistic}
 and \code{p.value} are the pairwise t with a pooled SD and its unadjusted
 p-value; the decisions of the sequence read \code{p.adjusted}.
+
+The elements are named for the steps of Steyn's sequence, and the
+tests are of several kinds, so these tables do not have the columns of
+the effects tables of the other analyses. In particular, \code{effects}
+here is step 8, a list, not a table of the Solomon contrasts, and the
+result has no \code{\link[=tidy]{tidy()}} method. The \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} results in
+\code{classic$fits} have effects tables. See \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

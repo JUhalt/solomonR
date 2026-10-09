@@ -33,14 +33,21 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_checks} with the p-values
-\code{brown_forsythe_4cell_p} (all four posttest cells),
-\code{brown_forsythe_unpre_p} (the unpretested cells), \code{shapiro_p_by_cell}
-(one p-value for each cell, named by the pretest indicator and the
-treatment, such as \code{1.0}), and \code{ancova_slope_homogeneity_p}. For a
-design with several treatments, the test across all the posttest cells
-is \code{brown_forsythe_cells_p}, the cells of \code{shapiro_p_by_cell} are named
-by the pretest indicator and the condition, such as \verb{1.RP}, and
+An object of class \code{solomon_checks}, a list of p-values:
+\itemize{
+\item \code{brown_forsythe_4cell_p}: the Brown-Forsythe test across all four
+posttest cells.
+\item \code{brown_forsythe_unpre_p}: the Brown-Forsythe test of the unpretested
+cells.
+\item \code{shapiro_p_by_cell}: the Shapiro-Wilk test in each cell, named by
+the pretest indicator and the treatment, such as \code{1.0}.
+\item \code{ancova_slope_homogeneity_p}: the test of homogeneous
+pretest-posttest slopes.
+}
+
+For a design with several treatments, the test across all the posttest
+cells is \code{brown_forsythe_cells_p}, the cells of \code{shapiro_p_by_cell} are
+named by the pretest indicator and the condition, such as \verb{1.RP}, and
 \code{conditions} names the control and the treatments.
 }
 \description{

@@ -45,6 +45,13 @@
 #' `delta`, `sens`, `rho`, `sigma`, `alpha`. Each function that takes data
 #' vectors also takes an optional `data` data frame.
 #'
+#' solomonR 1.0.0 settled the output (issue #110). Every analysis that
+#' estimates the Solomon contrasts returns them in a table named `effects`,
+#' with one order of columns and one set of contrast labels, beside the
+#' confidence level `conf_level`, and [tidy()] returns that table.
+#' [solomon_output] states which parts of a result are stable and which are
+#' not.
+#'
 #' @references
 #' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally. (Original work
@@ -236,7 +243,8 @@ NULL
 #' `r lifecycle::badge("stable")`
 #'
 #' @param p numeric vector of p-values assumed one-tailed and aligned in the same direction
-#' @return numeric Z-scores
+#' @return A numeric vector of z scores, one for each p-value: the standard
+#'   normal quantile of `1 - p`.
 #' @references
 #' Stouffer, S. A., Suchman, E. A., DeVinney, L. C., Star, S. A., & Williams, R.
 #' M., Jr. (1949). *The American soldier: Adjustment during army life* (Vol. 1).
@@ -262,7 +270,12 @@ p_to_z <- function(p) {
 #' [fit_solomon_classic()] judges Test I by `p_meta_two_tailed`. The one-tailed
 #' value is also returned.
 #' @param p numeric vector of one-tailed p-values (same direction)
-#' @return list with `z_meta`, `p_meta_two_tailed`, and `p_meta_one_tailed`
+#' @return A list with:
+#'   - `z_meta`: the combined z, the sum of the z scores divided by the
+#'     square root of their number.
+#'   - `p_meta_two_tailed`: its two-tailed p-value.
+#'   - `p_meta_one_tailed`: its one-tailed p-value, in the direction of the
+#'     p-values supplied.
 #' @references
 #' Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 #' Meta-analysis and the Solomon four-group design. *The Journal of Experimental
@@ -606,29 +619,50 @@ stouffer_solomon <- function(p) {
 #'   (`y_post = post`) or as strings (`y_post = "post"`).
 #' @param y,pretest_score `r lifecycle::badge("deprecated")` Use `y_post`
 #'   and `y_pre`.
-#' @return An object of class `solomon_glm`: a list with the fitted model,
-#'   coefficient and contrast tables (including degrees of freedom and
-#'   confidence limits `conf.low` and `conf.high`), the covariance matrix,
-#'   the Pearson dispersion statistic for binomial, Poisson, and
-#'   negative-binomial fits, `theta` (its estimate, standard error, and
-#'   \eqn{\alpha = 1/\theta}) for negative-binomial fits, `pretest_mean`
-#'   (the mean pretest at which the pretest is centered; `NA` without
-#'   `y_pre`), and the settings used. The contrast table, `effects`, has the
-#'   four treatment contrasts followed by the three pretest effects, in the
-#'   columns `contrast`, `estimate`, `std.error`, `statistic`, `df` (`Inf`
-#'   for a normal reference distribution), `p.value`, `conf.low`, and
-#'   `conf.high`, followed by the Wald partial R-squared and its interval
-#'   (`r2`, `r2_lo`, `r2_hi`). The coefficient table, `coefficients`, has
-#'   the same columns through `conf.high`, with `term` for `contrast`.
+#' @return An object of class `solomon_glm`, a list with:
+#'   - `effects`: the four treatment contrasts, `ATE (avg over pretest)`,
+#'     `Pretest x Treatment`, `Treatment | pretested`, and
+#'     `Treatment | unpretested`, followed by the three pretest effects,
+#'     `Pretest effect | control`, `Pretest effect | treated`, and
+#'     `Pretest main effect`, in the columns `contrast`, `estimate`,
+#'     `std.error`, `statistic`, `df` (`Inf` for a normal reference
+#'     distribution), `p.value`, `conf.low`, and `conf.high`, followed by
+#'     the Wald partial R-squared and its interval (`r2`, `r2_lo`, and
+#'     `r2_hi`).
+#'   - `conf_level`: the confidence level of the intervals.
+#'   - `coefficients`: the coefficients of the model, in the same columns
+#'     through `conf.high`, with `term` for `contrast`.
+#'   - `model`: the fitted model, a `glm` object.
+#'   - `vcov`: the covariance matrix of the coefficients, as `robust` sets
+#'     it.
+#'   - `dispersion`: the Pearson dispersion statistic for binomial, Poisson,
+#'     and negative-binomial fits, and `NA` for the others.
+#'   - `theta`: for negative-binomial fits, its estimate, standard error,
+#'     and \eqn{\alpha = 1/\theta}; otherwise `NULL`.
+#'   - `pretest_mean`: the mean pretest at which the pretest is centered;
+#'     `NA` without `y_pre`.
+#'   - `robust`, `family`, `cluster` (the cluster of each participant), and
+#'     `n_clusters`: the settings used. The last two are `NULL` without
+#'     `cluster`.
+#'   - `call`, and `data` (the data the model was fitted to), which
+#'     solomonR's own functions use.
 #'
 #'   For a design with several treatments, an object of class
-#'   `solomon_ngroup`, with the same elements and these changes: `effects`
-#'   has a `comparison` column before `contrast` and the adjusted p-values
-#'   `p.adjusted` after `conf.high`;
-#'   `omnibus` holds the omnibus tests (`statistic`, `df1`, `df2`,
-#'   `p.value`, and `reference`, `"F"` or `"chisq"`); `conditions` names the
-#'   control and the treatments and their model terms; `weights` holds the
-#'   weights of each comparison; and `adjust` names the adjustment.
+#'   `solomon_ngroup`, with the same elements and these changes:
+#'   - `effects` has a `comparison` column before `contrast` and the
+#'     adjusted p-values `p.adjusted` after `conf.high`. It has the four
+#'     treatment contrasts for each comparison, then the pretest effect in
+#'     each condition and the pretest main effect.
+#'   - `omnibus`: the omnibus tests, in the columns `test`, `statistic`,
+#'     `df1`, `df2`, `p.value`, and `reference` (`"F"` or `"chisq"`).
+#'   - `conditions`: the control and the treatments, with their model
+#'     terms (`condition`, `role`, and `term`).
+#'   - `weights`: the weights of each comparison over the conditions, one
+#'     row for each comparison.
+#'   - `adjust`: the adjustment of the p-values.
+#'
+#'   The `effects` table, `conf_level`, and [tidy()], which returns the
+#'   table, are the stable interface of the result; see [solomon_output].
 #' @references
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 #' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
@@ -1228,16 +1262,26 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'   statistic").
 #' @param object `r lifecycle::badge("deprecated")` Use `fit`.
 #'
-#' @return A list of class `solomon_perm` containing the contrast, the
-#'   statistic type, the level permuted (`"participant"` or `"cluster"`), the
-#'   estimated contrast (`estimate`), the observed statistic (\code{z_obs};
-#'   the contrast itself when `statistic = "difference"`), the permutation
-#'   p-value (\code{p_perm}), the number of permutations, and whether the
-#'   p-value is exact. Clustered fits also return the design, the number of
-#'   possible allocations, the smallest attainable p-value when exact, and the
-#'   numbers of treated and control clusters. If
-#'   \code{return_dist = TRUE}, the permutation distribution
-#'   (\code{z_perm}) is also returned.
+#' @return An object of class `solomon_perm`, a list with:
+#'   - `contrast`: the label of the contrast tested.
+#'   - `statistic`: the statistic permuted, `"studentized"` or
+#'     `"difference"`.
+#'   - `level`: the level permuted, `"participant"` or `"cluster"`.
+#'   - `estimate`: the estimated contrast.
+#'   - `z_obs`: the observed statistic (the contrast itself when
+#'     `statistic = "difference"`).
+#'   - `p_perm`: the permutation p-value.
+#'   - `reps` and `valid_reps`: the number of permutations, and the number
+#'     that gave a usable statistic.
+#'   - `exact`: whether every possible allocation was used.
+#'   - `design`, `n_allocations` (the number of possible allocations),
+#'     `min_p` (the smallest attainable p-value when exact), and `clusters`
+#'     (the numbers of treated and control clusters in each stratum), for
+#'     clustered fits.
+#'   - `z_perm`: the permutation distribution, with `return_dist = TRUE`.
+#'
+#'   The result tests one contrast and gives no interval, so it has no
+#'   effects table; see [solomon_output].
 #'
 #' @references
 #' Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the

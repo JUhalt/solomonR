@@ -53,15 +53,28 @@
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
-#' @return An object of class `solomon_comparison` with `results` (one row per
-#'   method and contrast, in the columns `method`, `contrast`, `estimate`,
-#'   `std.error`, `statistic`, `df` (`Inf` for a normal reference
-#'   distribution), `p.value`, `conf.low`, and `conf.high`, followed by the
-#'   `adjustment`, the `variance` assumption, and the `reference`
-#'   distribution of each method),
-#'   `estimands` (definitions of the four contrasts), `not_compared` (analyses
-#'   excluded and why), and `skipped` (requested methods that could not be
-#'   fitted and why).
+#' @return An object of class `solomon_comparison`, a list with:
+#'   - `results`: one row for each method and contrast, in the columns
+#'     `method`, `contrast`, `estimate`, `std.error`, `statistic`, `df`
+#'     (`Inf` for a normal reference distribution), `p.value`, `conf.low`,
+#'     and `conf.high`, followed by the `adjustment`, the `variance`
+#'     assumption, and the `reference` distribution of each method. The
+#'     rows are the four treatment contrasts, `ATE (avg over pretest)`,
+#'     `Pretest x Treatment`, `Treatment | pretested`, and
+#'     `Treatment | unpretested`, for each method that estimates them.
+#'   - `estimands`: the definition of each contrast (`contrast` and
+#'     `definition`).
+#'   - `not_compared`: the analyses left out, and why (`analysis` and
+#'     `reason`).
+#'   - `skipped`: the requested methods that could not be fitted, and why
+#'     (`method` and `reason`).
+#'   - `conf_level`: the confidence level of the intervals.
+#'   - `settings`: the methods requested, the confidence level, and whether
+#'     pretest scores were supplied.
+#'
+#'   `results` has the columns and the labels of an effects table, and
+#'   [tidy()] returns it. See [solomon_output] for the columns, the labels,
+#'   and the parts of a result that are stable.
 #' @references
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after
@@ -373,6 +386,9 @@ compare_solomon_methods <- function(
       estimands = estimands,
       not_compared = not_compared,
       skipped = skipped,
+      # At the top level, as in every result with a table of contrasts
+      # (issue #110), and still in the settings.
+      conf_level = conf_level,
       settings = list(methods = methods, conf_level = conf_level,
                       pretest_supplied = !is.null(y_pre))
     ),

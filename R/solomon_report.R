@@ -2193,9 +2193,17 @@
 #' @param format `"text"` (default) or `"markdown"`, which italicizes
 #'   statistical symbols.
 #'
-#' @return An object of class `solomon_report` with `method`, `results`, and
-#'   `design` (character vectors of sentences), `table` (the estimates), and
-#'   `references` (APA 7 reference entries, in APA order).
+#' @return An object of class `solomon_report`, a list with:
+#'   - `method`, `results`, and `design`: character vectors of sentences.
+#'   - `table`: a data frame of the values that the sentences report. For
+#'     most fits it is the `effects` table of the fit (see
+#'     [solomon_output]); for the other results its columns depend on the
+#'     analysis.
+#'   - `references`: the APA 7 reference entries, in APA order.
+#'   - `format`: `"text"` or `"markdown"`.
+#'
+#'   To compute with the estimates, read them from the fit, with [tidy()],
+#'   not from the sentences.
 #'
 #' @references
 #' Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &

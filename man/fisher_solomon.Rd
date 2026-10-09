@@ -30,10 +30,20 @@ strings (\code{y_post = "post"}).}
 \item{y}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{y_post}.}
 }
 \value{
-An object of class \code{solomon_fisher} with \code{tests} (one row per pretest
-condition and for both combined: counts, proportions, the uncorrected
-Pearson chi-square, and Fisher's exact p-value) and \code{sensitization} (the
-historical rule's verdict).
+An object of class \code{solomon_fisher}, a list with:
+\itemize{
+\item \code{tests}: one row for each pretest condition and one for both
+combined, in the columns \code{condition}, \code{events_treatment},
+\code{n_treatment}, \code{events_control}, \code{n_control}, \code{risk_treatment},
+\code{risk_control}, \code{chisq} (the uncorrected Pearson chi-square),
+\code{chisq_p}, and \code{fisher_p} (Fisher's exact p-value).
+\item \code{sensitization}: the verdict of the historical rule, \code{TRUE} or
+\code{FALSE}.
+\item \code{alpha}: the significance level of the rule.
+}
+
+The tests are of two-by-two tables, not of the Solomon contrasts, so
+the result has no effects table; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

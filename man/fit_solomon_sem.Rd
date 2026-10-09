@@ -55,6 +55,10 @@ mode gives \code{Treatment | pretested}
 \item \code{fitmeasures}: named vector (CFI, RMSEA, SRMR, df)
 \item \code{conf_level}: the confidence level of the intervals
 }
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns the
+table, are the stable interface of the result. The lavaan object in
+\code{fit} is not; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}

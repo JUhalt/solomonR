@@ -125,9 +125,12 @@ reference:
   - title: "Package"
     desc: >
       An overview of the package, including the lifecycle stages marked by
-      the badge beside each function: stable, experimental, or deprecated.
+      the badge beside each function: stable, experimental, or deprecated;
+      and the output contract: the effects table, its columns and contrast
+      labels, and tidy(), which every analysis shares and which are stable.
     contents:
       - starts_with("solomonR")
+      - solomon_output
 
 articles:
   - title: "Decide"

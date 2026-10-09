@@ -45,14 +45,39 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_mmrm} with \code{effects} (the four
-Solomon contrasts and the three pretest effects at each occasion, then
-the change in sensitization, in the columns \code{occasion}, \code{contrast},
-\code{estimate}, \code{std.error}, \code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and
-\code{conf.high}), \code{model} (the mmrm fit), \code{covariance} (the
-structure used), \code{observed} (observed posttests by group and occasion),
-\code{pretest_mean} (the center of the pretest; \code{NA} without \code{y_pre}), and the
-settings used.
+An object of class \code{solomon_mmrm}, a list with:
+\itemize{
+\item \code{effects}: at each occasion, the four treatment contrasts,
+\verb{ATE (avg over pretest)}, \verb{Pretest x Treatment},
+\code{Treatment | pretested}, and \code{Treatment | unpretested}, and the three
+pretest effects, \verb{Pretest effect | control},
+\verb{Pretest effect | treated}, and \verb{Pretest main effect}; then
+\verb{Change in Pretest x Treatment}, the change in sensitization from the
+first occasion to the last. The columns are \code{occasion}, \code{contrast},
+\code{estimate}, \code{std.error}, \code{statistic} (t), \code{df}, \code{p.value},
+\code{conf.low}, and \code{conf.high}. In the last row, \code{occasion} names the
+two occasions, as in \code{"3 vs 1"}.
+\item \code{conf_level}: the confidence level of the intervals.
+\item \code{model}: the fitted model, an \code{mmrm} object.
+\item \code{covariance}: the covariance structure used.
+\item \code{grouped}: whether the covariance was estimated separately for
+pretested and unpretested participants.
+\item \code{df_method}: the degrees of freedom, \code{"kenward-roger"} or
+\code{"satterthwaite"}.
+\item \code{pretest_mean}: the mean pretest at which the pretest is centered;
+\code{NA} without \code{y_pre}.
+\item \code{occasions}: the posttest occasions, in order.
+\item \code{observed}: the number of observed posttests in each group, one
+column for each occasion.
+\item \code{excluded}: the number of pretested participants left out because
+their pretest was missing.
+\item \code{pretest} (whether pretest scores were supplied) and \code{data} (the
+design indicators of each participant), which solomonR's own
+functions use.
+}
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns the
+table, are the stable interface of the result; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}

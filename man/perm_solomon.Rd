@@ -48,16 +48,28 @@ statistic").}
 \item{object}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{fit}.}
 }
 \value{
-A list of class \code{solomon_perm} containing the contrast, the
-statistic type, the level permuted (\code{"participant"} or \code{"cluster"}), the
-estimated contrast (\code{estimate}), the observed statistic (\code{z_obs};
-the contrast itself when \code{statistic = "difference"}), the permutation
-p-value (\code{p_perm}), the number of permutations, and whether the
-p-value is exact. Clustered fits also return the design, the number of
-possible allocations, the smallest attainable p-value when exact, and the
-numbers of treated and control clusters. If
-\code{return_dist = TRUE}, the permutation distribution
-(\code{z_perm}) is also returned.
+An object of class \code{solomon_perm}, a list with:
+\itemize{
+\item \code{contrast}: the label of the contrast tested.
+\item \code{statistic}: the statistic permuted, \code{"studentized"} or
+\code{"difference"}.
+\item \code{level}: the level permuted, \code{"participant"} or \code{"cluster"}.
+\item \code{estimate}: the estimated contrast.
+\item \code{z_obs}: the observed statistic (the contrast itself when
+\code{statistic = "difference"}).
+\item \code{p_perm}: the permutation p-value.
+\item \code{reps} and \code{valid_reps}: the number of permutations, and the number
+that gave a usable statistic.
+\item \code{exact}: whether every possible allocation was used.
+\item \code{design}, \code{n_allocations} (the number of possible allocations),
+\code{min_p} (the smallest attainable p-value when exact), and \code{clusters}
+(the numbers of treated and control clusters in each stratum), for
+clustered fits.
+\item \code{z_perm}: the permutation distribution, with \code{return_dist = TRUE}.
+}
+
+The result tests one contrast and gives no interval, so it has no
+effects table; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

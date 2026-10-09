@@ -46,12 +46,27 @@ p-value, as in \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} and Wal
 restored afterwards.}
 }
 \value{
-A data frame with one row per test, giving the estimand, the test
-used, the true effect, the rejection rate and its Monte Carlo standard
-error, the replications that produced a usable fit, the number of
-failures, and \code{alpha}. Test I rows report \code{NA} for \code{true_effect}, because
-the combination targets a directional hypothesis rather than a single
-contrast, and all Test I values are \code{NA} when \code{stouffer = FALSE}.
+A data frame with one row for each test, in the columns:
+\itemize{
+\item \code{estimand}: the contrast tested, under the labels of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}: \verb{ATE (avg over pretest)}, \verb{Pretest x Treatment},
+\code{Treatment | pretested}, and \code{Treatment | unpretested}; and
+\code{Treatment (one-sided)} for Test I.
+\item \code{test}: the test used.
+\item \code{true_effect}: the true value of the contrast.
+\item \code{power} and \code{mcse}: the rejection rate and its Monte Carlo standard
+error.
+\item \code{sims} and \code{failures}: the replications that produced a usable fit,
+and the number that did not.
+\item \code{alpha}: the significance level.
+}
+
+Test I rows report \code{NA} for \code{true_effect}, because the combination
+targets a directional hypothesis rather than a single contrast, and all
+Test I values are \code{NA} when \code{stouffer = FALSE}. The table describes a
+planned study, with true effects and no estimates, so its column of
+contrasts is \code{estimand} and it is not an effects table; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

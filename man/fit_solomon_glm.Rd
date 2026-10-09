@@ -80,29 +80,54 @@ are looked up in it first: give them as bare column names
 and \code{y_pre}.}
 }
 \value{
-An object of class \code{solomon_glm}: a list with the fitted model,
-coefficient and contrast tables (including degrees of freedom and
-confidence limits \code{conf.low} and \code{conf.high}), the covariance matrix,
-the Pearson dispersion statistic for binomial, Poisson, and
-negative-binomial fits, \code{theta} (its estimate, standard error, and
-\eqn{\alpha = 1/\theta}) for negative-binomial fits, \code{pretest_mean}
-(the mean pretest at which the pretest is centered; \code{NA} without
-\code{y_pre}), and the settings used. The contrast table, \code{effects}, has the
-four treatment contrasts followed by the three pretest effects, in the
-columns \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic}, \code{df} (\code{Inf}
-for a normal reference distribution), \code{p.value}, \code{conf.low}, and
-\code{conf.high}, followed by the Wald partial R-squared and its interval
-(\code{r2}, \code{r2_lo}, \code{r2_hi}). The coefficient table, \code{coefficients}, has
-the same columns through \code{conf.high}, with \code{term} for \code{contrast}.
+An object of class \code{solomon_glm}, a list with:
+\itemize{
+\item \code{effects}: the four treatment contrasts, \verb{ATE (avg over pretest)},
+\verb{Pretest x Treatment}, \code{Treatment | pretested}, and
+\code{Treatment | unpretested}, followed by the three pretest effects,
+\verb{Pretest effect | control}, \verb{Pretest effect | treated}, and
+\verb{Pretest main effect}, in the columns \code{contrast}, \code{estimate},
+\code{std.error}, \code{statistic}, \code{df} (\code{Inf} for a normal reference
+distribution), \code{p.value}, \code{conf.low}, and \code{conf.high}, followed by
+the Wald partial R-squared and its interval (\code{r2}, \code{r2_lo}, and
+\code{r2_hi}).
+\item \code{conf_level}: the confidence level of the intervals.
+\item \code{coefficients}: the coefficients of the model, in the same columns
+through \code{conf.high}, with \code{term} for \code{contrast}.
+\item \code{model}: the fitted model, a \code{glm} object.
+\item \code{vcov}: the covariance matrix of the coefficients, as \code{robust} sets
+it.
+\item \code{dispersion}: the Pearson dispersion statistic for binomial, Poisson,
+and negative-binomial fits, and \code{NA} for the others.
+\item \code{theta}: for negative-binomial fits, its estimate, standard error,
+and \eqn{\alpha = 1/\theta}; otherwise \code{NULL}.
+\item \code{pretest_mean}: the mean pretest at which the pretest is centered;
+\code{NA} without \code{y_pre}.
+\item \code{robust}, \code{family}, \code{cluster} (the cluster of each participant), and
+\code{n_clusters}: the settings used. The last two are \code{NULL} without
+\code{cluster}.
+\item \code{call}, and \code{data} (the data the model was fitted to), which
+solomonR's own functions use.
+}
 
 For a design with several treatments, an object of class
-\code{solomon_ngroup}, with the same elements and these changes: \code{effects}
-has a \code{comparison} column before \code{contrast} and the adjusted p-values
-\code{p.adjusted} after \code{conf.high};
-\code{omnibus} holds the omnibus tests (\code{statistic}, \code{df1}, \code{df2},
-\code{p.value}, and \code{reference}, \code{"F"} or \code{"chisq"}); \code{conditions} names the
-control and the treatments and their model terms; \code{weights} holds the
-weights of each comparison; and \code{adjust} names the adjustment.
+\code{solomon_ngroup}, with the same elements and these changes:
+\itemize{
+\item \code{effects} has a \code{comparison} column before \code{contrast} and the
+adjusted p-values \code{p.adjusted} after \code{conf.high}. It has the four
+treatment contrasts for each comparison, then the pretest effect in
+each condition and the pretest main effect.
+\item \code{omnibus}: the omnibus tests, in the columns \code{test}, \code{statistic},
+\code{df1}, \code{df2}, \code{p.value}, and \code{reference} (\code{"F"} or \code{"chisq"}).
+\item \code{conditions}: the control and the treatments, with their model
+terms (\code{condition}, \code{role}, and \code{term}).
+\item \code{weights}: the weights of each comparison over the conditions, one
+row for each comparison.
+\item \code{adjust}: the adjustment of the p-values.
+}
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=tidy]{tidy()}}, which returns the
+table, are the stable interface of the result; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

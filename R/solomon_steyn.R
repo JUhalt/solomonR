@@ -431,7 +431,8 @@
 #'   - `conclusions`: one plain-language summary for each step.
 #'   - `notes`: skipped steps and data notes.
 #'   - `n`: counts of participants, posttests, and pretests in each group.
-#'   - `conditions`: the control and the interventions.
+#'   - `conditions`: the control and the interventions (`condition` and
+#'     `role`).
 #'   - `settings`: `alpha`, `include_unpretested_control`, `posthoc`, `k`,
 #'     and `pretest` (whether pretest scores were supplied).
 #'
@@ -446,6 +447,13 @@
 #'   (Steyn's reading, where he gives one). For a post hoc test, `statistic`
 #'   and `p.value` are the pairwise t with a pooled SD and its unadjusted
 #'   p-value; the decisions of the sequence read `p.adjusted`.
+#'
+#'   The elements are named for the steps of Steyn's sequence, and the
+#'   tests are of several kinds, so these tables do not have the columns of
+#'   the effects tables of the other analyses. In particular, `effects`
+#'   here is step 8, a list, not a table of the Solomon contrasts, and the
+#'   result has no [tidy()] method. The [fit_solomon_classic()] results in
+#'   `classic$fits` have effects tables. See [solomon_output].
 #'
 #' @references
 #' Holm, S. (1979). A simple sequentially rejective multiple test procedure.
