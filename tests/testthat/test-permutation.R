@@ -136,6 +136,15 @@ binary_data <- function(n, successes) {
   )
 }
 
+# Labelings that repeat the observed labels, or swap them, in every pretest
+# condition in `strata` (1 pretested, 0 unpretested). With equal arms these
+# give a contrast on those conditions its observed size in exact arithmetic.
+label_ties <- function(fit, labels, strata) {
+  d <- fit$data
+  s <- d$pretested %in% strata
+  vapply(labels, function(t) all(t[s] == d$treat[s]) || all(t[s] != d$treat[s]), logical(1))
+}
+
 test_that("the tie rule counts ties and treats rounding noise as zero (#131)", {
   expect_identical(.perm_at_least(c(1 - 1e-15, 1 + 1e-15, -1 + 1e-15, 0.9), 1),
                    c(TRUE, TRUE, TRUE, FALSE))
@@ -180,6 +189,29 @@ test_that("permutations that repeat or swap the observed labels are counted (#13
     q <- p
     q$p_perm <- NULL
     expect_identical(plot_perm(q)$labels$subtitle, plot_perm(p)$labels$subtitle)
+  }
+})
+
+test_that("ties are counted for the contrasts that use the pretested condition (#131)", {
+  # With 4 against 4 and a pretest covariate, 2 of the 70 labelings of the
+  # pretested condition give the observed statistic. A contrast on both
+  # conditions is tied when the labels are repeated in both or swapped in
+  # both: 2 of the 1,400 labelings. Of the 199 drawn under this seed, 11
+  # are tied in the pretested condition and 2 swap the labels in both.
+  fit <- fit_solomon_glm(y, treat, pretested, pre, data = tie_data(1))
+  labels <- perm_labels(fit, 199, 145)
+  strata <- list("Treatment | pretested" = 1, "ATE (avg over pretest)" = 0:1,
+                 "Pretest x Treatment" = 0:1)
+  for (contrast in names(strata)) {
+    tied <- label_ties(fit, labels, strata[[contrast]])
+    expect_gt(sum(tied), 1)
+    for (stat in c("studentized", "difference")) {
+      p <- perm_solomon(fit, contrast = contrast, reps = 199, seed = 145, statistic = stat,
+                        return_dist = TRUE)
+      expect_identical(p$valid_reps, 199L)
+      more <- abs(p$z_perm) > abs(p$z_obs) & !tied
+      expect_equal(p$p_perm, (sum(more) + sum(tied) + 1) / 200, tolerance = 1e-12)
+    }
   }
 })
 
@@ -259,5 +291,43 @@ test_that("an observed statistic of zero gives a p-value of 1 (#131)", {
                       statistic = stat)
     expect_identical(p$valid_reps, 99L)
     expect_identical(p$p_perm, 1)
+  }
+})
+
+test_that("the tie rule leaves the p-values of ordinary data as they were (#131)", {
+  # 30 per group, continuous scores, and a pretest covariate: no labeling
+  # drawn repeats or swaps the observed labels, so each p-value is that of
+  # the exact comparison, computed here from the labelings by least squares
+  # and the HC3 covariance.
+  g <- rep(1:4, each = 30)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  set.seed(9402)
+  pre <- ifelse(pretested == 1, stats::rnorm(length(g)), NA)
+  y <- 0.3 * treat + ifelse(is.na(pre), 0, 0.5 * pre) + stats::rnorm(length(g))
+  fit <- fit_solomon_glm(y, treat, pretested, pre)
+  labels <- perm_labels(fit, 199, 1)
+  expect_false(any(label_ties(fit, labels, 1) | label_ties(fit, labels, 0)))
+
+  # Each contrast's weights on the coefficients of treat and treat:pretested.
+  w <- rbind("ATE (avg over pretest)" = c(1, 0.5), "Pretest x Treatment" = c(0, 1),
+             "Treatment | pretested" = c(1, 1), "Treatment | unpretested" = c(1, 0))
+  on <- c("treat", "treat:pretested")
+  statistics <- function(treat) {
+    m <- stats::lm(stats::formula(fit$model), data = replace(fit$data, "treat", list(treat)))
+    est <- drop(w %*% stats::coef(m)[on])
+    v <- w %*% sandwich::vcovHC(m, type = "HC3")[on, on] %*% t(w)
+    abs(cbind(studentized = est / sqrt(diag(v)), difference = est))
+  }
+  observed <- statistics(fit$data$treat)
+  permuted <- vapply(labels, statistics, observed)
+  exact <- (apply(permuted >= as.vector(observed), 1:2, sum) + 1) / 200
+
+  for (contrast in rownames(w)) {
+    for (stat in colnames(exact)) {
+      p <- perm_solomon(fit, contrast = contrast, reps = 199, seed = 1, statistic = stat)
+      expect_identical(p$valid_reps, 199L)
+      expect_equal(p$p_perm, exact[[contrast, stat]], tolerance = 1e-12)
+    }
   }
 })

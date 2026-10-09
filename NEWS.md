@@ -4,7 +4,7 @@ A patch release. It fixes a bug in the participant-level permutation
 test of `perm_solomon()` that made p-values too small when permutations
 tie with the observed statistic (#131). Rerun `perm_solomon()` for
 outcomes with tied scores (binary outcomes, counts, ratings, rounded
-scores) and for very small groups. Nothing else changes from 0.8.1.
+scores) and for very small groups. No other function changes from 0.8.1.
 
 ## Ties in the permutation test (bug fix, #131)
 
@@ -15,15 +15,27 @@ scores) and for very small groups. Nothing else changes from 0.8.1.
   & Smyth, 2010), so such ties must be counted; when they were missed, the
   p-value was too small. They are now counted, at the participant and the
   cluster level and in `plot_perm()`, by one rule: statistics that differ
-  by less than a small relative tolerance are equal. The tolerance is
-  1e-10 for a linear model and 1e-6 for models fitted by iteration.
-* What remains (#134): in a model fitted by iteration, equal fits usually
-  agree to about 1e-7, but where the contrast's cells include a covariate
-  they can differ by more, most with a link other than the canonical one,
-  and such a tie can still be missed. In the checks made, no p-value was
-  affected by this with the logit or the Poisson log link. An observed
-  labeling that empties an arm, and an outcome that does not vary within a
-  pretest condition, are tracked there too.
+  by less than a small relative tolerance are equal. At the participant
+  level the tolerance is 1e-10 for a linear model and 1e-6 for models
+  fitted by iteration. At the cluster level, where the model is not
+  refitted for each allocation, it is 1e-10 for every model.
+* Also in `perm_solomon()`: the refitted models may take up to 200
+  iterations where they took 25, which removes convergence warnings that
+  some models gave.
+* What remains (#134):
+
+  - In a model fitted by iteration, equal fits usually agree to about
+    1e-7, but where the contrast's cells include a covariate they can
+    differ by more, most with a link other than the canonical one, and
+    such a tie can still be missed. In the checks made, no p-value was
+    affected by this with the logit or the Poisson log link.
+  - This release line does not center the pretest or any covariate. A
+    pretest or covariate whose mean is about a thousand times its
+    standard deviation or more, such as a calendar year, can still lose
+    ties. Results were right in every check with a pretest mean up to
+    500 times its standard deviation.
+  - An observed labeling that empties an arm, and an outcome that does
+    not vary within a pretest condition, are tracked there too.
 * What can change: p-values that were too small. Rerun `perm_solomon()`
   for analyses of these kinds.
 
@@ -45,7 +57,10 @@ scores) and for very small groups. Nothing else changes from 0.8.1.
 * An observed statistic of exactly zero now gives a p-value of 1, when the
   outcome varies within the pretest conditions the contrast uses. Rounding
   could give less: with 2 of 5 successes in each arm, one test gave .67.
-* Cluster-level tests give the same results as before.
+* Cluster-level tests give the same results as before, with one
+  exception: an observed statistic of exactly zero now gives a p-value of
+  1 there too. Rounding could give less: with 3 treated and 3 control
+  clusters, whose 20 allocations are all used, one test gave .9.
 
 # solomonR 0.8.1
 
