@@ -87,6 +87,11 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="solomonr-development-version">solomonR (development version)<a class="anchor" aria-label="anchor" href="#solomonr-development-version"></a></h2>
 <div class="section level3">
+<h3 id="reports-of-latent-models-with-lavaan-bug-fix-development-version">Reports of latent models with lavaan 0.7-3 (bug fix)<a class="anchor" aria-label="anchor" href="#reports-of-latent-models-with-lavaan-bug-fix-development-version"></a></h3>
+<ul><li>
+<code><a href="../reference/report_solomon.html">report_solomon()</a></code> failed for latent-variable fits and invariance tests estimated by maximum likelihood without a scaled test statistic (<code>estimator = "ML"</code> or <code>"MLF"</code>) once lavaan 0.7-3 was installed. That version adds Browne’s residual test to such fits, and the report took any second test to be a scaled test statistic. It now looks for a scaling factor. Reports under the default estimator (MLR) and reports made with earlier versions of lavaan were correct and are unchanged.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="credit-for-the-unified-model-development-version">Credit for the unified model (<a href="https://github.com/JUhalt/solomonR/issues/105" class="external-link">#105</a>)<a class="anchor" aria-label="anchor" href="#credit-for-the-unified-model-development-version"></a></h3>
 <ul><li>The model of <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> is now credited to Newman, Benz, and Williams (1990), who proposed it for the Solomon design: one regression for the four groups, with the pretest as a covariate coded 0 for the unpretested. The methods guide lists it as a published Solomon proposal, no longer a solomonR extension, and names the package’s additions: the four contrasts as named estimates with confidence intervals, HC3 and CR2 standard errors with Satterthwaite degrees of freedom for CR2, other families and exposure offsets, the noncollapsibility warning and <code><a href="../reference/marginal_solomon.html">marginal_solomon()</a></code>, additional covariates, designs with several treatments, and randomization and equivalence tests.</li>
 <li>
