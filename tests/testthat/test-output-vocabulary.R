@@ -513,6 +513,37 @@ test_that("fit_solomon_classic() follows the contract", {
   expect_identical(tidy(summary(classic)), classic$effects)
 })
 
+test_that("the report of a classic fit gives the rows of `effects` for the tests on its path", {
+  # Without sensitization the sequence goes from Test A to Test D; with it,
+  # to Tests B and C.
+  none <- solomon_example
+  sensitized <- simulate_solomon(n = 40, delta = 0.2, sens = 1.5, rho = 0.5, seed = 110)
+  paths <- character()
+  for (d in list(none, sensitized)) {
+    for (flow in c("1988", "1990", "1995")) {
+      classic <- fit_solomon_classic(y_post, treat, pretested, y_pre, flow = flow, data = d)
+      # Test I combines p-values and has no row.
+      on_path <- setdiff(classic$path, "I")
+      paths <- c(paths, paste(on_path, collapse = ""))
+      table <- report_solomon(classic)$table
+      expect_effects_table(table, keys = "test", extras = "F")
+      expect_identical(table$test, on_path)
+      rows <- classic$effects[match(on_path, classic$effects$test), ]
+      rownames(rows) <- NULL
+      expect_identical(table, rows)
+    }
+  }
+  # Both branches of the sequence were reported.
+  expect_true(any(grepl("D", paths)) && any(grepl("BC", paths)))
+
+  # A fit made before 1.0.0 has no effects table; its report has the three
+  # columns that such a report had.
+  before <- unclass(fit_solomon_classic(y_post, treat, pretested, y_pre, data = none))
+  before$effects <- NULL
+  class(before) <- "solomon_classic"
+  expect_identical(names(report_solomon(before)$table), c("test", "estimate", "p.value"))
+})
+
 test_that("marginal_solomon() follows the contract", {
   d <- solomon_example
   d$passed <- as.integer(d$y_post > stats::median(d$y_post))

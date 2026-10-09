@@ -35,9 +35,12 @@ An object of class \code{solomon_report}, a list with:
 \itemize{
 \item \code{method}, \code{results}, and \code{design}: character vectors of sentences.
 \item \code{table}: a data frame of the values that the sentences report. For
-most fits it is the \code{effects} table of the fit (see
-\link{solomon_output}); for the other results its columns depend on the
-analysis.
+most fits it is the \code{effects} table of the fit, and for
+\code{\link[=fit_solomon_classic]{fit_solomon_classic()}} it is the rows of that table for the tests on
+the path. For the other results, such as \code{\link[=perm_solomon]{perm_solomon()}},
+\code{\link[=equivalence_solomon]{equivalence_solomon()}}, and a four-group \code{\link[=solomon_from_summary]{solomon_from_summary()}}
+result, its columns depend on the analysis. "Outside the contract" in
+\link{solomon_output} lists which results give which table.
 \item \code{references}: the APA 7 reference entries, in APA order.
 \item \code{format}: \code{"text"} or \code{"markdown"}.
 }

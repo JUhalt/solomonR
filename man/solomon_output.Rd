@@ -279,6 +279,19 @@ has true effects and no estimates: their column of contrast labels is
 for Test I. The \code{"truth"} attribute of \code{\link[=simulate_solomon]{simulate_solomon()}} names that
 column \code{estimand} for a four-group design and \code{contrast} for a design
 with several treatments.
+\item The \code{table} of \code{\link[=report_solomon]{report_solomon()}} holds the values that the sentences
+of the report give. It is the effects table of the fit for
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}, \code{\link[=fit_solomon_mi]{fit_solomon_mi()}},
+\code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}, \code{\link[=fit_solomon_sem]{fit_solomon_sem()}}, \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}},
+\code{\link[=marginal_solomon]{marginal_solomon()}}, and \code{\link[=solomon_from_summary]{solomon_from_summary()}} for designs with
+several treatments; \code{results} for \code{\link[=tipping_point_solomon]{tipping_point_solomon()}}; and, for
+\code{\link[=fit_solomon_classic]{fit_solomon_classic()}}, the rows of \code{effects} for the tests on the
+path. For the other results it is a table of another kind: \code{anova} for
+a four-group \code{\link[=solomon_from_summary]{solomon_from_summary()}} result; \code{contrast}, \code{estimate},
+and the randomization p-value, named \code{p.value}, for \code{\link[=perm_solomon]{perm_solomon()}};
+and \code{contrast}, \code{estimate}, \code{p_equivalence}, and \code{outcome} for
+\code{\link[=equivalence_solomon]{equivalence_solomon()}}, after \code{comparison} for a design with several
+treatments.
 }
 
 \strong{Results for one contrast.} \code{\link[=equivalence_solomon]{equivalence_solomon()}} tests one contrast

@@ -738,7 +738,16 @@
   }
 
   frame <- fit$tests$A$model$model
-  table <- do.call(rbind, lapply(fit$path[fit$path %in% names(label)], function(l) fit$tests[[l]]$result[, c("test", "estimate", "p.value")]))
+  # The rows of the fit's effects table for the tests on the path, in the
+  # order of the path (issue #110). A fit made before 1.0.0 has no effects
+  # table, and its report keeps the three columns it had.
+  on_path <- fit$path[fit$path %in% names(label)]
+  table <- if (is.data.frame(fit$effects)) {
+    fit$effects[match(on_path, fit$effects$test), , drop = FALSE]
+  } else {
+    do.call(rbind, lapply(on_path, function(l) fit$tests[[l]]$result[, c("test", "estimate", "p.value")]))
+  }
+  rownames(table) <- NULL
   list(method = method, results = results, table = table, refs = refs,
        cells = .cell_counts(frame$treat, frame$pretested))
 }
@@ -2206,9 +2215,12 @@
 #' @return An object of class `solomon_report`, a list with:
 #'   - `method`, `results`, and `design`: character vectors of sentences.
 #'   - `table`: a data frame of the values that the sentences report. For
-#'     most fits it is the `effects` table of the fit (see
-#'     [solomon_output]); for the other results its columns depend on the
-#'     analysis.
+#'     most fits it is the `effects` table of the fit, and for
+#'     [fit_solomon_classic()] it is the rows of that table for the tests on
+#'     the path. For the other results, such as [perm_solomon()],
+#'     [equivalence_solomon()], and a four-group [solomon_from_summary()]
+#'     result, its columns depend on the analysis. "Outside the contract" in
+#'     [solomon_output] lists which results give which table.
 #'   - `references`: the APA 7 reference entries, in APA order.
 #'   - `format`: `"text"` or `"markdown"`.
 #'

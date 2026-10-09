@@ -186,6 +186,11 @@ break existing code says what that code needs.
 * `compare_solomon_methods()$results` is a table with no rows when every
   requested method was skipped; it was `NULL`. `tidy()` therefore returns a
   table for every comparison.
+* **The `table` of `report_solomon()` for a `fit_solomon_classic()` fit
+  has the shared columns.** It is the rows of the fit's `effects` table for
+  the tests on the path; it had the columns `test`, `estimate`, and
+  `p.value` alone. Code that reads its columns by name is not affected.
+  `?solomon_output` lists the table that the report of each result holds.
 * Every help page's Value section names the elements of the result, with
   the columns of each table. `?fit_solomon_classic` has a section on the
   analysis of variance. "The Classic Solomon Four-Group Analysis" shows

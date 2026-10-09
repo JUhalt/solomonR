@@ -215,6 +215,19 @@ generics::tidy
 #'   for Test I. The `"truth"` attribute of [simulate_solomon()] names that
 #'   column `estimand` for a four-group design and `contrast` for a design
 #'   with several treatments.
+#' - The `table` of [report_solomon()] holds the values that the sentences
+#'   of the report give. It is the effects table of the fit for
+#'   [fit_solomon_glm()], [fit_solomon_ml()], [fit_solomon_mi()],
+#'   [fit_solomon_mmrm()], [fit_solomon_sem()], [fit_solomon_sem_latent()],
+#'   [marginal_solomon()], and [solomon_from_summary()] for designs with
+#'   several treatments; `results` for [tipping_point_solomon()]; and, for
+#'   [fit_solomon_classic()], the rows of `effects` for the tests on the
+#'   path. For the other results it is a table of another kind: `anova` for
+#'   a four-group [solomon_from_summary()] result; `contrast`, `estimate`,
+#'   and the randomization p-value, named `p.value`, for [perm_solomon()];
+#'   and `contrast`, `estimate`, `p_equivalence`, and `outcome` for
+#'   [equivalence_solomon()], after `comparison` for a design with several
+#'   treatments.
 #'
 #' **Results for one contrast.** [equivalence_solomon()] tests one contrast
 #' against two bounds, with two one-sided tests, a test against zero, and
