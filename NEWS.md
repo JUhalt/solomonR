@@ -1,5 +1,76 @@
 # solomonR (development version)
 
+## One output vocabulary (#110)
+
+The names that results use are settled before 1.0, as #83 settled the
+names of the arguments. Code that reads results by a former label or
+element name needs the new one. Former element names keep working with
+`$` through v1.x, with a deprecation warning.
+
+* **Contrast labels that can break code.** `fit_solomon_sem()` and
+  `fit_solomon_sem_latent()` label their contrasts as every other fit
+  does: `ATE (avg over pretest)` (was `ATE`), `Pretest x Treatment` (was
+  `Sens`), `Treatment | pretested` (was `Pre_Eff`), and
+  `Treatment | unpretested` (was `Unpre_Eff`). Their ANCOVA models of the
+  pretested groups label their one contrast `Treatment | pretested`. Code
+  that selects rows by a former label, such as
+  `effects$contrast == "Sens"`, needs the new label.
+  `plot_solomon_effects()`, `report_solomon()`, and
+  `compare_solomon_methods()` no longer translate the labels, so a SEM fit
+  saved by an earlier version, which keeps its former labels, should be
+  refitted before it is plotted or reported.
+* **New rows in the SEM effects tables.** The four-group models of
+  `fit_solomon_sem()` and `fit_solomon_sem_latent()` report the three
+  pretest effects after the four treatment contrasts, as pretested minus
+  unpretested participants: `Pretest effect | control`,
+  `Pretest effect | treated`, and `Pretest main effect`. Code that takes
+  rows by position, or expects four rows, should select them by label.
+  - In the observed model they equal the pretest effects of
+    `fit_solomon_glm()` without a pretest score.
+  - In the latent model they are differences between latent means, in the
+    unit of the other contrasts. The pretest main effect is the effect
+    Dukes et al. (1995, p. 426) describe, one of the four elements of their
+    analyses planned under #117; the other three remain planned. A shift in
+    an indicator's intercept that the two pretested groups share biases the
+    latent pretest effects, although it cancels from the Pretest x
+    Treatment contrast.
+  - The ANCOVA models use the pretested groups alone and report no pretest
+    effects.
+
+  The printed tables and `report_solomon()` give the new rows as they do
+  for `fit_solomon_glm()`. `plot_solomon_effects()` and
+  `compare_solomon_methods()` show the four treatment contrasts, as before.
+* **Renamed elements.** The table of contrasts is `effects` in every fit
+  that has one:
+  - `fit_solomon_sem_latent()`: `effects_post` is now `effects`, and
+    `fit_post` is now `fit`, as in `fit_solomon_sem()`. `conf_level` is now
+    at the top level, as in every other fit, and still in `settings`.
+  - `solomon_from_summary()`: `contrasts` is now `effects`, for four-group
+    designs and for designs with several treatments.
+
+  The former names still work with `$`, as in `fit$effects_post`, and give
+  a deprecation warning that names the new element. Only the whole former
+  name is recognized, and `[[` is not covered: `fit[["effects_post"]]` is
+  `NULL`. Fits saved by earlier versions are still read under the new
+  element names.
+* `fit_solomon_classic()` returns `conf_level` at the top level too; it
+  remains in `settings`.
+* **A renamed ANOVA source.** In the four-group table
+  `solomon_from_summary()$anova`, the interaction is `Pretest x Treatment`,
+  as the contrast is named; it was `Treatment x Pretest`. Code that selects
+  that row by name needs the new name. The table for designs with several
+  treatments already had `Pretest x Condition`. The conclusion that
+  `fit_solomon_classic()` gives when Test A is significant and neither
+  simple effect is says "Pretest x Treatment interaction" as well.
+* The effects tables of the SEM functions are plain data frames, as those
+  of the other fits are. They had lavaan's class `lavaan.data.frame`, whose
+  print method rounds to three decimals.
+* `?fit_solomon_sem`, `?fit_solomon_sem_latent`, and
+  `?solomon_from_summary` name the elements and the labels. The SEM
+  article, the methods guide, the GLM vignette, the coverage article, and
+  the references describe the pretest effects of the SEM fits; the
+  simulation script of the invariance study reads the new names.
+
 ## Credit for the unified model (#105)
 
 * The model of `fit_solomon_glm()` is now credited to Newman, Benz, and
