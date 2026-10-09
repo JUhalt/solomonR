@@ -792,6 +792,8 @@
       fit$design, ") and compared with t intervals using separate variances and ",
       "Satterthwaite degrees of freedom (Hayes & Moulton, 2017)."
     )
+    # The marginal reports give the interval and the p-value of each
+    # contrast without its test statistic.
     e <- fit$effects
     e$statistic <- NA_real_
     results <- paste0("On the risk difference scale: ",
@@ -820,6 +822,7 @@
   )
   results <- unlist(lapply(unique(fit$effects$scale), function(sc) {
     e <- fit$effects[fit$effects$scale == sc, ]
+    # As above; for a ratio the statistic is on the log scale.
     e$statistic <- NA_real_
     ratio <- !grepl("difference", sc, fixed = TRUE)
     paste0("On the ", tolower(sc), " scale: ",

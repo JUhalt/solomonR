@@ -67,8 +67,9 @@ An object of class \code{solomon_sem_latent} with:
 \itemize{
 \item \code{fit}: lavaan object for the 4-group POST model
 \item \code{effects}: data.frame of the contrasts on latent POST, with the
-columns \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (z),
-\code{p.value}, \code{conf.low}, and \code{conf.high}, and the rows
+columns \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (z), \code{df}
+(\code{Inf}, for the normal reference distribution), \code{p.value},
+\code{conf.low}, and \code{conf.high}, and the rows
 \verb{ATE (avg over pretest)}, \verb{Pretest x Treatment},
 \code{Treatment | pretested}, \code{Treatment | unpretested},
 \verb{Pretest effect | control}, \verb{Pretest effect | treated}, and
@@ -76,7 +77,8 @@ columns \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (z)
 \item \code{fitmeasures_post}: named vector (CFI, RMSEA, SRMR, df)
 \item \code{fit_pre} (optional): lavaan object for pretested latent ANCOVA
 \item \code{effects_pre} (optional): data.frame with \code{Treatment | pretested}
-on latent POST, adjusted for the latent pretest
+on latent POST, adjusted for the latent pretest, in the columns of
+\code{effects}
 \item \code{fitmeasures_pre} (optional)
 \item \code{invariance}: the \code{\link[=invariance_solomon]{invariance_solomon()}} result, or \code{NULL} when
 the check was not run, and \code{invariance_status}, a one-line summary

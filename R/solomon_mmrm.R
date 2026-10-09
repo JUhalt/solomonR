@@ -92,7 +92,7 @@
     }
     crit <- stats::qt(1 - (1 - conf_level) / 2, dfc)
     data.frame(occasion = occasion, contrast = contrast, estimate = est, std.error = se,
-               df = dfc, statistic = stat, p.value = p,
+               statistic = stat, df = dfc, p.value = p,
                conf.low = est - crit * se, conf.high = est + crit * se,
                stringsAsFactors = FALSE)
   }
@@ -122,7 +122,8 @@
   rows <- c(rows, list(one(sens[[last]] - sens[[1]],
                            sprintf("%s vs %s", occasions[last], occasions[1]),
                            "Change in Pretest x Treatment")))
-  list(effects = do.call(rbind, rows), model = fit, covariance = structure_used)
+  list(effects = .effects_table(do.call(rbind, rows), keys = "occasion"), model = fit,
+       covariance = structure_used)
 }
 
 #' Mixed model for repeated measures in a longitudinal Solomon design
@@ -237,7 +238,9 @@
 #'
 #' @return An object of class `solomon_mmrm` with `effects` (the four
 #'   Solomon contrasts and the three pretest effects at each occasion, then
-#'   the change in sensitization), `model` (the mmrm fit), `covariance` (the
+#'   the change in sensitization, in the columns `occasion`, `contrast`,
+#'   `estimate`, `std.error`, `statistic`, `df`, `p.value`, `conf.low`, and
+#'   `conf.high`), `model` (the mmrm fit), `covariance` (the
 #'   structure used), `observed` (observed posttests by group and occasion),
 #'   `pretest_mean` (the center of the pretest; `NA` without `y_pre`), and the
 #'   settings used.

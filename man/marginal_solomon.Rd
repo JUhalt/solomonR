@@ -38,10 +38,16 @@ state is restored afterwards.}
 }
 \value{
 An object of class \code{solomon_marginal} with \code{effects} (one row per
-scale and contrast: estimate and interval on the reporting scale, standard
-error on the analysis scale, p-value), \code{risks} (binary) or \code{rates}
-(counts, per unit of exposure) for the four cells, and the settings,
-including the number of failed bootstrap resamples.
+scale and contrast, in the columns \code{scale}, \code{contrast}, \code{estimate},
+\code{std.error}, \code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and \code{conf.high}),
+\code{risks} (binary) or \code{rates} (counts, per unit of exposure) for the four
+cells, and the settings, including the number of failed bootstrap
+resamples. In \code{effects}, the estimate and the interval are on the
+reporting scale (a difference or a ratio). The standard error and the
+test statistic are on the analysis scale, the difference or the log of
+the ratio, so for a ratio \code{statistic} is \code{log(estimate) / std.error}.
+\code{df} is \code{Inf} for a normal reference distribution, which every fit
+without CR2 covariance uses.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

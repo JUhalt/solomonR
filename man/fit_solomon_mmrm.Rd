@@ -47,7 +47,9 @@ strings (\code{y_post = "post"}).}
 \value{
 An object of class \code{solomon_mmrm} with \code{effects} (the four
 Solomon contrasts and the three pretest effects at each occasion, then
-the change in sensitization), \code{model} (the mmrm fit), \code{covariance} (the
+the change in sensitization, in the columns \code{occasion}, \code{contrast},
+\code{estimate}, \code{std.error}, \code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and
+\code{conf.high}), \code{model} (the mmrm fit), \code{covariance} (the
 structure used), \code{observed} (observed posttests by group and occasion),
 \code{pretest_mean} (the center of the pretest; \code{NA} without \code{y_pre}), and the
 settings used.

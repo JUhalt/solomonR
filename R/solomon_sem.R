@@ -39,21 +39,24 @@
 '
 
 # The effects table of a lavaan fit: its defined parameters, in the order of
-# the model syntax, with lavaan's Wald tests and intervals.
+# the model syntax, with lavaan's Wald tests and intervals. The tests are z
+# tests, so `df` is Inf, as in the effects tables of the other fits that use
+# a normal reference distribution (issue #110).
 .sem_effects <- function(fit, conf_level) {
   pe <- lavaan::parameterEstimates(fit, standardized = FALSE, level = conf_level)
-  eff <- pe[
-    pe$op == ":=",
-    c("lhs", "est", "se", "z", "pvalue", "ci.lower", "ci.upper"),
-    drop = FALSE
-  ]
+  pe <- pe[pe$op == ":=", , drop = FALSE]
   # A plain data frame, as the other fits return, not a lavaan.data.frame.
-  eff <- as.data.frame(eff)
-  names(eff) <- c("contrast", "estimate", "std.error", "statistic", "p.value",
-                  "conf.low", "conf.high")
-  eff$contrast <- unname(.sem_defined_names[eff$contrast])
-  rownames(eff) <- NULL
-  eff
+  .effects_table(data.frame(
+    contrast = unname(.sem_defined_names[pe$lhs]),
+    estimate = pe$est,
+    std.error = pe$se,
+    statistic = pe$z,
+    df = rep(Inf, nrow(pe)),
+    p.value = pe$pvalue,
+    conf.low = pe$ci.lower,
+    conf.high = pe$ci.upper,
+    stringsAsFactors = FALSE
+  ))
 }
 
 #' SEM analysis for Solomon Four-Group designs (mean-structure; optional ANCOVA)
@@ -115,8 +118,9 @@
 #'     \item `mode`: `"mean"` or `"ancova_pretested"`
 #'     \item `fit`: the lavaan object
 #'     \item `effects`: data.frame of the contrasts, with the columns
-#'       `contrast`, `estimate`, `std.error`, `statistic` (z), `p.value`,
-#'       `conf.low`, and `conf.high`. The four-group model gives the rows
+#'       `contrast`, `estimate`, `std.error`, `statistic` (z), `df` (`Inf`,
+#'       for the normal reference distribution), `p.value`, `conf.low`, and
+#'       `conf.high`. The four-group model gives the rows
 #'       `ATE (avg over pretest)`, `Pretest x Treatment`,
 #'       `Treatment | pretested`, `Treatment | unpretested`,
 #'       `Pretest effect | control`, `Pretest effect | treated`, and

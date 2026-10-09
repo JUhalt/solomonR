@@ -314,7 +314,9 @@ control at a time:
 ```{r subset}
 rp <- subset(mai2020, condition %in% c("RP", "Control") & !is.na(post_behavior))
 rp$treat <- as.integer(rp$condition == "RP")
-fit_solomon_ml(post_behavior, treat, pretested, pre_behavior, data = rp)$effects[, 1:5]
+fit_solomon_ml(post_behavior, treat, pretested, pre_behavior, data = rp)$effects[
+  , c("contrast", "estimate", "std.error", "statistic", "p.value")
+]
 ```
 
 ## References

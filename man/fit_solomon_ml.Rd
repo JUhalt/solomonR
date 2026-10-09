@@ -50,8 +50,11 @@ strings (\code{y_post = "post"}).}
 \value{
 An object of class \code{solomon_ml}, with the coefficients, the
 \code{effects} table (the four Solomon contrasts, then the three pretest
-effects), the residual standard deviations, \code{pretest_mean}, and the
-settings used.
+effects, in the columns \code{contrast}, \code{estimate}, \code{std.error},
+\code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and \code{conf.high}; \code{df} is
+\code{Inf} with \code{inference = "wald"}), the residual standard deviations,
+\code{pretest_mean}, and the settings used. The \code{coefficients} table has the
+same columns, with \code{term} for \code{contrast}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

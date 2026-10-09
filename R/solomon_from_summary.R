@@ -104,17 +104,20 @@
 #'   or factor.
 #'
 #' @return An object of class `solomon_summary_fit` with `effects` (Tests
-#'   A-D, the pretest main effect, and the simple effects: estimate, standard
-#'   error, t, degrees of freedom, p-value, confidence interval, F, and Type
-#'   III sum of squares), an `anova` table (sources `Treatment`, `Pretest`,
-#'   `Pretest x Treatment`, and `Error`), the `cells`, the error mean
-#'   square and degrees of freedom, and the settings.
+#'   A-D, the pretest main effect, and the simple effects, in the columns
+#'   `test`, `contrast`, `estimate`, `std.error`, `statistic` (t), `df`,
+#'   `p.value`, `conf.low`, and `conf.high`, followed by `F` and the Type III
+#'   sum of squares `sumsq`), an `anova` table (sources `Treatment`,
+#'   `Pretest`, `Pretest x Treatment`, and `Error`; columns `source`,
+#'   `sumsq`, `df`, `meansq`, `F`, and `p.value`), the `cells`, the error
+#'   mean square and degrees of freedom, and the settings.
 #'
 #'   For a design with several treatments, an object of class
 #'   `solomon_summary_ngroup` with `effects` (for each comparison of a
-#'   treatment with the control and each of the four contrasts: estimate,
-#'   standard error, t, p-value, Holm-adjusted p-value `p.adjusted`, degrees
-#'   of freedom, and confidence interval), the omnibus tests in `anova`
+#'   treatment with the control and each of the four contrasts, in the
+#'   columns `comparison`, `contrast`, `estimate`, `std.error`, `statistic`
+#'   (t), `df`, `p.value`, `conf.low`, and `conf.high`, followed by the
+#'   Holm-adjusted p-value `p.adjusted`), the omnibus tests in `anova`
 #'   (Type III sum of squares, df, mean square, F, p-value), the `cells` in
 #'   the package's group order, the `conditions` (control first), `adjust`
 #'   (`"holm"`), the error mean square and degrees of freedom, and the
@@ -217,7 +220,7 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
   statistic <- estimate / std.error
   ci <- .wald_ci(estimate, std.error, rep(df_error, nrow(L)), conf_level)
 
-  contrasts <- data.frame(
+  contrasts <- .effects_table(data.frame(
     test = c("A", "B", "C", "D", ""),
     contrast = c("Pretest x Treatment", "Treatment | pretested", "Treatment | unpretested",
                  "ATE (avg over pretest)", "Pretest main effect"),
@@ -231,7 +234,7 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
     F = statistic^2,
     sumsq = statistic^2 * mse,
     stringsAsFactors = FALSE
-  )
+  ), keys = "test")
 
   # The interaction is named as the contrast is, Pretest x Treatment (issue
   # #110).
@@ -415,15 +418,15 @@ print.solomon_summary_fit <- function(x, digits = 3, ...) {
       estimate = estimate,
       std.error = std.error,
       statistic = statistic,
-      p.value = p,
-      p.adjusted = stats::p.adjust(p, method = "holm"),
       df = df_error,
+      p.value = p,
       conf.low = unname(ci[, "conf.low"]),
       conf.high = unname(ci[, "conf.high"]),
+      p.adjusted = stats::p.adjust(p, method = "holm"),
       stringsAsFactors = FALSE
     )
   }))
-  rownames(contrasts) <- NULL
+  contrasts <- .effects_table(contrasts, keys = "comparison")
 
   # Omnibus tests: (L mu)' (L D L')^-1 (L mu) is the Type III sum of squares
   # of the hypothesis L mu = 0, with D = diag(1 / n); F divides it by q MSE.

@@ -162,8 +162,8 @@
     estimate = unname(qbar),
     std.error = unname(se_total),
     statistic = unname(statistic),
-    p.value = unname(2 * stats::pt(-abs(statistic), df)),
     df = unname(df),
+    p.value = unname(2 * stats::pt(-abs(statistic), df)),
     conf.low = unname(qbar - crit * se_total),
     conf.high = unname(qbar + crit * se_total),
     fmi = if (any_missing) unname((riv + 2 / (df + 3)) / (riv + 1)) else 0,
@@ -274,8 +274,10 @@
 #'   strings (`y_post = "post"`).
 #'
 #' @return An object of class `solomon_mi` with `effects` (the pooled Solomon
-#'   contrasts, with their degrees of freedom, fraction of missing
-#'   information `fmi`, and Monte Carlo standard error `mc_se`), `delta`,
+#'   contrasts, in the columns `contrast`, `estimate`, `std.error`,
+#'   `statistic`, `df`, `p.value`, `conf.low`, and `conf.high`, followed by
+#'   the fraction of missing information `fmi` and the Monte Carlo standard
+#'   error `mc_se`), `delta`,
 #'   `m`, `missing` (missing posttests by group), `excluded`, the
 #'   per-imputation `estimates` and `std_errors`, and the settings used.
 #'
@@ -357,7 +359,7 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
 
   structure(
     list(
-      effects = .rubin_pool(est, se, df_com, conf_level, any_missing),
+      effects = .effects_table(.rubin_pool(est, se, df_com, conf_level, any_missing)),
       delta = delta,
       m = m,
       missing = .mi_missing_table(d),
@@ -468,8 +470,11 @@ print.solomon_mi <- function(x, digits = 3, ...) {
 #'   every offset uses the same imputations.
 #'
 #' @return An object of class `solomon_tipping` with `results` (one row per
-#'   offset: the offset in posttest units and in standard deviations, and
-#'   the pooled estimate, interval, and p-value), `tipping` (the smallest
+#'   offset: the offset in posttest units, `delta`, and in standard
+#'   deviations, `delta_sd`; the pooled result in the columns of
+#'   `fit_solomon_mi()$effects`, `contrast`, `estimate`, `std.error`,
+#'   `statistic`, `df`, `p.value`, `conf.low`, and `conf.high`; and
+#'   `significant`), `tipping` (the smallest
 #'   negative and positive offsets at which the conclusion differs from the
 #'   one under MAR, `NA` when it does not change within the range), and the
 #'   settings used.
@@ -549,9 +554,12 @@ tipping_point_solomon <- function(y_post, treat, pretested, y_pre = NULL,
     fit$effects[fit$effects$contrast == contrast, ]
   })
   res <- do.call(rbind, rows)
+  # The columns of an effects table (issue #110), indexed by the offset.
   res <- data.frame(delta = deltas, delta_sd = deltas / sd_pooled,
-                    res[, c("estimate", "std.error", "df", "p.value", "conf.low", "conf.high")],
-                    significant = res$p.value < alpha, row.names = NULL)
+                    res[, .solomon_effect_columns],
+                    significant = res$p.value < alpha, row.names = NULL,
+                    stringsAsFactors = FALSE)
+  res <- .effects_table(res, keys = c("delta", "delta_sd"))
 
   base <- res$significant[res$delta == 0]
   first_change <- function(side) {

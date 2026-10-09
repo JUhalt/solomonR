@@ -35,17 +35,20 @@ or factor.}
 }
 \value{
 An object of class \code{solomon_summary_fit} with \code{effects} (Tests
-A-D, the pretest main effect, and the simple effects: estimate, standard
-error, t, degrees of freedom, p-value, confidence interval, F, and Type
-III sum of squares), an \code{anova} table (sources \code{Treatment}, \code{Pretest},
-\verb{Pretest x Treatment}, and \code{Error}), the \code{cells}, the error mean
-square and degrees of freedom, and the settings.
+A-D, the pretest main effect, and the simple effects, in the columns
+\code{test}, \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (t), \code{df},
+\code{p.value}, \code{conf.low}, and \code{conf.high}, followed by \code{F} and the Type III
+sum of squares \code{sumsq}), an \code{anova} table (sources \code{Treatment},
+\code{Pretest}, \verb{Pretest x Treatment}, and \code{Error}; columns \code{source},
+\code{sumsq}, \code{df}, \code{meansq}, \code{F}, and \code{p.value}), the \code{cells}, the error
+mean square and degrees of freedom, and the settings.
 
 For a design with several treatments, an object of class
 \code{solomon_summary_ngroup} with \code{effects} (for each comparison of a
-treatment with the control and each of the four contrasts: estimate,
-standard error, t, p-value, Holm-adjusted p-value \code{p.adjusted}, degrees
-of freedom, and confidence interval), the omnibus tests in \code{anova}
+treatment with the control and each of the four contrasts, in the
+columns \code{comparison}, \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic}
+(t), \code{df}, \code{p.value}, \code{conf.low}, and \code{conf.high}, followed by the
+Holm-adjusted p-value \code{p.adjusted}), the omnibus tests in \code{anova}
 (Type III sum of squares, df, mean square, F, p-value), the \code{cells} in
 the package's group order, the \code{conditions} (control first), \code{adjust}
 (\code{"holm"}), the error mean square and degrees of freedom, and the

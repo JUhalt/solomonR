@@ -40,8 +40,11 @@ strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_comparison} with \code{results} (one row per
-method and contrast, with the adjustment, variance assumption, reference
-distribution, estimate, standard error, interval, and p-value),
+method and contrast, in the columns \code{method}, \code{contrast}, \code{estimate},
+\code{std.error}, \code{statistic}, \code{df} (\code{Inf} for a normal reference
+distribution), \code{p.value}, \code{conf.low}, and \code{conf.high}, followed by the
+\code{adjustment}, the \code{variance} assumption, and the \code{reference}
+distribution of each method),
 \code{estimands} (definitions of the four contrasts), \code{not_compared} (analyses
 excluded and why), and \code{skipped} (requested methods that could not be
 fitted and why).

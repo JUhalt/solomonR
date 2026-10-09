@@ -49,8 +49,10 @@ strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_mi} with \code{effects} (the pooled Solomon
-contrasts, with their degrees of freedom, fraction of missing
-information \code{fmi}, and Monte Carlo standard error \code{mc_se}), \code{delta},
+contrasts, in the columns \code{contrast}, \code{estimate}, \code{std.error},
+\code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and \code{conf.high}, followed by
+the fraction of missing information \code{fmi} and the Monte Carlo standard
+error \code{mc_se}), \code{delta},
 \code{m}, \code{missing} (missing posttests by group), \code{excluded}, the
 per-imputation \code{estimates} and \code{std_errors}, and the settings used.
 }

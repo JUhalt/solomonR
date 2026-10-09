@@ -44,8 +44,9 @@ An object of class \code{solomon_sem} with:
 \item \code{mode}: \code{"mean"} or \code{"ancova_pretested"}
 \item \code{fit}: the lavaan object
 \item \code{effects}: data.frame of the contrasts, with the columns
-\code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (z), \code{p.value},
-\code{conf.low}, and \code{conf.high}. The four-group model gives the rows
+\code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (z), \code{df} (\code{Inf},
+for the normal reference distribution), \code{p.value}, \code{conf.low}, and
+\code{conf.high}. The four-group model gives the rows
 \verb{ATE (avg over pretest)}, \verb{Pretest x Treatment},
 \code{Treatment | pretested}, \code{Treatment | unpretested},
 \verb{Pretest effect | control}, \verb{Pretest effect | treated}, and

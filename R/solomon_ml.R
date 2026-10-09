@@ -178,8 +178,11 @@
 #'
 #' @return An object of class \code{solomon_ml}, with the coefficients, the
 #'   `effects` table (the four Solomon contrasts, then the three pretest
-#'   effects), the residual standard deviations, `pretest_mean`, and the
-#'   settings used.
+#'   effects, in the columns `contrast`, `estimate`, `std.error`,
+#'   `statistic`, `df`, `p.value`, `conf.low`, and `conf.high`; `df` is
+#'   `Inf` with `inference = "wald"`), the residual standard deviations,
+#'   `pretest_mean`, and the settings used. The `coefficients` table has the
+#'   same columns, with `term` for `contrast`.
 #'
 #' @references
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
@@ -520,8 +523,8 @@ fit_solomon_ml <- function(
     estimate = unname(b),
     std.error = unname(coef_se),
     statistic = unname(coef_statistic),
-    p.value = unname(coef_p),
     df = unname(coef_df),
+    p.value = unname(coef_p),
     conf.low = unname(coef_ci[, "conf.low"]),
     conf.high = unname(coef_ci[, "conf.high"]),
     row.names = NULL
@@ -550,8 +553,8 @@ fit_solomon_ml <- function(
       estimate = estimate,
       std.error = std.error,
       statistic = statistic,
-      p.value = p.value,
       df = df,
+      p.value = p.value,
       conf.low = unname(ci[, "conf.low"]),
       conf.high = unname(ci[, "conf.high"]),
       row.names = NULL
@@ -587,7 +590,7 @@ fit_solomon_ml <- function(
   L_pm <- L_pc
   L_pm["bTP"] <- 0.5
 
-  effects <- rbind(
+  effects <- .effects_table(rbind(
     contrast(
       L_ate,
       "ATE (avg over pretest)"
@@ -616,7 +619,7 @@ fit_solomon_ml <- function(
       L_pm,
       "Pretest main effect"
     )
-  )
+  ))
 
   sigma_R <- exp(est_full["log_sigma_R"])
   sigma_E <- exp(est_full["log_sigma_E"])

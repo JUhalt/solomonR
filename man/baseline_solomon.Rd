@@ -45,7 +45,7 @@ the difference with its interval and t test, and Hedges's g with its
 interval. For a design with several treatments, \code{groups} holds the
 statistics of every pretested group, \code{comparisons} has one row for each
 treatment against the control (\code{comparison}, \code{difference}, \code{std.error},
-\code{conf.low}, \code{conf.high}, \code{statistic}, \code{df}, \code{p.value}, \code{g}, \code{g.low},
+\code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, \code{conf.high}, \code{g}, \code{g.low},
 and \code{g.high}), and \code{conditions} names the control and the treatments.
 }
 \description{

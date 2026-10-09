@@ -54,8 +54,11 @@
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
 #' @return An object of class `solomon_comparison` with `results` (one row per
-#'   method and contrast, with the adjustment, variance assumption, reference
-#'   distribution, estimate, standard error, interval, and p-value),
+#'   method and contrast, in the columns `method`, `contrast`, `estimate`,
+#'   `std.error`, `statistic`, `df` (`Inf` for a normal reference
+#'   distribution), `p.value`, `conf.low`, and `conf.high`, followed by the
+#'   `adjustment`, the `variance` assumption, and the `reference`
+#'   distribution of each method),
 #'   `estimands` (definitions of the four contrasts), `not_compared` (analyses
 #'   excluded and why), and `skipped` (requested methods that could not be
 #'   fitted and why).
@@ -150,15 +153,16 @@ compare_solomon_methods <- function(
     contrast <- rep_len(contrast, length(keep))[keep]
     data.frame(
       method = method,
-      adjustment = adjustment,
-      variance = variance,
       contrast = contrast,
       estimate = effects$estimate,
       std.error = effects$std.error,
-      df = if (is.null(effects$df)) Inf else effects$df,
+      statistic = effects$statistic,
+      df = effects$df,
+      p.value = effects$p.value,
       conf.low = effects$conf.low,
       conf.high = effects$conf.high,
-      p.value = effects$p.value,
+      adjustment = adjustment,
+      variance = variance,
       stringsAsFactors = FALSE
     )
   }
@@ -323,11 +327,10 @@ compare_solomon_methods <- function(
       paste0("t(", .df_fmt(results$df), ")"),
       "normal"
     )
-    results <- results[order(match(results$contrast, contrast_levels)), c(
-      "contrast", "method", "adjustment", "variance", "reference",
-      "estimate", "std.error", "df", "conf.low", "conf.high", "p.value"
-    )]
-    rownames(results) <- NULL
+    # The columns of an effects table (issue #110), indexed by the method,
+    # and then the description of each method.
+    results <- results[order(match(results$contrast, contrast_levels)), ]
+    results <- .effects_table(results, keys = "method")
   }
 
   estimands <- data.frame(

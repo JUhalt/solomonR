@@ -614,11 +614,17 @@ stouffer_solomon <- function(p) {
 #'   \eqn{\alpha = 1/\theta}) for negative-binomial fits, `pretest_mean`
 #'   (the mean pretest at which the pretest is centered; `NA` without
 #'   `y_pre`), and the settings used. The contrast table, `effects`, has the
-#'   four treatment contrasts followed by the three pretest effects.
+#'   four treatment contrasts followed by the three pretest effects, in the
+#'   columns `contrast`, `estimate`, `std.error`, `statistic`, `df` (`Inf`
+#'   for a normal reference distribution), `p.value`, `conf.low`, and
+#'   `conf.high`, followed by the Wald partial R-squared and its interval
+#'   (`r2`, `r2_lo`, `r2_hi`). The coefficient table, `coefficients`, has
+#'   the same columns through `conf.high`, with `term` for `contrast`.
 #'
 #'   For a design with several treatments, an object of class
 #'   `solomon_ngroup`, with the same elements and these changes: `effects`
-#'   has a `comparison` column and the adjusted p-values `p.adjusted`;
+#'   has a `comparison` column before `contrast` and the adjusted p-values
+#'   `p.adjusted` after `conf.high`;
 #'   `omnibus` holds the omnibus tests (`statistic`, `df1`, `df2`,
 #'   `p.value`, and `reference`, `"F"` or `"chisq"`); `conditions` names the
 #'   control and the treatments and their model terms; `weights` holds the
@@ -954,6 +960,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   coef_ci <- .wald_ci(tidy$estimate, tidy$std.error, tidy$df, conf_level)
   tidy$conf.low <- unname(coef_ci[, "conf.low"])
   tidy$conf.high <- unname(coef_ci[, "conf.high"])
+  tidy <- tidy[, .solomon_coefficient_columns]
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -1049,8 +1056,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
       estimate = unname(est["estimate"]),
       std.error = unname(est["std.error"]),
       statistic = unname(est["statistic"]),
-      p.value = unname(est["p.value"]),
       df = unname(est["df"]),
+      p.value = unname(est["p.value"]),
       conf.low = unname(est["conf.low"]),
       conf.high = unname(est["conf.high"]),
       r2 = r2$r2,
@@ -1059,7 +1066,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
       stringsAsFactors = FALSE
     )
   }))
-  rownames(effects) <- NULL
+  effects <- .effects_table(effects)
 
   if (robust == "CR2") {
     small_df <- is.finite(effects$df) & effects$df < 4

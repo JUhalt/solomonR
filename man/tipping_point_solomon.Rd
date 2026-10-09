@@ -58,8 +58,11 @@ strings (\code{y_post = "post"}).}
 }
 \value{
 An object of class \code{solomon_tipping} with \code{results} (one row per
-offset: the offset in posttest units and in standard deviations, and
-the pooled estimate, interval, and p-value), \code{tipping} (the smallest
+offset: the offset in posttest units, \code{delta}, and in standard
+deviations, \code{delta_sd}; the pooled result in the columns of
+\code{fit_solomon_mi()$effects}, \code{contrast}, \code{estimate}, \code{std.error},
+\code{statistic}, \code{df}, \code{p.value}, \code{conf.low}, and \code{conf.high}; and
+\code{significant}), \code{tipping} (the smallest
 negative and positive offsets at which the conclusion differs from the
 one under MAR, \code{NA} when it does not change within the range), and the
 settings used.

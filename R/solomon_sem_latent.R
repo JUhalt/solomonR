@@ -126,8 +126,9 @@
 #'   \itemize{
 #'     \item `fit`: lavaan object for the 4-group POST model
 #'     \item `effects`: data.frame of the contrasts on latent POST, with the
-#'       columns `contrast`, `estimate`, `std.error`, `statistic` (z),
-#'       `p.value`, `conf.low`, and `conf.high`, and the rows
+#'       columns `contrast`, `estimate`, `std.error`, `statistic` (z), `df`
+#'       (`Inf`, for the normal reference distribution), `p.value`,
+#'       `conf.low`, and `conf.high`, and the rows
 #'       `ATE (avg over pretest)`, `Pretest x Treatment`,
 #'       `Treatment | pretested`, `Treatment | unpretested`,
 #'       `Pretest effect | control`, `Pretest effect | treated`, and
@@ -135,7 +136,8 @@
 #'     \item `fitmeasures_post`: named vector (CFI, RMSEA, SRMR, df)
 #'     \item `fit_pre` (optional): lavaan object for pretested latent ANCOVA
 #'     \item `effects_pre` (optional): data.frame with `Treatment | pretested`
-#'       on latent POST, adjusted for the latent pretest
+#'       on latent POST, adjusted for the latent pretest, in the columns of
+#'       `effects`
 #'     \item `fitmeasures_pre` (optional)
 #'     \item `invariance`: the [invariance_solomon()] result, or `NULL` when
 #'       the check was not run, and `invariance_status`, a one-line summary

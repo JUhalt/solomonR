@@ -88,11 +88,17 @@ negative-binomial fits, \code{theta} (its estimate, standard error, and
 \eqn{\alpha = 1/\theta}) for negative-binomial fits, \code{pretest_mean}
 (the mean pretest at which the pretest is centered; \code{NA} without
 \code{y_pre}), and the settings used. The contrast table, \code{effects}, has the
-four treatment contrasts followed by the three pretest effects.
+four treatment contrasts followed by the three pretest effects, in the
+columns \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic}, \code{df} (\code{Inf}
+for a normal reference distribution), \code{p.value}, \code{conf.low}, and
+\code{conf.high}, followed by the Wald partial R-squared and its interval
+(\code{r2}, \code{r2_lo}, \code{r2_hi}). The coefficient table, \code{coefficients}, has
+the same columns through \code{conf.high}, with \code{term} for \code{contrast}.
 
 For a design with several treatments, an object of class
 \code{solomon_ngroup}, with the same elements and these changes: \code{effects}
-has a \code{comparison} column and the adjusted p-values \code{p.adjusted};
+has a \code{comparison} column before \code{contrast} and the adjusted p-values
+\code{p.adjusted} after \code{conf.high};
 \code{omnibus} holds the omnibus tests (\code{statistic}, \code{df1}, \code{df2},
 \code{p.value}, and \code{reference}, \code{"F"} or \code{"chisq"}); \code{conditions} names the
 control and the treatments and their model terms; \code{weights} holds the

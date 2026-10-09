@@ -449,10 +449,16 @@
 #' @param conf_level Confidence level. Defaults to the fit's.
 #'
 #' @return An object of class `solomon_marginal` with `effects` (one row per
-#'   scale and contrast: estimate and interval on the reporting scale, standard
-#'   error on the analysis scale, p-value), `risks` (binary) or `rates`
-#'   (counts, per unit of exposure) for the four cells, and the settings,
-#'   including the number of failed bootstrap resamples.
+#'   scale and contrast, in the columns `scale`, `contrast`, `estimate`,
+#'   `std.error`, `statistic`, `df`, `p.value`, `conf.low`, and `conf.high`),
+#'   `risks` (binary) or `rates` (counts, per unit of exposure) for the four
+#'   cells, and the settings, including the number of failed bootstrap
+#'   resamples. In `effects`, the estimate and the interval are on the
+#'   reporting scale (a difference or a ratio). The standard error and the
+#'   test statistic are on the analysis scale, the difference or the log of
+#'   the ratio, so for a ratio `statistic` is `log(estimate) / std.error`.
+#'   `df` is `Inf` for a normal reference distribution, which every fit
+#'   without CR2 covariance uses.
 #'
 #' @references
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
@@ -706,22 +712,26 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     ci <- cbind(estimate - q * std.error, estimate + q * std.error)
   }
 
-  p.value <- 2 * stats::pt(-abs(estimate / std.error), df)
+  # The test of each contrast is on the analysis scale: the difference, or
+  # the log of the ratio.
+  statistic <- estimate / std.error
+  p.value <- 2 * stats::pt(-abs(statistic), df)
   scale_col <- rep(scale, each = n_contrasts)
   ratio <- scale_col != "difference"
   report <- function(x) ifelse(ratio, exp(x), x)
 
-  effects <- data.frame(
+  effects <- .effects_table(data.frame(
     scale = unname((if (count) .marginal_rate_scales else .marginal_scales)[scale_col]),
     contrast = rep(.marginal_contrast_names(), length(scale)),
     estimate = report(estimate),
-    conf.low = report(ci[, 1]),
-    conf.high = report(ci[, 2]),
     std.error = std.error,
+    statistic = statistic,
     df = df,
     p.value = p.value,
+    conf.low = report(ci[, 1]),
+    conf.high = report(ci[, 2]),
     stringsAsFactors = FALSE
-  )
+  ), keys = "scale")
 
   if (cr2) {
     small_df <- is.finite(df) & df < 4

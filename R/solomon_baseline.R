@@ -59,7 +59,7 @@
 #'   interval. For a design with several treatments, `groups` holds the
 #'   statistics of every pretested group, `comparisons` has one row for each
 #'   treatment against the control (`comparison`, `difference`, `std.error`,
-#'   `conf.low`, `conf.high`, `statistic`, `df`, `p.value`, `g`, `g.low`,
+#'   `statistic`, `df`, `p.value`, `conf.low`, `conf.high`, `g`, `g.low`,
 #'   and `g.high`), and `conditions` names the control and the treatments.
 #'
 #' @references
@@ -163,11 +163,11 @@ baseline_solomon <- function(y_pre = NULL, treat = NULL, pretested = NULL,
                           n = n, mean = mean, sd = sd, stringsAsFactors = FALSE),
       difference = pair$difference,
       std.error = pair$std.error,
-      conf.low = pair$conf.low,
-      conf.high = pair$conf.high,
       statistic = pair$statistic,
       df = pair$df,
       p.value = pair$p.value,
+      conf.low = pair$conf.low,
+      conf.high = pair$conf.high,
       g = pair$g,
       g.low = pair$g.low,
       g.high = pair$g.high,
@@ -181,7 +181,9 @@ baseline_solomon <- function(y_pre = NULL, treat = NULL, pretested = NULL,
 
 # The pretest comparison of two groups (treated first): the difference with
 # a pooled-variance t interval and test, and Hedges's g with its
-# noncentral-t interval.
+# noncentral-t interval. The test and the interval are in the order of the
+# columns of an effects table (issue #110), with `difference` for
+# `estimate`.
 .baseline_pair <- function(n, mean, sd, conf_level) {
   df <- sum(n) - 2
   sp <- sqrt(((n[1] - 1) * sd[1]^2 + (n[2] - 1) * sd[2]^2) / df)
@@ -192,11 +194,11 @@ baseline_solomon <- function(y_pre = NULL, treat = NULL, pretested = NULL,
   list(
     difference = difference,
     std.error = se,
-    conf.low = unname(ci[, "conf.low"]),
-    conf.high = unname(ci[, "conf.high"]),
     statistic = difference / se,
     df = df,
     p.value = 2 * stats::pt(-abs(difference / se), df),
+    conf.low = unname(ci[, "conf.low"]),
+    conf.high = unname(ci[, "conf.high"]),
     g = unname(g["g"]),
     g.low = unname(g["lower"]),
     g.high = unname(g["upper"])
