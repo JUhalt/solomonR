@@ -295,3 +295,22 @@ test_that("the cluster warning shares the class of the participant warning (#113
   ))
   expect_match(r$method, "no treatment effect in any cluster; Romano, 1990)", fixed = TRUE)
 })
+
+test_that("cluster p-values keep the comparison made before the shared tie rule (#131)", {
+  # Away from an observed statistic of zero, .perm_at_least() is the
+  # comparison this path made before: at least as extreme to a relative
+  # 1e-10. It holds for both statistics, sampled and enumerated.
+  before <- function(res) abs(res$z_perm) >= abs(res$z_obs) * (1 - 1e-10)
+  sampled <- fit_a(make_design_a(per_cell = c(6, 6, 8, 8)))
+  enumerated <- fit_a(make_design_b(n_treated = 3, n_control = 3))
+  for (statistic in c("studentized", "difference")) {
+    res <- perm(sampled, "ATE (avg over pretest)", reps = 199, seed = 2, statistic = statistic,
+                return_dist = TRUE)
+    expect_false(res$exact)
+    expect_identical(res$p_perm, (sum(before(res)) + 1) / 200)
+    res <- perm(enumerated, "Treatment | unpretested", reps = 5000, statistic = statistic,
+                return_dist = TRUE)
+    expect_true(res$exact)
+    expect_identical(res$p_perm, mean(before(res)))
+  }
+})
