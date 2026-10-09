@@ -465,8 +465,8 @@ iv_method <- c(chisq = "invariance_solomon(), scaled chi-square difference (alph
                partial_model = "fit_solomon_sem_latent(), last intercept freed")
 iv_estimand <- c(reject_metric = "Rejection of metric invariance",
                  reject_scalar = "Rejection of scalar invariance",
-                 sens_bias = "Sens (latent Pretest x Treatment)",
-                 sens_coverage = "Sens (latent Pretest x Treatment)")
+                 sens_bias = "Pretest x Treatment (latent)",
+                 sens_coverage = "Pretest x Treatment (latent)")
 iv_measure <- c(reject_metric = "rejection_rate", reject_scalar = "rejection_rate",
                 sens_bias = "bias", sens_coverage = "coverage")
 # A rejection is correct only for the step the pattern makes noninvariant.

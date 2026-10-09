@@ -130,8 +130,11 @@ contrasts. Which ones change, and why?
 se <- function(rho) {
   d <- simulate_solomon(n = 60, delta = 0.6, sens = -0.4, rho = rho, seed = 2)
   f <- with(d, fit_solomon_glm(y_post, treat, pretested, y_pre))
-  # The four treatment contrasts are the first four rows.
-  stats::setNames(f$effects$std.error[1:4], f$effects$contrast[1:4])
+  # The four treatment contrasts, selected by label.
+  labels <- c("ATE (avg over pretest)", "Pretest x Treatment",
+              "Treatment | pretested", "Treatment | unpretested")
+  e <- f$effects[match(labels, f$effects$contrast), ]
+  stats::setNames(e$std.error, e$contrast)
 }
 round(rbind(`rho = 0` = se(0), `rho = 0.8` = se(0.8)), 3)
 ```

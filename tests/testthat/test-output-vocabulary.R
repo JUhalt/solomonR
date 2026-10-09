@@ -855,6 +855,16 @@ test_that("the help pages link tidy() to the contract, not to the generic's help
                     "report_solomon.Rd", "solomonR.Rd") %in% to_contract))
 })
 
+test_that("the published benchmark table names its estimands with the labels", {
+  path <- testthat::test_path("..", "..", "vignettes", "articles", "validation-evidence",
+                              "benchmarks.csv")
+  testthat::skip_if_not(file.exists(path), "the articles are not part of the built package")
+  estimands <- unique(utils::read.csv(path, stringsAsFactors = FALSE)$estimand)
+  # No estimand goes by a former label of the SEM functions.
+  expect_false(any(grepl("\\b(Sens|Pre_Eff|Unpre_Eff)\\b", estimands)))
+  expect_true("Pretest x Treatment (latent)" %in% estimands)
+})
+
 # ---- Former element names ------------------------------------------------------
 
 # Three indicators of one latent posttest in the four groups.

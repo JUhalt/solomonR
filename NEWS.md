@@ -200,6 +200,13 @@ break existing code says what that code needs.
 * The SEM article, the methods guide, the GLM vignette, the coverage
   article, and the references describe the pretest effects of the SEM
   fits; the simulation script of the invariance study reads the new names.
+* In `benchmarks.csv` of "Validation Evidence", the estimand of the latent
+  contrast in the invariance study is `Pretest x Treatment (latent)`; it
+  was `Sens (latent Pretest x Treatment)`. Code that selects those rows by
+  the former name needs the new one.
+* The README lists the first contrast under its label,
+  `ATE (avg over pretest)`, and the articles on missing data and on
+  teaching select the rows of an effects table by label, not by position.
 
 ## Credit for the unified model (#105)
 
