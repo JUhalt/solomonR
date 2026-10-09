@@ -105,7 +105,7 @@ published <- data.frame(
 interaction <- function(s, o) {
   x <- subset(jordaan2014, subscale == s & occasion == o)
   a <- with(x, solomon_from_summary(n, mean, sd, treat = treat, pretested = pretested))$anova
-  a[a$source == "Treatment x Pretest", c("F", "p.value")]
+  a[a$source == "Pretest x Treatment", c("F", "p.value")]
 }
 nine <- cbind(published, do.call(rbind, Map(interaction, published$subscale, published$occasion)))
 nine$p_holm <- p.adjust(nine$p.value, method = "holm")

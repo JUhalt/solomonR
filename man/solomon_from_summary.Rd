@@ -34,14 +34,15 @@ others, in the order of \code{n}. Needed with \code{treat}.}
 or factor.}
 }
 \value{
-An object of class \code{solomon_summary_fit} with \code{contrasts} (Tests
+An object of class \code{solomon_summary_fit} with \code{effects} (Tests
 A-D, the pretest main effect, and the simple effects: estimate, standard
 error, t, degrees of freedom, p-value, confidence interval, F, and Type
-III sum of squares), an \code{anova} table, the \code{cells}, the error mean
+III sum of squares), an \code{anova} table (sources \code{Treatment}, \code{Pretest},
+\verb{Pretest x Treatment}, and \code{Error}), the \code{cells}, the error mean
 square and degrees of freedom, and the settings.
 
 For a design with several treatments, an object of class
-\code{solomon_summary_ngroup} with \code{contrasts} (for each comparison of a
+\code{solomon_summary_ngroup} with \code{effects} (for each comparison of a
 treatment with the control and each of the four contrasts: estimate,
 standard error, t, p-value, Holm-adjusted p-value \code{p.adjusted}, degrees
 of freedom, and confidence interval), the omnibus tests in \code{anova}
@@ -49,6 +50,11 @@ of freedom, and confidence interval), the omnibus tests in \code{anova}
 the package's group order, the \code{conditions} (control first), \code{adjust}
 (\code{"holm"}), the error mean square and degrees of freedom, and the
 settings.
+
+Before solomonR 1.0.0, \code{effects} was named \code{contrasts}, and the
+interaction of the four-group \code{anova} table \verb{Treatment x Pretest}.
+\verb{$contrasts} still returns the table, with a deprecation warning;
+\verb{[["contrasts"]]} does not.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

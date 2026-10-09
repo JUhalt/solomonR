@@ -62,7 +62,7 @@ a separate residual variance.
 }
 \details{
 The model estimates the treatment effect, pretest effect,
-Treatment x Pretest interaction, pretest-posttest slope, and separate
+Pretest x Treatment interaction, pretest-posttest slope, and separate
 residual standard deviations for pretested and unpretested participants.
 The pretest enters as a deviation from its mean among pretested
 participants (returned as \code{pretest_mean}), so the pretest effect \code{bP}

@@ -103,14 +103,15 @@
 #' @param control The control condition, when `treat` is a character vector
 #'   or factor.
 #'
-#' @return An object of class `solomon_summary_fit` with `contrasts` (Tests
+#' @return An object of class `solomon_summary_fit` with `effects` (Tests
 #'   A-D, the pretest main effect, and the simple effects: estimate, standard
 #'   error, t, degrees of freedom, p-value, confidence interval, F, and Type
-#'   III sum of squares), an `anova` table, the `cells`, the error mean
+#'   III sum of squares), an `anova` table (sources `Treatment`, `Pretest`,
+#'   `Pretest x Treatment`, and `Error`), the `cells`, the error mean
 #'   square and degrees of freedom, and the settings.
 #'
 #'   For a design with several treatments, an object of class
-#'   `solomon_summary_ngroup` with `contrasts` (for each comparison of a
+#'   `solomon_summary_ngroup` with `effects` (for each comparison of a
 #'   treatment with the control and each of the four contrasts: estimate,
 #'   standard error, t, p-value, Holm-adjusted p-value `p.adjusted`, degrees
 #'   of freedom, and confidence interval), the omnibus tests in `anova`
@@ -118,6 +119,11 @@
 #'   the package's group order, the `conditions` (control first), `adjust`
 #'   (`"holm"`), the error mean square and degrees of freedom, and the
 #'   settings.
+#'
+#'   Before solomonR 1.0.0, `effects` was named `contrasts`, and the
+#'   interaction of the four-group `anova` table `Treatment x Pretest`.
+#'   `$contrasts` still returns the table, with a deprecation warning;
+#'   `[["contrasts"]]` does not.
 #'
 #' @references
 #' Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
@@ -227,8 +233,10 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
     stringsAsFactors = FALSE
   )
 
+  # The interaction is named as the contrast is, Pretest x Treatment (issue
+  # #110).
   anova <- data.frame(
-    source = c("Treatment", "Pretest", "Treatment x Pretest", "Error"),
+    source = c("Treatment", "Pretest", "Pretest x Treatment", "Error"),
     sumsq = c(contrasts$sumsq[c(4, 5, 1)], mse * df_error),
     df = c(1, 1, 1, df_error),
     meansq = c(contrasts$sumsq[c(4, 5, 1)], mse),
@@ -239,7 +247,7 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
 
   structure(
     list(
-      contrasts = contrasts,
+      effects = contrasts,
       anova = anova,
       cells = data.frame(group = .solomon_summary_groups, n = n, mean = mean, sd = sd,
                          stringsAsFactors = FALSE),
@@ -249,6 +257,18 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
     ),
     class = "solomon_summary_fit"
   )
+}
+
+# `effects` was `contrasts` before 1.0.0 (issue #110); `$` still accepts the
+# former name, with a deprecation warning.
+#' @export
+`$.solomon_summary_fit` <- function(x, name) {
+  .renamed_element(x, name, c(contrasts = "effects"), "solomon_from_summary")
+}
+
+#' @export
+`$.solomon_summary_ngroup` <- function(x, name) {
+  .renamed_element(x, name, c(contrasts = "effects"), "solomon_from_summary")
 }
 
 #' @export
@@ -269,7 +289,7 @@ print.solomon_summary_fit <- function(x, digits = 3, ...) {
     }
   }
   cat(sprintf("\nContrasts with %s%% confidence intervals\n", format(100 * x$conf_level)))
-  k <- x$contrasts
+  k <- x$effects
   for (i in seq_len(nrow(k))) {
     label <- if (nzchar(k$test[i])) sprintf("Test %s: %s", k$test[i], k$contrast[i]) else k$contrast[i]
     cat(sprintf("  %-38s %8.*f [%.*f, %.*f], t(%d) = %.2f, p %s\n",
@@ -431,7 +451,7 @@ print.solomon_summary_fit <- function(x, digits = 3, ...) {
 
   structure(
     list(
-      contrasts = contrasts,
+      effects = contrasts,
       anova = anova,
       cells = cells,
       conditions = data.frame(
@@ -476,7 +496,7 @@ print.solomon_summary_ngroup <- function(x, digits = 3, ...) {
   }
 
   cat(sprintf("\nContrasts with %s%% confidence intervals\n", format(100 * x$conf_level)))
-  e <- x$contrasts
+  e <- x$effects
   .print_columns(
     c("Comparison", "Contrast", "Est (SE)", "t", "df", "p", "p adj.",
       sprintf("%s%% CI", format(100 * x$conf_level))),

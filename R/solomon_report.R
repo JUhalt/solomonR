@@ -916,9 +916,9 @@
     "posttest (Type III sums of squares), the model behind Tests A-D (Walton Braver & Braver, 1988)."
   )
   results <- c(
-    sprintf("The Pretest x Treatment interaction was %s.", f("Treatment x Pretest")),
+    sprintf("The Pretest x Treatment interaction was %s.", f("Pretest x Treatment")),
     sprintf("The treatment main effect was %s, and the pretest main effect %s.", f("Treatment"), f("Pretest")),
-    .contrast_sentences(fit$contrasts[fit$contrasts$test %in% c("B", "C"), ], fit$conf_level, digits, md)
+    .contrast_sentences(fit$effects[fit$effects$test %in% c("B", "C"), ], fit$conf_level, digits, md)
   )
   list(method = method, results = results, table = fit$anova,
        refs = .solomon_function_refs$solomon_from_summary, cells = fit$cells$n)
@@ -931,7 +931,7 @@
 .report_summary_ngroup <- function(fit, digits, md) {
   conditions <- fit$conditions$condition[order(fit$conditions$role != "control")]
   design <- .ngroup_design_parts(conditions)
-  comparisons <- unique(fit$contrasts$comparison)
+  comparisons <- unique(fit$effects$comparison)
   n_comp <- length(comparisons)
   mult <- .ngroup_multiplicity(n_comp, fit$adjust)
   a <- fit$anova
@@ -963,13 +963,13 @@
       "the omnibus test of the conditions, averaged over pretest conditions, gave %s; and the ",
       "test of pretesting, averaged over the conditions, gave %s."
     ), omnibus("Pretest x Condition"), omnibus("Condition"), omnibus("Pretest")),
-    .ngroup_comparison_paragraphs(fit$contrasts, comparisons, NULL, mult$adjusted, fit$adjust,
+    .ngroup_comparison_paragraphs(fit$effects, comparisons, NULL, mult$adjusted, fit$adjust,
                                   fit$conf_level, digits, md)
   )
   list(
     method = method,
     results = results,
-    table = fit$contrasts,
+    table = fit$effects,
     refs = c(mult$refs, design$refs),
     cells = fit$cells$n,
     groups = design$groups,

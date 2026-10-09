@@ -143,7 +143,7 @@
       )
     } else {
       paste(
-        "Historical pathway: the Treatment x Pretest interaction is",
+        "Historical pathway: the Pretest x Treatment interaction is",
         "significant, but neither simple treatment effect reaches alpha."
       )
     }
@@ -396,7 +396,8 @@
 #' @return An object of class \code{solomon_classic}. The \code{tests}
 #'   component contains Tests A-I, while \code{path} records the historical
 #'   decision sequence for the observed data under the chosen \code{flow}.
-#'   The \code{history} component holds the history/maturation comparisons.
+#'   The \code{history} component holds the history/maturation comparisons,
+#'   and \code{conf_level} the confidence level of the intervals.
 #'
 #' @references
 #' Braver, S. L., & Walton Braver, M. C. (1990). Meta-analysis for Solomon
@@ -550,7 +551,7 @@ fit_solomon_classic <- function(
     na.action = stats::na.exclude
   )
 
-  # Test A: Treatment x Pretest interaction
+  # Test A: Pretest x Treatment interaction
   A <- .classic_contrast(
     fit_ad,
     c("treat:pretested" = 1),
@@ -899,6 +900,9 @@ fit_solomon_classic <- function(
       conclusion = conclusion,
       pretest_main = pretest_main,
       history = history,
+      # At the top level, as in every other fit (issue #110), and in
+      # `settings`, where it was before.
+      conf_level = conf_level,
       settings = list(
         alpha = alpha,
         pretested_test = pretested_test,

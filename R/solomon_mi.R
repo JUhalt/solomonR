@@ -188,7 +188,7 @@
 #'    in each Solomon group to the participants with an observed posttest:
 #'    on the pretest in the pretested groups, and on a constant in the
 #'    unpretested groups, which have no pretest by design. The analysis
-#'    contains the Treatment x Pretest interaction of two fully observed
+#'    contains the Pretest x Treatment interaction of two fully observed
 #'    indicators, and imputing separately in the groups they define is the
 #'    simplest approach to such interactions (Carpenter et al., 2023,
 #'    section 6.3.5, p. 149).

@@ -94,7 +94,8 @@ strings (\code{y_post = "post"}).}
 An object of class \code{solomon_classic}. The \code{tests}
 component contains Tests A-I, while \code{path} records the historical
 decision sequence for the observed data under the chosen \code{flow}.
-The \code{history} component holds the history/maturation comparisons.
+The \code{history} component holds the history/maturation comparisons,
+and \code{conf_level} the confidence level of the intervals.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

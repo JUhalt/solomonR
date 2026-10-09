@@ -258,6 +258,51 @@ test_that("a latent fit stored under the former element names is still read", {
   expect_identical(old, fit$effects)
 })
 
+test_that("summary fits use `effects`, and `contrasts` is a deprecated alias", {
+  four <- with(elkarkri2025a, solomon_from_summary(n, mean, sd))
+  six <- solomon_from_summary(
+    n = c(24, 23, 27, 22, 15, 22),
+    mean = c(2.929167, 3.168116, 3.112346, 3.128788, 3.152184, 3.018548),
+    sd = c(0.434203, 0.369613, 0.355440, 0.383150, 0.374069, 0.354758),
+    treat = c("RP", "GS", "Control", "RP", "GS", "Control"),
+    pretested = c(1, 1, 1, 0, 0, 0), control = "Control"
+  )
+  expect_s3_class(four, "solomon_summary_fit")
+  expect_s3_class(six, "solomon_summary_ngroup")
+
+  for (fit in list(four, six)) {
+    expect_true(all(c("effects", "conf_level") %in% names(fit)))
+    expect_false("contrasts" %in% names(fit))
+    expect_no_warning(fit$effects)
+    lifecycle::expect_deprecated(old <- fit$contrasts)
+    expect_identical(old, fit$effects)
+    msg <- deprecation_message(fit$contrasts)
+    expect_match(msg, paste("The `contrasts` element of the result of",
+                            "`solomon_from_summary()` was deprecated in solomonR 1.0.0."),
+                 fixed = TRUE)
+    expect_match(msg, "Please use `effects` instead.", fixed = TRUE)
+    expect_null(fit[["contrasts"]])
+    expect_no_warning(expect_null(fit$contr))
+    expect_no_warning(capture.output(print(fit)))
+    expect_no_warning(report_solomon(fit))
+  }
+
+  # The interaction of the four-group ANOVA table is named as the contrast is.
+  expect_identical(four$anova$source, c("Treatment", "Pretest", "Pretest x Treatment", "Error"))
+  expect_identical(six$anova$source, c("Condition", "Pretest", "Pretest x Condition", "Error"))
+  a <- four$anova[four$anova$source == "Pretest x Treatment", ]
+  e <- four$effects[four$effects$contrast == "Pretest x Treatment", ]
+  expect_equal(a$F, e$statistic^2)
+  expect_equal(a$p.value, e$p.value)
+})
+
+test_that("the classic fit has its confidence level at the top level", {
+  d <- solomon_example
+  fit <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre, conf_level = 0.9)
+  expect_identical(fit$conf_level, 0.9)
+  expect_identical(fit$settings$conf_level, 0.9)
+})
+
 # ---- Deprecated plots ---------------------------------------------------------
 
 test_that("plot_solomon() and plot_solomon_gg() are deprecated but still work", {
