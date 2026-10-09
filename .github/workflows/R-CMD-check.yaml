@@ -116,15 +116,21 @@ jobs:
           r-version: 'release'
           use-public-rspm: true
 
+      # A cache of its own: the library cached by the other Ubuntu jobs
+      # contains both packages.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck, lavaan=?ignore, mmrm=?ignore
           needs: check
+          cache-version: without-optional
 
-      - name: Confirm that lavaan and mmrm are not installed
+      - name: Make sure that lavaan and mmrm are not installed
         shell: Rscript {0}
         run: |
-          installed <- c("lavaan", "mmrm") %in% rownames(installed.packages())
-          if (any(installed)) stop("lavaan or mmrm is installed; this job must run without them.")
+          optional <- c("lavaan", "mmrm")
+          present <- optional[optional %in% rownames(installed.packages())]
+          if (length(present)) remove.packages(present)
+          still <- optional[optional %in% rownames(installed.packages())]
+          if (length(still)) stop("Still installed: ", paste(still, collapse = ", "))
 
       - uses: r-lib/actions/check-r-package@v2
