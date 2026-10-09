@@ -234,7 +234,10 @@ solomonR 0.8.0 on October 3, 2026.
 Versions 0.5.0, 0.6.0, and 0.7.0 were not released separately. Each item
 below names its pull requests. A patch, 0.8.1 (October 4, 2026), fixed
 wrong contrasts in the SEM functions with some row orders
-([#119](https://github.com/JUhalt/solomonR/issues/119)).
+([#119](https://github.com/JUhalt/solomonR/issues/119)). A second patch,
+0.8.2 (October 9, 2026), fixed permutation p-values that were too small
+when permutations tie with the observed statistic
+([#131](https://github.com/JUhalt/solomonR/issues/131)).
 
 ---
 

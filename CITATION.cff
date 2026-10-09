@@ -5,8 +5,8 @@ type: software
 authors:
   - family-names: Uhalt
     given-names: Joshua
-version: 0.8.1
-date-released: "2026-10-04"
+version: 0.8.2
+date-released: "2026-10-09"
 repository-code: "https://github.com/JUhalt/solomonR"
 url: "https://juhalt.github.io/solomonR/"
 license: GPL-3.0-only
