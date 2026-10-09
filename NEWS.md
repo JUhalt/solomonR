@@ -9,9 +9,15 @@
   & Smyth, 2010), so such ties must be counted; when they were missed, the
   p-value was too small. They are now counted, at the participant and the
   cluster level and in `plot_perm()`, by one rule: statistics that differ
-  by less than a small tolerance are equal. The tolerance is 1e-10 of the
-  observed statistic for a linear model and 1e-6 for models fitted by
-  iteration, whose equal fits agree only to about 1e-7.
+  by less than a small relative tolerance are equal. The tolerance is
+  1e-10 for a linear model and 1e-6 for models fitted by iteration.
+* What remains (#134): in a model fitted by iteration, equal fits usually
+  agree to about 1e-7, but where the contrast's cells include a covariate
+  they can differ by more, most with a link other than the canonical one,
+  and such a tie can still be missed. In the checks made, no p-value was
+  affected by this with the logit or the Poisson log link. An observed
+  labeling that empties an arm, and an outcome that does not vary within a
+  pretest condition, are tracked there too.
 * What can change: p-values that were too small. Rerun `perm_solomon()`
   for analyses of these kinds.
 

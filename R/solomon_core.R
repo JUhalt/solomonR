@@ -1117,10 +1117,14 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' ties occur when a permutation repeats the observed assignment or swaps
 #' arms of equal size, and often when scores are tied, as with binary
 #' outcomes, counts, and ratings. So that rounding error does not decide,
-#' statistics that differ by less than a small tolerance are treated as
-#' equal: 1e-10 of the observed statistic for a linear model, and 1e-6 for
-#' models fitted by iteration, whose equal fits agree only to about 1e-7.
-#' Studentizing the
+#' statistics that differ by less than a small relative tolerance are
+#' treated as equal: 1e-10 for a linear model and 1e-6 for models fitted by
+#' iteration. The tolerance is relative to the observed statistic or, when
+#' that is smaller, to 1 for the studentized statistic and to the largest
+#' permuted difference for the difference statistic. In a model fitted by
+#' iteration, equal fits usually agree to about 1e-7; with a covariate they
+#' can differ by more, most with a link other than the canonical one, and
+#' such a tie can still be missed (issue #134). Studentizing the
 #' statistic makes permutation tests asymptotically robust when only an
 #' average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
 #' Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness

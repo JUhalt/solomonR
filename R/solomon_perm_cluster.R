@@ -79,11 +79,15 @@
 # The tie tolerance for refitted models of a family. The Gaussian identity
 # model is solved in one step, and equal fits agree to rounding error. Any
 # other model is fitted by iteratively reweighted least squares, which stops
-# at a relative change in deviance of 1e-8; fits that are equal in exact
-# arithmetic then differ by up to about 1e-7 (the largest seen in the review
-# of issue #131 was 9.4e-8). Tighter convergence is not the remedy: it drives
-# the fitted values of a labeling with an empty arm to the boundary and
-# destroys its HC3 variance, so the most extreme labelings are lost.
+# at a relative change in deviance of 1e-8. Fits that are equal in exact
+# arithmetic then differ by up to about 1e-7 where the model is saturated in
+# the cells the contrast uses. Where it is not (a covariate), they can differ
+# by more, up to 4e-4 seen with a non-canonical link, because glm() returns
+# the working weights of the iteration before the last; ties of that kind
+# can still be missed (issue #134). Tighter convergence is not the remedy on
+# its own: it drives the fitted values of a labeling with an empty arm to
+# the boundary and destroys its HC3 variance, so the most extreme labelings
+# are lost.
 .perm_tie_tolerance <- function(family) {
   if (identical(family$family, "gaussian") && identical(family$link, "identity")) 1e-10 else 1e-6
 }
