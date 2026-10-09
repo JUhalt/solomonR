@@ -48,10 +48,37 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_ml}, with the coefficients, the
-\code{effects} table (the four Solomon contrasts, then the three pretest
-effects), the residual standard deviations, \code{pretest_mean}, and the
-settings used.
+An object of class \code{solomon_ml}, a list with:
+\itemize{
+\item \code{effects}: the four treatment contrasts, \verb{ATE (avg over pretest)},
+\verb{Pretest x Treatment}, \code{Treatment | pretested}, and
+\code{Treatment | unpretested}, followed by the three pretest effects,
+\verb{Pretest effect | control}, \verb{Pretest effect | treated}, and
+\verb{Pretest main effect}, in the columns \code{contrast}, \code{estimate},
+\code{std.error}, \code{statistic}, \code{df} (\code{Inf} with \code{inference = "wald"}),
+\code{p.value}, \code{conf.low}, and \code{conf.high}.
+\item \code{conf_level}: the confidence level of the intervals.
+\item \code{coefficients}: the coefficients of the model, in the same columns,
+with \code{term} for \code{contrast}.
+\item \code{sigma} and \code{sigma_unbiased}: the residual standard deviations of the
+unpretested and the pretested participants, by maximum likelihood and
+from the unbiased residual variances.
+\item \code{pretest_mean}: the mean pretest at which the pretest is centered.
+\item \code{vcov}: the covariance matrix of the coefficients.
+\item \code{logLik} and \code{convergence}: the log-likelihood at the estimates, and
+the convergence code of \code{\link[stats:optim]{stats::optim()}} (0 when it converged).
+\item \code{inference}: \code{"satterthwaite"} or \code{"wald"}.
+\item \code{min_cell_n} and \code{small_sample}: the smallest cell size, and whether
+it is below the size at which the printed output notes that Wald
+intervals were too narrow.
+\item \code{method}: the name of the method.
+\item \code{optimizer} (the \code{\link[stats:optim]{stats::optim()}} result), \code{inference_parts}, \code{data},
+and \code{call}, which solomonR's own functions use.
+}
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns the table, are the stable interface of the result; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -62,7 +89,7 @@ a separate residual variance.
 }
 \details{
 The model estimates the treatment effect, pretest effect,
-Treatment x Pretest interaction, pretest-posttest slope, and separate
+Pretest x Treatment interaction, pretest-posttest slope, and separate
 residual standard deviations for pretested and unpretested participants.
 The pretest enters as a deviation from its mean among pretested
 participants (returned as \code{pretest_mean}), so the pretest effect \code{bP}

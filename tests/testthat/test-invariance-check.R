@@ -24,7 +24,7 @@ test_that("a clear intercept shift triggers the invariance warning, not a refusa
   expect_s3_class(fit, "solomon_sem_latent")
   expect_s3_class(fit$invariance, "solomon_invariance")
   expect_match(fit$invariance_status, "not supported")
-  expect_false(is.null(fit$effects_post))
+  expect_false(is.null(fit$effects))
   expect_output(print(fit), "Invariance check: scalar invariance not supported")
 })
 

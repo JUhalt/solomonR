@@ -81,17 +81,19 @@
 
   alpha <- 1 - conf_level
   q <- stats::qt(1 - alpha / 2, rows[, "df"])
-  effects <- data.frame(
+  statistic <- rows[, "estimate"] / rows[, "std.error"]
+  effects <- .effects_table(data.frame(
     scale = unname(.marginal_scales[["difference"]]),
     contrast = .solomon_contrast_order,
     estimate = rows[, "estimate"],
+    std.error = rows[, "std.error"],
+    statistic = statistic,
+    df = rows[, "df"],
+    p.value = 2 * stats::pt(-abs(statistic), rows[, "df"]),
     conf.low = rows[, "estimate"] - q * rows[, "std.error"],
     conf.high = rows[, "estimate"] + q * rows[, "std.error"],
-    std.error = rows[, "std.error"],
-    df = rows[, "df"],
-    p.value = 2 * stats::pt(-abs(rows[, "estimate"] / rows[, "std.error"]), rows[, "df"]),
     stringsAsFactors = FALSE, row.names = NULL
-  )
+  ), keys = "scale")
   cells <- data.frame(
     cell = c("Pretested, treatment", "Pretested, control",
              "Unpretested, treatment", "Unpretested, control"),

@@ -448,11 +448,38 @@
 #'   state is restored afterwards.
 #' @param conf_level Confidence level. Defaults to the fit's.
 #'
-#' @return An object of class `solomon_marginal` with `effects` (one row per
-#'   scale and contrast: estimate and interval on the reporting scale, standard
-#'   error on the analysis scale, p-value), `risks` (binary) or `rates`
-#'   (counts, per unit of exposure) for the four cells, and the settings,
-#'   including the number of failed bootstrap resamples.
+#' @return An object of class `solomon_marginal`, a list with:
+#'   - `effects`: one row for each scale and contrast, in the columns
+#'     `scale`, `contrast`, `estimate`, `std.error`, `statistic`, `df`,
+#'     `p.value`, `conf.low`, and `conf.high`. On each scale the rows are
+#'     the four treatment contrasts, `ATE (avg over pretest)`,
+#'     `Pretest x Treatment`, `Treatment | pretested`, and
+#'     `Treatment | unpretested`, followed by the three pretest effects,
+#'     `Pretest effect | control`, `Pretest effect | treated`, and
+#'     `Pretest main effect`; `method = "cluster_summary"` gives the four
+#'     treatment contrasts. The estimate and the interval are on the
+#'     reporting scale (a difference or a ratio). The standard error and the
+#'     test statistic are on the analysis scale, the difference or the log
+#'     of the ratio, so for a ratio `statistic` is
+#'     `log(estimate) / std.error`. `df` is `Inf` for a normal reference
+#'     distribution, which every fit without CR2 covariance uses.
+#'   - `conf_level`: the confidence level of the intervals.
+#'   - `risks` (binary outcomes) or `rates` (counts, per unit of exposure):
+#'     the value in each of the four cells (`cell`, `treat`, `pretested`,
+#'     and `risk` or `rate`). The other of the two is `NULL`.
+#'   - `outcome`: `"binary"` or `"count"`.
+#'   - `method`: the method of inference, and `vcov`, a description of the
+#'     covariance the delta method used (`NA` for the other methods).
+#'   - `R` and `failures`: with `method = "bootstrap"`, the number of
+#'     resamples and the number that failed.
+#'   - `dispersion` and `theta`: as in the fit.
+#'   - `pretest_adjusted`: whether the fit adjusted for the pretest.
+#'   - `design` and `clusters` (the number of clusters in each cell), with
+#'     `method = "cluster_summary"`.
+#'
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
@@ -706,22 +733,26 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     ci <- cbind(estimate - q * std.error, estimate + q * std.error)
   }
 
-  p.value <- 2 * stats::pt(-abs(estimate / std.error), df)
+  # The test of each contrast is on the analysis scale: the difference, or
+  # the log of the ratio.
+  statistic <- estimate / std.error
+  p.value <- 2 * stats::pt(-abs(statistic), df)
   scale_col <- rep(scale, each = n_contrasts)
   ratio <- scale_col != "difference"
   report <- function(x) ifelse(ratio, exp(x), x)
 
-  effects <- data.frame(
+  effects <- .effects_table(data.frame(
     scale = unname((if (count) .marginal_rate_scales else .marginal_scales)[scale_col]),
     contrast = rep(.marginal_contrast_names(), length(scale)),
     estimate = report(estimate),
-    conf.low = report(ci[, 1]),
-    conf.high = report(ci[, 2]),
     std.error = std.error,
+    statistic = statistic,
     df = df,
     p.value = p.value,
+    conf.low = report(ci[, 1]),
+    conf.high = report(ci[, 2]),
     stringsAsFactors = FALSE
-  )
+  ), keys = "scale")
 
   if (cr2) {
     small_df <- is.finite(df) & df < 4
@@ -841,10 +872,18 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
 #'   strings (`y_post = "post"`).
 #' @param y `r lifecycle::badge("deprecated")` Use `y_post`.
 #'
-#' @return An object of class `solomon_fisher` with `tests` (one row per pretest
-#'   condition and for both combined: counts, proportions, the uncorrected
-#'   Pearson chi-square, and Fisher's exact p-value) and `sensitization` (the
-#'   historical rule's verdict).
+#' @return An object of class `solomon_fisher`, a list with:
+#'   - `tests`: one row for each pretest condition and one for both
+#'     combined, in the columns `condition`, `events_treatment`,
+#'     `n_treatment`, `events_control`, `n_control`, `risk_treatment`,
+#'     `risk_control`, `chisq` (the uncorrected Pearson chi-square),
+#'     `chisq_p`, and `fisher_p` (Fisher's exact p-value).
+#'   - `sensitization`: the verdict of the historical rule, `TRUE` or
+#'     `FALSE`.
+#'   - `alpha`: the significance level of the rule.
+#'
+#'   The tests are of two-by-two tables, not of the Solomon contrasts, so
+#'   the result has no effects table; see [solomon_output].
 #'
 #' @references
 #' El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025b). Methodological

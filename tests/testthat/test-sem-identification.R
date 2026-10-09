@@ -39,14 +39,14 @@ test_that("four-group latent POST means are identified", {
     pretested = sim$pretested
   )
 
-  pe <- lavaan::parameterEstimates(fit$fit_post)
+  pe <- lavaan::parameterEstimates(fit$fit)
   means <- pe[pe$op == "~1" & pe$lhs == "POST", ]
 
   expect_equal(means$est[means$label == "mu_U0"], 0)
   expect_true(all(means$se[means$label != "mu_U0"] < 1))
 
   # 4 groups x 9 moments = 36; 24 free parameters after identification.
-  expect_equal(as.numeric(lavaan::fitMeasures(fit$fit_post, "df")), 12)
+  expect_equal(as.numeric(lavaan::fitMeasures(fit$fit, "df")), 12)
 })
 
 
@@ -70,7 +70,9 @@ test_that("the reference-group choice does not change Solomon contrasts", {
     labels = c("P1", "P0", "U1", "U0")
   )
 
-  # Same model with the pretested control group as the reference.
+  # Same model with the pretested control group as the reference. The
+  # contrasts are defined in the order of the package's effects table: the
+  # four treatment contrasts, then the pretest effects (#110).
   alt_model <- "
     POST =~ post1 + post2 + post3
     POST ~ c(mu_P1, mu_P0, mu_U1, mu_U0)*1
@@ -79,6 +81,9 @@ test_that("the reference-group choice does not change Solomon contrasts", {
     Sens      := (mu_P1 - mu_P0) - (mu_U1 - mu_U0)
     Pre_Eff   := (mu_P1 - mu_P0)
     Unpre_Eff := (mu_U1 - mu_U0)
+    Pretest_C := (mu_P0 - mu_U0)
+    Pretest_T := (mu_P1 - mu_U1)
+    Pretest_M := ((mu_P0 - mu_U0) + (mu_P1 - mu_U1))/2
   "
 
   alt <- lavaan::sem(
@@ -95,10 +100,11 @@ test_that("the reference-group choice does not change Solomon contrasts", {
   alt_pe <- lavaan::parameterEstimates(alt)
   alt_eff <- alt_pe[alt_pe$op == ":=", ]
 
-  i <- match(fit$effects_post$contrast, alt_eff$lhs)
+  expect_identical(fit$effects$contrast, c(.solomon_contrast_order, .solomon_pretest_order))
+  expect_identical(nrow(alt_eff), nrow(fit$effects))
 
-  expect_equal(fit$effects_post$estimate, alt_eff$est[i], tolerance = 1e-4)
-  expect_equal(fit$effects_post$std.error, alt_eff$se[i], tolerance = 1e-3)
+  expect_equal(fit$effects$estimate, alt_eff$est, tolerance = 1e-4)
+  expect_equal(fit$effects$std.error, alt_eff$se, tolerance = 1e-3)
 })
 
 
@@ -137,12 +143,14 @@ test_that("SEM contrasts do not depend on the order of the rows (group order)", 
   set.seed(1)
   d3 <- d[sample(nrow(d)), ]
 
-  # The SEM reports the four treatment contrasts, not the pretest effects.
+  # The SEM reports the four treatment contrasts and the pretest effects
+  # (#110), under the labels and in the order of the GLM.
   ge <- fit_solomon_glm(y_post, treat, pretested, data = d)$effects
-  glm <- ge$estimate[!grepl("^Pretest (effect|main effect)", ge$contrast)]
+  expect_identical(ge$contrast, c(.solomon_contrast_order, .solomon_pretest_order))
   for (dd in list(d, d2, d3)) {
     f <- suppressWarnings(fit_solomon_sem(y_post, treat, pretested, data = dd))
-    expect_equal(f$effects$estimate, glm, tolerance = 1e-4)
+    expect_identical(f$effects$contrast, ge$contrast)
+    expect_equal(f$effects$estimate, ge$estimate, tolerance = 1e-4)
   }
 
   anc <- lapply(list(d, d2, d3), function(dd) {
@@ -150,9 +158,9 @@ test_that("SEM contrasts do not depend on the order of the rows (group order)", 
                                      data = dd))
   })
   pre_eff <- function(f) {
-    e <- f$ancova_effect
-    if (is.null(e)) e <- f$effects
-    e$estimate[grepl("Pre", e$contrast)][1]
+    e <- f$effects
+    expect_identical(e$contrast, "Treatment | pretested")
+    e$estimate
   }
   expect_equal(pre_eff(anc[[2]]), pre_eff(anc[[1]]), tolerance = 1e-4)
   expect_equal(pre_eff(anc[[3]]), pre_eff(anc[[1]]), tolerance = 1e-4)
@@ -169,8 +177,20 @@ test_that("latent SEM contrasts do not depend on the order of the rows (group or
                                                 check_invariance = FALSE))
   f2 <- suppressWarnings(fit_solomon_sem_latent(sim$data[o, ], items, sim$treat[o],
                                                 sim$pretested[o], check_invariance = FALSE))
-  e1 <- f1$effects_post
-  e2 <- f2$effects_post
+  e1 <- f1$effects
+  e2 <- f2$effects
   expect_false(is.null(e1))
+  # All seven rows, the pretest effects included (#110).
+  expect_identical(e1$contrast, c(.solomon_contrast_order, .solomon_pretest_order))
+  expect_identical(e2$contrast, e1$contrast)
   expect_equal(e2$estimate, e1$estimate, tolerance = 1e-4)
+
+  # With an unpretested control first, lavaan's own group order would be
+  # U0, P1, P0, U1, and the pretest effects would be computed from the
+  # wrong groups.
+  i <- which(sim$treat == 0 & sim$pretested == 0)[1]
+  o2 <- c(i, setdiff(seq_len(nrow(sim$data)), i))
+  f3 <- suppressWarnings(fit_solomon_sem_latent(sim$data[o2, ], items, sim$treat[o2],
+                                                sim$pretested[o2], check_invariance = FALSE))
+  expect_equal(f3$effects$estimate, e1$estimate, tolerance = 1e-4)
 })

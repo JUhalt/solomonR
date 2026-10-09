@@ -115,13 +115,9 @@
 .contrast_phrase <- function(contrast) {
   phrase <- c(
     "ATE (avg over pretest)" = "the average treatment effect across pretest conditions",
-    "ATE" = "the average treatment effect across pretest conditions",
     "Pretest x Treatment" = "the Pretest x Treatment interaction (pretest sensitization)",
-    "Sens" = "the Pretest x Treatment interaction (pretest sensitization)",
     "Treatment | pretested" = "the treatment effect among pretested participants",
-    "Pre_Eff" = "the treatment effect among pretested participants",
     "Treatment | unpretested" = "the treatment effect among unpretested participants",
-    "Unpre_Eff" = "the treatment effect among unpretested participants",
     "Pretest effect | control" = "the pretest effect among control participants (pretested compared with unpretested)",
     "Pretest effect | treated" = "the pretest effect among treated participants (pretested compared with unpretested)",
     "Pretest main effect" = "the pretest main effect (pretested compared with unpretested participants, averaged over treatment and control)"
@@ -742,7 +738,16 @@
   }
 
   frame <- fit$tests$A$model$model
-  table <- do.call(rbind, lapply(fit$path[fit$path %in% names(label)], function(l) fit$tests[[l]]$result[, c("test", "estimate", "p.value")]))
+  # The rows of the fit's effects table for the tests on the path, in the
+  # order of the path (issue #110). A fit made before 1.0.0 has no effects
+  # table, and its report keeps the three columns it had.
+  on_path <- fit$path[fit$path %in% names(label)]
+  table <- if (is.data.frame(fit$effects)) {
+    fit$effects[match(on_path, fit$effects$test), , drop = FALSE]
+  } else {
+    do.call(rbind, lapply(on_path, function(l) fit$tests[[l]]$result[, c("test", "estimate", "p.value")]))
+  }
+  rownames(table) <- NULL
   list(method = method, results = results, table = table, refs = refs,
        cells = .cell_counts(frame$treat, frame$pretested))
 }
@@ -796,6 +801,8 @@
       fit$design, ") and compared with t intervals using separate variances and ",
       "Satterthwaite degrees of freedom (Hayes & Moulton, 2017)."
     )
+    # The marginal reports give the interval and the p-value of each
+    # contrast without its test statistic.
     e <- fit$effects
     e$statistic <- NA_real_
     results <- paste0("On the risk difference scale: ",
@@ -824,6 +831,7 @@
   )
   results <- unlist(lapply(unique(fit$effects$scale), function(sc) {
     e <- fit$effects[fit$effects$scale == sc, ]
+    # As above; for a ratio the statistic is on the log scale.
     e$statistic <- NA_real_
     ratio <- !grepl("difference", sc, fixed = TRUE)
     paste0("On the ", tolower(sc), " scale: ",
@@ -910,6 +918,13 @@
 
 .report_summary_fit <- function(fit, digits, md) {
   a <- fit$anova
+  # The interaction was `Treatment x Pretest` before 1.0.0 (issue #110).
+  # Nothing translates it, so a result saved by an earlier version is refused.
+  if (!"Pretest x Treatment" %in% a$source) {
+    stop("This result was made by an earlier version of solomonR, whose analysis of variance ",
+         "named its interaction `Treatment x Pretest`. Run solomon_from_summary() again.",
+         call. = FALSE)
+  }
   f <- function(src) {
     r <- a[a$source == src, ]
     sprintf("%s(1, %s) = %s, %s", if (md) "*F*" else "F", .apa_df(fit$df_error),
@@ -920,9 +935,9 @@
     "posttest (Type III sums of squares), the model behind Tests A-D (Walton Braver & Braver, 1988)."
   )
   results <- c(
-    sprintf("The Pretest x Treatment interaction was %s.", f("Treatment x Pretest")),
+    sprintf("The Pretest x Treatment interaction was %s.", f("Pretest x Treatment")),
     sprintf("The treatment main effect was %s, and the pretest main effect %s.", f("Treatment"), f("Pretest")),
-    .contrast_sentences(fit$contrasts[fit$contrasts$test %in% c("B", "C"), ], fit$conf_level, digits, md)
+    .contrast_sentences(fit$effects[fit$effects$test %in% c("B", "C"), ], fit$conf_level, digits, md)
   )
   list(method = method, results = results, table = fit$anova,
        refs = .solomon_function_refs$solomon_from_summary, cells = fit$cells$n)
@@ -935,7 +950,7 @@
 .report_summary_ngroup <- function(fit, digits, md) {
   conditions <- fit$conditions$condition[order(fit$conditions$role != "control")]
   design <- .ngroup_design_parts(conditions)
-  comparisons <- unique(fit$contrasts$comparison)
+  comparisons <- unique(fit$effects$comparison)
   n_comp <- length(comparisons)
   mult <- .ngroup_multiplicity(n_comp, fit$adjust)
   a <- fit$anova
@@ -967,13 +982,13 @@
       "the omnibus test of the conditions, averaged over pretest conditions, gave %s; and the ",
       "test of pretesting, averaged over the conditions, gave %s."
     ), omnibus("Pretest x Condition"), omnibus("Condition"), omnibus("Pretest")),
-    .ngroup_comparison_paragraphs(fit$contrasts, comparisons, NULL, mult$adjusted, fit$adjust,
+    .ngroup_comparison_paragraphs(fit$effects, comparisons, NULL, mult$adjusted, fit$adjust,
                                   fit$conf_level, digits, md)
   )
   list(
     method = method,
     results = results,
-    table = fit$contrasts,
+    table = fit$effects,
     refs = c(mult$refs, design$refs),
     cells = fit$cells$n,
     groups = design$groups,
@@ -982,6 +997,7 @@
 }
 
 .report_sem <- function(fit, digits, md) {
+  .stop_former_sem_labels(fit$effects, "fit_solomon_sem")
   refs <- .solomon_function_refs$fit_solomon_sem
   method <- if (identical(fit$mode, "ancova_pretested")) {
     refs <- c(refs, "huck1973")
@@ -990,8 +1006,10 @@
     "A four-group mean-structure structural equation model (Rosseel, 2012) estimated the posttest means of the Solomon groups; the model is saturated, so global fit is not reported."
   }
   eff <- as.data.frame(fit$effects)
+  # The four-group model also gives the pretest effects, as differences
+  # between group means (issue #110); the tests are Wald z tests.
   list(method = method,
-       results = .contrast_sentences(eff, fit$conf_level, digits, md, "z"),
+       results = .four_group_sentences(eff, fit$conf_level, digits, md),
        table = eff, refs = refs, cells = NULL)
 }
 
@@ -1375,10 +1393,12 @@
 # follows the fit's own constraints and check rather than asserting scalar
 # invariance.
 .report_sem_latent <- function(fit, digits, md) {
+  .stop_former_sem_labels(fit$effects, "fit_solomon_sem_latent")
+  .stop_former_sem_labels(fit$effects_pre, "fit_solomon_sem_latent")
   .need_lavaan()
   s <- fit$settings
-  level <- if (is.null(s$conf_level)) 0.95 else s$conf_level
-  fp <- fit$fit_post
+  level <- .latent_conf_level(fit)
+  fp <- fit$fit
   estimator <- if (is.null(s$estimator)) lavaan::lavInspect(fp, "options")$estimator else s$estimator
   est <- .sem_estimator(estimator, fp)
   refs <- c(.solomon_function_refs$fit_solomon_sem_latent, est$refs)
@@ -1436,10 +1456,17 @@
     "The contrasts between latent means were tested with Wald z tests."
   )
 
-  eff <- as.data.frame(fit$effects_post)
+  eff <- as.data.frame(fit$effects)
+  # The treatment contrasts, then the pretest effects, which are differences
+  # between latent means too (issue #110).
+  treatment <- eff[!eff$contrast %in% .solomon_pretest_order, , drop = FALSE]
   results <- c(
     .sem_fit_sentence("The four-group model", fp, est$scaled, digits, md),
-    paste(.contrast_sentences(eff, level, digits, md, "z"), collapse = " ")
+    paste(c(
+      .contrast_sentences(treatment, level, digits, md, "z"),
+      .pretest_sentence(eff, level, digits, md,
+                        prefix = "The pretest effect on the latent posttest")
+    ), collapse = " ")
   )
 
   if (!is.null(fit$fit_pre)) {
@@ -1456,7 +1483,7 @@
       "constrained to be equal in the two groups%s. %s The invariance of this model was not tested."
     ), .number_word(length(pre_items)), .series_and(pre_items),
     .freed_clause(freed_pre, labels_pre), .ancova_identification(ptp, labels_pre, post_scale, labels)))
-    e <- fit$effects_pre[fit$effects_pre$contrast == "Pre_Eff", , drop = FALSE][1, ]
+    e <- fit$effects_pre[fit$effects_pre$contrast == "Treatment | pretested", , drop = FALSE][1, ]
     results <- c(results, paste(
       .sem_fit_sentence("The latent analysis of covariance", fit$fit_pre, est$scaled, digits, md),
       sprintf(
@@ -2185,9 +2212,20 @@
 #' @param format `"text"` (default) or `"markdown"`, which italicizes
 #'   statistical symbols.
 #'
-#' @return An object of class `solomon_report` with `method`, `results`, and
-#'   `design` (character vectors of sentences), `table` (the estimates), and
-#'   `references` (APA 7 reference entries, in APA order).
+#' @return An object of class `solomon_report`, a list with:
+#'   - `method`, `results`, and `design`: character vectors of sentences.
+#'   - `table`: a data frame of the values that the sentences report. For
+#'     most fits it is the `effects` table of the fit, and for
+#'     [fit_solomon_classic()] it is the rows of that table for the tests on
+#'     the path. For the other results, such as [perm_solomon()],
+#'     [equivalence_solomon()], and a four-group [solomon_from_summary()]
+#'     result, its columns depend on the analysis. "Outside the contract" in
+#'     [solomon_output] lists which results give which table.
+#'   - `references`: the APA 7 reference entries, in APA order.
+#'   - `format`: `"text"` or `"markdown"`.
+#'
+#'   To compute with the estimates, read them from the fit, with
+#'   [`tidy()`][solomon_output], not from the sentences.
 #'
 #' @references
 #' Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &

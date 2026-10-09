@@ -89,7 +89,7 @@
 #' a separate residual variance.
 #'
 #' The model estimates the treatment effect, pretest effect,
-#' Treatment x Pretest interaction, pretest-posttest slope, and separate
+#' Pretest x Treatment interaction, pretest-posttest slope, and separate
 #' residual standard deviations for pretested and unpretested participants.
 #' The pretest enters as a deviation from its mean among pretested
 #' participants (returned as `pretest_mean`), so the pretest effect `bP`
@@ -176,10 +176,35 @@
 #' every larger size studied. Even at and above it, Wald inference was
 #' approximately adequate rather than exact.
 #'
-#' @return An object of class \code{solomon_ml}, with the coefficients, the
-#'   `effects` table (the four Solomon contrasts, then the three pretest
-#'   effects), the residual standard deviations, `pretest_mean`, and the
-#'   settings used.
+#' @return An object of class `solomon_ml`, a list with:
+#'   - `effects`: the four treatment contrasts, `ATE (avg over pretest)`,
+#'     `Pretest x Treatment`, `Treatment | pretested`, and
+#'     `Treatment | unpretested`, followed by the three pretest effects,
+#'     `Pretest effect | control`, `Pretest effect | treated`, and
+#'     `Pretest main effect`, in the columns `contrast`, `estimate`,
+#'     `std.error`, `statistic`, `df` (`Inf` with `inference = "wald"`),
+#'     `p.value`, `conf.low`, and `conf.high`.
+#'   - `conf_level`: the confidence level of the intervals.
+#'   - `coefficients`: the coefficients of the model, in the same columns,
+#'     with `term` for `contrast`.
+#'   - `sigma` and `sigma_unbiased`: the residual standard deviations of the
+#'     unpretested and the pretested participants, by maximum likelihood and
+#'     from the unbiased residual variances.
+#'   - `pretest_mean`: the mean pretest at which the pretest is centered.
+#'   - `vcov`: the covariance matrix of the coefficients.
+#'   - `logLik` and `convergence`: the log-likelihood at the estimates, and
+#'     the convergence code of [stats::optim()] (0 when it converged).
+#'   - `inference`: `"satterthwaite"` or `"wald"`.
+#'   - `min_cell_n` and `small_sample`: the smallest cell size, and whether
+#'     it is below the size at which the printed output notes that Wald
+#'     intervals were too narrow.
+#'   - `method`: the name of the method.
+#'   - `optimizer` (the [stats::optim()] result), `inference_parts`, `data`,
+#'     and `call`, which solomonR's own functions use.
+#'
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
@@ -520,8 +545,8 @@ fit_solomon_ml <- function(
     estimate = unname(b),
     std.error = unname(coef_se),
     statistic = unname(coef_statistic),
-    p.value = unname(coef_p),
     df = unname(coef_df),
+    p.value = unname(coef_p),
     conf.low = unname(coef_ci[, "conf.low"]),
     conf.high = unname(coef_ci[, "conf.high"]),
     row.names = NULL
@@ -550,8 +575,8 @@ fit_solomon_ml <- function(
       estimate = estimate,
       std.error = std.error,
       statistic = statistic,
-      p.value = p.value,
       df = df,
+      p.value = p.value,
       conf.low = unname(ci[, "conf.low"]),
       conf.high = unname(ci[, "conf.high"]),
       row.names = NULL
@@ -587,7 +612,7 @@ fit_solomon_ml <- function(
   L_pm <- L_pc
   L_pm["bTP"] <- 0.5
 
-  effects <- rbind(
+  effects <- .effects_table(rbind(
     contrast(
       L_ate,
       "ATE (avg over pretest)"
@@ -616,7 +641,7 @@ fit_solomon_ml <- function(
       L_pm,
       "Pretest main effect"
     )
-  )
+  ))
 
   sigma_R <- exp(est_full["log_sigma_R"])
   sigma_E <- exp(est_full["log_sigma_E"])

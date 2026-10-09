@@ -400,7 +400,7 @@ test_that("summary statistics of an N-group design give the report of the indivi
   expect_identical(r$design, g$design)
   expect_true(any(startsWith(r$references, "Holm, S. (1979).")))
   expect_true(any(startsWith(r$references, "Steyn, R. (2009).")))
-  expect_identical(r$table, s$contrasts)
+  expect_identical(r$table, s$effects)
   expect_match(report_solomon(s, format = "markdown")$results[1], "*F*(2, 127) = 1.86, *p* = .161",
                fixed = TRUE)
   expect_error(report_solomon(s, design = list(randomized = 1:4)), "six groups")

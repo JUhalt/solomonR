@@ -91,10 +91,41 @@ strings (\code{y_post = "post"}).}
 \code{stouffer}.}
 }
 \value{
-An object of class \code{solomon_classic}. The \code{tests}
-component contains Tests A-I, while \code{path} records the historical
-decision sequence for the observed data under the chosen \code{flow}.
-The \code{history} component holds the history/maturation comparisons.
+An object of class \code{solomon_classic}, a list with:
+\itemize{
+\item \code{tests}: Tests A-I, each with its \code{label} and \code{result}. The
+result of each of Tests A-H is its row of \code{effects}, and each holds
+its \code{model}. Test I holds the Stouffer combination, with every
+variant in \code{all}.
+\item \code{path}, \code{path_string}, and \code{conclusion}: the historical decision
+sequence for the observed data under the chosen \code{flow}.
+\item \code{effects}: Tests A-H, then the pretest main effect, one row
+each, in the columns \code{test} (the letter; empty for the pretest main
+effect), \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (t), \code{df},
+\code{p.value}, \code{conf.low}, and \code{conf.high}, followed by \code{F} (the square
+of t). \code{contrast} has the labels of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}:
+\verb{Pretest x Treatment} (Test A), \code{Treatment | pretested} (Tests B, E,
+F, and G), \code{Treatment | unpretested} (Tests C and H),
+\verb{ATE (avg over pretest)} (Test D), and \verb{Pretest main effect}.
+\item \code{anova}: the two-by-two analysis of variance of the posttest
+with Type III sums of squares, in the columns \code{source} (\code{Treatment},
+\code{Pretest}, \verb{Pretest x Treatment}, and \code{Error}), \code{sumsq}, \code{df},
+\code{meansq}, \code{F}, and \code{p.value}; see "Analysis of variance".
+\item \code{pretest_main}: the row of the pretest main effect.
+\item \code{history}: the history/maturation comparisons, in the columns
+\code{comparison}, \code{estimate}, \code{statistic}, \code{df}, \code{p.value}, \code{conf.low},
+and \code{conf.high}.
+\item \code{conf_level}: the confidence level of the intervals.
+\item \code{settings}: the options used.
+\item \code{g_post}: Hedges' g for Groups 3 and 4, with its interval.
+\item \code{ancova}, \code{t_unpretested}, and \code{stouffer}: legacy elements, kept
+for existing code and not part of the stable interface. \code{tests}
+holds the same analyses as Tests E, H, and I.
+}
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns the table, are the stable interface of the result; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
@@ -172,6 +203,27 @@ p-values and has no interval. The Groups 3-4 standardized mean difference
 (\code{g_post}) reports Hedges' g with a noncentral t interval for the
 population standardized mean difference (Cumming & Finch, 2001; Kelley,
 2007).
+}
+
+\section{Analysis of variance}{
+
+The \code{anova} element is the two-by-two analysis of variance of the
+posttest, Treatment by Pretest, with Type III sums of squares, in the
+format of \code{\link[=solomon_from_summary]{solomon_from_summary()}}. Each effect has one degree of freedom
+and is a contrast of the unweighted cell means, so its F is the square of
+a t in \code{effects}: \code{Treatment} is Test D, \verb{Pretest x Treatment} is Test A,
+and \code{Pretest} is the pretest main effect. The table equals the \code{anova}
+table that \code{\link[=solomon_from_summary]{solomon_from_summary()}} gives for the cell sizes, means, and
+standard deviations of the posttest.
+
+Until solomonR 1.0.0 the element was \code{aov}, the table of \code{\link[stats:aov]{stats::aov()}},
+whose sums of squares are sequential: treatment ignoring pretesting, then
+pretesting adjusted for treatment, then the interaction. With unequal
+cell sizes its treatment row was not Test D and its pretest row was not
+the pretest main effect; only its interaction row agreed with Test A.
+\verb{$aov} now returns \code{anova}, with a deprecation warning; \verb{[["aov"]]} is
+\code{NULL}. A fit saved by an earlier version has no \code{anova} table and should
+be refitted.
 }
 
 \examples{

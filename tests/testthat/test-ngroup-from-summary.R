@@ -59,7 +59,7 @@ test_that("each contrast equals the joint model of the individual data", {
   # effects (#104), which the summary analysis does not.
   e <- glm_fit$effects[glm_fit$effects$contrast %in% .solomon_contrast_order, ]
   rownames(e) <- NULL
-  s <- fit$contrasts
+  s <- fit$effects
   expect_identical(s$comparison, e$comparison)
   expect_identical(s$contrast, e$contrast)
   for (col in c("estimate", "std.error", "statistic", "p.value", "p.adjusted", "df",
@@ -107,7 +107,7 @@ test_that("an unbalanced eight-group design matches the individual-data analyses
   # The treatment contrasts of the joint model, which also reports the
   # pretest effects (#104).
   treatment <- glm_fit$effects$contrast %in% .solomon_contrast_order
-  expect_equal(fit$contrasts[, cols], glm_fit$effects[treatment, cols], tolerance = 1e-8)
+  expect_equal(fit$effects[, cols], glm_fit$effects[treatment, cols], tolerance = 1e-8)
   # The omnibus tests of the joint model for Condition and Pretest x Condition.
   expect_equal(fit$anova$F[c(1, 3)], glm_fit$omnibus$statistic[1:2], tolerance = 1e-8)
   expect_equal(fit$anova$p.value[c(1, 3)], glm_fit$omnibus$p.value[1:2], tolerance = 1e-8)
@@ -123,7 +123,7 @@ test_that("the groups can be given in any order", {
   expect_identical(a$conditions$condition, c("Control", "RP", "GS"))
   expect_identical(b$conditions$condition, c("Control", "GS", "RP"))
   sorted <- function(x) {
-    out <- x$contrasts[order(x$contrasts$contrast, x$contrasts$comparison), ]
+    out <- x$effects[order(x$effects$contrast, x$effects$comparison), ]
     rownames(out) <- NULL
     out
   }
@@ -135,7 +135,7 @@ test_that("the groups can be given in any order", {
   f <- solomon_from_summary(cells$n, cells$mean, cells$sd,
                             treat = factor(cells$treat, levels = c("GS", "RP", "Control")),
                             pretested = cells$pretested, control = "Control")
-  expect_identical(unique(f$contrasts$comparison), c("GS vs Control", "RP vs Control"))
+  expect_identical(unique(f$effects$comparison), c("GS vs Control", "RP vs Control"))
   expect_equal(f$anova, a$anova)
 })
 
@@ -151,8 +151,8 @@ test_that("the omnibus tests for one treatment equal the four-group ANOVA", {
   expect_equal(general$anova$sumsq, four$anova$sumsq, tolerance = 1e-10)
   for (type in c("Pretest x Treatment", "Treatment | pretested", "Treatment | unpretested",
                  "ATE (avg over pretest)")) {
-    g <- general$contrasts[general$contrasts$contrast == type, ]
-    f <- four$contrasts[four$contrasts$contrast == type, ]
+    g <- general$effects[general$effects$contrast == type, ]
+    f <- four$effects[four$effects$contrast == type, ]
     expect_equal(g$estimate, f$estimate, tolerance = 1e-10)
     expect_equal(g$std.error, f$std.error, tolerance = 1e-10)
     expect_equal(g$p.value, f$p.value, tolerance = 1e-10)
@@ -246,8 +246,8 @@ test_that("the contrasts equal hand-computed pooled t tests", {
   fit <- mai_summary()
   expect_equal(fit$mse, mse, tolerance = 1e-10)
   row <- function(comparison, contrast) {
-    r <- fit$contrasts[fit$contrasts$comparison == comparison &
-                         fit$contrasts$contrast == contrast, ]
+    r <- fit$effects[fit$effects$comparison == comparison &
+                         fit$effects$contrast == contrast, ]
     c(r$estimate, r$std.error, r$p.value)
   }
   expect_equal(row("RP vs Control", "Treatment | pretested"), hand(c(1, 0, -1, 0, 0, 0)),

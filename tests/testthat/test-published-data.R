@@ -4,7 +4,7 @@ test_that("elkarkri2025a reproduces the published ANOVA within rounding", {
   fit <- with(elkarkri2025a, solomon_from_summary(n, mean, sd))
   a <- fit$anova
   # El Karkri et al. (2025a, pp. 11-12).
-  expect_equal(a$F[a$source == "Treatment x Pretest"], 11.482, tolerance = 0.05, scale = 1)
+  expect_equal(a$F[a$source == "Pretest x Treatment"], 11.482, tolerance = 0.05, scale = 1)
   expect_equal(a$F[a$source == "Treatment"], 6.794, tolerance = 0.05, scale = 1)
   expect_equal(a$F[a$source == "Pretest"], 0.186, tolerance = 0.05, scale = 1)
   expect_identical(levels(elkarkri2025a$group)[1], "Pretested, treatment")
@@ -61,7 +61,7 @@ test_that("lana1959 reproduces Lana's (1959) Table 3", {
   # Published: treatment F = 5.35 (p < .05); pretest and interaction F < 1.
   expect_lt(abs(f[["Treatment"]] - 5.35), 0.02)
   expect_lt(f[["Pretest"]], 1)
-  expect_lt(f[["Treatment x Pretest"]], 1)
+  expect_lt(f[["Pretest x Treatment"]], 1)
   # Lana's sums of squares are on the cell-mean scale: the package's sums of
   # squares divided by the harmonic mean of the cell sizes.
   n_h <- 4 / sum(1 / lana1959$n)
@@ -106,7 +106,7 @@ test_that("steyn2005 reproduces Steyn's (2005) eight-group analyses", {
     f2 <- stats::setNames(fit$anova$F, fit$anova$source)
     expect_lt(abs(f2[["Treatment"]] - published[[tr]][1]), 0.06)
     expect_lt(abs(f2[["Pretest"]] - published[[tr]][2]), 0.06)
-    expect_lt(abs(f2[["Treatment x Pretest"]] - published[[tr]][3]), 0.06)
+    expect_lt(abs(f2[["Pretest x Treatment"]] - published[[tr]][3]), 0.06)
   }
 
   # The joint model tests the Pretest x Condition interaction once.
@@ -141,7 +141,7 @@ test_that("jordaan2014 reproduces Jordaan's (2014) analyses on each occasion", {
     # The published means and SDs are rounded to two decimals.
     expect_lt(abs(f[["Pretest"]] - pub[1]), 0.05)
     expect_lt(abs(f[["Treatment"]] - pub[2]), 0.05)
-    expect_lt(abs(f[["Treatment x Pretest"]] - pub[3]), 0.05)
+    expect_lt(abs(f[["Pretest x Treatment"]] - pub[3]), 0.05)
     expect_lt(abs(fit$mse - pub[4]), 0.03)
     expect_equal(fit$df_error, 92)
   }
@@ -171,14 +171,14 @@ test_that("waltonbraver1988 reproduces the published worked example", {
   p <- stats::setNames(fs$anova$p.value, fs$anova$source)
   expect_equal(ms[["Pretest"]], 0.14, tolerance = 1e-8)
   expect_equal(ms[["Treatment"]], 67.76, tolerance = 1e-8)
-  expect_equal(ms[["Treatment x Pretest"]], 0, tolerance = 1e-8)
+  expect_equal(ms[["Pretest x Treatment"]], 0, tolerance = 1e-8)
   expect_equal(fs$mse, 20)
   expect_equal(fs$df_error, 52)
   expect_equal(round(f[["Treatment"]], 3), 3.388)        # Test D
   expect_equal(round(p[["Treatment"]], 4), 0.0714)
   expect_equal(round(f[["Pretest"]], 3), 0.007)          # the pretest main effect
   expect_lt(abs(p[["Pretest"]] - 0.9337), 0.0002)        # printed .9337; exact .9336
-  expect_equal(f[["Treatment x Pretest"]], 0, tolerance = 1e-8)  # Test A; printed p .999
+  expect_equal(f[["Pretest x Treatment"]], 0, tolerance = 1e-8)  # Test A; printed p .999
 
   # Tables 3 and 5 and the text (p. 153), through fit_solomon_classic().
   rows <- lapply(seq_len(4), function(i) with(d[i, ], exact_scores(
@@ -265,5 +265,5 @@ test_that("the Sawilowsky and Markman (1988) counterexample reproduces Tests E a
   expect_equal(round(fit$tests$A$result$F, 2), 2.56)
   rounded <- solomon_from_summary(rep(14, 4), c(62.0, 62.3, 64.1, 58.4),
                                   sqrt(c(26.1, 62.2, 57.8, 46.1)))
-  expect_equal(round(rounded$anova$F[rounded$anova$source == "Treatment x Pretest"], 2), 2.62)
+  expect_equal(round(rounded$anova$F[rounded$anova$source == "Pretest x Treatment"], 2), 2.62)
 })

@@ -10,20 +10,95 @@
   if (inherits(fm, "try-error")) c(cfi = NA, rmsea = NA, srmr = NA, df = df) else fm
 }
 
+# The Solomon contrasts as lavaan defined parameters (":=") of the group
+# means mu_P1, mu_P0, mu_U1, and mu_U0 (issue #110). Inside the model syntax
+# they have the short names below; the effects tables that the SEM functions
+# return use the labels of every other fit, so nothing downstream translates
+# them.
+.sem_defined_names <- c(
+  ATE = "ATE (avg over pretest)",
+  Sens = "Pretest x Treatment",
+  Pre_Eff = "Treatment | pretested",
+  Unpre_Eff = "Treatment | unpretested",
+  Pretest_C = "Pretest effect | control",
+  Pretest_T = "Pretest effect | treated",
+  Pretest_Main = "Pretest main effect"
+)
+
+# The labels that the SEM functions returned before 1.0.0 (issue #110).
+# Nothing translates them, so a fit that has them, one saved by an earlier
+# version, is refused where its table is read by label: by tidy(),
+# report_solomon(), and plot_solomon_effects(). `fun` is the function that
+# made the fit.
+.sem_former_labels <- c("ATE", "Sens", "Pre_Eff", "Unpre_Eff")
+
+.stop_former_sem_labels <- function(effects, fun) {
+  if (is.data.frame(effects) && any(effects$contrast %in% .sem_former_labels)) {
+    stop("This fit was made by an earlier version of solomonR, whose contrast labels (ATE, ",
+         "Sens, Pre_Eff, and Unpre_Eff) are no longer read. Run ", fun, "() again.",
+         call. = FALSE)
+  }
+  invisible(effects)
+}
+
+# The contrasts of a four-group model: the four treatment contrasts, then the
+# pretest effects (issue #104), pretested minus unpretested. The models of
+# the pretested groups alone define only Pre_Eff.
+.sem_four_group_definitions <- '
+  ATE          := ((mu_P1 - mu_P0) + (mu_U1 - mu_U0))/2
+  Sens         := (mu_P1 - mu_P0) - (mu_U1 - mu_U0)
+  Pre_Eff      := (mu_P1 - mu_P0)
+  Unpre_Eff    := (mu_U1 - mu_U0)
+  Pretest_C    := (mu_P0 - mu_U0)
+  Pretest_T    := (mu_P1 - mu_U1)
+  Pretest_Main := ((mu_P0 - mu_U0) + (mu_P1 - mu_U1))/2
+'
+
+# The effects table of a lavaan fit: its defined parameters, in the order of
+# the model syntax, with lavaan's Wald tests and intervals. The tests are z
+# tests, so `df` is Inf, as in the effects tables of the other fits that use
+# a normal reference distribution (issue #110).
+.sem_effects <- function(fit, conf_level) {
+  pe <- lavaan::parameterEstimates(fit, standardized = FALSE, level = conf_level)
+  pe <- pe[pe$op == ":=", , drop = FALSE]
+  # A plain data frame, as the other fits return, not a lavaan.data.frame.
+  .effects_table(data.frame(
+    contrast = unname(.sem_defined_names[pe$lhs]),
+    estimate = pe$est,
+    std.error = pe$se,
+    statistic = pe$z,
+    df = rep(Inf, nrow(pe)),
+    p.value = pe$pvalue,
+    conf.low = pe$ci.lower,
+    conf.high = pe$ci.upper,
+    stringsAsFactors = FALSE
+  ))
+}
+
 #' SEM analysis for Solomon Four-Group designs (mean-structure; optional ANCOVA)
 #'
 #' `r lifecycle::badge("experimental")`
 #' Two modes:
 #' 1) mean-structure (default): 4-group SEM estimating posttest means for P1, P0, U1, U0,
-#'    and reporting ATE, Sens (Pretest×Treatment), Pre_Eff, Unpre_Eff.
+#'    and reporting the four Solomon contrasts and the three pretest effects
+#'    under the labels of [fit_solomon_glm()].
 #' 2) ancova = TRUE: restricts to pretested groups (P1, P0) and fits y_post ~ beta*y_pre
-#'    with group means; reports the pretested simple effect (Pre_Eff). This avoids
-#'    structural missingness of y_pre in U1/U0 and matches Huck & Sandler.
+#'    with group means; reports the pretested simple effect
+#'    (`Treatment | pretested`). This avoids structural missingness of y_pre
+#'    in U1/U0 and matches Huck & Sandler.
 #'
 #' The four-group mean-structure model is saturated, so its global fit
 #' indices are not diagnostic. Its contrasts are unadjusted posttest mean
 #' differences, whereas the ANCOVA mode adjusts for the pretest within the
 #' pretested groups.
+#'
+#' The pretest effects are differences between the group means, pretested
+#' minus unpretested participants: among controls
+#' (`Pretest effect | control`), among treated participants
+#' (`Pretest effect | treated`), and their equal-weighted average
+#' (`Pretest main effect`). Their estimates equal those of
+#' [fit_solomon_glm()] without `y_pre`; see "The pretest effect" there. The
+#' ANCOVA mode has no unpretested groups, so it does not report them.
 #'
 #' Tests and confidence intervals for the contrasts are lavaan's Wald
 #' results, which use a large-sample normal reference distribution.
@@ -54,10 +129,26 @@
 #' Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
 #' *Journal of Statistical Software, 48*(2), 1–36.
 #' https://doi.org/10.18637/jss.v048.i02
-#' @return An object of class `solomon_sem` with `mode` (`"mean"` or
-#'   `"ancova_pretested"`), the lavaan `fit`, the contrasts in `effects`
-#'   (estimate, standard error, z, p value, and confidence interval), the
-#'   `fitmeasures`, and `conf_level`.
+#' @return An object of class `solomon_sem` with:
+#'   \itemize{
+#'     \item `mode`: `"mean"` or `"ancova_pretested"`
+#'     \item `fit`: the lavaan object
+#'     \item `effects`: data.frame of the contrasts, with the columns
+#'       `contrast`, `estimate`, `std.error`, `statistic` (z), `df` (`Inf`,
+#'       for the normal reference distribution), `p.value`, `conf.low`, and
+#'       `conf.high`. The four-group model gives the rows
+#'       `ATE (avg over pretest)`, `Pretest x Treatment`,
+#'       `Treatment | pretested`, `Treatment | unpretested`,
+#'       `Pretest effect | control`, `Pretest effect | treated`, and
+#'       `Pretest main effect`, the labels of [fit_solomon_glm()]; the ANCOVA
+#'       mode gives `Treatment | pretested`
+#'     \item `fitmeasures`: named vector (CFI, RMSEA, SRMR, df)
+#'     \item `conf_level`: the confidence level of the intervals
+#'   }
+#'
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result. The
+#'   lavaan object in `fit` is not; see [solomon_output].
 #' @examples
 #' if (requireNamespace("lavaan", quietly = TRUE)) {
 #'   with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre))
@@ -86,10 +177,6 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
   }
 
-  effect_columns <- c("lhs", "est", "se", "z", "pvalue", "ci.lower", "ci.upper")
-  effect_names <- c("contrast", "estimate", "std.error", "statistic", "p.value",
-                    "conf.low", "conf.high")
-
   if (!ancova) {
     # ---- 4-group mean-structure SEM (no pretest covariate) ----
     df <- data.frame(y_post = y_post, treat = treat, pretested = pretested)
@@ -108,11 +195,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
       ', var_post, '
 
       # Defined parameters (contrasts)
-      ATE      := ((mu_P1 - mu_P0) + (mu_U1 - mu_U0))/2
-      Sens     := (mu_P1 - mu_P0) - (mu_U1 - mu_U0)
-      Pre_Eff  := (mu_P1 - mu_P0)
-      Unpre_Eff:= (mu_U1 - mu_U0)
-    ')
+      ', .sem_four_group_definitions)
 
     fit <- lavaan::sem(
       mod, data = df, group = "group4",
@@ -129,14 +212,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
       )
     }
 
-    pe <- lavaan::parameterEstimates(fit, standardized = FALSE, level = conf_level)
-    eff <- pe[
-      pe$op == ":=",
-      effect_columns,
-      drop = FALSE
-    ]
-    names(eff) <- effect_names
-    rownames(eff) <- NULL
+    eff <- .sem_effects(fit, conf_level)
 
     fm <- .sem_fit_measures(fit)
 
@@ -181,20 +257,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
       )
     }
 
-    pe2 <- lavaan::parameterEstimates(
-      fit2,
-      standardized = FALSE,
-      level = conf_level
-    )
-
-    eff2 <- pe2[
-      pe2$op == ":=",
-      effect_columns,
-      drop = FALSE
-    ]
-
-    names(eff2) <- effect_names
-    rownames(eff2) <- NULL
+    eff2 <- .sem_effects(fit2, conf_level)
 
     fm2 <- .sem_fit_measures(fit2)
 

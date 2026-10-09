@@ -10,7 +10,14 @@ stouffer_solomon(p)
 \item{p}{numeric vector of one-tailed p-values (same direction)}
 }
 \value{
-list with \code{z_meta}, \code{p_meta_two_tailed}, and \code{p_meta_one_tailed}
+A list with:
+\itemize{
+\item \code{z_meta}: the combined z, the sum of the z scores divided by the
+square root of their number.
+\item \code{p_meta_two_tailed}: its two-tailed p-value.
+\item \code{p_meta_one_tailed}: its one-tailed p-value, in the direction of the
+p-values supplied.
+}
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

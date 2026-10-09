@@ -14,7 +14,9 @@ plot_solomon(y, treat, pretested)
 \item{pretested}{Pretest indicator coded 0 = not pretested and 1 = pretested.}
 }
 \value{
-Invisibly returns a data frame containing cell summaries.
+Invisibly, a data frame with one row for each cell, in the columns
+\code{pretested}, \code{treat}, \code{n}, \code{mean}, \code{sd}, \code{se}, the limits \code{lo} and \code{hi}
+of the 95\% interval, and \code{x}, the position of the cell on the axis.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}

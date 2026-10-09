@@ -36,7 +36,12 @@
       (pretest sensitization) was 0.01, 95% CI [-0.30, 0.32], z = 0.07, p = .945.
       The treatment effect among pretested participants was 0.37, 95% CI [0.13,
       0.60], z = 3.05, p = .002. The treatment effect among unpretested
-      participants was 0.36, 95% CI [0.14, 0.57], z = 3.28, p = .001.
+      participants was 0.36, 95% CI [0.14, 0.57], z = 3.28, p = .001. The pretest
+      effect on the latent posttest (pretested minus unpretested participants) was
+      -0.06 among control participants, 95% CI [-0.28, 0.15], z = -0.59, p = .556,
+      and -0.05 among treated participants, 95% CI [-0.28, 0.17], z = -0.46, p =
+      .645; their average, the pretest main effect, was -0.06, 95% CI [-0.21,
+      0.10], z = -0.74, p = .459.
       
       References
       
@@ -112,7 +117,12 @@
       (pretest sensitization) was 0.16, 95% CI [-0.15, 0.47], z = 0.99, p = .320.
       The treatment effect among pretested participants was 0.38, 95% CI [0.15,
       0.62], z = 3.26, p = .001. The treatment effect among unpretested
-      participants was 0.23, 95% CI [0.01, 0.44], z = 2.10, p = .036.
+      participants was 0.23, 95% CI [0.01, 0.44], z = 2.10, p = .036. The pretest
+      effect on the latent posttest (pretested minus unpretested participants) was
+      -0.19 among control participants, 95% CI [-0.41, 0.03], z = -1.72, p = .085,
+      and -0.03 among treated participants, 95% CI [-0.25, 0.19], z = -0.28, p =
+      .778; their average, the pretest main effect, was -0.11, 95% CI [-0.27,
+      0.04], z = -1.41, p = .158.
       
       References
       

@@ -125,14 +125,27 @@
 #'   evaluation reuses it, so designs are compared on common random numbers.
 #' @param max_n Largest size considered for the smallest cell.
 #'
-#' @return A data frame with one row per estimand: the estimand, its true
-#'   effect, the four cell sizes, the total sample size, the achieved power,
-#'   the basis (`"analytic"` or `"simulation"`), the Monte Carlo standard
-#'   error (`NA` for analytic rows), the target power, `alpha`, and a note.
+#' @return A data frame with one row for each estimand, in the columns:
+#'   - `estimand`: the contrast, under the labels of [fit_solomon_glm()]:
+#'     `ATE (avg over pretest)`, `Pretest x Treatment`,
+#'     `Treatment | pretested`, and `Treatment | unpretested`.
+#'   - `true_effect`: its true value under the planning values.
+#'   - `n1`, `n2`, `n3`, and `n4`: the four cell sizes; and `total_n`, the
+#'     total sample size.
+#'   - `power`: the achieved power.
+#'   - `basis`: `"analytic"` or `"simulation"`.
+#'   - `mcse`: the Monte Carlo standard error of the power (`NA` for
+#'     analytic rows).
+#'   - `target_power` and `alpha`: the target power and the significance
+#'     level.
+#'   - `note`: an explanation, where one is needed.
+#'
 #'   Estimands whose true effect is zero, or whose target is not reached by
 #'   `max_n`, return `NA` sizes with an explanatory note. The planning values
 #'   are kept in the attribute `settings`, which [analysis_plan_solomon()]
-#'   reads.
+#'   reads. The table describes a planned study, with true effects and no
+#'   estimates, so its column of contrasts is `estimand` and it is not an
+#'   effects table; see [solomon_output].
 #'
 #' @seealso [power_solomon()] for the power of a given design, and
 #'   [analysis_plan_solomon()] for an analysis plan built on the result.

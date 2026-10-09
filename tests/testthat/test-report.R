@@ -2,16 +2,17 @@
 
 # The exported analysis functions. Exports that are not analysis methods:
 # plots, design checks, planning, the method comparison (it reports other
-# methods' fits), the simulator, helpers, and the report itself. A new export
-# must be added to the reference registry or here. invariance_solomon() is
-# an analysis, reported since #112.
+# methods' fits), the simulator, helpers, the report itself, and tidy(), the
+# generic re-exported from the generics package (#110). A new export must be
+# added to the reference registry or here. invariance_solomon() is an
+# analysis, reported since #112.
 analysis_exports <- function() {
   exports <- getNamespaceExports("solomonR")
   not_analysis <- c(
     grep("^plot_", exports, value = TRUE),
     "validate_solomon", "check_solomon_missing", "check_solomon_assumptions",
     "power_solomon", "plan_solomon", "simulate_solomon", "compare_solomon_methods", "p_to_z",
-    "report_solomon", "analysis_plan_solomon"
+    "report_solomon", "analysis_plan_solomon", "tidy"
   )
   setdiff(exports, not_analysis)
 }

@@ -188,7 +188,7 @@
 #' # Relapse prevention against control, as a Solomon four-group design.
 #' rp <- subset(mai2020, condition %in% c("RP", "Control"))
 #' with(rp, fit_solomon_glm(post_behavior, treat = as.integer(condition == "RP"),
-#'                          pretested = pretested, pretest_score = pre_behavior))
+#'                          pretested = pretested, y_pre = pre_behavior))
 #'
 #' # One model for all six groups.
 #' fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,

@@ -39,12 +39,27 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_1949} with \code{design} (\code{"three-group"}
-or \code{"four-group"}), \code{groups} (a data frame with each group's pretest and
-training, size, pretest mean and whether it was observed or inferred,
-posttest mean, and improvement, plus standard errors of the observed
-means when individual data are given), \code{inferred_pretest}, \code{I}, and, for
-the four-group design, \code{posttest_contrast} and \code{pretest_difference}.
+An object of class \code{solomon_1949}, a list with:
+\itemize{
+\item \code{design}: \code{"three-group"} or \code{"four-group"}.
+\item \code{groups}: one row for each group, in the columns \code{group}, \code{pretested}
+and \code{trained} (0/1), \code{n}, \code{pre_mean} and \code{pre_source} (the pretest
+mean, and whether it was \code{"observed"} or \code{"inferred"}), \code{pre_se},
+\code{post_mean}, \code{post_se}, \code{change} (the improvement), and \code{change_se}.
+The standard errors are those of the observed means, given with
+individual data, and \code{NA} otherwise.
+\item \code{inferred_pretest} and \code{inferred_method}: the inferred pretest mean,
+and how it was computed (\code{"average"} or \code{"pooled"}).
+\item \code{I}: Solomon's interaction.
+\item \code{individual}: whether individual data were supplied.
+\item \code{posttest_contrast} and \code{pretest_difference}, for the four-group
+design: the posttest interaction contrast and the pretest difference
+between the two pretested groups, whose difference is \code{I} (see
+Details).
+}
+
+Solomon (1949) gave point estimates without a test, so the result has
+no effects table; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

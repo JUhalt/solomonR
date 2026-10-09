@@ -65,28 +65,48 @@ scalar (or, with \code{partial_post}, partial scalar) invariance. Set it to
 \value{
 An object of class \code{solomon_sem_latent} with:
 \itemize{
-\item \code{fit_post}: lavaan object for the 4-group POST model
-\item \code{effects_post}: data.frame of ATE, Sens, Pre_Eff, Unpre_Eff on latent POST
+\item \code{fit}: lavaan object for the 4-group POST model
+\item \code{effects}: data.frame of the contrasts on latent POST, with the
+columns \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (z), \code{df}
+(\code{Inf}, for the normal reference distribution), \code{p.value},
+\code{conf.low}, and \code{conf.high}, and the rows
+\verb{ATE (avg over pretest)}, \verb{Pretest x Treatment},
+\code{Treatment | pretested}, \code{Treatment | unpretested},
+\verb{Pretest effect | control}, \verb{Pretest effect | treated}, and
+\verb{Pretest main effect}, the labels of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}
 \item \code{fitmeasures_post}: named vector (CFI, RMSEA, SRMR, df)
 \item \code{fit_pre} (optional): lavaan object for pretested latent ANCOVA
-\item \code{effects_pre} (optional): data.frame with \code{Pre_Eff} on latent POST (pretested)
+\item \code{effects_pre} (optional): data.frame with \code{Treatment | pretested}
+on latent POST, adjusted for the latent pretest, in the columns of
+\code{effects}
 \item \code{fitmeasures_pre} (optional)
 \item \code{invariance}: the \code{\link[=invariance_solomon]{invariance_solomon()}} result, or \code{NULL} when
 the check was not run, and \code{invariance_status}, a one-line summary
+\item \code{conf_level}: the confidence level of the intervals
 \item \code{settings}: the options used, including the estimator and any
 freed parameters, which \code{\link[=report_solomon]{report_solomon()}} reports
 }
+
+Before solomonR 1.0.0, \code{fit} and \code{effects} were named \code{fit_post} and
+\code{effects_post}. The old names still work with \code{$}, with a deprecation
+warning, but not with \code{[[}.
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns \code{effects}, are the stable interface of the result. The
+lavaan objects and \code{settings} are not; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 This function provides a fully latent analysis path:
 (A) A 4-group SEM that defines a latent POST factor from multiple
 indicators and estimates group-specific latent means for
-P1, P0, U1, and U0. From these we compute ATE, Sens (Pretest x Treat),
-and simple effects on the latent outcome.
+P1, P0, U1, and U0. From these we compute the four Solomon contrasts
+and the three pretest effects on the latent outcome, under the
+labels of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
 (B) Optionally, a 2-group SEM in \strong{pretested} groups only (P1 vs P0)
 with a latent PRE factor and latent POST factor, fitting a latent
-ANCOVA (POST ~ PRE), and reporting the pretested simple effect.
+ANCOVA (POST ~ PRE), and reporting the pretested simple effect
+(\code{Treatment | pretested}).
 }
 \details{
 Latent mean contrasts require scalar measurement invariance (equal
@@ -120,6 +140,18 @@ indicator of each factor is fixed at 1, and both analyses are on the
 scale of the first POST indicator. If \code{partial_post} frees that marker
 loading, lavaan keeps it at 1 in P1 only and estimates it in the other
 groups, so the scale is that of the first indicator in P1.
+
+The pretest effects of the four-group model are differences between
+latent means too, in the unit of the other contrasts: pretested minus
+unpretested participants among controls (\verb{Pretest effect | control}),
+among treated participants (\verb{Pretest effect | treated}), and their
+equal-weighted average (\verb{Pretest main effect}). Dukes et al. (1995,
+p. 426), who analyzed a Solomon design with latent variables, described a
+pretesting difference unrelated to the program by comparing two two-group
+models; the \verb{Pretest main effect} row estimates such a difference as one
+contrast, with a test. A shift in an indicator's intercept that the two
+pretested groups share cancels from the Pretest x Treatment contrast but
+not from the pretest effects, which it biases (see Invariance check).
 
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
@@ -193,6 +225,11 @@ https://doi.org/10.1037/0033-2909.105.3.456
 Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
 measurement invariance. \emph{Structural Equation Modeling: A Multidisciplinary
 Journal, 14}(3), 464–504. https://doi.org/10.1080/10705510701301834
+
+Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of D.A.R.E.
+(Drug Abuse Resistance Education), using a Solomon four-group design with
+latent variables. \emph{Evaluation Review, 19}(4), 409–435.
+https://doi.org/10.1177/0193841X9501900404
 
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. \emph{Psychometrika, 58}(4), 525–543.

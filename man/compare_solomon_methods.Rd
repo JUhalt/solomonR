@@ -39,12 +39,31 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_comparison} with \code{results} (one row per
-method and contrast, with the adjustment, variance assumption, reference
-distribution, estimate, standard error, interval, and p-value),
-\code{estimands} (definitions of the four contrasts), \code{not_compared} (analyses
-excluded and why), and \code{skipped} (requested methods that could not be
-fitted and why).
+An object of class \code{solomon_comparison}, a list with:
+\itemize{
+\item \code{results}: one row for each method and contrast, in the columns
+\code{method}, \code{contrast}, \code{estimate}, \code{std.error}, \code{statistic}, \code{df}
+(\code{Inf} for a normal reference distribution), \code{p.value}, \code{conf.low},
+and \code{conf.high}, followed by the \code{adjustment}, the \code{variance}
+assumption, and the \code{reference} distribution of each method. The
+rows are the four treatment contrasts, \verb{ATE (avg over pretest)},
+\verb{Pretest x Treatment}, \code{Treatment | pretested}, and
+\code{Treatment | unpretested}, for each method that estimates them. The
+table has no rows when every requested method was skipped.
+\item \code{estimands}: the definition of each contrast (\code{contrast} and
+\code{definition}).
+\item \code{not_compared}: the analyses left out, and why (\code{analysis} and
+\code{reason}).
+\item \code{skipped}: the requested methods that could not be fitted, and why
+(\code{method} and \code{reason}).
+\item \code{conf_level}: the confidence level of the intervals.
+\item \code{settings}: the methods requested, the confidence level, and whether
+pretest scores were supplied.
+}
+
+\code{results} has the columns and the labels of an effects table, and
+\code{\link[=solomon_output]{tidy()}} returns it. See \link{solomon_output} for the
+columns, the labels, and the parts of a result that are stable.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

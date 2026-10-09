@@ -193,13 +193,20 @@
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
-#' @return An object of class `solomon_missing` with `by_cell` (counts by
-#'   Solomon cell), `counts` (totals by category), `pattern` (`"none"`,
-#'   `"structural"`, `"incidental"`, or `"mixed"`), and `guidance` (the
-#'   interpretation, supported response, and sources for each category
-#'   present). For a design with several treatments, `by_cell` has one row
-#'   for each of the 2(k + 1) groups, its `treat` column holds the
-#'   condition, and `conditions` names the control and the treatments.
+#' @return An object of class `solomon_missing`, a list with:
+#'   - `by_cell`: the counts in each Solomon cell, in the columns `group`,
+#'     `cell`, `pretested`, `treat`, `n`, `posttest_missing`,
+#'     `pretest_structural`, `pretest_incidental`, and `pretest_unexpected`.
+#'   - `counts`: the totals by category.
+#'   - `pattern`: `"none"`, `"structural"`, `"incidental"`, or `"mixed"`.
+#'   - `guidance`: for each category present, its count, the
+#'     interpretation, the supported response, and the sources (`category`,
+#'     `n`, `interpretation`, `response`, and `sources`).
+#'   - `pretest_supplied`: whether pretest scores were supplied.
+#'
+#'   For a design with several treatments, `by_cell` has one row for each of
+#'   the 2(k + 1) groups, its `treat` column holds the condition, and
+#'   `conditions` names the control and the treatments.
 #' @references
 #' Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 #' Planned missing data designs in psychological research. *Psychological
@@ -479,12 +486,20 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
-#' @return An object of class `solomon_validation` with `valid` (`TRUE` when
-#'   no errors were found), `issues` (severity, check, and message), `cells`
-#'   (counts by cell, with clusters and cluster sizes when `cluster` is
-#'   supplied), and `missing` (the [check_solomon_missing()] result). For a
-#'   design with several treatments, `cells` has one row for each of the
-#'   2(k + 1) cells and `conditions` names the control and the treatments.
+#' @return An object of class `solomon_validation`, a list with:
+#'   - `valid`: `TRUE` when no errors were found.
+#'   - `issues`: one row for each finding, in the columns `severity`,
+#'     `check`, and `message`.
+#'   - `cells`: the counts in each cell, as in `by_cell` of
+#'     [check_solomon_missing()], with `posttest_observed`, and with the
+#'     clusters and cluster sizes when `cluster` is supplied.
+#'   - `missing`: the [check_solomon_missing()] result.
+#'   - `settings`: `min_cell_n`, and whether pretest scores and clusters
+#'     were supplied.
+#'
+#'   For a design with several treatments, `cells` has one row for each of
+#'   the 2(k + 1) cells and `conditions` names the control and the
+#'   treatments.
 #' @references
 #' El Karkri, M., Quesada, A., & Romero-Ariza, M. (2025a). The dual impact of
 #' pretest sensitisation and the cognitive acceleration through science

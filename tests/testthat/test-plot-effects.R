@@ -217,6 +217,51 @@ test_that("SEM contrasts are shown under the package's contrast names", {
   )
   expect_match(p$labels$caption, "normal reference")
   expect_match(p$labels$caption, "lavaan")
+
+  # The fit itself uses those names (#110), so the figure takes its rows
+  # unchanged; the pretest effects of the fit are not drawn.
+  plotted <- p$data[order(as.character(p$data$contrast)), ]
+  fitted <- sem$effects[sem$effects$contrast %in% solomonR:::.solomon_contrast_order, ]
+  fitted <- fitted[order(fitted$contrast), ]
+  expect_equal(as.character(plotted$contrast), fitted$contrast)
+  expect_equal(plotted$estimate, fitted$estimate)
+  expect_equal(plotted$conf.low, fitted$conf.low)
+  expect_false(grepl("Not estimated", p$labels$caption, fixed = TRUE))
+
+  # The model of the pretested groups estimates one contrast.
+  ancova <- with(solomon_demo, fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = TRUE))
+  pa <- plot_solomon_effects(ancova)
+  expect_identical(as.character(pa$data$contrast), "Treatment | pretested")
+  expect_match(pa$labels$caption, "Not estimated by this model: ATE (avg over pretest), ",
+               fixed = TRUE)
+})
+
+
+test_that("a latent fit is plotted from its effects table and confidence level (#110)", {
+
+  skip_if_not_installed("lavaan")
+
+  set.seed(110)
+  g <- rep(1:4, each = 60)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  f <- stats::rnorm(240, 0.4 * treat)
+  items <- data.frame(y1 = f + stats::rnorm(240, 0, 0.6),
+                      y2 = 0.9 * f + stats::rnorm(240, 0, 0.6),
+                      y3 = 0.8 * f + stats::rnorm(240, 0, 0.6))
+  fit <- fit_solomon_sem_latent(items, names(items), treat, pretested,
+                                check_invariance = FALSE, conf_level = 0.9)
+  p <- plot_solomon_effects(fit)
+
+  plotted <- p$data[order(as.character(p$data$contrast)), ]
+  fitted <- fit$effects[fit$effects$contrast %in% solomonR:::.solomon_contrast_order, ]
+  fitted <- fitted[order(fitted$contrast), ]
+  expect_equal(as.character(plotted$contrast), fitted$contrast)
+  expect_equal(plotted$estimate, fitted$estimate)
+  expect_equal(plotted$conf.high, fitted$conf.high)
+  expect_match(p$labels$caption, "^90% confidence intervals; normal reference")
+  expect_match(p$labels$caption, "latent-variable model; lavaan Wald inference", fixed = TRUE)
+  expect_identical(p$labels$x, "Estimate (latent posttest scale)")
 })
 
 

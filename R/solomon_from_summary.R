@@ -42,6 +42,27 @@
   cp^2 * a * (df / (df - 2)) * (1 + delta^2 / a) - delta^2
 }
 
+# The two-way analysis of variance of the posttest of a four-group design,
+# with Type III sums of squares. `tests` holds the t tests of the treatment
+# main effect (Test D), the pretest main effect, and the interaction (Test
+# A), in that order. Each is a contrast of the unweighted cell means with
+# one degree of freedom, so F is the square of t and the sum of squares is F
+# times the error mean square. The interaction is named as the contrast is,
+# Pretest x Treatment (issue #110). solomon_from_summary() and
+# fit_solomon_classic() return this table as `anova`.
+.two_way_anova <- function(tests, mse, df_error) {
+  f <- tests$statistic^2
+  data.frame(
+    source = c("Treatment", "Pretest", "Pretest x Treatment", "Error"),
+    sumsq = c(f * mse, mse * df_error),
+    df = c(1, 1, 1, df_error),
+    meansq = c(f * mse, mse),
+    F = c(f, NA),
+    p.value = c(tests$p.value, NA),
+    stringsAsFactors = FALSE
+  )
+}
+
 #' Solomon analysis from summary statistics
 #'
 #' `r lifecycle::badge("stable")`
@@ -103,21 +124,47 @@
 #' @param control The control condition, when `treat` is a character vector
 #'   or factor.
 #'
-#' @return An object of class `solomon_summary_fit` with `contrasts` (Tests
-#'   A-D, the pretest main effect, and the simple effects: estimate, standard
-#'   error, t, degrees of freedom, p-value, confidence interval, F, and Type
-#'   III sum of squares), an `anova` table, the `cells`, the error mean
-#'   square and degrees of freedom, and the settings.
+#' @return An object of class `solomon_summary_fit`, a list with:
+#'   - `effects`: Tests A-D and the pretest main effect, one row each, in
+#'     the columns `test` (the letter; empty for the pretest main effect),
+#'     `contrast`, `estimate`, `std.error`, `statistic` (t), `df`,
+#'     `p.value`, `conf.low`, and `conf.high`, followed by `F` (the square
+#'     of t) and the Type III sum of squares `sumsq`. `contrast` has the
+#'     labels of [fit_solomon_glm()]: `Pretest x Treatment` (Test A),
+#'     `Treatment | pretested` (Test B), `Treatment | unpretested` (Test C),
+#'     `ATE (avg over pretest)` (Test D), and `Pretest main effect`.
+#'   - `anova`: the two-by-two analysis of variance, in the columns `source`
+#'     (`Treatment`, `Pretest`, `Pretest x Treatment`, and `Error`),
+#'     `sumsq`, `df`, `meansq`, `F`, and `p.value`.
+#'   - `cells`: the summary statistics supplied (`group`, `n`, `mean`, and
+#'     `sd`).
+#'   - `mse` and `df_error`: the error mean square and its degrees of
+#'     freedom.
+#'   - `conf_level`: the confidence level of the intervals.
 #'
 #'   For a design with several treatments, an object of class
-#'   `solomon_summary_ngroup` with `contrasts` (for each comparison of a
-#'   treatment with the control and each of the four contrasts: estimate,
-#'   standard error, t, p-value, Holm-adjusted p-value `p.adjusted`, degrees
-#'   of freedom, and confidence interval), the omnibus tests in `anova`
-#'   (Type III sum of squares, df, mean square, F, p-value), the `cells` in
-#'   the package's group order, the `conditions` (control first), `adjust`
-#'   (`"holm"`), the error mean square and degrees of freedom, and the
-#'   settings.
+#'   `solomon_summary_ngroup`, a list with:
+#'   - `effects`: for each comparison of a treatment with the control, the
+#'     four treatment contrasts, in the columns `comparison`, `contrast`,
+#'     `estimate`, `std.error`, `statistic` (t), `df`, `p.value`,
+#'     `conf.low`, and `conf.high`, followed by the Holm-adjusted p-value
+#'     `p.adjusted`.
+#'   - `anova`: the omnibus tests, in the same columns as above, with the
+#'     sources `Condition`, `Pretest`, `Pretest x Condition`, and `Error`.
+#'   - `cells`: the summary statistics in the package's group order
+#'     (`group`, `condition`, `pretested`, `n`, `mean`, and `sd`).
+#'   - `conditions`: the conditions, control first (`condition` and `role`).
+#'   - `adjust`: the adjustment of the p-values, `"holm"`.
+#'   - `mse`, `df_error`, and `conf_level`, as above.
+#'
+#'   Before solomonR 1.0.0, `effects` was named `contrasts`, and the
+#'   interaction of the four-group `anova` table `Treatment x Pretest`.
+#'   `$contrasts` still returns the table, with a deprecation warning;
+#'   `[["contrasts"]]` does not.
+#'
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
@@ -211,7 +258,7 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
   statistic <- estimate / std.error
   ci <- .wald_ci(estimate, std.error, rep(df_error, nrow(L)), conf_level)
 
-  contrasts <- data.frame(
+  contrasts <- .effects_table(data.frame(
     test = c("A", "B", "C", "D", ""),
     contrast = c("Pretest x Treatment", "Treatment | pretested", "Treatment | unpretested",
                  "ATE (avg over pretest)", "Pretest main effect"),
@@ -225,22 +272,13 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
     F = statistic^2,
     sumsq = statistic^2 * mse,
     stringsAsFactors = FALSE
-  )
-
-  anova <- data.frame(
-    source = c("Treatment", "Pretest", "Treatment x Pretest", "Error"),
-    sumsq = c(contrasts$sumsq[c(4, 5, 1)], mse * df_error),
-    df = c(1, 1, 1, df_error),
-    meansq = c(contrasts$sumsq[c(4, 5, 1)], mse),
-    F = c(contrasts$F[c(4, 5, 1)], NA),
-    p.value = c(contrasts$p.value[c(4, 5, 1)], NA),
-    stringsAsFactors = FALSE
-  )
+  ), keys = "test")
 
   structure(
     list(
-      contrasts = contrasts,
-      anova = anova,
+      effects = contrasts,
+      anova = .two_way_anova(contrasts[match(c("D", "", "A"), contrasts$test), ], mse,
+                             df_error),
       cells = data.frame(group = .solomon_summary_groups, n = n, mean = mean, sd = sd,
                          stringsAsFactors = FALSE),
       mse = mse,
@@ -249,6 +287,18 @@ solomon_from_summary <- function(n, mean, sd, conf_level = 0.95, treat = NULL,
     ),
     class = "solomon_summary_fit"
   )
+}
+
+# `effects` was `contrasts` before 1.0.0 (issue #110); `$` still accepts the
+# former name, with a deprecation warning.
+#' @export
+`$.solomon_summary_fit` <- function(x, name) {
+  .renamed_element(x, name, c(contrasts = "effects"), "solomon_from_summary")
+}
+
+#' @export
+`$.solomon_summary_ngroup` <- function(x, name) {
+  .renamed_element(x, name, c(contrasts = "effects"), "solomon_from_summary")
 }
 
 #' @export
@@ -269,7 +319,7 @@ print.solomon_summary_fit <- function(x, digits = 3, ...) {
     }
   }
   cat(sprintf("\nContrasts with %s%% confidence intervals\n", format(100 * x$conf_level)))
-  k <- x$contrasts
+  k <- x$effects
   for (i in seq_len(nrow(k))) {
     label <- if (nzchar(k$test[i])) sprintf("Test %s: %s", k$test[i], k$contrast[i]) else k$contrast[i]
     cat(sprintf("  %-38s %8.*f [%.*f, %.*f], t(%d) = %.2f, p %s\n",
@@ -395,15 +445,15 @@ print.solomon_summary_fit <- function(x, digits = 3, ...) {
       estimate = estimate,
       std.error = std.error,
       statistic = statistic,
-      p.value = p,
-      p.adjusted = stats::p.adjust(p, method = "holm"),
       df = df_error,
+      p.value = p,
       conf.low = unname(ci[, "conf.low"]),
       conf.high = unname(ci[, "conf.high"]),
+      p.adjusted = stats::p.adjust(p, method = "holm"),
       stringsAsFactors = FALSE
     )
   }))
-  rownames(contrasts) <- NULL
+  contrasts <- .effects_table(contrasts, keys = "comparison")
 
   # Omnibus tests: (L mu)' (L D L')^-1 (L mu) is the Type III sum of squares
   # of the hypothesis L mu = 0, with D = diag(1 / n); F divides it by q MSE.
@@ -431,7 +481,7 @@ print.solomon_summary_fit <- function(x, digits = 3, ...) {
 
   structure(
     list(
-      contrasts = contrasts,
+      effects = contrasts,
       anova = anova,
       cells = cells,
       conditions = data.frame(
@@ -476,7 +526,7 @@ print.solomon_summary_ngroup <- function(x, digits = 3, ...) {
   }
 
   cat(sprintf("\nContrasts with %s%% confidence intervals\n", format(100 * x$conf_level)))
-  e <- x$contrasts
+  e <- x$effects
   .print_columns(
     c("Comparison", "Contrast", "Est (SE)", "t", "df", "p", "p adj.",
       sprintf("%s%% CI", format(100 * x$conf_level))),
@@ -531,9 +581,15 @@ print.solomon_summary_ngroup <- function(x, digits = 3, ...) {
 #' @param r Pre-post correlation in the pretested groups, needed with
 #'   `mean_pre` and `sd_pre`.
 #'
-#' @return A data frame with one row per pair: the estimator, `yi` (effect
-#'   size), `vi` (sampling variance), `sei` (standard error), and the group
-#'   sizes.
+#' @return A data frame with one row for each pair of groups, in the columns:
+#'   - `pair`: the pair, pretested or unpretested.
+#'   - `estimator`: the effect-size estimator.
+#'   - `yi`, `vi`, and `sei`: the effect size, its sampling variance, and
+#'     its standard error, under the names meta-analysis software uses.
+#'   - `n_treated` and `n_control`: the group sizes.
+#'
+#'   The effect sizes are standardized, so this is not an effects table; see
+#'   [solomon_output].
 #'
 #' @references
 #' Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect

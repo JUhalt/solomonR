@@ -92,7 +92,7 @@
     }
     crit <- stats::qt(1 - (1 - conf_level) / 2, dfc)
     data.frame(occasion = occasion, contrast = contrast, estimate = est, std.error = se,
-               df = dfc, statistic = stat, p.value = p,
+               statistic = stat, df = dfc, p.value = p,
                conf.low = est - crit * se, conf.high = est + crit * se,
                stringsAsFactors = FALSE)
   }
@@ -122,7 +122,8 @@
   rows <- c(rows, list(one(sens[[last]] - sens[[1]],
                            sprintf("%s vs %s", occasions[last], occasions[1]),
                            "Change in Pretest x Treatment")))
-  list(effects = do.call(rbind, rows), model = fit, covariance = structure_used)
+  list(effects = .effects_table(do.call(rbind, rows), keys = "occasion"), model = fit,
+       covariance = structure_used)
 }
 
 #' Mixed model for repeated measures in a longitudinal Solomon design
@@ -235,12 +236,38 @@
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
 #'
-#' @return An object of class `solomon_mmrm` with `effects` (the four
-#'   Solomon contrasts and the three pretest effects at each occasion, then
-#'   the change in sensitization), `model` (the mmrm fit), `covariance` (the
-#'   structure used), `observed` (observed posttests by group and occasion),
-#'   `pretest_mean` (the center of the pretest; `NA` without `y_pre`), and the
-#'   settings used.
+#' @return An object of class `solomon_mmrm`, a list with:
+#'   - `effects`: at each occasion, the four treatment contrasts,
+#'     `ATE (avg over pretest)`, `Pretest x Treatment`,
+#'     `Treatment | pretested`, and `Treatment | unpretested`, and the three
+#'     pretest effects, `Pretest effect | control`,
+#'     `Pretest effect | treated`, and `Pretest main effect`; then
+#'     `Change in Pretest x Treatment`, the change in sensitization from the
+#'     first occasion to the last. The columns are `occasion`, `contrast`,
+#'     `estimate`, `std.error`, `statistic` (t), `df`, `p.value`,
+#'     `conf.low`, and `conf.high`. In the last row, `occasion` names the
+#'     two occasions, as in `"3 vs 1"`.
+#'   - `conf_level`: the confidence level of the intervals.
+#'   - `model`: the fitted model, an `mmrm` object.
+#'   - `covariance`: the covariance structure used.
+#'   - `grouped`: whether the covariance was estimated separately for
+#'     pretested and unpretested participants.
+#'   - `df_method`: the degrees of freedom, `"kenward-roger"` or
+#'     `"satterthwaite"`.
+#'   - `pretest_mean`: the mean pretest at which the pretest is centered;
+#'     `NA` without `y_pre`.
+#'   - `occasions`: the posttest occasions, in order.
+#'   - `observed`: the number of observed posttests in each group, one
+#'     column for each occasion.
+#'   - `excluded`: the number of pretested participants left out because
+#'     their pretest was missing.
+#'   - `pretest` (whether pretest scores were supplied) and `data` (the
+#'     design indicators of each participant), which solomonR's own
+#'     functions use.
+#'
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Entwisle, D. R. (1961). Interactive effects of pretesting. *Educational and

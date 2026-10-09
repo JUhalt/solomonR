@@ -64,7 +64,7 @@ test_that("a partial-invariance fit is reported with its freed parameter and fit
 
   # The fit details: software and version, estimator, missing data, and the
   # identification constraint.
-  expect_match(r$method, sprintf("lavaan (Version %s; Rosseel, 2012)", fit$fit_post@version),
+  expect_match(r$method, sprintf("lavaan (Version %s; Rosseel, 2012)", fit$fit@version),
                fixed = TRUE)
   expect_match(r$method, "(MLR; Yuan & Bentler, 2000)", fixed = TRUE)
   expect_match(r$method, "using full-information maximum likelihood for missing indicator values",
@@ -73,7 +73,7 @@ test_that("a partial-invariance fit is reported with its freed parameter and fit
     "For identification, the latent posttest mean of the unpretested control group was fixed ",
     "at 0, and the latent variance at 1 in the pretested treated group"
   ), fixed = TRUE)
-  expect_identical(r$results[1], expected_fit(fit$fit_post, "The four-group model"))
+  expect_identical(r$results[1], expected_fit(fit$fit, "The four-group model"))
   expect_match(r$results[2], "^The average treatment effect across pretest conditions was ")
   expect_match(r$design, "with 150, 150, 150, and 150 participants analyzed", fixed = TRUE)
   for (who in c("Byrne, B. M.", "Chen, F. F.", "Meredith, W.", "Rosseel, Y.", "Satorra, A.",
@@ -102,7 +102,7 @@ test_that("a fit whose invariance check fails says so instead of claiming scalar
   ), fixed = TRUE)
   expect_false(grepl("both supported scalar", r$method, fixed = TRUE))
   expect_false(grepl("Byrne", r$method, fixed = TRUE))
-  expect_identical(r$results[1], expected_fit(fit$fit_post, "The four-group model"))
+  expect_identical(r$results[1], expected_fit(fit$fit, "The four-group model"))
 
   # One criterion supporting the assumption is reported as such.
   one <- fit
@@ -197,7 +197,7 @@ test_that("a fit without the check, with ML and a marker indicator, is described
   expect_match(r$method, "by maximum likelihood (ML), using", fixed = TRUE)
   expect_match(r$method, "and the loading of y1 at 1, which puts the latent posttest on the scale of y1.",
                fixed = TRUE)
-  fm <- lavaan::fitMeasures(fit$fit_post, c("chisq", "df"))
+  fm <- lavaan::fitMeasures(fit$fit, c("chisq", "df"))
   expect_match(r$results[1], sprintf("The four-group model gave \u03c7\u00b2(%d) = %.2f, p ",
                                      as.integer(fm[["df"]]), fm[["chisq"]]), fixed = TRUE)
   expect_false(grepl("scaled", r$results[1], fixed = TRUE))
@@ -266,7 +266,7 @@ test_that("a freed loading is reported as the fitted model estimated it (#112)",
   # of y1 in that group only.
   marker <- suppressWarnings(fit_solomon_sem_latent(s$data, s$items, s$treat, s$pretested,
                                                     partial_post = "POST =~ y1", std_lv = FALSE))
-  pt <- lavaan::parTable(marker$fit_post)
+  pt <- lavaan::parTable(marker$fit)
   y1 <- pt[pt$op == "=~" & pt$rhs == "y1", ]
   expect_identical(y1$free[y1$group == 1L], 0L)
   expect_identical(y1$ustart[y1$group == 1L], 1)
@@ -285,8 +285,8 @@ test_that("a freed loading is reported as the fitted model estimated it (#112)",
   # instead, so only its scale differs.
   std <- suppressWarnings(fit_solomon_sem_latent(s$data, s$items, s$treat, s$pretested,
                                                  partial_post = "POST =~ y1"))
-  expect_equal(lavaan::fitMeasures(marker$fit_post, c("chisq", "df")),
-               lavaan::fitMeasures(std$fit_post, c("chisq", "df")), tolerance = 1e-6)
+  expect_equal(lavaan::fitMeasures(marker$fit, c("chisq", "df")),
+               lavaan::fitMeasures(std$fit, c("chisq", "df")), tolerance = 1e-6)
   expect_match(report_solomon(std)$method, "except the loading of y1, which was estimated separately in each group",
                fixed = TRUE)
 
@@ -364,7 +364,7 @@ test_that("the latent ANCOVA is reported with its own constraints and freed para
     "posttest intercept at 0 in the pretested control group; the adjusted effect is therefore on the ",
     "scale of y1, as are the four-group contrasts."
   ), fixed = TRUE)
-  e_pre <- fit$effects_pre[fit$effects_pre$contrast == "Pre_Eff", ]
+  e_pre <- fit$effects_pre[fit$effects_pre$contrast == "Treatment | pretested", ]
   expect_match(r$results[3], expected_fit(fit$fit_pre, "The latent analysis of covariance"),
                fixed = TRUE)
   expect_match(r$results[3], sprintf("adjusted for the latent pretest, was %s, 95%% CI [%s, %s], z = %s",
@@ -373,6 +373,53 @@ test_that("the latent ANCOVA is reported with its own constraints and freed para
                fixed = TRUE)
   expect_true(any(startsWith(r$references, "Huck, S. W.")))
   expect_true(any(startsWith(r$references, "Byrne, B. M.")))
+})
+
+test_that("the SEM reports give the pretest effects after the treatment contrasts (#110)", {
+  skip_if_not_installed("lavaan")
+  # "95% CI [low, high], z = statistic, p = value" for row i of `e`.
+  clause <- function(e, i) {
+    sprintf("95%% CI [%s, %s], z = %s, p %s", .apa_num(e$conf.low[i], 2),
+            .apa_num(e$conf.high[i], 2), .apa_num(e$statistic[i], 2), apa_p(e$p.value[i]))
+  }
+  sentence <- function(e, subject) {
+    e <- e[match(.solomon_pretest_order, e$contrast), ]
+    sprintf(paste0(
+      "%s (pretested minus unpretested participants) was %s among control participants, %s, ",
+      "and %s among treated participants, %s; their average, the pretest main effect, was %s, %s."
+    ), subject, .apa_num(e$estimate[1], 2), clause(e, 1), .apa_num(e$estimate[2], 2),
+    clause(e, 2), .apa_num(e$estimate[3], 2), clause(e, 3))
+  }
+
+  # Observed means: the four treatment contrasts, then one sentence for the
+  # pretest effects, as for fit_solomon_glm() without a pretest.
+  sem <- fit_solomon_sem(y_post, treat, pretested, data = solomon_example)
+  r <- report_solomon(sem)
+  expect_length(r$results, 5L)
+  expect_match(r$results[1], "^The average treatment effect across pretest conditions was ")
+  expect_match(r$results[4], "^The treatment effect among unpretested participants was ")
+  expect_identical(r$results[5], sentence(sem$effects, "The pretest effect"))
+  expect_identical(r$table$contrast, c(.solomon_contrast_order, .solomon_pretest_order))
+  glm <- report_solomon(fit_solomon_glm(y_post, treat, pretested, data = solomon_example))
+  expect_identical(sub(" among control participants.*$", "", r$results[5]),
+                   sub(" among control participants.*$", "", glm$results[5]))
+
+  # The pretested groups alone give no pretest effects.
+  ancova <- report_solomon(fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = TRUE,
+                                           data = solomon_example))
+  expect_length(ancova$results, 1L)
+  expect_match(ancova$results, "^The treatment effect among pretested participants was ")
+
+  # Latent means: the same sentence, named for the latent posttest, in the
+  # paragraph of the contrasts.
+  s <- sem_items(shift_u0 = 0)
+  fit <- fit_solomon_sem_latent(s$data, s$items, s$treat, s$pretested, check_invariance = FALSE)
+  rl <- report_solomon(fit)
+  expect_length(rl$results, 2L)
+  expect_match(rl$results[2], "^The average treatment effect across pretest conditions was ")
+  expect_match(rl$results[2], sentence(fit$effects, "The pretest effect on the latent posttest"),
+               fixed = TRUE)
+  expect_identical(rl$table$contrast, c(.solomon_contrast_order, .solomon_pretest_order))
 })
 
 test_that("a loading freed as POST =~ is freed in the invariance check too (#112)", {

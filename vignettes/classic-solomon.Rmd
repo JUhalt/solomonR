@@ -177,6 +177,24 @@ classic$tests$A$result
 classic$tests$D$result
 ```
 
+`classic$effects` holds Tests A-H and the pretest main effect in one
+table, with the contrast labels and the columns of `fit_solomon_glm()`.
+
+### The analysis of variance table
+
+`classic$anova` is the two-by-two analysis of variance of the posttest
+that Tests A-D come from, with Type III sums of squares:
+
+```{r classic-anova}
+classic$anova
+```
+
+Each effect has one degree of freedom, and its F is the square of a t
+test above: the treatment row is Test D, the interaction row is Test A,
+and the pretest row is the pretest main effect. With unequal group sizes
+these are not the sequential sums of squares that `aov()` prints, whose
+treatment row ignores pretesting.
+
 ## Tests E-G: analyses within the pretested groups
 
 Historical approaches proposed several ways to make use of the baseline

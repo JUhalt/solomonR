@@ -162,8 +162,8 @@
     estimate = unname(qbar),
     std.error = unname(se_total),
     statistic = unname(statistic),
-    p.value = unname(2 * stats::pt(-abs(statistic), df)),
     df = unname(df),
+    p.value = unname(2 * stats::pt(-abs(statistic), df)),
     conf.low = unname(qbar - crit * se_total),
     conf.high = unname(qbar + crit * se_total),
     fmi = if (any_missing) unname((riv + 2 / (df + 3)) / (riv + 1)) else 0,
@@ -188,7 +188,7 @@
 #'    in each Solomon group to the participants with an observed posttest:
 #'    on the pretest in the pretested groups, and on a constant in the
 #'    unpretested groups, which have no pretest by design. The analysis
-#'    contains the Treatment x Pretest interaction of two fully observed
+#'    contains the Pretest x Treatment interaction of two fully observed
 #'    indicators, and imputing separately in the groups they define is the
 #'    simplest approach to such interactions (Carpenter et al., 2023,
 #'    section 6.3.5, p. 149).
@@ -273,11 +273,31 @@
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
 #'
-#' @return An object of class `solomon_mi` with `effects` (the pooled Solomon
-#'   contrasts, with their degrees of freedom, fraction of missing
-#'   information `fmi`, and Monte Carlo standard error `mc_se`), `delta`,
-#'   `m`, `missing` (missing posttests by group), `excluded`, the
-#'   per-imputation `estimates` and `std_errors`, and the settings used.
+#' @return An object of class `solomon_mi`, a list with:
+#'   - `effects`: the pooled treatment contrasts, `ATE (avg over pretest)`,
+#'     `Pretest x Treatment`, `Treatment | pretested`, and
+#'     `Treatment | unpretested`, in the columns `contrast`, `estimate`,
+#'     `std.error`, `statistic` (t), `df` (Barnard and Rubin's), `p.value`,
+#'     `conf.low`, and `conf.high`, followed by the fraction of missing
+#'     information `fmi` and the Monte Carlo standard error `mc_se`.
+#'   - `conf_level`: the confidence level of the intervals.
+#'   - `delta`: the offset added in each of the four groups.
+#'   - `m`: the number of imputations.
+#'   - `missing`: the posttests missing in each group (`group`, `n`,
+#'     `missing`, and `proportion`).
+#'   - `excluded`: the number of pretested participants left out because
+#'     their pretest was missing.
+#'   - `estimates` and `std_errors`: the estimates and standard errors of
+#'     each imputation, one row for each imputation and one column for each
+#'     contrast.
+#'   - `df_com`: the complete-data degrees of freedom of each contrast.
+#'   - `robust`: the covariance of each completed-data analysis.
+#'   - `pretest` (whether pretest scores were supplied) and `data` (the
+#'     design indicators), which solomonR's own functions use.
+#'
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns the table, are the stable interface of the result; see
+#'   [solomon_output].
 #'
 #' @references
 #' Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
@@ -357,7 +377,7 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
 
   structure(
     list(
-      effects = .rubin_pool(est, se, df_com, conf_level, any_missing),
+      effects = .effects_table(.rubin_pool(est, se, df_com, conf_level, any_missing)),
       delta = delta,
       m = m,
       missing = .mi_missing_table(d),
@@ -467,12 +487,30 @@ print.solomon_mi <- function(x, digits = 3, ...) {
 #' @param seed Optional random-number seed. When `NULL`, one is drawn so that
 #'   every offset uses the same imputations.
 #'
-#' @return An object of class `solomon_tipping` with `results` (one row per
-#'   offset: the offset in posttest units and in standard deviations, and
-#'   the pooled estimate, interval, and p-value), `tipping` (the smallest
-#'   negative and positive offsets at which the conclusion differs from the
-#'   one under MAR, `NA` when it does not change within the range), and the
-#'   settings used.
+#' @return An object of class `solomon_tipping`, a list with:
+#'   - `results`: one row for each offset, in the columns `delta` (the
+#'     offset in posttest units), `delta_sd` (the offset in standard
+#'     deviations), and then the pooled result in the columns of
+#'     `fit_solomon_mi()$effects`: `contrast`, `estimate`, `std.error`,
+#'     `statistic`, `df`, `p.value`, `conf.low`, and `conf.high`, followed
+#'     by `significant` (whether `p.value` is below `alpha`).
+#'   - `tipping`: the smallest negative and positive offsets at which the
+#'     conclusion differs from the one under MAR, `NA` when it does not
+#'     change within the range; and `tipping_sd`, the same in standard
+#'     deviations.
+#'   - `conf_level`: the confidence level of the intervals, 1 - `alpha`.
+#'   - `contrast`, `groups` (the groups shifted), `alpha`, `m`, `seed`, and
+#'     `robust`: the settings used.
+#'   - `sd`: the pooled within-group standard deviation of the observed
+#'     posttests.
+#'   - `missing`: the posttests missing in each group, as in
+#'     [fit_solomon_mi()].
+#'   - `pretest` (whether pretest scores were supplied) and `data` (the
+#'     design indicators), which solomonR's own functions use.
+#'
+#'   `results` has the columns and the labels of an effects table, and
+#'   [`tidy()`][solomon_output] returns it. See [solomon_output] for the
+#'   columns, the labels, and the parts of a result that are stable.
 #'
 #' @references
 #' Little, R. J., D'Agostino, R., Cohen, M. L., Dickersin, K., Emerson, S.
@@ -549,9 +587,12 @@ tipping_point_solomon <- function(y_post, treat, pretested, y_pre = NULL,
     fit$effects[fit$effects$contrast == contrast, ]
   })
   res <- do.call(rbind, rows)
+  # The columns of an effects table (issue #110), indexed by the offset.
   res <- data.frame(delta = deltas, delta_sd = deltas / sd_pooled,
-                    res[, c("estimate", "std.error", "df", "p.value", "conf.low", "conf.high")],
-                    significant = res$p.value < alpha, row.names = NULL)
+                    res[, .solomon_effect_columns],
+                    significant = res$p.value < alpha, row.names = NULL,
+                    stringsAsFactors = FALSE)
+  res <- .effects_table(res, keys = c("delta", "delta_sd"))
 
   base <- res$significant[res$delta == 0]
   first_change <- function(side) {
@@ -570,6 +611,9 @@ tipping_point_solomon <- function(y_post, treat, pretested, y_pre = NULL,
       contrast = contrast,
       groups = .solomon_group_labels[shifted],
       alpha = alpha,
+      # The level of the intervals in `results`, under the name every
+      # result with a table of contrasts uses (issue #110).
+      conf_level = 1 - alpha,
       m = m,
       seed = seed,
       sd = sd_pooled,

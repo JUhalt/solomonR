@@ -39,20 +39,38 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_sem} with \code{mode} (\code{"mean"} or
-\code{"ancova_pretested"}), the lavaan \code{fit}, the contrasts in \code{effects}
-(estimate, standard error, z, p value, and confidence interval), the
-\code{fitmeasures}, and \code{conf_level}.
+An object of class \code{solomon_sem} with:
+\itemize{
+\item \code{mode}: \code{"mean"} or \code{"ancova_pretested"}
+\item \code{fit}: the lavaan object
+\item \code{effects}: data.frame of the contrasts, with the columns
+\code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (z), \code{df} (\code{Inf},
+for the normal reference distribution), \code{p.value}, \code{conf.low}, and
+\code{conf.high}. The four-group model gives the rows
+\verb{ATE (avg over pretest)}, \verb{Pretest x Treatment},
+\code{Treatment | pretested}, \code{Treatment | unpretested},
+\verb{Pretest effect | control}, \verb{Pretest effect | treated}, and
+\verb{Pretest main effect}, the labels of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}; the ANCOVA
+mode gives \code{Treatment | pretested}
+\item \code{fitmeasures}: named vector (CFI, RMSEA, SRMR, df)
+\item \code{conf_level}: the confidence level of the intervals
+}
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns the table, are the stable interface of the result. The
+lavaan object in \code{fit} is not; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 Two modes:
 \enumerate{
 \item mean-structure (default): 4-group SEM estimating posttest means for P1, P0, U1, U0,
-and reporting ATE, Sens (Pretest×Treatment), Pre_Eff, Unpre_Eff.
+and reporting the four Solomon contrasts and the three pretest effects
+under the labels of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
 \item ancova = TRUE: restricts to pretested groups (P1, P0) and fits y_post ~ beta*y_pre
-with group means; reports the pretested simple effect (Pre_Eff). This avoids
-structural missingness of y_pre in U1/U0 and matches Huck & Sandler.
+with group means; reports the pretested simple effect
+(\code{Treatment | pretested}). This avoids structural missingness of y_pre
+in U1/U0 and matches Huck & Sandler.
 }
 }
 \details{
@@ -60,6 +78,14 @@ The four-group mean-structure model is saturated, so its global fit
 indices are not diagnostic. Its contrasts are unadjusted posttest mean
 differences, whereas the ANCOVA mode adjusts for the pretest within the
 pretested groups.
+
+The pretest effects are differences between the group means, pretested
+minus unpretested participants: among controls
+(\verb{Pretest effect | control}), among treated participants
+(\verb{Pretest effect | treated}), and their equal-weighted average
+(\verb{Pretest main effect}). Their estimates equal those of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} without \code{y_pre}; see "The pretest effect" there. The
+ANCOVA mode has no unpretested groups, so it does not report them.
 
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.

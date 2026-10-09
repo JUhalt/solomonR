@@ -48,11 +48,33 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 }
 \value{
-An object of class \code{solomon_mi} with \code{effects} (the pooled Solomon
-contrasts, with their degrees of freedom, fraction of missing
-information \code{fmi}, and Monte Carlo standard error \code{mc_se}), \code{delta},
-\code{m}, \code{missing} (missing posttests by group), \code{excluded}, the
-per-imputation \code{estimates} and \code{std_errors}, and the settings used.
+An object of class \code{solomon_mi}, a list with:
+\itemize{
+\item \code{effects}: the pooled treatment contrasts, \verb{ATE (avg over pretest)},
+\verb{Pretest x Treatment}, \code{Treatment | pretested}, and
+\code{Treatment | unpretested}, in the columns \code{contrast}, \code{estimate},
+\code{std.error}, \code{statistic} (t), \code{df} (Barnard and Rubin's), \code{p.value},
+\code{conf.low}, and \code{conf.high}, followed by the fraction of missing
+information \code{fmi} and the Monte Carlo standard error \code{mc_se}.
+\item \code{conf_level}: the confidence level of the intervals.
+\item \code{delta}: the offset added in each of the four groups.
+\item \code{m}: the number of imputations.
+\item \code{missing}: the posttests missing in each group (\code{group}, \code{n},
+\code{missing}, and \code{proportion}).
+\item \code{excluded}: the number of pretested participants left out because
+their pretest was missing.
+\item \code{estimates} and \code{std_errors}: the estimates and standard errors of
+each imputation, one row for each imputation and one column for each
+contrast.
+\item \code{df_com}: the complete-data degrees of freedom of each contrast.
+\item \code{robust}: the covariance of each completed-data analysis.
+\item \code{pretest} (whether pretest scores were supplied) and \code{data} (the
+design indicators), which solomonR's own functions use.
+}
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns the table, are the stable interface of the result; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
@@ -71,7 +93,7 @@ repeats it over a range of offsets.
 in each Solomon group to the participants with an observed posttest:
 on the pretest in the pretested groups, and on a constant in the
 unpretested groups, which have no pretest by design. The analysis
-contains the Treatment x Pretest interaction of two fully observed
+contains the Pretest x Treatment interaction of two fully observed
 indicators, and imputing separately in the groups they define is the
 simplest approach to such interactions (Carpenter et al., 2023,
 section 6.3.5, p. 149).

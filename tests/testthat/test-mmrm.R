@@ -212,7 +212,7 @@ test_that("fit_solomon_mmrm() reproduces the per-occasion analyses of jordaan201
   anova_f <- vapply(c("Posttest", "Follow-up 1", "Follow-up 2"), function(o) {
     x <- ps[ps$occasion == o, ]
     a <- solomon_from_summary(x$n, x$mean, x$sd, treat = x$treat, pretested = x$pretested)$anova
-    a$F[a$source == "Treatment x Pretest"]
+    a$F[a$source == "Pretest x Treatment"]
   }, numeric(1))
   se_change <- numeric(0)
   for (r in c(0.3, 0.7)) {

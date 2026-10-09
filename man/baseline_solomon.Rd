@@ -40,13 +40,31 @@ are looked up in it first, as bare column names (\code{y_pre = pre}) or as
 strings (\code{y_pre = "pre"}).}
 }
 \value{
-An object of class \code{solomon_baseline} with the group statistics,
-the difference with its interval and t test, and Hedges's g with its
-interval. For a design with several treatments, \code{groups} holds the
-statistics of every pretested group, \code{comparisons} has one row for each
-treatment against the control (\code{comparison}, \code{difference}, \code{std.error},
-\code{conf.low}, \code{conf.high}, \code{statistic}, \code{df}, \code{p.value}, \code{g}, \code{g.low},
-and \code{g.high}), and \code{conditions} names the control and the treatments.
+An object of class \code{solomon_baseline}, a list with:
+\itemize{
+\item \code{groups}: the pretest statistics of the two pretested groups
+(\code{group}, \code{n}, \code{mean}, and \code{sd}).
+\item \code{difference}, \code{std.error}, \code{statistic}, \code{df}, \code{p.value}, \code{conf.low},
+and \code{conf.high}: the pretest difference, treated minus control, with
+its standard error, t test, and confidence interval.
+\item \code{g}, \code{g.low}, and \code{g.high}: Hedges's g and its interval.
+\item \code{conf_level}: the confidence level of the intervals.
+\item \code{source}: \code{"individual data"} or \code{"summary statistics"}.
+}
+
+For a design with several treatments, a list with:
+\itemize{
+\item \code{groups}: the pretest statistics of every pretested group.
+\item \code{comparisons}: one row for each treatment against the control, in
+the columns \code{comparison}, \code{difference}, \code{std.error}, \code{statistic},
+\code{df}, \code{p.value}, \code{conf.low}, \code{conf.high}, \code{g}, \code{g.low}, and \code{g.high}.
+\item \code{conditions}: the control and the treatments (\code{condition} and
+\code{role}).
+\item \code{conf_level} and \code{source}, as above.
+}
+
+The comparison is of pretests, not of the Solomon contrasts, so the
+result has no effects table; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

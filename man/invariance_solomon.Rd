@@ -31,11 +31,29 @@ invariance).}
 Default 0.05.}
 }
 \value{
-An object of class \code{solomon_invariance}: the three \code{fits}, the fit
-indexes in \code{models}, the step \code{tests} with the decision under each
-criterion, the most constrained level \code{supported} under each
-(\code{"configural"}, \code{"metric"}, \code{"scalar"}, or \code{"partial scalar"}), and the
-\code{cutoffs} applied.
+An object of class \code{solomon_invariance}, a list with:
+\itemize{
+\item \code{fits}: the three lavaan objects, \code{configural}, \code{metric}, and
+\code{scalar}.
+\item \code{models}: the fit of each model, in the columns \code{model}, \code{chisq},
+\code{df}, \code{cfi}, \code{rmsea}, and \code{srmr}.
+\item \code{tests}: the two steps, in the columns \code{comparison}, \code{chisq_diff},
+\code{df_diff}, \code{p.value}, \code{delta_cfi}, \code{delta_rmsea}, \code{delta_srmr}, and
+the decision under each criterion, \code{noninvariant_chisq} and
+\code{noninvariant_chen}.
+\item \code{supported}: the most constrained level supported under each
+criterion, \code{chisq} and \code{chen2007}: \code{"configural"}, \code{"metric"},
+\code{"scalar"}, or \code{"partial scalar"}.
+\item \code{cutoffs}: the cutoffs of the change-in-fit criterion that were
+applied.
+\item \code{sizes}: the four group sizes.
+\item \code{partial}, \code{alpha}, \code{items}, and \code{estimator}: the settings used.
+\item \code{scaled}: whether the chi-square difference was scaled.
+}
+
+The tables compare models and estimate no Solomon contrast, so the
+result has no effects table, and the lavaan objects are not part of
+the stable interface; see \link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}

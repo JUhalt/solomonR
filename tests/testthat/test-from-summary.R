@@ -10,7 +10,7 @@ test_that("El Karkri et al. (2025a) Table 8 reproduces their F tests within roun
   # Published (pp. 11-12): treatment F(1, 84) = 6.794, pretest 0.186,
   # interaction 11.482. The table's two-decimal rounding explains the gap.
   expect_identical(fit$df_error, 84)
-  expect_equal(a$F[a$source == "Treatment x Pretest"], 11.482, tolerance = 0.05, scale = 1)
+  expect_equal(a$F[a$source == "Pretest x Treatment"], 11.482, tolerance = 0.05, scale = 1)
   expect_equal(a$F[a$source == "Treatment"], 6.794, tolerance = 0.05, scale = 1)
   expect_equal(a$F[a$source == "Pretest"], 0.186, tolerance = 0.05, scale = 1)
 })
@@ -35,9 +35,9 @@ test_that("Mai et al.'s (2020) Table 4 follows from the cell statistics of their
   )
   for (tab in published) {
     a <- tab$fit
-    expect_equal(a$sumsq[a$source == "Treatment x Pretest"], tab$ss, tolerance = 0.001, scale = 1)
+    expect_equal(a$sumsq[a$source == "Pretest x Treatment"], tab$ss, tolerance = 0.001, scale = 1)
     expect_equal(a$sumsq[a$source == "Error"], tab$error, tolerance = 0.001, scale = 1)
-    expect_equal(a$F[a$source == "Treatment x Pretest"], tab$F, tolerance = 0.005, scale = 1)
+    expect_equal(a$F[a$source == "Pretest x Treatment"], tab$F, tolerance = 0.005, scale = 1)
   }
 })
 
@@ -49,7 +49,7 @@ test_that("summary statistics reproduce Tests A-D of the individual-level analys
   classic <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre)
 
   for (letter in c("A", "B", "C", "D")) {
-    row <- fit$contrasts[fit$contrasts$test == letter, ]
+    row <- fit$effects[fit$effects$test == letter, ]
     ref <- classic$tests[[letter]]$result
     expect_equal(row$estimate, ref$estimate, tolerance = 1e-10)
     expect_equal(row$std.error, ref$std.error, tolerance = 1e-10)

@@ -4,11 +4,13 @@
 #' This function provides a fully latent analysis path:
 #'   (A) A 4-group SEM that defines a latent POST factor from multiple
 #'       indicators and estimates group-specific latent means for
-#'       P1, P0, U1, and U0. From these we compute ATE, Sens (Pretest x Treat),
-#'       and simple effects on the latent outcome.
+#'       P1, P0, U1, and U0. From these we compute the four Solomon contrasts
+#'       and the three pretest effects on the latent outcome, under the
+#'       labels of [fit_solomon_glm()].
 #'   (B) Optionally, a 2-group SEM in **pretested** groups only (P1 vs P0)
 #'       with a latent PRE factor and latent POST factor, fitting a latent
-#'       ANCOVA (POST ~ PRE), and reporting the pretested simple effect.
+#'       ANCOVA (POST ~ PRE), and reporting the pretested simple effect
+#'       (`Treatment | pretested`).
 #'
 #' Latent mean contrasts require scalar measurement invariance (equal
 #' loadings and intercepts) across groups (Meredith, 1993; Vandenberg &
@@ -41,6 +43,18 @@
 #' scale of the first POST indicator. If `partial_post` frees that marker
 #' loading, lavaan keeps it at 1 in P1 only and estimates it in the other
 #' groups, so the scale is that of the first indicator in P1.
+#'
+#' The pretest effects of the four-group model are differences between
+#' latent means too, in the unit of the other contrasts: pretested minus
+#' unpretested participants among controls (`Pretest effect | control`),
+#' among treated participants (`Pretest effect | treated`), and their
+#' equal-weighted average (`Pretest main effect`). Dukes et al. (1995,
+#' p. 426), who analyzed a Solomon design with latent variables, described a
+#' pretesting difference unrelated to the program by comparing two two-group
+#' models; the `Pretest main effect` row estimates such a difference as one
+#' contrast, with a test. A shift in an indicator's intercept that the two
+#' pretested groups share cancels from the Pretest x Treatment contrast but
+#' not from the pretest effects, which it biases (see Invariance check).
 #'
 #' Tests and confidence intervals for the contrasts are lavaan's Wald
 #' results, which use a large-sample normal reference distribution.
@@ -110,17 +124,35 @@
 #'   `FALSE` when invariance was established elsewhere. See Invariance check.
 #' @return An object of class `solomon_sem_latent` with:
 #'   \itemize{
-#'     \item `fit_post`: lavaan object for the 4-group POST model
-#'     \item `effects_post`: data.frame of ATE, Sens, Pre_Eff, Unpre_Eff on latent POST
+#'     \item `fit`: lavaan object for the 4-group POST model
+#'     \item `effects`: data.frame of the contrasts on latent POST, with the
+#'       columns `contrast`, `estimate`, `std.error`, `statistic` (z), `df`
+#'       (`Inf`, for the normal reference distribution), `p.value`,
+#'       `conf.low`, and `conf.high`, and the rows
+#'       `ATE (avg over pretest)`, `Pretest x Treatment`,
+#'       `Treatment | pretested`, `Treatment | unpretested`,
+#'       `Pretest effect | control`, `Pretest effect | treated`, and
+#'       `Pretest main effect`, the labels of [fit_solomon_glm()]
 #'     \item `fitmeasures_post`: named vector (CFI, RMSEA, SRMR, df)
 #'     \item `fit_pre` (optional): lavaan object for pretested latent ANCOVA
-#'     \item `effects_pre` (optional): data.frame with `Pre_Eff` on latent POST (pretested)
+#'     \item `effects_pre` (optional): data.frame with `Treatment | pretested`
+#'       on latent POST, adjusted for the latent pretest, in the columns of
+#'       `effects`
 #'     \item `fitmeasures_pre` (optional)
 #'     \item `invariance`: the [invariance_solomon()] result, or `NULL` when
 #'       the check was not run, and `invariance_status`, a one-line summary
+#'     \item `conf_level`: the confidence level of the intervals
 #'     \item `settings`: the options used, including the estimator and any
 #'       freed parameters, which [report_solomon()] reports
 #'   }
+#'
+#'   Before solomonR 1.0.0, `fit` and `effects` were named `fit_post` and
+#'   `effects_post`. The old names still work with `$`, with a deprecation
+#'   warning, but not with `[[`.
+#'
+#'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
+#'   which returns `effects`, are the stable interface of the result. The
+#'   lavaan objects and `settings` are not; see [solomon_output].
 #' @references
 #' Byrne, B. M., Shavelson, R. J., & Muthén, B. (1989). Testing for the
 #' equivalence of factor covariance and mean structures: The issue of partial
@@ -130,6 +162,11 @@
 #' Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
 #' measurement invariance. *Structural Equation Modeling: A Multidisciplinary
 #' Journal, 14*(3), 464–504. https://doi.org/10.1080/10705510701301834
+#'
+#' Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of D.A.R.E.
+#' (Drug Abuse Resistance Education), using a Solomon four-group design with
+#' latent variables. *Evaluation Review, 19*(4), 409–435.
+#' https://doi.org/10.1177/0193841X9501900404
 #'
 #' Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 #' invariance. *Psychometrika, 58*(4), 525–543.
@@ -208,18 +245,6 @@ fit_solomon_sem_latent <- function(
                                        metric     = "loadings",
                                        scalar     = c("loadings","intercepts"))
   .safe_fitmeas <- .sem_fit_measures
-  .effects <- function(fit) {
-    pe <- lavaan::parameterEstimates(fit, standardized = FALSE, level = conf_level)
-    eff <- pe[
-      pe$op == ":=",
-      c("lhs", "est", "se", "z", "pvalue", "ci.lower", "ci.upper"),
-      drop = FALSE
-    ]
-    names(eff) <- c("contrast", "estimate", "std.error", "statistic", "p.value",
-                    "conf.low", "conf.high")
-    rownames(eff) <- NULL
-    eff
-  }
 
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
@@ -289,12 +314,7 @@ fit_solomon_sem_latent <- function(
   post_means <- 'POST ~ c(mu_P1, mu_P0, mu_U1, mu_U0)*1'
   post_ident <- 'mu_U0 == 0'
   # Defined parameters (contrasts) - so we get SE/z/p directly
-  post_defs  <- '
-    ATE       := ((mu_P1 - mu_P0) + (mu_U1 - mu_U0))/2
-    Sens      := (mu_P1 - mu_P0) - (mu_U1 - mu_U0)
-    Pre_Eff   := (mu_P1 - mu_P0)
-    Unpre_Eff := (mu_U1 - mu_U0)
-  '
+  post_defs  <- .sem_four_group_definitions
   mod_post <- paste(post_meas, post_means, post_ident, post_defs, sep = "\n")
 
   fit_post <- lavaan::sem(
@@ -319,7 +339,7 @@ fit_solomon_sem_latent <- function(
     )
   }
 
-  eff_post <- .effects(fit_post)
+  eff_post <- .sem_effects(fit_post, conf_level)
   fm_post <- .safe_fitmeas(fit_post)
 
   # ------------------ Optional latent ANCOVA in pretested groups ------------------
@@ -362,19 +382,20 @@ fit_solomon_sem_latent <- function(
       )
     }
 
-    eff_pre <- .effects(fit_pre)
+    eff_pre <- .sem_effects(fit_pre, conf_level)
     fm_pre <- .safe_fitmeas(fit_pre)
   }
 
   structure(list(
-    fit_post = fit_post,
-    effects_post = eff_post,
+    fit = fit_post,
+    effects = eff_post,
     fitmeasures_post = fm_post,
     fit_pre = fit_pre,
     effects_pre = eff_pre,
     fitmeasures_pre = fm_pre,
     invariance = invariance,
     invariance_status = invariance_status,
+    conf_level = conf_level,
     settings = list(
       check_invariance = check_invariance,
       invariance_post = invariance_post,

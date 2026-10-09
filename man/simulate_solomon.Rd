@@ -53,12 +53,26 @@ rounding.}
 unchanged.}
 }
 \value{
-A data frame with \code{y_post}, \code{treat}, \code{pretested}, and \code{y_pre}
-(missing by design in the unpretested groups), in the form the analysis
-functions take. \code{treat} is 0/1 for the four-group design and a factor of
-conditions for a design with several treatments. Its \code{"truth"} attribute
-is a data frame of the true estimands, and its \code{"settings"} attribute
-holds the arguments, with the group sizes named by group.
+A data frame with one row for each participant, in the form the
+analysis functions take:
+\itemize{
+\item \code{y_post}: the posttest score.
+\item \code{treat}: the treatment, 0/1 for the four-group design and a factor of
+conditions for a design with several treatments.
+\item \code{pretested}: 1 for a pretested participant and 0 otherwise.
+\item \code{y_pre}: the pretest score, missing by design in the unpretested
+groups.
+}
+
+It has two attributes:
+\itemize{
+\item \code{"truth"}: a data frame of the true values, in the columns \code{estimand}
+and \code{true_value} for the four-group design, and \code{comparison},
+\code{contrast}, and \code{true_value} for a design with several treatments.
+The contrasts have the labels, and the order, of the \code{effects} table
+of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
+\item \code{"settings"}: the arguments, with the group sizes named by group.
+}
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

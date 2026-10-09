@@ -197,11 +197,14 @@ followed low scores:
 ```{r per-occasion, eval = has_mmrm}
 late <- long[long$occasion == "12 months" & !is.na(long$y_post), ]
 cc <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = late)
-# The four treatment contrasts, the first four rows of each effects table.
+# The four treatment contrasts, selected from each effects table by label.
+labels <- c("ATE (avg over pretest)", "Pretest x Treatment",
+            "Treatment | pretested", "Treatment | unpretested")
+pick <- function(effects) effects$estimate[match(labels, effects$contrast)]
 data.frame(
-  contrast = cc$effects$contrast[1:4],
-  complete_case = round(cc$effects$estimate[1:4], 2),
-  mmrm = round(mm$effects$estimate[mm$effects$occasion == "12 months"][1:4], 2),
+  contrast = labels,
+  complete_case = round(pick(cc$effects), 2),
+  mmrm = round(pick(mm$effects[mm$effects$occasion == "12 months", ]), 2),
   truth = c(3, 0, 3, 3)
 )
 ```

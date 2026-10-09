@@ -34,21 +34,51 @@ others, in the order of \code{n}. Needed with \code{treat}.}
 or factor.}
 }
 \value{
-An object of class \code{solomon_summary_fit} with \code{contrasts} (Tests
-A-D, the pretest main effect, and the simple effects: estimate, standard
-error, t, degrees of freedom, p-value, confidence interval, F, and Type
-III sum of squares), an \code{anova} table, the \code{cells}, the error mean
-square and degrees of freedom, and the settings.
+An object of class \code{solomon_summary_fit}, a list with:
+\itemize{
+\item \code{effects}: Tests A-D and the pretest main effect, one row each, in
+the columns \code{test} (the letter; empty for the pretest main effect),
+\code{contrast}, \code{estimate}, \code{std.error}, \code{statistic} (t), \code{df},
+\code{p.value}, \code{conf.low}, and \code{conf.high}, followed by \code{F} (the square
+of t) and the Type III sum of squares \code{sumsq}. \code{contrast} has the
+labels of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}: \verb{Pretest x Treatment} (Test A),
+\code{Treatment | pretested} (Test B), \code{Treatment | unpretested} (Test C),
+\verb{ATE (avg over pretest)} (Test D), and \verb{Pretest main effect}.
+\item \code{anova}: the two-by-two analysis of variance, in the columns \code{source}
+(\code{Treatment}, \code{Pretest}, \verb{Pretest x Treatment}, and \code{Error}),
+\code{sumsq}, \code{df}, \code{meansq}, \code{F}, and \code{p.value}.
+\item \code{cells}: the summary statistics supplied (\code{group}, \code{n}, \code{mean}, and
+\code{sd}).
+\item \code{mse} and \code{df_error}: the error mean square and its degrees of
+freedom.
+\item \code{conf_level}: the confidence level of the intervals.
+}
 
 For a design with several treatments, an object of class
-\code{solomon_summary_ngroup} with \code{contrasts} (for each comparison of a
-treatment with the control and each of the four contrasts: estimate,
-standard error, t, p-value, Holm-adjusted p-value \code{p.adjusted}, degrees
-of freedom, and confidence interval), the omnibus tests in \code{anova}
-(Type III sum of squares, df, mean square, F, p-value), the \code{cells} in
-the package's group order, the \code{conditions} (control first), \code{adjust}
-(\code{"holm"}), the error mean square and degrees of freedom, and the
-settings.
+\code{solomon_summary_ngroup}, a list with:
+\itemize{
+\item \code{effects}: for each comparison of a treatment with the control, the
+four treatment contrasts, in the columns \code{comparison}, \code{contrast},
+\code{estimate}, \code{std.error}, \code{statistic} (t), \code{df}, \code{p.value},
+\code{conf.low}, and \code{conf.high}, followed by the Holm-adjusted p-value
+\code{p.adjusted}.
+\item \code{anova}: the omnibus tests, in the same columns as above, with the
+sources \code{Condition}, \code{Pretest}, \verb{Pretest x Condition}, and \code{Error}.
+\item \code{cells}: the summary statistics in the package's group order
+(\code{group}, \code{condition}, \code{pretested}, \code{n}, \code{mean}, and \code{sd}).
+\item \code{conditions}: the conditions, control first (\code{condition} and \code{role}).
+\item \code{adjust}: the adjustment of the p-values, \code{"holm"}.
+\item \code{mse}, \code{df_error}, and \code{conf_level}, as above.
+}
+
+Before solomonR 1.0.0, \code{effects} was named \code{contrasts}, and the
+interaction of the four-group \code{anova} table \verb{Treatment x Pretest}.
+\verb{$contrasts} still returns the table, with a deprecation warning;
+\verb{[["contrasts"]]} does not.
+
+The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
+which returns the table, are the stable interface of the result; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

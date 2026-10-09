@@ -28,9 +28,17 @@ unpretested pair is returned.}
 \code{mean_pre} and \code{sd_pre}.}
 }
 \value{
-A data frame with one row per pair: the estimator, \code{yi} (effect
-size), \code{vi} (sampling variance), \code{sei} (standard error), and the group
-sizes.
+A data frame with one row for each pair of groups, in the columns:
+\itemize{
+\item \code{pair}: the pair, pretested or unpretested.
+\item \code{estimator}: the effect-size estimator.
+\item \code{yi}, \code{vi}, and \code{sei}: the effect size, its sampling variance, and
+its standard error, under the names meta-analysis software uses.
+\item \code{n_treated} and \code{n_control}: the group sizes.
+}
+
+The effect sizes are standardized, so this is not an effects table; see
+\link{solomon_output}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

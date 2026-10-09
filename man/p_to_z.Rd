@@ -10,7 +10,8 @@ p_to_z(p)
 \item{p}{numeric vector of p-values assumed one-tailed and aligned in the same direction}
 }
 \value{
-numeric Z-scores
+A numeric vector of z scores, one for each p-value: the standard
+normal quantile of \code{1 - p}.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}

@@ -44,14 +44,6 @@
   if (identical(scale, "outcome units")) "in outcome units" else paste0("on the ", scale, " scale")
 }
 
-# lavaan labels used by the SEM functions, mapped to the package's names.
-.sem_contrast_labels <- c(
-  ATE = "ATE (avg over pretest)",
-  Sens = "Pretest x Treatment",
-  Pre_Eff = "Treatment | pretested",
-  Unpre_Eff = "Treatment | unpretested"
-)
-
 # Extract the effects table, confidence level, scale, and inference label
 # from a supported fit. `scale` labels the axis; `bounds_scale` says where
 # equivalence bounds lie, as in "in outcome units" (issue #114).
@@ -78,6 +70,7 @@
       inference = .ml_inference_label(fit)
     )
   } else if (inherits(fit, "solomon_sem")) {
+    .stop_former_sem_labels(fit$effects, "fit_solomon_sem")
     list(
       effects = fit$effects,
       conf_level = fit$conf_level,
@@ -86,9 +79,10 @@
       inference = "structural equation model; lavaan Wald inference"
     )
   } else if (inherits(fit, "solomon_sem_latent")) {
+    .stop_former_sem_labels(fit$effects, "fit_solomon_sem_latent")
     list(
-      effects = fit$effects_post,
-      conf_level = fit$settings$conf_level,
+      effects = fit$effects,
+      conf_level = .latent_conf_level(fit),
       scale = "Estimate (latent posttest scale)",
       bounds_scale = "on the latent posttest scale",
       inference = "latent-variable model; lavaan Wald inference"
@@ -223,9 +217,6 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
 
   x <- .effects_for_plot(fit)
   eff <- x$effects
-
-  mapped <- eff$contrast %in% names(.sem_contrast_labels)
-  eff$contrast[mapped] <- unname(.sem_contrast_labels[eff$contrast[mapped]])
   if (!"df" %in% names(eff)) eff$df <- Inf
 
   eff <- eff[eff$contrast %in% .solomon_contrast_order, , drop = FALSE]

@@ -400,6 +400,7 @@
   coef_ci <- .wald_ci(tidy$estimate, tidy$std.error, tidy$df, conf_level)
   tidy$conf.low <- unname(coef_ci[, "conf.low"])
   tidy$conf.high <- unname(coef_ci[, "conf.high"])
+  tidy <- tidy[, .solomon_coefficient_columns]
 
   cf <- stats::coef(fit)
   cn <- names(cf)
@@ -466,8 +467,8 @@
       estimate = unname(est["estimate"]),
       std.error = unname(est["std.error"]),
       statistic = unname(est["statistic"]),
-      p.value = unname(est["p.value"]),
       df = unname(est["df"]),
+      p.value = unname(est["p.value"]),
       conf.low = unname(est["conf.low"]),
       conf.high = unname(est["conf.high"]),
       r2 = r2$r2,
@@ -513,10 +514,11 @@
   pretest_block$p.adjusted[treated] <- stats::p.adjust(pretest_block$p.value[treated],
                                                        method = adjust)
   effects <- rbind(effects, pretest_block)
-  rownames(effects) <- NULL
-  effects <- effects[, c("comparison", "contrast", "estimate", "std.error",
-                         "statistic", "p.value", "p.adjusted", "df", "conf.low",
-                         "conf.high", "r2", "r2_lo", "r2_hi")]
+  # The adjusted p-values follow the columns that every effects table has
+  # (issue #110).
+  effects <- effects[, c("comparison", .solomon_effect_columns, "p.adjusted",
+                         "r2", "r2_lo", "r2_hi")]
+  effects <- .effects_table(effects, keys = "comparison")
 
   if (robust == "CR2") {
     small_df <- is.finite(effects$df) & effects$df < 4

@@ -85,7 +85,7 @@ test_that("fit_solomon_sem_latent() fits a stated partial-invariance model", {
   skip_if_not_installed("lavaan")
   s <- invariance_data(shift = 1)
   fit <- fit_solomon_sem_latent(s$data, items, s$treat, s$pretested, partial_post = "y4 ~ 1")
-  pe <- lavaan::parameterEstimates(fit$fit_post)
+  pe <- lavaan::parameterEstimates(fit$fit)
   y4_int <- pe$est[pe$lhs == "y4" & pe$op == "~1"]
   y1_int <- pe$est[pe$lhs == "y1" & pe$op == "~1"]
   expect_gt(length(unique(round(y4_int, 6))), 1L)   # freed across groups
@@ -132,12 +132,12 @@ test_that("a loading freed under another factor name is freed in the latent mode
                                     partial_post = "POST =~ y3", check_invariance = FALSE)
   # lavaan once ignored "F =~ y3", because the model's factor is POST, and
   # held the loading equal while the invariance check freed it.
-  df <- function(fit) lavaan::fitMeasures(fit$fit_post, "df")[[1]]
+  df <- function(fit) lavaan::fitMeasures(fit$fit, "df")[[1]]
   expect_equal(df(as_f), df(none) - 3)
-  expect_equal(lavaan::fitMeasures(as_f$fit_post, c("chisq", "df")),
-               lavaan::fitMeasures(as_post$fit_post, c("chisq", "df")))
-  expect_equal(as_f$effects_post, as_post$effects_post)
-  pt <- lavaan::parTable(as_f$fit_post)
+  expect_equal(lavaan::fitMeasures(as_f$fit, c("chisq", "df")),
+               lavaan::fitMeasures(as_post$fit, c("chisq", "df")))
+  expect_equal(as_f$effects, as_post$effects)
+  pt <- lavaan::parTable(as_f$fit)
   expect_identical(unique(pt$label[pt$op == "=~" & pt$rhs == "y3"]), "")
   expect_identical(as_f$settings$partial_post, "POST =~ y3")
   # The model and its invariance check free the same loading.

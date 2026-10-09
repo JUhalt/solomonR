@@ -53,12 +53,29 @@
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
-#' @return An object of class `solomon_comparison` with `results` (one row per
-#'   method and contrast, with the adjustment, variance assumption, reference
-#'   distribution, estimate, standard error, interval, and p-value),
-#'   `estimands` (definitions of the four contrasts), `not_compared` (analyses
-#'   excluded and why), and `skipped` (requested methods that could not be
-#'   fitted and why).
+#' @return An object of class `solomon_comparison`, a list with:
+#'   - `results`: one row for each method and contrast, in the columns
+#'     `method`, `contrast`, `estimate`, `std.error`, `statistic`, `df`
+#'     (`Inf` for a normal reference distribution), `p.value`, `conf.low`,
+#'     and `conf.high`, followed by the `adjustment`, the `variance`
+#'     assumption, and the `reference` distribution of each method. The
+#'     rows are the four treatment contrasts, `ATE (avg over pretest)`,
+#'     `Pretest x Treatment`, `Treatment | pretested`, and
+#'     `Treatment | unpretested`, for each method that estimates them. The
+#'     table has no rows when every requested method was skipped.
+#'   - `estimands`: the definition of each contrast (`contrast` and
+#'     `definition`).
+#'   - `not_compared`: the analyses left out, and why (`analysis` and
+#'     `reason`).
+#'   - `skipped`: the requested methods that could not be fitted, and why
+#'     (`method` and `reason`).
+#'   - `conf_level`: the confidence level of the intervals.
+#'   - `settings`: the methods requested, the confidence level, and whether
+#'     pretest scores were supplied.
+#'
+#'   `results` has the columns and the labels of an effects table, and
+#'   [`tidy()`][solomon_output] returns it. See [solomon_output] for the
+#'   columns, the labels, and the parts of a result that are stable.
 #' @references
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after
@@ -144,21 +161,22 @@ compare_solomon_methods <- function(
 
   make_rows <- function(method, adjustment, variance, contrast, effects) {
     # Only the four treatment contrasts are compared; the effects tables of
-    # the GLM and ML fits also hold the pretest effects (issue #104).
+    # the GLM, ML, and SEM fits also hold the pretest effects (issue #104).
     keep <- rep_len(contrast %in% contrast_levels, NROW(effects))
     effects <- effects[keep, , drop = FALSE]
     contrast <- rep_len(contrast, length(keep))[keep]
     data.frame(
       method = method,
-      adjustment = adjustment,
-      variance = variance,
       contrast = contrast,
       estimate = effects$estimate,
       std.error = effects$std.error,
-      df = if (is.null(effects$df)) Inf else effects$df,
+      statistic = effects$statistic,
+      df = effects$df,
+      p.value = effects$p.value,
       conf.low = effects$conf.low,
       conf.high = effects$conf.high,
-      p.value = effects$p.value,
+      adjustment = adjustment,
+      variance = variance,
       stringsAsFactors = FALSE
     )
   }
@@ -282,13 +300,6 @@ compare_solomon_methods <- function(
     if (!requireNamespace("lavaan", quietly = TRUE)) {
       skipped$sem <- "The lavaan package is not installed."
     } else {
-      sem_names <- c(
-        ATE = "ATE (avg over pretest)",
-        Sens = "Pretest x Treatment",
-        Pre_Eff = "Treatment | pretested",
-        Unpre_Eff = "Treatment | unpretested"
-      )
-
       sem <- try_fit(fit_solomon_sem(y_post, treat, pretested, conf_level = conf_level))
       if (inherits(sem, "error")) {
         skipped$sem <- conditionMessage(sem)
@@ -297,7 +308,7 @@ compare_solomon_methods <- function(
           "SEM mean structure",
           "none",
           "separate variances by cell; lavaan Wald",
-          unname(sem_names[sem$effects$contrast]),
+          sem$effects$contrast,
           sem$effects
         )
       }
@@ -314,7 +325,7 @@ compare_solomon_methods <- function(
             "SEM ANCOVA",
             "pretest (pretested groups only)",
             "separate variances by treatment group; lavaan Wald",
-            unname(sem_names[sem_ancova$effects$contrast]),
+            sem_ancova$effects$contrast,
             sem_ancova$effects
           )
         }
@@ -322,19 +333,30 @@ compare_solomon_methods <- function(
     }
   }
 
-  results <- if (length(rows)) do.call(rbind, rows) else NULL
+  # With every requested method skipped, the table has its columns and no
+  # rows, so that `results` is a table in every result and tidy() returns it.
+  results <- if (length(rows)) {
+    do.call(rbind, rows)
+  } else {
+    data.frame(
+      method = character(), contrast = character(), estimate = numeric(),
+      std.error = numeric(), statistic = numeric(), df = numeric(),
+      p.value = numeric(), conf.low = numeric(), conf.high = numeric(),
+      adjustment = character(), variance = character(), reference = character(),
+      stringsAsFactors = FALSE
+    )
+  }
 
-  if (!is.null(results)) {
+  if (nrow(results)) {
     results$reference <- ifelse(
       is.finite(results$df),
       paste0("t(", .df_fmt(results$df), ")"),
       "normal"
     )
-    results <- results[order(match(results$contrast, contrast_levels)), c(
-      "contrast", "method", "adjustment", "variance", "reference",
-      "estimate", "std.error", "df", "conf.low", "conf.high", "p.value"
-    )]
-    rownames(results) <- NULL
+    # The columns of an effects table (issue #110), indexed by the method,
+    # and then the description of each method.
+    results <- results[order(match(results$contrast, contrast_levels)), ]
+    results <- .effects_table(results, keys = "method")
   }
 
   estimands <- data.frame(
@@ -377,6 +399,9 @@ compare_solomon_methods <- function(
       estimands = estimands,
       not_compared = not_compared,
       skipped = skipped,
+      # At the top level, as in every result with a table of contrasts
+      # (issue #110), and still in the settings.
+      conf_level = conf_level,
       settings = list(methods = methods, conf_level = conf_level,
                       pretest_supplied = !is.null(y_pre))
     ),
@@ -397,7 +422,9 @@ print.solomon_comparison <- function(x, digits = 3, ...) {
     "affect precision rather than the target."
   )), "\n", sep = "")
 
-  if (!is.null(x$results)) {
+  # NROW() is 0 for a table with no rows and for the NULL that versions
+  # before 1.0.0 stored when every method was skipped.
+  if (NROW(x$results)) {
     for (contrast in unique(x$results$contrast)) {
       r <- x$results[x$results$contrast == contrast, ]
       table <- data.frame(
