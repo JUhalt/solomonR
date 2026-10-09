@@ -1,5 +1,15 @@
 # solomonR (development version)
 
+## Reports of latent models with lavaan 0.7-3 (bug fix)
+
+* `report_solomon()` failed for latent-variable fits and invariance tests
+  estimated by plain maximum likelihood (`estimator = "ML"`) once lavaan
+  0.7-3 was installed. That version adds Browne's residual test to such
+  fits, and the report took any second test to be a scaled test statistic.
+  It now looks for a scaling factor. Reports under the default estimator
+  (MLR) and reports made with earlier versions of lavaan were correct and
+  are unchanged.
+
 ## Credit for the unified model (#105)
 
 * The model of `fit_solomon_glm()` is now credited to Newman, Benz, and
