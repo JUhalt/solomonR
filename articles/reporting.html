@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,7 @@
       <h1>Reporting a Solomon Study</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/vignettes/articles/reporting.Rmd" class="external-link"><code>vignettes/articles/reporting.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/vignettes/articles/reporting.Rmd" class="external-link"><code>vignettes/articles/reporting.Rmd</code></a></small>
       <div class="d-none name"><code>reporting.Rmd</code></div>
     </div>
 
@@ -183,9 +183,8 @@ below are hypothetical.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Posttest outcomes were analyzed with a linear model containing treatment,</span></span>
 <span><span class="co">#&gt; pretesting, and their interaction, adjusting for the pretest score among</span></span>
-<span><span class="co">#&gt; pretested participants (Lin, 2013; Newman et al., 1990), with HC3</span></span>
-<span><span class="co">#&gt; heteroskedasticity-consistent standard errors (MacKinnon &amp; White, 1985; Long</span></span>
-<span><span class="co">#&gt; &amp; Ervin, 2000).</span></span>
+<span><span class="co">#&gt; pretested participants (Lin, 2013), with HC3 heteroskedasticity-consistent</span></span>
+<span><span class="co">#&gt; standard errors (MacKinnon &amp; White, 1985; Long &amp; Ervin, 2000).</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The average treatment effect across pretest conditions was 2.66, 95% CI</span></span>
 <span><span class="co">#&gt; [-0.47, 5.80], t(115) = 1.68, p = .095.</span></span>
@@ -195,12 +194,6 @@ below are hypothetical.</p>
 <span><span class="co">#&gt; 6.15], t(115) = 0.75, p = .453.</span></span>
 <span><span class="co">#&gt; The treatment effect among unpretested participants was 3.63, 95% CI [-0.78,</span></span>
 <span><span class="co">#&gt; 8.05], t(115) = 1.63, p = .106.</span></span>
-<span><span class="co">#&gt; The pretest effect (pretested minus unpretested participants, at the</span></span>
-<span><span class="co">#&gt; pretested participants' mean pretest score of 49.60) was 3.42 among control</span></span>
-<span><span class="co">#&gt; participants, 95% CI [-1.30, 8.14], t(115) = 1.44, p = .154, and 1.48 among</span></span>
-<span><span class="co">#&gt; treated participants, 95% CI [-3.27, 6.23], t(115) = 0.62, p = .538; their</span></span>
-<span><span class="co">#&gt; average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], t(115) =</span></span>
-<span><span class="co">#&gt; 1.37, p = .174.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; References</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -217,10 +210,6 @@ below are hypothetical.</p>
 <span><span class="co">#&gt;     covariance matrix estimators with improved finite sample properties.</span></span>
 <span><span class="co">#&gt;     Journal of Econometrics, 29(3), 305–325.</span></span>
 <span><span class="co">#&gt;     https://doi.org/10.1016/0304-4076(85)90158-7</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in analyzing the</span></span>
-<span><span class="co">#&gt;     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),</span></span>
-<span><span class="co">#&gt;     91–103. https://ojs.lib.ua.edu/glmj/article/view/125</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Solomon, R. L. (1949). An extension of control group design. Psychological</span></span>
 <span><span class="co">#&gt;     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958</span></span></code></pre></div>
@@ -243,11 +232,10 @@ between groups rather than treatment effects.</li>
 statistical symbols as APA style requires:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/report_solomon.html">report_solomon</a></span><span class="op">(</span><span class="va">fit</span>, format <span class="op">=</span> <span class="st">"markdown"</span><span class="op">)</span><span class="op">$</span><span class="va">results</span></span>
-<span><span class="co">#&gt; [1] "The average treatment effect across pretest conditions was 2.66, 95% CI [-0.47, 5.80], *t*(115) = 1.68, *p* = .095."                                                                                                                                                                                                                                                                                           </span></span>
-<span><span class="co">#&gt; [2] "The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI [-8.21, 4.33], *t*(115) = -0.61, *p* = .541."                                                                                                                                                                                                                                                                                    </span></span>
-<span><span class="co">#&gt; [3] "The treatment effect among pretested participants was 1.69, 95% CI [-2.76, 6.15], *t*(115) = 0.75, *p* = .453."                                                                                                                                                                                                                                                                                                </span></span>
-<span><span class="co">#&gt; [4] "The treatment effect among unpretested participants was 3.63, 95% CI [-0.78, 8.05], *t*(115) = 1.63, *p* = .106."                                                                                                                                                                                                                                                                                              </span></span>
-<span><span class="co">#&gt; [5] "The pretest effect (pretested minus unpretested participants, at the pretested participants' mean pretest score of 49.60) was 3.42 among control participants, 95% CI [-1.30, 8.14], *t*(115) = 1.44, *p* = .154, and 1.48 among treated participants, 95% CI [-3.27, 6.23], *t*(115) = 0.62, *p* = .538; their average, the pretest main effect, was 2.45, 95% CI [-1.09, 5.99], *t*(115) = 1.37, *p* = .174."</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "The average treatment effect across pretest conditions was 2.66, 95% CI [-0.47, 5.80], *t*(115) = 1.68, *p* = .095."       </span></span>
+<span><span class="co">#&gt; [2] "The Pretest x Treatment interaction (pretest sensitization) was -1.94, 95% CI [-8.21, 4.33], *t*(115) = -0.61, *p* = .541."</span></span>
+<span><span class="co">#&gt; [3] "The treatment effect among pretested participants was 1.69, 95% CI [-2.76, 6.15], *t*(115) = 0.75, *p* = .453."            </span></span>
+<span><span class="co">#&gt; [4] "The treatment effect among unpretested participants was 3.63, 95% CI [-0.78, 8.05], *t*(115) = 1.63, *p* = .106."</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="what-the-helper-does-not-do">What the helper does not do<a class="anchor" aria-label="anchor" href="#what-the-helper-does-not-do"></a>

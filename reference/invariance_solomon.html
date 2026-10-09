@@ -19,7 +19,7 @@ the one before it."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,7 +93,7 @@ the one before it."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Measurement invariance across the four Solomon groups</h1>
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/R/solomon_invariance.R" class="external-link"><code>R/solomon_invariance.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/R/solomon_invariance.R" class="external-link"><code>R/solomon_invariance.R</code></a></small>
       <div class="d-none name"><code>invariance_solomon.Rd</code></div>
     </div>
 
@@ -200,17 +200,11 @@ likelihood fit, whose estimates MLR shares.</p>
 <p>When scalar invariance fails, latent means can still be compared if the
 noninvariant parameters are freed and enough indicators stay invariant
 (Byrne et al., 1989, p. 458). <code>partial</code> names the freed parameters in
-lavaan syntax: <code>"item3 ~ 1"</code> for an intercept, or <code>"F =~ item3"</code> for a
-loading. Only intercepts and loadings, the parameters the metric and
-scalar models hold equal, can be freed. The model has one factor, so any
-factor name before <code>=~</code> refers to it, including the <code>POST</code> of
-<code><a href="fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code>. The loading of the first indicator is fixed
-at 1 to set the latent scale; if it is freed, lavaan keeps it at 1 in the
-pretested treated group only and estimates it in the other three. Freed
-parameters must be chosen on substantive grounds, not by searching the
-data (Byrne et al., 1989, p. 465), and must involve only a minority of
-the indicators (Vandenberg &amp; Lance, 2000, p. 38); at least two indicators
-must stay fully invariant. The function never chooses them.</p>
+lavaan syntax (for example, <code>"item3 ~ 1"</code> for an intercept). They must be
+chosen on substantive grounds, not by searching the data (Byrne et al.,
+1989, p. 465), and must involve only a minority of the indicators
+(Vandenberg &amp; Lance, 2000, p. 38); at least two indicators must stay
+fully invariant. The function never chooses them.</p>
     </div>
     <div class="section level2">
     <h2 id="lifecycle">Lifecycle<a class="anchor" aria-label="anchor" href="#lifecycle"></a></h2>

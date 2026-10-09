@@ -1,6 +1,16 @@
 # Changelog
 
-## solomonR (development version)
+## solomonR 0.8.2
+
+A patch release. It fixes a bug in the participant-level permutation
+test of
+[`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+that made p-values too small when permutations tie with the observed
+statistic ([\#131](https://github.com/JUhalt/solomonR/issues/131)).
+Rerun
+[`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+for outcomes with tied scores (binary outcomes, counts, ratings, rounded
+scores) and for very small groups. No other function changes from 0.8.1.
 
 ### Ties in the permutation test (bug fix, [\#131](https://github.com/JUhalt/solomonR/issues/131))
 
@@ -19,14 +29,25 @@
   cluster level, where the model is not refitted for each allocation, it
   is 1e-10 for every model.
 
+- Also in
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md):
+  the refitted models may take up to 200 iterations where they took 25,
+  which removes convergence warnings that some models gave.
+
 - What remains ([\#134](https://github.com/JUhalt/solomonR/issues/134)):
-  in a model fitted by iteration, equal fits usually agree to about
-  1e-7, but where the contrast’s cells include a covariate they can
-  differ by more, most with a link other than the canonical one, and
-  such a tie can still be missed. In the checks made, no p-value was
-  affected by this with the logit or the Poisson log link. An observed
-  labeling that empties an arm, and an outcome that does not vary within
-  a pretest condition, are tracked there too.
+
+  - In a model fitted by iteration, equal fits usually agree to about
+    1e-7, but where the contrast’s cells include a covariate they can
+    differ by more, most with a link other than the canonical one, and
+    such a tie can still be missed. In the checks made, no p-value was
+    affected by this with the logit or the Poisson log link.
+  - This release line does not center the pretest or any covariate. A
+    pretest or covariate whose mean is about a thousand times its
+    standard deviation or more, such as a calendar year, can still lose
+    ties. Results were right in every check with a pretest mean up to
+    500 times its standard deviation.
+  - An observed labeling that empties an arm, and an outcome that does
+    not vary within a pretest condition, are tracked there too.
 
 - What can change: p-values that were too small. Rerun
   [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
@@ -38,7 +59,7 @@
     with 20 participants per group, one test gave p = .017 where the
     correct value is .056.
   - Continuous scores in very small groups. With groups of 4, 4, 3, and
-    3, one test gave p = .027 where the correct value is .117.
+    3, one test gave p = .004 where the correct value is .117.
 
   With continuous scores and 10 or more participants per group a tie is
   rare. For a contrast within one pretest condition, about 1 analysis in
@@ -46,7 +67,7 @@
   .001; for the average treatment effect and Pretest x Treatment, almost
   none does. The scores of `solomon_example` are whole numbers, so its
   own p-values change slightly: in one run of 4,999 permutations for
-  Treatment \| unpretested, from .100 to .105.
+  Treatment \| unpretested, from .102 to .105.
 
 - An observed statistic of exactly zero now gives a p-value of 1, when
   the outcome varies within the pretest conditions the contrast uses.
@@ -57,488 +78,6 @@
   exception: an observed statistic of exactly zero now gives a p-value
   of 1 there too. Rounding could give less: with 3 treated and 3 control
   clusters, whose 20 allocations are all used, one test gave .9.
-
-### Reports of latent models with lavaan 0.7-3 (bug fix)
-
-- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  failed for latent-variable fits and invariance tests estimated by
-  maximum likelihood without a scaled test statistic (`estimator = "ML"`
-  or `"MLF"`) once lavaan 0.7-3 was installed. That version adds
-  Browne’s residual test to such fits, and the report took any second
-  test to be a scaled test statistic. It now looks for a scaling factor.
-  Reports under the default estimator (MLR) and reports made with
-  earlier versions of lavaan were correct and are unchanged.
-
-### Credit for the unified model ([\#105](https://github.com/JUhalt/solomonR/issues/105))
-
-- The model of
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-  is now credited to Newman, Benz, and Williams (1990), who proposed it
-  for the Solomon design: one regression for the four groups, with the
-  pretest as a covariate coded 0 for the unpretested. The methods guide
-  lists it as a published Solomon proposal, no longer a solomonR
-  extension, and names the package’s additions: the four contrasts as
-  named estimates with confidence intervals, HC3 and CR2 standard errors
-  with Satterthwaite degrees of freedom for CR2, other families and
-  exposure offsets, the noncollapsibility warning and
-  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
-  additional covariates, designs with several treatments, and
-  randomization and equivalence tests.
-- [`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-  and the methods guide give the model’s source, the interaction
-  restriction as Newman et al. printed it, and their caution against
-  treating the unpretested as having a pretest score of zero. With the
-  pretest now centered
-  ([\#104](https://github.com/JUhalt/solomonR/issues/104)), the
-  `pretested` coefficient compares the groups at the pretested
-  participants’ mean pretest, where Newman et al. took their adjusted
-  means (p. 101); the four Solomon contrasts do not depend on the
-  centering.
-- A new known-result test reproduces their worked example: the pretest
-  slope, the within-groups sum of squares, and the tests of the
-  treatment and the interaction (Table 3, p. 100). The printed
-  interaction F of .22 is 0.21 from their data.
-- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  and
-  [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
-  cite Newman et al.
-  1990. with Lin (2013) where they describe the pretest adjustment. “How
-        to Cite solomonR” explains that
-        [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-        cites them when a pretest is supplied.
-- Williams and Newman (1982), who fitted one model to all six sets of
-  observations in answer to Campbell and Stanley, are added with Newman
-  et al. (1990) to the history, coverage, and citation articles and the
-  references.
-
-### Dukes et al. (1995), the latent-variable precedent ([\#106](https://github.com/JUhalt/solomonR/issues/106))
-
-- Dukes, Ullman, and Stein (1995), a Solomon evaluation analyzed with
-  latent variables, is cited as a published precedent for the SEM
-  functions in the SEM article, the methods guide, the coverage article,
-  and the references. The SEM article sets their three two-group models,
-  which test loadings, impose equal intercepts, and do not test the
-  interaction, beside the package’s four-group model and invariance
-  tests, and names what the two share. The SEM functions are unchanged;
-  four further elements of their method (a latent maturation contrast, a
-  pretest main effect, a latent baseline check, and a standardized
-  latent contrast) are planned under
-  [\#117](https://github.com/JUhalt/solomonR/issues/117).
-
-### The worked example of Walton Braver and Braver (1988) ([\#109](https://github.com/JUhalt/solomonR/issues/109))
-
-- New data set `waltonbraver1988`: the hypothetical data of the worked
-  example of Walton Braver and Braver (1988, Table 3, p. 153). Its
-  known-result test reproduces the published Tests A, D, E, H, and I,
-  the pretest main effect, the 1988 path, and the power remark within
-  rounding.
-- A known-result test reproduces Tests E and H of the counterexample of
-  Sawilowsky and Markman (1988), read in its ERIC version, and shows
-  that its printed error entry, 1200.04, is a misprint.
-- “The Classic Solomon Four-Group Analysis” gains a section on these
-  published worked examples, and states more precisely the reading of
-  Test I that reproduces the published simulation rates.
-- The roadmap no longer calls the historical workflow validated. It
-  states that the computations reproduce and the published Monte Carlo
-  rates only in part.
-
-### Satterthwaite inference by default in fit_solomon_ml() ([\#115](https://github.com/JUhalt/solomonR/issues/115))
-
-- **A change in default that can alter results.**
-  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-  now uses `inference = "satterthwaite"` unless told otherwise. The
-  point estimates are unchanged, but standard errors are larger,
-  intervals wider, and p-values larger than under the former default,
-  `inference = "wald"`, most of all with small groups; a contrast that
-  was significant before may no longer be. To reproduce results from
-  solomonR 0.8.0 and earlier, supply `inference = "wald"`. The change
-  follows the package’s simulation study
-  ([\#10](https://github.com/JUhalt/solomonR/issues/10),
-  [\#22](https://github.com/JUhalt/solomonR/issues/22)): Wald intervals
-  had mean coverage of 0.893 with 6 participants per cell and 0.920 with
-  10, and the Pretest x Treatment test rejected a true null hypothesis
-  in 7.7% of samples with 10 per cell, while Satterthwaite inference had
-  mean coverage of 0.949 to 0.950 and Type I error of 0.050 to 0.053 at
-  every cell size studied.
-- `inference = "wald"` remains, documented as van Engelenburg’s (1999)
-  large-sample inference.
-- The small-sample warning (class `solomonR_small_sample_warning`) is
-  removed. It recommended what is now the default, and it never fired
-  when `inference = "wald"` was chosen explicitly, which is now the only
-  way to get Wald inference. Printed output still notes when Wald
-  inference is used with fewer than 40 participants in the smallest
-  cell, and the note now gives the threshold.
-- [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
-  labels its two maximum-likelihood rows “Maximum likelihood
-  (Satterthwaite)”, listed first, and “Maximum likelihood (Wald)”. They
-  were “Maximum likelihood (small-sample)” and “Maximum likelihood”,
-  which named the Wald rows; code that selects rows by these labels
-  needs the new ones.
-- [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
-  described every maximum-likelihood fit as using a large-sample normal
-  reference, even when its tests used t; it now names the fit’s
-  inference. The tests themselves already used the fit’s degrees of
-  freedom.
-- Printed output, figure captions, and
-  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  say “Satterthwaite inference” where they said “the small-sample
-  option”. For a fit with Satterthwaite inference,
-  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  now says which contrasts use residual degrees of freedom and which use
-  Welch-Satterthwaite degrees of freedom; for a Wald fit, it says the
-  Wald tests are large-sample.
-- The printout of a
-  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-  fit, figure captions, and
-  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
-  cite Satterthwaite (1946) and Welch (1947) for Satterthwaite
-  inference, as they cite van Engelenburg (1999) for Wald inference.
-  [`?compare_solomon_methods`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
-  and
-  [`?plot_solomon_effects`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
-  now list the works that their output cites.
-- In the captions of
-  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
-  and
-  [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md),
-  the inference has a line of its own, after the confidence level and
-  the reference distribution, so that each line fits a figure 7 inches
-  wide.
-- The printout of a
-  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-  fit labels its residual standard deviations as maximum-likelihood
-  estimates (the square roots of SSE / n), which Wald standard errors
-  use. For Satterthwaite inference it also gives the square roots of the
-  unbiased residual variances (SSE / residual df), which its standard
-  errors use; the fit stores them in `sigma_unbiased`. Before, the
-  default printout showed only the maximum-likelihood values, which do
-  not reproduce its standard errors.
-- [`?fit_solomon_ml`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
-  the getting-started guide, the method guide, the GLM vignette, the
-  README, and the validation articles describe the new default. The
-  validation article and the shared benchmark tables label the methods
-  “ML, Satterthwaite (default)” and “ML, Wald (van Engelenburg, 1999)”;
-  the simulation’s own results file keeps the labels of the run.
-
-### Figure text that fits the figure ([\#108](https://github.com/JUhalt/solomonR/issues/108))
-
-- [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md),
-  [`plot_solomon_change()`](https://juhalt.github.io/solomonR/reference/plot_solomon_change.md),
-  and
-  [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
-  no longer cut off their captions, subtitles, and keys. An internal
-  helper breaks figure text into lines for a figure 7 inches wide, the
-  narrowest width at which the vignettes draw these figures; pkgdown
-  draws them 7.29 inches wide. The line length allows for DejaVu Sans,
-  the wider default font on Linux and on the package website. Captions
-  are set flush left under the whole figure.
-- [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
-  keeps the caution of Sawilowsky et al. (1994) whole and never breaks
-  the path in the subtitle. Edge labels are set beside the arrows
-  instead of on them, so that “not significant” no longer sits on a
-  node, and each arrow runs from the bottom of one node to the top of
-  the next. The arrows are fitted to the panel that the subtitle and the
-  caption leave in a figure 4.5 inches high, so that they also meet the
-  nodes under the six-line caption of a fitted 1990 flow. A visited
-  test’s p-value is set beside its name, so that the tree fits a figure
-  4.5 inches high, as on the reference page.
-- [`plot_solomon_change()`](https://juhalt.github.io/solomonR/reference/plot_solomon_change.md)
-  sets the four groups two by two in its legend, which was cut off at 7
-  inches in DejaVu Sans.
-- [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
-  sets the title and key from the left edge of the figure for the
-  four-group design too, with the notation on one line and
-  `X = treatment` on the next, as for designs with several treatments.
-  The key to the treatment marks is broken by the same rule as the other
-  figure text. The group sizes and means are given the width they need
-  beside the schematic, so they are no longer cut off at the right edge,
-  also when a theme such as
-  [`ggplot2::theme_bw()`](https://ggplot2.tidyverse.org/reference/ggtheme.html)
-  is added to the plot. With up to eight groups each is set on two
-  lines, which leaves the schematic room for its column headings; with
-  ten or more groups, whose rows are too short for two lines, each takes
-  one line, as before.
-- The plot returned by
-  [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
-  now draws the rows at the positions 1, 2, and so on, from the bottom,
-  on a continuous y scale labeled with the groups, instead of on a
-  discrete scale of the group labels. A layer added by group label maps
-  `y` to the row’s position, for example
-  `y = match(label, levels(p$data$row))`; mapping `y` to the label
-  itself now gives an error.
-- solomonR now requires ggplot2 3.5.0 or later, for the theme of a
-  single guide that keeps the space set aside for the group summaries
-  hidden.
-- A layout test draws each figure at the sizes used in the vignettes and
-  at the pkgdown default, and checks that no title, subtitle, caption,
-  or legend is wider than its place in the figure, that no edge label of
-  [`plot_classic_flow()`](https://juhalt.github.io/solomonR/reference/plot_classic_flow.md)
-  covers a node, that its arrows meet the nodes, and that the group
-  summaries of
-  [`plot_solomon_design()`](https://juhalt.github.io/solomonR/reference/plot_solomon_design.md)
-  are drawn once, without running into each other.
-
-### A report for every analysis ([\#111](https://github.com/JUhalt/solomonR/issues/111))
-
-- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  now reports
-  [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
-  analyses of designs with several treatments, which gave an error: the
-  omnibus F tests of the two-way analysis of variance (the Pretest x
-  Condition interaction, the conditions, and pretesting) and the
-  Holm-adjusted Solomon contrasts of each treatment against the control.
-  The contrasts are worded, and come out, as for
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-  on the individual data. The article “Designs With Several Treatments”
-  shows the report for Steyn’s (2005) eight-group study.
-- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  now also reports
-  [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md),
-  Solomon’s improvement-score analysis: his inferred pretest, the
-  improvements, and the interaction I, with the facts that Solomon gave
-  no test for I and that Campbell and Stanley (1963/1966) judged the
-  analysis unacceptable. The three-group design has its own design
-  statement, and its one unpretested group is named as such; for a
-  nonrandomized study the report says that the pretest mean inferred for
-  Control Group II assumes an equivalence of the groups that cannot be
-  checked, instead of describing a static-group comparison of
-  unpretested arms the design does not have.
-- [`?report_solomon`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  lists the two analysis functions it leaves out on purpose,
-  [`stouffer_solomon()`](https://juhalt.github.io/solomonR/reference/stouffer_solomon.md)
-  and
-  [`solomon_effect_sizes()`](https://juhalt.github.io/solomonR/reference/solomon_effect_sizes.md),
-  and why, as does the article “How to Cite solomonR and the Methods It
-  Implements”. Other objects are refused with an error that points to
-  that list.
-- A new test fits every exported analysis function, checks that each
-  result class it can return has a report handler or that the function
-  is among the exclusions, and reports each result.
-
-### Latent SEM reports ([\#112](https://github.com/JUhalt/solomonR/issues/112))
-
-- The report of
-  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
-  no longer claims scalar measurement invariance whatever the fit did.
-  It states the constraints the model imposed, names the loadings and
-  intercepts that the fitted model left free to differ across groups
-  (read from the model, not from `partial_post` and `partial_pre`), says
-  whether the invariance check freed the same ones, and gives the result
-  of the check under each criterion: both supported the invariance the
-  contrasts assume, only one did, neither did, or invariance was not
-  tested.
-- The report now gives the details the reporting standards for
-  structural equation models ask for (Appelbaum et al., 2018): the
-  lavaan version, the estimator (for MLR, the Yuan-Bentler scaled
-  chi-square; Yuan & Bentler, 2000), full-information maximum likelihood
-  for missing values, the group sizes, the identification constraint
-  (the latent posttest mean of the unpretested control group fixed at 0,
-  and how the latent scale was set), the chi-square test, CFI, RMSEA,
-  and SRMR, and the latent ANCOVA when it was fitted. The fit stores its
-  `estimator` in `settings`.
-- For the latent ANCOVA, the report states the constraints that identify
-  it and the unit of its adjusted effect. With `std_lv = TRUE`, lavaan
-  fixes the latent pretest mean and variance and the residual variance
-  of the latent posttest in the pretested treated group, so the effect
-  is in residual standard deviations of the latent posttest, not the
-  unit of the four-group contrasts printed above it.
-  [`?fit_solomon_sem_latent`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
-  now explains the units.
-- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  now reports
-  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)
-  results: each model’s fit (its chi-square test with the p-value,
-  scaled for a robust estimator, and the CFI, RMSEA, and SRMR), the
-  difference tests and changes in fit at each step, the criteria and
-  Chen’s (2007) cutoffs used, and the decision under each criterion, the
-  minimal information Putnick and Bornstein (2016) propose.
-- A loading freed in
-  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
-  as `partial_post = "POST =~ y3"` was left constrained in its
-  invariance check, whose factor is named `F`, so the check tested a
-  different model from the one fitted. Written as `"F =~ y3"`, the
-  loading was freed in the check but left constrained in the model,
-  whose factor is `POST`. Both functions now free a loading on the
-  factor its indicator measures, whatever factor name it is given.
-- `partial` in
-  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md),
-  and `partial_post` and `partial_pre` in
-  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
-  now accept only intercepts and loadings of the listed indicators, the
-  parameters the invariance models hold equal. Other parameters, such as
-  a residual variance, were accepted but changed nothing while the model
-  was called partially invariant.
-- With `std_lv = FALSE`, freeing the loading of the first indicator,
-  which sets the latent scale, makes lavaan keep it at 1 in the
-  pretested treated group only and estimate it in the other groups. The
-  report and the help pages now say so, and that the latent scale is
-  then that of the first indicator in that group.
-- Appelbaum et al. (2018), Putnick and Bornstein (2016), and Yuan and
-  Bentler (2000) are added to the references.
-
-### The difference statistic of `perm_solomon()` ([\#113](https://github.com/JUhalt/solomonR/issues/113))
-
-- `perm_solomon(statistic = "difference")` now gives a classed warning,
-  `solomonR_unbalanced_arms_warning`, when treated and control
-  participants differ in number in a pretest condition the contrast
-  uses. The difference statistic tests only the sharp null hypothesis;
-  when only the average effect is zero, it can reject too often if the
-  arms differ in size and variance (Romano, 1990). In a check with 8
-  treated and 24 control participants per pretest condition and a
-  treated standard deviation twice the control one, its Type I error at
-  .05 was 0.144 (Monte Carlo standard error 0.011), against 0.064
-  (0.008) for the studentized statistic
-  (`tools/perm-difference-check.R`, 1,000 replications).
-- The cluster-level warning, `solomonR_unbalanced_clusters_warning`, now
-  also has that class, so one handler catches both.
-- [`?perm_solomon`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
-  says the difference statistic tests only the sharp null hypothesis and
-  recommends the studentized default, and
-  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  says so for a difference test, citing Romano (1990), now in the
-  references.
-
-### The pretest effect ([\#104](https://github.com/JUhalt/solomonR/issues/104))
-
-- The effects tables of
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
-  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
-  and
-  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
-  (at each occasion) now report the pretest (testing) effect, the
-  question Solomon (1949) added the unpretested groups to answer and
-  that Campbell and Stanley (1963/1966, p. 25) list among the design’s
-  estimates. Three rows follow the four treatment contrasts:
-  `Pretest effect | control` and `Pretest effect | treated` (pretested
-  minus unpretested participants in each treatment condition), and
-  `Pretest main effect`, their average. The two differ by the Pretest x
-  Treatment contrast.
-- The pretest is now centered at the mean pretest of the pretested
-  participants in the model (`pretest_mean` in the fit), in
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
-  its several-treatment path, and
-  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md),
-  as
-  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-  already did. The pretesting coefficient, which compared the groups at
-  a pretest score of zero (-26.2 on `solomon_example`), is now the
-  pretest effect among controls at that mean (3.42). With random
-  assignment, the unpretested groups’ expected pretest equals that mean
-  (Solomon & Lessac, 1968, pp. 146–147), so each pretest effect is the
-  difference between the adjusted means that
-  [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
-  draws. The treatment contrasts, their standard errors, and the fitted
-  values are unchanged.
-- The standard errors of the pretest effects include the sampling
-  variance of the mean pretest at which they are evaluated, an estimate
-  of the unpretested groups’ expected pretest, by stacking its
-  estimating equation with the model’s (Stefanski & Boos, 2002): about
-  b^2 s^2 / n for a pretest slope b, pretest variance s^2, and n
-  pretested participants, with the covariance between the mean and the
-  coefficients under HC3 and CR2 covariance. Treating the mean as fixed
-  made the intervals too narrow at every sample size. The same holds for
-  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-  (Wald and small-sample inference), the several-treatment path,
-  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
-  (with each occasion’s slope), and the delta method of
-  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
-  which adds the sampling variance of the pretested and unpretested
-  samples’ standardization. CR2, small-sample ML, and MMRM degrees of
-  freedom combine those of the contrast and of the mean (Satterthwaite,
-  1946; Welch, 1947). The coefficient tables still report the pretesting
-  coefficient with the standard error that treats the mean as fixed.
-- For designs with several treatments, the effects table ends with the
-  pretest effect of each condition (`comparison` names the condition)
-  and the main effect over the conditions (`"All conditions"`). The
-  treatments’ pretest effects are adjusted across the treatments, so
-  with one comparison and an adjustment the printed table now shows the
-  adjusted p-values for them. The help page no longer credits the main
-  effect over all conditions to Steyn (2009), who tests the pretest main
-  effect for each intervention against the control, and it says that the
-  simulation study of issue
-  [\#45](https://github.com/JUhalt/solomonR/issues/45) covered the
-  treatment contrasts, not the pretest effects.
-- [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
-  reports the pretest effects as risk or rate differences and ratios,
-  and odds ratios, from the standardized cell risks or rates. Its
-  cluster-level summaries keep the four treatment contrasts that their
-  study validated.
-- [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
-  accepts the pretest effects; for a design with several treatments,
-  `comparison` names the condition.
-- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
-  writes a sentence on the pretest effects for
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
-  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
-  and
-  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
-  fits, and for each occasion of the last. The print methods state where
-  the pretest is centered.
-- On a link other than the identity, the pretest effects compare a
-  fitted mean at the mean pretest with a marginal mean, so they are not
-  marginal effects, even on the log link; the help pages, the printed
-  fit, and the report say so and point to
-  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
-  which estimates marginal effects by standardization (Daniel et al.,
-  2021).
-- [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
-  refuses the pretest effects with an explanation: permuting treatment
-  labels does not test them.
-- The `"truth"` attribute of
-  [`simulate_solomon()`](https://juhalt.github.io/solomonR/reference/simulate_solomon.md)
-  adds the pretest effects among treated participants and on average, in
-  the order of the effects table.
-- [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
-  still compares the four treatment contrasts.
-- The teaching article’s Lesson 1 and Step 3 of “Getting Started” read
-  the pretest effect from the effects table, not from a coefficient.
-
-### The scale of link-scale contrasts ([\#114](https://github.com/JUhalt/solomonR/issues/114))
-
-- [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
-  records the scale of the contrast (`scale`), and its print method, the
-  report, and the captions of
-  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
-  and
-  [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
-  name it: outcome units for an identity link, log odds ratios for a
-  logistic model, log rate ratios for a Poisson or negative-binomial
-  model. The print method no longer calls link-scale bounds “raw scale”.
-- A classed warning (`solomonR_link_scale_warning`) is given when
-  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md),
-  `perm_solomon(contrast = "Pretest x Treatment")`, or the equivalence
-  bounds of
-  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
-  test, with a pretest covariate, a contrast that does not compare like
-  with like: the Pretest x Treatment contrast on a noncollapsible link
-  such as the logit (Daniel et al., 2021), and the pretest effects on
-  any link but the identity. It points to
-  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md).
-  The Pretest x Treatment contrast on the log link, a ratio of rate
-  ratios, is collapsible and does not warn.
-- The report of a
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-  fit names the scale of its contrasts from the link, such as log risk
-  ratios for a binomial log link, where it called every log-link
-  contrast a log rate ratio.
-
-### Equivalence intervals in the forest plot ([\#107](https://github.com/JUhalt/solomonR/issues/107))
-
-- With `bounds`,
-  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
-  now draws the 1 - 2 `alpha` interval of the equivalence test as a
-  thick bar inside the thin `conf_level` interval of each Pretest x
-  Treatment row, for four-group designs and designs with several
-  treatments. Equivalence holds when that interval lies inside the
-  bounds (Schuirmann, 1987; Lakens, 2017); the 95% interval the figure
-  drew alone could cross a bound for a contrast that
-  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
-  found equivalent.
-- The new `alpha` argument matches
-  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md).
-- The caption states both confidence levels, the scale of the bounds,
-  and the TOST outcome, by comparison for designs with several
-  treatments.
 
 ## solomonR 0.8.1
 

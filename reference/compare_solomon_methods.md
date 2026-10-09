@@ -44,12 +44,9 @@ compare_solomon_methods(
 - methods:
 
   Analyses to include: any of `"glm"` (unified GLM with HC3), `"ml"`
-  (maximum likelihood; see
-  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)),
-  `"classic"`, and `"sem"` (requires the lavaan package). Maximum
-  likelihood is reported twice: with its default Satterthwaite inference
-  (Satterthwaite, 1946; Welch, 1947) and with van Engelenburg's (1999)
-  large-sample Wald inference.
+  (maximum likelihood, reported with both its default Wald inference and
+  the small-sample option), `"classic"`, and `"sem"` (requires the
+  lavaan package).
 
 - conf_level:
 
@@ -127,21 +124,9 @@ estimand? Defining the target quantity connects statistical evidence to
 theory. *American Sociological Review, 86*(3), 532–565.
 https://doi.org/10.1177/00031224211004187
 
-Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. *Biometrics Bulletin, 2*(6), 110–114.
-https://doi.org/10.2307/3002019
-
-van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-four-group design* (Research Report 99-06). University of Twente. ERIC.
-https://eric.ed.gov/?id=ED435692
-
 Walton Braver, M. C., & Braver, S. L. (1988). Statistical treatment of
 the Solomon four-group design: A meta-analytic approach. *Psychological
 Bulletin, 104*(1), 150–154. https://doi.org/10.1037/0033-2909.104.1.150
-
-Welch, B. L. (1947). The generalization of "Student's" problem when
-several different population variances are involved. *Biometrika,
-34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
 
 ## See also
 
@@ -167,46 +152,44 @@ with(
 #> precision rather than the target.
 #> 
 #> ATE (avg over pretest)
-#>  Method                             Estimate 95% CI          Reference p    
-#>  Unified GLM (HC3)                  2.663    [-0.474, 5.801] t(115)    0.095
-#>  Maximum likelihood (Satterthwaite) 2.663    [-0.411, 5.738] t(115.0)  0.089
-#>  Maximum likelihood (Wald)          2.663    [-0.314, 5.641] normal    0.080
-#>  Classic Test D                     2.683    [-0.793, 6.160] t(116)    0.129
+#>  Method                            Estimate 95% CI          Reference p    
+#>  Unified GLM (HC3)                 2.663    [-0.474, 5.801] t(115)    0.095
+#>  Maximum likelihood                2.663    [-0.314, 5.641] normal    0.080
+#>  Maximum likelihood (small-sample) 2.663    [-0.411, 5.738] t(115.0)  0.089
+#>  Classic Test D                    2.683    [-0.793, 6.160] t(116)    0.129
 #> 
 #> Pretest x Treatment
-#>  Method                             Estimate 95% CI          Reference p    
-#>  Unified GLM (HC3)                  -1.940   [-8.214, 4.335] t(115)    0.541
-#>  Maximum likelihood (Satterthwaite) -1.940   [-8.088, 4.209] t(115.0)  0.533
-#>  Maximum likelihood (Wald)          -1.940   [-7.895, 4.016] normal    0.523
-#>  Classic Test A                     -1.900   [-8.853, 5.053] t(116)    0.589
+#>  Method                            Estimate 95% CI          Reference p    
+#>  Unified GLM (HC3)                 -1.940   [-8.214, 4.335] t(115)    0.541
+#>  Maximum likelihood                -1.940   [-7.895, 4.016] normal    0.523
+#>  Maximum likelihood (small-sample) -1.940   [-8.088, 4.209] t(115.0)  0.533
+#>  Classic Test A                    -1.900   [-8.853, 5.053] t(116)    0.589
 #> 
 #> Treatment | pretested
-#>  Method                             Estimate 95% CI          Reference p    
-#>  Unified GLM (HC3)                  1.693    [-2.765, 6.152] t(115)    0.453
-#>  Maximum likelihood (Satterthwaite) 1.693    [-2.708, 6.095] t(57)     0.444
-#>  Maximum likelihood (Wald)          1.693    [-2.506, 5.893] normal    0.429
-#>  Classic Test B                     1.733    [-3.183, 6.650] t(116)    0.486
-#>  Classic Test E (ANCOVA)            1.693    [-2.708, 6.095] t(57)     0.444
-#>  Classic Test F (gain score)        1.667    [-3.239, 6.572] t(58)     0.499
+#>  Method                            Estimate 95% CI          Reference p    
+#>  Unified GLM (HC3)                 1.693    [-2.765, 6.152] t(115)    0.453
+#>  Maximum likelihood                1.693    [-2.506, 5.893] normal    0.429
+#>  Maximum likelihood (small-sample) 1.693    [-2.708, 6.095] t(57)     0.444
+#>  Classic Test B                    1.733    [-3.183, 6.650] t(116)    0.486
+#>  Classic Test E (ANCOVA)           1.693    [-2.708, 6.095] t(57)     0.444
+#>  Classic Test F (gain score)       1.667    [-3.239, 6.572] t(58)     0.499
 #> 
 #> Treatment | unpretested
-#>  Method                             Estimate 95% CI          Reference p    
-#>  Unified GLM (HC3)                  3.633    [-0.782, 8.049] t(115)    0.106
-#>  Maximum likelihood (Satterthwaite) 3.633    [-0.754, 8.020] t(58)     0.103
-#>  Maximum likelihood (Wald)          3.633    [-0.590, 7.857] normal    0.092
-#>  Classic Test C                     3.633    [-1.283, 8.550] t(116)    0.146
-#>  Classic Test H (posttest-only)     3.633    [-0.754, 8.020] t(58)     0.103
+#>  Method                            Estimate 95% CI          Reference p    
+#>  Unified GLM (HC3)                 3.633    [-0.782, 8.049] t(115)    0.106
+#>  Maximum likelihood                3.633    [-0.590, 7.857] normal    0.092
+#>  Maximum likelihood (small-sample) 3.633    [-0.754, 8.020] t(58)     0.103
+#>  Classic Test C                    3.633    [-1.283, 8.550] t(116)    0.146
+#>  Classic Test H (posttest-only)    3.633    [-0.754, 8.020] t(58)     0.103
 #> 
 #> Methods:
 #> - Unified GLM (HC3): adjustment = pretest (pretested groups); common residual
 #>   variance; HC3 robust.
-#> - Maximum likelihood (Satterthwaite): adjustment = pretest (pretested
-#>   groups); separate residual variances by pretest condition; t with residual
-#>   df, or Welch-Satterthwaite df for combined contrasts (Satterthwaite, 1946;
-#>   Welch, 1947).
-#> - Maximum likelihood (Wald): adjustment = pretest (pretested groups);
-#>   separate residual variances by pretest condition; large-sample Wald
-#>   inference (van Engelenburg, 1999).
+#> - Maximum likelihood: adjustment = pretest (pretested groups); separate
+#>   residual variances by pretest condition; Wald inference (van Engelenburg,
+#>   1999).
+#> - Maximum likelihood (small-sample): adjustment = pretest (pretested groups);
+#>   separate residual variances by pretest condition; Welch-Satterthwaite t.
 #> - Classic Test D: adjustment = none; common residual variance; four-group
 #>   model.
 #> - Classic Test A: adjustment = none; common residual variance; four-group

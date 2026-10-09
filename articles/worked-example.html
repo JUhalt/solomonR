@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,7 @@
       <h1>Worked Example: A Published Solomon Study</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/vignettes/articles/worked-example.Rmd" class="external-link"><code>vignettes/articles/worked-example.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/vignettes/articles/worked-example.Rmd" class="external-link"><code>vignettes/articles/worked-example.Rmd</code></a></small>
       <div class="d-none name"><code>worked-example.Rmd</code></div>
     </div>
 
@@ -348,11 +348,11 @@ can therefore also come from who was lost.</p>
 <h2 id="the-recommended-analysis">The recommended analysis<a class="anchor" aria-label="anchor" href="#the-recommended-analysis"></a>
 </h2>
 <p>The historical sequence tests parts of the design one at a time. The
-recommended analysis fits one model to all four groups, as Newman et al.
-(1990) proposed (see <code><a href="../articles/glm-solomon.html">vignette("glm-solomon")</a></code>). It estimates
-the Pretest x Treatment interaction and both simple treatment effects
-together, adjusts for the pretest among pretested participants (Lin,
-2013), and uses standard errors that do not assume equal variances:</p>
+recommended analysis fits one model to all four groups
+(<code><a href="../articles/glm-solomon.html">vignette("glm-solomon")</a></code>). It estimates the Pretest x
+Treatment interaction and both simple treatment effects together,
+adjusts for the pretest among pretested participants (Lin, 2013), and
+uses standard errors that do not assume equal variances:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">rp</span>, <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">fit</span></span>
@@ -360,28 +360,21 @@ together, adjusts for the pretest among pretested participants (Lin,
 <span><span class="co">#&gt; Formula: y ~ treat * pretested + pre_obs</span></span>
 <span><span class="co">#&gt; Covariance: HC3 heteroskedasticity-consistent; t tests (df = 90)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Term             Est (SE)            t  df      p           95% CI</span></span>
-<span><span class="co">#&gt; (Intercept)      3.019 (0.077)   38.99  90  &lt;.001   [2.865, 3.172]</span></span>
-<span><span class="co">#&gt; treat            0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]</span></span>
-<span><span class="co">#&gt; pretested        0.092 (0.104)    0.89  90  0.378  [-0.114, 0.299]</span></span>
-<span><span class="co">#&gt; pre_obs          0.431 (0.163)    2.65  90  0.010   [0.107, 0.754]</span></span>
-<span><span class="co">#&gt; treat:pretested  -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]</span></span>
+<span><span class="co">#&gt; Term             Est (SE)            t  df      p            95% CI</span></span>
+<span><span class="co">#&gt; (Intercept)      3.019 (0.077)   38.99  90  &lt;.001    [2.865, 3.172]</span></span>
+<span><span class="co">#&gt; treat            0.110 (0.114)    0.97  90  0.336   [-0.116, 0.337]</span></span>
+<span><span class="co">#&gt; pretested        -1.251 (0.535)  -2.34  90  0.022  [-2.313, -0.189]</span></span>
+<span><span class="co">#&gt; pre_obs          0.431 (0.163)    2.65  90  0.010    [0.107, 0.754]</span></span>
+<span><span class="co">#&gt; treat:pretested  -0.290 (0.157)  -1.84  90  0.068   [-0.602, 0.022]</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Key contrasts             Est (SE)            t  df      p           95% CI  Wald R2</span></span>
-<span><span class="co">#&gt; ATE (avg over pretest)    -0.035 (0.079)  -0.44  90  0.660  [-0.191, 0.121]    0.002</span></span>
-<span><span class="co">#&gt; Pretest x Treatment       -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]    0.036</span></span>
-<span><span class="co">#&gt; Treatment | pretested     -0.180 (0.108)  -1.66  90  0.100  [-0.395, 0.035]    0.030</span></span>
-<span><span class="co">#&gt; Treatment | unpretested   0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]    0.010</span></span>
-<span><span class="co">#&gt; Pretest effect | control  0.092 (0.105)    0.88  90  0.382  [-0.116, 0.300]    0.009</span></span>
-<span><span class="co">#&gt; Pretest effect | treated  -0.198 (0.121)  -1.64  90  0.105  [-0.438, 0.042]    0.029</span></span>
-<span><span class="co">#&gt; Pretest main effect       -0.053 (0.081)  -0.65  90  0.518  [-0.214, 0.109]    0.005</span></span>
+<span><span class="co">#&gt; Key contrasts            Est (SE)            t  df      p           95% CI  Wald R2</span></span>
+<span><span class="co">#&gt; ATE (avg over pretest)   -0.035 (0.079)  -0.44  90  0.660  [-0.191, 0.121]    0.002</span></span>
+<span><span class="co">#&gt; Pretest x Treatment      -0.290 (0.157)  -1.84  90  0.068  [-0.602, 0.022]    0.036</span></span>
+<span><span class="co">#&gt; Treatment | pretested    -0.180 (0.108)  -1.66  90  0.100  [-0.395, 0.035]    0.030</span></span>
+<span><span class="co">#&gt; Treatment | unpretested  0.110 (0.114)    0.97  90  0.336  [-0.116, 0.337]    0.010</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Wald R2: partial R-squared for conventional Gaussian OLS;</span></span>
-<span><span class="co">#&gt; a Wald-based descriptive approximation when robust covariance is used.</span></span>
-<span><span class="co">#&gt; pre_obs: the pretest, centered at the pretested participants' mean (3.118).</span></span>
-<span><span class="co">#&gt; The pretest effects compare pretested and unpretested participants at that</span></span>
-<span><span class="co">#&gt; score; their standard errors include the sampling variance of the mean, and</span></span>
-<span><span class="co">#&gt; the coefficient of pretested treats it as fixed.</span></span></code></pre></div>
+<span><span class="co">#&gt; a Wald-based descriptive approximation when robust covariance is used.</span></span></code></pre></div>
 <p>The interaction test gives nearly the same p as the published ANOVA
 (.068 against .066). The model adds the estimate and its interval, which
 the published tests do not show:</p>
@@ -457,7 +450,7 @@ the same as the analysis model (Carpenter et al., 2023, pp. 255–256).
 Here the imputation model lets the pretest slope differ between the two
 pretested groups, so the agreement also suggests that the model’s common
 slope does no harm: the largest difference between the estimates is
-0.124 scale points. The fraction of missing information
+0.007 scale points. The fraction of missing information
 (<code>fmi</code>) of 0.34 to 0.40 shows how much the missing posttests
 weigh on each contrast.</p>
 </div>
@@ -529,14 +522,13 @@ explored, and the tipping points, with their references:</p>
 <span><span class="co">#&gt; pretest in the pretested groups (Carpenter et al., 2023). Each completed data</span></span>
 <span><span class="co">#&gt; set was analyzed with a linear model containing treatment, pretesting, and</span></span>
 <span><span class="co">#&gt; their interaction, adjusting for the pretest score among pretested</span></span>
-<span><span class="co">#&gt; participants (Lin, 2013; Newman et al., 1990), with HC3</span></span>
-<span><span class="co">#&gt; heteroskedasticity-consistent standard errors, and the estimates were</span></span>
-<span><span class="co">#&gt; combined with Rubin's rules, using the small-sample degrees of freedom of</span></span>
-<span><span class="co">#&gt; Barnard and Rubin (1999, as cited in van Buuren, 2018). In a tipping-point</span></span>
-<span><span class="co">#&gt; sensitivity analysis (White et al., 2011; Little et al., 2012), the imputed</span></span>
-<span><span class="co">#&gt; posttests of the pretested treatment group were shifted by offsets from -0.38</span></span>
-<span><span class="co">#&gt; to 0.38 (-1.00 to 1.00 pooled within-group standard deviations of the</span></span>
-<span><span class="co">#&gt; observed posttests).</span></span>
+<span><span class="co">#&gt; participants, with HC3 heteroskedasticity-consistent standard errors, and the</span></span>
+<span><span class="co">#&gt; estimates were combined with Rubin's rules, using the small-sample degrees of</span></span>
+<span><span class="co">#&gt; freedom of Barnard and Rubin (1999, as cited in van Buuren, 2018). In a</span></span>
+<span><span class="co">#&gt; tipping-point sensitivity analysis (White et al., 2011; Little et al., 2012),</span></span>
+<span><span class="co">#&gt; the imputed posttests of the pretested treatment group were shifted by</span></span>
+<span><span class="co">#&gt; offsets from -0.38 to 0.38 (-1.00 to 1.00 pooled within-group standard</span></span>
+<span><span class="co">#&gt; deviations of the observed posttests).</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Assuming the posttests were missing at random, the Pretest x Treatment</span></span>
 <span><span class="co">#&gt; interaction (pretest sensitization) was -0.28, 95% CI [-0.60, 0.03], p =</span></span>
@@ -573,10 +565,6 @@ explored, and the tipping points, with their references:</p>
 <span><span class="co">#&gt;     Journal of Econometrics, 29(3), 305–325.</span></span>
 <span><span class="co">#&gt;     https://doi.org/10.1016/0304-4076(85)90158-7</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in analyzing the</span></span>
-<span><span class="co">#&gt;     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),</span></span>
-<span><span class="co">#&gt;     91–103. https://ojs.lib.ua.edu/glmj/article/view/125</span></span>
-<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Solomon, R. L. (1949). An extension of control group design. Psychological</span></span>
 <span><span class="co">#&gt;     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -608,9 +596,8 @@ table):</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Posttest outcomes were analyzed with a linear model containing treatment,</span></span>
 <span><span class="co">#&gt; pretesting, and their interaction, adjusting for the pretest score among</span></span>
-<span><span class="co">#&gt; pretested participants (Lin, 2013; Newman et al., 1990), with HC3</span></span>
-<span><span class="co">#&gt; heteroskedasticity-consistent standard errors (MacKinnon &amp; White, 1985; Long</span></span>
-<span><span class="co">#&gt; &amp; Ervin, 2000).</span></span>
+<span><span class="co">#&gt; pretested participants (Lin, 2013), with HC3 heteroskedasticity-consistent</span></span>
+<span><span class="co">#&gt; standard errors (MacKinnon &amp; White, 1985; Long &amp; Ervin, 2000).</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; The average treatment effect across pretest conditions was -0.03, 95% CI</span></span>
 <span><span class="co">#&gt; [-0.19, 0.12], t(90) = -0.44, p = .660.</span></span>
@@ -620,12 +607,6 @@ table):</p>
 <span><span class="co">#&gt; 0.04], t(90) = -1.66, p = .100.</span></span>
 <span><span class="co">#&gt; The treatment effect among unpretested participants was 0.11, 95% CI [-0.12,</span></span>
 <span><span class="co">#&gt; 0.34], t(90) = 0.97, p = .336.</span></span>
-<span><span class="co">#&gt; The pretest effect (pretested minus unpretested participants, at the</span></span>
-<span><span class="co">#&gt; pretested participants' mean pretest score of 3.12) was 0.09 among control</span></span>
-<span><span class="co">#&gt; participants, 95% CI [-0.12, 0.30], t(90) = 0.88, p = .382, and -0.20 among</span></span>
-<span><span class="co">#&gt; treated participants, 95% CI [-0.44, 0.04], t(90) = -1.64, p = .105; their</span></span>
-<span><span class="co">#&gt; average, the pretest main effect, was -0.05, 95% CI [-0.21, 0.11], t(90) =</span></span>
-<span><span class="co">#&gt; -0.65, p = .518.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; References</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -642,10 +623,6 @@ table):</p>
 <span><span class="co">#&gt;     covariance matrix estimators with improved finite sample properties.</span></span>
 <span><span class="co">#&gt;     Journal of Econometrics, 29(3), 305–325.</span></span>
 <span><span class="co">#&gt;     https://doi.org/10.1016/0304-4076(85)90158-7</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in analyzing the</span></span>
-<span><span class="co">#&gt;     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),</span></span>
-<span><span class="co">#&gt;     91–103. https://ojs.lib.ua.edu/glmj/article/view/125</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Solomon, R. L. (1949). An extension of control group design. Psychological</span></span>
 <span><span class="co">#&gt;     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958</span></span></code></pre></div>
@@ -715,9 +692,6 @@ with missing data</em> (3rd ed.). Wiley. <a href="https://doi.org/10.1002/978111
 <p>Mai, N. N., Takahashi, Y., &amp; Oo, M. M. (2020). Testing the
 effectiveness of transfer interventions using Solomon four-group
 designs. <em>Education Sciences, 10</em>(4), Article 92. <a href="https://doi.org/10.3390/educsci10040092" class="external-link uri">https://doi.org/10.3390/educsci10040092</a></p>
-<p>Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in
-analyzing the Solomon four group design. <em>Multiple Linear Regression
-Viewpoints, 17</em>(2), 91–103. <a href="https://ojs.lib.ua.edu/glmj/article/view/125" class="external-link uri">https://ojs.lib.ua.edu/glmj/article/view/125</a></p>
 <p>Walton Braver, M. C., &amp; Braver, S. L. (1988). Statistical
 treatment of the Solomon four-group design: A meta-analytic approach.
 <em>Psychological Bulletin, 104</em>(1), 150–154. <a href="https://doi.org/10.1037/0033-2909.104.1.150" class="external-link uri">https://doi.org/10.1037/0033-2909.104.1.150</a></p>

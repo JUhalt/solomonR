@@ -94,25 +94,7 @@ proportions. The contrasts are then:
 
 - `ATE (avg over pretest)`: the effect in a population with equal
   numbers of pretested and unpretested participants, computed from the
-  averaged risks;
-
-- `Pretest effect | control` and `Pretest effect | treated`: the
-  pretested cell compared with the unpretested cell, among control and
-  among treated participants (issue \#104);
-
-- `Pretest main effect`: the pretest effect in a population with equal
-  numbers of treated and control participants, computed from the
   averaged risks.
-
-The pretest effects compare two different sets of participants, because
-the unpretested participants have no pretest from which to predict their
-risk had they been pretested. Each set is standardized over its own
-participants, and with random assignment both estimate the same
-population: the expected pretest of the unpretested participants equals
-that of the pretested ones (Solomon & Lessac, 1968, pp. 146–147). Both
-risks are then marginal, so the comparison is on a common scale, unlike
-the link-scale pretest effects of
-[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
 Sensitization depends on the scale: an effect can be modified on the
 risk-difference scale and not on the ratio scale, or the reverse. Report
@@ -130,36 +112,19 @@ or log odds ratios. Bootstrap resamples in which the logistic fit fails
 a fitted probability within 1e-8 of 0 or 1) are excluded and counted;
 when more than 10% fail, intervals are not reported.
 
-For the pretest effects, the pretested and the unpretested risks are
-standardized over different participants, so the sampling variance of
-each standardization does not cancel, as it does for the treatment
-contrasts, which standardize both arms over the same participants. The
-delta method therefore adds it for the pretest effects, with its
-covariance with the coefficients under HC3 or CR2 covariance, by
-stacking the estimating equations of the standardized means with those
-of the model (Stefanski & Boos, 2002), as
-[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-does for the mean pretest; for clustered fits, the degrees of freedom
-are combined by the Welch-Satterthwaite formula (Satterthwaite, 1946;
-Welch, 1947). The bootstrap resamples participants and so includes this
-variance.
-
 Count outcomes: for a fit with `family = poisson()` or
 `family = "negative_binomial"`, rates per unit of exposure are
 standardized in the same way and compared as rate differences or rate
 ratios. Log-link rate ratios are collapsible (Daniel et al., 2021), so
-the treatment contrasts' rate ratios agree with the fitted model's
-coefficients when there are no other covariates; rate differences depend
-on the covariate distribution. The pretest effects' rate ratios do not
-agree with the model's pretest effects when the pretest is a covariate,
-because the model compares a rate at the mean pretest with a marginal
-rate. For counts, intervals use the delta method with the fit's (by
-default robust HC3) covariance, which Cameron and Trivedi (2013)
-recommend under overdispersion; a bootstrap for counts has not been
-evaluated and is not offered. The fit's Pearson dispersion statistic,
-and for negative-binomial fits the estimated theta, are printed for
-description. No published Solomon study with a count outcome has been
-identified, so this use of count-data methods is a solomonR extension.
+they agree with the fitted model's coefficients when there are no other
+covariates; rate differences depend on the covariate distribution. For
+counts, intervals use the delta method with the fit's (by default robust
+HC3) covariance, which Cameron and Trivedi (2013) recommend under
+overdispersion; a bootstrap for counts has not been evaluated and is not
+offered. The fit's Pearson dispersion statistic, and for
+negative-binomial fits the estimated theta, are printed for description.
+No published Solomon study with a count outcome has been identified, so
+this use of count-data methods is a solomonR extension.
 
 Clustered fits: for binary outcomes fitted with `robust = "CR2"`, the
 delta-method standard errors use the CR2 cluster-robust covariance (Bell
@@ -191,15 +156,14 @@ recommended alternative for risk differences in such designs when
 clustering is strong. `method = "cluster_summary"` computes it, as the
 study did: the unweighted mean of the cluster proportions in each arm,
 compared with a t interval that uses separate variances and
-Satterthwaite degrees of freedom. It gives the four treatment contrasts
-only, the comparisons of treated and control clusters that the study
-validated. With pretesting assigned within clusters, each cluster
-contributes its pretested and unpretested proportions, and treated and
-control clusters are compared. It warns when an arm has fewer than four
-clusters, the minimum Hayes and Moulton (2017, p. 128) recommend. The
-differences were small, and the cluster-level comparison met the
-tolerances less often across all scenarios (119 of 144), mostly by
-covering more than 96% of the time with 4 clusters per cell or arm.
+Satterthwaite degrees of freedom. With pretesting assigned within
+clusters, each cluster contributes its pretested and unpretested
+proportions, and treated and control clusters are compared. It warns
+when an arm has fewer than four clusters, the minimum Hayes and Moulton
+(2017, p. 128) recommend. The differences were small, and the
+cluster-level comparison met the tolerances less often across all
+scenarios (119 of 144), mostly by covering more than 96% of the time
+with 4 clusters per cell or arm.
 [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
 gives a cluster-level randomization test. Clustered count fits have not
 been validated and are refused; for them, the log rate-ratio contrasts
@@ -241,25 +205,9 @@ cluster-robust variance estimation and hypothesis testing in fixed
 effects models. *Journal of Business & Economic Statistics, 36*(4),
 672–683. https://doi.org/10.1080/07350015.2016.1247004
 
-Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. *Biometrics Bulletin, 2*(6), 110–114.
-https://doi.org/10.2307/3002019
-
-Solomon, R. L., & Lessac, M. S. (1968). A control group design for
-experimental studies of developmental processes. *Psychological
-Bulletin, 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
-
-Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation.
-*The American Statistician, 56*(1), 29–38.
-https://doi.org/10.1198/000313002753631330
-
 Tipton, E. (2015). Small sample adjustments for robust variance
 estimation with meta-regression. *Psychological Methods, 20*(3),
 375–393. https://doi.org/10.1037/met0000011
-
-Welch, B. L. (1947). The generalization of "Student's" problem when
-several different population variances are involved. *Biometrika,
-34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
 
 ## See also
 
@@ -287,34 +235,25 @@ marginal_solomon(fit, method = "delta")
 #>    Unpretested, control 0.300
 #> 
 #> Risk difference:
-#>                  contrast estimate conf.low conf.high p.value
-#>    ATE (avg over pretest)    0.136   -0.027     0.300   0.102
-#>       Pretest x Treatment   -0.194   -0.521     0.132   0.244
-#>     Treatment | pretested    0.039   -0.170     0.249   0.715
-#>   Treatment | unpretested    0.233   -0.017     0.484   0.068
-#>  Pretest effect | control    0.199   -0.042     0.440   0.106
-#>  Pretest effect | treated    0.004   -0.242     0.251   0.972
-#>       Pretest main effect    0.101   -0.080     0.283   0.272
+#>                 contrast estimate conf.low conf.high p.value
+#>   ATE (avg over pretest)    0.136   -0.027     0.300   0.102
+#>      Pretest x Treatment   -0.194   -0.521     0.132   0.244
+#>    Treatment | pretested    0.039   -0.170     0.249   0.715
+#>  Treatment | unpretested    0.233   -0.017     0.484   0.068
 #> 
 #> Risk ratio:
-#>                  contrast estimate conf.low conf.high p.value
-#>    ATE (avg over pretest)    1.341    0.934     1.926   0.112
-#>       Pretest x Treatment    0.607    0.278     1.321   0.208
-#>     Treatment | pretested    1.078    0.717     1.622   0.717
-#>   Treatment | unpretested    1.778    0.916     3.450   0.089
-#>  Pretest effect | control    1.662    0.858     3.221   0.132
-#>  Pretest effect | treated    1.008    0.636     1.599   0.972
-#>       Pretest main effect    1.244    0.840     1.841   0.276
+#>                 contrast estimate conf.low conf.high p.value
+#>   ATE (avg over pretest)    1.341    0.934     1.926   0.112
+#>      Pretest x Treatment    0.607    0.278     1.321   0.208
+#>    Treatment | pretested    1.078    0.717     1.622   0.717
+#>  Treatment | unpretested    1.778    0.916     3.450   0.089
 #> 
 #> Odds ratio:
-#>                  contrast estimate conf.low conf.high p.value
-#>    ATE (avg over pretest)    1.734    0.888     3.387    0.11
-#>       Pretest x Treatment    0.439    0.110     1.746    0.24
-#>     Treatment | pretested    1.169    0.505     2.709    0.72
-#>   Treatment | unpretested    2.667    0.890     7.986    0.08
-#>  Pretest effect | control    2.321    0.805     6.692    0.12
-#>  Pretest effect | treated    1.018    0.377     2.745    0.97
-#>       Pretest main effect    1.506    0.722     3.138    0.27
+#>                 contrast estimate conf.low conf.high p.value
+#>   ATE (avg over pretest)    1.734    0.888     3.387    0.11
+#>      Pretest x Treatment    0.439    0.110     1.746    0.24
+#>    Treatment | pretested    1.169    0.505     2.709    0.72
+#>  Treatment | unpretested    2.667    0.890     7.986    0.08
 #> 
 #> Sensitization depends on the scale; report the scale with every result.
 # \donttest{
@@ -331,34 +270,25 @@ marginal_solomon(fit, R = 499, seed = 1)
 #>    Unpretested, control 0.300
 #> 
 #> Risk difference:
-#>                  contrast estimate conf.low conf.high p.value
-#>    ATE (avg over pretest)    0.136   -0.026     0.281   0.090
-#>       Pretest x Treatment   -0.194   -0.507     0.115   0.234
-#>     Treatment | pretested    0.039   -0.155     0.230   0.705
-#>   Treatment | unpretested    0.233    0.000     0.433   0.061
-#>  Pretest effect | control    0.199   -0.021     0.428   0.089
-#>  Pretest effect | treated    0.004   -0.225     0.242   0.972
-#>       Pretest main effect    0.101   -0.056     0.281   0.254
+#>                 contrast estimate conf.low conf.high p.value
+#>   ATE (avg over pretest)    0.136   -0.026     0.281   0.090
+#>      Pretest x Treatment   -0.194   -0.507     0.115   0.234
+#>    Treatment | pretested    0.039   -0.155     0.230   0.705
+#>  Treatment | unpretested    0.233    0.000     0.433   0.061
 #> 
 #> Risk ratio:
-#>                  contrast estimate conf.low conf.high p.value
-#>    ATE (avg over pretest)    1.341    0.942     1.934    0.11
-#>       Pretest x Treatment    0.607    0.265     1.226    0.22
-#>     Treatment | pretested    1.078    0.748     1.580    0.72
-#>   Treatment | unpretested    1.778    1.000     3.886    0.10
-#>  Pretest effect | control    1.662    0.952     3.705    0.14
-#>  Pretest effect | treated    1.008    0.646     1.642    0.97
-#>       Pretest main effect    1.244    0.882     1.945    0.27
+#>                 contrast estimate conf.low conf.high p.value
+#>   ATE (avg over pretest)    1.341    0.942     1.934    0.11
+#>      Pretest x Treatment    0.607    0.265     1.226    0.22
+#>    Treatment | pretested    1.078    0.748     1.580    0.72
+#>  Treatment | unpretested    1.778    1.000     3.886    0.10
 #> 
 #> Odds ratio:
-#>                  contrast estimate conf.low conf.high p.value
-#>    ATE (avg over pretest)    1.734    0.899     3.244   0.099
-#>       Pretest x Treatment    0.439    0.103     1.578   0.248
-#>     Treatment | pretested    1.169    0.519     2.594   0.713
-#>   Treatment | unpretested    2.667    1.000     7.848   0.084
-#>  Pretest effect | control    2.321    0.918     7.382   0.117
-#>  Pretest effect | treated    1.018    0.397     2.753   0.973
-#>       Pretest main effect    1.506    0.800     3.234   0.267
+#>                 contrast estimate conf.low conf.high p.value
+#>   ATE (avg over pretest)    1.734    0.899     3.244   0.099
+#>      Pretest x Treatment    0.439    0.103     1.578   0.248
+#>    Treatment | pretested    1.169    0.519     2.594   0.713
+#>  Treatment | unpretested    2.667    1.000     7.848   0.084
 #> 
 #> Sensitization depends on the scale; report the scale with every result.
 # }
@@ -383,24 +313,18 @@ marginal_solomon(counts)
 #>    Unpretested, control 0.255
 #> 
 #> Rate difference:
-#>                  contrast estimate conf.low conf.high p.value
-#>    ATE (avg over pretest)    0.053   -0.007     0.113   0.082
-#>       Pretest x Treatment    0.051   -0.068     0.170   0.400
-#>     Treatment | pretested    0.078   -0.002     0.159   0.055
-#>   Treatment | unpretested    0.027   -0.061     0.116   0.544
-#>  Pretest effect | control   -0.043   -0.120     0.033   0.268
-#>  Pretest effect | treated    0.008   -0.083     0.099   0.865
-#>       Pretest main effect   -0.018   -0.077     0.041   0.557
+#>                 contrast estimate conf.low conf.high p.value
+#>   ATE (avg over pretest)    0.053   -0.007     0.113   0.082
+#>      Pretest x Treatment    0.051   -0.068     0.170   0.400
+#>    Treatment | pretested    0.078   -0.002     0.159   0.055
+#>  Treatment | unpretested    0.027   -0.061     0.116   0.544
 #> 
 #> Rate ratio:
-#>                  contrast estimate conf.low conf.high p.value
-#>    ATE (avg over pretest)    1.227    0.976     1.544   0.080
-#>       Pretest x Treatment    1.238    0.780     1.967   0.365
-#>     Treatment | pretested    1.371    0.989     1.903   0.059
-#>   Treatment | unpretested    1.107    0.799     1.535   0.540
-#>  Pretest effect | control    0.830    0.595     1.158   0.272
-#>  Pretest effect | treated    1.028    0.748     1.413   0.866
-#>       Pretest main effect    0.934    0.744     1.173   0.556
+#>                 contrast estimate conf.low conf.high p.value
+#>   ATE (avg over pretest)    1.227    0.976     1.544   0.080
+#>      Pretest x Treatment    1.238    0.780     1.967   0.365
+#>    Treatment | pretested    1.371    0.989     1.903   0.059
+#>  Treatment | unpretested    1.107    0.799     1.535   0.540
 #> 
 #> Sensitization depends on the scale; report the scale with every result.
 ```

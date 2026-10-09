@@ -17,7 +17,7 @@ part of the experiment rather than missing data."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">solomonR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,7 +91,7 @@ part of the experiment rather than missing data."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Schematic of a Solomon design</h1>
-      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/master/R/solomon_plot_design.R" class="external-link"><code>R/solomon_plot_design.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JUhalt/solomonR/blob/v0.8.2/R/solomon_plot_design.R" class="external-link"><code>R/solomon_plot_design.R</code></a></small>
       <div class="d-none name"><code>plot_solomon_design.Rd</code></div>
     </div>
 
@@ -167,12 +167,7 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A ggplot object. The rows are drawn at the positions 1, 2, and so
-on, from the bottom, on a continuous y scale labeled with the groups.
-In the plot's data, <code>row</code> is a factor of the group labels whose levels
-run from the bottom row to the top, so <code>as.integer(row)</code> is a group's
-position. A layer added by group label maps <code>y</code> to that position, for
-example <code>y = match(label, levels(p$data$row))</code> for a plot <code>p</code>.</p>
+    <p>A ggplot object.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -181,12 +176,6 @@ teaching. Given data or a fitted model, it labels each group with its size
 and posttest mean. Groups with no participants, or with fewer than two
 observed posttest scores, are flagged, using the same rule as
 <code><a href="validate_solomon.html">validate_solomon()</a></code>.</p>
-<p>The key and the caption are broken into lines for a figure at least 7
-inches wide. The group sizes and means are given the width they need
-beside the schematic, so that they are not cut off at the edge of the
-figure, also when a theme is added to the returned plot. With up to eight
-groups, each group's size and mean are set on two lines; with ten or
-more, whose rows are shorter, on one.</p>
     </div>
     <div class="section level2">
     <h2 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a></h2>

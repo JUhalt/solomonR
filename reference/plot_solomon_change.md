@@ -81,8 +81,6 @@ for the pretest where one exists; see
 [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
 for the estimand behind each analysis.
 
-The caption is broken into lines for a figure at least 7 inches wide.
-
 ## Designs with several treatments
 
 For a Solomon N-group design, with k treatments and a control each with

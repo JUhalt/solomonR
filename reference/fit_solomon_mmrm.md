@@ -2,15 +2,15 @@
 
 **\[experimental\]** Analyzes a Solomon four-group design with several
 posttest occasions by a mixed model for repeated measures (MMRM), and
-estimates the four Solomon contrasts and the pretest effects at each
-occasion, and the change in pretest sensitization from the first
-occasion to the last. The model is likelihood-based, so it is valid when
-posttests are missing at random, for example when participants drop out
-depending on their earlier scores (Fitzmaurice et al., 2011, pp. 497,
-505). Per-occasion analyses of the participants still observed, and
-unweighted generalized estimating equations, require the stronger
-assumption that the posttests are missing completely at random (Liang &
-Zeger, 1986; Fitzmaurice et al., 2011, pp. 358, 498).
+estimates the four Solomon contrasts at each occasion and the change in
+pretest sensitization from the first occasion to the last. The model is
+likelihood-based, so it is valid when posttests are missing at random,
+for example when participants drop out depending on their earlier scores
+(Fitzmaurice et al., 2011, pp. 497, 505). Per-occasion analyses of the
+participants still observed, and unweighted generalized estimating
+equations, require the stronger assumption that the posttests are
+missing completely at random (Liang & Zeger, 1986; Fitzmaurice et al.,
+2011, pp. 358, 498).
 
 ## Usage
 
@@ -77,12 +77,10 @@ fit_solomon_mmrm(
 
 ## Value
 
-An object of class `solomon_mmrm` with `effects` (the four Solomon
-contrasts and the three pretest effects at each occasion, then the
-change in sensitization), `model` (the mmrm fit), `covariance` (the
-structure used), `observed` (observed posttests by group and occasion),
-`pretest_mean` (the center of the pretest; `NA` without `y_pre`), and
-the settings used.
+An object of class `solomon_mmrm` with `effects` (the Solomon contrasts
+at each occasion and the change in sensitization), `model` (the mmrm
+fit), `covariance` (the structure used), `observed` (observed posttests
+by group and occasion), and the settings used.
 
 ## Model
 
@@ -93,24 +91,10 @@ The specification follows the example of Mallinckrodt et al. (2008, p.
 
 - **Pretest adjustment.** The pretest enters as in
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md):
-  in the pretested groups, the score minus the mean pretest of the
-  pretested participants in the model (each counted once; returned as
-  `pretest_mean`), and 0 in the unpretested groups, with a separate
-  slope at each occasion ("a full interaction of the covariate with
-  time", p. 312). Pretests absent by design are never imputed.
-
-- **Pretest effects.** At each occasion, the pretest effects among
-  controls, among treated participants, and their average compare
-  pretested and unpretested participants at that mean pretest, as
-  described in the section "The pretest effect" of
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
-  Pretest effects may fade with time (Entwisle, 1961, p. 610), and these
-  estimates show whether they do. Their standard errors include the
-  sampling variance of the mean pretest, s^2 / n for n pretested
-  participants, times the square of that occasion's pretest slope, and
-  their degrees of freedom combine those of the contrast with n - 1 by
-  the Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947).
-  The pretest effects were not part of the validation study below.
+  the score in the pretested groups and 0 in the unpretested groups,
+  with a separate slope at each occasion ("a full interaction of the
+  covariate with time", p. 312). Pretests absent by design are never
+  imputed.
 
 - **Covariance.** Unstructured within participant, estimated by
   restricted maximum likelihood (Laird & Ware, 1982). With a pretest, it
@@ -178,10 +162,6 @@ specify.
 
 ## References
 
-Entwisle, D. R. (1961). Interactive effects of pretesting. *Educational
-and Psychological Measurement, 21*(3), 607–620.
-https://doi.org/10.1177/001316446102100307
-
 Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied
 longitudinal analysis* (2nd ed.). Wiley.
 https://doi.org/10.1002/9781119513469
@@ -208,10 +188,6 @@ https://doi.org/10.32614/CRAN.package.mmrm
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 variance components. *Biometrics Bulletin, 2*(6), 110–114.
 https://doi.org/10.2307/3002019
-
-Welch, B. L. (1947). The generalization of "Student's" problem when
-several different population variances are involved. *Biometrika,
-34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
 
 ## See also
 
@@ -243,8 +219,6 @@ if (requireNamespace("mmrm", quietly = TRUE)) {
 #> Occasions: 1, 2, 3
 #> Covariance: unstructured, separately for pretested and unpretested participants (REML)
 #> Degrees of freedom: Kenward-Roger
-#> Pretest centered at the pretested participants' mean: 49.600
-#> Pretest effects: standard errors include the sampling variance of that mean.
 #> 
 #> Observed posttests by group and occasion:
 #>                        1  2  3
@@ -258,46 +232,28 @@ if (requireNamespace("mmrm", quietly = TRUE)) {
 #>  1        Pretest x Treatment           -3.301   3.172 114.6 -1.04 0.300
 #>  1        Treatment | pretested          1.377   2.298  57.0  0.60 0.552
 #>  1        Treatment | unpretested        4.677   2.187  58.0  2.14 0.037
-#>  1        Pretest effect | control       4.639   2.444 151.1  1.90 0.060
-#>  1        Pretest effect | treated       1.338   2.444 151.1  0.55 0.585
-#>  1        Pretest main effect            2.988   1.859 170.1  1.61 0.110
 #>  2        ATE (avg over pretest)         3.107   1.730 115.0  1.80 0.075
 #>  2        Pretest x Treatment           -3.606   3.460 115.0 -1.04 0.300
 #>  2        Treatment | pretested          1.305   2.447  57.0  0.53 0.596
 #>  2        Treatment | unpretested        4.910   2.447  58.0  2.01 0.049
-#>  2        Pretest effect | control       3.446   2.600 141.9  1.33 0.187
-#>  2        Pretest effect | treated      -0.160   2.600 141.9 -0.06 0.951
-#>  2        Pretest main effect            1.643   1.940 161.0  0.85 0.398
 #>  3        ATE (avg over pretest)         3.918   1.770 109.1  2.21 0.029
 #>  3        Pretest x Treatment           -0.023   3.540 109.1 -0.01 0.995
 #>  3        Treatment | pretested          3.906   2.559  56.7  1.53 0.132
 #>  3        Treatment | unpretested        3.929   2.446  52.4  1.61 0.114
-#>  3        Pretest effect | control       2.897   2.602 127.3  1.11 0.268
-#>  3        Pretest effect | treated       2.874   2.633 129.2  1.09 0.277
-#>  3        Pretest main effect            2.885   1.928 144.4  1.50 0.137
 #>  3 vs 1   Change in Pretest x Treatment  3.277   2.353  89.9  1.39 0.167
 #>  95% CI          
 #>  [ -0.115, 6.169]
 #>  [ -9.584, 2.983]
 #>  [ -3.225, 5.978]
 #>  [  0.299, 9.055]
-#>  [ -0.189, 9.467]
-#>  [ -3.490, 6.166]
-#>  [ -0.681, 6.658]
 #>  [ -0.320, 6.535]
 #>  [-10.460, 3.249]
 #>  [ -3.596, 6.205]
 #>  [  0.013, 9.808]
-#>  [ -1.693, 8.585]
-#>  [ -5.299, 4.979]
-#>  [ -2.189, 5.475]
 #>  [  0.409, 7.426]
 #>  [ -7.039, 6.993]
 #>  [ -1.219, 9.031]
 #>  [ -0.979, 8.837]
-#>  [ -2.251, 8.045]
-#>  [ -2.336, 8.084]
-#>  [ -0.926, 6.697]
 #>  [ -1.398, 7.953]
 # }
 ```

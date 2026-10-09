@@ -70,12 +70,9 @@ reference distribution:
 
 - for
   [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
-  t with the residual degrees of freedom of the cell's pretest condition
-  under its default Satterthwaite inference (the Welch-Satterthwaite
-  degrees of freedom of Satterthwaite, 1946, and Welch, 1947, reduce to
-  these for a single condition), or the normal distribution under van
-  Engelenburg's (1999) large-sample Wald inference
-  (`inference = "wald"`).
+  the normal distribution under the default Wald inference (van
+  Engelenburg, 1999), or Welch-Satterthwaite t under
+  `inference = "satterthwaite"`.
 
 The sensitization estimate and interval in the subtitle are taken
 unchanged from the fit.
@@ -98,17 +95,9 @@ one comparison at a time with
 
 ## References
 
-Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. *Biometrics Bulletin, 2*(6), 110–114.
-https://doi.org/10.2307/3002019
-
 van Engelenburg, G. (1999). *Statistical analysis for the Solomon
 four-group design* (Research Report 99-06). University of Twente. ERIC.
 https://eric.ed.gov/?id=ED435692
-
-Welch, B. L. (1947). The generalization of "Student's" problem when
-several different population variances are involved. *Biometrika,
-34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
 
 ## See also
 
@@ -124,7 +113,8 @@ plot_sensitization(fit)
 plot_sensitization(fit, bounds = 5)
 
 
-ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre))
+ml <- with(solomon_example, fit_solomon_ml(y_post, treat, pretested, y_pre,
+                                           inference = "satterthwaite"))
 plot_sensitization(ml)
 
 

@@ -53,11 +53,8 @@ Two conventions keep the tables honest:
 ## Maximum-likelihood inference
 
 [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-was checked with both of its inference options, van Engelenburg’s (1999)
-large-sample Wald inference and Satterthwaite inference with
-Welch-Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch,
-1947), and with the unified GLM for comparison. The registered
-tolerances:
+was checked with its default Wald inference, its small-sample option,
+and the unified GLM for comparison. The registered tolerances:
 
 - coverage between 0.940 and 0.960;
 - Type I error for the sensitization test between 0.040 and 0.060;
@@ -66,18 +63,16 @@ tolerances:
 | Method | Mean coverage | Lowest coverage | Coverage within 0.940-0.960 | Mean Type I error |
 |:---|:---|:---|:---|:---|
 | GLM HC3 (t) | 0.955 | 0.938 | 81% | 0.044 |
-| ML, Satterthwaite (default) | 0.950 | 0.931 | 96% | 0.051 |
-| ML, Wald (van Engelenburg, 1999) | 0.932 | 0.860 | 48% | 0.066 |
+| ML, Satterthwaite (small-sample option) | 0.950 | 0.931 | 96% | 0.051 |
+| ML, Wald (default) | 0.932 | 0.860 | 48% | 0.066 |
 
 Across all scenarios and contrasts; results by cell size are in the full
 article. {.table}
 
-The Wald intervals are too narrow in small samples, while Satterthwaite
-inference was calibrated at every cell size studied. Satterthwaite
-inference has therefore been the default since [issue
-\#115](https://github.com/JUhalt/solomonR/issues/115), and printed
-output notes when Wald inference is chosen with fewer than 40
-participants per cell. See the [full
+The default Wald intervals are too narrow in small samples, which is why
+[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+warns below 40 participants per cell and offers the small-sample option.
+See the [full
 article](https://juhalt.github.io/solomonR/articles/ml-validation.html).
 
 ## Power simulation
@@ -440,10 +435,6 @@ Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square
 test statistic for moment structure analysis. *Psychometrika, 66*(4),
 507–514. <https://doi.org/10.1007/BF02296192>
 
-Satterthwaite, F. E. (1946). An approximate distribution of estimates of
-variance components. *Biometrics Bulletin, 2*(6), 110–114.
-<https://doi.org/10.2307/3002019>
-
 Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I
 error of meta-analysis in the Solomon four-group design* \[Paper
 presentation\]. First International Conference on Multiple Comparisons,
@@ -453,11 +444,3 @@ Sawilowsky, S. S., Kelley, D. L., Blair, R. C., & Markman, B. S. (1994).
 Meta-analysis and the Solomon four-group design. *The Journal of
 Experimental Education, 62*(4), 361–376.
 <https://doi.org/10.1080/00220973.1994.9944140>
-
-van Engelenburg, G. (1999). *Statistical analysis for the Solomon
-four-group design* (Research Report 99-06). University of Twente. ERIC.
-<https://eric.ed.gov/?id=ED435692>
-
-Welch, B. L. (1947). The generalization of “Student’s” problem when
-several different population variances are involved. *Biometrika,
-34*(1–2), 28–35. <https://doi.org/10.1093/biomet/34.1-2.28>

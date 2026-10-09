@@ -234,8 +234,7 @@ Small-sample inference option for
 [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
 with a warning below 40 participants per cell —
 [\#22](https://github.com/JUhalt/solomonR/issues/22). Calibrated at
-every cell size studied. It later became the default, and the warning
-was removed — [\#115](https://github.com/JUhalt/solomonR/issues/115).
+every cell size studied.
 
 Reconcile release documentation, licensing and distribution —
 [\#12](https://github.com/JUhalt/solomonR/issues/12). Released September
@@ -354,7 +353,10 @@ as solomonR 0.8.0 on October 3, 2026. Versions 0.5.0, 0.6.0, and 0.7.0
 were not released separately. Each item below names its pull requests. A
 patch, 0.8.1 (October 4, 2026), fixed wrong contrasts in the SEM
 functions with some row orders
-([\#119](https://github.com/JUhalt/solomonR/issues/119)).
+([\#119](https://github.com/JUhalt/solomonR/issues/119)). A second
+patch, 0.8.2 (October 9, 2026), fixed permutation p-values that were too
+small when permutations tie with the observed statistic
+([\#131](https://github.com/JUhalt/solomonR/issues/131)).
 
 ------------------------------------------------------------------------
 
@@ -454,11 +456,9 @@ History article and versioned historical decision flows (1988, 1990,
 [PR \#67](https://github.com/JUhalt/solomonR/pull/67) and [PR
 \#76](https://github.com/JUhalt/solomonR/pull/76)
 
-Replication study of the published error rates of the historical test
-sequence: Tests A–H and the flow logic agree for normal data, but the
-published Test I rates, and Test A for uniform and gamma data, were not
-reproduced — [\#51](https://github.com/JUhalt/solomonR/issues/51);
-merged in [PR \#76](https://github.com/JUhalt/solomonR/pull/76)
+Replicate the published error rates of the historical test sequence —
+[\#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR
+\#76](https://github.com/JUhalt/solomonR/pull/76)
 
 SEM and latent-variable article, and measurement invariance —
 [\#55](https://github.com/JUhalt/solomonR/issues/55); merged in [PR
@@ -555,8 +555,8 @@ Literature coverage audit before the feature freeze —
 
 - Every source identified in the audit has been read, Steyn (2009) in a
   pre-publication draft that the author provided. The further sources
-  that Steyn (2009) names were then read where a copy could be obtained
-  ([\#96](https://github.com/JUhalt/solomonR/issues/96)).
+  that Steyn (2009) names are tracked in
+  [\#96](https://github.com/JUhalt/solomonR/issues/96).
 
 **Research workflow**
 
@@ -627,30 +627,11 @@ Stable public API —
 [\#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR
 \#91](https://github.com/JUhalt/solomonR/pull/91)
 
-Historical workflow checked against published results —
-[\#51](https://github.com/JUhalt/solomonR/issues/51), merged in [PR
-\#76](https://github.com/JUhalt/solomonR/pull/76);
-[\#109](https://github.com/JUhalt/solomonR/issues/109), merged in [PR
-\#126](https://github.com/JUhalt/solomonR/pull/126)
-
-- The computations reproduce. Tests A, D, E, H, and I and the 1988 path
-  reproduce the worked example of Walton Braver and Braver (1988,
-  p. 153; `waltonbraver1988`). Tests E and H reproduce the
-  counterexample of Sawilowsky and Markman (1988, ERIC ED316556), and
-  Test A from its summary statistics matches Braver and Walton Braver
-  (1990, p. 322).
-- The Monte Carlo rates reproduce only in part. The published Type I
-  error tables were not reproduced as a whole (the Test I rates, and
-  Test A for uniform and gamma data), so the flows are not described as
-  validated; see “Historical Tests: Replicating the Published Error
-  Rates”.
+Historical workflow validated against published results —
+[\#51](https://github.com/JUhalt/solomonR/issues/51); merged in [PR
+\#76](https://github.com/JUhalt/solomonR/pull/76)
 
 GLM and ML estimands validated
-
-Satterthwaite inference by default in
-[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
-since the package’s validation found the former Wald default liberal in
-small samples — [\#115](https://github.com/JUhalt/solomonR/issues/115)
 
 Randomization inference validated, including cluster-level designs —
 [\#19](https://github.com/JUhalt/solomonR/issues/19); merged in [PR
@@ -670,12 +651,7 @@ source in the coverage article —
 
 The further sources that Steyn (2009) names, read and added where they
 bear on the design —
-[\#96](https://github.com/JUhalt/solomonR/issues/96); merged in [PR
-\#102](https://github.com/JUhalt/solomonR/pull/102) and [PR
-\#103](https://github.com/JUhalt/solomonR/pull/103)
-
-- Kerlinger’s textbook and Steyn’s (2001) thesis are recorded in the
-  coverage article as named but not read.
+[\#96](https://github.com/JUhalt/solomonR/issues/96)
 
 Strong automated test suite
 
@@ -698,87 +674,13 @@ Release archived, and CRAN submission after sign-off —
 
 Publication acceptance is not required before the v1.0 release.
 
-## Audit before the release
-
-On October 3, 2026, the package was audited against the aim above. The
-maintainer decided to fix every gap the audit found, to leave no
-function experimental at 1.0, and to run a robustness study before the
-release is tagged. The items, with their status:
-
-**Estimates and their sources**
-
-The pretest (testing) effect as named contrasts, with the pretest
-centered at the pretested participants’ mean —
-[\#104](https://github.com/JUhalt/solomonR/issues/104); merged in [PR
-\#121](https://github.com/JUhalt/solomonR/pull/121)
-
-The unified model credited to Newman et al. (1990), with Williams and
-Newman (1982) — [\#105](https://github.com/JUhalt/solomonR/issues/105);
-merged in [PR \#126](https://github.com/JUhalt/solomonR/pull/126)
-
-Dukes et al. (1995) cited as the published latent-variable precedent —
-[\#106](https://github.com/JUhalt/solomonR/issues/106); merged in [PR
-\#126](https://github.com/JUhalt/solomonR/pull/126)
-
-The worked example of Walton Braver and Braver (1988) bundled and
-reproduced — [\#109](https://github.com/JUhalt/solomonR/issues/109);
-merged in [PR \#126](https://github.com/JUhalt/solomonR/pull/126)
-
-**Figures and reports**
-
-The interval of the equivalence test drawn in the forest plot —
-[\#107](https://github.com/JUhalt/solomonR/issues/107); merged in [PR
-\#121](https://github.com/JUhalt/solomonR/pull/121)
-
-Figure text that fits the figure —
-[\#108](https://github.com/JUhalt/solomonR/issues/108); merged in [PR
-\#123](https://github.com/JUhalt/solomonR/pull/123)
-
-A report for every analysis —
-[\#111](https://github.com/JUhalt/solomonR/issues/111); merged in [PR
-\#122](https://github.com/JUhalt/solomonR/pull/122)
-
-Latent-variable reports that follow the fit’s own invariance result —
-[\#112](https://github.com/JUhalt/solomonR/issues/112); merged in [PR
-\#122](https://github.com/JUhalt/solomonR/pull/122)
-
-Contrasts on a link scale named by that scale —
-[\#114](https://github.com/JUhalt/solomonR/issues/114); merged in [PR
-\#121](https://github.com/JUhalt/solomonR/pull/121)
-
-**Inference**
-
-A warning when the difference statistic of the permutation test is used
-with unequal arms —
-[\#113](https://github.com/JUhalt/solomonR/issues/113); merged in [PR
-\#122](https://github.com/JUhalt/solomonR/pull/122)
-
-Satterthwaite inference by default in
-[`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
-— [\#115](https://github.com/JUhalt/solomonR/issues/115); merged in [PR
-\#124](https://github.com/JUhalt/solomonR/pull/124)
-
-Robustness study of the recommended inference, under a protocol posted
-before any run — [\#116](https://github.com/JUhalt/solomonR/issues/116)
-
-**Interface**
-
-One output vocabulary across the fitted objects —
-[\#110](https://github.com/JUhalt/solomonR/issues/110)
-
-No experimental functions: each one implemented to its literature and
-held to a validation rule posted in advance —
-[\#117](https://github.com/JUhalt/solomonR/issues/117)
-
 # Later / exploratory
 
 These are intentionally outside the initial release path. Proposals
 become release commitments only when their scope and acceptance criteria
 are agreed in a linked issue and assigned to a milestone.
 
-- Bayesian Solomon modeling —
-  [\#118](https://github.com/JUhalt/solomonR/issues/118), on the
-  [Post-1.0 milestone](https://github.com/JUhalt/solomonR/milestone/9)
+- Bayesian Solomon modeling
 - Rank-based / nonparametric unified methods: aligned-rank or
   permutation approaches only, since rank-transform tests are unsuitable
   for interactions (Sawilowsky, 2000)

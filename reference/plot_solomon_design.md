@@ -72,12 +72,7 @@ plot_solomon_design(
 
 ## Value
 
-A ggplot object. The rows are drawn at the positions 1, 2, and so on,
-from the bottom, on a continuous y scale labeled with the groups. In the
-plot's data, `row` is a factor of the group labels whose levels run from
-the bottom row to the top, so `as.integer(row)` is a group's position. A
-layer added by group label maps `y` to that position, for example
-`y = match(label, levels(p$data$row))` for a plot `p`.
+A ggplot object.
 
 ## Details
 
@@ -86,13 +81,6 @@ teaching. Given data or a fitted model, it labels each group with its
 size and posttest mean. Groups with no participants, or with fewer than
 two observed posttest scores, are flagged, using the same rule as
 [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md).
-
-The key and the caption are broken into lines for a figure at least 7
-inches wide. The group sizes and means are given the width they need
-beside the schematic, so that they are not cut off at the edge of the
-figure, also when a theme is added to the returned plot. With up to
-eight groups, each group's size and mean are set on two lines; with ten
-or more, whose rows are shorter, on one.
 
 ## Designs with several treatments
 

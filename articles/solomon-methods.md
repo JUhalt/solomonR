@@ -42,11 +42,6 @@ posttest scores, always as treatment minus control:
 | Pretest x Treatment | Does the treatment effect depend on pretesting? This is pretest sensitization. |
 | ATE (avg over pretest) | What is the treatment effect averaged equally over both pretest conditions? |
 
-The pretest (testing) effect, pretested minus unpretested participants,
-answers the design’s other question (Solomon, 1949): the
-regression-based analyses report it among controls (Group 2 vs. 4),
-among treated participants (Group 1 vs. 3), and averaged over the two.
-
 Naming the target quantity before choosing an estimator makes it clear
 when different analyses answer the same question and when they do not
 (Lundberg et al., 2021).
@@ -333,65 +328,6 @@ dependent, and their number is not allowed for.
 
 ## Published Solomon proposals
 
-### Unified model of the four groups (Newman et al., 1990)
-
-**Label:** published Solomon proposal, with contemporary inference.
-
-- **Estimates:** all four contrasts, and the pretest effects among
-  controls, among treated participants, and on average, from one model,
-  `y ~ treat * pretested + pre_obs`. `pre_obs` equals the pretest,
-  centered at the mean of the pretested participants, in Groups 1 and 2
-  and 0 in Groups 3 and 4, so no group is dropped. The `pretested`
-  coefficient and the pretest effects then compare the groups at that
-  mean, where Newman et al. (1990, p. 101) took their adjusted means,
-  and which is the best estimate of the unpretested groups’ pretest
-  under random assignment (Solomon & Lessac, 1968, pp. 146–147). This is
-  the model Newman et al. (1990) proposed for the design, which they
-  call a pseudo-analysis of covariance (pp. 94, 98). Their equation 7
-  (p. 98) has an indicator for each group in place of the treatment and
-  pretest indicators and gives the same fitted values. Because each
-  group keeps its own mean, the pretest slope is estimated within the
-  pretested groups, and the unpretested groups’ means are not adjusted
-  (p. 98). Williams and Newman (1982) had fitted one model to all six
-  sets of observations, but with the pretests entered as separate groups
-  of scores rather than as a covariate (pp. 83–84).
-- **What solomonR adds:** the four Solomon contrasts and the pretest
-  effects as named estimates with confidence intervals, in place of the
-  paper’s tests of restricted models (pp. 98–100); HC3 standard errors
-  by default, and CR2 cluster-robust standard errors with Satterthwaite
-  degrees of freedom; logistic, Poisson, and negative-binomial models,
-  exposure offsets, and a warning about noncollapsibility, with marginal
-  contrasts from
-  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md);
-  additional covariates; designs with several treatments; and
-  randomization and equivalence tests on the fit
-  ([`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
-  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)).
-- **Assumptions:** a common pretest slope in the pretested groups;
-  independent observations (or clusters with CR2).
-- **Limitations:** adjusting for the pretest reduces residual variance
-  only in the pretested groups, so the model is heteroskedastic whenever
-  the pretest predicts the posttest. The paper’s tests pool the residual
-  variance of all four groups (Table 3, p. 100); HC3 or CR2 covariance
-  addresses this. Without centering, as in the paper, the `pretested`
-  coefficient would compare the two control groups at a pretest score of
-  0, which treats the unpretested participants as if they had scored 0,
-  the adjustment Newman et al. cautioned against (p. 98); their test of
-  pretesting (Table 3, p. 100) is computed on that coding. The four
-  Solomon contrasts do not depend on where the pretest is centered.
-- **Checks:** the paper tests the interaction as the restriction b1 =
-  b3 + b2 − b4 on the group coefficients (p. 98), the difference of
-  differences that the Pretest x Treatment contrast estimates. With
-  `robust = "none"`, the model reproduces the paper’s pretest slope
-  (.55264, p. 98), its within-groups sum of squares (62.39), and its
-  tests of the treatment (F = 21.01) and the interaction (F = 0.21,
-  printed as .22) (Table 3, p. 100). Its estimate of Treatment \|
-  pretested equals the ANCOVA estimate (Test E), and its estimate of
-  Treatment \| unpretested equals Test C. The package tests these
-  identities.
-- **Function:**
-  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
-
 ### Full-information maximum likelihood
 
 **Label:** published Solomon proposal.
@@ -401,15 +337,14 @@ dependent, and their number is not allowed for.
   participants (van Engelenburg, 1999).
 - **Assumptions:** normal errors; a common pretest-posttest slope in the
   pretested groups; equal variances within each pretest condition.
-- **Inference:** by default, `inference = "satterthwaite"` uses unbiased
-  residual variances and Welch-Satterthwaite degrees of freedom
-  (Satterthwaite, 1946; Welch, 1947); it was calibrated at every cell
-  size in the package’s simulation validation. The large-sample Wald
-  intervals of van Engelenburg (1999), available with
-  `inference = "wald"`, use a normal reference distribution and were too
-  narrow with fewer than 40 participants per cell.
 - **Limitations:** its point estimates coincide with separate
-  regressions in the two pretest conditions.
+  regressions in the two pretest conditions. Its default Wald intervals
+  use a normal reference distribution and were too narrow with small
+  groups in the package’s simulation validation. A small-sample option,
+  `inference = "satterthwaite"`, uses unbiased residual variances and
+  Welch-Satterthwaite degrees of freedom (Satterthwaite, 1946; Welch,
+  1947); the function warns when groups are small and no option has been
+  chosen.
 - **Function:**
   [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md).
 
@@ -440,10 +375,28 @@ dependent, and their number is not allowed for.
 
 ## solomonR extensions
 
+### Unified GLM with a design-coded pretest
+
+**Label:** solomonR extension, built on contemporary recommendations.
+
+- **Estimates:** all four contrasts from one model,
+  `y ~ treat * pretested + pre_obs`. `pre_obs` equals the pretest in
+  Groups 1 and 2 and 0 in Groups 3 and 4, so no group is dropped.
+- **Assumptions:** a common pretest slope in the pretested groups;
+  independent observations (or clusters with CR2).
+- **Limitations:** because adjusting for the pretest reduces residual
+  variance only in the pretested groups, the model is heteroskedastic
+  whenever the pretest predicts the posttest. HC3 or CR2 covariance
+  addresses this.
+- **Checks:** its estimate of Treatment \| pretested equals the ANCOVA
+  estimate (Test E), and its estimate of Treatment \| unpretested equals
+  Test C. The package tests these identities.
+- **Function:**
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+
 ### Structural equation models
 
-**Label:** solomonR extension of established SEM methods, with a
-published Solomon precedent (Dukes et al., 1995).
+**Label:** solomonR extension, built on established SEM methods.
 
 - **Estimates:** the four contrasts from a multi-group mean structure
   ([`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)),
@@ -456,17 +409,6 @@ published Solomon precedent (Dukes et al., 1995).
   its fit indices are not diagnostic. Latent contrasts are on the
   latent-variable scale and are not directly comparable with
   observed-score contrasts.
-- **Sources:** Dukes et al. (1995) compared latent means across the
-  groups of a Solomon design in multisample models, as three two-group
-  comparisons: one for maturation, and one for the program effect in
-  each pretest condition. They tested equal loadings, held the
-  indicators’ means equal, and judged pretest effects by comparing the
-  two program comparisons (pp. 420–426). solomonR fits the four groups
-  in one model with an identified latent mean structure, so the
-  sensitization contrast has its own test, and
-  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)
-  tests configural, metric, and scalar invariance across all four
-  groups. The SEM article compares the two approaches.
 
 ### Method comparison and design checks
 
@@ -507,12 +449,12 @@ test.
 | Tests E-G | Historical | Treatment \| pretested | Yes | Common slope (E); slope of one (F, G) |
 | Test H | Historical | Treatment \| unpretested | No | Equal variances in Groups 3-4 |
 | Test I | Historical | None (combined p-value) | Yes | Same directional hypothesis |
-| Unified GLM (Newman et al., 1990) | Published proposal, with contemporary inference | All four | Yes | Common slope; HC3 or CR2 inference |
+| Unified GLM | solomonR extension | All four | Yes | Common slope; HC3 or CR2 inference |
 | Randomization test | Contemporary | One contrast (test only) | Optional | Permute the randomized unit |
 | Equivalence test | Contemporary | One contrast | As fitted | Bounds fixed in advance |
 | Maximum likelihood | Published proposal | All four | Yes | Normal errors; separate variances by pretest condition |
 | SEM (observed) | solomonR extension | All four | Optional | Multi-group mean structure |
-| SEM (latent) | solomonR extension; precedent in Dukes et al. (1995) | All four (latent scale) | Optional | Scalar invariance |
+| SEM (latent) | solomonR extension | All four (latent scale) | Optional | Scalar invariance |
 | Multiple imputation with offsets | Contemporary | All four | Yes | Missing posttests shifted by stated offsets |
 | Mixed model for repeated measures | Contemporary | All four, at each occasion | Yes | Dropout missing at random; covariance by pretest condition |
 | Joint model for several treatments | Contemporary | All four, for each comparison | Yes | Common slope; p-values adjusted across comparisons |
@@ -550,11 +492,6 @@ DiCiccio, C. J., & Romano, J. P. (2017). Robust permutation tests for
 correlation and regression coefficients. *Journal of the American
 Statistical Association, 112*(519), 1211–1220.
 <https://doi.org/10.1080/01621459.2016.1202117>
-
-Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of
-D.A.R.E. (Drug Abuse Resistance Education), using a Solomon four-group
-design with latent variables. *Evaluation Review, 19*(4), 409–435.
-<https://doi.org/10.1177/0193841X9501900404>
 
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE
@@ -667,11 +604,6 @@ Meredith, W. (1993). Measurement invariance, factor analysis and
 factorial invariance. *Psychometrika, 58*(4), 525–543.
 <https://doi.org/10.1007/BF02294825>
 
-Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in
-analyzing the Solomon four group design. *Multiple Linear Regression
-Viewpoints, 17*(2), 91–103.
-<https://ojs.lib.ua.edu/glmj/article/view/125>
-
 Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 zero: Calculating exact p-values when permutations are randomly drawn.
 *Statistical Applications in Genetics and Molecular Biology, 9*(1),
@@ -715,10 +647,6 @@ Biopharmaceutics, 15*(6), 657–680. <https://doi.org/10.1007/BF01068419>
 Solomon, R. L. (1949). An extension of control group design.
 *Psychological Bulletin, 46*(2), 137–150.
 <https://doi.org/10.1037/h0062958>
-
-Solomon, R. L., & Lessac, M. S. (1968). A control group design for
-experimental studies of developmental processes. *Psychological
-Bulletin, 70*(3, Pt. 1), 145–150. <https://doi.org/10.1037/h0026147>
 
 Steiger, J. H. (2004). Beyond the F test: Effect size confidence
 intervals and tests of close fit in the analysis of variance and
@@ -771,11 +699,6 @@ missing outcome data. *BMJ, 342*, Article d40.
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. *Statistics in Medicine,
 24*(7), 993–1007. <https://doi.org/10.1002/sim.1981>
-
-Williams, J. D., & Newman, I. (1982). Using linear models to
-simultaneously analyze a Solomon four group design. *Multiple Linear
-Regression Viewpoints, 11*(3), 77–90.
-<https://ojs.lib.ua.edu/glmj/article/view/68>
 
 Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses
 in randomized experiments. *Journal of the American Statistical

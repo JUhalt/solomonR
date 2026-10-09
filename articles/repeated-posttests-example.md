@@ -209,46 +209,28 @@ fit
 #>  Posttest             Pretest x Treatment            1.890   2.086 92  0.91
 #>  Posttest             Treatment | pretested          2.860   1.522 92  1.88
 #>  Posttest             Treatment | unpretested        0.970   1.427 92  0.68
-#>  Posttest             Pretest effect | control      -2.730   1.407 92 -1.94
-#>  Posttest             Pretest effect | treated      -0.840   1.540 92 -0.55
-#>  Posttest             Pretest main effect           -1.785   1.043 92 -1.71
 #>  3 months             ATE (avg over pretest)         0.280   0.956 92  0.29
 #>  3 months             Pretest x Treatment            1.440   1.911 92  0.75
 #>  3 months             Treatment | pretested          1.000   1.394 92  0.72
 #>  3 months             Treatment | unpretested       -0.440   1.307 92 -0.34
-#>  3 months             Pretest effect | control      -0.390   1.289 92 -0.30
-#>  3 months             Pretest effect | treated       1.050   1.411 92  0.74
-#>  3 months             Pretest main effect            0.330   0.956 92  0.35
 #>  6 months             ATE (avg over pretest)        -0.070   0.705 92 -0.10
 #>  6 months             Pretest x Treatment            3.320   1.411 92  2.35
 #>  6 months             Treatment | pretested          1.590   1.029 92  1.54
 #>  6 months             Treatment | unpretested       -1.730   0.965 92 -1.79
-#>  6 months             Pretest effect | control      -1.710   0.952 92 -1.80
-#>  6 months             Pretest effect | treated       1.610   1.042 92  1.55
-#>  6 months             Pretest main effect           -0.050   0.705 92 -0.07
 #>  6 months vs Posttest Change in Pretest x Treatment  1.430   1.870 92  0.76
 #>  p     95% CI         
 #>  0.070 [-0.157, 3.987]
 #>  0.367 [-2.254, 6.034]
 #>  0.063 [-0.163, 5.883]
 #>  0.498 [-1.864, 3.804]
-#>  0.055 [-5.525, 0.065]
-#>  0.587 [-3.899, 2.219]
-#>  0.090 [-3.857, 0.287]
 #>  0.770 [-1.618, 2.178]
 #>  0.453 [-2.356, 5.236]
 #>  0.475 [-1.770, 3.770]
 #>  0.737 [-3.036, 2.156]
-#>  0.763 [-2.951, 2.171]
-#>  0.459 [-1.752, 3.852]
-#>  0.731 [-1.568, 2.228]
 #>  0.921 [-1.471, 1.331]
 #>  0.021 [ 0.518, 6.122]
 #>  0.126 [-0.455, 3.635]
 #>  0.076 [-3.646, 0.186]
-#>  0.076 [-3.600, 0.180]
-#>  0.126 [-0.459, 3.679]
-#>  0.944 [-1.451, 1.351]
 #>  0.446 [-2.284, 5.144]
 ```
 

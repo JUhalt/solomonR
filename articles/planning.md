@@ -195,7 +195,7 @@ draft <- analysis_plan_solomon(
 cat(head(draft$text, 12), sep = "\n")
 #> # Analysis plan for a Solomon four-group study
 #> 
-#> Drafted with solomonR 0.8.1.9000 on 2026-10-09. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
+#> Drafted with solomonR 0.8.2 on 2026-10-09. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
 #> 
 #> ## 1. Hypotheses (SPIRIT 12)
 #> 
