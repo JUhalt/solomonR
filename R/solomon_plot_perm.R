@@ -20,6 +20,8 @@ plot_perm <- function(perm) {
   p_value <- if (!is.null(perm$p_perm)) {
     perm$p_perm
   } else {
+    # An object without a p-value does not say how its model was fitted, so
+    # this uses the tolerance for statistics computed to rounding error.
     unit <- .perm_unit(perm$z_perm, perm$statistic)
     (sum(.perm_at_least(perm$z_perm, perm$z_obs[1], unit)) + 1) / (length(perm$z_perm) + 1)
   }

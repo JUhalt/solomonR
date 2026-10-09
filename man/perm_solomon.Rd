@@ -78,9 +78,11 @@ count of permuted statistics at least as extreme as the observed one, so
 a permutation whose statistic equals the observed one is counted. Such
 ties occur when a permutation repeats the observed assignment or swaps
 arms of equal size, and often when scores are tied, as with binary
-outcomes, counts, and ratings. Statistics within a relative tolerance of
-1e-10 are treated as equal, so that rounding error does not decide, and
-the models are refitted to that precision. Studentizing the
+outcomes, counts, and ratings. So that rounding error does not decide,
+statistics that differ by less than a small tolerance are treated as
+equal: 1e-10 of the observed statistic for a linear model, and 1e-6 for
+models fitted by iteration, whose equal fits agree only to about 1e-7.
+Studentizing the
 statistic makes permutation tests asymptotically robust when only an
 average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
 Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness

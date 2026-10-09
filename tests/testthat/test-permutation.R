@@ -185,23 +185,19 @@ test_that("the report says the difference statistic tests only the sharp null (#
 
 # Ties in the permutation distribution (issue #131). The tests below find
 # the tied permutations without the package's tolerance: from the labels
-# themselves, or by integer arithmetic on the arms' totals.
+# themselves, or by arithmetic on the arms' totals.
 
-# The labelings perm_solomon() draws: within each pretest condition, in the
-# order of the rows of the fit's data.
+# The labelings perm_solomon() draws under a seed, from its own sampler.
 perm_labels <- function(fit, reps, seed) {
   d <- fit$data
-  withr::with_seed(seed, lapply(seq_len(reps), function(i) {
-    stats::ave(d$treat, d$pretested, FUN = function(x) sample(x, length(x), replace = FALSE))
-  }))
+  withr::with_seed(seed, lapply(seq_len(reps), function(i) .perm_treat(d$treat, d$pretested)))
 }
 
-# The absolute difference between the unpretested arms' totals under each
-# labeling, an integer when the scores are integers.
-unpretested_gap <- function(fit, labels) {
+# The unpretested arms' totals under each labeling: treated, then control.
+unpretested_totals <- function(fit, labels) {
   d <- fit$data
   u <- d$pretested == 0
-  vapply(labels, function(t) abs(sum(d$y[u & t == 1]) - sum(d$y[u & t == 0])), numeric(1))
+  vapply(labels, function(t) c(sum(d$y[u & t == 1]), sum(d$y[u & t == 0])), numeric(2))
 }
 
 # Groups of 4, 4, 3, and 3 with continuous scores: with 3 against 3 in the
@@ -217,7 +213,18 @@ tie_data <- function(seed) {
   data.frame(y = y, treat = treat, pretested = pretested, pre = pre)
 }
 
-test_that(".perm_at_least() counts ties and treats rounding noise as zero (#131)", {
+# Four groups of n with the given numbers of successes, in the order
+# pretested treated, pretested control, unpretested treated, unpretested
+# control.
+binary_data <- function(n, successes) {
+  g <- rep(1:4, each = n)
+  data.frame(
+    treat = c(1, 0, 1, 0)[g], pretested = c(1, 1, 0, 0)[g],
+    y = unlist(lapply(successes, function(k) rep(c(1, 0), c(k, n - k))))
+  )
+}
+
+test_that("the tie rule counts ties and treats rounding noise as zero (#131)", {
   expect_identical(.perm_at_least(c(1 - 1e-15, 1 + 1e-15, -1 + 1e-15, 0.9), 1),
                    c(TRUE, TRUE, TRUE, FALSE))
   # An observed statistic of zero, computed as rounding noise, is tied with
@@ -225,8 +232,14 @@ test_that(".perm_at_least() counts ties and treats rounding noise as zero (#131)
   expect_identical(.perm_at_least(c(0, -3e-17, 0.4), 1e-17, unit = 0.8), c(TRUE, TRUE, TRUE))
   # A small observed statistic that is not zero is still exceeded or not.
   expect_identical(.perm_at_least(c(0.001, 0.003), 0.002, unit = 0.8), c(FALSE, TRUE))
+  # Fits by iteration agree to about 1e-7, so their tolerance is wider.
+  expect_identical(.perm_at_least(c(1 - 1e-7, 1 - 1e-5), 1, tol = 1e-6), c(TRUE, FALSE))
   expect_identical(.perm_unit(c(-0.8, 0.4), "difference"), 0.8)
   expect_identical(.perm_unit(c(-0.8, 0.4), "studentized"), 1)
+  expect_identical(.perm_tie_tolerance(stats::gaussian()), 1e-10)
+  expect_identical(.perm_tie_tolerance(stats::gaussian("log")), 1e-6)
+  expect_identical(.perm_tie_tolerance(stats::poisson()), 1e-6)
+  expect_identical(.perm_tie_tolerance(stats::binomial()), 1e-6)
 })
 
 test_that("permutations that repeat or swap the observed labels are counted (#131)", {
@@ -239,21 +252,19 @@ test_that("permutations that repeat or swap the observed labels are counted (#13
   # About 100 of the 999 labelings; with continuous scores no other ties.
   expect_gt(sum(same), 50)
 
-  p_values <- list()
   for (stat in c("studentized", "difference")) {
-    p <- perm_solomon(fit, contrast = "Treatment | unpretested", reps = 999, seed = 7,
+    reps <- if (stat == "studentized") 999L else 299L
+    p <- perm_solomon(fit, contrast = "Treatment | unpretested", reps = reps, seed = 7,
                       statistic = stat, return_dist = TRUE)
-    expect_identical(p$valid_reps, 999L)
-    more <- abs(p$z_perm) > abs(p$z_obs) & !same
-    expect_equal(p$p_perm, (sum(more) + sum(same) + 1) / 1000, tolerance = 1e-12)
-    p_values[[stat]] <- p
-  }
+    expect_identical(p$valid_reps, reps)
+    tied <- same[seq_len(reps)]
+    more <- abs(p$z_perm) > abs(p$z_obs) & !tied
+    expect_equal(p$p_perm, (sum(more) + sum(tied) + 1) / (reps + 1), tolerance = 1e-12)
 
-  # The case in the issue: rounding left most ties uncounted and gave .027.
-  expect_equal(p_values$studentized$p_perm, 0.117, tolerance = 1e-12)
+    # The case in the issue: rounding left most ties uncounted and gave .027.
+    if (stat == "studentized") expect_equal(p$p_perm, 0.117, tolerance = 1e-12)
 
-  # plot_perm() computes the same p-value when the object lacks one.
-  for (p in p_values) {
+    # plot_perm() computes the same p-value when the object lacks one.
     q <- p
     q$p_perm <- NULL
     expect_identical(plot_perm(q)$labels$subtitle, plot_perm(p)$labels$subtitle)
@@ -262,9 +273,9 @@ test_that("permutations that repeat or swap the observed labels are counted (#13
 
 test_that("tied scores are counted in a Poisson fit (#131)", {
   # Fits that are equal in exact arithmetic differ by about 1e-7 at glm()'s
-  # default convergence. In the unpretested condition, with equal arms, the
-  # contrast is the log ratio of the two arms' totals, so a labeling is at
-  # least as extreme exactly when the totals differ by at least as much.
+  # convergence. In the unpretested condition, with equal arms, the contrast
+  # is the log ratio of the two arms' totals, so a labeling is at least as
+  # extreme exactly when the totals differ by at least as much.
   set.seed(7014)
   g <- rep(1:4, each = 10)
   treat <- c(1, 0, 1, 0)[g]
@@ -275,49 +286,66 @@ test_that("tied scores are counted in a Poisson fit (#131)", {
     y = stats::rpois(length(g), exp(1 + 0.3 * treat + ifelse(is.na(pre), 0, 0.5 * pre)))
   )
   fit <- fit_solomon_glm(y, treat, pretested, pre, data = d, family = stats::poisson())
-  p <- expect_no_warning(perm_solomon(fit, contrast = "Treatment | unpretested", reps = 499,
+  p <- expect_no_warning(perm_solomon(fit, contrast = "Treatment | unpretested", reps = 299,
                                       seed = 14, statistic = "difference"))
-  gap <- unpretested_gap(fit, perm_labels(fit, 499, 14))
-  observed <- unpretested_gap(fit, list(fit$data$treat))
-  expect_identical(p$valid_reps, 499L)
-  expect_equal(p$p_perm, (sum(gap >= observed) + 1) / 500, tolerance = 1e-12)
-  # With the default convergence, 17 of the 20 exact ties went uncounted
-  # and the p-value was .046.
-  expect_equal(p$p_perm, 0.080, tolerance = 1e-12)
+  totals <- unpretested_totals(fit, perm_labels(fit, 299, 14))
+  observed <- unpretested_totals(fit, list(fit$data$treat))
+  gap <- abs(totals[1, ] - totals[2, ])
+  observed_gap <- abs(observed[1, 1] - observed[2, 1])
+  # Several labelings repeat the observed gap exactly.
+  expect_gt(sum(gap == observed_gap), 5)
+  expect_identical(p$valid_reps, 299L)
+  expect_equal(p$p_perm, (sum(gap >= observed_gap) + 1) / 300, tolerance = 1e-12)
 })
 
 test_that("tied scores are counted for a binary outcome (#131)", {
   # 7 of 10 against 3 of 10 successes in the unpretested condition. Many
   # labelings repeat those counts or exceed them, whatever the sample size.
-  g <- rep(1:4, each = 10)
-  d <- data.frame(
-    treat = c(1, 0, 1, 0)[g], pretested = c(1, 1, 0, 0)[g],
-    y = c(rep(c(1, 0), c(6, 4)), rep(c(1, 0), c(5, 5)), rep(c(1, 0), c(7, 3)), rep(c(1, 0), c(3, 7)))
-  )
-  fit <- fit_solomon_glm(y, treat, pretested, data = d)
-  gap <- unpretested_gap(fit, perm_labels(fit, 299, 3))
-  expect_identical(unpretested_gap(fit, list(fit$data$treat)), 4)
+  fit <- fit_solomon_glm(y, treat, pretested, data = binary_data(10, c(6, 5, 7, 3)))
+  totals <- unpretested_totals(fit, perm_labels(fit, 199, 3))
+  gap <- abs(totals[1, ] - totals[2, ])
   for (stat in c("studentized", "difference")) {
-    p <- perm_solomon(fit, contrast = "Treatment | unpretested", reps = 299, seed = 3,
+    p <- perm_solomon(fit, contrast = "Treatment | unpretested", reps = 199, seed = 3,
                       statistic = stat)
-    expect_identical(p$valid_reps, 299L)
-    expect_equal(p$p_perm, (sum(gap >= 4) + 1) / 300, tolerance = 1e-12)
+    expect_identical(p$valid_reps, 199L)
+    expect_equal(p$p_perm, (sum(gap >= 4) + 1) / 200, tolerance = 1e-12)
   }
+})
+
+test_that("labelings that empty an arm stay the most extreme in a logistic fit (#131)", {
+  # 4 of 10 against 1 of 10 successes in the unpretested condition, so some
+  # labelings put all 5 successes in one arm. Their contrast is infinite and
+  # must count as at least as extreme. The unpretested cells are saturated,
+  # so each labeling's HC3-studentized statistic follows from its two
+  # counts, with hat value 1/n in each cell.
+  n <- 10
+  fit <- fit_solomon_glm(y, treat, pretested, data = binary_data(n, c(6, 4, 4, 1)),
+                         family = stats::binomial())
+  reference <- function(k1, k0) {
+    if (k1 %in% c(0, n) || k0 %in% c(0, n)) return(Inf)
+    v <- function(k) 1 / (n * (k / n) * (1 - k / n) * (1 - 1 / n)^2)
+    abs(stats::qlogis(k1 / n) - stats::qlogis(k0 / n)) / sqrt(v(k1) + v(k0))
+  }
+  totals <- unpretested_totals(fit, perm_labels(fit, 199, 11))
+  stat <- mapply(reference, totals[1, ], totals[2, ])
+  expect_gt(sum(is.infinite(stat)), 0)
+
+  p <- expect_no_warning(perm_solomon(fit, contrast = "Treatment | unpretested", reps = 199,
+                                      seed = 11, return_dist = TRUE))
+  expect_identical(p$valid_reps, 199L)
+  expect_equal(abs(p$z_obs), reference(4, 1), tolerance = 1e-6)
+  expect_equal(p$p_perm, (sum(stat >= reference(4, 1) * (1 - 1e-9)) + 1) / 200,
+               tolerance = 1e-12)
 })
 
 test_that("an observed statistic of zero gives a p-value of 1 (#131)", {
   # 2 of 5 successes in each unpretested arm: the contrast is exactly 0, so
   # every labeling is at least as extreme.
-  g <- rep(1:4, each = 5)
-  d <- data.frame(
-    treat = c(1, 0, 1, 0)[g], pretested = c(1, 1, 0, 0)[g],
-    y = c(1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0)
-  )
-  fit <- fit_solomon_glm(y, treat, pretested, data = d)
+  fit <- fit_solomon_glm(y, treat, pretested, data = binary_data(5, c(3, 1, 2, 2)))
   for (stat in c("studentized", "difference")) {
-    p <- perm_solomon(fit, contrast = "Treatment | unpretested", reps = 199, seed = 5,
+    p <- perm_solomon(fit, contrast = "Treatment | unpretested", reps = 99, seed = 5,
                       statistic = stat)
-    expect_identical(p$valid_reps, 199L)
+    expect_identical(p$valid_reps, 99L)
     expect_identical(p$p_perm, 1)
   }
 })

@@ -8,11 +8,12 @@
   the count of statistics at least as extreme as the observed one (Phipson
   & Smyth, 2010), so such ties must be counted; when they were missed, the
   p-value was too small. They are now counted, at the participant and the
-  cluster level and in `plot_perm()`, by one rule: statistics within a
-  relative tolerance of 1e-10 are equal, and the permuted models are
-  refitted to that precision.
-* What can change: p-values that were too small. Refit any analysis of
-  these kinds.
+  cluster level and in `plot_perm()`, by one rule: statistics that differ
+  by less than a small tolerance are equal. The tolerance is 1e-10 of the
+  observed statistic for a linear model and 1e-6 for models fitted by
+  iteration, whose equal fits agree only to about 1e-7.
+* What can change: p-values that were too small. Rerun `perm_solomon()`
+  for analyses of these kinds.
 
   - Outcomes with tied scores (binary outcomes, counts, ratings, rounded
     scores), at any sample size. Many permutations then reproduce the
@@ -26,12 +27,13 @@
   rare. For a contrast within one pretest condition, about 1 analysis in
   100 with 999 permutations meets one, and its p-value rises by at most
   .001; for the average treatment effect and Pretest x Treatment, almost
-  none does.
-* An observed statistic of exactly zero now gives a p-value of 1. Rounding
-  could give less; for a binary outcome with equal proportions in the two
-  arms, one test gave .905.
-* Cluster-level tests are unchanged, except for an observed statistic of
-  zero.
+  none does. The scores of `solomon_example` are whole numbers, so its
+  own p-values change slightly: in one run of 4,999 permutations for
+  Treatment | unpretested, from .100 to .105.
+* An observed statistic of exactly zero now gives a p-value of 1, when the
+  outcome varies within the pretest conditions the contrast uses. Rounding
+  could give less: with 2 of 5 successes in each arm, one test gave .67.
+* Cluster-level tests give the same results as before.
 
 ## Reports of latent models with lavaan 0.7-3 (bug fix)
 

@@ -1116,9 +1116,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' a permutation whose statistic equals the observed one is counted. Such
 #' ties occur when a permutation repeats the observed assignment or swaps
 #' arms of equal size, and often when scores are tied, as with binary
-#' outcomes, counts, and ratings. Statistics within a relative tolerance of
-#' 1e-10 are treated as equal, so that rounding error does not decide, and
-#' the models are refitted to that precision. Studentizing the
+#' outcomes, counts, and ratings. So that rounding error does not decide,
+#' statistics that differ by less than a small tolerance are treated as
+#' equal: 1e-10 of the observed statistic for a linear model, and 1e-6 for
+#' models fitted by iteration, whose equal fits agree only to about 1e-7.
+#' Studentizing the
 #' statistic makes permutation tests asymptotically robust when only an
 #' average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
 #' Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness
@@ -1462,19 +1464,18 @@ perm_solomon <- function(
 
   # One routine refits the model for the observed and for the permuted
   # labels, so that labelings that give the same fit in exact arithmetic
-  # give the same statistic to rounding error. Its convergence is tight
-  # because the default stops iteratively reweighted least squares at a
-  # relative change in deviance of 1e-8, which leaves such fits about 1e-7
-  # apart, too far for .perm_at_least() to see the tie (issue #131).
+  # are computed the same way. Convergence stays at glm()'s default, and
+  # the tie tolerance allows for it (see .perm_tie_tolerance(); issue #131).
   refit <- function(d) {
     stats::glm(
       form,
       data = d,
       family = fam,
       na.action = stats::na.exclude,
-      control = stats::glm.control(epsilon = 1e-14, maxit = 200)
+      control = stats::glm.control(maxit = 200)
     )
   }
+  tie_tol <- .perm_tie_tolerance(fam)
 
   z_obs <- contrast_z(
     refit(df),
@@ -1515,11 +1516,7 @@ perm_solomon <- function(
 
     df_perm <- df
 
-    df_perm$treat <- stats::ave(
-      df$treat,
-      df$pretested,
-      FUN = function(x) sample(x, length(x), replace = FALSE)
-    )
+    df_perm$treat <- .perm_treat(df$treat, df$pretested)
 
     z_perm[i] <- contrast_z(
       refit(df_perm),
@@ -1544,7 +1541,7 @@ perm_solomon <- function(
   # Ties with the observed statistic are counted (see .perm_at_least()).
 
   p_perm <- (
-    sum(.perm_at_least(z_perm_valid, z_obs, .perm_unit(z_perm_valid, statistic))) + 1
+    sum(.perm_at_least(z_perm_valid, z_obs, .perm_unit(z_perm_valid, statistic), tie_tol)) + 1
   ) / (
     length(z_perm_valid) + 1
   )
