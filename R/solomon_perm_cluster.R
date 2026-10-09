@@ -55,12 +55,24 @@
 }
 
 # Which permuted statistics are at least as extreme as the observed one, at
-# either level of permutation. A permutation that repeats the observed
-# allocation, or swaps equal arms, has the observed statistic in exact
-# arithmetic, and the p-value is valid only if it is counted (Phipson &
-# Smyth, 2010). The relative tolerance keeps rounding error, of about 1e-15,
-# from deciding that (issue #131).
-.perm_at_least <- function(z, z0) abs(z) >= abs(z0) * (1 - 1e-10)
+# either level of permutation. Some permutations give the observed statistic
+# in exact arithmetic: one that repeats the observed allocation or swaps
+# equal arms, and, when scores are tied, many others. The validity of the
+# p-value is shown for the count of statistics at least as extreme as the
+# observed one (Phipson & Smyth, 2010), so these must be counted, and the
+# tolerance keeps rounding error from deciding whether they are (issue #131).
+# It is relative to the observed statistic, or to `unit` when the observed
+# statistic is smaller than that, so that an observed statistic of zero is
+# tied with every other zero. `unit` is the size at which a statistic counts
+# as zero: 1 for a studentized statistic, and for a difference the largest
+# permuted difference (see .perm_unit()).
+.perm_at_least <- function(z, z0, unit = 1) {
+  abs(z) >= abs(z0) - 1e-10 * max(abs(z0), unit)
+}
+
+.perm_unit <- function(z_perm, statistic) {
+  if (identical(statistic, "difference")) max(abs(z_perm)) else 1
+}
 
 # Allocation matrices for each stratum: every allocation when there are at
 # most `reps` in total (across strata), otherwise `reps` random ones.
@@ -254,13 +266,14 @@
   if (!any(valid)) stop("No valid permutation statistics were obtained.", call. = FALSE)
 
   z_perm <- z_perm[valid]
+  unit <- .perm_unit(z_perm, statistic)
 
   if (allocations$exact) {
     # The observed allocation is one of the enumerated allocations.
-    p_perm <- mean(.perm_at_least(z_perm, observed$stat))
-    min_p <- mean(.perm_at_least(z_perm, max(abs(z_perm))))
+    p_perm <- mean(.perm_at_least(z_perm, observed$stat, unit))
+    min_p <- mean(.perm_at_least(z_perm, max(abs(z_perm)), unit))
   } else {
-    p_perm <- (sum(.perm_at_least(z_perm, observed$stat)) + 1) / (length(z_perm) + 1)
+    p_perm <- (sum(.perm_at_least(z_perm, observed$stat, unit)) + 1) / (length(z_perm) + 1)
     min_p <- NA_real_
   }
 

@@ -3,18 +3,35 @@
 ## Ties in the permutation test (bug fix, #131)
 
 * At the participant level, `perm_solomon()` let rounding error decide
-  whether a permutation that reproduces the observed statistic was
-  counted as at least as extreme. A permutation that repeats the observed
-  assignment, or swaps equal arms, has the observed statistic exactly,
-  and the p-value is valid only if it is counted (Phipson & Smyth, 2010).
-  Such ties are now counted, with the relative tolerance the cluster-level
-  test already used, and `plot_perm()` uses the same rule.
-* What can change: p-values in very small groups, which were too small.
-  With groups of 4, 4, 3, and 3, fewer than half of the tied permutations
-  were counted, and one test gave p = .027 where the correct value is
-  .117. With 10 or more participants in each group a tie is rare: with
-  999 permutations about 1 analysis in 100 meets one, and its p-value
-  rises by .001.
+  whether a permutation whose statistic equals the observed one was
+  counted as at least as extreme. The validity of the p-value is shown for
+  the count of statistics at least as extreme as the observed one (Phipson
+  & Smyth, 2010), so such ties must be counted; when they were missed, the
+  p-value was too small. They are now counted, at the participant and the
+  cluster level and in `plot_perm()`, by one rule: statistics within a
+  relative tolerance of 1e-10 are equal, and the permuted models are
+  refitted to that precision.
+* What can change: p-values that were too small. Refit any analysis of
+  these kinds.
+
+  - Outcomes with tied scores (binary outcomes, counts, ratings, rounded
+    scores), at any sample size. Many permutations then reproduce the
+    observed statistic, and only some were counted. For a binary outcome
+    with 20 participants per group, one test gave p = .017 where the
+    correct value is .056.
+  - Continuous scores in very small groups. With groups of 4, 4, 3, and
+    3, one test gave p = .027 where the correct value is .117.
+
+  With continuous scores and 10 or more participants per group a tie is
+  rare. For a contrast within one pretest condition, about 1 analysis in
+  100 with 999 permutations meets one, and its p-value rises by at most
+  .001; for the average treatment effect and Pretest x Treatment, almost
+  none does.
+* An observed statistic of exactly zero now gives a p-value of 1. Rounding
+  could give less; for a binary outcome with equal proportions in the two
+  arms, one test gave .905.
+* Cluster-level tests are unchanged, except for an observed statistic of
+  zero.
 
 ## Credit for the unified model (#105)
 

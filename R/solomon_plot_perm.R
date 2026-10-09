@@ -20,7 +20,8 @@ plot_perm <- function(perm) {
   p_value <- if (!is.null(perm$p_perm)) {
     perm$p_perm
   } else {
-    (sum(.perm_at_least(perm$z_perm, perm$z_obs[1])) + 1) / (length(perm$z_perm) + 1)
+    unit <- .perm_unit(perm$z_perm, perm$statistic)
+    (sum(.perm_at_least(perm$z_perm, perm$z_obs[1], unit)) + 1) / (length(perm$z_perm) + 1)
   }
 
   title <- if (!is.null(perm$contrast)) {
