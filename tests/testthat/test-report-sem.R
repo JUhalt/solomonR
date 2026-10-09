@@ -484,3 +484,36 @@ test_that("freed parameters are read from the parameter table and described in w
   expect_identical(.sem_where(c("P1", "P0", "U1", "U0"), c("P1", "P0", "U1", "U0")), "in every group")
   expect_identical(.apa_unit(c(0.8668, -0.0061, -0.00001, 1)), c(".867", "-.006", ".000", "1.000"))
 })
+
+test_that("a second test without a scaling factor is not reported as a scaled test", {
+  skip_if_not_installed("lavaan")
+  # Since lavaan 0.7-3 a maximum likelihood fit also carries Browne's
+  # residual test, which scales nothing. Requesting it reproduces that fit
+  # in earlier versions.
+  s <- sem_items()
+  d <- cbind(s$data, g = paste0(ifelse(s$pretested == 1, "P", "U"), s$treat))
+  model <- "F =~ y1 + y2 + y3 + y4"
+  cfa4 <- function(...) {
+    lavaan::cfa(model, data = d, group = "g", group.equal = c("loadings", "intercepts"), ...)
+  }
+
+  ml <- cfa4(estimator = "ML", test = c("standard", "browne.residual.nt.model"))
+  expect_gt(length(lavaan::lavInspect(ml, "test")), 1L)
+  est <- .sem_estimator("ML", ml)
+  expect_false(est$scaled)
+  expect_identical(est$text, "maximum likelihood (ML)")
+  sentence <- .sem_fit_sentence("The model", ml, est$scaled, 2, FALSE)
+  fm <- lavaan::fitMeasures(ml, c("chisq", "df", "pvalue"))
+  expect_match(sentence, sprintf("The model gave \u03c7\u00b2(%d) = %.2f, p %s, CFI",
+                                 as.integer(fm[["df"]]), fm[["chisq"]], apa_p(fm[["pvalue"]])),
+               fixed = TRUE)
+  expect_false(grepl("scaled", sentence, fixed = TRUE))
+
+  # A scaled test is found wherever it stands in the list of tests.
+  both <- cfa4(estimator = "ML", test = c("browne.residual.nt.model", "satorra.bentler"))
+  est <- .sem_estimator("ML", both)
+  expect_true(est$scaled)
+  expect_match(est$text, "with a scaled test statistic (satorra-bentler correction)", fixed = TRUE)
+  expect_identical(.sem_fit_sentence("The model", both, est$scaled, 2, FALSE),
+                   expected_fit(both, "The model"))
+})

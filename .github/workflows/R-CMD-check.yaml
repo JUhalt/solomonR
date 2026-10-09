@@ -26,6 +26,8 @@ jobs:
           - {os: ubuntu-latest, r: 'release'}
           - {os: ubuntu-latest, r: 'oldrel-1'}
           - {os: ubuntu-latest, r: 'devel', http-user-agent: 'release'}
+          # The minimum R version that DESCRIPTION declares.
+          - {os: ubuntu-latest, r: '4.1'}
 
     steps:
       - uses: actions/checkout@v7
@@ -88,3 +90,47 @@ jobs:
         with:
           args: 'c("--no-manual", "--as-cran")'
           error-on: '"note"'
+
+  # lavaan and mmrm are in Suggests: the package, its examples, tests, and
+  # vignettes must work when they are not installed.
+  R-CMD-check-without-optional:
+    name: ubuntu-latest (release, without lavaan and mmrm)
+    runs-on: ubuntu-latest
+    env:
+      _R_CHECK_FORCE_SUGGESTS_: false
+    steps:
+      - uses: actions/checkout@v7
+
+      # Hosted Ubuntu runners can occasionally retain a stale Google
+      # Chrome apt source, which makes setup-r fail during apt-get update.
+      - name: Remove stale Google Chrome apt source
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources*
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      # A cache of its own: the library cached by the other Ubuntu jobs
+      # contains both packages.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck, lavaan=?ignore, mmrm=?ignore
+          needs: check
+          cache-version: without-optional
+
+      - name: Make sure that lavaan and mmrm are not installed
+        shell: Rscript {0}
+        run: |
+          optional <- c("lavaan", "mmrm")
+          present <- optional[optional %in% rownames(installed.packages())]
+          if (length(present)) remove.packages(present)
+          still <- optional[optional %in% rownames(installed.packages())]
+          if (length(still)) stop("Still installed: ", paste(still, collapse = ", "))
+
+      - uses: r-lib/actions/check-r-package@v2

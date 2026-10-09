@@ -76,6 +76,7 @@ test_that("partial invariance must leave most indicators invariant", {
   expect_error(.check_partial("y2 ~ 1", c("y1", "y2")), "minority")
   expect_error(.check_partial("z ~ 1", items), "names no parameter")
   expect_silent(.check_partial("y4 ~ 1", items))
+  skip_if_not_installed("lavaan")
   expect_error(invariance_solomon(data.frame(a = 1:8, b = 1:8), c("a", "b"),
                                   rep(0:1, 4), rep(0:1, each = 4)), "at least three")
 })

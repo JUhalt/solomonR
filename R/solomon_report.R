@@ -1054,8 +1054,12 @@
   } else {
     "lavaan (Rosseel, 2012)"
   }
-  tests <- lavaan::lavInspect(fit, "options")$test
-  scaled <- any(!tests %in% c("standard", "none"))
+  # A scaled test is one with a scaling factor. A second test in the list is
+  # not enough: since lavaan 0.7-3 a maximum likelihood fit also carries
+  # Browne's residual test, which scales nothing.
+  tests <- lavaan::lavInspect(fit, "test")
+  is_scaled <- vapply(tests, function(x) !is.null(x$scaling.factor), logical(1))
+  scaled <- any(is_scaled)
   est <- toupper(estimator)
   if (est == "MLR") {
     text <- paste(
@@ -1067,11 +1071,7 @@
     text <- "maximum likelihood (ML)"
     refs <- character(0)
   } else {
-    label <- if (scaled) {
-      robust <- lavaan::lavInspect(fit, "test")
-      robust <- robust[!names(robust) %in% c("standard", "none")]
-      tolower(robust[[1]]$label)
-    }
+    label <- if (scaled) tolower(tests[[which(is_scaled)[1]]]$label)
     text <- sprintf("the %s estimator%s", estimator,
                     if (scaled) sprintf(", with a scaled test statistic (%s)", label) else "")
     refs <- character(0)

@@ -54,6 +54,49 @@
   )
 }
 
+# Which permuted statistics are at least as extreme as the observed one, at
+# either level of permutation. Some permutations give the observed statistic
+# in exact arithmetic: one that repeats the observed allocation or swaps
+# equal arms, and, when scores are tied, many others. The validity of the
+# p-value is shown for the count of statistics at least as extreme as the
+# observed one (Phipson & Smyth, 2010), so these must be counted, and the
+# tolerance keeps rounding error from deciding whether they are (issue #131).
+# It is relative to the observed statistic, or to `unit` when the observed
+# statistic is smaller than that, so that an observed statistic of zero is
+# tied with every other zero. `unit` is the size at which a statistic counts
+# as zero: 1 for a studentized statistic, and for a difference the largest
+# permuted difference (see .perm_unit()). `tol` is 1e-10 where statistics
+# are computed to rounding error, and larger where the model is fitted by
+# iteration (see .perm_tie_tolerance()).
+.perm_at_least <- function(z, z0, unit = 1, tol = 1e-10) {
+  abs(z) >= abs(z0) - tol * max(abs(z0), unit)
+}
+
+.perm_unit <- function(z_perm, statistic) {
+  if (identical(statistic, "difference")) max(abs(z_perm)) else 1
+}
+
+# The tie tolerance for refitted models of a family. The Gaussian identity
+# model is solved in one step, and equal fits agree to rounding error. Any
+# other model is fitted by iteratively reweighted least squares, which stops
+# at a relative change in deviance of 1e-8. Fits that are equal in exact
+# arithmetic then differ by up to about 1e-7 where the model is saturated in
+# the cells the contrast uses. Where it is not (a covariate), they can differ
+# by more, up to 4e-4 seen with a non-canonical link, because glm() returns
+# the working weights of the iteration before the last; ties of that kind
+# can still be missed (issue #134). Tighter convergence is not the remedy on
+# its own: it drives the fitted values of a labeling with an empty arm to
+# the boundary and destroys its HC3 variance, so the most extreme labelings
+# are lost.
+.perm_tie_tolerance <- function(family) {
+  if (identical(family$family, "gaussian") && identical(family$link, "identity")) 1e-10 else 1e-6
+}
+
+# One permutation of the treatment labels within pretest conditions.
+.perm_treat <- function(treat, pretested) {
+  stats::ave(treat, pretested, FUN = function(x) sample(x, length(x), replace = FALSE))
+}
+
 # Allocation matrices for each stratum: every allocation when there are at
 # most `reps` in total (across strata), otherwise `reps` random ones.
 .cluster_allocations <- function(treated, reps) {
@@ -246,14 +289,14 @@
   if (!any(valid)) stop("No valid permutation statistics were obtained.", call. = FALSE)
 
   z_perm <- z_perm[valid]
-  at_least <- function(z, z0) abs(z) >= abs(z0) * (1 - 1e-10)
+  unit <- .perm_unit(z_perm, statistic)
 
   if (allocations$exact) {
     # The observed allocation is one of the enumerated allocations.
-    p_perm <- mean(at_least(z_perm, observed$stat))
-    min_p <- mean(at_least(z_perm, max(abs(z_perm))))
+    p_perm <- mean(.perm_at_least(z_perm, observed$stat, unit))
+    min_p <- mean(.perm_at_least(z_perm, max(abs(z_perm)), unit))
   } else {
-    p_perm <- (sum(at_least(z_perm, observed$stat)) + 1) / (length(z_perm) + 1)
+    p_perm <- (sum(.perm_at_least(z_perm, observed$stat, unit)) + 1) / (length(z_perm) + 1)
     min_p <- NA_real_
   }
 
