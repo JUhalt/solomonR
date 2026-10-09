@@ -1,6 +1,7 @@
 # Shared pieces of the public interface (issue #83): the optional `data`
-# argument of the vector-interface functions, renamed arguments, and the
-# reordered arguments of power_solomon().
+# argument of the vector-interface functions, renamed arguments, the
+# reordered arguments of power_solomon(), and the renamed elements of
+# results (issue #110).
 
 # Look up the arguments of a vector-interface function in `data`.
 #
@@ -68,6 +69,43 @@
   )
 
   invisible(NULL)
+}
+
+
+# The `$` method of a class whose elements were renamed (issue #110).
+# `renamed` maps each former name to the new one, as in
+# c(effects_post = "effects"), and `fun` is the function that returns the
+# object. A former name gives the element under its new name, with a
+# deprecation warning that names it; `details` adds to the warning. Only
+# the whole former name is recognized. Any other name is matched as `$`
+# matches the names of a list, partially when that is unambiguous. `[[` is
+# not covered: `x[["effects_post"]]` is NULL. Deprecated names keep working
+# through v1.x.
+.renamed_element <- function(x, name, renamed, fun, when = "1.0.0", details = NULL) {
+
+  if (name %in% names(renamed)) {
+    old <- name
+    name <- renamed[[old]]
+    lifecycle::deprecate_warn(
+      when,
+      what = I(sprintf("The `%s` element of the result of `%s()`", old, fun)),
+      with = I(sprintf("`%s`", name)),
+      details = details,
+      # The frame that used `$`, so that lifecycle attributes the old name
+      # to the user's code rather than to solomonR.
+      user_env = parent.frame(2)
+    )
+  }
+
+  value <- .subset2(x, name, exact = FALSE)
+
+  if (is.null(value) && name %in% renamed) {
+    # An object made before the rename holds the element under its former
+    # name.
+    value <- .subset2(x, names(renamed)[match(name, renamed)])
+  }
+
+  value
 }
 
 

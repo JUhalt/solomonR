@@ -1,6 +1,6 @@
 # The public interface settled for v1.0 (issue #83): the optional `data`
-# argument, renamed arguments that still work, and the reordered arguments
-# of power_solomon().
+# argument, renamed arguments that still work, the reordered arguments of
+# power_solomon(), and the renamed elements of results (issue #110).
 
 # ---- data = -------------------------------------------------------------------
 
@@ -154,6 +154,108 @@ test_that("a fit passed by position to plot_solomon_design() is still used", {
   fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
   expect_no_warning(p <- plot_solomon_design(fit))
   expect_equal(layers(p), layers(plot_solomon_design(fit = fit)))
+})
+
+# ---- Renamed elements (#110) --------------------------------------------------
+
+# Three indicators of one latent posttest in the four groups.
+latent_api_data <- function(n = 60, seed = 110) {
+  set.seed(seed)
+  g <- rep(1:4, each = n)
+  f <- stats::rnorm(4 * n, 0.4 * c(1, 0, 1, 0)[g])
+  items <- data.frame(y1 = f + stats::rnorm(4 * n, 0, 0.6),
+                      y2 = 0.9 * f + stats::rnorm(4 * n, 0, 0.6),
+                      y3 = 0.8 * f + stats::rnorm(4 * n, 0, 0.6))
+  list(items = items, treat = c(1, 0, 1, 0)[g], pretested = c(1, 1, 0, 0)[g])
+}
+
+# The message of the deprecation warning that `expr` gives, on one line.
+deprecation_message <- function(expr) {
+  withr::local_options(lifecycle_verbosity = "warning")
+  w <- tryCatch(expr, lifecycle_warning_deprecated = function(w) w)
+  expect_s3_class(w, "lifecycle_warning_deprecated")
+  gsub("\\s+", " ", conditionMessage(w))
+}
+
+test_that("the latent fit uses the element names of the other fits", {
+  testthat::skip_if_not_installed("lavaan")
+  s <- latent_api_data()
+  fit <- fit_solomon_sem_latent(s$items, names(s$items), s$treat, s$pretested,
+                                check_invariance = FALSE, conf_level = 0.9)
+
+  expect_true(all(c("fit", "effects", "conf_level") %in% names(fit)))
+  expect_false(any(c("fit_post", "effects_post") %in% names(fit)))
+  expect_s4_class(fit$fit, "lavaan")
+  expect_s3_class(fit$effects, "data.frame")
+  # The confidence level is at the top level, as in every other fit, and
+  # still in the settings.
+  expect_identical(fit$conf_level, 0.9)
+  expect_identical(fit$settings$conf_level, 0.9)
+  # The same names as fit_solomon_sem().
+  sem <- fit_solomon_sem(y_post, treat, pretested, data = solomon_example)
+  expect_true(all(c("fit", "effects", "conf_level") %in% names(sem)))
+
+  # Reading the new names gives no warning, here or in the methods.
+  expect_no_warning(fit$effects)
+  expect_no_warning(fit$fit)
+  expect_no_warning(capture.output(print(fit)))
+  expect_no_warning(report_solomon(fit))
+  expect_no_warning(plot_solomon_effects(fit))
+})
+
+test_that("former element names still work with `$`, with a deprecation warning", {
+  testthat::skip_if_not_installed("lavaan")
+  s <- latent_api_data()
+  fit <- fit_solomon_sem_latent(s$items, names(s$items), s$treat, s$pretested,
+                                check_invariance = FALSE)
+
+  lifecycle::expect_deprecated(old_effects <- fit$effects_post)
+  expect_identical(old_effects, fit$effects)
+  lifecycle::expect_deprecated(old_fit <- fit$fit_post)
+  expect_identical(old_fit, fit$fit)
+  # The warning names the former element, the version, and the new element.
+  msg <- deprecation_message(fit$effects_post)
+  expect_match(msg, paste("The `effects_post` element of the result of",
+                          "`fit_solomon_sem_latent()` was deprecated in solomonR 1.0.0."),
+               fixed = TRUE)
+  expect_match(msg, "Please use `effects` instead.", fixed = TRUE)
+  expect_match(deprecation_message(fit$fit_post), "Please use `fit` instead.", fixed = TRUE)
+
+  # Only the whole former name is recognized, and only by `$`.
+  expect_no_warning(expect_null(fit$effects_pos))
+  expect_no_warning(expect_null(fit$fit_pos))
+  expect_null(fit[["effects_post"]])
+  expect_null(fit[["fit_post"]])
+  # The other elements are read as before, partial matching included.
+  expect_identical(fit$fitmeasures_post, fit[["fitmeasures_post"]])
+  expect_identical(fit$invariance_stat, fit[["invariance_status"]])
+  expect_null(fit$fit_pre)
+  expect_null(fit$no_such_element)
+  # Assignment is unchanged.
+  fit$note <- "kept"
+  expect_identical(fit$note, "kept")
+  expect_s3_class(fit, "solomon_sem_latent")
+})
+
+test_that("a latent fit stored under the former element names is still read", {
+  testthat::skip_if_not_installed("lavaan")
+  s <- latent_api_data()
+  fit <- fit_solomon_sem_latent(s$items, names(s$items), s$treat, s$pretested,
+                                check_invariance = FALSE)
+
+  # The element names under which earlier versions stored the fit. (Such a
+  # fit also has the former contrast labels, which nothing translates.)
+  before <- unclass(fit)
+  names(before)[match(c("fit", "effects"), names(before))] <- c("fit_post", "effects_post")
+  before$conf_level <- NULL
+  class(before) <- "solomon_sem_latent"
+
+  expect_no_warning(expect_identical(before$effects, fit$effects))
+  expect_no_warning(expect_identical(before$fit, fit$fit))
+  expect_identical(capture.output(print(before)), capture.output(print(fit)))
+  expect_identical(report_solomon(before)$results, report_solomon(fit)$results)
+  lifecycle::expect_deprecated(old <- before$effects_post)
+  expect_identical(old, fit$effects)
 })
 
 # ---- Deprecated plots ---------------------------------------------------------

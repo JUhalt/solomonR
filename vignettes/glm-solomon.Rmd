@@ -551,12 +551,15 @@ Solomon contrasts. Latent mean comparisons require scalar measurement
 invariance across the four Solomon groups.
 
 These SEM tools extend the same basic estimands used throughout the
-package:
+package, and their effects tables use the same labels as `fit$effects`
+above:
 
 - ATE;
 - pretest sensitization;
-- treatment effect among pretested participants; and
-- treatment effect among unpretested participants.
+- treatment effect among pretested participants;
+- treatment effect among unpretested participants; and
+- the pretest effects among controls, among treated participants, and on
+  average.
 
 ## Comparing analyses
 

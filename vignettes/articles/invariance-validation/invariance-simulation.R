@@ -65,11 +65,11 @@ run_scenario <- function(s, reps, pkg_dir, cache_dir) {
       reject[i, "chen", ] <- tn
       reject[i, "both", ] <- tc & tn
       if (s$pattern <= 4) {
-        e1 <- fit_solomon_sem_latent(d, items, treat, pretested)$effects_post
+        e1 <- fit_solomon_sem_latent(d, items, treat, pretested)$effects
         e2 <- fit_solomon_sem_latent(d, items, treat, pretested,
-                                     partial_post = paste(items[k], "~ 1"))$effects_post
-        r1 <- e1[e1$contrast == "Sens", ]
-        r2 <- e2[e2$contrast == "Sens", ]
+                                     partial_post = paste(items[k], "~ 1"))$effects
+        r1 <- e1[e1$contrast == "Pretest x Treatment", ]
+        r2 <- e2[e2$contrast == "Pretest x Treatment", ]
         sens[i, ] <- c(r1$estimate, r1$conf.low, r1$conf.high, r2$estimate, r2$conf.low, r2$conf.high)
       }
       TRUE

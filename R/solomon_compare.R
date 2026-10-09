@@ -144,7 +144,7 @@ compare_solomon_methods <- function(
 
   make_rows <- function(method, adjustment, variance, contrast, effects) {
     # Only the four treatment contrasts are compared; the effects tables of
-    # the GLM and ML fits also hold the pretest effects (issue #104).
+    # the GLM, ML, and SEM fits also hold the pretest effects (issue #104).
     keep <- rep_len(contrast %in% contrast_levels, NROW(effects))
     effects <- effects[keep, , drop = FALSE]
     contrast <- rep_len(contrast, length(keep))[keep]
@@ -282,13 +282,6 @@ compare_solomon_methods <- function(
     if (!requireNamespace("lavaan", quietly = TRUE)) {
       skipped$sem <- "The lavaan package is not installed."
     } else {
-      sem_names <- c(
-        ATE = "ATE (avg over pretest)",
-        Sens = "Pretest x Treatment",
-        Pre_Eff = "Treatment | pretested",
-        Unpre_Eff = "Treatment | unpretested"
-      )
-
       sem <- try_fit(fit_solomon_sem(y_post, treat, pretested, conf_level = conf_level))
       if (inherits(sem, "error")) {
         skipped$sem <- conditionMessage(sem)
@@ -297,7 +290,7 @@ compare_solomon_methods <- function(
           "SEM mean structure",
           "none",
           "separate variances by cell; lavaan Wald",
-          unname(sem_names[sem$effects$contrast]),
+          sem$effects$contrast,
           sem$effects
         )
       }
@@ -314,7 +307,7 @@ compare_solomon_methods <- function(
             "SEM ANCOVA",
             "pretest (pretested groups only)",
             "separate variances by treatment group; lavaan Wald",
-            unname(sem_names[sem_ancova$effects$contrast]),
+            sem_ancova$effects$contrast,
             sem_ancova$effects
           )
         }

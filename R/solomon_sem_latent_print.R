@@ -1,6 +1,22 @@
+# `fit` and `effects` were `fit_post` and `effects_post` before 1.0.0 (issue
+# #110); `$` still accepts the former names, with a deprecation warning.
+#' @export
+`$.solomon_sem_latent` <- function(x, name) {
+  .renamed_element(x, name, c(fit_post = "fit", effects_post = "effects"),
+                   "fit_solomon_sem_latent")
+}
+
+# The confidence level of a latent fit; objects made before 1.0.0 hold it in
+# `settings` only.
+.latent_conf_level <- function(x) {
+  level <- x$conf_level
+  if (is.null(level)) level <- x$settings$conf_level
+  if (is.null(level)) 0.95 else level
+}
+
 #' @export
 print.solomon_sem_latent <- function(x, digits = 3, ...) {
-  level <- if (is.null(x$settings$conf_level)) 0.95 else x$settings$conf_level
+  level <- .latent_conf_level(x)
 
   cat("Solomon SEM (latent)\n")
   freed <- c(x$settings$partial_post, x$settings$partial_pre)
@@ -19,7 +35,7 @@ print.solomon_sem_latent <- function(x, digits = 3, ...) {
     cat(sprintf("Invariance check: %s\n", x$invariance_status))
   }
   cat("\n")
-  ef <- x$effects_post
+  ef <- x$effects
   ef$`Est (SE)` <- estse_str(ef$estimate, ef$std.error, digits)
   ef$z <- ifelse(is.na(ef$statistic), "", sprintf("%.2f", ef$statistic))
   ef$p <- ifelse(is.na(ef$p.value),   "", p_fmt(ef$p.value))

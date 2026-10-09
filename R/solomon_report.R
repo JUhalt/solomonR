@@ -115,13 +115,9 @@
 .contrast_phrase <- function(contrast) {
   phrase <- c(
     "ATE (avg over pretest)" = "the average treatment effect across pretest conditions",
-    "ATE" = "the average treatment effect across pretest conditions",
     "Pretest x Treatment" = "the Pretest x Treatment interaction (pretest sensitization)",
-    "Sens" = "the Pretest x Treatment interaction (pretest sensitization)",
     "Treatment | pretested" = "the treatment effect among pretested participants",
-    "Pre_Eff" = "the treatment effect among pretested participants",
     "Treatment | unpretested" = "the treatment effect among unpretested participants",
-    "Unpre_Eff" = "the treatment effect among unpretested participants",
     "Pretest effect | control" = "the pretest effect among control participants (pretested compared with unpretested)",
     "Pretest effect | treated" = "the pretest effect among treated participants (pretested compared with unpretested)",
     "Pretest main effect" = "the pretest main effect (pretested compared with unpretested participants, averaged over treatment and control)"
@@ -990,8 +986,10 @@
     "A four-group mean-structure structural equation model (Rosseel, 2012) estimated the posttest means of the Solomon groups; the model is saturated, so global fit is not reported."
   }
   eff <- as.data.frame(fit$effects)
+  # The four-group model also gives the pretest effects, as differences
+  # between group means (issue #110); the tests are Wald z tests.
   list(method = method,
-       results = .contrast_sentences(eff, fit$conf_level, digits, md, "z"),
+       results = .four_group_sentences(eff, fit$conf_level, digits, md),
        table = eff, refs = refs, cells = NULL)
 }
 
@@ -1377,8 +1375,8 @@
 .report_sem_latent <- function(fit, digits, md) {
   .need_lavaan()
   s <- fit$settings
-  level <- if (is.null(s$conf_level)) 0.95 else s$conf_level
-  fp <- fit$fit_post
+  level <- .latent_conf_level(fit)
+  fp <- fit$fit
   estimator <- if (is.null(s$estimator)) lavaan::lavInspect(fp, "options")$estimator else s$estimator
   est <- .sem_estimator(estimator, fp)
   refs <- c(.solomon_function_refs$fit_solomon_sem_latent, est$refs)
@@ -1436,10 +1434,17 @@
     "The contrasts between latent means were tested with Wald z tests."
   )
 
-  eff <- as.data.frame(fit$effects_post)
+  eff <- as.data.frame(fit$effects)
+  # The treatment contrasts, then the pretest effects, which are differences
+  # between latent means too (issue #110).
+  treatment <- eff[!eff$contrast %in% .solomon_pretest_order, , drop = FALSE]
   results <- c(
     .sem_fit_sentence("The four-group model", fp, est$scaled, digits, md),
-    paste(.contrast_sentences(eff, level, digits, md, "z"), collapse = " ")
+    paste(c(
+      .contrast_sentences(treatment, level, digits, md, "z"),
+      .pretest_sentence(eff, level, digits, md,
+                        prefix = "The pretest effect on the latent posttest")
+    ), collapse = " ")
   )
 
   if (!is.null(fit$fit_pre)) {
@@ -1456,7 +1461,7 @@
       "constrained to be equal in the two groups%s. %s The invariance of this model was not tested."
     ), .number_word(length(pre_items)), .series_and(pre_items),
     .freed_clause(freed_pre, labels_pre), .ancova_identification(ptp, labels_pre, post_scale, labels)))
-    e <- fit$effects_pre[fit$effects_pre$contrast == "Pre_Eff", , drop = FALSE][1, ]
+    e <- fit$effects_pre[fit$effects_pre$contrast == "Treatment | pretested", , drop = FALSE][1, ]
     results <- c(results, paste(
       .sem_fit_sentence("The latent analysis of covariance", fit$fit_pre, est$scaled, digits, md),
       sprintf(

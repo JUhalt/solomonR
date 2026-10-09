@@ -93,6 +93,16 @@ test_that("the SEM mean structure matches the unadjusted classic contrasts", {
     tolerance = 1e-5
   )
   expect_true("SEM ANCOVA" %in% comparison$results$method)
+
+  # The SEM rows are taken under the labels the fits return (#110): each of
+  # the four contrasts once from the mean structure, the pretested effect
+  # from the ANCOVA, and none of the fit's pretest effects.
+  r <- comparison$results
+  expect_setequal(r$contrast[r$method == "SEM mean structure"], .solomon_contrast_order)
+  expect_identical(sum(r$method == "SEM mean structure"), 4L)
+  expect_identical(r$contrast[r$method == "SEM ANCOVA"], "Treatment | pretested")
+  expect_false(anyNA(r$contrast))
+  expect_false(any(r$contrast %in% .solomon_pretest_order))
 })
 
 

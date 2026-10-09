@@ -421,9 +421,11 @@ number is not allowed for.
 **Label:** solomonR extension of established SEM methods, with a published
 Solomon precedent (Dukes et al., 1995).
 
-- **Estimates:** the four contrasts from a multi-group mean structure
-  (`fit_solomon_sem()`), or on a latent outcome measured by several items
-  (`fit_solomon_sem_latent()`).
+- **Estimates:** the four contrasts, and the pretest effects among
+  controls, among treated participants, and on average, from a multi-group
+  mean structure (`fit_solomon_sem()`), or on a latent outcome measured by
+  several items (`fit_solomon_sem_latent()`). The effects tables use the
+  labels of `fit_solomon_glm()`.
 - **Assumptions:** latent mean comparisons require scalar measurement
   invariance across groups (Meredith, 1993; Vandenberg & Lance, 2000).
   Models are estimated with lavaan (Rosseel, 2012).
