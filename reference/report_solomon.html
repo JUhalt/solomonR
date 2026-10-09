@@ -140,9 +140,18 @@ statistical symbols.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_report</code> with <code>method</code>, <code>results</code>, and
-<code>design</code> (character vectors of sentences), <code>table</code> (the estimates), and
-<code>references</code> (APA 7 reference entries, in APA order).</p>
+    <p>An object of class <code>solomon_report</code>, a list with:</p><ul><li><p><code>method</code>, <code>results</code>, and <code>design</code>: character vectors of sentences.</p></li>
+<li><p><code>table</code>: a data frame of the values that the sentences report. For
+most fits it is the <code>effects</code> table of the fit, and for
+<code><a href="fit_solomon_classic.html">fit_solomon_classic()</a></code> it is the rows of that table for the tests on
+the path. For the other results, such as <code><a href="perm_solomon.html">perm_solomon()</a></code>,
+<code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>, and a four-group <code><a href="solomon_from_summary.html">solomon_from_summary()</a></code>
+result, its columns depend on the analysis. "Outside the contract" in
+<a href="solomon_output.html">solomon_output</a> lists which results give which table.</p></li>
+<li><p><code>references</code>: the APA 7 reference entries, in APA order.</p></li>
+<li><p><code>format</code>: <code>"text"</code> or <code>"markdown"</code>.</p></li>
+</ul><p>To compute with the estimates, read them from the fit, with
+<code><a href="solomon_output.html">tidy()</a></code>, not from the sentences.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

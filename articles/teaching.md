@@ -182,8 +182,11 @@ Solution
 se <- function(rho) {
   d <- simulate_solomon(n = 60, delta = 0.6, sens = -0.4, rho = rho, seed = 2)
   f <- with(d, fit_solomon_glm(y_post, treat, pretested, y_pre))
-  # The four treatment contrasts are the first four rows.
-  stats::setNames(f$effects$std.error[1:4], f$effects$contrast[1:4])
+  # The four treatment contrasts, selected by label.
+  labels <- c("ATE (avg over pretest)", "Pretest x Treatment",
+              "Treatment | pretested", "Treatment | unpretested")
+  e <- f$effects[match(labels, f$effects$contrast), ]
+  stats::setNames(e$std.error, e$contrast)
 }
 round(rbind(`rho = 0` = se(0), `rho = 0.8` = se(0.8)), 3)
 #>           ATE (avg over pretest) Pretest x Treatment Treatment | pretested
@@ -340,8 +343,8 @@ deviations:
 d <- simulate_solomon(n = 20, delta = 0.5, sens = 0.3, rho = 0.5, seed = 11)
 fit <- with(d, fit_solomon_glm(y_post, treat, pretested, y_pre))
 fit$effects[fit$effects$contrast == "Pretest x Treatment", ]
-#>              contrast  estimate std.error statistic   p.value df   conf.low
-#> 2 Pretest x Treatment 0.2054085 0.4371065 0.4699278 0.6397702 75 -0.6653523
+#>              contrast  estimate std.error statistic df   p.value   conf.low
+#> 2 Pretest x Treatment 0.2054085 0.4371065 0.4699278 75 0.6397702 -0.6653523
 #>   conf.high          r2 r2_lo r2_hi
 #> 2  1.076169 0.002935784    NA    NA
 ```
@@ -427,7 +430,7 @@ with(elkarkri2025a, solomon_from_summary(n, mean, sd))
 #> Two-way ANOVA on the posttest (Type III sums of squares)
 #>   Treatment            SS =   31.452  df = 1  F = 6.78  p = 0.011
 #>   Pretest              SS =    0.855  df = 1  F = 0.18  p = 0.669
-#>   Treatment x Pretest  SS =   53.184  df = 1  F = 11.46  p = 0.001
+#>   Pretest x Treatment  SS =   53.184  df = 1  F = 11.46  p = 0.001
 #>   Error                SS =  389.721  df = 84
 #> 
 #> Contrasts with 95% confidence intervals

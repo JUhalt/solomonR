@@ -2,6 +2,313 @@
 
 ## solomonR (development version)
 
+### One output vocabulary ([\#110](https://github.com/JUhalt/solomonR/issues/110))
+
+The names that results use are settled before 1.0, as
+[\#83](https://github.com/JUhalt/solomonR/issues/83) settled the names
+of the arguments. Code that reads results by a former label or element
+name needs the new one. Former element names keep working with `$`
+through v1.x, with a deprecation warning. The stable parts of a result
+are the `effects` table, `conf_level`, and
+[`tidy()`](https://generics.r-lib.org/reference/tidy.html), and the new
+help page
+[`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+states the contract. Each item below that can break existing code says
+what that code needs.
+
+- **Contrast labels that can break code.**
+  [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+  and
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+  label their contrasts as every other fit does:
+  `ATE (avg over pretest)` (was `ATE`), `Pretest x Treatment` (was
+  `Sens`), `Treatment | pretested` (was `Pre_Eff`), and
+  `Treatment | unpretested` (was `Unpre_Eff`). Their ANCOVA models of
+  the pretested groups label their one contrast `Treatment | pretested`.
+  Code that selects rows by a former label, such as
+  `effects$contrast == "Sens"`, needs the new label.
+  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md),
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+  and
+  [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
+  no longer translate the labels. A SEM fit saved by an earlier version
+  keeps its former labels, so
+  [`tidy()`](https://generics.r-lib.org/reference/tidy.html),
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+  and
+  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
+  stop for it and ask for it to be fitted again. Its print method shows
+  it as it was stored.
+- **New rows in the SEM effects tables.** The four-group models of
+  [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+  and
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+  report the three pretest effects after the four treatment contrasts,
+  as pretested minus unpretested participants:
+  `Pretest effect | control`, `Pretest effect | treated`, and
+  `Pretest main effect`. Code that takes rows by position, or expects
+  four rows, should select them by label.
+  - In the observed model their estimates equal those of
+    [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+    without a pretest score; the standard errors and the tests are
+    lavaan’s, with a normal reference distribution.
+  - In the latent model they are differences between latent means, in
+    the unit of the other contrasts. The pretest main effect is the
+    effect Dukes et al. (1995, p. 426) describe, one of the four
+    elements of their analyses planned under
+    [\#117](https://github.com/JUhalt/solomonR/issues/117); the other
+    three remain planned. A shift in an indicator’s intercept that the
+    two pretested groups share biases the latent pretest effects,
+    although it cancels from the Pretest x Treatment contrast.
+  - The ANCOVA models use the pretested groups alone and report no
+    pretest effects.
+
+  The printed tables and
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  give the new rows as they do for
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
+  and
+  [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
+  show the four treatment contrasts, as before.
+- **Renamed elements.** The table of contrasts is `effects` in every fit
+  that has one:
+  - [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md):
+    `effects_post` is now `effects`, and `fit_post` is now `fit`, as in
+    [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md).
+    `conf_level` is now at the top level, as in every other fit, and
+    still in `settings`.
+  - [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md):
+    `contrasts` is now `effects`, for four-group designs and for designs
+    with several treatments.
+
+  The former names still work with `$`, as in `fit$effects_post`, and
+  give a deprecation warning that names the new element. Only the whole
+  former name is recognized, and `[[` is not covered:
+  `fit[["effects_post"]]` is `NULL`. A fit saved by an earlier version
+  still gives its elements under the new names, as they were stored. A
+  saved SEM fit has the former contrast labels as well, so
+  [`tidy()`](https://generics.r-lib.org/reference/tidy.html),
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+  and
+  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
+  stop for it and ask for it to be fitted again.
+- [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  returns `conf_level` at the top level too; it remains in `settings`.
+- **One order of columns, which can break code that reads columns by
+  position.** Every effects table has the columns `contrast`,
+  `estimate`, `std.error`, `statistic`, `df`, `p.value`, `conf.low`, and
+  `conf.high`, in that order. The columns that index its rows come
+  before them, and the columns of one class after them. Code that reads
+  columns by name is not affected. What moved, and what is new:
+  - [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+    [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+    and
+    [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md):
+    `df` now precedes `p.value`, in `effects` and in the `coefficients`
+    tables of the first two.
+  - Designs with several treatments, in
+    [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+    and
+    [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md):
+    `df` precedes `p.value`, and `p.adjusted` follows `conf.high`.
+  - [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md):
+    `statistic` precedes `df`.
+  - [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md):
+    `std.error` follows `estimate`, the interval follows `p.value`, and
+    a new column, `statistic`, holds the test statistic. It is on the
+    scale of the test, so for a ratio it is the log of the estimate
+    divided by `std.error`.
+  - [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+    and
+    [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md):
+    a new column, `df`, after `statistic`.
+  - `compare_solomon_methods()$results`: `method` comes first, then the
+    shared columns, with a new `statistic`, and then `adjustment`,
+    `variance`, and `reference`.
+  - `tipping_point_solomon()$results`: new columns `contrast` and
+    `statistic`, after the offsets `delta` and `delta_sd`.
+  - [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md):
+    the `result` of each of Tests A-H, and `pretest_main`, have a new
+    `contrast` column and `F` after the interval. The `test` column of
+    `pretest_main` is now empty, and its label is in `contrast`.
+  - [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md),
+    which compares pretests and has no effects table, lists its test
+    before its interval too: `statistic`, `df`, and `p.value` precede
+    `conf.low` and `conf.high`.
+- **`df` is in every effects table.** Where the test uses the normal
+  distribution it is `Inf`, not `NA`, as
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  already reported for binomial and Poisson fits. That is so in the SEM
+  fits, whose tables had no `df`, in
+  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+  with `inference = "wald"`, and in
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  without CR2 covariance. Every p-value is then
+  `2 * pt(-abs(statistic), df)`, and
+  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md),
+  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md),
+  and
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  read `Inf` as the normal reference.
+- **[`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  has an `effects` table**, as every other fit does: Tests A-H and the
+  pretest main effect, one row each, in the shared columns, with the
+  test letter in `test` and `F` last. The contrasts have the shared
+  labels: `Pretest x Treatment` (Test A), `Treatment | pretested` (Tests
+  B, E, F, and G), `Treatment | unpretested` (Tests C and H),
+  `ATE (avg over pretest)` (Test D), and `Pretest main effect`. The
+  `tests` element is unchanged apart from the columns of each result.
+- **`fit_solomon_classic()$aov` is replaced by `$anova`, which can
+  change results with unequal group sizes.** `anova` is the two-by-two
+  analysis of variance of the posttest with Type III sums of squares, in
+  the format of `solomon_from_summary()$anova`: sources `Treatment`,
+  `Pretest`, `Pretest x Treatment`, and `Error`, and columns `source`,
+  `sumsq`, `df`, `meansq`, `F`, and `p.value`. Its F tests are the
+  squares of the t tests of Test D, the pretest main effect, and Test A,
+  and the table equals the one
+  [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+  gives for the same cells.
+  - `aov` held the sequential sums of squares of
+    [`stats::aov()`](https://rdrr.io/r/stats/aov.html): treatment
+    ignoring pretesting, then pretesting adjusted for treatment, then
+    the interaction. With unequal group sizes its treatment row was not
+    Test D and its pretest row was not the pretest main effect; only its
+    interaction row agreed with Test A. With equal group sizes the two
+    tables have the same sums of squares.
+  - `$aov` still works, with a deprecation warning that says so, and
+    returns `anova`: the columns are no longer those of
+    [`broom::tidy()`](https://generics.r-lib.org/reference/tidy.html)
+    (`term`, `df`, `sumsq`, `meansq`, `statistic`, `p.value`), and the
+    last row is `Error`, not `Residuals`. `[["aov"]]` is `NULL`. A fit
+    saved by an earlier version has no `anova` table, and `$aov` gives
+    `NULL` for it; refit it.
+  - The elements `ancova`, `t_unpretested`, and `stouffer` stay as
+    legacy elements outside the stable interface; Tests E, H, and I hold
+    the same analyses.
+- **A renamed ANOVA source.** In the four-group table
+  `solomon_from_summary()$anova`, the interaction is
+  `Pretest x Treatment`, as the contrast is named; it was
+  `Treatment x Pretest`. Code that selects that row by name needs the
+  new name. The table for designs with several treatments already had
+  `Pretest x Condition`. The conclusion that
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  gives when Test A is significant and neither simple effect is says
+  “Pretest x Treatment interaction” as well. A four-group
+  [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+  result saved by an earlier version keeps the former name, and
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  stops for it and asks for the result to be made again.
+- The effects tables of the SEM functions are plain data frames, as
+  those of the other fits are. They had lavaan’s class
+  `lavaan.data.frame`, whose print method rounds to three decimals.
+- **[`tidy()`](https://generics.r-lib.org/reference/tidy.html) returns
+  the effects table.** New
+  [`tidy()`](https://generics.r-lib.org/reference/tidy.html) methods
+  give the table of contrasts of a result as it is stored, so
+  `identical(tidy(fit), fit$effects)` is `TRUE`. They cover
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  (four-group designs and designs with several treatments),
+  [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md),
+  [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md),
+  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md),
+  [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md),
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+  (both designs), and
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md).
+  - For
+    [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
+    and
+    [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md),
+    whose table of contrasts is named `results`,
+    [`tidy()`](https://generics.r-lib.org/reference/tidy.html) returns
+    `results`.
+  - For
+    [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
+    [`tidy()`](https://generics.r-lib.org/reference/tidy.html) returns
+    `effects`, the contrasts of the four-group model; the latent ANCOVA
+    of the pretested groups stays in `effects_pre`.
+  - solomonR re-exports
+    [`tidy()`](https://generics.r-lib.org/reference/tidy.html) from the
+    generics package, so it works without broom attached, and
+    [`broom::tidy()`](https://generics.r-lib.org/reference/tidy.html)
+    uses the same methods.
+  - Results with no table of contrasts have no method:
+    [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md),
+    [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+    [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md),
+    [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md),
+    and
+    [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md).
+- **The output contract.** The new help page
+  [`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  says which parts of a result are stable through v1.x, and which are
+  not.
+  - Stable: the `effects` table, with its columns in the order above and
+    its contrast labels; `conf_level`; and
+    [`tidy()`](https://generics.r-lib.org/reference/tidy.html).
+  - Not stable: fitted model objects (such as `model`, and the lavaan
+    objects `fit` and `fit_pre`), `settings`, and the legacy elements of
+    [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md).
+  - It also lists the tables that cannot have the shared columns, such
+    as analysis-of-variance tables and omnibus tests, and the results
+    that are not tables:
+    [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
+    returns the values of one contrast under the names of the columns,
+    and the `effects` element of
+    [`fit_solomon_steyn()`](https://juhalt.github.io/solomonR/reference/fit_solomon_steyn.md)
+    is the last step of Steyn’s (2009) sequence, a list, not an effects
+    table.
+
+  The page is linked from the help page of each analysis, from the
+  Lifecycle section of
+  [`?solomonR`](https://juhalt.github.io/solomonR/reference/solomonR.md),
+  and from the Package section of the reference index.
+- [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
+  and
+  [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md)
+  return `conf_level` at the top level, as every other result with a
+  table of contrasts does. For
+  [`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md)
+  it is 1 - `alpha`, the level of the intervals in `results`.
+- `compare_solomon_methods()$results` is a table with no rows when every
+  requested method was skipped; it was `NULL`.
+  [`tidy()`](https://generics.r-lib.org/reference/tidy.html) therefore
+  returns a table for every comparison.
+- **The `table` of
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  for a
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  fit has the shared columns.** It is the rows of the fit’s `effects`
+  table for the tests on the path; it had the columns `test`,
+  `estimate`, and `p.value` alone. Code that reads its columns by name
+  is not affected.
+  [`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  lists the table that the report of each result holds.
+- Every help page’s Value section names the elements of the result, with
+  the columns of each table.
+  [`?fit_solomon_classic`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  has a section on the analysis of variance. “The Classic Solomon
+  Four-Group Analysis” shows `effects` and `anova`, and the GLM vignette
+  points to [`tidy()`](https://generics.r-lib.org/reference/tidy.html)
+  and
+  [`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md).
+- The SEM article, the methods guide, the GLM vignette, the coverage
+  article, and the references describe the pretest effects of the SEM
+  fits; the simulation script of the invariance study reads the new
+  names.
+- In `benchmarks.csv` of “Validation Evidence”, the estimand of the
+  latent contrast in the invariance study is
+  `Pretest x Treatment (latent)`; it was
+  `Sens (latent Pretest x Treatment)`. Code that selects those rows by
+  the former name needs the new one.
+- The README lists the first contrast under its label,
+  `ATE (avg over pretest)`, and the articles on missing data and on
+  teaching select the rows of an effects table by label, not by
+  position.
+
 ### Reports of latent models with lavaan 0.7-3 (bug fix)
 
 - [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
@@ -63,10 +370,11 @@
   and the references. The SEM article sets their three two-group models,
   which test loadings, impose equal intercepts, and do not test the
   interaction, beside the package’s four-group model and invariance
-  tests, and names what the two share. The SEM functions are unchanged;
-  four further elements of their method (a latent maturation contrast, a
-  pretest main effect, a latent baseline check, and a standardized
-  latent contrast) are planned under
+  tests, and names what the two share. Of four further elements of their
+  method, the pretest main effect was added under
+  [\#110](https://github.com/JUhalt/solomonR/issues/110) (see above);
+  the other three (a latent maturation contrast, a latent baseline
+  check, and a standardized latent contrast) are planned under
   [\#117](https://github.com/JUhalt/solomonR/issues/117).
 
 ### The worked example of Walton Braver and Braver (1988) ([\#109](https://github.com/JUhalt/solomonR/issues/109))

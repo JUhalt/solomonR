@@ -20,7 +20,15 @@ stouffer_solomon(p)
 
 ## Value
 
-list with `z_meta`, `p_meta_two_tailed`, and `p_meta_one_tailed`
+A list with:
+
+- `z_meta`: the combined z, the sum of the z scores divided by the
+  square root of their number.
+
+- `p_meta_two_tailed`: its two-tailed p-value.
+
+- `p_meta_one_tailed`: its one-tailed p-value, in the direction of the
+  p-values supplied.
 
 ## Details
 

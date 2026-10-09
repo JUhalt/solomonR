@@ -3,19 +3,23 @@
 This function provides a fully latent analysis path:
 (A) A 4-group SEM that defines a latent POST factor from multiple
 indicators and estimates group-specific latent means for
-P1, P0, U1, and U0. From these we compute ATE, Sens (Pretest x Treat),
-and simple effects on the latent outcome.
+P1, P0, U1, and U0. From these we compute the four Solomon contrasts
+and the three pretest effects on the latent outcome, under the
+labels of fit_solomon_glm().
 (B) Optionally, a 2-group SEM in pretested groups only (P1 vs P0)
 with a latent PRE factor and latent POST factor, fitting a latent
-ANCOVA (POST ~ PRE), and reporting the pretested simple effect."><meta property="og:description" content="
+ANCOVA (POST ~ PRE), and reporting the pretested simple effect
+(Treatment | pretested)."><meta property="og:description" content="
 This function provides a fully latent analysis path:
 (A) A 4-group SEM that defines a latent POST factor from multiple
 indicators and estimates group-specific latent means for
-P1, P0, U1, and U0. From these we compute ATE, Sens (Pretest x Treat),
-and simple effects on the latent outcome.
+P1, P0, U1, and U0. From these we compute the four Solomon contrasts
+and the three pretest effects on the latent outcome, under the
+labels of fit_solomon_glm().
 (B) Optionally, a 2-group SEM in pretested groups only (P1 vs P0)
 with a latent PRE factor and latent POST factor, fitting a latent
-ANCOVA (POST ~ PRE), and reporting the pretested simple effect."></head><body>
+ANCOVA (POST ~ PRE), and reporting the pretested simple effect
+(Treatment | pretested)."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -106,11 +110,13 @@ ANCOVA (POST ~ PRE), and reporting the pretested simple effect."></head><body>
 This function provides a fully latent analysis path:
 (A) A 4-group SEM that defines a latent POST factor from multiple
 indicators and estimates group-specific latent means for
-P1, P0, U1, and U0. From these we compute ATE, Sens (Pretest x Treat),
-and simple effects on the latent outcome.
+P1, P0, U1, and U0. From these we compute the four Solomon contrasts
+and the three pretest effects on the latent outcome, under the
+labels of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>.
 (B) Optionally, a 2-group SEM in <strong>pretested</strong> groups only (P1 vs P0)
 with a latent PRE factor and latent POST factor, fitting a latent
-ANCOVA (POST ~ PRE), and reporting the pretested simple effect.</p>
+ANCOVA (POST ~ PRE), and reporting the pretested simple effect
+(<code>Treatment | pretested</code>).</p>
     </div>
 
     <div class="section level2">
@@ -205,17 +211,33 @@ scalar (or, with <code>partial_post</code>, partial scalar) invariance. Set it t
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_sem_latent</code> with:</p><ul><li><p><code>fit_post</code>: lavaan object for the 4-group POST model</p></li>
-<li><p><code>effects_post</code>: data.frame of ATE, Sens, Pre_Eff, Unpre_Eff on latent POST</p></li>
+    <p>An object of class <code>solomon_sem_latent</code> with:</p><ul><li><p><code>fit</code>: lavaan object for the 4-group POST model</p></li>
+<li><p><code>effects</code>: data.frame of the contrasts on latent POST, with the
+columns <code>contrast</code>, <code>estimate</code>, <code>std.error</code>, <code>statistic</code> (z), <code>df</code>
+(<code>Inf</code>, for the normal reference distribution), <code>p.value</code>,
+<code>conf.low</code>, and <code>conf.high</code>, and the rows
+<code>ATE (avg over pretest)</code>, <code>Pretest x Treatment</code>,
+<code>Treatment | pretested</code>, <code>Treatment | unpretested</code>,
+<code>Pretest effect | control</code>, <code>Pretest effect | treated</code>, and
+<code>Pretest main effect</code>, the labels of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code></p></li>
 <li><p><code>fitmeasures_post</code>: named vector (CFI, RMSEA, SRMR, df)</p></li>
 <li><p><code>fit_pre</code> (optional): lavaan object for pretested latent ANCOVA</p></li>
-<li><p><code>effects_pre</code> (optional): data.frame with <code>Pre_Eff</code> on latent POST (pretested)</p></li>
+<li><p><code>effects_pre</code> (optional): data.frame with <code>Treatment | pretested</code>
+on latent POST, adjusted for the latent pretest, in the columns of
+<code>effects</code></p></li>
 <li><p><code>fitmeasures_pre</code> (optional)</p></li>
 <li><p><code>invariance</code>: the <code><a href="invariance_solomon.html">invariance_solomon()</a></code> result, or <code>NULL</code> when
 the check was not run, and <code>invariance_status</code>, a one-line summary</p></li>
+<li><p><code>conf_level</code>: the confidence level of the intervals</p></li>
 <li><p><code>settings</code>: the options used, including the estimator and any
 freed parameters, which <code><a href="report_solomon.html">report_solomon()</a></code> reports</p></li>
-</ul></div>
+</ul><p>Before solomonR 1.0.0, <code>fit</code> and <code>effects</code> were named <code>fit_post</code> and
+<code>effects_post</code>. The old names still work with <code>$</code>, with a deprecation
+warning, but not with <code>[[</code>.</p>
+<p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
+which returns <code>effects</code>, are the stable interface of the result. The
+lavaan objects and <code>settings</code> are not; see <a href="solomon_output.html">solomon_output</a>.</p>
+    </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Latent mean contrasts require scalar measurement invariance (equal
@@ -247,6 +269,17 @@ indicator of each factor is fixed at 1, and both analyses are on the
 scale of the first POST indicator. If <code>partial_post</code> frees that marker
 loading, lavaan keeps it at 1 in P1 only and estimates it in the other
 groups, so the scale is that of the first indicator in P1.</p>
+<p>The pretest effects of the four-group model are differences between
+latent means too, in the unit of the other contrasts: pretested minus
+unpretested participants among controls (<code>Pretest effect | control</code>),
+among treated participants (<code>Pretest effect | treated</code>), and their
+equal-weighted average (<code>Pretest main effect</code>). Dukes et al. (1995,
+p. 426), who analyzed a Solomon design with latent variables, described a
+pretesting difference unrelated to the program by comparing two two-group
+models; the <code>Pretest main effect</code> row estimates such a difference as one
+contrast, with a test. A shift in an indicator's intercept that the two
+pretested groups share cancels from the Pretest x Treatment contrast but
+not from the pretest effects, which it biases (see Invariance check).</p>
 <p>Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.</p>
     </div>
@@ -297,6 +330,10 @@ https://doi.org/10.1037/0033-2909.105.3.456</p>
 <p>Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of
 measurement invariance. <em>Structural Equation Modeling: A Multidisciplinary
 Journal, 14</em>(3), 464–504. https://doi.org/10.1080/10705510701301834</p>
+<p>Dukes, R. L., Ullman, J. B., &amp; Stein, J. A. (1995). An evaluation of D.A.R.E.
+(Drug Abuse Resistance Education), using a Solomon four-group design with
+latent variables. <em>Evaluation Review, 19</em>(4), 409–435.
+https://doi.org/10.1177/0193841X9501900404</p>
 <p>Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. <em>Psychometrika, 58</em>(4), 525–543.
 https://doi.org/10.1007/BF02294825</p>
@@ -334,11 +371,14 @@ Methods, 3</em>(1), 4–70. https://doi.org/10.1177/109442810031002</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> POST model fit (4 groups): CFI=1.000, RMSEA=0.000, SRMR=0.051; df=26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Invariance check: scalar invariance supported by both criteria</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Key contrasts (latent POST)  Est (SE)          z      p           95% CI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ATE                          0.502 (0.103)  4.90  &lt;.001   [0.301, 0.703]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Sens                         0.024 (0.192)  0.12  0.901  [-0.352, 0.400]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Pre_Eff                      0.514 (0.145)  3.54  &lt;.001   [0.229, 0.799]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Unpre_Eff                    0.490 (0.135)  3.63  &lt;.001   [0.225, 0.755]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Key contrasts (latent POST)  Est (SE)            z      p           95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ATE (avg over pretest)       0.502 (0.103)    4.90  &lt;.001   [0.301, 0.703]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Treatment          0.024 (0.192)    0.12  0.901  [-0.352, 0.400]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | pretested        0.514 (0.145)    3.54  &lt;.001   [0.229, 0.799]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Treatment | unpretested      0.490 (0.135)    3.63  &lt;.001   [0.225, 0.755]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | control     -0.097 (0.138)  -0.70  0.484  [-0.367, 0.174]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effect | treated     -0.073 (0.133)  -0.55  0.586  [-0.334, 0.189]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest main effect          -0.085 (0.096)  -0.88  0.379  [-0.273, 0.104]</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

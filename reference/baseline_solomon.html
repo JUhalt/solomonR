@@ -157,13 +157,23 @@ strings (<code>y_pre = "pre"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_baseline</code> with the group statistics,
-the difference with its interval and t test, and Hedges's g with its
-interval. For a design with several treatments, <code>groups</code> holds the
-statistics of every pretested group, <code>comparisons</code> has one row for each
-treatment against the control (<code>comparison</code>, <code>difference</code>, <code>std.error</code>,
-<code>conf.low</code>, <code>conf.high</code>, <code>statistic</code>, <code>df</code>, <code>p.value</code>, <code>g</code>, <code>g.low</code>,
-and <code>g.high</code>), and <code>conditions</code> names the control and the treatments.</p>
+    <p>An object of class <code>solomon_baseline</code>, a list with:</p><ul><li><p><code>groups</code>: the pretest statistics of the two pretested groups
+(<code>group</code>, <code>n</code>, <code>mean</code>, and <code>sd</code>).</p></li>
+<li><p><code>difference</code>, <code>std.error</code>, <code>statistic</code>, <code>df</code>, <code>p.value</code>, <code>conf.low</code>,
+and <code>conf.high</code>: the pretest difference, treated minus control, with
+its standard error, t test, and confidence interval.</p></li>
+<li><p><code>g</code>, <code>g.low</code>, and <code>g.high</code>: Hedges's g and its interval.</p></li>
+<li><p><code>conf_level</code>: the confidence level of the intervals.</p></li>
+<li><p><code>source</code>: <code>"individual data"</code> or <code>"summary statistics"</code>.</p></li>
+</ul><p>For a design with several treatments, a list with:</p><ul><li><p><code>groups</code>: the pretest statistics of every pretested group.</p></li>
+<li><p><code>comparisons</code>: one row for each treatment against the control, in
+the columns <code>comparison</code>, <code>difference</code>, <code>std.error</code>, <code>statistic</code>,
+<code>df</code>, <code>p.value</code>, <code>conf.low</code>, <code>conf.high</code>, <code>g</code>, <code>g.low</code>, and <code>g.high</code>.</p></li>
+<li><p><code>conditions</code>: the control and the treatments (<code>condition</code> and
+<code>role</code>).</p></li>
+<li><p><code>conf_level</code> and <code>source</code>, as above.</p></li>
+</ul><p>The comparison is of pretests, not of the Solomon contrasts, so the
+result has no effects table; see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

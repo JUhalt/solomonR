@@ -165,12 +165,23 @@ restored afterwards.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame with one row per test, giving the estimand, the test
-used, the true effect, the rejection rate and its Monte Carlo standard
-error, the replications that produced a usable fit, the number of
-failures, and <code>alpha</code>. Test I rows report <code>NA</code> for <code>true_effect</code>, because
-the combination targets a directional hypothesis rather than a single
-contrast, and all Test I values are <code>NA</code> when <code>stouffer = FALSE</code>.</p>
+    <p>A data frame with one row for each test, in the columns:</p><ul><li><p><code>estimand</code>: the contrast tested, under the labels of
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>: <code>ATE (avg over pretest)</code>, <code>Pretest x Treatment</code>,
+<code>Treatment | pretested</code>, and <code>Treatment | unpretested</code>; and
+<code>Treatment (one-sided)</code> for Test I.</p></li>
+<li><p><code>test</code>: the test used.</p></li>
+<li><p><code>true_effect</code>: the true value of the contrast.</p></li>
+<li><p><code>power</code> and <code>mcse</code>: the rejection rate and its Monte Carlo standard
+error.</p></li>
+<li><p><code>sims</code> and <code>failures</code>: the replications that produced a usable fit,
+and the number that did not.</p></li>
+<li><p><code>alpha</code>: the significance level.</p></li>
+</ul><p>Test I rows report <code>NA</code> for <code>true_effect</code>, because the combination
+targets a directional hypothesis rather than a single contrast, and all
+Test I values are <code>NA</code> when <code>stouffer = FALSE</code>. The table describes a
+planned study, with true effects and no estimates, so its column of
+contrasts is <code>estimand</code> and it is not an effects table; see
+<a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

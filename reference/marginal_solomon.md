@@ -58,11 +58,48 @@ marginal_solomon(
 
 ## Value
 
-An object of class `solomon_marginal` with `effects` (one row per scale
-and contrast: estimate and interval on the reporting scale, standard
-error on the analysis scale, p-value), `risks` (binary) or `rates`
-(counts, per unit of exposure) for the four cells, and the settings,
-including the number of failed bootstrap resamples.
+An object of class `solomon_marginal`, a list with:
+
+- `effects`: one row for each scale and contrast, in the columns
+  `scale`, `contrast`, `estimate`, `std.error`, `statistic`, `df`,
+  `p.value`, `conf.low`, and `conf.high`. On each scale the rows are the
+  four treatment contrasts, `ATE (avg over pretest)`,
+  `Pretest x Treatment`, `Treatment | pretested`, and
+  `Treatment | unpretested`, followed by the three pretest effects,
+  `Pretest effect | control`, `Pretest effect | treated`, and
+  `Pretest main effect`; `method = "cluster_summary"` gives the four
+  treatment contrasts. The estimate and the interval are on the
+  reporting scale (a difference or a ratio). The standard error and the
+  test statistic are on the analysis scale, the difference or the log of
+  the ratio, so for a ratio `statistic` is `log(estimate) / std.error`.
+  `df` is `Inf` for a normal reference distribution, which every fit
+  without CR2 covariance uses.
+
+- `conf_level`: the confidence level of the intervals.
+
+- `risks` (binary outcomes) or `rates` (counts, per unit of exposure):
+  the value in each of the four cells (`cell`, `treat`, `pretested`, and
+  `risk` or `rate`). The other of the two is `NULL`.
+
+- `outcome`: `"binary"` or `"count"`.
+
+- `method`: the method of inference, and `vcov`, a description of the
+  covariance the delta method used (`NA` for the other methods).
+
+- `R` and `failures`: with `method = "bootstrap"`, the number of
+  resamples and the number that failed.
+
+- `dispersion` and `theta`: as in the fit.
+
+- `pretest_adjusted`: whether the fit adjusted for the pretest.
+
+- `design` and `clusters` (the number of clusters in each cell), with
+  `method = "cluster_summary"`.
+
+The `effects` table, `conf_level`, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md),
+which returns the table, are the stable interface of the result; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 

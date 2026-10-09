@@ -41,8 +41,19 @@ solomon_effect_sizes(
 
 ## Value
 
-A data frame with one row per pair: the estimator, `yi` (effect size),
-`vi` (sampling variance), `sei` (standard error), and the group sizes.
+A data frame with one row for each pair of groups, in the columns:
+
+- `pair`: the pair, pretested or unpretested.
+
+- `estimator`: the effect-size estimator.
+
+- `yi`, `vi`, and `sei`: the effect size, its sampling variance, and its
+  standard error, under the names meta-analysis software uses.
+
+- `n_treated` and `n_control`: the group sizes.
+
+The effect sizes are standardized, so this is not an effects table; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 

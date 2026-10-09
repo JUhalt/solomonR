@@ -214,10 +214,37 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_classic</code>. The <code>tests</code>
-component contains Tests A-I, while <code>path</code> records the historical
-decision sequence for the observed data under the chosen <code>flow</code>.
-The <code>history</code> component holds the history/maturation comparisons.</p>
+    <p>An object of class <code>solomon_classic</code>, a list with:</p><ul><li><p><code>tests</code>: Tests A-I, each with its <code>label</code> and <code>result</code>. The
+result of each of Tests A-H is its row of <code>effects</code>, and each holds
+its <code>model</code>. Test I holds the Stouffer combination, with every
+variant in <code>all</code>.</p></li>
+<li><p><code>path</code>, <code>path_string</code>, and <code>conclusion</code>: the historical decision
+sequence for the observed data under the chosen <code>flow</code>.</p></li>
+<li><p><code>effects</code>: Tests A-H, then the pretest main effect, one row
+each, in the columns <code>test</code> (the letter; empty for the pretest main
+effect), <code>contrast</code>, <code>estimate</code>, <code>std.error</code>, <code>statistic</code> (t), <code>df</code>,
+<code>p.value</code>, <code>conf.low</code>, and <code>conf.high</code>, followed by <code>F</code> (the square
+of t). <code>contrast</code> has the labels of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>:
+<code>Pretest x Treatment</code> (Test A), <code>Treatment | pretested</code> (Tests B, E,
+F, and G), <code>Treatment | unpretested</code> (Tests C and H),
+<code>ATE (avg over pretest)</code> (Test D), and <code>Pretest main effect</code>.</p></li>
+<li><p><code>anova</code>: the two-by-two analysis of variance of the posttest
+with Type III sums of squares, in the columns <code>source</code> (<code>Treatment</code>,
+<code>Pretest</code>, <code>Pretest x Treatment</code>, and <code>Error</code>), <code>sumsq</code>, <code>df</code>,
+<code>meansq</code>, <code>F</code>, and <code>p.value</code>; see "Analysis of variance".</p></li>
+<li><p><code>pretest_main</code>: the row of the pretest main effect.</p></li>
+<li><p><code>history</code>: the history/maturation comparisons, in the columns
+<code>comparison</code>, <code>estimate</code>, <code>statistic</code>, <code>df</code>, <code>p.value</code>, <code>conf.low</code>,
+and <code>conf.high</code>.</p></li>
+<li><p><code>conf_level</code>: the confidence level of the intervals.</p></li>
+<li><p><code>settings</code>: the options used.</p></li>
+<li><p><code>g_post</code>: Hedges' g for Groups 3 and 4, with its interval.</p></li>
+<li><p><code>ancova</code>, <code>t_unpretested</code>, and <code>stouffer</code>: legacy elements, kept
+for existing code and not part of the stable interface. <code>tests</code>
+holds the same analyses as Tests E, H, and I.</p></li>
+</ul><p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
+which returns the table, are the stable interface of the result; see
+<a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -288,6 +315,27 @@ p-values and has no interval. The Groups 3-4 standardized mean difference
 (<code>g_post</code>) reports Hedges' g with a noncentral t interval for the
 population standardized mean difference (Cumming &amp; Finch, 2001; Kelley,
 2007).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="analysis-of-variance">Analysis of variance<a class="anchor" aria-label="anchor" href="#analysis-of-variance"></a></h2>
+
+
+<p>The <code>anova</code> element is the two-by-two analysis of variance of the
+posttest, Treatment by Pretest, with Type III sums of squares, in the
+format of <code><a href="solomon_from_summary.html">solomon_from_summary()</a></code>. Each effect has one degree of freedom
+and is a contrast of the unweighted cell means, so its F is the square of
+a t in <code>effects</code>: <code>Treatment</code> is Test D, <code>Pretest x Treatment</code> is Test A,
+and <code>Pretest</code> is the pretest main effect. The table equals the <code>anova</code>
+table that <code><a href="solomon_from_summary.html">solomon_from_summary()</a></code> gives for the cell sizes, means, and
+standard deviations of the posttest.</p>
+<p>Until solomonR 1.0.0 the element was <code>aov</code>, the table of <code><a href="https://rdrr.io/r/stats/aov.html" class="external-link">stats::aov()</a></code>,
+whose sums of squares are sequential: treatment ignoring pretesting, then
+pretesting adjusted for treatment, then the interaction. With unequal
+cell sizes its treatment row was not Test D and its pretest row was not
+the pretest main effect; only its interaction row agreed with Test A.
+<code>$aov</code> now returns <code>anova</code>, with a deprecation warning; <code>[["aov"]]</code> is
+<code>NULL</code>. A fit saved by an earlier version has no <code>anova</code> table and should
+be refitted.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

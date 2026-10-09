@@ -85,7 +85,7 @@ with(six, solomon_from_summary(n, mean, sd, treat = treat, pretested = pretested
 #> Two-way ANOVA on the posttest (Type III sums of squares)
 #>   Treatment            SS =    0.115  df = 1  F = 0.01  p = 0.921
 #>   Pretest              SS =    0.059  df = 1  F = 0.01  p = 0.944
-#>   Treatment x Pretest  SS =   64.539  df = 1  F = 5.54  p = 0.021
+#>   Pretest x Treatment  SS =   64.539  df = 1  F = 5.54  p = 0.021
 #>   Error                SS = 1072.442  df = 92
 #> 
 #> Contrasts with 95% confidence intervals
@@ -121,7 +121,7 @@ published <- data.frame(
 interaction <- function(s, o) {
   x <- subset(jordaan2014, subscale == s & occasion == o)
   a <- with(x, solomon_from_summary(n, mean, sd, treat = treat, pretested = pretested))$anova
-  a[a$source == "Treatment x Pretest", c("F", "p.value")]
+  a[a$source == "Pretest x Treatment", c("F", "p.value")]
 }
 nine <- cbind(published, do.call(rbind, Map(interaction, published$subscale, published$occasion)))
 nine$p_holm <- p.adjust(nine$p.value, method = "holm")

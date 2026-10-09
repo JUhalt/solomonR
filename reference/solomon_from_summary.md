@@ -50,21 +50,59 @@ solomon_from_summary(
 
 ## Value
 
-An object of class `solomon_summary_fit` with `contrasts` (Tests A-D,
-the pretest main effect, and the simple effects: estimate, standard
-error, t, degrees of freedom, p-value, confidence interval, F, and Type
-III sum of squares), an `anova` table, the `cells`, the error mean
-square and degrees of freedom, and the settings.
+An object of class `solomon_summary_fit`, a list with:
+
+- `effects`: Tests A-D and the pretest main effect, one row each, in the
+  columns `test` (the letter; empty for the pretest main effect),
+  `contrast`, `estimate`, `std.error`, `statistic` (t), `df`, `p.value`,
+  `conf.low`, and `conf.high`, followed by `F` (the square of t) and the
+  Type III sum of squares `sumsq`. `contrast` has the labels of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md):
+  `Pretest x Treatment` (Test A), `Treatment | pretested` (Test B),
+  `Treatment | unpretested` (Test C), `ATE (avg over pretest)` (Test D),
+  and `Pretest main effect`.
+
+- `anova`: the two-by-two analysis of variance, in the columns `source`
+  (`Treatment`, `Pretest`, `Pretest x Treatment`, and `Error`), `sumsq`,
+  `df`, `meansq`, `F`, and `p.value`.
+
+- `cells`: the summary statistics supplied (`group`, `n`, `mean`, and
+  `sd`).
+
+- `mse` and `df_error`: the error mean square and its degrees of
+  freedom.
+
+- `conf_level`: the confidence level of the intervals.
 
 For a design with several treatments, an object of class
-`solomon_summary_ngroup` with `contrasts` (for each comparison of a
-treatment with the control and each of the four contrasts: estimate,
-standard error, t, p-value, Holm-adjusted p-value `p.adjusted`, degrees
-of freedom, and confidence interval), the omnibus tests in `anova` (Type
-III sum of squares, df, mean square, F, p-value), the `cells` in the
-package's group order, the `conditions` (control first), `adjust`
-(`"holm"`), the error mean square and degrees of freedom, and the
-settings.
+`solomon_summary_ngroup`, a list with:
+
+- `effects`: for each comparison of a treatment with the control, the
+  four treatment contrasts, in the columns `comparison`, `contrast`,
+  `estimate`, `std.error`, `statistic` (t), `df`, `p.value`, `conf.low`,
+  and `conf.high`, followed by the Holm-adjusted p-value `p.adjusted`.
+
+- `anova`: the omnibus tests, in the same columns as above, with the
+  sources `Condition`, `Pretest`, `Pretest x Condition`, and `Error`.
+
+- `cells`: the summary statistics in the package's group order (`group`,
+  `condition`, `pretested`, `n`, `mean`, and `sd`).
+
+- `conditions`: the conditions, control first (`condition` and `role`).
+
+- `adjust`: the adjustment of the p-values, `"holm"`.
+
+- `mse`, `df_error`, and `conf_level`, as above.
+
+Before solomonR 1.0.0, `effects` was named `contrasts`, and the
+interaction of the four-group `anova` table `Treatment x Pretest`.
+`$contrasts` still returns the table, with a deprecation warning;
+`[["contrasts"]]` does not.
+
+The `effects` table, `conf_level`, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md),
+which returns the table, are the stable interface of the result; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 
@@ -163,7 +201,7 @@ solomon_from_summary(
 #> Two-way ANOVA on the posttest (Type III sums of squares)
 #>   Treatment            SS =   31.452  df = 1  F = 6.78  p = 0.011
 #>   Pretest              SS =    0.855  df = 1  F = 0.18  p = 0.669
-#>   Treatment x Pretest  SS =   53.184  df = 1  F = 11.46  p = 0.001
+#>   Pretest x Treatment  SS =   53.184  df = 1  F = 11.46  p = 0.001
 #>   Error                SS =  389.721  df = 84
 #> 
 #> Contrasts with 95% confidence intervals

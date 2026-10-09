@@ -189,7 +189,24 @@ page names the replacement.
 ## Package
 
 An overview of the package, including the lifecycle stages marked by the
-badge beside each function: stable, experimental, or deprecated.
+badge beside each function: stable, experimental, or deprecated; and the
+output contract: the effects table, its columns and contrast labels, and
+tidy(), which the analyses with a table of contrasts share and which are
+stable.
 
 - [`solomonR`](https://juhalt.github.io/solomonR/reference/solomonR.md)
   : solomonR: Analyze Solomon Four-Group Designs
+- [`tidy(`*`<solomon_glm>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_ngroup>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_ml>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_mi>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_mmrm>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_sem>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_sem_latent>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_marginal>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_summary_fit>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_summary_ngroup>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_classic>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_comparison>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  [`tidy(`*`<solomon_tipping>`*`)`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  **\[stable\]** : What solomonR returns: the output contract

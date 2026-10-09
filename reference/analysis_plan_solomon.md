@@ -104,9 +104,15 @@ analysis_plan_solomon(
 
 ## Value
 
-An object of class `solomon_analysis_plan`: `text` (the Markdown lines),
-`settings` (the choices, including `confirmatory`), and `date`. Printing
-it shows the Markdown.
+An object of class `solomon_analysis_plan`, a list with:
+
+- `text`: the lines of the plan, in Markdown.
+
+- `settings`: the choices the plan states, including `confirmatory`.
+
+- `date`: the date the plan was written.
+
+Printing it shows the Markdown.
 
 ## Details
 

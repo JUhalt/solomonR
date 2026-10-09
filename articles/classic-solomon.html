@@ -368,6 +368,28 @@ object. For example:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">A</span><span class="op">$</span><span class="va">result</span></span>
 <span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">D</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
+<p><code>classic$effects</code> holds Tests A-H and the pretest main
+effect in one table, with the contrast labels and the columns of
+<code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code>.</p>
+</div>
+<div class="section level3">
+<h3 id="the-analysis-of-variance-table">The analysis of variance table<a class="anchor" aria-label="anchor" href="#the-analysis-of-variance-table"></a>
+</h3>
+<p><code>classic$anova</code> is the two-by-two analysis of variance of
+the posttest that Tests A-D come from, with Type III sums of
+squares:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">anova</span></span>
+<span><span class="co">#&gt;                source      sumsq  df    meansq         F   p.value</span></span>
+<span><span class="co">#&gt; 1           Treatment   216.0083   1 216.00833 2.3370911 0.1290476</span></span>
+<span><span class="co">#&gt; 2             Pretest   180.0750   1 180.07500 1.9483123 0.1654347</span></span>
+<span><span class="co">#&gt; 3 Pretest x Treatment    27.0750   1  27.07500 0.2929366 0.5893828</span></span>
+<span><span class="co">#&gt; 4               Error 10721.4333 116  92.42615        NA        NA</span></span></code></pre></div>
+<p>Each effect has one degree of freedom, and its F is the square of a t
+test above: the treatment row is Test D, the interaction row is Test A,
+and the pretest row is the pretest main effect. With unequal group sizes
+these are not the sequential sums of squares that <code><a href="https://rdrr.io/r/stats/aov.html" class="external-link">aov()</a></code>
+prints, whose treatment row ignores pretesting.</p>
 </div>
 </div>
 <div class="section level2">
@@ -382,19 +404,19 @@ baseline measurement available in Groups 1 and 2.</p>
 while adjusting posttest scores for the pretest.</p>
 <p>This is the default pretested-group method in
 <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code>.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">E</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="test-f-gain-score-analysis">Test F: gain-score analysis<a class="anchor" aria-label="anchor" href="#test-f-gain-score-analysis"></a>
 </h3>
 <p>Test F compares change scores between the two pretested groups.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="cn">F</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
 <p>The change being compared is visible in the pretested groups’ pretest
 and posttest means. <code><a href="../reference/plot_solomon_change.html">plot_solomon_change()</a></code> shows them beside
 the unpretested groups, which are observed at posttest only:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">solomon_example</span>, <span class="fu"><a href="../reference/plot_solomon_change.html">plot_solomon_change</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="classic-solomon_files/figure-html/change-plot-1.png" class="r-plt" alt="Pretest and posttest means of the two pretested groups, beside the posttest means of the two unpretested groups." width="672"></p>
 </div>
@@ -407,11 +429,11 @@ comparison.</p>
 algebraically connected to the gain-score comparison.
 <code>solomonR</code> retains Test G as a separate historical label
 because the distinction is useful pedagogically.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">G</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
 <p>The pretested-group analysis can also be selected explicitly when
 reproducing a particular historical strategy.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span></span>
 <span>  <span class="va">y_post</span>,</span>
 <span>  <span class="va">treat</span>,</span>
@@ -426,7 +448,7 @@ reproducing a particular historical strategy.</p>
 </h2>
 <p>Test H compares Groups 3 and 4, which did not receive the
 pretest.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">tests</span><span class="op">$</span><span class="va">H</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
 <p>Because these groups were never pretested, this comparison provides a
 direct treatment contrast uncontaminated by administration of a baseline
@@ -434,7 +456,7 @@ measure.</p>
 <p><code>solomonR</code> also reports Hedges’
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>
 for this posttest-only comparison when available.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
 <span>    <span class="st">"Hedges' g = %.2f, 95%% CI [%.2f, %.2f]"</span>,</span>
@@ -454,7 +476,7 @@ method.</p>
 <p>When requested, <code>solomonR</code> reproduces this historical
 analysis using <strong>directional one-tailed p-values aligned with the
 same treatment direction</strong>.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
 <span>    <span class="st">"Stouffer Z = %.2f, p = %s"</span>,</span>
@@ -514,7 +536,7 @@ Walton Braver and Braver (1995, as cited in Sawilowsky, 1996). The
 remaining tests follow the 1988 rule, as in Sawilowsky’s simulation of
 the revised sequence.</li>
 </ul>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic_1990</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, flow <span class="op">=</span> <span class="st">"1990"</span><span class="op">)</span></span>
@@ -529,7 +551,7 @@ and the conclusion differ. For the 1995 version,
 <code>alpha_allocation</code> applies the test-wise significance levels
 that Sawilowsky (1996, Table 4) proposed to control the experiment-wise
 error rate:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic_1995</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
 <span>  <span class="va">solomon_example</span>,</span>
 <span>  <span class="fu"><a href="../reference/fit_solomon_classic.html">fit_solomon_classic</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, flow <span class="op">=</span> <span class="st">"1995"</span>,</span>
@@ -548,7 +570,7 @@ the pretest-posttest correlations printed in their Table 3 (p. 153). The
 data set <code>waltonbraver1988</code> holds those numbers. Table 3
 prints variances, so <code>sd</code> and <code>pre_sd</code> are their
 square roots.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">waltonbraver1988</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"group"</span>, <span class="st">"n"</span>, <span class="st">"mean"</span>, <span class="st">"var"</span>, <span class="st">"pre_mean"</span>, <span class="st">"pre_var"</span>, <span class="st">"r"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                    group  n mean  var pre_mean pre_var    r</span></span>
 <span><span class="co">#&gt; 1   Pretested, treatment 14 12.4 22.0     10.5    19.3 0.58</span></span>
@@ -560,7 +582,7 @@ square roots.</p>
 analysis of variance (Table 4, p. 153): no interaction at all (Test A),
 and a treatment effect (Test D) that is not quite significant, F(1, 52)
 = 3.388, p = .0714.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">waltonbraver1988</span>, <span class="fu"><a href="../reference/solomon_from_summary.html">solomon_from_summary</a></span><span class="op">(</span><span class="va">n</span>, <span class="va">mean</span>, <span class="va">sd</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solomon analysis from summary statistics</span></span>
 <span><span class="co">#&gt; ----------------------------------------</span></span>
@@ -569,7 +591,7 @@ and a treatment effect (Test D) that is not quite significant, F(1, 52)
 <span><span class="co">#&gt; Two-way ANOVA on the posttest (Type III sums of squares)</span></span>
 <span><span class="co">#&gt;   Treatment            SS =   67.760  df = 1  F = 3.39  p = 0.071</span></span>
 <span><span class="co">#&gt;   Pretest              SS =    0.140  df = 1  F = 0.01  p = 0.934</span></span>
-<span><span class="co">#&gt;   Treatment x Pretest  SS =    0.000  df = 1  F = 0.00  p = 1.000</span></span>
+<span><span class="co">#&gt;   Pretest x Treatment  SS =    0.000  df = 1  F = 0.00  p = 1.000</span></span>
 <span><span class="co">#&gt;   Error                SS = 1040.000  df = 52</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Contrasts with 95% confidence intervals</span></span>
@@ -582,7 +604,7 @@ and a treatment effect (Test D) that is not quite significant, F(1, 52)
 built to have exactly the published means, variances, and correlations
 give the same tests as the original scores would, because Tests A to I
 depend on the data only through those statistics:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1988</span><span class="op">)</span></span>
 <span><span class="va">wbb_scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">g</span> <span class="op">&lt;-</span> <span class="va">waltonbraver1988</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span></span>
@@ -642,7 +664,7 @@ treatment, estimates the combined effect of history and maturation
 between the two occasions. Mai et al. (2020, p. 8) report these
 comparisons as independent-samples t tests, which
 <code><a href="../reference/fit_solomon_classic.html">fit_solomon_classic()</a></code> returns as <code>history</code>:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span><span class="op">$</span><span class="va">history</span></span>
 <span><span class="co">#&gt;                                            comparison estimate statistic df</span></span>
 <span><span class="co">#&gt; 1 O6 - O1: control posttest vs. treated-group pretest 1.466667 0.5415318 58</span></span>
@@ -677,7 +699,7 @@ a single prespecified model or a randomization-based analysis rather
 than automatically following a significance-driven testing tree.</p>
 <p>See the unified GLM vignette for the primary modern observed-variable
 workflow:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"glm-solomon"</span>, package <span class="op">=</span> <span class="st">"solomonR"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

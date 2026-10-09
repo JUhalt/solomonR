@@ -29,7 +29,9 @@ plot_solomon(y, treat, pretested)
 
 ## Value
 
-Invisibly returns a data frame containing cell summaries.
+Invisibly, a data frame with one row for each cell, in the columns
+`pretested`, `treat`, `n`, `mean`, `sd`, `se`, the limits `lo` and `hi`
+of the 95% interval, and `x`, the position of the cell on the axis.
 
 ## Details
 

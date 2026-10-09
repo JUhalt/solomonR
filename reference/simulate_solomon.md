@@ -81,12 +81,28 @@ simulate_solomon(
 
 ## Value
 
-A data frame with `y_post`, `treat`, `pretested`, and `y_pre` (missing
-by design in the unpretested groups), in the form the analysis functions
-take. `treat` is 0/1 for the four-group design and a factor of
-conditions for a design with several treatments. Its `"truth"` attribute
-is a data frame of the true estimands, and its `"settings"` attribute
-holds the arguments, with the group sizes named by group.
+A data frame with one row for each participant, in the form the analysis
+functions take:
+
+- `y_post`: the posttest score.
+
+- `treat`: the treatment, 0/1 for the four-group design and a factor of
+  conditions for a design with several treatments.
+
+- `pretested`: 1 for a pretested participant and 0 otherwise.
+
+- `y_pre`: the pretest score, missing by design in the unpretested
+  groups.
+
+It has two attributes:
+
+- `"truth"`: a data frame of the true values, in the columns `estimand`
+  and `true_value` for the four-group design, and `comparison`,
+  `contrast`, and `true_value` for a design with several treatments. The
+  contrasts have the labels, and the order, of the `effects` table of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+
+- `"settings"`: the arguments, with the group sizes named by group.
 
 ## Details
 

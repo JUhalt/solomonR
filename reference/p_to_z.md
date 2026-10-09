@@ -17,7 +17,8 @@ p_to_z(p)
 
 ## Value
 
-numeric Z-scores
+A numeric vector of z scores, one for each p-value: the standard normal
+quantile of `1 - p`.
 
 ## References
 

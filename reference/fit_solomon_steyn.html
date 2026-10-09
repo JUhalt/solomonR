@@ -210,7 +210,8 @@ in E5, or <code>NA</code>; see the Operationalization section).</p></li>
 <li><p><code>conclusions</code>: one plain-language summary for each step.</p></li>
 <li><p><code>notes</code>: skipped steps and data notes.</p></li>
 <li><p><code>n</code>: counts of participants, posttests, and pretests in each group.</p></li>
-<li><p><code>conditions</code>: the control and the interventions.</p></li>
+<li><p><code>conditions</code>: the control and the interventions (<code>condition</code> and
+<code>role</code>).</p></li>
 <li><p><code>settings</code>: <code>alpha</code>, <code>include_unpretested_control</code>, <code>posthoc</code>, <code>k</code>,
 and <code>pretest</code> (whether pretest scores were supplied).</p></li>
 </ul><p>The tables of tests share the columns <code>step</code>, <code>test</code>, <code>groups</code> (Steyn's
@@ -224,6 +225,13 @@ hoc p-value of a pair of groups: Scheffé's, or Holm-adjusted, as
 (Steyn's reading, where he gives one). For a post hoc test, <code>statistic</code>
 and <code>p.value</code> are the pairwise t with a pooled SD and its unadjusted
 p-value; the decisions of the sequence read <code>p.adjusted</code>.</p>
+<p>The elements are named for the steps of Steyn's sequence, and the
+tests are of several kinds, so these tables do not have the columns of
+the effects tables of the other analyses. In particular, <code>effects</code>
+here is step 8, a list, not a table of the Solomon contrasts, and the
+result has no <code><a href="solomon_output.html">tidy()</a></code> method. The
+<code><a href="fit_solomon_classic.html">fit_solomon_classic()</a></code> results in <code>classic$fits</code> have effects
+tables. See <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="steyn-s-sequence">Steyn's sequence<a class="anchor" aria-label="anchor" href="#steyn-s-sequence"></a></h2>

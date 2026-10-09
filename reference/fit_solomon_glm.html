@@ -220,22 +220,47 @@ and <code>y_pre</code>.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_glm</code>: a list with the fitted model,
-coefficient and contrast tables (including degrees of freedom and
-confidence limits <code>conf.low</code> and <code>conf.high</code>), the covariance matrix,
-the Pearson dispersion statistic for binomial, Poisson, and
-negative-binomial fits, <code>theta</code> (its estimate, standard error, and
-\(\alpha = 1/\theta\)) for negative-binomial fits, <code>pretest_mean</code>
-(the mean pretest at which the pretest is centered; <code>NA</code> without
-<code>y_pre</code>), and the settings used. The contrast table, <code>effects</code>, has the
-four treatment contrasts followed by the three pretest effects.</p>
-<p>For a design with several treatments, an object of class
-<code>solomon_ngroup</code>, with the same elements and these changes: <code>effects</code>
-has a <code>comparison</code> column and the adjusted p-values <code>p.adjusted</code>;
-<code>omnibus</code> holds the omnibus tests (<code>statistic</code>, <code>df1</code>, <code>df2</code>,
-<code>p.value</code>, and <code>reference</code>, <code>"F"</code> or <code>"chisq"</code>); <code>conditions</code> names the
-control and the treatments and their model terms; <code>weights</code> holds the
-weights of each comparison; and <code>adjust</code> names the adjustment.</p>
+    <p>An object of class <code>solomon_glm</code>, a list with:</p><ul><li><p><code>effects</code>: the four treatment contrasts, <code>ATE (avg over pretest)</code>,
+<code>Pretest x Treatment</code>, <code>Treatment | pretested</code>, and
+<code>Treatment | unpretested</code>, followed by the three pretest effects,
+<code>Pretest effect | control</code>, <code>Pretest effect | treated</code>, and
+<code>Pretest main effect</code>, in the columns <code>contrast</code>, <code>estimate</code>,
+<code>std.error</code>, <code>statistic</code>, <code>df</code> (<code>Inf</code> for a normal reference
+distribution), <code>p.value</code>, <code>conf.low</code>, and <code>conf.high</code>, followed by
+the Wald partial R-squared and its interval (<code>r2</code>, <code>r2_lo</code>, and
+<code>r2_hi</code>).</p></li>
+<li><p><code>conf_level</code>: the confidence level of the intervals.</p></li>
+<li><p><code>coefficients</code>: the coefficients of the model, in the same columns
+through <code>conf.high</code>, with <code>term</code> for <code>contrast</code>.</p></li>
+<li><p><code>model</code>: the fitted model, a <code>glm</code> object.</p></li>
+<li><p><code>vcov</code>: the covariance matrix of the coefficients, as <code>robust</code> sets
+it.</p></li>
+<li><p><code>dispersion</code>: the Pearson dispersion statistic for binomial, Poisson,
+and negative-binomial fits, and <code>NA</code> for the others.</p></li>
+<li><p><code>theta</code>: for negative-binomial fits, its estimate, standard error,
+and \(\alpha = 1/\theta\); otherwise <code>NULL</code>.</p></li>
+<li><p><code>pretest_mean</code>: the mean pretest at which the pretest is centered;
+<code>NA</code> without <code>y_pre</code>.</p></li>
+<li><p><code>robust</code>, <code>family</code>, <code>cluster</code> (the cluster of each participant), and
+<code>n_clusters</code>: the settings used. The last two are <code>NULL</code> without
+<code>cluster</code>.</p></li>
+<li><p><code>call</code>, and <code>data</code> (the data the model was fitted to), which
+solomonR's own functions use.</p></li>
+</ul><p>For a design with several treatments, an object of class
+<code>solomon_ngroup</code>, with the same elements and these changes:</p><ul><li><p><code>effects</code> has a <code>comparison</code> column before <code>contrast</code> and the
+adjusted p-values <code>p.adjusted</code> after <code>conf.high</code>. It has the four
+treatment contrasts for each comparison, then the pretest effect in
+each condition and the pretest main effect.</p></li>
+<li><p><code>omnibus</code>: the omnibus tests, in the columns <code>test</code>, <code>statistic</code>,
+<code>df1</code>, <code>df2</code>, <code>p.value</code>, and <code>reference</code> (<code>"F"</code> or <code>"chisq"</code>).</p></li>
+<li><p><code>conditions</code>: the control and the treatments, with their model
+terms (<code>condition</code>, <code>role</code>, and <code>term</code>).</p></li>
+<li><p><code>weights</code>: the weights of each comparison over the conditions, one
+row for each comparison.</p></li>
+<li><p><code>adjust</code>: the adjustment of the p-values.</p></li>
+</ul><p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
+which returns the table, are the stable interface of the result; see
+<a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -600,16 +625,17 @@ https://doi.org/10.1093/biomet/34.1-2.28</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> score; their standard errors include the sampling variance of the mean, and</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> the coefficient of pretested treats it as fixed.</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># The four Solomon contrasts as a data frame.</span></span></span>
+<span class="r-in"><span><span class="co"># The four treatment contrasts and the three pretest effects, as a data</span></span></span>
+<span class="r-in"><span><span class="co"># frame; tidy(fit) returns the same table.</span></span></span>
 <span class="r-in"><span><span class="va">fit</span><span class="op">$</span><span class="va">effects</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                   contrast  estimate std.error  statistic    p.value  df</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   ATE (avg over pretest)  2.663415  1.583848  1.6816102 0.09535823 115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      Pretest x Treatment -1.939837  3.167696 -0.6123810 0.54149471 115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3    Treatment | pretested  1.693497  2.250717  0.7524252 0.45333277 115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4  Treatment | unpretested  3.633333  2.229029  1.6300074 0.10583600 115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 Pretest effect | control  3.419918  2.383175  1.4350264 0.15399366 115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 Pretest effect | treated  1.480082  2.395866  0.6177647 0.53795186 115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7      Pretest main effect  2.450000  1.789210  1.3693193 0.17356774 115</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   contrast  estimate std.error  statistic  df    p.value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   ATE (avg over pretest)  2.663415  1.583848  1.6816102 115 0.09535823</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      Pretest x Treatment -1.939837  3.167696 -0.6123810 115 0.54149471</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3    Treatment | pretested  1.693497  2.250717  0.7524252 115 0.45333277</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  Treatment | unpretested  3.633333  2.229029  1.6300074 115 0.10583600</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 Pretest effect | control  3.419918  2.383175  1.4350264 115 0.15399366</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 Pretest effect | treated  1.480082  2.395866  0.6177647 115 0.53795186</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7      Pretest main effect  2.450000  1.789210  1.3693193 115 0.17356774</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     conf.low conf.high          r2 r2_lo r2_hi</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 -0.4738832  5.800713 0.023999535    NA    NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2 -8.2144330  4.334759 0.003250361    NA    NA</span>

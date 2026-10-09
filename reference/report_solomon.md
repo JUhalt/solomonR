@@ -46,9 +46,30 @@ report_solomon(fit, design = NULL, digits = 2, format = c("text", "markdown"))
 
 ## Value
 
-An object of class `solomon_report` with `method`, `results`, and
-`design` (character vectors of sentences), `table` (the estimates), and
-`references` (APA 7 reference entries, in APA order).
+An object of class `solomon_report`, a list with:
+
+- `method`, `results`, and `design`: character vectors of sentences.
+
+- `table`: a data frame of the values that the sentences report. For
+  most fits it is the `effects` table of the fit, and for
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  it is the rows of that table for the tests on the path. For the other
+  results, such as
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md),
+  and a four-group
+  [`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+  result, its columns depend on the analysis. "Outside the contract" in
+  [solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  lists which results give which table.
+
+- `references`: the APA 7 reference entries, in APA order.
+
+- `format`: `"text"` or `"markdown"`.
+
+To compute with the estimates, read them from the fit, with
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md),
+not from the sentences.
 
 ## Details
 

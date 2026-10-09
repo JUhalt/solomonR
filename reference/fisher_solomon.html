@@ -152,10 +152,16 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_fisher</code> with <code>tests</code> (one row per pretest
-condition and for both combined: counts, proportions, the uncorrected
-Pearson chi-square, and Fisher's exact p-value) and <code>sensitization</code> (the
-historical rule's verdict).</p>
+    <p>An object of class <code>solomon_fisher</code>, a list with:</p><ul><li><p><code>tests</code>: one row for each pretest condition and one for both
+combined, in the columns <code>condition</code>, <code>events_treatment</code>,
+<code>n_treatment</code>, <code>events_control</code>, <code>n_control</code>, <code>risk_treatment</code>,
+<code>risk_control</code>, <code>chisq</code> (the uncorrected Pearson chi-square),
+<code>chisq_p</code>, and <code>fisher_p</code> (Fisher's exact p-value).</p></li>
+<li><p><code>sensitization</code>: the verdict of the historical rule, <code>TRUE</code> or
+<code>FALSE</code>.</p></li>
+<li><p><code>alpha</code>: the significance level of the rule.</p></li>
+</ul><p>The tests are of two-by-two tables, not of the Solomon contrasts, so
+the result has no effects table; see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

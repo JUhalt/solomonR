@@ -124,10 +124,50 @@ fit_solomon_classic(
 
 ## Value
 
-An object of class `solomon_classic`. The `tests` component contains
-Tests A-I, while `path` records the historical decision sequence for the
-observed data under the chosen `flow`. The `history` component holds the
-history/maturation comparisons.
+An object of class `solomon_classic`, a list with:
+
+- `tests`: Tests A-I, each with its `label` and `result`. The result of
+  each of Tests A-H is its row of `effects`, and each holds its `model`.
+  Test I holds the Stouffer combination, with every variant in `all`.
+
+- `path`, `path_string`, and `conclusion`: the historical decision
+  sequence for the observed data under the chosen `flow`.
+
+- `effects`: Tests A-H, then the pretest main effect, one row each, in
+  the columns `test` (the letter; empty for the pretest main effect),
+  `contrast`, `estimate`, `std.error`, `statistic` (t), `df`, `p.value`,
+  `conf.low`, and `conf.high`, followed by `F` (the square of t).
+  `contrast` has the labels of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md):
+  `Pretest x Treatment` (Test A), `Treatment | pretested` (Tests B, E,
+  F, and G), `Treatment | unpretested` (Tests C and H),
+  `ATE (avg over pretest)` (Test D), and `Pretest main effect`.
+
+- `anova`: the two-by-two analysis of variance of the posttest with Type
+  III sums of squares, in the columns `source` (`Treatment`, `Pretest`,
+  `Pretest x Treatment`, and `Error`), `sumsq`, `df`, `meansq`, `F`, and
+  `p.value`; see "Analysis of variance".
+
+- `pretest_main`: the row of the pretest main effect.
+
+- `history`: the history/maturation comparisons, in the columns
+  `comparison`, `estimate`, `statistic`, `df`, `p.value`, `conf.low`,
+  and `conf.high`.
+
+- `conf_level`: the confidence level of the intervals.
+
+- `settings`: the options used.
+
+- `g_post`: Hedges' g for Groups 3 and 4, with its interval.
+
+- `ancova`, `t_unpretested`, and `stouffer`: legacy elements, kept for
+  existing code and not part of the stable interface. `tests` holds the
+  same analyses as Tests E, H, and I.
+
+The `effects` table, `conf_level`, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md),
+which returns the table, are the stable interface of the result; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 
@@ -202,6 +242,30 @@ combines p-values and has no interval. The Groups 3-4 standardized mean
 difference (`g_post`) reports Hedges' g with a noncentral t interval for
 the population standardized mean difference (Cumming & Finch, 2001;
 Kelley, 2007).
+
+## Analysis of variance
+
+The `anova` element is the two-by-two analysis of variance of the
+posttest, Treatment by Pretest, with Type III sums of squares, in the
+format of
+[`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md).
+Each effect has one degree of freedom and is a contrast of the
+unweighted cell means, so its F is the square of a t in `effects`:
+`Treatment` is Test D, `Pretest x Treatment` is Test A, and `Pretest` is
+the pretest main effect. The table equals the `anova` table that
+[`solomon_from_summary()`](https://juhalt.github.io/solomonR/reference/solomon_from_summary.md)
+gives for the cell sizes, means, and standard deviations of the
+posttest.
+
+Until solomonR 1.0.0 the element was `aov`, the table of
+[`stats::aov()`](https://rdrr.io/r/stats/aov.html), whose sums of
+squares are sequential: treatment ignoring pretesting, then pretesting
+adjusted for treatment, then the interaction. With unequal cell sizes
+its treatment row was not Test D and its pretest row was not the pretest
+main effect; only its interaction row agreed with Test A. `$aov` now
+returns `anova`, with a deprecation warning; `[["aov"]]` is `NULL`. A
+fit saved by an earlier version has no `anova` table and should be
+refitted.
 
 ## References
 

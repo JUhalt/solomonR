@@ -124,7 +124,7 @@ with(lana1959, solomon_from_summary(n, mean, sd))
 #> Two-way ANOVA on the posttest (Type III sums of squares)
 #>   Treatment            SS =  209.291  df = 1  F = 5.36  p = 0.022
 #>   Pretest              SS =    1.673  df = 1  F = 0.04  p = 0.836
-#>   Treatment x Pretest  SS =    2.736  df = 1  F = 0.07  p = 0.792
+#>   Pretest x Treatment  SS =    2.736  df = 1  F = 0.07  p = 0.792
 #>   Error                SS = 5939.644  df = 152
 #> 
 #> Contrasts with 95% confidence intervals

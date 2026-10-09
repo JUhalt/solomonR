@@ -3,11 +3,13 @@
 **\[experimental\]** This function provides a fully latent analysis
 path: (A) A 4-group SEM that defines a latent POST factor from multiple
 indicators and estimates group-specific latent means for P1, P0, U1, and
-U0. From these we compute ATE, Sens (Pretest x Treat), and simple
-effects on the latent outcome. (B) Optionally, a 2-group SEM in
-**pretested** groups only (P1 vs P0) with a latent PRE factor and latent
-POST factor, fitting a latent ANCOVA (POST ~ PRE), and reporting the
-pretested simple effect.
+U0. From these we compute the four Solomon contrasts and the three
+pretest effects on the latent outcome, under the labels of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+(B) Optionally, a 2-group SEM in **pretested** groups only (P1 vs P0)
+with a latent PRE factor and latent POST factor, fitting a latent ANCOVA
+(POST ~ PRE), and reporting the pretested simple effect
+(`Treatment | pretested`).
 
 ## Usage
 
@@ -104,17 +106,24 @@ fit_solomon_sem_latent(
 
 An object of class `solomon_sem_latent` with:
 
-- `fit_post`: lavaan object for the 4-group POST model
+- `fit`: lavaan object for the 4-group POST model
 
-- `effects_post`: data.frame of ATE, Sens, Pre_Eff, Unpre_Eff on latent
-  POST
+- `effects`: data.frame of the contrasts on latent POST, with the
+  columns `contrast`, `estimate`, `std.error`, `statistic` (z), `df`
+  (`Inf`, for the normal reference distribution), `p.value`, `conf.low`,
+  and `conf.high`, and the rows `ATE (avg over pretest)`,
+  `Pretest x Treatment`, `Treatment | pretested`,
+  `Treatment | unpretested`, `Pretest effect | control`,
+  `Pretest effect | treated`, and `Pretest main effect`, the labels of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
 
 - `fitmeasures_post`: named vector (CFI, RMSEA, SRMR, df)
 
 - `fit_pre` (optional): lavaan object for pretested latent ANCOVA
 
-- `effects_pre` (optional): data.frame with `Pre_Eff` on latent POST
-  (pretested)
+- `effects_pre` (optional): data.frame with `Treatment | pretested` on
+  latent POST, adjusted for the latent pretest, in the columns of
+  `effects`
 
 - `fitmeasures_pre` (optional)
 
@@ -123,10 +132,22 @@ An object of class `solomon_sem_latent` with:
   result, or `NULL` when the check was not run, and `invariance_status`,
   a one-line summary
 
+- `conf_level`: the confidence level of the intervals
+
 - `settings`: the options used, including the estimator and any freed
   parameters, which
   [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
   reports
+
+Before solomonR 1.0.0, `fit` and `effects` were named `fit_post` and
+`effects_post`. The old names still work with `$`, with a deprecation
+warning, but not with `[[`.
+
+The `effects` table, `conf_level`, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md),
+which returns `effects`, are the stable interface of the result. The
+lavaan objects and `settings` are not; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 
@@ -164,6 +185,19 @@ the first indicator of each factor is fixed at 1, and both analyses are
 on the scale of the first POST indicator. If `partial_post` frees that
 marker loading, lavaan keeps it at 1 in P1 only and estimates it in the
 other groups, so the scale is that of the first indicator in P1.
+
+The pretest effects of the four-group model are differences between
+latent means too, in the unit of the other contrasts: pretested minus
+unpretested participants among controls (`Pretest effect | control`),
+among treated participants (`Pretest effect | treated`), and their
+equal-weighted average (`Pretest main effect`). Dukes et al. (1995, p.
+426), who analyzed a Solomon design with latent variables, described a
+pretesting difference unrelated to the program by comparing two
+two-group models; the `Pretest main effect` row estimates such a
+difference as one contrast, with a test. A shift in an indicator's
+intercept that the two pretested groups share cancels from the Pretest x
+Treatment contrast but not from the pretest effects, which it biases
+(see Invariance check).
 
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
@@ -225,6 +259,11 @@ measurement invariance. *Structural Equation Modeling: A
 Multidisciplinary Journal, 14*(3), 464–504.
 https://doi.org/10.1080/10705510701301834
 
+Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of
+D.A.R.E. (Drug Abuse Resistance Education), using a Solomon four-group
+design with latent variables. *Evaluation Review, 19*(4), 409–435.
+https://doi.org/10.1177/0193841X9501900404
+
 Meredith, W. (1993). Measurement invariance, factor analysis and
 factorial invariance. *Psychometrika, 58*(4), 525–543.
 https://doi.org/10.1007/BF02294825
@@ -265,10 +304,13 @@ if (requireNamespace("lavaan", quietly = TRUE)) {
 #> POST model fit (4 groups): CFI=1.000, RMSEA=0.000, SRMR=0.051; df=26
 #> Invariance check: scalar invariance supported by both criteria
 #> 
-#> Key contrasts (latent POST)  Est (SE)          z      p           95% CI
-#> ATE                          0.502 (0.103)  4.90  <.001   [0.301, 0.703]
-#> Sens                         0.024 (0.192)  0.12  0.901  [-0.352, 0.400]
-#> Pre_Eff                      0.514 (0.145)  3.54  <.001   [0.229, 0.799]
-#> Unpre_Eff                    0.490 (0.135)  3.63  <.001   [0.225, 0.755]
+#> Key contrasts (latent POST)  Est (SE)            z      p           95% CI
+#> ATE (avg over pretest)       0.502 (0.103)    4.90  <.001   [0.301, 0.703]
+#> Pretest x Treatment          0.024 (0.192)    0.12  0.901  [-0.352, 0.400]
+#> Treatment | pretested        0.514 (0.145)    3.54  <.001   [0.229, 0.799]
+#> Treatment | unpretested      0.490 (0.135)    3.63  <.001   [0.225, 0.755]
+#> Pretest effect | control     -0.097 (0.138)  -0.70  0.484  [-0.367, 0.174]
+#> Pretest effect | treated     -0.073 (0.133)  -0.55  0.586  [-0.334, 0.189]
+#> Pretest main effect          -0.085 (0.096)  -0.88  0.379  [-0.273, 0.104]
 # }
 ```

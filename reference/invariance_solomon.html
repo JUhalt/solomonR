@@ -153,11 +153,25 @@ Default 0.05.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_invariance</code>: the three <code>fits</code>, the fit
-indexes in <code>models</code>, the step <code>tests</code> with the decision under each
-criterion, the most constrained level <code>supported</code> under each
-(<code>"configural"</code>, <code>"metric"</code>, <code>"scalar"</code>, or <code>"partial scalar"</code>), and the
-<code>cutoffs</code> applied.</p>
+    <p>An object of class <code>solomon_invariance</code>, a list with:</p><ul><li><p><code>fits</code>: the three lavaan objects, <code>configural</code>, <code>metric</code>, and
+<code>scalar</code>.</p></li>
+<li><p><code>models</code>: the fit of each model, in the columns <code>model</code>, <code>chisq</code>,
+<code>df</code>, <code>cfi</code>, <code>rmsea</code>, and <code>srmr</code>.</p></li>
+<li><p><code>tests</code>: the two steps, in the columns <code>comparison</code>, <code>chisq_diff</code>,
+<code>df_diff</code>, <code>p.value</code>, <code>delta_cfi</code>, <code>delta_rmsea</code>, <code>delta_srmr</code>, and
+the decision under each criterion, <code>noninvariant_chisq</code> and
+<code>noninvariant_chen</code>.</p></li>
+<li><p><code>supported</code>: the most constrained level supported under each
+criterion, <code>chisq</code> and <code>chen2007</code>: <code>"configural"</code>, <code>"metric"</code>,
+<code>"scalar"</code>, or <code>"partial scalar"</code>.</p></li>
+<li><p><code>cutoffs</code>: the cutoffs of the change-in-fit criterion that were
+applied.</p></li>
+<li><p><code>sizes</code>: the four group sizes.</p></li>
+<li><p><code>partial</code>, <code>alpha</code>, <code>items</code>, and <code>estimator</code>: the settings used.</p></li>
+<li><p><code>scaled</code>: whether the chi-square difference was scaled.</p></li>
+</ul><p>The tables compare models and estimate no Solomon contrast, so the
+result has no effects table, and the lavaan objects are not part of
+the stable interface; see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="two-published-criteria">Two published criteria<a class="anchor" aria-label="anchor" href="#two-published-criteria"></a></h2>

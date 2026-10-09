@@ -150,11 +150,36 @@ state is restored afterwards.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_marginal</code> with <code>effects</code> (one row per
-scale and contrast: estimate and interval on the reporting scale, standard
-error on the analysis scale, p-value), <code>risks</code> (binary) or <code>rates</code>
-(counts, per unit of exposure) for the four cells, and the settings,
-including the number of failed bootstrap resamples.</p>
+    <p>An object of class <code>solomon_marginal</code>, a list with:</p><ul><li><p><code>effects</code>: one row for each scale and contrast, in the columns
+<code>scale</code>, <code>contrast</code>, <code>estimate</code>, <code>std.error</code>, <code>statistic</code>, <code>df</code>,
+<code>p.value</code>, <code>conf.low</code>, and <code>conf.high</code>. On each scale the rows are
+the four treatment contrasts, <code>ATE (avg over pretest)</code>,
+<code>Pretest x Treatment</code>, <code>Treatment | pretested</code>, and
+<code>Treatment | unpretested</code>, followed by the three pretest effects,
+<code>Pretest effect | control</code>, <code>Pretest effect | treated</code>, and
+<code>Pretest main effect</code>; <code>method = "cluster_summary"</code> gives the four
+treatment contrasts. The estimate and the interval are on the
+reporting scale (a difference or a ratio). The standard error and the
+test statistic are on the analysis scale, the difference or the log
+of the ratio, so for a ratio <code>statistic</code> is
+<code>log(estimate) / std.error</code>. <code>df</code> is <code>Inf</code> for a normal reference
+distribution, which every fit without CR2 covariance uses.</p></li>
+<li><p><code>conf_level</code>: the confidence level of the intervals.</p></li>
+<li><p><code>risks</code> (binary outcomes) or <code>rates</code> (counts, per unit of exposure):
+the value in each of the four cells (<code>cell</code>, <code>treat</code>, <code>pretested</code>,
+and <code>risk</code> or <code>rate</code>). The other of the two is <code>NULL</code>.</p></li>
+<li><p><code>outcome</code>: <code>"binary"</code> or <code>"count"</code>.</p></li>
+<li><p><code>method</code>: the method of inference, and <code>vcov</code>, a description of the
+covariance the delta method used (<code>NA</code> for the other methods).</p></li>
+<li><p><code>R</code> and <code>failures</code>: with <code>method = "bootstrap"</code>, the number of
+resamples and the number that failed.</p></li>
+<li><p><code>dispersion</code> and <code>theta</code>: as in the fit.</p></li>
+<li><p><code>pretest_adjusted</code>: whether the fit adjusted for the pretest.</p></li>
+<li><p><code>design</code> and <code>clusters</code> (the number of clusters in each cell), with
+<code>method = "cluster_summary"</code>.</p></li>
+</ul><p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
+which returns the table, are the stable interface of the result; see
+<a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

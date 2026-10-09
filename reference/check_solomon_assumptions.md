@@ -52,14 +52,23 @@ check_solomon_assumptions(
 
 ## Value
 
-An object of class `solomon_checks` with the p-values
-`brown_forsythe_4cell_p` (all four posttest cells),
-`brown_forsythe_unpre_p` (the unpretested cells), `shapiro_p_by_cell`
-(one p-value for each cell, named by the pretest indicator and the
-treatment, such as `1.0`), and `ancova_slope_homogeneity_p`. For a
-design with several treatments, the test across all the posttest cells
-is `brown_forsythe_cells_p`, the cells of `shapiro_p_by_cell` are named
-by the pretest indicator and the condition, such as `1.RP`, and
+An object of class `solomon_checks`, a list of p-values:
+
+- `brown_forsythe_4cell_p`: the Brown-Forsythe test across all four
+  posttest cells.
+
+- `brown_forsythe_unpre_p`: the Brown-Forsythe test of the unpretested
+  cells.
+
+- `shapiro_p_by_cell`: the Shapiro-Wilk test in each cell, named by the
+  pretest indicator and the treatment, such as `1.0`.
+
+- `ancova_slope_homogeneity_p`: the test of homogeneous pretest-posttest
+  slopes.
+
+For a design with several treatments, the test across all the posttest
+cells is `brown_forsythe_cells_p`, the cells of `shapiro_p_by_cell` are
+named by the pretest indicator and the condition, such as `1.RP`, and
 `conditions` names the control and the treatments.
 
 ## Details

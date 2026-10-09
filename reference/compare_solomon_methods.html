@@ -160,12 +160,27 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_comparison</code> with <code>results</code> (one row per
-method and contrast, with the adjustment, variance assumption, reference
-distribution, estimate, standard error, interval, and p-value),
-<code>estimands</code> (definitions of the four contrasts), <code>not_compared</code> (analyses
-excluded and why), and <code>skipped</code> (requested methods that could not be
-fitted and why).</p>
+    <p>An object of class <code>solomon_comparison</code>, a list with:</p><ul><li><p><code>results</code>: one row for each method and contrast, in the columns
+<code>method</code>, <code>contrast</code>, <code>estimate</code>, <code>std.error</code>, <code>statistic</code>, <code>df</code>
+(<code>Inf</code> for a normal reference distribution), <code>p.value</code>, <code>conf.low</code>,
+and <code>conf.high</code>, followed by the <code>adjustment</code>, the <code>variance</code>
+assumption, and the <code>reference</code> distribution of each method. The
+rows are the four treatment contrasts, <code>ATE (avg over pretest)</code>,
+<code>Pretest x Treatment</code>, <code>Treatment | pretested</code>, and
+<code>Treatment | unpretested</code>, for each method that estimates them. The
+table has no rows when every requested method was skipped.</p></li>
+<li><p><code>estimands</code>: the definition of each contrast (<code>contrast</code> and
+<code>definition</code>).</p></li>
+<li><p><code>not_compared</code>: the analyses left out, and why (<code>analysis</code> and
+<code>reason</code>).</p></li>
+<li><p><code>skipped</code>: the requested methods that could not be fitted, and why
+(<code>method</code> and <code>reason</code>).</p></li>
+<li><p><code>conf_level</code>: the confidence level of the intervals.</p></li>
+<li><p><code>settings</code>: the methods requested, the confidence level, and whether
+pretest scores were supplied.</p></li>
+</ul><p><code>results</code> has the columns and the labels of an effects table, and
+<code><a href="solomon_output.html">tidy()</a></code> returns it. See <a href="solomon_output.html">solomon_output</a> for the
+columns, the labels, and the parts of a result that are stable.</p>
     </div>
     <div class="section level2">
     <h2 id="estimands">Estimands<a class="anchor" aria-label="anchor" href="#estimands"></a></h2>

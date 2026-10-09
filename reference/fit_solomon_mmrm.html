@@ -188,12 +188,36 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_mmrm</code> with <code>effects</code> (the four
-Solomon contrasts and the three pretest effects at each occasion, then
-the change in sensitization), <code>model</code> (the mmrm fit), <code>covariance</code> (the
-structure used), <code>observed</code> (observed posttests by group and occasion),
-<code>pretest_mean</code> (the center of the pretest; <code>NA</code> without <code>y_pre</code>), and the
-settings used.</p>
+    <p>An object of class <code>solomon_mmrm</code>, a list with:</p><ul><li><p><code>effects</code>: at each occasion, the four treatment contrasts,
+<code>ATE (avg over pretest)</code>, <code>Pretest x Treatment</code>,
+<code>Treatment | pretested</code>, and <code>Treatment | unpretested</code>, and the three
+pretest effects, <code>Pretest effect | control</code>,
+<code>Pretest effect | treated</code>, and <code>Pretest main effect</code>; then
+<code>Change in Pretest x Treatment</code>, the change in sensitization from the
+first occasion to the last. The columns are <code>occasion</code>, <code>contrast</code>,
+<code>estimate</code>, <code>std.error</code>, <code>statistic</code> (t), <code>df</code>, <code>p.value</code>,
+<code>conf.low</code>, and <code>conf.high</code>. In the last row, <code>occasion</code> names the
+two occasions, as in <code>"3 vs 1"</code>.</p></li>
+<li><p><code>conf_level</code>: the confidence level of the intervals.</p></li>
+<li><p><code>model</code>: the fitted model, an <code>mmrm</code> object.</p></li>
+<li><p><code>covariance</code>: the covariance structure used.</p></li>
+<li><p><code>grouped</code>: whether the covariance was estimated separately for
+pretested and unpretested participants.</p></li>
+<li><p><code>df_method</code>: the degrees of freedom, <code>"kenward-roger"</code> or
+<code>"satterthwaite"</code>.</p></li>
+<li><p><code>pretest_mean</code>: the mean pretest at which the pretest is centered;
+<code>NA</code> without <code>y_pre</code>.</p></li>
+<li><p><code>occasions</code>: the posttest occasions, in order.</p></li>
+<li><p><code>observed</code>: the number of observed posttests in each group, one
+column for each occasion.</p></li>
+<li><p><code>excluded</code>: the number of pretested participants left out because
+their pretest was missing.</p></li>
+<li><p><code>pretest</code> (whether pretest scores were supplied) and <code>data</code> (the
+design indicators of each participant), which solomonR's own
+functions use.</p></li>
+</ul><p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
+which returns the table, are the stable interface of the result; see
+<a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="model">Model<a class="anchor" aria-label="anchor" href="#model"></a></h2>

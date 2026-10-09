@@ -58,13 +58,36 @@ baseline_solomon(
 
 ## Value
 
-An object of class `solomon_baseline` with the group statistics, the
-difference with its interval and t test, and Hedges's g with its
-interval. For a design with several treatments, `groups` holds the
-statistics of every pretested group, `comparisons` has one row for each
-treatment against the control (`comparison`, `difference`, `std.error`,
-`conf.low`, `conf.high`, `statistic`, `df`, `p.value`, `g`, `g.low`, and
-`g.high`), and `conditions` names the control and the treatments.
+An object of class `solomon_baseline`, a list with:
+
+- `groups`: the pretest statistics of the two pretested groups (`group`,
+  `n`, `mean`, and `sd`).
+
+- `difference`, `std.error`, `statistic`, `df`, `p.value`, `conf.low`,
+  and `conf.high`: the pretest difference, treated minus control, with
+  its standard error, t test, and confidence interval.
+
+- `g`, `g.low`, and `g.high`: Hedges's g and its interval.
+
+- `conf_level`: the confidence level of the intervals.
+
+- `source`: `"individual data"` or `"summary statistics"`.
+
+For a design with several treatments, a list with:
+
+- `groups`: the pretest statistics of every pretested group.
+
+- `comparisons`: one row for each treatment against the control, in the
+  columns `comparison`, `difference`, `std.error`, `statistic`, `df`,
+  `p.value`, `conf.low`, `conf.high`, `g`, `g.low`, and `g.high`.
+
+- `conditions`: the control and the treatments (`condition` and `role`).
+
+- `conf_level` and `source`, as above.
+
+The comparison is of pretests, not of the Solomon contrasts, so the
+result has no effects table; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 

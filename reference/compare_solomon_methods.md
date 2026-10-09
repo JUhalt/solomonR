@@ -63,12 +63,37 @@ compare_solomon_methods(
 
 ## Value
 
-An object of class `solomon_comparison` with `results` (one row per
-method and contrast, with the adjustment, variance assumption, reference
-distribution, estimate, standard error, interval, and p-value),
-`estimands` (definitions of the four contrasts), `not_compared`
-(analyses excluded and why), and `skipped` (requested methods that could
-not be fitted and why).
+An object of class `solomon_comparison`, a list with:
+
+- `results`: one row for each method and contrast, in the columns
+  `method`, `contrast`, `estimate`, `std.error`, `statistic`, `df`
+  (`Inf` for a normal reference distribution), `p.value`, `conf.low`,
+  and `conf.high`, followed by the `adjustment`, the `variance`
+  assumption, and the `reference` distribution of each method. The rows
+  are the four treatment contrasts, `ATE (avg over pretest)`,
+  `Pretest x Treatment`, `Treatment | pretested`, and
+  `Treatment | unpretested`, for each method that estimates them. The
+  table has no rows when every requested method was skipped.
+
+- `estimands`: the definition of each contrast (`contrast` and
+  `definition`).
+
+- `not_compared`: the analyses left out, and why (`analysis` and
+  `reason`).
+
+- `skipped`: the requested methods that could not be fitted, and why
+  (`method` and `reason`).
+
+- `conf_level`: the confidence level of the intervals.
+
+- `settings`: the methods requested, the confidence level, and whether
+  pretest scores were supplied.
+
+`results` has the columns and the labels of an effects table, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+returns it. See
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+for the columns, the labels, and the parts of a result that are stable.
 
 ## Estimands
 

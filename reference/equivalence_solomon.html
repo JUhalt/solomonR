@@ -156,15 +156,37 @@ several treatments"). Leave it <code>NULL</code> for a four-group design.</p></d
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_equivalence</code> containing the <code>scale</code>
-of the contrast (such as <code>"outcome units"</code> or <code>"log odds ratio"</code>), the
-estimate, standard error, degrees of freedom, both one-sided tests
-(<code>t_lower</code>, <code>p_lower</code>, <code>t_upper</code>, <code>p_upper</code>), the equivalence p-value
-(<code>p_equivalence</code>), the test against zero (<code>statistic</code>, <code>p_zero</code>), both
-confidence intervals, the logical results <code>equivalent</code>, <code>different</code>, and
-<code>exceeds_bounds</code>, the <code>outcome</code>, and a plain-language <code>interpretation</code>.
-For a design with several treatments, it also holds the <code>comparison</code>,
-its <code>weights</code> over the conditions, and the <code>conditions</code> of the fit.</p>
+    <p>An object of class <code>solomon_equivalence</code>, a list with:</p><ul><li><p><code>contrast</code>: the label of the contrast tested.</p></li>
+<li><p><code>bounds</code>, <code>alpha</code>, and <code>scale</code>: the equivalence bounds, the
+significance level, and the scale of the contrast (such as
+<code>"outcome units"</code> or <code>"log odds ratio"</code>).</p></li>
+<li><p><code>estimate</code>, <code>std.error</code>, and <code>df</code>: the estimate of the contrast, its
+standard error, and the degrees of freedom of the tests (<code>Inf</code> for a
+normal reference distribution), as in the <code>effects</code> table of the fit.</p></li>
+<li><p><code>inference</code>: a description of the covariance and the reference
+distribution.</p></li>
+<li><p><code>t_lower</code>, <code>p_lower</code>, <code>t_upper</code>, and <code>p_upper</code>: the two one-sided
+tests, against the lower and the upper bound.</p></li>
+<li><p><code>p_equivalence</code>: the equivalence p-value, the larger of <code>p_lower</code> and
+<code>p_upper</code>.</p></li>
+<li><p><code>statistic</code> and <code>p_zero</code>: the two-sided test against zero.</p></li>
+<li><p><code>conf_level</code>, <code>conf.low</code>, and <code>conf.high</code>: the 1 - 2 <code>alpha</code> interval
+that matches the equivalence test, and its level.</p></li>
+<li><p><code>conf_level_zero</code>, <code>conf.low_zero</code>, and <code>conf.high_zero</code>: the
+1 - <code>alpha</code> interval that matches the test against zero, and its
+level.</p></li>
+<li><p><code>equivalent</code>, <code>different</code>, and <code>exceeds_bounds</code>: the logical results.</p></li>
+<li><p><code>outcome</code> and <code>interpretation</code>: the outcome (see "Outcomes") and a
+plain-language reading of it.</p></li>
+<li><p><code>comparison</code>, <code>weights</code> (its weights over the conditions), and
+<code>conditions</code> (those of the fit), for a design with several
+treatments.</p></li>
+</ul><p>The result is for one contrast, with several tests and two intervals,
+so it is a list of values and not an effects table, and it has no
+<code><a href="solomon_output.html">tidy()</a></code> method. <code>contrast</code>, <code>estimate</code>,
+<code>std.error</code>, <code>statistic</code>, <code>df</code>, <code>conf.low</code>, <code>conf.high</code>, and
+<code>conf_level</code> have the names and the meanings of the columns of one;
+see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="choosing-equivalence-bounds">Choosing equivalence bounds<a class="anchor" aria-label="anchor" href="#choosing-equivalence-bounds"></a></h2>

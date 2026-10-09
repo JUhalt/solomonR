@@ -146,8 +146,8 @@ fit
 
 The key estimands are:
 
-- **ATE** — the treatment effect averaged equally across the pretested
-  and unpretested conditions;
+- **ATE (avg over pretest)** — the treatment effect averaged equally
+  across the pretested and unpretested conditions;
 - **Pretest x Treatment** — whether the treatment effect differs
   depending on pretesting;
 - **Treatment \| pretested** — the treatment effect among participants

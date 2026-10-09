@@ -52,10 +52,22 @@ fisher_solomon(
 
 ## Value
 
-An object of class `solomon_fisher` with `tests` (one row per pretest
-condition and for both combined: counts, proportions, the uncorrected
-Pearson chi-square, and Fisher's exact p-value) and `sensitization` (the
-historical rule's verdict).
+An object of class `solomon_fisher`, a list with:
+
+- `tests`: one row for each pretest condition and one for both combined,
+  in the columns `condition`, `events_treatment`, `n_treatment`,
+  `events_control`, `n_control`, `risk_treatment`, `risk_control`,
+  `chisq` (the uncorrected Pearson chi-square), `chisq_p`, and
+  `fisher_p` (Fisher's exact p-value).
+
+- `sensitization`: the verdict of the historical rule, `TRUE` or
+  `FALSE`.
+
+- `alpha`: the significance level of the rule.
+
+The tests are of two-by-two tables, not of the Solomon contrasts, so the
+result has no effects table; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 

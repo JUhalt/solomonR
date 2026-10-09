@@ -149,7 +149,8 @@ participants’ mean, so the pretest effects compare the groups at that
 score (see “The pretest effect” in
 [`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
 
-The contrasts can also be accessed directly:
+The contrasts can also be accessed directly, in `fit$effects` or with
+`tidy(fit)`, which returns the same table:
 
 ``` r
 
@@ -233,6 +234,13 @@ knitr::kable(
 | Pretest effect \| control |     3.42 | 2.38 |  1.44 | .154 |    .018 |
 | Pretest effect \| treated |     1.48 | 2.40 |  0.62 | .538 |    .003 |
 | Pretest main effect       |     2.45 | 1.79 |  1.37 | .174 |    .016 |
+
+Most analyses in the package return their contrasts in an `effects`
+table with one order of columns and one set of contrast labels, beside
+the confidence level `conf_level`. The help page
+[`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+lists them, describes the columns and the labels, and says which parts
+of a result are stable.
 
 ## The four Solomon estimands
 
@@ -732,12 +740,15 @@ provides latent Solomon contrasts. Latent mean comparisons require
 scalar measurement invariance across the four Solomon groups.
 
 These SEM tools extend the same basic estimands used throughout the
-package:
+package, and their effects tables use the same labels as `fit$effects`
+above:
 
 - ATE;
 - pretest sensitization;
-- treatment effect among pretested participants; and
-- treatment effect among unpretested participants.
+- treatment effect among pretested participants;
+- treatment effect among unpretested participants; and
+- the pretest effects among controls, among treated participants, and on
+  average.
 
 ## Comparing analyses
 

@@ -169,16 +169,24 @@ statistic").</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list of class <code>solomon_perm</code> containing the contrast, the
-statistic type, the level permuted (<code>"participant"</code> or <code>"cluster"</code>), the
-estimated contrast (<code>estimate</code>), the observed statistic (<code>z_obs</code>;
-the contrast itself when <code>statistic = "difference"</code>), the permutation
-p-value (<code>p_perm</code>), the number of permutations, and whether the
-p-value is exact. Clustered fits also return the design, the number of
-possible allocations, the smallest attainable p-value when exact, and the
-numbers of treated and control clusters. If
-<code>return_dist = TRUE</code>, the permutation distribution
-(<code>z_perm</code>) is also returned.</p>
+    <p>An object of class <code>solomon_perm</code>, a list with:</p><ul><li><p><code>contrast</code>: the label of the contrast tested.</p></li>
+<li><p><code>statistic</code>: the statistic permuted, <code>"studentized"</code> or
+<code>"difference"</code>.</p></li>
+<li><p><code>level</code>: the level permuted, <code>"participant"</code> or <code>"cluster"</code>.</p></li>
+<li><p><code>estimate</code>: the estimated contrast.</p></li>
+<li><p><code>z_obs</code>: the observed statistic (the contrast itself when
+<code>statistic = "difference"</code>).</p></li>
+<li><p><code>p_perm</code>: the permutation p-value.</p></li>
+<li><p><code>reps</code> and <code>valid_reps</code>: the number of permutations, and the number
+that gave a usable statistic.</p></li>
+<li><p><code>exact</code>: whether every possible allocation was used.</p></li>
+<li><p><code>design</code>, <code>n_allocations</code> (the number of possible allocations),
+<code>min_p</code> (the smallest attainable p-value when exact), and <code>clusters</code>
+(the numbers of treated and control clusters in each stratum), for
+clustered fits.</p></li>
+<li><p><code>z_perm</code>: the permutation distribution, with <code>return_dist = TRUE</code>.</p></li>
+</ul><p>The result tests one contrast and gives no interval, so it has no
+effects table; see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

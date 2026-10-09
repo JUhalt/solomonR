@@ -20,7 +20,10 @@ model, are solomonR extensions built on established SEM methods.
 
 [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
 estimates the posttest mean of each Solomon group in a four-group
-mean-structure model and reports the four Solomon contrasts:
+mean-structure model. It reports the four Solomon contrasts and the
+three pretest effects, under the labels that
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+and the other fits use:
 
 ``` r
 
@@ -30,11 +33,14 @@ sem
 #> Fit: saturated four-group mean structure (df = 0)
 #> Global CFI/RMSEA/SRMR are not diagnostic for this model.
 #> 
-#> Key contrasts  Est (SE)            z      p           95% CI
-#> ATE            2.683 (1.726)    1.55  0.120  [-0.699, 6.066]
-#> Sens           -1.900 (3.451)  -0.55  0.582  [-8.665, 4.865]
-#> Pre_Eff        1.733 (2.696)    0.64  0.520  [-3.551, 7.018]
-#> Unpre_Eff      3.633 (2.155)    1.69  0.092  [-0.590, 7.857]
+#> Key contrasts             Est (SE)            z      p           95% CI
+#> ATE (avg over pretest)    2.683 (1.726)    1.55  0.120  [-0.699, 6.066]
+#> Pretest x Treatment       -1.900 (3.451)  -0.55  0.582  [-8.665, 4.865]
+#> Treatment | pretested     1.733 (2.696)    0.64  0.520  [-3.551, 7.018]
+#> Treatment | unpretested   3.633 (2.155)    1.69  0.092  [-0.590, 7.857]
+#> Pretest effect | control  3.400 (2.321)    1.46  0.143  [-1.150, 7.950]
+#> Pretest effect | treated  1.500 (2.554)    0.59  0.557  [-3.506, 6.506]
+#> Pretest main effect       2.450 (1.726)    1.42  0.156  [-0.932, 5.832]
 ```
 
 - **No global fit test.** The four-group mean-structure model is
@@ -42,6 +48,11 @@ sem
   function does not report them.
 - **Unadjusted contrasts.** The contrasts are unadjusted posttest mean
   differences, which is the SEM counterpart of the two-by-two analysis.
+- **Pretest effects.** The last three rows compare pretested with
+  unpretested participants: among controls, among treated participants,
+  and on average. Their estimates are those of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  without a pretest score.
 
 With `ancova = TRUE`, the model is restricted to the pretested groups
 and adjusts for the pretest. That is the analysis of covariance Campbell
@@ -54,19 +65,22 @@ with(solomon_example, fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = 
 #> Solomon SEM (ANCOVA in pretested groups)
 #> Fit: CFI=0.929, RMSEA=0.247, SRMR=0.125; df=1
 #> 
-#> Key contrasts  Est (SE)          z      p           95% CI
-#> Pre_Eff        1.694 (2.142)  0.79  0.429  [-2.504, 5.893]
+#> Key contrasts          Est (SE)          z      p           95% CI
+#> Treatment | pretested  1.694 (2.142)  0.79  0.429  [-2.504, 5.893]
 ```
 
 The unpretested groups have no pretest by design, so the adjusted model
 uses only the pretested groups. It does not treat the absent pretests as
-missing data.
+missing data. With the pretested groups alone, it reports one contrast,
+`Treatment | pretested`, and no pretest effects.
 
 ## Latent outcomes
 
 [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
 defines a latent posttest from several indicators and compares its means
-across the four groups.
+across the four groups. Its effects table, `fit$effects`, has the same
+seven rows as the observed-variable model, as differences between latent
+means.
 
 - **Identification.** The latent mean of the unpretested control group
   is fixed at 0; the contrasts are differences between latent means, so
@@ -107,10 +121,13 @@ latent
 #> Invariance check: scalar invariance supported by both criteria
 #> 
 #> Key contrasts (latent POST)  Est (SE)          z      p           95% CI
-#> ATE                          0.399 (0.130)  3.08  0.002   [0.145, 0.653]
-#> Sens                         0.060 (0.252)  0.24  0.812  [-0.434, 0.554]
-#> Pre_Eff                      0.429 (0.163)  2.63  0.008   [0.110, 0.748]
-#> Unpre_Eff                    0.369 (0.197)  1.87  0.061  [-0.017, 0.755]
+#> ATE (avg over pretest)       0.399 (0.130)  3.08  0.002   [0.145, 0.653]
+#> Pretest x Treatment          0.060 (0.252)  0.24  0.812  [-0.434, 0.554]
+#> Treatment | pretested        0.429 (0.163)  2.63  0.008   [0.110, 0.748]
+#> Treatment | unpretested      0.369 (0.197)  1.87  0.061  [-0.017, 0.755]
+#> Pretest effect | control     0.002 (0.173)  0.01  0.992  [-0.337, 0.340]
+#> Pretest effect | treated     0.062 (0.183)  0.34  0.736  [-0.297, 0.421]
+#> Pretest main effect          0.032 (0.126)  0.25  0.801  [-0.215, 0.278]
 ```
 
 ## Measurement invariance
@@ -220,12 +237,19 @@ parameters itself:
 
 fit_partial <- fit_solomon_sem_latent(shifted, c("y1", "y2", "y3", "y4"), treat, pretested,
                                       partial_post = "y4 ~ 1")
-fit_partial$effects_post[, c("contrast", "estimate", "conf.low", "conf.high")]
-#>    contrast estimate conf.low conf.high
-#> 1       ATE    0.422    0.160     0.684
-#> 2      Sens   -0.039   -0.540     0.463
-#> 3   Pre_Eff    0.403    0.072     0.734
-#> 4 Unpre_Eff    0.441    0.050     0.833
+# The estimates and intervals of the effects table, to three decimals.
+estimates <- function(fit) {
+  cbind(fit$effects["contrast"], round(fit$effects[c("estimate", "conf.low", "conf.high")], 3))
+}
+estimates(fit_partial)
+#>                   contrast estimate conf.low conf.high
+#> 1   ATE (avg over pretest)    0.422    0.160     0.684
+#> 2      Pretest x Treatment   -0.039   -0.540     0.463
+#> 3    Treatment | pretested    0.403    0.072     0.734
+#> 4  Treatment | unpretested    0.441    0.050     0.833
+#> 5 Pretest effect | control    0.038   -0.310     0.387
+#> 6 Pretest effect | treated    0.000   -0.363     0.362
+#> 7      Pretest main effect    0.019   -0.233     0.271
 ```
 
 ## What the package does when invariance fails
@@ -249,12 +273,15 @@ fit_shifted <- withCallingHandlers(
 #> Warning: Latent mean contrasts assume scalar invariance of the POST indicators, which the invariance check did not support: the chi-square difference test supports metric invariance only; the change in fit (Chen, 2007) supports metric invariance only. In Solomon-sized groups these criteria can also reject invariance that holds; see 'Invariance check' in ?fit_solomon_sem_latent and the fit's `invariance` element.
 fit_shifted$invariance_status
 #> [1] "scalar invariance not supported: the chi-square difference test supports metric invariance only; the change in fit (Chen, 2007) supports metric invariance only"
-fit_shifted$effects_post[, c("contrast", "estimate", "conf.low", "conf.high")]
-#>    contrast estimate conf.low conf.high
-#> 1       ATE    0.410    0.151     0.669
-#> 2      Sens    0.033   -0.463     0.530
-#> 3   Pre_Eff    0.426    0.100     0.753
-#> 4 Unpre_Eff    0.393    0.004     0.782
+estimates(fit_shifted)
+#>                   contrast estimate conf.low conf.high
+#> 1   ATE (avg over pretest)    0.410    0.151     0.669
+#> 2      Pretest x Treatment    0.033   -0.463     0.530
+#> 3    Treatment | pretested    0.426    0.100     0.753
+#> 4  Treatment | unpretested    0.393    0.004     0.782
+#> 5 Pretest effect | control    0.181   -0.168     0.531
+#> 6 Pretest effect | treated    0.215   -0.167     0.596
+#> 7      Pretest main effect    0.198   -0.071     0.467
 ```
 
 The package’s simulation study settled that choice. Its decision rules
@@ -266,10 +293,12 @@ to examine the invariance results, not a verdict.
 
 The shift in this example is common to both pretested groups, so the
 sensitization contrast is close to the one from the partial model above;
-the shift is absorbed into the effect of pretesting. A shift in one
-group only would bias the sensitization contrast, and there the partial
-model matters. `check_invariance = FALSE` skips the check when
-invariance was established elsewhere.
+the shift is absorbed into the effect of pretesting. The pretest-effect
+rows show it: the data were simulated without a pretest effect, and the
+pretest main effect is 0.20 here, against 0.02 in the partial model. A
+shift in one group only would bias the sensitization contrast, and there
+the partial model matters. `check_invariance = FALSE` skips the check
+when invariance was established elsewhere.
 
 ## Reporting latent models
 
@@ -351,8 +380,12 @@ the equality, and the package imposes it.
 solomonR fits the four groups in one model. Its latent mean structure is
 identified by fixing the unpretested control’s mean at 0
 ([\#16](https://github.com/JUhalt/solomonR/issues/16)), so the
-sensitization contrast, the average treatment effect, and both simple
-effects have their own Wald tests on one scale.
+sensitization contrast, the average treatment effect, both simple
+effects, and the pretest effects have their own Wald tests on one scale.
+The pretest main effect is the effect Dukes et al. describe (p. 426),
+which they judged by comparing their two program comparisons; the
+package estimates it as one contrast
+([\#110](https://github.com/JUhalt/solomonR/issues/110)).
 [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)
 tests configural, metric, and scalar invariance across all four groups
 ([\#55](https://github.com/JUhalt/solomonR/issues/55)), including the
@@ -362,12 +395,11 @@ When clusters such as schools were assigned to conditions, analyze at
 the level of assignment, or analyze observed scores with
 `fit_solomon_glm(robust = "CR2", cluster = )`.
 
-Four elements of their analyses are planned for the SEM functions
-([\#117](https://github.com/JUhalt/solomonR/issues/117)):
+Three further elements of their analyses are planned for the SEM
+functions ([\#117](https://github.com/JUhalt/solomonR/issues/117)):
 
 - a latent maturation contrast, comparing the pretested control’s
   pretest with the unpretested control’s posttest (pp. 420–422);
-- a pretest main-effect contrast, the effect they describe (p. 426);
 - the latent pretest difference between the pretested groups, as a
   baseline check in the latent analysis of covariance (p. 423; Table 4,
   p. 425);

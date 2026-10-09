@@ -113,13 +113,19 @@ design with latent variables. *Evaluation Review, 19*(4), 409–435.
 > [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md)
 > extends the loading tests to configural, metric, and scalar tests
 > across all four groups
-> ([\#55](https://github.com/JUhalt/solomonR/issues/55)). Four elements
-> of the authors’ analyses are planned
+> ([\#55](https://github.com/JUhalt/solomonR/issues/55)). The pretest
+> main effect the authors describe (p. 426) is estimated as a contrast
+> in the effects tables of
+> [`fit_solomon_sem()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem.md)
+> and
+> [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md)
+> ([\#110](https://github.com/JUhalt/solomonR/issues/110)). Three
+> further elements of the authors’ analyses are planned
 > ([\#117](https://github.com/JUhalt/solomonR/issues/117)): a latent
-> maturation contrast (pp. 420–422), a pretest main-effect contrast
-> (p. 426), the latent pretest difference between the pretested groups
-> as a baseline check (p. 423; Table 4, p. 425), and a standardized
-> latent contrast using the pooled latent standard deviation (p. 426).
+> maturation contrast (pp. 420–422), the latent pretest difference
+> between the pretested groups as a baseline check (p. 423; Table 4,
+> p. 425), and a standardized latent contrast using the pooled latent
+> standard deviation (p. 426).
 
 Edmonds, W. A., & Kennedy, T. D. (2017). *An applied guide to research
 designs: Quantitative, qualitative, and mixed methods* (2nd ed.). SAGE

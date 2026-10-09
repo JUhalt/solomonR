@@ -210,6 +210,32 @@ classic$tests$A$result
 classic$tests$D$result
 ```
 
+`classic$effects` holds Tests A-H and the pretest main effect in one
+table, with the contrast labels and the columns of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+
+### The analysis of variance table
+
+`classic$anova` is the two-by-two analysis of variance of the posttest
+that Tests A-D come from, with Type III sums of squares:
+
+``` r
+
+classic$anova
+#>                source      sumsq  df    meansq         F   p.value
+#> 1           Treatment   216.0083   1 216.00833 2.3370911 0.1290476
+#> 2             Pretest   180.0750   1 180.07500 1.9483123 0.1654347
+#> 3 Pretest x Treatment    27.0750   1  27.07500 0.2929366 0.5893828
+#> 4               Error 10721.4333 116  92.42615        NA        NA
+```
+
+Each effect has one degree of freedom, and its F is the square of a t
+test above: the treatment row is Test D, the interaction row is Test A,
+and the pretest row is the pretest main effect. With unequal group sizes
+these are not the sequential sums of squares that
+[`aov()`](https://rdrr.io/r/stats/aov.html) prints, whose treatment row
+ignores pretesting.
+
 ## Tests E-G: analyses within the pretested groups
 
 Historical approaches proposed several ways to make use of the baseline
@@ -441,7 +467,7 @@ with(waltonbraver1988, solomon_from_summary(n, mean, sd))
 #> Two-way ANOVA on the posttest (Type III sums of squares)
 #>   Treatment            SS =   67.760  df = 1  F = 3.39  p = 0.071
 #>   Pretest              SS =    0.140  df = 1  F = 0.01  p = 0.934
-#>   Treatment x Pretest  SS =    0.000  df = 1  F = 0.00  p = 1.000
+#>   Pretest x Treatment  SS =    0.000  df = 1  F = 0.00  p = 1.000
 #>   Error                SS = 1040.000  df = 52
 #> 
 #> Contrasts with 95% confidence intervals

@@ -71,15 +71,37 @@ perm_solomon(
 
 ## Value
 
-A list of class `solomon_perm` containing the contrast, the statistic
-type, the level permuted (`"participant"` or `"cluster"`), the estimated
-contrast (`estimate`), the observed statistic (`z_obs`; the contrast
-itself when `statistic = "difference"`), the permutation p-value
-(`p_perm`), the number of permutations, and whether the p-value is
-exact. Clustered fits also return the design, the number of possible
-allocations, the smallest attainable p-value when exact, and the numbers
-of treated and control clusters. If `return_dist = TRUE`, the
-permutation distribution (`z_perm`) is also returned.
+An object of class `solomon_perm`, a list with:
+
+- `contrast`: the label of the contrast tested.
+
+- `statistic`: the statistic permuted, `"studentized"` or
+  `"difference"`.
+
+- `level`: the level permuted, `"participant"` or `"cluster"`.
+
+- `estimate`: the estimated contrast.
+
+- `z_obs`: the observed statistic (the contrast itself when
+  `statistic = "difference"`).
+
+- `p_perm`: the permutation p-value.
+
+- `reps` and `valid_reps`: the number of permutations, and the number
+  that gave a usable statistic.
+
+- `exact`: whether every possible allocation was used.
+
+- `design`, `n_allocations` (the number of possible allocations),
+  `min_p` (the smallest attainable p-value when exact), and `clusters`
+  (the numbers of treated and control clusters in each stratum), for
+  clustered fits.
+
+- `z_perm`: the permutation distribution, with `return_dist = TRUE`.
+
+The result tests one contrast and gives no interval, so it has no
+effects table; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 

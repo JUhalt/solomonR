@@ -148,20 +148,42 @@ or factor.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_summary_fit</code> with <code>contrasts</code> (Tests
-A-D, the pretest main effect, and the simple effects: estimate, standard
-error, t, degrees of freedom, p-value, confidence interval, F, and Type
-III sum of squares), an <code>anova</code> table, the <code>cells</code>, the error mean
-square and degrees of freedom, and the settings.</p>
-<p>For a design with several treatments, an object of class
-<code>solomon_summary_ngroup</code> with <code>contrasts</code> (for each comparison of a
-treatment with the control and each of the four contrasts: estimate,
-standard error, t, p-value, Holm-adjusted p-value <code>p.adjusted</code>, degrees
-of freedom, and confidence interval), the omnibus tests in <code>anova</code>
-(Type III sum of squares, df, mean square, F, p-value), the <code>cells</code> in
-the package's group order, the <code>conditions</code> (control first), <code>adjust</code>
-(<code>"holm"</code>), the error mean square and degrees of freedom, and the
-settings.</p>
+    <p>An object of class <code>solomon_summary_fit</code>, a list with:</p><ul><li><p><code>effects</code>: Tests A-D and the pretest main effect, one row each, in
+the columns <code>test</code> (the letter; empty for the pretest main effect),
+<code>contrast</code>, <code>estimate</code>, <code>std.error</code>, <code>statistic</code> (t), <code>df</code>,
+<code>p.value</code>, <code>conf.low</code>, and <code>conf.high</code>, followed by <code>F</code> (the square
+of t) and the Type III sum of squares <code>sumsq</code>. <code>contrast</code> has the
+labels of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>: <code>Pretest x Treatment</code> (Test A),
+<code>Treatment | pretested</code> (Test B), <code>Treatment | unpretested</code> (Test C),
+<code>ATE (avg over pretest)</code> (Test D), and <code>Pretest main effect</code>.</p></li>
+<li><p><code>anova</code>: the two-by-two analysis of variance, in the columns <code>source</code>
+(<code>Treatment</code>, <code>Pretest</code>, <code>Pretest x Treatment</code>, and <code>Error</code>),
+<code>sumsq</code>, <code>df</code>, <code>meansq</code>, <code>F</code>, and <code>p.value</code>.</p></li>
+<li><p><code>cells</code>: the summary statistics supplied (<code>group</code>, <code>n</code>, <code>mean</code>, and
+<code>sd</code>).</p></li>
+<li><p><code>mse</code> and <code>df_error</code>: the error mean square and its degrees of
+freedom.</p></li>
+<li><p><code>conf_level</code>: the confidence level of the intervals.</p></li>
+</ul><p>For a design with several treatments, an object of class
+<code>solomon_summary_ngroup</code>, a list with:</p><ul><li><p><code>effects</code>: for each comparison of a treatment with the control, the
+four treatment contrasts, in the columns <code>comparison</code>, <code>contrast</code>,
+<code>estimate</code>, <code>std.error</code>, <code>statistic</code> (t), <code>df</code>, <code>p.value</code>,
+<code>conf.low</code>, and <code>conf.high</code>, followed by the Holm-adjusted p-value
+<code>p.adjusted</code>.</p></li>
+<li><p><code>anova</code>: the omnibus tests, in the same columns as above, with the
+sources <code>Condition</code>, <code>Pretest</code>, <code>Pretest x Condition</code>, and <code>Error</code>.</p></li>
+<li><p><code>cells</code>: the summary statistics in the package's group order
+(<code>group</code>, <code>condition</code>, <code>pretested</code>, <code>n</code>, <code>mean</code>, and <code>sd</code>).</p></li>
+<li><p><code>conditions</code>: the conditions, control first (<code>condition</code> and <code>role</code>).</p></li>
+<li><p><code>adjust</code>: the adjustment of the p-values, <code>"holm"</code>.</p></li>
+<li><p><code>mse</code>, <code>df_error</code>, and <code>conf_level</code>, as above.</p></li>
+</ul><p>Before solomonR 1.0.0, <code>effects</code> was named <code>contrasts</code>, and the
+interaction of the four-group <code>anova</code> table <code>Treatment x Pretest</code>.
+<code>$contrasts</code> still returns the table, with a deprecation warning;
+<code>[["contrasts"]]</code> does not.</p>
+<p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
+which returns the table, are the stable interface of the result; see
+<a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -246,7 +268,7 @@ Solomon four-group design: A meta-analytic approach. <em>Psychological Bulletin,
 <span class="r-out co"><span class="r-pr">#&gt;</span> Two-way ANOVA on the posttest (Type III sums of squares)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment            SS =   31.452  df = 1  F = 6.78  p = 0.011</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest              SS =    0.855  df = 1  F = 0.18  p = 0.669</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Treatment x Pretest  SS =   53.184  df = 1  F = 11.46  p = 0.001</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest x Treatment  SS =   53.184  df = 1  F = 11.46  p = 0.001</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Error                SS =  389.721  df = 84</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Contrasts with 95% confidence intervals</span>

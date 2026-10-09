@@ -186,13 +186,20 @@ unchanged.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame with <code>y_post</code>, <code>treat</code>, <code>pretested</code>, and <code>y_pre</code>
-(missing by design in the unpretested groups), in the form the analysis
-functions take. <code>treat</code> is 0/1 for the four-group design and a factor of
-conditions for a design with several treatments. Its <code>"truth"</code> attribute
-is a data frame of the true estimands, and its <code>"settings"</code> attribute
-holds the arguments, with the group sizes named by group.</p>
-    </div>
+    <p>A data frame with one row for each participant, in the form the
+analysis functions take:</p><ul><li><p><code>y_post</code>: the posttest score.</p></li>
+<li><p><code>treat</code>: the treatment, 0/1 for the four-group design and a factor of
+conditions for a design with several treatments.</p></li>
+<li><p><code>pretested</code>: 1 for a pretested participant and 0 otherwise.</p></li>
+<li><p><code>y_pre</code>: the pretest score, missing by design in the unpretested
+groups.</p></li>
+</ul><p>It has two attributes:</p><ul><li><p><code>"truth"</code>: a data frame of the true values, in the columns <code>estimand</code>
+and <code>true_value</code> for the four-group design, and <code>comparison</code>,
+<code>contrast</code>, and <code>true_value</code> for a design with several treatments.
+The contrasts have the labels, and the order, of the <code>effects</code> table
+of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>.</p></li>
+<li><p><code>"settings"</code>: the arguments, with the group sizes named by group.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><strong>Data-generating model.</strong> It is the model of <code><a href="power_solomon.html">power_solomon()</a></code>, whose

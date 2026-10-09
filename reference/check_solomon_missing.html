@@ -159,13 +159,18 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_missing</code> with <code>by_cell</code> (counts by
-Solomon cell), <code>counts</code> (totals by category), <code>pattern</code> (<code>"none"</code>,
-<code>"structural"</code>, <code>"incidental"</code>, or <code>"mixed"</code>), and <code>guidance</code> (the
-interpretation, supported response, and sources for each category
-present). For a design with several treatments, <code>by_cell</code> has one row
-for each of the 2(k + 1) groups, its <code>treat</code> column holds the
-condition, and <code>conditions</code> names the control and the treatments.</p>
+    <p>An object of class <code>solomon_missing</code>, a list with:</p><ul><li><p><code>by_cell</code>: the counts in each Solomon cell, in the columns <code>group</code>,
+<code>cell</code>, <code>pretested</code>, <code>treat</code>, <code>n</code>, <code>posttest_missing</code>,
+<code>pretest_structural</code>, <code>pretest_incidental</code>, and <code>pretest_unexpected</code>.</p></li>
+<li><p><code>counts</code>: the totals by category.</p></li>
+<li><p><code>pattern</code>: <code>"none"</code>, <code>"structural"</code>, <code>"incidental"</code>, or <code>"mixed"</code>.</p></li>
+<li><p><code>guidance</code>: for each category present, its count, the
+interpretation, the supported response, and the sources (<code>category</code>,
+<code>n</code>, <code>interpretation</code>, <code>response</code>, and <code>sources</code>).</p></li>
+<li><p><code>pretest_supplied</code>: whether pretest scores were supplied.</p></li>
+</ul><p>For a design with several treatments, <code>by_cell</code> has one row for each of
+the 2(k + 1) groups, its <code>treat</code> column holds the condition, and
+<code>conditions</code> names the control and the treatments.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

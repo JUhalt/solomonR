@@ -58,12 +58,32 @@ fit_solomon_1949(
 
 ## Value
 
-An object of class `solomon_1949` with `design` (`"three-group"` or
-`"four-group"`), `groups` (a data frame with each group's pretest and
-training, size, pretest mean and whether it was observed or inferred,
-posttest mean, and improvement, plus standard errors of the observed
-means when individual data are given), `inferred_pretest`, `I`, and, for
-the four-group design, `posttest_contrast` and `pretest_difference`.
+An object of class `solomon_1949`, a list with:
+
+- `design`: `"three-group"` or `"four-group"`.
+
+- `groups`: one row for each group, in the columns `group`, `pretested`
+  and `trained` (0/1), `n`, `pre_mean` and `pre_source` (the pretest
+  mean, and whether it was `"observed"` or `"inferred"`), `pre_se`,
+  `post_mean`, `post_se`, `change` (the improvement), and `change_se`.
+  The standard errors are those of the observed means, given with
+  individual data, and `NA` otherwise.
+
+- `inferred_pretest` and `inferred_method`: the inferred pretest mean,
+  and how it was computed (`"average"` or `"pooled"`).
+
+- `I`: Solomon's interaction.
+
+- `individual`: whether individual data were supplied.
+
+- `posttest_contrast` and `pretest_difference`, for the four-group
+  design: the posttest interaction contrast and the pretest difference
+  between the two pretested groups, whose difference is `I` (see
+  Details).
+
+Solomon (1949) gave point estimates without a test, so the result has no
+effects table; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 

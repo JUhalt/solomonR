@@ -182,14 +182,25 @@ evaluation reuses it, so designs are compared on common random numbers.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame with one row per estimand: the estimand, its true
-effect, the four cell sizes, the total sample size, the achieved power,
-the basis (<code>"analytic"</code> or <code>"simulation"</code>), the Monte Carlo standard
-error (<code>NA</code> for analytic rows), the target power, <code>alpha</code>, and a note.
-Estimands whose true effect is zero, or whose target is not reached by
+    <p>A data frame with one row for each estimand, in the columns:</p><ul><li><p><code>estimand</code>: the contrast, under the labels of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>:
+<code>ATE (avg over pretest)</code>, <code>Pretest x Treatment</code>,
+<code>Treatment | pretested</code>, and <code>Treatment | unpretested</code>.</p></li>
+<li><p><code>true_effect</code>: its true value under the planning values.</p></li>
+<li><p><code>n1</code>, <code>n2</code>, <code>n3</code>, and <code>n4</code>: the four cell sizes; and <code>total_n</code>, the
+total sample size.</p></li>
+<li><p><code>power</code>: the achieved power.</p></li>
+<li><p><code>basis</code>: <code>"analytic"</code> or <code>"simulation"</code>.</p></li>
+<li><p><code>mcse</code>: the Monte Carlo standard error of the power (<code>NA</code> for
+analytic rows).</p></li>
+<li><p><code>target_power</code> and <code>alpha</code>: the target power and the significance
+level.</p></li>
+<li><p><code>note</code>: an explanation, where one is needed.</p></li>
+</ul><p>Estimands whose true effect is zero, or whose target is not reached by
 <code>max_n</code>, return <code>NA</code> sizes with an explanatory note. The planning values
 are kept in the attribute <code>settings</code>, which <code><a href="analysis_plan_solomon.html">analysis_plan_solomon()</a></code>
-reads.</p>
+reads. The table describes a planned study, with true effects and no
+estimates, so its column of contrasts is <code>estimand</code> and it is not an
+effects table; see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

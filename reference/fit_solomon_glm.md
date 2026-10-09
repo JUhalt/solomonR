@@ -121,23 +121,66 @@ fit_solomon_glm(
 
 ## Value
 
-An object of class `solomon_glm`: a list with the fitted model,
-coefficient and contrast tables (including degrees of freedom and
-confidence limits `conf.low` and `conf.high`), the covariance matrix,
-the Pearson dispersion statistic for binomial, Poisson, and
-negative-binomial fits, `theta` (its estimate, standard error, and
-\\\alpha = 1/\theta\\) for negative-binomial fits, `pretest_mean` (the
-mean pretest at which the pretest is centered; `NA` without `y_pre`),
-and the settings used. The contrast table, `effects`, has the four
-treatment contrasts followed by the three pretest effects.
+An object of class `solomon_glm`, a list with:
+
+- `effects`: the four treatment contrasts, `ATE (avg over pretest)`,
+  `Pretest x Treatment`, `Treatment | pretested`, and
+  `Treatment | unpretested`, followed by the three pretest effects,
+  `Pretest effect | control`, `Pretest effect | treated`, and
+  `Pretest main effect`, in the columns `contrast`, `estimate`,
+  `std.error`, `statistic`, `df` (`Inf` for a normal reference
+  distribution), `p.value`, `conf.low`, and `conf.high`, followed by the
+  Wald partial R-squared and its interval (`r2`, `r2_lo`, and `r2_hi`).
+
+- `conf_level`: the confidence level of the intervals.
+
+- `coefficients`: the coefficients of the model, in the same columns
+  through `conf.high`, with `term` for `contrast`.
+
+- `model`: the fitted model, a `glm` object.
+
+- `vcov`: the covariance matrix of the coefficients, as `robust` sets
+  it.
+
+- `dispersion`: the Pearson dispersion statistic for binomial, Poisson,
+  and negative-binomial fits, and `NA` for the others.
+
+- `theta`: for negative-binomial fits, its estimate, standard error, and
+  \\\alpha = 1/\theta\\; otherwise `NULL`.
+
+- `pretest_mean`: the mean pretest at which the pretest is centered;
+  `NA` without `y_pre`.
+
+- `robust`, `family`, `cluster` (the cluster of each participant), and
+  `n_clusters`: the settings used. The last two are `NULL` without
+  `cluster`.
+
+- `call`, and `data` (the data the model was fitted to), which
+  solomonR's own functions use.
 
 For a design with several treatments, an object of class
-`solomon_ngroup`, with the same elements and these changes: `effects`
-has a `comparison` column and the adjusted p-values `p.adjusted`;
-`omnibus` holds the omnibus tests (`statistic`, `df1`, `df2`, `p.value`,
-and `reference`, `"F"` or `"chisq"`); `conditions` names the control and
-the treatments and their model terms; `weights` holds the weights of
-each comparison; and `adjust` names the adjustment.
+`solomon_ngroup`, with the same elements and these changes:
+
+- `effects` has a `comparison` column before `contrast` and the adjusted
+  p-values `p.adjusted` after `conf.high`. It has the four treatment
+  contrasts for each comparison, then the pretest effect in each
+  condition and the pretest main effect.
+
+- `omnibus`: the omnibus tests, in the columns `test`, `statistic`,
+  `df1`, `df2`, `p.value`, and `reference` (`"F"` or `"chisq"`).
+
+- `conditions`: the control and the treatments, with their model terms
+  (`condition`, `role`, and `term`).
+
+- `weights`: the weights of each comparison over the conditions, one row
+  for each comparison.
+
+- `adjust`: the adjustment of the p-values.
+
+The `effects` table, `conf_level`, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md),
+which returns the table, are the stable interface of the result; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Details
 
@@ -579,16 +622,17 @@ fit
 #> score; their standard errors include the sampling variance of the mean, and
 #> the coefficient of pretested treats it as fixed.
 
-# The four Solomon contrasts as a data frame.
+# The four treatment contrasts and the three pretest effects, as a data
+# frame; tidy(fit) returns the same table.
 fit$effects
-#>                   contrast  estimate std.error  statistic    p.value  df
-#> 1   ATE (avg over pretest)  2.663415  1.583848  1.6816102 0.09535823 115
-#> 2      Pretest x Treatment -1.939837  3.167696 -0.6123810 0.54149471 115
-#> 3    Treatment | pretested  1.693497  2.250717  0.7524252 0.45333277 115
-#> 4  Treatment | unpretested  3.633333  2.229029  1.6300074 0.10583600 115
-#> 5 Pretest effect | control  3.419918  2.383175  1.4350264 0.15399366 115
-#> 6 Pretest effect | treated  1.480082  2.395866  0.6177647 0.53795186 115
-#> 7      Pretest main effect  2.450000  1.789210  1.3693193 0.17356774 115
+#>                   contrast  estimate std.error  statistic  df    p.value
+#> 1   ATE (avg over pretest)  2.663415  1.583848  1.6816102 115 0.09535823
+#> 2      Pretest x Treatment -1.939837  3.167696 -0.6123810 115 0.54149471
+#> 3    Treatment | pretested  1.693497  2.250717  0.7524252 115 0.45333277
+#> 4  Treatment | unpretested  3.633333  2.229029  1.6300074 115 0.10583600
+#> 5 Pretest effect | control  3.419918  2.383175  1.4350264 115 0.15399366
+#> 6 Pretest effect | treated  1.480082  2.395866  0.6177647 115 0.53795186
+#> 7      Pretest main effect  2.450000  1.789210  1.3693193 115 0.17356774
 #>     conf.low conf.high          r2 r2_lo r2_hi
 #> 1 -0.4738832  5.800713 0.023999535    NA    NA
 #> 2 -8.2144330  4.334759 0.003250361    NA    NA

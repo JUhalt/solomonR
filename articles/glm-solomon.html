@@ -298,7 +298,9 @@ on average. The pretest enters as <code>pre_obs</code>, centered at the
 pretested participants’ mean, so the pretest effects compare the groups
 at that score (see “The pretest effect” in
 <code><a href="../reference/fit_solomon_glm.html">?fit_solomon_glm</a></code>).</p>
-<p>The contrasts can also be accessed directly:</p>
+<p>The contrasts can also be accessed directly, in
+<code>fit$effects</code> or with <code>tidy(fit)</code>, which returns
+the same table:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">effects_display</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span></span>
 <span>  ,</span>
@@ -437,6 +439,11 @@ at that score (see “The pretest effect” in
 </tr>
 </tbody>
 </table>
+<p>Most analyses in the package return their contrasts in an
+<code>effects</code> table with one order of columns and one set of
+contrast labels, beside the confidence level <code>conf_level</code>.
+The help page <code><a href="../reference/solomon_output.html">?solomon_output</a></code> lists them, describes the
+columns and the labels, and says which parts of a result are stable.</p>
 </div>
 <div class="section level2">
 <h2 id="the-four-solomon-estimands">The four Solomon estimands<a class="anchor" aria-label="anchor" href="#the-four-solomon-estimands"></a>
@@ -897,12 +904,15 @@ global fit indices are not diagnostic for that model.</p>
 provides latent Solomon contrasts. Latent mean comparisons require
 scalar measurement invariance across the four Solomon groups.</p>
 <p>These SEM tools extend the same basic estimands used throughout the
-package:</p>
+package, and their effects tables use the same labels as
+<code>fit$effects</code> above:</p>
 <ul>
 <li>ATE;</li>
 <li>pretest sensitization;</li>
-<li>treatment effect among pretested participants; and</li>
-<li>treatment effect among unpretested participants.</li>
+<li>treatment effect among pretested participants;</li>
+<li>treatment effect among unpretested participants; and</li>
+<li>the pretest effects among controls, among treated participants, and
+on average.</li>
 </ul>
 </div>
 <div class="section level2">

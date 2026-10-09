@@ -156,12 +156,23 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_1949</code> with <code>design</code> (<code>"three-group"</code>
-or <code>"four-group"</code>), <code>groups</code> (a data frame with each group's pretest and
-training, size, pretest mean and whether it was observed or inferred,
-posttest mean, and improvement, plus standard errors of the observed
-means when individual data are given), <code>inferred_pretest</code>, <code>I</code>, and, for
-the four-group design, <code>posttest_contrast</code> and <code>pretest_difference</code>.</p>
+    <p>An object of class <code>solomon_1949</code>, a list with:</p><ul><li><p><code>design</code>: <code>"three-group"</code> or <code>"four-group"</code>.</p></li>
+<li><p><code>groups</code>: one row for each group, in the columns <code>group</code>, <code>pretested</code>
+and <code>trained</code> (0/1), <code>n</code>, <code>pre_mean</code> and <code>pre_source</code> (the pretest
+mean, and whether it was <code>"observed"</code> or <code>"inferred"</code>), <code>pre_se</code>,
+<code>post_mean</code>, <code>post_se</code>, <code>change</code> (the improvement), and <code>change_se</code>.
+The standard errors are those of the observed means, given with
+individual data, and <code>NA</code> otherwise.</p></li>
+<li><p><code>inferred_pretest</code> and <code>inferred_method</code>: the inferred pretest mean,
+and how it was computed (<code>"average"</code> or <code>"pooled"</code>).</p></li>
+<li><p><code>I</code>: Solomon's interaction.</p></li>
+<li><p><code>individual</code>: whether individual data were supplied.</p></li>
+<li><p><code>posttest_contrast</code> and <code>pretest_difference</code>, for the four-group
+design: the posttest interaction contrast and the pretest difference
+between the two pretested groups, whose difference is <code>I</code> (see
+Details).</p></li>
+</ul><p>Solomon (1949) gave point estimates without a test, so the result has
+no effects table; see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

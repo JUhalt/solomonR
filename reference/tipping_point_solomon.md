@@ -95,11 +95,39 @@ tipping_point_solomon(
 
 ## Value
 
-An object of class `solomon_tipping` with `results` (one row per offset:
-the offset in posttest units and in standard deviations, and the pooled
-estimate, interval, and p-value), `tipping` (the smallest negative and
-positive offsets at which the conclusion differs from the one under MAR,
-`NA` when it does not change within the range), and the settings used.
+An object of class `solomon_tipping`, a list with:
+
+- `results`: one row for each offset, in the columns `delta` (the offset
+  in posttest units), `delta_sd` (the offset in standard deviations),
+  and then the pooled result in the columns of
+  `fit_solomon_mi()$effects`: `contrast`, `estimate`, `std.error`,
+  `statistic`, `df`, `p.value`, `conf.low`, and `conf.high`, followed by
+  `significant` (whether `p.value` is below `alpha`).
+
+- `tipping`: the smallest negative and positive offsets at which the
+  conclusion differs from the one under MAR, `NA` when it does not
+  change within the range; and `tipping_sd`, the same in standard
+  deviations.
+
+- `conf_level`: the confidence level of the intervals, 1 - `alpha`.
+
+- `contrast`, `groups` (the groups shifted), `alpha`, `m`, `seed`, and
+  `robust`: the settings used.
+
+- `sd`: the pooled within-group standard deviation of the observed
+  posttests.
+
+- `missing`: the posttests missing in each group, as in
+  [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md).
+
+- `pretest` (whether pretest scores were supplied) and `data` (the
+  design indicators), which solomonR's own functions use.
+
+`results` has the columns and the labels of an effects table, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+returns it. See
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+for the columns, the labels, and the parts of a result that are stable.
 
 ## Details
 

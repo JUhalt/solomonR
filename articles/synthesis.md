@@ -32,7 +32,7 @@ fit
 #> Two-way ANOVA on the posttest (Type III sums of squares)
 #>   Treatment            SS =   31.452  df = 1  F = 6.78  p = 0.011
 #>   Pretest              SS =    0.855  df = 1  F = 0.18  p = 0.669
-#>   Treatment x Pretest  SS =   53.184  df = 1  F = 11.46  p = 0.001
+#>   Pretest x Treatment  SS =   53.184  df = 1  F = 11.46  p = 0.001
 #>   Error                SS =  389.721  df = 84
 #> 
 #> Contrasts with 95% confidence intervals

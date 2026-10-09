@@ -149,14 +149,17 @@ strings (<code>y_post = "post"</code>).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>solomon_checks</code> with the p-values
-<code>brown_forsythe_4cell_p</code> (all four posttest cells),
-<code>brown_forsythe_unpre_p</code> (the unpretested cells), <code>shapiro_p_by_cell</code>
-(one p-value for each cell, named by the pretest indicator and the
-treatment, such as <code>1.0</code>), and <code>ancova_slope_homogeneity_p</code>. For a
-design with several treatments, the test across all the posttest cells
-is <code>brown_forsythe_cells_p</code>, the cells of <code>shapiro_p_by_cell</code> are named
-by the pretest indicator and the condition, such as <code>1.RP</code>, and
+    <p>An object of class <code>solomon_checks</code>, a list of p-values:</p><ul><li><p><code>brown_forsythe_4cell_p</code>: the Brown-Forsythe test across all four
+posttest cells.</p></li>
+<li><p><code>brown_forsythe_unpre_p</code>: the Brown-Forsythe test of the unpretested
+cells.</p></li>
+<li><p><code>shapiro_p_by_cell</code>: the Shapiro-Wilk test in each cell, named by
+the pretest indicator and the treatment, such as <code>1.0</code>.</p></li>
+<li><p><code>ancova_slope_homogeneity_p</code>: the test of homogeneous
+pretest-posttest slopes.</p></li>
+</ul><p>For a design with several treatments, the test across all the posttest
+cells is <code>brown_forsythe_cells_p</code>, the cells of <code>shapiro_p_by_cell</code> are
+named by the pretest indicator and the condition, such as <code>1.RP</code>, and
 <code>conditions</code> names the control and the treatments.</p>
     </div>
     <div class="section level2">

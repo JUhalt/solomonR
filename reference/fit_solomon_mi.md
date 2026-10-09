@@ -83,11 +83,42 @@ fit_solomon_mi(
 
 ## Value
 
-An object of class `solomon_mi` with `effects` (the pooled Solomon
-contrasts, with their degrees of freedom, fraction of missing
-information `fmi`, and Monte Carlo standard error `mc_se`), `delta`,
-`m`, `missing` (missing posttests by group), `excluded`, the
-per-imputation `estimates` and `std_errors`, and the settings used.
+An object of class `solomon_mi`, a list with:
+
+- `effects`: the pooled treatment contrasts, `ATE (avg over pretest)`,
+  `Pretest x Treatment`, `Treatment | pretested`, and
+  `Treatment | unpretested`, in the columns `contrast`, `estimate`,
+  `std.error`, `statistic` (t), `df` (Barnard and Rubin's), `p.value`,
+  `conf.low`, and `conf.high`, followed by the fraction of missing
+  information `fmi` and the Monte Carlo standard error `mc_se`.
+
+- `conf_level`: the confidence level of the intervals.
+
+- `delta`: the offset added in each of the four groups.
+
+- `m`: the number of imputations.
+
+- `missing`: the posttests missing in each group (`group`, `n`,
+  `missing`, and `proportion`).
+
+- `excluded`: the number of pretested participants left out because
+  their pretest was missing.
+
+- `estimates` and `std_errors`: the estimates and standard errors of
+  each imputation, one row for each imputation and one column for each
+  contrast.
+
+- `df_com`: the complete-data degrees of freedom of each contrast.
+
+- `robust`: the covariance of each completed-data analysis.
+
+- `pretest` (whether pretest scores were supplied) and `data` (the
+  design indicators), which solomonR's own functions use.
+
+The `effects` table, `conf_level`, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md),
+which returns the table, are the stable interface of the result; see
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md).
 
 ## Method
 
@@ -95,7 +126,7 @@ per-imputation `estimates` and `std_errors`, and the settings used.
     separately in each Solomon group to the participants with an
     observed posttest: on the pretest in the pretested groups, and on a
     constant in the unpretested groups, which have no pretest by design.
-    The analysis contains the Treatment x Pretest interaction of two
+    The analysis contains the Pretest x Treatment interaction of two
     fully observed indicators, and imputing separately in the groups
     they define is the simplest approach to such interactions (Carpenter
     et al., 2023, section 6.3.5, p. 149).

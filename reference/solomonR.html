@@ -144,6 +144,14 @@ are <code>y_post</code> and <code>y_pre</code> everywhere, a fitted model is pas
 and the planning functions share one argument order: <code>n</code> (or <code>power</code>),
 <code>delta</code>, <code>sens</code>, <code>rho</code>, <code>sigma</code>, <code>alpha</code>. Each function that takes data
 vectors also takes an optional <code>data</code> data frame.</p>
+<p>solomonR 1.0.0 settled the output (issue #110). The fits and analyses
+listed in <a href="solomon_output.html">solomon_output</a> return the Solomon contrasts in a table named
+<code>effects</code> (<code>results</code> in <code><a href="compare_solomon_methods.html">compare_solomon_methods()</a></code> and
+<code><a href="tipping_point_solomon.html">tipping_point_solomon()</a></code>, whose rows come from several fits), with one
+order of columns and one set of contrast labels, beside the confidence
+level <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code> returns that table.
+<a href="solomon_output.html">solomon_output</a> also names the results that have no such table, and
+states which parts of a result are stable and which are not.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

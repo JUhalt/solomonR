@@ -56,13 +56,25 @@ check_solomon_missing(
 
 ## Value
 
-An object of class `solomon_missing` with `by_cell` (counts by Solomon
-cell), `counts` (totals by category), `pattern` (`"none"`,
-`"structural"`, `"incidental"`, or `"mixed"`), and `guidance` (the
-interpretation, supported response, and sources for each category
-present). For a design with several treatments, `by_cell` has one row
-for each of the 2(k + 1) groups, its `treat` column holds the condition,
-and `conditions` names the control and the treatments.
+An object of class `solomon_missing`, a list with:
+
+- `by_cell`: the counts in each Solomon cell, in the columns `group`,
+  `cell`, `pretested`, `treat`, `n`, `posttest_missing`,
+  `pretest_structural`, `pretest_incidental`, and `pretest_unexpected`.
+
+- `counts`: the totals by category.
+
+- `pattern`: `"none"`, `"structural"`, `"incidental"`, or `"mixed"`.
+
+- `guidance`: for each category present, its count, the interpretation,
+  the supported response, and the sources (`category`, `n`,
+  `interpretation`, `response`, and `sources`).
+
+- `pretest_supplied`: whether pretest scores were supplied.
+
+For a design with several treatments, `by_cell` has one row for each of
+the 2(k + 1) groups, its `treat` column holds the condition, and
+`conditions` names the control and the treatments.
 
 ## Details
 

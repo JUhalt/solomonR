@@ -62,6 +62,21 @@ and the planning functions share one argument order: `n` (or `power`),
 `delta`, `sens`, `rho`, `sigma`, `alpha`. Each function that takes data
 vectors also takes an optional `data` data frame.
 
+solomonR 1.0.0 settled the output (issue \#110). The fits and analyses
+listed in
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+return the Solomon contrasts in a table named `effects` (`results` in
+[`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
+and
+[`tipping_point_solomon()`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md),
+whose rows come from several fits), with one order of columns and one
+set of contrast labels, beside the confidence level `conf_level`, and
+[`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+returns that table.
+[solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+also names the results that have no such table, and states which parts
+of a result are stable and which are not.
+
 ## References
 
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and

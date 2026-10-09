@@ -70,13 +70,27 @@ validate_solomon(
 
 ## Value
 
-An object of class `solomon_validation` with `valid` (`TRUE` when no
-errors were found), `issues` (severity, check, and message), `cells`
-(counts by cell, with clusters and cluster sizes when `cluster` is
-supplied), and `missing` (the
-[`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
-result). For a design with several treatments, `cells` has one row for
-each of the 2(k + 1) cells and `conditions` names the control and the
+An object of class `solomon_validation`, a list with:
+
+- `valid`: `TRUE` when no errors were found.
+
+- `issues`: one row for each finding, in the columns `severity`,
+  `check`, and `message`.
+
+- `cells`: the counts in each cell, as in `by_cell` of
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md),
+  with `posttest_observed`, and with the clusters and cluster sizes when
+  `cluster` is supplied.
+
+- `missing`: the
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  result.
+
+- `settings`: `min_cell_n`, and whether pretest scores and clusters were
+  supplied.
+
+For a design with several treatments, `cells` has one row for each of
+the 2(k + 1) cells and `conditions` names the control and the
 treatments.
 
 ## Details

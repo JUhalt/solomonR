@@ -137,9 +137,13 @@ unpretested pair is returned.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame with one row per pair: the estimator, <code>yi</code> (effect
-size), <code>vi</code> (sampling variance), <code>sei</code> (standard error), and the group
-sizes.</p>
+    <p>A data frame with one row for each pair of groups, in the columns:</p><ul><li><p><code>pair</code>: the pair, pretested or unpretested.</p></li>
+<li><p><code>estimator</code>: the effect-size estimator.</p></li>
+<li><p><code>yi</code>, <code>vi</code>, and <code>sei</code>: the effect size, its sampling variance, and
+its standard error, under the names meta-analysis software uses.</p></li>
+<li><p><code>n_treated</code> and <code>n_control</code>: the group sizes.</p></li>
+</ul><p>The effect sizes are standardized, so this is not an effects table; see
+<a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
