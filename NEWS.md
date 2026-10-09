@@ -1,5 +1,21 @@
 # solomonR (development version)
 
+## Ties in the permutation test (bug fix, #131)
+
+* At the participant level, `perm_solomon()` let rounding error decide
+  whether a permutation that reproduces the observed statistic was
+  counted as at least as extreme. A permutation that repeats the observed
+  assignment, or swaps equal arms, has the observed statistic exactly,
+  and the p-value is valid only if it is counted (Phipson & Smyth, 2010).
+  Such ties are now counted, with the relative tolerance the cluster-level
+  test already used, and `plot_perm()` uses the same rule.
+* What can change: p-values in very small groups, which were too small.
+  With groups of 4, 4, 3, and 3, fewer than half of the tied permutations
+  were counted, and one test gave p = .027 where the correct value is
+  .117. With 10 or more participants in each group a tie is rare: with
+  999 permutations about 1 analysis in 100 meets one, and its p-value
+  rises by .001.
+
 ## Credit for the unified model (#105)
 
 * The model of `fit_solomon_glm()` is now credited to Newman, Benz, and

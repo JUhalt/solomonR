@@ -1111,7 +1111,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' default statistic is the HC3-studentized contrast. The permutation
 #' p-value is a valid test of the sharp null hypothesis that treatment has no
 #' effect for any participant; the `+1` correction keeps the Monte Carlo
-#' p-value from being zero (Phipson & Smyth, 2010). Studentizing the
+#' p-value from being zero (Phipson & Smyth, 2010). A permutation whose
+#' statistic equals the observed one, as when it repeats the observed
+#' assignment, counts as at least as extreme, which that validity requires;
+#' statistics within a relative tolerance of 1e-10 are treated as equal, so
+#' that rounding error does not decide. Studentizing the
 #' statistic makes permutation tests asymptotically robust when only an
 #' average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
 #' Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness
@@ -1525,9 +1529,10 @@ perm_solomon <- function(
 
   # Two-sided randomization p-value with the +1 finite-simulation
   # correction. This prevents an estimated p-value of exactly zero.
+  # Ties with the observed statistic are counted (see .perm_at_least()).
 
   p_perm <- (
-    sum(abs(z_perm_valid) >= abs(z_obs)) + 1
+    sum(.perm_at_least(z_perm_valid, z_obs)) + 1
   ) / (
     length(z_perm_valid) + 1
   )

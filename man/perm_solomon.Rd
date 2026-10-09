@@ -73,7 +73,11 @@ within pretest strata and the model is refitted for each permutation. The
 default statistic is the HC3-studentized contrast. The permutation
 p-value is a valid test of the sharp null hypothesis that treatment has no
 effect for any participant; the \code{+1} correction keeps the Monte Carlo
-p-value from being zero (Phipson & Smyth, 2010). Studentizing the
+p-value from being zero (Phipson & Smyth, 2010). A permutation whose
+statistic equals the observed one, as when it repeats the observed
+assignment, counts as at least as extreme, which that validity requires;
+statistics within a relative tolerance of 1e-10 are treated as equal, so
+that rounding error does not decide. Studentizing the
 statistic makes permutation tests asymptotically robust when only an
 average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
 Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness

@@ -182,3 +182,44 @@ test_that("the report says the difference statistic tests only the sharp null (#
   expect_false(any(startsWith(studentized$references, "Romano, J. P. (1990).")))
   expect_match(studentized$method, "(DiCiccio & Romano, 2017; Wu & Ding, 2021)", fixed = TRUE)
 })
+
+# Groups of 4, 4, 3, and 3: with 3 against 3 in the unpretested condition,
+# 2 of the 20 labelings give the observed statistic in exact arithmetic
+# (the observed labels, and the labels swapped), so ties are frequent.
+tie_data <- function(seed) {
+  g <- rep(1:4, times = c(4, 4, 3, 3))
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  set.seed(9300 + seed)
+  pre <- ifelse(pretested == 1, stats::rnorm(length(g)), NA)
+  y <- 0.8 * treat + ifelse(is.na(pre), 0, 0.5 * pre) + stats::rnorm(length(g))
+  data.frame(y = y, treat = treat, pretested = pretested, pre = pre)
+}
+
+test_that("permutations tied with the observed statistic are counted (#131)", {
+  expect_identical(.perm_at_least(c(1 - 1e-15, 1 + 1e-15, -1 + 1e-15, 0.9), 1),
+                   c(TRUE, TRUE, TRUE, FALSE))
+
+  fit <- fit_solomon_glm(y, treat, pretested, pre, data = tie_data(7))
+  for (stat in c("studentized", "difference")) {
+    p <- perm_solomon(fit, contrast = "Treatment | unpretested", reps = 999, seed = 7,
+                      statistic = stat, return_dist = TRUE)
+    z <- abs(p$z_perm)
+    z0 <- abs(p$z_obs)
+    tied <- abs(z - z0) <= 1e-10 * z0
+    # About 100 of the 999 permutations tie, and every one is counted.
+    expect_gt(sum(tied), 50)
+    expect_equal(p$p_perm, (sum(z > z0 & !tied) + sum(tied) + 1) / (p$valid_reps + 1),
+                 tolerance = 1e-12)
+  }
+
+  # The case in the issue: rounding left most ties uncounted and gave .027.
+  p <- perm_solomon(fit, contrast = "Treatment | unpretested", reps = 999, seed = 7,
+                    return_dist = TRUE)
+  expect_equal(p$p_perm, 0.117, tolerance = 1e-12)
+
+  # plot_perm() computes the same p-value when the object lacks one.
+  q <- p
+  q$p_perm <- NULL
+  expect_identical(plot_perm(q)$labels$subtitle, plot_perm(p)$labels$subtitle)
+})

@@ -54,6 +54,14 @@
   )
 }
 
+# Which permuted statistics are at least as extreme as the observed one, at
+# either level of permutation. A permutation that repeats the observed
+# allocation, or swaps equal arms, has the observed statistic in exact
+# arithmetic, and the p-value is valid only if it is counted (Phipson &
+# Smyth, 2010). The relative tolerance keeps rounding error, of about 1e-15,
+# from deciding that (issue #131).
+.perm_at_least <- function(z, z0) abs(z) >= abs(z0) * (1 - 1e-10)
+
 # Allocation matrices for each stratum: every allocation when there are at
 # most `reps` in total (across strata), otherwise `reps` random ones.
 .cluster_allocations <- function(treated, reps) {
@@ -246,14 +254,13 @@
   if (!any(valid)) stop("No valid permutation statistics were obtained.", call. = FALSE)
 
   z_perm <- z_perm[valid]
-  at_least <- function(z, z0) abs(z) >= abs(z0) * (1 - 1e-10)
 
   if (allocations$exact) {
     # The observed allocation is one of the enumerated allocations.
-    p_perm <- mean(at_least(z_perm, observed$stat))
-    min_p <- mean(at_least(z_perm, max(abs(z_perm))))
+    p_perm <- mean(.perm_at_least(z_perm, observed$stat))
+    min_p <- mean(.perm_at_least(z_perm, max(abs(z_perm))))
   } else {
-    p_perm <- (sum(at_least(z_perm, observed$stat)) + 1) / (length(z_perm) + 1)
+    p_perm <- (sum(.perm_at_least(z_perm, observed$stat)) + 1) / (length(z_perm) + 1)
     min_p <- NA_real_
   }
 
