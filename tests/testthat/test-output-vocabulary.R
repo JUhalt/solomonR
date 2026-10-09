@@ -282,3 +282,702 @@ test_that("baseline_solomon() orders its test as the effects tables do", {
   shared <- c("difference", "std.error", "statistic", "df", "p.value", "conf.low", "conf.high")
   expect_identical(intersect(names(two), shared), shared)
 })
+
+# ---- The contract of ?solomon_output: labels, `conf_level`, and tidy() ---------
+
+# The labels that every effects table draws on.
+solomon_labels <- c(.solomon_contrast_order, .solomon_pretest_order)
+
+# What ?solomon_output promises of a result with an effects table: the table
+# has the shared columns (expect_effects_table()) and is a plain data frame,
+# its labels are among `labels`, `conf_level` is at the top level of the
+# result, and tidy() returns the table as it is. `element` is `results` for
+# the two results that name their table so. The fits are made with a
+# confidence level other than the default, so that a level that did not
+# follow the argument would show.
+expect_output_contract <- function(x, conf_level, keys = character(), extras = character(),
+                                   reference = "t", labels = solomon_labels,
+                                   element = "effects") {
+  table <- x[[element]]
+  expect_effects_table(table, keys = keys, extras = extras, reference = reference)
+  expect_identical(class(table), "data.frame")
+  expect_true(all(table$contrast %in% labels))
+  expect_true(is.numeric(x$conf_level) && length(x$conf_level) == 1L)
+  expect_equal(x$conf_level, conf_level)
+  expect_identical(tidy(x), table)
+  invisible(table)
+}
+
+# `conf_level` is the level of `conf.low` and `conf.high`: the interval is
+# the estimate plus and minus the quantile of the reference distribution at
+# that level times the standard error.
+expect_interval_at <- function(table, level) {
+  half <- stats::qt(1 - (1 - level) / 2, table$df) * table$std.error
+  expect_equal(table$conf.low, table$estimate - half)
+  expect_equal(table$conf.high, table$estimate + half)
+}
+
+six_group_summary <- function(conf_level = 0.95) {
+  solomon_from_summary(
+    n = c(24, 23, 27, 22, 15, 22),
+    mean = c(2.929167, 3.168116, 3.112346, 3.128788, 3.152184, 3.018548),
+    sd = c(0.434203, 0.369613, 0.355440, 0.383150, 0.374069, 0.354758),
+    treat = c("RP", "GS", "Control", "RP", "GS", "Control"),
+    pretested = c(1, 1, 1, 0, 0, 0), control = "Control", conf_level = conf_level
+  )
+}
+
+test_that("the labels are those of the specification", {
+  expect_identical(
+    .solomon_contrast_order,
+    c("ATE (avg over pretest)", "Pretest x Treatment", "Treatment | pretested",
+      "Treatment | unpretested")
+  )
+  expect_identical(
+    .solomon_pretest_order,
+    c("Pretest effect | control", "Pretest effect | treated", "Pretest main effect")
+  )
+})
+
+test_that("fit_solomon_glm() follows the contract", {
+  d <- solomon_example
+  fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, conf_level = 0.9, data = d)
+  e <- expect_output_contract(fit, 0.9, extras = c("r2", "r2_lo", "r2_hi"))
+  expect_identical(e$contrast, solomon_labels)
+  expect_interval_at(e, 0.9)
+
+  d$passed <- as.integer(d$y_post > stats::median(d$y_post))
+  binary <- fit_solomon_glm(passed, treat, pretested, family = stats::binomial(),
+                            conf_level = 0.9, data = d)
+  e <- expect_output_contract(binary, 0.9, extras = c("r2", "r2_lo", "r2_hi"), reference = "z")
+  expect_identical(e$contrast, solomon_labels)
+  expect_interval_at(e, 0.9)
+})
+
+test_that("fit_solomon_glm() with several treatments follows the contract", {
+  fit <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                         control = "Control", conf_level = 0.9, data = mai2020)
+  e <- expect_output_contract(fit, 0.9, keys = "comparison",
+                              extras = c("p.adjusted", "r2", "r2_lo", "r2_hi"))
+  expect_interval_at(e, 0.9)
+  # The four treatment contrasts of each comparison, then the pretest effect
+  # in each condition and the pretest main effect.
+  treatment <- e$contrast %in% .solomon_contrast_order
+  expect_identical(unique(e$contrast), solomon_labels)
+  expect_setequal(e$comparison[treatment], c("RP vs Control", "GS vs Control"))
+  expect_identical(e$comparison[!treatment], c("Control", "RP", "GS", "All conditions"))
+  expect_identical(
+    e$contrast[!treatment],
+    c("Pretest effect | control", "Pretest effect | treated", "Pretest effect | treated",
+      "Pretest main effect")
+  )
+})
+
+test_that("fit_solomon_ml() follows the contract under both inferences", {
+  d <- solomon_example
+  fit <- fit_solomon_ml(y_post, treat, pretested, y_pre, conf_level = 0.9, data = d)
+  e <- expect_output_contract(fit, 0.9)
+  expect_identical(e$contrast, solomon_labels)
+  expect_interval_at(e, 0.9)
+
+  wald <- fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald", conf_level = 0.9,
+                         data = d)
+  e <- expect_output_contract(wald, 0.9, reference = "z")
+  expect_identical(e$contrast, solomon_labels)
+  expect_interval_at(e, 0.9)
+})
+
+test_that("fit_solomon_mi() and tipping_point_solomon() follow the contract", {
+  d <- vocabulary_missing_data()
+  mi <- fit_solomon_mi(y_post, treat, pretested, y_pre, m = 5, seed = 1, conf_level = 0.9,
+                       data = d)
+  e <- expect_output_contract(mi, 0.9, extras = c("fmi", "mc_se"))
+  # The four treatment contrasts.
+  expect_identical(e$contrast, .solomon_contrast_order)
+  expect_interval_at(e, 0.9)
+
+  # The table of a tipping-point analysis is `results`, and its confidence
+  # level is 1 - alpha.
+  tp <- tipping_point_solomon(y_post, treat, pretested, y_pre, deltas = c(-3, 3), m = 5,
+                              seed = 1, alpha = 0.1, data = d)
+  r <- expect_output_contract(tp, 0.9, keys = c("delta", "delta_sd"), extras = "significant",
+                              element = "results")
+  expect_identical(unique(r$contrast), "ATE (avg over pretest)")
+  expect_interval_at(r, 0.9)
+  expect_null(tp$effects)
+})
+
+test_that("fit_solomon_mmrm() follows the contract, with one label of its own", {
+  testthat::skip_if_not_installed("mmrm")
+  withr::local_seed(57)
+  n <- 20
+  g <- rep(1:4, each = n)
+  treat <- as.integer(g %in% c(1, 3))
+  pretested <- as.integer(g <= 2)
+  long <- data.frame(
+    id = rep(seq_len(4 * n), 2), occasion = rep(1:2, each = 4 * n),
+    y_post = stats::rnorm(8 * n, 0.4 * rep(treat, 2)), treat = rep(treat, 2),
+    pretested = rep(pretested, 2),
+    y_pre = rep(ifelse(pretested == 1, stats::rnorm(4 * n), NA), 2)
+  )
+  fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, conf_level = 0.9,
+                          data = long)
+  change <- "Change in Pretest x Treatment"
+  e <- expect_output_contract(fit, 0.9, keys = "occasion", labels = c(solomon_labels, change))
+  expect_interval_at(e, 0.9)
+  # The seven contrasts at each occasion, then the change in sensitization.
+  expect_identical(e$contrast, c(rep(solomon_labels, 2), change))
+  expect_identical(e$occasion, c(rep(c("1", "2"), each = 7), "2 vs 1"))
+})
+
+test_that("fit_solomon_sem() follows the contract", {
+  testthat::skip_if_not_installed("lavaan")
+  d <- solomon_example
+  sem <- fit_solomon_sem(y_post, treat, pretested, conf_level = 0.9, data = d)
+  e <- expect_output_contract(sem, 0.9, reference = "z")
+  expect_identical(e$contrast, solomon_labels)
+  expect_interval_at(e, 0.9)
+
+  # The ANCOVA of the pretested groups has one contrast.
+  ancova <- fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = TRUE, conf_level = 0.9,
+                            data = d)
+  e <- expect_output_contract(ancova, 0.9, reference = "z")
+  expect_identical(e$contrast, "Treatment | pretested")
+  expect_interval_at(e, 0.9)
+})
+
+test_that("fit_solomon_sem_latent() follows the contract", {
+  testthat::skip_if_not_installed("lavaan")
+  withr::local_seed(110)
+  n <- 60
+  g <- rep(1:4, each = n)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  f <- stats::rnorm(4 * n, 0.4 * treat)
+  pre <- stats::rnorm(4 * n)
+  items <- data.frame(
+    y1 = f + stats::rnorm(4 * n, 0, 0.6), y2 = 0.9 * f + stats::rnorm(4 * n, 0, 0.6),
+    y3 = 0.8 * f + stats::rnorm(4 * n, 0, 0.6),
+    p1 = pre + stats::rnorm(4 * n, 0, 0.6), p2 = 0.9 * pre + stats::rnorm(4 * n, 0, 0.6),
+    p3 = 0.8 * pre + stats::rnorm(4 * n, 0, 0.6)
+  )
+  items[pretested == 0, c("p1", "p2", "p3")] <- NA
+  latent <- suppressWarnings(fit_solomon_sem_latent(
+    items, c("y1", "y2", "y3"), treat, pretested, pre_items = c("p1", "p2", "p3"),
+    ancova = TRUE, check_invariance = FALSE, conf_level = 0.9
+  ))
+  e <- expect_output_contract(latent, 0.9, reference = "z")
+  expect_identical(e$contrast, solomon_labels)
+  expect_interval_at(e, 0.9)
+  # tidy() gives the four-group model; the latent ANCOVA of the pretested
+  # groups is read by name.
+  expect_effects_table(latent$effects_pre, reference = "z")
+  expect_identical(latent$effects_pre$contrast, "Treatment | pretested")
+  expect_interval_at(latent$effects_pre, 0.9)
+})
+
+test_that("solomon_from_summary() follows the contract", {
+  four <- with(elkarkri2025a, solomon_from_summary(n, mean, sd, conf_level = 0.9))
+  e <- expect_output_contract(four, 0.9, keys = "test", extras = c("F", "sumsq"))
+  expect_interval_at(e, 0.9)
+  # Tests A-D and the pretest main effect, which has no letter.
+  expect_identical(e$test, c("A", "B", "C", "D", ""))
+  expect_identical(
+    e$contrast,
+    c("Pretest x Treatment", "Treatment | pretested", "Treatment | unpretested",
+      "ATE (avg over pretest)", "Pretest main effect")
+  )
+
+  six <- six_group_summary(conf_level = 0.9)
+  e <- expect_output_contract(six, 0.9, keys = "comparison", extras = "p.adjusted")
+  expect_interval_at(e, 0.9)
+  # The four treatment contrasts of each comparison.
+  expect_identical(unique(e$contrast), .solomon_contrast_order)
+  expect_identical(unique(e$comparison), c("RP vs Control", "GS vs Control"))
+})
+
+test_that("fit_solomon_classic() follows the contract", {
+  d <- solomon_example
+  classic <- fit_solomon_classic(y_post, treat, pretested, y_pre, conf_level = 0.9, data = d)
+  e <- expect_output_contract(classic, 0.9, keys = "test", extras = "F")
+  expect_interval_at(e, 0.9)
+  # Tests A-H and the pretest main effect, which has no letter. `test`
+  # tells apart the tests that estimate the same contrast.
+  expect_identical(e$test, c(LETTERS[1:8], ""))
+  by_test <- c(A = "Pretest x Treatment", B = "Treatment | pretested",
+               C = "Treatment | unpretested", D = "ATE (avg over pretest)",
+               E = "Treatment | pretested", F = "Treatment | pretested",
+               G = "Treatment | pretested", H = "Treatment | unpretested")
+  expect_identical(e$contrast, c(unname(by_test), "Pretest main effect"))
+  # The summary of a classic fit is the fit.
+  expect_identical(tidy(summary(classic)), classic$effects)
+})
+
+test_that("marginal_solomon() follows the contract", {
+  d <- solomon_example
+  d$passed <- as.integer(d$y_post > stats::median(d$y_post))
+  fit <- fit_solomon_glm(passed, treat, pretested, family = stats::binomial(), data = d)
+
+  delta <- marginal_solomon(fit, scale = c("difference", "ratio", "odds_ratio"),
+                            method = "delta", conf_level = 0.9)
+  e <- expect_output_contract(delta, 0.9, keys = "scale", reference = "z")
+  # The seven contrasts on each scale.
+  expect_identical(e$contrast, rep(solomon_labels, 3))
+  expect_identical(unique(e$scale), c("Risk difference", "Risk ratio", "Odds ratio"))
+  # The interval of a ratio is computed on the scale of its test, the log.
+  on_log <- function(x) {
+    ratio <- e$scale != "Risk difference"
+    x[ratio] <- log(x[ratio])
+    x
+  }
+  half <- stats::qnorm(0.95) * e$std.error
+  expect_equal(on_log(e$conf.low), on_log(e$estimate) - half)
+  expect_equal(on_log(e$conf.high), on_log(e$estimate) + half)
+
+  # The confidence level defaults to the fit's.
+  fit90 <- fit_solomon_glm(passed, treat, pretested, family = stats::binomial(),
+                           conf_level = 0.9, data = d)
+  boot <- marginal_solomon(fit90, method = "bootstrap", R = 99, seed = 1)
+  e <- expect_output_contract(boot, 0.9, keys = "scale", reference = "z")
+  expect_identical(e$contrast, rep(solomon_labels, 3))
+
+  # Cluster summaries: the four treatment contrasts as risk differences.
+  withr::local_seed(6401)
+  cells <- rep(1:4, each = 5)
+  cluster <- rep(seq_along(cells), each = 12)
+  treat <- c(1, 0, 1, 0)[cells][cluster]
+  pretested <- c(1, 1, 0, 0)[cells][cluster]
+  y <- stats::rbinom(length(cluster), 1,
+                     stats::plogis(-0.5 + 0.6 * treat + stats::rnorm(length(cells), 0, 0.5)[cluster]))
+  cr2 <- fit_solomon_glm(y, treat, pretested, family = stats::binomial(), robust = "CR2",
+                         cluster = cluster)
+  summaries <- marginal_solomon(cr2, method = "cluster_summary", conf_level = 0.9)
+  e <- expect_output_contract(summaries, 0.9, keys = "scale")
+  expect_identical(e$contrast, .solomon_contrast_order)
+  expect_identical(unique(e$scale), "Risk difference")
+  expect_interval_at(e, 0.9)
+})
+
+test_that("compare_solomon_methods() follows the contract, with its table in `results`", {
+  d <- solomon_example
+  cmp <- compare_solomon_methods(y_post, treat, pretested, y_pre,
+                                 methods = c("glm", "ml", "classic"), conf_level = 0.9, data = d)
+  r <- expect_output_contract(cmp, 0.9, keys = "method",
+                              extras = c("adjustment", "variance", "reference"),
+                              reference = "mixed", element = "results")
+  expect_identical(unique(r$contrast), .solomon_contrast_order)
+  expect_interval_at(r, 0.9)
+  expect_null(cmp$effects)
+  # The level is still in the settings.
+  expect_identical(cmp$settings$conf_level, 0.9)
+})
+
+test_that("equivalence_solomon() returns one contrast under the names of the columns", {
+  d <- solomon_example
+  fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)
+  eq <- equivalence_solomon(fit, bounds = 5, alpha = 0.05)
+
+  shared <- c("contrast", "estimate", "std.error", "statistic", "df", "conf.low", "conf.high")
+  expect_true(all(c(shared, "conf_level") %in% names(eq)))
+  expect_true(eq$contrast %in% solomon_labels)
+  # It has several tests, so no `p.value`, no effects table, and no tidy()
+  # method.
+  expect_false(any(c("p.value", "effects") %in% names(eq)))
+  expect_null(utils::getS3method("tidy", "solomon_equivalence", optional = TRUE))
+  expect_error(tidy(eq), "tidy")
+
+  # The values are those of the fit's row at the level of the equivalence
+  # interval, 1 - 2 alpha, which is `conf_level`.
+  expect_equal(eq$conf_level, 0.9)
+  at <- fit_solomon_glm(y_post, treat, pretested, y_pre, conf_level = eq$conf_level, data = d)
+  row <- at$effects[at$effects$contrast == eq$contrast, ]
+  expect_equal(unlist(eq[shared[-1]]), unlist(row[shared[-1]]))
+  # The test against zero is the row's test.
+  expect_equal(eq$p_zero, row$p.value)
+  expect_equal(eq$p_zero, 2 * stats::pt(-abs(eq$statistic), eq$df))
+
+  # `df` is Inf for a normal reference distribution, as in the tables.
+  wald <- fit_solomon_ml(y_post, treat, pretested, y_pre, inference = "wald", data = d)
+  eq_z <- equivalence_solomon(wald, bounds = 5)
+  expect_identical(eq_z$df, Inf)
+  expect_equal(eq_z$p_zero, 2 * stats::pnorm(-abs(eq_z$statistic)))
+
+  # Each pretest effect and each comparison of a design with several
+  # treatments has the label of its row.
+  several <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                             control = "Control", data = mai2020)
+  eq_k <- equivalence_solomon(several, bounds = 0.5, contrast = "Treatment | pretested",
+                              comparison = "RP vs Control")
+  expect_identical(eq_k$contrast, "Treatment | pretested")
+  expect_identical(eq_k$comparison, "RP vs Control")
+})
+
+# ---- tidy() --------------------------------------------------------------------
+
+test_that("tidy() is the generic of generics, with a method for every table of contrasts", {
+  expect_true("tidy" %in% getNamespaceExports("solomonR"))
+  expect_identical(getExportedValue("solomonR", "tidy"), generics::tidy)
+
+  with_effects <- c("solomon_glm", "solomon_ngroup", "solomon_ml", "solomon_mi", "solomon_mmrm",
+                    "solomon_sem", "solomon_sem_latent", "solomon_marginal",
+                    "solomon_summary_fit", "solomon_summary_ngroup", "solomon_classic")
+  with_results <- c("solomon_comparison", "solomon_tipping")
+  for (cls in c(with_effects, with_results)) {
+    expect_true(is.function(utils::getS3method("tidy", cls, optional = TRUE)), label = cls)
+  }
+  # Each method returns the table and nothing else: a fit with only that
+  # element gives it back.
+  for (cls in with_effects) {
+    stub <- structure(list(effects = data.frame(contrast = "Pretest x Treatment")), class = cls)
+    expect_identical(tidy(stub), stub[["effects"]], label = cls)
+  }
+  for (cls in with_results) {
+    stub <- structure(list(results = data.frame(contrast = "Pretest x Treatment")), class = cls)
+    expect_identical(tidy(stub), stub[["results"]], label = cls)
+  }
+})
+
+test_that("results without an effects table have no tidy() method", {
+  d <- solomon_example
+  fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)
+  steyn <- fit_solomon_steyn(post_behavior, condition, pretested, pre_behavior,
+                             control = "Control", data = mai2020)
+  without <- list(
+    equivalence_solomon(fit, bounds = 5),
+    perm_solomon(fit, reps = 19, seed = 1),
+    baseline_solomon(y_pre, treat, pretested, data = d),
+    fit_solomon_1949(y_post, treat, pretested, y_pre, data = d),
+    steyn
+  )
+  for (x in without) {
+    expect_null(utils::getS3method("tidy", class(x)[1], optional = TRUE), label = class(x)[1])
+    expect_error(tidy(x), "tidy", label = class(x)[1])
+  }
+
+  # fit_solomon_steyn() names its elements for the steps of Steyn's (2009)
+  # sequence: its `effects` is step 8, a list, which ?solomon_output states.
+  # The classic fits it holds follow the contract.
+  expect_false(is.data.frame(steyn$effects))
+  expect_named(steyn$effects, c("tests", "groups", "highest"))
+  for (classic in steyn$classic$fits) {
+    expect_output_contract(classic, 0.95, keys = "test", extras = "F")
+  }
+})
+
+test_that("tidy() says when a stored result has no table, and reads stored former names", {
+  d <- solomon_example
+  classic <- fit_solomon_classic(y_post, treat, pretested, y_pre, data = d)
+  # A classic fit made before 1.0.0 has no `effects` table.
+  before <- unclass(classic)
+  before$effects <- NULL
+  class(before) <- "solomon_classic"
+  expect_error(tidy(before), "has no `effects` table, so it was made by an earlier version")
+
+  # A summary fit stored under the former element name is still read.
+  four <- with(elkarkri2025a, solomon_from_summary(n, mean, sd))
+  stored <- unclass(four)
+  names(stored)[names(stored) == "effects"] <- "contrasts"
+  class(stored) <- "solomon_summary_fit"
+  expect_no_warning(expect_identical(tidy(stored), four$effects))
+})
+
+# ---- The same labels in tables of other kinds ----------------------------------
+
+test_that("the planning functions and the simulator name the contrasts with the labels", {
+  power <- power_solomon(n = 10, delta = 0.3, sims = 5, seed = 1)
+  expect_identical(
+    power$estimand,
+    c(.solomon_contrast_order, "Pretest x Treatment", "Treatment (one-sided)")
+  )
+  expect_identical(plan_solomon(delta = 0.5, sens = 0.3)$estimand, .solomon_contrast_order)
+
+  truth <- attr(simulate_solomon(n = 5, seed = 1), "truth")
+  expect_identical(names(truth), c("estimand", "true_value"))
+  expect_identical(truth$estimand, solomon_labels)
+  several <- attr(simulate_solomon(n = 5, delta = c(A = 0.3, B = 0.1), seed = 1), "truth")
+  expect_identical(names(several), c("comparison", "contrast", "true_value"))
+  expect_identical(unique(several$contrast), solomon_labels)
+})
+
+test_that("the other results name their contrast and their interaction with the labels", {
+  d <- solomon_example
+  fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)
+  expect_identical(perm_solomon(fit, reps = 19, seed = 1)$contrast, "ATE (avg over pretest)")
+  expect_identical(equivalence_solomon(fit, bounds = 5)$contrast, "Pretest x Treatment")
+  cmp <- compare_solomon_methods(y_post, treat, pretested, y_pre, methods = "glm", data = d)
+  expect_identical(cmp$estimands$contrast, .solomon_contrast_order)
+
+  # The interaction of an analysis of variance is named as the contrast is.
+  sources <- c("Treatment", "Pretest", "Pretest x Treatment", "Error")
+  expect_identical(fit_solomon_classic(y_post, treat, pretested, y_pre, data = d)$anova$source,
+                   sources)
+  expect_identical(with(elkarkri2025a, solomon_from_summary(n, mean, sd))$anova$source, sources)
+  expect_identical(six_group_summary()$anova$source,
+                   c("Condition", "Pretest", "Pretest x Condition", "Error"))
+  several <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                             control = "Control", data = mai2020)
+  expect_identical(
+    several$omnibus$test,
+    c("Condition (avg over pretest)", "Pretest x Condition", "Condition | pretested",
+      "Condition | unpretested")
+  )
+})
+
+# ---- The help pages ------------------------------------------------------------
+
+test_that("the help pages state the contract and link to it", {
+  # The help page from the source tree when the tests run there, otherwise
+  # from the installed package.
+  rd_section <- function(topic, section) {
+    path <- testthat::test_path("..", "..", "man", paste0(topic, ".Rd"))
+    rd <- if (file.exists(path)) {
+      tools::parse_Rd(path)
+    } else {
+      tools::Rd_db("solomonR")[[paste0(topic, ".Rd")]]
+    }
+    expect_false(is.null(rd), label = paste("a help page for", topic))
+    tags <- vapply(rd, function(part) attr(part, "Rd_tag"), character(1))
+    paste(unlist(rd[tags == section]), collapse = "")
+  }
+
+  # ?solomon_output documents the tidy() methods and names the stable parts.
+  aliases <- rd_section("solomon_output", "\\alias")
+  for (cls in c("solomon_glm", "solomon_ngroup", "solomon_ml", "solomon_mi", "solomon_mmrm",
+                "solomon_sem", "solomon_sem_latent", "solomon_marginal", "solomon_summary_fit",
+                "solomon_summary_ngroup", "solomon_classic", "solomon_comparison",
+                "solomon_tipping")) {
+    expect_match(aliases, paste0("tidy.", cls), fixed = TRUE)
+  }
+  contract <- paste(rd_section("solomon_output", "\\description"),
+                    rd_section("solomon_output", "\\section"))
+  for (column in .solomon_effect_columns) expect_match(contract, column, fixed = TRUE)
+  for (label in c(solomon_labels, "Change in Pretest x Treatment")) {
+    expect_match(contract, label, fixed = TRUE)
+  }
+  expect_match(contract, "conf_level", fixed = TRUE)
+  expect_match(contract, "Not stable", fixed = TRUE)
+
+  # The Value section of every analysis with a table of contrasts, and of
+  # the results that the contract sets apart, links to it; so does the
+  # overview of the interface (issue #83).
+  topics <- c("fit_solomon_glm", "fit_solomon_ml", "fit_solomon_mi", "fit_solomon_mmrm",
+              "fit_solomon_sem", "fit_solomon_sem_latent", "fit_solomon_classic",
+              "solomon_from_summary", "marginal_solomon", "compare_solomon_methods",
+              "tipping_point_solomon", "equivalence_solomon", "fit_solomon_steyn")
+  for (topic in topics) {
+    expect_match(rd_section(topic, "\\value"), "solomon_output", fixed = TRUE, info = topic)
+  }
+  expect_match(rd_section("solomonR", "\\section"), "solomon_output", fixed = TRUE)
+})
+
+# ---- Former element names ------------------------------------------------------
+
+# Three indicators of one latent posttest in the four groups.
+latent_api_data <- function(n = 60, seed = 110) {
+  set.seed(seed)
+  g <- rep(1:4, each = n)
+  f <- stats::rnorm(4 * n, 0.4 * c(1, 0, 1, 0)[g])
+  items <- data.frame(y1 = f + stats::rnorm(4 * n, 0, 0.6),
+                      y2 = 0.9 * f + stats::rnorm(4 * n, 0, 0.6),
+                      y3 = 0.8 * f + stats::rnorm(4 * n, 0, 0.6))
+  list(items = items, treat = c(1, 0, 1, 0)[g], pretested = c(1, 1, 0, 0)[g])
+}
+
+# The message of the deprecation warning that `expr` gives, on one line.
+deprecation_message <- function(expr) {
+  withr::local_options(lifecycle_verbosity = "warning")
+  w <- tryCatch(expr, lifecycle_warning_deprecated = function(w) w)
+  expect_s3_class(w, "lifecycle_warning_deprecated")
+  gsub("\\s+", " ", conditionMessage(w))
+}
+
+test_that("the latent fit uses the element names of the other fits", {
+  testthat::skip_if_not_installed("lavaan")
+  s <- latent_api_data()
+  fit <- fit_solomon_sem_latent(s$items, names(s$items), s$treat, s$pretested,
+                                check_invariance = FALSE, conf_level = 0.9)
+
+  expect_true(all(c("fit", "effects", "conf_level") %in% names(fit)))
+  expect_false(any(c("fit_post", "effects_post") %in% names(fit)))
+  expect_s4_class(fit$fit, "lavaan")
+  expect_s3_class(fit$effects, "data.frame")
+  # The confidence level is at the top level, as in every other fit, and
+  # still in the settings.
+  expect_identical(fit$conf_level, 0.9)
+  expect_identical(fit$settings$conf_level, 0.9)
+  # The same names as fit_solomon_sem().
+  sem <- fit_solomon_sem(y_post, treat, pretested, data = solomon_example)
+  expect_true(all(c("fit", "effects", "conf_level") %in% names(sem)))
+
+  # Reading the new names gives no warning, here or in the methods.
+  expect_no_warning(fit$effects)
+  expect_no_warning(fit$fit)
+  expect_no_warning(capture.output(print(fit)))
+  expect_no_warning(report_solomon(fit))
+  expect_no_warning(plot_solomon_effects(fit))
+})
+
+test_that("former element names still work with `$`, with a deprecation warning", {
+  testthat::skip_if_not_installed("lavaan")
+  s <- latent_api_data()
+  fit <- fit_solomon_sem_latent(s$items, names(s$items), s$treat, s$pretested,
+                                check_invariance = FALSE)
+
+  lifecycle::expect_deprecated(old_effects <- fit$effects_post)
+  expect_identical(old_effects, fit$effects)
+  lifecycle::expect_deprecated(old_fit <- fit$fit_post)
+  expect_identical(old_fit, fit$fit)
+  # The warning names the former element, the version, and the new element.
+  msg <- deprecation_message(fit$effects_post)
+  expect_match(msg, paste("The `effects_post` element of the result of",
+                          "`fit_solomon_sem_latent()` was deprecated in solomonR 1.0.0."),
+               fixed = TRUE)
+  expect_match(msg, "Please use `effects` instead.", fixed = TRUE)
+  expect_match(deprecation_message(fit$fit_post), "Please use `fit` instead.", fixed = TRUE)
+
+  # Only the whole former name is recognized, and only by `$`.
+  expect_no_warning(expect_null(fit$effects_pos))
+  expect_no_warning(expect_null(fit$fit_pos))
+  expect_null(fit[["effects_post"]])
+  expect_null(fit[["fit_post"]])
+  # The other elements are read as before, partial matching included.
+  expect_identical(fit$fitmeasures_post, fit[["fitmeasures_post"]])
+  expect_identical(fit$invariance_stat, fit[["invariance_status"]])
+  expect_null(fit$fit_pre)
+  expect_null(fit$no_such_element)
+  # Assignment is unchanged.
+  fit$note <- "kept"
+  expect_identical(fit$note, "kept")
+  expect_s3_class(fit, "solomon_sem_latent")
+})
+
+test_that("a latent fit stored under the former element names is still read", {
+  testthat::skip_if_not_installed("lavaan")
+  s <- latent_api_data()
+  fit <- fit_solomon_sem_latent(s$items, names(s$items), s$treat, s$pretested,
+                                check_invariance = FALSE)
+
+  # The element names under which earlier versions stored the fit. (Such a
+  # fit also has the former contrast labels, which nothing translates.)
+  before <- unclass(fit)
+  names(before)[match(c("fit", "effects"), names(before))] <- c("fit_post", "effects_post")
+  before$conf_level <- NULL
+  class(before) <- "solomon_sem_latent"
+
+  expect_no_warning(expect_identical(before$effects, fit$effects))
+  expect_no_warning(expect_identical(before$fit, fit$fit))
+  expect_identical(capture.output(print(before)), capture.output(print(fit)))
+  expect_identical(report_solomon(before)$results, report_solomon(fit)$results)
+  lifecycle::expect_deprecated(old <- before$effects_post)
+  expect_identical(old, fit$effects)
+})
+
+test_that("summary fits use `effects`, and `contrasts` is a deprecated alias", {
+  four <- with(elkarkri2025a, solomon_from_summary(n, mean, sd))
+  six <- solomon_from_summary(
+    n = c(24, 23, 27, 22, 15, 22),
+    mean = c(2.929167, 3.168116, 3.112346, 3.128788, 3.152184, 3.018548),
+    sd = c(0.434203, 0.369613, 0.355440, 0.383150, 0.374069, 0.354758),
+    treat = c("RP", "GS", "Control", "RP", "GS", "Control"),
+    pretested = c(1, 1, 1, 0, 0, 0), control = "Control"
+  )
+  expect_s3_class(four, "solomon_summary_fit")
+  expect_s3_class(six, "solomon_summary_ngroup")
+
+  for (fit in list(four, six)) {
+    expect_true(all(c("effects", "conf_level") %in% names(fit)))
+    expect_false("contrasts" %in% names(fit))
+    expect_no_warning(fit$effects)
+    lifecycle::expect_deprecated(old <- fit$contrasts)
+    expect_identical(old, fit$effects)
+    msg <- deprecation_message(fit$contrasts)
+    expect_match(msg, paste("The `contrasts` element of the result of",
+                            "`solomon_from_summary()` was deprecated in solomonR 1.0.0."),
+                 fixed = TRUE)
+    expect_match(msg, "Please use `effects` instead.", fixed = TRUE)
+    expect_null(fit[["contrasts"]])
+    expect_no_warning(expect_null(fit$contr))
+    expect_no_warning(capture.output(print(fit)))
+    expect_no_warning(report_solomon(fit))
+  }
+
+  # The interaction of the four-group ANOVA table is named as the contrast is.
+  expect_identical(four$anova$source, c("Treatment", "Pretest", "Pretest x Treatment", "Error"))
+  expect_identical(six$anova$source, c("Condition", "Pretest", "Pretest x Condition", "Error"))
+  a <- four$anova[four$anova$source == "Pretest x Treatment", ]
+  e <- four$effects[four$effects$contrast == "Pretest x Treatment", ]
+  expect_equal(a$F, e$statistic^2)
+  expect_equal(a$p.value, e$p.value)
+})
+
+test_that("the classic fit has its confidence level at the top level", {
+  d <- solomon_example
+  fit <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre, conf_level = 0.9)
+  expect_identical(fit$conf_level, 0.9)
+  expect_identical(fit$settings$conf_level, 0.9)
+})
+
+test_that("the classic fit has `effects` and `anova`, and `aov` is a deprecated alias", {
+  d <- solomon_example
+  fit <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre)
+
+  expect_true(all(c("effects", "anova", "conf_level") %in% names(fit)))
+  expect_false("aov" %in% names(fit))
+  expect_s3_class(fit$effects, "data.frame")
+  expect_identical(names(fit$anova), names(with(elkarkri2025a, solomon_from_summary(n, mean, sd))$anova))
+  # The legacy elements stay.
+  expect_true(all(c("ancova", "t_unpretested", "stouffer") %in% names(fit)))
+
+  # Reading the new names gives no warning, here or in the methods.
+  expect_no_warning(fit$anova)
+  expect_no_warning(fit$effects)
+  expect_no_warning(capture.output(print(fit)))
+  expect_no_warning(capture.output(print(summary(fit))))
+  expect_no_warning(report_solomon(fit))
+  expect_no_warning(plot_classic_flow(fit))
+
+  # The former name gives the new table, with a warning that says what
+  # changed.
+  lifecycle::expect_deprecated(old <- fit$aov)
+  expect_identical(old, fit$anova)
+  lifecycle::expect_deprecated(old <- summary(fit)$aov)
+  expect_identical(old, fit$anova)
+  msg <- deprecation_message(fit$aov)
+  expect_match(msg, paste("The `aov` element of the result of `fit_solomon_classic()` was",
+                          "deprecated in solomonR 1.0.0."), fixed = TRUE)
+  expect_match(msg, "Please use `anova` instead.", fixed = TRUE)
+  expect_match(msg, "Type III sums of squares, consistent with Tests A and D", fixed = TRUE)
+  expect_match(msg, "`aov` had the sequential sums of squares", fixed = TRUE)
+
+  # Only the whole former name is recognized, and only by `$`.
+  expect_no_warning(expect_null(fit$ao))
+  expect_null(fit[["aov"]])
+  # The other elements are read as before, partial matching included.
+  expect_identical(fit$ancova, fit[["ancova"]])
+  expect_identical(fit$path_str, fit[["path_string"]])
+  expect_null(fit$no_such_element)
+  fit$note <- "kept"
+  expect_identical(fit$note, "kept")
+  expect_s3_class(fit, "solomon_classic")
+})
+
+test_that("a classic fit stored by an earlier version does not pass `aov` off as `anova`", {
+  d <- solomon_example
+  fit <- fit_solomon_classic(d$y_post, d$treat, d$pretested, d$y_pre)
+
+  # The elements that earlier versions stored: the sequential table as
+  # `aov`, and neither `effects` nor `anova`.
+  before <- unclass(fit)
+  before$effects <- NULL
+  before$anova <- NULL
+  before$aov <- broom::tidy(stats::aov(y_post ~ factor(treat) * factor(pretested), data = d))
+  class(before) <- "solomon_classic"
+
+  expect_no_warning(expect_null(before$anova))
+  lifecycle::expect_deprecated(old <- before$aov)
+  expect_null(old)
+  # The stored table is still there for `[[`.
+  expect_identical(before[["aov"]]$term[4], "Residuals")
+  expect_identical(capture.output(print(before)), capture.output(print(fit)))
+  expect_identical(report_solomon(before)$results, report_solomon(fit)$results)
+})
