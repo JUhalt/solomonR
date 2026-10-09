@@ -61,7 +61,8 @@
 #'     assumption, and the `reference` distribution of each method. The
 #'     rows are the four treatment contrasts, `ATE (avg over pretest)`,
 #'     `Pretest x Treatment`, `Treatment | pretested`, and
-#'     `Treatment | unpretested`, for each method that estimates them.
+#'     `Treatment | unpretested`, for each method that estimates them. The
+#'     table has no rows when every requested method was skipped.
 #'   - `estimands`: the definition of each contrast (`contrast` and
 #'     `definition`).
 #'   - `not_compared`: the analyses left out, and why (`analysis` and
@@ -332,9 +333,21 @@ compare_solomon_methods <- function(
     }
   }
 
-  results <- if (length(rows)) do.call(rbind, rows) else NULL
+  # With every requested method skipped, the table has its columns and no
+  # rows, so that `results` is a table in every result and tidy() returns it.
+  results <- if (length(rows)) {
+    do.call(rbind, rows)
+  } else {
+    data.frame(
+      method = character(), contrast = character(), estimate = numeric(),
+      std.error = numeric(), statistic = numeric(), df = numeric(),
+      p.value = numeric(), conf.low = numeric(), conf.high = numeric(),
+      adjustment = character(), variance = character(), reference = character(),
+      stringsAsFactors = FALSE
+    )
+  }
 
-  if (!is.null(results)) {
+  if (nrow(results)) {
     results$reference <- ifelse(
       is.finite(results$df),
       paste0("t(", .df_fmt(results$df), ")"),
@@ -409,7 +422,9 @@ print.solomon_comparison <- function(x, digits = 3, ...) {
     "affect precision rather than the target."
   )), "\n", sep = "")
 
-  if (!is.null(x$results)) {
+  # NROW() is 0 for a table with no rows and for the NULL that versions
+  # before 1.0.0 stored when every method was skipped.
+  if (NROW(x$results)) {
     for (contrast in unique(x$results$contrast)) {
       r <- x$results[x$results$contrast == contrast, ]
       table <- data.frame(

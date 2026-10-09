@@ -180,6 +180,9 @@ break existing code says what that code needs.
   `conf_level` at the top level, as every other result with a table of
   contrasts does. For `tipping_point_solomon()` it is 1 - `alpha`, the
   level of the intervals in `results`.
+* `compare_solomon_methods()$results` is a table with no rows when every
+  requested method was skipped; it was `NULL`. `tidy()` therefore returns a
+  table for every comparison.
 * Every help page's Value section names the elements of the result, with
   the columns of each table. `?fit_solomon_classic` has a section on the
   analysis of variance. "The Classic Solomon Four-Group Analysis" shows

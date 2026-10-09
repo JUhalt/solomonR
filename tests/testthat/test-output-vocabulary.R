@@ -572,6 +572,35 @@ test_that("compare_solomon_methods() follows the contract, with its table in `re
   expect_identical(cmp$settings$conf_level, 0.9)
 })
 
+test_that("a comparison with every method skipped has `results` with its columns and no rows", {
+  d <- solomon_example
+  # Maximum likelihood and the classic analyses need pretest scores.
+  cmp <- compare_solomon_methods(y_post, treat, pretested, methods = c("ml", "classic"),
+                                 conf_level = 0.9, data = d)
+  expect_setequal(cmp$skipped$method, c("ml", "classic"))
+  columns <- c("method", .solomon_effect_columns, "adjustment", "variance", "reference")
+  expect_identical(class(cmp$results), "data.frame")
+  expect_identical(names(cmp$results), columns)
+  expect_identical(nrow(cmp$results), 0L)
+  expect_identical(tidy(cmp), cmp$results)
+  expect_equal(cmp$conf_level, 0.9)
+  # The columns have the types of those of a comparison with rows.
+  with_rows <- compare_solomon_methods(y_post, treat, pretested, y_pre, methods = "glm", data = d)
+  expect_identical(names(with_rows$results), columns)
+  expect_identical(vapply(cmp$results, typeof, ""), vapply(with_rows$results, typeof, ""))
+  # It prints what was skipped and no table of methods.
+  out <- utils::capture.output(print(cmp))
+  expect_true(any(grepl("^Skipped:", out)))
+  expect_false(any(grepl("^Methods:", out)))
+
+  # A comparison made before 1.0.0 has NULL there: it prints, and tidy()
+  # says that it has no table.
+  before <- cmp
+  before$results <- NULL
+  expect_identical(utils::capture.output(print(before)), out)
+  expect_error(tidy(before), "has no `results` table, so it was made by an earlier version")
+})
+
 test_that("equivalence_solomon() returns one contrast under the names of the columns", {
   d <- solomon_example
   fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d)

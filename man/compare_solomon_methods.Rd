@@ -48,7 +48,8 @@ and \code{conf.high}, followed by the \code{adjustment}, the \code{variance}
 assumption, and the \code{reference} distribution of each method. The
 rows are the four treatment contrasts, \verb{ATE (avg over pretest)},
 \verb{Pretest x Treatment}, \code{Treatment | pretested}, and
-\code{Treatment | unpretested}, for each method that estimates them.
+\code{Treatment | unpretested}, for each method that estimates them. The
+table has no rows when every requested method was skipped.
 \item \code{estimands}: the definition of each contrast (\code{contrast} and
 \code{definition}).
 \item \code{not_compared}: the analyses left out, and why (\code{analysis} and
