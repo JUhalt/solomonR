@@ -909,6 +909,13 @@
 
 .report_summary_fit <- function(fit, digits, md) {
   a <- fit$anova
+  # The interaction was `Treatment x Pretest` before 1.0.0 (issue #110).
+  # Nothing translates it, so a result saved by an earlier version is refused.
+  if (!"Pretest x Treatment" %in% a$source) {
+    stop("This result was made by an earlier version of solomonR, whose analysis of variance ",
+         "named its interaction `Treatment x Pretest`. Run solomon_from_summary() again.",
+         call. = FALSE)
+  }
   f <- function(src) {
     r <- a[a$source == src, ]
     sprintf("%s(1, %s) = %s, %s", if (md) "*F*" else "F", .apa_df(fit$df_error),
@@ -981,6 +988,7 @@
 }
 
 .report_sem <- function(fit, digits, md) {
+  .stop_former_sem_labels(fit$effects, "fit_solomon_sem")
   refs <- .solomon_function_refs$fit_solomon_sem
   method <- if (identical(fit$mode, "ancova_pretested")) {
     refs <- c(refs, "huck1973")
@@ -1376,6 +1384,8 @@
 # follows the fit's own constraints and check rather than asserting scalar
 # invariance.
 .report_sem_latent <- function(fit, digits, md) {
+  .stop_former_sem_labels(fit$effects, "fit_solomon_sem_latent")
+  .stop_former_sem_labels(fit$effects_pre, "fit_solomon_sem_latent")
   .need_lavaan()
   s <- fit$settings
   level <- .latent_conf_level(fit)

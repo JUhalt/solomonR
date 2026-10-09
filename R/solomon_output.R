@@ -252,6 +252,15 @@ generics::tidy
 #' - `aov` in [fit_solomon_classic()], now `anova`, which has Type III sums
 #'   of squares.
 #'
+#' A result saved by an earlier version gives its elements under the new
+#' names as they were stored. Its tables can differ from the contract, and
+#' nothing translates them. A SEM fit saved by an earlier version has the
+#' former contrast labels (`ATE`, `Sens`, `Pre_Eff`, and `Unpre_Eff`) and no
+#' `df`: `tidy()`, [report_solomon()], and [plot_solomon_effects()] stop and
+#' ask for it to be fitted again. So does [report_solomon()] for a
+#' four-group [solomon_from_summary()] result saved by one, and `tidy()` for
+#' a [fit_solomon_classic()] fit saved by one, which has no `effects` table.
+#'
 #' @param x A result of one of the functions listed under "The effects
 #'   table".
 #' @param ... Not used.
@@ -315,11 +324,17 @@ tidy.solomon_mmrm <- function(x, ...) .tidy_table(x$effects, x)
 
 #' @rdname solomon_output
 #' @export
-tidy.solomon_sem <- function(x, ...) .tidy_table(x$effects, x)
+tidy.solomon_sem <- function(x, ...) {
+  .stop_former_sem_labels(x$effects, "fit_solomon_sem")
+  .tidy_table(x$effects, x)
+}
 
 #' @rdname solomon_output
 #' @export
-tidy.solomon_sem_latent <- function(x, ...) .tidy_table(x$effects, x)
+tidy.solomon_sem_latent <- function(x, ...) {
+  .stop_former_sem_labels(x$effects, "fit_solomon_sem_latent")
+  .tidy_table(x$effects, x)
+}
 
 #' @rdname solomon_output
 #' @export

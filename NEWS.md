@@ -19,9 +19,10 @@ break existing code says what that code needs.
   that selects rows by a former label, such as
   `effects$contrast == "Sens"`, needs the new label.
   `plot_solomon_effects()`, `report_solomon()`, and
-  `compare_solomon_methods()` no longer translate the labels, so a SEM fit
-  saved by an earlier version, which keeps its former labels, should be
-  refitted before it is plotted or reported.
+  `compare_solomon_methods()` no longer translate the labels. A SEM fit
+  saved by an earlier version keeps its former labels, so `tidy()`,
+  `report_solomon()`, and `plot_solomon_effects()` stop for it and ask for
+  it to be fitted again. Its print method shows it as it was stored.
 * **New rows in the SEM effects tables.** The four-group models of
   `fit_solomon_sem()` and `fit_solomon_sem_latent()` report the three
   pretest effects after the four treatment contrasts, as pretested minus
@@ -54,8 +55,10 @@ break existing code says what that code needs.
   The former names still work with `$`, as in `fit$effects_post`, and give
   a deprecation warning that names the new element. Only the whole former
   name is recognized, and `[[` is not covered: `fit[["effects_post"]]` is
-  `NULL`. Fits saved by earlier versions are still read under the new
-  element names.
+  `NULL`. A fit saved by an earlier version still gives its elements under
+  the new names, as they were stored. A saved SEM fit has the former
+  contrast labels as well, so `tidy()`, `report_solomon()`, and
+  `plot_solomon_effects()` stop for it and ask for it to be fitted again.
 * `fit_solomon_classic()` returns `conf_level` at the top level too; it
   remains in `settings`.
 * **One order of columns, which can break code that reads columns by
@@ -136,8 +139,8 @@ break existing code says what that code needs.
   `fit_solomon_classic()` gives when Test A is significant and neither
   simple effect is says "Pretest x Treatment interaction" as well. A
   four-group `solomon_from_summary()` result saved by an earlier version
-  keeps the former name, and `report_solomon()` cannot read it; make the
-  result again.
+  keeps the former name, and `report_solomon()` stops for it and asks for
+  the result to be made again.
 * The effects tables of the SEM functions are plain data frames, as those
   of the other fits are. They had lavaan's class `lavaan.data.frame`, whose
   print method rounds to three decimals.

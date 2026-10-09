@@ -318,6 +318,15 @@ not with \code{[[}:
 \item \code{aov} in \code{\link[=fit_solomon_classic]{fit_solomon_classic()}}, now \code{anova}, which has Type III sums
 of squares.
 }
+
+A result saved by an earlier version gives its elements under the new
+names as they were stored. Its tables can differ from the contract, and
+nothing translates them. A SEM fit saved by an earlier version has the
+former contrast labels (\code{ATE}, \code{Sens}, \code{Pre_Eff}, and \code{Unpre_Eff}) and no
+\code{df}: \code{tidy()}, \code{\link[=report_solomon]{report_solomon()}}, and \code{\link[=plot_solomon_effects]{plot_solomon_effects()}} stop and
+ask for it to be fitted again. So does \code{\link[=report_solomon]{report_solomon()}} for a
+four-group \code{\link[=solomon_from_summary]{solomon_from_summary()}} result saved by one, and \code{tidy()} for
+a \code{\link[=fit_solomon_classic]{fit_solomon_classic()}} fit saved by one, which has no \code{effects} table.
 }
 
 \examples{

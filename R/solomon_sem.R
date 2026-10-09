@@ -25,6 +25,22 @@
   Pretest_Main = "Pretest main effect"
 )
 
+# The labels that the SEM functions returned before 1.0.0 (issue #110).
+# Nothing translates them, so a fit that has them, one saved by an earlier
+# version, is refused where its table is read by label: by tidy(),
+# report_solomon(), and plot_solomon_effects(). `fun` is the function that
+# made the fit.
+.sem_former_labels <- c("ATE", "Sens", "Pre_Eff", "Unpre_Eff")
+
+.stop_former_sem_labels <- function(effects, fun) {
+  if (is.data.frame(effects) && any(effects$contrast %in% .sem_former_labels)) {
+    stop("This fit was made by an earlier version of solomonR, whose contrast labels (ATE, ",
+         "Sens, Pre_Eff, and Unpre_Eff) are no longer read. Run ", fun, "() again.",
+         call. = FALSE)
+  }
+  invisible(effects)
+}
+
 # The contrasts of a four-group model: the four treatment contrasts, then the
 # pretest effects (issue #104), pretested minus unpretested. The models of
 # the pretested groups alone define only Pre_Eff.

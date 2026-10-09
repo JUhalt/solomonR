@@ -880,25 +880,112 @@ test_that("former element names still work with `$`, with a deprecation warning"
   expect_s3_class(fit, "solomon_sem_latent")
 })
 
-test_that("a latent fit stored under the former element names is still read", {
+# ---- Results saved by an earlier version ---------------------------------------
+
+# The contrast labels of the SEM functions before 1.0.0, by the present ones.
+former_sem_labels <- c(
+  "ATE (avg over pretest)" = "ATE", "Pretest x Treatment" = "Sens",
+  "Treatment | pretested" = "Pre_Eff", "Treatment | unpretested" = "Unpre_Eff"
+)
+
+# An effects table as the SEM functions returned it before 1.0.0: the
+# treatment contrasts alone, under the former labels, with no `df`, and with
+# lavaan's class.
+former_sem_table <- function(effects) {
+  old <- effects[effects$contrast %in% names(former_sem_labels), names(effects) != "df",
+                 drop = FALSE]
+  old$contrast <- unname(former_sem_labels[old$contrast])
+  rownames(old) <- NULL
+  class(old) <- c("lavaan.data.frame", "data.frame")
+  old
+}
+
+test_that("a latent fit saved by an earlier version gives its elements and is refused where its labels are read", {
   testthat::skip_if_not_installed("lavaan")
   s <- latent_api_data()
-  fit <- fit_solomon_sem_latent(s$items, names(s$items), s$treat, s$pretested,
-                                check_invariance = FALSE)
+  # Three indicators of a latent pretest, in the pretested groups.
+  withr::local_seed(111)
+  n <- nrow(s$items)
+  pre <- stats::rnorm(n)
+  s$items$x1 <- pre + stats::rnorm(n, 0, 0.6)
+  s$items$x2 <- 0.9 * pre + stats::rnorm(n, 0, 0.6)
+  s$items$x3 <- 0.8 * pre + stats::rnorm(n, 0, 0.6)
+  s$items[s$pretested == 0, c("x1", "x2", "x3")] <- NA
+  fit <- suppressWarnings(fit_solomon_sem_latent(
+    s$items, c("y1", "y2", "y3"), s$treat, s$pretested, pre_items = c("x1", "x2", "x3"),
+    ancova = TRUE, check_invariance = FALSE
+  ))
 
-  # The element names under which earlier versions stored the fit. (Such a
-  # fit also has the former contrast labels, which nothing translates.)
+  # What an earlier version stored: the former element names, the former
+  # labels, and the confidence level in the settings only.
   before <- unclass(fit)
+  before$effects <- former_sem_table(before$effects)
+  before$effects_pre <- former_sem_table(before$effects_pre)
+  stored <- before$effects
   names(before)[match(c("fit", "effects"), names(before))] <- c("fit_post", "effects_post")
   before$conf_level <- NULL
   class(before) <- "solomon_sem_latent"
+  expect_identical(stored$contrast, unname(former_sem_labels))
+  expect_identical(before$effects_pre$contrast, "Pre_Eff")
 
-  expect_no_warning(expect_identical(before$effects, fit$effects))
+  # The elements are still given under the new names, as they were stored,
+  # and the fit is printed as it was stored.
+  expect_no_warning(expect_identical(before$effects, stored))
   expect_no_warning(expect_identical(before$fit, fit$fit))
-  expect_identical(capture.output(print(before)), capture.output(print(fit)))
-  expect_identical(report_solomon(before)$results, report_solomon(fit)$results)
+  expect_output(print(before), "Unpre_Eff")
   lifecycle::expect_deprecated(old <- before$effects_post)
-  expect_identical(old, fit$effects)
+  expect_identical(old, stored)
+
+  # Nothing translates the former labels, so what reads the table by label
+  # says so, and reports no sentence with missing values.
+  refused <- "made by an earlier version of solomonR.*Run fit_solomon_sem_latent\\(\\) again"
+  expect_error(tidy(before), refused)
+  expect_error(report_solomon(before), refused)
+  expect_error(plot_solomon_effects(before), refused)
+
+  # The fit as this version makes it is read.
+  expect_identical(tidy(fit), fit$effects)
+  expect_false(any(grepl("NA", report_solomon(fit)$results, fixed = TRUE)))
+  expect_no_error(plot_solomon_effects(fit))
+})
+
+test_that("an observed SEM fit saved by an earlier version is refused where its labels are read", {
+  testthat::skip_if_not_installed("lavaan")
+  refused <- "made by an earlier version of solomonR.*Run fit_solomon_sem\\(\\) again"
+  for (ancova in c(FALSE, TRUE)) {
+    fit <- fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = ancova,
+                           data = solomon_example)
+    # The element names are unchanged; the table has the former labels.
+    before <- fit
+    before$effects <- former_sem_table(fit$effects)
+    expect_error(tidy(before), refused)
+    expect_error(report_solomon(before), refused)
+    expect_error(plot_solomon_effects(before), refused)
+    expect_output(print(before), "Pre_Eff")
+
+    # The fit as this version makes it is read.
+    expect_identical(tidy(fit), fit$effects)
+    expect_no_error(report_solomon(fit))
+  }
+})
+
+test_that("a four-group summary result saved by an earlier version is refused by the report", {
+  fit <- with(elkarkri2025a, solomon_from_summary(n, mean, sd))
+  # What an earlier version stored: `contrasts`, and the former name of the
+  # interaction in the analysis of variance.
+  before <- unclass(fit)
+  before$anova$source[before$anova$source == "Pretest x Treatment"] <- "Treatment x Pretest"
+  names(before)[names(before) == "effects"] <- "contrasts"
+  class(before) <- class(fit)
+
+  expect_error(
+    report_solomon(before),
+    "made by an earlier version of solomonR.*Run solomon_from_summary\\(\\) again"
+  )
+  # Its table of contrasts has the present columns and labels, and is read.
+  expect_no_warning(expect_identical(tidy(before), fit$effects))
+  expect_output(print(before), "Treatment x Pretest")
+  expect_no_error(report_solomon(fit))
 })
 
 test_that("summary fits use `effects`, and `contrasts` is a deprecated alias", {

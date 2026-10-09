@@ -70,6 +70,7 @@
       inference = .ml_inference_label(fit)
     )
   } else if (inherits(fit, "solomon_sem")) {
+    .stop_former_sem_labels(fit$effects, "fit_solomon_sem")
     list(
       effects = fit$effects,
       conf_level = fit$conf_level,
@@ -78,6 +79,7 @@
       inference = "structural equation model; lavaan Wald inference"
     )
   } else if (inherits(fit, "solomon_sem_latent")) {
+    .stop_former_sem_labels(fit$effects, "fit_solomon_sem_latent")
     list(
       effects = fit$effects,
       conf_level = .latent_conf_level(fit),
