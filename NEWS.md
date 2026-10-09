@@ -5,7 +5,10 @@
 The names that results use are settled before 1.0, as #83 settled the
 names of the arguments. Code that reads results by a former label or
 element name needs the new one. Former element names keep working with
-`$` through v1.x, with a deprecation warning.
+`$` through v1.x, with a deprecation warning. The stable parts of a
+result are the `effects` table, `conf_level`, and `tidy()`, and the new
+help page `?solomon_output` states the contract. Each item below that can
+break existing code says what that code needs.
 
 * **Contrast labels that can break code.** `fit_solomon_sem()` and
   `fit_solomon_sem_latent()` label their contrasts as every other fit
@@ -131,19 +134,60 @@ element name needs the new one. Former element names keep working with
   that row by name needs the new name. The table for designs with several
   treatments already had `Pretest x Condition`. The conclusion that
   `fit_solomon_classic()` gives when Test A is significant and neither
-  simple effect is says "Pretest x Treatment interaction" as well.
+  simple effect is says "Pretest x Treatment interaction" as well. A
+  four-group `solomon_from_summary()` result saved by an earlier version
+  keeps the former name, and `report_solomon()` cannot read it; make the
+  result again.
 * The effects tables of the SEM functions are plain data frames, as those
   of the other fits are. They had lavaan's class `lavaan.data.frame`, whose
   print method rounds to three decimals.
-* `?fit_solomon_sem`, `?fit_solomon_sem_latent`, and
-  `?solomon_from_summary` name the elements and the labels. The SEM
-  article, the methods guide, the GLM vignette, the coverage article, and
-  the references describe the pretest effects of the SEM fits; the
-  simulation script of the invariance study reads the new names.
-* `?fit_solomon_classic` names every element and has a section on the
-  analysis of variance, and the help pages of the other fits list the
-  columns of their effects tables. "The Classic Solomon Four-Group
-  Analysis" shows `effects` and `anova`.
+* **`tidy()` returns the effects table.** New `tidy()` methods give the
+  table of contrasts of a result as it is stored, so
+  `identical(tidy(fit), fit$effects)` is `TRUE`. They cover
+  `fit_solomon_glm()` (four-group designs and designs with several
+  treatments), `fit_solomon_ml()`, `fit_solomon_mi()`,
+  `fit_solomon_mmrm()`, `fit_solomon_sem()`, `fit_solomon_sem_latent()`,
+  `marginal_solomon()`, `solomon_from_summary()` (both designs), and
+  `fit_solomon_classic()`.
+  - For `compare_solomon_methods()` and `tipping_point_solomon()`, whose
+    table of contrasts is named `results`, `tidy()` returns `results`.
+  - For `fit_solomon_sem_latent()`, `tidy()` returns `effects`, the
+    contrasts of the four-group model; the latent ANCOVA of the pretested
+    groups stays in `effects_pre`.
+  - solomonR re-exports `tidy()` from the generics package, so it works
+    without broom attached, and `broom::tidy()` uses the same methods.
+  - Results with no table of contrasts have no method:
+    `equivalence_solomon()`, `perm_solomon()`, `baseline_solomon()`,
+    `fit_solomon_1949()`, and `fit_solomon_steyn()`.
+* **The output contract.** The new help page `?solomon_output` says which
+  parts of a result are stable through v1.x, and which are not.
+  - Stable: the `effects` table, with its columns in the order above and
+    its contrast labels; `conf_level`; and `tidy()`.
+  - Not stable: fitted model objects (such as `model`, and the lavaan
+    objects `fit` and `fit_pre`), `settings`, and the legacy elements of
+    `fit_solomon_classic()`.
+  - It also lists the tables that cannot have the shared columns, such as
+    analysis-of-variance tables and omnibus tests, and the results that
+    are not tables: `equivalence_solomon()` returns the values of one
+    contrast under the names of the columns, and the `effects` element of
+    `fit_solomon_steyn()` is the last step of Steyn's (2009) sequence, a
+    list, not an effects table.
+
+  The page is linked from the help page of each analysis, from the
+  Lifecycle section of `?solomonR`, and from the Package section of the
+  reference index.
+* `compare_solomon_methods()` and `tipping_point_solomon()` return
+  `conf_level` at the top level, as every other result with a table of
+  contrasts does. For `tipping_point_solomon()` it is 1 - `alpha`, the
+  level of the intervals in `results`.
+* Every help page's Value section names the elements of the result, with
+  the columns of each table. `?fit_solomon_classic` has a section on the
+  analysis of variance. "The Classic Solomon Four-Group Analysis" shows
+  `effects` and `anova`, and the GLM vignette points to `tidy()` and
+  `?solomon_output`.
+* The SEM article, the methods guide, the GLM vignette, the coverage
+  article, and the references describe the pretest effects of the SEM
+  fits; the simulation script of the invariance study reads the new names.
 
 ## Credit for the unified model (#105)
 
