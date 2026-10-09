@@ -55,6 +55,76 @@ element name needs the new one. Former element names keep working with
   element names.
 * `fit_solomon_classic()` returns `conf_level` at the top level too; it
   remains in `settings`.
+* **One order of columns, which can break code that reads columns by
+  position.** Every effects table has the columns `contrast`, `estimate`,
+  `std.error`, `statistic`, `df`, `p.value`, `conf.low`, and `conf.high`,
+  in that order. The columns that index its rows come before them, and the
+  columns of one class after them. Code that reads columns by name is not
+  affected. What moved, and what is new:
+  - `fit_solomon_glm()`, `fit_solomon_ml()`, and `fit_solomon_mi()`: `df`
+    now precedes `p.value`, in `effects` and in the `coefficients` tables
+    of the first two.
+  - Designs with several treatments, in `fit_solomon_glm()` and
+    `solomon_from_summary()`: `df` precedes `p.value`, and `p.adjusted`
+    follows `conf.high`.
+  - `fit_solomon_mmrm()`: `statistic` precedes `df`.
+  - `marginal_solomon()`: `std.error` follows `estimate`, the interval
+    follows `p.value`, and a new column, `statistic`, holds the test
+    statistic. It is on the scale of the test, so for a ratio it is the log
+    of the estimate divided by `std.error`.
+  - `fit_solomon_sem()` and `fit_solomon_sem_latent()`: a new column,
+    `df`, after `statistic`.
+  - `compare_solomon_methods()$results`: `method` comes first, then the
+    shared columns, with a new `statistic`, and then `adjustment`,
+    `variance`, and `reference`.
+  - `tipping_point_solomon()$results`: new columns `contrast` and
+    `statistic`, after the offsets `delta` and `delta_sd`.
+  - `fit_solomon_classic()`: the `result` of each of Tests A-H, and
+    `pretest_main`, have a new `contrast` column and `F` after the
+    interval. The `test` column of `pretest_main` is now empty, and its
+    label is in `contrast`.
+  - `baseline_solomon()`, which compares pretests and has no effects table,
+    lists its test before its interval too: `statistic`, `df`, and
+    `p.value` precede `conf.low` and `conf.high`.
+* **`df` is in every effects table.** Where the test uses the normal
+  distribution it is `Inf`, not `NA`, as `fit_solomon_glm()` already
+  reported for binomial and Poisson fits. That is so in the SEM fits, whose
+  tables had no `df`, in `fit_solomon_ml()` with `inference = "wald"`, and
+  in `marginal_solomon()` without CR2 covariance. Every p-value is then
+  `2 * pt(-abs(statistic), df)`, and `equivalence_solomon()`,
+  `plot_solomon_effects()`, and `report_solomon()` read `Inf` as the normal
+  reference.
+* **`fit_solomon_classic()` has an `effects` table**, as every other fit
+  does: Tests A-H and the pretest main effect, one row each, in the shared
+  columns, with the test letter in `test` and `F` last. The contrasts have
+  the shared labels: `Pretest x Treatment` (Test A),
+  `Treatment | pretested` (Tests B, E, F, and G), `Treatment | unpretested`
+  (Tests C and H), `ATE (avg over pretest)` (Test D), and
+  `Pretest main effect`. The `tests` element is unchanged apart from the
+  columns of each result.
+* **`fit_solomon_classic()$aov` is replaced by `$anova`, which can change
+  results with unequal group sizes.** `anova` is the two-by-two analysis
+  of variance of the posttest with Type III sums of squares, in the format
+  of `solomon_from_summary()$anova`: sources `Treatment`, `Pretest`,
+  `Pretest x Treatment`, and `Error`, and columns `source`, `sumsq`, `df`,
+  `meansq`, `F`, and `p.value`. Its F tests are the squares of the t tests
+  of Test D, the pretest main effect, and Test A, and the table equals the
+  one `solomon_from_summary()` gives for the same cells.
+  - `aov` held the sequential sums of squares of `stats::aov()`: treatment
+    ignoring pretesting, then pretesting adjusted for treatment, then the
+    interaction. With unequal group sizes its treatment row was not Test D
+    and its pretest row was not the pretest main effect; only its
+    interaction row agreed with Test A. With equal group sizes the two
+    tables have the same sums of squares.
+  - `$aov` still works, with a deprecation warning that says so, and
+    returns `anova`: the columns are no longer those of `broom::tidy()`
+    (`term`, `df`, `sumsq`, `meansq`, `statistic`, `p.value`), and the
+    last row is `Error`, not `Residuals`. `[["aov"]]` is `NULL`. A fit
+    saved by an earlier version has no `anova` table, and `$aov` gives
+    `NULL` for it; refit it.
+  - The elements `ancova`, `t_unpretested`, and `stouffer` stay as legacy
+    elements outside the stable interface; Tests E, H, and I hold the same
+    analyses.
 * **A renamed ANOVA source.** In the four-group table
   `solomon_from_summary()$anova`, the interaction is `Pretest x Treatment`,
   as the contrast is named; it was `Treatment x Pretest`. Code that selects
@@ -70,6 +140,10 @@ element name needs the new one. Former element names keep working with
   article, the methods guide, the GLM vignette, the coverage article, and
   the references describe the pretest effects of the SEM fits; the
   simulation script of the invariance study reads the new names.
+* `?fit_solomon_classic` names every element and has a section on the
+  analysis of variance, and the help pages of the other fits list the
+  columns of their effects tables. "The Classic Solomon Four-Group
+  Analysis" shows `effects` and `anova`.
 
 ## Credit for the unified model (#105)
 
