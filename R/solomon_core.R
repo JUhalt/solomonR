@@ -1111,7 +1111,20 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' default statistic is the HC3-studentized contrast. The permutation
 #' p-value is a valid test of the sharp null hypothesis that treatment has no
 #' effect for any participant; the `+1` correction keeps the Monte Carlo
-#' p-value from being zero (Phipson & Smyth, 2010). Studentizing the
+#' p-value from being zero (Phipson & Smyth, 2010). That result is for the
+#' count of permuted statistics at least as extreme as the observed one, so
+#' a permutation whose statistic equals the observed one is counted. Such
+#' ties occur when a permutation repeats the observed assignment or swaps
+#' arms of equal size, and often when scores are tied, as with binary
+#' outcomes, counts, and ratings. So that rounding error does not decide,
+#' statistics that differ by less than a small relative tolerance are
+#' treated as equal: 1e-10 for a linear model and 1e-6 for models fitted by
+#' iteration. The tolerance is relative to the observed statistic or, when
+#' that is smaller, to 1 for the studentized statistic and to the largest
+#' permuted difference for the difference statistic. In a model fitted by
+#' iteration, equal fits usually agree to about 1e-7; with a covariate they
+#' can differ by more, most with a link other than the canonical one, and
+#' such a tie can still be missed (issue #134). Studentizing the
 #' statistic makes permutation tests asymptotically robust when only an
 #' average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
 #' Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness
@@ -1453,8 +1466,23 @@ perm_solomon <- function(
       stats::coef(fit$model)
   )
 
+  # One routine refits the model for the observed and for the permuted
+  # labels, so that labelings that give the same fit in exact arithmetic
+  # are computed the same way. Convergence stays at glm()'s default, and
+  # the tie tolerance allows for it (see .perm_tie_tolerance(); issue #131).
+  refit <- function(d) {
+    stats::glm(
+      form,
+      data = d,
+      family = fam,
+      na.action = stats::na.exclude,
+      control = stats::glm.control(maxit = 200)
+    )
+  }
+  tie_tol <- .perm_tie_tolerance(fam)
+
   z_obs <- contrast_z(
-    fit$model,
+    refit(df),
     contrast
   )
 
@@ -1492,21 +1520,10 @@ perm_solomon <- function(
 
     df_perm <- df
 
-    df_perm$treat <- stats::ave(
-      df$treat,
-      df$pretested,
-      FUN = function(x) sample(x, length(x), replace = FALSE)
-    )
-
-    fit_perm <- stats::glm(
-      form,
-      data = df_perm,
-      family = fam,
-      na.action = stats::na.exclude
-    )
+    df_perm$treat <- .perm_treat(df$treat, df$pretested)
 
     z_perm[i] <- contrast_z(
-      fit_perm,
+      refit(df_perm),
       contrast
     )
   }
@@ -1525,9 +1542,10 @@ perm_solomon <- function(
 
   # Two-sided randomization p-value with the +1 finite-simulation
   # correction. This prevents an estimated p-value of exactly zero.
+  # Ties with the observed statistic are counted (see .perm_at_least()).
 
   p_perm <- (
-    sum(abs(z_perm_valid) >= abs(z_obs)) + 1
+    sum(.perm_at_least(z_perm_valid, z_obs, .perm_unit(z_perm_valid, statistic), tie_tol)) + 1
   ) / (
     length(z_perm_valid) + 1
   )
