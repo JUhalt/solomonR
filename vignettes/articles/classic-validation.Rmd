@@ -285,7 +285,10 @@ The files are in the package repository:
 - the post hoc investigation, `test-i-investigation.R` and its output.
 
 The run took from `r run$started` to `r run$finished` on `r run$workers`
-workers (`r run$R_version`).
+workers (`r run$R_version`). Both scripts have since gained a smoke mode, a
+short run that checks them against the current package
+([issue #140](https://github.com/JUhalt/solomonR/issues/140)); a full run of
+either computes what it computed then.
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

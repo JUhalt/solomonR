@@ -1,5 +1,34 @@
 # solomonR (development version)
 
+## Validation scripts that run against the current package (#140)
+
+* The simulation scripts behind the validation articles select the rows
+  they study by label, as `?solomon_output` describes, so they run against
+  the current package again. Several took the rows of an effects table by
+  position, and the pretest effects added in #104 broke them: the scripts
+  of the binary, count, negative-binomial, and repeated-measures studies
+  ran to the end but caught an error in their replications and reported no
+  usable one, the multiple-imputation script stopped, the cluster-marginal
+  script stored values under the wrong labels, and the agreement check of
+  the study with several treatments compared the wrong rows. What the
+  scripts compute is unchanged: run at the commit of each study's stored
+  results, on two replications of the scenarios of the smoke mode
+  described below, the adapted and the original scripts store identical
+  results. The stored results, and so the articles' numbers, do not
+  change.
+* Every validation script has a smoke mode. With the environment variable
+  `SOLOMONR_SMOKE_DIR` set, it runs `SOLOMONR_SMOKE_REPS` replications
+  (default 2) of a few scenarios, writes everything under that folder, and
+  stops if a replication caught an error or gave no usable result.
+  `tools/check-validation-scripts.R` runs every script that way and fails
+  if one fails or if a file of the package changes, and a new GitHub
+  Actions workflow runs it on every pull request. It is not part of
+  `R CMD check`.
+* The validation articles say that their scripts were adapted after the
+  runs. The confirmatory reruns of the multiple-imputation (#82) and
+  repeated-measures (#57) studies planned under #117 will replace those two
+  runs and their scripts.
+
 ## One output vocabulary (#110)
 
 The names that results use are settled before 1.0, as #83 settled the

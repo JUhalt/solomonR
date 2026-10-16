@@ -288,7 +288,14 @@ Vandenberg & Lance, 2000, p. 38).
   criteria as they behave on these data.
 
 The script is `vignettes/articles/invariance-validation/invariance-simulation.R`
-in the package repository.
+in the package repository. It has since been adapted to the current output
+of the package without changing what it computes: it reads the latent
+contrast from `effects` under the label `Pretest x Treatment`, the names
+the output has had since
+[issue #110](https://github.com/JUhalt/solomonR/issues/110) (they were
+`effects_post` and `Sens` in the run), and it has a smoke mode, a short run
+that checks it against the package
+([issue #140](https://github.com/JUhalt/solomonR/issues/140)).
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

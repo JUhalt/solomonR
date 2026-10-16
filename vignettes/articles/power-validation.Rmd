@@ -250,7 +250,11 @@ outcomes, missing posttest scores, and incidental pretest missingness.
 The simulation script is
 `vignettes/articles/power-validation/power-simulation.R` in the package
 repository. It was run at `r run$git_commit` with R `r run$r_version`, base
-seed `r run$base_seed`, and the replication counts above.
+seed `r run$base_seed`, and the replication counts above. Its smoke mode, a
+short run of three scenarios, has since been extended to check it against
+the current package
+([issue #140](https://github.com/JUhalt/solomonR/issues/140)); a full run
+computes what it computed then.
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

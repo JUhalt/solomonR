@@ -291,7 +291,11 @@ The scripts, `count-validation/count-simulation.R` and
 are in the package repository. The count study ran from `r run$started` to
 `r run$finished` and the negative-binomial study from `r nb_run$started` to
 `r nb_run$finished` (package commit `r substr(nb_run$commit, 1, 7)`), each
-on `r run$workers` workers (`r run$R_version`).
+on `r run$workers` workers (`r run$R_version`). Both scripts have since been
+adapted to the current output of the package
+([issue #140](https://github.com/JUhalt/solomonR/issues/140)): they select
+the rows they study by their labels, as the help page `?solomon_output`
+describes, without changing what they compute.
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.
