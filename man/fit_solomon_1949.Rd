@@ -13,7 +13,8 @@ fit_solomon_1949(
   pre_mean = NULL,
   n = NULL,
   inferred_pretest = c("average", "pooled"),
-  data = NULL
+  data = NULL,
+  pretest_center = c("analyzed", "observed")
 )
 }
 \arguments{
@@ -37,6 +38,14 @@ printout and for \code{inferred_pretest = "pooled"}.}
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
+
+\item{pretest_center}{With individual data, the pretested participants
+whose pretest means give the inferred pretest (issue #135):
+\code{"analyzed"} (the default), those with both scores, as in the table of
+means; \code{"observed"}, every pretested participant with a pretest, with
+or without a posttest. In the four-group design the inferred pretest
+cancels from I. Group means have one center, so \code{"observed"} needs
+individual data.}
 }
 \value{
 An object of class \code{solomon_1949}, a list with:

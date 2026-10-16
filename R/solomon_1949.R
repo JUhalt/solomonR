@@ -76,6 +76,13 @@
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
+#' @param pretest_center With individual data, the pretested participants
+#'   whose pretest means give the inferred pretest (issue #135):
+#'   `"analyzed"` (the default), those with both scores, as in the table of
+#'   means; `"observed"`, every pretested participant with a pretest, with
+#'   or without a posttest. In the four-group design the inferred pretest
+#'   cancels from I. Group means have one center, so `"observed"` needs
+#'   individual data.
 #'
 #' @return An object of class `solomon_1949`, a list with:
 #'   - `design`: `"three-group"` or `"four-group"`.
@@ -129,20 +136,31 @@
 fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pre = NULL,
                              post_mean = NULL, pre_mean = NULL, n = NULL,
                              inferred_pretest = c("average", "pooled"),
-                             data = NULL) {
+                             data = NULL, pretest_center = c("analyzed", "observed")) {
   .solomon_data_args(
     data, c("y_post", "treat", "pretested", "y_pre"),
     environment(), parent.frame()
   )
   .stop_ngroup_unsupported(treat, "fit_solomon_1949")
   inferred_pretest <- match.arg(inferred_pretest)
+  pretest_center <- match.arg(pretest_center)
   individual <- !is.null(y_post)
   if (individual == !is.null(post_mean)) {
     stop("Give either individual data (`y_post`, `treat`, `pretested`, `y_pre`) ",
          "or group means (`post_mean`, `pre_mean`), not both.", call. = FALSE)
   }
+  if (!individual && pretest_center == "observed") {
+    stop("`pretest_center = \"observed\"` needs individual data: with group means there ",
+         "are no pretests of participants without a posttest to choose between.",
+         call. = FALSE)
+  }
 
   post_se <- pre_se <- change_se <- rep(NA_real_, 4)
+  # The pretest means and sizes of the two pretested groups over every
+  # observed pretest, with or without a posttest (issue #135), from which
+  # `pretest_center = "observed"` infers the pretest. With group means they
+  # are `pre_mean` and `n`.
+  observed_mean <- observed_n <- NULL
   if (individual) {
     if (is.null(treat) || is.null(pretested) || is.null(y_pre)) {
       stop("Individual data need `y_post`, `treat`, `pretested`, and `y_pre`.", call. = FALSE)
@@ -151,6 +169,9 @@ fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pr
     pretested <- .solomon_indicator(pretested, "pretested")
     .solomon_check_lengths(y_post = y_post, treat = treat, pretested = pretested, y_pre = y_pre)
     cell <- ifelse(pretested == 1L, ifelse(treat == 1L, 1L, 2L), ifelse(treat == 1L, 3L, 4L))
+    every <- cell %in% 1:2 & !is.na(y_pre)
+    observed_mean <- vapply(1:2, function(j) mean(y_pre[every & cell == j]), numeric(1))
+    observed_n <- vapply(1:2, function(j) sum(every & cell == j), integer(1))
     keep <- !is.na(y_post) & !is.na(cell) & (cell > 2L | !is.na(y_pre))
     cell <- cell[keep]
     y_post <- y_post[keep]
@@ -188,18 +209,37 @@ fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pr
     pre_mean <- unname(pre_mean)
   }
 
-  i <- if (inferred_pretest == "average") {
-    mean(pre_mean)
-  } else {
-    if (is.null(n)) {
-      stop("`inferred_pretest = \"pooled\"` needs the group sizes (`n`).", call. = FALSE)
+  # The inferred pretest from the two pretested groups' means `means` and
+  # sizes `sizes`: their average, or their size-weighted average.
+  infer <- function(means, sizes) {
+    if (inferred_pretest == "average") {
+      mean(means)
+    } else {
+      if (is.null(sizes)) {
+        stop("`inferred_pretest = \"pooled\"` needs the group sizes (`n`).", call. = FALSE)
+      }
+      sum(sizes[1:2] * means) / sum(sizes[1:2])
     }
-    sum(n[1:2] * pre_mean) / sum(n[1:2])
   }
-  pre <- c(pre_mean, rep(i, k - 2L))
-  change <- post_mean - pre
-  I <- if (k == 3L) change[1] - (change[2] + change[3]) else
-    change[1] - (change[2] + change[3] - change[4])
+  # The improvements and the interaction for an inferred pretest `i`.
+  improve <- function(i) {
+    pre <- c(pre_mean, rep(i, k - 2L))
+    change <- post_mean - pre
+    I <- if (k == 3L) change[1] - (change[2] + change[3]) else
+      change[1] - (change[2] + change[3] - change[4])
+    list(pre = pre, change = change, I = I)
+  }
+  # The default infers the pretest from the participants with both scores,
+  # as Solomon's tables do (issue #135); "observed" from every observed
+  # pretest of the pretested groups. The two are the same number when no
+  # pretested participant with a pretest lacks a posttest.
+  i_analyzed <- infer(pre_mean, n)
+  i_observed <- if (individual) infer(observed_mean, observed_n) else NA_real_
+  i <- if (pretest_center == "analyzed") i_analyzed else i_observed
+  used <- improve(i)
+  pre <- used$pre
+  change <- used$change
+  I <- used$I
 
   groups <- data.frame(
     group = .solomon_1949_groups[seq_len(k)],
@@ -216,13 +256,44 @@ fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pr
     stringsAsFactors = FALSE
   )
 
+  # The pretested groups' means behind the "observed" inferred pretest, over
+  # every observed pretest (issue #135). They differ from the pretest means
+  # in `groups` when pretested participants have a pretest and no posttest:
+  # `without_posttest` counts them.
+  inferred_from <- data.frame(
+    group = .solomon_1949_groups[1:2],
+    n = if (individual) observed_n else if (is.null(n)) NA_integer_ else as.integer(n[1:2]),
+    pre_mean = if (individual) observed_mean else pre_mean,
+    stringsAsFactors = FALSE
+  )
+  inferred_from$without_posttest <- inferred_from$n - groups$n[1:2]
+
+  # The inferred pretest, the interaction, and the unpretested groups'
+  # improvements at both centers. In the four-group design the inferred
+  # pretest cancels from I. NULL with group means, which have one center.
+  sensitivity <- NULL
+  if (individual) {
+    at <- list(analyzed = improve(i_analyzed), observed = improve(i_observed))
+    sensitivity <- data.frame(
+      center = c("analyzed", "observed"),
+      inferred_pretest = c(i_analyzed, i_observed),
+      I = c(at$analyzed$I, at$observed$I),
+      d3 = c(at$analyzed$change[3], at$observed$change[3]),
+      d4 = if (k == 4L) c(at$analyzed$change[4], at$observed$change[4]) else NA_real_,
+      stringsAsFactors = FALSE
+    )
+  }
+
   out <- list(
     design = if (k == 3L) "three-group" else "four-group",
     groups = groups,
     inferred_pretest = i,
     inferred_method = inferred_pretest,
     I = I,
-    individual = individual
+    individual = individual,
+    pretest_center = pretest_center,
+    inferred_from = inferred_from,
+    pretest_sensitivity = sensitivity
   )
   if (k == 4L) {
     out$posttest_contrast <- post_mean[1] - post_mean[2] - post_mean[3] + post_mean[4]
