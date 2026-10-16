@@ -188,12 +188,49 @@
 }
 
 
+# The names of the Solomon groups flagged by `sel`, as "Pretested, RP":
+# `counts` is the table of analyzable participants, with one row per
+# condition and the columns "1" (pretested) and "0" (unpretested).
+.group_names <- function(counts, sel) {
+  at <- which(sel, arr.ind = TRUE)
+  sprintf(
+    "%s, %s", c("1" = "Pretested", "0" = "Unpretested")[colnames(counts)[at[, 2]]],
+    rownames(counts)[at[, 1]]
+  )
+}
+
+# Stop when a coefficient of the fitted model is inestimable: an empty
+# group, or a term collinear with the others. `empty` names the groups
+# without an analyzable participant (.group_names()). Used by the four-group
+# and the several-treatment paths of fit_solomon_glm().
+.stop_inestimable <- function(fit, empty) {
+  aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
+  if (!length(aliased)) return(invisible(NULL))
+  if (length(empty)) {
+    stop(
+      "The model cannot be estimated because these groups have no analyzable ",
+      "participants: ", paste(empty, collapse = "; "), ".",
+      call. = FALSE
+    )
+  }
+  aliased[aliased == "pre_obs"] <- "pre_obs (the pretest, `y_pre`)"
+  stop(
+    "The model cannot be estimated because these terms are collinear with ",
+    "other terms of the model: ", paste(aliased, collapse = ", "),
+    ". A covariate or pretest that is constant, or that repeats another ",
+    "term, causes this.",
+    call. = FALSE
+  )
+}
+
 # Fit the joint model of an N-group design. Called by fit_solomon_glm()
 # after its arguments have been resolved; `cond` comes from
-# .solomon_conditions().
+# .solomon_conditions(). `pretest_center` is the center of the pretest
+# (issue #135), as in the four-group model.
 .fit_solomon_ngroup <- function(y_post, cond, pretested, y_pre, covariates,
                                 robust, cluster, family, negbin, conf_level,
-                                exposure, contrasts, adjust, call) {
+                                exposure, contrasts, adjust, call,
+                                pretest_center = "analyzed") {
 
   pretested <- .solomon_indicator(pretested, "pretested")
 
@@ -277,10 +314,14 @@
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
   # Center the pretest at its mean among the pretested participants in the
-  # model, as in the four-group model (issue #104).
+  # model, as in the four-group model (issue #104), or at the mean of every
+  # observed pretest among the pretested participants (issue #135). Either
+  # center pools the pretested participants of every condition.
   pretest_mean <- NA_real_
+  centers <- c(analyzed = NA_real_, observed = NA_real_)
   if (!is.null(y_pre)) {
-    pretest_mean <- .pretest_center(df)
+    centers <- .pretest_centers(df)
+    pretest_mean <- centers[[pretest_center]]
     df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
   }
 
@@ -303,41 +344,17 @@
     factor(df$condition[used], levels = lev),
     factor(df$pretested[used], levels = c(1L, 0L))
   )
-  group_names <- function(sel) {
-    at <- which(sel, arr.ind = TRUE)
-    paste(sprintf(
-      "%s, %s", c("1" = "Pretested", "0" = "Unpretested")[colnames(counts)[at[, 2]]],
-      rownames(counts)[at[, 1]]
-    ), collapse = "; ")
-  }
 
   # An empty group, or a term collinear with the others, leaves a
   # coefficient inestimable.
-  aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
-  if (length(aliased)) {
-    if (any(counts == 0)) {
-      stop(
-        "The model cannot be estimated because these groups have no analyzable ",
-        "participants: ", group_names(counts == 0), ".",
-        call. = FALSE
-      )
-    }
-    aliased[aliased == "pre_obs"] <- "pre_obs (the pretest, `y_pre`)"
-    stop(
-      "The model cannot be estimated because these terms are collinear with ",
-      "other terms of the model: ", paste(aliased, collapse = ", "),
-      ". A covariate or pretest that is constant, or that repeats another ",
-      "term, causes this.",
-      call. = FALSE
-    )
-  }
+  .stop_inestimable(fit, .group_names(counts, counts == 0))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2.
   if (robust == "HC3" && any(counts == 1)) {
     stop(
       "HC3 standard errors are undefined because these groups have a single ",
-      "analyzable participant: ", group_names(counts == 1), ". ",
+      "analyzable participant: ", paste(.group_names(counts, counts == 1), collapse = "; "), ". ",
       "Use `robust = \"none\"` or leave the condition out; see validate_solomon().",
       call. = FALSE
     )
@@ -373,14 +390,51 @@
   }
 
   # The sampling variance of the mean pretest at which the pretest effects
-  # are evaluated, as in the four-group model (issue #104).
-  center <- if (!is.null(y_pre)) {
-    .center_terms(
-      if (robust == "CR2") fit_cr else fit, robust,
-      a = df$pre_obs[used],
-      set = ifelse(df$pretested[used] == 1L, "pretested", NA_character_),
-      cluster = if (robust == "CR2") cluster_fit
-    )
+  # are evaluated, as in the four-group model (issues #104 and #135), and the
+  # other center's, when the two differ, for `pretest_sensitivity`.
+  center <- NULL
+  center_other <- NULL
+  center_note <- NULL
+  parts <- NULL
+  differ <- FALSE
+  if (!is.null(y_pre)) {
+    in_observed <- .in_pretest_center(df)
+    parts <- .pretest_center_parts(y_pre, in_observed, used, is.na(df$y))
+    differ <- parts$n[["observed"]] > parts$n[["analyzed"]]
+    model_cr <- if (robust == "CR2") fit_cr else fit
+    terms_analyzed <- function() {
+      .center_terms(
+        model_cr, robust,
+        a = df$pre_obs[used],
+        set = ifelse(df$pretested[used] == 1L, "pretested", NA_character_),
+        cluster = if (robust == "CR2") cluster_fit
+      )
+    }
+    terms_observed <- function() {
+      .center_terms(
+        model_cr, robust,
+        a = df$pre_obs,
+        set = ifelse(in_observed, "pretested", NA_character_),
+        cluster = if (robust == "CR2") cluster,
+        used = used
+      )
+    }
+    if (pretest_center == "analyzed") {
+      center <- terms_analyzed()
+      if (differ) {
+        if (robust == "CR2") {
+          center_note <- .check_center_clusters(cluster, in_observed & !used, stop = FALSE)
+          if (!is.null(center_note)) {
+            center_note <- paste(center_note, "The standard errors at that center are not given.")
+          }
+        }
+        if (is.null(center_note)) center_other <- terms_observed()
+      }
+    } else {
+      if (robust == "CR2") .check_center_clusters(cluster, in_observed & !used)
+      center <- terms_observed()
+      if (differ) center_other <- terms_analyzed()
+    }
   }
 
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
@@ -406,8 +460,9 @@
   cn <- names(cf)
 
   # The pretest effects also carry the variance of the mean pretest at which
-  # they are evaluated (.center_adjusted()).
-  lin_contrast <- function(L) {
+  # they are evaluated (.center_adjusted()); `terms` is that mean's
+  # .center_terms(), of the center used or of the other center.
+  lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") {
@@ -422,7 +477,7 @@
     } else {
       df_model
     }
-    adj <- .center_adjusted(L, cf, vcovM, center, robust, dfc)
+    adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
     z   <- est / se
@@ -520,6 +575,46 @@
                          "r2", "r2_lo", "r2_hi")]
   effects <- .effects_table(effects, keys = "comparison")
 
+  # The pretest effects at both centers (issue #135), computed for the
+  # other center by shifting the contrasts, as in the four-group model.
+  sensitivity <- NULL
+  if (!is.null(y_pre)) {
+    pretest_labels <- c(cond$control, cond$treatments, "All conditions")
+    pretest_types <- c(.solomon_pretest_order[1], rep(.solomon_pretest_order[2], k),
+                       .solomon_pretest_order[3])
+    columns <- c("comparison", .solomon_effect_columns, "p.adjusted")
+    used_rows <- effects[effects$contrast %in% .solomon_pretest_order, columns, drop = FALSE]
+    other_rows <- NULL
+    if (differ) {
+      shift <- centers[[.other_center(pretest_center)]] - pretest_mean
+      other_rows <- do.call(rbind, Map(function(L, comparison, contrast) {
+        L[["pre_obs"]] <- L[["pre_obs"]] + shift * L[["pretested"]]
+        est <- lin_contrast(L, center_other)
+        data.frame(comparison = comparison, contrast = contrast,
+                   estimate = est[["estimate"]], std.error = est[["std.error"]],
+                   statistic = est[["statistic"]], df = est[["df"]],
+                   p.value = est[["p.value"]], conf.low = est[["conf.low"]],
+                   conf.high = est[["conf.high"]], stringsAsFactors = FALSE)
+      }, L_pretest, pretest_labels, pretest_types))
+      if (!is.null(center_note)) {
+        other_rows[setdiff(.solomon_effect_columns, c("contrast", "estimate"))] <- NA_real_
+      }
+      other_treated <- other_rows$contrast == .solomon_pretest_order[2]
+      other_rows$p.adjusted <- other_rows$p.value
+      other_rows$p.adjusted[other_treated] <- stats::p.adjust(other_rows$p.value[other_treated],
+                                                              method = adjust)
+      other_rows <- other_rows[, columns]
+    }
+    identity <- identical(stats::family(fit)$link, "identity")
+    slope <- cf[["pre_obs"]]
+    sensitivity <- .pretest_sensitivity(
+      used_rows, other_rows, pretest_center, "comparison", parts, centers, slope, identity,
+      .pretest_attrition(as.character(df$condition), lev, df$pretested, df$y, used, slope,
+                         centers, identity),
+      note = center_note
+    )
+  }
+
   if (robust == "CR2") {
     small_df <- is.finite(effects$df) & effects$df < 4
     if (any(small_df)) {
@@ -591,6 +686,11 @@
     vcov = vcovM,
     data = df,
     pretest_mean = pretest_mean,
+    pretest_center = pretest_center,
+    pretest_mean_analyzed = centers[["analyzed"]],
+    pretest_mean_observed = centers[["observed"]],
+    pretest_n = parts$n,
+    pretest_sensitivity = sensitivity,
     robust = robust,
     family = family,
     cluster = cluster,

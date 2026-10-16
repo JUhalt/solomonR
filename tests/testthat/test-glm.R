@@ -191,6 +191,89 @@ test_that("Wald R2 is not reported for non-Gaussian GLMs", {
 })
 
 
+# ---- models that cannot be estimated ------------------------------------------
+
+test_that("an empty group or a collinear term of a four-group design is named", {
+  # As in the several-treatment path (test-ngroup-fit.R). Before, an empty
+  # group gave "non-conformable arguments" with HC3 and "missing value where
+  # TRUE/FALSE needed" with model-based covariance (#135).
+  d <- solomon_example
+  empty <- d
+  empty$y_post[empty$pretested == 1 & empty$treat == 1] <- NA
+  for (robust in c("HC3", "none")) {
+    expect_error(
+      fit_solomon_glm(y_post, treat, pretested, y_pre, robust = robust, data = empty),
+      paste("The model cannot be estimated because these groups have no analyzable",
+            "participants: Pretested, treatment."),
+      fixed = TRUE
+    )
+    expect_error(
+      fit_solomon_glm(y_post, treat, pretested, robust = robust, data = empty),
+      "no analyzable participants: Pretested, treatment.", fixed = TRUE
+    )
+    # With pretest_center = "observed" the center is defined (every pretest
+    # is observed); the model is not.
+    expect_error(
+      fit_solomon_glm(y_post, treat, pretested, y_pre, robust = robust, data = empty,
+                      pretest_center = "observed"),
+      "no analyzable participants: Pretested, treatment.", fixed = TRUE
+    )
+  }
+  expect_false(anyNA(empty$y_pre[empty$pretested == 1]))
+
+  both <- d
+  both$y_post[both$pretested == 1] <- NA
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, data = both),
+    "no analyzable participants: Pretested, treatment; Pretested, control.", fixed = TRUE
+  )
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, data = both, pretest_center = "observed"),
+    "no analyzable participants: Pretested, treatment; Pretested, control.", fixed = TRUE
+  )
+  three <- d[!(d$pretested == 0 & d$treat == 0), ]
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, data = three),
+    "no analyzable participants: Unpretested, control.", fixed = TRUE
+  )
+
+  # Every pretest missing: the pretested groups are empty at either center.
+  no_pretest <- d
+  no_pretest$y_pre <- NA_real_
+  for (center in c("analyzed", "observed")) {
+    expect_error(
+      suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = no_pretest,
+                                       pretest_center = center)),
+      "no analyzable participants: Pretested, treatment; Pretested, control.", fixed = TRUE
+    )
+  }
+
+  # Conditions named with `control` are named in the message.
+  empty$arm <- ifelse(empty$treat == 1, "Training", "Waiting list")
+  expect_error(
+    fit_solomon_glm(y_post, arm, pretested, y_pre, control = "Waiting list", data = empty),
+    "no analyzable participants: Pretested, Training.", fixed = TRUE
+  )
+
+  # A collinear covariate and a constant pretest are named, not a group.
+  d$x1 <- seq_len(nrow(d)) %% 5
+  d$x2 <- 2 * d$x1
+  for (robust in c("HC3", "none")) {
+    expect_error(
+      fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = c("x1", "x2"),
+                      robust = robust, data = d),
+      "collinear with other terms of the model: x2.", fixed = TRUE
+    )
+  }
+  constant <- d
+  constant$y_pre <- ifelse(constant$pretested == 1, 3, NA_real_)
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, data = constant),
+    "collinear with other terms of the model: pre_obs (the pretest, `y_pre`).", fixed = TRUE
+  )
+})
+
+
 # ---- covariates, the printed formula, and the CR2 label ----------------------
 
 test_that("a covariate named like a model column is refused", {

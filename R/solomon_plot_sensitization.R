@@ -44,6 +44,20 @@
   )
 }
 
+# The value of `pre_obs` at which the pretested cells are evaluated: the
+# fit's center. Fits center `pre_obs` at `fit$pretest_mean` (issue #104),
+# the mean pretest of the pretested participants in the model by default or
+# the mean of every observed pretest with `pretest_center = "observed"`
+# (issue #135), so the cells are at pre_obs = 0, where the fit's pretest
+# effects are evaluated. Fits made by earlier versions are uncentered and
+# have no `pretest_mean`; for them it is the mean of `pre_obs` over the
+# pretested rows of the model.
+.cell_pretest <- function(fit, X) {
+  if (!"pre_obs" %in% colnames(X)) return(NA_real_)
+  if (is.finite(.null_na(fit$pretest_mean))) return(0)
+  mean(X[X[, "pretested"] == 1, "pre_obs"])
+}
+
 # Coefficient vectors for the four model-adjusted cell means: pretested cells
 # at the mean pretest among pretested participants, unpretested cells at the
 # structural pre_obs = 0, and covariates at their model-matrix column means.
@@ -52,7 +66,7 @@
   cn <- colnames(X)
   cells <- data.frame(treat = c(0L, 1L, 0L, 1L), pretested = c(1L, 1L, 0L, 0L))
 
-  pre_mean <- if ("pre_obs" %in% cn) mean(X[X[, "pretested"] == 1, "pre_obs"]) else NA_real_
+  pre_mean <- .cell_pretest(fit, X)
 
   L <- matrix(0, nrow = 4L, ncol = length(cn), dimnames = list(NULL, cn))
   L[, "(Intercept)"] <- 1
@@ -104,7 +118,7 @@
     stringsAsFactors = FALSE
   )
 
-  pre_mean <- if ("pre_obs" %in% cn) mean(X[X[, "pretested"] == 1, "pre_obs"]) else NA_real_
+  pre_mean <- .cell_pretest(fit, X)
 
   L <- matrix(0, nrow = nrow(cells), ncol = length(cn), dimnames = list(NULL, cn))
   L[, "(Intercept)"] <- 1

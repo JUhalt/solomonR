@@ -19,6 +19,7 @@ fit_solomon_glm(
   contrasts = "control",
   adjust = c("holm", "bonferroni", "none"),
   data = NULL,
+  pretest_center = c("analyzed", "observed"),
   y = deprecated(),
   pretest_score = deprecated()
 )
@@ -75,6 +76,17 @@ the default), \code{"bonferroni"}, or \code{"none"}.}
 \item{data}{optional data frame. When supplied, the other data arguments
 are looked up in it first: give them as bare column names
 (\code{y_post = post}) or as strings (\code{y_post = "post"}).}
+
+\item{pretest_center}{with \code{y_pre}, the mean pretest at which the
+pretested groups are compared with the unpretested groups (issue #135).
+\code{"analyzed"} (the default): the mean pretest of the pretested
+participants in the model. \code{"observed"}: the mean of every observed
+pretest among the pretested participants, with or without a posttest,
+condition, covariate, or exposure; their rows must be in the data, with
+\code{y_post} missing, or this gives the default. Only the three pretest
+effects and their standard errors depend on it; the treatment
+contrasts, Pretest x Treatment, the fitted values, and the model's
+covariance do not (on the model's scale). Ignored without \code{y_pre}.}
 
 \item{y, pretest_score}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{y_post}
 and \code{y_pre}.}
