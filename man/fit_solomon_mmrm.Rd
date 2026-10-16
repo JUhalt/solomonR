@@ -13,7 +13,8 @@ fit_solomon_mmrm(
   y_pre = NULL,
   df = c("kenward-roger", "satterthwaite"),
   conf_level = 0.95,
-  data = NULL
+  data = NULL,
+  pretest_center = c("analyzed", "observed")
 )
 }
 \arguments{
@@ -43,6 +44,16 @@ participant and missing by design for unpretested participants.}
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
+
+\item{pretest_center}{With \code{y_pre}, the mean pretest at which the
+pretested groups are compared with the unpretested groups, as in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (issue #135). \code{"analyzed"} (the default): the mean
+pretest of the pretested participants in the model, those with at least
+one posttest. \code{"observed"}: the mean of every observed pretest among the
+pretested participants, each counted once, with or without a posttest
+at any occasion; the rows of pretested participants with no posttest
+must be in the data, with \code{y_post} missing, or this gives the default.
+Ignored without \code{y_pre}.}
 }
 \value{
 An object of class \code{solomon_mmrm}, a list with:

@@ -14,9 +14,22 @@
 # pretest effects at an occasion move by that occasion's pretest slope for
 # each unit the mean moves, so they gain slope^2 times that variance, with
 # Welch-Satterthwaite degrees of freedom; under the model the mean is
-# independent of the regression estimates.
+# independent of the regression estimates. For the "observed" center the
+# mean is taken over every pretested participant with a pretest, some of
+# whom may have no posttest and so are not in `observed` (issue #135). No
+# covariance is added there either: a participant's estimating function for
+# the fixed effects is the score of the observed-data likelihood, whose
+# expectation given the pretest is zero when the model holds and the
+# posttests are missing at random, so it is uncorrelated with the pretest.
+#
+# `other`, when given, holds the other center (issue #135): `shift`, its
+# distance from the center used, and `center`, its variance and degrees of
+# freedom. The pretest effects at that center are computed without a refit,
+# with the pretested cells at pre_obs = shift; the result then has them in
+# `other`. `slopes` holds the pretest slope at each occasion, named by
+# occasion (NULL without a pretest).
 .mmrm_fit_contrasts <- function(observed, occasions, pre, grouped, df, conf_level,
-                                center = NULL) {
+                                center = NULL, other = NULL) {
   fixed <- if (pre) "y ~ occ * treat * pretested + occ:pre_obs" else "y ~ occ * treat * pretested"
   method <- if (df == "kenward-roger") "Kenward-Roger" else "Satterthwaite"
   fit_one <- function(type) {
@@ -75,17 +88,17 @@
     out
   }
   # `slope`: the pretest slope at the occasion of a pretest effect, which
-  # adds the variance of the estimated center.
-  one <- function(L, occasion, contrast, slope = 0) {
+  # adds the variance of the estimated center `terms`.
+  one <- function(L, occasion, contrast, slope = 0, terms = center) {
     r <- mmrm::df_1d(fit, weights(L))
     est <- r$est
     se <- r$se
     dfc <- r$df
     stat <- r$t_stat
     p <- r$p_val
-    if (!is.null(center) && slope != 0) {
-      v_center <- slope^2 * center$variance
-      dfc <- .welch_df(c(se^2, v_center), c(dfc, center$df))
+    if (!is.null(terms) && slope != 0) {
+      v_center <- slope^2 * terms$variance
+      dfc <- .welch_df(c(se^2, v_center), c(dfc, terms$df))
       se <- sqrt(se^2 + v_center)
       stat <- est / se
       p <- 2 * stats::pt(-abs(stat), dfc)
@@ -98,6 +111,8 @@
   }
   sens <- list()
   rows <- list()
+  other_rows <- list()
+  slopes <- stats::setNames(numeric(length(occasions)), occasions)
   for (t in seq_along(occasions)) {
     pre_t <- point(t, 1, 1) - point(t, 0, 1)
     un_t <- point(t, 1, 0) - point(t, 0, 0)
@@ -108,6 +123,7 @@
     control_t <- point(t, 0, 1) - point(t, 0, 0)
     treated_t <- point(t, 1, 1) - point(t, 1, 0)
     slope <- if (pre) sum(weights(point(t, 0, 1, pre_obs = 1) - point(t, 0, 1)) * beta) else 0
+    slopes[t] <- slope
     rows <- c(rows, list(
       one((pre_t + un_t) / 2, occasions[t], "ATE (avg over pretest)"),
       one(sens[[t]], occasions[t], "Pretest x Treatment"),
@@ -117,13 +133,26 @@
       one(treated_t, occasions[t], "Pretest effect | treated", slope),
       one((control_t + treated_t) / 2, occasions[t], "Pretest main effect", slope)
     ))
+    # The same effects at the other center (issue #135): the pretested cells
+    # at pre_obs = shift.
+    if (!is.null(other)) {
+      control_o <- point(t, 0, 1, pre_obs = other$shift) - point(t, 0, 0)
+      treated_o <- point(t, 1, 1, pre_obs = other$shift) - point(t, 1, 0)
+      other_rows <- c(other_rows, list(
+        one(control_o, occasions[t], "Pretest effect | control", slope, other$center),
+        one(treated_o, occasions[t], "Pretest effect | treated", slope, other$center),
+        one((control_o + treated_o) / 2, occasions[t], "Pretest main effect", slope,
+            other$center)
+      ))
+    }
   }
   last <- length(occasions)
   rows <- c(rows, list(one(sens[[last]] - sens[[1]],
                            sprintf("%s vs %s", occasions[last], occasions[1]),
                            "Change in Pretest x Treatment")))
   list(effects = .effects_table(do.call(rbind, rows), keys = "occasion"), model = fit,
-       covariance = structure_used)
+       covariance = structure_used, slopes = if (pre) slopes,
+       other = if (length(other_rows)) .effects_table(do.call(rbind, other_rows), keys = "occasion"))
 }
 
 #' Mixed model for repeated measures in a longitudinal Solomon design
@@ -235,6 +264,15 @@
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
+#' @param pretest_center With `y_pre`, the mean pretest at which the
+#'   pretested groups are compared with the unpretested groups, as in
+#'   [fit_solomon_glm()] (issue #135). `"analyzed"` (the default): the mean
+#'   pretest of the pretested participants in the model, those with at least
+#'   one posttest. `"observed"`: the mean of every observed pretest among the
+#'   pretested participants, each counted once, with or without a posttest
+#'   at any occasion; the rows of pretested participants with no posttest
+#'   must be in the data, with `y_post` missing, or this gives the default.
+#'   Ignored without `y_pre`.
 #'
 #' @return An object of class `solomon_mmrm`, a list with:
 #'   - `effects`: at each occasion, the four treatment contrasts,
@@ -328,7 +366,7 @@
 #' @export
 fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NULL,
                              df = c("kenward-roger", "satterthwaite"), conf_level = 0.95,
-                             data = NULL) {
+                             data = NULL, pretest_center = c("analyzed", "observed")) {
   .solomon_data_args(
     data, c("y_post", "treat", "pretested", "id", "occasion", "y_pre"),
     environment(), parent.frame()
@@ -338,6 +376,7 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
     stop("fit_solomon_mmrm() needs the mmrm package: install.packages(\"mmrm\").", call. = FALSE)
   }
   df <- match.arg(df)
+  pretest_center <- match.arg(pretest_center)
   .check_conf_level(conf_level)
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
@@ -370,6 +409,13 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
   if (pre) {
     if (!is.numeric(y_pre)) stop("`y_pre` must be numeric.", call. = FALSE)
     constant(y_pre, "y_pre")
+    # One pretest per participant: a score given in some of a participant's
+    # rows, for example the first occasion's only, is their pretest in every
+    # row, so the participant is in the model and in the mean pretest (issue
+    # #135). Only a participant with no pretest in any row is excluded below.
+    y_pre <- stats::ave(y_pre, id, FUN = function(v) {
+      if (all(is.na(v))) v else rep(v[!is.na(v)][1], length(v))
+    })
     if (any(pretested == 0L & !is.na(y_pre), na.rm = TRUE)) {
       warning("Observed `y_pre` values were supplied for unpretested participants; ",
               "these values are ignored.", call. = FALSE)
@@ -392,24 +438,58 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
   observed <- d[!is.na(d$y), , drop = FALSE]
 
   # Center the pretest at its mean among the pretested participants in the
-  # model, each counted once, as in fit_solomon_glm() (issue #104).
+  # model, those with a posttest at some occasion, each counted once, as in
+  # fit_solomon_glm() (issue #104); or, with `pretest_center = "observed"`,
+  # at the mean of every observed pretest among the pretested participants,
+  # each counted once, with or without a posttest at any occasion (issue
+  # #135). The second needs the rows of the participants who have no
+  # posttest.
   pretest_mean <- NA_real_
   center <- NULL
+  centers <- c(analyzed = NA_real_, observed = NA_real_)
+  other <- NULL
+  parts <- NULL
   if (pre) {
     first <- !duplicated(observed$id) & observed$pretested == 1L
-    if (any(first)) pretest_mean <- mean(observed$pre_obs[first])
+    if (any(first)) centers[["analyzed"]] <- mean(observed$pre_obs[first])
+    n_pre <- sum(first)
+    # Every pretested participant with a pretest, each once.
+    has_pre <- pretested %in% 1L & !is.na(y_pre)
+    once <- !duplicated(id[has_pre])
+    x_observed <- y_pre[has_pre][once]
+    ids_observed <- id[has_pre][once]
+    if (length(x_observed)) centers[["observed"]] <- mean(x_observed)
+    analyzed_ids <- unique(as.character(observed$id[first]))
+    parts <- .pretest_center_parts(
+      x_observed, rep(TRUE, length(x_observed)),
+      in_model = as.character(ids_observed) %in% analyzed_ids,
+      no_posttest = !ids_observed %in% id[!is.na(y_post)]
+    )
+    # The variance of each mean, s^2 / n, which the pretest effects carry.
+    # For the analyzed center it is computed, as before #135, from the
+    # pretests centered at the mean used.
+    pretest_mean <- centers[[pretest_center]]
     if (is.finite(pretest_mean)) {
       observed$pre_obs <- ifelse(observed$pretested == 1L, observed$pre_obs - pretest_mean, 0)
     }
-    # The variance of that mean, s^2 / n, which the pretest effects carry.
-    n_pre <- sum(first)
-    if (n_pre > 1L) {
-      center <- list(variance = stats::var(observed$pre_obs[first]) / n_pre, df = n_pre - 1)
+    variance_analyzed <- function() {
+      if (n_pre > 1L) list(variance = stats::var(observed$pre_obs[first]) / n_pre, df = n_pre - 1)
+    }
+    variance_observed <- function() {
+      n_obs <- length(x_observed)
+      if (n_obs > 1L) list(variance = stats::var(x_observed) / n_obs, df = n_obs - 1)
+    }
+    center <- if (pretest_center == "analyzed") variance_analyzed() else variance_observed()
+    if (parts$n[["observed"]] > parts$n[["analyzed"]] && is.finite(pretest_mean)) {
+      other <- list(
+        shift = centers[[.other_center(pretest_center)]] - pretest_mean,
+        center = if (pretest_center == "analyzed") variance_observed() else variance_analyzed()
+      )
     }
   }
 
   res <- .mmrm_fit_contrasts(observed, occasions, pre, grouped = pre, df = df,
-                             conf_level = conf_level, center = center)
+                             conf_level = conf_level, center = center, other = other)
   if (res$covariance != "unstructured") {
     warning(structure(
       class = c("solomonR_mmrm_fallback_warning", "warning", "condition"),
@@ -424,6 +504,29 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
                    levels = .solomon_group_labels)
   counts <- as.data.frame.matrix(table(groups, observed$occ))
   participants <- unique(d[, c("id", "treat", "pretested")])
+
+  # The pretest effects at both centers (issue #135), and the participants
+  # of each group with no posttest at any occasion. No delta line is
+  # derived for repeated posttests.
+  sensitivity <- NULL
+  if (pre) {
+    pretest_rows <- res$effects$contrast %in% .solomon_pretest_order
+    used_rows <- res$effects[pretest_rows, c("occasion", .solomon_effect_columns), drop = FALSE]
+    person <- factor(id, levels = unique(id))
+    first_value <- function(v) v[!is.na(v)][1]
+    any_post <- as.vector(tapply(!is.na(y_post), person, any))
+    person_treat <- as.vector(tapply(treat, person, first_value))
+    person_pretested <- as.vector(tapply(pretested, person, first_value))
+    sensitivity <- .pretest_sensitivity(
+      used_rows, res$other, pretest_center, "occasion", parts, centers, res$slopes,
+      identity = FALSE,
+      .pretest_attrition(ifelse(person_treat == 1L, "treatment", "control"),
+                         c("control", "treatment"), person_pretested,
+                         ifelse(any_post, 1, NA), rep(TRUE, nlevels(person)), 0, centers,
+                         identity = FALSE)
+    )
+  }
+
   structure(
     list(
       effects = res$effects,
@@ -432,6 +535,12 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
       grouped = pre,
       pretest = pre,
       pretest_mean = pretest_mean,
+      pretest_center = pretest_center,
+      pretest_mean_analyzed = centers[["analyzed"]],
+      pretest_mean_observed = centers[["observed"]],
+      pretest_n = parts$n,
+      pretest_slope = res$slopes,
+      pretest_sensitivity = sensitivity,
       df_method = df,
       conf_level = conf_level,
       occasions = occasions,
