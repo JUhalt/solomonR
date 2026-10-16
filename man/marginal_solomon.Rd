@@ -10,7 +10,8 @@ marginal_solomon(
   method = c("bootstrap", "delta", "cluster_summary"),
   R = 999,
   seed = NULL,
-  conf_level = fit$conf_level
+  conf_level = fit$conf_level,
+  pretest_center = fit$pretest_center
 )
 }
 \arguments{
@@ -35,6 +36,14 @@ only; see Clustered fits).}
 state is restored afterwards.}
 
 \item{conf_level}{Confidence level. Defaults to the fit's.}
+
+\item{pretest_center}{For a fit with a pretest covariate, the pretested
+participants the pretested cells are standardized over (issue #135):
+\code{"analyzed"}, the pretested participants in the model; or \code{"observed"},
+every pretested participant with a pretest and the model's other
+covariates, with or without an outcome or a recorded condition.
+Defaults to the fit's \code{pretest_center} (\code{"analyzed"} for fits made
+before it existed). The centering constant itself plays no role.}
 }
 \value{
 An object of class \code{solomon_marginal}, a list with:
