@@ -49,8 +49,10 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   truth_link <- c(e[["bT"]] + e[["bTP"]] / 2, e[["bTP"]], e[["bT"]] + e[["bTP"]], e[["bT"]])
   rate <- function(t, p) exp(b0 + e[["bT"]] * t + e[["bP"]] * p + e[["bTP"]] * t * p + s$bX^2 / 2)
   r <- c(t1p1 = rate(1, 1), t0p1 = rate(0, 1), t1p0 = rate(1, 0), t0p0 = rate(0, 0))
-  truth_marginal <- c(.marginal_contrasts(r, "difference", count = TRUE),
-                      .marginal_contrasts(r, "ratio", count = TRUE))
+  # The rows studied are selected by label (issue #140; ?solomon_output): the
+  # four contrasts, on the link scale and on each marginal scale.
+  truth_marginal <- c(.marginal_contrasts(r, "difference", count = TRUE)[contrasts],
+                      .marginal_contrasts(r, "ratio", count = TRUE)[contrasts])
 
   n_cells <- 4 * s$n
   design <- data.frame(treat = rep(c(1L, 0L, 1L, 0L), each = s$n),
@@ -70,11 +72,14 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   rep_errors <- character()
 
   link_rows <- function(fit) {
+    fit$effects <- fit$effects[match(contrasts, fit$effects$contrast), ]
     cbind(fit$effects$estimate, fit$effects$std.error, fit$effects$conf.low,
           fit$effects$conf.high, fit$effects$p.value)
   }
   marginal_rows <- function(fit) {
     m <- marginal_solomon(fit)
+    m$effects <- m$effects[match(paste(rep(c("Rate difference", "Rate ratio"), each = 4), rep(contrasts, 2)),
+                                 paste(m$effects$scale, m$effects$contrast)), ]
     ratio <- m$effects$scale == "Rate ratio"
     est <- m$effects$estimate; lo <- m$effects$conf.low; hi <- m$effects$conf.high
     est[ratio] <- log(est[ratio]); lo[ratio] <- log(lo[ratio]); hi[ratio] <- log(hi[ratio])
@@ -115,8 +120,11 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
       ),
       error = function(err) NULL
     )
+    # A fit is judged by the four contrasts studied, so the pretest effects
+    # that the table has had since #104 cannot mark it as failed.
+    nb_rows <- if (is.null(nb)) NULL else nb$effects[match(contrasts, nb$effects$contrast), ]
     ok <- !is.null(nb) && isTRUE(nb$model$converged) && !empty &&
-      all(is.finite(nb$effects$estimate)) && all(is.finite(nb$effects$std.error))
+      all(is.finite(nb_rows$estimate)) && all(is.finite(nb_rows$std.error))
     if (!ok) {
       nb_failed[i] <<- TRUE
       return(invisible())

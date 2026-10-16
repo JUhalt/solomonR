@@ -49,8 +49,10 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   truth_link <- c(e[["bT"]] + e[["bTP"]] / 2, e[["bTP"]], e[["bT"]] + e[["bTP"]], e[["bT"]])
   rate <- function(t, p) exp(b0 + e[["bT"]] * t + e[["bP"]] * p + e[["bTP"]] * t * p + s$bX^2 / 2)
   r <- c(t1p1 = rate(1, 1), t0p1 = rate(0, 1), t1p0 = rate(1, 0), t0p0 = rate(0, 0))
-  truth_marginal <- c(.marginal_contrasts(r, "difference", count = TRUE),
-                      .marginal_contrasts(r, "ratio", count = TRUE))
+  # The rows studied are selected by label (issue #140; ?solomon_output): the
+  # four contrasts, on the link scale and on each marginal scale.
+  truth_marginal <- c(.marginal_contrasts(r, "difference", count = TRUE)[contrasts],
+                      .marginal_contrasts(r, "ratio", count = TRUE)[contrasts])
 
   n_cells <- 4 * s$n
   design <- data.frame(treat = rep(c(1L, 0L, 1L, 0L), each = s$n),
@@ -65,6 +67,7 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   rep_errors <- character()
 
   link_rows <- function(fit) {
+    fit$effects <- fit$effects[match(contrasts, fit$effects$contrast), ]
     cbind(fit$effects$estimate, fit$effects$std.error, fit$effects$conf.low,
           fit$effects$conf.high, fit$effects$p.value)
   }
@@ -91,6 +94,8 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
                                                robust = "none"))
     store$model_based[i, , ] <<- link_rows(fit_mb)
     m <- marginal_solomon(fit)
+    m$effects <- m$effects[match(paste(rep(c("Rate difference", "Rate ratio"), each = 4), rep(contrasts, 2)),
+                                 paste(m$effects$scale, m$effects$contrast)), ]
     ratio <- m$effects$scale == "Rate ratio"
     est <- m$effects$estimate; lo <- m$effects$conf.low; hi <- m$effects$conf.high
     est[ratio] <- log(est[ratio]); lo[ratio] <- log(lo[ratio]); hi[ratio] <- log(hi[ratio])

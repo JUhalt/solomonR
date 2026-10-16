@@ -58,7 +58,9 @@ run_scenario <- function(s, reps, pkg_dir, allocations, effects, cache_dir) {
     t1p0 = marginal_risk(b0 + e[["bT"]]),
     t0p0 = marginal_risk(b0)
   )
-  truth <- unlist(lapply(scales, function(sc) .marginal_contrasts(r, sc)), use.names = FALSE)
+  # The rows studied are selected by label (issue #140; ?solomon_output): the
+  # four contrasts on each scale.
+  truth <- unlist(lapply(scales, function(sc) .marginal_contrasts(r, sc)[contrasts]), use.names = FALSE)
 
   alloc <- allocations[[s$design]][[s$allocation]]
   if (s$design == "A") {
@@ -117,6 +119,9 @@ run_scenario <- function(s, reps, pkg_dir, allocations, effects, cache_dir) {
         invokeRestart("muffleWarning")
       }
     )
+    m$effects <- m$effects[match(paste(rep(c("Risk difference", "Risk ratio", "Odds ratio"), each = 4),
+                                       rep(contrasts, 3)),
+                                 paste(m$effects$scale, m$effects$contrast)), ]
     ratio <- m$effects$scale != "Risk difference"
     est <- ifelse(ratio, log(m$effects$estimate), m$effects$estimate)
     se <- m$effects$std.error

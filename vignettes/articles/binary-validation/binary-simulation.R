@@ -42,6 +42,7 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
   b0 <- stats::qlogis(s$control_risk)
   e <- effects[[s$pattern]]
   scales <- c("difference", "ratio", "odds_ratio")
+  scale_labels <- c(difference = "Risk difference", ratio = "Risk ratio", odds_ratio = "Odds ratio")
 
   # True marginal risks by numerical integration over X ~ N(0, 1).
   true_risk <- function(t, p) {
@@ -52,10 +53,15 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
   }
   r <- c(t1p1 = true_risk(1, 1), t0p1 = true_risk(0, 1),
          t1p0 = true_risk(1, 0), t0p0 = true_risk(0, 0))
-  truth <- unlist(lapply(scales, function(sc) .marginal_contrasts(r, sc)), use.names = FALSE)
+  # The rows studied are selected by label (issue #140; ?solomon_output): the
+  # four treatment contrasts on each scale, in the order of `labels`.
+  truth <- unlist(lapply(scales, function(sc) .marginal_contrasts(r, sc)[.solomon_contrast_order]),
+                  use.names = FALSE)
   labels <- expand.grid(contrast = .solomon_contrast_order, scale = scales, stringsAsFactors = FALSE)
 
   analysis <- function(m) {
+    m$effects <- m$effects[match(paste(scale_labels[labels$scale], labels$contrast),
+                                 paste(m$effects$scale, m$effects$contrast)), ]
     ratio <- rep(scales, each = 4) != "difference"
     tr <- function(x) {
       x[ratio] <- log(x[ratio])
@@ -94,7 +100,8 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
                                             family = stats::binomial()))
     fit_failed[i] <<- .logistic_failed(fit$model, y, design$treat, design$pretested)
     if (!fit_failed[i]) {
-      cond[i, ] <<- c(fit$effects$estimate, fit$effects$p.value)
+      ce <- fit$effects[match(.solomon_contrast_order, fit$effects$contrast), ]
+      cond[i, ] <<- c(ce$estimate, ce$p.value)
       mb <- suppressWarnings(marginal_solomon(fit, R = boot_R))
       boot_failures[i] <<- mb$failures
       interval_failed[i] <<- mb$failures > 0.1 * boot_R

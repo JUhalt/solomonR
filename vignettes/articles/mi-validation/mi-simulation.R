@@ -93,16 +93,19 @@ run_task <- function(task, scenarios, proportions, offsets, mu, gamma, intercept
 
     res <- tryCatch({
       out <- list()
+      # The four contrasts studied, selected by label (issue #140;
+      # ?solomon_output).
       cc <- fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre)
+      cc$effects <- cc$effects[match(contrasts, cc$effects$contrast), ]
       out$complete_case <- cbind(cc$effects$estimate, cc$effects$std.error, cc$effects$conf.low,
                                  cc$effects$conf.high, cc$effects$p.value, NA, NA)
       mar <- fit_solomon_mi(d$y_post, d$treat, d$pretested, d$y_pre, delta = 0, m = 100)
-      e <- mar$effects
+      e <- mar$effects[match(contrasts, mar$effects$contrast), ]
       out$mi_mar <- cbind(e$estimate, e$std.error, e$conf.low, e$conf.high, e$p.value, e$fmi,
                           e$mc_se / e$std.error)
       if ("mi_true" %in% methods) {
         tr <- fit_solomon_mi(d$y_post, d$treat, d$pretested, d$y_pre, delta = delta, m = 100)
-        e <- tr$effects
+        e <- tr$effects[match(contrasts, tr$effects$contrast), ]
         out$mi_true <- cbind(e$estimate, e$std.error, e$conf.low, e$conf.high, e$p.value, e$fmi,
                              e$mc_se / e$std.error)
       }

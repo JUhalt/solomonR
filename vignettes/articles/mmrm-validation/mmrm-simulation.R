@@ -110,7 +110,10 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
       long$pgrp <- factor(ifelse(long$pretested == 1L, "pretested", "unpretested"))
       observed <- long[!is.na(long$y), ]
 
+      # The estimands studied, selected by occasion and label (issue #140;
+      # ?solomon_output), in the order of `estimands`.
       fill <- function(method, eff) {
+        eff <- eff[match(estimands, paste(eff$occasion, eff$contrast, sep = ": ")), ]
         store[i, , , method] <<- cbind(eff$estimate, eff$std.error, eff$conf.low, eff$conf.high,
                                        eff$p.value)
       }
@@ -123,7 +126,7 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
         sat <- .mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "satterthwaite", 0.95)
         fill("mmrm_satterthwaite", sat$effects)
         covariance[i, "mmrm_satterthwaite"] <- sat$covariance
-        e <- sat$effects
+        e <- sat$effects[match(estimands, paste(sat$effects$occasion, sat$effects$contrast, sep = ": ")), ]
         q <- stats::qnorm(0.975)
         store[i, , , "mmrm_normal"] <- cbind(e$estimate, e$std.error, e$estimate - q * e$std.error,
                                              e$estimate + q * e$std.error,
@@ -137,7 +140,8 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
       tryCatch({
         cc <- do.call(rbind, lapply(1:3, function(t) {
           keep <- !is.na(yobs[, t])
-          fit_solomon_glm(yobs[keep, t], treat[keep], pretested[keep], y_pre[keep])$effects
+          e <- fit_solomon_glm(yobs[keep, t], treat[keep], pretested[keep], y_pre[keep])$effects
+          e[match(.solomon_contrast_order, e$contrast), ]
         }))
         store[i, 1:12, , "complete_case"] <- cbind(cc$estimate, cc$std.error, cc$conf.low,
                                                    cc$conf.high, cc$p.value)

@@ -145,6 +145,15 @@ agree_part <- function(part) {
     fc <- fit_solomon_glm(df$y, df$treat, df$pretested, y_pre, control = "Control",
                           robust = robust)
     vc <- rep(seq_len(length(pairs_of(s$k))) <= s$k, length(types))
+    # The rows of the direct computation, selected by comparison and label
+    # (issue #140; ?solomon_output): each pair for each of the four contrast
+    # types, in its order. The omnibus tests are selected by name too.
+    keys <- paste(rep(pair_names(s$k), length(types)), rep(types, each = length(pairs_of(s$k))))
+    fp$effects <- fp$effects[match(keys, paste(fp$effects$comparison, fp$effects$contrast)), ]
+    fc$effects <- fc$effects[match(keys[vc], paste(fc$effects$comparison, fc$effects$contrast)), ]
+    fc$omnibus <- fc$omnibus[match(c("Condition (avg over pretest)", "Pretest x Condition",
+                                     "Condition | pretested", "Condition | unpretested"),
+                                   fc$omnibus$test), ]
     data.frame(
       scenario = part$scenario, rep = a$rep, method = a$method,
       max_diff_estimate = max(abs(fp$effects$estimate - a$x$est)),
