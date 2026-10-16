@@ -19,6 +19,17 @@
 library(parallel)
 
 out_dir <- file.path("vignettes", "articles", "ngroup-validation")
+script_dir <- out_dir
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the scenarios in
+# `smoke_scenarios`, checks each against the package, on one worker, and
+# writes everything, checkpoints included, under that folder, so the stored
+# results are not touched. It stops unless every agreement is within the
+# protocol's 1e-8 and every decision is identical.
+# tools/check-validation-scripts.R runs it. Unset, the script runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) out_dir <- file.path(smoke_dir, "ngroup-validation")
 cache_dir <- file.path(out_dir, "checkpoints")
 dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -28,6 +39,7 @@ chunk <- 500L
 alpha <- 0.05
 agree_glm <- 100L   # replications per scenario checked against fit_solomon_glm()
 agree_steyn <- 20L  # replications per scenario checked against fit_solomon_steyn()
+if (smoke) reps <- chunk <- agree_glm <- agree_steyn <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
 
 # ---- Scenarios -----------------------------------------------------------------
 
@@ -44,6 +56,8 @@ scenarios <- do.call(rbind, lapply(2:3, function(k) {
               effects = names(effects), stringsAsFactors = FALSE)
 }))
 scenarios$scenario <- seq_len(nrow(scenarios))
+# The first scenario with one treatment and the first with two.
+smoke_scenarios <- c(1L, 65L)
 
 # Group sizes in the order pretested treatments, pretested control,
 # unpretested treatments, unpretested control (.solomon_cells()).
@@ -394,8 +408,10 @@ if (sys.nframe() == 0L) {
       sub <- parallel::nextRNGSubStream(sub)
     }
   }
+  # The tasks keep the seeds of the full run.
+  if (smoke) tasks <- Filter(function(task) task$scenario %in% smoke_scenarios, tasks)
 
-  workers <- max(1L, parallel::detectCores(logical = FALSE) - 1L)
+  workers <- if (smoke) 1L else max(1L, parallel::detectCores(logical = FALSE) - 1L)
   cl <- parallel::makeCluster(workers)
   on.exit(parallel::stopCluster(cl), add = TRUE)
   parallel::clusterEvalQ(cl, RNGkind("L'Ecuyer-CMRG"))
@@ -407,7 +423,20 @@ if (sys.nframe() == 0L) {
   ))
   results <- parallel::parLapplyLB(cl, tasks, run_task, chunk.size = 1)
 
-  source(file.path(out_dir, "ngroup-summarize.R"))
-  summarize_run(results, cl = cl, simulation_commit = first$commit,
-                agreement_commit = commit, started = first$time, workers = workers)
+  source(file.path(script_dir, "ngroup-summarize.R"))
+  run_summary <- summarize_run(results, cl = cl, simulation_commit = first$commit,
+                               agreement_commit = commit, started = first$time, workers = workers)
+
+  if (smoke) {
+    a <- run_summary$agreement
+    diffs <- as.matrix(a[, grep("^max_diff_", names(a))])
+    glm_rows <- a$method %in% c("M1", "M2", "M3")
+    agree <- nrow(a) > 0 && all(is.finite(diffs[glm_rows, ])) &&
+      all(is.finite(a$max_diff_p[!glm_rows])) && all(diffs < 1e-8, na.rm = TRUE) &&
+      isTRUE(all(a$decisions_identical[!glm_rows]))
+    if (!agree) {
+      stop("Smoke run failed: an agreement difference is missing or at least 1e-8, ",
+           "or a decision differs; see agreement.csv.")
+    }
+  }
 }

@@ -8,7 +8,13 @@
 # Writes agreement.csv next to this script.
 
 dir <- file.path("vignettes", "articles", "mi-validation")
-scenarios <- unique(utils::read.csv(file.path(dir, "performance.csv"),
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script reads the
+# smoke run of mi-simulation.R under that folder and writes its table there,
+# so the stored results are not touched. It stops if the table is empty or
+# has a missing difference. tools/check-validation-scripts.R runs it.
+smoke <- nzchar(Sys.getenv("SOLOMONR_SMOKE_DIR"))
+if (smoke) dir <- file.path(Sys.getenv("SOLOMONR_SMOKE_DIR"), "mi-validation")
+scenarios <-unique(utils::read.csv(file.path(dir, "performance.csv"),
                                     stringsAsFactors = FALSE)[, c("scenario", "n", "missing", "offsets")])
 parts <- lapply(list.files(file.path(dir, "cache"), pattern = "[.]rds$", full.names = TRUE), readRDS)
 
@@ -31,3 +37,6 @@ for (s in scenarios$scenario[scenarios$offsets == "A"]) {
 agreement <- merge(scenarios, do.call(rbind, rows), by = "scenario")
 utils::write.csv(agreement, file.path(dir, "agreement.csv"), row.names = FALSE)
 cat("Wrote", nrow(agreement), "rows\n")
+if (smoke && (nrow(agreement) == 0 || !all(is.finite(agreement$mean_difference)))) {
+  stop("Smoke run failed: the agreement table is empty or has a missing difference.")
+}

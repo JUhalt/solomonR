@@ -13,6 +13,19 @@
 args <- commandArgs(trailingOnly = TRUE)
 reps <- if (length(args) >= 1) as.integer(args[[1]]) else 20000L
 out_dir <- file.path("vignettes", "articles", "classic-validation")
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the conditions in
+# `smoke_conditions` on one worker, and writes everything, cache included,
+# under that folder, so the stored results are not touched. It stops if a
+# dataset failed. tools/check-validation-scripts.R runs it. Unset, the script
+# runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  reps <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  out_dir <- file.path(smoke_dir, "classic-validation")
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
 cache_dir <- file.path(out_dir, "cache")
 dir.create(cache_dir, showWarnings = FALSE)
 pkg_dir <- normalizePath(".")
@@ -24,6 +37,9 @@ conditions <- rbind(
   data.frame(set = 3L, dist = "normal", n = c(3L, 10L, 20L), r = 0)
 )
 conditions$condition <- seq_len(nrow(conditions))
+# Normal data with n = 30, and the smallest groups (n = 3).
+smoke_conditions <- c(1L, 28L)
+if (smoke) conditions <- conditions[conditions$condition %in% smoke_conditions, ]
 
 run_condition <- function(cond, reps, pkg_dir, cache_dir) {
   cache_file <- file.path(cache_dir, sprintf("condition-%02d.rds", cond$condition))
@@ -138,7 +154,7 @@ started <- Sys.time()
 # Recorded at the start, so commits made while the run is in progress are not
 # attributed to it.
 commit <- tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) NA_character_)
-cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
+cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
 order_run <- order(-conditions$n)
 results <- parallel::parLapplyLB(cl, split(conditions[order_run, ], seq_along(order_run)),
@@ -157,3 +173,7 @@ info <- data.frame(
 utils::write.csv(info, file.path(out_dir, "run-information.csv"), row.names = FALSE)
 cat("Done:", nrow(performance), "rows in",
     format(round(difftime(Sys.time(), started, units = "mins"), 1)), "\n")
+if (smoke && any(performance$failures > 0)) {
+  stop("Smoke run failed; caught errors: ",
+       paste(unique(performance$failure_messages[performance$failures > 0]), collapse = " | "))
+}

@@ -12,8 +12,21 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 reps <- if (length(args) >= 1) as.integer(args[[1]]) else 2000L
-chunk <- min(500L, reps)
 out_dir <- file.path("vignettes", "articles", "mi-validation")
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the scenarios in
+# `smoke_scenarios` on one worker, and writes everything, cache included,
+# under that folder, so the stored results are not touched. It stops if a
+# replication caught an error or a row has no usable replication.
+# tools/check-validation-scripts.R runs it. Unset, the script runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  reps <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  out_dir <- file.path(smoke_dir, "mi-validation")
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
+chunk <- min(500L, reps)
 cache_dir <- file.path(out_dir, "cache")
 dir.create(cache_dir, showWarnings = FALSE)
 pkg_dir <- normalizePath(".")
@@ -54,6 +67,10 @@ tasks <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(s) {
   data.frame(scenario = s, part = seq_len(ceiling(reps / chunk)))
 }))
 tasks$reps <- pmin(chunk, reps - (tasks$part - 1L) * chunk)
+# n = 30 with equal missingness, at random (offsets A) and not at random
+# (offsets B, which adds the analysis with the true offsets).
+smoke_scenarios <- c(1L, 7L)
+if (smoke) tasks <- tasks[tasks$scenario %in% smoke_scenarios, ]
 
 run_task <- function(task, scenarios, proportions, offsets, mu, gamma, intercepts, pkg_dir,
                      cache_dir) {
@@ -166,7 +183,7 @@ started <- Sys.time()
 # attributed to it.
 commit <- tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) NA_character_)
 intercepts <- lapply(proportions, function(p) vapply(p, intercept_for, 0))
-cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
+cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
 # The scenarios with three methods take longest; start them first.
 order_run <- order(scenarios$offsets[tasks$scenario] == "A", -scenarios$n[tasks$scenario])
@@ -178,7 +195,7 @@ results <- parallel::parLapplyLB(
 )
 
 rows <- list()
-for (s in seq_len(nrow(scenarios))) {
+for (s in sort(unique(tasks$scenario))) {  # every scenario, except in smoke mode
   parts <- results[vapply(results, function(r) r$scenario == s, logical(1))]
   parts <- parts[order(vapply(parts, `[[`, 0, "part"))]
   store <- stack_reps(lapply(parts, `[[`, "store"))
@@ -209,3 +226,8 @@ info <- data.frame(
 utils::write.csv(info, file.path(out_dir, "run-information.csv"), row.names = FALSE)
 cat("Done:", nrow(performance), "rows in",
     format(round(difftime(Sys.time(), started, units = "mins"), 1)), "\n")
+if (smoke && (any(performance$errors > 0) || any(performance$n_used == 0))) {
+  stop("Smoke run failed: ", sum(performance$n_used == 0), " rows with no usable replication; ",
+       "caught errors: ",
+       paste(unique(performance$error_messages[performance$errors > 0]), collapse = " | "))
+}

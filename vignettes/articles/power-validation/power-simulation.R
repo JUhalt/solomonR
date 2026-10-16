@@ -13,12 +13,26 @@
 #
 # The optional fourth argument "smoke" runs three scenarios with 20
 # replications each, to check the machinery before the full study.
+#
+# Smoke mode of the validation scripts (issue #140): with SOLOMONR_SMOKE_DIR
+# set, the script runs the same three scenarios with SOLOMONR_SMOKE_REPS
+# replications (default 2) on one worker, and writes its results under that
+# folder, whatever the arguments. It stops if a dataset failed or a benchmark
+# has no simulated rate. tools/check-validation-scripts.R runs it.
 
 args <- commandArgs(trailingOnly = TRUE)
 repo <- if (length(args) >= 1) args[[1]] else "."
 output <- if (length(args) >= 2) args[[2]] else "power-simulation-results.rds"
 workers <- if (length(args) >= 3) as.integer(args[[3]]) else max(1L, parallel::detectCores() - 1L)
-smoke <- length(args) >= 4 && identical(args[[4]], "smoke")
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir) || (length(args) >= 4 && identical(args[[4]], "smoke"))
+smoke_sims <- 20L
+if (nzchar(smoke_dir)) {
+  output <- file.path(smoke_dir, "power-validation", "power-simulation-results.rds")
+  dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
+  workers <- 1L
+  smoke_sims <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+}
 
 base_seed <- 20260916L
 alpha <- 0.05
@@ -53,8 +67,8 @@ scenarios$sims <- ifelse(scenarios$delta == 0 & scenarios$sens == 0,
 invariance_sims <- 4000L
 if (smoke) {
   scenarios <- scenarios[c(1L, 2L, nrow(scenarios)), ]
-  scenarios$sims <- 20L
-  invariance_sims <- 20L
+  scenarios$sims <- smoke_sims
+  invariance_sims <- smoke_sims
 }
 
 # ---- Analytic benchmarks -----------------------------------------------------
@@ -199,3 +213,12 @@ cat("Scenarios:", nrow(scenarios),
     " rows:", nrow(performance),
     " failures:", sum(performance$failures),
     " minutes:", round(as.numeric(difftime(Sys.time(), started, units = "mins")), 1), "\n")
+if (nzchar(smoke_dir)) {
+  # Every benchmark row must find its simulated rate, which the merge takes
+  # by label.
+  expected <- nrow(scenarios) * nrow(benchmark(allocations[[1]], 0.3, 0.5, 0.3))
+  if (sum(performance$failures) > 0 || nrow(performance) != expected) {
+    stop("Smoke run failed: ", sum(performance$failures), " failed datasets; ",
+         nrow(performance), " rows where ", expected, " were expected.")
+  }
+}

@@ -13,6 +13,17 @@
 
 set.seed(510051)
 reps <- 100000
+out_file <- file.path("vignettes", "articles", "classic-validation", "test-i-investigation.csv")
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) and writes its table under
+# that folder, so the stored results are not touched.
+# tools/check-validation-scripts.R runs it. Unset, the script runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+if (nzchar(smoke_dir)) {
+  reps <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  out_file <- file.path(smoke_dir, "classic-validation", "test-i-investigation.csv")
+  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+}
 n <- 30
 g <- rep(1:4, each = n)
 treat <- c(1, 0, 1, 0)[g]
@@ -87,6 +98,5 @@ for (nm in names(levels)) {
   }
 }
 res <- do.call(rbind, rows)
-utils::write.csv(res, file.path("vignettes", "articles", "classic-validation", "test-i-investigation.csv"),
-                 row.names = FALSE)
+utils::write.csv(res, out_file, row.names = FALSE)
 print(res[res$measure %in% c("I", "any"), ], row.names = FALSE)

@@ -12,6 +12,19 @@
 args <- commandArgs(trailingOnly = TRUE)
 reps <- if (length(args) >= 1) as.integer(args[[1]]) else 2000L
 out_dir <- file.path("vignettes", "articles", "cluster-marginal-validation")
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the scenarios in
+# `smoke_scenarios` on one worker, and writes everything, cache included,
+# under that folder, so the stored results are not touched. It stops if a
+# replication caught an error or a row has no usable replication.
+# tools/check-validation-scripts.R runs it. Unset, the script runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  reps <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  out_dir <- file.path(smoke_dir, "cluster-marginal-validation")
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
 cache_dir <- file.path(out_dir, "cache")
 dir.create(cache_dir, showWarnings = FALSE)
 pkg_dir <- normalizePath(".")
@@ -24,6 +37,9 @@ scenarios <- expand.grid(
   stringsAsFactors = FALSE
 )
 scenarios$scenario <- seq_len(nrow(scenarios))
+# Designs A and B under the null, and Design A with sensitization.
+smoke_scenarios <- c(1L, 2L, 25L)
+if (smoke) scenarios <- scenarios[scenarios$scenario %in% smoke_scenarios, ]
 
 allocations <- list(
   A = list(small = c(4, 4, 4, 4), moderate = c(10, 10, 10, 10), unbalanced = c(15, 15, 47, 47)),
@@ -214,7 +230,7 @@ started <- Sys.time()
 # Recorded at the start, so commits made while the run is in progress are not
 # attributed to it.
 commit <- tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) NA_character_)
-cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
+cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
 n_clusters <- mapply(function(d, a) sum(allocations[[d]][[a]]), scenarios$design, scenarios$allocation)
 order_run <- order(-n_clusters)
@@ -236,3 +252,8 @@ info <- data.frame(
 utils::write.csv(info, file.path(out_dir, "run-information.csv"), row.names = FALSE)
 cat("Done:", nrow(performance), "rows in",
     format(round(difftime(Sys.time(), started, units = "mins"), 1)), "\n")
+if (smoke && (any(performance$rep_errors > 0) || any(performance$n_used == 0))) {
+  stop("Smoke run failed: ", sum(performance$n_used == 0), " rows with no usable replication; ",
+       "caught errors: ",
+       paste(unique(performance$rep_error_messages[performance$rep_errors > 0]), collapse = " | "))
+}

@@ -17,6 +17,21 @@ output <- if (length(args) >= 2) args[[2]] else "ml-simulation-results.rds"
 nsim <- if (length(args) >= 3) as.integer(args[[3]]) else 2000L
 workers <- if (length(args) >= 4) as.integer(args[[4]]) else max(1L, parallel::detectCores() - 1L)
 
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the scenarios in
+# `smoke_scenarios` on one worker, and writes its results under that folder,
+# whatever the arguments. It stops if a fit failed or a contrast has no
+# estimate. tools/check-validation-scripts.R runs it. Unset, the script runs
+# the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  output <- file.path(smoke_dir, "ml-validation", "ml-simulation-results.rds")
+  dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
+  nsim <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  workers <- 1L
+}
+
 base_seed <- 20260914L
 alpha <- 0.05
 tau_unpretested <- 0.5
@@ -31,6 +46,8 @@ scenarios <- expand.grid(
   KEEP.OUT.ATTRS = FALSE
 )
 scenarios$scenario <- seq_len(nrow(scenarios))
+# The smallest cells, 6 participants each.
+smoke_scenarios <- 1L
 
 # Every participant has a latent baseline X ~ N(0, 1); pretested participants
 # observe it. The posttest is
@@ -187,7 +204,8 @@ invisible(parallel::clusterEvalQ(cl, {
   NULL
 }))
 
-results <- parallel::parLapplyLB(cl, seq_len(nrow(scenarios)), run_scenario)
+results <- parallel::parLapplyLB(cl, if (smoke) smoke_scenarios else seq_len(nrow(scenarios)),
+                                 run_scenario)
 
 replicates <- do.call(rbind, lapply(results, `[[`, "replicates"))
 failures <- do.call(rbind, lapply(results, `[[`, "failures"))
@@ -211,3 +229,7 @@ saveRDS(
 cat("Scenarios:", nrow(scenarios), " replications:", nsim,
     " failures:", if (is.null(failures)) 0L else nrow(failures),
     " minutes:", round(as.numeric(difftime(Sys.time(), started, units = "mins")), 1), "\n")
+if (smoke && (!is.null(failures) || !all(is.finite(performance$bias)))) {
+  stop("Smoke run failed: ", if (is.null(failures)) 0L else nrow(failures), " failed fits (",
+       paste(unique(failures$message), collapse = " | "), "), or a contrast has no estimate.")
+}

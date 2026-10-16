@@ -14,6 +14,19 @@
 args <- commandArgs(trailingOnly = TRUE)
 reps <- if (length(args) >= 1) as.integer(args[[1]]) else 2000L
 out_dir <- file.path("vignettes", "articles", "count-validation")
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the scenarios in
+# `smoke_scenarios` on one worker, and writes everything, cache included,
+# under that folder, so the stored results are not touched. It stops if a
+# replication caught an error or a row has no usable replication.
+# tools/check-validation-scripts.R runs it. Unset, the script runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  reps <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  out_dir <- file.path(smoke_dir, "count-validation")
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
 cache_dir <- file.path(out_dir, "nb-cache")
 dir.create(cache_dir, showWarnings = FALSE)
 pkg_dir <- normalizePath(".")
@@ -27,6 +40,11 @@ scenarios <- expand.grid(
   stringsAsFactors = FALSE
 )
 scenarios$scenario <- seq_len(nrow(scenarios))
+# n = 20 and control rate 3: Poisson data (alpha = 0, where theta reaches its
+# boundary) under the null, and overdispersed data (alpha = 1) under the null
+# and with sensitization.
+smoke_scenarios <- c(4L, 10L, 82L)
+if (smoke) scenarios <- scenarios[scenarios$scenario %in% smoke_scenarios, ]
 effects <- list(
   null = c(bT = 0, bP = 0, bTP = 0),
   treatment = c(bT = log(1.5), bP = 0, bTP = 0),
@@ -208,7 +226,7 @@ started <- Sys.time()
 # Recorded at the start, so commits made while the run is in progress are not
 # attributed to it.
 commit <- tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) NA_character_)
-cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
+cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
 order_run <- order(-scenarios$n)
 results <- parallel::parLapplyLB(cl, split(scenarios[order_run, ], seq_along(order_run)),
@@ -231,3 +249,8 @@ info <- data.frame(
 utils::write.csv(info, file.path(out_dir, "nb-run-information.csv"), row.names = FALSE)
 cat("Done:", nrow(performance), "rows in",
     format(round(difftime(Sys.time(), started, units = "mins"), 1)), "\n")
+if (smoke && (any(performance$rep_errors > 0) || any(performance$n_used == 0))) {
+  stop("Smoke run failed: ", sum(performance$n_used == 0), " rows with no usable replication; ",
+       "caught errors: ",
+       paste(unique(performance$rep_error_messages[performance$rep_errors > 0]), collapse = " | "))
+}
