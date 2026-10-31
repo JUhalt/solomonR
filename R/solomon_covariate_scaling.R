@@ -38,11 +38,12 @@
 # by a power of two is exact. Returns the data with them standardized,
 # `data`, and their `means` and `scales` (standard deviations, and that
 # power of two), named by covariate, the pretest first, with a mean of 0;
-# `means` is empty when there is neither.
+# `means` is empty when there is neither. Without a pretest, a covariate may
+# be named `pre_obs`; it is standardized as a covariate.
 .covariate_scaling <- function(df, covariates, in_model) {
   means <- numeric()
   scales <- numeric()
-  if ("pre_obs" %in% names(df)) {
+  if ("pre_obs" %in% setdiff(names(df), covariates)) {
     s <- stats::sd(df$pre_obs[in_model & df$pretested %in% 1])
     s <- if (is.finite(s) && s > 0) 2^round(log2(s)) else 1
     df$pre_obs <- df$pre_obs / s
@@ -118,7 +119,7 @@
 # Whether .covariate_scaling() standardizes anything in `df`: a pretest, or
 # a numeric covariate among `covariates`.
 .standardizes <- function(df, covariates) {
-  "pre_obs" %in% names(df) ||
+  "pre_obs" %in% setdiff(names(df), covariates) ||
     any(vapply(covariates, function(name) !is.null(.covariate_values(df[[name]])), logical(1)))
 }
 

@@ -235,6 +235,20 @@ test_that("covariate fits return the model and the coefficients for the covariat
   expect_s3_class(fit$vcov, "clubSandwich")
 })
 
+test_that("without a pretest, a covariate named pre_obs is standardized as a covariate", {
+  d <- location_data()$four
+  fit_with <- function(name) {
+    covariates <- data.frame(10 * d$z + 1e6)
+    names(covariates) <- name
+    suppressWarnings(fit_solomon_glm(d$y_g, d$treat, d$pretested, covariates = covariates))
+  }
+  fit <- fit_with("pre_obs")
+  ref <- fit_with("x")
+  expect_equal(fit$effects, ref$effects, tolerance = 1e-10)
+  expect_equal(unname(fit$covariate_scaling$scales), unname(ref$covariate_scaling$scales))
+  expect_equal(fit$coefficients$estimate, ref$coefficients$estimate, tolerance = 1e-10)
+})
+
 test_that("a date covariate is standardized as the days it enters the model as", {
   d <- location_data()$four
   days <- round(30 * d$z)
