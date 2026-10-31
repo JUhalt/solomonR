@@ -502,6 +502,25 @@ test_that("a shift of the pretest changes no fit_solomon_mmrm() result", {
   }
 })
 
+test_that("a shift of the pretest changes no assumption check", {
+  # The test of homogeneous slopes was NA from 10^7 standard deviations,
+  # where lm() took the pretest to be collinear with its interaction.
+  d <- location_data()
+  check <- function(design, k) {
+    x <- d[[design]]
+    four <- design == "four"
+    check_solomon_assumptions(x$y_g, if (four) x$treat else x$cond, x$pretested,
+                              shift_by(x$pre, k), control = if (!four) "Ctl")
+  }
+  for (design in c("four", "six")) {
+    ref <- check(design, 0)
+    expect_true(is.finite(ref$ancova_slope_homogeneity_p))
+    for (k in c(1e6, 1e8)) {
+      expect_equal(check(design, k), ref, tolerance = 1e-6, info = paste(design, k))
+    }
+  }
+})
+
 
 # ---- results of master on covariates near zero --------------------------------------
 
