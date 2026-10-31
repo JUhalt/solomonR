@@ -9,8 +9,12 @@
 # A percentage with `digits` decimals.
 .pct <- function(x, digits = 1L) paste0(formatC(100 * x, format = "f", digits = digits), "%")
 
-# A number with `digits` decimals, as the printed tables show it.
-.center_num <- function(x, digits) formatC(x, format = "f", digits = digits)
+# A number with `digits` decimals, as the printed tables show it. One that
+# rounds to zero has no sign, which would otherwise depend on rounding
+# error, as for a difference that is zero in exact arithmetic (issue #137).
+.center_num <- function(x, digits) {
+  sub("^-(0[.]?0*)$", "\\1", formatC(x, format = "f", digits = digits))
+}
 
 # The attrition of a fit's Solomon groups: a data frame with `group`,
 # `condition`, `pretested`, `n`, `posttest_missing`, and `share`, one row
