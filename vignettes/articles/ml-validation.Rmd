@@ -400,7 +400,7 @@ The script has since gained a smoke mode, a short run that checks it against
 the current package
 ([issue #140](https://github.com/JUhalt/solomonR/issues/140)); the rest of
 the script is unchanged. The development version of the run was not
-committed, so the check used the package at commit 021f598, where the
+committed, so the check used the package at commit `021f598`, where the
 script was first committed: on two replications of scenario 1, the script
 as committed then and the script now give identical results. With the
 current package, the GLM HC3 results differ from these, with relative
