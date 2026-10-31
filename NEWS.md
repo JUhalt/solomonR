@@ -324,7 +324,7 @@ break existing code says what that code needs.
   `ATE (avg over pretest)`, and the articles on missing data and on
   teaching select the rows of an effects table by label, not by position.
 
-## Reports of latent models with lavaan 0.7-3 (bug fix)
+## Reports of latent models with a newer lavaan (bug fix)
 
 * `report_solomon()` failed for latent-variable fits and invariance tests
   estimated by maximum likelihood without a scaled test statistic
