@@ -13,12 +13,29 @@
 args <- commandArgs(trailingOnly = TRUE)
 reps <- if (length(args) >= 1) as.integer(args[[1]]) else 1000L
 out_dir <- file.path("vignettes", "articles", "invariance-validation")
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the scenarios in
+# `smoke_scenarios` on one worker, and writes everything, cache included,
+# under that folder, so the stored results are not touched. It stops if a
+# replication failed. tools/check-validation-scripts.R runs it. Unset, the
+# script runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  reps <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  out_dir <- file.path(smoke_dir, "invariance-validation")
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
 cache_dir <- file.path(out_dir, "cache")
 dir.create(cache_dir, showWarnings = FALSE)
 pkg_dir <- normalizePath(".")
 
 scenarios <- expand.grid(k = c(3L, 4L, 6L), n = c(30L, 60L, 120L), pattern = 1:5)
 scenarios$scenario <- seq_len(nrow(scenarios))
+# Three indicators, n = 30, full invariance: the invariance tests and both
+# latent models.
+smoke_scenarios <- 1L
+if (smoke) scenarios <- scenarios[scenarios$scenario %in% smoke_scenarios, ]
 pattern_label <- c("none", "intercept +0.3, pretested groups", "intercept +0.6, pretested groups",
                    "intercept +0.6, U0 only", "loading -0.3, pretested groups")
 
@@ -113,7 +130,7 @@ started <- Sys.time()
 # Recorded at the start, so commits made while the run is in progress are not
 # attributed to it.
 commit <- tryCatch(system("git rev-parse HEAD", intern = TRUE), error = function(e) NA_character_)
-cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
+cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
 order_run <- order(-(scenarios$n * scenarios$k))
 results <- parallel::parLapplyLB(cl, split(scenarios[order_run, ], seq_along(order_run)),
@@ -133,3 +150,7 @@ info <- data.frame(
 utils::write.csv(info, file.path(out_dir, "run-information.csv"), row.names = FALSE)
 cat("Done:", nrow(performance), "rows in",
     format(round(difftime(Sys.time(), started, units = "mins"), 1)), "\n")
+if (smoke && any(performance$failures > 0)) {
+  stop("Smoke run failed; caught errors: ",
+       paste(unique(performance$failure_messages[performance$failures > 0]), collapse = " | "))
+}

@@ -285,7 +285,17 @@ The files are in the package repository:
 - the post hoc investigation, `test-i-investigation.R` and its output.
 
 The run took from `r run$started` to `r run$finished` on `r run$workers`
-workers (`r run$R_version`).
+workers (`r run$R_version`). Both scripts have since gained a smoke mode, a
+short run that checks them against the current package
+([issue #140](https://github.com/JUhalt/solomonR/issues/140)).
+`classic-simulation.R` now reads the one-tailed p of Test I from
+`p_one_tailed`, because the `p.value` of Test I has been the two-tailed p
+since the decision above, and its check of the paths follows the
+two-tailed criterion that `fit_solomon_classic()` now uses. On two
+replications of conditions 1 and 28, the original script with the package
+at commit `r substr(run$commit, 1, 7)` and the adapted script with the
+current package give identical results, and so do the two versions of
+`test-i-investigation.R`, which does not use the package.
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

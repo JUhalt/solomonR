@@ -116,6 +116,58 @@ reasons are set out in the decision record posted on #135.
 * `tools/pretest-center-check.R` reruns the record's checks with both
   centers, from one build of the package.
 
+## Validation scripts that run against the current package (#140)
+
+* The simulation scripts behind the validation articles select the rows
+  they study by label, as `?solomon_output` describes, so they run against
+  the current package again. Several took the rows of an effects table by
+  position, and the pretest effects added in #104 broke them: the scripts
+  of the binary, count, negative-binomial, and repeated-measures studies
+  ran to the end but caught an error in their replications and reported no
+  usable one, the multiple-imputation script stopped, the cluster-marginal
+  script stored values under the wrong labels, and the agreement check of
+  the study with several treatments compared the wrong rows. A row that a
+  script does not find by its label now stops the study.
+* Two quantities had changed meaning with the package, and the scripts
+  now compute them as the runs did. The cluster-marginal script counts
+  degrees of freedom below 4 in the rows it studies, because the warning
+  it counted has also covered the pretest effects since #104. The
+  replication of the historical tests reads the one-tailed p of Test I
+  from `p_one_tailed`, because `p.value` has been the two-tailed p since
+  Test I was judged by it after #51.
+* What the scripts compute is unchanged. On two replications of the
+  scenarios of the smoke mode described below, the original and the
+  adapted scripts give identical results with the package at the commit
+  of each study's stored results, for the binary, cluster-marginal,
+  cluster, count, negative-binomial, multiple-imputation,
+  repeated-measures, and several-treatment studies and the re-simulation
+  of `plan_solomon()`. The original scripts of the historical tests and of
+  the invariance study, at the commits of their runs, and the adapted
+  scripts, with the current package, give identical results too. The runs
+  of the ML and power studies used versions of the package that were not
+  committed, so their scripts were checked at nearby commits. With the
+  current package, pretest-adjusted results differ from those at the
+  commits of the runs, with relative differences below 1e-7, because the
+  pretest has been centered since #104, and the Test I rows of the power
+  study differ, because `power_solomon()` has judged Test I by the
+  two-tailed p since the decision after #51. Each article says what was
+  checked. The stored results, and so the articles' numbers, do not
+  change.
+* Every validation script has a smoke mode. With the environment variable
+  `SOLOMONR_SMOKE_DIR` set, it runs `SOLOMONR_SMOKE_REPS` replications
+  (default 2) of a few scenarios, writes everything under that folder, and
+  stops if a replication caught an error or gave no usable result.
+  `tools/check-validation-scripts.R` runs every script in a `-validation`
+  folder of the articles, at any depth, that way, and fails if one fails,
+  has no smoke mode, or runs longer than `SOLOMONR_SMOKE_TIMEOUT` seconds,
+  or if a file of the package changes. A new GitHub Actions workflow runs
+  it on pushes and pull requests to master; it has not yet run on GitHub.
+  The check is not part of `R CMD check`.
+* The confirmatory studies of the multiple-imputation (#82) and
+  repeated-measures (#57) functions, planned under #117, will be reported
+  in their articles beside the first studies, with their own scripts. The
+  first studies and their verdicts stay as reported.
+
 ## One output vocabulary (#110)
 
 The names that results use are settled before 1.0, as #83 settled the
