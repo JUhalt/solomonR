@@ -125,7 +125,11 @@ Identification: with scalar invariance, the latent POST mean of the
 unpretested control group (U0) is fixed at 0 and the other latent means are
 estimated relative to it. In the pretested ANCOVA model, the pretested
 control group (P0) is the reference. The Solomon contrasts are differences
-between latent means, so they do not depend on the reference choice.
+between latent means, so they do not depend on the reference choice. The
+PRE indicators of the ANCOVA model are centered at their means among the
+pretested participants before it is fitted, which changes only their
+intercepts and keeps the fit accurate when the pretest lies far from zero
+(issue #137).
 
 The unit of the contrasts is set by \code{std_lv}. With \code{std_lv = TRUE},
 lavaan fixes the variance of the latent POST at 1 in the pretested

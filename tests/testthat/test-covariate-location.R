@@ -502,6 +502,58 @@ test_that("a shift of the pretest changes no fit_solomon_mmrm() result", {
   }
 })
 
+test_that("a shift of the pretest changes no SEM ANCOVA or comparison of methods", {
+  skip_if_not_installed("lavaan")
+  # The ANCOVA SEM lost accuracy from 10^4 standard deviations and stopped
+  # from 10^6, where compare_solomon_methods() lost its SEM ANCOVA row.
+  d <- location_data()$four
+  sem <- function(k) {
+    suppressWarnings(fit_solomon_sem(d$y_g, d$treat, d$pretested, shift_by(d$pre, k),
+                                     ancova = TRUE))$effects
+  }
+  ref <- sem(0)
+  for (k in c(1e4, 1e6)) expect_equal(sem(k), ref, tolerance = 1e-6, info = k)
+
+  complete <- d[!is.na(d$y_g), ]
+  methods <- function(k) {
+    suppressWarnings(compare_solomon_methods(complete$y_g, complete$treat, complete$pretested,
+                                             shift_by(complete$pre, k)))$results
+  }
+  ref <- methods(0)
+  shifted <- methods(1e6)
+  expect_true("SEM ANCOVA" %in% shifted$method)
+  expect_equal(shifted, ref, tolerance = 1e-6)
+
+  # The latent ANCOVA, with every pretest item shifted.
+  items <- withr::with_seed(2026, {
+    n <- 240
+    treat <- rep(c(1, 0, 1, 0), each = n / 4)
+    pretested <- rep(c(1, 1, 0, 0), each = n / 4)
+    pre <- stats::rnorm(n)
+    post <- 0.5 * treat + 0.1 * treat * pretested + 0.35 * pre * pretested + stats::rnorm(n)
+    item <- function(f, loading) loading * f + stats::rnorm(n, 0, 0.6)
+    data.frame(treat, pretested,
+               post1 = item(post, 0.8), post2 = item(post, 0.7), post3 = item(post, 0.9),
+               pre1 = ifelse(pretested == 1, item(pre, 0.8), NA),
+               pre2 = ifelse(pretested == 1, item(pre, 0.7), NA),
+               pre3 = ifelse(pretested == 1, item(pre, 0.9), NA))
+  })
+  latent <- function(k) {
+    x <- items
+    for (j in c("pre1", "pre2", "pre3")) x[[j]] <- shift_by(x[[j]], k)
+    suppressWarnings(fit_solomon_sem_latent(
+      x, c("post1", "post2", "post3"), x$treat, x$pretested,
+      pre_items = c("pre1", "pre2", "pre3"), ancova = TRUE, check_invariance = FALSE
+    ))
+  }
+  ref <- latent(0)
+  for (k in c(1e4, 1e6)) {
+    fit <- latent(k)
+    expect_equal(fit$effects_pre, ref$effects_pre, tolerance = 1e-6, info = k)
+    expect_equal(fit$effects, ref$effects, tolerance = 1e-6, info = k)
+  }
+})
+
 test_that("a shift of the pretest changes no assumption check", {
   # The test of homogeneous slopes was NA from 10^7 standard deviations,
   # where lm() took the pretest to be collinear with its interaction.
