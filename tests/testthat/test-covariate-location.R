@@ -1,13 +1,14 @@
-# A covariate or a pretest far from zero relative to its spread (#137).
-# Adding a constant to a covariate, or to the pretest, is a
-# reparameterization of the model: no treatment contrast, pretest effect,
-# standard error, degrees of freedom, or p-value may change beyond
-# rounding, and the intercept moves by the constant times the covariate's
-# coefficient. The tests shift by 10^6 standard deviations, the criterion of
-# the issue, and compare with the data as given; the inference of
-# fit_solomon_glm() is computed with the numeric covariates standardized,
-# and on data whose covariates are near zero it must reproduce master
-# (d446577), which was accurate there.
+# A covariate or a pretest far from zero relative to its spread, or on a
+# scale far from 1 (#137). Adding a constant to a covariate, or to the
+# pretest, is a reparameterization of the model: no treatment contrast,
+# pretest effect, standard error, degrees of freedom, or p-value may change
+# beyond rounding, and the intercept moves by the constant times the
+# covariate's coefficient; so is a change of scale. The tests shift by 10^6
+# standard deviations, the criterion of the issue, and compare with the
+# data as given; the inference of fit_solomon_glm() is computed with the
+# numeric covariates standardized and the pretest scaled, and on data whose
+# covariates are near zero it must reproduce master (d446577), which was
+# accurate there.
 
 # The data sets of fixtures/covariate-location-master.R: four groups of 30
 # and three conditions in groups of 25, with clusters (`site`), missing
@@ -467,6 +468,8 @@ test_that("fit_solomon_mi() and tipping_point_solomon() do not depend on the pre
 })
 
 test_that("a shift of the pretest changes no fit_solomon_mmrm() result", {
+  # fit_solomon_mmrm() was already shift-invariant before #137, which
+  # changed nothing in it; the issue asks for this test as a guard.
   skip_if_not_installed("mmrm")
   long <- withr::with_seed(137, {
     m <- 30
