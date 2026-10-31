@@ -55,7 +55,9 @@
 #' - **Analysis plan** (items 20a-c). The model, the confirmatory contrasts,
 #'   the test of sensitization, the handling of missing posttests, with a
 #'   tipping-point sensitivity analysis (White et al., 2011), and the
-#'   checks run before the model.
+#'   checks run before the model. The population and the missing-data
+#'   assumption are stated for the treatment contrasts, and those of the
+#'   pretest effects, which depend on `pretest_center`, separately.
 #' - **Deviations** (item 25). A section for recording departures from the
 #'   plan, which are to be reported with the results (Nosek et al., 2018, p.
 #'   2602).
@@ -106,6 +108,14 @@
 #' @param title Title of the plan.
 #' @param file Optional path. When given, the plan is also written there as
 #'   UTF-8 Markdown.
+#' @param pretest_center The mean pretest at which the planned fit compares
+#'   the pretested with the unpretested groups when posttests are missing
+#'   (issue #135): `"analyzed"` (the default) or `"observed"`; see "The
+#'   pretest effect when posttests are missing" in [fit_solomon_glm()]. The
+#'   plan writes the fit's call with it, and states the population and the
+#'   assumption of the pretest effects, apart from those of the treatment
+#'   contrasts, which do not depend on it. A plan that assumes missingness at
+#'   random for the pretest effects chooses `"observed"`.
 #'
 #' @return An object of class `solomon_analysis_plan`, a list with:
 #'   - `text`: the lines of the plan, in Markdown.
@@ -184,9 +194,14 @@ analysis_plan_solomon <- function(plan = NULL,
                                   occasions = 1, primary_occasion = NULL,
                                   tipping_groups = "treatment",
                                   title = "Analysis plan for a Solomon four-group study",
-                                  file = NULL) {
+                                  file = NULL,
+                                  pretest_center = c("analyzed", "observed")) {
   direction <- match.arg(direction)
   sensitization <- match.arg(sensitization)
+  pretest_center <- match.arg(pretest_center)
+  # The argument the planned fit is called with (issue #135): none for the
+  # default center.
+  center_arg <- if (pretest_center == "observed") ", pretest_center = \"observed\"" else ""
   if (!is.numeric(alpha) || length(alpha) != 1L || alpha <= 0 || alpha >= 0.5) {
     stop("`alpha` must be a single number between 0 and 0.5.", call. = FALSE)
   }
@@ -344,9 +359,9 @@ analysis_plan_solomon <- function(plan = NULL,
     "### Primary analysis (SPIRIT 20a)",
     "",
     if (longitudinal) {
-      "The four Solomon contrasts at each occasion, and the change in the Pretest x Treatment contrast from the first occasion to the last, are estimated with a mixed model for repeated measures, `fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre)` (Mallinckrodt et al., 2008): occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants at each occasion (Lin, 2013; Newman et al., 1990), with an unstructured covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood, and Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011, p. 101). If the unstructured model does not converge, the fallback structures of `fit_solomon_mmrm()` are used, chosen by AIC."
+      sprintf("The four Solomon contrasts at each occasion, and the change in the Pretest x Treatment contrast from the first occasion to the last, are estimated with a mixed model for repeated measures, `fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre%s)` (Mallinckrodt et al., 2008): occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants at each occasion (Lin, 2013; Newman et al., 1990), with an unstructured covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood, and Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011, p. 101). If the unstructured model does not converge, the fallback structures of `fit_solomon_mmrm()` are used, chosen by AIC.", center_arg)
     } else {
-      "The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990), with HC3 standard errors (MacKinnon & White, 1985; Long & Ervin, 2000)."
+      sprintf("The four Solomon contrasts are estimated with one linear model for all four groups, `fit_solomon_glm(y_post, treat, pretested, y_pre%s)`: treatment, pretesting, and their interaction, adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990), with HC3 standard errors (MacKinnon & White, 1985; Long & Ervin, 2000).", center_arg)
     },
     "",
     .plan_bullets(c(
@@ -361,7 +376,7 @@ analysis_plan_solomon <- function(plan = NULL,
     "",
     .plan_bullets(c(
       "`validate_solomon()` confirms the coding of the design and the size of each group.",
-      "`check_solomon_missing()` separates pretests absent by design from missing values.",
+      "`check_solomon_missing()` separates pretests absent by design from missing values, and reports the attrition of each group and the pretest scores of the participants lost.",
       "`baseline_solomon()` describes the pretest difference between the two pretested groups. It is reported, not tested for significance, and it does not change the planned model.",
       "[What will be done if an assumption fails, for example markedly unequal variances or a group with too few participants.]"
     )),
@@ -369,11 +384,19 @@ analysis_plan_solomon <- function(plan = NULL,
     "### Missing data and the analysis population (SPIRIT 20c)",
     "",
     .plan_bullets(c(
-      "**Population.** All randomized participants, analyzed in the groups to which they were assigned.",
+      "**Population.** For the treatment contrasts, all randomized participants, analyzed in the groups to which they were assigned.",
       if (longitudinal) {
-        "**Main assumption.** Missing posttests, including those of participants who drop out, are missing at random given group, the pretest in the pretested groups, and the posttests observed earlier. The mixed model above is valid under that assumption; per-occasion analyses of the participants still observed are not (Fitzmaurice et al., 2011). Missing pretests among pretested participants are not imputed; [state how they are handled]."
+        "**Main assumption.** For the treatment contrasts, missing posttests, including those of participants who drop out, are missing at random given group, the pretest in the pretested groups, and the posttests observed earlier. The mixed model above is valid under that assumption; per-occasion analyses of the participants still observed are not (Fitzmaurice et al., 2011). Missing pretests among pretested participants are not imputed; [state how they are handled]."
       } else {
-        "**Main assumption.** Missing posttests are missing at random given group and, in the pretested groups, the pretest. Under that assumption the model above, fitted to the observed posttests, is the main analysis; multiple imputation under the same assumption agrees with it (Carpenter et al., 2023, p. 256). Missing pretests among pretested participants are not imputed; [state how they are handled]."
+        "**Main assumption.** For the treatment contrasts, missing posttests are missing at random given group and, in the pretested groups, the pretest. Under that assumption the model above, fitted to the observed posttests, is the main analysis; multiple imputation under the same assumption agrees with it (Carpenter et al., 2023, p. 256). Missing pretests among pretested participants are not imputed; [state how they are handled]."
+      },
+      # The pretest effects depend on the mean pretest at which the pretested
+      # groups are compared (issue #135): their population, assumption, and
+      # center are stated apart from the treatment contrasts'.
+      if (pretest_center == "analyzed") {
+        "**Pretest effects.** The pretest effects compare the pretested groups, at the mean pretest of the pretested participants analyzed (`pretest_center = \"analyzed\"`, the default), with the unpretested groups in the same treatment condition. Their population is the participants who would be analyzed in either pretest condition, and they assume that, within each treatment condition, the pretested and unpretested groups lose the same kinds of participants. The pretest effects at the mean of every observed pretest (`pretest_center = \"observed\"`), which assume instead that the pretested groups' losses depend at most on the pretest and that the unpretested groups' losses are unrelated to baseline, are reported beside them as a sensitivity analysis, with the attrition of each group. [A plan that assumes missingness at random for the pretest effects chooses `pretest_center = \"observed\"`.]"
+      } else {
+        "**Pretest effects.** The pretest effects compare the pretested groups, at the mean of every observed pretest among the pretested participants (`pretest_center = \"observed\"`), with the unpretested groups in the same treatment condition. They assume that missing posttests are missing at random given the pretest in the pretested groups, and that the unpretested groups' losses are unrelated to baseline; the data keep a row for every randomized participant, with the posttest missing. The pretest effects at the mean pretest of the pretested participants analyzed (the default center), which assume instead that, within each treatment condition, the pretested and unpretested groups lose the same kinds of participants, are reported beside them as a sensitivity analysis, with the attrition of each group."
       },
       if (longitudinal) {
         "**Sensitivity analysis.** [A sensitivity analysis for departures from missing at random, stated in advance (White et al., 2011).] The package's `tipping_point_solomon()` imputes from the pretest alone, so it does not apply when dropout depends on earlier posttests."
@@ -404,7 +427,7 @@ analysis_plan_solomon <- function(plan = NULL,
         occasions = occasion_labels, primary_occasion = if (longitudinal) primary_occasion,
         confirmatory = confirmatory, direction = direction, sensitization = sensitization,
         equivalence_bound = equivalence_bound, alpha = alpha, tipping_groups = tipping_groups,
-        outcome = outcome, treatment = treatment
+        outcome = outcome, treatment = treatment, pretest_center = pretest_center
       ),
       date = Sys.Date()
     ),

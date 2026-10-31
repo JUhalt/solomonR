@@ -17,7 +17,8 @@ analysis_plan_solomon(
   primary_occasion = NULL,
   tipping_groups = "treatment",
   title = "Analysis plan for a Solomon four-group study",
-  file = NULL
+  file = NULL,
+  pretest_center = c("analyzed", "observed")
 )
 }
 \arguments{
@@ -62,6 +63,15 @@ analysis in the pretested treatment group alone is added.}
 
 \item{file}{Optional path. When given, the plan is also written there as
 UTF-8 Markdown.}
+
+\item{pretest_center}{The mean pretest at which the planned fit compares
+the pretested with the unpretested groups when posttests are missing
+(issue #135): \code{"analyzed"} (the default) or \code{"observed"}; see "The
+pretest effect when posttests are missing" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. The
+plan writes the fit's call with it, and states the population and the
+assumption of the pretest effects, apart from those of the treatment
+contrasts, which do not depend on it. A plan that assumes missingness at
+random for the pretest effects chooses \code{"observed"}.}
 }
 \value{
 An object of class \code{solomon_analysis_plan}, a list with:
@@ -103,7 +113,9 @@ given, with its planning values.
 \item \strong{Analysis plan} (items 20a-c). The model, the confirmatory contrasts,
 the test of sensitization, the handling of missing posttests, with a
 tipping-point sensitivity analysis (White et al., 2011), and the
-checks run before the model.
+checks run before the model. The population and the missing-data
+assumption are stated for the treatment contrasts, and those of the
+pretest effects, which depend on \code{pretest_center}, separately.
 \item \strong{Deviations} (item 25). A section for recording departures from the
 plan, which are to be reported with the results (Nosek et al., 2018, p.
 2602).
