@@ -206,8 +206,13 @@
                  gap = s$difference$difference[1], predicted = s$predicted)
     unpretested <- attrition$groups[attrition$groups$pretested == 0L,
                                     c("condition", "n", "posttest_missing"), drop = FALSE]
-    unpretested$m0 <- s$delta$m0[match(unpretested$condition, s$delta$condition)]
-    unpretested$delta <- s$delta$delta[match(unpretested$condition, s$delta$condition)]
+    # The fit's conditions come in the same order, the control first, but a
+    # four-group fit names them by `control` when it was given, so they are
+    # matched by position.
+    position <- if (nrow(s$delta) == nrow(unpretested)) seq_len(nrow(unpretested)) else
+      match(unpretested$condition, s$delta$condition)
+    unpretested$m0 <- s$delta$m0[position]
+    unpretested$delta <- s$delta$delta[position]
     rownames(unpretested) <- NULL
     out$unpretested <- unpretested
   }
