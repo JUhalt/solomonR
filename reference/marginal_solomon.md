@@ -14,7 +14,8 @@ marginal_solomon(
   method = c("bootstrap", "delta", "cluster_summary"),
   R = 999,
   seed = NULL,
-  conf_level = fit$conf_level
+  conf_level = fit$conf_level,
+  pretest_center = fit$pretest_center
 )
 ```
 
@@ -56,6 +57,16 @@ marginal_solomon(
 
   Confidence level. Defaults to the fit's.
 
+- pretest_center:
+
+  For a fit with a pretest covariate, the pretested participants the
+  pretested cells are standardized over (issue \#135): `"analyzed"`, the
+  pretested participants in the model; or `"observed"`, every pretested
+  participant with a pretest and the model's other covariates, with or
+  without an outcome or a recorded condition. Defaults to the fit's
+  `pretest_center` (`"analyzed"` for fits made before it existed). The
+  centering constant itself plays no role.
+
 ## Value
 
 An object of class `solomon_marginal`, a list with:
@@ -92,6 +103,29 @@ An object of class `solomon_marginal`, a list with:
 - `dispersion` and `theta`: as in the fit.
 
 - `pretest_adjusted`: whether the fit adjusted for the pretest.
+
+- `pretest_center`: the set the pretested cells were standardized over,
+  `"analyzed"` or `"observed"`. Absent with
+  `method = "cluster_summary"`, which uses neither set, so that
+  `pretest_center` is ignored there.
+
+- `standardized`: the numbers of pretested participants each set holds
+  (`analyzed` and `observed`), and of those outside the model, how many
+  have no outcome (`no_outcome`). Absent with
+  `method = "cluster_summary"`.
+
+- `attrition`: each Solomon group's `n`, outcomes missing
+  (`posttest_missing`), and `share`, from the fit, for the attrition
+  line of the print and the report; `NULL` for fits made before 1.0.0.
+
+- `pretest_sensitivity`: for a fit with a pretest covariate, every
+  contrast under both sets, a list with `effects` (keyed by `scale` and
+  `center`; the other set's standard errors and intervals are `NA` under
+  the bootstrap), `difference` (the estimates under the `analyzed` and
+  `observed` sets and their `difference`), `differ`, and `note`; `NULL`
+  without a pretest covariate and with `method = "cluster_summary"`.
+  Outside the stable interface (see
+  [solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md)).
 
 - `design` and `clusters` (the number of clusters in each cell), with
   `method = "cluster_summary"`.
@@ -146,10 +180,33 @@ the unpretested participants have no pretest from which to predict their
 risk had they been pretested. Each set is standardized over its own
 participants, and with random assignment both estimate the same
 population: the expected pretest of the unpretested participants equals
-that of the pretested ones (Solomon & Lessac, 1968, pp. 146–147). Both
-risks are then marginal, so the comparison is on a common scale, unlike
-the link-scale pretest effects of
+that of the pretested ones (Solomon, 1949, p. 141). Both risks are then
+marginal, so the comparison is on a common scale, unlike the link-scale
+pretest effects of
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+
+**Missing outcomes** (issue \#135). When outcomes are missing, the
+pretested cells can be standardized over two sets of pretested
+participants, which `pretest_center` chooses, as it chooses the center
+of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+(see "The pretest effect when posttests are missing" there, for what
+each assumes): by default over the pretested participants in the model
+(`"analyzed"`), or over every pretested participant with a pretest and
+the model's covariates (`"observed"`; a participant without a covariate
+is in the observed center of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+but not in this set). On the risk or rate scale the choice moves
+Treatment \| pretested, the average treatment effect, and Pretest x
+Treatment as well as the pretest effects, because a marginal risk
+depends on the participants it is averaged over; only Treatment \|
+unpretested does not move. Whenever the two sets differ, the print gives
+the moved contrasts under both, with their difference, and
+`pretest_sensitivity` returns every contrast under both: with full
+inference for the other set under the delta method, and estimates only
+under the bootstrap, so that the resamples are those of the set used. No
+delta line is given on these scales, because no verified source gives
+one there.
 
 Sensitization depends on the scale: an effect can be modified on the
 risk-difference scale and not on the ratio scale, or the reverse. Report
@@ -282,9 +339,9 @@ Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 variance components. *Biometrics Bulletin, 2*(6), 110–114.
 https://doi.org/10.2307/3002019
 
-Solomon, R. L., & Lessac, M. S. (1968). A control group design for
-experimental studies of developmental processes. *Psychological
-Bulletin, 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+Solomon, R. L. (1949). An extension of control group design.
+*Psychological Bulletin, 46*(2), 137–150.
+https://doi.org/10.1037/h0062958
 
 Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation.
 *The American Statistician, 56*(1), 29–38.

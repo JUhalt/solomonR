@@ -454,13 +454,17 @@
 </ul><p>Publication acceptance is not required before the v1.0 release.</p>
 <div class="section level2">
 <h2 id="audit-before-the-release">Audit before the release<a class="anchor" aria-label="anchor" href="#audit-before-the-release"></a></h2>
-<p>On October 3, 2026, the package was audited against the aim above. The maintainer decided to fix every gap the audit found, to leave no function experimental at 1.0, and to run a robustness study before the release is tagged. The items, with their status:</p>
+<p>On October 3, 2026, the package was audited against the aim above. The maintainer decided to fix every gap the audit found, to leave no function experimental at 1.0, and to run a robustness study before the release is tagged. The items, with their status, and those found since the audit:</p>
 <ul><li>
 <strong>Estimates and their sources</strong>
 <ul class="task-list"><li><label><input type="checkbox" checked>The pretest (testing) effect as named contrasts, with the pretest centered at the pretested participants’ mean — <a href="https://github.com/JUhalt/solomonR/issues/104" class="external-link">#104</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/121" class="external-link">PR #121</a></label></li>
 <li><label><input type="checkbox" checked>The unified model credited to Newman et al. (1990), with Williams and Newman (1982) — <a href="https://github.com/JUhalt/solomonR/issues/105" class="external-link">#105</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/126" class="external-link">PR #126</a></label></li>
 <li><label><input type="checkbox" checked>Dukes et al. (1995) cited as the published latent-variable precedent — <a href="https://github.com/JUhalt/solomonR/issues/106" class="external-link">#106</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/126" class="external-link">PR #126</a></label></li>
 <li><label><input type="checkbox" checked>The worked example of Walton Braver and Braver (1988) bundled and reproduced — <a href="https://github.com/JUhalt/solomonR/issues/109" class="external-link">#109</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/126" class="external-link">PR #126</a></label></li>
+<li><label><input type="checkbox" checked>The pretest center when posttests are missing: the analyzed center stays the default, for reasons set out in a decision record, and the observed center is offered and printed beside it — <a href="https://github.com/JUhalt/solomonR/issues/135" class="external-link">#135</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/145" class="external-link">PR #145</a></label></li>
+<li><label><input type="checkbox">Pretested participants without a pretest, whom every fit with a pretest drops — <a href="https://github.com/JUhalt/solomonR/issues/142" class="external-link">#142</a></label></li>
+<li><label><input type="checkbox">Pretest × Treatment when attrition differs between the treatment arms — <a href="https://github.com/JUhalt/solomonR/issues/143" class="external-link">#143</a></label></li>
+<li><label><input type="checkbox"><code><a href="reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> with a covariate far from zero — <a href="https://github.com/JUhalt/solomonR/issues/137" class="external-link">#137</a></label></li>
 </ul></li>
 <li>
 <strong>Figures and reports</strong>
@@ -474,12 +478,19 @@
 <strong>Inference</strong>
 <ul class="task-list"><li><label><input type="checkbox" checked>A warning when the difference statistic of the permutation test is used with unequal arms — <a href="https://github.com/JUhalt/solomonR/issues/113" class="external-link">#113</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/122" class="external-link">PR #122</a></label></li>
 <li><label><input type="checkbox" checked>Satterthwaite inference by default in <code><a href="reference/fit_solomon_ml.html">fit_solomon_ml()</a></code> — <a href="https://github.com/JUhalt/solomonR/issues/115" class="external-link">#115</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/124" class="external-link">PR #124</a></label></li>
+<li><label><input type="checkbox" checked>Permutations tied with the observed statistic counted exactly in <code><a href="reference/perm_solomon.html">perm_solomon()</a></code> — <a href="https://github.com/JUhalt/solomonR/issues/131" class="external-link">#131</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/132" class="external-link">PR #132</a>, released in 0.8.2</label></li>
+<li><label><input type="checkbox"><code><a href="reference/perm_solomon.html">perm_solomon()</a></code>: ties with a covariate in iterated models, and degenerate labelings — <a href="https://github.com/JUhalt/solomonR/issues/134" class="external-link">#134</a></label></li>
 <li><label><input type="checkbox">Robustness study of the recommended inference, under a protocol posted before any run — <a href="https://github.com/JUhalt/solomonR/issues/116" class="external-link">#116</a></label></li>
 </ul></li>
 <li>
 <strong>Interface</strong>
-<ul class="task-list"><li><label><input type="checkbox">One output vocabulary across the fitted objects — <a href="https://github.com/JUhalt/solomonR/issues/110" class="external-link">#110</a></label></li>
+<ul class="task-list"><li><label><input type="checkbox" checked>One output vocabulary across the fitted objects — <a href="https://github.com/JUhalt/solomonR/issues/110" class="external-link">#110</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/141" class="external-link">PR #141</a></label></li>
+<li><label><input type="checkbox">The SEM functions accept only the estimators they can fit and describe — <a href="https://github.com/JUhalt/solomonR/issues/133" class="external-link">#133</a></label></li>
 <li><label><input type="checkbox">No experimental functions: each one implemented to its literature and held to a validation rule posted in advance — <a href="https://github.com/JUhalt/solomonR/issues/117" class="external-link">#117</a></label></li>
+</ul></li>
+<li>
+<strong>Reproducibility</strong>
+<ul class="task-list"><li><label><input type="checkbox" checked>The validation scripts rerun against the current package, each with a smoke mode that a GitHub Actions workflow runs — <a href="https://github.com/JUhalt/solomonR/issues/140" class="external-link">#140</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/144" class="external-link">PR #144</a></label></li>
 </ul></li>
 </ul></div>
 </div>

@@ -359,7 +359,23 @@ report_solomon(fit6)
 #> condition, 95% CI [-0.43, 0.04], t(126) = -1.62, p = .217, Holm-adjusted; and
 #> 0.01 in the GS condition, 95% CI [-0.24, 0.25], t(126) = 0.04, p = .965,
 #> Holm-adjusted. Averaged over the conditions, the pretest main effect was
-#> -0.03, 95% CI [-0.17, 0.11], t(126) = -0.44, p = .661.
+#> -0.03, 95% CI [-0.17, 0.11], t(126) = -0.44, p = .661. The pretest effects
+#> were evaluated at the mean pretest score of the 74 pretested participants
+#> analyzed (3.13), which assumes that, within each treatment condition, the
+#> pretested and the unpretested groups lost the same kinds of participants. At
+#> the mean of every observed pretest score among the pretested participants
+#> (3.16; 118 participants, 44 of them without a posttest), which assumes that
+#> the pretested participants' losses depended at most on their pretest score
+#> and that the unpretested participants' losses were unrelated to baseline and
+#> to the posttest, the pretest effect was 0.11 in the Control condition, 95% CI
+#> [-0.09, 0.32], t(126) = 1.07, p = .286; -0.18 in the RP condition, 95% CI
+#> [-0.41, 0.06], t(126) = -1.50, p = .274, Holm-adjusted; and 0.02 in the GS
+#> condition, 95% CI [-0.23, 0.26], t(126) = 0.16, p = .873, Holm-adjusted;
+#> averaged over the conditions, the pretest main effect was -0.02, 95% CI
+#> [-0.15, 0.12], t(126) = -0.23, p = .815. Each pretest effect was 0.01 smaller
+#> at the analyzed center than at the observed center. Posttests were missing
+#> for 37.3% of the pretested and 36.6% of the unpretested participants (29% to
+#> 46% by group).
 #> 
 #> References
 #> 

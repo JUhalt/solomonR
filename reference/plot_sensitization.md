@@ -54,7 +54,11 @@ is not the difference of differences among raw cell means. The figure
 therefore draws model-adjusted means: pretested groups are evaluated at
 the mean pretest score among pretested participants (the usual ANCOVA
 adjusted mean), unpretested groups without a pretest, and any covariates
-at their sample means. Because neither model has a
+at their sample means. With missing posttests that mean is the fit's
+pretest center, chosen by `pretest_center` in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md);
+when the two centers differ, the caption names the center used and gives
+the other (issue \#135). Because neither model has a
 treatment-by-pretest-score term, the difference of differences among
 these adjusted means equals the fitted Pretest x Treatment estimate
 exactly. Observed cell means are shown as hollow points for comparison.

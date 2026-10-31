@@ -380,6 +380,24 @@ package news:
   return model comparisons, tests of two-by-two tables, effect sizes in
   the `yi` and `vi` form of meta-analysis, and checks.
 
+- `pretest_sensitivity` holds the results at the two pretest centers
+  when posttests are missing (issue \#135). In
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md),
+  and
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  it is a list: its `effects` table has the key columns, ending with
+  `center`, and the eight shared columns; its `difference` table gives
+  each contrast's estimates at the `analyzed` and `observed` centers and
+  their `difference`; the rest of it holds the checks. In
+  [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md),
+  which gives no standard errors, it is one data frame, with a row for
+  each `center` and the `inferred_pretest`, `I`, `d3`, and `d4` at it.
+  It is new in 1.0.0 and outside the contract, so its layout can still
+  change; the results at the center used are in `effects` (in
+  [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md),
+  `groups` and `I`), as before.
+
 - [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
   and
   [`plan_solomon()`](https://juhalt.github.io/solomonR/reference/plan_solomon.md)

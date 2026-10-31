@@ -212,12 +212,19 @@ g corrects the small-sample bias of the standardized mean difference
   Thompson, 2005; Groenwold et al., 2012).
 - **Missing outcomes:** the classification of missing-data mechanisms
   follows Rubin (1976) and Little and Rubin (2019).
-- **Missing posttests:** if posttests are missing at random given group
-  and, in the pretested groups, the pretest, the model fitted to the
-  observed posttests is a valid main analysis, and multiple imputation
-  under the same assumption agrees with it (Carpenter et al., 2023, p.
-  256). Whether the conclusion survives departures from that assumption
-  is a sensitivity analysis.
+- **Missing posttests:** for the treatment contrasts, if posttests are
+  missing at random given group and, in the pretested groups, the
+  pretest, the model fitted to the observed posttests is a valid main
+  analysis, and multiple imputation under the same assumption agrees
+  with it (Carpenter et al., 2023, p. 256). The pretest effects depend
+  on `pretest_center`: the default rests on the assumption that, within
+  each treatment condition, the pretested and the unpretested groups
+  lose the same kinds of participants, and missingness at random for the
+  pretest effects corresponds to `pretest_center = "observed"` (see “The
+  pretest effect when posttests are missing” in
+  [`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
+  Whether the conclusion survives departures from that assumption is a
+  sensitivity analysis.
   [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md)
   shifts the imputed posttests of each group by a chosen offset
   (Carpenter et al., 2023, section 10.3), and
@@ -343,13 +350,19 @@ dependent, and their number is not allowed for.
   centered at the mean of the pretested participants, in Groups 1 and 2
   and 0 in Groups 3 and 4, so no group is dropped. The `pretested`
   coefficient and the pretest effects then compare the groups at that
-  mean, where Newman et al. (1990, p. 101) took their adjusted means,
-  and which is the best estimate of the unpretested groups’ pretest
-  under random assignment (Solomon & Lessac, 1968, pp. 146–147). This is
-  the model Newman et al. (1990) proposed for the design, which they
-  call a pseudo-analysis of covariance (pp. 94, 98). Their equation 7
-  (p. 98) has an indicator for each group in place of the treatment and
-  pretest indicators and gives the same fitted values. Because each
+  mean, where Newman et al. (1990, p. 101) took their adjusted means.
+  Under random assignment the unpretested groups’ expected pretest
+  equals the pretested groups’ (Solomon, 1949, p. 141), and that mean is
+  its best estimate (Solomon & Lessac, 1968, p. 147). With missing
+  posttests, the mean can be taken over the pretested participants
+  analyzed (the default) or over every observed pretest
+  (`pretest_center = "observed"`); see “The pretest effect when
+  posttests are missing” in
+  [`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  This is the model Newman et al. (1990) proposed for the design, which
+  they call a pseudo-analysis of covariance (pp. 94, 98). Their equation
+  7 (p. 98) has an indicator for each group in place of the treatment
+  and pretest indicators and gives the same fitted values. Because each
   group keeps its own mean, the pretest slope is estimated within the
   pretested groups, and the unpretested groups’ means are not adjusted
   (p. 98). Williams and Newman (1982) had fitted one model to all six

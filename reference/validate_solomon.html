@@ -177,7 +177,9 @@ strings (<code>y_post = "post"</code>).</p></dd>
 <li><p><code>cells</code>: the counts in each cell, as in <code>by_cell</code> of
 <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code>, with <code>posttest_observed</code>, and with the
 clusters and cluster sizes when <code>cluster</code> is supplied.</p></li>
-<li><p><code>missing</code>: the <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code> result.</p></li>
+<li><p><code>missing</code>: the <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code> result, without its
+diagnostics of missing posttests for the pretest effects; call
+<code><a href="check_solomon_missing.html">check_solomon_missing()</a></code> for those.</p></li>
 <li><p><code>settings</code>: <code>min_cell_n</code>, and whether pretest scores and clusters
 were supplied.</p></li>
 </ul><p>For a design with several treatments, <code>cells</code> has one row for each of

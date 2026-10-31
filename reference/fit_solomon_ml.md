@@ -133,6 +133,22 @@ controls, among treated participants, and averaged over the two, as
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
 does (see its section "The pretest effect").
 
+The fit requires every posttest, and every pretest of the pretested
+groups, so the two pretest centers of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+are one number here: its mean is that of every pretested participant.
+Removing the participants without a posttest before the call gives the
+center of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)'s
+default, `pretest_center = "analyzed"`, the mean pretest of the
+pretested participants analyzed, and its assumption that, within each
+treatment condition, the pretested and unpretested groups lost the same
+kinds of participants;
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+with `pretest_center = "observed"` keeps their pretests instead. See
+"The pretest effect when posttests are missing" in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+
 ## Inference options
 
 The point estimates are maximum-likelihood estimates, which coincide

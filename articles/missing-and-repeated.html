@@ -177,20 +177,43 @@ is missing at random.</p>
 <span><span class="co">#&gt; Incidental posttest missingness (n = 48)</span></span>
 <span><span class="co">#&gt;   Posttest scores are missing, so these participants are excluded from</span></span>
 <span><span class="co">#&gt;   complete-case analyses.</span></span>
-<span><span class="co">#&gt;   Response: Complete-case analysis is unbiased when missingness is unrelated</span></span>
-<span><span class="co">#&gt;     to the outcome given the variables in the model. Report missingness by</span></span>
-<span><span class="co">#&gt;     cell, because attrition that differs across the four groups can undermine</span></span>
-<span><span class="co">#&gt;     the randomized comparisons, and consider sensitivity analyses if</span></span>
-<span><span class="co">#&gt;     missingness may depend on the unobserved outcome.</span></span>
-<span><span class="co">#&gt;   Sources: Rubin (1976); Little &amp; Rubin (2019)</span></span></code></pre></div>
+<span><span class="co">#&gt;   Response: For the treatment contrasts, complete-case analysis is unbiased</span></span>
+<span><span class="co">#&gt;     when missingness is unrelated to the outcome given the variables in the</span></span>
+<span><span class="co">#&gt;     model. The pretest effects also depend on the mean pretest at which they</span></span>
+<span><span class="co">#&gt;     are evaluated; see `pretest_center` in fit_solomon_glm() and the</span></span>
+<span><span class="co">#&gt;     diagnostics below. Report missingness by cell, because attrition that</span></span>
+<span><span class="co">#&gt;     differs across the four groups can undermine the randomized comparisons,</span></span>
+<span><span class="co">#&gt;     and consider sensitivity analyses if missingness may depend on the</span></span>
+<span><span class="co">#&gt;     unobserved outcome.</span></span>
+<span><span class="co">#&gt;   Sources: Rubin (1976); Little &amp; Rubin (2019)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Missing posttests and the pretest effects (see ?fit_solomon_glm)</span></span>
+<span><span class="co">#&gt;   Posttests missing: 24.0% overall; pretested 24.0%, unpretested 24.0% (a</span></span>
+<span><span class="co">#&gt;   difference of 0.0 points; Fisher's exact test, p = 1.000); by condition,</span></span>
+<span><span class="co">#&gt;   control 21.0% and treatment 27.0% (the largest difference 6.0 points).</span></span>
+<span><span class="co">#&gt;   Equal loss rates do not show that the same kinds of participants were lost.</span></span>
+<span><span class="co">#&gt;   Mean pretest of the pretested participants without and with a posttest:</span></span>
+<span><span class="co">#&gt;   control 47.45 (11) and 52.67 (39); treatment 45.85 (13) and 54.41 (37).</span></span>
+<span><span class="co">#&gt;   Selection shift in each pretested condition, the mean pretest with a posttest</span></span>
+<span><span class="co">#&gt;   minus every pretest's: control 1.15 (SE 0.64) and treatment 2.23 (SE 0.97);</span></span>
+<span><span class="co">#&gt;   Wald test of equal shifts, chi-square(1) = 0.87, p = .352.</span></span>
+<span><span class="co">#&gt;   Gap between the centers: b m1 (completers - dropouts) = 0.59 x 0.24 x (53.51</span></span>
+<span><span class="co">#&gt;   - 46.58) = 0.989, the pretest effects at the analyzed center minus those at</span></span>
+<span><span class="co">#&gt;   the observed center (identity link).</span></span>
+<span><span class="co">#&gt;   Unpretested groups, the share without a posttest and the offset the default</span></span>
+<span><span class="co">#&gt;   assumes for their dropouts: control 20.0% and -4.94; treatment 28.0% and</span></span>
+<span><span class="co">#&gt;   -3.53; the pretested dropouts' pretests predict -4.12 for them.</span></span>
+<span><span class="co">#&gt;   The unpretested groups' losses cannot be checked against baseline (Campbell,</span></span>
+<span><span class="co">#&gt;   1957, p. 305).</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="the-main-analysis">The main analysis<a class="anchor" aria-label="anchor" href="#the-main-analysis"></a>
 </h3>
 <p>Here the posttests are missing at random given group and, in the
 pretested groups, the pretest: whether a posttest is missing depends
-only on things the model includes. The model fitted to the observed
-posttests is then a valid main analysis:</p>
+only on things the model includes. For the treatment contrasts, the
+model fitted to the observed posttests is then a valid main
+analysis:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="va">fit</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"contrast"</span>, <span class="st">"estimate"</span>, <span class="st">"std.error"</span>, <span class="st">"conf.low"</span>, <span class="st">"conf.high"</span>, <span class="st">"p.value"</span><span class="op">)</span><span class="op">]</span></span>
@@ -210,8 +233,9 @@ posttests is then a valid main analysis:</p>
 <span><span class="co">#&gt; 5 4.978509e-01</span></span>
 <span><span class="co">#&gt; 6 7.649746e-02</span></span>
 <span><span class="co">#&gt; 7 9.026482e-02</span></span></code></pre></div>
-<p>Multiple imputation under the same assumption agrees with it, as it
-should (Carpenter et al., 2023, p. 256):</p>
+<p>Multiple imputation under the same assumption agrees with it for the
+treatment contrasts, the only ones it pools, as it should (Carpenter et
+al., 2023, p. 256):</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mar</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_mi.html">fit_solomon_mi</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, seed <span class="op">=</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="va">mar</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"contrast"</span>, <span class="st">"estimate"</span>, <span class="st">"std.error"</span>, <span class="st">"fmi"</span><span class="op">)</span><span class="op">]</span></span>
@@ -222,6 +246,121 @@ should (Carpenter et al., 2023, p. 256):</p>
 <span><span class="co">#&gt; 4 Treatment | unpretested 4.952874  2.615466 0.2977825</span></span></code></pre></div>
 <p>The <code>fmi</code> column is the fraction of missing information
 for each contrast.</p>
+</div>
+<div class="section level3">
+<h3 id="the-pretest-effects-and-the-pretest-center">The pretest effects and the pretest center<a class="anchor" aria-label="anchor" href="#the-pretest-effects-and-the-pretest-center"></a>
+</h3>
+<p>The treatment contrasts do not depend on where the pretest is
+centered, but the pretest effects do. They compare the pretested groups,
+at a mean pretest, with the unpretested groups, and with missing
+posttests that mean can be taken over the pretested participants
+analyzed (the default) or over every observed pretest
+(<code>pretest_center = "observed"</code>). The data cannot tell which
+is right; the help section “The pretest effect when posttests are
+missing” in <code><a href="../reference/fit_solomon_glm.html">?fit_solomon_glm</a></code> sets out what each
+assumes.</p>
+<p>These data are the observed center’s case. The pretested groups lose
+posttests at low pretest scores, and the unpretested groups lose them at
+random, unrelated to baseline. The default compares the pretested
+participants analyzed, who scored higher on the pretest than those lost,
+with unpretested participants who are like everyone randomized, so its
+pretest effects are too large here. Whenever the two centers differ, the
+printed fit gives the pretest effects at both, with the share of
+posttests missing (<code>fit$pretest_sensitivity$attrition</code> gives
+each group’s):</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span></span>
+<span><span class="co">#&gt; Solomon GLM (unified model)</span></span>
+<span><span class="co">#&gt; Formula: y ~ treat * pretested + pre_obs</span></span>
+<span><span class="co">#&gt; Covariance: HC3 heteroskedasticity-consistent; t tests (df = 147)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Term             Est (SE)            t   df      p            95% CI</span></span>
+<span><span class="co">#&gt; (Intercept)      50.675 (1.515)  33.45  147  &lt;.001  [47.681, 53.669]</span></span>
+<span><span class="co">#&gt; treat            5.047 (2.526)    2.00  147  0.048   [0.055, 10.039]</span></span>
+<span><span class="co">#&gt; pretested        1.521 (2.124)    0.72  147  0.475   [-2.676, 5.717]</span></span>
+<span><span class="co">#&gt; pre_obs          0.595 (0.102)    5.81  147  &lt;.001    [0.392, 0.797]</span></span>
+<span><span class="co">#&gt; treat:pretested  2.875 (3.181)    0.90  147  0.368   [-3.412, 9.162]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Key contrasts             Est (SE)          t   df      p           95% CI  Wald R2</span></span>
+<span><span class="co">#&gt; ATE (avg over pretest)    6.485 (1.591)  4.08  147  &lt;.001   [3.341, 9.628]    0.102</span></span>
+<span><span class="co">#&gt; Pretest x Treatment       2.875 (3.181)  0.90  147  0.368  [-3.412, 9.162]    0.006</span></span>
+<span><span class="co">#&gt; Treatment | pretested     7.922 (1.934)  4.10  147  &lt;.001  [4.101, 11.744]    0.102</span></span>
+<span><span class="co">#&gt; Treatment | unpretested   5.047 (2.526)  2.00  147  0.048  [0.055, 10.039]    0.026</span></span>
+<span><span class="co">#&gt; Pretest effect | control  1.521 (2.238)  0.68  147  0.498  [-2.902, 5.943]    0.003</span></span>
+<span><span class="co">#&gt; Pretest effect | treated  4.396 (2.464)  1.78  147  0.076  [-0.474, 9.266]    0.021</span></span>
+<span><span class="co">#&gt; Pretest main effect       2.958 (1.735)  1.71  147  0.090  [-0.470, 6.387]    0.019</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Wald R2: partial R-squared for conventional Gaussian OLS;</span></span>
+<span><span class="co">#&gt; a Wald-based descriptive approximation when robust covariance is used.</span></span>
+<span><span class="co">#&gt; pre_obs: the pretest, centered at the pretested participants' mean (53.513).</span></span>
+<span><span class="co">#&gt; The pretest effects compare pretested and unpretested participants at that</span></span>
+<span><span class="co">#&gt; score; their standard errors include the sampling variance of the mean, and</span></span>
+<span><span class="co">#&gt; the coefficient of pretested treats it as fixed.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Missing posttests and the pretest effects</span></span>
+<span><span class="co">#&gt;   Centered at 53.51, the mean pretest of the 76 pretested participants analyzed</span></span>
+<span><span class="co">#&gt;   (default).</span></span>
+<span><span class="co">#&gt;   Every observed pretest: 51.85 (100 participants, 24 without a posttest).</span></span>
+<span><span class="co">#&gt;                              analyzed   observed   difference</span></span>
+<span><span class="co">#&gt;   Pretest effect | control      1.521      0.532        0.989</span></span>
+<span><span class="co">#&gt;   Pretest effect | treated      4.396      3.407        0.989</span></span>
+<span><span class="co">#&gt;   Pretest main effect           2.958      1.969        0.989</span></span>
+<span><span class="co">#&gt;   Posttests missing: pretested 24.0%, unpretested 24.0% (20% to 28% by group).</span></span>
+<span><span class="co">#&gt;   Pretested participants' mean pretest: 46.58 without a posttest, 53.51 with</span></span>
+<span><span class="co">#&gt;   one.</span></span>
+<span><span class="co">#&gt;   The default assumes that each unpretested group's dropouts would have scored</span></span>
+<span><span class="co">#&gt;   4.94 (control) and 3.53 (treatment) below its completers, as the pretested</span></span>
+<span><span class="co">#&gt;   dropouts' pretests predict for them (4.12); "observed" assumes 0.</span></span>
+<span><span class="co">#&gt;   The data cannot tell which center is right. See ?check_solomon_missing.</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, data <span class="op">=</span> <span class="va">d</span>,</span>
+<span>                           pretest_center <span class="op">=</span> <span class="st">"observed"</span><span class="op">)</span></span>
+<span><span class="va">main</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="va">f</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span><span class="va">f</span><span class="op">$</span><span class="va">effects</span><span class="op">$</span><span class="va">contrast</span> <span class="op">==</span> <span class="st">"Pretest main effect"</span>, <span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>analyzed <span class="op">=</span> <span class="fu">main</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, observed <span class="op">=</span> <span class="fu">main</span><span class="op">(</span><span class="va">fit_obs</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"conf.low"</span>, <span class="st">"conf.high"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;          estimate   conf.low conf.high</span></span>
+<span><span class="co">#&gt; analyzed 2.958264 -0.4701522  6.386680</span></span>
+<span><span class="co">#&gt; observed 1.969358 -1.3597812  5.298498</span></span></code></pre></div>
+<p>The true pretest main effect is 2 points. At the observed center the
+estimate is 1.97; at the default it is 2.96.</p>
+<p>The mirror case runs the other way. When every group loses posttests
+by the same baseline-related process, the unpretested groups lose the
+same kinds of participants as the pretested groups, although their
+baseline was not measured. The default is then right and the observed
+center is not. Here all four groups lose posttests at low baseline
+scores, at the rate of the pretested groups above, with 2,000
+participants per group so that sampling error does not hide the
+difference:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2084</span><span class="op">)</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">2000</span></span>
+<span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, each <span class="op">=</span> <span class="va">n</span><span class="op">)</span></span>
+<span><span class="va">treat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">g</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">pretested</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">g</span> <span class="op">&lt;=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">baseline</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="va">n</span>, <span class="fl">50</span>, <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="va">post</span> <span class="op">&lt;-</span> <span class="fl">50</span> <span class="op">+</span> <span class="fl">5</span> <span class="op">*</span> <span class="va">treat</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">pretested</span> <span class="op">+</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="op">(</span><span class="va">baseline</span> <span class="op">-</span> <span class="fl">50</span><span class="op">)</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="va">n</span>, <span class="fl">0</span>, <span class="fl">8</span><span class="op">)</span></span>
+<span><span class="va">lost</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="va">n</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1.4</span> <span class="op">-</span> <span class="fl">0.08</span> <span class="op">*</span> <span class="op">(</span><span class="va">baseline</span> <span class="op">-</span> <span class="fl">50</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">d_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y_post <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">lost</span>, <span class="cn">NA</span>, <span class="va">post</span><span class="op">)</span>, treat <span class="op">=</span> <span class="va">treat</span>, pretested <span class="op">=</span> <span class="va">pretested</span>,</span>
+<span>                    y_pre <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">pretested</span> <span class="op">==</span> <span class="fl">1</span>, <span class="va">baseline</span>, <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fit_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, data <span class="op">=</span> <span class="va">d_all</span><span class="op">)</span></span>
+<span><span class="va">fit_all_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, data <span class="op">=</span> <span class="va">d_all</span>,</span>
+<span>                               pretest_center <span class="op">=</span> <span class="st">"observed"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>analyzed <span class="op">=</span> <span class="fu">main</span><span class="op">(</span><span class="va">fit_all</span><span class="op">)</span>, observed <span class="op">=</span> <span class="fu">main</span><span class="op">(</span><span class="va">fit_all_obs</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"conf.low"</span>, <span class="st">"conf.high"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;           estimate conf.low conf.high</span></span>
+<span><span class="co">#&gt; analyzed 1.8322353 1.345470  2.319000</span></span>
+<span><span class="co">#&gt; observed 0.8600455 0.378348  1.341743</span></span></code></pre></div>
+<p>Against the same true value of 2, the default gives 1.83 and the
+observed center 0.86. The two data sets’ loss mechanisms are the same in
+the pretested groups and differ only in the unpretested groups, whose
+losses cannot be checked against a baseline they did not take. The
+center is therefore an assumption, chosen before the outcomes are seen.
+The default assumes that, within each treatment condition, the pretested
+and the unpretested groups lose the same kinds of participants, which
+random assignment makes the natural case unless taking the pretest
+itself changes who drops out; choose <code>"observed"</code> when there
+are grounds to believe that the unpretested groups’ losses are unrelated
+to baseline and to the posttest. Report the other center beside it, as
+the printed fit and <code><a href="../reference/report_solomon.html">report_solomon()</a></code> do, and see
+<code><a href="../reference/check_solomon_missing.html">check_solomon_missing()</a></code> for the attrition checks.</p>
 </div>
 <div class="section level3">
 <h3 id="how-far-could-the-assumption-be-wrong">How far could the assumption be wrong?<a class="anchor" aria-label="anchor" href="#how-far-could-the-assumption-be-wrong"></a>
@@ -236,7 +375,7 @@ way; here the treatment effect is large enough that its conclusion holds
 throughout that range, so the range is widened to show where it would
 change. The offsets are applied to the treatment groups, the departure
 that bears on the treatment effect:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tipping_point_solomon.html">tipping_point_solomon</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, groups <span class="op">=</span> <span class="st">"treatment"</span>,</span>
 <span>                            deltas <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="op">-</span><span class="fl">25</span>, <span class="fl">10</span>, by <span class="op">=</span> <span class="fl">2.5</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="va">tp</span><span class="op">$</span><span class="va">tipping</span></span>
@@ -268,7 +407,7 @@ validation study, a departure confined to the pretested treatment group
 biased the analyses that assume missing at random by 0.10 to 0.16
 standard deviations. <code>groups = 1</code> shifts that group
 alone:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tp_sens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tipping_point_solomon.html">tipping_point_solomon</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>,</span>
 <span>                                 contrast <span class="op">=</span> <span class="st">"Pretest x Treatment"</span>, groups <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>                                 deltas <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="op">-</span><span class="fl">30</span>, <span class="fl">30</span>, by <span class="op">=</span> <span class="fl">2.5</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
@@ -284,7 +423,7 @@ standard deviations higher than predicted.</p>
 </h3>
 <p><code><a href="../reference/report_solomon.html">report_solomon()</a></code> writes the method, the offsets
 explored, and the tipping points, with their references:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/report_solomon.html">report_solomon</a></span><span class="op">(</span><span class="va">tp</span><span class="op">)</span></span>
 <span><span class="co">#&gt; The design was a Solomon four-group design (Solomon, 1949), with 50, 50, 50,</span></span>
 <span><span class="co">#&gt; and 50 participants analyzed in the pretested treatment, pretested control,</span></span>
@@ -364,7 +503,7 @@ months, and at 12 months. The treatment effect fades from 5 to 3 points.
 After each posttest, participants with lower scores are more likely to
 drop out, so the later posttests are missing at random given the earlier
 ones.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">57</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">60</span></span>
 <span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, each <span class="op">=</span> <span class="va">n</span><span class="op">)</span></span>
@@ -407,7 +546,7 @@ with the participant’s identifier.</p>
 measures (Mallinckrodt et al., 2008) and reports the four Solomon
 contrasts and the pretest effects at each occasion, and the change in
 sensitization from the first occasion to the last:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">id</span>, <span class="va">occasion</span>, <span class="va">y_pre</span>, data <span class="op">=</span> <span class="va">long</span><span class="op">)</span></span>
 <span><span class="va">mm</span></span>
 <span><span class="co">#&gt; Solomon MMRM: mixed model for repeated measures (Mallinckrodt et al., 2008)</span></span>
@@ -469,12 +608,18 @@ sensitization from the first occasion to the last:</p>
 <span><span class="co">#&gt;  0.379 [ -3.221,  8.434]</span></span>
 <span><span class="co">#&gt;  0.495 [ -3.778,  7.788]</span></span>
 <span><span class="co">#&gt;  0.275 [ -1.850,  6.461]</span></span>
-<span><span class="co">#&gt;  0.714 [ -6.416,  9.356]</span></span></code></pre></div>
+<span><span class="co">#&gt;  0.714 [ -6.416,  9.356]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Posttests missing at occasion 12 months: pretested 20.8%, unpretested 23.3%</span></span>
+<span><span class="co">#&gt; (18% to 27% by group).</span></span></code></pre></div>
 <p>The model needs the mmrm package. It estimates the covariance of the
 posttests separately for pretested and unpretested participants, because
 the pretest adjustment makes their residual covariance differ, and it
 uses Kenward-Roger degrees of freedom. The table of observed posttests
-shows the dropout.</p>
+shows the dropout. Every participant has the first posttest, so the
+pretest effects have one center here; for data with participants who
+miss every posttest, see <code>pretest_center</code> in
+<code><a href="../reference/fit_solomon_mmrm.html">?fit_solomon_mmrm</a></code>.</p>
 </div>
 <div class="section level3">
 <h3 id="why-not-analyze-each-occasion-separately">Why not analyze each occasion separately?<a class="anchor" aria-label="anchor" href="#why-not-analyze-each-occasion-separately"></a>
@@ -482,7 +627,7 @@ shows the dropout.</p>
 <p>An analysis of the participants still observed at 12 months uses only
 them, and it is valid only if dropout is unrelated to the outcome. Here
 dropout followed low scores:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">late</span> <span class="op">&lt;-</span> <span class="va">long</span><span class="op">[</span><span class="va">long</span><span class="op">$</span><span class="va">occasion</span> <span class="op">==</span> <span class="st">"12 months"</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">long</span><span class="op">$</span><span class="va">y_post</span><span class="op">)</span>, <span class="op">]</span></span>
 <span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, data <span class="op">=</span> <span class="va">late</span><span class="op">)</span></span>
 <span><span class="co"># The four treatment contrasts, selected from each effects table by label.</span></span>
@@ -516,7 +661,7 @@ repeated-measures model was not.</p>
 with this model as the primary analysis and the contrasts at the primary
 occasion as confirmatory, and <code><a href="../reference/report_solomon.html">report_solomon()</a></code> reports the
 fit:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/report_solomon.html">report_solomon</a></span><span class="op">(</span><span class="va">mm</span>, digits <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">method</span></span>
 <span><span class="co">#&gt; [1] "Posttest outcomes at 3 occasions were analyzed with a mixed model for repeated measures (Mallinckrodt et al., 2008) containing occasion, treatment, pretesting, and all their interactions, adjusting for the pretest score among pretested participants separately at each occasion (Lin, 2013; Newman et al., 1990), with an unstructured within-participant covariance estimated separately for pretested and unpretested participants by restricted maximum likelihood (Laird &amp; Ware, 1982). Tests used Kenward-Roger degrees of freedom (Kenward &amp; Roger, 1997, as cited in Fitzmaurice et al., 2011). The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that missing posttests are missing at random."</span></span></code></pre></div>
 <p>For a published study with three posttest occasions, reproduced from

@@ -84,7 +84,10 @@ An object of class `solomon_validation`, a list with:
 
 - `missing`: the
   [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
-  result.
+  result, without its diagnostics of missing posttests for the pretest
+  effects; call
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  for those.
 
 - `settings`: `min_cell_n`, and whether pretest scores and clusters were
   supplied.

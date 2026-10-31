@@ -259,6 +259,21 @@ package's <code>data-raw</code> folder on GitHub. See also <code>inst/COPYRIGHTS
 <span class="r-out co"><span class="r-pr">#&gt;</span> The pretest effects compare pretested and unpretested participants at that</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> score; their standard errors include the sampling variance of the mean, and</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> the coefficient of pretested treats it as fixed.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Missing posttests and the pretest effects</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Centered at 3.12, the mean pretest of the 51 pretested participants analyzed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   (default).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Every observed pretest: 3.14 (85 participants, 34 without a posttest).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              analyzed   observed   difference</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest effect | control      0.092      0.100       -0.008</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest effect | treated     -0.198     -0.190       -0.008</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest main effect          -0.053     -0.045       -0.008</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Posttests missing: pretested 40.0%, unpretested 33.3% (29% to 46% by group).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretested participants' mean pretest: 3.16 without a posttest, 3.12 with one.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   The default assumes that each unpretested group's dropouts would have scored</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.02 (control) and 0.03 (treatment) above its completers, as the pretested</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   dropouts' pretests predict for them (0.02); "observed" assumes 0.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   The data cannot tell which center is right. See ?check_solomon_missing.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># One model for all six groups.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fit_solomon_glm.html">fit_solomon_glm</a></span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">condition</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span>,</span></span>
@@ -296,6 +311,22 @@ package's <code>data-raw</code> folder on GitHub. See also <code>inst/COPYRIGHTS
 <span class="r-out co"><span class="r-pr">#&gt;</span> Pretest effects: pretested minus unpretested participants in each condition,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> at the pretested participants' mean pretest (3.129), with standard errors</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> that include the sampling variance of that mean.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Missing posttests and the pretest effects</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Centered at 3.13, the mean pretest of the 74 pretested participants analyzed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   (default).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Every observed pretest: 3.16 (118 participants, 44 without a posttest).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              analyzed   observed   difference</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest effect | Control      0.097      0.111       -0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest effect | RP          -0.193     -0.179       -0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest effect | GS           0.005      0.020       -0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest main effect          -0.030     -0.016       -0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Posttests missing: pretested 37.3%, unpretested 36.6% (29% to 46% by group).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretested participants' mean pretest: 3.21 without a posttest, 3.13 with one.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   The default assumes that each unpretested group's dropouts would have scored</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.04 (Control), 0.05 (RP), and 0.03 (GS) above its completers, as the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   pretested dropouts' pretests predict for them (0.04); "observed" assumes 0.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   The data cannot tell which center is right. See ?check_solomon_missing.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Experimental: in the package's simulation study (issue #45), the omnibus</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> tests of Condition | pretested and Condition | unpretested rejected in up</span>

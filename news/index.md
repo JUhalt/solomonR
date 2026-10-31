@@ -2,6 +2,165 @@
 
 ## solomonR (development version)
 
+### The pretest center when posttests are missing ([\#135](https://github.com/JUhalt/solomonR/issues/135))
+
+With a pretest covariate, the pretest effects compare the pretested
+groups, at a mean pretest, with the unpretested groups. When posttests
+are missing, that mean can be taken over the pretested participants
+analyzed or over every observed pretest, and the pretest effects differ
+by the pretest slope times the difference between the two means. The
+data cannot tell which is right, and no published source decides; the
+choice and its reasons are set out in the decision record posted on
+[\#135](https://github.com/JUhalt/solomonR/issues/135).
+
+- **The default is unchanged.** The pretest effects are still evaluated
+  at the mean pretest of the pretested participants in the model,
+  `pretest_center = "analyzed"`. It assumes that, within each treatment
+  condition, the pretested and the unpretested groups lost the same
+  kinds of participants. The record keeps it because, when taking the
+  pretest changes neither the posttest nor who stays, random assignment
+  makes every group lose alike and its test of a zero pretest effect
+  keeps its level, while the other center’s rejected in 54% of data sets
+  in the record’s check (500 data sets of 200 per group, a third of the
+  posttests lost by baseline in all four groups); it fails only when
+  taking the pretest changed who stayed. Every number that a fit, a
+  report, or a print gave before is unchanged with the default, as a
+  test against results stored from the development version before this
+  change shows; the new lines and the behavior changes below are the
+  exceptions.
+- **`pretest_center = "observed"`** in
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  (one or several treatments),
+  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md),
+  [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md),
+  and
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  evaluates them at the mean of every observed pretest among the
+  pretested participants, with or without a posttest; the rows of the
+  participants without a posttest must be in the data. It assumes that
+  the pretested groups’ losses depend at most on the observed pretest,
+  and that the unpretested groups’ losses are unrelated to baseline as
+  well as to the posttest. Its standard errors take the variance of that
+  mean over every participant who contributes to it, in the model or
+  not, by stacking its estimating equation with the model’s (Stefanski &
+  Boos, 2002), under model-based, HC3, and CR2 covariance; a CR2 fit
+  needs the cluster of every such participant. The treatment contrasts,
+  Pretest x Treatment, and the fitted values do not depend on the
+  center. On the risk and rate scales of
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  the center also moves Treatment \| pretested, the average treatment
+  effect, and Pretest x Treatment.
+- **Both centers are returned and printed.** Fits with a pretest
+  covariate return `pretest_center`, `pretest_mean_analyzed`,
+  `pretest_mean_observed`, `pretest_n`, and `pretest_sensitivity`, the
+  pretest effects at both centers with their difference, the attrition
+  of each group, and, on the identity link, the delta line: for each
+  unpretested group, the offset between its dropouts’ and its
+  completers’ mean posttest that the default assumes (National Research
+  Council, 2010, pp. 88–89; Mavridis et al., 2015, sec. 2). Whenever the
+  two centers differ, the printed fit gives them in a block, as the
+  record’s section 4 shows it for `mai2020`, and
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  names the center used, its assumption, and the other center, and says
+  when whether a pretest effect differs from zero depends on the center,
+  or, when only its sign differs, its direction. The caption of
+  [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+  names both centers.
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  prints the contrasts that move under both standardizations, and
+  [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md)
+  both inferred pretests. These tables are outside the output contract
+  of
+  [`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+  for now.
+- **New lines whenever a posttest is missing.** The print methods and
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  of the fits,
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  and
+  [`fit_solomon_1949()`](https://juhalt.github.io/solomonR/reference/fit_solomon_1949.md)
+  give the share of posttests missing among the pretested and the
+  unpretested participants, with the range over the groups, whether or
+  not the centers differ.
+- **[`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)**
+  gains `covariates` and the record’s attrition checks: the share
+  missing by group, between the pretest conditions and between the
+  conditions (What Works Clearinghouse, 2022, p. 40), with a statement
+  when Fisher’s exact test of loss by pretest condition gives p \< .05;
+  the pretest scores of those lost (Campbell, 1957, pp. 301–302); each
+  pretested condition’s selection shift, with its standard error and a
+  Wald test of equal shifts, and the raw comparison of posttest means
+  when that test gives p \< .05
+  ([\#143](https://github.com/JUhalt/solomonR/issues/143)); the gap
+  between the centers (What Works Clearinghouse, 2022, Equation H.2,
+  p. 207) and the delta line; loss by each covariate within each pretest
+  condition (Lee, 2005, Remark 4, p. 16; Groenwold et al., 2014), by
+  Fisher’s exact test for two levels and a simulated p-value for more;
+  the pretested participants with a posttest and no pretest
+  ([\#142](https://github.com/JUhalt/solomonR/issues/142)); and what
+  cannot be checked (Campbell, 1957, p. 305).
+  [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md)
+  leaves these checks out. Its guidance now says that complete-case
+  analysis is unbiased under its condition for the treatment contrasts
+  only.
+- **[`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)**
+  gains `pretest_center`. Its population, missing-at-random, and
+  multiple-imputation statements are restricted to the treatment
+  contrasts, and a new item states the population, the assumption, and
+  the center of the pretest effects. A plan that assumes missingness at
+  random for the pretest effects chooses `"observed"`.
+- **Behavior changes.** A four-group fit with an empty group, or a term
+  collinear with the others, now stops with an error that names the
+  groups, as fits with several treatments did; before, it returned `NA`
+  estimates or failed in the linear algebra. With HC3, a four-group fit
+  with a group of one participant now stops with an error that names it,
+  as fits with several treatments did; before, it returned `NaN`
+  standard errors, or, with a pretest covariate, failed with an unclear
+  error.
+  [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
+  takes a participant’s pretest from any of the participant’s rows, so a
+  pretest given on one row only no longer excludes the participant with
+  a warning; different pretests for one participant still stop the fit.
+- **Help pages.**
+  [`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  has a new section, “The pretest effect when posttests are missing”.
+  [`?fit_solomon_ml`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
+  says that its fit, which needs every posttest, has one center, and
+  that removing the participants without a posttest gives the default’s.
+  [`?fit_solomon_mi`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md)
+  and
+  [`?tipping_point_solomon`](https://juhalt.github.io/solomonR/reference/tipping_point_solomon.md)
+  say that their imputations embody the observed center in the pretested
+  groups.
+  [`?equivalence_solomon`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
+  says that equivalence of a pretest effect holds only under its
+  center’s assumption.
+  [`?fit_solomon_mmrm`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
+  says that later-occasion pretest effects are biased at either center
+  when dropout depends on baseline beyond the earlier posttests. The
+  article “Missing and Repeated Posttests” shows both centers on data of
+  each one’s case.
+- **Citations corrected.** The premise that random assignment makes the
+  unpretested groups’ expected pretest equal to the pretested groups’ is
+  now credited to Solomon (1949, p. 141), and the pooled mean as its
+  best estimate to Solomon and Lessac (1968, p. 147), in
+  [`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+  [`?marginal_solomon`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  “Getting Started”, “Solomon Methods”, the teaching article, and the
+  news of [\#104](https://github.com/JUhalt/solomonR/issues/104); they
+  had been credited to Solomon and Lessac (1968, pp. 146–147).
+- **Not solved here.** Pretested participants without a pretest are
+  dropped at either center
+  ([\#142](https://github.com/JUhalt/solomonR/issues/142)), and when the
+  treatment conditions lose different kinds of participants neither
+  center gives both conditional pretest effects, and Pretest x Treatment
+  is biased at every center
+  ([\#143](https://github.com/JUhalt/solomonR/issues/143)).
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  reports both cases.
+- `tools/pretest-center-check.R` reruns the record’s checks with both
+  centers, from one build of the package.
+
 ### Validation scripts that run against the current package ([\#140](https://github.com/JUhalt/solomonR/issues/140))
 
 - The simulation scripts behind the validation articles select the rows
@@ -58,8 +217,9 @@
   fails if one fails, has no smoke mode, or runs longer than
   `SOLOMONR_SMOKE_TIMEOUT` seconds, or if a file of the package changes.
   A new GitHub Actions workflow runs it on pushes and pull requests to
-  master; it has not yet run on GitHub. The check is not part of
-  `R CMD check`.
+  master; its first run, on
+  [\#144](https://github.com/JUhalt/solomonR/issues/144), passed. The
+  check is not part of `R CMD check`.
 - The confirmatory studies of the multiple-imputation
   ([\#82](https://github.com/JUhalt/solomonR/issues/82)) and
   repeated-measures
@@ -376,7 +536,7 @@ what that code needs.
   teaching select the rows of an effects table by label, not by
   position.
 
-### Reports of latent models with lavaan 0.7-3 (bug fix)
+### Reports of latent models with a newer lavaan (bug fix)
 
 - [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
   failed for latent-variable fits and invariance tests estimated by
@@ -742,9 +902,11 @@ what that code needs.
   already did. The pretesting coefficient, which compared the groups at
   a pretest score of zero (-26.2 on `solomon_example`), is now the
   pretest effect among controls at that mean (3.42). With random
-  assignment, the unpretested groups’ expected pretest equals that mean
-  (Solomon & Lessac, 1968, pp. 146–147), so each pretest effect is the
-  difference between the adjusted means that
+  assignment, the unpretested groups’ expected pretest equals that of
+  the pretested groups (Solomon, 1949, p. 141), and the pretested
+  groups’ combined mean is its best estimate (Solomon & Lessac, 1968,
+  p. 147), so each pretest effect is the difference between the adjusted
+  means that
   [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
   draws. The treatment contrasts, their standard errors, and the fitted
   values are unchanged.

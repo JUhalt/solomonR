@@ -124,6 +124,7 @@ two (see "The pretest effect").</p>
 <span>  contrasts <span class="op">=</span> <span class="st">"control"</span>,</span>
 <span>  adjust <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"holm"</span>, <span class="st">"bonferroni"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pretest_center <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analyzed"</span>, <span class="st">"observed"</span><span class="op">)</span>,</span>
 <span>  y <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  pretest_score <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -213,6 +214,20 @@ are looked up in it first: give them as bare column names
 (<code>y_post = post</code>) or as strings (<code>y_post = "post"</code>).</p></dd>
 
 
+<dt id="arg-pretest-center">pretest_center<a class="anchor" aria-label="anchor" href="#arg-pretest-center"></a></dt>
+<dd><p>with <code>y_pre</code>, the mean pretest at which the
+pretested groups are compared with the unpretested groups (issue #135).
+<code>"analyzed"</code> (the default): the mean pretest of the pretested
+participants in the model. <code>"observed"</code>: the mean of every observed
+pretest among the pretested participants, with or without a posttest,
+condition, covariate, or exposure; their rows must be in the data, with
+<code>y_post</code> missing, or this gives the default. Only the pretest effects
+(and the coefficient of <code>pretested</code>, with its standard error and
+covariances) depend on it; the treatment contrasts, Pretest x
+Treatment, and the fitted values do not, on the model's scale. Ignored
+without <code>y_pre</code>.</p></dd>
+
+
 <dt id="arg-y-pretest-score">y, pretest_score<a class="anchor" aria-label="anchor" href="#arg-y-pretest-score"></a></dt>
 <dd><p><a href="https://lifecycle.r-lib.org/articles/stages.html#deprecated" class="external-link"><img src="figures/lifecycle-deprecated.svg" alt="[Deprecated]"></a> Use <code>y_post</code>
 and <code>y_pre</code>.</p></dd>
@@ -239,8 +254,36 @@ it.</p></li>
 and negative-binomial fits, and <code>NA</code> for the others.</p></li>
 <li><p><code>theta</code>: for negative-binomial fits, its estimate, standard error,
 and \(\alpha = 1/\theta\); otherwise <code>NULL</code>.</p></li>
-<li><p><code>pretest_mean</code>: the mean pretest at which the pretest is centered;
-<code>NA</code> without <code>y_pre</code>.</p></li>
+<li><p><code>pretest_mean</code>: the mean pretest at which the pretest is centered, the
+center used; <code>NA</code> without <code>y_pre</code>.</p></li>
+<li><p><code>pretest_center</code>: the center used, <code>"analyzed"</code> or <code>"observed"</code>.</p></li>
+<li><p><code>pretest_mean_analyzed</code> and <code>pretest_mean_observed</code>: the two centers,
+the mean pretest of the pretested participants in the model and the
+mean of every observed pretest among the pretested participants; <code>NA</code>
+without <code>y_pre</code>.</p></li>
+<li><p><code>pretest_n</code>: the numbers of pretested participants with a pretest in
+the model (<code>analyzed</code>) and in all (<code>observed</code>), and, of those outside
+the model, how many have no posttest (<code>no_posttest</code>; the others lack
+the condition, a covariate, or the exposure). <code>NULL</code> without <code>y_pre</code>.</p></li>
+<li><p><code>pretest_sensitivity</code>: the pretest effects at both centers (see "The
+pretest effect when posttests are missing"), a list with <code>effects</code>
+(the pretest rows of the effects table at each <code>center</code>, the center
+used giving the rows of <code>effects</code>); <code>difference</code> (each pretest
+effect's estimates at the <code>analyzed</code> and <code>observed</code> centers and their
+<code>difference</code>); <code>slope</code>, the pretest slope; <code>m1</code>, the share of the
+pretested participants with a pretest who are not in the model;
+<code>pretest_means</code>, the mean pretest of those <code>analyzed</code> and
+<code>not_analyzed</code>; <code>delta</code>, on the identity link only, each unpretested
+group's <code>condition</code>, <code>n</code>, share not analyzed <code>m0</code>, and the offset
+<code>delta</code> the default assumes (<code>NA</code> where <code>m0</code> is 0), and otherwise
+<code>NULL</code>; <code>predicted</code>, what the pretested dropouts' pretests predict for
+them; <code>attrition</code>, each group's <code>n</code>, <code>posttest_missing</code>, and <code>share</code>;
+<code>differ</code>, whether the two centers differ; and <code>note</code>, the reason the
+other center's standard errors are missing, if they are. The other
+center's effects are computed without a refit, by moving the
+contrasts, with the variance of its mean stacked as for the center
+used. <code>NULL</code> without <code>y_pre</code>; outside the stable interface (see
+<a href="solomon_output.html">solomon_output</a>).</p></li>
 <li><p><code>robust</code>, <code>family</code>, <code>cluster</code> (the cluster of each participant), and
 <code>n_clusters</code>: the settings used. The last two are <code>NULL</code> without
 <code>cluster</code>.</p></li>
@@ -258,6 +301,9 @@ terms (<code>condition</code>, <code>role</code>, and <code>term</code>).</p></l
 <li><p><code>weights</code>: the weights of each comparison over the conditions, one
 row for each comparison.</p></li>
 <li><p><code>adjust</code>: the adjustment of the p-values.</p></li>
+<li><p>The tables of <code>pretest_sensitivity</code> have <code>comparison</code> first, as
+<code>effects</code> does, and its <code>effects</code> has <code>p.adjusted</code>; <code>delta</code> has a row
+for each unpretested group.</p></li>
 </ul><p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
 which returns the table, are the stable interface of the result; see
 <a href="solomon_output.html">solomon_output</a>.</p>
@@ -294,7 +340,8 @@ with several treatments. Regression adjustment for baseline covariates in
 randomized experiments, and the case for pairing it with
 heteroskedasticity-robust standard errors, is discussed by Lin (2013).
 Pretested participants with a missing pretest score are excluded with a
-warning; incidental missingness is never imputed.</p>
+warning; incidental missingness is never imputed. Their exclusion biases
+the pretest effects when it relates to baseline (issue #142).</p>
     </div>
     <div class="section level2">
     <h2 id="inference">Inference<a class="anchor" aria-label="anchor" href="#inference"></a></h2>
@@ -400,12 +447,15 @@ or as a pretest effect that depends on treatment.</p>
 groups at the pretested participants' mean pretest, where the centered
 pretest is zero. Unpretested participants were never measured, but with
 random assignment their expected pretest equals that of the pretested
-participants, whose combined mean is its best estimate (Solomon &amp; Lessac,
-1968, pp. 146–147). Each pretest effect is therefore the pretest-adjusted
-mean of a pretested group minus the mean of the unpretested group in the
-same treatment condition: the differences between the adjusted means that
-<code><a href="plot_sensitization.html">plot_sensitization()</a></code> draws. Without <code>y_pre</code>, the pretest effects are
-differences between the fitted cell means.</p>
+participants (Solomon, 1949, p. 141), whose combined mean is its best
+estimate (Solomon &amp; Lessac, 1968, p. 147). Each pretest effect is therefore
+the pretest-adjusted mean of a pretested group minus the mean of the
+unpretested group in the same treatment condition: the differences between
+the adjusted means that <code><a href="plot_sensitization.html">plot_sensitization()</a></code> draws. Without <code>y_pre</code>, the
+pretest effects are differences between the fitted cell means. When
+posttests are missing, the mean pretest can be taken over two sets of
+pretested participants; see "The pretest effect when posttests are
+missing".</p>
 <p>That mean pretest is an estimate of the expected pretest, not a fixed
 value, and the pretest effects shift by b for each point it shifts, where
 b is the pretest slope. Their standard errors therefore include its sampling
@@ -451,6 +501,124 @@ too, although its treatment rate ratios are collapsible.
 <code><a href="marginal_solomon.html">marginal_solomon()</a></code> estimates the pretest effects on a common scale, from
 standardized risks or rates (Daniel et al., 2021).</p>
     </div>
+    <div class="section level2">
+    <h2 id="the-pretest-effect-when-posttests-are-missing">The pretest effect when posttests are missing<a class="anchor" aria-label="anchor" href="#the-pretest-effect-when-posttests-are-missing"></a></h2>
+
+
+<p>Each pretest effect compares a pretested group, at a mean pretest (the
+center), with the unpretested group in the same treatment condition. The
+center stands in for the unpretested groups' expected pretest, which
+random assignment makes equal to the pretested groups' (Solomon, 1949, p.
+141). With every posttest observed it is the mean pretest of both
+pretested groups (Newman et al., 1990, p. 101). When posttests are
+missing there are two candidates, and <code>pretest_center</code> chooses between
+them:</p><ul><li><p><code>"analyzed"</code> (the default): the mean pretest of the pretested
+participants in the model. It assumes that, within each treatment
+condition, the pretested and the unpretested groups lost the same kinds
+of participants. Random assignment makes that the natural case, unless
+taking the pretest itself changed who dropped out.</p></li>
+<li><p><code>"observed"</code>: the mean of every observed pretest among the pretested
+participants, with or without a posttest. It assumes that the pretested
+groups' losses depend at most on the observed pretest, and that the
+unpretested groups' losses are unrelated to baseline as well as to the
+posttest. In the pretested groups this is missingness at random given
+the pretest (Seaman et al., 2013, Definition 3; the mapping is the
+package's inference), the assumption under which <code><a href="fit_solomon_mi.html">fit_solomon_mi()</a></code>
+imputes; in one check on issue #135, normal-theory full-information
+maximum likelihood with the pretest gave the same pretest effects to
+three decimals. It needs the rows of the pretested participants without
+a posttest, with <code>y_post</code> missing; without them it gives the default.</p></li>
+</ul><p>The two centers differ by m1 (x_in - x_out), and the pretest effects at
+the two centers by b m1 (x_in - x_out), where b is the pretest slope, m1
+the share of the pretested participants with a pretest who are not in
+the model, and x_in and x_out the mean pretests of those in and out of
+the model. The data cannot tell which center is right, because the
+unpretested groups have no pretest (Campbell, 1957, p. 305), and no
+published source decides between them. The default is a judgment, set out
+with its reasons in the decision record posted on issue #135:</p><ul><li><p>Under the design's null hypothesis, that taking the pretest changes
+neither the posttest nor who stays, random assignment makes all groups
+lose the same kinds of participants, whatever drives the loss, and the
+default's test of a zero pretest effect keeps its level. In the record's
+check (500 data sets of 200 participants per group, about a third of
+the posttests lost by baseline in all four groups), the test of the
+pretest main effect at the .05 level rejected in 5% of the data sets at
+the default and in 54% at the observed center.</p></li>
+<li><p>The default fails only when taking the pretest changed who stayed,
+which is itself an effect of pretesting; it then reports that effect as
+an effect on scores, and can be wrong by up to the whole gap, as when
+taking the pretest itself caused the selective loss. When only the
+pretested groups lose posttests, by their pretest, the observed center
+is unbiased and the default is not. When pretesting only adds losses at
+random, the default is exact and the observed center is off by the
+whole gap. When the pretested groups lose by their pretest and the
+unpretested groups lose at random at the same rate, the loss rates do
+not differ and no diagnostic warns: the printed observed center is
+then the only check.</p></li>
+<li><p>The default keeps the design's own pretest effect. For the main effect
+it is, when every pretested participant has a pretest (see issue #142)
+and up to a term that vanishes when the two pretested groups keep equal
+numbers, the difference between the posttest means of the participants
+analyzed, as the design defines the effect (Solomon &amp; Lessac, 1968, p.
+147). It does not depend on whether the data keep rows for participants
+without a posttest.</p></li>
+</ul><p>Whenever the two centers differ, the printed fit gives the pretest
+effects at both, their difference, and the shares of posttests missing,
+and <code>pretest_sensitivity</code> returns them, with each group's attrition in
+<code>pretest_sensitivity$attrition</code>; <code><a href="report_solomon.html">report_solomon()</a></code> names the center,
+its assumption, and the other center. On the identity link the print also
+gives the delta line: for each unpretested group, the difference between
+its dropouts' and its completers' mean posttest that the default assumes,
+which is the difference the pretested dropouts' pretests predict for
+them, scaled by the ratio of the loss rates; <code>"observed"</code> assumes 0. This
+is the delta parameterization of the National Research Council (2010, pp.
+88–89) and Mavridis et al. (2015, sec. 2), and it assumes that the
+pretested losses are at random given the pretest. <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code>
+gives the attrition checks.</p>
+<p><strong>Choosing.</strong> Choose the center before the outcomes are seen, and report
+the other as a sensitivity analysis (National Research Council, 2010,
+Recommendation 9, p. 4, and Recommendation 15, p. 106; White et al.,
+2011). Specify <code>"observed"</code> in advance when there are grounds to believe
+that the unpretested groups' losses are unrelated to baseline and to the
+posttest. The clear case is
+unpretested groups that lost no posttests, with a row for everyone
+randomized to them. A burdensome pretest that adds losses makes the
+default doubtful, but it does not make <code>"observed"</code> right. Loss rates
+that differ between the pretest conditions suggest that pretesting
+changed who dropped out, in which case neither center is free of
+assumptions.</p>
+<p><strong>Cautions.</strong></p><ul><li><p>Moving the center changes what the coefficient of <code>pretested</code>
+measures, and nothing else in the model. Only the pretest effects, and
+that coefficient with its standard error and covariances, depend on the
+center; the treatment contrasts, Pretest x Treatment, and the fitted
+values do not, on the model's scale. On the risk or rate
+scale of <code><a href="marginal_solomon.html">marginal_solomon()</a></code>, Treatment | pretested, the average
+treatment effect, and Pretest x Treatment depend on it as well as the
+pretest effects.</p></li>
+<li><p>The gap above assumes one pretest slope for all conditions, as the
+model has.</p></li>
+<li><p>If the treatment conditions lost different kinds of participants,
+neither center gives both conditional pretest effects: in the record's
+case S3 (losses by baseline in the control arms and at random in the
+treated arms, alike in both pretest conditions) the default misstated
+both, although not their average when
+the pretested groups kept equal numbers, and the observed center
+misstated one of them and their average. Pretest x Treatment is then
+biased at every center (issue #143). <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code> tests
+whether the pretested conditions' selection differs and then gives the
+raw comparison of posttest means in each condition.</p></li>
+<li><p>Pretested participants with a posttest and no pretest are dropped at
+either center. When that loss relates to baseline, both centers are
+biased alike, and a fit without <code>y_pre</code> is not (issue #142).</p></li>
+<li><p>When loss depends on the posttest itself, both centers understate a
+real pretest effect: in a derivation reported on issue #135, a true
+effect of 0.3 gave 0.234 at the default and 0.174 at the observed
+center. Neither center protects a test of equivalence; see
+<code><a href="equivalence_solomon.html">equivalence_solomon()</a></code>.</p></li>
+<li><p>The default's target is the pretest effect among the participants who
+would be analyzed in either pretest condition. It equals the effect in
+the randomized population only when the pretest effect does not vary
+with what drives the loss.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="designs-with-several-treatments">Designs with several treatments<a class="anchor" aria-label="anchor" href="#designs-with-several-treatments"></a></h2>
 
@@ -522,6 +690,9 @@ linear regression with multi-stage samples. <em>Survey Methodology, 28</em>(2),
 <p>Cameron, A. C., &amp; Trivedi, P. K. (2013). <em>Regression analysis of count data</em>
 (2nd ed.). Cambridge University Press.
 https://doi.org/10.1017/CBO9781139013567</p>
+<p>Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+social settings. <em>Psychological Bulletin, 54</em>(4), 297–312.
+https://doi.org/10.1037/h0040950</p>
 <p>Campbell, D. T., &amp; Stanley, J. C. (1966). <em>Experimental and
 quasi-experimental designs for research</em>. Rand McNally. (Original work
 published 1963)</p>
@@ -552,9 +723,16 @@ https://doi.org/10.1016/0304-4076(85)90158-7</p>
 <p>Mai, N. N., Takahashi, Y., &amp; Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. <em>Education
 Sciences, 10</em>(4), Article 92. https://doi.org/10.3390/educsci10040092</p>
+<p>Mavridis, D., White, I. R., Higgins, J. P. T., Cipriani, A., &amp; Salanti, G.
+(2015). Allowing for uncertainty due to missing continuous outcome data in
+pairwise and network meta-analysis. <em>Statistics in Medicine, 34</em>(5),
+721–741. https://doi.org/10.1002/sim.6365</p>
 <p>McCarthy, A. M., &amp; Tucker, M. L. (2002). Encouraging community service
 through service learning. <em>Journal of Management Education, 26</em>(6), 629–647.
 https://doi.org/10.1177/1052562902238322</p>
+<p>National Research Council. (2010). <em>The prevention and treatment of missing
+data in clinical trials</em>. The National Academies Press.
+https://doi.org/10.17226/12955</p>
 <p>Newman, I., Benz, C., &amp; Williams, J. D. (1990). Alternatives in analyzing the
 Solomon four group design. <em>Multiple Linear Regression Viewpoints, 17</em>(2),
 91–103. https://ojs.lib.ua.edu/glmj/article/view/125</p>
@@ -569,6 +747,9 @@ Article 338. https://doi.org/10.3758/s13428-025-02801-4</p>
 <p>Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 variance components. <em>Biometrics Bulletin, 2</em>(6), 110–114.
 https://doi.org/10.2307/3002019</p>
+<p>Seaman, S., Galati, J., Jackson, D., &amp; Carlin, J. (2013). What is meant by
+"missing at random"? <em>Statistical Science, 28</em>(2), 257–268.
+https://doi.org/10.1214/13-STS415</p>
 <p>Solomon, R. L. (1949). An extension of control group design. <em>Psychological
 Bulletin, 46</em>(2), 137–150. https://doi.org/10.1037/h0062958</p>
 <p>Solomon, R. L., &amp; Lessac, M. S. (1968). A control group design for
@@ -592,6 +773,9 @@ https://doi.org/10.1037/met0000011</p>
 <p>Welch, B. L. (1947). The generalization of "Student's" problem when several
 different population variances are involved. <em>Biometrika, 34</em>(1–2), 28–35.
 https://doi.org/10.1093/biomet/34.1-2.28</p>
+<p>White, I. R., Horton, N. J., Carpenter, J., &amp; Pocock, S. J. (2011). Strategy
+for intention to treat analysis in randomised trials with missing outcome
+data. <em>BMJ, 342</em>, Article d40. https://doi.org/10.1136/bmj.d40</p>
     </div>
 
     <div class="section level2">
@@ -683,11 +867,36 @@ https://doi.org/10.1093/biomet/34.1-2.28</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> at the pretested participants' mean pretest (3.129), with standard errors</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> that include the sampling variance of that mean.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Missing posttests and the pretest effects</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Centered at 3.13, the mean pretest of the 74 pretested participants analyzed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   (default).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Every observed pretest: 3.16 (118 participants, 44 without a posttest).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              analyzed   observed   difference</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest effect | Control      0.097      0.111       -0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest effect | RP          -0.193     -0.179       -0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest effect | GS           0.005      0.020       -0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretest main effect          -0.030     -0.016       -0.014</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Posttests missing: pretested 37.3%, unpretested 36.6% (29% to 46% by group).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretested participants' mean pretest: 3.21 without a posttest, 3.13 with one.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   The default assumes that each unpretested group's dropouts would have scored</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.04 (Control), 0.05 (RP), and 0.03 (GS) above its completers, as the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   pretested dropouts' pretests predict for them (0.04); "observed" assumes 0.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   The data cannot tell which center is right. See ?check_solomon_missing.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Experimental: in the package's simulation study (issue #45), the omnibus</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> tests of Condition | pretested and Condition | unpretested rejected in up</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> to 6.9% of replications at the .05 level with three treatments and 10</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> participants per group. No other test, and no family of adjusted</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> comparisons, failed the study's rule. See ?fit_solomon_glm.</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Posttests are missing in mai2020, so the print gives the pretest effects</span></span></span>
+<span class="r-in"><span><span class="co"># at both centers; pretest_sensitivity returns them.</span></span></span>
+<span class="r-in"><span><span class="va">fit6</span><span class="op">$</span><span class="va">pretest_sensitivity</span><span class="op">$</span><span class="va">difference</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       comparison                 contrast     analyzed    observed  difference</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1        Control Pretest effect | control  0.096756795  0.11104521 -0.01428842</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2             RP Pretest effect | treated -0.192930604 -0.17864219 -0.01428842</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3             GS Pretest effect | treated  0.005477319  0.01976574 -0.01428842</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 All conditions      Pretest main effect -0.030232163 -0.01594375 -0.01428842</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

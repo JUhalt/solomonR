@@ -312,10 +312,11 @@ the test against zero is not significant (p = .095).
 
 The true pretest effect is 2 points. The model compares the pretested
 groups, at their mean pretest, with the unpretested groups, whose
-expected pretest under random assignment is the same (Solomon & Lessac,
-1968, pp. 146–147). Among controls it estimates 3.4 points, 95% CI
-\[-1.3, 8.1\], and averaged over treatment and control 2.4 points, 95%
-CI \[-1.1, 6.0\]. Both intervals contain the truth.
+expected pretest under random assignment is the same (Solomon, 1949,
+p. 141); the pretested groups’ combined mean is its best estimate
+(Solomon & Lessac, 1968, p. 147). Among controls it estimates 3.4
+points, 95% CI \[-1.3, 8.1\], and averaged over treatment and control
+2.4 points, 95% CI \[-1.1, 6.0\]. Both intervals contain the truth.
 
 This is not a failure of the method. Estimates vary from sample to
 sample, and with 30 participants per group this design has roughly 85%

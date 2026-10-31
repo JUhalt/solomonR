@@ -103,23 +103,46 @@ with(rp, check_solomon_missing(post_behavior, treat, pretested, pre_behavior))
 #> Incidental posttest missingness (n = 56)
 #>   Posttest scores are missing, so these participants are excluded from
 #>   complete-case analyses.
-#>   Response: Complete-case analysis is unbiased when missingness is unrelated
-#>     to the outcome given the variables in the model. Report missingness by
-#>     cell, because attrition that differs across the four groups can undermine
-#>     the randomized comparisons, and consider sensitivity analyses if
-#>     missingness may depend on the unobserved outcome.
+#>   Response: For the treatment contrasts, complete-case analysis is unbiased
+#>     when missingness is unrelated to the outcome given the variables in the
+#>     model. The pretest effects also depend on the mean pretest at which they
+#>     are evaluated; see `pretest_center` in fit_solomon_glm() and the
+#>     diagnostics below. Report missingness by cell, because attrition that
+#>     differs across the four groups can undermine the randomized comparisons,
+#>     and consider sensitivity analyses if missingness may depend on the
+#>     unobserved outcome.
 #>   Sources: Rubin (1976); Little & Rubin (2019)
+#> 
+#> Missing posttests and the pretest effects (see ?fit_solomon_glm)
+#>   Posttests missing: 37.1% overall; pretested 40.0%, unpretested 33.3% (a
+#>   difference of 6.7 points; Fisher's exact test, p = .497); by condition,
+#>   control 42.4% and treatment 30.3% (the largest difference 12.0 points).
+#>   Equal loss rates do not show that the same kinds of participants were lost.
+#>   Mean pretest of the pretested participants without and with a posttest:
+#>   control 3.13 (23) and 3.12 (27); treatment 3.22 (11) and 3.11 (24).
+#>   Selection shift in each pretested condition, the mean pretest with a posttest
+#>   minus every pretest's: control -0.01 (SE 0.05) and treatment -0.03 (SE 0.04);
+#>   Wald test of equal shifts, chi-square(1) = 0.23, p = .631.
+#>   Gap between the centers: b m1 (completers - dropouts) = 0.43 x 0.40 x (3.12 -
+#>   3.16) = -0.008, the pretest effects at the analyzed center minus those at the
+#>   observed center (identity link).
+#>   Unpretested groups, the share without a posttest and the offset the default
+#>   assumes for their dropouts: control 37.1% and 0.02; treatment 29.0% and 0.03;
+#>   the pretested dropouts' pretests predict 0.02 for them.
+#>   The unpretested groups' losses cannot be checked against baseline (Campbell,
+#>   1957, p. 305).
 ```
 
 Two points follow for this study:
 
 - **Posttest attrition.** It ranges from 29% to 46% across the four
-  groups. A complete-case analysis is unbiased when missingness is
-  unrelated to the outcome given the variables in the model (Little &
-  Rubin, 2019). Attrition this uneven makes that assumption worth
-  stating, and the numbers lost in each group belong in the report. The
-  section “Missing posttests” below asks how much the conclusions depend
-  on it.
+  groups. For the treatment contrasts, a complete-case analysis is
+  unbiased when missingness is unrelated to the outcome given the
+  variables in the model (Little & Rubin, 2019); the pretest effects
+  rest on the assumption of the pretest center (see “Missing posttests”
+  below). Attrition this uneven makes that assumption worth stating, and
+  the numbers lost in each group belong in the report. The section
+  “Missing posttests” below asks how much the conclusions depend on it.
 - **Baseline.** Only the pretested arms can be compared at baseline:
 
 ``` r
@@ -282,6 +305,21 @@ fit
 #> The pretest effects compare pretested and unpretested participants at that
 #> score; their standard errors include the sampling variance of the mean, and
 #> the coefficient of pretested treats it as fixed.
+#> 
+#> Missing posttests and the pretest effects
+#>   Centered at 3.12, the mean pretest of the 51 pretested participants analyzed
+#>   (default).
+#>   Every observed pretest: 3.14 (85 participants, 34 without a posttest).
+#>                              analyzed   observed   difference
+#>   Pretest effect | control      0.092      0.100       -0.008
+#>   Pretest effect | treated     -0.198     -0.190       -0.008
+#>   Pretest main effect          -0.053     -0.045       -0.008
+#>   Posttests missing: pretested 40.0%, unpretested 33.3% (29% to 46% by group).
+#>   Pretested participants' mean pretest: 3.16 without a posttest, 3.12 with one.
+#>   The default assumes that each unpretested group's dropouts would have scored
+#>   0.02 (control) and 0.03 (treatment) above its completers, as the pretested
+#>   dropouts' pretests predict for them (0.02); "observed" assumes 0.
+#>   The data cannot tell which center is right. See ?check_solomon_missing.
 ```
 
 The interaction test gives nearly the same p as the published ANOVA
@@ -311,15 +349,29 @@ calling them better or worse.
 ## Missing posttests
 
 Posttests are missing for 56 of the 151 participants in this comparison.
-The model above is valid if they are missing at random: if, within each
-group and, in the pretested groups, at a given pretest score, whether a
-posttest is missing does not depend on what it would have been (Little &
-Rubin, 2019). Because whether a posttest is missing may then depend on
-the pretest, the model also needs the posttest to depend on the pretest
-in the same way in both pretested groups, as it assumes. The data cannot
-show whether missingness is at random. A sensitivity analysis asks
-instead how far the missing posttests would have to depart from that
-assumption before a conclusion changed (White et al., 2011).
+For the treatment contrasts, the model above is valid if they are
+missing at random: if, within each group and, in the pretested groups,
+at a given pretest score, whether a posttest is missing does not depend
+on what it would have been (Little & Rubin, 2019). Because whether a
+posttest is missing may then depend on the pretest, the model also needs
+the posttest to depend on the pretest in the same way in both pretested
+groups, as it assumes. The data cannot show whether missingness is at
+random. A sensitivity analysis asks instead how far the missing
+posttests would have to depart from that assumption before a conclusion
+changed (White et al., 2011).
+
+The pretest effects of `fit` rest on a different assumption. They are
+evaluated at the default pretest center, the mean pretest of the
+pretested participants analyzed, which assumes that, within each
+treatment condition, the pretested and the unpretested groups lost the
+same kinds of participants. The block printed under the fit gives them
+at the mean of every observed pretest as well; missingness at random for
+the pretest effects corresponds to that center,
+`pretest_center = "observed"` (see “The pretest effect when posttests
+are missing” in
+[`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
+Here the pretest effects at the two centers differ by 0.008, against
+standard errors of at least 0.08.
 
 [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md)
 and
@@ -556,6 +608,23 @@ report_solomon(fit, design = list(randomized = c(35, 50, 31, 35),
 #> treated participants, 95% CI [-0.44, 0.04], t(90) = -1.64, p = .105; their
 #> average, the pretest main effect, was -0.05, 95% CI [-0.21, 0.11], t(90) =
 #> -0.65, p = .518.
+#> The pretest effects were evaluated at the mean pretest score of the 51
+#> pretested participants analyzed (3.12), which assumes that, within each
+#> treatment condition, the pretested and the unpretested groups lost the same
+#> kinds of participants.
+#> At the mean of every observed pretest score among the pretested participants
+#> (3.14; 85 participants, 34 of them without a posttest), which assumes that
+#> the pretested participants' losses depended at most on their pretest score
+#> and that the unpretested participants' losses were unrelated to baseline and
+#> to the posttest, the pretest effect was 0.10 among control participants, 95%
+#> CI [-0.11, 0.31], t(90) = 0.96, p = .340, and -0.19 among treated
+#> participants, 95% CI [-0.43, 0.05], t(90) = -1.58, p = .117; their average,
+#> the pretest main effect, was -0.05, 95% CI [-0.20, 0.11], t(90) = -0.56, p =
+#> .576.
+#> Each pretest effect was 0.01 smaller at the analyzed center than at the
+#> observed center.
+#> Posttests were missing for 40.0% of the pretested and 33.3% of the
+#> unpretested participants (29% to 46% by group).
 #> 
 #> References
 #> 

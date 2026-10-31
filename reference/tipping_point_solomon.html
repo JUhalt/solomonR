@@ -228,6 +228,12 @@ departures from missing at random. Offsets in the treatment groups
 between the pretested and unpretested groups, for example in the
 pretested treatment group alone (<code>groups = 1</code>), bear on the sensitization
 contrast.</p>
+<p><strong>The pretest center.</strong> The contrasts followed are the treatment
+contrasts, which do not depend on the pretest center of
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>. As in <code><a href="fit_solomon_mi.html">fit_solomon_mi()</a></code>, the imputations embody the
+<code>"observed"</code> center in the pretested groups: at offset 0 they assume that
+the pretested participants' posttests are missing at random given the
+pretest (issue #135).</p>
 <p><strong>Common random numbers.</strong> Every offset uses the same imputation draws,
 so the estimates change smoothly with the offset. The location of the
 tipping point still carries Monte Carlo error from the imputations: in

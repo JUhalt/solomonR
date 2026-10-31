@@ -63,20 +63,42 @@ check_solomon_missing(y_post, treat, pretested, y_pre, data = d)
 #> Incidental posttest missingness (n = 48)
 #>   Posttest scores are missing, so these participants are excluded from
 #>   complete-case analyses.
-#>   Response: Complete-case analysis is unbiased when missingness is unrelated
-#>     to the outcome given the variables in the model. Report missingness by
-#>     cell, because attrition that differs across the four groups can undermine
-#>     the randomized comparisons, and consider sensitivity analyses if
-#>     missingness may depend on the unobserved outcome.
+#>   Response: For the treatment contrasts, complete-case analysis is unbiased
+#>     when missingness is unrelated to the outcome given the variables in the
+#>     model. The pretest effects also depend on the mean pretest at which they
+#>     are evaluated; see `pretest_center` in fit_solomon_glm() and the
+#>     diagnostics below. Report missingness by cell, because attrition that
+#>     differs across the four groups can undermine the randomized comparisons,
+#>     and consider sensitivity analyses if missingness may depend on the
+#>     unobserved outcome.
 #>   Sources: Rubin (1976); Little & Rubin (2019)
+#> 
+#> Missing posttests and the pretest effects (see ?fit_solomon_glm)
+#>   Posttests missing: 24.0% overall; pretested 24.0%, unpretested 24.0% (a
+#>   difference of 0.0 points; Fisher's exact test, p = 1.000); by condition,
+#>   control 21.0% and treatment 27.0% (the largest difference 6.0 points).
+#>   Equal loss rates do not show that the same kinds of participants were lost.
+#>   Mean pretest of the pretested participants without and with a posttest:
+#>   control 47.45 (11) and 52.67 (39); treatment 45.85 (13) and 54.41 (37).
+#>   Selection shift in each pretested condition, the mean pretest with a posttest
+#>   minus every pretest's: control 1.15 (SE 0.64) and treatment 2.23 (SE 0.97);
+#>   Wald test of equal shifts, chi-square(1) = 0.87, p = .352.
+#>   Gap between the centers: b m1 (completers - dropouts) = 0.59 x 0.24 x (53.51
+#>   - 46.58) = 0.989, the pretest effects at the analyzed center minus those at
+#>   the observed center (identity link).
+#>   Unpretested groups, the share without a posttest and the offset the default
+#>   assumes for their dropouts: control 20.0% and -4.94; treatment 28.0% and
+#>   -3.53; the pretested dropouts' pretests predict -4.12 for them.
+#>   The unpretested groups' losses cannot be checked against baseline (Campbell,
+#>   1957, p. 305).
 ```
 
 ### The main analysis
 
 Here the posttests are missing at random given group and, in the
 pretested groups, the pretest: whether a posttest is missing depends
-only on things the model includes. The model fitted to the observed
-posttests is then a valid main analysis:
+only on things the model includes. For the treatment contrasts, the
+model fitted to the observed posttests is then a valid main analysis:
 
 ``` r
 
@@ -100,8 +122,9 @@ fit$effects[, c("contrast", "estimate", "std.error", "conf.low", "conf.high", "p
 #> 7 9.026482e-02
 ```
 
-Multiple imputation under the same assumption agrees with it, as it
-should (Carpenter et al., 2023, p. 256):
+Multiple imputation under the same assumption agrees with it for the
+treatment contrasts, the only ones it pools, as it should (Carpenter et
+al., 2023, p. 256):
 
 ``` r
 
@@ -116,6 +139,135 @@ mar$effects[, c("contrast", "estimate", "std.error", "fmi")]
 
 The `fmi` column is the fraction of missing information for each
 contrast.
+
+### The pretest effects and the pretest center
+
+The treatment contrasts do not depend on where the pretest is centered,
+but the pretest effects do. They compare the pretested groups, at a mean
+pretest, with the unpretested groups, and with missing posttests that
+mean can be taken over the pretested participants analyzed (the default)
+or over every observed pretest (`pretest_center = "observed"`). The data
+cannot tell which is right; the help section “The pretest effect when
+posttests are missing” in
+[`?fit_solomon_glm`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+sets out what each assumes.
+
+These data are the observed center’s case. The pretested groups lose
+posttests at low pretest scores, and the unpretested groups lose them at
+random, unrelated to baseline. The default compares the pretested
+participants analyzed, who scored higher on the pretest than those lost,
+with unpretested participants who are like everyone randomized, so its
+pretest effects are too large here. Whenever the two centers differ, the
+printed fit gives the pretest effects at both, with the share of
+posttests missing (`fit$pretest_sensitivity$attrition` gives each
+group’s):
+
+``` r
+
+fit
+#> Solomon GLM (unified model)
+#> Formula: y ~ treat * pretested + pre_obs
+#> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 147)
+#> 
+#> Term             Est (SE)            t   df      p            95% CI
+#> (Intercept)      50.675 (1.515)  33.45  147  <.001  [47.681, 53.669]
+#> treat            5.047 (2.526)    2.00  147  0.048   [0.055, 10.039]
+#> pretested        1.521 (2.124)    0.72  147  0.475   [-2.676, 5.717]
+#> pre_obs          0.595 (0.102)    5.81  147  <.001    [0.392, 0.797]
+#> treat:pretested  2.875 (3.181)    0.90  147  0.368   [-3.412, 9.162]
+#> 
+#> Key contrasts             Est (SE)          t   df      p           95% CI  Wald R2
+#> ATE (avg over pretest)    6.485 (1.591)  4.08  147  <.001   [3.341, 9.628]    0.102
+#> Pretest x Treatment       2.875 (3.181)  0.90  147  0.368  [-3.412, 9.162]    0.006
+#> Treatment | pretested     7.922 (1.934)  4.10  147  <.001  [4.101, 11.744]    0.102
+#> Treatment | unpretested   5.047 (2.526)  2.00  147  0.048  [0.055, 10.039]    0.026
+#> Pretest effect | control  1.521 (2.238)  0.68  147  0.498  [-2.902, 5.943]    0.003
+#> Pretest effect | treated  4.396 (2.464)  1.78  147  0.076  [-0.474, 9.266]    0.021
+#> Pretest main effect       2.958 (1.735)  1.71  147  0.090  [-0.470, 6.387]    0.019
+#> 
+#> Wald R2: partial R-squared for conventional Gaussian OLS;
+#> a Wald-based descriptive approximation when robust covariance is used.
+#> pre_obs: the pretest, centered at the pretested participants' mean (53.513).
+#> The pretest effects compare pretested and unpretested participants at that
+#> score; their standard errors include the sampling variance of the mean, and
+#> the coefficient of pretested treats it as fixed.
+#> 
+#> Missing posttests and the pretest effects
+#>   Centered at 53.51, the mean pretest of the 76 pretested participants analyzed
+#>   (default).
+#>   Every observed pretest: 51.85 (100 participants, 24 without a posttest).
+#>                              analyzed   observed   difference
+#>   Pretest effect | control      1.521      0.532        0.989
+#>   Pretest effect | treated      4.396      3.407        0.989
+#>   Pretest main effect           2.958      1.969        0.989
+#>   Posttests missing: pretested 24.0%, unpretested 24.0% (20% to 28% by group).
+#>   Pretested participants' mean pretest: 46.58 without a posttest, 53.51 with
+#>   one.
+#>   The default assumes that each unpretested group's dropouts would have scored
+#>   4.94 (control) and 3.53 (treatment) below its completers, as the pretested
+#>   dropouts' pretests predict for them (4.12); "observed" assumes 0.
+#>   The data cannot tell which center is right. See ?check_solomon_missing.
+```
+
+``` r
+
+fit_obs <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
+                           pretest_center = "observed")
+main <- function(f) f$effects[f$effects$contrast == "Pretest main effect", ]
+rbind(analyzed = main(fit), observed = main(fit_obs))[, c("estimate", "conf.low", "conf.high")]
+#>          estimate   conf.low conf.high
+#> analyzed 2.958264 -0.4701522  6.386680
+#> observed 1.969358 -1.3597812  5.298498
+```
+
+The true pretest main effect is 2 points. At the observed center the
+estimate is 1.97; at the default it is 2.96.
+
+The mirror case runs the other way. When every group loses posttests by
+the same baseline-related process, the unpretested groups lose the same
+kinds of participants as the pretested groups, although their baseline
+was not measured. The default is then right and the observed center is
+not. Here all four groups lose posttests at low baseline scores, at the
+rate of the pretested groups above, with 2,000 participants per group so
+that sampling error does not hide the difference:
+
+``` r
+
+set.seed(2084)
+n <- 2000
+g <- rep(1:4, each = n)
+treat <- as.integer(g %in% c(1, 3))
+pretested <- as.integer(g <= 2)
+baseline <- stats::rnorm(4 * n, 50, 10)
+post <- 50 + 5 * treat + 2 * pretested + 0.6 * (baseline - 50) + stats::rnorm(4 * n, 0, 8)
+lost <- stats::runif(4 * n) < stats::plogis(-1.4 - 0.08 * (baseline - 50))
+d_all <- data.frame(y_post = ifelse(lost, NA, post), treat = treat, pretested = pretested,
+                    y_pre = ifelse(pretested == 1, baseline, NA))
+fit_all <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d_all)
+fit_all_obs <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d_all,
+                               pretest_center = "observed")
+rbind(analyzed = main(fit_all), observed = main(fit_all_obs))[, c("estimate", "conf.low", "conf.high")]
+#>           estimate conf.low conf.high
+#> analyzed 1.8322353 1.345470  2.319000
+#> observed 0.8600455 0.378348  1.341743
+```
+
+Against the same true value of 2, the default gives 1.83 and the
+observed center 0.86. The two data sets’ loss mechanisms are the same in
+the pretested groups and differ only in the unpretested groups, whose
+losses cannot be checked against a baseline they did not take. The
+center is therefore an assumption, chosen before the outcomes are seen.
+The default assumes that, within each treatment condition, the pretested
+and the unpretested groups lose the same kinds of participants, which
+random assignment makes the natural case unless taking the pretest
+itself changes who drops out; choose `"observed"` when there are grounds
+to believe that the unpretested groups’ losses are unrelated to baseline
+and to the posttest. Report the other center beside it, as the printed
+fit and
+[`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+do, and see
+[`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+for the attrition checks.
 
 ### How far could the assumption be wrong?
 
@@ -382,13 +534,19 @@ mm
 #>  0.495 [ -3.778,  7.788]
 #>  0.275 [ -1.850,  6.461]
 #>  0.714 [ -6.416,  9.356]
+#> 
+#> Posttests missing at occasion 12 months: pretested 20.8%, unpretested 23.3%
+#> (18% to 27% by group).
 ```
 
 The model needs the mmrm package. It estimates the covariance of the
 posttests separately for pretested and unpretested participants, because
 the pretest adjustment makes their residual covariance differ, and it
 uses Kenward-Roger degrees of freedom. The table of observed posttests
-shows the dropout.
+shows the dropout. Every participant has the first posttest, so the
+pretest effects have one center here; for data with participants who
+miss every posttest, see `pretest_center` in
+[`?fit_solomon_mmrm`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md).
 
 ### Why not analyze each occasion separately?
 

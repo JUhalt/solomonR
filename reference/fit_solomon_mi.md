@@ -166,6 +166,18 @@ excluded with a warning, as in
 [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
 describes the options for them.
 
+**The pretest center.** Only the four treatment contrasts are pooled,
+and they do not depend on the mean pretest at which the pretested groups
+are compared with the unpretested groups (see "The pretest effect when
+posttests are missing" in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
+The imputations embody the `"observed"` center in the pretested groups:
+with `delta = 0`, a pretested participant's posttest is imputed as
+missing at random given the pretest, so the completed pretested groups
+stand for every participant with a pretest. Any pretest effect computed
+from them corresponds to `fit_solomon_glm(pretest_center = "observed")`,
+not to its default (issue \#135).
+
 **Number of imputations.** The default `m = 100` follows Carpenter et
 al. (2023, p. 56), who note that p-values accurate to about .005 need at
 least 100 imputations and advise erring "towards too many imputations

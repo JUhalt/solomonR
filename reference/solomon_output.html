@@ -363,6 +363,18 @@ element is the last step, a list of tables, not an effects table. The
 <code><a href="validate_solomon.html">validate_solomon()</a></code> return model comparisons, tests of two-by-two
 tables, effect sizes in the <code>yi</code> and <code>vi</code> form of meta-analysis, and
 checks.</p></li>
+<li><p><code>pretest_sensitivity</code> holds the results at the two pretest centers
+when posttests are missing (issue #135). In <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>,
+<code><a href="fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code>, and <code><a href="marginal_solomon.html">marginal_solomon()</a></code> it is a list: its
+<code>effects</code> table has the key columns, ending with <code>center</code>, and the
+eight shared columns; its <code>difference</code> table gives each contrast's
+estimates at the <code>analyzed</code> and <code>observed</code> centers and their
+<code>difference</code>; the rest of it holds the checks. In <code><a href="fit_solomon_1949.html">fit_solomon_1949()</a></code>,
+which gives no standard errors, it is one data frame, with a row for
+each <code>center</code> and the <code>inferred_pretest</code>, <code>I</code>, <code>d3</code>, and <code>d4</code> at it.
+It is new in 1.0.0 and outside the contract, so its layout can still
+change; the results at the center used are in <code>effects</code> (in
+<code><a href="fit_solomon_1949.html">fit_solomon_1949()</a></code>, <code>groups</code> and <code>I</code>), as before.</p></li>
 <li><p><code><a href="power_solomon.html">power_solomon()</a></code> and <code><a href="plan_solomon.html">plan_solomon()</a></code> describe a planned study, which
 has true effects and no estimates: their column of contrast labels is
 <code>estimand</code>, and <code><a href="power_solomon.html">power_solomon()</a></code> adds the label <code>Treatment (one-sided)</code>

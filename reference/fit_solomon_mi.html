@@ -244,6 +244,16 @@ al., 2023, p. 278).</p>
 never imputed. Pretested participants with a missing pretest are excluded
 with a warning, as in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>; <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code>
 describes the options for them.</p>
+<p><strong>The pretest center.</strong> Only the four treatment contrasts are pooled,
+and they do not depend on the mean pretest at which the pretested groups
+are compared with the unpretested groups (see "The pretest effect when
+posttests are missing" in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>). The imputations embody the
+<code>"observed"</code> center in the pretested groups: with <code>delta = 0</code>, a pretested
+participant's posttest is imputed as missing at random given the pretest,
+so the completed pretested groups stand for every participant with a
+pretest. Any pretest effect computed from them corresponds to
+<code>fit_solomon_glm(pretest_center = "observed")</code>, not to its default
+(issue #135).</p>
 <p><strong>Number of imputations.</strong> The default <code>m = 100</code> follows Carpenter et al.
 (2023, p. 56), who note that p-values accurate to about .005 need at
 least 100 imputations and advise erring "towards too many imputations

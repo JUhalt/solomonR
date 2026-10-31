@@ -115,7 +115,8 @@ analysis is <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>.</
 <span>  pre_mean <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  n <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  inferred_pretest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"average"</span>, <span class="st">"pooled"</span><span class="op">)</span>,</span>
-<span>  data <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pretest_center <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analyzed"</span>, <span class="st">"observed"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -153,6 +154,16 @@ printout and for <code>inferred_pretest = "pooled"</code>.</p></dd>
 are looked up in it first, as bare column names (<code>y_post = post</code>) or as
 strings (<code>y_post = "post"</code>).</p></dd>
 
+
+<dt id="arg-pretest-center">pretest_center<a class="anchor" aria-label="anchor" href="#arg-pretest-center"></a></dt>
+<dd><p>With individual data, the pretested participants
+whose pretest means give the inferred pretest (issue #135):
+<code>"analyzed"</code> (the default), those with both scores, as in the table of
+means; <code>"observed"</code>, every pretested participant with a pretest, with
+or without a posttest. In the four-group design the inferred pretest
+cancels from I. Group means have one center, so <code>"observed"</code> needs
+individual data.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -171,6 +182,20 @@ and how it was computed (<code>"average"</code> or <code>"pooled"</code>).</p></
 design: the posttest interaction contrast and the pretest difference
 between the two pretested groups, whose difference is <code>I</code> (see
 Details).</p></li>
+<li><p><code>pretest_center</code>: the center used, <code>"analyzed"</code> or <code>"observed"</code>.</p></li>
+<li><p><code>inferred_from</code>: the two pretested groups' pretests behind the
+<code>"observed"</code> inferred pretest, in the columns <code>group</code>, <code>n</code> (the
+participants with a pretest), <code>pre_mean</code> (their mean pretest), and
+<code>without_posttest</code> (how many of them have no posttest).</p></li>
+<li><p><code>pretest_sensitivity</code>: with individual data, the inferred pretest,
+<code>I</code>, and the unpretested groups' improvements <code>d3</code> and <code>d4</code> (<code>NA</code> in
+the three-group design) at both centers, one row for each <code>center</code>;
+<code>NULL</code> with group means. The print and <code><a href="report_solomon.html">report_solomon()</a></code> give the
+other center when the two inferred pretests differ.</p></li>
+<li><p><code>attrition</code>: with individual data, each group's participants <code>n</code>
+(with a recorded group), those without a posttest
+(<code>posttest_missing</code>), and their <code>share</code>, for the attrition line of
+the print and the report; <code>NULL</code> with group means.</p></li>
 </ul><p>Solomon (1949) gave point estimates without a test, so the result has
 no effects table; see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
@@ -196,6 +221,23 @@ of the pooled pretested groups (p. 141), and his tables compute it as
 are the same size. <code>inferred_pretest = "average"</code> (the default) follows the
 tables; <code>"pooled"</code> weights the two means by their sample sizes, which
 requires <code>n</code> or individual data.</p>
+<p><strong>Missing posttests</strong> (issue #135). The default,
+<code>pretest_center = "analyzed"</code>, uses, like a table of group means, the
+pretested participants with both scores: the pretest means are those of
+the pretested participants with a posttest. <code>pretest_center = "observed"</code>
+infers the pretest from every observed pretest of the pretested groups;
+see "The pretest effect when posttests are missing" in
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> for what each assumes. In the four-group design I does
+not depend on the choice, because the inferred pretest cancels from it;
+in the three-group design I moves by the difference between the two
+inferred pretests. The unpretested groups' improvements depend on it in
+both designs. When every group loses posttests by the pretest score,
+neither inferred pretest makes those improvements unbiased: with no
+change in the unpretested groups, d3 is (r - 1) s at the default and r s
+at <code>"observed"</code>, where s is how far the completers' mean pretest lies
+from everyone's and r the pretest-posttest correlation of standardized
+scores (a derivation checked on issue #135). The print and
+<code><a href="report_solomon.html">report_solomon()</a></code> give both inferred pretests when they differ.</p>
 <p><strong>No test.</strong> Solomon gave standard errors for the observed means but
 printed the error of d3 as "?" (Tables II–III), and judged the interaction
 from "an examination of the variabilities" (p. 144). This function

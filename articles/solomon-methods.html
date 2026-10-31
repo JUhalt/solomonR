@@ -446,19 +446,26 @@ indicator retain participants without biasing the treatment effect
 missing-data mechanisms follows Rubin (1976) and Little and Rubin
 (2019).</li>
 <li>
-<strong>Missing posttests:</strong> if posttests are missing at
-random given group and, in the pretested groups, the pretest, the model
-fitted to the observed posttests is a valid main analysis, and multiple
-imputation under the same assumption agrees with it (Carpenter et al.,
-2023, p. 256). Whether the conclusion survives departures from that
-assumption is a sensitivity analysis. <code><a href="../reference/fit_solomon_mi.html">fit_solomon_mi()</a></code>
-shifts the imputed posttests of each group by a chosen offset (Carpenter
-et al., 2023, section 10.3), and <code><a href="../reference/tipping_point_solomon.html">tipping_point_solomon()</a></code>
-reports the offset at which a contrast’s conclusion changes (White et
-al., 2011). Offsets that differ between the pretested groups bear on the
-sensitization contrast: in the package’s simulation study, a departure
-confined to one pretested group biased the analyses that assume missing
-at random by 0.10 to 0.16 SD.</li>
+<strong>Missing posttests:</strong> for the treatment contrasts, if
+posttests are missing at random given group and, in the pretested
+groups, the pretest, the model fitted to the observed posttests is a
+valid main analysis, and multiple imputation under the same assumption
+agrees with it (Carpenter et al., 2023, p. 256). The pretest effects
+depend on <code>pretest_center</code>: the default rests on the
+assumption that, within each treatment condition, the pretested and the
+unpretested groups lose the same kinds of participants, and missingness
+at random for the pretest effects corresponds to
+<code>pretest_center = "observed"</code> (see “The pretest effect when
+posttests are missing” in <code><a href="../reference/fit_solomon_glm.html">?fit_solomon_glm</a></code>). Whether the
+conclusion survives departures from that assumption is a sensitivity
+analysis. <code><a href="../reference/fit_solomon_mi.html">fit_solomon_mi()</a></code> shifts the imputed posttests of
+each group by a chosen offset (Carpenter et al., 2023, section 10.3),
+and <code><a href="../reference/tipping_point_solomon.html">tipping_point_solomon()</a></code> reports the offset at which a
+contrast’s conclusion changes (White et al., 2011). Offsets that differ
+between the pretested groups bear on the sensitization contrast: in the
+package’s simulation study, a departure confined to one pretested group
+biased the analyses that assume missing at random by 0.10 to 0.16
+SD.</li>
 <li>
 <strong>Tools:</strong> <code><a href="../reference/check_solomon_missing.html">check_solomon_missing()</a></code> and
 <code><a href="../reference/validate_solomon.html">validate_solomon()</a></code> report each category.</li>
@@ -596,9 +603,14 @@ one model, <code>y ~ treat * pretested + pre_obs</code>.
 pretested participants, in Groups 1 and 2 and 0 in Groups 3 and 4, so no
 group is dropped. The <code>pretested</code> coefficient and the pretest
 effects then compare the groups at that mean, where Newman et al. (1990,
-p. 101) took their adjusted means, and which is the best estimate of the
-unpretested groups’ pretest under random assignment (Solomon &amp;
-Lessac, 1968, pp. 146–147). This is the model Newman et al. (1990)
+p. 101) took their adjusted means. Under random assignment the
+unpretested groups’ expected pretest equals the pretested groups’
+(Solomon, 1949, p. 141), and that mean is its best estimate (Solomon
+&amp; Lessac, 1968, p. 147). With missing posttests, the mean can be
+taken over the pretested participants analyzed (the default) or over
+every observed pretest (<code>pretest_center = "observed"</code>); see
+“The pretest effect when posttests are missing” in
+<code><a href="../reference/fit_solomon_glm.html">?fit_solomon_glm</a></code>. This is the model Newman et al. (1990)
 proposed for the design, which they call a pseudo-analysis of covariance
 (pp. 94, 98). Their equation 7 (p. 98) has an indicator for each group
 in place of the treatment and pretest indicators and gives the same

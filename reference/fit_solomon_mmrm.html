@@ -4,9 +4,12 @@ Analyzes a Solomon four-group design with several posttest occasions by
 a mixed model for repeated measures (MMRM), and estimates the four
 Solomon contrasts and the pretest effects at each occasion, and the change
 in pretest sensitization from the first occasion to the last. The model is
-likelihood-based, so it is valid when posttests are missing at random,
-for example when participants drop out depending on their earlier
-scores (Fitzmaurice et al., 2011, pp. 497, 505). Per-occasion analyses of
+likelihood-based, so its treatment contrasts are valid when posttests are
+missing at random, for example when participants drop out depending on
+their earlier scores (Fitzmaurice et al., 2011, pp. 497, 505). The pretest
+effects rest instead on the assumption of the pretest center when some
+pretested participants have no posttest at any occasion (see &quot;Missing
+posttests and the pretest center&quot; below). Per-occasion analyses of
 the participants still observed, and unweighted generalized estimating
 equations, require the stronger assumption that the posttests are missing
 completely at random (Liang &amp;amp; Zeger, 1986; Fitzmaurice et al., 2011, pp.
@@ -15,9 +18,12 @@ Analyzes a Solomon four-group design with several posttest occasions by
 a mixed model for repeated measures (MMRM), and estimates the four
 Solomon contrasts and the pretest effects at each occasion, and the change
 in pretest sensitization from the first occasion to the last. The model is
-likelihood-based, so it is valid when posttests are missing at random,
-for example when participants drop out depending on their earlier
-scores (Fitzmaurice et al., 2011, pp. 497, 505). Per-occasion analyses of
+likelihood-based, so its treatment contrasts are valid when posttests are
+missing at random, for example when participants drop out depending on
+their earlier scores (Fitzmaurice et al., 2011, pp. 497, 505). The pretest
+effects rest instead on the assumption of the pretest center when some
+pretested participants have no posttest at any occasion (see &quot;Missing
+posttests and the pretest center&quot; below). Per-occasion analyses of
 the participants still observed, and unweighted generalized estimating
 equations, require the stronger assumption that the posttests are missing
 completely at random (Liang &amp;amp; Zeger, 1986; Fitzmaurice et al., 2011, pp.
@@ -113,9 +119,12 @@ Analyzes a Solomon four-group design with several posttest occasions by
 a mixed model for repeated measures (MMRM), and estimates the four
 Solomon contrasts and the pretest effects at each occasion, and the change
 in pretest sensitization from the first occasion to the last. The model is
-likelihood-based, so it is valid when posttests are missing at random,
-for example when participants drop out depending on their earlier
-scores (Fitzmaurice et al., 2011, pp. 497, 505). Per-occasion analyses of
+likelihood-based, so its treatment contrasts are valid when posttests are
+missing at random, for example when participants drop out depending on
+their earlier scores (Fitzmaurice et al., 2011, pp. 497, 505). The pretest
+effects rest instead on the assumption of the pretest center when some
+pretested participants have no posttest at any occasion (see "Missing
+posttests and the pretest center" below). Per-occasion analyses of
 the participants still observed, and unweighted generalized estimating
 equations, require the stronger assumption that the posttests are missing
 completely at random (Liang &amp; Zeger, 1986; Fitzmaurice et al., 2011, pp.
@@ -133,7 +142,8 @@ completely at random (Liang &amp; Zeger, 1986; Fitzmaurice et al., 2011, pp.
 <span>  y_pre <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  df <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"kenward-roger"</span>, <span class="st">"satterthwaite"</span><span class="op">)</span>,</span>
 <span>  conf_level <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  data <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pretest_center <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analyzed"</span>, <span class="st">"observed"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -185,6 +195,18 @@ participant and missing by design for unpretested participants.</p></dd>
 are looked up in it first, as bare column names (<code>y_post = post</code>) or as
 strings (<code>y_post = "post"</code>).</p></dd>
 
+
+<dt id="arg-pretest-center">pretest_center<a class="anchor" aria-label="anchor" href="#arg-pretest-center"></a></dt>
+<dd><p>With <code>y_pre</code>, the mean pretest at which the
+pretested groups are compared with the unpretested groups, as in
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> (issue #135). <code>"analyzed"</code> (the default): the mean
+pretest of the pretested participants in the model, those with at least
+one posttest. <code>"observed"</code>: the mean of every observed pretest among the
+pretested participants, each counted once, with or without a posttest
+at any occasion; the rows of pretested participants with no posttest
+must be in the data, with <code>y_post</code> missing, or this gives the default.
+Ignored without <code>y_pre</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -205,8 +227,18 @@ two occasions, as in <code>"3 vs 1"</code>.</p></li>
 pretested and unpretested participants.</p></li>
 <li><p><code>df_method</code>: the degrees of freedom, <code>"kenward-roger"</code> or
 <code>"satterthwaite"</code>.</p></li>
-<li><p><code>pretest_mean</code>: the mean pretest at which the pretest is centered;
-<code>NA</code> without <code>y_pre</code>.</p></li>
+<li><p><code>pretest_mean</code>: the mean pretest at which the pretest is centered,
+the center used; <code>NA</code> without <code>y_pre</code>.</p></li>
+<li><p><code>pretest_center</code>, <code>pretest_mean_analyzed</code>, <code>pretest_mean_observed</code>,
+<code>pretest_n</code>, and <code>pretest_sensitivity</code>: as in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>,
+with each participant counted once. The participants "analyzed" are
+those with at least one posttest; the tables of <code>pretest_sensitivity</code>
+are keyed by <code>occasion</code>; its <code>slope</code> holds the pretest slope of each
+occasion; its <code>attrition</code> counts the participants of each group
+without any posttest; and its <code>delta</code> is <code>NULL</code>, because no delta line
+is derived for repeated posttests.</p></li>
+<li><p><code>pretest_slope</code>: the pretest slope at each occasion, named by
+occasion; <code>NULL</code> without <code>y_pre</code>.</p></li>
 <li><p><code>occasions</code>: the posttest occasions, in order.</p></li>
 <li><p><code>observed</code>: the number of observed posttests in each group, one
 column for each occasion.</p></li>
@@ -228,7 +260,9 @@ which returns the table, are the stable interface of the result; see
 <li><p><strong>Pretest adjustment.</strong> The pretest enters as in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>:
 in the pretested groups, the score minus the mean pretest of the
 pretested participants in the model (each counted once; returned as
-<code>pretest_mean</code>), and 0 in the unpretested groups, with a separate slope
+<code>pretest_mean</code>; with <code>pretest_center = "observed"</code>, the mean of every
+observed pretest among the pretested participants, with or without a
+posttest), and 0 in the unpretested groups, with a separate slope
 at each occasion ("a full interaction of the covariate with time", p.
 312). Pretests absent by design are never imputed.</p></li>
 <li><p><strong>Pretest effects.</strong> At each occasion, the pretest effects among
@@ -242,6 +276,30 @@ participants, times the square of that occasion's pretest slope, and
 their degrees of freedom combine those of the contrast with n - 1 by the
 Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
 pretest effects were not part of the validation study below.</p></li>
+<li><p><strong>Missing posttests and the pretest center.</strong> As in
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> (see its section "The pretest effect when posttests
+are missing"), the pretest effects depend on the mean pretest at which
+they are evaluated when some pretested participants have no posttest at
+any occasion; <code>pretest_center</code> chooses it, and <code>"observed"</code> needs those
+participants' rows, with <code>y_post</code> missing. A participant with a
+posttest at any occasion is analyzed, so dropout after the first
+occasion leaves the two centers equal. Neither center protects the
+later occasions when dropout depends on baseline beyond the earlier
+posttests: the unpretested groups' model cannot see the baseline, so
+their later posttests are not missing at random given what it
+includes. In a check of this (<code>tools/pretest-center-check.R</code>, part 5:
+40 data sets of 1,500 participants per group, no effects, two
+occasions, a third of the second posttests lost with probability
+<code>plogis(-1 - 1.5 * x)</code> in every group, <code>x</code> the baseline), the pretest main
+effect was unbiased at the first occasion (0.000, Monte Carlo standard
+error 0.004) and biased at the second by -0.067 (0.005) at either
+center. When dropout depended on the first posttest instead, both
+occasions were unbiased (-0.005 and -0.002). When a third of the
+participants had no posttest at all, lost by baseline in every group,
+the default was unbiased and <code>"observed"</code> biased by -0.18 at both
+occasions; when only the pretested groups lost them by baseline, and the
+unpretested at random, the reverse held (+0.18 at the default). It is a
+check, not a simulation study.</p></li>
 <li><p><strong>Covariance.</strong> Unstructured within participant, estimated by
 restricted maximum likelihood (Laird &amp; Ware, 1982). With a pretest, it
 is estimated separately for pretested and unpretested participants: the
@@ -413,6 +471,9 @@ study with three posttest occasions.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [ -2.336, 8.084]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [ -0.926, 6.697]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [ -1.398, 7.953]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Posttests missing at occasion 3: pretested 20.0%, unpretested 28.3% (13% to</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 33% by group).</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

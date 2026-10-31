@@ -28,7 +28,8 @@ analysis_plan_solomon(
   primary_occasion = NULL,
   tipping_groups = "treatment",
   title = "Analysis plan for a Solomon four-group study",
-  file = NULL
+  file = NULL,
+  pretest_center = c("analyzed", "observed")
 )
 ```
 
@@ -102,6 +103,18 @@ analysis_plan_solomon(
   Optional path. When given, the plan is also written there as UTF-8
   Markdown.
 
+- pretest_center:
+
+  The mean pretest at which the planned fit compares the pretested with
+  the unpretested groups when posttests are missing (issue \#135):
+  `"analyzed"` (the default) or `"observed"`; see "The pretest effect
+  when posttests are missing" in
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  The plan writes the fit's call with it, and states the population and
+  the assumption of the pretest effects, apart from those of the
+  treatment contrasts, which do not depend on it. A plan that assumes
+  missingness at random for the pretest effects chooses `"observed"`.
+
 ## Value
 
 An object of class `solomon_analysis_plan`, a list with:
@@ -135,7 +148,10 @@ Printing it shows the Markdown.
 - **Analysis plan** (items 20a-c). The model, the confirmatory
   contrasts, the test of sensitization, the handling of missing
   posttests, with a tipping-point sensitivity analysis (White et al.,
-  2011), and the checks run before the model.
+  2011), and the checks run before the model. The population and the
+  missing-data assumption are stated for the treatment contrasts, and
+  those of the pretest effects, which depend on `pretest_center`,
+  separately.
 
 - **Deviations** (item 25). A section for recording departures from the
   plan, which are to be reported with the results (Nosek et al.,
@@ -277,14 +293,15 @@ analysis_plan_solomon(
 #> ### Checks before the model (SPIRIT 20b)
 #> 
 #> - `validate_solomon()` confirms the coding of the design and the size of each group.
-#> - `check_solomon_missing()` separates pretests absent by design from missing values.
+#> - `check_solomon_missing()` separates pretests absent by design from missing values, and reports the attrition of each group and the pretest scores of the participants lost.
 #> - `baseline_solomon()` describes the pretest difference between the two pretested groups. It is reported, not tested for significance, and it does not change the planned model.
 #> - [What will be done if an assumption fails, for example markedly unequal variances or a group with too few participants.]
 #> 
 #> ### Missing data and the analysis population (SPIRIT 20c)
 #> 
-#> - **Population.** All randomized participants, analyzed in the groups to which they were assigned.
-#> - **Main assumption.** Missing posttests are missing at random given group and, in the pretested groups, the pretest. Under that assumption the model above, fitted to the observed posttests, is the main analysis; multiple imputation under the same assumption agrees with it (Carpenter et al., 2023, p. 256). Missing pretests among pretested participants are not imputed; [state how they are handled].
+#> - **Population.** For the treatment contrasts, all randomized participants, analyzed in the groups to which they were assigned.
+#> - **Main assumption.** For the treatment contrasts, missing posttests are missing at random given group and, in the pretested groups, the pretest. Under that assumption the model above, fitted to the observed posttests, is the main analysis; multiple imputation under the same assumption agrees with it (Carpenter et al., 2023, p. 256). Missing pretests among pretested participants are not imputed; [state how they are handled].
+#> - **Pretest effects.** The pretest effects compare the pretested groups, at the mean pretest of the pretested participants analyzed (`pretest_center = "analyzed"`, the default), with the unpretested groups in the same treatment condition. Their population is the participants who would be analyzed in either pretest condition, and they assume that, within each treatment condition, the pretested and unpretested groups lose the same kinds of participants. The pretest effects at the mean of every observed pretest (`pretest_center = "observed"`), which assume instead that the pretested groups' losses depend at most on the pretest and that the unpretested groups' losses are unrelated to baseline and to the posttest, are reported beside them as a sensitivity analysis, with the attrition of each group. [A plan that assumes missingness at random for the pretest effects chooses `pretest_center = "observed"`.]
 #> - **Sensitivity analysis.** `tipping_point_solomon(..., groups = "treatment")` shifts the imputed posttests of the treatment groups from -1 to 1 standard deviation and reports the offset at which each confirmatory conclusion changes (White et al., 2011; Carpenter et al., 2023).
 #> - **Sensitization-specific sensitivity analysis.** `tipping_point_solomon(..., contrast = "Pretest x Treatment", groups = 1)` shifts the imputed posttests of the pretested treatment group alone, the departure from missing at random that bears on the sensitization contrast.
 #> 
