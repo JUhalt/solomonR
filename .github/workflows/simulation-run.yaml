@@ -111,7 +111,7 @@ jobs:
       - name: Look for the push trigger
         shell: bash
         run: |
-          if tr -d '\r' < .github/workflows/simulation-run.yaml | grep -Eq '^  push:'; then
+          if grep -Eq $'^  push:\r?$' .github/workflows/simulation-run.yaml; then
             echo "::error::Remove the temporary push trigger of simulation-run.yaml before this pull request merges."
             exit 1
           fi
