@@ -12,6 +12,17 @@ summary.solomon_glm <- function(object, digits = 3, ...) {
     pretest_mean = object$pretest_mean,
     family     = object$family
   )
+  # The two pretest centers and the attrition, for the lines printed when a
+  # posttest is missing (issue #135). Fits made by earlier versions have
+  # none of them.
+  if (!is.null(object$pretest_center)) {
+    res$pretest_center <- object$pretest_center
+    res$pretest_mean_analyzed <- object$pretest_mean_analyzed
+    res$pretest_mean_observed <- object$pretest_mean_observed
+    res$pretest_n <- object$pretest_n
+    res$pretest_sensitivity <- object$pretest_sensitivity
+    res$attrition <- .fit_attrition(object)
+  }
   class(res) <- "summary.solomon_glm"
   res
 }
@@ -25,6 +36,7 @@ print.summary.solomon_glm <- function(x, digits = 3, ...) {
   .solomon_glm_tables(x$coefs, x$effects, digits, level)
   if (is.finite(.null_na(x$pretest_mean))) cat("\n")
   .glm_pretest_note(x, digits)
+  .center_output(x, digits)
   invisible(x)
 }
 

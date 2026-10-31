@@ -205,8 +205,9 @@ significant (p = `r fmt_p(ate$p.value)`).
 
 The true pretest effect is 2 points. The model compares the pretested
 groups, at their mean pretest, with the unpretested groups, whose expected
-pretest under random assignment is the same (Solomon & Lessac, 1968,
-pp. 146–147). Among controls it estimates `r fmt(pre_control$estimate)`
+pretest under random assignment is the same (Solomon, 1949, p. 141); the
+pretested groups' combined mean is its best estimate (Solomon & Lessac,
+1968, p. 147). Among controls it estimates `r fmt(pre_control$estimate)`
 points, 95% CI [`r fmt(pre_control$conf.low)`, `r fmt(pre_control$conf.high)`],
 and averaged over treatment and control `r fmt(pre_main$estimate)` points,
 95% CI [`r fmt(pre_main$conf.low)`, `r fmt(pre_main$conf.high)`]. Both

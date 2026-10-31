@@ -103,6 +103,13 @@ between the pretested and unpretested groups, for example in the
 pretested treatment group alone (\code{groups = 1}), bear on the sensitization
 contrast.
 
+\strong{The pretest center.} The contrasts followed are the treatment
+contrasts, which do not depend on the pretest center of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. As in \code{\link[=fit_solomon_mi]{fit_solomon_mi()}}, the imputations embody the
+\code{"observed"} center in the pretested groups: at offset 0 they assume that
+the pretested participants' posttests are missing at random given the
+pretest (issue #135).
+
 \strong{Common random numbers.} Every offset uses the same imputation draws,
 so the estimates change smoothly with the offset. The location of the
 tipping point still carries Monte Carlo error from the imputations: in

@@ -60,6 +60,104 @@ test_that("the inferred pretest follows the tables or pools by size", {
                "needs the group sizes")
 })
 
+test_that("the inferred pretest at either center (#135)", {
+  # Constructed data. Pretests of 40, 45, ..., 60, four times, in each
+  # pretested group (mean 50); each pretested participant improves by
+  # exactly 2 (experimental) or 1 (Control I), and the unpretested
+  # posttests have means 53 and 51. So d1 = 2, d2 = 1, d3 = 53 - i,
+  # d4 = 51 - i, and the three-group I = 2 - (1 + 53 - i).
+  x <- rep(seq(40, 60, by = 5), each = 4)
+  e <- rep(c(-1.5, -0.5, 0.5, 1.5), 5)
+  cell <- function(treat, pretested, y, y_pre = NA) {
+    data.frame(treat = treat, pretested = pretested, y_post = y, y_pre = y_pre)
+  }
+  d <- rbind(cell(1, 1, x + 2, x), cell(0, 1, x + 1, x), cell(1, 0, 53 + e), cell(0, 0, 51 + e))
+  complete <- fit_solomon_1949(y_post, treat, pretested, y_pre, data = d)
+  expect_equal(complete$inferred_pretest, 50)
+  expect_equal(complete$groups$change, c(2, 1, 3, 1))
+  expect_identical(complete$pretest_center, "analyzed")
+  expect_identical(complete$inferred_from$without_posttest, c(0L, 0L))
+  expect_equal(complete$inferred_from$pre_mean, complete$groups$pre_mean[1:2])
+  expect_identical(complete$pretest_sensitivity$inferred_pretest, c(50, 50))
+  expect_identical(fit_solomon_1949(y_post, treat, pretested, y_pre, data = d,
+                                    pretest_center = "observed")$groups, complete$groups)
+
+  # Posttests are lost at the two lowest pretest scores of the pretested
+  # groups. The participants with both scores have a mean pretest of 55.
+  missing <- d
+  missing$y_post[missing$pretested == 1 & missing$y_pre <= 45] <- NA
+  # The default infers the pretest from them, as Solomon's tables do.
+  fit <- fit_solomon_1949(y_post, treat, pretested, y_pre, data = missing)
+  expect_equal(fit$groups$pre_mean, c(55, 55, 55, 55))
+  expect_identical(fit$groups$n, c(12L, 12L, 20L, 20L))
+  expect_equal(fit$inferred_pretest, 55)
+  expect_equal(fit$groups$change, c(2, 1, -2, -4))
+  expect_equal(fit$I, complete$I)
+  # "observed" infers it from every observed pretest: 50.
+  observed <- fit_solomon_1949(y_post, treat, pretested, y_pre, data = missing,
+                               pretest_center = "observed")
+  expect_identical(observed$pretest_center, "observed")
+  expect_equal(observed$inferred_pretest, 50)
+  expect_equal(observed$groups$pre_mean, c(55, 55, 50, 50))
+  expect_equal(observed$groups$change, c(2, 1, 3, 1))
+  # The four-group I does not depend on the center: the inferred pretest
+  # cancels.
+  expect_equal(observed$I, fit$I, tolerance = 1e-12)
+  expect_identical(fit$inferred_from$n, c(20L, 20L))
+  expect_equal(fit$inferred_from$pre_mean, c(50, 50))
+  expect_identical(fit$inferred_from$without_posttest, c(8L, 8L))
+  s <- fit$pretest_sensitivity
+  expect_identical(s$center, c("analyzed", "observed"))
+  expect_equal(s$inferred_pretest, c(55, 50))
+  expect_equal(s$I, rep(fit$I, 2), tolerance = 1e-12)
+  expect_equal(s$d3, c(-2, 3))
+  expect_equal(s$d4, c(-4, 1))
+  expect_equal(observed$pretest_sensitivity, s)
+
+  # The three-group I moves by the difference between the two inferred
+  # pretests.
+  three_data <- missing[!(missing$treat == 0 & missing$pretested == 0), ]
+  three <- fit_solomon_1949(y_post, treat, pretested, y_pre, data = three_data)
+  three_o <- fit_solomon_1949(y_post, treat, pretested, y_pre, data = three_data,
+                              pretest_center = "observed")
+  expect_equal(three$I, 2 - (1 + 53 - 55))
+  expect_equal(three_o$I, 2 - (1 + 53 - 50))
+  expect_equal(three$I - three_o$I, 55 - 50)
+  expect_equal(three$pretest_sensitivity$I, c(three$I, three_o$I))
+  expect_true(all(is.na(three$pretest_sensitivity$d4)))
+  # With the participants without a posttest removed first, "observed" gives
+  # the default.
+  removed <- fit_solomon_1949(y_post, treat, pretested, y_pre,
+                              data = three_data[!is.na(three_data$y_post), ],
+                              pretest_center = "observed")
+  expect_equal(removed$I, three$I)
+
+  # Unequal losses: the average follows the group means, the pooled mean
+  # the group sizes, both over every observed pretest.
+  uneven <- d
+  uneven$y_pre[which(uneven$pretested == 1 & uneven$treat == 1)[1:4]] <- NA
+  uneven$y_post[uneven$pretested == 1 & uneven$treat == 0 & uneven$y_pre >= 55] <- NA
+  a1 <- mean(x[-(1:4)])
+  expect_equal(fit_solomon_1949(y_post, treat, pretested, y_pre, data = uneven,
+                                pretest_center = "observed")$inferred_pretest,
+               (a1 + 50) / 2)
+  expect_equal(fit_solomon_1949(y_post, treat, pretested, y_pre, inferred_pretest = "pooled",
+                                data = uneven, pretest_center = "observed")$inferred_pretest,
+               (16 * a1 + 20 * 50) / 36)
+  expect_equal(fit_solomon_1949(y_post, treat, pretested, y_pre, inferred_pretest = "pooled",
+                                data = uneven)$inferred_pretest,
+               (16 * a1 + 12 * mean(x[x < 55])) / 28)
+
+  # Group means are used as given: there is one center.
+  means <- fit_solomon_1949(post_mean = c(10, 4, 11), pre_mean = c(3, 2), n = c(30, 10, 20))
+  expect_identical(means$inferred_from$without_posttest, c(0L, 0L))
+  expect_equal(means$inferred_from$pre_mean, c(3, 2))
+  expect_null(means$pretest_sensitivity)
+  expect_error(fit_solomon_1949(post_mean = c(10, 4, 11), pre_mean = c(3, 2),
+                                pretest_center = "observed"),
+               "needs individual data", fixed = TRUE)
+})
+
 test_that("fit_solomon_1949() rejects incomplete input", {
   expect_error(fit_solomon_1949(), "either individual data")
   expect_error(fit_solomon_1949(post_mean = c(1, 2), pre_mean = c(1, 2)), "three means")

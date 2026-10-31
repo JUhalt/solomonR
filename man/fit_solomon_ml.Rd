@@ -97,6 +97,17 @@ compares pretested and unpretested controls at that mean. The effects
 table reports the four Solomon contrasts and then the pretest effects
 among controls, among treated participants, and averaged over the two, as
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} does (see its section "The pretest effect").
+
+The fit requires every posttest, and every pretest of the pretested
+groups, so the two pretest centers of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} are one number
+here: its mean is that of every pretested participant. Removing the
+participants without a posttest before the call gives the center of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}'s default, \code{pretest_center = "analyzed"}, the mean
+pretest of the pretested participants analyzed, and its assumption that,
+within each treatment condition, the pretested and unpretested groups lost
+the same kinds of participants; \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with
+\code{pretest_center = "observed"} keeps their pretests instead. See "The
+pretest effect when posttests are missing" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
 }
 \section{Inference options}{
 

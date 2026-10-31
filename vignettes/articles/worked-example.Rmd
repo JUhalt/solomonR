@@ -71,8 +71,10 @@ with(rp, check_solomon_missing(post_behavior, treat, pretested, pre_behavior))
 Two points follow for this study:
 
 - **Posttest attrition.** It ranges from 29% to 46% across the four groups.
-  A complete-case analysis is unbiased when missingness is unrelated to the
-  outcome given the variables in the model (Little & Rubin, 2019). Attrition
+  For the treatment contrasts, a complete-case analysis is unbiased when
+  missingness is unrelated to the outcome given the variables in the model
+  (Little & Rubin, 2019); the pretest effects rest on the assumption of the
+  pretest center (see "Missing posttests" below). Attrition
   this uneven makes that assumption worth stating, and the numbers lost in
   each group belong in the report. The section "Missing posttests" below
   asks how much the conclusions depend on it.
@@ -179,18 +181,35 @@ lost <- function(t, p) {
 }
 lost_rp_pre <- lost(1, 1)
 lost_ctl_pre <- lost(0, 1)
+center_gap <- max(abs(fit$pretest_sensitivity$difference$difference))
+pretest_se <- min(fit$effects$std.error[fit$effects$contrast %in%
+                                          c("Pretest effect | control", "Pretest effect | treated",
+                                            "Pretest main effect")])
 ```
 
 Posttests are missing for `r n_missing` of the `r nrow(rp)` participants in
-this comparison. The model above is valid if they are missing at random:
-if, within each group and, in the pretested groups, at a given pretest
-score, whether a posttest is missing does not depend on what it would have
-been (Little & Rubin, 2019). Because whether a posttest is missing may then
-depend on the pretest, the model also needs the posttest to depend on the
-pretest in the same way in both pretested groups, as it assumes. The data
-cannot show whether missingness is at random. A sensitivity analysis asks
-instead how far the missing posttests would have to depart from that
-assumption before a conclusion changed (White et al., 2011).
+this comparison. For the treatment contrasts, the model above is valid if
+they are missing at random: if, within each group and, in the pretested
+groups, at a given pretest score, whether a posttest is missing does not
+depend on what it would have been (Little & Rubin, 2019). Because whether a
+posttest is missing may then depend on the pretest, the model also needs
+the posttest to depend on the pretest in the same way in both pretested
+groups, as it assumes. The data cannot show whether missingness is at
+random. A sensitivity analysis asks instead how far the missing posttests
+would have to depart from that assumption before a conclusion changed
+(White et al., 2011).
+
+The pretest effects of `fit` rest on a different assumption. They are
+evaluated at the default pretest center, the mean pretest of the pretested
+participants analyzed, which assumes that, within each treatment condition,
+the pretested and the unpretested groups lost the same kinds of
+participants. The block printed under the fit gives them at the mean of
+every observed pretest as well; missingness at random for the pretest
+effects corresponds to that center, `pretest_center = "observed"` (see "The
+pretest effect when posttests are missing" in `?fit_solomon_glm`). Here the
+pretest effects at the two centers differ by
+`r sprintf("%.3f", center_gap)`, against standard errors of at least
+`r sprintf("%.2f", pretest_se)`.
 
 `fit_solomon_mi()` and `tipping_point_solomon()`, used below, are
 experimental: their simulation study did not meet its pre-specified rule

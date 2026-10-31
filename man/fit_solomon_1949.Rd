@@ -13,7 +13,8 @@ fit_solomon_1949(
   pre_mean = NULL,
   n = NULL,
   inferred_pretest = c("average", "pooled"),
-  data = NULL
+  data = NULL,
+  pretest_center = c("analyzed", "observed")
 )
 }
 \arguments{
@@ -37,6 +38,14 @@ printout and for \code{inferred_pretest = "pooled"}.}
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
+
+\item{pretest_center}{With individual data, the pretested participants
+whose pretest means give the inferred pretest (issue #135):
+\code{"analyzed"} (the default), those with both scores, as in the table of
+means; \code{"observed"}, every pretested participant with a pretest, with
+or without a posttest. In the four-group design the inferred pretest
+cancels from I. Group means have one center, so \code{"observed"} needs
+individual data.}
 }
 \value{
 An object of class \code{solomon_1949}, a list with:
@@ -56,6 +65,20 @@ and how it was computed (\code{"average"} or \code{"pooled"}).
 design: the posttest interaction contrast and the pretest difference
 between the two pretested groups, whose difference is \code{I} (see
 Details).
+\item \code{pretest_center}: the center used, \code{"analyzed"} or \code{"observed"}.
+\item \code{inferred_from}: the two pretested groups' pretests behind the
+\code{"observed"} inferred pretest, in the columns \code{group}, \code{n} (the
+participants with a pretest), \code{pre_mean} (their mean pretest), and
+\code{without_posttest} (how many of them have no posttest).
+\item \code{pretest_sensitivity}: with individual data, the inferred pretest,
+\code{I}, and the unpretested groups' improvements \code{d3} and \code{d4} (\code{NA} in
+the three-group design) at both centers, one row for each \code{center};
+\code{NULL} with group means. The print and \code{\link[=report_solomon]{report_solomon()}} give the
+other center when the two inferred pretests differ.
+\item \code{attrition}: with individual data, each group's participants \code{n}
+(with a recorded group), those without a posttest
+(\code{posttest_missing}), and their \code{share}, for the attrition line of
+the print and the report; \code{NULL} with group means.
 }
 
 Solomon (1949) gave point estimates without a test, so the result has
@@ -92,6 +115,24 @@ of the pooled pretested groups (p. 141), and his tables compute it as
 are the same size. \code{inferred_pretest = "average"} (the default) follows the
 tables; \code{"pooled"} weights the two means by their sample sizes, which
 requires \code{n} or individual data.
+
+\strong{Missing posttests} (issue #135). The default,
+\code{pretest_center = "analyzed"}, uses, like a table of group means, the
+pretested participants with both scores: the pretest means are those of
+the pretested participants with a posttest. \code{pretest_center = "observed"}
+infers the pretest from every observed pretest of the pretested groups;
+see "The pretest effect when posttests are missing" in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for what each assumes. In the four-group design I does
+not depend on the choice, because the inferred pretest cancels from it;
+in the three-group design I moves by the difference between the two
+inferred pretests. The unpretested groups' improvements depend on it in
+both designs. When every group loses posttests by the pretest score,
+neither inferred pretest makes those improvements unbiased: with no
+change in the unpretested groups, d3 is (r - 1) s at the default and r s
+at \code{"observed"}, where s is how far the completers' mean pretest lies
+from everyone's and r the pretest-posttest correlation of standardized
+scores (a derivation checked on issue #135). The print and
+\code{\link[=report_solomon]{report_solomon()}} give both inferred pretests when they differ.
 
 \strong{No test.} Solomon gave standard errors for the observed means but
 printed the error of d3 as "?" (Tables II–III), and judged the interaction

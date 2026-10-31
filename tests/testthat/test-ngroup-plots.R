@@ -367,10 +367,13 @@ test_that("pretested cells are evaluated at the mean pretest, covariates at thei
 
   # The model's pretest is centered at fit$pretest_mean (#104), so the mean
   # of the centered pretests is zero; the caption gives the pretest's own
-  # mean.
+  # mean. Posttests are missing in mai2020, so the caption also gives the
+  # mean of every observed pretest (#135).
   expect_equal(pre_mean, 0, tolerance = 1e-10)
-  expect_match(p$labels$caption, sprintf("mean pretest \\(%s\\)",
-                                         formatC(fit$pretest_mean, format = "f", digits = 2)))
+  expect_match(p$labels$caption, sprintf("participants analyzed \\(%s; every observed pretest: %s\\)",
+                                         formatC(fit$pretest_mean, format = "f", digits = 2),
+                                         formatC(fit$pretest_mean_observed, format = "f",
+                                                 digits = 2)))
 })
 
 

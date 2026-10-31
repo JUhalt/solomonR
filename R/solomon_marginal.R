@@ -11,6 +11,76 @@
   ratio = "Rate ratio"
 )
 
+# The participants marginal_solomon() standardizes over with
+# `pretest_center = "observed"`, with their design rows (issue #135). The
+# unpretested cells are standardized over the unpretested participants in
+# the model, as with the default. The pretested cells are standardized over
+# every pretested participant with a pretest and the model's other
+# covariates, in the model or not: with or without an outcome, and with or
+# without a recorded condition, because each participant's risk is
+# predicted under treatment and under control. Their mean pretest is the
+# "observed" center of fit_solomon_glm() when every pretested participant
+# with a pretest has the model's covariates; one without a covariate is in
+# that center but not in this set, whose risks need the covariates. (The
+# center itself plays no part in the standardization.) Without a pretest
+# covariate, and
+# when every such participant is in the model, the rows are the model's,
+# the participants the default standardizes over.
+#
+# Returns `X`, one row per participant in the order of the fit's data;
+# `pretested` and `treat` (NA where the condition was not recorded);
+# `in_model`, which flags the rows the model used; `index`, their rows in
+# the fit's data; and `n`, the number of pretested participants the
+# default standardizes over (`analyzed`, those in the model), the number
+# this set standardizes over (`observed`), and the number of those outside
+# the model who have no outcome (`no_outcome`).
+.marginal_rows <- function(fit) {
+  model <- fit$model
+  X_model <- stats::model.matrix(model)
+  d <- fit$data
+  used <- .glm_rows_used(fit)
+  extra <- rep(FALSE, nrow(d))
+  if ("pre_obs" %in% colnames(X_model)) {
+    extra <- .in_pretest_center(d) & !used
+    covariates <- setdiff(names(d), c("y", "treat", "pretested", "pre_obs", "log_exposure"))
+    if (length(covariates)) {
+      extra <- extra & stats::complete.cases(d[, covariates, drop = FALSE])
+    }
+  }
+  analyzed <- sum(X_model[, "pretested"] == 1)
+  n <- c(analyzed = analyzed, observed = analyzed + sum(extra),
+         no_outcome = sum(extra & is.na(d$y)))
+  storage.mode(n) <- "integer"
+  if (!any(extra)) {
+    return(list(
+      X = X_model, pretested = as.integer(X_model[, "pretested"]),
+      treat = as.integer(X_model[, "treat"]), in_model = rep(TRUE, nrow(X_model)),
+      index = which(used), n = n
+    ))
+  }
+
+  # The design rows of the participants outside the model. The treatment
+  # terms are removed from the linear predictor before a cell is predicted
+  # (.marginal_risks()), so any value serves where the condition was not
+  # recorded; the offset does not enter the design matrix.
+  frame <- d[extra, , drop = FALSE]
+  frame$treat[is.na(frame$treat)] <- 0L
+  if ("log_exposure" %in% names(frame)) frame$log_exposure[is.na(frame$log_exposure)] <- 0
+  tt <- stats::delete.response(stats::terms(model))
+  mf <- stats::model.frame(tt, frame, na.action = stats::na.pass, xlev = model$xlevels)
+  X_extra <- stats::model.matrix(tt, mf, contrasts.arg = model$contrasts)
+
+  rows <- used | extra
+  in_model <- used[rows]
+  X <- matrix(NA_real_, sum(rows), ncol(X_model), dimnames = list(NULL, colnames(X_model)))
+  X[in_model, ] <- X_model
+  X[!in_model, ] <- X_extra[, colnames(X_model), drop = FALSE]
+  list(
+    X = X, pretested = as.integer(d$pretested[rows]), treat = as.integer(d$treat[rows]),
+    in_model = in_model, index = which(rows), n = n
+  )
+}
+
 # Marginal (standardized) risks for the four Solomon cells from logistic
 # coefficients `b`: each participant's risk is predicted under treatment and
 # under control, and averaged within their pretest condition (Daniel et al.,
@@ -78,8 +148,16 @@
 # freedom `df`) and its covariance with the coefficients, returned as the
 # term 2 grad'cross (`cross`). `model` is the fit the covariance was computed
 # on.
+#
+# `X` and `pretested` run over the participants standardized over. With
+# `pretest_center = "observed"` (.marginal_rows()) some of them may be
+# outside the model (issue #135): `in_model` flags those the model used, and
+# `cluster` gives the cluster of each for a CR2 fit. The variance of each
+# standardization is then taken over every participant in it, and its
+# covariance with the coefficients over those of them in the model, as
+# .center_terms() describes. By default, every participant is in the model.
 .marginal_standardization_variance <- function(fit, model, b, X, pretested, scale, count,
-                                               rows, grad) {
+                                               rows, grad, in_model = NULL, cluster = NULL) {
   linkinv <- if (count) exp else stats::plogis
   b0 <- b
   b0[is.na(b0)] <- 0
@@ -100,7 +178,7 @@
   }
   n_contrasts <- length(.marginal_contrast_names())
   set <- ifelse(pre, "pretested", "unpretested")
-  cluster <- if (identical(fit$robust, "CR2")) fit$cluster[.glm_rows_used(fit)]
+  if (is.null(cluster) && identical(fit$robust, "CR2")) cluster <- fit$cluster[.glm_rows_used(fit)]
   keep <- !is.na(b)
 
   parts <- lapply(rows, function(row) {
@@ -115,7 +193,8 @@
       J[c("t1p1", "t0p1")] <- slope(s, (r[["t1p1"]] + r[["t0p1"]]) / 2) / 2
       J[c("t1p0", "t0p0")] <- -slope(s, (r[["t1p0"]] + r[["t0p0"]]) / 2) / 2
     }
-    terms <- .center_terms(model, fit$robust, a = drop(f %*% J), set = set, cluster = cluster)
+    terms <- .center_terms(model, fit$robust, a = drop(f %*% J), set = set, cluster = cluster,
+                           used = in_model)
     c(v = terms$v, cross = 2 * sum(grad[row, keep] * terms$cross), df = terms$df)
   })
   parts <- do.call(rbind, parts)
@@ -336,9 +415,28 @@
 #' risk had they been pretested. Each set is standardized over its own
 #' participants, and with random assignment both estimate the same
 #' population: the expected pretest of the unpretested participants equals
-#' that of the pretested ones (Solomon & Lessac, 1968, pp. 146–147). Both
+#' that of the pretested ones (Solomon, 1949, p. 141). Both
 #' risks are then marginal, so the comparison is on a common scale, unlike
 #' the link-scale pretest effects of [fit_solomon_glm()].
+#'
+#' **Missing outcomes** (issue #135). When outcomes are missing, the
+#' pretested cells can be standardized over two sets of pretested
+#' participants, which `pretest_center` chooses, as it chooses the center of
+#' [fit_solomon_glm()] (see "The pretest effect when posttests are missing"
+#' there, for what each assumes): by default over the pretested participants
+#' in the model (`"analyzed"`), or over every pretested participant with a
+#' pretest and the model's covariates (`"observed"`; a participant without
+#' a covariate is in the observed center of [fit_solomon_glm()] but not in
+#' this set). On the risk or rate scale the choice moves
+#' Treatment | pretested, the average treatment effect, and Pretest x
+#' Treatment as well as the pretest effects, because a marginal risk depends
+#' on the participants it is averaged over; only Treatment | unpretested does
+#' not move. Whenever the two sets differ, the print gives the moved
+#' contrasts under both, with their difference, and `pretest_sensitivity`
+#' returns every contrast under both: with full inference for the other set
+#' under the delta method, and estimates only under the bootstrap, so that
+#' the resamples are those of the set used. No delta line is given on these
+#' scales, because no verified source gives one there.
 #'
 #' Sensitization depends on the scale: an effect can be modified on the
 #' risk-difference scale and not on the ratio scale, or the reverse. Report
@@ -447,6 +545,13 @@
 #' @param seed Optional integer seed for the bootstrap. The global random number
 #'   state is restored afterwards.
 #' @param conf_level Confidence level. Defaults to the fit's.
+#' @param pretest_center For a fit with a pretest covariate, the pretested
+#'   participants the pretested cells are standardized over (issue #135):
+#'   `"analyzed"`, the pretested participants in the model; or `"observed"`,
+#'   every pretested participant with a pretest and the model's other
+#'   covariates, with or without an outcome or a recorded condition.
+#'   Defaults to the fit's `pretest_center` (`"analyzed"` for fits made
+#'   before it existed). The centering constant itself plays no role.
 #'
 #' @return An object of class `solomon_marginal`, a list with:
 #'   - `effects`: one row for each scale and contrast, in the columns
@@ -474,6 +579,24 @@
 #'     resamples and the number that failed.
 #'   - `dispersion` and `theta`: as in the fit.
 #'   - `pretest_adjusted`: whether the fit adjusted for the pretest.
+#'   - `pretest_center`: the set the pretested cells were standardized over,
+#'     `"analyzed"` or `"observed"`. Absent with `method = "cluster_summary"`,
+#'     which uses neither set, so that `pretest_center` is ignored there.
+#'   - `standardized`: the numbers of pretested participants each set holds
+#'     (`analyzed` and `observed`), and of those outside the model, how many
+#'     have no outcome (`no_outcome`). Absent with
+#'     `method = "cluster_summary"`.
+#'   - `attrition`: each Solomon group's `n`, outcomes missing
+#'     (`posttest_missing`), and `share`, from the fit, for the attrition
+#'     line of the print and the report; `NULL` for fits made before 1.0.0.
+#'   - `pretest_sensitivity`: for a fit with a pretest covariate, every
+#'     contrast under both sets, a list with `effects` (keyed by `scale` and
+#'     `center`; the other set's standard errors and intervals are `NA`
+#'     under the bootstrap), `difference` (the estimates under the
+#'     `analyzed` and `observed` sets and their `difference`), `differ`, and
+#'     `note`; `NULL` without a pretest covariate and with
+#'     `method = "cluster_summary"`. Outside the stable interface (see
+#'     [solomon_output]).
 #'   - `design` and `clusters` (the number of clusters in each cell), with
 #'     `method = "cluster_summary"`.
 #'
@@ -512,9 +635,8 @@
 #' variance components. *Biometrics Bulletin, 2*(6), 110–114.
 #' https://doi.org/10.2307/3002019
 #'
-#' Solomon, R. L., & Lessac, M. S. (1968). A control group design for
-#' experimental studies of developmental processes. *Psychological Bulletin,
-#' 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 #'
 #' Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation. *The
 #' American Statistician, 56*(1), 29–38.
@@ -551,12 +673,17 @@
 #' @export
 marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio"),
                              method = c("bootstrap", "delta", "cluster_summary"), R = 999,
-                             seed = NULL, conf_level = fit$conf_level) {
+                             seed = NULL, conf_level = fit$conf_level,
+                             pretest_center = fit$pretest_center) {
 
   .stop_ngroup_fit(fit, "marginal_solomon")
   if (!inherits(fit, "solomon_glm")) {
     stop("`fit` must come from fit_solomon_glm().", call. = FALSE)
   }
+  # Fits made before issue #135 have no `pretest_center`; theirs is the
+  # default.
+  if (is.null(pretest_center)) pretest_center <- "analyzed"
+  pretest_center <- match.arg(pretest_center, c("analyzed", "observed"))
   family <- stats::family(fit$model)
   binary <- identical(family$family, "binomial") && identical(family$link, "logit")
   count <- (identical(family$family, "poisson") || .is_negbin(family)) &&
@@ -583,7 +710,9 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
            call. = FALSE)
     }
     .check_conf_level(conf_level)
-    return(.marginal_cluster_summary(fit, conf_level))
+    out <- .marginal_cluster_summary(fit, conf_level)
+    out$attrition <- .fit_attrition(fit)
+    return(out)
   }
   if (cr2) {
     if (!method_missing && identical(match.arg(method), "bootstrap")) {
@@ -612,23 +741,51 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   }
 
   model <- fit$model
-  X <- stats::model.matrix(model)
   y <- model$y
-  pretested <- as.integer(X[, "pretested"])
-  treat <- as.integer(X[, "treat"])
   b <- stats::coef(model)
-
-  estimate <- .marginal_all(b, X, pretested, scale, count)
-  risks <- .marginal_risks(b, X, pretested, linkinv = if (count) exp else stats::plogis)
-  separated <- if (count) {
-    .cell_empty(y, treat, pretested) || any(risks < 1e-8)
-  } else {
-    .cell_separated(y, treat, pretested) || .degenerate_risk(risks)
-  }
   n_contrasts <- length(.marginal_contrast_names())
-  if (separated) {
-    estimate[rep(scale, each = n_contrasts) != "difference"] <- NA_real_
+  linkinv <- if (count) exp else stats::plogis
+
+  # The participants standardized over (issue #135). By default, those in
+  # the model: the pretested cells are standardized over the pretested
+  # participants the model used. With `pretest_center = "observed"`, the
+  # pretested cells are standardized over every pretested participant with
+  # a pretest and the model's other covariates, with or without an outcome
+  # (.marginal_rows()). `X`, `pretested`, and `treat` run over them;
+  # `in_model` flags the rows the model used, to which `y` belongs.
+  model_set <- function() {
+    X <- stats::model.matrix(model)
+    list(X = X, pretested = as.integer(X[, "pretested"]), treat = as.integer(X[, "treat"]),
+         in_model = NULL, index = NULL)
   }
+  observed_set <- .marginal_rows(fit)
+  standardized <- observed_set$n
+  set <- if (pretest_center == "analyzed") model_set() else observed_set
+  X <- set$X
+  pretested <- set$pretested
+  treat <- set$treat
+  in_model <- if (is.null(set$in_model)) rep(TRUE, nrow(X)) else set$in_model
+
+  # The estimates over a set of participants, with the ratio scales set to
+  # NA when a cell is separated (binary) or empty (counts).
+  estimate_at <- function(set) {
+    keep <- if (is.null(set$in_model)) rep(TRUE, nrow(set$X)) else set$in_model
+    estimate <- .marginal_all(b, set$X, set$pretested, scale, count)
+    risks <- .marginal_risks(b, set$X, set$pretested, linkinv = linkinv)
+    separated <- if (count) {
+      .cell_empty(y, set$treat[keep], set$pretested[keep]) || any(risks < 1e-8)
+    } else {
+      .cell_separated(y, set$treat[keep], set$pretested[keep]) || .degenerate_risk(risks)
+    }
+    if (separated) {
+      estimate[rep(scale, each = n_contrasts) != "difference"] <- NA_real_
+    }
+    list(estimate = estimate, risks = risks, separated = separated)
+  }
+  at <- estimate_at(set)
+  estimate <- at$estimate
+  risks <- at$risks
+  separated <- at$separated
   if (any(scale != "difference") && separated) {
     warning(structure(
       class = c("solomonR_sparse_cell_warning", "warning", "condition"),
@@ -645,47 +802,14 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   failures <- NA_integer_
   df <- rep(Inf, length(estimate))
 
-  if (method == "bootstrap") {
-    cells <- split(seq_along(y), interaction(treat, pretested, drop = TRUE))
-    sizes <- lengths(cells)
-    ends <- cumsum(sizes)
-    run <- function() {
-      t(vapply(seq_len(R), function(i) {
-        idx <- unlist(lapply(cells, function(rows) rows[sample.int(length(rows), replace = TRUE)]),
-                      use.names = FALSE)
-        # Resampling is within cells, so the cells occupy consecutive blocks.
-        events <- diff(c(0, cumsum(y[idx])[ends]))
-        if (any(events == 0 | events == sizes)) return(rep(NA_real_, length(estimate)))
-        Xi <- X[idx, , drop = FALSE]
-        refit <- .logistic_irls(Xi, y[idx], start = b)
-        if (!isTRUE(refit$converged) ||
-            any(refit$fitted.values < 1e-8 | refit$fitted.values > 1 - 1e-8)) {
-          return(rep(NA_real_, length(estimate)))
-        }
-        .marginal_all(refit$coefficients, Xi, pretested[idx], scale)
-      }, numeric(length(estimate))))
-    }
-    boot <- if (is.null(seed)) run() else withr::with_seed(seed, run())
-    failed <- apply(boot, 1, function(row) all(is.na(row)))
-    failures <- sum(failed)
-    boot <- boot[!failed, , drop = FALSE]
-    std.error <- apply(boot, 2, stats::sd, na.rm = TRUE)
-    ci <- t(apply(boot, 2, stats::quantile, probs = c(alpha / 2, 1 - alpha / 2),
-                  na.rm = TRUE, names = FALSE))
-    if (failures > 0.1 * R) {
-      ci[] <- NA_real_
-      warning(structure(
-        class = c("solomonR_bootstrap_warning", "warning", "condition"),
-        list(message = sprintf(
-          paste0("The logistic fit failed in %d of %d bootstrap resamples (more ",
-                 "than 10%%), usually because of sparse cells; intervals are not ",
-                 "reported. method = \"delta\" does not resample; in the package's ",
-                 "simulation study (issue #43), its risk-difference intervals met ",
-                 "the registered tolerances in most designs in which the bootstrap ",
-                 "failed this often."), failures, R), call = NULL)
-      ))
-    }
-  } else {
+  # The delta method over a set of participants: the standard errors on the
+  # analysis scale, the degrees of freedom, and the intervals. `cluster` is
+  # the cluster of each participant of the set, for CR2 fits whose set has
+  # participants outside the model.
+  delta_at <- function(set, estimate, cluster = NULL) {
+    X <- set$X
+    pretested <- set$pretested
+    df <- rep(Inf, length(estimate))
     V <- as.matrix(fit$vcov)
     grad <- vapply(seq_along(b), function(j) {
       h <- 1e-6 * max(1, abs(b[[j]]))
@@ -714,12 +838,14 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     # samples, the pretested and the unpretested participants, so the
     # sampling variance of each sample's standardization does not cancel as
     # it does for the treatment contrasts, which standardize both arms over
-    # the same participants. It is added for them (issue #104).
+    # the same participants. It is added for them (issue #104), over the
+    # participants each sample holds, in the model or not (issue #135).
     pretest_rows <- which(rep(.marginal_contrast_names(), length(scale)) %in%
                             .solomon_pretest_order & is.finite(estimate) & is.finite(std.error))
     if (length(pretest_rows)) {
       added <- .marginal_standardization_variance(
-        fit, if (cr2) fit_cr else model, b, X, pretested, scale, count, pretest_rows, grad
+        fit, if (cr2) fit_cr else model, b, X, pretested, scale, count, pretest_rows, grad,
+        in_model = set$in_model, cluster = cluster
       )
       v_delta <- std.error[pretest_rows]^2 + added$cross
       if (cr2) {
@@ -731,28 +857,125 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     }
     q <- ifelse(is.finite(df), stats::qt(1 - alpha / 2, pmax(df, 1e-8)), stats::qnorm(1 - alpha / 2))
     ci <- cbind(estimate - q * std.error, estimate + q * std.error)
+    list(std.error = std.error, df = df, ci = ci)
+  }
+
+  # A CR2 fit needs the cluster of every participant standardized over; a
+  # participant outside the model may lack it (issue #135).
+  set_clusters <- function(set) {
+    if (!cr2 || is.null(set$index)) return(list(cluster = NULL, note = NULL))
+    cluster <- fit$cluster[set$index]
+    note <- .check_center_clusters(cluster, !set$in_model, stop = FALSE)
+    list(cluster = cluster, note = note)
+  }
+
+  if (method == "bootstrap" && pretest_center == "analyzed") {
+    cells <- split(seq_along(y), interaction(treat, pretested, drop = TRUE))
+    sizes <- lengths(cells)
+    ends <- cumsum(sizes)
+    run <- function() {
+      t(vapply(seq_len(R), function(i) {
+        idx <- unlist(lapply(cells, function(rows) rows[sample.int(length(rows), replace = TRUE)]),
+                      use.names = FALSE)
+        # Resampling is within cells, so the cells occupy consecutive blocks.
+        events <- diff(c(0, cumsum(y[idx])[ends]))
+        if (any(events == 0 | events == sizes)) return(rep(NA_real_, length(estimate)))
+        Xi <- X[idx, , drop = FALSE]
+        refit <- .logistic_irls(Xi, y[idx], start = b)
+        if (!isTRUE(refit$converged) ||
+            any(refit$fitted.values < 1e-8 | refit$fitted.values > 1 - 1e-8)) {
+          return(rep(NA_real_, length(estimate)))
+        }
+        .marginal_all(refit$coefficients, Xi, pretested[idx], scale)
+      }, numeric(length(estimate))))
+    }
+  } else if (method == "bootstrap") {
+    # Participants are resampled within the four Solomon cells. A pretested
+    # participant who is standardized over without being in the model (no
+    # outcome) is resampled with the cell of their condition, and those with
+    # no recorded condition as a stratum of their own, after the cells. Each
+    # resample is refitted on its members who are in the model and
+    # standardized over all of them, so the number with an outcome varies
+    # between resamples as it does between samples (issue #135).
+    y_all <- numeric(nrow(X))
+    y_all[in_model] <- y
+    cells <- split(seq_len(nrow(X)), interaction(treat, pretested, drop = TRUE))
+    solomon_cells <- seq_along(cells)
+    if (anyNA(treat)) cells <- c(cells, list(which(is.na(treat))))
+    ends <- cumsum(lengths(cells))
+    run <- function() {
+      t(vapply(seq_len(R), function(i) {
+        idx <- unlist(lapply(cells, function(members) {
+          members[sample.int(length(members), replace = TRUE)]
+        }), use.names = FALSE)
+        # Resampling is within cells, so the cells occupy consecutive blocks.
+        refitted <- in_model[idx]
+        events <- diff(c(0, cumsum(y_all[idx])[ends]))[solomon_cells]
+        outcomes <- diff(c(0, cumsum(refitted)[ends]))[solomon_cells]
+        if (any(events == 0 | events == outcomes)) return(rep(NA_real_, length(estimate)))
+        Xi <- X[idx, , drop = FALSE]
+        refit <- .logistic_irls(Xi[refitted, , drop = FALSE], y_all[idx][refitted], start = b)
+        if (!isTRUE(refit$converged) ||
+            any(refit$fitted.values < 1e-8 | refit$fitted.values > 1 - 1e-8)) {
+          return(rep(NA_real_, length(estimate)))
+        }
+        .marginal_all(refit$coefficients, Xi, pretested[idx], scale)
+      }, numeric(length(estimate))))
+    }
+  }
+
+  if (method == "bootstrap") {
+    boot <- if (is.null(seed)) run() else withr::with_seed(seed, run())
+    failed <- apply(boot, 1, function(row) all(is.na(row)))
+    failures <- sum(failed)
+    boot <- boot[!failed, , drop = FALSE]
+    std.error <- apply(boot, 2, stats::sd, na.rm = TRUE)
+    ci <- t(apply(boot, 2, stats::quantile, probs = c(alpha / 2, 1 - alpha / 2),
+                  na.rm = TRUE, names = FALSE))
+    if (failures > 0.1 * R) {
+      ci[] <- NA_real_
+      warning(structure(
+        class = c("solomonR_bootstrap_warning", "warning", "condition"),
+        list(message = sprintf(
+          paste0("The logistic fit failed in %d of %d bootstrap resamples (more ",
+                 "than 10%%), usually because of sparse cells; intervals are not ",
+                 "reported. method = \"delta\" does not resample; in the package's ",
+                 "simulation study (issue #43), its risk-difference intervals met ",
+                 "the registered tolerances in most designs in which the bootstrap ",
+                 "failed this often."), failures, R), call = NULL)
+      ))
+    }
+  } else {
+    clusters <- set_clusters(set)
+    if (!is.null(clusters$note)) stop(clusters$note, call. = FALSE)
+    inference <- delta_at(set, estimate, clusters$cluster)
+    std.error <- inference$std.error
+    df <- inference$df
+    ci <- inference$ci
   }
 
   # The test of each contrast is on the analysis scale: the difference, or
   # the log of the ratio.
-  statistic <- estimate / std.error
-  p.value <- 2 * stats::pt(-abs(statistic), df)
   scale_col <- rep(scale, each = n_contrasts)
   ratio <- scale_col != "difference"
   report <- function(x) ifelse(ratio, exp(x), x)
-
-  effects <- .effects_table(data.frame(
-    scale = unname((if (count) .marginal_rate_scales else .marginal_scales)[scale_col]),
-    contrast = rep(.marginal_contrast_names(), length(scale)),
-    estimate = report(estimate),
-    std.error = std.error,
-    statistic = statistic,
-    df = df,
-    p.value = p.value,
-    conf.low = report(ci[, 1]),
-    conf.high = report(ci[, 2]),
-    stringsAsFactors = FALSE
-  ), keys = "scale")
+  table_at <- function(estimate, std.error, df, ci) {
+    statistic <- estimate / std.error
+    p.value <- 2 * stats::pt(-abs(statistic), df)
+    .effects_table(data.frame(
+      scale = unname((if (count) .marginal_rate_scales else .marginal_scales)[scale_col]),
+      contrast = rep(.marginal_contrast_names(), length(scale)),
+      estimate = report(estimate),
+      std.error = std.error,
+      statistic = statistic,
+      df = df,
+      p.value = p.value,
+      conf.low = report(ci[, 1]),
+      conf.high = report(ci[, 2]),
+      stringsAsFactors = FALSE
+    ), keys = "scale")
+  }
+  effects <- table_at(estimate, std.error, df, ci)
 
   if (cr2) {
     small_df <- is.finite(df) & df < 4
@@ -760,6 +983,55 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       .warn_cr2_small_df(paste(effects$scale[small_df], effects$contrast[small_df], sep = ": "),
                          df[small_df])
     }
+  }
+
+  # Every contrast standardized over both sets of participants (issue #135):
+  # on the risk or rate scale the pretested cells move with the set, and so
+  # do Treatment | pretested, the average treatment effect, and Pretest x
+  # Treatment, as well as the pretest effects. With the delta method the
+  # other set has full inference; with the bootstrap only its estimates, so
+  # that the resamples are those of the set used. When the two sets are the
+  # same participants, the rows are copied.
+  sensitivity <- NULL
+  pretest_adjusted <- "pre_obs" %in% colnames(X)
+  if (pretest_adjusted) {
+    other_center <- .other_center(pretest_center)
+    other_effects <- effects
+    note <- NULL
+    if (standardized[["observed"]] > standardized[["analyzed"]]) {
+      other_set <- if (other_center == "analyzed") model_set() else observed_set
+      other_estimate <- estimate_at(other_set)$estimate
+      missing <- rep(NA_real_, length(other_estimate))
+      inference <- list(std.error = missing, df = missing, ci = cbind(missing, missing))
+      if (method == "delta") {
+        clusters <- set_clusters(other_set)
+        note <- clusters$note
+        if (is.null(note)) {
+          inference <- suppressWarnings(delta_at(other_set, other_estimate, clusters$cluster))
+        } else {
+          note <- paste(note, "The standard errors of that standardization are not given.")
+        }
+      }
+      other_effects <- table_at(other_estimate, inference$std.error, inference$df, inference$ci)
+    }
+    effects$center <- pretest_center
+    other_effects$center <- other_center
+    both <- if (pretest_center == "analyzed") rbind(effects, other_effects) else
+      rbind(other_effects, effects)
+    effects$center <- NULL
+    both <- .effects_table(both, keys = c("scale", "center"))
+    analyzed <- both[both$center == "analyzed", , drop = FALSE]
+    observed <- both[both$center == "observed", , drop = FALSE]
+    difference <- data.frame(
+      scale = analyzed$scale, contrast = analyzed$contrast,
+      analyzed = analyzed$estimate, observed = observed$estimate,
+      stringsAsFactors = FALSE
+    )
+    difference$difference <- difference$analyzed - difference$observed
+    sensitivity <- list(
+      effects = both, difference = difference,
+      differ = standardized[["observed"]] > standardized[["analyzed"]], note = note
+    )
   }
 
   cells <- data.frame(
@@ -785,7 +1057,11 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       failures = failures,
       conf_level = conf_level,
       vcov = if (method == "delta") .solomon_vcov_label(fit) else NA_character_,
-      pretest_adjusted = "pre_obs" %in% colnames(X)
+      pretest_adjusted = pretest_adjusted,
+      pretest_center = pretest_center,
+      standardized = standardized,
+      pretest_sensitivity = sensitivity,
+      attrition = .fit_attrition(fit)
     ),
     class = "solomon_marginal"
   )
@@ -797,7 +1073,10 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
   count <- identical(x$outcome, "count")
   what <- if (count) "Rates" else "Risks"
   cat("Marginal Solomon contrasts for a", if (count) "count" else "binary", "outcome\n")
-  cat(if (x$pretest_adjusted) {
+  cat(if (x$pretest_adjusted && identical(x$pretest_center, "observed")) {
+    paste(what, "standardized over the pretest among every pretested participant with a",
+          "pretest (pretest_center = \"observed\").\n")
+  } else if (x$pretest_adjusted) {
     paste(what, "standardized over the pretest among pretested participants.\n")
   } else {
     paste(what, "from the fitted cells (no pretest adjustment).\n")
@@ -837,6 +1116,16 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
                                                           round, digits)
     tab$p.value <- format.pval(tab$p.value, digits = 2)
     print(tab, row.names = FALSE)
+  }
+  # The two standardizations of the pretested cells when outcomes are
+  # missing, or else the attrition line whenever an outcome is missing
+  # (issue #135).
+  block <- .marginal_block(x, digits)
+  if (length(block)) {
+    cat("\n", paste(block, collapse = "\n"), "\n", sep = "")
+  } else {
+    line <- .attrition_line(x$attrition, "Outcomes missing")
+    if (length(line)) cat("\n", .wrap_lines(line), "\n", sep = "")
   }
   cat("\nSensitization depends on the scale; report the scale with every result.\n")
   invisible(x)

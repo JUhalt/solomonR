@@ -13,7 +13,8 @@ fit_solomon_mmrm(
   y_pre = NULL,
   df = c("kenward-roger", "satterthwaite"),
   conf_level = 0.95,
-  data = NULL
+  data = NULL,
+  pretest_center = c("analyzed", "observed")
 )
 }
 \arguments{
@@ -43,6 +44,16 @@ participant and missing by design for unpretested participants.}
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
+
+\item{pretest_center}{With \code{y_pre}, the mean pretest at which the
+pretested groups are compared with the unpretested groups, as in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (issue #135). \code{"analyzed"} (the default): the mean
+pretest of the pretested participants in the model, those with at least
+one posttest. \code{"observed"}: the mean of every observed pretest among the
+pretested participants, each counted once, with or without a posttest
+at any occasion; the rows of pretested participants with no posttest
+must be in the data, with \code{y_post} missing, or this gives the default.
+Ignored without \code{y_pre}.}
 }
 \value{
 An object of class \code{solomon_mmrm}, a list with:
@@ -64,8 +75,18 @@ two occasions, as in \code{"3 vs 1"}.
 pretested and unpretested participants.
 \item \code{df_method}: the degrees of freedom, \code{"kenward-roger"} or
 \code{"satterthwaite"}.
-\item \code{pretest_mean}: the mean pretest at which the pretest is centered;
-\code{NA} without \code{y_pre}.
+\item \code{pretest_mean}: the mean pretest at which the pretest is centered,
+the center used; \code{NA} without \code{y_pre}.
+\item \code{pretest_center}, \code{pretest_mean_analyzed}, \code{pretest_mean_observed},
+\code{pretest_n}, and \code{pretest_sensitivity}: as in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}},
+with each participant counted once. The participants "analyzed" are
+those with at least one posttest; the tables of \code{pretest_sensitivity}
+are keyed by \code{occasion}; its \code{slope} holds the pretest slope of each
+occasion; its \code{attrition} counts the participants of each group
+without any posttest; and its \code{delta} is \code{NULL}, because no delta line
+is derived for repeated posttests.
+\item \code{pretest_slope}: the pretest slope at each occasion, named by
+occasion; \code{NULL} without \code{y_pre}.
 \item \code{occasions}: the posttest occasions, in order.
 \item \code{observed}: the number of observed posttests in each group, one
 column for each occasion.
@@ -86,9 +107,12 @@ Analyzes a Solomon four-group design with several posttest occasions by
 a mixed model for repeated measures (MMRM), and estimates the four
 Solomon contrasts and the pretest effects at each occasion, and the change
 in pretest sensitization from the first occasion to the last. The model is
-likelihood-based, so it is valid when posttests are missing at random,
-for example when participants drop out depending on their earlier
-scores (Fitzmaurice et al., 2011, pp. 497, 505). Per-occasion analyses of
+likelihood-based, so its treatment contrasts are valid when posttests are
+missing at random, for example when participants drop out depending on
+their earlier scores (Fitzmaurice et al., 2011, pp. 497, 505). The pretest
+effects rest instead on the assumption of the pretest center when some
+pretested participants have no posttest at any occasion (see "Missing
+posttests and the pretest center" below). Per-occasion analyses of
 the participants still observed, and unweighted generalized estimating
 equations, require the stronger assumption that the posttests are missing
 completely at random (Liang & Zeger, 1986; Fitzmaurice et al., 2011, pp.
@@ -103,7 +127,9 @@ The specification follows the example of Mallinckrodt et al. (2008, p.
 \item \strong{Pretest adjustment.} The pretest enters as in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}:
 in the pretested groups, the score minus the mean pretest of the
 pretested participants in the model (each counted once; returned as
-\code{pretest_mean}), and 0 in the unpretested groups, with a separate slope
+\code{pretest_mean}; with \code{pretest_center = "observed"}, the mean of every
+observed pretest among the pretested participants, with or without a
+posttest), and 0 in the unpretested groups, with a separate slope
 at each occasion ("a full interaction of the covariate with time", p.
 312). Pretests absent by design are never imputed.
 \item \strong{Pretest effects.} At each occasion, the pretest effects among
@@ -117,6 +143,30 @@ participants, times the square of that occasion's pretest slope, and
 their degrees of freedom combine those of the contrast with n - 1 by the
 Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
 pretest effects were not part of the validation study below.
+\item \strong{Missing posttests and the pretest center.} As in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see its section "The pretest effect when posttests
+are missing"), the pretest effects depend on the mean pretest at which
+they are evaluated when some pretested participants have no posttest at
+any occasion; \code{pretest_center} chooses it, and \code{"observed"} needs those
+participants' rows, with \code{y_post} missing. A participant with a
+posttest at any occasion is analyzed, so dropout after the first
+occasion leaves the two centers equal. Neither center protects the
+later occasions when dropout depends on baseline beyond the earlier
+posttests: the unpretested groups' model cannot see the baseline, so
+their later posttests are not missing at random given what it
+includes. In a check of this (\code{tools/pretest-center-check.R}, part 5:
+40 data sets of 1,500 participants per group, no effects, two
+occasions, a third of the second posttests lost with probability
+\code{plogis(-1 - 1.5 * x)} in every group, \code{x} the baseline), the pretest main
+effect was unbiased at the first occasion (0.000, Monte Carlo standard
+error 0.004) and biased at the second by -0.067 (0.005) at either
+center. When dropout depended on the first posttest instead, both
+occasions were unbiased (-0.005 and -0.002). When a third of the
+participants had no posttest at all, lost by baseline in every group,
+the default was unbiased and \code{"observed"} biased by -0.18 at both
+occasions; when only the pretested groups lost them by baseline, and the
+unpretested at random, the reverse held (+0.18 at the default). It is a
+check, not a simulation study.
 \item \strong{Covariance.} Unstructured within participant, estimated by
 restricted maximum likelihood (Laird & Ware, 1982). With a pretest, it
 is estimated separately for pretested and unpretested participants: the

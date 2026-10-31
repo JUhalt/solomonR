@@ -649,6 +649,16 @@ Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 Planned missing data designs in psychological research. *Psychological
 Methods, 11*(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
 
+Groenwold, R. H. H., Moons, K. G. M., & Vandenbroucke, J. P. (2014).
+Randomized trials with missing outcome data: How to analyze and what to
+report. *Canadian Medical Association Journal, 186*(15), 1153–1157.
+https://doi.org/10.1503/cmaj.131353
+
+> Recommends reporting the baseline characteristics of the participants
+> analyzed in each arm. *In solomonR:* the covariates of
+> `check_solomon_missing()`, by pretest condition
+> ([#135](https://github.com/JUhalt/solomonR/issues/135)).
+
 Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R.,
 Altman, D. G., & Moons, K. G. M. (2012). Missing covariate data in clinical
 research: When and when not to use the missing-indicator method for
@@ -703,6 +713,17 @@ psychological research: A tutorial. *Advances in Methods and Practices in
 Psychological Science, 1*(2), 259–269.
 https://doi.org/10.1177/2515245918770963
 
+Lee, D. S. (2005). *Training, wages, and sample selection: Estimating sharp
+bounds on treatment effects* (NBER Working Paper No. 11721). National
+Bureau of Economic Research. https://doi.org/10.3386/w11721
+
+> In a randomized experiment with equal selection rates, compares the
+> baseline characteristics of the participants observed in the two arms as
+> a limited test of selection bias in the difference in means (Remark 4,
+> p. 16). *In solomonR:* the covariates of
+> `check_solomon_missing()`, by pretest condition
+> ([#135](https://github.com/JUhalt/solomonR/issues/135)).
+
 Liang, K.-Y., & Zeger, S. L. (1986). Longitudinal data analysis using
 generalized linear models. *Biometrika, 73*(1), 13–22.
 https://doi.org/10.1093/biomet/73.1.13
@@ -745,6 +766,18 @@ Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
 longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
 https://doi.org/10.1177/009286150804200402
 
+Mavridis, D., White, I. R., Higgins, J. P. T., Cipriani, A., & Salanti, G.
+(2015). Allowing for uncertainty due to missing continuous outcome data in
+pairwise and network meta-analysis. *Statistics in Medicine, 34*(5),
+721–741. https://doi.org/10.1002/sim.6365
+
+> Parameterizes a departure from missing at random by the difference
+> between the mean outcome of the participants with a missing outcome and
+> that of those observed, in each arm (secs. 1–2). *In solomonR:* the delta
+> line of `fit_solomon_glm()`, the offset at which the observed pretest
+> center gives the default's pretest effect
+> ([#135](https://github.com/JUhalt/solomonR/issues/135)).
+
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. *Psychometrika, 58*(4), 525–543.
 https://doi.org/10.1007/BF02294825
@@ -757,6 +790,18 @@ Murphy, K. R., & Myors, B. (1999). Testing the hypothesis that treatments
 have negligible effects: Minimum-effect tests in the general linear model.
 *Journal of Applied Psychology, 84*(2), 234–248.
 https://doi.org/10.1037/0021-9010.84.2.234
+
+National Research Council. (2010). *The prevention and treatment of missing
+data in clinical trials*. The National Academies Press.
+https://doi.org/10.17226/12955
+
+> Recommends that the missing-data assumption be stated in advance and
+> that a sensitivity analysis be reported with the main result
+> (Recommendation 9, p. 4, and Recommendation 15, p. 106), and gives the
+> delta parameterization of departures from missing at random, by arm (pp.
+> 88–89). *In solomonR:* the choice of the pretest center and the delta
+> line of `fit_solomon_glm()`
+> ([#135](https://github.com/JUhalt/solomonR/issues/135)).
 
 Nosek, B. A., Ebersole, C. R., DeHaven, A. C., & Mellor, D. T. (2018). The
 preregistration revolution. *Proceedings of the National Academy of Sciences,
@@ -852,6 +897,16 @@ and the power approach for assessing the equivalence of average
 bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics, 15*(6),
 657–680. https://doi.org/10.1007/BF01068419
 
+Seaman, S., Galati, J., Jackson, D., & Carlin, J. (2013). What is meant by
+"missing at random"? *Statistical Science, 28*(2), 257–268.
+https://doi.org/10.1214/13-STS415
+
+> Sets out the definitions of missing at random that the literature uses.
+> *In solomonR:* its Definition 3 is cited for the assumption of the
+> observed pretest center of `fit_solomon_glm()` in the pretested groups, a
+> mapping that is the package's inference
+> ([#135](https://github.com/JUhalt/solomonR/issues/135)).
+
 Stadler, K., & Kotze, M. E. (2006). The influence of a ropes course
 development programme on the self-concept and self-efficacy of young career
 officers. *SA Journal of Industrial Psychology, 32*(1), 25–32.
@@ -908,6 +963,16 @@ Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
 Welch, B. L. (1947). The generalization of "Student's" problem when several
 different population variances are involved. *Biometrika, 34*(1–2), 28–35.
 https://doi.org/10.1093/biomet/34.1-2.28
+
+What Works Clearinghouse. (2022). *What Works Clearinghouse procedures and
+standards handbook, version 5.0* (WWC 2022008REV). U.S. Department of
+Education, Institute of Education Sciences, National Center for Education
+Evaluation and Regional Assistance. https://ies.ed.gov/ncee/wwc/Handbooks
+
+> Defines overall attrition and differential attrition between the groups
+> compared (p. 40). *In solomonR:* the attrition checks of
+> `check_solomon_missing()`, between the pretest conditions and between the
+> conditions ([#135](https://github.com/JUhalt/solomonR/issues/135)).
 
 White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
 for intention to treat analysis in randomised trials with missing outcome

@@ -44,6 +44,20 @@
   )
 }
 
+# The value of `pre_obs` at which the pretested cells are evaluated: the
+# fit's center. Fits center `pre_obs` at `fit$pretest_mean` (issue #104),
+# the mean pretest of the pretested participants in the model by default or
+# the mean of every observed pretest with `pretest_center = "observed"`
+# (issue #135), so the cells are at pre_obs = 0, where the fit's pretest
+# effects are evaluated. Fits made by earlier versions are uncentered and
+# have no `pretest_mean`; for them it is the mean of `pre_obs` over the
+# pretested rows of the model.
+.cell_pretest <- function(fit, X) {
+  if (!"pre_obs" %in% colnames(X)) return(NA_real_)
+  if (is.finite(.null_na(fit$pretest_mean))) return(0)
+  mean(X[X[, "pretested"] == 1, "pre_obs"])
+}
+
 # Coefficient vectors for the four model-adjusted cell means: pretested cells
 # at the mean pretest among pretested participants, unpretested cells at the
 # structural pre_obs = 0, and covariates at their model-matrix column means.
@@ -52,7 +66,7 @@
   cn <- colnames(X)
   cells <- data.frame(treat = c(0L, 1L, 0L, 1L), pretested = c(1L, 1L, 0L, 0L))
 
-  pre_mean <- if ("pre_obs" %in% cn) mean(X[X[, "pretested"] == 1, "pre_obs"]) else NA_real_
+  pre_mean <- .cell_pretest(fit, X)
 
   L <- matrix(0, nrow = 4L, ncol = length(cn), dimnames = list(NULL, cn))
   L[, "(Intercept)"] <- 1
@@ -104,7 +118,7 @@
     stringsAsFactors = FALSE
   )
 
-  pre_mean <- if ("pre_obs" %in% cn) mean(X[X[, "pretested"] == 1, "pre_obs"]) else NA_real_
+  pre_mean <- .cell_pretest(fit, X)
 
   L <- matrix(0, nrow = nrow(cells), ncol = length(cn), dimnames = list(NULL, cn))
   L[, "(Intercept)"] <- 1
@@ -225,7 +239,10 @@
 #' means. The figure therefore draws model-adjusted means: pretested groups
 #' are evaluated at the mean pretest score among pretested participants (the
 #' usual ANCOVA adjusted mean), unpretested groups without a pretest, and any
-#' covariates at their sample means. Because neither model has a
+#' covariates at their sample means. With missing posttests that mean is the
+#' fit's pretest center, chosen by `pretest_center` in [fit_solomon_glm()];
+#' when the two centers differ, the caption names the center used and gives
+#' the other (issue #135). Because neither model has a
 #' treatment-by-pretest-score term, the difference of differences among these
 #' adjusted means equals the fitted Pretest x Treatment estimate exactly.
 #' Observed cell means are shown as hollow points for comparison.
@@ -326,12 +343,9 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
     formatC(sens$conf.high, format = "f", digits = 2)
   )
 
-  adjustment <- if (is.na(cells$pretest_mean)) {
-    "Means from the fitted model"
-  } else {
-    sprintf("Adjusted means: pretested groups at the mean pretest (%s)",
-            formatC(cells$pretest_mean, format = "f", digits = 2))
-  }
+  # The center of the pretested groups' means, and the other center when
+  # the two differ (issue #135).
+  adjustment <- .sensitization_adjustment(fit, cells$pretest_mean)
   # The inference, with its sources, goes on its own line, as in
   # plot_solomon_effects(), so that each line fits a figure of ordinary width.
   caption <- sprintf(
@@ -405,12 +419,9 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
   adjusted$condition <- pretest_status(adjusted$pretested)
 
   level <- format(100 * fit$conf_level)
-  adjustment <- if (is.na(cells$pretest_mean)) {
-    "Means from the fitted model"
-  } else {
-    sprintf("Adjusted means: pretested groups at the mean pretest (%s)",
-            formatC(cells$pretest_mean, format = "f", digits = 2))
-  }
+  # The center of the pretested groups' means, and the other center when
+  # the two differ (issue #135).
+  adjustment <- .sensitization_adjustment(fit, cells$pretest_mean)
   caption <- sprintf(
     "%s.\n%s%% intervals: %s; %s.\nSensitization: a treatment line not parallel to the %s line.",
     adjustment, level, cells$inference, .reference_label(adjusted$df), control

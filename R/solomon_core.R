@@ -107,6 +107,159 @@ NULL
   mean(df$pre_obs[used])
 }
 
+# The participants whose pretests define the other center,
+# `pretest_center = "observed"` (issue #135): every pretested participant
+# with an observed pretest, whether or not the posttest, the condition, a
+# covariate, or the exposure was observed. `df` holds the model's variables,
+# with `pre_obs` the pretest (centered or not) in the pretested rows; one
+# logical value per row. The participants of .pretest_center() are among
+# them, so the two centers are the same number when no pretested
+# participant with a pretest is outside the model.
+.in_pretest_center <- function(df) {
+  df$pretested %in% 1 & !is.na(df$pre_obs)
+}
+
+# Both centers, from `df` with the uncentered `pre_obs`: `analyzed`, the
+# default, by .pretest_center() itself, and `observed`, the mean over
+# .in_pretest_center(), with the same fallback to 0 when there is no such
+# participant (the model's own checks then report the problem).
+.pretest_centers <- function(df) {
+  observed <- .in_pretest_center(df)
+  c(analyzed = .pretest_center(df),
+    observed = if (any(observed)) mean(df$pre_obs[observed]) else 0)
+}
+
+# The participants behind the two centers (issue #135). `x` is the
+# uncentered pretest; `in_center` flags the pretested participants with a
+# pretest (the "observed" set), `in_model` those in the model, and
+# `no_posttest` those without a posttest. Returns the mean pretest of those
+# of them outside the model (`mean_outside`; NA when there are none) and
+# `n`: how many are in the model (`analyzed`), how many there are in all
+# (`observed`), and how many of those outside the model have no posttest
+# (`no_posttest`; the rest lack the condition, a covariate, or the
+# exposure).
+.pretest_center_parts <- function(x, in_center, in_model, no_posttest) {
+  inside <- in_center & in_model
+  outside <- in_center & !in_model
+  list(
+    mean_outside = if (any(outside)) mean(x[outside]) else NA_real_,
+    n = c(analyzed = sum(inside), observed = sum(in_center),
+          no_posttest = sum(outside & no_posttest))
+  )
+}
+
+# The other center of a fit (issue #135): "observed" for the default, and
+# "analyzed" for pretest_center = "observed".
+.other_center <- function(center) {
+  if (identical(center, "observed")) "analyzed" else "observed"
+}
+
+# The attrition of each Solomon group and, on the identity link, the
+# offsets at which the default center is right (issue #135), for
+# `pretest_sensitivity`. `condition` names each participant's condition (NA
+# when it was not recorded), `levels` the conditions in order (the control
+# first), `pretested` and `y` the indicator and the posttest, and `in_model`
+# the rows the model used. `slope` is the pretest slope and `centers` the
+# two centers.
+#
+# - `attrition`: for each group, the number of participants, the number
+#   without a posttest, and their share.
+# - `delta`: for each unpretested group, its number of participants, its
+#   share outside the model (m0), and the difference between its dropouts'
+#   and its completers' mean posttest at which the pretest effect at the
+#   "observed" center equals the default's, b (c_B - c_A) / m0 (National
+#   Research Council, 2010, pp. 88-89; Mavridis et al., 2015, sec. 2): NA
+#   where m0 is zero. The delta parameterization is on the scale of the
+#   posttest, so `delta` is NULL off the identity link.
+.pretest_attrition <- function(condition, levels, pretested, y, in_model, slope, centers,
+                               identity) {
+  group_condition <- rep(levels, 2L)
+  group_pretested <- rep(c(1L, 0L), each = length(levels))
+  lost <- is.na(y)
+  counts <- vapply(seq_along(group_condition), function(i) {
+    member <- pretested %in% group_pretested[i] & condition %in% group_condition[i]
+    c(sum(member), sum(member & lost))
+  }, numeric(2))
+  n <- as.integer(counts[1, ])
+  missing <- as.integer(counts[2, ])
+  attrition <- list2DF(list(
+    group = paste0(ifelse(group_pretested == 1L, "Pretested", "Unpretested"), ", ",
+                   group_condition),
+    condition = group_condition, pretested = group_pretested,
+    n = n, posttest_missing = missing, share = ifelse(n > 0L, missing / n, NA_real_)
+  ))
+  delta <- NULL
+  if (identity) {
+    outside <- vapply(levels, function(level) {
+      member <- pretested %in% 0L & condition %in% level
+      c(sum(member), sum(member & !in_model))
+    }, numeric(2))
+    n0 <- as.integer(outside[1, ])
+    m0 <- ifelse(n0 > 0L, unname(outside[2, ]) / n0, NA_real_)
+    gap <- slope * (centers[["observed"]] - centers[["analyzed"]])
+    delta <- list2DF(list(
+      condition = levels, n = n0, m0 = m0,
+      delta = ifelse(is.finite(m0) & m0 > 0, gap / m0, NA_real_)
+    ))
+  }
+  list(attrition = attrition, delta = delta)
+}
+
+# `pretest_sensitivity` of a fit with a pretest covariate (issue #135): the
+# pretest effects at both centers and their difference, with what the
+# printed block and check_solomon_missing() report. `rows` holds the pretest
+# rows of the effects table at the center used (`center`) and at the other
+# center (`other`; NULL when the two centers are the same number, in which
+# case the rows are copied). `keys` names the columns that index the rows
+# before `contrast` (`comparison` for several treatments, `occasion` for
+# repeated posttests). `parts` comes from .pretest_center_parts(), `centers`
+# from .pretest_centers(), and `attrition` from .pretest_attrition();
+# `slope` is the pretest slope (one per occasion for repeated posttests,
+# named by occasion), `identity` whether the link is the identity, and
+# `note` the reason the other center's standard errors are missing, if they
+# are.
+.pretest_sensitivity <- function(used, other, center, keys, parts, centers, slope, identity,
+                                 attrition, note = NULL) {
+  differ <- parts$n[["observed"]] > parts$n[["analyzed"]]
+  if (!differ || is.null(other)) other <- used
+  analyzed <- if (center == "analyzed") used else other
+  observed <- if (center == "analyzed") other else used
+  columns <- names(used)
+  both <- lapply(stats::setNames(columns, columns), function(column) {
+    c(analyzed[[column]], observed[[column]])
+  })
+  both$center <- rep(c("analyzed", "observed"), each = nrow(used))
+  effects <- .effects_table(list2DF(both), keys = c(keys, "center"))
+  difference <- list2DF(c(
+    lapply(stats::setNames(c(keys, "contrast"), c(keys, "contrast")), function(column) {
+      analyzed[[column]]
+    }),
+    list(analyzed = analyzed$estimate, observed = observed$estimate,
+         difference = analyzed$estimate - observed$estimate)
+  ))
+  m1 <- if (parts$n[["observed"]] > 0L) {
+    (parts$n[["observed"]] - parts$n[["analyzed"]]) / parts$n[["observed"]]
+  } else {
+    NA_real_
+  }
+  list(
+    effects = effects,
+    difference = difference,
+    slope = slope,
+    m1 = m1,
+    pretest_means = c(analyzed = centers[["analyzed"]], not_analyzed = parts$mean_outside),
+    delta = attrition$delta,
+    predicted = if (identity && length(slope) == 1L) {
+      slope * (parts$mean_outside - centers[["analyzed"]])
+    } else {
+      NA_real_
+    },
+    attrition = attrition$attrition,
+    differ = differ,
+    note = note
+  )
+}
+
 # Each analyzed participant's influence on the coefficients of a GLM fit,
 # (X'WX)^{-1} x_i w_i e_i, with w_i the working weight and e_i the working
 # residual, so that the sum of the cross-products is the HC0 covariance; and
@@ -131,12 +284,11 @@ NULL
 # as a fixed number leaves out b^2 Var(mean), with b the pretest slope.
 #
 # Here a contrast depends, to first order, on the sum over the samples in
-# `set` of each sample's mean of `a`. `a` and `set` run over the rows the
-# model used; `set` is NA for rows in no sample. Stacking the estimating
-# equations of the means with the model's (Stefanski & Boos, 2002) gives the
-# variance of that sum, `v`, and its covariance with the coefficients,
-# `cross` (a vector over the coefficients), in the covariance type of the
-# fit:
+# `set` of each sample's mean of `a`. `a` and `set` run over participants;
+# `set` is NA for those in no sample. Stacking the estimating equations of
+# the means with the model's (Stefanski & Boos, 2002) gives the variance of
+# that sum, `v`, and its covariance with the coefficients, `cross` (a vector
+# over the coefficients), in the covariance type of the fit:
 # - "none" (model-based): s^2 / n in each sample, and no covariance with the
 #   coefficients, which is zero when the model is correctly specified;
 # - "HC3": the jackknife form, sum (a_i - mean)^2 / (n - 1)^2 in each
@@ -147,7 +299,25 @@ NULL
 #   the covariance from cluster sums with the small-sample factor G / (G - 1).
 # `df` is the degrees of freedom of `v`: n - 1 for one sample, combined by
 # the Welch-Satterthwaite formula over several, or Satterthwaite's for CR2.
-.center_terms <- function(model, robust, a, set, cluster = NULL) {
+#
+# A sample may hold participants who are not in the model: the mean pretest
+# of `pretest_center = "observed"` is taken over every pretested participant
+# with a pretest, with or without a posttest (issue #135). `used` then flags,
+# among the participants `a` and `set` run over, those the model used, in
+# the model's row order; by default all of them, which is the computation
+# for the default center. Each sum runs over the participants who
+# contribute to it:
+# - `v` over every member of a sample, in the model or not, with n their
+#   number;
+# - `cross` over the members who are in the model, because a participant
+#   outside the model has no influence on the coefficients (and leaving one
+#   out changes the mean and not the coefficients). With CR2, a cluster's
+#   sum of the deviations takes every member of the sample in the cluster,
+#   and G counts the clusters with a participant in the model or in a
+#   sample.
+# `cluster` runs over the same participants as `a`.
+.center_terms <- function(model, robust, a, set, cluster = NULL, used = NULL) {
+  if (is.null(used)) used <- rep(TRUE, length(a))
   in_set <- !is.na(set)
   set <- factor(set)
   n_s <- as.numeric(table(set)[as.character(set)])
@@ -183,11 +353,19 @@ NULL
       m, vcov = Vm, contrasts = matrix(1, nrow = 1, ncol = length(stats::coef(m))),
       test = "Satterthwaite"
     ))
-    infl <- .glm_influence(model)$influence
+    # Each participant's influence on the coefficients: zero outside the
+    # model.
+    infl <- matrix(0, length(a), n_coef)
+    infl[used, ] <- .glm_influence(model)$influence
     u <- numeric(length(a))
     u[in_set] <- dev[in_set] / n_s[in_set]
-    G <- length(unique(cluster))
-    cross[] <- G / (G - 1) * colSums(rowsum(infl, cluster) * rowsum(u, cluster)[, 1])
+    # The participants of the stacked equations: in the model or in a sample.
+    stacked <- used | in_set
+    by_cluster <- cluster[stacked]
+    G <- length(unique(by_cluster))
+    cross[] <- G / (G - 1) * colSums(
+      rowsum(infl[stacked, , drop = FALSE], by_cluster) * rowsum(u[stacked], by_cluster)[, 1]
+    )
     return(list(v = lc$SE^2, cross = cross, df = lc$df))
   }
 
@@ -195,13 +373,117 @@ NULL
     u <- numeric(length(a))
     u[in_set] <- dev[in_set] / pmax(n_s[in_set] - 1, 1)
     infl <- .glm_influence(model)
-    cross[] <- colSums(infl$influence / (1 - infl$hat) * u)
+    cross[] <- colSums(infl$influence / (1 - infl$hat) * u[used])
   } else {
     u <- numeric(length(a))
     u[in_set] <- dev[in_set] / sqrt(n_s[in_set] * pmax(n_s[in_set] - 1, 1))
   }
   v_by_set <- as.numeric(tapply(u[in_set]^2, set[in_set], sum))
   list(v = sum(v_by_set), cross = cross, df = sample_df(v_by_set))
+}
+
+# The clusters a clustered (CR2) fit needs for the "observed" center (issue
+# #135): those of every pretested participant whose pretest enters it,
+# including those who are not in the model (`outside` flags them), because
+# the cluster-robust variance of the mean pretest, and its covariance with
+# the coefficients, are built from cluster sums. A participant is outside
+# the model for want of a posttest, a recorded condition, a covariate, or
+# the exposure. With `pretest_center = "observed"` a missing cluster stops
+# the fit; with the default it only leaves the other center's standard
+# errors missing (`stop = FALSE` returns the message instead).
+.check_center_clusters <- function(cluster, outside, stop = TRUE) {
+  missing <- sum(is.na(cluster[outside]))
+  if (!missing) return(NULL)
+  message <- paste0(
+    "`cluster` is missing for ", missing, " pretested participant(s) who have a ",
+    "pretest and are not in the model (no posttest, condition, covariate, or exposure). ",
+    "With pretest_center = \"observed\" their pretests enter the analysis, whose ",
+    "cluster-robust variance needs their clusters."
+  )
+  if (stop) stop(message, call. = FALSE)
+  message
+}
+
+# The terms of the center used and of the other center (issue #135), for
+# the four-group and the several-treatment paths of fit_solomon_glm(). `df`
+# holds the model's variables with the centered `pre_obs`, `x` is the
+# uncentered pretest, `in_model` flags the rows the model used, `model` is
+# the fit the covariance comes from (the complete-case refit for CR2),
+# `cluster` the cluster of every row, and `cluster_fit` those of the rows
+# in the model (CR2 only). The analyzed center's terms are computed as
+# before #135: over the model's rows, with their clusters. The other
+# center's are computed only when the two centers differ; with the default
+# and CR2, a missing cluster of a participant outside the model leaves them
+# out, with `note` saying so, while with pretest_center = "observed" it
+# stops the fit. Returns `center`, `other`, `note`, `parts`
+# (.pretest_center_parts()), and `differ`.
+.center_terms_both <- function(df, x, in_model, model, robust, cluster, cluster_fit,
+                               pretest_center) {
+  in_observed <- .in_pretest_center(df)
+  parts <- .pretest_center_parts(x, in_observed, in_model, is.na(df$y))
+  differ <- parts$n[["observed"]] > parts$n[["analyzed"]]
+  terms_analyzed <- function() {
+    .center_terms(
+      model, robust,
+      a = df$pre_obs[in_model],
+      set = ifelse(df$pretested[in_model] == 1L, "pretested", NA_character_),
+      cluster = if (robust == "CR2") cluster_fit
+    )
+  }
+  terms_observed <- function() {
+    .center_terms(
+      model, robust,
+      a = df$pre_obs,
+      set = ifelse(in_observed, "pretested", NA_character_),
+      cluster = if (robust == "CR2") cluster,
+      used = in_model
+    )
+  }
+  center <- NULL
+  other <- NULL
+  note <- NULL
+  if (pretest_center == "analyzed") {
+    center <- terms_analyzed()
+    if (differ) {
+      if (robust == "CR2") {
+        note <- .check_center_clusters(cluster, in_observed & !in_model, stop = FALSE)
+        if (!is.null(note)) {
+          note <- paste(note, "The standard errors at that center are not given.")
+        }
+      }
+      if (is.null(note)) other <- terms_observed()
+    }
+  } else {
+    if (robust == "CR2") .check_center_clusters(cluster, in_observed & !in_model)
+    center <- terms_observed()
+    if (differ) other <- terms_analyzed()
+  }
+  list(center = center, other = other, note = note, parts = parts, differ = differ)
+}
+
+# The pretest effects at the other center (issue #135), without a refit:
+# moving the center by `shift` moves a pretest effect by its weight on the
+# pretesting coefficient times the pretest slope times `shift`, so in the
+# fitted model it is the contrast L + shift L["pretested"] e_pre_obs.
+# `Ls` holds the contrasts of the pretest effects, `contrast` their labels,
+# `comparison` (for several treatments) their comparisons, and `estimate` a
+# function that estimates a contrast with the other center's terms, as in
+# the effects table. With `no_se`, the other center has no standard errors
+# (a CR2 fit without a cluster; see .center_terms_both()).
+.other_center_rows <- function(Ls, contrast, shift, estimate, comparison = NULL, no_se = FALSE) {
+  rows <- do.call(rbind, Map(function(L, label) {
+    L[["pre_obs"]] <- L[["pre_obs"]] + shift * L[["pretested"]]
+    est <- estimate(L)
+    data.frame(contrast = label, estimate = est[["estimate"]],
+               std.error = est[["std.error"]], statistic = est[["statistic"]],
+               df = est[["df"]], p.value = est[["p.value"]],
+               conf.low = est[["conf.low"]], conf.high = est[["conf.high"]],
+               stringsAsFactors = FALSE)
+  }, unname(Ls), contrast))
+  if (!is.null(comparison)) rows <- cbind(comparison = comparison, rows, stringsAsFactors = FALSE)
+  if (no_se) rows[setdiff(.solomon_effect_columns, c("contrast", "estimate"))] <- NA_real_
+  rownames(rows) <- NULL
+  rows
 }
 
 # Welch-Satterthwaite degrees of freedom of a sum of independent variance
@@ -346,7 +628,8 @@ stouffer_solomon <- function(p) {
 #' randomized experiments, and the case for pairing it with
 #' heteroskedasticity-robust standard errors, is discussed by Lin (2013).
 #' Pretested participants with a missing pretest score are excluded with a
-#' warning; incidental missingness is never imputed.
+#' warning; incidental missingness is never imputed. Their exclusion biases
+#' the pretest effects when it relates to baseline (issue #142).
 #'
 #' @section Inference:
 #' - `robust = "HC3"` (default): heteroskedasticity-consistent covariance
@@ -456,12 +739,15 @@ stouffer_solomon <- function(p) {
 #' groups at the pretested participants' mean pretest, where the centered
 #' pretest is zero. Unpretested participants were never measured, but with
 #' random assignment their expected pretest equals that of the pretested
-#' participants, whose combined mean is its best estimate (Solomon & Lessac,
-#' 1968, pp. 146--147). Each pretest effect is therefore the pretest-adjusted
-#' mean of a pretested group minus the mean of the unpretested group in the
-#' same treatment condition: the differences between the adjusted means that
-#' [plot_sensitization()] draws. Without `y_pre`, the pretest effects are
-#' differences between the fitted cell means.
+#' participants (Solomon, 1949, p. 141), whose combined mean is its best
+#' estimate (Solomon & Lessac, 1968, p. 147). Each pretest effect is therefore
+#' the pretest-adjusted mean of a pretested group minus the mean of the
+#' unpretested group in the same treatment condition: the differences between
+#' the adjusted means that [plot_sensitization()] draws. Without `y_pre`, the
+#' pretest effects are differences between the fitted cell means. When
+#' posttests are missing, the mean pretest can be taken over two sets of
+#' pretested participants; see "The pretest effect when posttests are
+#' missing".
 #'
 #' That mean pretest is an estimate of the expected pretest, not a fixed
 #' value, and the pretest effects shift by b for each point it shifts, where
@@ -511,6 +797,128 @@ stouffer_solomon <- function(p) {
 #' too, although its treatment rate ratios are collapsible.
 #' [marginal_solomon()] estimates the pretest effects on a common scale, from
 #' standardized risks or rates (Daniel et al., 2021).
+#'
+#' @section The pretest effect when posttests are missing:
+#' Each pretest effect compares a pretested group, at a mean pretest (the
+#' center), with the unpretested group in the same treatment condition. The
+#' center stands in for the unpretested groups' expected pretest, which
+#' random assignment makes equal to the pretested groups' (Solomon, 1949, p.
+#' 141). With every posttest observed it is the mean pretest of both
+#' pretested groups (Newman et al., 1990, p. 101). When posttests are
+#' missing there are two candidates, and `pretest_center` chooses between
+#' them:
+#' - `"analyzed"` (the default): the mean pretest of the pretested
+#'   participants in the model. It assumes that, within each treatment
+#'   condition, the pretested and the unpretested groups lost the same kinds
+#'   of participants. Random assignment makes that the natural case, unless
+#'   taking the pretest itself changed who dropped out.
+#' - `"observed"`: the mean of every observed pretest among the pretested
+#'   participants, with or without a posttest. It assumes that the pretested
+#'   groups' losses depend at most on the observed pretest, and that the
+#'   unpretested groups' losses are unrelated to baseline as well as to the
+#'   posttest. In the pretested groups this is missingness at random given
+#'   the pretest (Seaman et al., 2013, Definition 3; the mapping is the
+#'   package's inference), the assumption under which [fit_solomon_mi()]
+#'   imputes; in one check on issue #135, normal-theory full-information
+#'   maximum likelihood with the pretest gave the same pretest effects to
+#'   three decimals. It needs the rows of the pretested participants without
+#'   a posttest, with `y_post` missing; without them it gives the default.
+#'
+#' The two centers differ by m1 (x_in - x_out), and the pretest effects at
+#' the two centers by b m1 (x_in - x_out), where b is the pretest slope, m1
+#' the share of the pretested participants with a pretest who are not in
+#' the model, and x_in and x_out the mean pretests of those in and out of
+#' the model. The data cannot tell which center is right, because the
+#' unpretested groups have no pretest (Campbell, 1957, p. 305), and no
+#' published source decides between them. The default is a judgment, set out
+#' with its reasons in the decision record posted on issue #135:
+#' - Under the design's null hypothesis, that taking the pretest changes
+#'   neither the posttest nor who stays, random assignment makes all groups
+#'   lose the same kinds of participants, whatever drives the loss, and the
+#'   default's test of a zero pretest effect keeps its level. In the record's
+#'   check (500 data sets of 200 participants per group, about a third of
+#'   the posttests lost by baseline in all four groups), the test of the
+#'   pretest main effect at the .05 level rejected in 5% of the data sets at
+#'   the default and in 54% at the observed center.
+#' - The default fails only when taking the pretest changed who stayed,
+#'   which is itself an effect of pretesting; it then reports that effect as
+#'   an effect on scores, and can be wrong by up to the whole gap, as when
+#'   taking the pretest itself caused the selective loss. When only the
+#'   pretested groups lose posttests, by their pretest, the observed center
+#'   is unbiased and the default is not. When pretesting only adds losses at
+#'   random, the default is exact and the observed center is off by the
+#'   whole gap. When the pretested groups lose by their pretest and the
+#'   unpretested groups lose at random at the same rate, the loss rates do
+#'   not differ and no diagnostic warns: the printed observed center is
+#'   then the only check.
+#' - The default keeps the design's own pretest effect. For the main effect
+#'   it is, when every pretested participant has a pretest (see issue #142)
+#'   and up to a term that vanishes when the two pretested groups keep equal
+#'   numbers, the difference between the posttest means of the participants
+#'   analyzed, as the design defines the effect (Solomon & Lessac, 1968, p.
+#'   147). It does not depend on whether the data keep rows for participants
+#'   without a posttest.
+#'
+#' Whenever the two centers differ, the printed fit gives the pretest
+#' effects at both, their difference, and the shares of posttests missing,
+#' and `pretest_sensitivity` returns them, with each group's attrition in
+#' `pretest_sensitivity$attrition`; [report_solomon()] names the center,
+#' its assumption, and the other center. On the identity link the print also
+#' gives the delta line: for each unpretested group, the difference between
+#' its dropouts' and its completers' mean posttest that the default assumes,
+#' which is the difference the pretested dropouts' pretests predict for
+#' them, scaled by the ratio of the loss rates; `"observed"` assumes 0. This
+#' is the delta parameterization of the National Research Council (2010, pp.
+#' 88--89) and Mavridis et al. (2015, sec. 2), and it assumes that the
+#' pretested losses are at random given the pretest. [check_solomon_missing()]
+#' gives the attrition checks.
+#'
+#' **Choosing.** Choose the center before the outcomes are seen, and report
+#' the other as a sensitivity analysis (National Research Council, 2010,
+#' Recommendation 9, p. 4, and Recommendation 15, p. 106; White et al.,
+#' 2011). Specify `"observed"` in advance when there are grounds to believe
+#' that the unpretested groups' losses are unrelated to baseline and to the
+#' posttest. The clear case is
+#' unpretested groups that lost no posttests, with a row for everyone
+#' randomized to them. A burdensome pretest that adds losses makes the
+#' default doubtful, but it does not make `"observed"` right. Loss rates
+#' that differ between the pretest conditions suggest that pretesting
+#' changed who dropped out, in which case neither center is free of
+#' assumptions.
+#'
+#' **Cautions.**
+#' - Moving the center changes what the coefficient of `pretested`
+#'   measures, and nothing else in the model. Only the pretest effects, and
+#'   that coefficient with its standard error and covariances, depend on the
+#'   center; the treatment contrasts, Pretest x Treatment, and the fitted
+#'   values do not, on the model's scale. On the risk or rate
+#'   scale of [marginal_solomon()], Treatment | pretested, the average
+#'   treatment effect, and Pretest x Treatment depend on it as well as the
+#'   pretest effects.
+#' - The gap above assumes one pretest slope for all conditions, as the
+#'   model has.
+#' - If the treatment conditions lost different kinds of participants,
+#'   neither center gives both conditional pretest effects: in the record's
+#'   case S3 (losses by baseline in the control arms and at random in the
+#'   treated arms, alike in both pretest conditions) the default misstated
+#'   both, although not their average when
+#'   the pretested groups kept equal numbers, and the observed center
+#'   misstated one of them and their average. Pretest x Treatment is then
+#'   biased at every center (issue #143). [check_solomon_missing()] tests
+#'   whether the pretested conditions' selection differs and then gives the
+#'   raw comparison of posttest means in each condition.
+#' - Pretested participants with a posttest and no pretest are dropped at
+#'   either center. When that loss relates to baseline, both centers are
+#'   biased alike, and a fit without `y_pre` is not (issue #142).
+#' - When loss depends on the posttest itself, both centers understate a
+#'   real pretest effect: in a derivation reported on issue #135, a true
+#'   effect of 0.3 gave 0.234 at the default and 0.174 at the observed
+#'   center. Neither center protects a test of equivalence; see
+#'   [equivalence_solomon()].
+#' - The default's target is the pretest effect among the participants who
+#'   would be analyzed in either pretest condition. It equals the effect in
+#'   the randomized population only when the pretest effect does not vary
+#'   with what drives the loss.
 #'
 #' @section Designs with several treatments:
 #' A Solomon N-group design crosses k treatments and a control with
@@ -619,6 +1027,17 @@ stouffer_solomon <- function(p) {
 #' @param data optional data frame. When supplied, the other data arguments
 #'   are looked up in it first: give them as bare column names
 #'   (`y_post = post`) or as strings (`y_post = "post"`).
+#' @param pretest_center with `y_pre`, the mean pretest at which the
+#'   pretested groups are compared with the unpretested groups (issue #135).
+#'   `"analyzed"` (the default): the mean pretest of the pretested
+#'   participants in the model. `"observed"`: the mean of every observed
+#'   pretest among the pretested participants, with or without a posttest,
+#'   condition, covariate, or exposure; their rows must be in the data, with
+#'   `y_post` missing, or this gives the default. Only the pretest effects
+#'   (and the coefficient of `pretested`, with its standard error and
+#'   covariances) depend on it; the treatment contrasts, Pretest x
+#'   Treatment, and the fitted values do not, on the model's scale. Ignored
+#'   without `y_pre`.
 #' @param y,pretest_score `r lifecycle::badge("deprecated")` Use `y_post`
 #'   and `y_pre`.
 #' @return An object of class `solomon_glm`, a list with:
@@ -641,8 +1060,36 @@ stouffer_solomon <- function(p) {
 #'     and negative-binomial fits, and `NA` for the others.
 #'   - `theta`: for negative-binomial fits, its estimate, standard error,
 #'     and \eqn{\alpha = 1/\theta}; otherwise `NULL`.
-#'   - `pretest_mean`: the mean pretest at which the pretest is centered;
-#'     `NA` without `y_pre`.
+#'   - `pretest_mean`: the mean pretest at which the pretest is centered, the
+#'     center used; `NA` without `y_pre`.
+#'   - `pretest_center`: the center used, `"analyzed"` or `"observed"`.
+#'   - `pretest_mean_analyzed` and `pretest_mean_observed`: the two centers,
+#'     the mean pretest of the pretested participants in the model and the
+#'     mean of every observed pretest among the pretested participants; `NA`
+#'     without `y_pre`.
+#'   - `pretest_n`: the numbers of pretested participants with a pretest in
+#'     the model (`analyzed`) and in all (`observed`), and, of those outside
+#'     the model, how many have no posttest (`no_posttest`; the others lack
+#'     the condition, a covariate, or the exposure). `NULL` without `y_pre`.
+#'   - `pretest_sensitivity`: the pretest effects at both centers (see "The
+#'     pretest effect when posttests are missing"), a list with `effects`
+#'     (the pretest rows of the effects table at each `center`, the center
+#'     used giving the rows of `effects`); `difference` (each pretest
+#'     effect's estimates at the `analyzed` and `observed` centers and their
+#'     `difference`); `slope`, the pretest slope; `m1`, the share of the
+#'     pretested participants with a pretest who are not in the model;
+#'     `pretest_means`, the mean pretest of those `analyzed` and
+#'     `not_analyzed`; `delta`, on the identity link only, each unpretested
+#'     group's `condition`, `n`, share not analyzed `m0`, and the offset
+#'     `delta` the default assumes (`NA` where `m0` is 0), and otherwise
+#'     `NULL`; `predicted`, what the pretested dropouts' pretests predict for
+#'     them; `attrition`, each group's `n`, `posttest_missing`, and `share`;
+#'     `differ`, whether the two centers differ; and `note`, the reason the
+#'     other center's standard errors are missing, if they are. The other
+#'     center's effects are computed without a refit, by moving the
+#'     contrasts, with the variance of its mean stacked as for the center
+#'     used. `NULL` without `y_pre`; outside the stable interface (see
+#'     [solomon_output]).
 #'   - `robust`, `family`, `cluster` (the cluster of each participant), and
 #'     `n_clusters`: the settings used. The last two are `NULL` without
 #'     `cluster`.
@@ -662,6 +1109,9 @@ stouffer_solomon <- function(p) {
 #'   - `weights`: the weights of each comparison over the conditions, one
 #'     row for each comparison.
 #'   - `adjust`: the adjustment of the p-values.
+#'   - The tables of `pretest_sensitivity` have `comparison` first, as
+#'     `effects` does, and its `effects` has `p.adjusted`; `delta` has a row
+#'     for each unpretested group.
 #'
 #'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
 #'   which returns the table, are the stable interface of the result; see
@@ -674,6 +1124,10 @@ stouffer_solomon <- function(p) {
 #' Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
 #' (2nd ed.). Cambridge University Press.
 #' https://doi.org/10.1017/CBO9781139013567
+#'
+#' Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+#' social settings. *Psychological Bulletin, 54*(4), 297–312.
+#' https://doi.org/10.1037/h0040950
 #'
 #' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally. (Original work
@@ -714,9 +1168,18 @@ stouffer_solomon <- function(p) {
 #' transfer interventions using Solomon four-group designs. *Education
 #' Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 #'
+#' Mavridis, D., White, I. R., Higgins, J. P. T., Cipriani, A., & Salanti, G.
+#' (2015). Allowing for uncertainty due to missing continuous outcome data in
+#' pairwise and network meta-analysis. *Statistics in Medicine, 34*(5),
+#' 721–741. https://doi.org/10.1002/sim.6365
+#'
 #' McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 #' through service learning. *Journal of Management Education, 26*(6), 629–647.
 #' https://doi.org/10.1177/1052562902238322
+#'
+#' National Research Council. (2010). *The prevention and treatment of missing
+#' data in clinical trials*. The National Academies Press.
+#' https://doi.org/10.17226/12955
 #'
 #' Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
 #' Solomon four group design. *Multiple Linear Regression Viewpoints, 17*(2),
@@ -735,6 +1198,10 @@ stouffer_solomon <- function(p) {
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 #' variance components. *Biometrics Bulletin, 2*(6), 110–114.
 #' https://doi.org/10.2307/3002019
+#'
+#' Seaman, S., Galati, J., Jackson, D., & Carlin, J. (2013). What is meant by
+#' "missing at random"? *Statistical Science, 28*(2), 257–268.
+#' https://doi.org/10.1214/13-STS415
 #'
 #' Solomon, R. L. (1949). An extension of control group design. *Psychological
 #' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
@@ -766,6 +1233,10 @@ stouffer_solomon <- function(p) {
 #' Welch, B. L. (1947). The generalization of "Student's" problem when several
 #' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
 #' https://doi.org/10.1093/biomet/34.1-2.28
+#'
+#' White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
+#' for intention to treat analysis in randomised trials with missing outcome
+#' data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40
 #' @examples
 #' fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 #' fit
@@ -778,6 +1249,10 @@ stouffer_solomon <- function(p) {
 #' fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
 #'                         control = "Control", data = mai2020)
 #' fit6
+#'
+#' # Posttests are missing in mai2020, so the print gives the pretest effects
+#' # at both centers; pretest_sensitivity returns them.
+#' fit6$pretest_sensitivity$difference
 #' @export
 fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),
@@ -786,6 +1261,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
                             control = NULL, contrasts = "control",
                             adjust = c("holm", "bonferroni", "none"),
                             data = NULL,
+                            pretest_center = c("analyzed", "observed"),
                             y = deprecated(),
                             pretest_score = deprecated()) {
   .solomon_data_args(
@@ -803,6 +1279,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     y_pre <- pretest_score
   }
   robust <- match.arg(robust)
+  pretest_center <- match.arg(pretest_center)
   .check_conf_level(conf_level)
   negbin <- identical(family, "negative_binomial")
   if (negbin) {
@@ -821,7 +1298,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   if (conditions$k > 1L) {
     return(.fit_solomon_ngroup(
       y_post, conditions, pretested, y_pre, covariates, robust, cluster,
-      family, negbin, conf_level, exposure, contrasts, adjust, match.call()
+      family, negbin, conf_level, exposure, contrasts, adjust, match.call(),
+      pretest_center = pretest_center
     ))
   }
   if (!(is.character(contrasts) && length(contrasts) == 1L &&
@@ -909,10 +1387,14 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
   # Center the pretest at its mean among the pretested participants in the
   # model, so that the pretesting coefficient compares pretested and
-  # unpretested participants at that score (issue #104).
+  # unpretested participants at that score (issue #104); or, with
+  # `pretest_center = "observed"`, at the mean of every observed pretest
+  # among the pretested participants, in the model or not (issue #135).
   pretest_mean <- NA_real_
+  centers <- c(analyzed = NA_real_, observed = NA_real_)
   if (!is.null(y_pre)) {
-    pretest_mean <- .pretest_center(df)
+    centers <- .pretest_centers(df)
+    pretest_mean <- centers[[pretest_center]]
     df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
   }
 
@@ -921,6 +1403,37 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     family <- stats::family(fit)
   } else {
     fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
+  }
+
+  # An empty group, or a term collinear with the others, leaves a
+  # coefficient inestimable: stop as the several-treatment path does. The
+  # groups are named by the conditions when `control` named them. With
+  # `pretest_center = "observed"` the center exists even when a pretested
+  # group has no posttest, so the model's own check is needed.
+  in_model <- rep(TRUE, nrow(df))
+  if (!is.null(fit$na.action)) in_model[fit$na.action] <- FALSE
+  arms <- if (is.null(conditions$control)) {
+    c("treatment", "control")
+  } else {
+    c(conditions$treatments, conditions$control)
+  }
+  group_counts <- table(
+    factor(df$treat[in_model], levels = c(1L, 0L), labels = arms),
+    factor(df$pretested[in_model], levels = c(1L, 0L))
+  )
+  .stop_inestimable(fit, .group_names(group_counts, group_counts == 0))
+
+  # A group with one participant is fitted exactly: its hat value is 1, and
+  # HC3 divides the squared residual by (1 - h)^2, so its standard errors
+  # are undefined. Stop as the several-treatment path does.
+  if (robust == "HC3" && any(group_counts == 1)) {
+    stop(
+      "HC3 standard errors are undefined because these groups have a single ",
+      "analyzable participant: ", paste(.group_names(group_counts, group_counts == 1),
+                                         collapse = "; "), ". ",
+      "Use `robust = \"none\"`; see validate_solomon().",
+      call. = FALSE
+    )
   }
 
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
@@ -963,16 +1476,25 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
   # The sampling variance of the mean pretest at which the pretest effects
   # are evaluated, and its covariance with the coefficients (issue #104).
+  # For the "observed" center the variance is taken over every pretested
+  # participant with a pretest, and the covariance over those of them in the
+  # model (issue #135). The other center's terms are computed too when the
+  # two centers differ, for `pretest_sensitivity`.
   center <- NULL
+  center_other <- NULL
+  center_note <- NULL
+  parts <- NULL
+  differ <- FALSE
   if (!is.null(y_pre)) {
     rows <- rep(TRUE, nrow(df))
     if (!is.null(fit$na.action)) rows[fit$na.action] <- FALSE
-    center <- .center_terms(
-      if (robust == "CR2") fit_cr else fit, robust,
-      a = df$pre_obs[rows],
-      set = ifelse(df$pretested[rows] == 1L, "pretested", NA_character_),
-      cluster = if (robust == "CR2") cluster_fit
-    )
+    both <- .center_terms_both(df, y_pre, rows, if (robust == "CR2") fit_cr else fit, robust,
+                               cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    center <- both$center
+    center_other <- both$other
+    center_note <- both$note
+    parts <- both$parts
+    differ <- both$differ
   }
 
   # --- reference distribution ---
@@ -1007,8 +1529,9 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
   # The pretest effects also carry the variance of the mean pretest at which
   # they are evaluated (.center_adjusted()); `added` is that part, which the
-  # Wald R-squared uses too.
-  lin_contrast <- function(L) {
+  # Wald R-squared uses too. `terms` is that mean's .center_terms(): the
+  # center used, or the other center for `pretest_sensitivity`.
+  lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") {
@@ -1023,7 +1546,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     } else {
       df_model
     }
-    adj <- .center_adjusted(L, cf, vcovM, center, robust, dfc)
+    adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
     z   <- est / se
@@ -1113,6 +1636,35 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     }
   }
 
+  # The pretest effects at both centers (issue #135). The other center's are
+  # computed without a refit (.other_center_rows()), with the stacked
+  # variance of the other mean. This is exact, because the fitted values,
+  # the HC3, CR2, and model-based covariances, and the Satterthwaite degrees
+  # of freedom of a linear function of the estimates do not depend on where
+  # the pretest is centered. When the two centers are the same number, the
+  # rows are copied.
+  sensitivity <- NULL
+  if (!is.null(y_pre)) {
+    used_rows <- effects[effects$contrast %in% .solomon_pretest_order,
+                         .solomon_effect_columns, drop = FALSE]
+    other_rows <- NULL
+    if (differ) {
+      other_rows <- .other_center_rows(
+        Ls[.solomon_pretest_order], .solomon_pretest_order,
+        centers[[.other_center(pretest_center)]] - pretest_mean,
+        function(L) lin_contrast(L, center_other), no_se = !is.null(center_note)
+      )
+    }
+    identity <- identical(stats::family(fit)$link, "identity")
+    slope <- cf[["pre_obs"]]
+    sensitivity <- .pretest_sensitivity(
+      used_rows, other_rows, pretest_center, character(), parts, centers, slope, identity,
+      .pretest_attrition(ifelse(df$treat == 1L, arms[1], arms[2]), rev(arms), df$pretested,
+                         df$y, rows, slope, centers, identity),
+      note = center_note
+    )
+  }
+
   dispersion <- if (.fixed_dispersion(stats::family(fit))) {
     sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
   } else {
@@ -1128,6 +1680,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     vcov = vcovM,
     data = df,
     pretest_mean = pretest_mean,
+    pretest_center = pretest_center,
+    pretest_mean_analyzed = centers[["analyzed"]],
+    pretest_mean_observed = centers[["observed"]],
+    pretest_n = parts$n,
+    pretest_sensitivity = sensitivity,
     robust = robust,
     family = family,
     cluster = cluster,

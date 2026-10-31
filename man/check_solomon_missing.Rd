@@ -10,7 +10,8 @@ check_solomon_missing(
   pretested,
   y_pre = NULL,
   control = NULL,
-  data = NULL
+  data = NULL,
+  covariates = NULL
 )
 }
 \arguments{
@@ -32,6 +33,11 @@ same as with a 0/1 \code{treat}.}
 \item{data}{Optional data frame. When supplied, the other data arguments
 are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
+
+\item{covariates}{Optional covariates recorded in all groups, such as
+gender: a data frame, or, with \code{data}, the names of its columns. They
+enter the fit behind the gap and the delta line, and loss is shown by
+each of them (see "Missing posttests and the pretest effects").}
 }
 \value{
 An object of class \code{solomon_missing}, a list with:
@@ -45,6 +51,46 @@ An object of class \code{solomon_missing}, a list with:
 interpretation, the supported response, and the sources (\code{category},
 \code{n}, \code{interpretation}, \code{response}, and \code{sources}).
 \item \code{pretest_supplied}: whether pretest scores were supplied.
+}
+
+The checks of missing posttests for the pretest effects (see "Missing
+posttests and the pretest effects"), the elements that need a pretest
+being \code{NULL} without a numeric \code{y_pre}:
+\itemize{
+\item \code{attrition}: \code{groups}, each group's \code{condition}, \code{pretested}, \code{n},
+\code{posttest_missing}, and \code{share}; \code{overall}, the share missing;
+\code{by_pretest}, the shares of the pretested and the unpretested;
+\code{pretest_difference}, the first minus the second; \code{by_condition},
+the share missing in each condition; \code{condition_difference}, the
+largest difference between conditions; \code{p.value}, Fisher's exact test
+of loss by pretest condition; and \code{differ}, whether it is below .05.
+\item \code{pretest_scores}: for each pretested condition, \code{n} participants with
+a pretest and their mean pretest \code{mean_all}; \code{n_with} and \code{mean_with}
+for those with a posttest; \code{n_without} and \code{mean_without} for those
+without; \code{difference} (without minus with); \code{shift} (with minus all);
+and \code{shift_se}, its standard error.
+\item \code{selection_test}: the Wald test of equal shifts, its \code{statistic}
+(chi-square), \code{df}, and \code{p.value}; and \code{selection_differ}, whether
+the p-value is below .05.
+\item \code{gap}: \code{slope}, \code{m1}, the mean pretest of the pretested participants
+\code{analyzed} and \code{not_analyzed}, the \code{gap} between the centers, and
+\code{predicted}, what the pretested dropouts' pretests predict for them.
+\item \code{unpretested}: for each unpretested group, \code{condition}, \code{n},
+\code{posttest_missing}, \code{m0}, and \code{delta}, the offset the default assumes.
+\item \code{covariates}: one table for each covariate: by pretest condition and
+level, \code{n}, \code{posttest_missing}, \code{share}, \code{analyzed_share}, \code{p.value},
+and \code{test} (\code{"exact"} or \code{"simulated"}); or, for a numeric covariate
+with more than two values, its mean
+among those with (\code{mean_with}) and without (\code{mean_without}) a
+posttest. \code{NULL} without \code{covariates}.
+\item \code{missing_pretest}: for each pretested condition, the participants
+with a posttest and no pretest (\code{n_without_pretest},
+\code{mean_without_pretest}, their mean posttest) and those with both
+scores (\code{n_with_pretest}, \code{mean_with_pretest}).
+\item \code{raw_pretest_effects}: the pretest effects of a fit without the
+pretest, in the columns of an effects table, when the selection
+differs or a pretested participant lacks a pretest; otherwise \code{NULL}.
+\item \code{unverifiable}: whether any unpretested posttest is missing.
 }
 
 For a design with several treatments, \code{by_cell} has one row for each of
@@ -74,11 +120,18 @@ Because treatment is randomized, deterministic mean imputation of the
 pretest (without using treatment or outcome), with a missingness indicator
 when pretests may not be missing completely at random, retains these
 participants without biasing the treatment effect (White & Thompson,
-2005; Groenwold et al., 2012).
-\item \strong{Incidental posttest missingness}: missing outcomes. Complete-case
-analysis is unbiased when missingness is unrelated to the outcome given
-the variables in the model (Little & Rubin, 2019); attrition that differs
-across the groups should be reported.
+2005; Groenwold et al., 2012). This concerns the treatment effect only:
+every fit with the pretest as a covariate drops these participants from
+the pretest effects, at either pretest center, and when their loss
+relates to baseline those effects are biased while a fit without the
+pretest is not (issue #142).
+\item \strong{Incidental posttest missingness}: missing outcomes. For the treatment
+contrasts, complete-case analysis is unbiased when missingness is
+unrelated to the outcome given the variables in the model (Little &
+Rubin, 2019); attrition that differs across the groups should be
+reported. The pretest effects also depend on the mean pretest at which
+the pretested groups are compared; see "Missing posttests and the
+pretest effects" below.
 \item \strong{Unexpected pretest scores}: pretest values recorded for unpretested
 participants, which usually indicate a coding or assignment error. They
 are ignored by solomonR analyses.
@@ -97,6 +150,96 @@ Not supported: this function does not test the missingness mechanism,
 perform imputation, or provide sensitivity analyses for outcome
 missingness that depends on unobserved values.
 }
+\section{Missing posttests and the pretest effects}{
+
+With a pretest covariate, the pretest effects compare the pretested groups,
+at a mean pretest, with the unpretested groups, and when posttests are
+missing that mean can be taken over the pretested participants analyzed
+(the default of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}) or over every observed pretest
+(\code{pretest_center = "observed"}); see "The pretest effect when posttests
+are missing" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. The data cannot tell which is right.
+The result gives the checks of the decision record on issue #135
+(section 5), and the print method summarizes them:
+\enumerate{
+\item \strong{Posttests missing by group}: the overall rate, and the differential
+attrition between the pretest conditions and between the conditions
+(What Works Clearinghouse, 2022, p. 40). Equal rates do not show that
+the same kinds of participants were lost (Campbell & Stanley,
+1963/1966, pp. 15--16). When Fisher's exact test of loss by pretest
+condition gives p < .05, the print says that the loss rates differ,
+which suggests that taking the pretest changed attrition, so that
+neither center is assured. That rule is the package's: no source fixes
+one for the pretest conditions.
+\item \strong{Pretest scores of those lost}: for each pretested group, the mean
+pretest of the participants with and without a posttest (Campbell,
+1957, pp. 301--302; Campbell & Stanley, 1963/1966, pp. 15--16).
+\item \strong{Selection by condition}: each pretested condition's selection
+shift, the mean pretest of those with a posttest minus that of every
+participant with a pretest, with its standard error from the shift's
+influence function (Stefanski & Boos, 2002), and a Wald chi-square
+test of equal shifts across the conditions. A condition that lost no
+posttest has a shift of exactly 0. When the test gives p < .05 (the
+package's rule; no source fixes one), the conditions may have lost
+different kinds of participants. Neither center then gives both
+conditional pretest effects: in the decision record's case S3 (losses
+by baseline in the control arms and at random in the treated arms,
+alike in both pretest conditions) the default misstated both,
+although not their average when the pretested
+groups kept equal numbers, and the observed center misstated one of
+them and their average. Pretest x Treatment is biased at every center
+(issue #143). The pretest effects of a fit without the pretest, the
+raw comparison of posttest means in each condition, are then given.
+The test does not depend on the units of the pretest. When every group
+loses by the same rule it rejects at about its nominal rate: in a
+check on issue #135 (1,000 data sets for each setting; part 8 of
+\code{tools/pretest-center-check.R} in the package's source), in 5.7\% of
+data sets with 200 participants per group and 4.4\% with 50 when loss
+depended on baseline, and in 5.8\% and 4.5\% when it was completely at
+random.
+\item \strong{The gap between the centers}: the pretest effects at the analyzed
+center minus those at the observed center, b m1 (completers' minus
+dropouts' mean pretest), with b the pretest slope and m1 the share of
+pretested participants with a pretest who are not analyzed, from a fit
+on the identity link with \code{covariates}. This is the adjustment of What
+Works Clearinghouse (2022, Equation H.2, p. 207).
+\item \strong{The unpretested groups}: for each, its share without a posttest,
+m0, and the offset the default assumes for its dropouts, the delta
+line of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. A group that lost no posttests is named:
+if the data hold everyone randomized to it, the default's pretest
+effect in that condition is right only if the pretested groups'
+losses, taken together, were unrelated to baseline, because the
+default's center pools the pretested groups.
+\item \strong{Covariates recorded in all groups} (\code{covariates}): loss by covariate
+within each pretest condition, and the covariate's distribution among
+the participants with a posttest (Lee, 2005, Remark 4, p. 16;
+Groenwold et al., 2014). For a covariate with levels, loss by level is
+tested with Fisher's exact test when there are two levels, and with a
+p-value simulated from 10,000 tables with the same margins, under a
+fixed seed, when there are more, because the exact test of a larger
+table can exceed its workspace at ordinary sample sizes; that choice
+is the package's, and no source fixes one. Dukes et al. (1995, p. 413)
+compared the course grades of the students lost in this way. A
+covariate that predicts the posttest belongs in the model; that it
+weakens both centers' assumptions is the record's inference, not a
+checked result.
+\item \strong{Pretested participants with a posttest and no pretest}: their number
+and mean posttest beside those of the pretested participants with both
+scores, and the raw comparison, which keeps them (issue #142).
+\item \strong{What cannot be checked}: the unpretested groups' losses cannot be
+checked against baseline (Campbell, 1957, p. 305). When only those
+groups lost posttests, the two centers coincide, but neither is
+protected; only the delta line reaches that case. If an unpretested
+group's dropouts would have scored Delta above its completers, the
+pretest effect in its condition is m0 Delta lower, m0 being that
+group's share without a posttest (see "The pretest effect when
+posttests are missing" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
+}
+
+The checks on the pretest (items 2 to 5 and 7) need numeric pretest
+scores and are left out otherwise. \code{\link[=validate_solomon]{validate_solomon()}} leaves out all
+of them.
+}
+
 \examples{
 data(solomon_example)
 
@@ -109,20 +252,43 @@ d$y_pre[which(d$pretested == 1)[1]] <- NA
 d$y_post[which(d$pretested == 0)[1]] <- NA
 with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
 
-# A six-group design: two treatments and a control (Mai et al., 2020).
+# A six-group design: two treatments and a control (Mai et al., 2020),
+# with loss by gender in each pretest condition.
 check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
-                      control = "Control", data = mai2020)
+                      control = "Control", data = mai2020, covariates = "gender")
 }
 \references{
+Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+social settings. \emph{Psychological Bulletin, 54}(4), 297–312.
+https://doi.org/10.1037/h0040950
+
+Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
+quasi-experimental designs for research}. Rand McNally. (Original work
+published 1963)
+
+Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of D.A.R.E.
+(Drug Abuse Resistance Education), using a Solomon four-group design with
+latent variables. \emph{Evaluation Review, 19}(4), 409–435.
+https://doi.org/10.1177/0193841X9501900404
+
 Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 Planned missing data designs in psychological research. \emph{Psychological
 Methods, 11}(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
+
+Groenwold, R. H. H., Moons, K. G. M., & Vandenbroucke, J. P. (2014).
+Randomized trials with missing outcome data: How to analyze and what to
+report. \emph{Canadian Medical Association Journal, 186}(15), 1153–1157.
+https://doi.org/10.1503/cmaj.131353
 
 Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R.,
 Altman, D. G., & Moons, K. G. M. (2012). Missing covariate data in clinical
 research: When and when not to use the missing-indicator method for analysis.
 \emph{Canadian Medical Association Journal, 184}(11), 1265–1269.
 https://doi.org/10.1503/cmaj.110977
+
+Lee, D. S. (2005). \emph{Training, wages, and sample selection: Estimating sharp
+bounds on treatment effects} (NBER Working Paper No. 11721). National
+Bureau of Economic Research. https://doi.org/10.3386/w11721
 
 Little, R. J. A., & Rubin, D. B. (2019). \emph{Statistical analysis with missing
 data} (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
@@ -137,9 +303,18 @@ Rubin, D. B. (1976). Inference and missing data. \emph{Biometrika, 63}(3),
 Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
 Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 
+Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation. \emph{The
+American Statistician, 56}(1), 29–38.
+https://doi.org/10.1198/000313002753631330
+
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? \emph{Design Principles and Practices: An International
 Journal—Annual Review, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+
+What Works Clearinghouse. (2022). \emph{What Works Clearinghouse procedures and
+standards handbook, version 5.0} (WWC 2022008REV). U.S. Department of
+Education, Institute of Education Sciences, National Center for Education
+Evaluation and Regional Assistance. https://ies.ed.gov/ncee/wwc/Handbooks
 
 White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. \emph{Statistics in Medicine, 24}(7),

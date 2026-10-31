@@ -435,7 +435,7 @@ Publication acceptance is not required before the v1.0 release.
 On October 3, 2026, the package was audited against the aim above. The
 maintainer decided to fix every gap the audit found, to leave no function
 experimental at 1.0, and to run a robustness study before the release is
-tagged. The items, with their status:
+tagged. The items, with their status, and those found since the audit:
 
 - **Estimates and their sources**
   - [x] The pretest (testing) effect as named contrasts, with the pretest
@@ -446,6 +446,14 @@ tagged. The items, with their status:
     precedent — [#106](https://github.com/JUhalt/solomonR/issues/106); merged in [PR #126](https://github.com/JUhalt/solomonR/pull/126)
   - [x] The worked example of Walton Braver and Braver (1988) bundled and
     reproduced — [#109](https://github.com/JUhalt/solomonR/issues/109); merged in [PR #126](https://github.com/JUhalt/solomonR/pull/126)
+  - [x] The pretest center when posttests are missing: the analyzed
+    center stays the default, for reasons set out in a decision record,
+    and the observed center is offered and printed beside it — [#135](https://github.com/JUhalt/solomonR/issues/135); merged in [PR #145](https://github.com/JUhalt/solomonR/pull/145)
+  - [ ] Pretested participants without a pretest, whom every fit with a
+    pretest drops — [#142](https://github.com/JUhalt/solomonR/issues/142)
+  - [ ] Pretest × Treatment when attrition differs between the treatment
+    arms — [#143](https://github.com/JUhalt/solomonR/issues/143)
+  - [ ] `fit_solomon_glm()` with a covariate far from zero — [#137](https://github.com/JUhalt/solomonR/issues/137)
 - **Figures and reports**
   - [x] The interval of the equivalence test drawn in the forest plot — [#107](https://github.com/JUhalt/solomonR/issues/107); merged in [PR #121](https://github.com/JUhalt/solomonR/pull/121)
   - [x] Figure text that fits the figure — [#108](https://github.com/JUhalt/solomonR/issues/108); merged in [PR #123](https://github.com/JUhalt/solomonR/pull/123)
@@ -457,12 +465,21 @@ tagged. The items, with their status:
   - [x] A warning when the difference statistic of the permutation test
     is used with unequal arms — [#113](https://github.com/JUhalt/solomonR/issues/113); merged in [PR #122](https://github.com/JUhalt/solomonR/pull/122)
   - [x] Satterthwaite inference by default in `fit_solomon_ml()` — [#115](https://github.com/JUhalt/solomonR/issues/115); merged in [PR #124](https://github.com/JUhalt/solomonR/pull/124)
+  - [x] Permutations tied with the observed statistic counted exactly in
+    `perm_solomon()` — [#131](https://github.com/JUhalt/solomonR/issues/131); merged in [PR #132](https://github.com/JUhalt/solomonR/pull/132), released in 0.8.2
+  - [ ] `perm_solomon()`: ties with a covariate in iterated models, and
+    degenerate labelings — [#134](https://github.com/JUhalt/solomonR/issues/134)
   - [ ] Robustness study of the recommended inference, under a protocol
     posted before any run — [#116](https://github.com/JUhalt/solomonR/issues/116)
 - **Interface**
-  - [ ] One output vocabulary across the fitted objects — [#110](https://github.com/JUhalt/solomonR/issues/110)
+  - [x] One output vocabulary across the fitted objects — [#110](https://github.com/JUhalt/solomonR/issues/110); merged in [PR #141](https://github.com/JUhalt/solomonR/pull/141)
+  - [ ] The SEM functions accept only the estimators they can fit and
+    describe — [#133](https://github.com/JUhalt/solomonR/issues/133)
   - [ ] No experimental functions: each one implemented to its literature
     and held to a validation rule posted in advance — [#117](https://github.com/JUhalt/solomonR/issues/117)
+- **Reproducibility**
+  - [x] The validation scripts rerun against the current package, each
+    with a smoke mode that a GitHub Actions workflow runs — [#140](https://github.com/JUhalt/solomonR/issues/140); merged in [PR #144](https://github.com/JUhalt/solomonR/pull/144)
 
 # Later / exploratory
 
