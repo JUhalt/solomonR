@@ -13,10 +13,10 @@ jobs:
   validation-scripts:
     name: Smoke runs of the validation scripts
     runs-on: ubuntu-latest
-    # The scripts took 36 minutes in all on a laptop (issue #140); the job
-    # has not yet been timed on GitHub. A script that hangs is stopped after
-    # SOLOMONR_SMOKE_TIMEOUT seconds, well within this limit, so the check
-    # still prints its table and the end of the log.
+    # The scripts took 27 and 36 minutes in all in two runs on a laptop
+    # (issue #140); the job has not yet been timed on GitHub. A script that
+    # hangs is stopped after SOLOMONR_SMOKE_TIMEOUT seconds, well within this
+    # limit, so the check still prints its table and the end of the log.
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
