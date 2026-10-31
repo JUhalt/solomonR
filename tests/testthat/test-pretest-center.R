@@ -98,10 +98,10 @@ test_that("with the default center, results equal those of master (a6c771a)", {
   expect_gte(length(now), 60L)
 
   # Linear algebra agrees to rounding on every platform; fits by iteration
-  # agree to their convergence tolerance.
+  # agree to their convergence tolerance. On the platform that stored the
+  # results, every number agrees with master to 2e-16.
   tolerance <- function(name) {
-    if (grepl("^mmrm", name)) 1e-3
-    else if (grepl("^ml", name)) 1e-4
+    if (grepl("^mmrm|^ml", name)) 1e-5
     else if (grepl("negative binomial", name)) 1e-5
     else if (grepl("logit|poisson|mi$", name)) 1e-6
     else 1e-8
