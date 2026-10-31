@@ -327,9 +327,13 @@ number is not allowed for.
   at the mean of the pretested participants, in Groups 1 and 2 and 0 in
   Groups 3 and 4, so no group is dropped. The `pretested` coefficient and
   the pretest effects then compare the groups at that mean, where Newman et
-  al. (1990, p. 101) took their adjusted means, and which is the best
-  estimate of the unpretested groups' pretest under random assignment
-  (Solomon & Lessac, 1968, pp. 146–147). This is the model Newman et al. (1990)
+  al. (1990, p. 101) took their adjusted means. Under random assignment the
+  unpretested groups' expected pretest equals the pretested groups'
+  (Solomon, 1949, p. 141), and that mean is its best estimate (Solomon &
+  Lessac, 1968, p. 147). With missing posttests, the mean can be taken over
+  the pretested participants analyzed (the default) or over every observed
+  pretest (`pretest_center = "observed"`); see "The pretest effect when
+  posttests are missing" in `?fit_solomon_glm`. This is the model Newman et al. (1990)
   proposed for the design, which they call a pseudo-analysis of covariance
   (pp. 94, 98). Their equation 7 (p. 98) has an indicator for each group in
   place of the treatment and pretest indicators and gives the same fitted
