@@ -43,7 +43,8 @@ runs:
         fi
         # setup-r-dependencies pastes these into R code, so only plain
         # package references are allowed.
-        if [[ ! "$extra" =~ ^[A-Za-z0-9:.@\ _-]*$ ]]; then echo "::error::Bad extra packages in $pins"; exit 1; fi
+        plain='^[A-Za-z0-9:.@ _-]*$'
+        if [[ ! "$extra" =~ $plain ]]; then echo "::error::Bad extra packages in $pins"; exit 1; fi
         {
           echo "RSPM=$snapshot"
           echo "CRAN=$snapshot"
