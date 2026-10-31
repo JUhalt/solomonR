@@ -50,8 +50,8 @@
   its SEM ANCOVA row; the latent ANCOVA of `fit_solomon_sem_latent()` lost
   accuracy too. Both now center the pretest, or its items, at the mean
   among the pretested participants, which changes only intercepts and
-  means: the intercepts of the observed ANCOVA's lavaan model are now the
-  posttest means adjusted to that pretest. `check_solomon_assumptions()`
+  means: the intercepts of the lavaan model of the observed ANCOVA are now
+  the posttest means adjusted to that pretest. `check_solomon_assumptions()`
   centers the pretest in its test of homogeneous slopes, which was `NA`
   from a pretest mean of 10^7 standard deviations.
 * `fit_solomon_mi()` stopped in the same way when the pretest lay far from

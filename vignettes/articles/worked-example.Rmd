@@ -228,7 +228,8 @@ data sets. The analyses below use 2,000 imputations rather than the default
 missing information, 100 imputations leave noticeable Monte Carlo error.
 With 100 imputations, the tipping point for sensitization found below
 ranged from 0.1 to 0.5 standard deviations across 40 seeds; with 2,000, it
-was 0.3 standard deviations for each of the 30 seeds tried.
+was 0.3 standard deviations for 27 of the 30 seeds tried, and 0.2 or 0.4
+for the other three.
 
 ```{r mi}
 mar <- with(rp, fit_solomon_mi(post_behavior, treat, pretested, pre_behavior,
