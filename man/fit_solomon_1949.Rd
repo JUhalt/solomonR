@@ -116,10 +116,10 @@ are the same size. \code{inferred_pretest = "average"} (the default) follows the
 tables; \code{"pooled"} weights the two means by their sample sizes, which
 requires \code{n} or individual data.
 
-\strong{Missing posttests} (issue #135). Solomon's tables give the means of
-the participants with both scores, and so does the default,
-\code{pretest_center = "analyzed"}: the pretest means are those of the
-pretested participants with a posttest. \code{pretest_center = "observed"}
+\strong{Missing posttests} (issue #135). The default,
+\code{pretest_center = "analyzed"}, uses, like a table of group means, the
+pretested participants with both scores: the pretest means are those of
+the pretested participants with a posttest. \code{pretest_center = "observed"}
 infers the pretest from every observed pretest of the pretested groups;
 see "The pretest effect when posttests are missing" in
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for what each assumes. In the four-group design I does

@@ -273,15 +273,18 @@ element is the last step, a list of tables, not an effects table. The
 \code{\link[=validate_solomon]{validate_solomon()}} return model comparisons, tests of two-by-two
 tables, effect sizes in the \code{yi} and \code{vi} form of meta-analysis, and
 checks.
-\item \code{pretest_sensitivity}, in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}},
-\code{\link[=marginal_solomon]{marginal_solomon()}}, and \code{\link[=fit_solomon_1949]{fit_solomon_1949()}}, holds the results at
-the two pretest centers when posttests are missing (issue #135). Its
+\item \code{pretest_sensitivity} holds the results at the two pretest centers
+when posttests are missing (issue #135). In \code{\link[=fit_solomon_glm]{fit_solomon_glm()}},
+\code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}, and \code{\link[=marginal_solomon]{marginal_solomon()}} it is a list: its
 \code{effects} table has the key columns, ending with \code{center}, and the
 eight shared columns; its \code{difference} table gives each contrast's
 estimates at the \code{analyzed} and \code{observed} centers and their
-\code{difference}. The rest of it are checks. It is new in 1.0.0 and outside
-the contract, so its layout can still change; the center used is in
-\code{effects}, as before.
+\code{difference}; the rest of it holds the checks. In \code{\link[=fit_solomon_1949]{fit_solomon_1949()}},
+which gives no standard errors, it is one data frame, with a row for
+each \code{center} and the \code{inferred_pretest}, \code{I}, \code{d3}, and \code{d4} at it.
+It is new in 1.0.0 and outside the contract, so its layout can still
+change; the results at the center used are in \code{effects} (in
+\code{\link[=fit_solomon_1949]{fit_solomon_1949()}}, \code{groups} and \code{I}), as before.
 \item \code{\link[=power_solomon]{power_solomon()}} and \code{\link[=plan_solomon]{plan_solomon()}} describe a planned study, which
 has true effects and no estimates: their column of contrast labels is
 \code{estimand}, and \code{\link[=power_solomon]{power_solomon()}} adds the label \code{Treatment (one-sided)}

@@ -2,7 +2,7 @@
 
 ## The pretest center when posttests are missing (#135)
 
-With a pretest covariate, the three pretest effects compare the pretested
+With a pretest covariate, the pretest effects compare the pretested
 groups, at a mean pretest, with the unpretested groups. When posttests are
 missing, that mean can be taken over the pretested participants analyzed
 or over every observed pretest, and the pretest effects differ by the
@@ -46,16 +46,17 @@ reasons are set out in the decision record posted on #135.
   identity link, the delta line: for each unpretested group, the offset
   between its dropouts' and its completers' mean posttest that the default
   assumes (National Research Council, 2010, pp. 88–89; Mavridis et al.,
-  2015). Whenever the two centers differ, the printed fit gives them in a
-  block, as the record's section 4 shows it for `mai2020`, and
+  2015, sec. 2). Whenever the two centers differ, the printed fit gives
+  them in a block, as the record's section 4 shows it for `mai2020`, and
   `report_solomon()` names the center used, its assumption, and the other
   center, and says when whether a pretest effect differs from zero depends
-  on the center. The caption of `plot_sensitization()` names both centers.
+  on the center, or, when only its sign differs, its direction. The caption of `plot_sensitization()` names both centers.
   `marginal_solomon()` prints the contrasts that move under both
   standardizations, and `fit_solomon_1949()` both inferred pretests. These
   tables are outside the output contract of `?solomon_output` for now.
 * **New lines whenever a posttest is missing.** The print methods and
-  `report_solomon()` give the share of posttests missing among the
+  `report_solomon()` of the fits, `marginal_solomon()`, and
+  `fit_solomon_1949()` give the share of posttests missing among the
   pretested and the unpretested participants, with the range over the
   groups, whether or not the centers differ.
 * **`check_solomon_missing()`** gains `covariates` and the record's
@@ -63,12 +64,16 @@ reasons are set out in the decision record posted on #135.
   conditions and between the conditions (What Works Clearinghouse, 2022, p.
   40), with a statement when Fisher's exact test of loss by pretest
   condition gives p < .05; the pretest scores of those lost (Campbell, 1957,
-  pp. 301–302); each pretested condition's selection shift, with the raw
-  comparison of posttest means when the shifts differ (#143); the gap
-  between the centers and the delta line; loss by each covariate within
-  each pretest condition; the pretested participants with a posttest and
-  no pretest (#142); and what cannot be checked (Campbell, 1957, p. 305).
-  Its guidance now says that complete-case analysis is unbiased under its
+  pp. 301–302); each pretested condition's selection shift, with its
+  standard error and a Wald test of equal shifts, and the raw comparison of
+  posttest means when that test gives p < .05 (#143); the gap between the
+  centers (What Works Clearinghouse, 2022, Equation H.2) and the delta
+  line; loss by each covariate within each pretest condition (Lee, 2005,
+  Remark 4, p. 16; Groenwold et al., 2014), by Fisher's exact test for two
+  levels and a simulated p-value for more; the pretested participants with
+  a posttest and no pretest (#142); and what cannot be checked (Campbell,
+  1957, p. 305). `validate_solomon()` leaves these checks out. Its
+  guidance now says that complete-case analysis is unbiased under its
   condition for the treatment contrasts only.
 * **`analysis_plan_solomon()`** gains `pretest_center`. Its population,
   missing-at-random, and multiple-imputation statements are restricted to
@@ -78,8 +83,11 @@ reasons are set out in the decision record posted on #135.
 * **Behavior changes.** A four-group fit with an empty group, or a term
   collinear with the others, now stops with an error that names the
   groups, as fits with several treatments did; before, it returned `NA`
-  estimates or failed in the linear algebra. `fit_solomon_mmrm()` takes a
-  participant's pretest from any of the participant's rows, so a pretest
+  estimates or failed in the linear algebra. With HC3, a four-group fit
+  with a group of one participant now stops with an error that names it,
+  as fits with several treatments did; before, it returned `NaN` standard
+  errors, or, with a pretest covariate, failed with an unclear error.
+  `fit_solomon_mmrm()` takes a participant's pretest from any of the participant's rows, so a pretest
   given on one row only no longer excludes the participant with a warning;
   different pretests for one participant still stop the fit.
 * **Help pages.** `?fit_solomon_glm` has a new section, "The pretest effect
@@ -102,9 +110,9 @@ reasons are set out in the decision record posted on #135.
   Solomon and Lessac (1968, pp. 146–147).
 * **Not solved here.** Pretested participants without a pretest are
   dropped at either center (#142), and when the treatment conditions lose
-  different kinds of participants the pooled center misstates the
-  conditional pretest effects and Pretest x Treatment is biased at every
-  center (#143). `check_solomon_missing()` reports both cases.
+  different kinds of participants neither center gives both conditional
+  pretest effects, and Pretest x Treatment is biased at every center
+  (#143). `check_solomon_missing()` reports both cases.
 * `tools/pretest-center-check.R` reruns the record's checks with both
   centers, from one build of the package.
 

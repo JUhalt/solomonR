@@ -19,7 +19,11 @@
 # covariates, in the model or not: with or without an outcome, and with or
 # without a recorded condition, because each participant's risk is
 # predicted under treatment and under control. Their mean pretest is the
-# "observed" center of fit_solomon_glm(). Without a pretest covariate, and
+# "observed" center of fit_solomon_glm() when every pretested participant
+# with a pretest has the model's covariates; one without a covariate is in
+# that center but not in this set, whose risks need the covariates. (The
+# center itself plays no part in the standardization.) Without a pretest
+# covariate, and
 # when every such participant is in the model, the rows are the model's,
 # the participants the default standardizes over.
 #
@@ -421,7 +425,9 @@
 #' [fit_solomon_glm()] (see "The pretest effect when posttests are missing"
 #' there, for what each assumes): by default over the pretested participants
 #' in the model (`"analyzed"`), or over every pretested participant with a
-#' pretest (`"observed"`). On the risk or rate scale the choice moves
+#' pretest and the model's covariates (`"observed"`; a participant without
+#' a covariate is in the observed center of [fit_solomon_glm()] but not in
+#' this set). On the risk or rate scale the choice moves
 #' Treatment | pretested, the average treatment effect, and Pretest x
 #' Treatment as well as the pretest effects, because a marginal risk depends
 #' on the participants it is averaged over; only Treatment | unpretested does

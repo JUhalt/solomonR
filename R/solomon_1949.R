@@ -36,10 +36,10 @@
 #' tables; `"pooled"` weights the two means by their sample sizes, which
 #' requires `n` or individual data.
 #'
-#' **Missing posttests** (issue #135). Solomon's tables give the means of
-#' the participants with both scores, and so does the default,
-#' `pretest_center = "analyzed"`: the pretest means are those of the
-#' pretested participants with a posttest. `pretest_center = "observed"`
+#' **Missing posttests** (issue #135). The default,
+#' `pretest_center = "analyzed"`, uses, like a table of group means, the
+#' pretested participants with both scores: the pretest means are those of
+#' the pretested participants with a posttest. `pretest_center = "observed"`
 #' infers the pretest from every observed pretest of the pretested groups;
 #' see "The pretest effect when posttests are missing" in
 #' [fit_solomon_glm()] for what each assumes. In the four-group design I does

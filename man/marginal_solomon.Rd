@@ -153,7 +153,9 @@ participants, which \code{pretest_center} chooses, as it chooses the center of
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see "The pretest effect when posttests are missing"
 there, for what each assumes): by default over the pretested participants
 in the model (\code{"analyzed"}), or over every pretested participant with a
-pretest (\code{"observed"}). On the risk or rate scale the choice moves
+pretest and the model's covariates (\code{"observed"}; a participant without
+a covariate is in the observed center of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} but not in
+this set). On the risk or rate scale the choice moves
 Treatment | pretested, the average treatment effect, and Pretest x
 Treatment as well as the pretest effects, because a marginal risk depends
 on the participants it is averaged over; only Treatment | unpretested does
