@@ -554,6 +554,18 @@ test_that("a shift of the pretest changes no SEM ANCOVA or comparison of methods
   }
 })
 
+test_that("a center difference that is zero but for rounding error prints without a sign", {
+  # A small real difference keeps its sign.
+  d <- data.frame(contrast = c("Pretest effect | control", "Pretest effect | treated"),
+                  analyzed = c(1.2, 0.5), observed = c(1.2 * (1 + 2^-52), 0.500264))
+  d$difference <- d$analyzed - d$observed
+  expect_true(d$difference[1] < 0)
+  lines <- .center_table(d, 3)
+  expect_match(lines[2], " 0[.]000$")
+  expect_false(grepl("-0[.]000", lines[2]))
+  expect_match(lines[3], "-0[.]000$")
+})
+
 test_that("a shift of the pretest changes no assumption check", {
   # The test of homogeneous slopes was NA from 10^7 standard deviations,
   # where lm() took the pretest to be collinear with its interaction.
@@ -601,8 +613,9 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
       got <- now[[name]][[part]]
       info <- paste(name, part)
       if (part %in% c("text", "sentences")) {
-        # A difference that rounds to zero is printed without a sign since
-        # #137; master gave it the sign of its rounding error.
+        # A difference of the centers that is zero but for rounding error,
+        # that of a rate ratio here, is printed without a sign since #137;
+        # master gave it the sign of its rounding error.
         expect_identical(got, gsub("-(0[.]0+)\\b", " \\1", ref, perl = TRUE), info = info)
         next
       }

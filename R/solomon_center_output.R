@@ -9,11 +9,18 @@
 # A percentage with `digits` decimals.
 .pct <- function(x, digits = 1L) paste0(formatC(100 * x, format = "f", digits = digits), "%")
 
-# A number with `digits` decimals, as the printed tables show it. One that
-# rounds to zero has no sign, which would otherwise depend on rounding
-# error, as for a difference that is zero in exact arithmetic (issue #137).
-.center_num <- function(x, digits) {
-  sub("^-(0[.]?0*)$", "\\1", formatC(x, format = "f", digits = digits))
+# A number with `digits` decimals, as the printed tables show it.
+.center_num <- function(x, digits) formatC(x, format = "f", digits = digits)
+
+# The differences between the pretest effects at the two centers, with
+# those that are zero but for rounding error set to zero: a difference that
+# is zero in exact arithmetic, as for a rate ratio, which does not depend on
+# the center, would otherwise print with the sign of its rounding error
+# (issue #137). A small real difference keeps its sign. `d` is
+# `pretest_sensitivity$difference`.
+.center_differences <- function(d) {
+  zero <- abs(d$difference) <= 1e-12 * pmax(abs(d$analyzed), abs(d$observed))
+  ifelse(is.finite(d$difference) & zero, 0, d$difference)
 }
 
 # The attrition of a fit's Solomon groups: a data frame with `group`,
@@ -152,7 +159,7 @@
 # spaces (`indent`).
 .center_table <- function(d, digits, indent = "  ") {
   cols <- list(.center_labels(d), .center_num(d$analyzed, digits),
-               .center_num(d$observed, digits), .center_num(d$difference, digits))
+               .center_num(d$observed, digits), .center_num(.center_differences(d), digits))
   heads <- c("", "analyzed", "observed", "difference")
   widths <- mapply(function(h, v) max(nchar(h), nchar(v)), heads, cols)
   row <- function(values) {
