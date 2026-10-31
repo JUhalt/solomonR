@@ -360,6 +360,12 @@
     )
   }
 
+  # The inference comes from the model refitted with the numeric covariates
+  # standardized, as in the four-group model (issue #137).
+  fit_given <- fit
+  scaling <- .covariate_scaling(df, names(covariates), used)
+  if (length(scaling$means)) fit <- .fit_standardized(fml, scaling$data, family, negbin)
+
   # Robust covariance, as in the four-group model.
   fit_cr <- fit
   n_clusters <- NULL
@@ -383,7 +389,7 @@
       .stop_confounded_clusters(single)
     }
 
-    fit_cr <- stats::glm(fml, data = df[used, , drop = FALSE], family = family)
+    fit_cr <- stats::glm(fml, data = scaling$data[used, , drop = FALSE], family = family)
     vcovM <- clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
   } else {
     vcovM <- stats::vcov(fit)
@@ -410,21 +416,7 @@
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
-  tidy <- broom::tidy(fit)
-  se_vec <- sqrt(diag(vcovM))
-  tidy$std.error <- unname(se_vec[match(tidy$term, names(se_vec))])
-  tidy$statistic <- tidy$estimate / tidy$std.error
-  if (robust == "CR2") {
-    ct <- clubSandwich::coef_test(fit_cr, vcov = vcovM, test = "Satterthwaite")
-    tidy$df <- ct$df_Satt[match(tidy$term, ct$Coef)]
-  } else {
-    tidy$df <- df_model
-  }
-  tidy$p.value <- 2 * stats::pt(-abs(tidy$statistic), df = tidy$df)
-  coef_ci <- .wald_ci(tidy$estimate, tidy$std.error, tidy$df, conf_level)
-  tidy$conf.low <- unname(coef_ci[, "conf.low"])
-  tidy$conf.high <- unname(coef_ci[, "conf.high"])
-  tidy <- tidy[, .solomon_coefficient_columns]
+  coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level)
 
   cf <- stats::coef(fit)
   cn <- names(cf)
@@ -625,14 +617,15 @@
   rownames(omnibus) <- NULL
 
   dispersion <- if (dispersion_fixed) {
-    sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
+    sum(stats::residuals(fit_given, type = "pearson")^2, na.rm = TRUE) /
+      stats::df.residual(fit_given)
   } else {
     NA_real_
   }
 
   out <- list(
-    model = fit,
-    coefficients = tidy,
+    model = fit_given,
+    coefficients = coefficients$table,
     effects = effects,
     omnibus = omnibus,
     conditions = data.frame(
@@ -644,8 +637,11 @@
     weights = weights,
     adjust = adjust,
     dispersion = dispersion,
-    theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
-    vcov = vcovM,
+    theta = if (negbin) {
+      c(theta = fit_given$theta, std.error = fit_given$SE.theta, alpha = 1 / fit_given$theta)
+    },
+    vcov = coefficients$vcov,
+    covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
     data = df,
     pretest_mean = pretest_mean,
     pretest_center = pretest_center,

@@ -940,6 +940,23 @@ stouffer_solomon <- function(p) {
 #'   the randomized population only when the pretest effect does not vary
 #'   with what drives the loss.
 #'
+#' @section Covariates:
+#' `covariates` enter the model as main effects, beside the pretest. The
+#' inference is computed with each numeric covariate standardized: centered
+#' at its mean and divided by its standard deviation over the participants
+#' in the model (issue #137). That is a reparameterization of the same
+#' model, so it changes no contrast, standard error, degrees of freedom, or
+#' test, and keeps them accurate when a covariate, such as a calendar year,
+#' lies far from zero relative to its spread, where the covariances of the
+#' model as given lose accuracy or cannot be computed. `model`,
+#' `coefficients`, and `vcov` are those of the covariates as given, the
+#' intercept included. With a numeric covariate, a CR2 `vcov` is therefore
+#' a matrix rather than the clubSandwich object, whose small-sample
+#' adjustments belong to the standardized model; that model's coefficients
+#' and covariance are in `covariate_scaling`. Dates and times are
+#' standardized as the numbers they enter the model as; factors, and
+#' columns with another class, enter as given.
+#'
 #' @section Designs with several treatments:
 #' A Solomon N-group design crosses k treatments and a control with
 #' pretesting, giving 2(k + 1) groups: six for two treatments and eight for
@@ -1075,7 +1092,14 @@ stouffer_solomon <- function(p) {
 #'     through `conf.high`, with `term` for `contrast`.
 #'   - `model`: the fitted model, a `glm` object.
 #'   - `vcov`: the covariance matrix of the coefficients, as `robust` sets
-#'     it.
+#'     it. With CR2 it is the clubSandwich object, or, with a numeric
+#'     covariate, a matrix (see "Covariates").
+#'   - `covariate_scaling`: with numeric covariates, the parameterization in
+#'     which the inference was computed (see "Covariates"): the covariates'
+#'     `means` and `scales` (standard deviations) over the participants in
+#'     the model, and the `coefficients` and the covariance `vcov` of the
+#'     model with them standardized; otherwise `NULL`. Outside the stable
+#'     interface (see [solomon_output]).
 #'   - `dispersion`: the Pearson dispersion statistic for binomial, Poisson,
 #'     and negative-binomial fits, and `NA` for the others.
 #'   - `theta`: for negative-binomial fits, its estimate, standard error,
@@ -1460,6 +1484,14 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     .warn_noncollapsible(stats::family(fit)$link)
   }
 
+  # The inference comes from the model refitted with the numeric covariates
+  # standardized, which is accurate however far a covariate lies from zero
+  # (issue #137; .covariate_scaling()). `fit_given` is the model as given,
+  # which the result returns.
+  fit_given <- fit
+  scaling <- .covariate_scaling(df, names(covariates), in_model)
+  if (length(scaling$means)) fit <- .fit_standardized(fml, scaling$data, family, negbin)
+
   # Robust VCOV
   fit_cr <- fit
   n_clusters <- NULL
@@ -1487,8 +1519,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
     # clubSandwich cannot use the NA-padded residuals of an na.exclude fit,
     # so CR2 quantities come from a complete-case refit of the same rows
-    # (identical coefficients).
-    fit_cr <- stats::glm(fml, data = df[used, , drop = FALSE], family = family)
+    # (identical coefficients), with the covariates standardized as `fit`.
+    fit_cr <- stats::glm(fml, data = scaling$data[used, , drop = FALSE], family = family)
     vcovM <- clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
   } else {
     vcovM <- stats::vcov(fit)
@@ -1525,22 +1557,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
-  # --- tidy coefficients with chosen vcov ---
-  tidy <- broom::tidy(fit)
-  se_vec <- sqrt(diag(vcovM))
-  tidy$std.error <- unname(se_vec[match(tidy$term, names(se_vec))])
-  tidy$statistic <- tidy$estimate / tidy$std.error
-  if (robust == "CR2") {
-    ct <- clubSandwich::coef_test(fit_cr, vcov = vcovM, test = "Satterthwaite")
-    tidy$df <- ct$df_Satt[match(tidy$term, ct$Coef)]
-  } else {
-    tidy$df <- df_model
-  }
-  tidy$p.value <- 2 * stats::pt(-abs(tidy$statistic), df = tidy$df)
-  coef_ci <- .wald_ci(tidy$estimate, tidy$std.error, tidy$df, conf_level)
-  tidy$conf.low <- unname(coef_ci[, "conf.low"])
-  tidy$conf.high <- unname(coef_ci[, "conf.high"])
-  tidy <- tidy[, .solomon_coefficient_columns]
+  # --- tidy coefficients with chosen vcov, for the covariates as given ---
+  coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level)
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -1685,19 +1703,23 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     )
   }
 
-  dispersion <- if (.fixed_dispersion(stats::family(fit))) {
-    sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
+  dispersion <- if (.fixed_dispersion(stats::family(fit_given))) {
+    sum(stats::residuals(fit_given, type = "pearson")^2, na.rm = TRUE) /
+      stats::df.residual(fit_given)
   } else {
     NA_real_
   }
 
   out <- list(
-    model = fit,
-    coefficients = tidy,
+    model = fit_given,
+    coefficients = coefficients$table,
     effects = effects,
     dispersion = dispersion,
-    theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
-    vcov = vcovM,
+    theta = if (negbin) {
+      c(theta = fit_given$theta, std.error = fit_given$SE.theta, alpha = 1 / fit_given$theta)
+    },
+    vcov = coefficients$vcov,
+    covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
     data = df,
     pretest_mean = pretest_mean,
     pretest_center = pretest_center,

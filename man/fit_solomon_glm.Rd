@@ -109,7 +109,14 @@ the Wald partial R-squared and its interval (\code{r2}, \code{r2_lo}, and
 through \code{conf.high}, with \code{term} for \code{contrast}.
 \item \code{model}: the fitted model, a \code{glm} object.
 \item \code{vcov}: the covariance matrix of the coefficients, as \code{robust} sets
-it.
+it. With CR2 it is the clubSandwich object, or, with a numeric
+covariate, a matrix (see "Covariates").
+\item \code{covariate_scaling}: with numeric covariates, the parameterization in
+which the inference was computed (see "Covariates"): the covariates'
+\code{means} and \code{scales} (standard deviations) over the participants in
+the model, and the \code{coefficients} and the covariance \code{vcov} of the
+model with them standardized; otherwise \code{NULL}. Outside the stable
+interface (see \link{solomon_output}).
 \item \code{dispersion}: the Pearson dispersion statistic for binomial, Poisson,
 and negative-binomial fits, and \code{NA} for the others.
 \item \code{theta}: for negative-binomial fits, its estimate, standard error,
@@ -522,6 +529,25 @@ would be analyzed in either pretest condition. It equals the effect in
 the randomized population only when the pretest effect does not vary
 with what drives the loss.
 }
+}
+
+\section{Covariates}{
+
+\code{covariates} enter the model as main effects, beside the pretest. The
+inference is computed with each numeric covariate standardized: centered
+at its mean and divided by its standard deviation over the participants
+in the model (issue #137). That is a reparameterization of the same
+model, so it changes no contrast, standard error, degrees of freedom, or
+test, and keeps them accurate when a covariate, such as a calendar year,
+lies far from zero relative to its spread, where the covariances of the
+model as given lose accuracy or cannot be computed. \code{model},
+\code{coefficients}, and \code{vcov} are those of the covariates as given, the
+intercept included. With a numeric covariate, a CR2 \code{vcov} is therefore
+a matrix rather than the clubSandwich object, whose small-sample
+adjustments belong to the standardized model; that model's coefficients
+and covariance are in \code{covariate_scaling}. Dates and times are
+standardized as the numbers they enter the model as; factors, and
+columns with another class, enter as given.
 }
 
 \section{Designs with several treatments}{
