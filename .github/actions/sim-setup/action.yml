@@ -1,0 +1,98 @@
+name: sim-setup
+description: >
+  Sets up a job of the simulation workflow (issue #117) from the pins of the
+  study at the package commit: R, Ubuntu's reference BLAS and LAPACK, and the
+  packages from a dated Posit Package Manager snapshot; then checks them. The
+  harness must be checked out at harness/ and the package at pkg/.
+
+inputs:
+  study:
+    description: Study key in tools/sim/studies.csv.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # tools/sim/studies.csv (harness) gives the script and the pins file of
+    # the study; the pins file at the package commit gives R, the snapshot,
+    # and the extra packages. Nothing here is printed but these values.
+    - name: Read the study's pins
+      id: pins
+      shell: bash
+      env:
+        STUDY: ${{ inputs.study }}
+      run: |
+        set -euo pipefail
+        registry=harness/tools/sim/studies.csv
+        row=$(tr -d '\r' < "$registry" | awk -F, -v k="$STUDY" 'NR > 1 && $1 == k')
+        if [[ -z "$row" ]]; then echo "::error::Study $STUDY is not in $registry"; exit 1; fi
+        script=$(cut -d, -f3 <<< "$row")
+        pins=$(cut -d, -f4 <<< "$row")
+        protocol=$(cut -d, -f5 <<< "$row")
+        ancestors=$(cut -d, -f6 <<< "$row")
+        if [[ ! -f "pkg/$script" || ! -f "pkg/$pins" ]]; then
+          echo "::error::The package commit lacks $script or $pins"; exit 1
+        fi
+        val() { tr -d '\r' < "pkg/$pins" | awk -F, -v k="$1" -v n="$2" 'NR > 1 && $1 == k && $2 == n { print $3 }'; }
+        r_version=$(val r version)
+        snapshot=$(val repos snapshot)
+        extra=$(val install extra)
+        if [[ ! "$r_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Bad R version in $pins"; exit 1; fi
+        if [[ ! "$snapshot" =~ ^https://packagemanager\.posit\.co/cran/__linux__/noble/[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+          echo "::error::The snapshot in $pins must be a dated noble snapshot"; exit 1
+        fi
+        # setup-r-dependencies pastes these into R code, so only plain
+        # package references are allowed.
+        if [[ ! "$extra" =~ ^[A-Za-z0-9:.@\ _-]*$ ]]; then echo "::error::Bad extra packages in $pins"; exit 1; fi
+        {
+          echo "RSPM=$snapshot"
+          echo "CRAN=$snapshot"
+          echo "SIM_SCRIPT=$script"
+          echo "SIM_PINS=$pins"
+          echo "SIM_PROTOCOL=$protocol"
+          echo "SIM_ANCESTORS=$ancestors"
+        } >> "$GITHUB_ENV"
+        {
+          echo "r_version=$r_version"
+          echo "extra=$extra"
+          echo "snapshot_date=${snapshot##*/}"
+        } >> "$GITHUB_OUTPUT"
+        echo "Study $STUDY: R $r_version, snapshot $snapshot, script $script."
+
+    # Hosted Ubuntu runners can occasionally retain a stale Google Chrome apt
+    # source, which makes setup-r fail during apt-get update.
+    - name: Remove stale Google Chrome apt source
+      shell: bash
+      run: |
+        sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources*
+
+    # setup-r takes the repositories from RSPM and CRAN, set above to the
+    # snapshot, instead of the latest public RSPM.
+    - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+      with:
+        r-version: ${{ steps.pins.outputs.r_version }}
+        use-public-rspm: true
+
+    # OpenBLAS chooses its code by processor, and the runners' processors can
+    # differ from job to job; alternative libraries "will not give identical
+    # numeric results" (R Core Team, R Installation and Administration,
+    # Appendix A.3). check-software.R stops the job if R reports another one.
+    - name: Use the reference BLAS and LAPACK
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq --no-install-recommends libblas3 liblapack3
+        sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/blas/libblas.so.3
+        sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3
+
+    - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+      with:
+        working-directory: pkg
+        dependencies: '"hard"'
+        extra-packages: ${{ steps.pins.outputs.extra }}
+        cache-version: sim-${{ steps.pins.outputs.snapshot_date }}
+
+    - name: Check R, the packages, and the libraries
+      shell: bash
+      run: Rscript harness/tools/sim/check-software.R "pkg/$SIM_PINS" software.csv

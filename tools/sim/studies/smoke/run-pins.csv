@@ -1,0 +1,14 @@
+kind,name,value
+r,version,4.6.1
+repos,snapshot,https://packagemanager.posit.co/cran/__linux__/noble/2026-10-30
+libraries,blas,reference
+install,extra,any::pkgload
+package,sandwich,3.1-3
+package,broom,1.0.13
+package,dplyr,1.2.1
+package,clubSandwich,0.7.0
+package,generics,0.1.4
+package,MASS,7.3-66
+package,withr,3.0.3
+package,lifecycle,1.0.5
+package,pkgload,1.5.3
