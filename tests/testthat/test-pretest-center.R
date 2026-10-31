@@ -1435,3 +1435,50 @@ test_that("marginal_solomon()'s standard errors cover the participants outside t
   expect_true(all(is.na(sb$std.error[sb$center == "observed"])))
   expect_identical(sb[sb$center == "analyzed", "std.error"], boot_default$effects$std.error)
 })
+
+test_that("marginal_solomon() standardizes rates without an offset, and reads older fits", {
+  # A participant whose exposure is missing is outside the model but in the
+  # "observed" standardization. Rates are per unit of exposure, so no
+  # offset enters it.
+  d <- marginal_data()
+  in_center <- d$pretested == 1 & !is.na(d$y_pre)
+  d$days <- withr::with_seed(148, stats::runif(nrow(d), 5, 15))
+  d$visits <- withr::with_seed(149, stats::rpois(nrow(d), d$days * exp(
+    -1 + 0.3 * d$treat + 0.4 * ifelse(d$pretested == 1, d$y_pre, 0))))
+  d$visits[is.na(d$y_post)] <- NA
+  no_days <- which(in_center & !is.na(d$visits))[1:2]
+  d$days[no_days] <- NA
+  in_model <- !is.na(d$visits) & !is.na(d$days)
+  fit_o <- fit_solomon_glm(visits, treat, pretested, y_pre, family = stats::poisson(),
+                           exposure = days, data = d, pretest_center = "observed")
+  res <- marginal_solomon(fit_o)
+  expect_identical(res$standardized,
+                   c(analyzed = sum(in_center & in_model), observed = sum(in_center),
+                     no_outcome = sum(in_center & is.na(d$visits))))
+  rates <- function(fit, over) {
+    b <- stats::coef(fit$model)
+    eta <- b[["(Intercept)"]] + b[["pretested"]] +
+      b[["pre_obs"]] * (d$y_pre[over] - fit$pretest_mean)
+    c(mean(exp(eta + b[["treat"]] + b[["treat:pretested"]])), mean(exp(eta)))
+  }
+  expect_equal(res$rates$rate[1:2], rates(fit_o, in_center), tolerance = 1e-10)
+
+  # The default standardizes over the pretested participants in the model,
+  # and gives the other set's estimates and inference in pretest_sensitivity.
+  fit <- fit_solomon_glm(visits, treat, pretested, y_pre, family = stats::poisson(),
+                         exposure = days, data = d)
+  default <- marginal_solomon(fit)
+  expect_equal(default$rates$rate[1:2], rates(fit, in_center & in_model), tolerance = 1e-10)
+  s <- default$pretest_sensitivity
+  other <- s$effects[s$effects$center == "observed", setdiff(names(s$effects), "center")]
+  rownames(other) <- NULL
+  expect_equal(other, res$effects, tolerance = 1e-6)
+
+  # A fit made before pretest_center existed is standardized as the default.
+  legacy <- fit
+  legacy$pretest_center <- NULL
+  old <- marginal_solomon(legacy)
+  expect_identical(old$pretest_center, "analyzed")
+  expect_identical(old$effects, default$effects)
+  expect_identical(old$pretest_sensitivity, default$pretest_sensitivity)
+})
