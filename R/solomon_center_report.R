@@ -12,7 +12,7 @@
                    "unpretested groups lost the same kinds of participants"),
   observed = paste("assumes that the pretested participants' losses depended at most on",
                    "their pretest score and that the unpretested participants' losses were",
-                   "unrelated to baseline")
+                   "unrelated to baseline and to the posttest")
 )
 
 # The center at which a fit's pretest effects were evaluated, for the
@@ -148,7 +148,9 @@
             }),
     if (pretest && .unpretested_only(a)) {
       paste("Only the unpretested groups lost posttests, so the two pretest centers coincide;",
-            "those losses cannot be checked against the pretest.")
+            "those losses cannot be checked against the pretest. The pretest effects assume,",
+            "at either center, that the unpretested participants' losses were unrelated to",
+            "baseline and to the posttest.")
     }
   )
 }

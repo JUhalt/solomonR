@@ -85,7 +85,15 @@ test_that("an attrition line prints whenever a posttest is missing", {
                fixed = TRUE)
   expect_match(out, "Only the unpretested groups lost posttests, so the two pretest centers coincide",
                fixed = TRUE)
+  expect_match(out, "the pretest effects assume that they were unrelated to baseline and to the posttest.",
+               fixed = TRUE)
   expect_no_match(out, "Every observed pretest", fixed = TRUE)
+  # The report names the assumption the pretest effects then rest on.
+  text <- squash(paste(report_solomon(fit_solomon_glm(y_post, treat, pretested, y_pre,
+                                                      data = d))$results, collapse = " "))
+  expect_match(text, paste("The pretest effects assume, at either center, that the unpretested",
+                           "participants' losses were unrelated to baseline and to the posttest."),
+               fixed = TRUE)
   # Without a pretest covariate there are no centers, but the line prints.
   out <- squash(printed(fit_solomon_glm(y_post, treat, pretested, data = loss_data())))
   expect_match(out, "Posttests missing: pretested", fixed = TRUE)
@@ -222,12 +230,22 @@ test_that("report_solomon() names the center, its assumption, the other center, 
   expect_match(text, paste("Posttests were missing for 37.3% of the pretested and 36.6% of the",
                            "unpretested participants (29% to 46% by group)."), fixed = TRUE)
 
+  expect_match(text, "at the pretested participants' mean pretest score of 3.13)", fixed = TRUE)
+  expect_match(text, paste("which assumes that the pretested participants' losses depended at most",
+                           "on their pretest score and that the unpretested participants' losses",
+                           "were unrelated to baseline and to the posttest"), fixed = TRUE)
+
   ro <- report_solomon(mai_fit(pretest_center = "observed"))
   text <- squash(paste(ro$results, collapse = " "))
   expect_match(text, paste("The pretest effects were evaluated at the mean of every observed",
                            "pretest score among the pretested participants (3.16"), fixed = TRUE)
   expect_match(text, "At the mean pretest score of the 74 pretested participants analyzed (3.13)",
                fixed = TRUE)
+  # The main sentence names the center used, not the default's.
+  expect_match(text, paste("(pretested minus unpretested participants, at the mean of every",
+                           "observed pretest score among the pretested participants, 3.16)"),
+               fixed = TRUE)
+  expect_no_match(text, "at the pretested participants' mean pretest score", fixed = TRUE)
 
   # Complete data: no sentence on the centers or the attrition.
   complete <- report_solomon(fit_solomon_glm(y_post, treat, pretested, y_pre,
@@ -256,9 +274,22 @@ test_that("the repeated-measures fit prints and reports both centers by occasion
   expect_match(out, "Participants without any posttest: pretested", fixed = TRUE)
   expect_match(out, "Posttests missing at occasion 2: pretested", fixed = TRUE)
   expect_match(out, "No delta line is derived for repeated posttests.", fixed = TRUE)
-  text <- squash(paste(report_solomon(m)$results, collapse = " "))
+  # No unpretested participant lacks every posttest: the case for
+  # "observed", which the four-group print states too.
+  expect_match(out, paste("No unpretested group has a participant without any posttest. If the",
+                          "data hold everyone randomized to those groups, this is the case for",
+                          "\"observed\""), fixed = TRUE)
+  r <- report_solomon(m)
+  text <- squash(paste(r$results, collapse = " "))
   expect_match(text, "At the analyzed center, the pretest effects were", fixed = TRUE)
   expect_match(text, "At occasion 2, posttests were missing for", fixed = TRUE)
+  expect_match(r$method, paste("missing at random, except for the pretest effects, whose assumption",
+                               "is that of the pretest center (below)."), fixed = TRUE)
+  mo <- fit_solomon_mmrm(y, treat, pretested, id, occ, y_pre, data = long,
+                         pretest_center = "observed")
+  text <- squash(paste(report_solomon(mo)$results, collapse = " "))
+  expect_match(text, "at the mean of every observed pretest score among the pretested participants,",
+               fixed = TRUE)
 })
 
 test_that("marginal_solomon() prints and reports both standardizations", {

@@ -107,9 +107,12 @@ Analyzes a Solomon four-group design with several posttest occasions by
 a mixed model for repeated measures (MMRM), and estimates the four
 Solomon contrasts and the pretest effects at each occasion, and the change
 in pretest sensitization from the first occasion to the last. The model is
-likelihood-based, so it is valid when posttests are missing at random,
-for example when participants drop out depending on their earlier
-scores (Fitzmaurice et al., 2011, pp. 497, 505). Per-occasion analyses of
+likelihood-based, so its treatment contrasts are valid when posttests are
+missing at random, for example when participants drop out depending on
+their earlier scores (Fitzmaurice et al., 2011, pp. 497, 505). The pretest
+effects rest instead on the assumption of the pretest center when some
+pretested participants have no posttest at any occasion (see "Missing
+posttests and the pretest center" below). Per-occasion analyses of
 the participants still observed, and unweighted generalized estimating
 equations, require the stronger assumption that the posttests are missing
 completely at random (Liang & Zeger, 1986; Fitzmaurice et al., 2011, pp.

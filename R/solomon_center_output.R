@@ -101,7 +101,8 @@
 .unpretested_only_line <- paste(
   "Only the unpretested groups lost posttests, so the two pretest centers coincide;",
   "those losses cannot be checked against the pretest, and neither center is",
-  "protected against them. See ?check_solomon_missing."
+  "protected against them: the pretest effects assume that they were unrelated to",
+  "baseline and to the posttest. See ?check_solomon_missing."
 )
 
 # The pretested participants outside the model, as in "44 without a
@@ -174,24 +175,34 @@
       "\"observed\" assumes 0."
     ), listed, if (below) "below" else "above", predicted)
   }
+  c(text, .no_loss_text(lost, d$condition))
+}
+
+# The sentence on the unpretested groups that lost no posttests, the one
+# case that points to the "observed" center (the decision record on issue
+# #135, section 3, point 2): `lost` flags, for each condition in
+# `condition`, whether its unpretested group lost any. `lost_none` words
+# the loss for repeated posttests. character(0) when every unpretested
+# group lost some.
+.no_loss_text <- function(lost, condition, lost_none = "lost no posttests",
+                          lost_one = "lost a posttest") {
+  if (all(lost)) return(character(0))
   if (!any(lost)) {
-    text <- paste(
-      "No unpretested group lost a posttest. If the data hold everyone randomized to",
-      "those groups, this is the case for \"observed\": the default's assumption then",
-      "holds only if the pretested groups' losses were unrelated to baseline."
-    )
-  } else if (!all(lost)) {
-    none <- d$condition[!lost]
-    text <- c(text, sprintf(paste(
-      "The unpretested %s %s lost no posttests: if the data hold everyone randomized",
-      "to %s, the default's assumption holds in %s only if the pretested %s",
-      "losses were unrelated to baseline."
-    ), .series_and(none), if (length(none) > 1L) "groups" else "group",
-    if (length(none) > 1L) "them" else "it",
-    if (length(none) > 1L) "those conditions" else "that condition",
-    if (length(none) > 1L) "groups'" else "group's"))
+    return(sprintf(paste(
+      "No unpretested group %s. If the data hold everyone randomized to those groups,",
+      "this is the case for \"observed\": the default's assumption then holds only if",
+      "the pretested groups' losses were unrelated to baseline."
+    ), lost_one))
   }
-  text
+  none <- condition[!lost]
+  several <- length(none) > 1L
+  sprintf(paste(
+    "The unpretested %s %s %s: if the data hold everyone randomized",
+    "to %s, the default's assumption holds in %s only if the pretested %s",
+    "losses were unrelated to baseline."
+  ), .series_and(none), if (several) "groups" else "group", lost_none,
+  if (several) "them" else "it", if (several) "those conditions" else "that condition",
+  if (several) "groups'" else "group's")
 }
 
 # How a contrast at the two centers (or standardizations) disagrees, row by
@@ -312,7 +323,13 @@
             .center_num(s$pretest_means[["analyzed"]], m))
   }
   delta <- if (mmrm) {
-    "No delta line is derived for repeated posttests."
+    # The case for "observed": an unpretested group in which everyone has a
+    # posttest at some occasion, and so is in the model.
+    un <- s$attrition[s$attrition$pretested == 0L & s$attrition$n > 0L, , drop = FALSE]
+    c("No delta line is derived for repeated posttests.",
+      .no_loss_text(un$posttest_missing > 0L, un$condition,
+                    "has no participant without any posttest",
+                    "has a participant without any posttest"))
   } else if (!is.null(s$delta)) {
     .center_delta_text(s, m)
   } else {

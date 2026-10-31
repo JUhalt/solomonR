@@ -129,11 +129,12 @@
 # One sentence for the pretest effects of a four-group fit (issue #104): the
 # rows "Pretest effect | control", "Pretest effect | treated", and "Pretest
 # main effect" of `eff`. `center` is the mean pretest at which the pretested
-# groups were compared (NA without a pretest covariate); `ratio` words the
-# comparison for ratio scales. Returns character(0) when `eff` has no
-# pretest effects.
+# groups were compared (NA without a pretest covariate), and `pretest_center`
+# names it (issue #135): the default, "analyzed", keeps the wording of
+# earlier versions. `ratio` words the comparison for ratio scales. Returns
+# character(0) when `eff` has no pretest effects.
 .pretest_sentence <- function(eff, level, digits, md, center = NA_real_, ratio = FALSE,
-                              prefix = "") {
+                              prefix = "", pretest_center = NULL) {
   rows <- eff[match(.solomon_pretest_order, eff$contrast), , drop = FALSE]
   if (anyNA(rows$contrast)) return(character(0))
   part <- function(i, where = NULL) .effect_clause(rows[i, ], level, digits, md, where = where)
@@ -142,11 +143,7 @@
   } else {
     "pretested minus unpretested participants"
   }
-  at <- if (is.finite(center)) {
-    sprintf(", at the pretested participants' mean pretest score of %s", .apa_num(center, digits))
-  } else {
-    ""
-  }
+  at <- .pretest_at_phrase(center, digits, pretest_center)
   sprintf(
     "%s (%s%s) was %s, and %s; their average, the pretest main effect, was %s.",
     if (nzchar(prefix)) prefix else "The pretest effect", versus, at,
@@ -169,12 +166,26 @@
          if (!is.null(p_label)) paste0(", ", p_label))
 }
 
+# Where the pretest effects of a report were evaluated, as in ", at the
+# pretested participants' mean pretest score of 3.13": `center` is the mean
+# (NA without a pretest covariate, giving ""), and `pretest_center` the
+# center (issue #135; NULL for fits made before it, worded as the default).
+.pretest_at_phrase <- function(center, digits, pretest_center = NULL) {
+  if (!is.finite(center)) return("")
+  if (identical(pretest_center, "observed")) {
+    return(sprintf(", at the mean of every observed pretest score among the pretested participants, %s",
+                   .apa_num(center, digits)))
+  }
+  sprintf(", at the pretested participants' mean pretest score of %s", .apa_num(center, digits))
+}
+
 # Treatment-contrast sentences followed by the pretest-effect sentence, for
 # the effects table of a four-group fit.
-.four_group_sentences <- function(eff, level, digits, md, center = NA_real_, ratio = FALSE) {
+.four_group_sentences <- function(eff, level, digits, md, center = NA_real_, ratio = FALSE,
+                                  pretest_center = NULL) {
   treatment <- eff[!eff$contrast %in% .solomon_pretest_order, , drop = FALSE]
   c(.contrast_sentences(treatment, level, digits, md),
-    .pretest_sentence(eff, level, digits, md, center, ratio))
+    .pretest_sentence(eff, level, digits, md, center, ratio, pretest_center = pretest_center))
 }
 
 # Who a comparison of a design with several treatments compares. A
@@ -387,7 +398,8 @@
   list(
     method = method,
     results = c(
-      .four_group_sentences(fit$effects, fit$conf_level, digits, md, .null_na(fit$pretest_mean)),
+      .four_group_sentences(fit$effects, fit$conf_level, digits, md, .null_na(fit$pretest_mean),
+                            pretest_center = fit$pretest_center),
       p$pretest_caution,
       # The two pretest centers and the attrition, when posttests are
       # missing (issue #135).
@@ -614,12 +626,7 @@
   n <- length(clauses)
   listed <- paste0(paste(clauses[-n], collapse = "; "), "; and ", clauses[n])
   main <- rows[rows$contrast == .solomon_pretest_order[3], , drop = FALSE]
-  center <- .null_na(fit$pretest_mean)
-  at <- if (is.finite(center)) {
-    sprintf(", at the pretested participants' mean pretest score of %s", .apa_num(center, digits))
-  } else {
-    ""
-  }
+  at <- .pretest_at_phrase(.null_na(fit$pretest_mean), digits, fit$pretest_center)
   k <- n - 1L
   list(
     method = if (adjusted) {
@@ -1835,7 +1842,14 @@
     if (kr) "Kenward-Roger degrees of freedom (Kenward & Roger, 1997, as cited in Fitzmaurice et al., 2011)"
     else "Satterthwaite (1946) degrees of freedom",
     ". The model was fitted with the mmrm package (Sabanes Bove et al., 2026) and assumes that ",
-    "missing posttests are missing at random."
+    "missing posttests are missing at random",
+    # With pretested participants who have no posttest at any occasion, the
+    # pretest effects rest on the center's assumption instead (issue #135).
+    if (isTRUE(fit$pretest_sensitivity$differ)) {
+      ", except for the pretest effects, whose assumption is that of the pretest center (below)."
+    } else {
+      "."
+    }
   )
   eff <- fit$effects
   results <- unlist(lapply(unique(eff$occasion), function(o) {
@@ -1848,7 +1862,8 @@
                      sprintf("The change in the Pretest x Treatment interaction from occasion %s to occasion %s",
                              fit$occasions[1], fit$occasions[length(fit$occasions)]), s[change])
     c(s, .pretest_sentence(e, fit$conf_level, digits, md, .null_na(fit$pretest_mean),
-                           prefix = sprintf("At occasion %s, the pretest effect", o)))
+                           prefix = sprintf("At occasion %s, the pretest effect", o),
+                           pretest_center = fit$pretest_center))
   }))
   # The two pretest centers and the attrition at the last occasion, when
   # posttests are missing (issue #135).
