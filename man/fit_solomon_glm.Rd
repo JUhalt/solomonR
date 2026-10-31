@@ -109,14 +109,16 @@ the Wald partial R-squared and its interval (\code{r2}, \code{r2_lo}, and
 through \code{conf.high}, with \code{term} for \code{contrast}.
 \item \code{model}: the fitted model, a \code{glm} object.
 \item \code{vcov}: the covariance matrix of the coefficients, as \code{robust} sets
-it. With CR2 it is the clubSandwich object, or, with a numeric
-covariate, a matrix (see "Covariates").
-\item \code{covariate_scaling}: with numeric covariates, the parameterization in
-which the inference was computed (see "Covariates"): the covariates'
-\code{means} and \code{scales} (standard deviations) over the participants in
-the model, and the \code{coefficients} and the covariance \code{vcov} of the
-model with them standardized; otherwise \code{NULL}. Outside the stable
-interface (see \link{solomon_output}).
+it. With CR2 it is the clubSandwich object, or, with a pretest or a
+numeric covariate, a matrix (see "Covariates").
+\item \code{covariate_scaling}: with a pretest or numeric covariates, the
+parameterization in which the inference was computed (see
+"Covariates"): the \code{means} and \code{scales} of the pretest, \code{pre_obs}
+(a mean of 0 and the power of two it was divided by), and of the
+numeric covariates (their means and standard deviations over the
+participants in the model), and the \code{coefficients} and the covariance
+\code{vcov} of the model with them standardized; otherwise \code{NULL}. Outside
+the stable interface (see \link{solomon_output}).
 \item \code{dispersion}: the Pearson dispersion statistic for binomial, Poisson,
 and negative-binomial fits, and \code{NA} for the others.
 \item \code{theta}: for negative-binomial fits, its estimate, standard error,
@@ -534,18 +536,22 @@ with what drives the loss.
 \section{Covariates}{
 
 \code{covariates} enter the model as main effects, beside the pretest. The
-inference is computed with each numeric covariate standardized: centered
+inference is computed with each numeric covariate standardized, centered
 at its mean and divided by its standard deviation over the participants
-in the model (issue #137). That is a reparameterization of the same
-model, so it changes no contrast, standard error, degrees of freedom, or
-test, and keeps them accurate when a covariate, such as a calendar year,
-lies far from zero relative to its spread, where the covariances of the
-model as given lose accuracy or cannot be computed. \code{model},
-\code{coefficients}, and \code{vcov} are those of the covariates as given, the
-intercept included. With a numeric covariate, a CR2 \code{vcov} is therefore
-a matrix rather than the clubSandwich object, whose small-sample
-adjustments belong to the standardized model; that model's coefficients
-and covariance are in \code{covariate_scaling}. A numeric covariate is
+in the model, and with the pretest, centered already, divided by the
+power of two nearest its standard deviation over the pretested
+participants in the model (issue #137). That is a reparameterization of
+the same model, so it changes no contrast, standard error, degrees of
+freedom, or test, and keeps them accurate when a covariate, such as a
+calendar year, lies far from zero relative to its spread, or when a
+covariate or the pretest is on a scale far from 1, where the covariances
+of the model as given lose accuracy or cannot be computed. \code{model},
+\code{coefficients}, and \code{vcov} are those of the covariates and the pretest as
+given, the intercept included. With a pretest or a numeric covariate, a
+CR2 \code{vcov} is therefore a matrix rather than the clubSandwich object,
+whose small-sample adjustments belong to the standardized model; that
+model's coefficients and covariance are in \code{covariate_scaling}. A
+numeric covariate is
 standardized whatever its class, such as a labelled column read from SPSS
 or Stata, or one wrapped in \code{I()}, and so are dates and times, as the
 numbers they enter the model as; factors, logical columns, and character

@@ -2,11 +2,13 @@
 
 # Estimate, standard error, reference df, and interval for linear combinations
 # of a solomon_glm fit's coefficients, using the fit's own covariance matrix
-# and reference distribution (Satterthwaite t for CR2). With numeric
-# covariates they are computed with the covariates standardized, as the
-# fit's inference was (issue #137; .covariate_scaling()): the combinations
-# become L M of the standardized coefficients, which give the same estimates
-# and are accurate however far a covariate lies from zero.
+# and reference distribution (Satterthwaite t for CR2). With a pretest or
+# numeric covariates they are computed with the covariates standardized and
+# the pretest scaled, as the fit's inference was (issue #137;
+# .covariate_scaling()): the combinations become L M of the standardized
+# coefficients, which give the same estimates and are accurate however far a
+# covariate lies from zero, and whatever the scale of a covariate or the
+# pretest.
 .glm_linear_combination <- function(fit, L) {
   model <- fit$model
   scaling <- fit$covariate_scaling

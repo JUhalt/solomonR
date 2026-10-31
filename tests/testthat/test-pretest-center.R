@@ -1104,7 +1104,8 @@ test_that("plot_sensitization() evaluates the pretested cells at the fit's cente
 
   # A fit saved before the pretest was centered (#104) has no
   # `pretest_mean` and an uncentered pretest: its cells stay at the mean
-  # pretest of the pretested participants in its model.
+  # pretest of the pretested participants in its model. Nor has it any
+  # element added since, such as `covariate_scaling` (#137).
   old <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
   raw <- stats::glm(y ~ treat * pretested + pre_obs,
                     data = transform(old$data, pre_obs = pre_obs + ifelse(pretested == 1, old$pretest_mean, 0)))
@@ -1112,7 +1113,8 @@ test_that("plot_sensitization() evaluates the pretested cells at the fit's cente
   legacy$model <- raw
   legacy$vcov <- sandwich::vcovHC(raw, type = "HC3")
   for (name in c("pretest_mean", "pretest_center", "pretest_mean_analyzed",
-                 "pretest_mean_observed", "pretest_n", "pretest_sensitivity")) {
+                 "pretest_mean_observed", "pretest_n", "pretest_sensitivity",
+                 "covariate_scaling")) {
     legacy[[name]] <- NULL
   }
   expect_equal(plot_sensitization(legacy)$data$estimate, plot_sensitization(old)$data$estimate,

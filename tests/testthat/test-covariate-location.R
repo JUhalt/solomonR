@@ -65,7 +65,7 @@ expect_shift_invariant <- function(fit, ref, shift = NULL, tolerance, info) {
   expect_equal(as.matrix(fit$vcov)[terms, terms], as.matrix(ref$vcov)[terms, terms],
                tolerance = tolerance, info = info)
   b <- stats::setNames(fit$coefficients$estimate, fit$coefficients$term)
-  b0 <- ref$coefficients$estimate[ref$coefficients$term == "(Intercept)"]
+  b0 <- unname(ref$coefficients$estimate[ref$coefficients$term == "(Intercept)"])
   expect_equal(b[["(Intercept)"]] + sum(shift * b[names(shift)]), b0, tolerance = tolerance,
                info = info)
 }
@@ -142,6 +142,58 @@ test_that("a change of the covariates' scale changes no contrast", {
   }
 })
 
+test_that("a change of the pretest's scale changes no contrast", {
+  # The pretest is divided by the power of two nearest its standard
+  # deviation for the inference, so a scale of 1e-8 or 1e8, which is not a
+  # power of two, leaves only rounding error. The slope scales with it.
+  d <- location_data()
+  same <- function(fit, ref, s, tolerance, info) {
+    expect_equal(fit$effects, ref$effects, tolerance = tolerance, info = info)
+    expect_equal(fit$omnibus, ref$omnibus, tolerance = tolerance, info = info)
+    expect_equal(fit$pretest_sensitivity[c("effects", "difference")],
+                 ref$pretest_sensitivity[c("effects", "difference")], tolerance = tolerance,
+                 info = info)
+    expect_equal(fit$pretest_sensitivity$slope * s, ref$pretest_sensitivity$slope,
+                 tolerance = tolerance, info = info)
+  }
+  for (design in c("four", "six")) {
+    for (family in c("gaussian", "logit")) {
+      tolerance <- location_families[[family]]$tolerance
+      for (robust in c("none", "HC3", "CR2")) {
+        for (center in c("analyzed", "observed")) {
+          info <- paste(design, family, robust, center)
+          ref <- location_fit(d[[design]], family, robust, pretest_center = center)
+          for (s in c(1e-8, 1e8)) {
+            scaled <- d[[design]]
+            scaled$pre <- d[[design]]$pre * s
+            same(location_fit(scaled, family, robust, pretest_center = center), ref, s,
+                 tolerance, paste(info, s))
+          }
+        }
+      }
+    }
+  }
+
+  # The delta method of marginal_solomon() and the cells of
+  # plot_sensitization().
+  marginal <- function(fit) suppressWarnings(marginal_solomon(fit, method = "delta"))$effects
+  cells <- function(fit) {
+    plot_sensitization(fit)$data[, c("estimate", "std.error", "df", "conf.low", "conf.high")]
+  }
+  for (robust in c("none", "HC3", "CR2")) {
+    for (s in c(1e-8, 1e8)) {
+      scaled <- d$four
+      scaled$pre <- d$four$pre * s
+      expect_equal(marginal(location_fit(scaled, "logit", robust)),
+                   marginal(location_fit(d$four, "logit", robust)), tolerance = 1e-6,
+                   info = paste(robust, s))
+      expect_equal(cells(location_fit(scaled, "gaussian", robust)),
+                   cells(location_fit(d$four, "gaussian", robust)), tolerance = 1e-8,
+                   info = paste(robust, s))
+    }
+  }
+})
+
 test_that("covariate fits return the model and the coefficients for the covariates as given", {
   d <- location_data()$four
   for (robust in c("none", "HC3", "CR2")) {
@@ -153,16 +205,29 @@ test_that("covariate fits return the model and the coefficients for the covariat
     # The standardized coefficients and covariance map to those as given.
     s <- fit$covariate_scaling
     expect_named(s, c("means", "scales", "coefficients", "vcov"))
-    expect_named(s$means, c("age", "sex", "z"))
+    expect_named(s$means, c("pre_obs", "age", "sex", "z"))
+    expect_identical(s$means[["pre_obs"]], 0)
+    expect_identical(s$scales[["pre_obs"]], 8)
     M <- .covariate_map(fit$coefficients$term, s)
     expect_equal(unname(drop(M %*% s$coefficients)), fit$coefficients$estimate,
                  tolerance = 1e-12)
     expect_equal(M %*% as.matrix(s$vcov) %*% t(M), as.matrix(fit$vcov), tolerance = 1e-12)
   }
 
-  # Without numeric covariates the fit is as before: no standardization,
-  # and the CR2 covariance is the clubSandwich object.
+  # With a pretest and no numeric covariate, only the pretest is scaled, by
+  # a power of two near its standard deviation of about 10, and the CR2
+  # covariance is a matrix.
   fit <- suppressWarnings(fit_solomon_glm(d$y_g, d$treat, d$pretested, d$pre,
+                                          covariates = data.frame(group = factor(d$sex)),
+                                          robust = "CR2", cluster = d$site))
+  expect_identical(fit$covariate_scaling$means, c(pre_obs = 0))
+  expect_identical(fit$covariate_scaling$scales, c(pre_obs = 8))
+  expect_s3_class(fit$covariate_scaling$vcov, "clubSandwich")
+  expect_false(inherits(fit$vcov, "clubSandwich"))
+
+  # With neither, the fit is as before: no standardization, and the CR2
+  # covariance is the clubSandwich object.
+  fit <- suppressWarnings(fit_solomon_glm(d$y_g, d$treat, d$pretested,
                                           covariates = data.frame(group = factor(d$sex)),
                                           robust = "CR2", cluster = d$site))
   expect_null(fit$covariate_scaling)
@@ -177,7 +242,7 @@ test_that("a date covariate is standardized as the days it enters the model as",
                                      covariates = data.frame(when = when)))
   }
   fit <- fit_with(as.Date("2020-01-01") + days)
-  expect_named(fit$covariate_scaling$means, "when")
+  expect_named(fit$covariate_scaling$means, c("pre_obs", "when"))
   expect_shift_invariant(fit, fit_with(days), c(when = as.numeric(as.Date("2020-01-01"))),
                          1e-8, info = "date")
 })
@@ -203,7 +268,7 @@ test_that("a numeric covariate with a class is standardized as the numbers it en
       z <- if (class == "AsIs") I(d$z + shift) else labelled(d$z + shift)
       fit <- fit_with(z)
       expect_s3_class(fit$model$data$z, class)
-      expect_named(fit$covariate_scaling$means, "z")
+      expect_named(fit$covariate_scaling$means, c("pre_obs", "z"))
       expect_shift_invariant(fit, ref, c(z = shift), 1e-8, info = paste(robust, class))
     }
   }

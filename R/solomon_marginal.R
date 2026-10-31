@@ -740,13 +740,14 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stop("`R` must be a single number of at least 99.", call. = FALSE)
   }
 
-  # With numeric covariates the fit's inference was computed with them
-  # standardized (issue #137; .covariate_scaling()), and so is this: the
-  # model, its coefficients and covariance, and the design rows are those of
-  # the standardized covariates, in which the numerical derivatives of the
-  # delta method and the refits of the bootstrap are accurate however far a
-  # covariate lies from zero. The risks and the contrasts are the same.
-  # `V` is the covariance of `b`.
+  # With a pretest or numeric covariates the fit's inference was computed
+  # with the covariates standardized and the pretest scaled (issue #137;
+  # .covariate_scaling()), and so is this: the model, its coefficients and
+  # covariance, and the design rows are those of the standardized model, in
+  # which the numerical derivatives of the delta method and the refits of
+  # the bootstrap are accurate however far a covariate lies from zero, and
+  # whatever the scale of a covariate or the pretest. The risks and the
+  # contrasts are the same. `V` is the covariance of `b`.
   scaling <- fit$covariate_scaling
   model <- fit$model
   b <- stats::coef(model)

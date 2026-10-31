@@ -940,18 +940,22 @@ stouffer_solomon <- function(p) {
 #'
 #' @section Covariates:
 #' `covariates` enter the model as main effects, beside the pretest. The
-#' inference is computed with each numeric covariate standardized: centered
+#' inference is computed with each numeric covariate standardized, centered
 #' at its mean and divided by its standard deviation over the participants
-#' in the model (issue #137). That is a reparameterization of the same
-#' model, so it changes no contrast, standard error, degrees of freedom, or
-#' test, and keeps them accurate when a covariate, such as a calendar year,
-#' lies far from zero relative to its spread, where the covariances of the
-#' model as given lose accuracy or cannot be computed. `model`,
-#' `coefficients`, and `vcov` are those of the covariates as given, the
-#' intercept included. With a numeric covariate, a CR2 `vcov` is therefore
-#' a matrix rather than the clubSandwich object, whose small-sample
-#' adjustments belong to the standardized model; that model's coefficients
-#' and covariance are in `covariate_scaling`. A numeric covariate is
+#' in the model, and with the pretest, centered already, divided by the
+#' power of two nearest its standard deviation over the pretested
+#' participants in the model (issue #137). That is a reparameterization of
+#' the same model, so it changes no contrast, standard error, degrees of
+#' freedom, or test, and keeps them accurate when a covariate, such as a
+#' calendar year, lies far from zero relative to its spread, or when a
+#' covariate or the pretest is on a scale far from 1, where the covariances
+#' of the model as given lose accuracy or cannot be computed. `model`,
+#' `coefficients`, and `vcov` are those of the covariates and the pretest as
+#' given, the intercept included. With a pretest or a numeric covariate, a
+#' CR2 `vcov` is therefore a matrix rather than the clubSandwich object,
+#' whose small-sample adjustments belong to the standardized model; that
+#' model's coefficients and covariance are in `covariate_scaling`. A
+#' numeric covariate is
 #' standardized whatever its class, such as a labelled column read from SPSS
 #' or Stata, or one wrapped in `I()`, and so are dates and times, as the
 #' numbers they enter the model as; factors, logical columns, and character
@@ -1092,14 +1096,16 @@ stouffer_solomon <- function(p) {
 #'     through `conf.high`, with `term` for `contrast`.
 #'   - `model`: the fitted model, a `glm` object.
 #'   - `vcov`: the covariance matrix of the coefficients, as `robust` sets
-#'     it. With CR2 it is the clubSandwich object, or, with a numeric
-#'     covariate, a matrix (see "Covariates").
-#'   - `covariate_scaling`: with numeric covariates, the parameterization in
-#'     which the inference was computed (see "Covariates"): the covariates'
-#'     `means` and `scales` (standard deviations) over the participants in
-#'     the model, and the `coefficients` and the covariance `vcov` of the
-#'     model with them standardized; otherwise `NULL`. Outside the stable
-#'     interface (see [solomon_output]).
+#'     it. With CR2 it is the clubSandwich object, or, with a pretest or a
+#'     numeric covariate, a matrix (see "Covariates").
+#'   - `covariate_scaling`: with a pretest or numeric covariates, the
+#'     parameterization in which the inference was computed (see
+#'     "Covariates"): the `means` and `scales` of the pretest, `pre_obs`
+#'     (a mean of 0 and the power of two it was divided by), and of the
+#'     numeric covariates (their means and standard deviations over the
+#'     participants in the model), and the `coefficients` and the covariance
+#'     `vcov` of the model with them standardized; otherwise `NULL`. Outside
+#'     the stable interface (see [solomon_output]).
 #'   - `dispersion`: the Pearson dispersion statistic for binomial, Poisson,
 #'     and negative-binomial fits, and `NA` for the others.
 #'   - `theta`: for negative-binomial fits, its estimate, standard error,
@@ -1485,9 +1491,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
 
   # The inference comes from the model refitted with the numeric covariates
-  # standardized, which is accurate however far a covariate lies from zero
-  # (issue #137; .covariate_scaling()). `fit_given` is the model as given,
-  # which the result returns.
+  # standardized and the pretest scaled, which is accurate however far a
+  # covariate lies from zero, and whatever the scale of a covariate or the
+  # pretest (issue #137; .covariate_scaling()). `fit_given` is the model as
+  # given, which the result returns.
   fit_given <- fit
   scaling <- .covariate_scaling(df, names(covariates), in_model)
   if (length(scaling$means)) fit <- .fit_standardized(fml, scaling$data, family, negbin)
@@ -1531,7 +1538,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # For the "observed" center the variance is taken over every pretested
   # participant with a pretest, and the covariance over those of them in the
   # model (issue #135). The other center's terms are computed too when the
-  # two centers differ, for `pretest_sensitivity`.
+  # two centers differ, for `pretest_sensitivity`. They are in the units of
+  # the scaled pretest of `fit` (`scaling$data`), as are its coefficients.
   center <- NULL
   center_other <- NULL
   center_note <- NULL
@@ -1540,8 +1548,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   if (!is.null(y_pre)) {
     rows <- rep(TRUE, nrow(df))
     if (!is.null(fit$na.action)) rows[fit$na.action] <- FALSE
-    both <- .center_terms_both(df, y_pre, rows, if (robust == "CR2") fit_cr else fit, robust,
-                               cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    both <- .center_terms_both(scaling$data, y_pre, rows, if (robust == "CR2") fit_cr else fit,
+                               robust, cluster, if (robust == "CR2") cluster_fit, pretest_center)
     center <- both$center
     center_other <- both$other
     center_note <- both$note
@@ -1680,7 +1688,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # the HC3, CR2, and model-based covariances, and the Satterthwaite degrees
   # of freedom of a linear function of the estimates do not depend on where
   # the pretest is centered. When the two centers are the same number, the
-  # rows are copied.
+  # rows are copied. The shift between the centers is in the units of the
+  # scaled pretest, and the slope in those of the pretest as given.
   sensitivity <- NULL
   if (!is.null(y_pre)) {
     used_rows <- effects[effects$contrast %in% .solomon_pretest_order,
@@ -1689,12 +1698,12 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     if (differ) {
       other_rows <- .other_center_rows(
         Ls[.solomon_pretest_order], .solomon_pretest_order,
-        centers[[.other_center(pretest_center)]] - pretest_mean,
+        (centers[[.other_center(pretest_center)]] - pretest_mean) / .pretest_scale(scaling),
         function(L) lin_contrast(L, center_other), no_se = !is.null(center_note)
       )
     }
     identity <- identical(stats::family(fit)$link, "identity")
-    slope <- cf[["pre_obs"]]
+    slope <- cf[["pre_obs"]] / .pretest_scale(scaling)
     sensitivity <- .pretest_sensitivity(
       used_rows, other_rows, pretest_center, character(), parts, centers, slope, identity,
       .pretest_attrition(ifelse(df$treat == 1L, arms[1], arms[2]), rev(arms), df$pretested,
@@ -2011,9 +2020,10 @@ perm_solomon <- function(
     return(.perm_solomon_cluster(fit, contrast, reps, return_dist, statistic))
   }
 
-  # The model is refitted with the numeric covariates standardized as the
-  # fit's inference was (issue #137; .covariate_scaling()). The statistic
-  # is the same, and accurate however far a covariate lies from zero.
+  # The model is refitted with the numeric covariates standardized and the
+  # pretest scaled as the fit's inference was (issue #137;
+  # .covariate_scaling()). The statistic is the same, and accurate however
+  # far a covariate lies from zero.
   df <- fit$data
   if (!is.null(fit$covariate_scaling)) df <- .standardized_frame(df, fit$covariate_scaling)
   form <- stats::formula(fit$model)

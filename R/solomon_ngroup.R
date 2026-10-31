@@ -361,7 +361,8 @@
   }
 
   # The inference comes from the model refitted with the numeric covariates
-  # standardized, as in the four-group model (issue #137).
+  # standardized and the pretest scaled, as in the four-group model (issue
+  # #137).
   fit_given <- fit
   scaling <- .covariate_scaling(df, names(covariates), used)
   if (length(scaling$means)) fit <- .fit_standardized(fml, scaling$data, family, negbin)
@@ -397,15 +398,16 @@
 
   # The sampling variance of the mean pretest at which the pretest effects
   # are evaluated, as in the four-group model (issues #104 and #135), and the
-  # other center's, when the two differ, for `pretest_sensitivity`.
+  # other center's, when the two differ, for `pretest_sensitivity`, in the
+  # units of the scaled pretest of `fit`.
   center <- NULL
   center_other <- NULL
   center_note <- NULL
   parts <- NULL
   differ <- FALSE
   if (!is.null(y_pre)) {
-    both <- .center_terms_both(df, y_pre, used, if (robust == "CR2") fit_cr else fit, robust,
-                               cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    both <- .center_terms_both(scaling$data, y_pre, used, if (robust == "CR2") fit_cr else fit,
+                               robust, cluster, if (robust == "CR2") cluster_fit, pretest_center)
     center <- both$center
     center_other <- both$other
     center_note <- both$note
@@ -538,7 +540,9 @@
   effects <- .effects_table(effects, keys = "comparison")
 
   # The pretest effects at both centers (issue #135), computed for the
-  # other center by shifting the contrasts, as in the four-group model.
+  # other center by shifting the contrasts, as in the four-group model: the
+  # shift in the units of the scaled pretest, the slope in those of the
+  # pretest as given.
   sensitivity <- NULL
   if (!is.null(y_pre)) {
     pretest_labels <- c(cond$control, cond$treatments, "All conditions")
@@ -549,7 +553,8 @@
     other_rows <- NULL
     if (differ) {
       other_rows <- .other_center_rows(
-        L_pretest, pretest_types, centers[[.other_center(pretest_center)]] - pretest_mean,
+        L_pretest, pretest_types,
+        (centers[[.other_center(pretest_center)]] - pretest_mean) / .pretest_scale(scaling),
         function(L) lin_contrast(L, center_other), comparison = pretest_labels,
         no_se = !is.null(center_note)
       )
@@ -560,7 +565,7 @@
       other_rows <- other_rows[, columns]
     }
     identity <- identical(stats::family(fit)$link, "identity")
-    slope <- cf[["pre_obs"]]
+    slope <- cf[["pre_obs"]] / .pretest_scale(scaling)
     sensitivity <- .pretest_sensitivity(
       used_rows, other_rows, pretest_center, "comparison", parts, centers, slope, identity,
       .pretest_attrition(as.character(df$condition), lev, df$pretested, df$y, used, slope,

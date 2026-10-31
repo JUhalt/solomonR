@@ -1,5 +1,5 @@
-# Numeric covariates standardized for the inference of fit_solomon_glm()
-# (issue #137).
+# Numeric covariates and the pretest standardized for the inference of
+# fit_solomon_glm() (issue #137).
 #
 # A numeric covariate far from zero relative to its spread, such as a
 # calendar year, makes the design of the model ill-conditioned: the robust
@@ -7,17 +7,22 @@
 # bootstrap of marginal_solomon() and the cell means of
 # plot_sensitization(), and the cross-products that the influence functions
 # of the pretest effects were computed from became singular (see
-# .glm_influence()). The inference is therefore computed from the model
-# refitted with each numeric covariate standardized: centered at its mean
-# and divided by its standard deviation over the rows the model used. That
-# is a reparameterization, X_s = X A for a fixed matrix A, so the fitted
-# values, the model-based, HC3, and CR2 covariances of the contrasts, and
-# their Satterthwaite degrees of freedom are the same in exact arithmetic;
-# the contrasts give no weight to the intercept or the covariates. The
-# model, the coefficients, and their covariance are returned for the
-# covariates as given (.covariate_map()), and the standardized coefficients
-# and covariance in `covariate_scaling`, for the functions that take the
-# fit.
+# .glm_influence()). A covariate or a pretest on a scale far from 1, such as
+# 1e-8 or 1e8, does the same to the CR2 covariance and to the numerical
+# derivatives of the delta method. The inference is therefore computed from
+# the model refitted with each numeric covariate standardized, centered at
+# its mean and divided by its standard deviation over the rows the model
+# used, and with the pretest, already centered, divided by the power of two
+# nearest its standard deviation. That is a reparameterization, X_s = X A
+# for a fixed matrix A, so the fitted values, the model-based, HC3, and CR2
+# covariances of the contrasts, and their Satterthwaite degrees of freedom
+# are the same in exact arithmetic. The contrasts give no weight to the
+# intercept or the covariates; those that weight the pretest's coefficient
+# (the pretest effects at the other center) weight it in the units of the
+# scaled pretest (.pretest_scale()). The model, the coefficients, and their
+# covariance are returned for the covariates and the pretest as given
+# (.covariate_map()), and the standardized coefficients and covariance in
+# `covariate_scaling`, for the functions that take the fit.
 
 # The numeric covariates of `df` standardized over the rows the model used
 # (`in_model`). `covariates` names the covariates among the columns of
@@ -26,12 +31,24 @@
 # numbers it enters the model as, and so are dates and times, which enter
 # it as days or seconds since 1970, or in the units of a difference
 # (.covariate_values()); a factor, a logical, or a character column enters
-# as indicators and is left as given, as is a matrix. Returns the data with
-# them standardized, `data`, and their `means` and `scales` (standard
-# deviations), named by covariate; `means` is empty when there is none.
+# as indicators and is left as given, as is a matrix. The pretest,
+# `pre_obs`, is centered already, at the mean at which the pretest effects
+# are evaluated, so it is only divided, by the power of two nearest its
+# standard deviation over the pretested participants in the model; dividing
+# by a power of two is exact. Returns the data with them standardized,
+# `data`, and their `means` and `scales` (standard deviations, and that
+# power of two), named by covariate, the pretest first, with a mean of 0;
+# `means` is empty when there is neither.
 .covariate_scaling <- function(df, covariates, in_model) {
   means <- numeric()
   scales <- numeric()
+  if ("pre_obs" %in% names(df)) {
+    s <- stats::sd(df$pre_obs[in_model & df$pretested %in% 1])
+    s <- if (is.finite(s) && s > 0) 2^round(log2(s)) else 1
+    df$pre_obs <- df$pre_obs / s
+    means[["pre_obs"]] <- 0
+    scales[["pre_obs"]] <- s
+  }
   for (name in covariates) {
     x <- .covariate_values(df[[name]])
     if (is.null(x)) next
@@ -44,6 +61,14 @@
     scales[[name]] <- s
   }
   list(data = df, means = means, scales = scales)
+}
+
+# The number the pretest was divided by for the inference: a pretest
+# coefficient of the standardized model is in its units, and a shift of the
+# pretest in the units of the pretest as given is divided by it (`scaling`
+# from .covariate_scaling()). 1 without a pretest.
+.pretest_scale <- function(scaling) {
+  if ("pre_obs" %in% names(scaling$scales)) scaling$scales[["pre_obs"]] else 1
 }
 
 # The numbers a covariate enters the model as, without its class: those of
@@ -76,8 +101,9 @@
 # The map from the coefficients of the model with standardized covariates
 # to those of the covariates as given, b = M b_s, so that V = M V_s M'. A
 # covariate's coefficient is divided by its standard deviation, and the
-# intercept loses each covariate's mean times its coefficient. `terms` are
-# the names of the coefficients.
+# intercept loses each covariate's mean times its coefficient; the
+# pretest's coefficient is divided by its scale, and its mean is 0. `terms`
+# are the names of the coefficients.
 .covariate_map <- function(terms, scaling) {
   M <- diag(length(terms))
   dimnames(M) <- list(terms, terms)
@@ -125,7 +151,10 @@
   if (standardized) {
     cf <- stats::coef(fit)
     M <- .covariate_map(names(cf), scaling)
-    tidy$estimate <- unname(drop(M %*% cf)[tidy$term])
+    # broom names the estimates of a negative-binomial fit by term; they
+    # keep their names.
+    estimate <- drop(M %*% cf)[tidy$term]
+    tidy$estimate <- if (is.null(names(tidy$estimate))) unname(estimate) else estimate
     V_given <- M %*% as.matrix(V) %*% t(M)
   }
   se_vec <- sqrt(diag(V_given))
