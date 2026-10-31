@@ -325,12 +325,17 @@
     df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
   }
 
-  if (negbin) {
-    fit <- .fit_negbin(fml, df)
-    family <- stats::family(fit)
-  } else {
-    fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
-  }
+  # The model as given, and the model refitted with the numeric covariates
+  # standardized and the pretest scaled, which the inference comes from and
+  # which gives the warnings, as in the four-group model (issue #137).
+  standardize <- .standardizes(df, names(covariates))
+  fit <- .fit_model(fml, df, family, negbin, quiet = standardize)
+  used <- rep(TRUE, nrow(df))
+  if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
+  fit_given <- fit
+  scaling <- .covariate_scaling(df, names(covariates), used)
+  if (standardize) fit <- .fit_model(fml, scaling$data, family, negbin)
+  if (negbin) family <- stats::family(fit)
 
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link, ngroup = TRUE)
@@ -338,15 +343,14 @@
 
   # Analyzable participants (the rows the model kept) in each of the
   # 2(k + 1) groups.
-  used <- rep(TRUE, nrow(df))
-  if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
   counts <- table(
     factor(df$condition[used], levels = lev),
     factor(df$pretested[used], levels = c(1L, 0L))
   )
 
   # An empty group, or a term collinear with the others, leaves a
-  # coefficient inestimable.
+  # coefficient inestimable, in the model as given or standardized.
+  .stop_inestimable(fit_given, .group_names(counts, counts == 0))
   .stop_inestimable(fit, .group_names(counts, counts == 0))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
@@ -359,13 +363,6 @@
       call. = FALSE
     )
   }
-
-  # The inference comes from the model refitted with the numeric covariates
-  # standardized and the pretest scaled, as in the four-group model (issue
-  # #137).
-  fit_given <- fit
-  scaling <- .covariate_scaling(df, names(covariates), used)
-  if (length(scaling$means)) fit <- .fit_standardized(fml, scaling$data, family, negbin)
 
   # Robust covariance, as in the four-group model.
   fit_cr <- fit
@@ -621,9 +618,10 @@
   }))
   rownames(omnibus) <- NULL
 
+  # The dispersion and theta come from the fit the inference came from, as
+  # in the four-group model.
   dispersion <- if (dispersion_fixed) {
-    sum(stats::residuals(fit_given, type = "pearson")^2, na.rm = TRUE) /
-      stats::df.residual(fit_given)
+    sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
   } else {
     NA_real_
   }
@@ -642,9 +640,7 @@
     weights = weights,
     adjust = adjust,
     dispersion = dispersion,
-    theta = if (negbin) {
-      c(theta = fit_given$theta, std.error = fit_given$SE.theta, alpha = 1 / fit_given$theta)
-    },
+    theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = coefficients$vcov,
     covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
     data = df,

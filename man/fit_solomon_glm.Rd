@@ -550,12 +550,18 @@ of the model as given lose accuracy or cannot be computed. \code{model},
 given, the intercept included. With a pretest or a numeric covariate, a
 CR2 \code{vcov} is therefore a matrix rather than the clubSandwich object,
 whose small-sample adjustments belong to the standardized model; that
-model's coefficients and covariance are in \code{covariate_scaling}. A
-numeric covariate is
-standardized whatever its class, such as a labelled column read from SPSS
-or Stata, or one wrapped in \code{I()}, and so are dates and times, as the
-numbers they enter the model as; factors, logical columns, and character
-columns enter as given.
+model's coefficients and covariance are in \code{covariate_scaling}. The
+warnings, such as one that a negative-binomial theta did not converge,
+come from the standardized model too, as do \code{theta} and \code{dispersion},
+which do not depend on the parameterization. Far from zero, a fit to a
+covariate as given can warn where the same model standardized does not;
+and from about 10^7 standard deviations from zero, \code{\link[stats:glm]{stats::glm()}} can take
+nearly collinear covariates as given to be collinear, which stops the fit.
+
+A numeric covariate is standardized whatever its class, such as that of a
+variable with value labels read from an SPSS file, or of one wrapped in
+\code{I()}, and so are dates and times, as the numbers they enter the model
+as; factors, logical columns, and character columns enter as given.
 }
 
 \section{Designs with several treatments}{

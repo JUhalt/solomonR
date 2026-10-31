@@ -27,7 +27,7 @@
 # The numeric covariates of `df` standardized over the rows the model used
 # (`in_model`). `covariates` names the covariates among the columns of
 # `df`. Every numeric vector is standardized, whatever its class (such as a
-# labelled column read from SPSS or Stata, or one wrapped in I()), as the
+# labeled column read from SPSS or Stata, or one wrapped in I()), as the
 # numbers it enters the model as, and so are dates and times, which enter
 # it as days or seconds since 1970, or in the units of a difference
 # (.covariate_values()); a factor, a logical, or a character column enters
@@ -115,23 +115,32 @@
   M
 }
 
-# The model refitted to the standardized covariates, as fit_solomon_glm()
-# fitted it to the covariates as given. The fit as given has already given
-# any warning, such as one that theta did not converge, so the refit gives
-# none.
-.fit_standardized <- function(fml, data, family, negbin) {
-  suppressWarnings(if (negbin) {
-    .fit_negbin(fml, data)
-  } else {
-    stats::glm(fml, data = data, family = family, na.action = stats::na.exclude)
-  })
+# Whether .covariate_scaling() standardizes anything in `df`: a pretest, or
+# a numeric covariate among `covariates`.
+.standardizes <- function(df, covariates) {
+  "pre_obs" %in% names(df) ||
+    any(vapply(covariates, function(name) !is.null(.covariate_values(df[[name]])), logical(1)))
 }
 
-# The standardized model of a fit_solomon_glm() fit with `covariate_scaling`.
+# The model of fit_solomon_glm() fitted to `data`, a negative-binomial one
+# when `negbin` is TRUE. With `quiet`, without its warnings.
+.fit_model <- function(fml, data, family, negbin, quiet = FALSE) {
+  fit <- function() {
+    if (negbin) {
+      .fit_negbin(fml, data)
+    } else {
+      stats::glm(fml, data = data, family = family, na.action = stats::na.exclude)
+    }
+  }
+  if (quiet) suppressWarnings(fit()) else fit()
+}
+
+# The standardized model of a fit_solomon_glm() fit with `covariate_scaling`,
+# refitted. The fit gave its warnings when it was made, so this one gives
+# none.
 .standardized_model <- function(fit) {
-  .fit_standardized(stats::formula(fit$model),
-                    .standardized_frame(fit$data, fit$covariate_scaling), fit$family,
-                    .is_negbin(fit$family))
+  .fit_model(stats::formula(fit$model), .standardized_frame(fit$data, fit$covariate_scaling),
+             fit$family, .is_negbin(fit$family), quiet = TRUE)
 }
 
 # The coefficient table of fit_solomon_glm(), in the columns of

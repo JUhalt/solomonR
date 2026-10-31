@@ -954,12 +954,18 @@ stouffer_solomon <- function(p) {
 #' given, the intercept included. With a pretest or a numeric covariate, a
 #' CR2 `vcov` is therefore a matrix rather than the clubSandwich object,
 #' whose small-sample adjustments belong to the standardized model; that
-#' model's coefficients and covariance are in `covariate_scaling`. A
-#' numeric covariate is
-#' standardized whatever its class, such as a labelled column read from SPSS
-#' or Stata, or one wrapped in `I()`, and so are dates and times, as the
-#' numbers they enter the model as; factors, logical columns, and character
-#' columns enter as given.
+#' model's coefficients and covariance are in `covariate_scaling`. The
+#' warnings, such as one that a negative-binomial theta did not converge,
+#' come from the standardized model too, as do `theta` and `dispersion`,
+#' which do not depend on the parameterization. Far from zero, a fit to a
+#' covariate as given can warn where the same model standardized does not;
+#' and from about 10^7 standard deviations from zero, [stats::glm()] can take
+#' nearly collinear covariates as given to be collinear, which stops the fit.
+#'
+#' A numeric covariate is standardized whatever its class, such as that of a
+#' variable with value labels read from an SPSS file, or of one wrapped in
+#' `I()`, and so are dates and times, as the numbers they enter the model
+#' as; factors, logical columns, and character columns enter as given.
 #'
 #' @section Designs with several treatments:
 #' A Solomon N-group design crosses k treatments and a control with
@@ -1448,20 +1454,29 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
   }
 
-  if (negbin) {
-    fit <- .fit_negbin(fml, df)
-    family <- stats::family(fit)
-  } else {
-    fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
-  }
-
-  # An empty group, or a term collinear with the others, leaves a
-  # coefficient inestimable: stop as the several-treatment path does. The
-  # groups are named by the conditions when `control` named them. With
-  # `pretest_center = "observed"` the center exists even when a pretested
-  # group has no posttest, so the model's own check is needed.
+  # The model as given, which the result returns as `model`. With a pretest
+  # or a numeric covariate the inference comes from the model refitted with
+  # the covariates standardized and the pretest scaled, which is accurate
+  # however far a covariate lies from zero, and whatever the scale of a
+  # covariate or the pretest (issue #137; .covariate_scaling()). That fit
+  # gives the warnings, and this one is fitted silently: far from zero, a
+  # covariate can make the fit as given warn, for instance that theta did
+  # not converge, where the same model standardized does not.
+  standardize <- .standardizes(df, names(covariates))
+  fit <- .fit_model(fml, df, family, negbin, quiet = standardize)
   in_model <- rep(TRUE, nrow(df))
   if (!is.null(fit$na.action)) in_model[fit$na.action] <- FALSE
+  fit_given <- fit
+  scaling <- .covariate_scaling(df, names(covariates), in_model)
+  if (standardize) fit <- .fit_model(fml, scaling$data, family, negbin)
+  if (negbin) family <- stats::family(fit)
+
+  # An empty group, or a term collinear with the others, leaves a
+  # coefficient inestimable, in the model as given or standardized: stop as
+  # the several-treatment path does. The groups are named by the conditions
+  # when `control` named them. With `pretest_center = "observed"` the center
+  # exists even when a pretested group has no posttest, so the model's own
+  # check is needed.
   arms <- if (is.null(conditions$control)) {
     c("treatment", "control")
   } else {
@@ -1471,6 +1486,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     factor(df$treat[in_model], levels = c(1L, 0L), labels = arms),
     factor(df$pretested[in_model], levels = c(1L, 0L))
   )
+  .stop_inestimable(fit_given, .group_names(group_counts, group_counts == 0))
   .stop_inestimable(fit, .group_names(group_counts, group_counts == 0))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
@@ -1489,15 +1505,6 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link)
   }
-
-  # The inference comes from the model refitted with the numeric covariates
-  # standardized and the pretest scaled, which is accurate however far a
-  # covariate lies from zero, and whatever the scale of a covariate or the
-  # pretest (issue #137; .covariate_scaling()). `fit_given` is the model as
-  # given, which the result returns.
-  fit_given <- fit
-  scaling <- .covariate_scaling(df, names(covariates), in_model)
-  if (length(scaling$means)) fit <- .fit_standardized(fml, scaling$data, family, negbin)
 
   # Robust VCOV
   fit_cr <- fit
@@ -1712,9 +1719,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     )
   }
 
-  dispersion <- if (.fixed_dispersion(stats::family(fit_given))) {
-    sum(stats::residuals(fit_given, type = "pearson")^2, na.rm = TRUE) /
-      stats::df.residual(fit_given)
+  # The dispersion and theta do not depend on the parameterization; they
+  # come from the fit the inference came from.
+  dispersion <- if (.fixed_dispersion(stats::family(fit))) {
+    sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
   } else {
     NA_real_
   }
@@ -1724,9 +1732,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     coefficients = coefficients$table,
     effects = effects,
     dispersion = dispersion,
-    theta = if (negbin) {
-      c(theta = fit_given$theta, std.error = fit_given$SE.theta, alpha = 1 / fit_given$theta)
-    },
+    theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = coefficients$vcov,
     covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
     data = df,

@@ -248,10 +248,10 @@ test_that("a date covariate is standardized as the days it enters the model as",
 })
 
 test_that("a numeric covariate with a class is standardized as the numbers it enters as", {
-  # A column wrapped in I(), and a labelled column, as haven::read_sav()
-  # returns for a variable with value labels.
+  # A column wrapped in I(), and a labeled column of class haven_labelled,
+  # as haven::read_sav() returns for a variable with value labels.
   d <- location_data()$four
-  labelled <- function(x) {
+  labeled <- function(x) {
     structure(x, labels = c(low = 0), class = c("haven_labelled", "vctrs_vctr", "double"))
   }
   shift <- 1e6 * stats::sd(d$z)
@@ -265,13 +265,43 @@ test_that("a numeric covariate with a class is standardized as the numbers it en
     }
     ref <- fit_with(d$z)
     for (class in c("AsIs", "haven_labelled")) {
-      z <- if (class == "AsIs") I(d$z + shift) else labelled(d$z + shift)
+      z <- if (class == "AsIs") I(d$z + shift) else labeled(d$z + shift)
       fit <- fit_with(z)
       expect_s3_class(fit$model$data$z, class)
       expect_named(fit$covariate_scaling$means, c("pre_obs", "z"))
       expect_shift_invariant(fit, ref, c(z = shift), 1e-8, info = paste(robust, class))
     }
   }
+})
+
+test_that("the warnings, theta, and dispersion come from the standardized fit", {
+  # Two nearly collinear covariates 10^6 standard deviations from zero: the
+  # negative-binomial fit as given warns that theta did not converge, and
+  # the same model standardized does not.
+  d <- withr::with_seed(137, {
+    n <- 40
+    g <- rep(1:4, each = n)
+    treat <- c(1, 0, 1, 0)[g]
+    pretested <- c(1, 1, 0, 0)[g]
+    pre <- ifelse(pretested == 1, round(stats::rnorm(4 * n) * 2^16) / 2^16, NA)
+    z <- round(stats::rnorm(4 * n) * 2^16) / 2^16
+    y <- 0.4 * treat + ifelse(is.na(pre), 0, 0.5 * pre) + 0.3 * z + stats::rnorm(4 * n)
+    stats::rbinom(4 * n, 1, stats::plogis(y - 0.3))  # a binary outcome, unused here
+    z2 <- z + round(stats::rnorm(4 * n) * 4) * 2^-16
+    data.frame(treat, pretested, pre, z, z2,
+               y_nb = MASS::rnegbin(4 * n, mu = exp(0.5 + y / 3), theta = 2))
+  })
+  shift <- round(1e6 * stats::sd(d$z) * 2^16) / 2^16
+  fit_with <- function(s) {
+    fit_solomon_glm(d$y_nb, d$treat, d$pretested, d$pre, family = "negative_binomial",
+                    covariates = data.frame(z = d$z + s, z2 = d$z2 + s))
+  }
+  expect_no_warning(ref <- fit_with(0))
+  expect_no_warning(fit <- fit_with(shift))
+  expect_equal(fit$theta, ref$theta, tolerance = 1e-8)
+  expect_equal(fit$dispersion, ref$dispersion, tolerance = 1e-8)
+  expect_shift_invariant(fit, ref, c(z = shift, z2 = shift), 1e-6, info = "negbin")
+  expect_identical(stats::model.frame(fit$model)$z, d$z + shift)
 })
 
 test_that("the influence functions from the QR decomposition equal the cross-products", {
