@@ -295,7 +295,15 @@ on `r run$workers` workers (`r run$R_version`). Both scripts have since been
 adapted to the current output of the package
 ([issue #140](https://github.com/JUhalt/solomonR/issues/140)): they select
 the rows they study by their labels, as the help page `?solomon_output`
-describes, without changing what they compute.
+describes, and they have a smoke mode, a short run that checks them against
+the current package. The adaptation does not change what the scripts
+compute: on two replications of the scenarios of their smoke modes (4 and
+76 for the count study; 4, 10, and 82 for the negative-binomial study),
+with the package at the commit of each run, `r substr(run$commit, 1, 7)`
+and `r substr(nb_run$commit, 1, 7)`, the original and the adapted scripts
+give identical results. With the current package, the results differ from
+these, with relative differences below 1e-7, because the pretest has been
+centered since [issue #104](https://github.com/JUhalt/solomonR/issues/104).
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

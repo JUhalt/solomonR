@@ -253,8 +253,16 @@ repository. It was run at `r run$git_commit` with R `r run$r_version`, base
 seed `r run$base_seed`, and the replication counts above. Its smoke mode, a
 short run of three scenarios, has since been extended to check it against
 the current package
-([issue #140](https://github.com/JUhalt/solomonR/issues/140)); a full run
-computes what it computed then.
+([issue #140](https://github.com/JUhalt/solomonR/issues/140)); the rest of
+the script is unchanged except for the label of Test I, which now names
+Walton Braver. The version of `power_solomon()` used in the run was not
+committed, so the run cannot be repeated exactly. On the three smoke
+scenarios with 20 simulations each, the script as first committed, with
+the package at that commit (b483973), and the script now, with the package
+at commit 9166516, give the same numbers. With the current package, the
+Test I rows differ, because `power_solomon()` has judged Test I by the
+two-tailed p since the next commit, ffb0295 (see Methods above); the
+other rows are identical.
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.
