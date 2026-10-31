@@ -29,8 +29,6 @@ Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.1)
 Imports:
     stats,
-    broom,
-    dplyr,
     sandwich,
     clubSandwich,
     generics,
