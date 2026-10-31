@@ -106,21 +106,17 @@ test_that("with the default center, results equal those of master (a6c771a)", {
     else if (grepl("logit|poisson|mi$", name)) 1e-6
     else 1e-8
   }
-  # Printed output of complete data is unchanged; with missing posttests the
-  # lines of the coefficient and contrast tables are, in order (the notes
-  # under them may add the other center).
-  labels <- c(.solomon_contrast_order, .solomon_pretest_order, "(Intercept)", "treat",
-              "pretested", "pre_obs", "age", "Pretested, ", "Unpretested, ", "Experimental",
-              "Control I", "Change in")
-  table_line <- function(x) {
-    grepl("\\[-?[0-9.]+, -?[0-9.]+\\]", x) |
-      grepl(paste0("^\\s*(", paste(gsub("([().|])", "\\\\\\1", labels), collapse = "|"),
-                   ")\\S*\\s\\s"), x)
-  }
-  in_order <- function(lines, within) {
+  # Printed output and report sentences of complete data are unchanged. With
+  # missing posttests every line that master printed, and every paragraph of
+  # its report, appears unchanged and in the same order; the new output may
+  # add lines and paragraphs for the other center and the attrition, and the
+  # report of a design with several treatments adds its sentences at the
+  # end of its last paragraph, which must then begin with master's.
+  in_order <- function(lines, within, prefix = FALSE) {
     at <- 0L
     for (line in lines) {
-      hit <- which(within == line & seq_along(within) > at)
+      hit <- which((within == line | (prefix & startsWith(within, paste0(line, " ")))) &
+                     seq_along(within) > at)
       if (!length(hit)) return(FALSE)
       at <- hit[1]
     }
@@ -131,12 +127,12 @@ test_that("with the default center, results equal those of master (a6c771a)", {
       ref <- stored$results[[name]][[part]]
       got <- now[[name]][[part]]
       info <- paste(name, part)
-      if (identical(part, "text")) {
+      if (part %in% c("text", "sentences")) {
         if (grepl("complete|classic", name)) {
           expect_identical(got, ref, info = info)
         } else {
-          expect_true(in_order(ref[table_line(ref)], got), info = info)
-          expect_gt(sum(table_line(ref)), 0L)
+          expect_true(in_order(ref, got, prefix = part == "sentences"), info = info)
+          expect_gt(length(ref), 0L)
         }
         next
       }
@@ -145,6 +141,27 @@ test_that("with the default center, results equal those of master (a6c771a)", {
         got <- got[names(ref)]
       }
       expect_equal(got, ref, tolerance = tolerance(name), info = info)
+    }
+  }
+})
+
+test_that("objects made by master print, summarize, report, and tidy as on master", {
+  # fixtures/pretest-center-master.rds also holds a four-group fit, a fit
+  # with several treatments, a marginal_solomon() result, and a
+  # fit_solomon_1949() result made by master (a6c771a) on data with missing
+  # posttests, with their output on master. They lack every element added
+  # by #135, so the current methods must fall back to master's output.
+  source(test_path("fixtures", "pretest-center-master.R"), local = TRUE)
+  stored <- readRDS(test_path("fixtures", "pretest-center-master.rds"))
+  expect_named(stored$objects, c("glm", "ngroup", "marginal", "solomon_1949"))
+  for (name in names(stored$objects)) {
+    x <- stored$objects[[name]]
+    expect_null(x$pretest_center)
+    now <- pretest_center_output(x)
+    ref <- stored$objects_output[[name]]
+    expect_named(now, names(ref))
+    for (part in names(ref)) {
+      expect_identical(now[[part]], ref[[part]], info = paste(name, part))
     }
   }
 })

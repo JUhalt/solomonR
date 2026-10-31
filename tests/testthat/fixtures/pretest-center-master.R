@@ -25,10 +25,19 @@
 #
 # The test compares each stored table with the columns of the same names in
 # the current result. Columns added to a table after the results were
-# stored, and a different column order, are therefore not compared. Two
-# changes are sanctioned by issue #135 and left out: data in which a
-# participant's pretest is given in some rows only (fit_solomon_mmrm()), and
-# models that cannot be estimated (an empty group).
+# stored, and a different column order, are therefore not compared. Printed
+# output (`text`) and report sentences (`sentences`) of complete data must
+# be identical; with missing posttests every line and sentence of master's
+# must appear, in order, in the new output, which may add lines for the
+# other center and the attrition. Two changes are sanctioned by issue #135
+# and left out: data in which a participant's pretest is given in some rows
+# only (fit_solomon_mmrm()), and models that cannot be estimated (an empty
+# group, or a group of one participant under HC3).
+#
+# The file also stores objects made by master (`objects`) and their output
+# (`objects_output`, from pretest_center_output()): a fit saved before
+# #135 lacks every element added since, and must print, summarize, report,
+# and tidy exactly as it did.
 
 # The data sets.
 pretest_center_data <- function() {
@@ -183,7 +192,7 @@ pretest_center_results <- function(data) {
   # marginal_solomon().
   marginal <- function(x) {
     list(effects = x$effects, risks = x$risks, rates = x$rates, failures = x$failures,
-         text = printed(x))
+         text = printed(x), sentences = report_solomon(x)$results)
   }
   results[["marginal logit delta"]] <- marginal(marginal_solomon(fits[["glm logit"]],
                                                                  method = "delta"))
@@ -214,7 +223,7 @@ pretest_center_results <- function(data) {
   f49 <- function(x) {
     list(groups = x$groups, inferred_pretest = x$inferred_pretest, I = x$I,
          posttest_contrast = x$posttest_contrast, pretest_difference = x$pretest_difference,
-         text = printed(x))
+         text = printed(x), sentences = report_solomon(x)$results)
   }
   results[["1949 four-group"]] <- f49(fit_solomon_1949(y_post, treat, pretested, y_pre,
                                                        data = four))
@@ -244,9 +253,14 @@ pretest_center_results <- function(data) {
   }
   results[["cells glm complete HC3"]] <- cells(fits[["glm complete HC3"]])
 
-  # report_solomon(): the tables, and the text for complete data.
-  for (name in c("glm HC3", "glm covariate HC3", "glm CR2", "ngroup HC3", "glm logit")) {
-    results[[paste("report", name)]] <- list(table = report_solomon(fits[[name]])$table)
+  # report_solomon(): the tables, the method, and the sentences (`sentences`,
+  # which the test finds in order in the new report, as it may add the
+  # other center's), and the text for complete data.
+  for (name in c("glm HC3", "glm covariate HC3", "glm CR2", "ngroup HC3", "glm logit",
+                 "ngroup mai2020 HC3", "glm poisson")) {
+    r <- report_solomon(fits[[name]])
+    results[[paste("report", name)]] <- list(table = r$table, method = r$method,
+                                             sentences = r$results)
   }
   for (name in c("glm complete HC3", "glm complete CR2")) {
     r <- report_solomon(fits[[name]])
@@ -293,8 +307,9 @@ pretest_center_results <- function(data) {
         results[[paste("mmrm", set, df)]] <- list(
           effects = fit$effects, pretest_mean = fit$pretest_mean, observed = fit$observed,
           excluded = fit$excluded, covariance = fit$covariance)
-        if (df == "kenward-roger" && set == "long_complete") {
+        if (df == "kenward-roger") {
           results[[paste("mmrm", set, df)]]$text <- printed(fit)
+          results[[paste("mmrm", set, df)]]$sentences <- report_solomon(fit)$results
         }
       }
     }
@@ -302,9 +317,53 @@ pretest_center_results <- function(data) {
   results
 }
 
-# Make the data, compute the results, and save both.
+# Objects made by master, which the test prints and reports with the
+# current package (pretest_center_output()); they lack every element added
+# since. A fitted model's formula and terms keep the frame of the function
+# that fitted it, which serializes every object made there; the frame is
+# replaced by the global environment, which no printed or reported result
+# uses, to keep the file small. Their output is computed after that, from
+# the same objects.
+pretest_center_objects <- function(four, mai2020) {
+  small <- function(fit) {
+    m <- fit$model
+    environment(m$terms) <- globalenv()
+    environment(m$formula) <- globalenv()
+    attr(m$model, "terms") <- m$terms
+    fit$model <- m
+    fit
+  }
+  logit <- suppressWarnings(fit_solomon_glm(passed, treat, pretested, y_pre,
+                                            family = stats::binomial(), data = four))
+  list(
+    glm = small(fit_solomon_glm(y_post, treat, pretested, y_pre, data = four)),
+    ngroup = small(fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                                   control = "Control", data = mai2020)),
+    marginal = marginal_solomon(logit, method = "delta"),
+    solomon_1949 = fit_solomon_1949(y_post, treat, pretested, y_pre, data = four)
+  )
+}
+
+# What the test compares for an object made by master: its printed output
+# (and its summary's, for a fit_solomon_glm() fit), its report, and its
+# tidy() table where it has one.
+pretest_center_output <- function(x) {
+  out <- list(text = utils::capture.output(print(x)),
+              report = report_solomon(x)[c("method", "results", "table")])
+  if (inherits(x, "solomon_glm")) out$summary <- utils::capture.output(print(summary(x)))
+  tidied <- tryCatch(as.data.frame(tidy(x)), error = function(e) NULL)
+  if (!is.null(tidied)) out$tidy <- tidied
+  out
+}
+
+# Make the data, compute the results, and save both, with the objects made
+# by master and their output.
 pretest_center_save <- function(file) {
   data <- pretest_center_data()
-  saveRDS(list(data = data, results = pretest_center_results(data)), file, version = 2)
+  results <- pretest_center_results(data)
+  objects <- pretest_center_objects(data$four, data$mai2020)
+  saveRDS(list(data = data, results = results, objects = objects,
+               objects_output = lapply(objects, pretest_center_output)),
+          file, version = 2)
   invisible(file)
 }
