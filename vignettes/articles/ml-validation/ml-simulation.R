@@ -204,8 +204,8 @@ invisible(parallel::clusterEvalQ(cl, {
   NULL
 }))
 
-results <- parallel::parLapplyLB(cl, if (smoke) smoke_scenarios else seq_len(nrow(scenarios)),
-                                 run_scenario)
+run_ids <- if (smoke) smoke_scenarios else seq_len(nrow(scenarios))
+results <- parallel::parLapplyLB(cl, run_ids, run_scenario)
 
 replicates <- do.call(rbind, lapply(results, `[[`, "replicates"))
 failures <- do.call(rbind, lapply(results, `[[`, "failures"))
@@ -215,7 +215,7 @@ saveRDS(
   list(
     performance = performance,
     failures = failures,
-    scenarios = scenarios,
+    scenarios = if (smoke) scenarios[run_ids, ] else scenarios,
     settings = list(nsim = nsim, base_seed = base_seed, alpha = alpha,
                     tau_unpretested = tau_unpretested, workers = workers),
     session = utils::sessionInfo(),
@@ -226,7 +226,7 @@ saveRDS(
   output
 )
 
-cat("Scenarios:", nrow(scenarios), " replications:", nsim,
+cat("Scenarios:", length(run_ids), " replications:", nsim,
     " failures:", if (is.null(failures)) 0L else nrow(failures),
     " minutes:", round(as.numeric(difftime(Sys.time(), started, units = "mins")), 1), "\n")
 if (smoke && (!is.null(failures) || !all(is.finite(performance$bias)))) {

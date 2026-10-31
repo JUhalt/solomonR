@@ -56,7 +56,7 @@ scenarios <- do.call(rbind, lapply(2:3, function(k) {
               effects = names(effects), stringsAsFactors = FALSE)
 }))
 scenarios$scenario <- seq_len(nrow(scenarios))
-# The first scenario with one treatment and the first with two.
+# The first scenario with two treatments and the first with three.
 smoke_scenarios <- c(1L, 65L)
 
 # Group sizes in the order pretested treatments, pretested control,

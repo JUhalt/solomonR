@@ -14,7 +14,7 @@ dir <- file.path("vignettes", "articles", "mi-validation")
 # has a missing difference. tools/check-validation-scripts.R runs it.
 smoke <- nzchar(Sys.getenv("SOLOMONR_SMOKE_DIR"))
 if (smoke) dir <- file.path(Sys.getenv("SOLOMONR_SMOKE_DIR"), "mi-validation")
-scenarios <-unique(utils::read.csv(file.path(dir, "performance.csv"),
+scenarios <- unique(utils::read.csv(file.path(dir, "performance.csv"),
                                     stringsAsFactors = FALSE)[, c("scenario", "n", "missing", "offsets")])
 parts <- lapply(list.files(file.path(dir, "cache"), pattern = "[.]rds$", full.names = TRUE), readRDS)
 
