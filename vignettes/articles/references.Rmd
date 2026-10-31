@@ -649,6 +649,16 @@ Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 Planned missing data designs in psychological research. *Psychological
 Methods, 11*(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
 
+Groenwold, R. H. H., Moons, K. G. M., & Vandenbroucke, J. P. (2014).
+Randomized trials with missing outcome data: How to analyze and what to
+report. *Canadian Medical Association Journal, 186*(15), 1153–1157.
+https://doi.org/10.1503/cmaj.131353
+
+> Recommends reporting the baseline characteristics of the participants
+> analyzed in each arm. *In solomonR:* the covariates of
+> `check_solomon_missing()`, by pretest condition
+> ([#135](https://github.com/JUhalt/solomonR/issues/135)).
+
 Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R.,
 Altman, D. G., & Moons, K. G. M. (2012). Missing covariate data in clinical
 research: When and when not to use the missing-indicator method for
@@ -702,6 +712,17 @@ Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing for
 psychological research: A tutorial. *Advances in Methods and Practices in
 Psychological Science, 1*(2), 259–269.
 https://doi.org/10.1177/2515245918770963
+
+Lee, D. S. (2005). *Training, wages, and sample selection: Estimating sharp
+bounds on treatment effects* (NBER Working Paper No. 11721). National
+Bureau of Economic Research. https://doi.org/10.3386/w11721
+
+> In a randomized experiment with equal selection rates, compares the
+> baseline characteristics of the participants observed in the two arms as
+> a limited test of selection bias in the difference in means (Remark 4,
+> p. 16). *In solomonR:* the covariates of
+> `check_solomon_missing()`, by pretest condition
+> ([#135](https://github.com/JUhalt/solomonR/issues/135)).
 
 Liang, K.-Y., & Zeger, S. L. (1986). Longitudinal data analysis using
 generalized linear models. *Biometrika, 73*(1), 13–22.

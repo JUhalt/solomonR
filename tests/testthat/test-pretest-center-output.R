@@ -332,6 +332,138 @@ test_that("check_solomon_missing() works without a pretest and for complete data
                "the two centers coincide, but neither is protected", fixed = TRUE)
 })
 
+test_that("the selection shifts are compared by a test, free of the pretest's units", {
+  # mai2020: shifts of -0.006, -0.034, and -0.072 do not differ beyond
+  # sampling error.
+  m <- check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
+                             control = "Control", data = mai2020)
+  expect_false(m$selection_differ)
+  expect_equal(unname(m$selection_test[c("df", "p.value")]), c(2, 0.5775), tolerance = 1e-3)
+  expect_null(m$raw_pretest_effects)
+  out <- squash(printed(m))
+  expect_match(out, "Control -0.01 (SE 0.05), RP -0.03 (SE 0.04), and GS -0.07 (SE 0.04)",
+               fixed = TRUE)
+  expect_match(out, "Wald test of equal shifts, chi-square(2) = 1.10, p = .577.", fixed = TRUE)
+  expect_no_match(out, "The shifts differ", fixed = TRUE)
+
+  # The standard error of a shift is close to its jackknife standard error.
+  d <- loss_data()
+  rows <- which(d$pretested == 1 & d$treat == 0)
+  shift <- function(keep) {
+    x <- d$y_pre[keep]
+    mean(x[!is.na(d$y_post[keep])]) - mean(x)
+  }
+  jack <- vapply(seq_along(rows), function(i) shift(rows[-i]), 1)
+  se_jack <- sqrt((length(rows) - 1) / length(rows) * sum((jack - mean(jack))^2))
+  m <- check_solomon_missing(y_post, treat, pretested, y_pre, data = d)
+  sc <- m$pretest_scores
+  expect_equal(sc$shift[sc$condition == "control"], shift(rows), tolerance = 1e-12)
+  expect_equal(sc$shift_se[sc$condition == "control"], se_jack, tolerance = 0.05)
+
+  # The same data with the pretest in other units: the same test.
+  d10 <- d
+  d10$y_pre <- 100 + 10 * d$y_pre
+  m10 <- check_solomon_missing(y_post, treat, pretested, y_pre, data = d10)
+  expect_equal(m10$selection_test, m$selection_test, tolerance = 1e-10)
+
+  # When both conditions lose alike, the rule fires at about its nominal
+  # rate (part 8 of tools/pretest-center-check.R checks it under loss by
+  # baseline and completely at random). Here, with losses completely at
+  # random in 200 data sets, it fires in well under 10% of them; the
+  # display-precision rule of a first draft fired in almost all.
+  fires <- withr::with_seed(143, vapply(seq_len(200), function(r) {
+    n <- 50
+    g <- rep(1:4, each = n)
+    pretested <- as.integer(g <= 2)
+    condition <- ifelse(g %in% c(1, 3), "treatment", "control")
+    x <- stats::rnorm(4 * n)
+    y <- x + stats::rnorm(4 * n)
+    y[stats::runif(4 * n) < 0.3] <- NA
+    .missing_pretest_scores(y, ifelse(pretested == 1, x, NA), condition,
+                            c("control", "treatment"), pretested)$differ
+  }, TRUE))
+  expect_lt(mean(fires), 0.10)
+})
+
+test_that("check_solomon_missing() tests a covariate with many levels and keeps the user's seed", {
+  s <- as.data.frame(simulate_solomon(n = 100, seed = 1))
+  withr::with_seed(2, {
+    s$y_post[stats::runif(nrow(s)) < 0.3] <- NA
+    s$school <- sample(paste0("S", 1:10), nrow(s), TRUE)
+  })
+  withr::local_seed(9)
+  before <- .Random.seed
+  m <- check_solomon_missing(y_post, treat, pretested, y_pre, data = s, covariates = "school")
+  expect_identical(.Random.seed, before)
+  cv <- m$covariates$school
+  expect_true(all(is.finite(cv$p.value)))
+  expect_identical(unique(cv$test), "simulated")
+  # The p-values are the same on every call.
+  expect_identical(check_solomon_missing(y_post, treat, pretested, y_pre, data = s,
+                                         covariates = "school")$covariates$school$p.value,
+                   cv$p.value)
+  expect_match(squash(printed(m)), "Fisher's test, p-value simulated from 10,000 tables, p =",
+               fixed = TRUE)
+  # Two levels: the exact test.
+  s$sex <- rep(c("F", "M"), length.out = nrow(s))
+  m2 <- check_solomon_missing(y_post, treat, pretested, y_pre, data = s, covariates = "sex")
+  expect_identical(unique(m2$covariates$sex$test), "exact")
+})
+
+test_that("check_solomon_missing() prints p-values and negative means in APA form", {
+  withr::local_seed(2)
+  n <- 60
+  g <- rep(1:4, each = n)
+  treat <- as.integer(g %in% c(1, 3))
+  pretested <- as.integer(g <= 2)
+  x <- stats::rnorm(4 * n)
+  y <- 0.5 * x + stats::rnorm(4 * n)
+  y[pretested == 1 & x > 0.5] <- NA
+  m <- check_solomon_missing(y, treat, pretested, ifelse(pretested == 1, x, NA))
+  out <- squash(printed(m))
+  expect_match(out, "Fisher's exact test, p < .001", fixed = TRUE)
+  expect_no_match(out, "p = <", fixed = TRUE)
+  expect_true(m$gap[["analyzed"]] < 0)
+  # With the dropouts' mean negative, it is put in parentheses.
+  y2 <- 0.5 * x + 1
+  y2[pretested == 1 & x < -0.5] <- NA
+  m2 <- check_solomon_missing(y2, treat, pretested, ifelse(pretested == 1, x, NA))
+  expect_true(m2$gap[["not_analyzed"]] < 0)
+  out2 <- squash(printed(m2))
+  expect_match(out2, sprintf("- (%.2f)) =", m2$gap[["not_analyzed"]]), fixed = TRUE)
+  expect_no_match(out2, "- -", fixed = TRUE)
+})
+
+test_that("check_solomon_missing() gives no warning for a non-numeric pretest", {
+  d <- loss_data()
+  expect_no_warning(m <- check_solomon_missing(d$y_post, d$treat, d$pretested,
+                                               as.character(d$y_pre)))
+  expect_null(m$pretest_scores)
+  expect_null(m$gap)
+  expect_false(is.null(m$attrition))
+  expect_no_warning(printed(m))
+})
+
+test_that("only the delta line reaches losses in the unpretested groups only", {
+  d <- solomon_example
+  d$y_post[which(d$pretested == 0)[1:5]] <- NA
+  out <- squash(printed(check_solomon_missing(y_post, treat, pretested, y_pre, data = d)))
+  expect_match(out, "Only the delta line reaches that case", fixed = TRUE)
+  expect_match(out, "is m0 x Delta lower", fixed = TRUE)
+})
+
+test_that("validate_solomon() leaves out the diagnostics of check_solomon_missing()", {
+  d <- loss_data()
+  v <- validate_solomon(y_post, treat, pretested, y_pre, data = d)
+  m <- check_solomon_missing(y_post, treat, pretested, y_pre, data = d)
+  expect_null(v$missing$attrition)
+  expect_null(v$missing$gap)
+  expect_false(is.null(m$attrition))
+  for (name in c("by_cell", "counts", "pattern", "guidance", "pretest_supplied")) {
+    expect_identical(v$missing[[name]], m[[name]], info = name)
+  }
+})
+
 test_that("validate_solomon() still returns its issues when no model can be fitted", {
   d <- loss_data()
   bad <- d[!(d$pretested == 0 & d$treat == 1), ]

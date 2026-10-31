@@ -50,7 +50,9 @@ An object of class \code{solomon_validation}, a list with:
 \item \code{cells}: the counts in each cell, as in \code{by_cell} of
 \code{\link[=check_solomon_missing]{check_solomon_missing()}}, with \code{posttest_observed}, and with the
 clusters and cluster sizes when \code{cluster} is supplied.
-\item \code{missing}: the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result.
+\item \code{missing}: the \code{\link[=check_solomon_missing]{check_solomon_missing()}} result, without its
+diagnostics of missing posttests for the pretest effects; call
+\code{\link[=check_solomon_missing]{check_solomon_missing()}} for those.
 \item \code{settings}: \code{min_cell_n}, and whether pretest scores and clusters
 were supplied.
 }

@@ -5,8 +5,9 @@
 #   Rscript tools/pretest-center-check.R [out.csv] [parts]
 #
 # `out.csv` defaults to tools/pretest-center-check.csv; `parts` is a
-# comma-separated list of the parts below, by default "1,2,3,4,5,6". The
-# script exits with status 1 if any check fails.
+# comma-separated list of the parts below, by default "1,2,3,4,5,6,8" (part
+# 7 is the validation named under NOT HERE). The script exits with status 1
+# if any check fails.
 #
 # A check of derivations, not a simulation study. The record (section 3)
 # compares the two centers on data with no effects of any kind, and its
@@ -112,6 +113,25 @@
 # data the article simulates with fixed seeds: the pretest main effect at
 # each center (the record: 2.96 at A and 1.969 at B, for a true 2).
 #
+# PART 8: the rule by which check_solomon_missing() says that the pretested
+# conditions' selection shifts differ (the record's section 5, item 3, whose
+# rule the record leaves open): a Wald test of equal shifts at .05, with
+# standard errors from the shifts' influence functions. Not a check of the
+# record but of the package's rule, added after review of the pull request
+# found that the earlier rule (a difference at two printed decimals) fired
+# in nearly every data set. Four-group data as in part 1 (x ~ N(0, 1),
+# y = 0.5 x + e), 1,000 data sets per setting, set.seed(1358) once:
+#   S1    loss by baseline, plogis(-1 - 1.5 x), in all four groups: equal
+#         selection, so the rule should fire in about 5% of data sets;
+#   MCAR  33% lost completely at random in all groups: likewise;
+#   S3    loss by baseline in the control arms and at random (rate .329)
+#         in the treated arms: the arms select differently, so this is the
+#         rule's power; no pass rule.
+# Each at 200 and 50 per group. Pass rule: under S1 and MCAR, |rate - .05|
+# <= z sqrt(.05 x .95 / 1000), z Bonferroni over the four settings; and in
+# every data set the test statistic is the same, to 1e-8, with the pretest
+# in other units (50 + 10 x).
+#
 # NOT HERE: the branch's validation of the "observed" center under its own
 # assumption (branch fix/135-pretest-center, tools/pretest-center-check.R at
 # 553ca52: designs A to F, about 1 hour 45 minutes on 8 workers). Its result
@@ -170,7 +190,7 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 out_csv <- if (length(args) >= 1L) args[1] else file.path("tools", "pretest-center-check.csv")
-parts <- if (length(args) >= 2L) as.integer(strsplit(args[2], ",")[[1]]) else 1:6
+parts <- if (length(args) >= 2L) as.integer(strsplit(args[2], ",")[[1]]) else c(1:6, 8L)
 
 suppressMessages(pkgload::load_all(".", quiet = TRUE))
 
@@ -605,6 +625,67 @@ part5 <- function() {
   }
 }
 
+# ---- part 8 ---------------------------------------------------------------------
+
+part8 <- function() {
+  cat("\n== Part 8: the selection-shift rule of check_solomon_missing() ==\n")
+  # The rule as check_solomon_missing() applies it, from its internal
+  # function, for a four-group design.
+  shift_rule <- function(y, treat, pretested, x) {
+    cond <- ifelse(treat == 1L, "treatment", "control")
+    .missing_pretest_scores(y, ifelse(pretested == 1L, x, NA_real_), cond,
+                            c("control", "treatment"), pretested)
+  }
+  draw <- function(n, case) {
+    g <- rep(1:4, each = n)
+    treat <- as.integer(g %in% c(1L, 3L))
+    pretested <- as.integer(g <= 2L)
+    x <- stats::rnorm(4L * n)
+    y <- 0.5 * x + stats::rnorm(4L * n, 0, sqrt(0.75))
+    u <- stats::runif(4L * n)
+    lost <- switch(case,
+                   S1 = u < lgt(-1 - 1.5 * x),
+                   MCAR = u < 0.33,
+                   S3 = ifelse(treat == 0L, u < lgt(-1 - 1.5 * x), u < 0.329))
+    y[lost] <- NA
+    list(y = y, treat = treat, pretested = pretested, x = x)
+  }
+  settings <- list(list("S1", 200L, 1000L), list("S1", 50L, 1000L), list("MCAR", 200L, 1000L),
+                   list("MCAR", 50L, 1000L), list("S3", 200L, 1000L), list("S3", 50L, 1000L))
+  K <- sum(vapply(settings, function(s) s[[1]] != "S3", TRUE))
+  z <- stats::qnorm(1 - 0.05 / (2 * K))
+  set.seed(1358)
+  for (s in settings) {
+    case <- s[[1]]
+    n <- s[[2]]
+    R <- s[[3]]
+    fires <- logical(R)
+    unit_free <- TRUE
+    for (r in seq_len(R)) {
+      d <- draw(n, case)
+      a <- shift_rule(d$y, d$treat, d$pretested, d$x)
+      fires[r] <- a$differ
+      # The same data with the pretest in other units (50 + 10 x): the same
+      # statistic.
+      b <- shift_rule(d$y, d$treat, d$pretested, 50 + 10 * d$x)
+      unit_free <- unit_free &&
+        isTRUE(all.equal(a$test[["statistic"]], b$test[["statistic"]], tolerance = 1e-8))
+    }
+    rate <- mean(fires)
+    null <- case != "S3"
+    tolerance <- if (null) z * sqrt(0.05 * 0.95 / R) else NA_real_
+    ok <- if (null) abs(rate - 0.05) <= tolerance && unit_free else unit_free
+    cat(sprintf("%-4s %4d per group, %d data sets: the rule fires in %.3f%s; free of the units: %s %s\n",
+                case, n, R, rate, if (null) sprintf(" (nominal .05, tolerance %.3f)", tolerance) else
+                  " (power: the arms lose differently)", unit_free, if (ok) "yes" else "NO"))
+    if (!ok) fail(sprintf("part 8, %s at %d per group: rate %.3f", case, n, rate))
+    add_row(part = 8L, scenario = sprintf("%s, %d per group", case, n), center = NA_character_,
+            value = "selection shifts differ (Wald test, p < .05)", kind = "rejection",
+            reps = R, estimate = rate, mcse = sqrt(rate * (1 - rate) / R), sd = NA_real_,
+            record = if (null) 0.05 else NA_real_, tolerance = tolerance, pass = ok)
+  }
+}
+
 # ---- part 6 ---------------------------------------------------------------------
 
 part6 <- function() {
@@ -633,7 +714,7 @@ cat("solomonR", as.character(utils::packageVersion("solomonR")), "from", getwd()
 cat("parts:", paste(parts, collapse = ", "), "\n")
 for (p in parts) {
   switch(as.character(p), "1" = part1(), "2" = part2(), "3" = part3(), "4" = part4(),
-         "5" = part5(), "6" = part6(), stop("Unknown part: ", p))
+         "5" = part5(), "6" = part6(), "8" = part8(), stop("Unknown part: ", p))
 }
 if (length(rows)) {
   out <- do.call(rbind, rows)
