@@ -4,9 +4,9 @@
 # A study script sources this file from the package checkout, so the package
 # commit fixes the script, this file, and therefore every random number a
 # task draws. The harness (.github/workflows/simulation-run.yaml and the other
-# scripts in tools/sim) passes no seed and draws no random number: it only
-# says which tasks a process runs and where the files go, and it checks and
-# merges what comes back.
+# scripts in tools/sim, which come from the workflow's own commit) passes no
+# seed and draws no random number: it only says which tasks a process runs
+# and where the files go, and it checks and merges what comes back.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does
@@ -17,7 +17,11 @@
 #                             scenarios in that folder, in this process, with
 #                             the code-testing seed and SOLOMONR_SMOKE_REPS
 #                             replications (default 2). Takes precedence.
-#   SOLOMONR_SIM_STAGE        plan, preflight, run, or summarize.
+#   SOLOMONR_SIM_STAGE        plan, preflight, run, or summarize. Unset, the
+#                             script stops: the single-machine route is
+#                             tools/sim/run-local.R, which runs these stages
+#                             with the harness's checks (design 1.4 had the
+#                             script run everything in one process instead).
 #   SOLOMONR_SIM_PURPOSE      test (default), gate, or study: which base seed
 #                             the plan uses and what the summary may contain.
 #   SOLOMONR_SIM_DESIGN       run (default) or gate: the gate's fixed size,
@@ -39,10 +43,22 @@
 # the s-th stream, in the order of the scenario table; task k of a scenario
 # takes the stream after k - 1 calls of nextRNGSubStream(). A task sets its
 # substream at its start and draws only from it, so its output depends only
-# on its row of the plan, the code, and the platform, never on the job, the
-# worker, the order of the tasks, or how many jobs share the work. Every
-# summary is computed after the replications are sorted by scenario and
-# replication number.
+# on its row of the plan, the code, and the platform's arithmetic, never on
+# the job, the worker, the order of the tasks, or how many jobs share the
+# work. Every summary is computed from the replications in the order of
+# scenario and replication number.
+#
+# Timing. A task records its start, its finish, its job's start (when the
+# job's process began handing out tasks), and its worker seconds, split into
+# agreement checks (the code the study wraps in sim_time_agreement()) and
+# replications (the rest). Timing is the one part of a task file that may
+# differ between two runs of the task; it is never hashed or summarized.
+#
+# Faults. A fit that fails is a result. Any other error in a replication
+# stops the task: the task id, the replication, and the message are written
+# to failed-tasks/<task id>.csv in the output folder, the job's other tasks
+# are skipped, and the stage fails. A code fault means a new commit, a new
+# plan, and an amendment, never a rerun of the same plan.
 #
 # Reference:
 # L'Ecuyer, P., Simard, R., Chen, E. J., & Kelton, W. D. (2002). An
@@ -51,9 +67,10 @@
 # https://doi.org/10.1287/opre.50.6.1073.358
 #
 # R code in this file is ASCII. Nothing here reads DESCRIPTION beyond the
-# Version field, or calls git log, Sys.getenv() without a name, or Sys.info().
+# Package and Version fields, or calls git log, Sys.getenv() without a name,
+# or Sys.info().
 
-sim_contract_version <- "1"
+sim_contract_version <- "2"
 
 sim_setting <- function(name, default = "") {
   value <- Sys.getenv(name)
@@ -105,6 +122,21 @@ sim_sha256_text <- function(path) {
 }
 
 sim_utc <- function(time = Sys.time()) format(time, "%Y-%m-%dT%H:%M:%OS3Z", tz = "UTC")
+sim_parse_utc <- function(x) as.POSIXct(x, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
+
+# ---- Timing of agreement checks ------------------------------------------------
+
+# The study wraps the code of its agreement checks in sim_time_agreement();
+# the seconds are added to the current task's agreement time, and the rest
+# of the task's time counts as replication time. Calls must not be nested.
+sim_clock <- new.env(parent = emptyenv())
+sim_clock$agreement <- 0
+
+sim_time_agreement <- function(expr) {
+  start <- proc.time()[["elapsed"]]
+  on.exit(sim_clock$agreement <- sim_clock$agreement + (proc.time()[["elapsed"]] - start))
+  force(expr)
+}
 
 # ---- The study's definition ----------------------------------------------------
 
@@ -112,26 +144,37 @@ sim_utc <- function(time = Sys.time()) format(time, "%Y-%m-%dT%H:%M:%OS3Z", tz =
 #   key              short name, as in tools/sim/studies.csv
 #   issue            the issue that holds the protocol
 #   protocol         TRUE for a validation protocol: then only purpose
-#                    "study" may compute performance measures
+#                    "study" may compute performance measures, decisions,
+#                    or failure counts (in smoke mode too)
 #   seeds            named integers: study, gate, test (base seeds)
 #   scenarios        data frame; column `scenario` is 1, 2, ... in the order
 #                    of the protocol's scenario table
 #   task_size        replications per task in a run
 #   rows_per_rep     function(s): rows that one replication of scenario row s
 #                    stores
-#   cost             function(s, reps): relative expected time of a task
-#                    (used only to balance the jobs)
+#   cost             function(s, reps): relative expected time of a task,
+#                    greater than 0 (used only to balance the jobs and to
+#                    size them from the gate's seconds per unit of cost)
 #   replicate        function(s, rep): one replication; draws only from the
 #                    current RNG state and returns list(results = data frame
-#                    of rows_per_rep(s) rows, agreement = data frame or NULL).
+#                    of rows_per_rep(s) rows, agreement = data frame or NULL),
+#                    with the same columns and column classes in every task.
 #                    A fit that fails is a result (a row with its status); any
-#                    other error stops the task.
+#                    other error stops the task. Agreement checks go inside
+#                    sim_time_agreement().
 #   summarize        function(results, agreement, failures, scenarios, info):
-#                    a named list of data frames, each written as <name>.csv
+#                    a named list of data frames, each written as <name>.csv;
+#                    a name is lower case, may start with "timing/", and is
+#                    not one the harness writes (sim_reserved_names). The
+#                    element "run-information" (item, value) is the study's
+#                    part of run-information.csv; the harness adds its own
+#                    items and refuses a name that both write.
 # Optional fields:
 #   reps_allowed     values of R a study run may use (the protocol's list)
 #   gate             list(reps, task_size, ladder, divisor, cap_hours,
-#                    allowance): the timing gate
+#                    allowance, warmup_minutes, group, fallback,
+#                    fallback_label, project): the timing gate; see
+#                    sim_gate_default()
 #   preflight        function(): data frame (check, passed, detail) of the
 #                    protocol's stops before any task
 #   smoke_scenarios  scenario numbers that the smoke mode runs
@@ -141,6 +184,9 @@ sim_check_study <- function(study) {
             "rows_per_rep", "cost", "replicate", "summarize")
   missing <- setdiff(need, names(study))
   if (length(missing)) stop("`study` lacks: ", paste(missing, collapse = ", "), call. = FALSE)
+  if (!is.logical(study$protocol) || length(study$protocol) != 1L || is.na(study$protocol)) {
+    stop("`study$protocol` must be TRUE or FALSE.", call. = FALSE)
+  }
   if (!all(c("study", "gate", "test") %in% names(study$seeds))) {
     stop("`study$seeds` needs the base seeds study, gate, and test.", call. = FALSE)
   }
@@ -153,6 +199,12 @@ sim_check_study <- function(study) {
   }
   invisible(study)
 }
+
+# Files the harness writes into the results folder; a study's summary may not
+# use these names.
+sim_reserved_names <- c("manifest", "completeness", "software", "replay", "preflight", "summary",
+                        "timing/task-times", "timing/jobs", "timing/gate-times",
+                        "timing/gate-projection", "timing/gate-summary", "timing/rng-fingerprint")
 
 # ---- Streams and the plan ------------------------------------------------------
 
@@ -210,13 +262,17 @@ sim_plan <- function(study, spec, subset = NULL) {
     for (k in seq_len(n_tasks)) {
       from <- (k - 1L) * spec$size + 1L
       to <- min(k * spec$size, spec$reps)
+      cost <- as.numeric(study$cost(sc[s, , drop = FALSE], to - from + 1L))
+      if (length(cost) != 1L || !is.finite(cost) || cost <= 0) {
+        stop("study$cost() must give a number greater than 0 (scenario ", s, ").", call. = FALSE)
+      }
       i <- i + 1L
       rows[[i]] <- data.frame(
         task_id = sprintf("s%04d-t%04d", s, k), kind = "replications",
         scenario = s, task = k, rep_from = from, rep_to = to,
         seed = paste(streams[[s]][[k]], collapse = " "),
         rows_per_rep = as.integer(study$rows_per_rep(sc[s, , drop = FALSE])),
-        cost = format(study$cost(sc[s, , drop = FALSE], to - from + 1L), digits = 15),
+        cost = format(cost, digits = 15),
         stringsAsFactors = FALSE)
     }
   }
@@ -239,6 +295,8 @@ sim_task_row <- function(row) {
 
 # ---- Where the code comes from -------------------------------------------------
 
+sim_root <- function(study) if (is.null(study$package_root)) "." else study$package_root
+
 sim_script_path <- function() {
   set <- Sys.getenv("SOLOMONR_SIM_SCRIPT")
   if (nzchar(set)) return(set)
@@ -247,9 +305,7 @@ sim_script_path <- function() {
   file
 }
 
-sim_contract_path <- function(study) {
-  file.path(if (is.null(study$package_root)) "." else study$package_root, "tools", "sim", "contract.R")
-}
+sim_contract_path <- function(study) file.path(sim_root(study), "tools", "sim", "contract.R")
 
 sim_git <- function(args) {
   out <- tryCatch(suppressWarnings(system2("git", args, stdout = TRUE, stderr = FALSE)),
@@ -272,6 +328,12 @@ sim_package_sha <- function() {
   if (is.na(head)) "unknown" else head
 }
 
+# The package's name and version, from those two fields of DESCRIPTION only.
+sim_package_id <- function(study) {
+  d <- read.dcf(file.path(sim_root(study), "DESCRIPTION"), fields = c("Package", "Version"))
+  c(name = unname(d[1, "Package"]), version = unname(d[1, "Version"]))
+}
+
 # TRUE if a tracked file differs from the commit, or if the study script or
 # this file is not part of the commit (untracked or changed); NA without git.
 sim_dirty <- function(paths) {
@@ -280,10 +342,13 @@ sim_dirty <- function(paths) {
   if (is.null(tracked) || is.null(own)) NA else length(tracked) > 0L || length(own) > 0L
 }
 
+# The package as the protocols load it, without the test helpers and without
+# attaching testthat, so that a machine with testthat and one without load
+# the same code. Returns the version of the loaded package.
 sim_load_package <- function(study) {
-  root <- if (is.null(study$package_root)) "." else study$package_root
-  suppressMessages(pkgload::load_all(root, quiet = TRUE))
-  invisible(TRUE)
+  suppressMessages(pkgload::load_all(sim_root(study), helpers = FALSE, attach_testthat = FALSE,
+                                     quiet = TRUE))
+  as.character(utils::packageVersion(sim_package_id(study)[["name"]]))
 }
 
 # ---- Stage: plan ---------------------------------------------------------------
@@ -294,9 +359,12 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
   if (!is.null(subset)) sc <- sc[sc$scenario %in% subset, , drop = FALSE]
   package_sha <- sim_package_sha()
   dirty <- sim_dirty(c(sim_script_path(), sim_contract_path(study)))
-  if (spec$purpose == "study" && !identical(dirty, FALSE)) {
-    stop("A study run needs a clean checkout of the pinned commit.", call. = FALSE)
+  # A gate and a study run use a commit as it is; only tests may run from a
+  # working tree with changes.
+  if (spec$purpose %in% c("study", "gate") && !identical(dirty, FALSE)) {
+    stop("A ", spec$purpose, " run needs a clean checkout of the pinned commit.", call. = FALSE)
   }
+  id <- sim_package_id(study)
   info <- c(
     contract = sim_contract_version, study = study$key, issue = study$issue,
     protocol = as.character(isTRUE(study$protocol)),
@@ -307,6 +375,7 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
     subset = if (is.null(subset)) "" else paste(subset, collapse = " "),
     script_sha256 = sim_sha256_text(sim_script_path()),
     contract_sha256 = sim_sha256_text(sim_contract_path(study)),
+    package = id[["name"]], package_version = id[["version"]],
     package_sha = package_sha, package_dirty = as.character(dirty),
     created_utc = sim_utc())
   dir.create(plan_dir, showWarnings = FALSE, recursive = TRUE)
@@ -327,16 +396,20 @@ sim_read_plan <- function(plan_dir) {
 # make; otherwise the tasks would run with seeds the code does not imply.
 sim_verify_plan <- function(study, plan) {
   info <- plan$info
+  if (!identical(info[["contract"]], sim_contract_version)) {
+    stop("The plan was made by contract ", info[["contract"]], ", this is contract ",
+         sim_contract_version, ". Make the plan again from the same commit.", call. = FALSE)
+  }
   spec <- sim_plan_spec(study, info[["purpose"]], info[["design"]], info[["reps"]])
   subset <- if (nzchar(info[["subset"]])) as.integer(strsplit(info[["subset"]], " ")[[1]]) else NULL
   fresh <- sim_plan(study, spec, subset)
   checks <- c(
-    contract = identical(info[["contract"]], sim_contract_version),
     study = identical(info[["study"]], study$key),
     tasks = identical(fresh[setdiff(names(fresh), "cost")], plan$tasks[setdiff(names(fresh), "cost")]),
     script = identical(info[["script_sha256"]], sim_sha256_text(sim_script_path())),
     contract_file = identical(info[["contract_sha256"]], sim_sha256_text(sim_contract_path(study))),
-    package = identical(info[["package_sha"]], sim_package_sha()))
+    package = identical(info[["package_sha"]], sim_package_sha()),
+    package_version = identical(info[["package_version"]], sim_package_id(study)[["version"]]))
   if (!all(checks)) {
     stop("The plan does not match this checkout (", paste(names(checks)[!checks], collapse = ", "),
          "). Make the plan again from the same commit.", call. = FALSE)
@@ -364,12 +437,37 @@ sim_preflight <- function(study, plan_dir) {
 
 # ---- Stage: run ----------------------------------------------------------------
 
+sim_times_frame <- function(n = 0L) {
+  data.frame(task_id = character(n), reps = integer(n), started = character(n),
+             finished = character(n), job_started = character(n), elapsed = numeric(n),
+             cpu = numeric(n), replication_seconds = numeric(n), agreement_seconds = numeric(n),
+             pid = integer(n), skipped = logical(n), stringsAsFactors = FALSE)
+}
+
+# Records a fault: the task, the replication, and the message, in
+# failed-tasks/ of the output folder, which also tells the job's other
+# workers to skip their remaining tasks.
+sim_record_fault <- function(job, rep, message) {
+  dir.create(job$fail_dir, showWarnings = FALSE, recursive = TRUE)
+  sim_write_csv(data.frame(task_id = job$row$task_id, scenario = job$row$scenario,
+                           task = job$row$task, rep = rep, message = message,
+                           time_utc = sim_utc(), stringsAsFactors = FALSE),
+                file.path(job$fail_dir, paste0(job$row$task_id, ".csv")))
+}
+
 # One task, in the process that runs it (a worker, or the stage's process).
 sim_run_task <- function(study, job) {
   row <- job$row
+  if (dir.exists(job$fail_dir) && length(list.files(job$fail_dir))) {
+    out <- sim_times_frame(1L)
+    out$task_id <- row$task_id
+    out$skipped <- TRUE
+    return(out)
+  }
   s <- study$scenarios[row$scenario, , drop = FALSE]
   started <- Sys.time()
   clock <- proc.time()
+  sim_clock$agreement <- 0
   RNGkind("L'Ecuyer-CMRG", "Inversion", "Rejection")
   assign(".Random.seed", row$seed, envir = globalenv())
   reps <- seq.int(row$rep_from, row$rep_to)
@@ -379,18 +477,25 @@ sim_run_task <- function(study, job) {
   for (i in seq_along(reps)) {
     r <- reps[[i]]
     warned <- list()
-    out <- withCallingHandlers(
-      study$replicate(s, r),
-      warning = function(w) {
-        key <- paste(class(w)[1L], substr(conditionMessage(w), 1L, 200L), sep = "\r")
-        warned[[key]] <<- if (is.null(warned[[key]])) 1L else warned[[key]] + 1L
-        invokeRestart("muffleWarning")
+    out <- tryCatch(
+      withCallingHandlers(
+        study$replicate(s, r),
+        warning = function(w) {
+          key <- paste(class(w)[1L], substr(conditionMessage(w), 1L, 200L), sep = "\r")
+          warned[[key]] <<- if (is.null(warned[[key]])) 1L else warned[[key]] + 1L
+          invokeRestart("muffleWarning")
+        }),
+      error = function(e) {
+        msg <- conditionMessage(e)
+        sim_record_fault(job, r, msg)
+        stop("Task ", row$task_id, ", replication ", r, ": ", msg, call. = FALSE)
       })
     x <- out$results
     if (!is.data.frame(x) || nrow(x) != row$rows_per_rep) {
-      stop("Task ", row$task_id, ", replication ", r, ": the study returned ",
-           if (is.data.frame(x)) nrow(x) else "no", " rows instead of ", row$rows_per_rep, ".",
-           call. = FALSE)
+      msg <- paste0("the study returned ", if (is.data.frame(x)) nrow(x) else "no", " rows instead of ",
+                    row$rows_per_rep, ".")
+      sim_record_fault(job, r, msg)
+      stop("Task ", row$task_id, ", replication ", r, ": ", msg, call. = FALSE)
     }
     results[[i]] <- data.frame(rep = r, x, stringsAsFactors = FALSE, check.names = FALSE)
     if (is.data.frame(out$agreement) && nrow(out$agreement)) {
@@ -408,20 +513,32 @@ sim_run_task <- function(study, job) {
   bind <- function(x) if (length(x)) { y <- do.call(rbind, x); rownames(y) <- NULL; y } else NULL
   elapsed <- proc.time() - clock
   finished <- Sys.time()
+  seconds <- unname(elapsed[["elapsed"]])
+  agree <- min(sim_clock$agreement, seconds)
   task <- list(
     envelope = c(job$base, list(task = row)),
     results = bind(results), agreement = bind(agreement), failures = bind(failures),
     timing = list(started = sim_utc(started), finished = sim_utc(finished),
-                  elapsed = unname(elapsed[["elapsed"]]),
+                  job_started = job$job_started, elapsed = seconds,
                   cpu = unname(elapsed[["user.self"]] + elapsed[["sys.self"]]),
+                  replication_seconds = seconds - agree, agreement_seconds = agree,
                   pid = Sys.getpid()))
   file <- file.path(job$out, paste0(row$task_id, ".rds"))
   tmp <- paste0(file, ".tmp")
   saveRDS(task, tmp, compress = "xz")
   if (!file.rename(tmp, file)) stop("Could not write ", file, call. = FALSE)
-  data.frame(task_id = row$task_id, reps = length(reps), started = task$timing$started,
-             finished = task$timing$finished, elapsed = task$timing$elapsed,
-             cpu = task$timing$cpu, pid = task$timing$pid, stringsAsFactors = FALSE)
+  out <- sim_times_frame(1L)
+  out$task_id <- row$task_id
+  out$reps <- length(reps)
+  out$started <- task$timing$started
+  out$finished <- task$timing$finished
+  out$job_started <- job$job_started
+  out$elapsed <- seconds
+  out$cpu <- task$timing$cpu
+  out$replication_seconds <- seconds - agree
+  out$agreement_seconds <- agree
+  out$pid <- Sys.getpid()
+  out
 }
 
 # Called on a worker through parLapplyLB(); `study` is the worker's own copy,
@@ -434,7 +551,7 @@ sim_worker_init <- function(root, script) {
   setwd(root)
   Sys.setenv(SOLOMONR_SIM_ROLE = "worker", SOLOMONR_SIM_SCRIPT = script)
   source(script)
-  invisible(Sys.getpid())
+  as.character(utils::packageVersion(sim_package_id(get("study", envir = globalenv()))[["name"]]))
 }
 
 sim_run <- function(study, plan_dir, ids, out_dir, workers) {
@@ -444,8 +561,9 @@ sim_run <- function(study, plan_dir, ids, out_dir, workers) {
   if (anyNA(tasks$task_id)) stop("Task ids not in the plan: ", paste(ids[is.na(match(ids, plan$tasks$task_id))], collapse = ", "), call. = FALSE)
   if (anyDuplicated(ids)) stop("A task id is listed twice.", call. = FALSE)
   # The order cannot change a result: largest first in a run, random in a
-  # gate, as the protocols say. The gate's order uses a seed of its own and
-  # leaves the tasks' substreams alone.
+  # gate, as the protocols say. The gate's order uses Mersenne-Twister with
+  # seed (gate base seed + 1) in this process only, and leaves the tasks'
+  # substreams alone.
   if (spec$design == "gate") {
     RNGkind("Mersenne-Twister", "Inversion", "Rejection")
     set.seed(spec$base_seed + 1L)
@@ -458,108 +576,271 @@ sim_run <- function(study, plan_dir, ids, out_dir, workers) {
                package_sha = plan$info[["package_sha"]],
                script_sha256 = plan$info[["script_sha256"]],
                contract_sha256 = plan$info[["contract_sha256"]])
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+  out_dir <- normalizePath(out_dir, winslash = "/")
   task_dir <- file.path(out_dir, "tasks")
   dir.create(task_dir, showWarnings = FALSE, recursive = TRUE)
-  task_dir <- normalizePath(task_dir, winslash = "/")
-  jobs <- lapply(seq_len(nrow(tasks)), function(i) {
-    list(row = sim_task_row(tasks[i, , drop = FALSE]), base = base, out = task_dir)
-  })
-  message("Run: ", length(jobs), " tasks on ", if (workers > 0L) paste(workers, "workers") else "this process", ".")
+  fail_dir <- file.path(out_dir, "failed-tasks")
+  if (dir.exists(fail_dir)) unlink(fail_dir, recursive = TRUE)
+  want <- plan$info[["package_version"]]
+  if (!nrow(tasks)) {
+    sim_write_csv(sim_times_frame(0L), file.path(out_dir, "run-times.csv"))
+    writeLines("No tasks.", file.path(out_dir, "session-info.txt"), useBytes = TRUE)
+    message("Run: no tasks.")
+    return(invisible(sim_times_frame(0L)))
+  }
+  message("Run: ", nrow(tasks), " tasks on ", if (workers > 0L) paste(workers, "workers") else "this process", ".")
   if (workers > 0L) {
     cl <- parallel::makePSOCKcluster(workers)
     on.exit(parallel::stopCluster(cl), add = TRUE)
-    root <- normalizePath(if (is.null(study$package_root)) "." else study$package_root, winslash = "/")
+    root <- normalizePath(sim_root(study), winslash = "/")
     script <- normalizePath(sim_script_path(), winslash = "/")
-    parallel::clusterCall(cl, sim_worker_init, root, script)
+    loaded <- unlist(parallel::clusterCall(cl, sim_worker_init, root, script))
     session <- parallel::clusterCall(cl[1L], sim_session_info)[[1L]]
-    times <- parallel::parLapplyLB(cl, jobs, sim_task_entry, chunk.size = 1L)
   } else {
-    sim_load_package(study)
+    loaded <- sim_load_package(study)
     session <- sim_session_info()
-    times <- lapply(jobs, function(job) sim_run_task(study, job))
   }
+  if (!all(loaded == want)) {
+    stop("The loaded package is version ", paste(unique(loaded), collapse = ", "), "; the plan has ",
+         want, ".", call. = FALSE)
+  }
+  job_started <- sim_utc()
+  jobs <- lapply(seq_len(nrow(tasks)), function(i) {
+    list(row = sim_task_row(tasks[i, , drop = FALSE]), base = base, out = task_dir,
+         fail_dir = fail_dir, job_started = job_started)
+  })
+  times <- tryCatch(
+    if (workers > 0L) {
+      parallel::parLapplyLB(cl, jobs, sim_task_entry, chunk.size = 1L)
+    } else {
+      lapply(jobs, function(job) sim_run_task(study, job))
+    },
+    error = function(e) {
+      failed <- list.files(fail_dir, pattern = "[.]csv$", full.names = TRUE)
+      what <- if (length(failed)) {
+        f <- do.call(rbind, lapply(failed, sim_read_csv))
+        paste0(f$task_id, " (replication ", f$rep, "): ", f$message, collapse = "; ")
+      } else conditionMessage(e)
+      writeLines(session, file.path(out_dir, "session-info.txt"), useBytes = TRUE)
+      stop("Run stopped by a fault in ", what, ". The other tasks of this job were skipped; ",
+           "see failed-tasks/. A code fault needs a new commit and a new plan.", call. = FALSE)
+    })
   times <- do.call(rbind, times)
-  sim_write_csv(times[order(times$task_id), , drop = FALSE], file.path(out_dir, "run-times.csv"))
+  times <- times[order(times$task_id), , drop = FALSE]
+  rownames(times) <- NULL
+  sim_write_csv(times, file.path(out_dir, "run-times.csv"))
   writeLines(session, file.path(out_dir, "session-info.txt"), useBytes = TRUE)
-  message("Run: done, ", round(sum(times$elapsed), 1), " worker seconds.")
+  sim_write_kv(c(contract = sim_contract_version, tasks = nrow(times), workers = workers,
+                 job_started = job_started, job_finished = sim_utc(),
+                 package_version_loaded = paste(unique(loaded), collapse = " "),
+                 loaded_with = "pkgload::load_all(helpers = FALSE, attach_testthat = FALSE)"),
+               file.path(out_dir, "run-info.csv"))
+  message("Run: done, ", round(sum(times$elapsed), 1), " worker seconds (",
+          round(sum(times$agreement_seconds), 1), " in agreement checks).")
   invisible(times)
 }
 
 # ---- Stage: summarize ----------------------------------------------------------
 
-sim_bind_part <- function(tasks, part) {
-  pieces <- lapply(tasks, function(t) {
-    x <- t[[part]]
-    if (is.null(x) || !nrow(x)) return(NULL)
-    data.frame(scenario = t$envelope$task$scenario, .k = seq_len(nrow(x)), x,
-               stringsAsFactors = FALSE, check.names = FALSE)
-  })
-  pieces <- pieces[!vapply(pieces, is.null, TRUE)]
-  if (!length(pieces)) return(NULL)
-  x <- do.call(rbind, pieces)
-  # Sorted by scenario and replication, rows of a replication in the order
-  # the study wrote them: the summary cannot depend on how tasks were split.
-  x <- x[order(x$scenario, x$rep, x$.k), , drop = FALSE]
-  x$.k <- NULL
-  rownames(x) <- NULL
-  x
+# Binds one part (results, agreement, or failures) of every task, column by
+# column, with the scenario in front. The pieces come in task-id order, which
+# is the order of scenario and replication (task k of a scenario holds the
+# replications after those of task k - 1), with the rows of a replication in
+# the order the study wrote them; the result is checked for that order, and
+# sorted only if it is not. Peak memory is about twice the part's size.
+sim_bind_part <- function(pieces, scenario, part) {
+  keep <- vapply(pieces, function(x) is.data.frame(x) && nrow(x) > 0L, TRUE)
+  if (!any(keep)) return(NULL)
+  pieces <- pieces[keep]
+  scenario <- scenario[keep]
+  cols <- names(pieces[[1L]])
+  if ("scenario" %in% cols) stop("The study's ", part, " may not have a column `scenario`.", call. = FALSE)
+  classes <- lapply(pieces[[1L]], class)
+  for (x in pieces) {
+    if (!identical(names(x), cols) || !identical(lapply(x, class), classes)) {
+      stop("The tasks' ", part, " differ in their columns or column classes.", call. = FALSE)
+    }
+  }
+  n <- vapply(pieces, nrow, 0L)
+  out <- vector("list", length(cols) + 1L)
+  names(out) <- c("scenario", cols)
+  out[[1L]] <- rep.int(as.integer(scenario), n)
+  for (j in seq_along(cols)) out[[j + 1L]] <- do.call(c, unname(lapply(pieces, `[[`, j)))
+  pieces <- NULL
+  attr(out, "row.names") <- .set_row_names(sum(n))
+  class(out) <- "data.frame"
+  key <- as.numeric(out$scenario) * (max(out$rep, na.rm = TRUE) + 1) + as.numeric(out$rep)
+  if (anyNA(key) || is.unsorted(key)) {
+    out <- out[order(out$scenario, out$rep, seq_len(nrow(out))), , drop = FALSE]
+    rownames(out) <- NULL
+  }
+  out
 }
 
 sim_summarize <- function(study, plan_dir, files, out_dir) {
   plan <- sim_read_plan(plan_dir)
   info <- plan$info
-  tasks <- lapply(files, readRDS)
-  ids <- vapply(tasks, function(t) t$envelope$task$task_id, "")
+  if (!identical(info[["contract"]], sim_contract_version)) {
+    stop("The plan was made by contract ", info[["contract"]], ".", call. = FALSE)
+  }
+  n <- length(files)
+  parts <- list(results = vector("list", n), agreement = vector("list", n), failures = vector("list", n))
+  ids <- character(n)
+  scen <- integer(n)
+  times <- sim_times_frame(n)
+  times$skipped <- NULL
+  times$pid <- NULL
+  times$scenario <- integer(n)
+  # Each file is read once; only its parts and timing are kept.
+  for (i in seq_len(n)) {
+    t <- readRDS(files[[i]])
+    e <- t$envelope
+    if (!identical(e$purpose, info[["purpose"]]) || !identical(e$study, study$key)) {
+      stop("A task file belongs to another study or purpose.", call. = FALSE)
+    }
+    ids[[i]] <- e$task$task_id
+    scen[[i]] <- e$task$scenario
+    for (p in names(parts)) if (!is.null(t[[p]])) parts[[p]][[i]] <- t[[p]]
+    tm <- t$timing
+    times$task_id[i] <- ids[[i]]
+    times$scenario[i] <- scen[[i]]
+    times$reps[i] <- e$task$rep_to - e$task$rep_from + 1L
+    times$started[i] <- tm$started
+    times$finished[i] <- tm$finished
+    times$job_started[i] <- tm$job_started
+    times$elapsed[i] <- tm$elapsed
+    times$cpu[i] <- tm$cpu
+    times$replication_seconds[i] <- tm$replication_seconds
+    times$agreement_seconds[i] <- tm$agreement_seconds
+    t <- NULL
+  }
   if (anyDuplicated(ids) || !setequal(ids, plan$tasks$task_id)) {
     stop("The task files are not the plan's tasks, each once.", call. = FALSE)
   }
-  same <- vapply(tasks, function(t) {
-    identical(t$envelope$purpose, info[["purpose"]]) && identical(t$envelope$study, study$key)
-  }, TRUE)
-  if (!all(same)) stop("A task file belongs to another study or purpose.", call. = FALSE)
-  tasks <- tasks[order(ids)]
+  o <- order(ids)
+  times <- times[o, c("task_id", "scenario", "reps", "started", "finished", "job_started", "elapsed",
+                      "cpu", "replication_seconds", "agreement_seconds"), drop = FALSE]
+  rownames(times) <- NULL
+  times$cost <- as.numeric(plan$tasks$cost[match(times$task_id, plan$tasks$task_id)])
   sc <- study$scenarios
   if (nzchar(info[["subset"]])) sc <- sc[sc$scenario %in% as.integer(strsplit(info[["subset"]], " ")[[1]]), , drop = FALSE]
-  results <- sim_bind_part(tasks, "results")
-  agreement <- sim_bind_part(tasks, "agreement")
-  failures <- sim_bind_part(tasks, "failures")
+  results <- sim_bind_part(parts$results[o], scen[o], "results")
+  parts$results <- NULL
+  agreement <- sim_bind_part(parts$agreement[o], scen[o], "agreement")
+  failures <- sim_bind_part(parts$failures[o], scen[o], "failures")
+  parts <- NULL
+  invisible(gc(verbose = FALSE))
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   summary <- study$summarize(results = results, agreement = agreement, failures = failures,
                              scenarios = sc, info = info)
-  if (!is.list(summary) || is.null(names(summary)) || any(!nzchar(names(summary)))) {
-    stop("study$summarize() must return a named list of data frames.", call. = FALSE)
+  if (!is.list(summary) || is.null(names(summary)) || any(!nzchar(names(summary))) ||
+      anyDuplicated(names(summary))) {
+    stop("study$summarize() must return a list of data frames with distinct names.", call. = FALSE)
+  }
+  bad <- names(summary)[!grepl("^(timing/)?[a-z0-9][a-z0-9_-]*$", names(summary)) |
+                          names(summary) %in% sim_reserved_names]
+  if (length(bad)) stop("Summary names not allowed: ", paste(bad, collapse = ", "), ".", call. = FALSE)
+  if (isTRUE(study$protocol) && !identical(info[["purpose"]], "study")) {
+    banned <- intersect(names(summary), c("performance", "decisions", "failures"))
+    if (length(banned)) {
+      stop("A protocol's ", info[["purpose"]], " run may not compute ", paste(banned, collapse = ", "),
+           ".", call. = FALSE)
+    }
   }
   for (name in names(summary)) sim_write_csv(summary[[name]], file.path(out_dir, paste0(name, ".csv")))
   saveRDS(summary, file.path(out_dir, "summary.rds"))
-  times <- do.call(rbind, lapply(tasks, function(t) {
-    data.frame(task_id = t$envelope$task$task_id, scenario = t$envelope$task$scenario,
-               reps = t$envelope$task$rep_to - t$envelope$task$rep_from + 1L,
-               started = t$timing$started, finished = t$timing$finished,
-               elapsed = t$timing$elapsed, cpu = t$timing$cpu, stringsAsFactors = FALSE)
-  }))
   sim_write_csv(times, file.path(out_dir, "timing", "task-times.csv"))
-  if (identical(info[["design"]], "gate")) sim_gate_projection(study, times, sc, info, out_dir)
-  message("Summarize: ", length(tasks), " tasks, ", if (is.null(results)) 0L else nrow(results),
+  if (identical(info[["design"]], "gate")) {
+    g <- study$gate
+    gate <- if (is.function(g$project)) g$project(times = times, scenarios = sc, info = info)
+            else sim_gate_default(study, times, sc, info)
+    if (!is.list(gate) || !"gate-projection" %in% names(gate)) {
+      stop("The gate's projection must return a list with gate-projection.", call. = FALSE)
+    }
+    for (name in names(gate)) sim_write_csv(gate[[name]], file.path(out_dir, "timing", paste0(name, ".csv")))
+  }
+  message("Summarize: ", n, " tasks, ", if (is.null(results)) 0L else nrow(results),
           " rows; wrote ", paste0(names(summary), ".csv", collapse = ", "), ".")
   invisible(summary)
 }
 
-# The gate's projection: worker seconds per replication by scenario, times R,
-# summed, divided by the protocol's divisor, plus the allowance, against the
-# cap. Labelled with the purpose, so a test gate is never taken for a gate.
-sim_gate_projection <- function(study, times, scenarios, info, out_dir) {
+# ---- The timing gate -----------------------------------------------------------
+
+# The gate's projection, as #116 posted it and amendment 2 restates it for
+# the runners, with the study's constants:
+#   - tasks that start at least `warmup_minutes` after their job's start (the
+#     moment its process began handing out tasks) are used; a group with no
+#     such task uses all of its tasks, and says so;
+#   - replication seconds are averaged per replication within each group of
+#     scenarios that `group(scenarios)` defines (default: each scenario);
+#   - the projection for R sums R times each scenario's group average over
+#     the scenarios, adds the agreement checks' seconds once, and divides by
+#     `divisor`; R is the largest value of `ladder` whose projection times
+#     `allowance` is at most `cap_hours`;
+#   - if none is, and `fallback(scenarios)` gives the scenarios to keep, the
+#     same is done for those (labelled `fallback_label`); if that fails too,
+#     the decision is "stop".
+# Every row is labelled with the purpose, so a test gate is never taken for
+# a gate. A study whose rule differs gives `gate$project`, a function(times,
+# scenarios, info) returning the same files (it may call this one).
+sim_gate_default <- function(study, times, scenarios, info) {
   g <- study$gate
-  per <- stats::aggregate(cbind(elapsed, reps) ~ scenario, data = times, FUN = sum)
-  per$seconds_per_rep <- per$elapsed / per$reps
-  sim_write_csv(per, file.path(out_dir, "timing", "gate-times.csv"))
-  hours <- vapply(g$ladder, function(R) sum(R * per$seconds_per_rep) / g$divisor / 3600, 0)
-  proj <- data.frame(purpose = info[["purpose"]], R = g$ladder, projection_hours = hours,
-                     with_allowance = hours * g$allowance, cap_hours = g$cap_hours,
-                     within_cap = hours * g$allowance <= g$cap_hours)
-  ok <- proj$R[proj$within_cap]
-  proj$chosen <- proj$R == if (length(ok)) max(ok) else NA
-  sim_write_csv(proj, file.path(out_dir, "timing", "gate-projection.csv"))
-  invisible(proj)
+  warm <- if (is.null(g$warmup_minutes)) 0 else as.numeric(g$warmup_minutes)
+  allowance <- if (is.null(g$allowance)) 1 else as.numeric(g$allowance)
+  grp <- if (is.function(g$group)) as.character(g$group(scenarios)) else as.character(scenarios$scenario)
+  if (length(grp) != nrow(scenarios) || anyNA(grp)) stop("gate$group() must label every scenario.", call. = FALSE)
+  times$group <- grp[match(times$scenario, scenarios$scenario)]
+  times$offset_seconds <- as.numeric(difftime(sim_parse_utc(times$started), sim_parse_utc(times$job_started),
+                                              units = "secs"))
+  times$after_warmup <- times$offset_seconds >= warm * 60
+  groups <- unique(grp)
+  per <- do.call(rbind, lapply(groups, function(k) {
+    x <- times[times$group == k, , drop = FALSE]
+    use <- x[x$after_warmup, , drop = FALSE]
+    applied <- nrow(use) > 0L
+    if (!applied) use <- x
+    data.frame(purpose = info[["purpose"]], group = k, scenarios = sum(grp == k), tasks = nrow(x),
+               tasks_used = nrow(use), warmup_applied = applied, reps_used = sum(use$reps),
+               replication_seconds_used = sum(use$replication_seconds),
+               seconds_per_rep = sum(use$replication_seconds) / sum(use$reps),
+               stringsAsFactors = FALSE)
+  }))
+  project <- function(keep, set) {
+    spr <- per$seconds_per_rep[match(grp[keep], per$group)]
+    agree <- sum(times$agreement_seconds[times$scenario %in% scenarios$scenario[keep]])
+    hours <- vapply(g$ladder, function(R) (R * sum(spr) + agree) / g$divisor / 3600, 0)
+    data.frame(purpose = info[["purpose"]], set = set, scenarios = sum(keep), R = g$ladder,
+               replication_hours = hours - agree / g$divisor / 3600,
+               agreement_hours = agree / g$divisor / 3600, projection_hours = hours,
+               with_allowance = hours * allowance, cap_hours = g$cap_hours,
+               within_cap = hours * allowance <= g$cap_hours, chosen = FALSE, stringsAsFactors = FALSE)
+  }
+  pick <- function(p) { if (any(p$within_cap)) p$chosen <- p$R == max(p$R[p$within_cap]); p }
+  proj <- pick(project(rep(TRUE, nrow(scenarios)), "all"))
+  decision <- if (any(proj$chosen)) "R chosen" else "none within the cap"
+  if (!any(proj$chosen) && is.function(g$fallback)) {
+    keep <- as.logical(g$fallback(scenarios))
+    label <- if (is.null(g$fallback_label)) "fallback" else g$fallback_label
+    more <- pick(project(keep, label))
+    proj <- rbind(proj, more)
+    decision <- if (any(more$chosen)) paste("R chosen after the fallback:", label) else "stop"
+  } else if (!any(proj$chosen)) {
+    decision <- "stop"
+  }
+  used <- times$after_warmup
+  if (!any(used)) used <- rep(TRUE, nrow(times))
+  summary <- c(purpose = info[["purpose"]], tasks = nrow(times), warmup_minutes = warm,
+               tasks_after_warmup = sum(times$after_warmup),
+               agreement_seconds = format(sum(times$agreement_seconds), digits = 10),
+               divisor = g$divisor, allowance = allowance, cap_hours = g$cap_hours,
+               decision = decision,
+               chosen_R = if (any(proj$chosen)) proj$R[proj$chosen] else NA,
+               chosen_set = if (any(proj$chosen)) proj$set[proj$chosen] else NA,
+               seconds_per_cost = format(sum(times$elapsed[used]) / sum(times$cost[used]), digits = 10))
+  list(`gate-times` = per, `gate-projection` = proj,
+       `gate-summary` = data.frame(item = names(summary), value = unname(as.character(summary)),
+                                   stringsAsFactors = FALSE))
 }
 
 # ---- Smoke mode and dispatch ---------------------------------------------------
@@ -602,7 +883,7 @@ sim_main <- function(study) {
       files <- readLines(sim_need("SOLOMONR_SIM_IN"), warn = FALSE)
       sim_summarize(study, plan_dir(), files[nzchar(files)], sim_need("SOLOMONR_SIM_OUT"))
     },
-    stop("Set SOLOMONR_SIM_STAGE to plan, preflight, run, or summarize, or use ",
-         "tools/sim/run-local.R (see tools/sim/README.md).", call. = FALSE))
+    stop("Set SOLOMONR_SIM_STAGE to plan, preflight, run, or summarize. To run a whole study on ",
+         "one machine, use tools/sim/run-local.R (see tools/sim/README.md).", call. = FALSE))
   invisible(TRUE)
 }

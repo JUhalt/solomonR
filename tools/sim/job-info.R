@@ -4,7 +4,8 @@
 #
 # Writes job-info.csv (item, value): the runner image and its version, the
 # number of CPUs, the processor model and whether it has AVX2 and FMA, the
-# memory, the workers, the number of tasks, the run attempt, and the time.
+# memory, the workers, the number of tasks, the run attempt, the number of
+# local resumptions (tools/sim/run-local.R --resume), and the time.
 # Only these named variables are read; nothing else of the environment.
 
 local({
@@ -44,6 +45,7 @@ values <- c(
   workers = if (is.na(env("SOLOMONR_SIM_WORKERS"))) env("SIM_WORKERS") else env("SOLOMONR_SIM_WORKERS"),
   tasks = if (file.exists(ids)) sum(nzchar(readLines(ids, warn = FALSE))) else NA,
   run_id = env("GITHUB_RUN_ID"), run_attempt = env("GITHUB_RUN_ATTEMPT"),
+  resumes = if (file.exists(file.path(out_dir, "resumes.csv"))) nrow(h_read_csv(file.path(out_dir, "resumes.csv"))) else 0L,
   recorded_utc = h_now())
 h_write_kv(values, file.path(out_dir, "job-info.csv"))
 cat("Job: ", values[["cpus"]], " CPUs, ", values[["cpu_model"]], ", image ",

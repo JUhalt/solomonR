@@ -5,8 +5,8 @@
 #
 # <chunks dir> holds one folder per chunk, chunk-NNNN, as the chunk jobs
 # uploaded them (tasks/*.rds, software.csv, job-info.csv, run-times.csv,
-# session-info.txt, log.txt). The merge stops, and nothing is summarized,
-# unless:
+# run-info.csv, session-info.txt, log.txt). The merge stops, and nothing is
+# summarized, unless:
 #
 #   1. every task of the plan appears in exactly one chunk, the chunk the
 #      assignment named, and no other task file exists;
@@ -14,17 +14,31 @@
 #      replications, all 7 seed integers, rows per replication), and the
 #      plan's contract, study, purpose, design, package commit, script
 #      SHA-256, and contract SHA-256;
-#   3. each task's results hold every replication from rep_from to rep_to,
-#      each with rows_per_rep rows, and no other replication;
+#   3. each task's results have no missing replication number, exactly
+#      (rep_to - rep_from + 1) x rows_per_rep rows, rows_per_rep rows for
+#      each replication from rep_from to rep_to, and no other replication;
+#      and the results, agreement, and failures of every task have the same
+#      column names and classes as those of the other tasks;
 #   4. every scenario's tasks cover replications 1 to R exactly once;
-#   5. every chunk, and the plan job, reported identical software.
+#   5. every chunk, and the plan job, reported identical software
+#      (software.csv: R and its build, the libraries with their versions and
+#      checksums, the processor's AVX2 and FMA flags, the repositories, and
+#      every package with its version).
 #
 # It then writes manifest.csv (one row per task: chunk, attempt, rows, the
 # SHA-256 of the file and of its hashed parts), completeness.csv (one row per
 # scenario), jobs.csv (one row per chunk), software.csv, task-files.txt (the
-# files for the summary, in task order), and the replay list: the cheapest
-# task of chunks 1, ceiling(N/3), ceiling(2N/3), and N (replay-ids.txt and
-# replay-source.csv), which tools/sim/check-replay.R compares after the
+# files for the summary, in task order), and the replay list (replay-ids.txt
+# and replay-source.csv): up to four distinct tasks, chosen in this order,
+# each from a chunk not yet chosen while one remains:
+#
+#   a. the task with the largest cost (the heaviest scenario);
+#   b. the task 1 (which carries a scenario's agreement checks) with the
+#      largest cost;
+#   c. the cheapest task of the first chunk;
+#   d. the cheapest task of the last chunk;
+#
+# ties broken by task id. tools/sim/check-replay.R compares them after the
 # study script has run them again on the merge machine.
 
 local({
@@ -71,7 +85,6 @@ if (length(extra)) h_fail("Task files not in the plan: ", paste(head(extra, 5), 
 files$assigned <- assignment$chunk[match(files$task_id, assignment$task_id)]
 wrong <- files$task_id[files$chunk != files$assigned]
 if (length(wrong)) h_fail("Tasks in another chunk than assigned: ", paste(head(wrong, 5), collapse = ", "), ".")
-files <- files[match(plan$task_id, files$task_id), ]
 files <- files[order(files$task_id), ]
 
 # ---- 2 and 3. Each task against its plan row ---------------------------------------
@@ -79,12 +92,17 @@ files <- files[order(files$task_id), ]
 base <- list(contract = info[["contract"]], study = info[["study"]], purpose = info[["purpose"]],
              design = info[["design"]], package_sha = info[["package_sha"]],
              script_sha256 = info[["script_sha256"]], contract_sha256 = info[["contract_sha256"]])
-attempts <- vapply(found, function(ch) {
+job_info <- lapply(stats::setNames(found, found), function(ch) {
   f <- file.path(chunks_dir, paste0("chunk-", ch), "job-info.csv")
-  if (file.exists(f)) { a <- h_read_kv(f)[["run_attempt"]]; if (is.na(a) || a == "NA") "1" else a } else "1"
+  if (file.exists(f)) h_read_kv(f) else NULL
+})
+attempts <- vapply(found, function(ch) {
+  a <- if (is.null(job_info[[ch]])) NA else job_info[[ch]][["run_attempt"]]
+  if (is.na(a) || a == "NA") "1" else a
 }, "")
 manifest <- vector("list", nrow(files))
 covered <- list()
+signature <- list(results = NULL, agreement = NULL, failures = NULL)
 for (i in seq_len(nrow(files))) {
   id <- files$task_id[i]
   row <- plan[plan$task_id == id, , drop = FALSE]
@@ -99,10 +117,21 @@ for (i in seq_len(nrow(files))) {
   res <- task$results
   if (!is.data.frame(res) || !"rep" %in% names(res)) h_fail("Task ", id, " has no results.")
   reps <- seq.int(want$rep_from, want$rep_to)
-  counts <- table(factor(res$rep, levels = unique(c(reps, res$rep))))
-  if (!identical(sort(as.integer(names(counts))), reps) || any(counts != want$rows_per_rep)) {
+  bad_rows <- anyNA(res$rep) || nrow(res) != length(reps) * want$rows_per_rep ||
+    length(setdiff(unique(res$rep), reps)) > 0L ||
+    any(tabulate(match(res$rep, reps), length(reps)) != want$rows_per_rep)
+  if (bad_rows) {
     h_fail("Task ", id, ": replications ", want$rep_from, " to ", want$rep_to, " with ",
-           want$rows_per_rep, " rows each were expected.")
+           want$rows_per_rep, " rows each, and no other row, were expected.")
+  }
+  for (part in names(signature)) {
+    s <- h_signature(task[[part]])
+    if (is.null(s)) next
+    if (is.null(signature[[part]])) {
+      signature[[part]] <- s
+    } else if (!identical(s, signature[[part]])) {
+      h_fail("Task ", id, ": its ", part, " have other columns or column classes than the other tasks'.")
+    }
   }
   if (identical(want$kind, "replications")) {
     key <- as.character(want$scenario)
@@ -113,6 +142,7 @@ for (i in seq_len(nrow(files))) {
     scenario = want$scenario, task = want$task, rep_from = want$rep_from, rep_to = want$rep_to,
     rows = nrow(res), file_sha256 = h_file_sha256(files$file[i]),
     content_sha256 = h_content_sha256(task), stringsAsFactors = FALSE)
+  task <- NULL
 }
 manifest <- do.call(rbind, manifest)
 
@@ -147,25 +177,54 @@ if (length(differ)) {
 # ---- Outputs ------------------------------------------------------------------------------
 
 jobs <- do.call(rbind, lapply(found, function(ch) {
-  f <- file.path(chunks_dir, paste0("chunk-", ch), "job-info.csv")
-  if (!file.exists(f)) return(data.frame(chunk = ch, stringsAsFactors = FALSE))
-  kv <- h_read_kv(f)
+  kv <- job_info[[ch]]
   times <- file.path(chunks_dir, paste0("chunk-", ch), "run-times.csv")
   t <- if (file.exists(times)) h_read_csv(times) else NULL
-  data.frame(as.list(kv), task_files = sum(files$chunk == ch),
+  if (!is.null(t) && "skipped" %in% names(t)) t <- t[t$skipped != "TRUE", , drop = FALSE]
+  data.frame(if (is.null(kv)) list(chunk = ch) else as.list(kv), task_files = sum(files$chunk == ch),
              worker_seconds = if (is.null(t)) NA else sum(as.numeric(t$elapsed)),
-             first_start = if (is.null(t)) NA else min(t$started),
-             last_finish = if (is.null(t)) NA else max(t$finished),
+             first_start = if (is.null(t) || !nrow(t)) NA else min(t$started),
+             last_finish = if (is.null(t) || !nrow(t)) NA else max(t$finished),
              stringsAsFactors = FALSE, check.names = FALSE)
 }))
-cheapest <- function(ch) {
-  ids <- assignment$task_id[assignment$chunk == ch]
-  p <- plan[plan$task_id %in% ids, ]
-  p$task_id[order(as.numeric(p$cost), p$task_id)][[1]]
+
+# The replay list (rules a to d in the header).
+plan$cost_num <- as.numeric(plan$cost)
+plan$chunk <- assignment$chunk[match(plan$task_id, assignment$task_id)]
+picked <- character()
+rules <- character()
+used_chunks <- function() plan$chunk[match(picked, plan$task_id)]
+choose <- function(cands, decreasing) {
+  cands <- cands[!cands$task_id %in% picked, , drop = FALSE]
+  if (!nrow(cands)) return(NULL)
+  fresh <- cands[!cands$chunk %in% used_chunks(), , drop = FALSE]
+  if (nrow(fresh)) cands <- fresh
+  o <- order(if (decreasing) -cands$cost_num else cands$cost_num, cands$task_id)
+  cands$task_id[o[[1]]]
 }
-n <- length(found)
-picks <- found[unique(c(1L, ceiling(n / 3), ceiling(2 * n / 3), n))]
-replay <- data.frame(task_id = vapply(picks, cheapest, ""), chunk = picks, stringsAsFactors = FALSE)
+chunk_tasks <- function(which) {
+  free <- setdiff(found, used_chunks())
+  if (!length(free)) return(plan)
+  plan[plan$chunk == (if (which == "first") min(free) else max(free)), , drop = FALSE]
+}
+for (r in c("a", "b", "c", "d")) {
+  cands <- switch(r,
+    a = plan,
+    b = plan[as.integer(plan$task) == 1L, , drop = FALSE],
+    c = chunk_tasks("first"),
+    d = chunk_tasks("last"))
+  id <- choose(cands, decreasing = r %in% c("a", "b"))
+  if (!is.null(id)) {
+    picked <- c(picked, id)
+    rules <- c(rules, r)
+  }
+}
+replay <- data.frame(task_id = picked, rule = rules, chunk = plan$chunk[match(picked, plan$task_id)],
+                     cost = plan$cost[match(picked, plan$task_id)], stringsAsFactors = FALSE)
+replay$cpu_model <- vapply(replay$chunk, function(ch) {
+  kv <- job_info[[ch]]
+  if (is.null(kv) || !"cpu_model" %in% names(kv)) NA_character_ else kv[["cpu_model"]]
+}, "")
 replay$file <- files$file[match(replay$task_id, files$task_id)]
 
 h_write_csv(manifest, file.path(merged_dir, "manifest.csv"))
@@ -173,8 +232,8 @@ h_write_csv(completeness, file.path(merged_dir, "completeness.csv"))
 h_write_csv(jobs, file.path(merged_dir, "jobs.csv"))
 h_write_csv(ref, file.path(merged_dir, "software.csv"))
 h_write_csv(replay, file.path(merged_dir, "replay-source.csv"))
-write_lines <- function(x, path) { con <- file(path, open = "wb"); writeLines(x, con, sep = "\n"); close(con) }
-write_lines(files$file, file.path(merged_dir, "task-files.txt"))
-write_lines(replay$task_id, file.path(merged_dir, "replay-ids.txt"))
+h_write_lines(files$file, file.path(merged_dir, "task-files.txt"))
+h_write_lines(replay$task_id, file.path(merged_dir, "replay-ids.txt"))
 cat(sprintf("Merge checks passed: %d tasks in %d chunks, %d scenarios with replications 1 to %d, identical software in %d jobs. Replay: %s.\n",
-            nrow(manifest), n, nrow(completeness), R, length(software), paste(replay$task_id, collapse = ", ")))
+            nrow(manifest), length(found), nrow(completeness), R, length(software),
+            paste0(replay$task_id, " (", replay$rule, ", chunk ", replay$chunk, ")", collapse = ", ")))

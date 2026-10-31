@@ -7,7 +7,8 @@
 # study script has run those tasks into <replay dir>/tasks. Every hashed part
 # (envelope, results, agreement, failures) must be identical(), and this
 # machine's software must equal the chunks'. Writes replay.csv into the
-# merged folder and stops on any difference.
+# merged folder, with the processor model of the chunk and of this machine,
+# and stops on any difference.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -18,6 +19,7 @@ merged_dir <- args[[1]]
 replay_dir <- args[[2]]
 
 source_list <- h_read_csv(file.path(merged_dir, "replay-source.csv"))
+here <- h_cpu_model()
 rows <- lapply(seq_len(nrow(source_list)), function(i) {
   id <- source_list$task_id[i]
   a <- readRDS(source_list$file[i])
@@ -25,7 +27,9 @@ rows <- lapply(seq_len(nrow(source_list)), function(i) {
   if (!file.exists(f)) h_fail("The replay of task ", id, " is missing.")
   b <- readRDS(f)
   d <- h_frame_diff(a$results, b$results)
-  data.frame(task_id = id, chunk = source_list$chunk[i],
+  data.frame(task_id = id, rule = source_list$rule[i], chunk = source_list$chunk[i],
+             chunk_cpu = source_list$cpu_model[i], replay_cpu = here,
+             other_cpu = !identical(source_list$cpu_model[i], here),
              identical = identical(h_hashed(a), h_hashed(b)),
              results_max_abs_diff = d$max_abs, columns_differing = paste(d$columns, collapse = " "),
              stringsAsFactors = FALSE)
@@ -39,4 +43,5 @@ if (!all(replay$identical)) {
   h_fail("Replayed tasks differ from the chunks: ", paste(replay$task_id[!replay$identical], collapse = ", "),
          " (largest difference in the results ", format(max(replay$results_max_abs_diff, na.rm = TRUE)), ").")
 }
-cat("Replay: ", nrow(replay), " tasks identical to the chunks' (", paste(replay$task_id, collapse = ", "), ").\n", sep = "")
+cat("Replay: ", nrow(replay), " tasks identical to the chunks' (", paste(replay$task_id, collapse = ", "),
+    "); ", sum(replay$other_cpu), " of them first ran on another processor model.\n", sep = "")

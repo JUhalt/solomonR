@@ -87,11 +87,17 @@ runs:
         sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/blas/libblas.so.3
         sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3
 
+    # pak itself comes from the snapshot ("repo"), not from pak's own
+    # release channel, so the installer is pinned too; upgrade: TRUE
+    # installs the snapshot's version of every dependency even where R ships
+    # an older copy (MASS 7.3-65 with R 4.6.1, pinned 7.3-66).
     - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
       with:
         working-directory: pkg
         dependencies: '"hard"'
         extra-packages: ${{ steps.pins.outputs.extra }}
+        pak-version: repo
+        upgrade: 'TRUE'
         cache-version: sim-${{ steps.pins.outputs.snapshot_date }}
 
     - name: Check R, the packages, and the libraries

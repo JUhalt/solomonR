@@ -4,7 +4,7 @@
 # checkout instead), so the two copies of the CSV helpers are deliberate.
 # Base R only; ASCII.
 
-h_contracts <- "1"   # contract versions this harness can check and merge
+h_contracts <- "2"   # contract versions this harness can check and merge
 
 h_fail <- function(...) {
   cat("::error::", paste0(...), "\n", sep = "")
@@ -90,3 +90,26 @@ h_frame_diff <- function(a, b) {
 }
 
 h_now <- function() format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+
+# The processor model of this machine, or NA.
+h_cpu_model <- function() {
+  if (!file.exists("/proc/cpuinfo")) {
+    v <- Sys.getenv("PROCESSOR_IDENTIFIER")
+    return(if (nzchar(v)) v else NA_character_)
+  }
+  model <- grep("^model name", readLines("/proc/cpuinfo", warn = FALSE), value = TRUE)
+  if (length(model)) trimws(sub("^[^:]*:", "", model[[1]])) else NA_character_
+}
+
+# Column names and classes of a data frame, one string per column.
+h_signature <- function(x) {
+  if (!is.data.frame(x)) return(NULL)
+  paste(names(x), vapply(x, function(col) paste(class(col), collapse = "/"), ""), sep = ":")
+}
+
+# Writes lines with LF line ends.
+h_write_lines <- function(x, path) {
+  con <- file(path, open = "wb")
+  on.exit(close(con))
+  writeLines(x, con, sep = "\n")
+}

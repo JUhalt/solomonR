@@ -12,3 +12,4 @@ package,MASS,7.3-66
 package,withr,3.0.3
 package,lifecycle,1.0.5
 package,pkgload,1.5.3
+tool,pak,0.11.1
