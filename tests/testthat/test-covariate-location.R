@@ -604,6 +604,120 @@ test_that("a shift of the pretest changes no assumption check", {
 })
 
 
+# ---- collinear covariates ----------------------------------------------------------
+
+# The data set of fixtures/collinear-master.R: four groups of 30, or three
+# conditions, with a score `z`, two posttests missing, and 12 sites.
+collinear_set <- function() readRDS(test_path("fixtures", "collinear-master.rds"))$data
+
+# The fit to `covariates`, for four groups or three conditions.
+collinear_pair_fit <- function(d, design, covariates, robust = "HC3", y = NULL, ...) {
+  four <- design == "four"
+  if (is.null(y)) y <- if (four) d$y4 else d$y6
+  fit_solomon_glm(y, if (four) d$treat else d$cond, d$pretested, d$pre,
+                  covariates = covariates, robust = robust,
+                  cluster = if (robust == "CR2") d$site, control = if (!four) "Ctl", ...)
+}
+
+test_that("exactly collinear covariates stop the fit wherever they lie", {
+  # z + k and 2z + 3 are collinear. From about 10^6 standard deviations
+  # from zero, the rounding error of z + k made glm() take them for distinct
+  # covariates, and the fit went on: to a wrong HC3 standard error with a
+  # warning that NaNs were produced, or to an error of clubSandwich. The
+  # standardized model is now checked at the tolerance of lm().
+  d <- collinear_set()
+  collinear <- "collinear with other terms of the model: z2[.]"
+  for (design in c("four", "six")) {
+    for (robust in c("none", "HC3", "CR2")) {
+      for (k in c(0, 1e4, 1e6, 1e8)) {
+        covariates <- data.frame(z = d$z + k * stats::sd(d$z), z2 = 2 * d$z + 3)
+        expect_error(collinear_pair_fit(d, design, covariates, robust), collinear,
+                     info = paste(design, robust, k))
+      }
+    }
+  }
+  # Every family, with the fit as given far from zero.
+  covariates <- data.frame(z = d$z + 1e6 * stats::sd(d$z), z2 = 2 * d$z + 3)
+  counts <- pmax(0, round(2 + d$y4))
+  expect_error(collinear_pair_fit(d, "four", covariates, y = as.integer(d$y4 > 0.2),
+                                  family = stats::binomial()), collinear)
+  expect_error(collinear_pair_fit(d, "four", covariates, y = counts,
+                                  family = stats::poisson()), collinear)
+  expect_error(suppressWarnings(collinear_pair_fit(d, "six", covariates, y = counts,
+                                                   family = "negative_binomial")), collinear)
+})
+
+test_that("covariates within the tolerance of collinear stop, and those beyond it fit", {
+  # .collinear_terms() takes a column to be collinear when it lies within
+  # 1e-7 of its standard deviation of the span of the columns before it.
+  # Master fitted covariates that differ by 1e-8 of their standard
+  # deviation, as glm() does at its tolerance of 1e-11; the fit now stops,
+  # as lm() would drop the second covariate.
+  d <- collinear_set()
+  e <- withr::with_seed(1, stats::rnorm(nrow(d)))
+  pair <- function(size) data.frame(z = d$z, z2 = d$z + size * e)
+  expect_error(collinear_pair_fit(d, "four", pair(1e-8)),
+               "collinear with other terms of the model: z2[.]")
+  expect_error(collinear_pair_fit(d, "six", pair(1e-8), "none"),
+               "collinear with other terms of the model: z2[.]")
+  expect_no_error(fit <- collinear_pair_fit(d, "four", pair(1e-6)))
+  expect_identical(.collinear_terms(fit$model, .collinear_tolerance), character())
+  model <- stats::glm(y4 ~ treat * pretested + z + z2, data = cbind(d, pair(1e-8)[2]),
+                      na.action = stats::na.exclude)
+  expect_false(anyNA(stats::coef(model)))
+  expect_identical(.collinear_terms(model, .collinear_tolerance), "z2")
+  expect_identical(.collinear_terms(model, 1e-11), character())
+  # The tolerance is relative to each column's standard deviation, wherever
+  # the column lies: here 10^4 standard deviations from zero, where z2 is
+  # within 1e-10 of its norm of the span of the columns before it.
+  far <- stats::glm(y4 ~ treat * pretested + z + z2, na.action = stats::na.exclude,
+                    data = cbind(d[c("y4", "treat", "pretested")], pair(1e-6) * 1e-3 + 10))
+  expect_false(anyNA(stats::coef(far)))
+  expect_identical(.collinear_terms(far, .collinear_tolerance), character())
+})
+
+test_that("nearly collinear covariates are fitted as master fitted them", {
+  # fixtures/collinear-master.rds holds results computed on master d446577,
+  # before the collinearity check; fixtures/collinear-master.R made it and
+  # defines the calls. The second measure `z_grid` differs from `z` by
+  # about 6e-5 of its standard deviation and `z_fine` by about 1e-6. The
+  # design of the fine pair is so nearly singular that the contrasts of
+  # master and of this version each differ from those of the exact
+  # reparameterization, the fit to `z` and the difference of the two
+  # measures, by up to about 2e-4 of their value, which sets its tolerance.
+  # Its coefficients are not compared: their HC3 and CR2 standard errors
+  # are less accurate still, in both versions, and that of the intercept
+  # as given more so in this one, which maps it from the standardized fit.
+  source(test_path("fixtures", "collinear-master.R"), local = TRUE)
+  stored <- readRDS(test_path("fixtures", "collinear-master.rds"))
+  now <- suppressWarnings(collinear_results(stored$data))
+  expect_setequal(names(now), names(stored$results))
+  tolerance <- function(name) if (grepl("z_fine", name)) 1e-3 else 1e-6
+  for (name in names(now)) {
+    parts <- names(stored$results[[name]])
+    if (grepl("z_fine", name)) parts <- setdiff(parts, "coefficients")
+    for (part in parts) {
+      expect_equal(now[[name]][[part]], stored$results[[name]][[part]],
+                   tolerance = tolerance(name), info = paste(name, part))
+    }
+  }
+  # Far from zero, where master stopped under HC3 and CR2: the grid pair
+  # 10^6 standard deviations from zero, and the fine pair 10^4, whose
+  # difference keeps about six significant digits there.
+  for (design in c("four", "six")) {
+    for (robust in c("none", "HC3", "CR2")) {
+      for (pair in c("z_grid", "z_fine")) {
+        name <- paste(design, pair, robust)
+        k <- if (pair == "z_grid") 1e6 else 1e4
+        fit <- suppressWarnings(collinear_fit(stored$data, design, pair, robust, k = k))
+        expect_equal(fit$effects, now[[name]]$effects, tolerance = tolerance(name),
+                     info = paste(name, k))
+      }
+    }
+  }
+})
+
+
 # ---- results of master on covariates near zero --------------------------------------
 
 test_that("with covariates near zero, results equal those of master (d446577)", {

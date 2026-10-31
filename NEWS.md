@@ -44,6 +44,18 @@
   covariates as given could warn that theta did not converge where the
   same model standardized converged. `?fit_solomon_glm` has a new section,
   "Covariates".
+* Exactly collinear covariates far from zero, such as `z + 1e6` and
+  `2 * z + 3`, whose rounding error makes `glm()` take them for distinct
+  covariates, were fitted under model-based covariance, with meaningless
+  coefficients for the two, and stopped under HC3 and CR2 with "system is
+  computationally singular". The standardized model is now checked for
+  collinear terms at the tolerance of `lm()`, 1e-7 of a column's standard
+  deviation, so they stop with the message that names the collinear term,
+  as they do near zero, up to at least 10^8 standard deviations from zero.
+  Covariates that differ by 10^-6 of their standard deviation or more are
+  fitted as before; those within about 10^-7 of collinear, which `glm()`
+  kept at its tolerance of 1e-11, now stop, as `lm()` would take them to
+  be collinear.
 * `fit_solomon_sem(ancova = TRUE)` lost accuracy when the pretest lay far
   from zero, with p-values off by 7% to 12% at 10^4 standard deviations,
   and stopped from 10^6, where `compare_solomon_methods()` then left out
@@ -86,11 +98,13 @@
   standardized model. A difference of the pretest centers that is zero but
   for rounding error, such as that of a rate ratio, which does not depend
   on the center, is printed without the sign of that error.
-* Not changed here: from about 10^7 standard deviations from zero, `glm()`
-  can take nearly collinear covariates as given to be collinear, which
-  stops the fit; and the ties of `perm_solomon()` with models fitted by
-  iteration, and the first stage of its clustered test, which is fitted to
-  the covariates as given, remain on #134.
+* Not changed here: `glm()` takes nearly collinear covariates as given to
+  be collinear, which stops the fit, when they lie so far from zero that
+  their difference falls below about 1e-11 of their distance from zero,
+  as for covariates 10^-6 standard deviations apart at 10^6 standard
+  deviations from zero; and the ties of `perm_solomon()` with models
+  fitted by iteration, and the first stage of its clustered test, which is
+  fitted to the covariates as given, remain on #134.
 
 ## The pretest center when posttests are missing (#135)
 

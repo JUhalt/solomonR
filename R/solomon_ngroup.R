@@ -202,9 +202,12 @@
 # Stop when a coefficient of the fitted model is inestimable: an empty
 # group, or a term collinear with the others. `empty` names the groups
 # without an analyzable participant (.group_names()). Used by the four-group
-# and the several-treatment paths of fit_solomon_glm().
-.stop_inestimable <- function(fit, empty) {
+# and the several-treatment paths of fit_solomon_glm(). With `tol`, a term
+# whose column of the model matrix lies within `tol` of the span of the
+# columns before it is collinear too (.collinear_terms()).
+.stop_inestimable <- function(fit, empty, tol = NULL) {
   aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
+  if (!length(aliased) && !is.null(tol)) aliased <- .collinear_terms(fit, tol)
   if (!length(aliased)) return(invisible(NULL))
   if (length(empty)) {
     stop(
@@ -221,6 +224,38 @@
     "term, causes this.",
     call. = FALSE
   )
+}
+
+# The tolerance at which fit_solomon_glm() checks the model with its
+# covariates standardized and its pretest scaled (.covariate_scaling()) for
+# collinear terms (issue #137): 1e-7, the default tolerance of lm() and
+# qr(). glm() takes a term to be collinear when its column falls below
+# 1e-11 of its norm once the columns before it are projected out, which,
+# for the covariates as given, depends on where they lie. A value k
+# standard deviations from zero is stored with a rounding error of up to
+# about k * 1.1e-16 standard deviations, so two covariates that are
+# exactly collinear, such as z + 10^6 and 2z + 3, differ once standardized
+# by that error, about 1e-10 at 10^6, which glm() takes for a real
+# difference: the fit then went on to huge coefficients and wrong standard
+# errors, or failed in clubSandwich. The error is about 1e-8 at 10^8, below
+# 1e-7, so collinear covariates are caught wherever they lie up to 10^8
+# standard deviations, as near zero; covariates that differ by 10^-6 of
+# their standard deviation or more, which master fitted, are kept.
+.collinear_tolerance <- 1e-7
+
+# The terms of the model `fit` whose columns of the model matrix are within
+# `tol` of the span of the columns before them, with each column but the
+# intercept centered, so that `tol` is relative to the column's standard
+# deviation over the rows of the model and the answer does not depend on
+# where a column lies: the columns beyond the rank of qr() at `tol`, which
+# it moves to the end. An empty vector when there are none.
+.collinear_terms <- function(fit, tol) {
+  X <- stats::model.matrix(fit)
+  j <- colnames(X) != "(Intercept)"
+  X[, j] <- sweep(X[, j, drop = FALSE], 2L, colMeans(X[, j, drop = FALSE]))
+  q <- qr(X, tol = tol)
+  if (q$rank == ncol(X)) return(character())
+  colnames(X)[q$pivot[seq(q$rank + 1L, ncol(X))]]
 }
 
 # Fit the joint model of an N-group design. Called by fit_solomon_glm()
@@ -349,9 +384,10 @@
   )
 
   # An empty group, or a term collinear with the others, leaves a
-  # coefficient inestimable, in the model as given or standardized.
+  # coefficient inestimable, in the model as given or standardized, the
+  # latter checked at the tolerance of lm() as well (.collinear_tolerance).
   .stop_inestimable(fit_given, .group_names(counts, counts == 0))
-  .stop_inestimable(fit, .group_names(counts, counts == 0))
+  .stop_inestimable(fit, .group_names(counts, counts == 0), .collinear_tolerance)
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2.
