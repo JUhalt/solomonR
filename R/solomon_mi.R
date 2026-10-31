@@ -103,11 +103,15 @@
 # weights A = L (X'X)^-1 X' and the leverages are computed once: the
 # estimates are A y and the HC3 variances are (A * A) w, with
 # w = (e / (1 - h))^2 (MacKinnon & White, 1985). test-mi.R checks that the
-# results equal fit_solomon_glm()'s.
+# results equal fit_solomon_glm()'s. The pretest is centered at its mean
+# among the pretested participants, as in fit_solomon_glm(), which changes
+# none of the contrasts and keeps X'X well-conditioned however far the
+# pretest lies from zero (issue #137).
 .mi_design <- function(d, robust) {
   pre <- !is.null(d$y_pre)
+  center <- if (pre) mean(d$y_pre[d$pretested == 1L]) else 0
   X <- cbind(1, d$treat, d$pretested,
-             if (pre) ifelse(d$pretested == 1L, d$y_pre, 0),
+             if (pre) ifelse(d$pretested == 1L, d$y_pre - center, 0),
              d$treat * d$pretested)
   L <- rbind(
     c(0, 1, 0, if (pre) 0, 0.5),  # ATE (avg over pretest)
