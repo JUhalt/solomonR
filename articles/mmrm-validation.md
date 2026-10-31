@@ -193,7 +193,26 @@ From the package root,
 `Rscript vignettes/articles/mmrm-validation/mmrm-simulation.R` writes
 `performance.csv` and `run-information.csv`. The run used R 4.6.1, mmrm
 0.3.18, and 11 workers, from 2026-09-28 21:58:27 UTC to 2026-09-28
-23:09:29 UTC.
+23:09:29 UTC. The script has since been adapted to the current output of
+the package ([issue
+\#140](https://github.com/JUhalt/solomonR/issues/140)): it selects the
+rows it studies by occasion and label, as the help page
+[`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+describes, and it has a smoke mode, a short run that checks it against
+the current package. The adaptation does not change what the script
+computes: on two replications of scenarios 1 and 7, with the package at
+commit c4dc6da, the original and the adapted script give identical
+results, the saved replications included. With the current package, only
+the complete-case results differ from these, with relative differences
+below 1e-11, because the pretest has been centered since [issue
+\#104](https://github.com/JUhalt/solomonR/issues/104). The confirmatory
+study under the [third amendment of issue
+\#57](https://github.com/JUhalt/solomonR/issues/57#issuecomment-6077906571),
+planned under [issue
+\#117](https://github.com/JUhalt/solomonR/issues/117), will be reported
+in this article beside this study, with its own scripts in
+`mmrm-validation/confirmatory/`; this study and its verdict stay as
+reported.
 
 ## References
 

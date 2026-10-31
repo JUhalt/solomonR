@@ -264,7 +264,20 @@ covariate adjustment in randomized trials.
 The script, `binary-validation/binary-simulation.R`, and its results,
 `performance.csv` and `run-information.csv`, are in the package
 repository. The run took from 2026-09-26 02:30:12 UTC to 2026-09-26
-06:47:49 UTC on 11 workers (R version 4.6.1 (2026-06-24 ucrt)).
+06:47:49 UTC on 11 workers (R version 4.6.1 (2026-06-24 ucrt)). The
+script has since been adapted to the current output of the package
+([issue \#140](https://github.com/JUhalt/solomonR/issues/140)): it
+selects the rows it studies by their labels, as the help page
+[`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+describes, and it has a smoke mode, a short run that checks it against
+the current package. The adaptation does not change what the script
+computes: on two replications of scenarios 4 and 40, with the package at
+commit 87767d2, the original and the adapted script give identical
+results. With the current package, the results of the pretest-adjusted
+analyses differ from these, with relative differences below 1e-9,
+because the pretest has been centered since [issue
+\#104](https://github.com/JUhalt/solomonR/issues/104); those of the
+unadjusted analysis are identical.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

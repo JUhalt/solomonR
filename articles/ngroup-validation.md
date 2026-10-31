@@ -390,7 +390,22 @@ the finish time above is that of the rebuilt summaries.
 
 The script, `ngroup-simulation.R`, and the files `performance.csv`,
 `agreement.csv`, and `run-information.csv` are in the package repository
-under `vignettes/articles/ngroup-validation/`.
+under `vignettes/articles/ngroup-validation/`. The script has since been
+adapted to the current output of the package ([issue
+\#140](https://github.com/JUhalt/solomonR/issues/140)): its agreement
+check, in `ngroup-summarize.R`, selects the package’s rows by comparison
+and label, as the help page
+[`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+describes, and the script has a smoke mode, a short run that checks it
+against the current package. The adaptation does not change what the
+script computes: on two replications of scenarios 1 and 65, with the
+package at commit 459d17d, the script as it was at that commit and the
+adapted script give identical results, the saved replications included.
+With the current package the replications are the same, since they do
+not call the package; in those two replications, the agreement
+differences of M1 change by at most 2e-14, because the pretest has been
+centered since [issue
+\#104](https://github.com/JUhalt/solomonR/issues/104).
 
 ## References
 

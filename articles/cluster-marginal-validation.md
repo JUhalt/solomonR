@@ -182,7 +182,18 @@ The script, `cluster-marginal-validation/cluster-marginal-simulation.R`,
 and its results, `performance.csv` and `run-information.csv`, are in the
 package repository. The run took from 2026-09-27 14:34:08 UTC to
 2026-09-27 16:38:37 UTC on 11 workers (R version 4.6.1 (2026-06-24
-ucrt)).
+ucrt)). The script has since been adapted to the current output of the
+package ([issue \#140](https://github.com/JUhalt/solomonR/issues/140)):
+it selects the rows it studies by their labels, as the help page
+[`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+describes, and it has a smoke mode, a short run that checks it against
+the current package. It counts degrees of freedom below 4 in the rows it
+studies by the rule of the package’s warning, because the warning now
+also covers the pretest effects, which this study does not report. The
+adaptation does not change what the script computes: on two replications
+of scenarios 1, 2, and 25, the original script with the package at
+commit c2e00dc and the adapted script, with the package at that commit
+and with the current package, give identical results.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

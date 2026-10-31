@@ -206,7 +206,20 @@ The simulation script is
 `vignettes/articles/power-validation/power-simulation.R` in the package
 repository. It was run at 2a944c8 plus \#18 rebuild (solomon_power.R md5
 180d6330d91d) with R 4.6.1, base seed 20260916, and the replication
-counts above.
+counts above. Its smoke mode, a short run of three scenarios, has since
+been extended to check it against the current package ([issue
+\#140](https://github.com/JUhalt/solomonR/issues/140)); the rest of the
+script is unchanged except for the label of Test I, which now names
+Walton Braver. The version of
+[`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+used in the run was not committed, so the run cannot be repeated
+exactly. On the three smoke scenarios with 20 simulations each, the
+script as first committed, with the package at that commit (`b483973`),
+and the script now, with the package at commit `9166516`, give the same
+numbers. With the current package, the Test I rows differ, because
+[`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
+has judged Test I by the two-tailed p since the next commit, `ffb0295`
+(see Methods above); the other rows are identical.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

@@ -212,7 +212,26 @@ From the package root,
 `Rscript vignettes/articles/mi-validation/mi-agreement.R` then writes
 `agreement.csv` from the saved replications. The run used R 4.6.1 and 11
 workers and took from 2026-09-28 20:38:16 UTC to 2026-09-28 21:04:53
-UTC.
+UTC. The simulation script has since been adapted to the current output
+of the package ([issue
+\#140](https://github.com/JUhalt/solomonR/issues/140)): it selects the
+rows it studies by their labels, as the help page
+[`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+describes, and both scripts have a smoke mode, a short run that checks
+them against the current package. The adaptation does not change what
+the scripts compute: on two replications of scenarios 1 and 7, with the
+package at commit 34dda8f, the original and the adapted scripts give
+identical results, the saved replications included. With the current
+package, only the complete-case results, and the agreement table built
+from them, differ from these, with relative differences below 1e-12,
+because the pretest has been centered since [issue
+\#104](https://github.com/JUhalt/solomonR/issues/104). The confirmatory
+study under [amendment 1 of issue
+\#82](https://github.com/JUhalt/solomonR/issues/82#issuecomment-6077908405),
+planned under [issue
+\#117](https://github.com/JUhalt/solomonR/issues/117), will be reported
+in this article beside this study, with its own scripts; this study and
+its verdict stay as reported.
 
 ## References
 

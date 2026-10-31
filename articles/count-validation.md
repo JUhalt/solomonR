@@ -228,7 +228,20 @@ The scripts, `count-validation/count-simulation.R` and
 ran from 2026-09-26 13:36:08 UTC to 2026-09-26 13:59:23 UTC and the
 negative-binomial study from 2026-09-27 05:19:25 UTC to 2026-09-27
 06:21:12 UTC (package commit e8e374b), each on 11 workers (R version
-4.6.1 (2026-06-24 ucrt)).
+4.6.1 (2026-06-24 ucrt)). Both scripts have since been adapted to the
+current output of the package ([issue
+\#140](https://github.com/JUhalt/solomonR/issues/140)): they select the
+rows they study by their labels, as the help page
+[`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
+describes, and they have a smoke mode, a short run that checks them
+against the current package. The adaptation does not change what the
+scripts compute: on two replications of the scenarios of their smoke
+modes (4 and 76 for the count study; 4, 10, and 82 for the
+negative-binomial study), with the package at the commit of each run,
+c9e8da8 and e8e374b, the original and the adapted scripts give identical
+results. With the current package, the results differ from these, with
+relative differences below 1e-7, because the pretest has been centered
+since [issue \#104](https://github.com/JUhalt/solomonR/issues/104).
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the
