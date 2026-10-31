@@ -1,5 +1,113 @@
 # solomonR (development version)
 
+## The pretest center when posttests are missing (#135)
+
+With a pretest covariate, the three pretest effects compare the pretested
+groups, at a mean pretest, with the unpretested groups. When posttests are
+missing, that mean can be taken over the pretested participants analyzed
+or over every observed pretest, and the pretest effects differ by the
+pretest slope times the difference between the two means. The data cannot
+tell which is right, and no published source decides; the choice and its
+reasons are set out in the decision record posted on #135.
+
+* **The default is unchanged.** The pretest effects are still evaluated at
+  the mean pretest of the pretested participants in the model,
+  `pretest_center = "analyzed"`. It assumes that, within each treatment
+  condition, the pretested and the unpretested groups lost the same kinds
+  of participants. The record keeps it because, when taking the pretest
+  changes neither the posttest nor who stays, random assignment makes every
+  group lose alike and its test of a zero pretest effect keeps its level,
+  while the other center's rejected in 54% of data sets in the record's
+  check (500 data sets of 200 per group, a third of the posttests lost by
+  baseline in all four groups); it fails only when taking the pretest
+  changed who stayed. Every number that a fit, a report, or a print gave
+  before is unchanged with the default, as a test against results stored
+  from the development version before this change shows; the new lines and
+  the behavior changes below are the exceptions.
+* **`pretest_center = "observed"`** in `fit_solomon_glm()` (one or several
+  treatments), `fit_solomon_mmrm()`, `fit_solomon_1949()`, and
+  `marginal_solomon()` evaluates them at the mean of every observed pretest
+  among the pretested participants, with or without a posttest; the rows of
+  the participants without a posttest must be in the data. It assumes that
+  the pretested groups' losses depend at most on the observed pretest, and
+  that the unpretested groups' losses are unrelated to baseline as well as
+  to the posttest. Its standard errors take the variance of that mean over
+  every participant who contributes to it, in the model or not, by stacking
+  its estimating equation with the model's (Stefanski & Boos, 2002), under
+  model-based, HC3, and CR2 covariance; a CR2 fit needs the cluster of every
+  such participant. The treatment contrasts, Pretest x Treatment, and the
+  fitted values do not depend on the center. On the risk and rate scales of
+  `marginal_solomon()`, the center also moves Treatment | pretested, the
+  average treatment effect, and Pretest x Treatment.
+* **Both centers are returned and printed.** Fits with a pretest covariate
+  return `pretest_center`, `pretest_mean_analyzed`, `pretest_mean_observed`,
+  `pretest_n`, and `pretest_sensitivity`, the pretest effects at both
+  centers with their difference, the attrition of each group, and, on the
+  identity link, the delta line: for each unpretested group, the offset
+  between its dropouts' and its completers' mean posttest that the default
+  assumes (National Research Council, 2010, pp. 88–89; Mavridis et al.,
+  2015). Whenever the two centers differ, the printed fit gives them in a
+  block, as the record's section 4 shows it for `mai2020`, and
+  `report_solomon()` names the center used, its assumption, and the other
+  center, and says when whether a pretest effect differs from zero depends
+  on the center. The caption of `plot_sensitization()` names both centers.
+  `marginal_solomon()` prints the contrasts that move under both
+  standardizations, and `fit_solomon_1949()` both inferred pretests. These
+  tables are outside the output contract of `?solomon_output` for now.
+* **New lines whenever a posttest is missing.** The print methods and
+  `report_solomon()` give the share of posttests missing among the
+  pretested and the unpretested participants, with the range over the
+  groups, whether or not the centers differ.
+* **`check_solomon_missing()`** gains `covariates` and the record's
+  attrition checks: the share missing by group, between the pretest
+  conditions and between the conditions (What Works Clearinghouse, 2022, p.
+  40), with a statement when Fisher's exact test of loss by pretest
+  condition gives p < .05; the pretest scores of those lost (Campbell, 1957,
+  pp. 301–302); each pretested condition's selection shift, with the raw
+  comparison of posttest means when the shifts differ (#143); the gap
+  between the centers and the delta line; loss by each covariate within
+  each pretest condition; the pretested participants with a posttest and
+  no pretest (#142); and what cannot be checked (Campbell, 1957, p. 305).
+  Its guidance now says that complete-case analysis is unbiased under its
+  condition for the treatment contrasts only.
+* **`analysis_plan_solomon()`** gains `pretest_center`. Its population,
+  missing-at-random, and multiple-imputation statements are restricted to
+  the treatment contrasts, and a new item states the population, the
+  assumption, and the center of the pretest effects. A plan that assumes
+  missingness at random for the pretest effects chooses `"observed"`.
+* **Behavior changes.** A four-group fit with an empty group, or a term
+  collinear with the others, now stops with an error that names the
+  groups, as fits with several treatments did; before, it returned `NA`
+  estimates or failed in the linear algebra. `fit_solomon_mmrm()` takes a
+  participant's pretest from any of the participant's rows, so a pretest
+  given on one row only no longer excludes the participant with a warning;
+  different pretests for one participant still stop the fit.
+* **Help pages.** `?fit_solomon_glm` has a new section, "The pretest effect
+  when posttests are missing". `?fit_solomon_ml` says that its fit, which
+  needs every posttest, has one center, and that removing the participants
+  without a posttest gives the default's. `?fit_solomon_mi` and
+  `?tipping_point_solomon` say that their imputations embody the observed
+  center in the pretested groups. `?equivalence_solomon` says that
+  equivalence of a pretest effect holds only under its center's
+  assumption. `?fit_solomon_mmrm` says that later-occasion pretest effects
+  are biased at either center when dropout depends on baseline beyond the
+  earlier posttests. The article "Missing and Repeated Posttests" shows
+  both centers on data of each one's case.
+* **Citations corrected.** The premise that random assignment makes the
+  unpretested groups' expected pretest equal to the pretested groups' is
+  now credited to Solomon (1949, p. 141), and the pooled mean as its best
+  estimate to Solomon and Lessac (1968, p. 147), in `?fit_solomon_glm`,
+  `?marginal_solomon`, "Getting Started", "Solomon Methods",
+  the teaching article, and the news of #104; they had been credited to
+  Solomon and Lessac (1968, pp. 146–147).
+* **Not solved here.** Pretested participants without a pretest are
+  dropped at either center (#142), and when the treatment conditions lose
+  different kinds of participants the pooled center misstates the
+  conditional pretest effects and Pretest x Treatment is biased at every
+  center (#143). `check_solomon_missing()` reports both cases.
+* `tools/pretest-center-check.R` reruns the record's checks with both
+  centers, from one build of the package.
+
 ## One output vocabulary (#110)
 
 The names that results use are settled before 1.0, as #83 settled the
@@ -497,10 +605,11 @@ break existing code says what that code needs.
   compared the groups at a pretest score of zero (-26.2 on
   `solomon_example`), is now the pretest effect among controls at that mean
   (3.42). With random assignment, the unpretested groups' expected pretest
-  equals that mean (Solomon & Lessac, 1968, pp. 146–147), so each pretest
-  effect is the difference between the adjusted means that
-  `plot_sensitization()` draws. The treatment contrasts, their standard
-  errors, and the fitted values are unchanged.
+  equals that of the pretested groups (Solomon, 1949, p. 141), and the
+  pretested groups' combined mean is its best estimate (Solomon & Lessac,
+  1968, p. 147), so each pretest effect is the difference between the
+  adjusted means that `plot_sensitization()` draws. The treatment
+  contrasts, their standard errors, and the fitted values are unchanged.
 * The standard errors of the pretest effects include the sampling variance
   of the mean pretest at which they are evaluated, an estimate of the
   unpretested groups' expected pretest, by stacking its estimating equation
