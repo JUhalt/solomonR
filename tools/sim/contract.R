@@ -162,8 +162,10 @@ sim_time_agreement <- function(expr) {
 #                    A fit that fails is a result (a row with its status); any
 #                    other error stops the task. Agreement checks go inside
 #                    sim_time_agreement().
-#   summarize        function(results, agreement, failures, scenarios, info):
-#                    a named list of data frames, each written as <name>.csv;
+#   summarize        function(results, agreement, failures, scenarios, info),
+#                    or with a further argument `preflight` (the preflight's
+#                    checks, or NULL): a named list of data frames, each
+#                    written as <name>.csv;
 #                    a name is lower case, may start with "timing/", and is
 #                    not one the harness writes (sim_reserved_names). The
 #                    element "run-information" (item, value) is the study's
@@ -732,8 +734,18 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
   parts <- NULL
   invisible(gc(verbose = FALSE))
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-  summary <- study$summarize(results = results, agreement = agreement, failures = failures,
-                             scenarios = sc, info = info)
+  # The preflight's checks (a protocol's agreement checks that run before any
+  # task) go to a summarize() that takes them, so that they can be reported
+  # beside the others in agreement.csv.
+  pre_file <- file.path(plan_dir, "preflight.csv")
+  if ("preflight" %in% names(formals(study$summarize))) {
+    summary <- study$summarize(results = results, agreement = agreement, failures = failures,
+                               scenarios = sc, info = info,
+                               preflight = if (file.exists(pre_file)) sim_read_csv(pre_file) else NULL)
+  } else {
+    summary <- study$summarize(results = results, agreement = agreement, failures = failures,
+                               scenarios = sc, info = info)
+  }
   if (!is.list(summary) || is.null(names(summary)) || any(!nzchar(names(summary))) ||
       anyDuplicated(names(summary))) {
     stop("study$summarize() must return a list of data frames with distinct names.", call. = FALSE)

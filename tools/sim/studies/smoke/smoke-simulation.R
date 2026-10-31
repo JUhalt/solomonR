@@ -170,14 +170,23 @@ measures <- function(x) {
         prop("rejection", x$p_value < alpha))
 }
 
-summarize_smoke <- function(results, agreement, failures, scenarios, info) {
+summarize_smoke <- function(results, agreement, failures, scenarios, info, preflight = NULL) {
   out <- list()
   if (is.null(agreement) || !nrow(agreement)) stop("No agreement check was run.", call. = FALSE)
   agr <- do.call(rbind, lapply(split(agreement, agreement$scenario), function(a) {
-    data.frame(scenario = a$scenario[[1]], method = "M2", replications = length(unique(a$rep)),
-               values = nrow(a), max_abs_diff = max(a$abs_diff), tolerance = agree_tol,
-               passed = all(a$abs_diff < agree_tol), stringsAsFactors = FALSE)
+    data.frame(check = "M2 against the cell means", scenario = a$scenario[[1]], method = "M2",
+               replications = length(unique(a$rep)), values = nrow(a), max_abs_diff = max(a$abs_diff),
+               tolerance = agree_tol, passed = all(a$abs_diff < agree_tol), stringsAsFactors = FALSE)
   }))
+  # The preflight's agreement check, on the fixed data set, as a protocol
+  # reports a check that runs before any task.
+  if (!is.null(preflight)) {
+    p <- preflight[preflight$check == "the agreement check passes on a fixed data set", , drop = FALSE]
+    agr <- rbind(data.frame(check = "M2 against the cell means, fixed data set (preflight)", scenario = NA_integer_,
+                            method = "M2", replications = 0L, values = 2L * length(contrasts),
+                            max_abs_diff = as.numeric(p$detail), tolerance = agree_tol,
+                            passed = identical(p$passed, "TRUE"), stringsAsFactors = FALSE), agr)
+  }
   rownames(agr) <- NULL
   out$agreement <- agr
   # The study's part of run-information.csv.
