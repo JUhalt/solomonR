@@ -481,6 +481,39 @@ test_that("fit_solomon_mi() and tipping_point_solomon() do not depend on the pre
   for (k in c(1e4, 1e6)) expect_equal(tipping(k), ref, tolerance = 1e-8, info = k)
 })
 
+test_that("fit_solomon_mi() does not depend on the pretest's scale", {
+  # The analysis of the completed data sets inverted X'X with the pretest as
+  # given, which a pretest standard deviation of 1e-8 or 1e7 made singular.
+  # It now divides the centered pretest by the power of two nearest its
+  # standard deviation, as fit_solomon_glm() does. Posttests are missing in
+  # every group.
+  d <- withr::with_seed(2026, {
+    n <- 30
+    g <- rep(1:4, each = n)
+    treat <- c(1, 0, 1, 0)[g]
+    pretested <- c(1, 1, 0, 0)[g]
+    pre <- ifelse(pretested == 1, round(stats::rnorm(4 * n, sd = 1.7) * 2^16) / 2^16, NA)
+    y <- 0.3 * treat + 0.25 * treat * pretested + ifelse(is.na(pre), 0, 0.6 * pre) +
+      stats::rnorm(4 * n)
+    y[c(2, 5, 11, 17, 23, 29, 33, 38, 41, 47, 52, 58, 66, 71, 95, 102, 117)] <- NA
+    data.frame(y, treat, pretested, pre)
+  })
+  expect_true(all(tapply(is.na(d$y), d$treat + 2 * d$pretested, any)))
+  mi <- function(s, robust) {
+    fit_solomon_mi(d$y, d$treat, d$pretested, d$pre * s, m = 20, seed = 7,
+                   robust = robust)$effects
+  }
+  for (robust in c("HC3", "none")) {
+    ref <- mi(1, robust)
+    for (s in c(1e-8, 1e7, 1e8)) {
+      expect_equal(mi(s, robust), ref, tolerance = 1e-8, info = paste(robust, s))
+    }
+    # Dividing by a power of two is exact, so a pretest multiplied by one
+    # gives the same draws and the same results, to the last bit.
+    for (s in c(2^-20, 2^20)) expect_identical(mi(s, robust), ref, info = paste(robust, s))
+  }
+})
+
 test_that("a shift of the pretest changes no fit_solomon_mmrm() result", {
   # fit_solomon_mmrm() was already shift-invariant before #137, which
   # changed nothing in it; the issue asks for this test as a guard.
