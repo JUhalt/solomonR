@@ -4,31 +4,56 @@
 
 * `fit_solomon_glm()` stopped with "system is computationally singular"
   when a covariate lay far from zero relative to its spread, as a calendar
-  year, an identification number, or a score with a large offset can: in
-  the issue's example, a covariate with a mean of 10,000 and a standard
-  deviation of 1. The influence functions of the pretest effects, added in
-  #104, inverted the cross-products of the design, which square its
-  condition number; they now come from the model's QR decomposition. Short
-  of that error, the HC3 and CR2 standard errors and Satterthwaite degrees
-  of freedom, the delta method and the bootstrap of `marginal_solomon()`,
-  and the intervals of the cell means of `plot_sensitization()` lost
-  accuracy as a covariate moved away from zero, without a warning. At a
-  mean of 1,000 standard deviations the delta-method standard errors of
-  `marginal_solomon()` for counts were off by up to 4e-3 of their value,
-  and from 10,000 every bootstrap resample failed.
+  year, an identification number, or a score with a large offset can, or
+  was on a scale far from 1, as an income in dollars can: in the issue's
+  example, a covariate with a mean of 10,000 and a standard deviation of 1.
+  The influence functions of the pretest effects, added in #104, inverted
+  the cross-products of the design, which square its condition number;
+  they now come from the model's QR decomposition. Short of that error, the
+  HC3 and CR2 standard errors and Satterthwaite degrees of freedom, the
+  delta method and the bootstrap of `marginal_solomon()`, and the intervals
+  of the cell means of `plot_sensitization()` lost accuracy, without a
+  warning. At a mean of 1,000 standard deviations the delta-method standard
+  errors of `marginal_solomon()` for counts were off by up to 4e-3 of their
+  value, and from 10,000 every bootstrap resample failed.
+* A pretest on a scale far from 1 did the same to the CR2 standard errors
+  and to the delta method of `marginal_solomon()`, whose numerical
+  derivatives took steps unsuited to the pretest's coefficient. In one
+  check, with a pretest standard deviation of 10^5, the CR2 standard errors
+  were off by about 6e-6 of their value, and from 10^7 they stopped with
+  the same error; the delta-method standard errors were off by 3e-7 of
+  their value at about 10^4 and by 3e-3 at about 10^6.
 * The inference is now computed with each numeric covariate standardized,
   centered at its mean and divided by its standard deviation over the
-  participants in the model. That is a reparameterization of the same
-  model, so adding a constant to a covariate, or to the pretest, changes no
+  participants in the model, and with the pretest, centered already,
+  divided by the power of two nearest its standard deviation. That is a
+  reparameterization of the same model, so adding a constant to a
+  covariate or to the pretest, or changing the scale of either, changes no
   contrast, standard error, degrees of freedom, or p-value beyond rounding,
   for constants up to at least 10^6 standard deviations: under model-based,
   HC3, and CR2 covariance, with one or several treatments, at either
   pretest center, and in `marginal_solomon()`, `plot_sensitization()`, and
   `perm_solomon()`. The model, the coefficients (the intercept included),
-  and their covariance are still those of the covariates as given; the
-  standardized ones are in a new element, `covariate_scaling`, outside the
-  stable interface. Dates and times are standardized as the numbers they
-  enter the model as. `?fit_solomon_glm` has a new section, "Covariates".
+  and their covariance are still those of the covariates and the pretest
+  as given; the standardized ones are in a new element,
+  `covariate_scaling`, outside the stable interface. A numeric covariate is
+  standardized whatever its class, such as a labeled column read from SPSS
+  or one wrapped in `I()`, and dates and times as the numbers they enter
+  the model as. The warnings, `theta`, and `dispersion` come from the
+  standardized fit: far from zero, the negative-binomial fit to the
+  covariates as given could warn that theta did not converge where the
+  same model standardized converged. `?fit_solomon_glm` has a new section,
+  "Covariates".
+* `fit_solomon_sem(ancova = TRUE)` lost accuracy when the pretest lay far
+  from zero, with p-values off by 7% to 12% at 10^4 standard deviations,
+  and stopped from 10^6, where `compare_solomon_methods()` then left out
+  its SEM ANCOVA row; the latent ANCOVA of `fit_solomon_sem_latent()` lost
+  accuracy too. Both now center the pretest, or its items, at the mean
+  among the pretested participants, which changes only intercepts and
+  means: the intercepts of the observed ANCOVA's lavaan model are now the
+  posttest means adjusted to that pretest. `check_solomon_assumptions()`
+  centers the pretest in its test of homogeneous slopes, which was `NA`
+  from a pretest mean of 10^7 standard deviations.
 * `fit_solomon_mi()` stopped in the same way when the pretest lay far from
   zero. Its analysis of the completed data sets now centers the pretest, as
   `fit_solomon_glm()` does. Its imputation models still use the pretest as
@@ -37,21 +62,31 @@
   distribution they are the same; and from a pretest mean of about 10^7
   standard deviations those models take the pretest to be constant and
   stop.
-* What changes on ordinary data: nothing beyond rounding, as a test
-  against results stored from the development version before this change
-  shows, for every family and covariance, with missing posttests and
-  clusters. The delta-method standard errors of `marginal_solomon()` move
-  by up to about 1e-8 of their value, the error of its numerical
-  derivatives, whose steps depend on the coefficients. Under CR2 with a
-  numeric covariate, `vcov` is a matrix rather than the clubSandwich
-  object, whose small-sample adjustments belong to the standardized model.
-  A difference of the pretest centers that rounds to zero is printed
-  without a sign; it took the sign of its rounding error.
-* Not changed here: a pretest whose standard deviation is far from 1
-  (such as 1e-8 or 1e8) still loses accuracy under CR2, because the pretest
-  is centered but not scaled; `fit_solomon_sem(ancova = TRUE)` still stops
-  when the pretest lies far from zero; and the ties of `perm_solomon()`
-  with models fitted by iteration remain on #134.
+* What changes on ordinary data. Dividing the pretest by a power of two is
+  exact, so fits with a pretest and no numeric covariate agree with the
+  development version before this change to rounding. With covariates of
+  modest magnitude and location, results agree with it to about 1e-8 of
+  their value, as a test against results stored from it shows, for every
+  family and covariance, with missing posttests and clusters; the
+  delta-method standard errors of `marginal_solomon()` move by about that
+  much, the error of its numerical derivatives, whose steps depend on the
+  coefficients. With a covariate on a large scale, such as an income in
+  dollars, or far from zero, such as a calendar year or a date, the
+  previous CR2 and delta-method results were off by up to about 5e-5 of
+  their value, and the delta-method standard errors by about 3e-3 for a
+  covariate with a standard deviation of 10^6; the corrected values can
+  change the last printed digit of an interval. Fits whose covariates are
+  on scales far from 1, which stopped under HC3 and CR2, now succeed. With
+  a pretest or a numeric covariate, a CR2 `vcov` is a matrix rather than
+  the clubSandwich object, whose small-sample adjustments belong to the
+  standardized model. A difference of the pretest centers that is zero but
+  for rounding error, such as that of a rate ratio, which does not depend
+  on the center, is printed without the sign of that error.
+* Not changed here: from about 10^7 standard deviations from zero, `glm()`
+  can take nearly collinear covariates as given to be collinear, which
+  stops the fit; and the ties of `perm_solomon()` with models fitted by
+  iteration, and the first stage of its clustered test, which is fitted to
+  the covariates as given, remain on #134.
 
 ## The pretest center when posttests are missing (#135)
 
