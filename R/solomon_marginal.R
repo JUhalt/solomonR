@@ -411,9 +411,26 @@
 #' risk had they been pretested. Each set is standardized over its own
 #' participants, and with random assignment both estimate the same
 #' population: the expected pretest of the unpretested participants equals
-#' that of the pretested ones (Solomon & Lessac, 1968, pp. 146–147). Both
+#' that of the pretested ones (Solomon, 1949, p. 141). Both
 #' risks are then marginal, so the comparison is on a common scale, unlike
 #' the link-scale pretest effects of [fit_solomon_glm()].
+#'
+#' **Missing outcomes** (issue #135). When outcomes are missing, the
+#' pretested cells can be standardized over two sets of pretested
+#' participants, which `pretest_center` chooses, as it chooses the center of
+#' [fit_solomon_glm()] (see "The pretest effect when posttests are missing"
+#' there, for what each assumes): by default over the pretested participants
+#' in the model (`"analyzed"`), or over every pretested participant with a
+#' pretest (`"observed"`). On the risk or rate scale the choice moves
+#' Treatment | pretested, the average treatment effect, and Pretest x
+#' Treatment as well as the pretest effects, because a marginal risk depends
+#' on the participants it is averaged over; only Treatment | unpretested does
+#' not move. Whenever the two sets differ, the print gives the moved
+#' contrasts under both, with their difference, and `pretest_sensitivity`
+#' returns every contrast under both: with full inference for the other set
+#' under the delta method, and estimates only under the bootstrap, so that
+#' the resamples are those of the set used. No delta line is given on these
+#' scales, because no verified source gives one there.
 #'
 #' Sensitization depends on the scale: an effect can be modified on the
 #' risk-difference scale and not on the ratio scale, or the reverse. Report
@@ -556,6 +573,19 @@
 #'     resamples and the number that failed.
 #'   - `dispersion` and `theta`: as in the fit.
 #'   - `pretest_adjusted`: whether the fit adjusted for the pretest.
+#'   - `pretest_center`: the set the pretested cells were standardized over,
+#'     `"analyzed"` or `"observed"`.
+#'   - `standardized`: the numbers of pretested participants each set holds
+#'     (`analyzed` and `observed`), and of those outside the model, how many
+#'     have no outcome (`no_outcome`).
+#'   - `pretest_sensitivity`: for a fit with a pretest covariate, every
+#'     contrast under both sets, a list with `effects` (keyed by `scale` and
+#'     `center`; the other set's standard errors and intervals are `NA`
+#'     under the bootstrap), `difference` (the estimates under the
+#'     `analyzed` and `observed` sets and their `difference`), `differ`, and
+#'     `note`; `NULL` without a pretest covariate and with
+#'     `method = "cluster_summary"`. Outside the stable interface (see
+#'     [solomon_output]).
 #'   - `design` and `clusters` (the number of clusters in each cell), with
 #'     `method = "cluster_summary"`.
 #'
@@ -594,9 +624,8 @@
 #' variance components. *Biometrics Bulletin, 2*(6), 110–114.
 #' https://doi.org/10.2307/3002019
 #'
-#' Solomon, R. L., & Lessac, M. S. (1968). A control group design for
-#' experimental studies of developmental processes. *Psychological Bulletin,
-#' 70*(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+#' Solomon, R. L. (1949). An extension of control group design. *Psychological
+#' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
 #'
 #' Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation. *The
 #' American Statistician, 56*(1), 29–38.
@@ -1030,7 +1059,10 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
   count <- identical(x$outcome, "count")
   what <- if (count) "Rates" else "Risks"
   cat("Marginal Solomon contrasts for a", if (count) "count" else "binary", "outcome\n")
-  cat(if (x$pretest_adjusted) {
+  cat(if (x$pretest_adjusted && identical(x$pretest_center, "observed")) {
+    paste(what, "standardized over the pretest among every pretested participant with a",
+          "pretest (pretest_center = \"observed\").\n")
+  } else if (x$pretest_adjusted) {
     paste(what, "standardized over the pretest among pretested participants.\n")
   } else {
     paste(what, "from the fitted cells (no pretest adjustment).\n")
@@ -1071,6 +1103,10 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
     tab$p.value <- format.pval(tab$p.value, digits = 2)
     print(tab, row.names = FALSE)
   }
+  # The two standardizations of the pretested cells when outcomes are
+  # missing (issue #135).
+  block <- .marginal_block(x, digits)
+  if (length(block)) cat("\n", paste(block, collapse = "\n"), "\n", sep = "")
   cat("\nSensitization depends on the scale; report the scale with every result.\n")
   invisible(x)
 }

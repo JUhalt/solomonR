@@ -38,7 +38,10 @@ pretest, so the sensitization contrast reported by \code{\link[=fit_solomon_glm]
 means. The figure therefore draws model-adjusted means: pretested groups
 are evaluated at the mean pretest score among pretested participants (the
 usual ANCOVA adjusted mean), unpretested groups without a pretest, and any
-covariates at their sample means. Because neither model has a
+covariates at their sample means. With missing posttests that mean is the
+fit's pretest center, chosen by \code{pretest_center} in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}};
+when the two centers differ, the caption names the center used and gives
+the other (issue #135). Because neither model has a
 treatment-by-pretest-score term, the difference of differences among these
 adjusted means equals the fitted Pretest x Treatment estimate exactly.
 Observed cell means are shown as hollow points for comparison.

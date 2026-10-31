@@ -36,6 +36,24 @@
 #' tables; `"pooled"` weights the two means by their sample sizes, which
 #' requires `n` or individual data.
 #'
+#' **Missing posttests** (issue #135). Solomon's tables give the means of
+#' the participants with both scores, and so does the default,
+#' `pretest_center = "analyzed"`: the pretest means are those of the
+#' pretested participants with a posttest. `pretest_center = "observed"`
+#' infers the pretest from every observed pretest of the pretested groups;
+#' see "The pretest effect when posttests are missing" in
+#' [fit_solomon_glm()] for what each assumes. In the four-group design I does
+#' not depend on the choice, because the inferred pretest cancels from it;
+#' in the three-group design I moves by the difference between the two
+#' inferred pretests. The unpretested groups' improvements depend on it in
+#' both designs. When every group loses posttests by the pretest score,
+#' neither inferred pretest makes those improvements unbiased: with no
+#' change in the unpretested groups, d3 is (r - 1) s at the default and r s
+#' at `"observed"`, where s is how far the completers' mean pretest lies
+#' from everyone's and r the pretest-posttest correlation of standardized
+#' scores (a derivation checked on issue #135). The print and
+#' [report_solomon()] give both inferred pretests when they differ.
+#'
 #' **No test.** Solomon gave standard errors for the observed means but
 #' printed the error of d3 as "?" (Tables II–III), and judged the interaction
 #' from "an examination of the variabilities" (p. 144). This function
@@ -100,6 +118,16 @@
 #'     design: the posttest interaction contrast and the pretest difference
 #'     between the two pretested groups, whose difference is `I` (see
 #'     Details).
+#'   - `pretest_center`: the center used, `"analyzed"` or `"observed"`.
+#'   - `inferred_from`: the two pretested groups' pretests behind the
+#'     `"observed"` inferred pretest, in the columns `group`, `n` (the
+#'     participants with a pretest), `pre_mean` (their mean pretest), and
+#'     `without_posttest` (how many of them have no posttest).
+#'   - `pretest_sensitivity`: with individual data, the inferred pretest,
+#'     `I`, and the unpretested groups' improvements `d3` and `d4` (`NA` in
+#'     the three-group design) at both centers, one row for each `center`;
+#'     `NULL` with group means. The print and [report_solomon()] give the
+#'     other center when the two inferred pretests differ.
 #'
 #'   Solomon (1949) gave point estimates without a test, so the result has
 #'   no effects table; see [solomon_output].
@@ -328,13 +356,33 @@ print.solomon_1949 <- function(x, digits = 2, ...) {
   }
   print(tab, row.names = FALSE, right = FALSE)
   formula <- if (x$design == "three-group") "d1 - (d2 + d3)" else "d1 - (d2 + d3 - d4)"
-  cat(sprintf("\nInferred pretest i = %s (%s of the pretested groups' means)\n",
+  cat(sprintf("\nInferred pretest i = %s (%s of the pretested groups' means%s)\n",
               f(x$inferred_pretest),
-              if (x$inferred_method == "average") "average" else "size-weighted average"))
+              if (x$inferred_method == "average") "average" else "size-weighted average",
+              if (identical(x$pretest_center, "observed")) " over every observed pretest" else ""))
   cat(sprintf("Interaction I = %s = %s\n", formula, f(x$I)))
   if (x$design == "four-group") {
     cat(sprintf("  = posttest interaction contrast (%s) - pretest difference (%s)\n",
                 f(x$posttest_contrast), f(x$pretest_difference)))
+  }
+  # The other inferred pretest, when pretested participants with a pretest
+  # have no posttest (issue #135).
+  s <- x$pretest_sensitivity
+  if (!is.null(s) && !isTRUE(all.equal(s$inferred_pretest[1], s$inferred_pretest[2]))) {
+    other <- s[s$center != x$pretest_center, , drop = FALSE]
+    cat(sprintf("\nPretested participants with a pretest and no posttest: %d.\n",
+                sum(x$inferred_from$without_posttest)))
+    cat(sprintf("Inferred %s: i = %s, I = %s (d3 = %s%s)\n",
+                if (other$center == "observed") {
+                  "from every observed pretest"
+                } else {
+                  "from the participants with a posttest (default)"
+                },
+                f(other$inferred_pretest), f(other$I), f(other$d3),
+                if (x$design == "four-group") paste0(", d4 = ", f(other$d4)) else ""))
+    if (x$design == "four-group") {
+      cat("In the four-group design the inferred pretest cancels from I.\n")
+    }
   }
   if (x$individual) {
     cat("\n+/- values are standard errors of the observed means, as in Solomon's tables.\n")

@@ -143,22 +143,29 @@ print.solomon_glm <- function(x, digits = 3, ...) {
     sep = ""
   )
   .glm_pretest_note(x, digits)
+  .center_output(x, digits)
   invisible(x)
 }
 
 # The note on the pretest effects printed under a solomon_glm fit: where the
 # pretest is centered, and, on a link other than the identity, that the
 # pretest effects compare a fitted mean at the mean pretest with a marginal
-# mean (issue #104).
+# mean (issue #104). With pretest_center = "observed" it names that center
+# (issue #135).
 .glm_pretest_note <- function(x, digits = 3) {
   center <- .null_na(x$pretest_mean)
   if (!is.finite(center)) return(invisible(NULL))
+  at <- if (identical(x$pretest_center, "observed")) {
+    "the mean of every observed pretest among the pretested participants"
+  } else {
+    "the pretested participants' mean"
+  }
   cat(.wrap_lines(sprintf(paste(
-    "pre_obs: the pretest, centered at the pretested participants' mean (%.*f).",
+    "pre_obs: the pretest, centered at %s (%.*f).",
     "The pretest effects compare pretested and unpretested participants at that score;",
     "their standard errors include the sampling variance of the mean, and the",
     "coefficient of pretested treats it as fixed."
-  ), digits, center)), "\n", sep = "")
+  ), at, digits, center)), "\n", sep = "")
   .link_pretest_note(x)
   invisible(NULL)
 }

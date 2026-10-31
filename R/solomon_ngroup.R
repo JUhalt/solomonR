@@ -812,17 +812,25 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
     cat("Confidence intervals are not adjusted.\n")
   }
   if (pretest_rows) {
-    cat(if (is.finite(.null_na(x$pretest_mean))) {
+    cat(if (!is.finite(.null_na(x$pretest_mean))) {
+      "Pretest effects: pretested minus unpretested participants in each condition.\n"
+    } else if (identical(x$pretest_center, "observed")) {
+      paste0(.wrap_lines(sprintf(paste(
+        "Pretest effects: pretested minus unpretested participants in each condition,",
+        "at the mean of every observed pretest among the pretested participants (%.*f),",
+        "with standard errors that include the sampling variance of that mean."
+      ), digits, x$pretest_mean)), "\n")
+    } else {
       sprintf(paste0(
         "Pretest effects: pretested minus unpretested participants in each condition,\n",
         "at the pretested participants' mean pretest (%.*f), with standard errors\n",
         "that include the sampling variance of that mean.\n"
       ), digits, x$pretest_mean)
-    } else {
-      "Pretest effects: pretested minus unpretested participants in each condition.\n"
     })
     .link_pretest_note(x)
   }
+  # The two pretest centers when posttests are missing (issue #135).
+  .center_output(x, digits)
   cat(.ngroup_lifecycle_note(), sep = "\n")
   invisible(x)
 }

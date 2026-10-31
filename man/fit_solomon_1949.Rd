@@ -65,6 +65,16 @@ and how it was computed (\code{"average"} or \code{"pooled"}).
 design: the posttest interaction contrast and the pretest difference
 between the two pretested groups, whose difference is \code{I} (see
 Details).
+\item \code{pretest_center}: the center used, \code{"analyzed"} or \code{"observed"}.
+\item \code{inferred_from}: the two pretested groups' pretests behind the
+\code{"observed"} inferred pretest, in the columns \code{group}, \code{n} (the
+participants with a pretest), \code{pre_mean} (their mean pretest), and
+\code{without_posttest} (how many of them have no posttest).
+\item \code{pretest_sensitivity}: with individual data, the inferred pretest,
+\code{I}, and the unpretested groups' improvements \code{d3} and \code{d4} (\code{NA} in
+the three-group design) at both centers, one row for each \code{center};
+\code{NULL} with group means. The print and \code{\link[=report_solomon]{report_solomon()}} give the
+other center when the two inferred pretests differ.
 }
 
 Solomon (1949) gave point estimates without a test, so the result has
@@ -101,6 +111,24 @@ of the pooled pretested groups (p. 141), and his tables compute it as
 are the same size. \code{inferred_pretest = "average"} (the default) follows the
 tables; \code{"pooled"} weights the two means by their sample sizes, which
 requires \code{n} or individual data.
+
+\strong{Missing posttests} (issue #135). Solomon's tables give the means of
+the participants with both scores, and so does the default,
+\code{pretest_center = "analyzed"}: the pretest means are those of the
+pretested participants with a posttest. \code{pretest_center = "observed"}
+infers the pretest from every observed pretest of the pretested groups;
+see "The pretest effect when posttests are missing" in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for what each assumes. In the four-group design I does
+not depend on the choice, because the inferred pretest cancels from it;
+in the three-group design I moves by the difference between the two
+inferred pretests. The unpretested groups' improvements depend on it in
+both designs. When every group loses posttests by the pretest score,
+neither inferred pretest makes those improvements unbiased: with no
+change in the unpretested groups, d3 is (r - 1) s at the default and r s
+at \code{"observed"}, where s is how far the completers' mean pretest lies
+from everyone's and r the pretest-posttest correlation of standardized
+scores (a derivation checked on issue #135). The print and
+\code{\link[=report_solomon]{report_solomon()}} give both inferred pretests when they differ.
 
 \strong{No test.} Solomon gave standard errors for the observed means but
 printed the error of d3 as "?" (Tables II–III), and judged the interaction

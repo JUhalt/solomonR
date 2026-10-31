@@ -75,8 +75,18 @@ two occasions, as in \code{"3 vs 1"}.
 pretested and unpretested participants.
 \item \code{df_method}: the degrees of freedom, \code{"kenward-roger"} or
 \code{"satterthwaite"}.
-\item \code{pretest_mean}: the mean pretest at which the pretest is centered;
-\code{NA} without \code{y_pre}.
+\item \code{pretest_mean}: the mean pretest at which the pretest is centered,
+the center used; \code{NA} without \code{y_pre}.
+\item \code{pretest_center}, \code{pretest_mean_analyzed}, \code{pretest_mean_observed},
+\code{pretest_n}, and \code{pretest_sensitivity}: as in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}},
+with each participant counted once. The participants "analyzed" are
+those with at least one posttest; the tables of \code{pretest_sensitivity}
+are keyed by \code{occasion}; its \code{slope} holds the pretest slope of each
+occasion; its \code{attrition} counts the participants of each group
+without any posttest; and its \code{delta} is \code{NULL}, because no delta line
+is derived for repeated posttests.
+\item \code{pretest_slope}: the pretest slope at each occasion, named by
+occasion; \code{NULL} without \code{y_pre}.
 \item \code{occasions}: the posttest occasions, in order.
 \item \code{observed}: the number of observed posttests in each group, one
 column for each occasion.
@@ -114,7 +124,9 @@ The specification follows the example of Mallinckrodt et al. (2008, p.
 \item \strong{Pretest adjustment.} The pretest enters as in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}:
 in the pretested groups, the score minus the mean pretest of the
 pretested participants in the model (each counted once; returned as
-\code{pretest_mean}), and 0 in the unpretested groups, with a separate slope
+\code{pretest_mean}; with \code{pretest_center = "observed"}, the mean of every
+observed pretest among the pretested participants, with or without a
+posttest), and 0 in the unpretested groups, with a separate slope
 at each occasion ("a full interaction of the covariate with time", p.
 312). Pretests absent by design are never imputed.
 \item \strong{Pretest effects.} At each occasion, the pretest effects among
@@ -128,6 +140,14 @@ participants, times the square of that occasion's pretest slope, and
 their degrees of freedom combine those of the contrast with n - 1 by the
 Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
 pretest effects were not part of the validation study below.
+\item \strong{Missing posttests and the pretest center.} As in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see its section "The pretest effect when posttests
+are missing"), the pretest effects depend on the mean pretest at which
+they are evaluated when some pretested participants have no posttest at
+any occasion; \code{pretest_center} chooses it, and \code{"observed"} needs those
+participants' rows, with \code{y_post} missing. A participant with a
+posttest at any occasion is analyzed, so dropout after the first
+occasion leaves the two centers equal.
 \item \strong{Covariance.} Unstructured within participant, estimated by
 restricted maximum likelihood (Laird & Ware, 1982). With a pretest, it
 is estimated separately for pretested and unpretested participants: the

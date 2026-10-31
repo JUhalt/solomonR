@@ -73,6 +73,19 @@ covariance the delta method used (\code{NA} for the other methods).
 resamples and the number that failed.
 \item \code{dispersion} and \code{theta}: as in the fit.
 \item \code{pretest_adjusted}: whether the fit adjusted for the pretest.
+\item \code{pretest_center}: the set the pretested cells were standardized over,
+\code{"analyzed"} or \code{"observed"}.
+\item \code{standardized}: the numbers of pretested participants each set holds
+(\code{analyzed} and \code{observed}), and of those outside the model, how many
+have no outcome (\code{no_outcome}).
+\item \code{pretest_sensitivity}: for a fit with a pretest covariate, every
+contrast under both sets, a list with \code{effects} (keyed by \code{scale} and
+\code{center}; the other set's standard errors and intervals are \code{NA}
+under the bootstrap), \code{difference} (the estimates under the
+\code{analyzed} and \code{observed} sets and their \code{difference}), \code{differ}, and
+\code{note}; \code{NULL} without a pretest covariate and with
+\code{method = "cluster_summary"}. Outside the stable interface (see
+\link{solomon_output}).
 \item \code{design} and \code{clusters} (the number of clusters in each cell), with
 \code{method = "cluster_summary"}.
 }
@@ -125,9 +138,26 @@ the unpretested participants have no pretest from which to predict their
 risk had they been pretested. Each set is standardized over its own
 participants, and with random assignment both estimate the same
 population: the expected pretest of the unpretested participants equals
-that of the pretested ones (Solomon & Lessac, 1968, pp. 146–147). Both
+that of the pretested ones (Solomon, 1949, p. 141). Both
 risks are then marginal, so the comparison is on a common scale, unlike
 the link-scale pretest effects of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
+
+\strong{Missing outcomes} (issue #135). When outcomes are missing, the
+pretested cells can be standardized over two sets of pretested
+participants, which \code{pretest_center} chooses, as it chooses the center of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see "The pretest effect when posttests are missing"
+there, for what each assumes): by default over the pretested participants
+in the model (\code{"analyzed"}), or over every pretested participant with a
+pretest (\code{"observed"}). On the risk or rate scale the choice moves
+Treatment | pretested, the average treatment effect, and Pretest x
+Treatment as well as the pretest effects, because a marginal risk depends
+on the participants it is averaged over; only Treatment | unpretested does
+not move. Whenever the two sets differ, the print gives the moved
+contrasts under both, with their difference, and \code{pretest_sensitivity}
+returns every contrast under both: with full inference for the other set
+under the delta method, and estimates only under the bootstrap, so that
+the resamples are those of the set used. No delta line is given on these
+scales, because no verified source gives one there.
 
 Sensitization depends on the scale: an effect can be modified on the
 risk-difference scale and not on the ratio scale, or the reverse. Report
@@ -270,9 +300,8 @@ Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
 https://doi.org/10.2307/3002019
 
-Solomon, R. L., & Lessac, M. S. (1968). A control group design for
-experimental studies of developmental processes. \emph{Psychological Bulletin,
-70}(3, Pt. 1), 145–150. https://doi.org/10.1037/h0026147
+Solomon, R. L. (1949). An extension of control group design. \emph{Psychological
+Bulletin, 46}(2), 137–150. https://doi.org/10.1037/h0062958
 
 Stefanski, L. A., & Boos, D. D. (2002). The calculus of M-estimation. \emph{The
 American Statistician, 56}(1), 29–38.

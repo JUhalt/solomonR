@@ -388,7 +388,11 @@
     method = method,
     results = c(
       .four_group_sentences(fit$effects, fit$conf_level, digits, md, .null_na(fit$pretest_mean)),
-      p$pretest_caution
+      p$pretest_caution,
+      # The two pretest centers and the attrition, when posttests are
+      # missing (issue #135).
+      .four_group_center_sentences(fit, digits, md),
+      .attrition_sentences(.fit_attrition(fit), is.finite(.null_na(fit$pretest_mean)))
     ),
     table = fit$effects,
     refs = p$refs,
@@ -565,6 +569,13 @@
     method <- paste(c(method, pretest$method), collapse = " ")
     results <- c(results, pretest$results, p$pretest_caution)
     refs <- c(refs, pretest$refs)
+  }
+  # The two pretest centers and the attrition, when posttests are missing
+  # (issue #135), at the end of the last paragraph.
+  added <- c(.ngroup_center_sentences(fit, digits, md),
+             .attrition_sentences(.fit_attrition(fit), is.finite(.null_na(fit$pretest_mean))))
+  if (length(added)) {
+    results[length(results)] <- paste(c(results[length(results)], added), collapse = " ")
   }
 
   used <- .glm_rows_used(fit)
@@ -838,6 +849,9 @@
            paste(.four_group_sentences(e, fit$conf_level, digits, md, ratio = ratio),
                  collapse = " "))
   }))
+  # The two standardizations of the pretested cells, when they differ
+  # (issue #135).
+  results <- c(results, .marginal_center_sentences(fit, digits))
   list(method = method, results = results, table = fit$effects, refs = refs, cells = NULL)
 }
 
@@ -1836,6 +1850,12 @@
     c(s, .pretest_sentence(e, fit$conf_level, digits, md, .null_na(fit$pretest_mean),
                            prefix = sprintf("At occasion %s, the pretest effect", o)))
   }))
+  # The two pretest centers and the attrition at the last occasion, when
+  # posttests are missing (issue #135).
+  results <- c(results, .mmrm_center_sentences(fit, digits, md),
+               .attrition_sentences(.mmrm_attrition(fit), is.finite(.null_na(fit$pretest_mean)),
+                                    sprintf("At occasion %s, posttests were missing",
+                                            fit$occasions[length(fit$occasions)])))
   list(method = method, results = results, table = eff, refs = refs,
        cells = .cell_counts(fit$data$treat, fit$data$pretested))
 }
@@ -1879,6 +1899,8 @@
       sprintf("The interaction equals the posttest interaction contrast, %s, less the pretest difference between the two pretested groups, %s.",
               .apa_num(fit$posttest_contrast, digits), .apa_num(fit$pretest_difference, digits))
     },
+    # The two inferred pretests, when posttests are missing (issue #135).
+    .solomon_1949_center_sentences(fit, digits, md),
     sprintf(paste0(
       "Solomon (1949) gave no standard error or test for %s and judged the interaction from ",
       "the variability of the scores (p. 144); Campbell and Stanley (1963/1966, p. 25) later ",

@@ -177,7 +177,9 @@
 #' - **Pretest adjustment.** The pretest enters as in [fit_solomon_glm()]:
 #'   in the pretested groups, the score minus the mean pretest of the
 #'   pretested participants in the model (each counted once; returned as
-#'   `pretest_mean`), and 0 in the unpretested groups, with a separate slope
+#'   `pretest_mean`; with `pretest_center = "observed"`, the mean of every
+#'   observed pretest among the pretested participants, with or without a
+#'   posttest), and 0 in the unpretested groups, with a separate slope
 #'   at each occasion ("a full interaction of the covariate with time", p.
 #'   312). Pretests absent by design are never imputed.
 #' - **Pretest effects.** At each occasion, the pretest effects among
@@ -191,6 +193,14 @@
 #'   their degrees of freedom combine those of the contrast with n - 1 by the
 #'   Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
 #'   pretest effects were not part of the validation study below.
+#' - **Missing posttests and the pretest center.** As in
+#'   [fit_solomon_glm()] (see its section "The pretest effect when posttests
+#'   are missing"), the pretest effects depend on the mean pretest at which
+#'   they are evaluated when some pretested participants have no posttest at
+#'   any occasion; `pretest_center` chooses it, and `"observed"` needs those
+#'   participants' rows, with `y_post` missing. A participant with a
+#'   posttest at any occasion is analyzed, so dropout after the first
+#'   occasion leaves the two centers equal.
 #' - **Covariance.** Unstructured within participant, estimated by
 #'   restricted maximum likelihood (Laird & Ware, 1982). With a pretest, it
 #'   is estimated separately for pretested and unpretested participants: the
@@ -292,8 +302,18 @@
 #'     pretested and unpretested participants.
 #'   - `df_method`: the degrees of freedom, `"kenward-roger"` or
 #'     `"satterthwaite"`.
-#'   - `pretest_mean`: the mean pretest at which the pretest is centered;
-#'     `NA` without `y_pre`.
+#'   - `pretest_mean`: the mean pretest at which the pretest is centered,
+#'     the center used; `NA` without `y_pre`.
+#'   - `pretest_center`, `pretest_mean_analyzed`, `pretest_mean_observed`,
+#'     `pretest_n`, and `pretest_sensitivity`: as in [fit_solomon_glm()],
+#'     with each participant counted once. The participants "analyzed" are
+#'     those with at least one posttest; the tables of `pretest_sensitivity`
+#'     are keyed by `occasion`; its `slope` holds the pretest slope of each
+#'     occasion; its `attrition` counts the participants of each group
+#'     without any posttest; and its `delta` is `NULL`, because no delta line
+#'     is derived for repeated posttests.
+#'   - `pretest_slope`: the pretest slope at each occasion, named by
+#'     occasion; `NULL` without `y_pre`.
 #'   - `occasions`: the posttest occasions, in order.
 #'   - `observed`: the number of observed posttests in each group, one
 #'     column for each occasion.
@@ -562,7 +582,12 @@ print.solomon_mmrm <- function(x, digits = 3, ...) {
   cat("Degrees of freedom: ",
       if (x$df_method == "kenward-roger") "Kenward-Roger" else "Satterthwaite", "\n", sep = "")
   if (is.finite(.null_na(x$pretest_mean))) {
-    cat(sprintf("Pretest centered at the pretested participants' mean: %.*f\n",
+    cat(sprintf("Pretest centered at %s: %.*f\n",
+                if (identical(x$pretest_center, "observed")) {
+                  "the mean of every observed pretest"
+                } else {
+                  "the pretested participants' mean"
+                },
                 digits, x$pretest_mean))
     cat("Pretest effects: standard errors include the sampling variance of that mean.\n")
   }
@@ -585,5 +610,7 @@ print.solomon_mmrm <- function(x, digits = 3, ...) {
   )
   names(tab)[8] <- sprintf("%s%% CI", format(100 * x$conf_level))
   print(tab, row.names = FALSE, right = FALSE)
+  # The two pretest centers when posttests are missing (issue #135).
+  .center_output(x, digits, mmrm = TRUE)
   invisible(x)
 }
