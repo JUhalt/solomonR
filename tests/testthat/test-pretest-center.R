@@ -103,7 +103,7 @@ test_that("with the default center, results equal those of master (a6c771a)", {
   tolerance <- function(name) {
     if (grepl("^mmrm|^ml", name)) 1e-5
     else if (grepl("negative binomial", name)) 1e-5
-    else if (grepl("logit|poisson|mi$", name)) 1e-6
+    else if (grepl("logit|poisson", name)) 1e-6
     else 1e-8
   }
   # Printed output and report sentences of complete data are unchanged. With
@@ -123,6 +123,10 @@ test_that("with the default center, results equal those of master (a6c771a)", {
     TRUE
   }
   for (name in names(now)) {
+    # The imputations of fit_solomon_mi() have centered the pretest since
+    # #137, so a seed gives other draws from the same distribution
+    # (fixtures/pretest-center-master.R).
+    if (name == "mi") next
     for (part in names(stored$results[[name]])) {
       ref <- stored$results[[name]][[part]]
       got <- now[[name]][[part]]

@@ -96,7 +96,10 @@ unpretested groups, which have no pretest by design. The analysis
 contains the Pretest x Treatment interaction of two fully observed
 indicators, and imputing separately in the groups they define is the
 simplest approach to such interactions (Carpenter et al., 2023,
-section 6.3.5, p. 149).
+section 6.3.5, p. 149). The pretest is centered at its mean among the
+group's observed posttests, which leaves the model unchanged and makes
+the imputations of a seed the same wherever the pretest lies (issue
+#137).
 \item \strong{Proper imputation.} For each imputation the residual variance and
 the coefficients are drawn from their posterior distribution, and the
 missing posttests are then drawn from the model (Carpenter et al.,

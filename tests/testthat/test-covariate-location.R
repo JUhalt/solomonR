@@ -431,38 +431,39 @@ test_that("a shift of the covariates changes no adjusted cell mean or permutatio
   expect_identical(shifted$valid_reps, ref$valid_reps)
 })
 
-test_that("fit_solomon_mi() stops for no pretest location, and its analysis does not depend on it", {
+test_that("fit_solomon_mi() and tipping_point_solomon() do not depend on the pretest's location", {
+  # Posttests are missing in both pretested groups, whose imputation models
+  # regress on the pretest. They center it, so the draws of a seed, and
+  # with them the pooled results, are the same wherever the pretest lies;
+  # uncentered, they differed by Monte Carlo error, and from about 10^7
+  # standard deviations the models took the pretest to be constant.
   d <- location_data()$four
-  for (robust in c("HC3", "none")) {
-    # The pretested groups' posttests are complete, so the imputation models
-    # do not use the pretest, and the draws do not depend on it.
-    unpretested <- d
-    unpretested$y_g[d$pretested == 1 & is.na(d$y_g)] <- 0
-    ref <- fit_solomon_mi(y_g, treat, pretested, pre, m = 5, seed = 1, robust = robust,
-                          data = unpretested)
-    unpretested$pre <- shift_by(unpretested$pre, 1e6)
-    fit <- fit_solomon_mi(y_g, treat, pretested, pre, m = 5, seed = 1, robust = robust,
-                          data = unpretested)
-    expect_equal(fit$effects, ref$effects, tolerance = 1e-8, info = robust)
-
-    # With missing pretested posttests the draws use the pretest; the fit
-    # stops at no shift, and the analysis of each completed data set does
-    # not depend on the shift.
-    for (k in c(1e4, 1e6)) {
-      shifted <- d
-      shifted$pre <- shift_by(d$pre, k)
-      expect_no_error(fit <- fit_solomon_mi(y_g, treat, pretested, pre, m = 5, seed = 1,
-                                            robust = robust, data = shifted))
-      expect_true(all(is.finite(fit$effects$std.error)))
-    }
-    prepared <- .mi_prepare(d$y_g, d$treat, d$pretested, d$pre)
-    completed <- ifelse(is.na(prepared$y_post), 0, prepared$y_post)
-    moved <- prepared
-    moved$y_pre <- shift_by(prepared$y_pre, 1e6)
-    expect_equal(.mi_analyze(.mi_design(moved, robust), completed),
-                 .mi_analyze(.mi_design(prepared, robust), completed), tolerance = 1e-8,
-                 info = robust)
+  pre <- d$pretested == 1
+  expect_true(all(tapply(is.na(d$y_g[pre]), d$treat[pre], any)))
+  mi <- function(k, robust) {
+    shifted <- d
+    shifted$pre <- shift_by(d$pre, k)
+    fit_solomon_mi(y_g, treat, pretested, pre, m = 20, seed = 1, robust = robust,
+                   data = shifted)$effects
   }
+  for (robust in c("HC3", "none")) {
+    ref <- mi(0, robust)
+    for (k in c(1, 1e4, 1e6)) {
+      expect_equal(mi(k, robust), ref, tolerance = 1e-8, info = paste(robust, k))
+    }
+    expect_equal(mi(1e8, robust), ref, tolerance = 1e-5, info = paste(robust, 1e8))
+  }
+
+  tipping <- function(k) {
+    shifted <- d
+    shifted$pre <- shift_by(d$pre, k)
+    tp <- tipping_point_solomon(y_g, treat, pretested, pre, contrast = "Pretest x Treatment",
+                                groups = 1, deltas = seq(-2, 2, by = 0.5), m = 20, seed = 1,
+                                data = shifted)
+    tp[c("results", "tipping", "tipping_sd")]
+  }
+  ref <- tipping(0)
+  for (k in c(1e4, 1e6)) expect_equal(tipping(k), ref, tolerance = 1e-8, info = k)
 })
 
 test_that("a shift of the pretest changes no fit_solomon_mmrm() result", {

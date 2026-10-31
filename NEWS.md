@@ -55,13 +55,17 @@
   centers the pretest in its test of homogeneous slopes, which was `NA`
   from a pretest mean of 10^7 standard deviations.
 * `fit_solomon_mi()` stopped in the same way when the pretest lay far from
-  zero. Its analysis of the completed data sets now centers the pretest, as
-  `fit_solomon_glm()` does. Its imputation models still use the pretest as
-  given, so that the imputations of a seed, and with them the results,
-  differ by Monte Carlo error when the pretest is shifted, although in
-  distribution they are the same; and from a pretest mean of about 10^7
-  standard deviations those models take the pretest to be constant and
-  stop.
+  zero. With posttests missing in a pretested group, the results of a seed
+  also changed by Monte Carlo error when a constant was added to the
+  pretest, even one standard deviation, and from a pretest mean of about
+  10^7 standard deviations the imputation models took the pretest to be
+  constant and stopped. Its analysis of the completed data sets now
+  centers the pretest, as `fit_solomon_glm()` does, and its imputation
+  models center it at its mean among each pretested group's observed
+  posttests, so the results of `fit_solomon_mi()` and
+  `tipping_point_solomon()` no longer depend on where the pretest lies.
+  The imputations have the same distribution as before, but those of a
+  given seed differ, so results with a seed change by Monte Carlo error.
 * What changes on ordinary data. Dividing the pretest by a power of two is
   exact, so fits with a pretest and no numeric covariate agree with the
   development version before this change to rounding. With covariates of

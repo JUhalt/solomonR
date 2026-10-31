@@ -32,7 +32,10 @@
 # other center and the attrition. Two changes are sanctioned by issue #135
 # and left out: data in which a participant's pretest is given in some rows
 # only (fit_solomon_mmrm()), and models that cannot be estimated (an empty
-# group, or a group of one participant under HC3).
+# group, or a group of one participant under HC3). Issue #137 sanctions a
+# third, and the test leaves out the stored `mi` results: the imputation
+# models of fit_solomon_mi() center the pretest since then, so that a seed
+# gives other draws from the same distribution.
 #
 # The file also stores objects made by master (`objects`) and their output
 # (`objects_output`, from pretest_center_output()): a fit saved before

@@ -54,14 +54,25 @@
 
 # The imputation model of each group, fitted to its observed posttests: the
 # posttest on the pretest in the pretested groups, and on a constant in the
-# unpretested groups (Carpenter et al., 2023, section 3.1).
+# unpretested groups (Carpenter et al., 2023, section 3.1). The pretest is
+# centered at its mean among the group's observed posttests. That changes
+# neither the model nor the distribution of its draws, and makes the model,
+# its check of a constant pretest, and the draws of a seed the same
+# wherever the pretest lies; uncentered, a pretest far from zero made them
+# differ, and from about 10^7 standard deviations taken to be constant
+# (issue #137).
 .mi_models <- function(d) {
   lapply(1:4, function(j) {
     rows <- which(d$group == j)
     obs <- !is.na(d$y_post[rows])
     if (all(obs)) return(NULL)
     use_pre <- !is.null(d$y_pre) && j <= 2L
-    X <- if (use_pre) cbind(1, d$y_pre[rows]) else matrix(1, length(rows), 1L)
+    X <- if (use_pre) {
+      x <- d$y_pre[rows]
+      cbind(1, x - mean(x[obs]))
+    } else {
+      matrix(1, length(rows), 1L)
+    }
     p <- ncol(X)
     if (sum(obs) < p + 1L) {
       stop(sprintf(
@@ -195,7 +206,10 @@
 #'    contains the Pretest x Treatment interaction of two fully observed
 #'    indicators, and imputing separately in the groups they define is the
 #'    simplest approach to such interactions (Carpenter et al., 2023,
-#'    section 6.3.5, p. 149).
+#'    section 6.3.5, p. 149). The pretest is centered at its mean among the
+#'    group's observed posttests, which leaves the model unchanged and makes
+#'    the imputations of a seed the same wherever the pretest lies (issue
+#'    #137).
 #' 2. **Proper imputation.** For each imputation the residual variance and
 #'    the coefficients are drawn from their posterior distribution, and the
 #'    missing posttests are then drawn from the model (Carpenter et al.,
