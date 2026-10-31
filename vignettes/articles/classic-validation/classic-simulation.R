@@ -92,9 +92,12 @@ run_condition <- function(cond, reps, pkg_dir, cache_dir) {
     }
     fit <- fit_solomon_classic(post, treat, pretested, pre, pretested_test = "ancova")
     tst <- fit$tests
+    # Test I's one-tailed p, the package's criterion when this study ran. The
+    # package has judged Test I by the two-tailed p since ffb0295 and keeps
+    # the one-tailed one as `p_one_tailed`.
     p <- c(A = tst$A$result$p.value, B = tst$B$result$p.value, C = tst$C$result$p.value,
            D = tst$D$result$p.value, S = tst$E$result$p.value, H = tst$H$result$p.value,
-           I = tst$I$result$p.value)
+           I = tst$I$result$p_one_tailed)
     p_two <- p
     p_two[["I"]] <- 2 * stats::pnorm(-abs(tst$I$result$z))
 
@@ -109,8 +112,9 @@ run_condition <- function(cond, reps, pkg_dir, cache_dir) {
                H = isTRUE(sig["H"]), I = isTRUE(sig["I"]))
       counts[k, ] <<- counts[k, ] + c(rej, any = any(rej), decisive = rej[["A"]] || rej[["D"]] || rej[["I"]])
 
-      # End-to-end check: the fitted function takes the same path.
-      if (i <= 200L && cb$criterion == "one_tailed") {
+      # End-to-end check: the fitted function takes the same path, under the
+      # criterion it uses (the two-tailed one since ffb0295).
+      if (i <= 200L && cb$criterion == "two_tailed") {
         refit <- fit_solomon_classic(post, treat, pretested, pre, pretested_test = "ancova",
                                      flow = cb$flow, alpha_allocation = cb$allocation)
         if (!identical(refit$path, path)) {

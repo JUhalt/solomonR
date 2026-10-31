@@ -83,8 +83,20 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   dispersion <- rep(NA_real_, reps)
   rep_errors <- character()
 
+  # The rows of a table of the package, selected by label. A label that is
+  # not found stops the study instead of counting as a failed replication.
+  rows_by_label <- function(tab, wanted, keys) {
+    at <- match(wanted, keys)
+    if (anyNA(at)) {
+      stop(structure(class = c("validation_rows_missing", "error", "condition"), list(
+        message = paste("Rows not found in a table of the package:",
+                        paste(wanted[is.na(at)], collapse = ", ")),
+        call = NULL)))
+    }
+    tab[at, ]
+  }
   link_rows <- function(fit) {
-    fit$effects <- fit$effects[match(contrasts, fit$effects$contrast), ]
+    fit$effects <- rows_by_label(fit$effects, contrasts, fit$effects$contrast)
     cbind(fit$effects$estimate, fit$effects$std.error, fit$effects$conf.low,
           fit$effects$conf.high, fit$effects$p.value)
   }
@@ -111,8 +123,9 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
                                                robust = "none"))
     store$model_based[i, , ] <<- link_rows(fit_mb)
     m <- marginal_solomon(fit)
-    m$effects <- m$effects[match(paste(rep(c("Rate difference", "Rate ratio"), each = 4), rep(contrasts, 2)),
-                                 paste(m$effects$scale, m$effects$contrast)), ]
+    m$effects <- rows_by_label(m$effects,
+                               paste(rep(c("Rate difference", "Rate ratio"), each = 4), rep(contrasts, 2)),
+                               paste(m$effects$scale, m$effects$contrast))
     ratio <- m$effects$scale == "Rate ratio"
     est <- m$effects$estimate; lo <- m$effects$conf.low; hi <- m$effects$conf.high
     est[ratio] <- log(est[ratio]); lo[ratio] <- log(lo[ratio]); hi[ratio] <- log(hi[ratio])
@@ -120,6 +133,7 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   }
   for (i in seq_len(reps)) {
     tryCatch(one_rep(i), error = function(err) {
+      if (inherits(err, "validation_rows_missing")) stop(err)
       rep_errors <<- c(rep_errors, conditionMessage(err))
       failed[i] <<- TRUE
       for (k in names(store)) store[[k]][i, , ] <<- NA_real_

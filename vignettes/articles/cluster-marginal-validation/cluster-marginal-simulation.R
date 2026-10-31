@@ -96,6 +96,19 @@ run_scenario <- function(s, reps, pkg_dir, allocations, effects, cache_dir) {
   failed <- rep(FALSE, reps)
   small_df <- rep(FALSE, reps)
   rep_errors <- character()
+  # The rows of a table of the package, selected by label (issue #140;
+  # ?solomon_output). A label that is not found stops the study instead of
+  # counting as a failed replication.
+  rows_by_label <- function(tab, wanted, keys) {
+    at <- match(wanted, keys)
+    if (anyNA(at)) {
+      stop(structure(class = c("validation_rows_missing", "error", "condition"), list(
+        message = paste("Rows not found in a table of the package:",
+                        paste(wanted[is.na(at)], collapse = ", ")),
+        call = NULL)))
+    }
+    tab[at, ]
+  }
 
   # Separate-variances t interval for a linear combination of arm means of
   # cluster scores (Hayes & Moulton, 2017, pp. 211-215).
@@ -130,14 +143,16 @@ run_scenario <- function(s, reps, pkg_dir, allocations, effects, cache_dir) {
     }
     m <- withCallingHandlers(
       marginal_solomon(fit, scale = scales),
-      solomonR_small_df_warning = function(w) {
-        small_df[i] <<- TRUE
-        invokeRestart("muffleWarning")
-      }
+      solomonR_small_df_warning = function(w) invokeRestart("muffleWarning")
     )
-    m$effects <- m$effects[match(paste(rep(c("Risk difference", "Risk ratio", "Odds ratio"), each = 4),
-                                       rep(contrasts, 3)),
-                                 paste(m$effects$scale, m$effects$contrast)), ]
+    m$effects <- rows_by_label(m$effects,
+                               paste(rep(c("Risk difference", "Risk ratio", "Odds ratio"), each = 4),
+                                     rep(contrasts, 3)),
+                               paste(m$effects$scale, m$effects$contrast))
+    # Degrees of freedom below 4 in the rows studied, by the rule of the
+    # package's warning. The warning itself is not counted: since #104 it
+    # also covers the pretest effects, which this study does not report.
+    small_df[i] <<- any(is.finite(m$effects$df) & m$effects$df < 4)
     ratio <- m$effects$scale != "Risk difference"
     est <- ifelse(ratio, log(m$effects$estimate), m$effects$estimate)
     se <- m$effects$std.error
@@ -169,6 +184,7 @@ run_scenario <- function(s, reps, pkg_dir, allocations, effects, cache_dir) {
   }
   for (i in seq_len(reps)) {
     tryCatch(one_rep(i), error = function(err) {
+      if (inherits(err, "validation_rows_missing")) stop(err)
       rep_errors <<- c(rep_errors, conditionMessage(err))
       failed[i] <<- TRUE
       for (nm in names(store)) store[[nm]][i, , ] <<- NA_real_

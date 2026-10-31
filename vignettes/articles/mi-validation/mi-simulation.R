@@ -102,6 +102,18 @@ run_task <- function(task, scenarios, proportions, offsets, mu, gamma, intercept
                  dimnames = list(NULL, contrasts,
                                  c("est", "se", "lo", "hi", "p", "fmi", "mc_ratio"), methods))
   errors <- character()
+  # The rows of a table of the package, selected by label. A label that is
+  # not found stops the study instead of counting as a failed replication.
+  rows_by_label <- function(tab, wanted, keys) {
+    at <- match(wanted, keys)
+    if (anyNA(at)) {
+      stop(structure(class = c("validation_rows_missing", "error", "condition"), list(
+        message = paste("Rows not found in a table of the package:",
+                        paste(wanted[is.na(at)], collapse = ", ")),
+        call = NULL)))
+    }
+    tab[at, ]
+  }
   for (i in seq_len(task$reps)) {
     d <- simulate_solomon(n = s$n, delta = 0.5, sens = 0, pretest_effect = 0.2, rho = 0.5)
     g <- .solomon_group(d$treat, d$pretested)
@@ -113,21 +125,22 @@ run_task <- function(task, scenarios, proportions, offsets, mu, gamma, intercept
       # The four contrasts studied, selected by label (issue #140;
       # ?solomon_output).
       cc <- fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre)
-      cc$effects <- cc$effects[match(contrasts, cc$effects$contrast), ]
+      cc$effects <- rows_by_label(cc$effects, contrasts, cc$effects$contrast)
       out$complete_case <- cbind(cc$effects$estimate, cc$effects$std.error, cc$effects$conf.low,
                                  cc$effects$conf.high, cc$effects$p.value, NA, NA)
       mar <- fit_solomon_mi(d$y_post, d$treat, d$pretested, d$y_pre, delta = 0, m = 100)
-      e <- mar$effects[match(contrasts, mar$effects$contrast), ]
+      e <- rows_by_label(mar$effects, contrasts, mar$effects$contrast)
       out$mi_mar <- cbind(e$estimate, e$std.error, e$conf.low, e$conf.high, e$p.value, e$fmi,
                           e$mc_se / e$std.error)
       if ("mi_true" %in% methods) {
         tr <- fit_solomon_mi(d$y_post, d$treat, d$pretested, d$y_pre, delta = delta, m = 100)
-        e <- tr$effects[match(contrasts, tr$effects$contrast), ]
+        e <- rows_by_label(tr$effects, contrasts, tr$effects$contrast)
         out$mi_true <- cbind(e$estimate, e$std.error, e$conf.low, e$conf.high, e$p.value, e$fmi,
                              e$mc_se / e$std.error)
       }
       out
     }, error = function(err) {
+      if (inherits(err, "validation_rows_missing")) stop(err)
       errors <<- c(errors, conditionMessage(err))
       NULL
     })

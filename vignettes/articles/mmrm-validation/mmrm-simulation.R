@@ -93,6 +93,22 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
     covariance <- matrix(NA_character_, task$reps, 3L,
                          dimnames = list(NULL, c("mmrm_kr", "mmrm_satterthwaite", "mmrm_shared_kr")))
     errors <- character()
+    # The rows of a table of the package, selected by label. A label that is
+    # not found stops the study instead of counting as a failed fit.
+    rows_by_label <- function(tab, wanted, keys) {
+      at <- match(wanted, keys)
+      if (anyNA(at)) {
+        stop(structure(class = c("validation_rows_missing", "error", "condition"), list(
+          message = paste("Rows not found in a table of the package:",
+                          paste(wanted[is.na(at)], collapse = ", ")),
+          call = NULL)))
+      }
+      tab[at, ]
+    }
+    caught <- function(method, e) {
+      if (inherits(e, "validation_rows_missing")) stop(e)
+      errors <<- c(errors, paste0(method, ": ", conditionMessage(e)))
+    }
     occasions <- c("1", "2", "3")
     n <- s$n
     g <- rep(1:4, each = n)
@@ -129,7 +145,7 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
       # The estimands studied, selected by occasion and label (issue #140;
       # ?solomon_output), in the order of `estimands`.
       fill <- function(method, eff) {
-        eff <- eff[match(estimands, paste(eff$occasion, eff$contrast, sep = ": ")), ]
+        eff <- rows_by_label(eff, estimands, paste(eff$occasion, eff$contrast, sep = ": "))
         store[i, , , method] <<- cbind(eff$estimate, eff$std.error, eff$conf.low, eff$conf.high,
                                        eff$p.value)
       }
@@ -137,31 +153,32 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
         kr <- .mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "kenward-roger", 0.95)
         fill("mmrm_kr", kr$effects)
         covariance[i, "mmrm_kr"] <- kr$covariance
-      }, error = function(e) errors <<- c(errors, paste("mmrm_kr:", conditionMessage(e))))
+      }, error = function(e) caught("mmrm_kr", e))
       tryCatch({
         sat <- .mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "satterthwaite", 0.95)
         fill("mmrm_satterthwaite", sat$effects)
         covariance[i, "mmrm_satterthwaite"] <- sat$covariance
-        e <- sat$effects[match(estimands, paste(sat$effects$occasion, sat$effects$contrast, sep = ": ")), ]
+        e <- rows_by_label(sat$effects, estimands,
+                           paste(sat$effects$occasion, sat$effects$contrast, sep = ": "))
         q <- stats::qnorm(0.975)
         store[i, , , "mmrm_normal"] <- cbind(e$estimate, e$std.error, e$estimate - q * e$std.error,
                                              e$estimate + q * e$std.error,
                                              2 * stats::pnorm(-abs(e$estimate / e$std.error)))
-      }, error = function(e) errors <<- c(errors, paste("mmrm_satterthwaite:", conditionMessage(e))))
+      }, error = function(e) caught("mmrm_satterthwaite", e))
       tryCatch({
         shared <- .mmrm_fit_contrasts(observed, occasions, TRUE, FALSE, "kenward-roger", 0.95)
         fill("mmrm_shared_kr", shared$effects)
         covariance[i, "mmrm_shared_kr"] <- shared$covariance
-      }, error = function(e) errors <<- c(errors, paste("mmrm_shared_kr:", conditionMessage(e))))
+      }, error = function(e) caught("mmrm_shared_kr", e))
       tryCatch({
         cc <- do.call(rbind, lapply(1:3, function(t) {
           keep <- !is.na(yobs[, t])
           e <- fit_solomon_glm(yobs[keep, t], treat[keep], pretested[keep], y_pre[keep])$effects
-          e[match(.solomon_contrast_order, e$contrast), ]
+          rows_by_label(e, .solomon_contrast_order, e$contrast)
         }))
         store[i, 1:12, , "complete_case"] <- cbind(cc$estimate, cc$std.error, cc$conf.low,
                                                    cc$conf.high, cc$p.value)
-      }, error = function(e) errors <<- c(errors, paste("complete_case:", conditionMessage(e))))
+      }, error = function(e) caught("complete_case", e))
     }
     out <- list(scenario = s$scenario, part = task$part, truth = truth, store = store,
                 covariance = covariance, errors = errors)

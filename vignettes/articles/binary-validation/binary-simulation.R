@@ -75,10 +75,22 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
   truth <- unlist(lapply(scales, function(sc) .marginal_contrasts(r, sc)[.solomon_contrast_order]),
                   use.names = FALSE)
   labels <- expand.grid(contrast = .solomon_contrast_order, scale = scales, stringsAsFactors = FALSE)
+  # The rows of a table of the package, selected by label. A label that is
+  # not found stops the study instead of counting as a failed replication.
+  rows_by_label <- function(tab, wanted, keys) {
+    at <- match(wanted, keys)
+    if (anyNA(at)) {
+      stop(structure(class = c("validation_rows_missing", "error", "condition"), list(
+        message = paste("Rows not found in a table of the package:",
+                        paste(wanted[is.na(at)], collapse = ", ")),
+        call = NULL)))
+    }
+    tab[at, ]
+  }
 
   analysis <- function(m) {
-    m$effects <- m$effects[match(paste(scale_labels[labels$scale], labels$contrast),
-                                 paste(m$effects$scale, m$effects$contrast)), ]
+    m$effects <- rows_by_label(m$effects, paste(scale_labels[labels$scale], labels$contrast),
+                               paste(m$effects$scale, m$effects$contrast))
     ratio <- rep(scales, each = 4) != "difference"
     tr <- function(x) {
       x[ratio] <- log(x[ratio])
@@ -117,7 +129,7 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
                                             family = stats::binomial()))
     fit_failed[i] <<- .logistic_failed(fit$model, y, design$treat, design$pretested)
     if (!fit_failed[i]) {
-      ce <- fit$effects[match(.solomon_contrast_order, fit$effects$contrast), ]
+      ce <- rows_by_label(fit$effects, .solomon_contrast_order, fit$effects$contrast)
       cond[i, ] <<- c(ce$estimate, ce$p.value)
       mb <- suppressWarnings(marginal_solomon(fit, R = boot_R))
       boot_failures[i] <<- mb$failures
@@ -137,6 +149,7 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
   # fit rather than stopping the study.
   for (i in seq_len(reps)) {
     tryCatch(one_rep(i), error = function(err) {
+      if (inherits(err, "validation_rows_missing")) stop(err)
       rep_errors <<- c(rep_errors, conditionMessage(err))
       fit_failed[i] <<- TRUE
       un_failed[i] <<- TRUE
