@@ -546,7 +546,8 @@ stouffer_solomon <- function(p) {
 #' randomized experiments, and the case for pairing it with
 #' heteroskedasticity-robust standard errors, is discussed by Lin (2013).
 #' Pretested participants with a missing pretest score are excluded with a
-#' warning; incidental missingness is never imputed.
+#' warning; incidental missingness is never imputed. Their exclusion biases
+#' the pretest effects when it relates to baseline (issue #142).
 #'
 #' @section Inference:
 #' - `robust = "HC3"` (default): heteroskedasticity-consistent covariance
@@ -656,12 +657,15 @@ stouffer_solomon <- function(p) {
 #' groups at the pretested participants' mean pretest, where the centered
 #' pretest is zero. Unpretested participants were never measured, but with
 #' random assignment their expected pretest equals that of the pretested
-#' participants, whose combined mean is its best estimate (Solomon & Lessac,
-#' 1968, pp. 146--147). Each pretest effect is therefore the pretest-adjusted
-#' mean of a pretested group minus the mean of the unpretested group in the
-#' same treatment condition: the differences between the adjusted means that
-#' [plot_sensitization()] draws. Without `y_pre`, the pretest effects are
-#' differences between the fitted cell means.
+#' participants (Solomon, 1949, p. 141), whose combined mean is its best
+#' estimate (Solomon & Lessac, 1968, p. 147). Each pretest effect is therefore
+#' the pretest-adjusted mean of a pretested group minus the mean of the
+#' unpretested group in the same treatment condition: the differences between
+#' the adjusted means that [plot_sensitization()] draws. Without `y_pre`, the
+#' pretest effects are differences between the fitted cell means. When
+#' posttests are missing, the mean pretest can be taken over two sets of
+#' pretested participants; see "The pretest effect when posttests are
+#' missing".
 #'
 #' That mean pretest is an estimate of the expected pretest, not a fixed
 #' value, and the pretest effects shift by b for each point it shifts, where
@@ -711,6 +715,110 @@ stouffer_solomon <- function(p) {
 #' too, although its treatment rate ratios are collapsible.
 #' [marginal_solomon()] estimates the pretest effects on a common scale, from
 #' standardized risks or rates (Daniel et al., 2021).
+#'
+#' @section The pretest effect when posttests are missing:
+#' Each pretest effect compares a pretested group, at a mean pretest (the
+#' center), with the unpretested group in the same treatment condition. The
+#' center stands in for the unpretested groups' expected pretest, which
+#' random assignment makes equal to the pretested groups' (Solomon, 1949, p.
+#' 141). With every posttest observed it is the mean pretest of both
+#' pretested groups (Newman et al., 1990, p. 101). When posttests are
+#' missing there are two candidates, and `pretest_center` chooses between
+#' them:
+#' - `"analyzed"` (the default): the mean pretest of the pretested
+#'   participants in the model. It assumes that, within each treatment
+#'   condition, the pretested and the unpretested groups lost the same kinds
+#'   of participants. Random assignment makes that the natural case, unless
+#'   taking the pretest itself changed who dropped out.
+#' - `"observed"`: the mean of every observed pretest among the pretested
+#'   participants, with or without a posttest. It assumes that the pretested
+#'   groups' losses depend at most on the observed pretest, and that the
+#'   unpretested groups' losses are unrelated to baseline as well as to the
+#'   posttest. In the pretested groups this is missingness at random given
+#'   the pretest (Seaman et al., 2013, Definition 3; the mapping is the
+#'   package's inference), the assumption under which [fit_solomon_mi()]
+#'   imputes; in one check on issue #135, normal-theory full-information
+#'   maximum likelihood with the pretest gave the same pretest effects to
+#'   three decimals. It needs the rows of the pretested participants without
+#'   a posttest, with `y_post` missing; without them it gives the default.
+#'
+#' The two differ by b m1 (x_in - x_out), where b is the pretest slope, m1
+#' the share of the pretested participants with a pretest who are not in
+#' the model, and x_in and x_out the mean pretests of those in and out of
+#' the model. The data cannot tell which center is right, because the
+#' unpretested groups have no pretest (Campbell, 1957, p. 305), and no
+#' published source decides between them. The default is a judgment, set out
+#' with its reasons in the decision record posted on issue #135:
+#' - Under the design's null hypothesis, that taking the pretest changes
+#'   neither the posttest nor who stays, random assignment makes all groups
+#'   lose the same kinds of participants, whatever drives the loss, and the
+#'   default's test of a zero pretest effect keeps its level. In the record's
+#'   check (500 data sets of 200 participants per group, about a third of
+#'   the posttests lost by baseline in all four groups), the test of the
+#'   pretest main effect at the .05 level rejected in 5% of the data sets at
+#'   the default and in 54% at the observed center.
+#' - The default fails only when taking the pretest changed who stayed,
+#'   which is itself an effect of pretesting; it then reports that effect as
+#'   an effect on scores and is wrong by the whole gap. When only the
+#'   pretested groups lose posttests, by their pretest, the observed center
+#'   is unbiased and the default is not.
+#' - The default keeps the design's own pretest effect. For the main effect
+#'   it is, up to a term that vanishes when the two pretested groups keep
+#'   equal numbers, the difference between the posttest means of the
+#'   participants analyzed, as the design defines the effect (Solomon &
+#'   Lessac, 1968, p. 147). It does not depend on whether the data keep rows
+#'   for participants without a posttest.
+#'
+#' Whenever the two centers differ, the printed fit gives the pretest
+#' effects at both, their difference, and the attrition of each group, and
+#' `pretest_sensitivity` returns them; [report_solomon()] names the center,
+#' its assumption, and the other center. On the identity link the print also
+#' gives the delta line: for each unpretested group, the difference between
+#' its dropouts' and its completers' mean posttest that the default assumes,
+#' which is the difference the pretested dropouts' pretests predict for
+#' them, scaled by the ratio of the loss rates; `"observed"` assumes 0. This
+#' is the delta parameterization of the National Research Council (2010, pp.
+#' 88--89) and Mavridis et al. (2015, sec. 2), and it assumes that the
+#' pretested losses are at random given the pretest. [check_solomon_missing()]
+#' gives the attrition checks.
+#'
+#' **Choosing.** Choose the center before the outcomes are seen, and report
+#' the other as a sensitivity analysis (National Research Council, 2010,
+#' Recommendation 9, p. 4, and Recommendation 15, p. 106; White et al.,
+#' 2011). Specify `"observed"` in advance when there are grounds to believe that the
+#' unpretested groups' losses are unrelated to baseline. The clear case is
+#' unpretested groups that lost no posttests, with a row for everyone
+#' randomized to them. A burdensome pretest that adds losses makes the
+#' default doubtful, but it does not make `"observed"` right. Loss rates
+#' that differ between the pretest conditions suggest that pretesting
+#' changed who dropped out, in which case neither center is free of
+#' assumptions.
+#'
+#' **Cautions.**
+#' - The treatment contrasts, Pretest x Treatment, the fitted values, and
+#'   the model's covariance do not depend on the center, on the model's
+#'   scale. On the risk or rate scale of [marginal_solomon()], the
+#'   treatment contrasts among pretested participants do.
+#' - The gap above assumes one pretest slope for all conditions, as the
+#'   model has.
+#' - If the treatment conditions lost different kinds of participants, the
+#'   pooled center misstates the two conditional pretest effects, although
+#'   not their average when the pretested groups keep equal numbers, and
+#'   Pretest x Treatment is biased at every center (issue #143).
+#'   [check_solomon_missing()] then gives the raw comparison of posttest
+#'   means in each condition.
+#' - Pretested participants with a posttest and no pretest are dropped at
+#'   either center. When that loss relates to baseline, both centers are
+#'   biased alike, and a fit without `y_pre` is not (issue #142).
+#' - When loss depends on the posttest itself, both centers understate a
+#'   real pretest effect: in a derivation reported on issue #135, a true
+#'   effect of 0.3 gave 0.234 at the default and 0.174 at the observed
+#'   center. Neither center protects a test of equivalence; see
+#'   [equivalence_solomon()].
+#' - The default's target is the pretest effect among the participants who
+#'   would be analyzed in either pretest condition. It equals the effect in
+#'   the randomized population only when the pretest effect does not vary
+#'   with what drives the loss.
 #'
 #' @section Designs with several treatments:
 #' A Solomon N-group design crosses k treatments and a control with
@@ -851,8 +959,36 @@ stouffer_solomon <- function(p) {
 #'     and negative-binomial fits, and `NA` for the others.
 #'   - `theta`: for negative-binomial fits, its estimate, standard error,
 #'     and \eqn{\alpha = 1/\theta}; otherwise `NULL`.
-#'   - `pretest_mean`: the mean pretest at which the pretest is centered;
-#'     `NA` without `y_pre`.
+#'   - `pretest_mean`: the mean pretest at which the pretest is centered, the
+#'     center used; `NA` without `y_pre`.
+#'   - `pretest_center`: the center used, `"analyzed"` or `"observed"`.
+#'   - `pretest_mean_analyzed` and `pretest_mean_observed`: the two centers,
+#'     the mean pretest of the pretested participants in the model and the
+#'     mean of every observed pretest among the pretested participants; `NA`
+#'     without `y_pre`.
+#'   - `pretest_n`: the numbers of pretested participants with a pretest in
+#'     the model (`analyzed`) and in all (`observed`), and, of those outside
+#'     the model, how many have no posttest (`no_posttest`; the others lack
+#'     the condition, a covariate, or the exposure). `NULL` without `y_pre`.
+#'   - `pretest_sensitivity`: the pretest effects at both centers (see "The
+#'     pretest effect when posttests are missing"), a list with `effects`
+#'     (the pretest rows of the effects table at each `center`, the center
+#'     used giving the rows of `effects`); `difference` (each pretest
+#'     effect's estimates at the `analyzed` and `observed` centers and their
+#'     `difference`); `slope`, the pretest slope; `m1`, the share of the
+#'     pretested participants with a pretest who are not in the model;
+#'     `pretest_means`, the mean pretest of those `analyzed` and
+#'     `not_analyzed`; `delta`, on the identity link only, each unpretested
+#'     group's `condition`, `n`, share not analyzed `m0`, and the offset
+#'     `delta` the default assumes (`NA` where `m0` is 0), and otherwise
+#'     `NULL`; `predicted`, what the pretested dropouts' pretests predict for
+#'     them; `attrition`, each group's `n`, `posttest_missing`, and `share`;
+#'     `differ`, whether the two centers differ; and `note`, the reason the
+#'     other center's standard errors are missing, if they are. The other
+#'     center's effects are computed without a refit, by moving the
+#'     contrasts, with the variance of its mean stacked as for the center
+#'     used. `NULL` without `y_pre`; outside the stable interface (see
+#'     [solomon_output]).
 #'   - `robust`, `family`, `cluster` (the cluster of each participant), and
 #'     `n_clusters`: the settings used. The last two are `NULL` without
 #'     `cluster`.
@@ -872,6 +1008,9 @@ stouffer_solomon <- function(p) {
 #'   - `weights`: the weights of each comparison over the conditions, one
 #'     row for each comparison.
 #'   - `adjust`: the adjustment of the p-values.
+#'   - The tables of `pretest_sensitivity` have `comparison` first, as
+#'     `effects` does, and its `effects` has `p.adjusted`; `delta` has a row
+#'     for each unpretested group.
 #'
 #'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
 #'   which returns the table, are the stable interface of the result; see
@@ -884,6 +1023,10 @@ stouffer_solomon <- function(p) {
 #' Cameron, A. C., & Trivedi, P. K. (2013). *Regression analysis of count data*
 #' (2nd ed.). Cambridge University Press.
 #' https://doi.org/10.1017/CBO9781139013567
+#'
+#' Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+#' social settings. *Psychological Bulletin, 54*(4), 297–312.
+#' https://doi.org/10.1037/h0040950
 #'
 #' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 #' quasi-experimental designs for research*. Rand McNally. (Original work
@@ -924,9 +1067,18 @@ stouffer_solomon <- function(p) {
 #' transfer interventions using Solomon four-group designs. *Education
 #' Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 #'
+#' Mavridis, D., White, I. R., Higgins, J. P. T., Cipriani, A., & Salanti, G.
+#' (2015). Allowing for uncertainty due to missing continuous outcome data in
+#' pairwise and network meta-analysis. *Statistics in Medicine, 34*(5),
+#' 721–741. https://doi.org/10.1002/sim.6365
+#'
 #' McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 #' through service learning. *Journal of Management Education, 26*(6), 629–647.
 #' https://doi.org/10.1177/1052562902238322
+#'
+#' National Research Council. (2010). *The prevention and treatment of missing
+#' data in clinical trials*. The National Academies Press.
+#' https://doi.org/10.17226/12955
 #'
 #' Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
 #' Solomon four group design. *Multiple Linear Regression Viewpoints, 17*(2),
@@ -945,6 +1097,10 @@ stouffer_solomon <- function(p) {
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 #' variance components. *Biometrics Bulletin, 2*(6), 110–114.
 #' https://doi.org/10.2307/3002019
+#'
+#' Seaman, S., Galati, J., Jackson, D., & Carlin, J. (2013). What is meant by
+#' "missing at random"? *Statistical Science, 28*(2), 257–268.
+#' https://doi.org/10.1214/13-STS415
 #'
 #' Solomon, R. L. (1949). An extension of control group design. *Psychological
 #' Bulletin, 46*(2), 137–150. https://doi.org/10.1037/h0062958
@@ -976,6 +1132,10 @@ stouffer_solomon <- function(p) {
 #' Welch, B. L. (1947). The generalization of "Student's" problem when several
 #' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
 #' https://doi.org/10.1093/biomet/34.1-2.28
+#'
+#' White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
+#' for intention to treat analysis in randomised trials with missing outcome
+#' data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40
 #' @examples
 #' fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 #' fit
@@ -988,6 +1148,10 @@ stouffer_solomon <- function(p) {
 #' fit6 <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
 #'                         control = "Control", data = mai2020)
 #' fit6
+#'
+#' # Posttests are missing in mai2020, so the print gives the pretest effects
+#' # at both centers; pretest_sensitivity returns them.
+#' fit6$pretest_sensitivity$difference
 #' @export
 fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
                             covariates = NULL, robust = c("HC3", "none", "CR2"),

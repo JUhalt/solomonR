@@ -31,6 +31,7 @@ CMD
 CRC
 Cai
 Cheung
+Cipriani
 Cousens
 Cro
 Crossref
@@ -64,6 +65,7 @@ Farrar
 Fitzmaurice
 Forsythe
 Frangakis
+Galati
 Gelman
 Giner
 Groenwold
@@ -117,6 +119,7 @@ Mancuso
 Margolis
 Markman
 Markman's
+Mavridis
 McCaffrey
 McCambridge
 McNally
@@ -176,7 +179,9 @@ SESOI
 SICI
 SPDX
 SRMR
+STS
 Sabanes
+Salanti
 Sandler
 Satorra
 Satterthwaite
@@ -225,6 +230,7 @@ Unpre
 Unpretested
 Vandenberg
 Venables
+WWC
 Welch
 Wickham
 Wilk
@@ -251,8 +257,11 @@ brainsci
 checkable
 clubSandwich
 cmaj
+collinear
 comparator
+completers
 configural
+covariate's
 df
 directionally
 doi
@@ -275,6 +284,7 @@ heteroskedastic
 heteroskedasticity
 hta
 https
+ies
 ije
 interdependency
 intracluster
@@ -295,6 +305,7 @@ mmrm
 mmrm's
 multisample
 multivariable
+ncee
 nd
 noncentral
 noncollapsibility
@@ -330,6 +341,7 @@ selfdoeltreffendheidspersepsies
 sensitisation
 solomon
 solomonR's
+standardizations
 standardizers
 studentization
 subscale
@@ -348,6 +360,7 @@ unstudentized
 varepsilon
 variabilities
 vorming
+wwc
 www
 α
 ε

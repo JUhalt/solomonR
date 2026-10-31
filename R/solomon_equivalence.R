@@ -44,6 +44,20 @@
 #' [marginal_solomon()] estimates these contrasts on a common scale, from
 #' standardized risks or rates.
 #'
+#' @section Missing posttests:
+#' With a pretest covariate and missing posttests, a pretest effect depends
+#' on the mean pretest at which the pretested groups are compared, the
+#' `pretest_center` of the fit; see "The pretest effect when posttests are
+#' missing" in [fit_solomon_glm()]. The test uses the fit's own estimate, at
+#' the center it was fitted with, so equivalence of a pretest effect holds
+#' only under that center's assumption; `fit$pretest_sensitivity` gives the
+#' estimate at the other center. When posttests are lost depending on the
+#' posttest itself, both centers understate a real pretest effect (a true
+#' effect of 0.3 gave 0.234 at the default center and 0.174 at the observed
+#' center in a derivation reported on issue #135), which makes a false
+#' finding of equivalence more likely at either center. The treatment
+#' contrasts, Pretest x Treatment among them, do not depend on the center.
+#'
 #' @section Inference:
 #' Each one-sided test uses the estimate, standard error, and reference
 #' distribution of the fitted model: t with the model's degrees of freedom for

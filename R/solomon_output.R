@@ -209,6 +209,15 @@ generics::tidy
 #'   [validate_solomon()] return model comparisons, tests of two-by-two
 #'   tables, effect sizes in the `yi` and `vi` form of meta-analysis, and
 #'   checks.
+#' - `pretest_sensitivity`, in [fit_solomon_glm()], [fit_solomon_mmrm()],
+#'   [marginal_solomon()], and [fit_solomon_1949()], holds the results at
+#'   the two pretest centers when posttests are missing (issue #135). Its
+#'   `effects` table has the key columns, ending with `center`, and the
+#'   eight shared columns; its `difference` table gives each contrast's
+#'   estimates at the `analyzed` and `observed` centers and their
+#'   `difference`. The rest of it are checks. It is new in 1.0.0 and outside
+#'   the contract, so its layout can still change; the center used is in
+#'   `effects`, as before.
 #' - [power_solomon()] and [plan_solomon()] describe a planned study, which
 #'   has true effects and no estimates: their column of contrast labels is
 #'   `estimand`, and [power_solomon()] adds the label `Treatment (one-sided)`

@@ -222,6 +222,17 @@
 #' with a warning, as in [fit_solomon_glm()]; [check_solomon_missing()]
 #' describes the options for them.
 #'
+#' **The pretest center.** Only the four treatment contrasts are pooled,
+#' and they do not depend on the mean pretest at which the pretested groups
+#' are compared with the unpretested groups (see "The pretest effect when
+#' posttests are missing" in [fit_solomon_glm()]). The imputations embody the
+#' `"observed"` center in the pretested groups: with `delta = 0`, a pretested
+#' participant's posttest is imputed as missing at random given the pretest,
+#' so the completed pretested groups stand for every participant with a
+#' pretest. Any pretest effect computed from them corresponds to
+#' `fit_solomon_glm(pretest_center = "observed")`, not to its default
+#' (issue #135).
+#'
 #' **Number of imputations.** The default `m = 100` follows Carpenter et al.
 #' (2023, p. 56), who note that p-values accurate to about .005 need at
 #' least 100 imputations and advise erring "towards too many imputations
@@ -460,6 +471,13 @@ print.solomon_mi <- function(x, digits = 3, ...) {
 #' between the pretested and unpretested groups, for example in the
 #' pretested treatment group alone (`groups = 1`), bear on the sensitization
 #' contrast.
+#'
+#' **The pretest center.** The contrasts followed are the treatment
+#' contrasts, which do not depend on the pretest center of
+#' [fit_solomon_glm()]. As in [fit_solomon_mi()], the imputations embody the
+#' `"observed"` center in the pretested groups: at offset 0 they assume that
+#' the pretested participants' posttests are missing at random given the
+#' pretest (issue #135).
 #'
 #' **Common random numbers.** Every offset uses the same imputation draws,
 #' so the estimates change smoothly with the offset. The location of the
