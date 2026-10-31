@@ -265,15 +265,35 @@ NULL
 # residual, so that the sum of the cross-products is the HC0 covariance; and
 # the hat values h_i, by which HC3 divides each influence by 1 - h_i
 # (MacKinnon & White, 1985). One row per row the model used.
+#
+# Both come from the QR decomposition W^(1/2) X = QR that the fit computed:
+# the influence is R^{-1} q_i w_i^(1/2) e_i and the hat value is ||q_i||^2,
+# with q_i the ith row of Q. Forming X'WX instead squares the condition
+# number of the design, so that a covariate far from zero relative to its
+# spread made it numerically singular (issue #137). The decomposition leaves
+# out the rows whose working weight is zero; the cross-products are then
+# used.
 .glm_influence <- function(model) {
-  X <- stats::model.matrix(model)
-  X <- X[, !is.na(stats::coef(model)), drop = FALSE]
+  cf <- stats::coef(model)
   w <- model$weights
   e <- model$residuals
-  bread <- solve(crossprod(X, w * X))
+  q <- model$qr
+  if (is.null(q) || nrow(q$qr) != length(w)) {
+    X <- stats::model.matrix(model)
+    X <- X[, !is.na(cf), drop = FALSE]
+    bread <- solve(crossprod(X, w * X))
+    return(list(
+      influence = (X * (w * e)) %*% bread,
+      hat = rowSums((X %*% bread) * X) * w
+    ))
+  }
+  rank <- seq_len(q$rank)
+  Q <- qr.Q(q)[, rank, drop = FALSE]
+  influence <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE], t(Q * (sqrt(w) * e))))
+  colnames(influence) <- names(cf)[q$pivot[rank]]
   list(
-    influence = (X * (w * e)) %*% bread,
-    hat = rowSums((X %*% bread) * X) * w
+    influence = influence[, names(cf)[!is.na(cf)], drop = FALSE],
+    hat = rowSums(Q^2)
   )
 }
 
