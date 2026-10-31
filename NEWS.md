@@ -1,5 +1,58 @@
 # solomonR (development version)
 
+## Covariates far from zero (bug fix, #137)
+
+* `fit_solomon_glm()` stopped with "system is computationally singular"
+  when a covariate lay far from zero relative to its spread, as a calendar
+  year, an identification number, or a score with a large offset can: in
+  the issue's example, a covariate with a mean of 10,000 and a standard
+  deviation of 1. The influence functions of the pretest effects, added in
+  #104, inverted the cross-products of the design, which square its
+  condition number; they now come from the model's QR decomposition. Short
+  of that error, the HC3 and CR2 standard errors and Satterthwaite degrees
+  of freedom, the delta method and the bootstrap of `marginal_solomon()`,
+  and the intervals of the cell means of `plot_sensitization()` lost
+  accuracy as a covariate moved away from zero, without a warning. At a
+  mean of 1,000 standard deviations the delta-method standard errors of
+  `marginal_solomon()` for counts were off by up to 4e-3 of their value,
+  and from 10,000 every bootstrap resample failed.
+* The inference is now computed with each numeric covariate standardized,
+  centered at its mean and divided by its standard deviation over the
+  participants in the model. That is a reparameterization of the same
+  model, so adding a constant to a covariate, or to the pretest, changes no
+  contrast, standard error, degrees of freedom, or p-value beyond rounding,
+  for constants up to at least 10^6 standard deviations: under model-based,
+  HC3, and CR2 covariance, with one or several treatments, at either
+  pretest center, and in `marginal_solomon()`, `plot_sensitization()`, and
+  `perm_solomon()`. The model, the coefficients (the intercept included),
+  and their covariance are still those of the covariates as given; the
+  standardized ones are in a new element, `covariate_scaling`, outside the
+  stable interface. Dates and times are standardized as the numbers they
+  enter the model as. `?fit_solomon_glm` has a new section, "Covariates".
+* `fit_solomon_mi()` stopped in the same way when the pretest lay far from
+  zero. Its analysis of the completed data sets now centers the pretest, as
+  `fit_solomon_glm()` does. Its imputation models still use the pretest as
+  given, so that the imputations of a seed, and with them the results,
+  differ by Monte Carlo error when the pretest is shifted, although in
+  distribution they are the same; and from a pretest mean of about 10^7
+  standard deviations those models take the pretest to be constant and
+  stop.
+* What changes on ordinary data: nothing beyond rounding, as a test
+  against results stored from the development version before this change
+  shows, for every family and covariance, with missing posttests and
+  clusters. The delta-method standard errors of `marginal_solomon()` move
+  by up to about 1e-8 of their value, the error of its numerical
+  derivatives, whose steps depend on the coefficients. Under CR2 with a
+  numeric covariate, `vcov` is a matrix rather than the clubSandwich
+  object, whose small-sample adjustments belong to the standardized model.
+  A difference of the pretest centers that rounds to zero is printed
+  without a sign; it took the sign of its rounding error.
+* Not changed here: a pretest whose standard deviation is far from 1
+  (such as 1e-8 or 1e8) still loses accuracy under CR2, because the pretest
+  is centered but not scaled; `fit_solomon_sem(ancova = TRUE)` still stops
+  when the pretest lies far from zero; and the ties of `perm_solomon()`
+  with models fitted by iteration remain on #134.
+
 ## The pretest center when posttests are missing (#135)
 
 With a pretest covariate, the pretest effects compare the pretested
