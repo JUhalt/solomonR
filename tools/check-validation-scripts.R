@@ -31,9 +31,18 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 pattern <- if (length(args) >= 1) args[[1]] else ""
-timeout <- suppressWarnings(as.integer(Sys.getenv("SOLOMONR_SMOKE_TIMEOUT", "1800")))
+# A setting that is empty counts as unset.
+setting <- function(name, default) {
+  value <- Sys.getenv(name)
+  if (nzchar(value)) value else default
+}
+timeout <- suppressWarnings(as.integer(setting("SOLOMONR_SMOKE_TIMEOUT", "1800")))
 if (is.na(timeout) || timeout < 1L) {
   stop("SOLOMONR_SMOKE_TIMEOUT must be a whole number of seconds.", call. = FALSE)
+}
+reps <- setting("SOLOMONR_SMOKE_REPS", "2")
+if (is.na(suppressWarnings(as.integer(reps))) || as.integer(reps) < 2L) {
+  stop("SOLOMONR_SMOKE_REPS must be a whole number of at least 2.", call. = FALSE)
 }
 
 if (!file.exists("DESCRIPTION") ||
@@ -96,7 +105,6 @@ dir.create(smoke_dir, recursive = TRUE, showWarnings = FALSE)
 smoke_dir <- normalizePath(smoke_dir, winslash = "/")
 log_dir <- file.path(smoke_dir, "logs")
 dir.create(log_dir, showWarnings = FALSE)
-reps <- Sys.getenv("SOLOMONR_SMOKE_REPS", "2")
 # The scripts, run as child processes, inherit these.
 Sys.setenv(SOLOMONR_SMOKE_DIR = smoke_dir, SOLOMONR_SMOKE_REPS = reps)
 
