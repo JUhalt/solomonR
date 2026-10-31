@@ -493,8 +493,8 @@ of scenarios 1 and 65, with the package at commit
 `r substr(run$agreement_commit, 1, 7)`, the script as it was at that commit
 and the adapted script give identical results, the saved replications
 included. With the current package the replications are the same, since
-they do not call the package; the agreement differences of M1, all below
-1e-12, change by at most 2e-14, because the pretest has been centered
+they do not call the package; in those two replications, the agreement
+differences of M1 change by at most 2e-14, because the pretest has been centered
 since [issue #104](https://github.com/JUhalt/solomonR/issues/104).
 
 ## References
