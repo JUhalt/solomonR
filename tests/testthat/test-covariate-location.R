@@ -190,21 +190,62 @@ test_that("the influence functions from the QR decomposition equal the cross-pro
     list(influence = (X * (model$weights * model$residuals)) %*% bread,
          hat = rowSums((X %*% bread) * X) * model$weights)
   }
+  same <- function(got, ref, info) {
+    expect_equal(unname(got$influence), unname(ref$influence), tolerance = 1e-10, info = info)
+    expect_identical(colnames(got$influence), colnames(ref$influence))
+    expect_equal(unname(got$hat), unname(ref$hat), tolerance = 1e-10, info = info)
+  }
   d$pre_obs <- ifelse(d$pretested == 1, d$pre - mean(d$pre, na.rm = TRUE), 0)
+  # Two rows with a prior weight of zero, which the decomposition leaves out.
+  d$w <- replace(rep(1, nrow(d)), c(1, 70), 0)
   models <- list(
     gaussian = stats::glm(y_g ~ treat * pretested + pre_obs + age + z, data = d,
                           na.action = stats::na.exclude),
     logit = stats::glm(y_b ~ treat * pretested + pre_obs + age + z, data = d,
                        family = stats::binomial(), na.action = stats::na.exclude),
     negbin = MASS::glm.nb(y_nb ~ treat * pretested + pre_obs + age + z, data = d,
+                          na.action = stats::na.exclude),
+    weighted = stats::glm(y_g ~ treat * pretested + pre_obs + age + z, data = d, weights = w,
                           na.action = stats::na.exclude)
   )
   for (name in names(models)) {
-    got <- .glm_influence(models[[name]])
-    ref <- cross_products(models[[name]])
-    expect_equal(unname(got$influence), unname(ref$influence), tolerance = 1e-10, info = name)
-    expect_identical(colnames(got$influence), colnames(ref$influence))
-    expect_equal(got$hat, unname(ref$hat), tolerance = 1e-10, info = name)
+    model <- models[[name]]
+    got <- .glm_influence(model)
+    same(got, cross_products(model), name)
+    # Without the fit's decomposition, the weighted design is decomposed
+    # again.
+    model$qr <- NULL
+    same(.glm_influence(model), got, paste(name, "decomposed again"))
+  }
+  zero <- models$weighted$weights == 0
+  expect_equal(sum(zero), 2L)
+  expect_true(all(got$influence[zero, ] == 0))
+  expect_true(all(got$hat[zero] == 0))
+})
+
+test_that("the influence functions stay accurate when a covariate is far from zero", {
+  # The cross-products of this design are numerically singular. The
+  # influence on every coefficient but the intercept, and the hat values,
+  # do not depend on where the covariate lies.
+  d <- location_data()$four
+  d$pre_obs <- ifelse(d$pretested == 1, d$pre - mean(d$pre, na.rm = TRUE), 0)
+  d$far <- d$z + 1e7
+  terms <- c("treat", "pretested", "pre_obs", "treat:pretested")
+  for (y in c("y_g", "y_b")) {
+    family <- if (y == "y_g") stats::gaussian() else stats::binomial()
+    fit_with <- function(z) {
+      stats::glm(stats::as.formula(paste(y, "~ treat * pretested + pre_obs +", z)), data = d,
+                 family = family, na.action = stats::na.exclude)
+    }
+    far <- fit_with("far")
+    near <- fit_with("z")
+    X <- stats::model.matrix(far)
+    expect_error(solve(crossprod(X, far$weights * X)), "singular")
+    got <- .glm_influence(far)
+    ref <- .glm_influence(near)
+    expect_equal(got$influence[, terms], ref$influence[, terms], tolerance = 1e-6, info = y)
+    expect_equal(got$influence[, "far"], ref$influence[, "z"], tolerance = 1e-6, info = y)
+    expect_equal(got$hat, ref$hat, tolerance = 1e-6, info = y)
   }
 })
 

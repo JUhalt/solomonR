@@ -270,31 +270,29 @@ NULL
 # the influence is R^{-1} q_i w_i^(1/2) e_i and the hat value is ||q_i||^2,
 # with q_i the ith row of Q. Forming X'WX instead squares the condition
 # number of the design, so that a covariate far from zero relative to its
-# spread made it numerically singular (issue #137). The decomposition leaves
-# out the rows whose working weight is zero; the cross-products are then
-# used.
+# spread made it numerically singular (issue #137). The decomposition holds
+# the rows whose working weight is positive: a row of weight zero, which
+# glm.fit() leaves out, has no influence and a hat value of zero. Should the
+# fit hold no decomposition of exactly those rows, the weighted design is
+# decomposed again, with the fit's tolerance.
 .glm_influence <- function(model) {
   cf <- stats::coef(model)
   w <- model$weights
   e <- model$residuals
+  good <- w > 0
   q <- model$qr
-  if (is.null(q) || nrow(q$qr) != length(w)) {
-    X <- stats::model.matrix(model)
-    X <- X[, !is.na(cf), drop = FALSE]
-    bread <- solve(crossprod(X, w * X))
-    return(list(
-      influence = (X * (w * e)) %*% bread,
-      hat = rowSums((X %*% bread) * X) * w
-    ))
+  if (is.null(q) || nrow(q$qr) != sum(good)) {
+    X <- stats::model.matrix(model)[good, , drop = FALSE]
+    q <- qr(sqrt(w[good]) * X, tol = if (is.null(q$tol)) 1e-11 else q$tol)
   }
   rank <- seq_len(q$rank)
   Q <- qr.Q(q)[, rank, drop = FALSE]
-  influence <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE], t(Q * (sqrt(w) * e))))
-  colnames(influence) <- names(cf)[q$pivot[rank]]
-  list(
-    influence = influence[, names(cf)[!is.na(cf)], drop = FALSE],
-    hat = rowSums(Q^2)
-  )
+  influence <- matrix(0, length(w), q$rank, dimnames = list(NULL, names(cf)[q$pivot[rank]]))
+  influence[good, ] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE],
+                                   t(Q * (sqrt(w[good]) * e[good]))))
+  hat <- numeric(length(w))
+  hat[good] <- rowSums(Q^2)
+  list(influence = influence[, names(cf)[!is.na(cf)], drop = FALSE], hat = hat)
 }
 
 # The variance that estimated sample means add to a contrast evaluated at
