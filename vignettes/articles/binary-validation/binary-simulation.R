@@ -49,6 +49,23 @@ effects <- list(
   sensitization = c(bT = 0, bP = 0, bTP = log(2))
 )
 
+# The rows of several data frames in one, as dplyr::bind_rows() bound them
+# before #84 removed dplyr from the package's dependencies: the columns of
+# all of them, in the order in which they first appear, with NA where a data
+# frame lacks one (only the conditional-logit rows have `mean_estimate`), a
+# logical column of NA taking the type of the values bound to it, and
+# automatic row names.
+bind_rows_filled <- function(dfs) {
+  cols <- unique(unlist(lapply(dfs, names)))
+  dfs <- lapply(dfs, function(d) {
+    for (m in setdiff(cols, names(d))) d[[m]] <- NA
+    d[cols]
+  })
+  out <- do.call(rbind, dfs)
+  rownames(out) <- NULL
+  out
+}
+
 run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
   cache_file <- file.path(cache_dir, sprintf("scenario-%02d.rds", s$scenario))
   if (file.exists(cache_file)) return(readRDS(cache_file))
@@ -223,7 +240,7 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
     rejection_mcse = sqrt(mean(fisher_rule) * (1 - mean(fisher_rule)) / reps),
     stringsAsFactors = FALSE
   )
-  out <- do.call(dplyr::bind_rows, rows)
+  out <- bind_rows_filled(rows)
   out$fit_failures <- sum(fit_failed)
   out$unadjusted_failures <- sum(un_failed)
   out$interval_failures <- sum(interval_failed)
@@ -239,12 +256,13 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
 started <- Sys.time()
 cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
+parallel::clusterExport(cl, "bind_rows_filled")
 order_run <- order(-scenarios$n)  # largest scenarios first, for load balance
 results <- parallel::parLapplyLB(cl, split(scenarios[order_run, ], seq_along(order_run)),
                                  run_scenario, reps = reps, boot_R = boot_R,
                                  pkg_dir = pkg_dir, effects = effects,
                                  cache_dir = normalizePath(cache_dir))
-performance <- dplyr::bind_rows(results)
+performance <- bind_rows_filled(results)
 performance <- merge(scenarios, performance, by = "scenario")
 performance <- performance[order(performance$scenario, performance$method,
                                  performance$scale, performance$contrast), ]
