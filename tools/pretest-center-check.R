@@ -187,6 +187,16 @@
 #   and 2; M4 A 0.184 and 0.181, B 0.004 and -0.000; M2 A = B -0.000 and
 #   -0.067; M3 A 0.002 and 0.002, B -0.177 and -0.179.
 #   Part 6: A 2.9583, B 1.9694.
+#
+# RESULT OF THE RERUN AFTER REVIEW (added after it; part 8 and its header
+# entry were written before it)
+# October 31, 2026, R 4.6.1, one process, 10.6 minutes (another R job ran
+# beside it), parts 1 to 6 and 8. All checks passed. Parts 1 to 6 gave the
+# values above again, to every digit of the csv.
+#   Part 8 (share of 1,000 data sets in which the rule fires): S1 .057 at
+#   200 per group and .044 at 50; MCAR .058 and .045 (nominal .05,
+#   tolerance .017); S3 1.000 and .702. In every data set the statistic was
+#   the same with the pretest in other units.
 
 args <- commandArgs(trailingOnly = TRUE)
 out_csv <- if (length(args) >= 1L) args[1] else file.path("tools", "pretest-center-check.csv")

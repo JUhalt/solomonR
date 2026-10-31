@@ -115,3 +115,9 @@
 5,"M3","observed","Pretest main effect, occasion 2","mean",40,-0.17914357585244,0.0039116601020398,0.0247395107097049,NA,NA,NA
 6,"article","analyzed","Pretest main effect","value",1,2.95826383025183,NA,NA,2.96,0.005,TRUE
 6,"article","observed","Pretest main effect","value",1,1.96935841171144,NA,NA,1.969,5e-04,TRUE
+8,"S1, 200 per group",NA,"selection shifts differ (Wald test, p < .05)","rejection",1000,0.057,0.00733150734842433,NA,0.05,0.0172142470138314,TRUE
+8,"S1, 50 per group",NA,"selection shifts differ (Wald test, p < .05)","rejection",1000,0.044,0.00648567652600714,NA,0.05,0.0172142470138314,TRUE
+8,"MCAR, 200 per group",NA,"selection shifts differ (Wald test, p < .05)","rejection",1000,0.058,0.00739161687318817,NA,0.05,0.0172142470138314,TRUE
+8,"MCAR, 50 per group",NA,"selection shifts differ (Wald test, p < .05)","rejection",1000,0.045,0.00655553201502365,NA,0.05,0.0172142470138314,TRUE
+8,"S3, 200 per group",NA,"selection shifts differ (Wald test, p < .05)","rejection",1000,1,0,NA,NA,NA,TRUE
+8,"S3, 50 per group",NA,"selection shifts differ (Wald test, p < .05)","rejection",1000,0.702,0.0144636095080032,NA,NA,NA,TRUE
