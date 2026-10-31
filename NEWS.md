@@ -161,7 +161,7 @@ reasons are set out in the decision record posted on #135.
   folder of the articles, at any depth, that way, and fails if one fails,
   has no smoke mode, or runs longer than `SOLOMONR_SMOKE_TIMEOUT` seconds,
   or if a file of the package changes. A new GitHub Actions workflow runs
-  it on pushes and pull requests to master; it has not yet run on GitHub.
+  it on pushes and pull requests to master; its first run, on #144, passed.
   The check is not part of `R CMD check`.
 * The confirmatory studies of the multiple-imputation (#82) and
   repeated-measures (#57) functions, planned under #117, will be reported
