@@ -67,7 +67,7 @@ reasons are set out in the decision record posted on #135.
   pp. 301–302); each pretested condition's selection shift, with its
   standard error and a Wald test of equal shifts, and the raw comparison of
   posttest means when that test gives p < .05 (#143); the gap between the
-  centers (What Works Clearinghouse, 2022, Equation H.2) and the delta
+  centers (What Works Clearinghouse, 2022, Equation H.2, p. 207) and the delta
   line; loss by each covariate within each pretest condition (Lee, 2005,
   Remark 4, p. 16; Groenwold et al., 2014), by Fisher's exact test for two
   levels and a simulated p-value for more; the pretested participants with

@@ -274,10 +274,10 @@ fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pr
       change[1] - (change[2] + change[3] - change[4])
     list(pre = pre, change = change, I = I)
   }
-  # The default infers the pretest from the participants with both scores,
-  # as Solomon's tables do (issue #135); "observed" from every observed
-  # pretest of the pretested groups. The two are the same number when no
-  # pretested participant with a pretest lacks a posttest.
+  # The default, like a table of group means, infers the pretest from the
+  # participants with both scores (issue #135); "observed" from every
+  # observed pretest of the pretested groups. The two are the same number
+  # when no pretested participant with a pretest lacks a posttest.
   i_analyzed <- infer(pre_mean, n)
   i_observed <- if (individual) infer(observed_mean, observed_n) else NA_real_
   i <- if (pretest_center == "analyzed") i_analyzed else i_observed
