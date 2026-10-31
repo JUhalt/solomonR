@@ -97,9 +97,9 @@
   covariate with a standard deviation of 10^6; the corrected values can
   change the last printed digit of an interval or a p-value. Fits whose
   covariates are on scales far from 1, which stopped under HC3 and CR2,
-  now succeed. The contrasts of the SEM ANCOVA move by the optimizer's
-  tolerance, about 1e-7 of their value, and their p-values by up to about
-  5e-6 of theirs.
+  now succeed. The contrasts of the SEM ANCOVA move by the convergence
+  tolerance of lavaan's optimization, about 1e-7 of their value, and their
+  p-values by up to about 5e-6 of theirs.
 * Other changes. With a pretest or a numeric covariate, `fit_solomon_glm()`
   fits the model twice, as given and standardized. Under CR2 with a
   pretest or a numeric covariate, `vcov` is now a plain matrix rather than
