@@ -13,7 +13,11 @@ jobs:
   validation-scripts:
     name: Smoke runs of the validation scripts
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The scripts took 36 minutes in all on a laptop (issue #140); the job
+    # has not yet been timed on GitHub. A script that hangs is stopped after
+    # SOLOMONR_SMOKE_TIMEOUT seconds, well within this limit, so the check
+    # still prints its table and the end of the log.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
 
@@ -38,4 +42,6 @@ jobs:
       # a few scenarios in a temporary folder (issue #140). The check fails
       # if a script fails or if a file of the package changes.
       - name: Run the validation scripts in smoke mode
+        env:
+          SOLOMONR_SMOKE_TIMEOUT: 900
         run: Rscript tools/check-validation-scripts.R

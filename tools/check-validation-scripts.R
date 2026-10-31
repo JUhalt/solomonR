@@ -3,22 +3,27 @@
 #
 #   Rscript tools/check-validation-scripts.R [pattern]
 #
-# Each simulation script behind a validation article,
-# vignettes/articles/*-validation/*.R, has a smoke mode: with the environment
-# variable SOLOMONR_SMOKE_DIR set, it runs SOLOMONR_SMOKE_REPS replications
-# (default 2) of a few scenarios, writes everything under that folder, and
-# stops if a replication caught an error or gave no usable result. This
-# check runs every script that way, each in a new R process, so that a change
-# to the package's output that breaks a script, or makes it store the wrong
-# rows, is found before the next full run. It fails if a script fails, if a
-# script has no smoke mode, or if a file of the package changes, disappears,
-# or appears, so the stored results are never touched.
+# Each simulation script behind a validation article, every .R file in a
+# vignettes/articles/*-validation/ folder or in a folder below it, has a smoke
+# mode: with the environment variable SOLOMONR_SMOKE_DIR set, it runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of a few scenarios, writes
+# everything under that folder, and stops if a replication caught an error or
+# gave no usable result. This check runs every script that way, each in a new
+# R process, so that a change to the package's output that breaks a script,
+# or makes it store the wrong rows, is found before the next full run. It
+# fails if a script fails, if a script has no smoke mode, or if a file of the
+# package changes, disappears, or appears, so the stored results are never
+# touched. A script that another script only sources is listed in
+# `sourced_by` below and passes or fails with that script.
 #
 # `pattern`, a regular expression, runs only the scripts whose paths match
-# it, with the scripts they need. SOLOMONR_SMOKE_DIR, if set, names the
+# it, with the scripts they need; a pattern that matches a sourced script
+# runs the script that sources it. SOLOMONR_SMOKE_DIR, if set, names the
 # folder for the outputs and the logs, which must be empty or absent and
 # outside the package; otherwise a temporary folder is used, and it is
-# removed when the check ends. Each script may take up to 30 minutes.
+# removed when the check ends. Each script may take up to
+# SOLOMONR_SMOKE_TIMEOUT seconds (default 1800), after which it is stopped
+# and fails.
 #
 # The check itself uses base R. The scripts need pkgload and the packages
 # that DESCRIPTION lists, lavaan and mmrm included. It is not part of
@@ -26,7 +31,10 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 pattern <- if (length(args) >= 1) args[[1]] else ""
-timeout <- 1800  # seconds per script
+timeout <- suppressWarnings(as.integer(Sys.getenv("SOLOMONR_SMOKE_TIMEOUT", "1800")))
+if (is.na(timeout) || timeout < 1L) {
+  stop("SOLOMONR_SMOKE_TIMEOUT must be a whole number of seconds.", call. = FALSE)
+}
 
 if (!file.exists("DESCRIPTION") ||
     !identical(unname(read.dcf("DESCRIPTION", fields = "Package")[1, 1]), "solomonR")) {
@@ -39,9 +47,17 @@ articles <- file.path("vignettes", "articles")
 sourced_by <- c("ngroup-validation/ngroup-summarize.R" = "ngroup-validation/ngroup-simulation.R")
 runs_after <- c("mi-validation/mi-agreement.R" = "mi-validation/mi-simulation.R")
 
-found <- sort(substring(Sys.glob(file.path(articles, "*-validation", "*.R")), nchar(articles) + 2L))
+# Every .R file in a *-validation folder, at any depth, as a path relative to
+# vignettes/articles.
+folders <- list.dirs(articles, full.names = FALSE, recursive = FALSE)
+folders <- folders[grepl("-validation$", folders)]
+found <- sort(unlist(lapply(folders, function(d) {
+  file.path(d, list.files(file.path(articles, d), pattern = "[.][Rr]$", recursive = TRUE))
+})))
 runnable <- setdiff(found, names(sourced_by))
-selected <- runnable[grepl(pattern, runnable)]
+matching <- found[grepl(pattern, found)]
+selected <- union(intersect(matching, runnable),
+                  unname(sourced_by[intersect(names(sourced_by), matching)]))
 selected <- union(selected, unname(runs_after[intersect(names(runs_after), selected)]))
 if (!length(selected)) stop("No validation script matches \"", pattern, "\".", call. = FALSE)
 # Alphabetical order, with each dependent script right after the one it reads.
@@ -52,8 +68,23 @@ for (s in intersect(names(runs_after), selected)) {
 }
 
 package_root <- normalizePath(".", winslash = "/")
+# A path made absolute through its deepest folder that exists, which
+# normalizePath() resolves on every platform, so that a folder that does not
+# exist yet can be placed before it is created.
+absolute_path <- function(path) {
+  path <- path.expand(path)
+  rest <- character()
+  while (!dir.exists(path) && !identical(dirname(path), path)) {
+    rest <- c(basename(path), rest)
+    path <- dirname(path)
+  }
+  do.call(file.path, as.list(c(normalizePath(path, winslash = "/"), rest)))
+}
 smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
 if (nzchar(smoke_dir)) {
+  if (startsWith(tolower(paste0(absolute_path(smoke_dir), "/")), tolower(paste0(package_root, "/")))) {
+    stop("SOLOMONR_SMOKE_DIR must be outside the package.", call. = FALSE)
+  }
   if (dir.exists(smoke_dir) && length(list.files(smoke_dir, all.files = TRUE, no.. = TRUE))) {
     stop("SOLOMONR_SMOKE_DIR must be empty or absent: the scripts would reuse what is ",
          "cached there.", call. = FALSE)
@@ -63,9 +94,6 @@ if (nzchar(smoke_dir)) {
 }
 dir.create(smoke_dir, recursive = TRUE, showWarnings = FALSE)
 smoke_dir <- normalizePath(smoke_dir, winslash = "/")
-if (startsWith(tolower(paste0(smoke_dir, "/")), tolower(paste0(package_root, "/")))) {
-  stop("SOLOMONR_SMOKE_DIR must be outside the package.", call. = FALSE)
-}
 log_dir <- file.path(smoke_dir, "logs")
 dir.create(log_dir, showWarnings = FALSE)
 reps <- Sys.getenv("SOLOMONR_SMOKE_REPS", "2")
@@ -81,14 +109,18 @@ snapshot <- function() {
 before <- snapshot()
 
 rscript <- file.path(R.home("bin"), "Rscript")
+# The log of a script, named by its path, so that scripts of the same name in
+# different folders keep their own logs.
+log_of <- function(s) file.path(log_dir, paste0(gsub("/", "__", sub("[.][Rr]$", "", s)), ".log"))
 cat("Validation scripts in smoke mode: ", length(ordered), ", with ", reps,
-    " replications each. Outputs and logs: ", smoke_dir, "\n\n", sep = "")
+    " replications each and at most ", timeout, " seconds each. Outputs and logs: ",
+    smoke_dir, "\n\n", sep = "")
 results <- data.frame(script = ordered, result = NA_character_, seconds = NA_real_,
                       note = "", stringsAsFactors = FALSE)
 for (i in seq_along(ordered)) {
   s <- ordered[i]
   path <- file.path(articles, s)
-  log <- file.path(log_dir, paste0(sub("[.]R$", "", basename(s)), ".log"))
+  log <- log_of(s)
   prereq <- unname(runs_after[s])
   if (!any(grepl("SOLOMONR_SMOKE_DIR", readLines(path, warn = FALSE), fixed = TRUE))) {
     results$result[i] <- "FAIL"
@@ -146,7 +178,7 @@ cat(sprintf("  %-*s  %-6s %8s  %s\n", width, results$script, results$result,
 
 failed <- results$script[results$result != "pass" & !is.na(results$seconds)]
 for (s in failed) {
-  log <- file.path(log_dir, paste0(sub("[.]R$", "", basename(s)), ".log"))
+  log <- log_of(s)
   lines <- if (file.exists(log)) readLines(log, warn = FALSE) else "(no log)"
   cat("\n---- Last lines of the log of ", s, " ----\n", sep = "")
   cat(utils::tail(lines, 40), sep = "\n")
