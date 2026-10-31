@@ -158,11 +158,18 @@
 #'   pretest (without using treatment or outcome), with a missingness indicator
 #'   when pretests may not be missing completely at random, retains these
 #'   participants without biasing the treatment effect (White & Thompson,
-#'   2005; Groenwold et al., 2012).
-#' - **Incidental posttest missingness**: missing outcomes. Complete-case
-#'   analysis is unbiased when missingness is unrelated to the outcome given
-#'   the variables in the model (Little & Rubin, 2019); attrition that differs
-#'   across the groups should be reported.
+#'   2005; Groenwold et al., 2012). This concerns the treatment effect only:
+#'   every fit with the pretest as a covariate drops these participants from
+#'   the pretest effects, at either pretest center, and when their loss
+#'   relates to baseline those effects are biased while a fit without the
+#'   pretest is not (issue #142).
+#' - **Incidental posttest missingness**: missing outcomes. For the treatment
+#'   contrasts, complete-case analysis is unbiased when missingness is
+#'   unrelated to the outcome given the variables in the model (Little &
+#'   Rubin, 2019); attrition that differs across the groups should be
+#'   reported. The pretest effects also depend on the mean pretest at which
+#'   the pretested groups are compared; see "Missing posttests and the
+#'   pretest effects" below.
 #' - **Unexpected pretest scores**: pretest values recorded for unpretested
 #'   participants, which usually indicate a coding or assignment error. They
 #'   are ignored by solomonR analyses.
@@ -180,6 +187,62 @@
 #' perform imputation, or provide sensitivity analyses for outcome
 #' missingness that depends on unobserved values.
 #'
+#' @section Missing posttests and the pretest effects:
+#' With a pretest covariate, the pretest effects compare the pretested groups,
+#' at a mean pretest, with the unpretested groups, and when posttests are
+#' missing that mean can be taken over the pretested participants analyzed
+#' (the default of [fit_solomon_glm()]) or over every observed pretest
+#' (`pretest_center = "observed"`); see "The pretest effect when posttests
+#' are missing" in [fit_solomon_glm()]. The data cannot tell which is right.
+#' The result gives the checks of the decision record on issue #135
+#' (section 5), and the print method summarizes them:
+#' 1. **Posttests missing by group**: the overall rate, and the differential
+#'    attrition between the pretest conditions and between the conditions
+#'    (What Works Clearinghouse, 2022, p. 40). Equal rates do not show that
+#'    the same kinds of participants were lost (Campbell & Stanley,
+#'    1963/1966, pp. 15--16). When Fisher's exact test of loss by pretest
+#'    condition gives p < .05, the print says that the loss rates differ,
+#'    which suggests that taking the pretest changed attrition, so that
+#'    neither center is assured. That rule is the package's: no source fixes
+#'    one for the pretest conditions.
+#' 2. **Pretest scores of those lost**: for each pretested group, the mean
+#'    pretest of the participants with and without a posttest (Campbell,
+#'    1957, pp. 301--302; Campbell & Stanley, 1963/1966, pp. 15--16).
+#' 3. **Selection by condition**: each pretested condition's selection
+#'    shift, the mean pretest of those with a posttest minus that of every
+#'    participant with a pretest. When the shifts differ at the two decimals
+#'    printed (the package's rule), the conditions may have lost different
+#'    kinds of participants: the pooled center then misstates the
+#'    conditional pretest effects, and Pretest x Treatment is biased at
+#'    every center (issue #143). The pretest effects of a fit without the
+#'    pretest, the raw comparison of posttest means in each condition, are
+#'    then given.
+#' 4. **The gap between the centers**: the pretest effects at the analyzed
+#'    center minus those at the observed center, b m1 (completers' minus
+#'    dropouts' mean pretest), with b the pretest slope and m1 the share of
+#'    pretested participants with a pretest who are not analyzed, from a fit
+#'    on the identity link with `covariates`.
+#' 5. **The unpretested groups**: for each, its share without a posttest,
+#'    m0, and the offset the default assumes for its dropouts, the delta
+#'    line of [fit_solomon_glm()]. A group that lost no posttests is named:
+#'    if the data hold everyone randomized to it, the default's assumption
+#'    holds in that condition only if the pretested losses were unrelated to
+#'    baseline.
+#' 6. **Covariates recorded in all groups** (`covariates`): loss by covariate
+#'    within each pretest condition, with Fisher's exact test for a
+#'    covariate with levels, and the covariate's distribution among the
+#'    participants with a posttest. Dukes et al. (1995, p. 413) compared the
+#'    course grades of the students lost in this way. A covariate that
+#'    predicts the posttest belongs in the model; that it weakens both
+#'    centers' assumptions is the record's inference, not a checked result.
+#' 7. **Pretested participants with a posttest and no pretest**: their number
+#'    and mean posttest beside those of the pretested participants with both
+#'    scores, and the raw comparison, which keeps them (issue #142).
+#' 8. **What cannot be checked**: the unpretested groups' losses cannot be
+#'    checked against baseline (Campbell, 1957, p. 305). When only those
+#'    groups lost posttests, the two centers coincide, but neither is
+#'    protected.
+#'
 #' @param y_post Numeric posttest scores.
 #' @param treat Treatment indicator coded 0/1 (or logical); or a factor or
 #'   character vector of conditions, with the control named by `control`.
@@ -193,6 +256,10 @@
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
 #'   strings (`y_post = "post"`).
+#' @param covariates Optional covariates recorded in all groups, such as
+#'   gender: a data frame, or, with `data`, the names of its columns. They
+#'   enter the fit behind the gap and the delta line, and loss is shown by
+#'   each of them (see "Missing posttests and the pretest effects").
 #' @return An object of class `solomon_missing`, a list with:
 #'   - `by_cell`: the counts in each Solomon cell, in the columns `group`,
 #'     `cell`, `pretested`, `treat`, `n`, `posttest_missing`,
@@ -204,10 +271,57 @@
 #'     `n`, `interpretation`, `response`, and `sources`).
 #'   - `pretest_supplied`: whether pretest scores were supplied.
 #'
+#'   The checks of missing posttests for the pretest effects (see "Missing
+#'   posttests and the pretest effects"), the elements that need a pretest
+#'   being `NULL` without `y_pre`:
+#'   - `attrition`: `groups`, each group's `condition`, `pretested`, `n`,
+#'     `posttest_missing`, and `share`; `overall`, the share missing;
+#'     `by_pretest`, the shares of the pretested and the unpretested;
+#'     `pretest_difference`, the first minus the second; `by_condition`,
+#'     the share missing in each condition; `condition_difference`, the
+#'     largest difference between conditions; `p.value`, Fisher's exact test
+#'     of loss by pretest condition; and `differ`, whether it is below .05.
+#'   - `pretest_scores`: for each pretested condition, `n` participants with
+#'     a pretest and their mean pretest `mean_all`; `n_with` and `mean_with`
+#'     for those with a posttest; `n_without` and `mean_without` for those
+#'     without; `difference` (without minus with); and `shift` (with minus
+#'     all). `selection_differ` says whether the shifts differ.
+#'   - `gap`: `slope`, `m1`, the mean pretest of the pretested participants
+#'     `analyzed` and `not_analyzed`, the `gap` between the centers, and
+#'     `predicted`, what the pretested dropouts' pretests predict for them.
+#'   - `unpretested`: for each unpretested group, `condition`, `n`,
+#'     `posttest_missing`, `m0`, and `delta`, the offset the default assumes.
+#'   - `covariates`: one table for each covariate: by pretest condition and
+#'     level, `n`, `posttest_missing`, `share`, `analyzed_share`, and
+#'     `p.value`; or, for a covariate with more than two values, its mean
+#'     among those with (`mean_with`) and without (`mean_without`) a
+#'     posttest. `NULL` without `covariates`.
+#'   - `missing_pretest`: for each pretested condition, the participants
+#'     with a posttest and no pretest (`n_without_pretest`,
+#'     `mean_without_pretest`, their mean posttest) and those with both
+#'     scores (`n_with_pretest`, `mean_with_pretest`).
+#'   - `raw_pretest_effects`: the pretest effects of a fit without the
+#'     pretest, in the columns of an effects table, when the selection
+#'     differs or a pretested participant lacks a pretest; otherwise `NULL`.
+#'   - `unverifiable`: whether any unpretested posttest is missing.
+#'
 #'   For a design with several treatments, `by_cell` has one row for each of
 #'   the 2(k + 1) groups, its `treat` column holds the condition, and
 #'   `conditions` names the control and the treatments.
 #' @references
+#' Campbell, D. T. (1957). Factors relevant to the validity of experiments in
+#' social settings. *Psychological Bulletin, 54*(4), 297–312.
+#' https://doi.org/10.1037/h0040950
+#'
+#' Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
+#' quasi-experimental designs for research*. Rand McNally. (Original work
+#' published 1963)
+#'
+#' Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of D.A.R.E.
+#' (Drug Abuse Resistance Education), using a Solomon four-group design with
+#' latent variables. *Evaluation Review, 19*(4), 409–435.
+#' https://doi.org/10.1177/0193841X9501900404
+#'
 #' Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 #' Planned missing data designs in psychological research. *Psychological
 #' Methods, 11*(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
@@ -235,6 +349,11 @@
 #' this exemplary model? *Design Principles and Practices: An International
 #' Journal—Annual Review, 3*(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
 #'
+#' What Works Clearinghouse. (2022). *What Works Clearinghouse procedures and
+#' standards handbook, version 5.0* (WWC 2022008REV). U.S. Department of
+#' Education, Institute of Education Sciences, National Center for Education
+#' Evaluation and Regional Assistance. https://ies.ed.gov/ncee/wwc/Handbooks
+#'
 #' White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 #' baseline measurements in randomized trials. *Statistics in Medicine, 24*(7),
 #' 993–1007. https://doi.org/10.1002/sim.1981
@@ -251,26 +370,32 @@
 #' d$y_post[which(d$pretested == 0)[1]] <- NA
 #' with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
 #'
-#' # A six-group design: two treatments and a control (Mai et al., 2020).
+#' # A six-group design: two treatments and a control (Mai et al., 2020),
+#' # with loss by gender in each pretest condition.
 #' check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
-#'                       control = "Control", data = mai2020)
+#'                       control = "Control", data = mai2020, covariates = "gender")
 #' @export
 check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
-                                  control = NULL, data = NULL) {
+                                  control = NULL, data = NULL, covariates = NULL) {
   .solomon_data_args(
-    data, c("y_post", "treat", "pretested", "y_pre"),
-    environment(), parent.frame()
+    data, c("y_post", "treat", "pretested", "y_pre", "covariates"),
+    environment(), parent.frame(), as_frame = "covariates"
   )
 
+  treat_given <- treat
   design <- .solomon_conditions(treat, control)
   several <- design$k > 1L
   treat <- if (several) design$condition else design$treat
   pretested <- .solomon_indicator(pretested, "pretested")
+  if (!is.null(covariates) && !is.data.frame(covariates)) {
+    covariates <- as.data.frame(covariates)
+  }
   .solomon_check_lengths(
     y_post = y_post,
     treat = treat,
     pretested = pretested,
-    y_pre = y_pre
+    y_pre = y_pre,
+    covariates = covariates
   )
 
   has_pre <- !is.null(y_pre)
@@ -369,16 +494,21 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
         "treatment is randomized, deterministic mean imputation of the pretest",
         "(without using treatment or outcome), with a missingness indicator when",
         "pretests may not be missing completely at random, retains these",
-        "participants without biasing the treatment effect. If the pretest was",
-        "never administered, report the departure and analyze participants as",
+        "participants without biasing the treatment effect. That holds for the",
+        "treatment effect only: the pretest effects of a fit with the pretest drop",
+        "these participants at either pretest center, and are biased when their",
+        "loss relates to baseline (issue #142). If the pretest was never",
+        "administered, report the departure and analyze participants as",
         "assigned."
       ),
       paste(
-        "Complete-case analysis is unbiased when missingness is unrelated to the",
-        "outcome given the variables in the model. Report missingness by cell,",
-        "because attrition that differs across the", .count_word(nrow(cells)),
-        "groups can undermine the randomized comparisons, and consider",
-        "sensitivity analyses if missingness may depend on the unobserved",
+        "For the treatment contrasts, complete-case analysis is unbiased when",
+        "missingness is unrelated to the outcome given the variables in the model.",
+        "The pretest effects also depend on the mean pretest at which they are",
+        "evaluated; see `pretest_center` in fit_solomon_glm() and the diagnostics",
+        "below. Report missingness by cell, because attrition that differs across the",
+        .count_word(nrow(cells)), "groups can undermine the randomized comparisons, and",
+        "consider sensitivity analyses if missingness may depend on the unobserved",
         "outcome."
       ),
       paste(
@@ -414,6 +544,19 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
   if (several) {
     out$conditions <- .conditions_table(design)
   }
+
+  # The diagnostics of missing posttests for the pretest effects (issue
+  # #135). The conditions of a design with several treatments are named;
+  # those of a four-group design are "control" and "treatment", as in
+  # `by_cell`, however `treat` was coded.
+  levels <- if (several) c(design$control, design$treatments) else c("control", "treatment")
+  condition <- if (several) {
+    as.character(design$condition)
+  } else {
+    ifelse(design$treat %in% 1L, levels[2], ifelse(design$treat %in% 0L, levels[1], NA_character_))
+  }
+  out <- c(out, .missing_diagnostics(y_post, treat_given, control, condition, levels, pretested,
+                                     y_pre, covariates))
 
   structure(out, class = "solomon_missing")
 }
@@ -911,6 +1054,11 @@ print.solomon_missing <- function(x, ...) {
       cat("  Sources: ", g$sources, "\n", sep = "")
     }
   }
+
+  # The diagnostics of missing posttests for the pretest effects (issue
+  # #135); results made by earlier versions have none.
+  lines <- .missing_diagnostic_lines(x)
+  if (length(lines)) cat("\n", paste(lines, collapse = "\n"), "\n", sep = "")
 
   invisible(x)
 }
