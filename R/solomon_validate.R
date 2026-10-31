@@ -216,8 +216,10 @@
 #'    posttest has a shift of exactly 0. When the test gives p < .05 (the
 #'    package's rule; no source fixes one), the conditions may have lost
 #'    different kinds of participants. Neither center then gives both
-#'    conditional pretest effects: in the decision record's case S3 the
-#'    default misstated both, although not their average when the pretested
+#'    conditional pretest effects: in the decision record's case S3 (losses
+#'    by baseline in the control arms and at random in the treated arms,
+#'    alike in both pretest conditions) the default misstated both,
+#'    although not their average when the pretested
 #'    groups kept equal numbers, and the observed center misstated one of
 #'    them and their average. Pretest x Treatment is biased at every center
 #'    (issue #143). The pretest effects of a fit without the pretest, the

@@ -899,7 +899,9 @@ stouffer_solomon <- function(p) {
 #'   model has.
 #' - If the treatment conditions lost different kinds of participants,
 #'   neither center gives both conditional pretest effects: in the record's
-#'   case S3 the default misstated both, although not their average when
+#'   case S3 (losses by baseline in the control arms and at random in the
+#'   treated arms, alike in both pretest conditions) the default misstated
+#'   both, although not their average when
 #'   the pretested groups kept equal numbers, and the observed center
 #'   misstated one of them and their average. Pretest x Treatment is then
 #'   biased at every center (issue #143). [check_solomon_missing()] tests
