@@ -825,6 +825,7 @@
     e$statistic <- NA_real_
     results <- paste0("On the risk difference scale: ",
                       paste(.contrast_sentences(e, fit$conf_level, digits, md), collapse = " "))
+    results <- c(results, .attrition_sentences(fit$attrition, FALSE, "Outcomes were missing"))
     return(list(method = method, results = results, table = fit$effects, refs = "hayes2017",
                 cells = NULL))
   }
@@ -857,8 +858,9 @@
                  collapse = " "))
   }))
   # The two standardizations of the pretested cells, when they differ
-  # (issue #135).
-  results <- c(results, .marginal_center_sentences(fit, digits))
+  # (issue #135), and the attrition whenever an outcome is missing.
+  results <- c(results, .marginal_center_sentences(fit, digits),
+               .attrition_sentences(fit$attrition, FALSE, "Outcomes were missing"))
   list(method = method, results = results, table = fit$effects, refs = refs, cells = NULL)
 }
 
@@ -1914,7 +1916,9 @@
       sprintf("The interaction equals the posttest interaction contrast, %s, less the pretest difference between the two pretested groups, %s.",
               .apa_num(fit$posttest_contrast, digits), .apa_num(fit$pretest_difference, digits))
     },
-    # The two inferred pretests, when posttests are missing (issue #135).
+    # The attrition whenever a posttest is missing, and the two inferred
+    # pretests when they differ (issue #135).
+    .attrition_sentences(fit$attrition, FALSE),
     .solomon_1949_center_sentences(fit, digits, md),
     sprintf(paste0(
       "Solomon (1949) gave no standard error or test for %s and judged the interaction from ",

@@ -128,6 +128,10 @@
 #'     the three-group design) at both centers, one row for each `center`;
 #'     `NULL` with group means. The print and [report_solomon()] give the
 #'     other center when the two inferred pretests differ.
+#'   - `attrition`: with individual data, each group's participants `n`
+#'     (with a recorded group), those without a posttest
+#'     (`posttest_missing`), and their `share`, for the attrition line of
+#'     the print and the report; `NULL` with group means.
 #'
 #'   Solomon (1949) gave point estimates without a test, so the result has
 #'   no effects table; see [solomon_output].
@@ -188,7 +192,7 @@ fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pr
   # observed pretest, with or without a posttest (issue #135), from which
   # `pretest_center = "observed"` infers the pretest. With group means they
   # are `pre_mean` and `n`.
-  observed_mean <- observed_n <- NULL
+  observed_mean <- observed_n <- attrition <- NULL
   if (individual) {
     if (is.null(treat) || is.null(pretested) || is.null(y_pre)) {
       stop("Individual data need `y_post`, `treat`, `pretested`, and `y_pre`.", call. = FALSE)
@@ -200,6 +204,19 @@ fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pr
     every <- cell %in% 1:2 & !is.na(y_pre)
     observed_mean <- vapply(1:2, function(j) mean(y_pre[every & cell == j]), numeric(1))
     observed_n <- vapply(1:2, function(j) sum(every & cell == j), integer(1))
+    # Each group's participants and those of them without a posttest, for
+    # the attrition line of the print and the report (issue #135).
+    recorded <- !is.na(cell)
+    k_all <- if (any(cell[recorded] == 4L)) 4L else 3L
+    n_all <- tabulate(cell[recorded], 4L)[seq_len(k_all)]
+    lost <- tabulate(cell[recorded & is.na(y_post)], 4L)[seq_len(k_all)]
+    attrition <- data.frame(
+      group = .solomon_1949_groups[seq_len(k_all)],
+      pretested = c(1L, 1L, 0L, 0L)[seq_len(k_all)],
+      n = n_all, posttest_missing = lost,
+      share = ifelse(n_all > 0L, lost / n_all, NA_real_),
+      stringsAsFactors = FALSE
+    )
     keep <- !is.na(y_post) & !is.na(cell) & (cell > 2L | !is.na(y_pre))
     cell <- cell[keep]
     y_post <- y_post[keep]
@@ -321,7 +338,8 @@ fit_solomon_1949 <- function(y_post = NULL, treat = NULL, pretested = NULL, y_pr
     individual = individual,
     pretest_center = pretest_center,
     inferred_from = inferred_from,
-    pretest_sensitivity = sensitivity
+    pretest_sensitivity = sensitivity,
+    attrition = attrition
   )
   if (k == 4L) {
     out$posttest_contrast <- post_mean[1] - post_mean[2] - post_mean[3] + post_mean[4]
@@ -365,13 +383,16 @@ print.solomon_1949 <- function(x, digits = 2, ...) {
     cat(sprintf("  = posttest interaction contrast (%s) - pretest difference (%s)\n",
                 f(x$posttest_contrast), f(x$pretest_difference)))
   }
-  # The other inferred pretest, when pretested participants with a pretest
-  # have no posttest (issue #135).
+  # The attrition whenever a posttest is missing, and the other inferred
+  # pretest when pretested participants with a pretest have no posttest
+  # (issue #135).
+  line <- .attrition_line(x$attrition)
+  if (length(line)) cat("\n", .wrap_lines(line), "\n", sep = "")
   s <- x$pretest_sensitivity
   if (!is.null(s) && !isTRUE(all.equal(s$inferred_pretest[1], s$inferred_pretest[2]))) {
     other <- s[s$center != x$pretest_center, , drop = FALSE]
-    cat(sprintf("\nPretested participants with a pretest and no posttest: %d.\n",
-                sum(x$inferred_from$without_posttest)))
+    cat(sprintf("%sPretested participants with a pretest and no posttest: %d.\n",
+                if (length(line)) "" else "\n", sum(x$inferred_from$without_posttest)))
     cat(sprintf("Inferred %s: i = %s, I = %s (d3 = %s%s)\n",
                 if (other$center == "observed") {
                   "from every observed pretest"

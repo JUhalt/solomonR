@@ -574,10 +574,15 @@
 #'   - `dispersion` and `theta`: as in the fit.
 #'   - `pretest_adjusted`: whether the fit adjusted for the pretest.
 #'   - `pretest_center`: the set the pretested cells were standardized over,
-#'     `"analyzed"` or `"observed"`.
+#'     `"analyzed"` or `"observed"`. Absent with `method = "cluster_summary"`,
+#'     which uses neither set, so that `pretest_center` is ignored there.
 #'   - `standardized`: the numbers of pretested participants each set holds
 #'     (`analyzed` and `observed`), and of those outside the model, how many
-#'     have no outcome (`no_outcome`).
+#'     have no outcome (`no_outcome`). Absent with
+#'     `method = "cluster_summary"`.
+#'   - `attrition`: each Solomon group's `n`, outcomes missing
+#'     (`posttest_missing`), and `share`, from the fit, for the attrition
+#'     line of the print and the report; `NULL` for fits made before 1.0.0.
 #'   - `pretest_sensitivity`: for a fit with a pretest covariate, every
 #'     contrast under both sets, a list with `effects` (keyed by `scale` and
 #'     `center`; the other set's standard errors and intervals are `NA`
@@ -699,7 +704,9 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
            call. = FALSE)
     }
     .check_conf_level(conf_level)
-    return(.marginal_cluster_summary(fit, conf_level))
+    out <- .marginal_cluster_summary(fit, conf_level)
+    out$attrition <- .fit_attrition(fit)
+    return(out)
   }
   if (cr2) {
     if (!method_missing && identical(match.arg(method), "bootstrap")) {
@@ -1047,7 +1054,8 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       pretest_adjusted = pretest_adjusted,
       pretest_center = pretest_center,
       standardized = standardized,
-      pretest_sensitivity = sensitivity
+      pretest_sensitivity = sensitivity,
+      attrition = .fit_attrition(fit)
     ),
     class = "solomon_marginal"
   )
@@ -1104,9 +1112,15 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
     print(tab, row.names = FALSE)
   }
   # The two standardizations of the pretested cells when outcomes are
-  # missing (issue #135).
+  # missing, or else the attrition line whenever an outcome is missing
+  # (issue #135).
   block <- .marginal_block(x, digits)
-  if (length(block)) cat("\n", paste(block, collapse = "\n"), "\n", sep = "")
+  if (length(block)) {
+    cat("\n", paste(block, collapse = "\n"), "\n", sep = "")
+  } else {
+    line <- .attrition_line(x$attrition, "Outcomes missing")
+    if (length(line)) cat("\n", .wrap_lines(line), "\n", sep = "")
+  }
   cat("\nSensitization depends on the scale; report the scale with every result.\n")
   invisible(x)
 }

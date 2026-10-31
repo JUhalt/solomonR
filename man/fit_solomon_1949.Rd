@@ -75,6 +75,10 @@ participants with a pretest), \code{pre_mean} (their mean pretest), and
 the three-group design) at both centers, one row for each \code{center};
 \code{NULL} with group means. The print and \code{\link[=report_solomon]{report_solomon()}} give the
 other center when the two inferred pretests differ.
+\item \code{attrition}: with individual data, each group's participants \code{n}
+(with a recorded group), those without a posttest
+(\code{posttest_missing}), and their \code{share}, for the attrition line of
+the print and the report; \code{NULL} with group means.
 }
 
 Solomon (1949) gave point estimates without a test, so the result has

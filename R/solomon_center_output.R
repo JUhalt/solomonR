@@ -477,6 +477,7 @@
   }
   dis <- .marginal_disagreement(s)
   c(lines, unlist(lapply(c(
+    .attrition_line(x$attrition, "Outcomes missing"),
     "No delta line is given on the risk or rate scale.",
     .marginal_disagreement_text(dis, x$conf_level),
     s$note,

@@ -74,10 +74,15 @@ resamples and the number that failed.
 \item \code{dispersion} and \code{theta}: as in the fit.
 \item \code{pretest_adjusted}: whether the fit adjusted for the pretest.
 \item \code{pretest_center}: the set the pretested cells were standardized over,
-\code{"analyzed"} or \code{"observed"}.
+\code{"analyzed"} or \code{"observed"}. Absent with \code{method = "cluster_summary"},
+which uses neither set, so that \code{pretest_center} is ignored there.
 \item \code{standardized}: the numbers of pretested participants each set holds
 (\code{analyzed} and \code{observed}), and of those outside the model, how many
-have no outcome (\code{no_outcome}).
+have no outcome (\code{no_outcome}). Absent with
+\code{method = "cluster_summary"}.
+\item \code{attrition}: each Solomon group's \code{n}, outcomes missing
+(\code{posttest_missing}), and \code{share}, from the fit, for the attrition
+line of the print and the report; \code{NULL} for fits made before 1.0.0.
 \item \code{pretest_sensitivity}: for a fit with a pretest covariate, every
 contrast under both sets, a list with \code{effects} (keyed by \code{scale} and
 \code{center}; the other set's standard errors and intervals are \code{NA}

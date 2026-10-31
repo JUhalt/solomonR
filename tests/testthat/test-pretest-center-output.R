@@ -337,6 +337,18 @@ test_that("marginal_solomon() prints and reports both standardizations", {
   expect_match(out_b, "The data cannot tell which standardization is right. See ?marginal_solomon.",
                fixed = TRUE)
 
+  # The attrition line, in the block and, without a pretest covariate,
+  # alone; and in the report.
+  attrition <- "pretested 23.3%, unpretested 8.3% (0% to 30% by group)."
+  expect_match(out, paste("Outcomes missing:", attrition), fixed = TRUE)
+  expect_match(text, paste("Outcomes were missing for 23.3% of the pretested and 8.3% of the",
+                           "unpretested participants (0% to 30% by group)."), fixed = TRUE)
+  nopre <- suppressWarnings(fit_solomon_glm(pass, treat, pretested, family = binomial(), data = d))
+  mn <- marginal_solomon(nopre, method = "delta")
+  expect_match(squash(printed(mn)), paste("Outcomes missing:", attrition), fixed = TRUE)
+  expect_true(any(grepl("Outcomes were missing for 23.3%", report_solomon(mn)$results,
+                        fixed = TRUE)))
+
   # Complete data: as before.
   complete <- solomon_example
   complete$pass <- as.integer(complete$y_post > stats::median(complete$y_post))
@@ -352,7 +364,14 @@ test_that("fit_solomon_1949() prints and reports the other inferred pretest", {
   expect_match(out, "Pretested participants with a pretest and no posttest: 14.", fixed = TRUE)
   expect_match(out, "Inferred from every observed pretest: i = 49.60", fixed = TRUE)
   expect_match(out, "In the four-group design the inferred pretest cancels from I.", fixed = TRUE)
+  expect_match(out, "Posttests missing: pretested 23.3%, unpretested 8.3% (0% to 30% by group).",
+               fixed = TRUE)
+  d_lost <- with(d, tapply(is.na(y_post), list(treat, pretested), sum))
+  expect_equal(f$attrition$posttest_missing,
+               unname(c(d_lost["1", "1"], d_lost["0", "1"], d_lost["1", "0"], d_lost["0", "0"])))
   text <- squash(paste(report_solomon(f)$results, collapse = " "))
+  expect_match(text, paste("Posttests were missing for 23.3% of the pretested and 8.3% of the",
+                           "unpretested participants (0% to 30% by group)."), fixed = TRUE)
   expect_match(text, "Computed from every observed pretest of the pretested groups instead, it would be 49.60",
                fixed = TRUE)
   # Complete data: one inferred pretest.
