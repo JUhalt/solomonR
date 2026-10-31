@@ -86,8 +86,8 @@ random, unrelated to baseline. The default compares the pretested
 participants analyzed, who scored higher on the pretest than those lost,
 with unpretested participants who are like everyone randomized, so its
 pretest effects are too large here. Whenever the two centers differ, the
-printed fit gives the pretest effects at both, with the attrition of each
-group:
+printed fit gives the pretest effects at both, with the share of posttests
+missing (`fit$pretest_sensitivity$attrition` gives each group's):
 
 ```{r center-print}
 fit
@@ -132,15 +132,17 @@ rbind(analyzed = main(fit_all), observed = main(fit_all_obs))[, c("estimate", "c
 Against the same true value of 2, the default gives
 `r formatC(main(fit_all)$estimate, format = "f", digits = 2)` and the
 observed center `r formatC(main(fit_all_obs)$estimate, format = "f", digits = 2)`.
-The two data sets lose the pretested participants alike; they differ only
-in the unpretested groups, whose losses cannot be checked against a
-baseline they did not take. The center is therefore an assumption, chosen
+The two data sets' loss mechanisms are the same in the pretested groups and
+differ only in the unpretested groups, whose losses cannot be checked
+against a baseline they did not take. The center is therefore an
+assumption, chosen
 before the outcomes are seen. The default assumes that, within each
 treatment condition, the pretested and the unpretested groups lose the
 same kinds of participants, which random assignment makes the natural case
 unless taking the pretest itself changes who drops out; choose
 `"observed"` when there are grounds to believe that the unpretested groups'
-losses are unrelated to baseline. Report the other center beside it, as the
+losses are unrelated to baseline and to the posttest. Report the other
+center beside it, as the
 printed fit and `report_solomon()` do, and see `check_solomon_missing()`
 for the attrition checks.
 

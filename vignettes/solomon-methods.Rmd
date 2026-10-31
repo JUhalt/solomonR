@@ -208,11 +208,17 @@ g corrects the small-sample bias of the standardized mean difference
   2005; Groenwold et al., 2012).
 - **Missing outcomes:** the classification of missing-data mechanisms
   follows Rubin (1976) and Little and Rubin (2019).
-- **Missing posttests:** if posttests are missing at random given group
-  and, in the pretested groups, the pretest, the model fitted to the
-  observed posttests is a valid main analysis, and multiple imputation
-  under the same assumption agrees with it (Carpenter et al., 2023, p.
-  256). Whether the conclusion survives departures from that assumption is
+- **Missing posttests:** for the treatment contrasts, if posttests are
+  missing at random given group and, in the pretested groups, the pretest,
+  the model fitted to the observed posttests is a valid main analysis, and
+  multiple imputation under the same assumption agrees with it (Carpenter
+  et al., 2023, p. 256). The pretest effects depend on `pretest_center`:
+  the default rests on the assumption that, within each treatment
+  condition, the pretested and the unpretested groups lose the same kinds
+  of participants, and missingness at random for the pretest effects
+  corresponds to `pretest_center = "observed"` (see "The pretest effect
+  when posttests are missing" in `?fit_solomon_glm`). Whether the
+  conclusion survives departures from that assumption is
   a sensitivity analysis. `fit_solomon_mi()` shifts the imputed posttests
   of each group by a chosen offset (Carpenter et al., 2023, section 10.3),
   and `tipping_point_solomon()` reports the offset at which a contrast's

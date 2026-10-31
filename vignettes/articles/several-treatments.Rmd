@@ -101,19 +101,29 @@ fit <- fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
 fit
 ```
 
-The output has three parts:
+The output has four parts:
 
 - **Omnibus tests.** Each asks whether the conditions differ on one
   contrast.
 - **Contrasts.** The four Solomon contrasts of the four-group design, for
   each treatment against the control, and then the pretest effect in each
-  condition (pretested minus unpretested participants, at the pretested
-  participants' mean pretest) and averaged over the conditions.
+  condition (pretested minus unpretested participants, at the mean pretest
+  of the pretested participants analyzed) and averaged over the
+  conditions.
 - **Adjusted p-values.** Each contrast's p-values are adjusted across the
   comparisons by Holm's (1979) procedure, which controls the chance of at
   least one false rejection in that family; the treatments' pretest effects
   are adjusted across the treatments. The confidence intervals are not
   adjusted.
+- **Missing posttests and the pretest effects.** More than a third of the
+  posttests are missing, so the mean pretest of the pretested participants analyzed,
+  the default center, differs from the mean of every observed pretest. The
+  default assumes that, within each condition, the pretested and the
+  unpretested groups lost the same kinds of participants; the block gives
+  the pretest effects at the other center beside them, with the attrition
+  and the delta line. The treatment contrasts do not depend on the center.
+  See "The pretest effect when posttests are missing" in `?fit_solomon_glm`
+  and `check_solomon_missing()`.
 
 `contrasts = "pairwise"` adds the comparisons between treatments:
 
