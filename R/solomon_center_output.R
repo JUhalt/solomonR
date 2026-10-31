@@ -79,14 +79,19 @@
 .attrition_line <- function(a, what = "Posttests missing") {
   s <- .attrition_shares(a)
   if (is.null(s) || !sum(s$missing)) return(character(0))
+  sprintf("%s: pretested %s, unpretested %s (%s).", what, .pct(s$pretested),
+          .pct(s$unpretested), .attrition_spread(s))
+}
+
+# The range of the share missing over the groups, as in "29% to 46% by
+# group" or "20% in every group", from .attrition_shares() (`s`).
+.attrition_spread <- function(s) {
   by_group <- .pct(s$range, 0L)
-  spread <- if (by_group[1] == by_group[2]) {
+  if (by_group[1] == by_group[2]) {
     paste(by_group[1], "in every group")
   } else {
     paste(by_group[1], "to", by_group[2], "by group")
   }
-  sprintf("%s: pretested %s, unpretested %s (%s).", what, .pct(s$pretested),
-          .pct(s$unpretested), spread)
 }
 
 # Whether only the unpretested groups lost posttests: the two centers then
@@ -107,14 +112,19 @@
 
 # The pretested participants outside the model, as in "44 without a
 # posttest" or "5 not analyzed, 3 of them without a posttest", from
-# `pretest_n` (`n`). `posttest` words the lack of a posttest.
-.center_outside_phrase <- function(n, posttest = "without a posttest") {
+# `pretest_n` (`n`). `posttest` words the lack of a posttest; `of_them`
+# words the phrase for the report, which follows a count of participants,
+# as in "44 of them without a posttest".
+.center_outside_phrase <- function(n, posttest = "without a posttest", of_them = FALSE) {
   outside <- n[["observed"]] - n[["analyzed"]]
   none <- n[["no_posttest"]]
+  lead <- if (of_them) "%d of them" else "%d"
   if (none == outside) {
-    sprintf("%d %s", outside, posttest)
+    sprintf(paste(lead, "%s"), outside, posttest)
   } else if (none == 0L) {
-    sprintf("%d not analyzed", outside)
+    sprintf(paste(lead, "not analyzed"), outside)
+  } else if (of_them) {
+    sprintf("%d of them not analyzed, %d %s", outside, none, posttest)
   } else {
     sprintf("%d not analyzed, %d of them %s", outside, none, posttest)
   }

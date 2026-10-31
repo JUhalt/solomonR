@@ -398,43 +398,13 @@
   parts <- NULL
   differ <- FALSE
   if (!is.null(y_pre)) {
-    in_observed <- .in_pretest_center(df)
-    parts <- .pretest_center_parts(y_pre, in_observed, used, is.na(df$y))
-    differ <- parts$n[["observed"]] > parts$n[["analyzed"]]
-    model_cr <- if (robust == "CR2") fit_cr else fit
-    terms_analyzed <- function() {
-      .center_terms(
-        model_cr, robust,
-        a = df$pre_obs[used],
-        set = ifelse(df$pretested[used] == 1L, "pretested", NA_character_),
-        cluster = if (robust == "CR2") cluster_fit
-      )
-    }
-    terms_observed <- function() {
-      .center_terms(
-        model_cr, robust,
-        a = df$pre_obs,
-        set = ifelse(in_observed, "pretested", NA_character_),
-        cluster = if (robust == "CR2") cluster,
-        used = used
-      )
-    }
-    if (pretest_center == "analyzed") {
-      center <- terms_analyzed()
-      if (differ) {
-        if (robust == "CR2") {
-          center_note <- .check_center_clusters(cluster, in_observed & !used, stop = FALSE)
-          if (!is.null(center_note)) {
-            center_note <- paste(center_note, "The standard errors at that center are not given.")
-          }
-        }
-        if (is.null(center_note)) center_other <- terms_observed()
-      }
-    } else {
-      if (robust == "CR2") .check_center_clusters(cluster, in_observed & !used)
-      center <- terms_observed()
-      if (differ) center_other <- terms_analyzed()
-    }
+    both <- .center_terms_both(df, y_pre, used, if (robust == "CR2") fit_cr else fit, robust,
+                               cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    center <- both$center
+    center_other <- both$other
+    center_note <- both$note
+    parts <- both$parts
+    differ <- both$differ
   }
 
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
@@ -586,19 +556,11 @@
     used_rows <- effects[effects$contrast %in% .solomon_pretest_order, columns, drop = FALSE]
     other_rows <- NULL
     if (differ) {
-      shift <- centers[[.other_center(pretest_center)]] - pretest_mean
-      other_rows <- do.call(rbind, Map(function(L, comparison, contrast) {
-        L[["pre_obs"]] <- L[["pre_obs"]] + shift * L[["pretested"]]
-        est <- lin_contrast(L, center_other)
-        data.frame(comparison = comparison, contrast = contrast,
-                   estimate = est[["estimate"]], std.error = est[["std.error"]],
-                   statistic = est[["statistic"]], df = est[["df"]],
-                   p.value = est[["p.value"]], conf.low = est[["conf.low"]],
-                   conf.high = est[["conf.high"]], stringsAsFactors = FALSE)
-      }, L_pretest, pretest_labels, pretest_types))
-      if (!is.null(center_note)) {
-        other_rows[setdiff(.solomon_effect_columns, c("contrast", "estimate"))] <- NA_real_
-      }
+      other_rows <- .other_center_rows(
+        L_pretest, pretest_types, centers[[.other_center(pretest_center)]] - pretest_mean,
+        function(L) lin_contrast(L, center_other), comparison = pretest_labels,
+        no_se = !is.null(center_note)
+      )
       other_treated <- other_rows$contrast == .solomon_pretest_order[2]
       other_rows$p.adjusted <- other_rows$p.value
       other_rows$p.adjusted[other_treated] <- stats::p.adjust(other_rows$p.value[other_treated],

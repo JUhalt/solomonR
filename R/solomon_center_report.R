@@ -25,18 +25,10 @@
     return(sprintf("the mean pretest score of the %d pretested participants analyzed (%s)",
                    n[["analyzed"]], .apa_num(x$pretest_mean_analyzed, digits)))
   }
-  outside <- n[["observed"]] - n[["analyzed"]]
-  none <- n[["no_posttest"]]
-  who <- if (none == outside) {
-    sprintf("%d of them %s", outside, posttest)
-  } else if (none == 0L) {
-    sprintf("%d of them not analyzed", outside)
-  } else {
-    sprintf("%d of them not analyzed, %d %s", outside, none, posttest)
-  }
   sprintf(paste("the mean of every observed pretest score among the pretested participants",
                 "(%s; %d participants, %s)"),
-          .apa_num(x$pretest_mean_observed, digits), n[["observed"]], who)
+          .apa_num(x$pretest_mean_observed, digits), n[["observed"]],
+          .center_outside_phrase(n, posttest, of_them = TRUE))
 }
 
 # One row of a pretest-effects table as a clause: the estimate, with its
@@ -137,15 +129,9 @@
 .attrition_sentences <- function(a, pretest, what = "Posttests were missing") {
   s <- .attrition_shares(a)
   if (is.null(s) || !sum(s$missing)) return(character(0))
-  by_group <- .pct(s$range, 0L)
   c(
     sprintf("%s for %s of the pretested and %s of the unpretested participants (%s).",
-            what, .pct(s$pretested), .pct(s$unpretested),
-            if (by_group[1] == by_group[2]) {
-              paste(by_group[1], "in every group")
-            } else {
-              paste(by_group[1], "to", by_group[2], "by group")
-            }),
+            what, .pct(s$pretested), .pct(s$unpretested), .attrition_spread(s)),
     if (pretest && .unpretested_only(a)) {
       paste("Only the unpretested groups lost posttests, so the two pretest centers coincide;",
             "those losses cannot be checked against the pretest. The pretest effects assume,",

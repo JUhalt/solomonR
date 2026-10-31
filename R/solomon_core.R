@@ -404,6 +404,88 @@ NULL
   message
 }
 
+# The terms of the center used and of the other center (issue #135), for
+# the four-group and the several-treatment paths of fit_solomon_glm(). `df`
+# holds the model's variables with the centered `pre_obs`, `x` is the
+# uncentered pretest, `in_model` flags the rows the model used, `model` is
+# the fit the covariance comes from (the complete-case refit for CR2),
+# `cluster` the cluster of every row, and `cluster_fit` those of the rows
+# in the model (CR2 only). The analyzed center's terms are computed as
+# before #135: over the model's rows, with their clusters. The other
+# center's are computed only when the two centers differ; with the default
+# and CR2, a missing cluster of a participant outside the model leaves them
+# out, with `note` saying so, while with pretest_center = "observed" it
+# stops the fit. Returns `center`, `other`, `note`, `parts`
+# (.pretest_center_parts()), and `differ`.
+.center_terms_both <- function(df, x, in_model, model, robust, cluster, cluster_fit,
+                               pretest_center) {
+  in_observed <- .in_pretest_center(df)
+  parts <- .pretest_center_parts(x, in_observed, in_model, is.na(df$y))
+  differ <- parts$n[["observed"]] > parts$n[["analyzed"]]
+  terms_analyzed <- function() {
+    .center_terms(
+      model, robust,
+      a = df$pre_obs[in_model],
+      set = ifelse(df$pretested[in_model] == 1L, "pretested", NA_character_),
+      cluster = if (robust == "CR2") cluster_fit
+    )
+  }
+  terms_observed <- function() {
+    .center_terms(
+      model, robust,
+      a = df$pre_obs,
+      set = ifelse(in_observed, "pretested", NA_character_),
+      cluster = if (robust == "CR2") cluster,
+      used = in_model
+    )
+  }
+  center <- NULL
+  other <- NULL
+  note <- NULL
+  if (pretest_center == "analyzed") {
+    center <- terms_analyzed()
+    if (differ) {
+      if (robust == "CR2") {
+        note <- .check_center_clusters(cluster, in_observed & !in_model, stop = FALSE)
+        if (!is.null(note)) {
+          note <- paste(note, "The standard errors at that center are not given.")
+        }
+      }
+      if (is.null(note)) other <- terms_observed()
+    }
+  } else {
+    if (robust == "CR2") .check_center_clusters(cluster, in_observed & !in_model)
+    center <- terms_observed()
+    if (differ) other <- terms_analyzed()
+  }
+  list(center = center, other = other, note = note, parts = parts, differ = differ)
+}
+
+# The pretest effects at the other center (issue #135), without a refit:
+# moving the center by `shift` moves a pretest effect by its weight on the
+# pretesting coefficient times the pretest slope times `shift`, so in the
+# fitted model it is the contrast L + shift L["pretested"] e_pre_obs.
+# `Ls` holds the contrasts of the pretest effects, `contrast` their labels,
+# `comparison` (for several treatments) their comparisons, and `estimate` a
+# function that estimates a contrast with the other center's terms, as in
+# the effects table. With `no_se`, the other center has no standard errors
+# (a CR2 fit without a cluster; see .center_terms_both()).
+.other_center_rows <- function(Ls, contrast, shift, estimate, comparison = NULL, no_se = FALSE) {
+  rows <- do.call(rbind, Map(function(L, label) {
+    L[["pre_obs"]] <- L[["pre_obs"]] + shift * L[["pretested"]]
+    est <- estimate(L)
+    data.frame(contrast = label, estimate = est[["estimate"]],
+               std.error = est[["std.error"]], statistic = est[["statistic"]],
+               df = est[["df"]], p.value = est[["p.value"]],
+               conf.low = est[["conf.low"]], conf.high = est[["conf.high"]],
+               stringsAsFactors = FALSE)
+  }, unname(Ls), contrast))
+  if (!is.null(comparison)) rows <- cbind(comparison = comparison, rows, stringsAsFactors = FALSE)
+  if (no_se) rows[setdiff(.solomon_effect_columns, c("contrast", "estimate"))] <- NA_real_
+  rownames(rows) <- NULL
+  rows
+}
+
 # Welch-Satterthwaite degrees of freedom of a sum of independent variance
 # components `v` with degrees of freedom `df` (Satterthwaite, 1946; Welch,
 # 1947).
@@ -1404,43 +1486,13 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   if (!is.null(y_pre)) {
     rows <- rep(TRUE, nrow(df))
     if (!is.null(fit$na.action)) rows[fit$na.action] <- FALSE
-    in_observed <- .in_pretest_center(df)
-    parts <- .pretest_center_parts(y_pre, in_observed, rows, is.na(df$y))
-    differ <- parts$n[["observed"]] > parts$n[["analyzed"]]
-    model_cr <- if (robust == "CR2") fit_cr else fit
-    terms_analyzed <- function() {
-      .center_terms(
-        model_cr, robust,
-        a = df$pre_obs[rows],
-        set = ifelse(df$pretested[rows] == 1L, "pretested", NA_character_),
-        cluster = if (robust == "CR2") cluster_fit
-      )
-    }
-    terms_observed <- function() {
-      .center_terms(
-        model_cr, robust,
-        a = df$pre_obs,
-        set = ifelse(in_observed, "pretested", NA_character_),
-        cluster = if (robust == "CR2") cluster,
-        used = rows
-      )
-    }
-    if (pretest_center == "analyzed") {
-      center <- terms_analyzed()
-      if (differ) {
-        if (robust == "CR2") {
-          center_note <- .check_center_clusters(cluster, in_observed & !rows, stop = FALSE)
-          if (!is.null(center_note)) {
-            center_note <- paste(center_note, "The standard errors at that center are not given.")
-          }
-        }
-        if (is.null(center_note)) center_other <- terms_observed()
-      }
-    } else {
-      if (robust == "CR2") .check_center_clusters(cluster, in_observed & !rows)
-      center <- terms_observed()
-      if (differ) center_other <- terms_analyzed()
-    }
+    both <- .center_terms_both(df, y_pre, rows, if (robust == "CR2") fit_cr else fit, robust,
+                               cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    center <- both$center
+    center_other <- both$other
+    center_note <- both$note
+    parts <- both$parts
+    differ <- both$differ
   }
 
   # --- reference distribution ---
@@ -1583,34 +1635,23 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
 
   # The pretest effects at both centers (issue #135). The other center's are
-  # computed without a refit: moving the center by `shift` moves a pretest
-  # effect by its weight on the pretesting coefficient times the pretest
-  # slope times `shift`, so in the fitted model it is the contrast
-  # L + shift L["pretested"] e_pre_obs, with the stacked variance of the
-  # other mean. This is exact, because the fitted values, the HC3, CR2, and
-  # model-based covariances, and the Satterthwaite degrees of freedom of a
-  # linear function of the estimates do not depend on where the pretest is
-  # centered. When the two centers are the same number, the rows are copied.
+  # computed without a refit (.other_center_rows()), with the stacked
+  # variance of the other mean. This is exact, because the fitted values,
+  # the HC3, CR2, and model-based covariances, and the Satterthwaite degrees
+  # of freedom of a linear function of the estimates do not depend on where
+  # the pretest is centered. When the two centers are the same number, the
+  # rows are copied.
   sensitivity <- NULL
   if (!is.null(y_pre)) {
     used_rows <- effects[effects$contrast %in% .solomon_pretest_order,
                          .solomon_effect_columns, drop = FALSE]
     other_rows <- NULL
     if (differ) {
-      shift <- centers[[.other_center(pretest_center)]] - pretest_mean
-      other_rows <- do.call(rbind, lapply(.solomon_pretest_order, function(label) {
-        L <- Ls[[label]]
-        L[["pre_obs"]] <- L[["pre_obs"]] + shift * L[["pretested"]]
-        est <- lin_contrast(L, center_other)
-        data.frame(contrast = label, estimate = est[["estimate"]],
-                   std.error = est[["std.error"]], statistic = est[["statistic"]],
-                   df = est[["df"]], p.value = est[["p.value"]],
-                   conf.low = est[["conf.low"]], conf.high = est[["conf.high"]],
-                   stringsAsFactors = FALSE)
-      }))
-      if (!is.null(center_note)) {
-        other_rows[setdiff(.solomon_effect_columns, c("contrast", "estimate"))] <- NA_real_
-      }
+      other_rows <- .other_center_rows(
+        Ls[.solomon_pretest_order], .solomon_pretest_order,
+        centers[[.other_center(pretest_center)]] - pretest_mean,
+        function(L) lin_contrast(L, center_other), no_se = !is.null(center_note)
+      )
     }
     identity <- identical(stats::family(fit)$link, "identity")
     slope <- cf[["pre_obs"]]
