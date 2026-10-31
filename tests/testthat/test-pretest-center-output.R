@@ -110,12 +110,77 @@ test_that("the block says when whether an effect differs from zero depends on th
   a <- s$effects[s$effects$center == "analyzed", ]
   o <- s$effects[s$effects$center == "observed", ]
   excludes <- function(r) r$conf.low > 0 | r$conf.high < 0
-  flagged <- sign(a$estimate) != sign(o$estimate) | excludes(a) != excludes(o)
-  expect_true(any(flagged))
+  # Here the control and main effects' intervals exclude 0 at the analyzed
+  # center only, and the signs agree.
+  expect_identical(excludes(a) != excludes(o), c(TRUE, FALSE, TRUE))
+  expect_true(all(sign(a$estimate) == sign(o$estimate)))
   out <- squash(printed(fit))
-  expect_match(out, "Whether these effects differ from zero depends on the center.", fixed = TRUE)
-  r <- report_solomon(fit)
-  expect_true(any(grepl("depends on the pretest center", r$results, fixed = TRUE)))
+  expect_match(out, paste("For Pretest effect | control and Pretest main effect, only one center's",
+                          "95% interval excludes 0: whether they differ from zero depends on the",
+                          "center."), fixed = TRUE)
+  expect_no_match(out, "the sign differs", fixed = TRUE)
+  text <- squash(paste(report_solomon(fit)$results, collapse = " "))
+  expect_match(text, paste("Whether the pretest effect among control participants and the pretest",
+                           "main effect differ from zero therefore depends on the pretest center."),
+               fixed = TRUE)
+  expect_no_match(text, "direction", fixed = TRUE)
+})
+
+test_that("when only the sign differs, only the direction is said to depend on the center", {
+  # The reviewers' case: the signs differ, and every interval includes 0 at
+  # both centers, so whether an effect differs from zero does not depend on
+  # the center.
+  fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = loss_data())
+  e <- fit$pretest_sensitivity$effects
+  e$estimate <- c(2.10, 0.99, 1.54, -1.60, -2.71, -2.16)
+  e$conf.low <- c(-2.63, -3.33, -1.90, -6.36, -7.00, -5.59)
+  e$conf.high <- c(6.83, 5.31, 4.98, 3.16, 1.57, 1.28)
+  fit$pretest_sensitivity$effects <- e
+  expect_identical(unname(.center_disagreement(fit$pretest_sensitivity)), rep("sign_none", 3))
+  out <- squash(printed(fit))
+  expect_match(out, paste("For Pretest effect | control, Pretest effect | treated, and Pretest main",
+                          "effect, the sign differs between the centers, so the direction depends",
+                          "on the center; neither center's 95% interval excludes 0."), fixed = TRUE)
+  expect_no_match(out, "from zero depends", fixed = TRUE)
+  text <- squash(paste(report_solomon(fit)$results, collapse = " "))
+  expect_match(text, paste("The directions of the pretest effect among control participants, the",
+                           "pretest effect among treated participants, and the pretest main effect",
+                           "depend on the pretest center; their 95% confidence intervals include 0",
+                           "at both centers."), fixed = TRUE)
+  expect_no_match(text, "from zero", fixed = TRUE)
+
+  # The sign differs and one interval excludes 0: whether the effect differs
+  # from zero depends on the center. Both exclude 0: only the direction.
+  e$conf.low[4] <- -3.00
+  e$conf.high[4] <- -0.20
+  e$conf.low[c(2, 5)] <- c(0.10, -5.00)
+  e$conf.high[c(2, 5)] <- c(1.90, -0.40)
+  fit$pretest_sensitivity$effects <- e
+  expect_identical(unname(.center_disagreement(fit$pretest_sensitivity)),
+                   c("interval", "sign_both", "sign_none"))
+  text <- squash(paste(report_solomon(fit)$results, collapse = " "))
+  expect_match(text, paste("Whether the pretest effect among control participants differs from zero",
+                           "therefore depends on the pretest center."), fixed = TRUE)
+  expect_match(text, paste("The direction of the pretest effect among treated participants depends",
+                           "on the pretest center, although its 95% confidence interval excludes 0",
+                           "at both centers."), fixed = TRUE)
+})
+
+test_that("on a ratio scale, marginal_solomon() compares intervals with 1", {
+  # A ratio interval never includes 0; the null value of a ratio is 1.
+  s <- list(effects = data.frame(
+    scale = rep(c("Risk difference", "Risk ratio"), each = 2),
+    center = rep(c("analyzed", "observed"), 2),
+    contrast = "Pretest main effect",
+    estimate = c(0.20, 0.10, 1.60, 1.30), conf.low = c(0.05, -0.05, 1.10, 0.90),
+    conf.high = c(0.35, 0.25, 2.30, 1.90), stringsAsFactors = FALSE
+  ))
+  dis <- .marginal_disagreement(s)
+  expect_identical(dis$kind, c("interval", "interval"))
+  expect_identical(dis$null, c(0, 1))
+  text <- .marginal_disagreement_text(dis, 0.95)
+  expect_match(text[2], "only one standardization's 95% interval excludes 1: whether it differs from 1",
+               fixed = TRUE)
 })
 
 test_that("a fit made before #135 prints and reports as before", {
@@ -216,9 +281,30 @@ test_that("marginal_solomon() prints and reports both standardizations", {
                fixed = TRUE)
   expect_match(text, "On the risk difference scale, they were", fixed = TRUE)
 
-  # The bootstrap gives estimates only at the other standardization.
+  expect_match(out, paste("For Pretest main effect (risk difference), only one standardization's",
+                          "95% interval excludes 0: whether it differs from zero depends on the",
+                          "standardization."), fixed = TRUE)
+  expect_match(text, paste("Whether the pretest main effect on the risk difference scale differs",
+                           "from zero therefore depends on the standardization."), fixed = TRUE)
+
+  # The bootstrap gives estimates only at the other standardization, and
+  # the block prints them.
   b <- marginal_solomon(fit, R = 99, seed = 1)
-  expect_no_match(printed(b), "For : ", fixed = TRUE)
+  ob <- b$pretest_sensitivity$effects
+  expect_true(all(is.na(ob$std.error[ob$center == "observed"])))
+  expect_equal(ob$estimate[ob$center == "observed"],
+               m$pretest_sensitivity$effects$estimate[m$pretest_sensitivity$effects$center ==
+                                                        "observed"])
+  out_b <- squash(printed(b))
+  expect_match(out_b, "Missing outcomes and the standardization of the pretested cells",
+               fixed = TRUE)
+  expect_match(out_b, paste("Over every pretested participant with a pretest (60, 14 without an",
+                            "outcome) instead, the contrasts below move."), fixed = TRUE)
+  expect_match(out_b, "Pretest main effect 0.233 0.123 0.110", fixed = TRUE)
+  expect_match(out_b, "Pretest effect | treated 1.520 1.268 0.252", fixed = TRUE)
+  expect_match(out_b, "No delta line is given on the risk or rate scale.", fixed = TRUE)
+  expect_match(out_b, "The data cannot tell which standardization is right. See ?marginal_solomon.",
+               fixed = TRUE)
 
   # Complete data: as before.
   complete <- solomon_example

@@ -194,38 +194,77 @@
   text
 }
 
-# The pretest effects whose sign differs between the two centers, or whose
-# interval excludes 0 at one center only: the record's rule for giving no
-# verdict on a pretest effect (issue #135, section 6). `s` is
-# `pretest_sensitivity`; returns the labels of each kind.
+# How a contrast at the two centers (or standardizations) disagrees, row by
+# row of `a` and `o`, which hold `estimate`, `conf.low`, and `conf.high`
+# for the same contrasts: the record's rule for giving no verdict on a
+# pretest effect (issue #135, section 6). `null` is the value of no effect
+# for each row, 0 for a difference and 1 for a ratio. One value per row:
+# - "interval": the interval excludes the null value at one center only,
+#   so whether the contrast differs from it depends on the center;
+# - "sign_none": the direction (the sign of the estimate minus the null
+#   value) differs and neither interval excludes the null value, so only
+#   the direction depends on the center;
+# - "sign_both": the direction differs and both intervals exclude it;
+# - "sign": the direction differs and an interval is missing (a CR2 fit
+#   without a cluster, or the bootstrap at the other standardization);
+# - NA: no disagreement.
+.disagreement_kind <- function(a, o, null = 0) {
+  excludes <- function(r) r$conf.low > null | r$conf.high < null
+  ea <- excludes(a)
+  eo <- excludes(o)
+  known <- !is.na(ea) & !is.na(eo)
+  sign_differs <- (sign(a$estimate - null) != sign(o$estimate - null)) %in% TRUE
+  ifelse(known & ea != eo, "interval",
+         ifelse(!sign_differs, NA_character_,
+                ifelse(!known, "sign", ifelse(ea, "sign_both", "sign_none"))))
+}
+
+# The kind of disagreement of each pretest effect of a fit (see
+# .disagreement_kind()), named by its label. `s` is `pretest_sensitivity`.
 .center_disagreement <- function(s) {
   e <- s$effects
   a <- e[e$center == "analyzed", , drop = FALSE]
   o <- e[e$center == "observed", , drop = FALSE]
-  labels <- .center_labels(a)
-  sign_differs <- sign(a$estimate) != sign(o$estimate)
-  excludes <- function(r) r$conf.low > 0 | r$conf.high < 0
-  ea <- excludes(a)
-  eo <- excludes(o)
-  interval_differs <- !sign_differs & !is.na(ea) & !is.na(eo) & ea != eo
-  list(sign = labels[sign_differs], interval = labels[interval_differs])
+  stats::setNames(.disagreement_kind(a, o), .center_labels(a))
 }
 
-# The lines on the disagreement, if there is any.
+# The sentences on a disagreement, one for each kind present, naming the
+# contrasts `labels` of each kind (`kind`, from .disagreement_kind()).
+# `between` names what differs ("centers" or "standardizations"), `level`
+# is the confidence level, and `null` the value of no effect (0, or 1 for a
+# ratio).
+.disagreement_sentences <- function(labels, kind, level, between = "centers", null = 0) {
+  one <- if (between == "centers") "center" else "standardization"
+  pct <- format(100 * level)
+  side <- if (null == 0) "the sign differs" else "the direction from 1 differs"
+  sentence <- function(k) {
+    l <- labels[kind %in% k]
+    if (!length(l)) return(NULL)
+    several <- length(l) > 1L
+    switch(
+      k,
+      interval = sprintf(paste("For %s, only one %s's %s%% interval excludes %s: whether %s",
+                               "from %s depends on the %s."),
+                         .series_and(l), one, pct, null,
+                         if (several) "they differ" else "it differs",
+                         if (null == 0) "zero" else null, one),
+      sign_none = sprintf(paste("For %s, %s between the %s, so the direction",
+                                "depends on the %s; neither %s's %s%% interval excludes %s."),
+                          .series_and(l), side, between, one, one, pct, null),
+      sign_both = sprintf(paste("For %s, %s between the %s, so the direction",
+                                "depends on the %s, although each %s's %s%% interval excludes %s."),
+                          .series_and(l), side, between, one, one, pct, null),
+      sign = sprintf("For %s, %s between the %s, so the direction depends on the %s.",
+                     .series_and(l), side, between, one)
+    )
+  }
+  unlist(lapply(c("interval", "sign_none", "sign_both", "sign"), sentence))
+}
+
+# The lines on the disagreement of a fit's pretest effects, if there is any.
 .center_disagreement_text <- function(s, level) {
-  dis <- .center_disagreement(s)
-  parts <- c(
-    if (length(dis$sign)) {
-      sprintf("for %s, the sign differs between the centers", .series_and(dis$sign))
-    },
-    if (length(dis$interval)) {
-      sprintf("for %s, only one center's %s%% interval excludes 0", .series_and(dis$interval),
-              format(100 * level))
-    }
-  )
-  if (!length(parts)) return(character(0))
-  paste0(.capitalize(paste(parts, collapse = "; ")),
-         ". Whether these effects differ from zero depends on the center.")
+  kind <- .center_disagreement(s)
+  .disagreement_sentences(names(kind), kind, level)
 }
 
 # The printed block of a fit whose two centers differ (the decision record
@@ -364,22 +403,31 @@
 # the unpretested participants either way.
 .marginal_moved <- function(d) d[d$contrast != "Treatment | unpretested", , drop = FALSE]
 
-# The contrasts of a marginal_solomon() result whose sign differs between
-# the two standardizations, or whose interval excludes 0 under one only, as
-# "Risk difference: Pretest main effect". The bootstrap gives no interval
-# for the other standardization, so only the sign is compared there.
+# The contrasts of a marginal_solomon() result whose direction differs
+# between the two standardizations, or whose interval excludes the null
+# value under one only (0 for a difference, 1 for a ratio): a data frame
+# with `scale`, `contrast`, `null`, and `kind` (.disagreement_kind()), one
+# row for each. The bootstrap gives no interval for the other
+# standardization, so only the direction is compared there.
 .marginal_disagreement <- function(s) {
   e <- .marginal_moved(s$effects)
   a <- e[e$center == "analyzed", , drop = FALSE]
   o <- e[e$center == "observed", , drop = FALSE]
   o <- o[match(paste(a$scale, a$contrast), paste(o$scale, o$contrast)), , drop = FALSE]
-  excludes <- function(r) r$conf.low > 0 | r$conf.high < 0
-  ea <- excludes(a)
-  eo <- excludes(o)
-  differs <- (sign(a$estimate) != sign(o$estimate)) %in% TRUE |
-    (!is.na(ea) & !is.na(eo) & ea != eo)
-  if (!any(differs)) return(character(0))
-  paste0(a$scale[differs], ": ", a$contrast[differs])
+  null <- ifelse(grepl("difference", a$scale, fixed = TRUE), 0, 1)
+  kind <- .disagreement_kind(a, o, null)
+  keep <- !is.na(kind)
+  data.frame(scale = a$scale[keep], contrast = a$contrast[keep], null = null[keep],
+             kind = kind[keep], stringsAsFactors = FALSE)
+}
+
+# The marginal sentences of .disagreement_sentences(), scale by scale.
+.marginal_disagreement_text <- function(dis, level) {
+  unlist(lapply(unique(dis$scale), function(sc) {
+    r <- dis[dis$scale == sc, , drop = FALSE]
+    .disagreement_sentences(sprintf("%s (%s)", r$contrast, tolower(sc)), r$kind, level,
+                            "standardizations", r$null[1])
+  }))
 }
 
 # The lines print.solomon_marginal() adds when the two standardizations
@@ -413,11 +461,7 @@
   dis <- .marginal_disagreement(s)
   c(lines, unlist(lapply(c(
     "No delta line is given on the risk or rate scale.",
-    if (length(dis)) {
-      sprintf(paste("For %s, the sign differs between the standardizations or only one",
-                    "interval excludes 0: whether %s from zero depends on the standardization."),
-              .series_and(dis), if (length(dis) > 1L) "they differ" else "it differs")
-    },
+    .marginal_disagreement_text(dis, x$conf_level),
     s$note,
     "The data cannot tell which standardization is right. See ?marginal_solomon."
   ), wrap)))

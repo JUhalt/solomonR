@@ -1,9 +1,9 @@
 # The sentences report_solomon() adds for the two pretest centers (issue
 # #135): the center used and its assumption, the pretest effects at the
 # other center and the gap when the two centers differ, a sentence when
-# whether a pretest effect differs from zero depends on the center, and an
-# attrition sentence whenever a posttest is missing. Reports of complete data
-# and of fits made before #135 are as before.
+# whether a pretest effect differs from zero, or its direction, depends on
+# the center, and an attrition sentence whenever a posttest is missing.
+# Reports of complete data and of fits made before #135 are as before.
 
 # The assumption under which each center gives the pretest effects (the
 # decision record on issue #135, section 4), as report_solomon() states it.
@@ -73,9 +73,10 @@
 # the center used and its assumption; the other center, its assumption, and
 # the pretest effects there (`other_text`, a clause such as "the pretest
 # effect was ..."); the difference between the centers
-# (`difference_sentence`); and, when the sign differs between the centers or
-# only one center's interval excludes 0, that whether those effects differ
-# from zero depends on the center (the record's rule for giving no verdict).
+# (`difference_sentence`); and, when only one center's interval excludes 0,
+# that whether those effects differ from zero depends on the center, or,
+# when only the sign differs, that their direction does (the record's rule
+# for giving no verdict; .disagreement_report()).
 # `names` gives the phrase of each pretest effect, in the order of the
 # analyzed rows of `pretest_sensitivity$effects`. character(0) when the
 # centers do not differ or the fit predates #135.
@@ -85,21 +86,47 @@
   if (is.null(x$pretest_center) || is.null(s) || !isTRUE(s$differ)) return(character(0))
   used <- x$pretest_center
   other <- .other_center(used)
-  dis <- .center_disagreement(s)
-  a <- s$effects[s$effects$center == "analyzed", , drop = FALSE]
-  flagged <- .center_labels(a) %in% c(dis$sign, dis$interval)
   c(
     sprintf("The pretest effects were evaluated at %s, which %s.",
             .center_phrase(x, used, digits, posttest), .center_assumption[[used]]),
     sprintf("At %s, which %s, %s.",
             .center_phrase(x, other, digits, posttest), .center_assumption[[other]], other_text),
     difference_sentence,
-    if (any(flagged)) {
-      sprintf("Whether %s %s from zero therefore depends on the pretest center.",
-              .series_and(names[flagged]), if (sum(flagged) > 1L) "differ" else "differs")
-    },
+    .disagreement_report(names, unname(.center_disagreement(s)), x$conf_level),
     s$note
   )
+}
+
+# The report's sentences on a disagreement between the two centers (or
+# standardizations, `what`), one for each kind present
+# (.disagreement_kind()): whether a contrast differs from zero depends on
+# the center only when one center's interval excludes 0 and the other's
+# does not; when only the sign differs, its direction does. `names` gives
+# the phrase of each contrast and `kind` its kind.
+.disagreement_report <- function(names, kind, level, what = "pretest center", null = 0) {
+  pct <- format(100 * level)
+  both <- if (what == "pretest center") "at both centers" else "under both standardizations"
+  value <- if (null == 0) "zero" else "1"
+  sentence <- function(k) {
+    l <- names[kind %in% k]
+    if (!length(l)) return(NULL)
+    several <- length(l) > 1L
+    direction <- sprintf("The %s of %s %s on the %s", if (several) "directions" else "direction",
+                         .series_and(l), if (several) "depend" else "depends", what)
+    interval <- sprintf("%s %s%% confidence %s", if (several) "their" else "its", pct,
+                        if (several) "intervals" else "interval")
+    switch(
+      k,
+      interval = sprintf("Whether %s %s from %s therefore depends on the %s.", .series_and(l),
+                         if (several) "differ" else "differs", value, what),
+      sign_none = sprintf("%s; %s %s %s %s.", direction, interval,
+                          if (several) "include" else "includes", null, both),
+      sign_both = sprintf("%s, although %s %s %s %s.", direction, interval,
+                          if (several) "exclude" else "excludes", null, both),
+      sign = paste0(direction, ".")
+    )
+  }
+  unlist(lapply(c("interval", "sign_none", "sign_both", "sign"), sentence))
 }
 
 # The attrition sentence of a report, whenever a posttest is missing, as in
@@ -250,13 +277,11 @@
     sprintf(paste("Standardized over %s instead, which %s, the contrasts that depend on the",
                   "standardization were as follows."), set(other), .center_assumption[[other]]),
     by_scale,
-    if (length(dis)) {
-      scale <- sub(":.*$", "", dis)
-      contrast <- sub("^[^:]+: ", "", dis)
-      sprintf("Whether %s %s from zero therefore depends on the standardization.",
-              .series_and(sprintf("%s on the %s scale", phrase[contrast], tolower(scale))),
-              if (length(dis) > 1L) "differ" else "differs")
-    },
+    unlist(lapply(unique(dis$scale), function(sc) {
+      r <- dis[dis$scale == sc, , drop = FALSE]
+      .disagreement_report(sprintf("%s on the %s scale", phrase[r$contrast], tolower(sc)),
+                           r$kind, x$conf_level, "standardization", r$null[1])
+    })),
     s$note
   )
 }
