@@ -10,7 +10,7 @@
 #      and a Wald test of equal shifts, and the raw comparison of posttest
 #      means when that test gives p < .05 (issue #143);
 #   4. the gap between the two centers, b m1 (completers - dropouts), the
-#      adjustment of What Works Clearinghouse (2022, eq. H.2);
+#      adjustment of What Works Clearinghouse (2022, eq. H.2, p. 207);
 #   5. for each unpretested group, its share lost and the offset the default
 #      assumes (the delta line);
 #   6. covariates recorded in all groups: loss by covariate within each
@@ -403,10 +403,12 @@
       several <- sum(!lost_some) > 1L
       lines <- c(lines, wrap(sprintf(paste(
         "The unpretested %s %s lost no posttests: if the data hold everyone randomized to %s,",
-        "the default's assumption holds there only if the pretested losses in %s were",
-        "unrelated to baseline."
+        "the default's pretest %s there %s right only if the pretested groups' losses,",
+        "taken together, were unrelated to baseline, because the default's center pools",
+        "the pretested groups."
       ), .series_and(u$condition[!lost_some]), if (several) "groups" else "group",
-      if (several) "them" else "it", if (several) "those conditions" else "that condition")))
+      if (several) "them" else "it", if (several) "effects" else "effect",
+      if (several) "are" else "is")))
     }
   }
   for (name in names(x$covariates)) {

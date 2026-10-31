@@ -201,13 +201,14 @@ center minus those at the observed center, b m1 (completers' minus
 dropouts' mean pretest), with b the pretest slope and m1 the share of
 pretested participants with a pretest who are not analyzed, from a fit
 on the identity link with \code{covariates}. This is the adjustment of What
-Works Clearinghouse (2022, Equation H.2).
+Works Clearinghouse (2022, Equation H.2, p. 207).
 \item \strong{The unpretested groups}: for each, its share without a posttest,
 m0, and the offset the default assumes for its dropouts, the delta
 line of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. A group that lost no posttests is named:
-if the data hold everyone randomized to it, the default's assumption
-holds in that condition only if the pretested losses were unrelated to
-baseline.
+if the data hold everyone randomized to it, the default's pretest
+effect in that condition is right only if the pretested groups'
+losses, taken together, were unrelated to baseline, because the
+default's center pools the pretested groups.
 \item \strong{Covariates recorded in all groups} (\code{covariates}): loss by covariate
 within each pretest condition, and the covariate's distribution among
 the participants with a posttest (Lee, 2005, Remark 4, p. 16;

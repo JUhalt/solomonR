@@ -65,8 +65,12 @@ test_that("summary() and four-group fits print the block; complete data print no
                fixed = TRUE)
   expect_match(out, "Pretest effect | control", fixed = TRUE)
   expect_match(out, "would have scored", fixed = TRUE)
-  # The unpretested control group lost none.
+  # The unpretested control group lost none. The default's center pools the
+  # pretested groups, so the pretested treatment group's losses move the
+  # control pretest effect too.
   expect_match(out, "The unpretested control group lost no posttests", fixed = TRUE)
+  expect_match(out, "the pretested groups' losses, taken together, were unrelated to baseline",
+               fixed = TRUE)
   expect_match(squash(printed(summary(fit))), "Every observed pretest: 49.60", fixed = TRUE)
 
   complete <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
@@ -446,6 +450,8 @@ test_that("check_solomon_missing() reports missing pretests, selection, and uneq
   expect_match(out, "Pretested participants with a posttest and no pretest: 2.", fixed = TRUE)
   expect_match(out, "(issue #143)", fixed = TRUE)
   expect_match(out, "The unpretested control group lost no posttests", fixed = TRUE)
+  expect_match(out, "the pretested groups' losses, taken together, were unrelated to baseline",
+               fixed = TRUE)
 })
 
 test_that("check_solomon_missing() works without a pretest and for complete data", {

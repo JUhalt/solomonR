@@ -208,11 +208,12 @@
   several <- length(none) > 1L
   sprintf(paste(
     "The unpretested %s %s %s: if the data hold everyone randomized",
-    "to %s, the default's assumption holds in %s only if the pretested %s",
-    "losses were unrelated to baseline."
+    "to %s, the default's pretest %s there %s right only if the pretested",
+    "groups' losses, taken together, were unrelated to baseline, because the",
+    "default's center pools the pretested groups."
   ), .series_and(none), if (several) "groups" else "group", lost_none,
-  if (several) "them" else "it", if (several) "those conditions" else "that condition",
-  if (several) "groups'" else "group's")
+  if (several) "them" else "it", if (several) "effects" else "effect",
+  if (several) "are" else "is")
 }
 
 # How a contrast at the two centers (or standardizations) disagrees, row by
