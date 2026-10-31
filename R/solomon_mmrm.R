@@ -200,7 +200,23 @@
 #'   any occasion; `pretest_center` chooses it, and `"observed"` needs those
 #'   participants' rows, with `y_post` missing. A participant with a
 #'   posttest at any occasion is analyzed, so dropout after the first
-#'   occasion leaves the two centers equal.
+#'   occasion leaves the two centers equal. Neither center protects the
+#'   later occasions when dropout depends on baseline beyond the earlier
+#'   posttests: the unpretested groups' model cannot see the baseline, so
+#'   their later posttests are not missing at random given what it
+#'   includes. In a check of this (`tools/pretest-center-check.R`, part 5:
+#'   40 data sets of 1,500 participants per group, no effects, two
+#'   occasions, a third of the second posttests lost with probability
+#'   `plogis(-1 - 1.5 * x)` in every group, `x` the baseline), the pretest main
+#'   effect was unbiased at the first occasion (0.000, Monte Carlo standard
+#'   error 0.004) and biased at the second by -0.067 (0.005) at either
+#'   center. When dropout depended on the first posttest instead, both
+#'   occasions were unbiased (-0.005 and -0.002). When a third of the
+#'   participants had no posttest at all, lost by baseline in every group,
+#'   the default was unbiased and `"observed"` biased by -0.18 at both
+#'   occasions; when only the pretested groups lost them by baseline, and the
+#'   unpretested at random, the reverse held (+0.18 at the default). It is a
+#'   check, not a simulation study.
 #' - **Covariance.** Unstructured within participant, estimated by
 #'   restricted maximum likelihood (Laird & Ware, 1982). With a pretest, it
 #'   is estimated separately for pretested and unpretested participants: the
