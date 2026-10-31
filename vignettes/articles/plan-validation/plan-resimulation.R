@@ -14,6 +14,20 @@ target <- 0.80
 sims <- 2000L
 base_seed <- 20260925L
 
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script plans the
+# first design alone, re-simulates each plan SOLOMONR_SMOKE_REPS times
+# (default 2) on one worker, and writes its results under that folder,
+# whatever the arguments. It stops if a simulated dataset failed.
+# tools/check-validation-scripts.R runs it. Unset, the script runs the check.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  output <- file.path(smoke_dir, "plan-validation", "plan-resimulation.rds")
+  dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
+  sims <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  workers <- 1L
+}
+
 layouts <- list("equal" = c(1, 1, 1, 1), "1:1:2:2" = c(1, 1, 2, 2))
 designs <- expand.grid(
   delta = c(0.3, 0.6),
@@ -23,6 +37,8 @@ designs <- expand.grid(
   KEEP.OUT.ATTRS = FALSE,
   stringsAsFactors = FALSE
 )
+# The first design, so that its plans keep their seeds.
+if (smoke) designs <- designs[1L, ]
 
 suppressMessages(pkgload::load_all(repo, quiet = TRUE))
 
@@ -68,3 +84,6 @@ saveRDS(list(result = result, target = target, sims = sims, base_seed = base_see
 
 cat("plans:", nrow(result), " minutes:",
     round(as.numeric(difftime(Sys.time(), started, units = "mins")), 1), "\n")
+if (smoke && (nrow(result) == 0 || any(result$failures > 0) || !all(is.finite(result$simulated_power)))) {
+  stop("Smoke run failed: no plan, a failed simulated dataset, or a plan with no simulated power.")
+}

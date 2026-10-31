@@ -145,6 +145,24 @@ agree_part <- function(part) {
     fc <- fit_solomon_glm(df$y, df$treat, df$pretested, y_pre, control = "Control",
                           robust = robust)
     vc <- rep(seq_len(length(pairs_of(s$k))) <= s$k, length(types))
+    # The rows of the direct computation, selected by comparison and label
+    # (issue #140; ?solomon_output): each pair for each of the four contrast
+    # types, in its order. The omnibus tests are selected by name too. A row
+    # that is not found stops the check.
+    rows_by_label <- function(tab, wanted, found) {
+      at <- match(wanted, found)
+      if (anyNA(at)) {
+        stop("Rows not found in a table of the package: ", paste(wanted[is.na(at)], collapse = ", "))
+      }
+      tab[at, ]
+    }
+    keys <- paste(rep(pair_names(s$k), length(types)), rep(types, each = length(pairs_of(s$k))))
+    fp$effects <- rows_by_label(fp$effects, keys, paste(fp$effects$comparison, fp$effects$contrast))
+    fc$effects <- rows_by_label(fc$effects, keys[vc], paste(fc$effects$comparison, fc$effects$contrast))
+    fc$omnibus <- rows_by_label(fc$omnibus,
+                                c("Condition (avg over pretest)", "Pretest x Condition",
+                                  "Condition | pretested", "Condition | unpretested"),
+                                fc$omnibus$test)
     data.frame(
       scenario = part$scenario, rep = a$rep, method = a$method,
       max_diff_estimate = max(abs(fp$effects$estimate - a$x$est)),

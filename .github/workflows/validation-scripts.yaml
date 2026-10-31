@@ -1,0 +1,47 @@
+name: validation-scripts
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  validation-scripts:
+    name: Smoke runs of the validation scripts
+    runs-on: ubuntu-latest
+    # The scripts took 27 and 36 minutes in all in two runs on a laptop
+    # (issue #140); the job has not yet been timed on GitHub. A script that
+    # hangs is stopped after SOLOMONR_SMOKE_TIMEOUT seconds, well within this
+    # limit, so the check still prints its table and the end of the log.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      # Hosted Ubuntu runners can occasionally retain a stale Google
+      # Chrome apt source, which makes setup-r fail during apt-get update.
+      - name: Remove stale Google Chrome apt source
+        shell: bash
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources*
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # The scripts load the package with pkgload and use its Imports and
+      # Suggests, lavaan and mmrm included.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgload
+
+      # Every script behind a validation article runs a few replications of
+      # a few scenarios in a temporary folder (issue #140). The check fails
+      # if a script fails or if a file of the package changes.
+      - name: Run the validation scripts in smoke mode
+        env:
+          SOLOMONR_SMOKE_TIMEOUT: 900
+        run: Rscript tools/check-validation-scripts.R

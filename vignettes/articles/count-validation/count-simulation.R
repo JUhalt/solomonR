@@ -12,6 +12,19 @@
 args <- commandArgs(trailingOnly = TRUE)
 reps <- if (length(args) >= 1) as.integer(args[[1]]) else 2000L
 out_dir <- file.path("vignettes", "articles", "count-validation")
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the scenarios in
+# `smoke_scenarios` on one worker, and writes everything, cache included,
+# under that folder, so the stored results are not touched. It stops if a
+# replication caught an error or a row has no usable replication.
+# tools/check-validation-scripts.R runs it. Unset, the script runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  reps <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  out_dir <- file.path(smoke_dir, "count-validation")
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
 cache_dir <- file.path(out_dir, "cache")
 dir.create(cache_dir, showWarnings = FALSE)
 pkg_dir <- normalizePath(".")
@@ -25,6 +38,10 @@ scenarios <- expand.grid(
   stringsAsFactors = FALSE
 )
 scenarios$scenario <- seq_len(nrow(scenarios))
+# n = 20 and control rate 3, under the null and with sensitization; at rate
+# 0.5 a cell can be empty.
+smoke_scenarios <- c(4L, 76L)
+if (smoke) scenarios <- scenarios[scenarios$scenario %in% smoke_scenarios, ]
 effects <- list(
   null = c(bT = 0, bP = 0, bTP = 0),
   treatment = c(bT = log(1.5), bP = 0, bTP = 0),
@@ -49,8 +66,10 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   truth_link <- c(e[["bT"]] + e[["bTP"]] / 2, e[["bTP"]], e[["bT"]] + e[["bTP"]], e[["bT"]])
   rate <- function(t, p) exp(b0 + e[["bT"]] * t + e[["bP"]] * p + e[["bTP"]] * t * p + s$bX^2 / 2)
   r <- c(t1p1 = rate(1, 1), t0p1 = rate(0, 1), t1p0 = rate(1, 0), t0p0 = rate(0, 0))
-  truth_marginal <- c(.marginal_contrasts(r, "difference", count = TRUE),
-                      .marginal_contrasts(r, "ratio", count = TRUE))
+  # The rows studied are selected by label (issue #140; ?solomon_output): the
+  # four contrasts, on the link scale and on each marginal scale.
+  truth_marginal <- c(.marginal_contrasts(r, "difference", count = TRUE)[contrasts],
+                      .marginal_contrasts(r, "ratio", count = TRUE)[contrasts])
 
   n_cells <- 4 * s$n
   design <- data.frame(treat = rep(c(1L, 0L, 1L, 0L), each = s$n),
@@ -64,7 +83,20 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   dispersion <- rep(NA_real_, reps)
   rep_errors <- character()
 
+  # The rows of a table of the package, selected by label. A label that is
+  # not found stops the study instead of counting as a failed replication.
+  rows_by_label <- function(tab, wanted, keys) {
+    at <- match(wanted, keys)
+    if (anyNA(at)) {
+      stop(structure(class = c("validation_rows_missing", "error", "condition"), list(
+        message = paste("Rows not found in a table of the package:",
+                        paste(wanted[is.na(at)], collapse = ", ")),
+        call = NULL)))
+    }
+    tab[at, ]
+  }
   link_rows <- function(fit) {
+    fit$effects <- rows_by_label(fit$effects, contrasts, fit$effects$contrast)
     cbind(fit$effects$estimate, fit$effects$std.error, fit$effects$conf.low,
           fit$effects$conf.high, fit$effects$p.value)
   }
@@ -91,6 +123,9 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
                                                robust = "none"))
     store$model_based[i, , ] <<- link_rows(fit_mb)
     m <- marginal_solomon(fit)
+    m$effects <- rows_by_label(m$effects,
+                               paste(rep(c("Rate difference", "Rate ratio"), each = 4), rep(contrasts, 2)),
+                               paste(m$effects$scale, m$effects$contrast))
     ratio <- m$effects$scale == "Rate ratio"
     est <- m$effects$estimate; lo <- m$effects$conf.low; hi <- m$effects$conf.high
     est[ratio] <- log(est[ratio]); lo[ratio] <- log(lo[ratio]); hi[ratio] <- log(hi[ratio])
@@ -98,6 +133,7 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
   }
   for (i in seq_len(reps)) {
     tryCatch(one_rep(i), error = function(err) {
+      if (inherits(err, "validation_rows_missing")) stop(err)
       rep_errors <<- c(rep_errors, conditionMessage(err))
       failed[i] <<- TRUE
       for (k in names(store)) store[[k]][i, , ] <<- NA_real_
@@ -153,7 +189,7 @@ run_scenario <- function(s, reps, pkg_dir, effects, cache_dir) {
 }
 
 started <- Sys.time()
-cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
+cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
 order_run <- order(-scenarios$n)
 results <- parallel::parLapplyLB(cl, split(scenarios[order_run, ], seq_along(order_run)),
@@ -175,3 +211,8 @@ info <- data.frame(
 utils::write.csv(info, file.path(out_dir, "run-information.csv"), row.names = FALSE)
 cat("Done:", nrow(performance), "rows in",
     format(round(difftime(Sys.time(), started, units = "mins"), 1)), "\n")
+if (smoke && (any(performance$rep_errors > 0) || any(performance$n_used == 0))) {
+  stop("Smoke run failed: ", sum(performance$n_used == 0), " rows with no usable replication; ",
+       "caught errors: ",
+       paste(unique(performance$rep_error_messages[performance$rep_errors > 0]), collapse = " | "))
+}

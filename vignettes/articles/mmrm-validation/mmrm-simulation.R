@@ -13,8 +13,21 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 reps <- if (length(args) >= 1) as.integer(args[[1]]) else 2000L
-chunk <- min(500L, reps)
 out_dir <- file.path("vignettes", "articles", "mmrm-validation")
+# Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the script runs
+# SOLOMONR_SMOKE_REPS replications (default 2) of the scenarios in
+# `smoke_scenarios` on one worker, and writes everything, cache included,
+# under that folder, so the stored results are not touched. It stops if a
+# replication caught an error or a row has no usable replication.
+# tools/check-validation-scripts.R runs it. Unset, the script runs the study.
+smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
+smoke <- nzchar(smoke_dir)
+if (smoke) {
+  reps <- as.integer(Sys.getenv("SOLOMONR_SMOKE_REPS", "2"))
+  out_dir <- file.path(smoke_dir, "mmrm-validation")
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+}
+chunk <- min(500L, reps)
 cache_dir <- file.path(out_dir, "cache")
 dir.create(cache_dir, showWarnings = FALSE)
 pkg_dir <- normalizePath(".")
@@ -54,6 +67,9 @@ tasks <- do.call(rbind, lapply(seq_len(nrow(scenarios)), function(s) {
   data.frame(scenario = s, part = seq_len(ceiling(reps / chunk)))
 }))
 tasks$reps <- pmin(chunk, reps - (tasks$part - 1L) * chunk)
+# n = 30 with moderate dropout, without and with fading sensitization.
+smoke_scenarios <- c(1L, 7L)
+if (smoke) tasks <- tasks[tasks$scenario %in% smoke_scenarios, ]
 
 run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
   cache_file <- file.path(cache_dir, sprintf("scenario-%02d-part-%d.rds", task$scenario, task$part))
@@ -77,6 +93,22 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
     covariance <- matrix(NA_character_, task$reps, 3L,
                          dimnames = list(NULL, c("mmrm_kr", "mmrm_satterthwaite", "mmrm_shared_kr")))
     errors <- character()
+    # The rows of a table of the package, selected by label. A label that is
+    # not found stops the study instead of counting as a failed fit.
+    rows_by_label <- function(tab, wanted, keys) {
+      at <- match(wanted, keys)
+      if (anyNA(at)) {
+        stop(structure(class = c("validation_rows_missing", "error", "condition"), list(
+          message = paste("Rows not found in a table of the package:",
+                          paste(wanted[is.na(at)], collapse = ", ")),
+          call = NULL)))
+      }
+      tab[at, ]
+    }
+    caught <- function(method, e) {
+      if (inherits(e, "validation_rows_missing")) stop(e)
+      errors <<- c(errors, paste0(method, ": ", conditionMessage(e)))
+    }
     occasions <- c("1", "2", "3")
     n <- s$n
     g <- rep(1:4, each = n)
@@ -110,7 +142,10 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
       long$pgrp <- factor(ifelse(long$pretested == 1L, "pretested", "unpretested"))
       observed <- long[!is.na(long$y), ]
 
+      # The estimands studied, selected by occasion and label (issue #140;
+      # ?solomon_output), in the order of `estimands`.
       fill <- function(method, eff) {
+        eff <- rows_by_label(eff, estimands, paste(eff$occasion, eff$contrast, sep = ": "))
         store[i, , , method] <<- cbind(eff$estimate, eff$std.error, eff$conf.low, eff$conf.high,
                                        eff$p.value)
       }
@@ -118,30 +153,32 @@ run_task <- function(task, scenarios, settings, pkg_dir, cache_dir) {
         kr <- .mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "kenward-roger", 0.95)
         fill("mmrm_kr", kr$effects)
         covariance[i, "mmrm_kr"] <- kr$covariance
-      }, error = function(e) errors <<- c(errors, paste("mmrm_kr:", conditionMessage(e))))
+      }, error = function(e) caught("mmrm_kr", e))
       tryCatch({
         sat <- .mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "satterthwaite", 0.95)
         fill("mmrm_satterthwaite", sat$effects)
         covariance[i, "mmrm_satterthwaite"] <- sat$covariance
-        e <- sat$effects
+        e <- rows_by_label(sat$effects, estimands,
+                           paste(sat$effects$occasion, sat$effects$contrast, sep = ": "))
         q <- stats::qnorm(0.975)
         store[i, , , "mmrm_normal"] <- cbind(e$estimate, e$std.error, e$estimate - q * e$std.error,
                                              e$estimate + q * e$std.error,
                                              2 * stats::pnorm(-abs(e$estimate / e$std.error)))
-      }, error = function(e) errors <<- c(errors, paste("mmrm_satterthwaite:", conditionMessage(e))))
+      }, error = function(e) caught("mmrm_satterthwaite", e))
       tryCatch({
         shared <- .mmrm_fit_contrasts(observed, occasions, TRUE, FALSE, "kenward-roger", 0.95)
         fill("mmrm_shared_kr", shared$effects)
         covariance[i, "mmrm_shared_kr"] <- shared$covariance
-      }, error = function(e) errors <<- c(errors, paste("mmrm_shared_kr:", conditionMessage(e))))
+      }, error = function(e) caught("mmrm_shared_kr", e))
       tryCatch({
         cc <- do.call(rbind, lapply(1:3, function(t) {
           keep <- !is.na(yobs[, t])
-          fit_solomon_glm(yobs[keep, t], treat[keep], pretested[keep], y_pre[keep])$effects
+          e <- fit_solomon_glm(yobs[keep, t], treat[keep], pretested[keep], y_pre[keep])$effects
+          rows_by_label(e, .solomon_contrast_order, e$contrast)
         }))
         store[i, 1:12, , "complete_case"] <- cbind(cc$estimate, cc$std.error, cc$conf.low,
                                                    cc$conf.high, cc$p.value)
-      }, error = function(e) errors <<- c(errors, paste("complete_case:", conditionMessage(e))))
+      }, error = function(e) caught("complete_case", e))
     }
     out <- list(scenario = s$scenario, part = task$part, truth = truth, store = store,
                 covariance = covariance, errors = errors)
@@ -197,7 +234,7 @@ intercepts <- lapply(dropout_rates, function(r) {
 settings <- list(intercepts = intercepts, first_missing = first_missing, delta = delta,
                  sens = sens, pretest_effect = pretest_effect, sds = sds, corr = corr,
                  gamma = gamma, estimands = estimands)
-cl <- parallel::makeCluster(max(1L, parallel::detectCores() - 1L))
+cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
 order_run <- order(-scenarios$n[tasks$scenario])
 results <- parallel::parLapplyLB(
@@ -207,7 +244,7 @@ results <- parallel::parLapplyLB(
 )
 
 rows <- list()
-for (s in seq_len(nrow(scenarios))) {
+for (s in sort(unique(tasks$scenario))) {  # every scenario, except in smoke mode
   parts <- results[vapply(results, function(r) r$scenario == s, logical(1))]
   parts <- parts[order(vapply(parts, `[[`, 0, "part"))]
   store <- stack_reps(lapply(parts, `[[`, "store"))
@@ -242,3 +279,8 @@ info <- data.frame(
 utils::write.csv(info, file.path(out_dir, "run-information.csv"), row.names = FALSE)
 cat("Done:", nrow(performance), "rows in",
     format(round(difftime(Sys.time(), started, units = "mins"), 1)), "\n")
+if (smoke && (any(performance$errors > 0) || any(performance$n_used == 0))) {
+  stop("Smoke run failed: ", sum(performance$n_used == 0), " rows with no usable replication; ",
+       "caught errors: ",
+       paste(unique(performance$error_messages[performance$errors > 0]), collapse = " | "))
+}
