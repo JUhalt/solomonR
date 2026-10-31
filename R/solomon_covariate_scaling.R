@@ -21,18 +21,20 @@
 
 # The numeric covariates of `df` standardized over the rows the model used
 # (`in_model`). `covariates` names the covariates among the columns of
-# `df`. Numeric vectors are standardized, and dates and times, which enter
-# the model as their numbers (days or seconds since 1970, or the units of a
-# difference); a factor enters as indicators, and a column with another
-# class is left as given. Returns the data with them standardized, `data`,
-# and their `means` and `scales` (standard deviations), named by
-# covariate; `means` is empty when there is none.
+# `df`. Every numeric vector is standardized, whatever its class (such as a
+# labelled column read from SPSS or Stata, or one wrapped in I()), as the
+# numbers it enters the model as, and so are dates and times, which enter
+# it as days or seconds since 1970, or in the units of a difference
+# (.covariate_values()); a factor, a logical, or a character column enters
+# as indicators and is left as given, as is a matrix. Returns the data with
+# them standardized, `data`, and their `means` and `scales` (standard
+# deviations), named by covariate; `means` is empty when there is none.
 .covariate_scaling <- function(df, covariates, in_model) {
   means <- numeric()
   scales <- numeric()
   for (name in covariates) {
     x <- .covariate_values(df[[name]])
-    if (!is.numeric(x) || is.object(x) || !is.null(dim(x))) next
+    if (is.null(x)) next
     m <- mean(x[in_model])
     s <- stats::sd(x[in_model])
     if (!is.finite(m)) next
@@ -44,8 +46,13 @@
   list(data = df, means = means, scales = scales)
 }
 
+# The numbers a covariate enters the model as, without its class: those of
+# a numeric vector, and those of a date, a time, or a time difference. NULL
+# for any other column.
 .covariate_values <- function(x) {
-  if (inherits(x, c("Date", "POSIXct", "difftime"))) as.numeric(x) else x
+  if (inherits(x, c("Date", "POSIXct", "difftime"))) return(as.numeric(x))
+  if (is.numeric(x) && is.null(dim(x))) return(as.vector(unclass(x)))
+  NULL
 }
 
 # The columns of a data frame (`frame`) or of a design matrix (`X`)

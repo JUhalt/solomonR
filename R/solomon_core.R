@@ -951,9 +951,11 @@ stouffer_solomon <- function(p) {
 #' intercept included. With a numeric covariate, a CR2 `vcov` is therefore
 #' a matrix rather than the clubSandwich object, whose small-sample
 #' adjustments belong to the standardized model; that model's coefficients
-#' and covariance are in `covariate_scaling`. Dates and times are
-#' standardized as the numbers they enter the model as; factors, and
-#' columns with another class, enter as given.
+#' and covariance are in `covariate_scaling`. A numeric covariate is
+#' standardized whatever its class, such as a labelled column read from SPSS
+#' or Stata, or one wrapped in `I()`, and so are dates and times, as the
+#' numbers they enter the model as; factors, logical columns, and character
+#' columns enter as given.
 #'
 #' @section Designs with several treatments:
 #' A Solomon N-group design crosses k treatments and a control with

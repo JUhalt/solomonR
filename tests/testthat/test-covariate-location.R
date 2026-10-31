@@ -182,6 +182,33 @@ test_that("a date covariate is standardized as the days it enters the model as",
                          1e-8, info = "date")
 })
 
+test_that("a numeric covariate with a class is standardized as the numbers it enters as", {
+  # A column wrapped in I(), and a labelled column, as haven::read_sav()
+  # returns for a variable with value labels.
+  d <- location_data()$four
+  labelled <- function(x) {
+    structure(x, labels = c(low = 0), class = c("haven_labelled", "vctrs_vctr", "double"))
+  }
+  shift <- 1e6 * stats::sd(d$z)
+  for (robust in c("HC3", "CR2")) {
+    fit_with <- function(z) {
+      covariates <- data.frame(row = seq_along(z))
+      covariates$z <- z
+      suppressWarnings(fit_solomon_glm(d$y_g, d$treat, d$pretested, d$pre,
+                                       covariates = covariates["z"], robust = robust,
+                                       cluster = if (robust == "CR2") d$site))
+    }
+    ref <- fit_with(d$z)
+    for (class in c("AsIs", "haven_labelled")) {
+      z <- if (class == "AsIs") I(d$z + shift) else labelled(d$z + shift)
+      fit <- fit_with(z)
+      expect_s3_class(fit$model$data$z, class)
+      expect_named(fit$covariate_scaling$means, "z")
+      expect_shift_invariant(fit, ref, c(z = shift), 1e-8, info = paste(robust, class))
+    }
+  }
+})
+
 test_that("the influence functions from the QR decomposition equal the cross-products", {
   d <- location_data()$four
   cross_products <- function(model) {
