@@ -1,5 +1,42 @@
 # solomonR (development version)
 
+## broom and dplyr are no longer imported (#84, fourth part)
+
+* solomonR no longer imports broom and dplyr, which brought in 8 of the
+  36 packages that it needed, directly or through other packages
+  (backports, broom, dplyr, purrr, stringi, stringr, tidyr, and
+  tidyselect). None of the 28 that remain needs either one. The
+  coefficient tables of `fit_solomon_glm()`, the legacy `ancova` and
+  `t_unpretested` tables of `fit_solomon_classic()`, and the cell
+  summaries that the deprecated `plot_solomon()` returns are now made with
+  base R and tibble.
+* **Results are unchanged.** For 1,383 results of the exported functions
+  and of the examples of every help page, with their prints, summaries,
+  `tidy()`, `glance()`, reports, and plot data, the values, names, column
+  order, classes, attributes, row names, and printed output are identical
+  to those of the development version before this change, except as the
+  next item says, and so is what the smoke run of the binary-outcome
+  validation script writes. The tests pass where neither package is
+  installed.
+* **What depended on the package loading broom and dplyr.** `tidy()` and
+  `glance()` of a model that a result holds, such as `fit$model`, need
+  broom loaded, as they do for any model fitted outside the package;
+  before, the first fit of a session had loaded broom. `tidy()` or
+  `glance()` of a result that has no such method fails with the message of
+  generics, "no applicable method", instead of broom's. Where dplyr is not
+  loaded, the table that `plot_solomon()` returns prints without its
+  `# Groups:   pretested [2]` line; the table itself is unchanged.
+* **The first fit of a session is faster**, because it loads 6 packages
+  instead of 14. In new R sessions, the first call of
+  `fit_solomon_classic()` on `solomon_example` took a median of 0.53 s
+  before this change and 0.23 s after (8 sessions each, alternating, with
+  R 4.6.1 on Windows and the packages' files in the disk cache); later
+  calls take 0.05 s or less either way.
+* The binary-outcome validation script binds its rows, and a test builds
+  its stored table, without dplyr or broom, so the validation-scripts
+  workflow, which installs only what DESCRIPTION lists, still runs every
+  script. All of them pass in smoke mode without either package.
+
 ## The pretest center when posttests are missing (#135)
 
 With a pretest covariate, the pretest effects compare the pretested
