@@ -1322,6 +1322,19 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   )
   .stop_inestimable(fit, .group_names(group_counts, group_counts == 0))
 
+  # A group with one participant is fitted exactly: its hat value is 1, and
+  # HC3 divides the squared residual by (1 - h)^2, so its standard errors
+  # are undefined. Stop as the several-treatment path does.
+  if (robust == "HC3" && any(group_counts == 1)) {
+    stop(
+      "HC3 standard errors are undefined because these groups have a single ",
+      "analyzable participant: ", paste(.group_names(group_counts, group_counts == 1),
+                                         collapse = "; "), ". ",
+      "Use `robust = \"none\"`; see validate_solomon().",
+      call. = FALSE
+    )
+  }
+
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link)
   }
