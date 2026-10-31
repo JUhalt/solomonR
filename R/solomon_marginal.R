@@ -740,9 +740,23 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stop("`R` must be a single number of at least 99.", call. = FALSE)
   }
 
+  # With numeric covariates the fit's inference was computed with them
+  # standardized (issue #137; .covariate_scaling()), and so is this: the
+  # model, its coefficients and covariance, and the design rows are those of
+  # the standardized covariates, in which the numerical derivatives of the
+  # delta method and the refits of the bootstrap are accurate however far a
+  # covariate lies from zero. The risks and the contrasts are the same.
+  # `V` is the covariance of `b`.
+  scaling <- fit$covariate_scaling
   model <- fit$model
-  y <- model$y
   b <- stats::coef(model)
+  V <- fit$vcov
+  if (!is.null(scaling)) {
+    model <- .standardized_model(fit)
+    b <- scaling$coefficients
+    V <- scaling$vcov
+  }
+  y <- model$y
   n_contrasts <- length(.marginal_contrast_names())
   linkinv <- if (count) exp else stats::plogis
 
@@ -759,6 +773,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
          in_model = NULL, index = NULL)
   }
   observed_set <- .marginal_rows(fit)
+  if (!is.null(scaling)) observed_set$X <- .standardized_columns(observed_set$X, scaling)
   standardized <- observed_set$n
   set <- if (pretest_center == "analyzed") model_set() else observed_set
   X <- set$X
@@ -810,7 +825,6 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     X <- set$X
     pretested <- set$pretested
     df <- rep(Inf, length(estimate))
-    V <- as.matrix(fit$vcov)
     grad <- vapply(seq_along(b), function(j) {
       h <- 1e-6 * max(1, abs(b[[j]]))
       up <- b; up[j] <- up[j] + h
@@ -819,7 +833,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
          .marginal_all(down, X, pretested, scale, count)) / (2 * h)
     }, numeric(length(estimate)))
     grad <- matrix(grad, nrow = length(estimate))
-    std.error <- sqrt(rowSums((grad %*% V) * grad))
+    std.error <- sqrt(rowSums((grad %*% as.matrix(V)) * grad))
     if (cr2) {
       # Satterthwaite degrees of freedom for the delta method's linear
       # approximation (Pustejovsky & Tipton, 2018), from the complete-case
@@ -830,7 +844,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       ok <- is.finite(estimate) & is.finite(std.error) & std.error > 0
       df[ok] <- vapply(which(ok), function(i) {
         as.data.frame(clubSandwich::linear_contrast(
-          fit_cr, vcov = fit$vcov, contrasts = grad[i, , drop = FALSE], test = "Satterthwaite"
+          fit_cr, vcov = V, contrasts = grad[i, , drop = FALSE], test = "Satterthwaite"
         ))$df
       }, numeric(1))
     }

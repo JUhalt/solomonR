@@ -2011,7 +2011,11 @@ perm_solomon <- function(
     return(.perm_solomon_cluster(fit, contrast, reps, return_dist, statistic))
   }
 
+  # The model is refitted with the numeric covariates standardized as the
+  # fit's inference was (issue #137; .covariate_scaling()). The statistic
+  # is the same, and accurate however far a covariate lies from zero.
   df <- fit$data
+  if (!is.null(fit$covariate_scaling)) df <- .standardized_frame(df, fit$covariate_scaling)
   form <- stats::formula(fit$model)
   fam <- stats::family(fit$model)
 

@@ -2,29 +2,41 @@
 
 # Estimate, standard error, reference df, and interval for linear combinations
 # of a solomon_glm fit's coefficients, using the fit's own covariance matrix
-# and reference distribution (Satterthwaite t for CR2).
+# and reference distribution (Satterthwaite t for CR2). With numeric
+# covariates they are computed with the covariates standardized, as the
+# fit's inference was (issue #137; .covariate_scaling()): the combinations
+# become L M of the standardized coefficients, which give the same estimates
+# and are accurate however far a covariate lies from zero.
 .glm_linear_combination <- function(fit, L) {
   model <- fit$model
+  scaling <- fit$covariate_scaling
   cf <- stats::coef(model)
   L <- matrix(L, ncol = length(cf), dimnames = list(NULL, names(cf)))
-  V <- as.matrix(fit$vcov)
+  V <- fit$vcov
+  if (!is.null(scaling)) {
+    L <- L %*% .covariate_map(names(cf), scaling)
+    cf <- scaling$coefficients
+    V <- scaling$vcov
+  }
 
   estimate <- as.numeric(L %*% cf)
-  std.error <- sqrt(rowSums((L %*% V) * L))
+  std.error <- sqrt(rowSums((L %*% as.matrix(V)) * L))
 
   if (identical(fit$robust, "CR2")) {
     frame <- stats::model.frame(model)
-    if (!is.null(stats::model.offset(frame))) {
-      # A model frame cannot rebuild an exposure offset, so the model is
-      # refitted to the rows of the fit's data that it used.
+    if (!is.null(scaling) || !is.null(stats::model.offset(frame))) {
+      # A model frame cannot rebuild an exposure offset, nor hold the
+      # standardized covariates, so the model is refitted to the rows of the
+      # fit's data that it used.
       used <- rep(TRUE, nrow(fit$data))
       if (!is.null(model$na.action)) used[model$na.action] <- FALSE
       frame <- fit$data[used, , drop = FALSE]
+      if (!is.null(scaling)) frame <- .standardized_frame(frame, scaling)
     }
     fit_cr <- stats::glm(stats::formula(model), data = frame, family = fit$family)
     df <- vapply(seq_len(nrow(L)), function(i) {
       as.data.frame(
-        clubSandwich::linear_contrast(fit_cr, vcov = fit$vcov,
+        clubSandwich::linear_contrast(fit_cr, vcov = V,
                                       contrasts = L[i, , drop = FALSE],
                                       test = "Satterthwaite")
       )$df
