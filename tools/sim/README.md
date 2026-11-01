@@ -62,9 +62,11 @@ action `.github/actions/sim-setup/action.yml`.
    be `identical()` to the chunks': the most costly task, the most costly
    task 1 (which carries a scenario's agreement checks), and the cheapest
    tasks of the first and last chunks, each from a chunk not yet chosen
-   while one remains. `replay.csv` says which of them first ran on another
-   processor model. Only then does the study script summarize, from the
-   replications in the order of scenario and replication number.
+   while one remains (once every chunk has been chosen, the cheapest tasks
+   of the lowest- and highest-numbered chunks); ties go by task id, and no
+   task is chosen twice. `replay.csv` says which of them first ran on
+   another processor model. Only then does the study script summarize,
+   from the replications in the order of scenario and replication number.
 
 So a result cannot depend on the number of chunks, the job, the worker, or
 the order of the tasks, given the same arithmetic on every machine: 1 chunk

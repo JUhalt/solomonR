@@ -38,11 +38,14 @@
 #   a. the task with the largest cost (the heaviest scenario);
 #   b. the task 1 (which carries a scenario's agreement checks) with the
 #      largest cost;
-#   c. the cheapest task of the first chunk;
-#   d. the cheapest task of the last chunk;
+#   c. the cheapest task of the first chunk not yet chosen, or of the
+#      lowest-numbered chunk once every chunk has been chosen;
+#   d. the cheapest task of the last chunk not yet chosen, or of the
+#      highest-numbered chunk once every chunk has been chosen;
 #
-# ties broken by task id. tools/sim/check-replay.R compares them after the
-# study script has run them again on the merge machine.
+# ties broken by task id; a task is never chosen twice.
+# tools/sim/check-replay.R compares them after the study script has run them
+# again on the merge machine.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -211,10 +214,12 @@ choose <- function(cands, decreasing) {
   o <- order(if (decreasing) -cands$cost_num else cands$cost_num, cands$task_id)
   cands$task_id[o[[1]]]
 }
+# The tasks of the first (or last) chunk not yet chosen; once every chunk
+# has been chosen, of the lowest- (or highest-) numbered chunk.
 chunk_tasks <- function(which) {
   free <- setdiff(found, used_chunks())
-  if (!length(free)) return(plan)
-  plan[plan$chunk == (if (which == "first") min(free) else max(free)), , drop = FALSE]
+  pool <- if (length(free)) free else found
+  plan[plan$chunk == (if (which == "first") min(pool) else max(pool)), , drop = FALSE]
 }
 for (r in c("a", "b", "c", "d")) {
   cands <- switch(r,

@@ -37,6 +37,11 @@
 #            file changed, and, with git, the clean-checkout rule and the
 #            plan options of a gate or study run; and the gate's seconds
 #            per unit of cost (sim_gate_default() on timings made up here).
+#   replay   merge-chunks.R's replay list (rules a to d) on task files made
+#            up here: 6 tasks in 1, 2, and 3 chunks, with costs such that
+#            rules c and d must fall back to the lowest- and highest-
+#            numbered chunks once every chunk has been chosen, and ties
+#            broken by task id.
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it).
@@ -53,7 +58,7 @@ local({
 })
 source(file.path(harness, "harness-lib.R"))
 
-all_groups <- c("results", "scan", "sizing", "inputs", "contract", "merge")
+all_groups <- c("results", "scan", "sizing", "inputs", "contract", "replay", "merge")
 opts <- list(only = paste(all_groups, collapse = ","), work = "", run = "", bash = "")
 args <- commandArgs(trailingOnly = TRUE)
 i <- 1L
@@ -695,6 +700,70 @@ if ("contract" %in% groups) local({
   cat("# changed, not committed\n", file = file.path(g, "lib", "helper.R"), append = TRUE)
   r <- gate("changed")
   record("contract", "gate plan: the sourced file changed, not committed", "refuse", outcome(r), last_line(r$out))
+})
+
+# ---- replay: the replay list of merge-chunks.R ----------------------------------
+
+if ("replay" %in% groups) local({
+  root <- file.path(work, "replay")
+  version <- h_contracts[[length(h_contracts)]]
+  software <- data.frame(kind = "r", name = "version", value = "4.6.1", stringsAsFactors = FALSE)
+  base <- list(contract = version, study = "synthetic", purpose = "test", design = "run",
+               package_sha = strrep("0", 40), script_sha256 = "s", contract_sha256 = "c", files_sha256 = "")
+  # Scenarios 1 to 3, two tasks of 2 replications each; task 1 of each
+  # scenario costs 50, 40, and 30, the others 10, 5, and 5.
+  tasks <- data.frame(
+    task_id = c("s0001-t0001", "s0001-t0002", "s0002-t0001", "s0002-t0002", "s0003-t0001", "s0003-t0002"),
+    kind = "replications", scenario = c("1", "1", "2", "2", "3", "3"), task = c("1", "2"),
+    rep_from = c("1", "3"), rep_to = c("2", "4"), seed = "1 2 3 4 5 6 7", rows_per_rep = "1",
+    cost = c("50", "10", "40", "5", "30", "5"), stringsAsFactors = FALSE)
+  # A plan with these tasks in the given chunks, and their task files.
+  make <- function(name, chunk) {
+    d <- file.path(root, name)
+    h_write_csv(tasks, file.path(d, "plan", "tasks.csv"))
+    h_write_kv(c(unlist(base), reps = "4"), file.path(d, "plan", "plan-info.csv"))
+    h_write_csv(data.frame(task_id = tasks$task_id, chunk = chunk, stringsAsFactors = FALSE),
+                file.path(d, "plan", "assignment.csv"))
+    h_write_csv(software, file.path(d, "plan", "software.csv"))
+    for (ch in unique(chunk)) {
+      dir.create(file.path(d, "chunks", paste0("chunk-", ch), "tasks"), recursive = TRUE)
+      h_write_csv(software, file.path(d, "chunks", paste0("chunk-", ch), "software.csv"))
+    }
+    for (i in seq_len(nrow(tasks))) {
+      row <- tasks[i, , drop = FALSE]
+      reps <- seq.int(as.integer(row$rep_from), as.integer(row$rep_to))
+      saveRDS(list(envelope = c(base, list(task = h_task_row(row))),
+                   results = data.frame(rep = reps, x = as.numeric(reps)), agreement = NULL, failures = NULL,
+                   timing = list()),
+              file.path(d, "chunks", paste0("chunk-", chunk[[i]]), "tasks", paste0(row$task_id, ".rds")))
+    }
+    d
+  }
+  cases <- list(
+    # 1 chunk: c and d both from chunk 0001, the two tasks of cost 5 in
+    # task-id order.
+    list("1 chunk", rep("0001", 6), "a=s0001-t0001 b=s0002-t0001 c=s0002-t0002 d=s0003-t0002"),
+    # 2 chunks, both chosen by a and b: c from chunk 0001 (its cheapest,
+    # cost 10, though chunk 0002 has tasks of cost 5) and d from chunk 0002
+    # (two of cost 5: the lower task id).
+    list("2 chunks: c and d from chunks 0001 and 0002", c("0001", "0001", "0002", "0002", "0001", "0002"),
+         "a=s0001-t0001 b=s0002-t0001 c=s0001-t0002 d=s0002-t0002"),
+    # 3 chunks: c from 0003, the one not yet chosen; d then from 0003, the
+    # highest-numbered (cost 30), not the cheapest task of the plan (cost 5,
+    # in chunk 0001).
+    list("3 chunks: d from chunk 0003 once all are chosen", c("0001", "0002", "0002", "0003", "0003", "0001"),
+         "a=s0001-t0001 b=s0002-t0001 c=s0002-t0002 d=s0003-t0001"))
+  for (k in seq_along(cases)) {
+    cs <- cases[[k]]
+    d <- make(sprintf("r%02d", k), cs[[2]])
+    r <- run_r("merge-chunks.R", c(file.path(d, "plan"), file.path(d, "chunks"), file.path(d, "merged")))
+    f <- file.path(d, "merged", "replay-source.csv")
+    got <- if (r$status == 0L && file.exists(f)) {
+      x <- h_read_csv(f)
+      paste0(x$rule, "=", x$task_id, collapse = " ")
+    } else "merge refused"
+    record("replay", cs[[1]], "yes", if (identical(got, cs[[3]])) "yes" else "no", got)
+  }
 })
 
 # ---- merge: merge-chunks.R on tampered copies ----------------------------------
