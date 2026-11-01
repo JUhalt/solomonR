@@ -21,6 +21,7 @@ study <- list(
               fallback = function(sc) sc$kept, fallback_label = "odd scenarios"),
   rows_per_rep = function(s) 1L,
   cost = function(s, reps) reps * s$n,
+  agreement_cost = function(s) 3 * s$n,
   replicate = function(s, rep) list(results = data.frame(x = helper_value()), agreement = NULL),
   summarize = function(results, agreement, failures, scenarios, info) {
     list(agreement = data.frame(check = "none", passed = TRUE))
@@ -30,6 +31,9 @@ study <- list(
 variant <- Sys.getenv("HARNESS_TEST_VARIANT")
 if (identical(variant, "missing-file")) study$files <- c(study$files, file.path("lib", "absent.R"))
 if (identical(variant, "repeated-file")) study$files <- rep(study$files, 2L)
+if (identical(variant, "negative-agreement-cost")) study$agreement_cost <- function(s) -1
+if (identical(variant, "agreement-cost-not-a-function")) study$agreement_cost <- 5
+if (identical(variant, "no-gate")) study$gate <- NULL
 
 if (nzchar(Sys.getenv("HARNESS_TEST_VERIFY"))) {
   sim_check_study(study)

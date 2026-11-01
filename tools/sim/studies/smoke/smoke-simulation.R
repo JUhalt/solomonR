@@ -143,6 +143,11 @@ study <- list(
               fallback = function(sc) sc$n == 10L, fallback_label = "n = 10 only"),
   rows_per_rep = function(s) length(methods) * length(contrasts) + 1L,
   cost = function(s, reps) reps * s$n,
+  # A nominal price for the agreement check that task 1 carries (M2 against
+  # the cell means in its first 2 replications). It changes no result; it
+  # is there so that the harness's own runs exercise the contract's
+  # agreement cost, which #116's study gives.
+  agreement_cost = function(s) agree_reps * s$n / 4,
   replicate = replicate_smoke,
   preflight = preflight_smoke,
   summarize = summarize_smoke,

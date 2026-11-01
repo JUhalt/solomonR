@@ -17,7 +17,7 @@ package or of the validation-scripts check.
 |---|---|
 | `contract.R` | Sourced by every study script, from the package checkout (contract version 3): stages, stream assignment, the SHA-256 of the files a script sources, task files with their timing, the timing gate's projection, summary order, fault handling |
 | `studies.csv` | Registry: study key, issue, script, pins file, whether it is a protocol, commits the pinned commit must include |
-| `assign-chunks.R` | Assigns tasks to chunks, longest processing time first (no random numbers); checks the expected hours per chunk when the gate's seconds per unit of cost are given |
+| `assign-chunks.R` | Assigns tasks to chunks, longest processing time first (no random numbers); checks the expected hours per chunk, with the study's allowance from the plan, when the gate's seconds per unit of cost are given |
 | `check-software.R` | R and its build, the pinned package and tool versions, BLAS and LAPACK, the processor flags, RNG kinds, repositories; writes `software.csv` |
 | `job-info.R` | The machine of a job (a chunk, the plan, or the merge): runner image, CPUs, processor, memory, attempt, local resumptions |
 | `merge-chunks.R` | The checks before any summary; manifest, completeness, replay list |
@@ -133,12 +133,18 @@ every such field).
   `1.2e-05`); a timing gate is `smoke=false`, `stage=gate`. Both must be
   dispatched with `--ref master`, so that the harness that checks them is
   the merged one.
-- The plan job multiplies each chunk's expected hours on 4 workers by an
-  allowance, then stops a study run whose largest chunk would take more
-  than 4 hours and warns above 2 hours; use more chunks. The allowance is
-  the pins' `sizing,allowance` if given, otherwise 1.3 for a protocol study
-  (the 30% allowance of #116's timing gate) and 1 for any other. 4 hours
-  with 1.3 is 3.1 hours expected, against the 5.5 hours a job's tasks get.
+- The plan job expects each chunk to take its cost times `cost_seconds`
+  times the study's allowance, divided by its 4 workers, then stops a study
+  run whose largest chunk would take more than 4 hours and warns above 2
+  hours; use more chunks. The allowance is that of the study's timing gate
+  (`allowance`, which `plan-info.csv` records: 1.3 for #116 and for the
+  smoke study; 1 for a study without one), so that a run's jobs are sized
+  with the allowance with which its gate chose R. 4 hours with 1.3 is 3.1
+  hours expected, against the 5.5 hours a job's tasks get. A study that
+  gives `agreement_cost` has task 1 of each scenario priced with its
+  agreement checks, and its gate's `seconds_per_cost` then comes from
+  replication time alone (`agreement_seconds_per_cost` beside it shows
+  how well the agreement checks were priced).
 - One study run (`smoke=false`) runs at a time. GitHub keeps at most one
   pending run per concurrency group and cancels an older pending one, so a
   third dispatch would cancel the second: start a study only when the
@@ -255,18 +261,21 @@ In the study's own pull request, before its run (the order rule of #117):
    `tools/sim/contract.R`, defines `study` (the fields are listed in
    `sim_check_study()`), and ends with `sim_main(study)`. Its seeds are the
    protocol's: study, gate, and the code-testing seed. Every task's results
-   have the same columns and column classes; `cost()` is greater than 0.
-   `files` lists the files the script sources besides `contract.R` (paths
-   from the package root), so that their SHA-256 is in the plan and in
-   every envelope, the merge compares it, and a gate or study run needs
-   them committed.
+   have the same columns and column classes; `cost()` is greater than 0,
+   and `agreement_cost()`, if given, prices the agreement checks that task
+   1 of a scenario carries, in the units of `cost()` (it changes no
+   result). `files` lists the files the script sources besides
+   `contract.R` (paths from the package root), so that their SHA-256 is in
+   the plan and in every envelope, the merge compares it, and a gate or
+   study run needs them committed.
 2. Its agreement checks run inside `sim_time_agreement()`, so that the gate
    can add their time once instead of multiplying it by R.
 3. Its `gate` gives the protocol's constants (`reps`, `task_size`,
    `ladder`, `divisor`, `cap_hours`, `allowance`, `warmup_minutes`), the
    grouping of scenarios the protocol averages over (`group`), and its
    fallback (`fallback`, `fallback_label`); or a `project` function when
-   its rule differs from `sim_gate_default()`.
+   its rule differs from `sim_gate_default()`. Its `allowance` also sizes
+   the run's jobs (through `plan-info.csv`).
 4. Its `summarize()` returns `agreement`, and in the study run
    `performance` (with `mcse` and `mcse_note`), `decisions` (with `rule`,
    `verdict`, and at least one of `mcse`, `threshold`, and `p_value`), and
@@ -284,12 +293,10 @@ In the study's own pull request, before its run (the order rule of #117):
    `gate-times`, `gate-projection`, and `gate-summary`).
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,
    the extra packages, every package version the protocol records, and
-   `tool,pak`; optionally `sizing,allowance`, the factor on a job's
-   expected hours (default 1.3 for a protocol). A protocol study (registry
-   flag `TRUE`) must also give `r,libR_sha256`, the SHA-256 of `libR.so` of
-   the r-builds package that setup-r installs; every job on the runners
-   stops if it differs. For `r-4.6.1 1`, the build that test T2 checked
-   (run 41255391619), it is
+   `tool,pak`. A protocol study (registry flag `TRUE`) must also give
+   `r,libR_sha256`, the SHA-256 of `libR.so` of the r-builds package that
+   setup-r installs; every job on the runners stops if it differs. For
+   `r-4.6.1 1`, the build that test T2 checked (run 41255391619), it is
    `70c4de5e29eef6269aec5e1841477c07e84839812aaca3b2f240941bfd223953`.
    Elsewhere (Windows) the library's checksum is recorded, not compared.
 6. A row in `studies.csv`, and the key in the workflow's `study` options.

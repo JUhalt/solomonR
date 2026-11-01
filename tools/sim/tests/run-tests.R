@@ -18,7 +18,9 @@
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
 #            every "c-" folder pass, and no promise may be evaluated.
-#   sizing   assign-chunks.R: the allowance, the 2- and 4-hour limits, a
+#   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
+#            protocol flag; refused if absent, below 1, or not a number,
+#            or if given as a fifth argument), the 2- and 4-hour limits, a
 #            task cost of 0, and seconds per cost that R reads as 0 or as
 #            infinite.
 #   inputs   the workflow's "Check the inputs" step, read from
@@ -28,9 +30,12 @@
 #   contract contract.R through tests/synthetic-study.R, copied with the
 #            contract under test into a package folder of its own and run
 #            with Rscript: what the plan records (the SHA-256 of the files
-#            the study sources, the same with CRLF or LF line ends), the
-#            plan stage's refusals, sim_verify_plan() after a sourced file
-#            changed, and, with git, the clean-checkout rule of a gate.
+#            the study sources, the same with CRLF or LF line ends; task
+#            1's agreement cost; the gate's allowance), the plan stage's
+#            refusals, sim_verify_plan() after a sourced file changed, and,
+#            with git, the clean-checkout rule of a gate; and the gate's
+#            seconds per unit of cost (sim_gate_default() on timings made
+#            up here).
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it).
@@ -315,45 +320,61 @@ if ("scan" %in% groups) {
 
 if ("sizing" %in% groups) local({
   n <- 0L
-  plan <- function(protocol, purpose, cost = "1") {
+  # A plan of one task; plan-info.csv as the contract writes it, with the
+  # study's allowance (NA leaves the item out, as in a plan of contract 2).
+  plan <- function(protocol, purpose, allowance, cost = "1") {
     n <<- n + 1L
     d <- file.path(work, "sizing", sprintf("p%02d", n))
     h_write_csv(data.frame(task_id = "s0001-t0001", kind = "replications", scenario = "1", task = "1", rep_from = "1",
                            rep_to = "1", seed = "1 2 3 4 5 6 7", rows_per_rep = "1", cost = cost),
                 file.path(d, "tasks.csv"))
-    h_write_kv(c(contract = "2", protocol = protocol, purpose = purpose), file.path(d, "plan-info.csv"))
+    info <- c(contract = "3", protocol = protocol, purpose = purpose)
+    if (!is.na(allowance)) info <- c(info, allowance = allowance)
+    h_write_kv(info, file.path(d, "plan-info.csv"))
     d
   }
   # One task of cost 1 on 4 workers: the hours without the allowance are
   # seconds per cost / 4 / 3600 (50400 is 3.5 hours, 25920 is 1.8, 21600 is 1.5).
   cases <- list(
-    list("test run, 3.5 h (allowance 1)", "FALSE", "test", c("1", "50400", "4"), "warn"),
-    list("test run, 1.8 h", "FALSE", "test", c("1", "25920", "4"), "pass"),
-    list("protocol study, 3.5 h x 1.3 = 4.55 h", "TRUE", "study", c("1", "50400", "4"), "refuse"),
-    list("protocol study, 3.5 h with the pin allowance 1", "TRUE", "study", c("1", "50400", "4", "1"), "warn"),
-    list("protocol study, 1.8 h x 1.3 = 2.34 h", "TRUE", "study", c("1", "25920", "4"), "warn"),
-    list("protocol study, 1.5 h x 1.3 = 1.95 h", "TRUE", "study", c("1", "21600", "4"), "pass"),
-    list("test run, 3.5 h with the pin allowance 1.3", "FALSE", "test", c("1", "50400", "4", "1.3"), "refuse"),
-    list("allowance 0.9", "FALSE", "test", c("1", "100", "4", "0.9"), "refuse"),
-    list("allowance not a number", "FALSE", "test", c("1", "100", "4", "x"), "refuse"),
-    list("protocol study, seconds per cost 1.2e-05", "TRUE", "study", c("1", "1.2e-05", "4"), "pass"),
-    list("study, seconds per cost 0", "TRUE", "study", c("1", "0", "4"), "refuse"),
-    list("study, seconds per cost 1e-400 (R reads 0)", "TRUE", "study", c("1", "1e-400", "4"), "refuse"),
-    list("study, seconds per cost 1e400 (R reads Inf)", "TRUE", "study", c("1", "1e400", "4"), "refuse"),
-    list("test run, seconds per cost 1e400", "FALSE", "test", c("1", "1e400", "4"), "refuse"),
-    list("test run, seconds per cost 0", "FALSE", "test", c("1", "0", "4"), "unchecked"),
-    list("gate, seconds per cost 0", "TRUE", "gate", c("1", "0", "4"), "unchecked"),
-    list("study, no seconds per cost (as run-local.R)", "TRUE", "study", "1", "unchecked"),
-    list("0 chunks", "FALSE", "test", "0", "refuse"),
-    list("257 chunks", "FALSE", "test", "257", "refuse"))
+    list("test run, allowance 1, 3.5 h", "FALSE", "test", "1", c("1", "50400", "4"), "warn"),
+    list("test run, allowance 1, 1.8 h", "FALSE", "test", "1", c("1", "25920", "4"), "pass"),
+    list("protocol study, allowance 1.3: 3.5 h x 1.3 = 4.55 h", "TRUE", "study", "1.3", c("1", "50400", "4"), "refuse"),
+    list("protocol study, allowance 1.3: 1.8 h x 1.3 = 2.34 h", "TRUE", "study", "1.3", c("1", "25920", "4"), "warn"),
+    list("protocol study, allowance 1.3: 1.5 h x 1.3 = 1.95 h", "TRUE", "study", "1.3", c("1", "21600", "4"), "pass"),
+    list("protocol study whose gate's allowance is 1, 3.5 h", "TRUE", "study", "1", c("1", "50400", "4"), "warn"),
+    list("test run, the plan's allowance 1.3, 3.5 h", "FALSE", "test", "1.3", c("1", "50400", "4"), "refuse"),
+    list("the plan's allowance 1.25, 3.5 h x 1.25 = 4.375 h", "FALSE", "test", "1.25", c("1", "50400", "4"), "refuse"),
+    list("the plan's allowance 0.9", "FALSE", "test", "0.9", c("1", "100", "4"), "refuse"),
+    list("the plan's allowance not a number", "FALSE", "test", "x", c("1", "100", "4"), "refuse"),
+    list("no allowance in plan-info.csv (contract 2)", "TRUE", "study", NA, c("1", "100", "4"), "refuse"),
+    list("no allowance in plan-info.csv, no seconds per cost", "FALSE", "test", NA, "1", "refuse"),
+    list("a fifth argument (the allowance is the plan's)", "FALSE", "test", "1", c("1", "100", "4", "1"), "refuse"),
+    list("protocol study, seconds per cost 1.2e-05", "TRUE", "study", "1.3", c("1", "1.2e-05", "4"), "pass"),
+    list("study, seconds per cost 0", "TRUE", "study", "1.3", c("1", "0", "4"), "refuse"),
+    list("study, seconds per cost 1e-400 (R reads 0)", "TRUE", "study", "1.3", c("1", "1e-400", "4"), "refuse"),
+    list("study, seconds per cost 1e400 (R reads Inf)", "TRUE", "study", "1.3", c("1", "1e400", "4"), "refuse"),
+    list("test run, seconds per cost 1e400", "FALSE", "test", "1", c("1", "1e400", "4"), "refuse"),
+    list("test run, seconds per cost 0", "FALSE", "test", "1", c("1", "0", "4"), "unchecked"),
+    list("gate, seconds per cost 0", "TRUE", "gate", "1.3", c("1", "0", "4"), "unchecked"),
+    list("study, no seconds per cost (as run-local.R)", "TRUE", "study", "1.3", "1", "unchecked"),
+    list("0 chunks", "FALSE", "test", "1", "0", "refuse"),
+    list("257 chunks", "FALSE", "test", "1", "257", "refuse"))
   for (cs in cases) {
-    r <- run_r("assign-chunks.R", c(plan(cs[[2]], cs[[3]]), cs[[4]]))
+    r <- run_r("assign-chunks.R", c(plan(cs[[2]], cs[[3]], cs[[4]]), cs[[5]]))
     got <- if (r$status != 0L) "refuse" else if (any(grepl("::warning::", r$out))) "warn" else
       if (any(grepl("not checked", r$out))) "unchecked" else "pass"
-    record("sizing", cs[[1]], cs[[5]], got, last_line(r$out))
+    record("sizing", cs[[1]], cs[[6]], got, last_line(r$out))
   }
-  r <- run_r("assign-chunks.R", c(plan("FALSE", "test", cost = "0"), "1"))
+  r <- run_r("assign-chunks.R", c(plan("FALSE", "test", "1", cost = "0"), "1"))
   record("sizing", "a task cost of 0", "refuse", if (r$status != 0L) "refuse" else "pass", last_line(r$out))
+  # chunk-loads.csv: the hours without and with the plan's allowance.
+  d <- plan("TRUE", "study", "1.3")
+  r <- run_r("assign-chunks.R", c(d, "1", "21600", "4"))
+  loads <- if (file.exists(file.path(d, "chunk-loads.csv"))) h_read_csv(file.path(d, "chunk-loads.csv")) else NULL
+  ok <- !is.null(loads) && all(c("expected_hours", "allowance", "with_allowance") %in% names(loads)) &&
+    identical(loads$allowance, "1.3") && abs(as.numeric(loads$with_allowance) - 1.95) < 1e-9 &&
+    abs(as.numeric(loads$expected_hours) - 1.5) < 1e-9
+  record("sizing", "chunk-loads.csv: 1.5 h, allowance 1.3, 1.95 h", "yes", if (ok) "yes" else "no", last_line(r$out))
 })
 
 # ---- inputs: the workflow's "Check the inputs" step --------------------------
@@ -491,6 +512,64 @@ if ("contract" %in% groups) local({
   r <- run_study(p, verify_vars(file.path(p, "plan")))
   record("contract", "verify: the sourced file changed after the plan", "refuse", outcome(r), last_line(r$out))
   writeBin(kept, helper)
+
+  # Job sizes: task 1 of a scenario carries the cost of its agreement checks
+  # (study$agreement_cost(s) = 3 n, with cost(s, reps) = reps n, tasks of 2),
+  # and the plan records the allowance of the study's gate.
+  tasks <- if (file.exists(file.path(p, "plan", "tasks.csv"))) h_read_csv(file.path(p, "plan", "tasks.csv")) else NULL
+  got <- if (is.null(tasks)) NA else tasks$cost[match(c("s0001-t0001", "s0001-t0002", "s0002-t0001", "s0002-t0002"),
+                                                    tasks$task_id)]
+  record("contract", "plan: task 1 costs 2n + 3n, task 2 costs 2n", "yes",
+         yes(identical(got, c("50", "20", "100", "40"))), paste(got, collapse = " "))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-negative")), HARNESS_TEST_VARIANT = "negative-agreement-cost"))
+  record("contract", "plan: study$agreement_cost() gives -1", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-not-function")), HARNESS_TEST_VARIANT = "agreement-cost-not-a-function"))
+  record("contract", "plan: study$agreement_cost is not a function", "refuse", outcome(r), last_line(r$out))
+  record("contract", "plan: allowance is the gate's, 1.25", "yes",
+         yes(identical(item(read_info(file.path(p, "plan")), "allowance"), "1.25")), "")
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-no-gate")), HARNESS_TEST_VARIANT = "no-gate"))
+  record("contract", "plan: allowance 1 for a study without a gate", "yes",
+         yes(identical(item(read_info(file.path(p, "plan-no-gate")), "allowance"), "1")), last_line(r$out))
+
+  # The gate's seconds per unit of cost, on timings made up here: tasks of
+  # 2 replications at 1e-5 s per unit of replication cost, and agreement
+  # checks in task 1 at 0.2 s per unit of agreement cost.
+  k <- new.env()
+  sys.source(file.path(harness, "contract.R"), envir = k)
+  sc <- data.frame(scenario = 1:2, n = c(10L, 20L))
+  t0 <- as.POSIXct("2026-11-01 00:00:00", tz = "UTC")
+  times <- data.frame(task_id = c("s0001-t0001", "s0001-t0002", "s0002-t0001", "s0002-t0002"),
+                      scenario = c(1L, 1L, 2L, 2L), reps = 2L, started = k$sim_utc(t0 + 0:3),
+                      finished = k$sim_utc(t0 + 1:4), job_started = k$sim_utc(t0),
+                      replication_seconds = c(2, 2, 4, 4) * 1e-4, agreement_seconds = c(6, 0, 12, 0),
+                      cost = c(20 + 30, 20, 40 + 60, 40), stringsAsFactors = FALSE)
+  times$elapsed <- times$replication_seconds + times$agreement_seconds
+  times$cpu <- times$elapsed
+  gate <- list(reps = 4L, task_size = 2L, ladder = c(8L, 4L), divisor = 1, cap_hours = 1, allowance = 1.25,
+               warmup_minutes = 0)
+  # An item of gate-summary.csv as text ("NA" for a missing value, "absent"
+  # without the item).
+  value <- function(study, tm, name) {
+    s <- tryCatch(k$sim_gate_default(study, tm, sc, c(purpose = "test"))$`gate-summary`, error = function(e) NULL)
+    if (is.null(s) || !name %in% s$item) return("absent")
+    x <- s$value[s$item == name]
+    if (is.na(x)) "NA" else x
+  }
+  v <- value(list(gate = gate, agreement_cost = function(s) 3 * s$n), times, "seconds_per_cost")
+  num <- function(x) suppressWarnings(as.numeric(x))
+  record("contract", "gate: seconds per cost from replications alone", "yes",
+         yes(!grepl("e", v, ignore.case = TRUE) && isTRUE(abs(num(v) - 1e-5) < 1e-15)), v)
+  v <- value(list(gate = gate, agreement_cost = function(s) 3 * s$n), times, "agreement_seconds_per_cost")
+  record("contract", "gate: agreement seconds per agreement cost, 0.2", "yes",
+         yes(isTRUE(abs(num(v) - 0.2) < 1e-12)), v)
+  # Without agreement_cost, the cost has no agreement part: worker seconds
+  # over cost, (18 + 12e-4) / 120, and no agreement_seconds_per_cost.
+  plain <- times
+  plain$cost <- c(20, 20, 40, 40)
+  v <- value(list(gate = gate), plain, "seconds_per_cost")
+  w <- value(list(gate = gate), plain, "agreement_seconds_per_cost")
+  record("contract", "gate without agreement_cost: worker seconds per cost", "yes",
+         yes(isTRUE(abs(num(v) - (18 + 12e-4) / 120) < 1e-12) && identical(w, "NA")), paste(v, w))
 
   # A gate needs a clean checkout, the sourced files included.
   git <- unname(Sys.which("git"))

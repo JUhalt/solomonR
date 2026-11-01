@@ -204,7 +204,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          Rscript harness/tools/sim/assign-chunks.R plan "$SIM_CHUNKS" "$SIM_COST_SECONDS" "$SIM_WORKERS" "${SIM_ALLOWANCE:-}"
+          Rscript harness/tools/sim/assign-chunks.R plan "$SIM_CHUNKS" "$SIM_COST_SECONDS" "$SIM_WORKERS"
           echo "chunks=$(cat plan/chunks.json)" >> "$GITHUB_OUTPUT"
           cp software.csv plan/software.csv
           cp plan-log.txt plan/log.txt

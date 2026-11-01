@@ -159,9 +159,11 @@ sim_time_agreement <- function(expr) {
 #   task_size        replications per task in a run
 #   rows_per_rep     function(s): rows that one replication of scenario row s
 #                    stores
-#   cost             function(s, reps): relative expected time of a task,
-#                    greater than 0 (used only to balance the jobs and to
-#                    size them from the gate's seconds per unit of cost)
+#   cost             function(s, reps): relative expected time of a task's
+#                    replications, greater than 0 (used only to balance the
+#                    jobs and to size them from the gate's seconds per unit
+#                    of cost); task 1 of a scenario adds agreement_cost(s)
+#                    if the study gives one
 #   replicate        function(s, rep): one replication; draws only from the
 #                    current RNG state and returns list(results = data frame
 #                    of rows_per_rep(s) rows, agreement = data frame or NULL),
@@ -183,10 +185,17 @@ sim_time_agreement <- function(expr) {
 #   gate             list(reps, task_size, ladder, divisor, cap_hours,
 #                    allowance, warmup_minutes, group, fallback,
 #                    fallback_label, project): the timing gate; see
-#                    sim_gate_default()
+#                    sim_gate_default(). The plan records its allowance
+#                    (1 without one), and assign-chunks.R sizes a run's
+#                    jobs with it, the allowance with which the gate chose R
 #   preflight        function(): data frame (check, passed, detail) of the
 #                    protocol's stops before any task
 #   smoke_scenarios  scenario numbers that the smoke mode runs
+#   agreement_cost   function(s): the cost, in the units of cost(), of the
+#                    agreement checks that task 1 of scenario row s carries
+#                    (0 or more); it is added to that task's cost, and the
+#                    gate's seconds per unit of cost then come from
+#                    replication time alone
 #   files            paths, relative to the package root, of the files the
 #                    script sources besides this one; their SHA-256 is part
 #                    of the plan and of every task's envelope, like the
@@ -214,7 +223,25 @@ sim_check_study <- function(study) {
   if (!is.null(f) && (!is.character(f) || anyNA(f) || any(!nzchar(f)) || anyDuplicated(f))) {
     stop("`study$files` must be distinct paths.", call. = FALSE)
   }
+  if (!is.null(study$agreement_cost) && !is.function(study$agreement_cost)) {
+    stop("`study$agreement_cost` must be a function.", call. = FALSE)
+  }
   invisible(study)
+}
+
+# The allowance of the study's timing gate (1 without one): the factor on
+# the gate's projection and, through plan-info.csv, on a run's job sizes.
+sim_allowance <- function(study) if (is.null(study$gate$allowance)) 1 else as.numeric(study$gate$allowance)
+
+# The cost of the agreement checks that task 1 of scenario row `s` carries
+# (study$agreement_cost(), 0 without one).
+sim_agreement_cost <- function(study, s) {
+  if (!is.function(study$agreement_cost)) return(0)
+  a <- as.numeric(study$agreement_cost(s))
+  if (length(a) != 1L || !is.finite(a) || a < 0) {
+    stop("study$agreement_cost() must give a number of 0 or more (scenario ", s$scenario, ").", call. = FALSE)
+  }
+  a
 }
 
 # Files the harness writes into the results folder; a study's summary may not
@@ -289,6 +316,7 @@ sim_plan <- function(study, spec, subset = NULL) {
       if (length(cost) != 1L || !is.finite(cost) || cost <= 0) {
         stop("study$cost() must give a number greater than 0 (scenario ", s, ").", call. = FALSE)
       }
+      if (k == 1L) cost <- cost + sim_agreement_cost(study, sc[s, , drop = FALSE])
       i <- i + 1L
       rows[[i]] <- data.frame(
         task_id = sprintf("s%04d-t%04d", s, k), kind = "replications",
@@ -413,6 +441,7 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
     script_sha256 = sim_sha256_text(sim_script_path()),
     contract_sha256 = sim_sha256_text(sim_contract_path(study)),
     files_sha256 = sim_files_sha256(study),
+    allowance = sim_allowance(study),
     package = id[["name"]], package_version = id[["version"]],
     package_sha = package_sha, package_dirty = as.character(dirty),
     created_utc = sim_utc())
@@ -840,7 +869,12 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
 #     `allowance` is at most `cap_hours`;
 #   - if none is, and `fallback(scenarios)` gives the scenarios to keep, the
 #     same is done for those (labelled `fallback_label`); if that fails too,
-#     the decision is "stop".
+#     the decision is "stop";
+#   - gate-summary.csv also gives seconds_per_cost, the price of a unit of
+#     cost with which a run's jobs are sized: replication seconds over the
+#     replications' cost when the study gives agreement_cost(), worker
+#     seconds over cost otherwise (tasks after the warm-up), and
+#     agreement_seconds_per_cost.
 # Every row is labelled with the purpose, so a test gate is never taken for
 # a gate. A study whose rule differs gives `gate$project`, a function(times,
 # scenarios, info) returning the same files (it may call this one); the names
@@ -850,7 +884,7 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
 sim_gate_default <- function(study, times, scenarios, info) {
   g <- study$gate
   warm <- if (is.null(g$warmup_minutes)) 0 else as.numeric(g$warmup_minutes)
-  allowance <- if (is.null(g$allowance)) 1 else as.numeric(g$allowance)
+  allowance <- sim_allowance(study)
   grp <- if (is.function(g$group)) as.character(g$group(scenarios)) else as.character(scenarios$scenario)
   if (length(grp) != nrow(scenarios) || anyNA(grp)) stop("gate$group() must label every scenario.", call. = FALSE)
   times$group <- grp[match(times$scenario, scenarios$scenario)]
@@ -893,6 +927,28 @@ sim_gate_default <- function(study, times, scenarios, info) {
   }
   used <- times$after_warmup
   if (!any(used)) used <- rep(TRUE, nrow(times))
+  # Seconds per unit of cost, which size a run's jobs (assign-chunks.R, with
+  # the allowance). When the study prices its agreement checks apart
+  # (study$agreement_cost(), part of the cost of each scenario's task 1),
+  # they come from replication seconds over the replications' cost alone,
+  # so that the gate's agreement checks, run in tasks of the gate's size, do
+  # not inflate the price of a replication; agreement_seconds_per_cost (all
+  # tasks) shows how well the agreement checks were priced. Otherwise they
+  # are worker seconds over cost.
+  if (is.function(study$agreement_cost)) {
+    task_no <- as.integer(sub("^.*-t", "", times$task_id))
+    rows <- match(times$scenario, scenarios$scenario)
+    agree_cost <- vapply(seq_len(nrow(times)), function(i) {
+      if (task_no[i] == 1L) sim_agreement_cost(study, scenarios[rows[i], , drop = FALSE]) else 0
+    }, 0)
+    spc <- sum(times$replication_seconds[used]) / sum((times$cost - agree_cost)[used])
+    agree_spc <- if (sum(agree_cost) > 0) sum(times$agreement_seconds) / sum(agree_cost) else NA_real_
+  } else {
+    spc <- sum(times$elapsed[used]) / sum(times$cost[used])
+    agree_spc <- NA_real_
+  }
+  # Fixed notation: the workflow's cost_seconds input takes the value as written.
+  fixed <- function(x) if (is.na(x)) NA else format(x, scientific = FALSE, digits = 10)
   summary <- c(purpose = info[["purpose"]], tasks = nrow(times), warmup_minutes = warm,
                tasks_after_warmup = sum(times$after_warmup),
                agreement_seconds = format(sum(times$agreement_seconds), scientific = FALSE, digits = 10),
@@ -900,9 +956,7 @@ sim_gate_default <- function(study, times, scenarios, info) {
                decision = decision,
                chosen_R = if (any(proj$chosen)) proj$R[proj$chosen] else NA,
                chosen_set = if (any(proj$chosen)) proj$set[proj$chosen] else NA,
-               # fixed notation: the workflow's cost_seconds input takes it as written
-               seconds_per_cost = format(sum(times$elapsed[used]) / sum(times$cost[used]), scientific = FALSE,
-                                         digits = 10))
+               seconds_per_cost = fixed(spc), agreement_seconds_per_cost = fixed(agree_spc))
   list(`gate-times` = per, `gate-projection` = proj,
        `gate-summary` = data.frame(item = names(summary), value = unname(as.character(summary)),
                                    stringsAsFactors = FALSE))
