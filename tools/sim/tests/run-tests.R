@@ -79,7 +79,8 @@
 #            --study, which take the run's study from its plan; a --study
 #            that names another study, refused before anything runs, for a
 #            synthetic and for a smoke run; a new run without --study, a
-#            smoke run; and --rerun-chunk's chunk number in digits.
+#            smoke run; and --rerun-chunk's chunk number in at most four
+#            digits, with or without leading zeros (0002 is chunk 0002).
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it), and
@@ -1253,10 +1254,17 @@ if ("local" %in% groups) local({
   r <- run_local("--out", run, "--resume", "--study", "synthetic")
   record("local", "--resume --study synthetic, the plan's own study", "accept", if (r$status == 0L) "accept" else "refuse",
          last_line(r$out))
-  for (v in c("1.5", "99999999999")) {
+  # The chunk number as the folders name it (review round 1): 0002 is chunk
+  # 0002; a number outside 1 to 256, or of more than four digits, or with
+  # white space, is refused by the script's message.
+  r <- run_local("--out", run, "--rerun-chunk", "0002")
+  ok <- r$status == 0L && said(r, "== Chunk 0002 again") &&
+    length(list.files(file.path(run, "rerun", "chunk-0002", "tasks"), pattern = "[.]rds$")) > 0L
+  record("local", "--rerun-chunk 0002: chunk 0002 again, identical tasks", "yes", yes(ok), last_line(r$out))
+  for (v in c("1.5", "99999999999", "0", "257", "00002", " 1")) {
     r <- run_local("--out", run, "--rerun-chunk", v)
-    record("local", paste("--rerun-chunk", v), "refuse", refusal(r, "--rerun-chunk takes a chunk number from 1 to 256"),
-           last_line(r$out))
+    record("local", paste0("--rerun-chunk \"", v, "\""), "refuse",
+           refusal(r, "--rerun-chunk takes a chunk number from 1 to 256, in at most four digits"), last_line(r$out))
   }
   # A smoke run's plan (this plan, its study item made smoke; no software.csv,
   # so that a resume that passes the study's check stops at once).

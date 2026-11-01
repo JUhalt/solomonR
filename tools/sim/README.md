@@ -235,7 +235,8 @@ and `--rerun-chunk` take the study from the run's `plan/plan-info.csv`
 commands above need no `--study` for any study; a `--study` that names
 another study is refused before anything runs or changes. Each run first
 prints the study it runs. `--rerun-chunk` takes a chunk number from 1 to
-256 in digits.
+256 in at most four digits, with or without leading zeros (`2` and `0002`
+are chunk 0002).
 
 The harness's own tests need R alone (and git, for the clean-checkout
 cases, and pkgload, for the cases of `run-local.R`) and take a few

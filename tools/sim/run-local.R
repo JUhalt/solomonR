@@ -47,6 +47,8 @@
 #
 # --rerun-chunk runs one chunk of an earlier run in DIR again, into
 # DIR/rerun/chunk-NNNN, and compares its task files with the first run's.
+# It takes the chunk's number from 1 to 256 in at most four digits, with or
+# without leading zeros (2 and 0002 are chunk 0002).
 #
 # A study runs entirely on one platform: the merge refuses chunks whose
 # software differs, and a protocol names its platform (see the README).
@@ -225,10 +227,13 @@ finish <- function() {
 started <- Sys.time()
 
 if (nzchar(opts$rerun_chunk)) {
-  # A chunk number in digits (h_whole()): "1.5" is refused, not read as 1.
-  n_chunk <- h_whole(opts$rerun_chunk, 1L)
-  if (is.na(n_chunk) || n_chunk > 256L) h_fail("--rerun-chunk takes a chunk number from 1 to 256.")
-  ch <- sprintf("%04d", n_chunk)
+  # A chunk number in one to four digits, with or without leading zeros, as
+  # the chunk folders are named (2 and 0002 are chunk 0002); "1.5" is
+  # refused, not read as 1.
+  if (!grepl("^[0-9]{1,4}$", opts$rerun_chunk) || !(as.integer(opts$rerun_chunk) %in% 1:256)) {
+    h_fail("--rerun-chunk takes a chunk number from 1 to 256, in at most four digits (2 or 0002).")
+  }
+  ch <- sprintf("%04d", as.integer(opts$rerun_chunk))
   first <- file.path(chunks_dir, paste0("chunk-", ch))
   if (!dir.exists(first)) h_fail("No chunk ", ch, " in ", chunks_dir, ".")
   again <- file.path(out, "rerun", paste0("chunk-", ch))
