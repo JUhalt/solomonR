@@ -557,8 +557,10 @@ test_that("a shift of the pretest changes no fit_solomon_mmrm() result", {
 
 test_that("a shift of the pretest changes no SEM ANCOVA or comparison of methods", {
   skip_if_not_installed("lavaan")
-  # The ANCOVA SEM lost accuracy from 10^4 standard deviations and stopped
-  # from 10^6, where compare_solomon_methods() lost its SEM ANCOVA row.
+  # The ANCOVA SEM lost accuracy far from zero: at 10^4 standard
+  # deviations its p-values were off by 7% to 100% of their value, or it
+  # stopped, as it did from 10^6, where compare_solomon_methods() lost its
+  # SEM ANCOVA row.
   d <- location_data()$four
   sem <- function(k) {
     suppressWarnings(fit_solomon_sem(d$y_g, d$treat, d$pretested, shift_by(d$pre, k),

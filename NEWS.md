@@ -18,12 +18,12 @@
   value, and from 10,000 every bootstrap resample failed.
 * A pretest on a scale far from 1 did the same. With a pretest standard
   deviation of 10^-8 or 10^8, HC3 and CR2 fits stopped with the same
-  error. Short of that, the CR2 standard errors were off, in two checks,
-  by about 6e-6 of their value at a standard deviation of 10^6 and by
-  2e-3 to 6e-3 at 10^7; in one check, the delta-method standard errors of
-  `marginal_solomon()`, whose numerical derivatives took steps unsuited to
-  the pretest's coefficient, were off by 3e-7 to 4e-7 of their value at
-  10^4 and by 2e-3 to 3e-3 at 10^6.
+  error. Short of that, the CR2 standard errors were off, in three
+  checks, by 3.5e-6 to 5.8e-6 of their value at a standard deviation of
+  10^6 and by 1.2e-3 to 5.5e-3 at 10^7; in one check, the delta-method
+  standard errors of `marginal_solomon()`, whose numerical derivatives
+  took steps unsuited to the pretest's coefficient, were off by 3e-7 to
+  4e-7 of their value at 10^4 and by 2e-3 to 3e-3 at 10^6.
 * The inference is now computed with each numeric covariate standardized,
   centered at its mean and divided by its standard deviation over the
   participants in the model, and with the pretest, centered already,
@@ -59,10 +59,11 @@
   check is that of `glm()`, so nearly collinear covariates, such as a
   covariate and its copy in single precision, are fitted as before.
 * `fit_solomon_sem(ancova = TRUE)` lost accuracy when the pretest lay far
-  from zero, with p-values off by 7% to 12% at 10^4 standard deviations,
-  and stopped from 10^6, where `compare_solomon_methods()` then left out
-  its SEM ANCOVA row; the latent ANCOVA of `fit_solomon_sem_latent()` lost
-  accuracy too. Both now center the pretest, or its items, at the mean
+  from zero: at 10^4 standard deviations its p-values were off by 7% to
+  100% of their value in six checks, and in another it stopped, as it did
+  from 10^6 in every check, where `compare_solomon_methods()` then left
+  out its SEM ANCOVA row; the latent ANCOVA of `fit_solomon_sem_latent()`
+  lost accuracy too. Both now center the pretest, or its items, at the mean
   among the pretested participants, which changes only intercepts and
   means: the intercepts of the lavaan model of the observed ANCOVA are now
   the posttest means adjusted to that pretest. `check_solomon_assumptions()`
@@ -85,22 +86,24 @@
   Carlo error.
 * What changes on ordinary data. Dividing the pretest by a power of two is
   exact, so fits with a pretest and no numeric covariate agree with the
-  development version before this change to rounding. With covariates of
-  modest magnitude and location, results agree with it to about 1e-8 of
-  their value, as a test against results stored from it shows, for every
-  family and covariance, with missing posttests and clusters; the
-  delta-method standard errors of `marginal_solomon()` move by about that
-  much, the error of its numerical derivatives, whose steps depend on the
-  coefficients. With a covariate on a large scale, such as an income in
-  dollars, or far from zero, such as a calendar year or a date, the
-  previous CR2 and delta-method results were off by up to about 5e-5 of
-  their value, and the delta-method standard errors by about 3e-3 for a
-  covariate with a standard deviation of 10^6; the corrected values can
-  change the last printed digit of an interval or a p-value. Fits whose
-  covariates are on scales far from 1, which stopped under HC3 and CR2,
-  now succeed. The contrasts of the SEM ANCOVA move by the convergence
-  tolerance of lavaan's optimization, about 1e-7 of their value, and their
-  p-values by up to about 5e-6 of theirs.
+  development version before this change within about 2e-11 of their value,
+  except the delta-method standard errors of `marginal_solomon()`, which
+  move by about 1e-9. With covariates of modest magnitude and location,
+  results agree with it to about 1e-8 of their value, as a test against
+  results stored from it shows, for every family and covariance, with
+  missing posttests and clusters; the delta-method standard errors of
+  `marginal_solomon()` move by about that much, the error of its numerical
+  derivatives, whose steps depend on the coefficients, and negative-binomial
+  results by the convergence tolerance of theta, about 1e-9. With a
+  covariate on a large scale, such as an income in dollars, or far from
+  zero, such as a calendar year or a date, the previous CR2 and delta-method
+  results were off by up to about 5e-5 of their value, and the delta-method
+  standard errors by about 3e-3 for a covariate with a standard deviation of
+  10^6; the corrected values can change the last printed digit of an
+  interval or a p-value. Fits whose covariates are on scales far from 1,
+  which stopped under HC3 and CR2, now succeed. The contrasts of the SEM
+  ANCOVA move by the convergence tolerance of lavaan's optimization, about
+  1e-7 of their value, and their p-values by up to about 5e-6 of theirs.
 * Other changes. With a pretest or a numeric covariate, `fit_solomon_glm()`
   fits the model twice, as given and standardized. Under CR2 with a
   pretest or a numeric covariate, `vcov` is now a plain matrix rather than
