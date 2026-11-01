@@ -388,25 +388,32 @@ run_task <- function(task) {
 # ---- validation_commit(): the same in every validation script (#152) ----
 # The commit recorded with the results. It is the environment variable
 # SOLOMONR_COMMIT when that is set and not empty. Otherwise it is the HEAD
-# commit of the git repository at `root`, the copy of solomonR that the
-# script runs, when `root` is the top level of that repository and its
-# DESCRIPTION names solomonR. Otherwise it is NA: a copy without git
-# metadata, such as a download from GitHub, records NA, and so does a copy
-# unpacked inside another repository, whose commit is not the copy's. git's
-# messages are discarded. tests/testthat/test-validation-commit.R checks the
-# rule and that every copy of this block is identical.
+# commit of the git repository that holds the copy of solomonR that the
+# script runs, when that copy is the repository's top level and git is on
+# the PATH. The copy is the nearest folder at or above `root` whose
+# DESCRIPTION names a package, as pkgload::load_all() finds it, and that
+# DESCRIPTION must name solomonR. Otherwise the commit is NA: a copy without
+# git metadata, such as a download from GitHub, records NA, and so does a
+# copy unpacked inside another repository, whose commit is not the copy's.
+# git looks for the repository from the copy alone (GIT_DIR and
+# GIT_WORK_TREE are unset while it runs), and its messages are discarded.
+# tests/testthat/test-validation-commit.R checks the rule and that every
+# copy of this block is identical.
 validation_commit <- function(root = ".") {
   given <- Sys.getenv("SOLOMONR_COMMIT")
   if (nzchar(given)) return(given)
-  root <- normalizePath(root, winslash = "/", mustWork = FALSE)
-  description <- file.path(root, "DESCRIPTION")
-  package <- if (file.exists(description)) {
+  package_of <- function(dir) {
+    description <- file.path(dir, "DESCRIPTION")
+    if (!file.exists(description)) return(NA_character_)
     tryCatch(unname(read.dcf(description, fields = "Package")[1, 1]),
              error = function(e) NA_character_)
-  } else {
-    NA_character_
   }
-  if (!identical(package, "solomonR") || !nzchar(Sys.which("git"))) return(NA_character_)
+  root <- normalizePath(root, winslash = "/", mustWork = FALSE)
+  while (is.na(package_of(root)) && dirname(root) != root) root <- dirname(root)
+  if (!identical(package_of(root), "solomonR") || !nzchar(Sys.which("git"))) return(NA_character_)
+  saved <- Sys.getenv(c("GIT_DIR", "GIT_WORK_TREE"), unset = NA)
+  Sys.unsetenv(names(saved))
+  on.exit(if (any(!is.na(saved))) do.call(Sys.setenv, as.list(saved[!is.na(saved)])))
   git <- function(...) {
     out <- tryCatch(suppressWarnings(system2("git", c("-C", shQuote(root), ...),
                                              stdout = TRUE, stderr = FALSE)),

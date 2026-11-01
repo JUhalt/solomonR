@@ -210,16 +210,26 @@ test_that("validation_commit() records the HEAD commit inside a clone of the pac
   expect_true(succeeded(head))
   expect_match(head, "^[0-9a-f]{40}([0-9a-f]{24})?$")
   expect_identical(load_validation_commit()(root), as.vector(head))
+  # From a folder below the root, the copy is found as pkgload::load_all()
+  # finds it.
+  expect_identical(load_validation_commit()(file.path(root, "tests")), as.vector(head))
 })
 
 test_that("validation_commit() records the HEAD commit at the top level of a repository of solomonR", {
   skip_without_articles()
   skip_without_git()
-  # A repository made here, with the DESCRIPTION of solomonR.
+  # A repository made here, with the DESCRIPTION of solomonR, and a folder
+  # below it.
   parent <- git_sandbox()
   clone <- make_copy(file.path(parent, "clone"))
   clone_head <- make_repository(clone)
   expect_identical(load_validation_commit()(clone), clone_head)
+  expect_identical(load_validation_commit()(make_folder(file.path(clone, "a", "b"))), clone_head)
+  # The nearest DESCRIPTION decides: below it, another package is not the
+  # copy.
+  inner <- make_copy(file.path(clone, "inner"), package = "otherpackage")
+  expect_identical(load_validation_commit()(inner), NA_character_)
+  expect_identical(load_validation_commit()(make_folder(file.path(inner, "R"))), NA_character_)
 })
 
 test_that("validation_commit() records NA outside any git repository, without a warning", {
@@ -268,6 +278,29 @@ test_that("validation_commit() records NA in a repository without commits", {
   expect_identical(load_validation_commit()(empty), NA_character_)
 })
 
+test_that("validation_commit() finds the repository from the copy, whatever GIT_DIR says", {
+  skip_without_articles()
+  skip_without_git()
+  parent <- git_sandbox()
+  clone <- make_copy(file.path(parent, "clone"))
+  clone_head <- make_repository(clone)
+  outer <- make_folder(file.path(parent, "outer"))
+  outer_head <- make_repository(outer)
+  outside <- make_copy(file.path(parent, "outside"))
+  # With GIT_DIR set, as git sets it for its hooks, git takes the folder that
+  # it runs in as the top level and reads HEAD from GIT_DIR.
+  git_dir <- file.path(outer, ".git")
+  withr::local_envvar(GIT_DIR = git_dir)
+  expect_identical(as.vector(run_git(clone, "rev-parse", "HEAD")), outer_head)
+  expect_identical(load_validation_commit()(clone), clone_head)
+  expect_identical(load_validation_commit()(outside), NA_character_)
+  expect_identical(Sys.getenv("GIT_DIR"), git_dir)
+  # With GIT_WORK_TREE set, git reports that folder as the top level.
+  withr::local_envvar(GIT_DIR = NA, GIT_WORK_TREE = outer)
+  expect_identical(load_validation_commit()(clone), clone_head)
+  expect_identical(Sys.getenv("GIT_WORK_TREE"), outer)
+})
+
 test_that("validation_commit() runs git with its messages discarded", {
   skip_without_articles()
   skip_without_git()
@@ -278,10 +311,12 @@ test_that("validation_commit() runs git with its messages discarded", {
   # system2() as the block calls it, recording its arguments.
   seen <- list()
   record <- function(command, args = character(), stdout = "", stderr = "", ...) {
-    seen[[length(seen) + 1L]] <<- list(command = command, stdout = stdout, stderr = stderr)
+    seen[[length(seen) + 1L]] <<- list(command = command, stdout = stdout, stderr = stderr,
+                                       git_dir = Sys.getenv("GIT_DIR", unset = NA))
     base::system2(command, args, stdout = stdout, stderr = stderr, ...)
   }
   vc <- load_validation_commit(list(system2 = record))
+  withr::local_envvar(GIT_DIR = file.path(clone, ".git"))
   expect_identical(vc(clone), clone_head)
   # Outside any repository, git fails with an error message.
   expect_identical(vc(outside), NA_character_)
@@ -290,5 +325,6 @@ test_that("validation_commit() runs git with its messages discarded", {
     expect_identical(call$command, "git")
     expect_identical(call$stdout, TRUE)
     expect_identical(call$stderr, FALSE)
+    expect_identical(call$git_dir, NA_character_)
   }
 })
