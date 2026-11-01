@@ -16,7 +16,12 @@ plot_solomon(y, treat, pretested)
 \value{
 Invisibly, a data frame with one row for each cell, in the columns
 \code{pretested}, \code{treat}, \code{n}, \code{mean}, \code{sd}, \code{se}, the limits \code{lo} and \code{hi}
-of the 95\% interval, and \code{x}, the position of the cell on the axis.
+of the 95\% interval, and \code{x}, the position of the cell on the axis. It
+is a tibble grouped by \code{pretested}, as dplyr groups one; it is made with
+dplyr where dplyr is installed and with base R and tibble where it is
+not. Without dplyr's methods, taking rows of the table or changing its
+\code{pretested} column does not update its groups, so a table changed in
+that way gives wrong groups if it is later used with dplyr.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}

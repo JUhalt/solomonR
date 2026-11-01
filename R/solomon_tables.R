@@ -53,10 +53,17 @@
   )
 }
 
-# The cells of plot_solomon(), as dplyr::summarise() of the data grouped by
-# `pretested` and `treat` gave them: one row for each combination present,
-# sorted by `pretested` and then `treat`, a missing value last, with the
-# number of scores, their mean, and their standard deviation.
+# Whether dplyr is installed, which decides how plot_solomon() makes its
+# cells. Loading dplyr registers its methods for grouped tables, as when
+# solomonR imported it. The check is a function of its own so that the tests
+# can take the path of a library without dplyr.
+.has_dplyr <- function() requireNamespace("dplyr", quietly = TRUE)
+
+# Where dplyr is not installed, the cells of plot_solomon(), as
+# dplyr::summarise() of the data grouped by `pretested` and `treat` gave
+# them: one row for each combination present, sorted by `pretested` and
+# then `treat`, a missing value last, with the number of scores, their mean,
+# and their standard deviation.
 .cell_summaries <- function(df) {
   cells <- unique(df[c("pretested", "treat")])
   cells <- cells[order(cells$pretested, cells$treat), , drop = FALSE]
@@ -73,20 +80,24 @@
   )
 }
 
-# Add the axis positions to the cells of plot_solomon(). The column is named
-# by a string and set from an argument named `value`, so that a table with a
-# cell missing or added fails with the error, call included, that it gave
-# when dplyr's method for grouped tables passed the assignment on to
-# tibble's.
+# Where dplyr is not installed, add the axis positions to the cells of
+# plot_solomon(). The column is named by a string and set from an argument
+# named `value`, so that a table with a cell missing or added fails with the
+# error that it gave when dplyr's method for grouped tables passed the
+# assignment on to tibble's: tibble's message quotes the name of the
+# argument, `value`, and the call names the column "x".
 .set_cell_positions <- function(x, value) {
   x$"x" <- value
   x
 }
 
-# The cells of plot_solomon() grouped by `pretested`, as dplyr returned
-# them: the classes of a grouped tibble and the `groups` attribute, a tibble
-# of the pretest conditions present with the rows of each, its `.rows` laid
-# out as vctrs lays out a list_of(), and the attributes in dplyr's order.
+# Where dplyr is not installed, the cells of plot_solomon() grouped by
+# `pretested`, as dplyr groups them: the classes of a grouped tibble and the
+# `groups` attribute, a tibble of the pretest conditions present with the
+# rows of each, its `.rows` laid out as vctrs lays out a list_of(), and the
+# attributes in dplyr's order. This copies the layout of dplyr 1.2.1 and
+# vctrs 0.7.3; test-tables.R compares it with dplyr's wherever dplyr is
+# installed, so that a change in either package shows.
 .group_by_pretested <- function(x) {
   present <- unique(x$pretested)
   present <- present[order(present)]

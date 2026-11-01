@@ -89,3 +89,45 @@ test_that("plot_solomon() returns its cells grouped by pretest, as dplyr did", {
   expect_s3_class(err, "tibble_error_assign_incompatible_size")
   expect_match(conditionMessage(err), "`value`", fixed = TRUE)
 })
+
+test_that("without dplyr, plot_solomon() returns the table that dplyr makes", {
+  # Where dplyr is installed, plot_solomon() makes its table with dplyr;
+  # here the helpers make it as in a library without dplyr, and the two
+  # must agree in every attribute and its order, so that a change of
+  # dplyr's or vctrs' layout shows.
+  skip_if_not_installed("dplyr")
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  d <- solomon_example
+  cell <- function(...) {
+    tryCatch(suppressWarnings(plot_solomon(...)), error = function(e) e)
+  }
+  without <- function(...) {
+    with_mocked_bindings(cell(...), .has_dplyr = function() FALSE)
+  }
+  keep <- !(d$pretested == 0 & d$treat == 1)
+  inputs <- list(
+    standard = list(d$y_post, d$treat, d$pretested),
+    labels = list(d$y_post, ifelse(d$treat == 1, "T", "C"),
+                  factor(d$pretested, levels = c(1, 0))),
+    unsorted = list(rev(d$y_post), rev(d$treat), rev(d$pretested))
+  )
+  for (nm in names(inputs)) {
+    a <- do.call(cell, inputs[[nm]])
+    b <- do.call(without, inputs[[nm]])
+    expect_identical(b, a, label = nm)
+    # Serialized, the attributes count in their order, with the form of the
+    # row names; version 2 leaves out how R stores a vector internally.
+    expect_identical(serialize(b, NULL, version = 2), serialize(a, NULL, version = 2),
+                     label = nm)
+  }
+
+  # The error of a missing cell. Its call is left out: in an installed,
+  # byte-compiled package both calls name the column "x" as a string, but
+  # where the code is not compiled, as under pkgload, R gives dplyr's path
+  # the symbol `x`.
+  a <- cell(d$y_post[keep], d$treat[keep], d$pretested[keep])
+  b <- without(d$y_post[keep], d$treat[keep], d$pretested[keep])
+  expect_identical(class(b), class(a))
+  expect_identical(conditionMessage(b), conditionMessage(a))
+})
