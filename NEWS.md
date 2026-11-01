@@ -198,23 +198,35 @@ reasons are set out in the decision record posted on #135.
   cluster, count, negative-binomial, invariance, multiple-imputation,
   repeated-measures, and several-treatment studies. They took the commit
   from `git rev-parse HEAD`. Outside a repository, git fails, and R's
-  `system()` returns no value, with a warning that the scripts'
-  `tryCatch()` did not catch, so there was no commit to record, not even
-  `NA`. In such a copy, `tools/check-validation-scripts.R` failed these
-  ten and the two scripts that depend on them, 12 of the 16. In a copy
+  `system()` returns an empty character vector, `character(0)`, with a
+  warning that the scripts' `tryCatch()` did not catch, so there was no
+  commit to record, not even `NA`. In such a copy,
+  `tools/check-validation-scripts.R` failed these ten and the two scripts
+  that depend on them, 12 of the 16. In a copy
   unpacked inside another git repository, the ten recorded that
   repository's commit.
 * Every validation script that records a commit now takes it by one rule:
   the environment variable `SOLOMONR_COMMIT` when it is set and not empty;
-  otherwise the commit checked out, when the copy is the top level of a
-  git repository and its `DESCRIPTION` names solomonR; otherwise `NA`. The
-  scripts of the ML, power, and plan re-simulation studies, which read
-  only `SOLOMONR_COMMIT`, now also record the commit of a clone. The
-  Validation Evidence page states the rule and says how to record the
-  commit of a downloaded copy. The stored results do not change.
-* A new test checks that the scripts share one definition of the rule,
-  and checks the rule with `SOLOMONR_COMMIT` set, in a clone, outside any
-  repository, and inside an unrelated repository.
+  otherwise the commit checked out, when git is on the PATH, the copy is
+  the top level of a git repository, and its `DESCRIPTION` names
+  solomonR; otherwise `NA`. The copy is the package that the script
+  loads, found as `pkgload::load_all()` finds it, and git looks for the
+  repository from the copy alone, whatever `GIT_DIR` and `GIT_WORK_TREE`
+  say. The scripts of the ML, power, and plan re-simulation studies,
+  which read only `SOLOMONR_COMMIT`, now also record the commit of a
+  clone. The Validation Evidence page states the rule and says how to
+  record the commit of a downloaded copy. The stored results do not
+  change.
+* The several-treatment script, rerun where the old script stopped
+  outside a clone, resumes from the checkpoints that it left, whose
+  commit is empty, and records `NA` as the commit of their replications.
+* A new test checks that the scripts share one definition of the rule and
+  pass it the folder of the package that they load. It checks the rule
+  with `SOLOMONR_COMMIT` set; in a clone, also from a folder below its
+  root; outside any repository; inside an unrelated repository; in a
+  repository without commits; and with `GIT_DIR` or `GIT_WORK_TREE`
+  pointing at another repository. It also checks that the messages that
+  git prints are discarded.
 
 ## Validation scripts that run against the current package (#140)
 

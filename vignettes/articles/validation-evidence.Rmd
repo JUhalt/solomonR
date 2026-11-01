@@ -556,27 +556,50 @@ treatment was sensitized. See the
 
 ## Rerunning a study
 
-Each script of the studies on this page records, with its results, the
-commit of the copy of the package that it ran
-([issue #152](https://github.com/JUhalt/solomonR/issues/152)). The commit
-is:
+The scripts of the studies on this page record, with their results, the
+commit of the copy of the package that they ran
+([issue #152](https://github.com/JUhalt/solomonR/issues/152)), except two:
+the post hoc investigation of Test I in the study of the historical Tests
+A-I (`test-i-investigation.R`) and the agreement table of the study of
+missing posttests (`mi-agreement.R`). In the study of designs with several
+treatments, `ngroup-summarize.R` records the commits that
+`ngroup-simulation.R` passes to it. The commit is:
 
 - the environment variable `SOLOMONR_COMMIT`, when it is set and not empty;
-- otherwise, when the copy is the top level of a git repository, as a clone
-  is, and its `DESCRIPTION` names solomonR, the commit checked out there
-  (`git rev-parse HEAD`);
+- otherwise, when git is on the PATH, the copy is the top level of a git
+  repository, as a clone is, and its `DESCRIPTION` names solomonR, the
+  commit checked out there (`git rev-parse HEAD`);
 - otherwise `NA`.
+
+The copy is the package that the script loads: the nearest folder, at or
+above the working directory, whose `DESCRIPTION` names a package, as
+`pkgload::load_all()` finds it. The scripts of the maximum-likelihood,
+power, and sample-size planning studies search from the folder given as
+their first argument, the working directory by default, so they record the
+commit of the copy given there.
+git looks for the repository from the copy alone; the variables `GIT_DIR`
+and `GIT_WORK_TREE` are ignored.
 
 A copy downloaded with GitHub's "Download ZIP", or made with `git archive`,
 contains no git repository, so a run from it records `NA`. So does a run
 from a copy unpacked inside another git repository, whose commit is not
-that of the copy. To record the commit that a downloaded copy came from,
-set `SOLOMONR_COMMIT` to it when running the script. In a Unix shell, from
-the root of the copy, for example:
+that of the copy, and a run from a clone when git is not on the PATH. To
+record the commit that a downloaded copy came from, set `SOLOMONR_COMMIT`
+to it when running the script from the root of the copy. In a Unix shell:
 
 ```sh
 SOLOMONR_COMMIT=<commit> Rscript vignettes/articles/binary-validation/binary-simulation.R
 ```
+
+In PowerShell:
+
+```powershell
+$env:SOLOMONR_COMMIT = "<commit>"; Rscript vignettes/articles/binary-validation/binary-simulation.R
+```
+
+Each command runs the full binary study. In PowerShell, the variable stays
+set for the rest of the session, so a later run there records the same
+commit until the variable is removed with `Remove-Item Env:SOLOMONR_COMMIT`.
 
 ## Adding a study
 
