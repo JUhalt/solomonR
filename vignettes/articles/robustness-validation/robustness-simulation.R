@@ -24,10 +24,11 @@
 # runs the protocol's stops before any task (study$preflight), runs the
 # tasks, checks and merges them, and only then calls the summary in
 # robustness-summarize.R. A study run writes performance.csv, decisions.csv,
-# agreement.csv, failures.csv, and the study's part of run-information.csv;
-# a code-testing run or the timing gate writes agreement.csv and
-# run-information.csv only, and computes no performance measure, no
-# decision, and no count of failed fits.
+# agreement.csv, failures.csv, scenarios.csv, and the study's part of
+# run-information.csv; a code-testing run or the timing gate writes
+# agreement.csv (aggregated over the scenarios) and run-information.csv
+# only, and computes no performance measure, no decision, and no count of
+# failed fits.
 #
 # Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the contract plans,
 # runs, and summarizes the scenarios in `smoke_scenarios` in that folder, in

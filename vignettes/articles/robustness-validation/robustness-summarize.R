@@ -316,6 +316,9 @@ group_summary <- function(rows, g, n_groups) {
 # count). Check 5 comes from the stored estimates: per scenario and
 # contrast in the study run, per contrast outside it, where its largest
 # difference, one of the protocol's descriptive measures, is not shown.
+# [Left to the script: the aggregation outside the study run, so that a
+# code-testing or gate summary cannot stand in for a count of failed fits,
+# which the protocol and draft Amendment 2, item 9, keep out of those runs.]
 agreement_summary <- function(agreement, results, sc, preflight, study_run) {
   out <- list()
   num <- function(v) suppressWarnings(as.integer(v))
@@ -484,11 +487,11 @@ se_rows <- function(est, se, heavy_tailed) {
 }
 
 # Bias of M1, mean(estimate) in E0, with MCSE SD(estimate)/sqrt(n)
-# (protocol); and the standardized bias, bias / empirical SE. [Left to the
-# script: the protocol says that each measure carries an MCSE but gives
-# none for the standardized bias. It is the leave-one-out jackknife over the
-# replications, as for the measures built on the empirical SE, and, like
-# theirs, unavailable under t (3 df).]
+# (protocol); and the standardized bias, bias / empirical SE.
+# [Left to the script: the protocol says that each measure carries an MCSE
+# but gives none for the standardized bias. It is the leave-one-out
+# jackknife over the replications, as for the measures built on the
+# empirical SE, and, like theirs, unavailable under t (3 df).]
 bias_rows <- function(est, heavy_tailed) {
   n <- length(est)
   b <- if (n >= 1) mean(est) else NA_real_
