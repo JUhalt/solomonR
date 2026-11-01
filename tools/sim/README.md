@@ -96,6 +96,17 @@ gh run list --repo JUhalt/solomonR --workflow simulation-run.yaml --limit 3
 gh run watch <run id> --repo JUhalt/solomonR
 ```
 
+The task files record the package commit, so two runs have the same
+manifest only if they ran at the same `package_sha`; the summaries do not
+depend on it. The harness's own tests after its merge are therefore
+defined against each other: T3 (3 chunks, `fail_once=true`, then
+`gh run rerun --failed`) and T4 (1 chunk) are dispatched with the same
+`package_sha`, a master commit; T4's manifest must equal T3's, and both
+runs' summaries must equal those of T1, the first cloud run (run
+41255391619, at e13e8bb). T1's task files differ from theirs in the
+envelope only: the package commit, and the contract's checksum, since
+`contract.R` has changed after e13e8bb.
+
 - `smoke=true` (the default) is a code-testing run: the study's test seed,
   at most 20 replications. A study run is `smoke=false`, `stage=run`, `reps`
   on the protocol's list, a `package_sha` on master, and `cost_seconds`,
