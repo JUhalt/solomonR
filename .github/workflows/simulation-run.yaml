@@ -514,8 +514,9 @@ jobs:
           retention-days: 90
 
       # The harness's own tests of merge-chunks.R, in its pull requests only:
-      # tampered copies of this run's plan and chunks, made in the runner's
-      # temporary folder, which is never uploaded.
+      # tampered copies of this run's plan and chunks, and the address scan
+      # of this run's own folders, made in the runner's temporary folder,
+      # which is never uploaded.
       - name: Test the merge checks on tampered copies of the chunks
         if: github.event_name == 'pull_request'
         shell: bash

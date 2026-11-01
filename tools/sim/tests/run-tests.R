@@ -17,7 +17,12 @@
 #   scan     scan-addresses.R on folders built here around a placeholder
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
-#            every "c-" folder pass, and no promise may be evaluated.
+#            every "c-" folder pass, and no promise may be evaluated. Eleven
+#            "f-" folders must fail by a named rule (a NUL byte, a gzip or
+#            zlib header, bytes that are not valid UTF-8), among them
+#            compressed text without a NUL byte; the "c-" folders include
+#            UTF-8 text with the characters the package prints, a UTF-8
+#            byte-order mark, empty files, and text that starts with "x".
 #   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
 #            protocol flag; refused if absent, below 1, or not a number,
 #            or if given as a fifth argument), the 2- and 4-hour limits, a
@@ -51,7 +56,10 @@
 #            contract 2).
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
-#            or the merge job's workspace; skipped without it).
+#            or the merge job's workspace; skipped without it), and
+#            scan-addresses.R on the run's own plan/, chunks/, merged/,
+#            replay/, results/, and logs/ (those that exist), which must
+#            pass.
 #
 # Messages are printed without their "::error::" or "::warning::" prefix, so
 # that a workflow log shows no annotation for an expected refusal; the scan
@@ -286,7 +294,9 @@ if ("scan" %in% groups) {
   saveRDS(stats::setNames(list(1), A), file.path(case("f-35-list-names"), "a.rds"))
   saveRDS(list(as.name(A)), file.path(case("f-36-symbol"), "a.rds"))
   saveRDS(as.expression(list(as.name("x"), A)), file.path(case("f-37-expression"), "a.rds"))
-  writeBin(memCompress(charToRaw(paste(rep(A, 3), collapse = " ")), "gzip"), file.path(case("f-38-compressed-text"), "a.txt"))
+  # A short zlib stream (memCompress(type = "gzip")) that holds a NUL byte,
+  # which fails it before the header rule.
+  writeBin(memCompress(charToRaw(paste(rep(A, 3), collapse = " ")), "gzip"), file.path(case("f-38-nul-byte-in-zlib-text"), "a.txt"))
   put(case("f-39-hidden-file"), ".hidden.txt", A)
   put(case("f-40-upper-case-extension"), "A.TXT", A)
   writeBin(c(charToRaw("caf"), as.raw(0xe9), charToRaw(paste0(" ", A))), file.path(case("f-41-latin1-byte"), "a.txt"))
@@ -299,6 +309,35 @@ if ("scan" %in% groups) {
   saveRDS(structure(list(1), comment = A), file.path(case("f-45-comment-attribute"), "a.rds"))
   saveRDS(list(z = 1i, env = list2env(list(k = list(deeper = A)))), file.path(case("f-46-environment-in-list"), "a.rds"))
   file.create(file.path(case("f-47-empty-rds"), "a.rds"))
+  # Compressed text without a NUL byte (finding 3 of review 3): the first of
+  # these zlib streams that holds no NUL byte and no UTF-16 byte-order mark
+  # (k = 79 on R 4.6.1 for Windows: 367 bytes, 78 9c).
+  set.seed(1)
+  for (k in 1:300) {
+    z <- memCompress(charToRaw(paste0(paste(sample(c(letters, " ", 0:9), 400 + k, TRUE), collapse = ""), " contact ", A)), "gzip")
+    if (!any(z == as.raw(0L)) && !any(vapply(list(c(0xff, 0xfe), c(0xfe, 0xff)), function(b) identical(z[1:2], as.raw(b)), TRUE))) break
+  }
+  writeBin(z, file.path(case("f-48-zlib-text-without-nul"), "a.txt"))
+  writeBin(c(as.raw(c(0x1f, 0x8b)), charToRaw("clean text")), file.path(case("f-49-gzip-header"), "a.txt"))
+  con <- gzfile(file.path(case("f-50-gzip-file-named-txt"), "a.txt"), "w"); writeLines(c("x", A), con); close(con)
+  writeBin(c(as.raw(c(0x78, 0x01)), charToRaw("clean")), file.path(case("f-51-zlib-header-78-01"), "a.txt"))
+  put(case("f-52-zlib-header-78-5e-text-x-caret"), "a.txt", "x^2 is the square of x")
+  writeBin(c(as.raw(c(0x78, 0xda, 0x80)), charToRaw("clean")), file.path(case("f-53-zlib-header-78-da-valid-utf8"), "a.csv"))
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf, 0x78, 0x5e)), charToRaw("clean")), file.path(case("f-54-utf8-bom-then-zlib-header"), "a.json"))
+  writeBin(c(charToRaw("caf"), as.raw(0xe9), charToRaw(" au lait")), file.path(case("f-55-not-utf8-latin1"), "a.txt"))
+  writeBin(c(charToRaw("a,b\n1,"), as.raw(c(0xed, 0xa0, 0x80)), charToRaw("\n")), file.path(case("f-56-not-utf8-surrogate"), "a.csv"))
+  writeBin(c(charToRaw("{\"a\": \""), as.raw(c(0xc0, 0xaf)), charToRaw("\"}")), file.path(case("f-57-not-utf8-overlong"), "a.json"))
+  # The rule each of these must fail by (a part of its message); the other
+  # "f-" folders need only fail.
+  scan_rule <- c(`f-15-nul-byte` = "holds a NUL byte", `f-38-nul-byte-in-zlib-text` = "holds a NUL byte",
+                 `f-48-zlib-text-without-nul` = "starts with a zlib header (78 9c)",
+                 `f-49-gzip-header` = "starts with a gzip header (1f 8b)",
+                 `f-51-zlib-header-78-01` = "starts with a zlib header (78 01)",
+                 `f-52-zlib-header-78-5e-text-x-caret` = "starts with a zlib header (78 5e)",
+                 `f-53-zlib-header-78-da-valid-utf8` = "starts with a zlib header (78 da)",
+                 `f-54-utf8-bom-then-zlib-header` = "starts with a zlib header (78 5e)",
+                 `f-55-not-utf8-latin1` = "is not valid UTF-8", `f-56-not-utf8-surrogate` = "is not valid UTF-8",
+                 `f-57-not-utf8-overlong` = "is not valid UTF-8")
 
   # Each of these must pass.
   put(case("c-01-plain"), "a.txt", c("pkgload@1.5.3", "cran::MASS@7.3-66", "x86_64-pc-linux-gnu",
@@ -315,18 +354,39 @@ if ("scan" %in% groups) {
                e = local({ z <- 1; environment() })), file.path(d, "b.rds"))
   writeLines('["0001"]', file.path(d, "chunks.json"))
   utils::write.csv(data.frame(a = 1), file.path(d, "c.csv"), row.names = FALSE)
+  # UTF-8 text with the characters the package prints (chi squared, Delta,
+  # the en dash, the double dagger, accented letters) and a 4-byte character.
+  d <- case("c-06-utf8-text")
+  put(d, "a.txt", c("\u03c7\u00b2(1) = 3.84, p = .05", "\u0394 = 0.2 \u2013 0.5, \u03b7\u00b2 = .01",
+                    "Note\u2021 caf\u00e9 \u00f8 \u017e \u0107", "\U0001F600 four bytes"))
+  put(d, "b.csv", c("\"label\",\"value\"", "\"\u03c7\u00b2\",3.84", "\"\u0394\u2013\",0.2"))
+  put(d, "c.json", "{\"label\": \"\u0394 \u2013 \u03b7\u00b2\"}")
+  d <- case("c-07-utf8-bom")
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf)), charToRaw("clean \u03c7\u00b2\n")), file.path(d, "a.txt"))
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf)), charToRaw("\"a\",\"b\"\n1,2\n")), file.path(d, "b.csv"))
+  d <- case("c-08-empty-files")
+  file.create(file.path(d, c("a.txt", "b.csv", "c.json")))
+  # Text that starts with "x", but not with a zlib header.
+  d <- case("c-09-text-starting-with-x")
+  put(d, "a.csv", c("x,y", "1,2"))
+  writeBin(charToRaw("x"), file.path(d, "b.txt"))
+  put(d, "c.json", "x")
 
   for (d in sort(list.dirs(root, recursive = FALSE))) {
     r <- run_r("scan-addresses.R", d)
-    record("scan", basename(d), if (startsWith(basename(d), "c-")) "pass" else "fail",
-           if (r$status == 0L) "pass" else "fail")
+    got <- if (r$status == 0L) "pass" else "fail"
+    name <- basename(d)
+    if (name %in% names(scan_rule) && got == "fail" && !any(grepl(scan_rule[[name]], r$out, fixed = TRUE))) {
+      got <- "fail, another rule"
+    }
+    record("scan", name, if (startsWith(name, "c-")) "pass" else "fail", got)
   }
   r <- run_r("scan-addresses.R", file.path(root, "no-such-folder"))
   record("scan", "a missing path", "fail", if (r$status == 0L) "pass" else "fail")
   r <- run_r("scan-addresses.R", c(file.path(root, "c-01-plain"), file.path(root, "no-such-file.txt")))
   record("scan", "a clean folder and a missing file", "fail", if (r$status == 0L) "pass" else "fail")
   record("scan", "no promise evaluated by any scan", "no", if (file.exists(marker)) "yes" else "no")
-  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots)
+  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule)
 }
 
 # ---- sizing: assign-chunks.R -------------------------------------------------
@@ -938,6 +998,12 @@ if ("merge" %in% groups) {
       record("merge", names(cases)[[k]], if (k == 1L) "accept" else "refuse", if (r$status == 0L) "accept" else "refuse",
              last_line(r$out))
     }
+    # The address scan on the run's own folders, as they are: the harness's
+    # files of a real run, its logs among them, must pass its rules.
+    own <- file.path(run, c("plan", "chunks", "merged", "replay", "results", "logs"))
+    r <- run_r("scan-addresses.R", own[dir.exists(own)])
+    record("merge", paste("the address scan of the run's", paste(basename(own[dir.exists(own)]), collapse = ", ")),
+           "pass", if (r$status == 0L) "pass" else "fail", last_line(r$out))
   })
 }
 

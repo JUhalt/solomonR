@@ -14,17 +14,25 @@
 #     of a file given, are scanned as well as the contents;
 #   - only .csv, .txt, .json, and .rds files are allowed; any other file
 #     fails;
-#   - a .csv, .txt, or .json file is read as bytes, and fails if it holds a
-#     NUL byte or starts with a UTF-16 byte-order mark (which would hide its
-#     text from the pattern);
+#   - a .csv, .txt, or .json file is read as bytes, and fails, with a
+#     message that names the rule, if it starts with a UTF-16 byte-order
+#     mark, holds a NUL byte, starts (after a UTF-8 byte-order mark, if it
+#     has one) with a gzip header (1f 8b) or a zlib header (78 01, 78 5e,
+#     78 9c, 78 da), or is not valid UTF-8 (as validUTF8() reads it, which
+#     refuses overlong forms, surrogates, and code points above U+10FFFF);
+#     each of these could hide its text from the pattern. A text file that
+#     starts with the characters "x^" (78 5e) is refused too. Valid UTF-8
+#     text, with or without a UTF-8 byte-order mark, and an empty file pass
+#     these rules. Text compressed or encoded in another way that leaves
+#     valid UTF-8 without such a header (base64, for one) is not detected;
 #   - an .rds file is read with readRDS(), and every character string in the
 #     object is scanned: values, factor levels, every attribute of every
-#     type (names included), raw vectors as text, the deparsed code of
-#     functions, calls, and formulas, and the bindings of environments
-#     (those of closures and formulas, and their parents), stopping at
-#     namespaces, attached packages, and the global, base, and empty
-#     environments; a promise is read as its code and never evaluated. An
-#     object that cannot be read or walked completely fails;
+#     type (names included), raw vectors as text (not decompressed), the
+#     deparsed code of functions, calls, and formulas, and the bindings of
+#     environments (those of closures and formulas, and their parents),
+#     stopping at namespaces, attached packages, and the global, base, and
+#     empty environments; a promise is read as its code and never
+#     evaluated. An object that cannot be read or walked completely fails;
 #   - "%40" (a percent-encoded "@") is read as "@".
 
 local({
@@ -45,6 +53,19 @@ shaped <- function(txt) {
 
 problems <- character()
 problem <- function(...) problems <<- c(problems, paste0(...))
+
+# The header of a gzip or zlib stream at the start of a text file's bytes
+# (after a UTF-8 byte-order mark, if there is one), named with its bytes;
+# "" if there is none. memCompress(type = "gzip") writes a zlib stream.
+compressed_header <- function(bytes) {
+  if (length(bytes) >= 3L && identical(bytes[1:3], as.raw(c(0xef, 0xbb, 0xbf)))) bytes <- bytes[-(1:3)]
+  if (length(bytes) < 2L) return("")
+  if (identical(bytes[1:2], as.raw(c(0x1f, 0x8b)))) return("gzip header (1f 8b)")
+  if (bytes[[1]] == as.raw(0x78) && bytes[[2]] %in% as.raw(c(0x01, 0x5e, 0x9c, 0xda))) {
+    return(paste0("zlib header (78 ", format(bytes[[2]]), ")"))
+  }
+  ""
+}
 
 # ---- The strings of an R object ---------------------------------------------------
 
@@ -170,6 +191,15 @@ for (i in seq_along(files)) {
   }
   if (any(bytes == as.raw(0L))) {
     problem(label, ": holds a NUL byte; text files must be UTF-8 or ASCII.")
+    next
+  }
+  header <- compressed_header(bytes)
+  if (nzchar(header)) {
+    problem(label, ": starts with a ", header, "; text files must not be compressed.")
+    next
+  }
+  if (length(bytes) && !validUTF8(rawToChar(bytes))) {
+    problem(label, ": is not valid UTF-8; text files must be UTF-8 or ASCII.")
     next
   }
   if (length(bytes) && shaped(rawToChar(bytes))) problem(label, ": text shaped like an e-mail address.")

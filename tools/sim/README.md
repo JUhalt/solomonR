@@ -24,7 +24,7 @@ package or of the validation-scripts check.
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
 | `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in a protocol's gate or test, only the files agreement, run information, timing, and the harness's own (by name; contents are not inspected) |
 | `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder |
-| `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path, a format other than .csv, .txt, .json, and .rds, a NUL byte or UTF-16 text, an object it cannot walk) |
+| `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path; a format other than .csv, .txt, .json, and .rds; a text file with a NUL byte, a UTF-16 byte-order mark, a gzip or zlib header at its start, or bytes that are not valid UTF-8; an object it cannot walk) |
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
@@ -239,19 +239,23 @@ Rscript tools/sim/tests/run-tests.R --only merge --run <folder of a finished run
 
 Each case builds its input in a temporary folder (`--work` names another)
 and runs one check in a new R process: the MCSE, decision, and file-name
-rules of `check-results.R`; 47 folders that `scan-addresses.R` must refuse,
+rules of `check-results.R`; 57 folders that `scan-addresses.R` must refuse,
 built around a placeholder address at example.org that is assembled at run
-time, and 5 it must pass; the job sizes of `assign-chunks.R`; the
-workflow's "Check the inputs" step, run with bash (`--bash <path>` if bash
-is not on the PATH); the contract's plan stage and `sim_verify_plan()` on
-the synthetic study `tests/synthetic-study.R`, which loads no package (with
-git, also the clean-checkout rule); the replay list of `merge-chunks.R`
-and the items of `finalize-results.R` on files made up there; and, with
-`--run`, `merge-chunks.R` on tampered copies of a run's `plan/` and
-`chunks/`. Any case that ends otherwise than expected makes the exit
-status 1. The workflow runs them in the pull requests that change the
-harness: the job "Harness tests", and the merge cases at the end of the
-merge job, on that run's own chunks. Run them after any change to a check.
+time (11 of them by a named rule: a NUL byte, a gzip or zlib header, or
+bytes that are not valid UTF-8, among them compressed text without a NUL
+byte), and 9 it must pass (among them UTF-8 text with the characters the
+package prints, a UTF-8 byte-order mark, and empty files); the job sizes of
+`assign-chunks.R`; the workflow's "Check the inputs" step, run with bash
+(`--bash <path>` if bash is not on the PATH); the contract's plan stage and
+`sim_verify_plan()` on the synthetic study `tests/synthetic-study.R`, which
+loads no package (with git, also the clean-checkout rule); the replay list
+of `merge-chunks.R` and the items of `finalize-results.R` on files made up
+there; and, with `--run`, `merge-chunks.R` on tampered copies of a run's
+`plan/` and `chunks/`, and the address scan of the run's own folders. Any
+case that ends otherwise than expected makes the exit status 1. The
+workflow runs them in the pull requests that change the harness: the job
+"Harness tests", and the merge cases at the end of the merge job, on that
+run's own chunks. Run them after any change to a check.
 
 The software check runs without its repository and tool checks, so the
 local package versions must match the pins. On Windows, R reports no BLAS or
@@ -332,8 +336,13 @@ In the study's own pull request, before its run (the order rule of #117):
   and before `check-results.R` names any file of the results. It also
   scans the paths of the files, reads `%40` as `@`, walks every string of
   an `.rds` object (attributes, functions and their environments, promises
-  as code, never evaluated), and fails on a path that does not exist and
-  on any file it cannot read completely. A chunk job first stops every R
+  as code, never evaluated), and fails on a path that does not exist, on
+  any file it cannot read completely, and on a text file (.csv, .txt,
+  .json) that holds a NUL byte, starts with a UTF-16 byte-order mark or
+  with a gzip or zlib header, or is not valid UTF-8, so that compressed or
+  re-encoded text cannot pass unread (text that starts with `x^` is refused
+  as a zlib header too). Text encoded otherwise as valid UTF-8, such as
+  base64, is not decoded. A chunk job first stops every R
   process left from its tasks step (after a timeout, a PSOCK worker could
   otherwise write a task file after the scan).
 - Every job installs its R library afresh from the dated snapshot (pak
