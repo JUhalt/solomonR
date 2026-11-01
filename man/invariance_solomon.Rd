@@ -25,11 +25,12 @@ several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solo
 \item{estimator}{The lavaan estimator, \code{"MLR"} (the default) or \code{"ML"},
 in upper or lower case: the estimators of \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}},
 which runs this check. Any other value stops with an error. Under ML
-the difference test is unscaled, and it equals the unscaled difference
-of MLR fits. The validation planned for the check (the amendment of
-October 9, 2026, on issue #55) computes its tests from MLR fits, the
-unscaled difference among them. Other estimators can be fitted with
-lavaan directly.}
+the difference test is unscaled. In the check that the amendment of
+October 9, 2026, on issue #55 plans to validate, the test does not
+depend on \code{estimator}: the scaled difference (Satorra & Bentler, 2001)
+is always computed from MLR fits, and among the tests compared is the
+unscaled difference from the same fits, which equals the difference
+under ML. Other estimators can be fitted with lavaan directly.}
 
 \item{partial}{Optional character vector of freed parameters (see Partial
 invariance).}

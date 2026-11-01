@@ -14,9 +14,11 @@
 # invariance_solomon() accept (issue #133): MLR and ML, the estimators of
 # the validation protocols. The protocol posted on issue #117 restricts
 # fit_solomon_sem() to them. The amendment of October 9, 2026, on issue #55
-# studies the latent contrasts of fit_solomon_sem_latent() under both, and
-# computes the invariance check's tests from MLR fits, the unscaled
-# difference among them, which equals the difference of ML fits;
+# studies the latent contrasts of fit_solomon_sem_latent() under both. In
+# the invariance check it plans to validate, the test does not depend on
+# `estimator`: the scaled difference (Satorra & Bentler, 2001) is always
+# computed from MLR fits, and among the tests compared is the unscaled
+# difference from the same fits, which equals the difference of ML fits.
 # invariance_solomon() accepts the estimators of fit_solomon_sem_latent(),
 # which runs it. Of the other lavaan estimators, MLM and MLMV cannot be
 # fitted with missing = "fiml", lavaan failed to estimate the package's

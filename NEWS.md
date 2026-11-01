@@ -12,9 +12,11 @@
   value to lavaan. MLR and ML are the estimators of the posted validation
   protocols. The protocol for `fit_solomon_sem()` on #117 restricts
   `estimator` to them. The amendment of October 9, 2026, on #55 studies
-  the latent contrasts of `fit_solomon_sem_latent()` under both, and it
-  computes the invariance check's tests from MLR fits, the unscaled
-  difference among them, which equals the difference that
+  the latent contrasts of `fit_solomon_sem_latent()` under both. In the
+  invariance check it plans to validate, the test does not depend on
+  `estimator`: the scaled difference (Satorra & Bentler, 2001) is always
+  computed from MLR fits, and among the tests compared is the unscaled
+  difference from the same fits, which equals the difference that
   `invariance_solomon()` gives under ML. `invariance_solomon()` accepts the
   estimators of `fit_solomon_sem_latent()`, which runs it. The functions
   fit with full-information maximum likelihood (`missing = "fiml"`), with
