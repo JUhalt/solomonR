@@ -108,40 +108,64 @@ test_that("with the default center, results equal those of master (a6c771a)", {
   }
   # Printed output and report sentences of complete data are unchanged,
   # except that a number may be printed one unit of its last digit away
-  # from master's where a value master computed lies within the tolerance
-  # of the rounding boundary between the two. The bootstrap gives such
-  # values: with 199 resamples, the upper limit of the percentile interval
-  # of the treatment effect among unpretested participants is
-  # 13/30 + (1/20)(1/30) = 0.435, which the logistic refits reach only to
-  # their convergence tolerance, so one platform prints 0.43 and another
-  # (macOS on arm64) 0.44. rounding_differences() returns every difference
-  # that no such value explains. With missing posttests every line that
-  # master printed, and every paragraph of its report, appears unchanged
-  # and in the same order; the new output may add lines and paragraphs for
-  # the other center and the attrition, and the report of a design with
-  # several treatments adds its sentences at the end of its last paragraph,
-  # which must then begin with master's.
-  rounding_differences <- function(got, ref, stored, tol) {
+  # from master's where it prints a value that lies on the rounding
+  # boundary between the two. The bootstrap gives such a value: with 199
+  # resamples and 30 participants in each unpretested group, the upper
+  # limit of the percentile interval of the treatment effect among
+  # unpretested participants is 13/30 + (1/20)(1/30) = 0.435 exactly. In
+  # floating point it falls a few units in the last place to either side,
+  # so one platform prints 0.43 and another (macOS on arm64) 0.44.
+  # rounding_differences() accepts a difference only where a cell of a
+  # stored data frame lies within the tolerance of the boundary, master's
+  # value of the cell prints as master's number, and its current value as
+  # the new one; each cell accepts one difference. Digits that are part of
+  # a word (d1, HC3) or follow a hyphen (1.2e-05, 0.31-0.43) are compared as
+  # text. With missing posttests every line that master printed, and every
+  # paragraph of its report, appears unchanged and in the same order; the
+  # new output may add lines and paragraphs for the other center and the
+  # attrition, and the report of a design with several treatments adds its
+  # sentences at the end of its last paragraph, which must then begin with
+  # master's.
+  rounding_differences <- function(got, ref, stored, current, tol) {
     if (length(got) != length(ref)) return("the number of lines differs")
-    values <- as.numeric(unlist(lapply(Filter(is.data.frame, stored),
-                                       function(d) unlist(Filter(is.numeric, d), use.names = FALSE))))
-    values <- values[is.finite(values)]
-    number <- "-?[0-9]*[.]?[0-9]+"
+    cells <- do.call(rbind, lapply(names(Filter(is.data.frame, stored)), function(n) {
+      a <- stored[[n]]
+      b <- current[[n]]
+      if (!is.data.frame(b) || nrow(b) != nrow(a)) return(NULL)
+      cols <- intersect(names(Filter(is.numeric, a)), names(Filter(is.numeric, b)))
+      if (!length(cols)) return(NULL)
+      data.frame(master = unlist(a[cols], use.names = FALSE),
+                 now = unlist(b[cols], use.names = FALSE))
+    }))
+    if (is.null(cells)) cells <- data.frame(master = numeric(), now = numeric())
+    cells <- cells[is.finite(cells$master) & is.finite(cells$now), , drop = FALSE]
+    used <- rep(FALSE, nrow(cells))
+    number <- "(?<![[:alnum:]_.-])-?[0-9]*[.]?[0-9]+"
     decimals <- function(x) nchar(sub("^[^.]*[.]?", "", x))
+    prints_as <- function(v, d, z) {
+      abs(as.numeric(formatC(v, format = "f", digits = d)) - z) < 10^-d / 100
+    }
     out <- character()
     for (i in which(got != ref)) {
-      if (!identical(gsub(number, "#", got[i]), gsub(number, "#", ref[i]))) {
+      if (!identical(gsub(number, "#", got[i], perl = TRUE),
+                     gsub(number, "#", ref[i], perl = TRUE))) {
         out <- c(out, sprintf("line %d: \"%s\" where master printed \"%s\"", i, got[i], ref[i]))
         next
       }
-      a <- regmatches(got[i], gregexpr(number, got[i]))[[1]]
-      b <- regmatches(ref[i], gregexpr(number, ref[i]))[[1]]
+      a <- regmatches(got[i], gregexpr(number, got[i], perl = TRUE))[[1]]
+      b <- regmatches(ref[i], gregexpr(number, ref[i], perl = TRUE))[[1]]
       for (k in which(a != b)) {
-        unit <- 10^-decimals(b[k])
+        d <- decimals(b[k])
         x <- as.numeric(a[k])
         y <- as.numeric(b[k])
-        tie <- any(abs(values - (x + y) / 2) <= tol * pmax(1, abs(values)))
-        if (decimals(a[k]) != decimals(b[k]) || abs(abs(x - y) - unit) > unit / 100 || !tie) {
+        cell <- integer()
+        if (decimals(a[k]) == d && abs(abs(x - y) - 10^-d) <= 10^-d / 100) {
+          cell <- which(!used & abs(cells$master - (x + y) / 2) <= tol * pmax(1, abs(cells$master)) &
+                          prints_as(cells$master, d, y) & prints_as(cells$now, d, x))
+        }
+        if (length(cell)) {
+          used[cell[1]] <- TRUE
+        } else {
           out <- c(out, sprintf("line %d: %s where master printed %s", i, a[k], b[k]))
         }
       }
@@ -169,7 +193,8 @@ test_that("with the default center, results equal those of master (a6c771a)", {
       info <- paste(name, part)
       if (part %in% c("text", "sentences")) {
         if (grepl("complete|classic", name)) {
-          expect_identical(rounding_differences(got, ref, stored$results[[name]], tolerance(name)),
+          expect_identical(rounding_differences(got, ref, stored$results[[name]], now[[name]],
+                                                tolerance(name)),
                            character(), info = info)
         } else {
           expect_true(in_order(ref, got, prefix = part == "sentences"), info = info)

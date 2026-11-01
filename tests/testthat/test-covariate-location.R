@@ -659,6 +659,20 @@ collinear_pair_fit <- function(d, design, covariates, robust = "HC3", y = NULL, 
                   cluster = if (robust == "CR2") d$site, control = if (!four) "Ctl", ...)
 }
 
+# `expr` without the warning that glm() did not converge, which its
+# standardized fit can give on designs with a condition number near 1e14:
+# the rounding error of X b then moves the deviance by about 1e-6 between
+# iterations, more than glm()'s 1e-8 criterion, and the last bits of a
+# platform decide whether it settles within 25 iterations. Its estimates
+# are as accurate either way. Every other warning is kept.
+quiet_irls <- function(expr) {
+  withCallingHandlers(expr, warning = function(w) {
+    if (identical(conditionMessage(w), "glm.fit: algorithm did not converge")) {
+      invokeRestart("muffleWarning")
+    }
+  })
+}
+
 test_that("exactly collinear covariates stop the fit wherever they lie", {
   # z + k and 2z + 3 are collinear. From about 10^6 standard deviations
   # from zero, the rounding error of z + k makes glm() take them for
@@ -677,7 +691,7 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
     for (robust in c("none", "HC3", "CR2")) {
       for (k in c(0, 1e4, 1e6, 1e8, 3e9, 1e10, 1e12)) {
         covariates <- data.frame(z = d$z + k * stats::sd(d$z), z2 = 2 * d$z + 3)
-        expect_error(collinear_pair_fit(d, design, covariates, robust), collinear,
+        expect_error(quiet_irls(collinear_pair_fit(d, design, covariates, robust)), collinear,
                      info = paste(design, robust, k))
       }
     }
@@ -864,7 +878,7 @@ test_that("an exact relation with the pretest, an indicator, or a factor stops a
     )
     for (robust in c("none", "HC3", "CR2")) {
       for (name in names(cases)) {
-        expect_error(collinear_pair_fit(d, "four", cases[[name]], robust),
+        expect_error(quiet_irls(collinear_pair_fit(d, "four", cases[[name]], robust)),
                      "collinear with other terms of the model: (cg|x|w|site[12]|treat:pretested)[.]",
                      info = paste(k, robust, name))
       }
@@ -1000,7 +1014,8 @@ test_that("nested near-collinearity near zero is fitted as glm() and master fit 
     model <- stats::glm(y ~ treat * pretested + z1 + z2 + z3,
                         data = data.frame(y, treat, pretested, covariates))
     expect_identical(model$rank, 7L, info = info)
-    fit <- fit_solomon_glm(y, treat, pretested, pre, covariates = covariates, robust = "none")
+    fit <- quiet_irls(fit_solomon_glm(y, treat, pretested, pre, covariates = covariates,
+                                      robust = "none"))
     expect_identical(nrow(fit$coefficients), 8L, info = info)
     r1 <- (covariates$z2 - covariates$z1) / case[1]
     reference <- data.frame(z1 = z1, r1 = r1, r2 = (covariates$z3 - r1) / case[2])
