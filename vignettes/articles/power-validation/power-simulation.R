@@ -171,6 +171,43 @@ scale_invariance <- function() {
 
 # ---- Run ---------------------------------------------------------------------
 
+# ---- validation_commit(): the same in every validation script (#152) ----
+# The commit recorded with the results. It is the environment variable
+# SOLOMONR_COMMIT when that is set and not empty. Otherwise it is the HEAD
+# commit of the git repository at `root`, the copy of solomonR that the
+# script runs, when `root` is the top level of that repository and its
+# DESCRIPTION names solomonR. Otherwise it is NA: a copy without git
+# metadata, such as a download from GitHub, records NA, and so does a copy
+# unpacked inside another repository, whose commit is not the copy's. git's
+# messages are discarded. tests/testthat/test-validation-commit.R checks the
+# rule and that every copy of this block is identical.
+validation_commit <- function(root = ".") {
+  given <- Sys.getenv("SOLOMONR_COMMIT")
+  if (nzchar(given)) return(given)
+  root <- normalizePath(root, winslash = "/", mustWork = FALSE)
+  description <- file.path(root, "DESCRIPTION")
+  package <- if (file.exists(description)) {
+    tryCatch(unname(read.dcf(description, fields = "Package")[1, 1]),
+             error = function(e) NA_character_)
+  } else {
+    NA_character_
+  }
+  if (!identical(package, "solomonR") || !nzchar(Sys.which("git"))) return(NA_character_)
+  git <- function(...) {
+    out <- tryCatch(suppressWarnings(system2("git", c("-C", shQuote(root), ...),
+                                             stdout = TRUE, stderr = FALSE)),
+                    error = function(e) character())
+    if (length(out) == 1L && is.null(attr(out, "status")) && nzchar(out)) out else NA_character_
+  }
+  top <- git("rev-parse", "--show-toplevel")
+  if (is.na(top)) return(NA_character_)
+  top <- normalizePath(top, winslash = "/", mustWork = FALSE)
+  # Paths on Windows do not differ by case.
+  same <- if (.Platform$OS.type == "windows") tolower(top) == tolower(root) else top == root
+  if (same) git("rev-parse", "HEAD") else NA_character_
+}
+# ---- end of validation_commit() ----
+
 started <- Sys.time()
 
 cl <- parallel::makeCluster(workers)
@@ -202,7 +239,7 @@ saveRDS(
                     sims_null = sims_null, sims_alternative = sims_alternative,
                     workers = workers),
     session = utils::sessionInfo(),
-    git_commit = Sys.getenv("SOLOMONR_COMMIT", NA_character_),
+    git_commit = validation_commit(repo),
     started = started,
     finished = Sys.time()
   ),
