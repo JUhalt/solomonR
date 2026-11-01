@@ -55,12 +55,13 @@
   error that the regression carries into it, or within the 1e-11 of
   `glm()`. That error is the term's own plus each other term's times the
   magnitude of its coefficient, with each value's error taken to be
-  `.Machine$double.eps` times its magnitude as given, plus the rounding of
-  the QR decomposition that computes the residual, which the same
-  coefficients multiply. So it covers a term whose spread is small next to
-  that of the far terms it is a combination of, such as a delay that is the
-  difference of two dates, and a term that is the small difference of two
-  nearly equal ones.
+  `.Machine$double.eps` times its magnitude as given; the residual is
+  computed from the stored values in twice the working precision, rather
+  than taken from the QR decomposition, whose rounding the same
+  coefficients would multiply. So it covers a term whose spread is small
+  next to that of the far terms it is a combination of, such as a delay
+  that is the difference of two dates, and a term that is the small
+  difference of two nearly equal ones.
   An exact relation among the covariates, the pretest, the treatment and
   pretest indicators, their interaction, and factor indicators therefore
   stops with the message that names a collinear term, as it does near
@@ -68,10 +69,18 @@
   differ, as long as its values carry no more rounding error than values
   stored from exact data or computed in a few operations. A term that is
   not exactly collinear stops only when its residual is within that bound
-  or below the tolerance of `glm()`. Near zero the bound is far below that
-  tolerance, so the check is that of `glm()`, and nearly collinear
-  covariates, such as a covariate and its copy in single precision, are
-  fitted as before, whatever other covariates lie far from zero. A fit of
+  or below the tolerance of `glm()`. Near zero the bound grows with the
+  term's coefficients. For a covariate that nearly repeats another, such
+  as a covariate and its copy in single precision, it is about 5e-15 of
+  the covariate's norm, far below that tolerance, so the check is that of
+  `glm()` and such covariates are fitted as before, whatever other
+  covariates lie far from zero. It exceeds that tolerance once the
+  magnitudes of the coefficients sum to more than about 4,000, as in
+  nested near-collinearity: with `z2 = z1 + 1e-6 * e1` and
+  `z3 = e1 + delta * e2`, the fit goes ahead at `delta = 1e-8` and stops at
+  `delta = 3e-9` and below, where `glm()` still fits the model, because
+  such a residual cannot be told from that of an exact relation between
+  rounded values. A fit of
   the model as given that fails itself stops before the check, as before:
   `MASS::glm.nb()` did, with "NA/NaN/Inf in 'x'", for an exact relation
   with a covariate 3 * 10^10 standard deviations from zero.

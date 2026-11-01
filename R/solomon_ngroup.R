@@ -292,35 +292,65 @@
 # would instead stop nearly collinear covariates near zero whenever another
 # covariate lies far from zero, though glm() and master fit them.
 #
-# The decomposition that computes the residual rounds too. Householder QR
-# is backward stable: the R it computes is that of columns perturbed by a
-# small multiple of m k eps times their norms at worst, for m rows and k
-# columns (Higham, 2002, chap. 19), and by much less in practice; the check
-# takes sqrt(m k) eps. That perturbation reaches term k's residual through
-# the same coefficients, by up to
-#   D_k = sqrt(m k) eps (||a_k|| + sum_j |b_kj| ||a_j||),
-# which exceeds B_k when the coefficients are large. A covariate that is
-# twice the pretest indicator less 0.00111 times a covariate with a spread
-# of 0.0057 (and 0.000174 times a treatment indicator) gives that
-# covariate coefficients of up to 3e5 in the standardized units, and in
-# six groups of 51 it had a residual of 1.06 times 4 B_k, so that the
-# relation went unnoticed until the omnibus test found its covariance
-# singular.
+# Centering a column at its weighted mean and multiplying it by the root
+# of the weights round each entry too, by up to eps / 2 of the result
+# each; the rounding of the root itself scales a whole row, which keeps a
+# relation. So the error of entry (i, j) of the weighted, centered design,
+# a_ij, is taken to be the representation error, weighted, plus eps |a_ij|.
+#
+# The residual must not carry a larger error of its own. The QR
+# decomposition leaves the residual of term k in R_kk, but Householder QR
+# is only backward stable: its R is the exact one of columns perturbed by
+# a multiple of eps times their norms (Higham, 2002, chap. 19), and the
+# perturbation reaches term k through the same coefficients, by up to
+# about eps (||a_k|| + sum_j |b_kj| ||a_j||) times a factor that grows with
+# the size of the design. A covariate that is twice the pretest indicator
+# less 0.00111 times a covariate with a spread of 0.0057 (and 0.000174
+# times a treatment indicator) gives that covariate coefficients of up to
+# 3e5 in the standardized units, and in six groups of 51 its exact relation
+# had an R_kk of 1.06 times 4 B_k, so that it went unnoticed until the
+# omnibus test found its covariance singular. Adding a bound on that
+# rounding, sqrt(m k) eps (||a_k|| + sum_j |b_kj| ||a_j||) for m rows and
+# k columns, as ab2ddc1 did, stopped nested near-collinearity near zero
+# that glm() and master fit at full rank, such as z2 = z1 + 1e-6 e1 and
+# z3 = e1 + 1e-8 e2, whose coefficients sum to about 2e6: the residual of
+# z3, 1.06e-8 of its norm, was within that bound, 6.9e-8, though it was
+# three times 4 B_k, 3.4e-9. The residual is therefore computed from the
+# stored columns rather than read from R_kk. The coefficients that the
+# decomposition gives are refined three times (Higham, 2002, chap. 20):
+# the residual a_k - sum_j b_kj a_j is accumulated in twice the working
+# precision and rounded once (.accurate_residual(); Ogita, Rump, & Oishi,
+# 2005), the least-squares correction for it is solved with the same
+# decomposition, and the coefficients are updated. Each step multiplies
+# the error of the coefficients by about eps times the condition number of
+# the terms before k, which are not collinear, having been checked. What
+# is left of the final residual in the span of those terms is removed, so
+# that the residual is that of the stored values, to about eps times that
+# condition number of its own size, without the decomposition's rounding.
+# That rounding moves R_kk by at most a small multiple of m k eps
+# (||a_k|| + sum_j |b_kj| ||a_j||) (Higham, 2002, Theorem 19.4), taken as
+# 10 m k eps; a term whose R_kk exceeds its bound by more is not collinear
+# and needs no refinement, which most terms of most designs do not.
 #
 # Each term is therefore compared with its own bound: it is taken to be
 # collinear with the terms before it when its residual, in the metric of
 # the weights and with each column but the intercept centered at its
-# weighted mean, is at most 4 (B_k + D_k), or at most 1e-11 of its norm,
-# the tolerance of glm(). The bound holds with the coefficients of an exact
+# weighted mean, is at most 4 B_k, or at most 1e-11 of its norm, the
+# tolerance of glm(). The bound holds with the coefficients of an exact
 # relation, and the regression's coefficients equal them to within the
 # relation's own rounding error; the margin of 4 covers errors several
-# times eps / 2 per entry, as computed covariates carry. Of 304 random exact
-# relations that glm() did not catch itself, the largest residual was 0.09
-# of the bound. A term that is not collinear is stopped only if its
-# residual is within the bound: near zero the bound is of the order of eps,
-# so that glm()'s tolerance decides, as in master, and a covariate far from
-# zero that is unrelated to the term enters its regression with a
-# coefficient near zero and adds nothing to it.
+# times eps / 2 per entry, as computed covariates carry. A term that is not
+# collinear is stopped only if its residual is within the bound or the
+# tolerance. A covariate far from zero that is unrelated to the term
+# enters its regression with a coefficient near zero and adds nothing to
+# the bound. Near zero, where |x_ij| / s_j is about |z_ij|, B_k is about
+# 3 eps (||a_k|| + sum_j |b_kj| ||a_j||): below glm()'s tolerance, which
+# then decides as in master, for a covariate that nearly repeats another
+# or a combination of others with coefficients of order 1, such as a pair
+# or a copy in single precision; above it once the coefficients sum to
+# more than about 10^3.5, as in nested near-collinearity, where a residual
+# within the bound cannot be told from that of an exact relation between
+# rounded values, and stops the fit though glm() fits it.
 #
 # The terms are checked in turn, each regressed on those before it, with
 # the covariates (the terms named in `covariates`) after the treatment and
@@ -342,22 +372,36 @@
   j <- order != match(0L, attr(X, "assign"))
   A[, j] <- sweep(A[, j, drop = FALSE], 2L, colSums(w * A[, j, drop = FALSE]) / sum(w))
   A <- sqrt(w) * A
-  E <- sqrt(w) * E
+  E <- sqrt(w) * E + .Machine$double.eps * abs(A)
   # The first term, in this order, collinear with the terms before it; NA
-  # for none. qr() with a tolerance of 0 keeps the columns in order.
+  # for none. qr() with a tolerance of 0 keeps the columns in order, so
+  # that the first k - 1 columns of its Q span the terms before term k.
   first <- function(A, E) {
-    R <- qr.R(qr(A, tol = 0))
+    qa <- qr(A, tol = 0)
+    R <- qr.R(qa)
+    m <- nrow(A)
     norms <- sqrt(colSums(A^2))
     for (k in seq_len(ncol(A))[-1L]) {
       before <- seq_len(k - 1L)
-      b <- backsolve(R[before, before, drop = FALSE], R[before, k])
-      carried <- sqrt(sum((E[, k] + drop(E[, before, drop = FALSE] %*% abs(b)))^2))
-      rounding <- sqrt(nrow(A) * k) * .Machine$double.eps * (norms[k] + sum(abs(b) * norms[before]))
-      residual <- abs(R[k, k])
-      if (!is.finite(residual) || !is.finite(carried) || !is.finite(rounding) ||
-          residual <= max(margin * (carried + rounding), floor * norms[k])) {
-        return(k)
+      Rk <- R[before, before, drop = FALSE]
+      Ak <- A[, before, drop = FALSE]
+      b <- backsolve(Rk, R[before, k])
+      bound <- function(b) {
+        carried <- sqrt(sum((E[, k] + drop(E[, before, drop = FALSE] %*% abs(b)))^2))
+        max(margin * carried, floor * norms[k])
       }
+      rounding <- 10 * m * k * .Machine$double.eps * (norms[k] + sum(abs(b) * norms[before]))
+      screen <- abs(R[k, k]) - rounding - bound(b)
+      if (is.finite(screen) && screen > 0) next
+      for (step in 1:3) {
+        r <- .accurate_residual(A[, k], Ak, b)
+        b <- b + backsolve(Rk, qr.qty(qa, r)[before])
+      }
+      r <- .accurate_residual(A[, k], Ak, b)
+      r <- r - qr.qy(qa, c(qr.qty(qa, r)[before], numeric(m - k + 1L)))
+      residual <- sqrt(sum(r^2))
+      limit <- bound(b)
+      if (!is.finite(residual) || !is.finite(limit) || residual <= limit) return(k)
     }
     NA_integer_
   }
@@ -370,6 +414,38 @@
     active <- active[-k]
   }
   colnames(X)[sort(order[found])]
+}
+
+# a - A b for a vector `a`, a matrix `A`, and coefficients `b`, accumulated
+# in twice the working precision and rounded once, so that it is accurate to
+# about .Machine$double.eps of its own size however much its terms cancel:
+# each product is split exactly into its rounded value and its error
+# (Dekker's product, with Veltkamp's split by 2^27 + 1), each sum likewise
+# (Knuth's two-sum), and the errors are summed apart, as the algorithm Dot2
+# of Ogita, Rump, and Oishi (2005) does. Used by .collinear_terms().
+.accurate_residual <- function(a, A, b) {
+  split <- function(x) {
+    y <- 134217729 * x
+    high <- y - (y - x)
+    list(high = high, low = x - high)
+  }
+  s <- a
+  error <- numeric(length(a))
+  for (j in seq_along(b)) {
+    x <- A[, j]
+    y <- -b[[j]]
+    p <- x * y
+    xs <- split(x)
+    ys <- split(y)
+    p_error <- ((xs$high * ys$high - p) + xs$high * ys$low + xs$low * ys$high) +
+      xs$low * ys$low
+    t <- s + p
+    z <- t - s
+    s_error <- (s - (t - z)) + (p - z)
+    s <- t
+    error <- error + (s_error + p_error)
+  }
+  s + error
 }
 
 # Fit the joint model of an N-group design. Called by fit_solomon_glm()

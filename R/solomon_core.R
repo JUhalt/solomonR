@@ -995,9 +995,11 @@ stouffer_solomon <- function(p) {
 #' is the term's own plus each other term's times the magnitude of its
 #' coefficient, relative to the term's standard deviation, with the error
 #' of each value taken to be `.Machine$double.eps` times its magnitude as
-#' given (the pretest's before it is centered), plus the rounding of the QR
-#' decomposition that computes the residual, which the same coefficients
-#' multiply.
+#' given (the pretest's before it is centered), and that of standardizing,
+#' centering, and weighting it. The residual is computed from the stored
+#' values, accumulated in twice the working precision, rather than taken
+#' from the QR decomposition, whose own rounding the coefficients would
+#' multiply too.
 #'
 #' The check guarantees two things.
 #'
@@ -1013,12 +1015,23 @@ stouffer_solomon <- function(p) {
 #'   a term falls below about 1e-11 of its distance from zero.
 #' - A term that is not exactly collinear stops the fit only when its
 #'   residual is within that bound or below the tolerance of
-#'   [stats::glm()]. Near zero the bound is of the order of
-#'   `.Machine$double.eps`, far below that tolerance, which then decides as
-#'   it does for the model as given. Nearly collinear covariates near zero,
-#'   such as a covariate and its copy in single precision, or covariates
-#'   10^-9 standard deviations apart, are therefore fitted as
-#'   [stats::glm()] fits them, whatever other covariates lie far from zero.
+#'   [stats::glm()]. Near zero the bound grows with the coefficients: it is
+#'   about 2.7 * 10^-15 of the term's norm times 1 plus the sum of the
+#'   magnitudes of its coefficients, each times the norm of its term over
+#'   the term's own. A covariate that nearly repeats another, or a
+#'   combination of others with coefficients of order 1, such as a
+#'   covariate and its copy in single precision, or covariates 10^-9
+#'   standard deviations apart, has a bound of about 5 * 10^-15, far below
+#'   that tolerance, which then decides as it does for the model as given;
+#'   such covariates are fitted as [stats::glm()] fits them, whatever other
+#'   covariates lie far from zero. The bound exceeds that tolerance once the
+#'   sum exceeds about 4,000, as in nested near-collinearity. With
+#'   `z2 = z1 + 1e-6 * e1` and `z3 = e1 + delta * e2`, all near zero, the
+#'   sum is about 2 * 10^6 and the bound about 5 * 10^-9 of the norm of
+#'   `z3`, so that the fit goes ahead at `delta = 1e-8` and stops at
+#'   `delta = 3e-9` and below, where [stats::glm()] still fits the model: a
+#'   residual within the bound cannot be told from that of an exact
+#'   relation between rounded values.
 #'
 #' Its limits:
 #'

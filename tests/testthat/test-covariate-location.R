@@ -881,11 +881,12 @@ test_that("an exact relation whose terms nearly cancel stops, whatever the decom
   # indicator, given first. The second covariate is the difference of two
   # nearly equal terms over 0.00111, so its coefficients in the regression
   # on them are about 3e5, and the rounding of the QR decomposition,
-  # multiplied by them, outweighs the rounding error of the values. The
-  # bound of the check counts both (.collinear_terms()). Counting the values'
-  # error alone, as 16f0d38 did, missed this relation in 126 of 300 data
-  # sets like this one, and the fit stopped at the omnibus test with "system
-  # is computationally singular", as on master.
+  # multiplied by them, outweighs the rounding error of the values. Taking
+  # the residual from the decomposition, with a bound on the values' error
+  # alone, as 16f0d38 did, missed this relation in 126 of 300 data sets
+  # like this one, and the fit stopped at the omnibus test with "system is
+  # computationally singular", as on master. The residual is now computed
+  # from the stored values (.collinear_terms()).
   withr::local_seed(53)
   n <- 306
   g <- rep(1:6, each = 51)
@@ -937,6 +938,49 @@ test_that("a nearly collinear pair near zero fits beside a covariate far from ze
                            robust = "none")
     expect_equal(fit$effects, ref$effects, tolerance = 1e-6, info = paste(k))
   }
+})
+
+test_that("nested near-collinearity near zero is fitted as glm() and master fit it", {
+  # z2 = z1 + g e1 and z3 = e1 + delta e2, all near zero, which glm() fits
+  # at full rank as given, and master fitted, with the contrasts of the
+  # exact reparameterization z1, r1 = (z2 - z1) / g, (z3 - r1) / delta,
+  # which is well conditioned. The coefficients of z3 on the other terms
+  # sum to about 2 / g. A bound on the rounding of the QR decomposition,
+  # which that sum multiplies, stopped these fits with "collinear ... z3"
+  # (ab2ddc1); the residual is now computed from the stored values, and its
+  # bound is that of their rounding, about 5e-9 of the norm of z3 for
+  # g = 1e-6. Within it, the residual cannot be told from that of an exact
+  # relation between rounded values, and the fit stops, though glm() fits
+  # the model. The design's condition number, about 10^14, leaves the
+  # contrasts about 1e-2 of accuracy, as on master; they agree to about 2e-3.
+  withr::local_seed(11)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  e1 <- stats::rnorm(n)
+  e2 <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- 0.3 * treat + 0.2 * pretested + ifelse(is.na(pre), 0, 0.4 * pre) + 0.3 * z1 +
+    stats::rnorm(n)
+  nested <- function(g, delta) data.frame(z1 = z1, z2 = z1 + g * e1, z3 = e1 + delta * e2)
+  for (case in list(c(1e-6, 1e-8), c(1e-5, 1e-9), c(1e-4, 3e-10))) {
+    covariates <- nested(case[1], case[2])
+    info <- paste(case, collapse = " ")
+    model <- stats::glm(y ~ treat * pretested + z1 + z2 + z3,
+                        data = data.frame(y, treat, pretested, covariates))
+    expect_identical(model$rank, 7L, info = info)
+    fit <- fit_solomon_glm(y, treat, pretested, pre, covariates = covariates, robust = "none")
+    expect_identical(nrow(fit$coefficients), 8L, info = info)
+    r1 <- (covariates$z2 - covariates$z1) / case[1]
+    reference <- data.frame(z1 = z1, r1 = r1, r2 = (covariates$z3 - r1) / case[2])
+    ref <- fit_solomon_glm(y, treat, pretested, pre, covariates = reference, robust = "none")
+    expect_equal(fit$effects, ref$effects, tolerance = 1e-2, info = info)
+  }
+  expect_error(fit_solomon_glm(y, treat, pretested, pre, covariates = nested(1e-6, 1e-9),
+                               robust = "none"),
+               "collinear with other terms of the model: z3[.]")
 })
 
 test_that("nearly collinear covariates are fitted as master fitted them", {
