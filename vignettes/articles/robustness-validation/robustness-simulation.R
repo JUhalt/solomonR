@@ -811,14 +811,18 @@ gate_project <- function(times, scenarios, info) {
 # ---- The study ----------------------------------------------------------------------------
 
 # [Left to the script] The relative cost of a task, which only balances the
-# jobs and sizes them from the gate's seconds per unit of cost: replications
-# x participants, with an E0 replication (M1, M2, M3, M4) weighted as two
-# ET replications (M3, M4). Largest groups go first within a pattern, and
-# an E0 task with the most participants is the most costly, as draft
-# Amendment 2 (item 3a) assumes. The agreement checks of task 1 are not
-# costed (cost() has no task argument).
+# jobs and sizes them from the gate's seconds per unit of cost (it changes
+# no result): replications x (participants + 60), plus 200 per E0
+# replication for the fits of M1 and M2. In code-testing timings on the
+# laptop (one R process, seed 9118503, normal errors), a replication took
+# about 0.00035 s per unit of this cost in every allocation and both
+# patterns (E0 0.107 to 0.174 s, ET 0.034 to 0.106 s for 40 to 240
+# participants); t (3 df) was slower in E0. Largest groups go first within a
+# pattern, and an E0 task with the most participants is the most costly, as
+# draft Amendment 2 (item 3a) assumes. The agreement checks of task 1 are
+# not costed (cost() has no task argument).
 cost_robustness <- function(s, reps) {
-  reps * (s$n1 + s$n2 + s$n3 + s$n4) * if (identical(s$pattern, "E0")) 2 else 1
+  reps * (s$n1 + s$n2 + s$n3 + s$n4 + 60 + if (identical(s$pattern, "E0")) 200 else 0)
 }
 
 study <- list(
