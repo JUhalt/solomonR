@@ -56,18 +56,6 @@ on:
       - .github/workflows/simulation-run.yaml
       - .github/actions/sim-setup/**
       - tools/sim/**
-  # TEMPORARY, to be removed before the harness merges: lets a push to the
-  # harness branch run the smoke study with the defaults below, because
-  # workflow_dispatch cannot start a workflow that is not yet on master.
-  # While it exists, each push to the branch of the harness's pull request
-  # starts two runs (push and pull_request), and the job "Temporary trigger
-  # removed" fails in the pull request, so the trigger cannot merge unseen.
-  push:
-    branches: [feature/sim-actions-runner]
-    paths:
-      - .github/workflows/simulation-run.yaml
-      - .github/actions/sim-setup/**
-      - tools/sim/**
 
 permissions:
   contents: read
@@ -95,28 +83,6 @@ env:
   OMP_NUM_THREADS: 1
 
 jobs:
-  # Fails the harness's pull request while the temporary push trigger above
-  # is still in this file.
-  guard:
-    name: Temporary trigger removed
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Check out the harness
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Look for the push trigger
-        shell: bash
-        run: |
-          if grep -Eq $'^  push:\r?$' .github/workflows/simulation-run.yaml; then
-            echo "::error::Remove the temporary push trigger of simulation-run.yaml before this pull request merges."
-            exit 1
-          fi
-          echo "No push trigger."
-
   plan:
     name: Plan
     runs-on: ubuntu-24.04
@@ -138,9 +104,6 @@ jobs:
           if (( SIM_CHUNKS < 1 || SIM_CHUNKS > 256 )); then fail "chunks must be 1 to 256."; fi
           [[ "$SIM_REPS" =~ ^[0-9]+$ ]] || fail "reps must be a whole number."
           [[ "$SIM_COST_SECONDS" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "cost_seconds must be a number."
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/master" ]]; then
-            fail "The temporary push trigger must not run on master."
-          fi
           if [[ "$SIM_SMOKE" == "true" ]]; then
             if (( SIM_REPS < 2 || SIM_REPS > 20 )); then fail "A smoke run has 2 to 20 replications."; fi
             purpose=test

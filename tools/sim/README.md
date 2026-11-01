@@ -85,8 +85,8 @@ harness checkout (the workflow's own commit) only runs the jobs and checks.
 ## Running in the cloud
 
 The workflow must be on master before `workflow_dispatch` can start it; the
-harness's own branch and pull request run the smoke study through their
-`push` and `pull_request` triggers. Then, from any machine with `gh`:
+pull request that changes the harness runs the smoke study through its
+`pull_request` trigger. Then, from any machine with `gh`:
 
 ```
 gh workflow run simulation-run.yaml --repo JUhalt/solomonR --ref master \
