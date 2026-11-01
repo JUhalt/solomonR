@@ -118,7 +118,7 @@ jobs:
           # arithmetic: bash wraps a number beyond 64 bits without an error
           # and reads a leading 0 as octal. The plan stage checks reps
           # against the study's limits (tools/sim/contract.R).
-          [[ "$SIM_CHUNKS" =~ ^[1-9][0-9]{0,2}$ ]] && (( SIM_CHUNKS <= 256 )) || fail "chunks must be a whole number from 1 to 256."
+          [[ "$SIM_CHUNKS" =~ ^[1-9][0-9]{0,2}$ ]] && (( SIM_CHUNKS <= 256 )) || fail "chunks must be a whole number from 1 to 256, without a leading zero."
           [[ "$SIM_REPS" =~ ^[1-9][0-9]*$ ]] || fail "reps must be a whole number of at least 1, without a leading zero."
           number='^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$'
           [[ "$SIM_COST_SECONDS" =~ $number ]] || fail "cost_seconds must be a number."
@@ -142,7 +142,7 @@ jobs:
           if [[ "$SIM_SCENARIOS" == "fallback" && "$SIM_STAGE" == "gate" ]]; then fail "The timing gate runs every scenario."; fi
           task_size="${SIM_TASK_SIZE:-}"
           if [[ -n "$task_size" ]]; then
-            [[ "$task_size" =~ ^[1-9][0-9]*$ ]] || fail "task_size must be a whole number of at least 1."
+            [[ "$task_size" =~ ^[1-9][0-9]*$ ]] || fail "task_size must be a whole number of at least 1, without a leading zero."
             [[ "$SIM_SMOKE" == "true" && "$SIM_STAGE" == "run" ]] || fail "task_size is for smoke runs of stage run only."
           fi
           echo "purpose=$purpose" >> "$GITHUB_OUTPUT"

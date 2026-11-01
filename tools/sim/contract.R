@@ -37,7 +37,8 @@
 #                             digits without a leading zero or white space
 #                             around them, within R's integers; anything
 #                             else stops with the contract's message, which
-#                             names the range. (A blank task size is the
+#                             names the range and says "in digits without a
+#                             leading zero". (A blank task size is the
 #                             study's own.)
 #   SOLOMONR_SIM_SUBSET       Plan stage: empty or "all" (every scenario),
 #                             "fallback" (the scenarios study$gate$fallback()
@@ -339,7 +340,8 @@ sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
   reps <- sim_whole(reps, 1L)
   # Refused for every purpose, though a gate then takes its own.
   if (is.na(reps)) {
-    stop("The number of replications must be a whole number from 1 to ", .Machine$integer.max, ".", call. = FALSE)
+    stop("The number of replications must be a whole number from 1 to ", .Machine$integer.max,
+         ", in digits without a leading zero.", call. = FALSE)
   }
   if (design == "gate") {
     size <- as.integer(study$gate$task_size)
@@ -358,7 +360,8 @@ sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
     }
     size <- sim_whole(task_size, 1L)
     if (is.na(size)) {
-      stop("The task size must be a whole number from 1 to ", .Machine$integer.max, ".", call. = FALSE)
+      stop("The task size must be a whole number from 1 to ", .Machine$integer.max,
+           ", in digits without a leading zero.", call. = FALSE)
     }
   }
   # The protocols allow code-testing runs of at most 20 replications per
@@ -397,7 +400,8 @@ sim_plan_subset <- function(study, spec, value) {
   # A number beyond R's integers is NA, and refused below.
   s <- vapply(tokens, sim_whole, 0L, lowest = 1L, USE.NAMES = FALSE)
   if (!length(s) || anyNA(s) || anyDuplicated(s) || !all(s %in% sc$scenario)) {
-    stop("SOLOMONR_SIM_SUBSET must be \"all\", \"fallback\", or distinct scenario numbers of the table.",
+    stop("SOLOMONR_SIM_SUBSET must be \"all\", \"fallback\", or distinct scenario numbers of the table, ",
+         "in digits without a leading zero.",
          call. = FALSE)
   }
   sort(s)
@@ -567,7 +571,8 @@ sim_recorded_subset <- function(info) {
   if (!nzchar(value)) return(NULL)
   s <- vapply(strsplit(value, " ", fixed = TRUE)[[1]], sim_whole, 0L, lowest = 1L, USE.NAMES = FALSE)
   if (!length(s) || anyNA(s)) {
-    stop("The plan's subset must be scenario numbers from 1 to ", .Machine$integer.max, " separated by spaces.",
+    stop("The plan's subset must be scenario numbers from 1 to ", .Machine$integer.max,
+         ", in digits without a leading zero, separated by spaces.",
          call. = FALSE)
   }
   s
@@ -1115,7 +1120,8 @@ sim_main <- function(study) {
       ids <- ids[nzchar(ids)]
       workers <- sim_whole(sim_setting("SOLOMONR_SIM_WORKERS", "0"), 0L)
       if (is.na(workers)) {
-        stop("SOLOMONR_SIM_WORKERS must be a whole number from 0 to ", .Machine$integer.max, ".", call. = FALSE)
+        stop("SOLOMONR_SIM_WORKERS must be a whole number from 0 to ", .Machine$integer.max,
+             ", in digits without a leading zero.", call. = FALSE)
       }
       sim_run(study, plan_dir(), ids, sim_need("SOLOMONR_SIM_OUT"), workers)
     },

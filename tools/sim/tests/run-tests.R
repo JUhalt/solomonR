@@ -51,7 +51,8 @@
 #            replications, a plan's recorded reps and subset, and the
 #            study's seeds and task sizes) by the contract's own message,
 #            without an R warning, also beyond R's integers and with white
-#            space around the digits;
+#            space around the digits, and a leading zero by a message that
+#            names that rule;
 #            sim_verify_plan() after a sourced file changed; and, with git,
 #            the clean-checkout rule and the plan options
 #            of a gate or study run; and the gate's seconds per unit of
@@ -540,10 +541,11 @@ if ("sizing" %in% groups) local({
   number_cases <- list(
     list("2.5 chunks, which as.integer() reads as 2", "2.5", chunks_msg),
     list("1e2 chunks, which as.integer() reads as 100", "1e2", chunks_msg),
-    list("010 chunks, a leading zero", "010", chunks_msg),
+    list("010 chunks, a leading zero", "010", paste0(chunks_msg, ", in digits without a leading zero")),
     list("99999999999 chunks, beyond R's integers", "99999999999", chunks_msg),
     list("workers 2.5", c("1", "100", "2.5"), workers_msg),
     list("workers 0", c("1", "100", "0"), workers_msg),
+    list("workers 04, a leading zero", c("1", "100", "04"), "in digits without a leading zero"),
     list("workers 99999999999", c("1", "100", "99999999999"), workers_msg),
     # White space around the digits (review round 1).
     list("\" 2\" chunks, a space before the digits", " 2", chunks_msg),
@@ -630,12 +632,15 @@ if ("inputs" %in% groups) local({
     list("smoke, task_size 2.5", c(SIM_TASK_SIZE = "2.5"), "refuse"),
     list("smoke, task_size abc", c(SIM_TASK_SIZE = "abc"), "refuse"),
     list("smoke, task_size 99999999999 (the contract refuses it)", c(SIM_TASK_SIZE = "99999999999"), "accept"),
+    list("smoke, task_size 05, a leading zero", c(SIM_TASK_SIZE = "05"), "refuse",
+         "task_size must be a whole number of at least 1, without a leading zero"),
     # Numbers bash's arithmetic would misread (follow-up 4), refused by the
     # step's own message: it wraps beyond 64 bits and reads a leading 0 as
     # octal.
     list("chunks 18446744073709551619 (2^64 + 3, bash reads 3)", c(SIM_CHUNKS = "18446744073709551619"), "refuse",
          "chunks must be a whole number from 1 to 256"),
-    list("chunks 010 (bash reads 8)", c(SIM_CHUNKS = "010"), "refuse", "chunks must be a whole number from 1 to 256"),
+    list("chunks 010 (bash reads 8)", c(SIM_CHUNKS = "010"), "refuse",
+         "chunks must be a whole number from 1 to 256, without a leading zero"),
     list("chunks 256", c(SIM_CHUNKS = "256"), "accept"),
     list("smoke, reps 18446744073709551626 (2^64 + 10, bash reads 10)", c(SIM_REPS = "18446744073709551626"), "refuse",
          "A smoke run has 2 to 20 replications"),
@@ -893,6 +898,23 @@ if ("contract" %in% groups) local({
   r <- run_study(p, verify_vars(tamper("plan-tampered-subset", "plan-fallback", "subset", "1 3 99999999999")))
   record("contract", "verify: a plan whose subset holds 99999999999", "refuse",
          refusal(r, "The plan's subset must be scenario numbers"), last_line(r$out))
+  # A leading zero (review round 1): the message says what is wrong with a
+  # value that is within the range, by the whole message.
+  lead0 <- "in digits without a leading zero"
+  r <- run_study(p, plan_vars(file.path(p, "plan-reps-leading-zero"), reps = "020"))
+  record("contract", "plan: reps 020, a leading zero", "refuse",
+         refusal(r, paste0("The number of replications must be a whole number from 1 to 2147483647, ", lead0, ".")),
+         last_line(r$out))
+  r <- size_plan("plan-size-leading-zero", "02")
+  record("contract", "plan: task size 02, a leading zero", "refuse",
+         refusal(r, paste0("The task size must be a whole number from 1 to 2147483647, ", lead0, ".")), last_line(r$out))
+  r <- subset_plan("plan-list-leading-zero", "2 04")
+  record("contract", "plan: a list with 04, a leading zero", "refuse",
+         refusal(r, paste0("distinct scenario numbers of the table, ", lead0, ".")), last_line(r$out))
+  r <- run_study(p, verify_vars(tamper("plan-tampered-subset-zero", "plan-fallback", "subset", "1 03 5")))
+  record("contract", "verify: a plan whose subset holds 03", "refuse",
+         refusal(r, paste0("The plan's subset must be scenario numbers from 1 to 2147483647, ", lead0, ", separated by spaces.")),
+         last_line(r$out))
   # The run stage with no task to run: the workers are read first, and no
   # package is loaded and no worker started.
   no_tasks <- file.path(root, "no-tasks.txt")
@@ -908,6 +930,10 @@ if ("contract" %in% groups) local({
     record("contract", paste("run: workers", w), "refuse", refusal(r, "SOLOMONR_SIM_WORKERS must be a whole number"),
            last_line(r$out))
   }
+  r <- run_study(p, run_vars("01"))
+  record("contract", "run: workers 01, a leading zero", "refuse",
+         refusal(r, paste0("SOLOMONR_SIM_WORKERS must be a whole number from 0 to 2147483647, ", lead0, ".")),
+         last_line(r$out))
   for (v in c("2.5", "99999999999")) {
     r <- run_study(p, c(SOLOMONR_SMOKE_DIR = file.path(root, paste0("smoke-", v)), SOLOMONR_SMOKE_REPS = v))
     record("contract", paste("smoke mode: SOLOMONR_SMOKE_REPS", v), "refuse",

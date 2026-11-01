@@ -48,7 +48,9 @@ plan_dir <- args[[1]]
 # Whole numbers in digits (h_whole()): "2.5" or "1e2" chunks are refused,
 # not read as 2 or 100.
 requested <- h_whole(args[[2]], 1L)
-if (is.na(requested) || requested > 256L) h_fail("The number of chunks must be a whole number from 1 to 256.")
+if (is.na(requested) || requested > 256L) {
+  h_fail("The number of chunks must be a whole number from 1 to 256, in digits without a leading zero.")
+}
 # The seconds per cost in the workflow's form (digits, a decimal part, an
 # exponent): as.numeric() alone would also read "0x10" as 16.
 if (length(args) >= 3L && !grepl("^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$", args[[3]])) {
@@ -57,7 +59,10 @@ if (length(args) >= 3L && !grepl("^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$", args[
 spc <- if (length(args) >= 3L) suppressWarnings(as.numeric(args[[3]])) else 0
 workers <- if (length(args) >= 4L) h_whole(args[[4]], 1L) else 1L
 if (is.na(spc) || !is.finite(spc) || spc < 0) h_fail("The seconds per cost must be a finite number, 0 or more.")
-if (is.na(workers)) h_fail("The workers per chunk must be a whole number from 1 to ", .Machine$integer.max, ".")
+if (is.na(workers)) {
+  h_fail("The workers per chunk must be a whole number from 1 to ", .Machine$integer.max,
+         ", in digits without a leading zero.")
+}
 info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
 if (length(args) >= 3L && identical(info[["purpose"]], "study") && !(spc > 0)) {
   h_fail("A study run needs seconds per cost greater than 0; \"", args[[3]], "\" is read as ", format(spc), ".")
