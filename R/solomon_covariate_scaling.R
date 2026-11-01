@@ -243,8 +243,9 @@
       # Only the degrees of freedom are taken: the standard error that
       # linear_contrast() computes as well, from M V_s M', can come out NaN
       # with nearly collinear covariates (.given_vcov()), with a warning.
+      intercept <- M["(Intercept)", , drop = FALSE]
       tidy$df[tidy$term == "(Intercept)"] <- suppressWarnings(as.data.frame(
-        clubSandwich::linear_contrast(fit_cr, vcov = V, contrasts = M["(Intercept)", , drop = FALSE],
+        clubSandwich::linear_contrast(fit_cr, vcov = V, contrasts = intercept,
                                       test = "Satterthwaite")
       ))$df
     }
@@ -259,9 +260,9 @@
 }
 
 # The `covariate_scaling` element of a fit: the `means` and `scales` of the
-# standardized covariates, and the `coefficients` and the covariance `vcov`
-# of the standardized model `fit` (for CR2, the clubSandwich object); NULL
-# without numeric covariates.
+# standardized covariates and the scaled pretest, and the `coefficients`
+# and the covariance `vcov` of the standardized model `fit` (for CR2, the
+# clubSandwich object); NULL with neither a pretest nor a numeric covariate.
 .covariate_scaling_element <- function(scaling, fit, V) {
   if (!length(scaling$means)) return(NULL)
   list(means = scaling$means, scales = scaling$scales, coefficients = stats::coef(fit),

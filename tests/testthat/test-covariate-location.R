@@ -301,7 +301,9 @@ test_that("the warnings, theta, and dispersion come from the standardized fit", 
     pre <- ifelse(pretested == 1, round(stats::rnorm(4 * n) * 2^16) / 2^16, NA)
     z <- round(stats::rnorm(4 * n) * 2^16) / 2^16
     y <- 0.4 * treat + ifelse(is.na(pre), 0, 0.5 * pre) + 0.3 * z + stats::rnorm(4 * n)
-    stats::rbinom(4 * n, 1, stats::plogis(y - 0.3))  # a binary outcome, unused here
+    # Draws left unused, so that z2 and y_nb are those the test was
+    # written with.
+    stats::rbinom(4 * n, 1, stats::plogis(y - 0.3))
     z2 <- z + round(stats::rnorm(4 * n) * 4) * 2^-16
     data.frame(treat, pretested, pre, z, z2,
                y_nb = MASS::rnegbin(4 * n, mu = exp(0.5 + y / 3), theta = 2))
@@ -605,7 +607,7 @@ test_that("a shift of the pretest changes no SEM ANCOVA or comparison of methods
   }
 })
 
-test_that("a center difference that is zero but for rounding error prints without a sign", {
+test_that("a contrast's difference between the centers that is only rounding error has no sign", {
   # A small real difference keeps its sign.
   d <- data.frame(contrast = c("Pretest effect | control", "Pretest effect | treated"),
                   analyzed = c(1.2, 0.5), observed = c(1.2 * (1 + 2^-52), 0.500264))
@@ -904,10 +906,17 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
       got <- now[[name]][[part]]
       info <- paste(name, part)
       if (part %in% c("text", "sentences")) {
-        # A difference of the centers that is zero but for rounding error,
-        # that of a rate ratio here, is printed without a sign since #137;
-        # master gave it the sign of its rounding error.
-        expect_identical(got, gsub("-(0[.]0+)\\b", " \\1", ref, perl = TRUE), info = info)
+        # A difference between a contrast's estimates at the two pretest
+        # centers that is zero but for rounding error, that of a rate ratio
+        # here, is printed without a sign since #137; master gave it the
+        # sign of its rounding error. Only such lines of a marginal print
+        # may differ, at the end of the line, the column of the
+        # differences; a real small negative difference keeps its sign.
+        expect_identical(length(got), length(ref), info = info)
+        if (length(got) != length(ref)) next
+        changed <- which(got != ref)
+        expect_identical(got[changed], sub("-(0[.]0+)$", " \\1", ref[changed]), info = info)
+        expect_true(!length(changed) || grepl("^marginal", name), info = info)
         next
       }
       if (is.data.frame(ref)) {
