@@ -75,8 +75,8 @@ BLAS and LAPACK files R uses, with their SHA-256; `La_version()` and the long
 double digits; the processor's AVX2 and FMA flags (both required, so that
 glibc picks the same variants of `exp()`, `log()`, and `pow()` everywhere);
 the RNG kinds; the repositories of R and of pak; pak; and every installed
-package with its version. The runner image's version may differ between jobs; it is recorded
-in `timing/jobs.csv` and `run-information.csv`.
+package with its version. The runner image's version may differ between
+jobs; it is recorded in `timing/jobs.csv` and `run-information.csv`.
 
 The package commit fixes everything a task computes, because the study
 script, its pins, and `contract.R` are read from the package checkout. The
@@ -138,9 +138,10 @@ envelope only: the package commit, and the contract's checksum, since
   The remedy is a new commit, a new plan, and an amendment, never a rerun.
 - Before the results of a gate or a study run are used, check where the
   run came from: `gh run view <run id> --repo JUhalt/solomonR --json
-  event,headBranch,headSha,workflowName` must show `"event":"workflow_dispatch"`,
-  `"headBranch":"master"`, `"workflowName":"simulation-run"`, and as
-  `headSha` the master commit it was dispatched at. A pull request from a
+  event,headBranch,headSha,workflowName` must show
+  `"event":"workflow_dispatch"`, `"headBranch":"master"`,
+  `"workflowName":"simulation-run"`, and as `headSha` the master commit it
+  was dispatched at. A pull request from a
   fork runs this workflow from its own merge commit and can upload
   artifacts with the same names, but it cannot start a `workflow_dispatch`
   run, which needs write access to the repository. `run-information.csv`
@@ -237,10 +238,10 @@ In the study's own pull request, before its run (the order rule of #117):
    the extra packages, every package version the protocol records, and
    `tool,pak`; optionally `sizing,allowance`, the factor on a job's
    expected hours (default 1.3 for a protocol). A protocol study (registry
-   flag `TRUE`) must also give
-   `r,libR_sha256`, the SHA-256 of `libR.so` of the r-builds package that
-   setup-r installs; every job on the runners stops if it differs. For
-   `r-4.6.1 1`, the build that test T2 checked (run 41255391619), it is
+   flag `TRUE`) must also give `r,libR_sha256`, the SHA-256 of `libR.so` of
+   the r-builds package that setup-r installs; every job on the runners
+   stops if it differs. For `r-4.6.1 1`, the build that test T2 checked
+   (run 41255391619), it is
    `70c4de5e29eef6269aec5e1841477c07e84839812aaca3b2f240941bfd223953`.
    Elsewhere (Windows) the library's checksum is recorded, not compared.
 6. A row in `studies.csv`, and the key in the workflow's `study` options.
