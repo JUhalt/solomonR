@@ -296,12 +296,20 @@ jobs:
             SOLOMONR_SIM_OUT="$out" SOLOMONR_SIM_WORKERS="$SIM_WORKERS" SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
             Rscript "$SIM_SCRIPT" > "$out/log.txt" 2>&1
 
+      # The R processes of the tasks step are stopped first: the PSOCK
+      # workers write task files themselves, and after a timeout one may
+      # outlive the step and write into out/ after the scan below, so that
+      # its file would be uploaded unscanned. No other R process runs here.
       # A .tmp file is a task file whose write was cut off; it is never
       # used, and the address scan refuses any format but its own four.
       - name: Record the job
+        id: record
         if: always()
         shell: bash
         run: |
+          pkill -KILL -x R || true
+          for i in 1 2 3 4 5 6 7 8 9 10; do pgrep -x R > /dev/null || break; sleep 1; done
+          if pgrep -x R > /dev/null; then echo "::error::R processes of the tasks step are still running."; exit 1; fi
           mkdir -p "out/chunk-$SIM_CHUNK"
           find "out/chunk-$SIM_CHUNK" -type f -name '*.tmp' -delete || true
           cp software.csv "out/chunk-$SIM_CHUNK/software.csv" || true
@@ -329,8 +337,11 @@ jobs:
           held=$(ls -A out)
           if [[ "$held" != "chunk-$SIM_CHUNK" ]]; then echo "::error::out/ holds more than chunk-$SIM_CHUNK."; exit 1; fi
 
-      # A failed attempt never uploads under this name, so the merge reads
-      # only complete chunks; a rerun recomputes the chunk from its plan.
+      # Only a job whose steps have all passed so far uploads under this
+      # name, and a rerun recomputes the chunk from its plan. A job can
+      # still fail after this upload (in a post step), so a rerun may find
+      # an older artifact of the same name: overwrite deletes it where it
+      # can, and the merge reads the newest artifact of each name.
       - name: Upload the chunk
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -345,7 +356,7 @@ jobs:
       # Includes failed-tasks/, which names the task, the replication, and
       # the message of a fault. Same layout as the chunk's artifact.
       - name: Upload the failed chunk's files for diagnosis
-        if: failure() && steps.scan.outcome == 'success'
+        if: failure() && steps.record.outcome == 'success' && steps.scan.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: failed-chunk-${{ matrix.chunk }}-attempt-${{ github.run_attempt }}
@@ -389,8 +400,10 @@ jobs:
       # Each artifact holds its own chunk-NNNN/ folder, so merging them into
       # chunks/ gives one folder per chunk whatever their number. The
       # pattern does not match failed-chunk-* (diagnostics only). After
-      # `gh run rerun --failed`, a rerun chunk's artifact is the only one of
-      # its name: a failed attempt uploads none, and overwrite replaces any.
+      # `gh run rerun --failed`, the download takes the newest artifact of
+      # each name (download-artifact lists them with `latest: true`), so a
+      # rerun chunk's artifact is used even if an older one of its name was
+      # left, which the upload's overwrite deletes where it can.
       - name: Download the chunks
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -444,6 +457,13 @@ jobs:
           if [[ -f merged/summarize-log.txt ]]; then
             Rscript harness/tools/sim/scan-addresses.R merged/summarize-log.txt && cat merged/summarize-log.txt
           fi
+
+      # check-results.R names files of results/ in its messages, names that
+      # the study's summarize() chose, so results/ is scanned before the
+      # check prints anything. The later scan covers the files added after.
+      - name: Scan the summary for e-mail addresses
+        shell: bash
+        run: Rscript harness/tools/sim/scan-addresses.R results
 
       - name: Check the results
         shell: bash

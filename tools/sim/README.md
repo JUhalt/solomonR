@@ -256,11 +256,14 @@ In the study's own pull request, before its run (the order rule of #117):
   `maintainer()`, or git author fields, and package versions are read from
   the Version field only. The study script's output goes to files, which
   the job prints only after `scan-addresses.R` has found no text shaped
-  like an e-mail address in them; the same scan runs before every upload.
-  It also scans the paths of the files, reads `%40` as `@`, walks every
-  string of an `.rds` object (attributes, functions and their
-  environments, promises as code, never evaluated), and fails on a path
-  that does not exist and on any file it cannot read completely.
+  like an e-mail address in them; the same scan runs before every upload,
+  and before `check-results.R` names any file of the results. It also
+  scans the paths of the files, reads `%40` as `@`, walks every string of
+  an `.rds` object (attributes, functions and their environments, promises
+  as code, never evaluated), and fails on a path that does not exist and
+  on any file it cannot read completely. A chunk job first stops every R
+  process left from its tasks step (after a timeout, a PSOCK worker could
+  otherwise write a task file after the scan).
 - Every job installs its R library afresh from the dated snapshot (pak
   included): no Actions cache, which any workflow on the branch can write
   and to which pak only adds; no Bioconductor repository
