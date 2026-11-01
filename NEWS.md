@@ -214,19 +214,24 @@ reasons are set out in the decision record posted on #135.
   repository from the copy alone, whatever `GIT_DIR` and `GIT_WORK_TREE`
   say. The scripts of the ML, power, and plan re-simulation studies,
   which read only `SOLOMONR_COMMIT`, now also record the commit of a
-  clone. The Validation Evidence page states the rule and says how to
-  record the commit of a downloaded copy. The stored results do not
-  change.
+  clone. The rule does not detect uncommitted changes: a run from a clone
+  with changes records the commit checked out, which does not contain
+  them. Such a run should set `SOLOMONR_COMMIT` to the commit and a
+  description of the changes, as the stored runs of the ML and power
+  studies did. Without it, these three scripts recorded `NA` for such a
+  run, and now record the commit checked out. The Validation Evidence
+  page states the rule and says how to record the commit of a downloaded
+  copy. The stored results do not change.
 * The several-treatment script, rerun where the old script stopped
   outside a clone, resumes from the checkpoints that it left, whose
   commit is empty, and records `NA` as the commit of their replications.
 * A new test checks that the scripts share one definition of the rule and
   pass it the folder of the package that they load. It checks the rule
   with `SOLOMONR_COMMIT` set; in a clone, also from a folder below its
-  root; outside any repository; inside an unrelated repository; in a
-  repository without commits; and with `GIT_DIR` or `GIT_WORK_TREE`
-  pointing at another repository. It also checks that the messages that
-  git prints are discarded.
+  root and with uncommitted changes; outside any repository; inside an
+  unrelated repository; in a repository without commits; and with
+  `GIT_DIR` or `GIT_WORK_TREE` pointing at another repository. It also
+  checks that the messages that git prints are discarded.
 
 ## Validation scripts that run against the current package (#140)
 

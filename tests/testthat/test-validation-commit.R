@@ -232,6 +232,30 @@ test_that("validation_commit() records the HEAD commit at the top level of a rep
   expect_identical(load_validation_commit()(make_folder(file.path(inner, "R"))), NA_character_)
 })
 
+test_that("validation_commit() records the HEAD commit of a clone with uncommitted changes", {
+  skip_without_articles()
+  skip_without_git()
+  # The rule does not look at the working tree. The Validation Evidence page
+  # says so and asks such a run to describe its changes in SOLOMONR_COMMIT.
+  parent <- git_sandbox()
+  clone <- make_copy(file.path(parent, "clone"))
+  make_repository(clone)
+  writeLines("x <- 1", file.path(clone, "code.R"))
+  expect_true(succeeded(run_git(clone, "add", "DESCRIPTION", "code.R")))
+  made <- run_git(clone, "-c", "user.name=solomonR-test", "-c", "user.email=test@example.invalid",
+                  "commit", "-q", "-m", "code")
+  skip_if_not(succeeded(made), "git could not make a commit")
+  head <- as.vector(run_git(clone, "rev-parse", "HEAD"))
+  writeLines("x <- 2", file.path(clone, "code.R"))
+  changed <- run_git(clone, "status", "--porcelain", "--untracked-files=no")
+  expect_true(succeeded(changed))
+  expect_identical(as.vector(changed), " M code.R")
+  expect_identical(load_validation_commit()(clone), head)
+  described <- paste(substr(head, 1, 7), "plus a draft")
+  withr::local_envvar(SOLOMONR_COMMIT = described)
+  expect_identical(load_validation_commit()(clone), described)
+})
+
 test_that("validation_commit() records NA outside any git repository, without a warning", {
   skip_without_articles()
   skip_without_git()

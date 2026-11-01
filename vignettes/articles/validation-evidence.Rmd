@@ -556,8 +556,7 @@ treatment was sensitized. See the
 
 ## Rerunning a study
 
-The scripts of the studies on this page record, with their results, the
-commit of the copy of the package that they ran
+The scripts of the studies on this page record a commit with their results
 ([issue #152](https://github.com/JUhalt/solomonR/issues/152)), except two:
 the post hoc investigation of Test I in the study of the historical Tests
 A-I (`test-i-investigation.R`) and the agreement table of the study of
@@ -600,6 +599,13 @@ $env:SOLOMONR_COMMIT = "<commit>"; Rscript vignettes/articles/binary-validation/
 Each command runs the full binary study. In PowerShell, the variable stays
 set for the rest of the session, so a later run there records the same
 commit until the variable is removed with `Remove-Item Env:SOLOMONR_COMMIT`.
+
+The rule does not detect uncommitted changes. A run from a clone with
+changes records the commit checked out, which does not contain them. Such a
+run should set `SOLOMONR_COMMIT` to the commit and a description of the
+changes, as the stored runs of the maximum-likelihood and power studies
+did; the first recorded
+`4e1d820 plus #22 draft (solomon_ml.R md5 b5adb4c9c901)`.
 
 ## Adding a study
 
