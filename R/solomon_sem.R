@@ -34,8 +34,12 @@
       "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), %s. These are the ",
       "estimators of the validation protocols posted on issues #117 and #55; other ",
       "estimators can be fitted with lavaan directly."
-    ), if (one) sprintf("not \"%s\"", estimator) else "given as a single character string"),
-    call. = FALSE)
+    ), if (one) {
+      # Quoted and escaped, so that spaces and control characters show.
+      paste("not", encodeString(unname(estimator), quote = "\""))
+    } else {
+      "given as a single, non-missing character string"
+    }), call. = FALSE)
   }
   unname(toupper(estimator))
 }

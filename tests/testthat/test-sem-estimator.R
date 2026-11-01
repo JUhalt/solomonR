@@ -67,10 +67,17 @@ test_that("estimators other than MLR and ML stop with an error that names the ac
     }
     for (e in list(NA_character_, c("MLR", "ML"), character(0), 1, NULL)) {
       expect_error(calls[[fun]](e), paste(
-        "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), given as a single",
-        "character string."
+        "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), given as a single,",
+        "non-missing character string."
       ), fixed = TRUE, info = fun)
     }
+    # A refused value is shown escaped, so that a line break or a tab shows.
+    expect_error(calls[[fun]]("MLR\n"), paste(
+      "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), not \"MLR\\n\".",
+      "These are"
+    ), fixed = TRUE, info = fun)
+    expect_error(calls[[fun]](c(robust = "GLS")),
+                 "(in upper or lower case), not \"GLS\". These are", fixed = TRUE, info = fun)
   }
   expect_error(calls$invariance("GLS"), paste0(
     "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), not \"GLS\". These are the ",
@@ -388,6 +395,9 @@ test_that("a fit with any other estimator is refused by the report, not describe
   ml <- fit_solomon_sem(y_post, treat, pretested, estimator = "ML", data = solomon_example)
   ml$estimator <- "MLR"
   expect_error(report_solomon(ml), refusal("MLR"), fixed = TRUE)
+  # A missing name is shown as NA, not as the string "NA".
+  ml$estimator <- NA_character_
+  expect_error(report_solomon(ml), "This fit (estimator = NA) is neither", fixed = TRUE)
 
   # A lavaan fit without a stored name is identified from its options.
   model <- "F =~ y1 + y2 + y3 + y4"

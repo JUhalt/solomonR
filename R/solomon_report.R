@@ -1095,7 +1095,7 @@
       "test statistic, or by ML, without one, the estimators that solomonR's SEM functions ",
       "accept. This fit%s is neither; fit it again with estimator = \"MLR\" or \"ML\"."
     ), if (is.character(estimator) && length(estimator) == 1L) {
-      sprintf(" (estimator = \"%s\")", estimator)
+      sprintf(" (estimator = %s)", encodeString(unname(estimator), quote = "\""))
     } else ""), call. = FALSE)
   }
   if (est == "MLR") {
