@@ -259,6 +259,129 @@ test_that("with data, names select columns and the other forms are as without it
 })
 
 
+test_that("with data, a matrix column is named as by its name, by its bare name too", {
+
+  # A matrix column of `data`, such as `d$age_z <- scale(d$age)` makes,
+  # enters the model as a matrix when given by its name, and glm() names
+  # it as the column, followed by the names or positions of its columns
+  # when it has several. Given by its bare name, it is taken as a matrix
+  # and named the same way, not covariate1, so the two calls have the same
+  # coefficient table. Only the model data differ: they hold the matrix
+  # by its name, and its columns by its bare name.
+  d <- forms_data()
+  d$age_z <- scale(d$age)
+  d$age_s <- scale(d["age"])
+  d$low <- cbind(d$z < 0)
+  d$two <- cbind(d$age, d$z)
+  d$zw <- scale(d[c("z", "w")])
+  d$p <- stats::poly(d$age, 2)
+  # glm() names a column without a name in a matrix with names by the
+  # matrix alone.
+  d$half <- cbind(a = d$age, d$z)
+  expected <- list(age_z = "age_z", age_s = "age_s", low = "lowTRUE", two = c("two1", "two2"),
+                   zw = c("zwz", "zww"), p = c("p1", "p2"), half = c("halfa", "half"))
+  by_bare_name <- function(name, data, ...) {
+    eval(bquote(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = .(as.name(name)),
+                                data = data, ...)))
+  }
+  for (name in names(expected)) {
+    bare <- by_bare_name(name, d)
+    by_name <- fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = name, data = d)
+    expect_true(all(expected[[name]] %in% bare$coefficients$term), info = name)
+    keep <- setdiff(names(by_name), c("call", "model", "family", "data"))
+    expect_identical(unclass(bare)[keep], unclass(by_name)[keep], info = name)
+    expect_identical(stats::coef(bare$model), stats::coef(by_name$model), info = name)
+    expect_identical(tidy(bare), tidy(by_name), info = name)
+    expect_identical(report_solomon(bare), report_solomon(by_name), info = name)
+    # The printed formula names the matrix by its name, and its columns by
+    # its bare name, so the prints differ when it has several columns.
+    if (length(expected[[name]]) == 1L) {
+      expect_identical(utils::capture.output(print(bare)),
+                       utils::capture.output(print(by_name)), info = name)
+    }
+  }
+
+  # By its bare name, the fit is that of a data frame of its columns.
+  expect_same_fit(by_bare_name("age_z", d), fit4(d, data.frame(age_z = as.vector(d$age_z))))
+  expect_same_fit(by_bare_name("two", d), fit4(d, data.frame(two1 = d$age, two2 = d$z)))
+  expect_same_fit(by_bare_name("zw", d),
+                  fit4(d, data.frame(zwz = as.vector(d$zw[, 1]), zww = as.vector(d$zw[, 2]))))
+
+  # Two columns that take the same name stop, as two columns of the same
+  # name in a matrix outside `data` do. By its name, such a matrix gives
+  # two coefficients of the same name.
+  d$dup <- cbind(a = d$age, a = d$z)
+  expect_error(by_bare_name("dup", d),
+               "`covariates` has more than one column named dupa. Give each column its own name.",
+               fixed = TRUE)
+  d$blank <- cbind(d$age, d$z)
+  colnames(d$blank) <- c("", "")
+  expect_error(by_bare_name("blank", d),
+               "`covariates` has more than one column named blank.", fixed = TRUE)
+  d$dup <- NULL
+  d$blank <- NULL
+
+  # Outside `data`, a matrix is named by its column names, also when it is
+  # given by its bare name.
+  age_z <- d$age_z
+  expect_same_fit(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = age_z),
+                  fit4(d, data.frame(covariate1 = as.vector(age_z))))
+  outside <- d
+  outside$age_z <- NULL
+  expect_same_fit(by_bare_name("age_z", outside),
+                  fit4(d, data.frame(covariate1 = as.vector(age_z))))
+
+  # check_solomon_missing(), functions that use a fit, and a design with
+  # several treatments.
+  d$y_post[c(3, 8, 70, 95)] <- NA
+  missing_bare <- function(name) {
+    eval(bquote(check_solomon_missing(y_post, treat, pretested, y_pre,
+                                      covariates = .(as.name(name)), data = d)))
+  }
+  expect_identical(missing_bare("age_z"),
+                   check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "age_z",
+                                         data = d))
+  expect_identical(
+    missing_bare("two"),
+    check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
+                          covariates = data.frame(two1 = d$age, two2 = d$z))
+  )
+  for (name in c("age_z", "two")) {
+    bare <- by_bare_name(name, d)
+    by_name <- fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = name, data = d)
+    expect_identical(perm_solomon(bare, reps = 49, seed = 1),
+                     perm_solomon(by_name, reps = 49, seed = 1), info = name)
+    expect_identical(plot_sensitization(bare)$data, plot_sensitization(by_name)$data,
+                     info = name)
+  }
+  d$passed <- as.integer(d$y_post > stats::median(d$y_post, na.rm = TRUE))
+  # The warning that the logit contrast is noncollapsible is expected.
+  logit <- suppressWarnings(
+    list(bare = fit_solomon_glm(passed, treat, pretested, y_pre, covariates = age_z, data = d,
+                                family = stats::binomial()),
+         by_name = fit_solomon_glm(passed, treat, pretested, y_pre, covariates = "age_z",
+                                   data = d, family = stats::binomial())),
+    classes = "solomonR_noncollapsible_warning"
+  )
+  expect_identical(marginal_solomon(logit$bare, method = "delta"),
+                   marginal_solomon(logit$by_name, method = "delta"))
+
+  m <- forms_six()
+  m$z_s <- scale(m$z)
+  six <- list(
+    bare = fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                           control = "Control", covariates = z_s, data = m),
+    by_name = fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
+                              control = "Control", covariates = "z_s", data = m)
+  )
+  expect_true("z_s" %in% six$bare$coefficients$term)
+  keep <- setdiff(names(six$by_name), c("call", "model", "family", "data"))
+  expect_identical(unclass(six$bare)[keep], unclass(six$by_name)[keep])
+  expect_identical(utils::capture.output(print(six$bare)),
+                   utils::capture.output(print(six$by_name)))
+})
+
+
 test_that("designs with several treatments take the same forms", {
 
   m <- forms_six()

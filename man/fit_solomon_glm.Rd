@@ -51,7 +51,13 @@ so give such covariates in a data frame, such as
 \code{data.frame(age, region)}, or by name with \code{data};
 \item with \code{data}, the names of its columns (\code{covariates = c("age", "z")}),
 each of which must be a column and be given once, or one column by
-its bare name.
+its bare name. A numeric or logical matrix column, such as
+\code{d$age_z <- scale(d$age)} makes, given by its bare name or by its
+name, is named as \code{\link[stats:glm]{stats::glm()}} names it: \code{age_z} when it has one
+column, and otherwise the name of the column followed by each
+column's name, or by its position when it has no column names
+(\code{two1}, \code{two2}). A matrix from outside \code{data} is named by its
+column names, as above, also when given by its bare name.
 }
 
 A data frame or a matrix stops with an error when two of its columns

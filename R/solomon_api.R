@@ -92,9 +92,10 @@
 #   - A data frame: as it is, when each column has a name of its own. A
 #     column without a name (empty or NA), or two columns of the same name,
 #     stop: the model formula would leave one out, or fail.
-#   - A column given by its bare name (`covariates = age`): one covariate
-#     of any atomic type, or a date-time of class POSIXlt, named by the
-#     column, as a data frame would hold it.
+#   - A column given by its bare name (`covariates = age`): a vector of any
+#     atomic type, or a date-time of class POSIXlt, is one covariate named
+#     by the column, as a data frame would hold it. A numeric or logical
+#     matrix column, such as scale(age) gives, is taken as a matrix below.
 #   - With `data`, a character vector of names of its columns, each named
 #     once: those columns, as before.
 #   - A numeric, logical, or factor vector: one covariate, named by `expr`
@@ -104,7 +105,10 @@
 #     dimension.
 #   - A numeric or logical matrix: one covariate per column, named by the
 #     column names, with covariate1, covariate2, ... by position for
-#     columns without one. Duplicated names stop.
+#     columns without one. Duplicated names stop. A matrix column of `data`
+#     given by its bare name is named as by its name (`covariates =
+#     "age_z"`), where glm() names the columns of its model matrix: age_z
+#     for one column, and two1, two2 or twoa, twob for several.
 # Anything else stops with an error that says what to give instead. A
 # character vector with names that are not columns of `data` has them
 # listed; without `data`, it may be names or a categorical covariate, and
@@ -219,6 +223,23 @@
 
   if (length(dims) == 2L && (is.numeric(x) || is.logical(x))) {
     labels <- colnames(x)
+    if (column) {
+      # A matrix column of `data` is named as glm() names the columns of
+      # its model matrix when the column is given by its name: by the
+      # column alone when the matrix has one column, and otherwise by the
+      # column followed by each column's name, or by its position when the
+      # matrix has no column names.
+      prefix <- as.character(expr)
+      labels <- if (ncol(x) == 1L) {
+        prefix
+      } else {
+        sprintf("%s%s", prefix, if (is.null(labels)) seq_len(ncol(x)) else labels)
+      }
+      once(labels)
+      out <- as.data.frame(unclass(x))
+      names(out) <- labels
+      return(out)
+    }
     if (is.null(labels)) labels <- character(ncol(x))
     blank <- is.na(labels) | !nzchar(labels)
     once(labels[!blank])

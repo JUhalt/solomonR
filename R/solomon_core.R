@@ -1010,7 +1010,13 @@ stouffer_solomon <- function(p) {
 #'     `data.frame(age, region)`, or by name with `data`;
 #'   - with `data`, the names of its columns (`covariates = c("age", "z")`),
 #'     each of which must be a column and be given once, or one column by
-#'     its bare name.
+#'     its bare name. A numeric or logical matrix column, such as
+#'     `d$age_z <- scale(d$age)` makes, given by its bare name or by its
+#'     name, is named as [stats::glm()] names it: `age_z` when it has one
+#'     column, and otherwise the name of the column followed by each
+#'     column's name, or by its position when it has no column names
+#'     (`two1`, `two2`). A matrix from outside `data` is named by its
+#'     column names, as above, also when given by its bare name.
 #'
 #'   A data frame or a matrix stops with an error when two of its columns
 #'   have the same name, and a data frame when a column has no name. A value

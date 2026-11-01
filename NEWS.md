@@ -33,7 +33,15 @@
     `c(covariates)`.
   - A numeric or logical matrix is one covariate per column, named by its
     column names, with `covariate1`, `covariate2`, ... by position for
-    columns without one. `cbind()` turns a factor into its integer codes,
+    columns without one. With `data`, a matrix column given by its bare
+    name, such as `d$age_z <- scale(d$age)` makes, is named as `glm()`
+    names it when it is given by its name: `age_z` when it has one column,
+    and otherwise the name of the column followed by each column's name,
+    or by its position when it has no column names (`two1`, `two2`). The
+    two calls give the same coefficients. The model data hold the matrix
+    when it is given by its name, and its columns when it is given by its
+    bare name, so with several columns the printed formulas differ.
+    `cbind()` turns a factor into its integer codes,
     and with a character vector makes every column character, which
     stops, so such covariates go in a data frame, such as
     `data.frame(age, region)`.
@@ -63,10 +71,11 @@
   which was left out. A character vector, which was a categorical
   covariate, is now read as names of columns, so it stops with the error
   above. A date (`Date`) or a time difference (`difftime`) stops too.
-  Give either as a column of a data frame, or of `data`: a column of
-  `data` given by its bare name is used whatever its atomic type. A
-  vector column was used before; a one-dimensional array without a class
-  and a `POSIXlt` date-time, which were left out, are now used too.
+  Give either as a column of a data frame, or of `data`: a vector column
+  of `data` given by its bare name is used whatever its atomic type, as
+  before. A one-dimensional array without a class, a numeric or logical
+  matrix, and a `POSIXlt` date-time, which were left out, are now used
+  too.
 * **Data frames whose columns lack names of their own now stop.** Before:
 
   - with two columns of the same name, `fit_solomon_glm()` used only the
