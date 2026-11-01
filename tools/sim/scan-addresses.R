@@ -17,17 +17,27 @@
 #   - a .csv, .txt, or .json file is read as bytes, and fails, with a
 #     message that names the rule, if it starts with a UTF-16 byte-order
 #     mark, holds a NUL byte, starts (after a UTF-8 byte-order mark, if it
-#     has one) with a gzip header (1f 8b) or a zlib header (78 01, 78 5e,
-#     78 9c, 78 da), or is not valid UTF-8 (as validUTF8() reads it, which
-#     refuses overlong forms, surrogates, and code points above U+10FFFF);
+#     has one) with a gzip header (1f 8b) or one of the four zlib headers
+#     of a 32 KB window without a preset dictionary (78 01, 78 5e, 78 9c,
+#     78 da; zlib's default window), or is not valid UTF-8 (as validUTF8()
+#     reads it, which refuses overlong forms, surrogates, and code points
+#     above U+10FFFF);
 #     each of these could hide its text from the pattern. Valid UTF-8 text
 #     that starts (after a UTF-8 byte-order mark, if it has one) with "x^"
 #     (78 5e), with "x" and U+0001 (78 01), or with "x" and a character
 #     from U+0680 to U+06BF (78 da 80 to 78 da bf) is refused as a zlib
 #     header too. Other valid UTF-8 text without a NUL byte, with or
 #     without a UTF-8 byte-order mark, and an empty file pass these rules.
-#     Text compressed or encoded in another way that leaves
-#     valid UTF-8 without such a header (base64, for one) is not detected;
+#     A zlib stream with another header (a smaller window, with a first
+#     byte 08, 18, ..., or 68, or a preset dictionary), raw deflate, and
+#     text compressed or encoded in another way (base64, for one) are not
+#     detected when their bytes stay valid UTF-8 and hold no NUL byte, as
+#     a stream of stored deflate blocks can, with an address split between
+#     two blocks. The 28 other zlib headers without a preset dictionary are
+#     not refused: that would refuse text that starts with one of 14 pairs
+#     of ASCII characters (such as "HK", "(S", and "X" and a tab) or with
+#     one of 7 ASCII characters and a character of a range (such as "(" and
+#     a Greek letter from U+03C0 to U+03FF), and raw deflate has no header;
 #   - an .rds file is read with readRDS(), and every character string in the
 #     object is scanned: values, factor levels, every attribute of every
 #     type (names included), raw vectors as text, the deparsed code of
@@ -60,9 +70,11 @@ shaped <- function(txt) {
 problems <- character()
 problem <- function(...) problems <<- c(problems, paste0(...))
 
-# The header of a gzip or zlib stream at the start of a text file's bytes
+# The header of a gzip stream, or one of the four zlib headers of a 32 KB
+# window without a preset dictionary, at the start of a text file's bytes
 # (after a UTF-8 byte-order mark, if there is one), named with its bytes;
-# "" if there is none. memCompress(type = "gzip") writes a zlib stream.
+# "" if there is none. memCompress(type = "gzip") writes a zlib stream
+# (78 9c). The other zlib headers are left out on purpose (see the top).
 compressed_header <- function(bytes) {
   if (length(bytes) >= 3L && identical(bytes[1:3], as.raw(c(0xef, 0xbb, 0xbf)))) bytes <- bytes[-(1:3)]
   if (length(bytes) < 2L) return("")

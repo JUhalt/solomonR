@@ -26,8 +26,9 @@
 #            them compressed text without a NUL byte and valid UTF-8 text
 #            that starts with a zlib header; the "c-" folders include UTF-8
 #            text with the characters the package prints, a UTF-8
-#            byte-order mark, empty files, and text that starts with "x"
-#            but not with a zlib header.
+#            byte-order mark, empty files, text that starts with "x" but
+#            not with a zlib header, and text that starts with a zlib
+#            header that the scan does not refuse ("HK", "(S", "x ").
 #   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
 #            protocol flag; refused if absent, below 1, or not a number,
 #            or if given as a fifth argument), the 2- and 4-hour limits, a
@@ -490,6 +491,17 @@ if ("scan" %in% groups) {
   nxt <- list(a.txt = c(0x78, 0x02), b.txt = c(0x78, 0x5d), c.csv = c(0x78, 0x5f), d.txt = c(0x78, 0xd9, 0xbf),
               e.json = c(0x78, 0xdb, 0x80))
   for (fn in names(nxt)) writeBin(c(as.raw(nxt[[fn]]), charToRaw(" clean text\n")), file.path(d, fn))
+  # Text that starts with a valid zlib header that the scan does not refuse
+  # (review round 2): another window ("HK", "(S", "X" and a tab, "H" and a
+  # carriage return, "(" and chi), or a preset dictionary ("x "). The
+  # README states this limit and the reason.
+  d <- case("c-11-text-starting-with-other-zlib-headers")
+  put(d, "a.txt", c("HK clean text", "line 2"))
+  put(d, "b.txt", "(S clean text)")
+  put(d, "c.txt", c("X\tY", "1\t2"))
+  writeBin(charToRaw("H\r\n1\r\n"), file.path(d, "d.csv"))
+  put(d, "e.txt", "(\u03c7\u00b2 = 3.84)")
+  put(d, "f.json", "x y")
 
   for (d in sort(list.dirs(root, recursive = FALSE))) {
     r <- run_r("scan-addresses.R", d)
