@@ -97,7 +97,8 @@
 
 
 # Stop when named inputs (vectors or data frames) differ in length.
-# NULL inputs are ignored.
+# NULL inputs are ignored. When `covariates` alone differs from the others,
+# the message says what it takes (issue #146).
 .solomon_check_lengths <- function(...) {
 
   args <- list(...)
@@ -106,10 +107,18 @@
   n <- vapply(args, NROW, numeric(1))
 
   if (length(unique(n)) > 1L) {
+    others <- n[names(n) != "covariates"]
+    advice <- if ("covariates" %in% names(n) && length(unique(others)) == 1L) {
+      paste0(" Give `covariates` one value or one row per participant, ",
+             as.integer(others[[1]]), " here: a matrix or a data frame has one row ",
+             "per participant and one column per covariate.")
+    } else {
+      ""
+    }
     stop(
       "Inputs must have the same length: ",
       paste(sprintf("%s = %d", names(args), as.integer(n)), collapse = ", "),
-      ".",
+      ".", advice,
       call. = FALSE
     )
   }

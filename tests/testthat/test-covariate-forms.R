@@ -344,6 +344,11 @@ test_that("every other form stops with an error that says what to give", {
   colnames(taken) <- c("covariate2", "")
   twice_and_blank <- cbind(d$z, d$w, d$age)
   colnames(twice_and_blank) <- c("a", "a", "")
+  factor_matrix <- factor(d$site)
+  dim(factor_matrix) <- c(n, 1L)
+  per_row <- paste0("Give `covariates` one value or one row per participant, ", n, " here: ",
+                    "a matrix or a data frame has one row per participant and one column ",
+                    "per covariate.")
 
   refused <- list(
     character = list(ifelse(d$z > 0, "high", "low"),
@@ -351,10 +356,16 @@ test_that("every other form stops with an error that says what to give", {
     name = list("z", "`covariates` is a character vector, and `data` was not given"),
     list = list(list(z = d$z), "`covariates` is a list. Give a data frame"),
     array = list(array(d$z, c(n, 1, 1)), "`covariates` is an array of 3 dimensions"),
-    character_matrix = list(cbind(a = d$site), "not a character matrix"),
-    complex = list(complex(real = d$z), "not an object of class \"complex\""),
-    date = list(as.Date("2020-01-01") + seq_len(n), "not an object of class \"Date\""),
-    one_dimensional = list(array(d$z), "not a one-dimensional array"),
+    character_matrix = list(cbind(a = d$site), "not a matrix of type \"character\"."),
+    factor_matrix = list(factor_matrix,
+                         "not a two-dimensional object of class \"factor\"."),
+    complex = list(complex(real = d$z), "not a vector of type \"complex\"."),
+    raw = list(as.raw(seq_len(n) %% 256L), "not a vector of type \"raw\"."),
+    date = list(as.Date("2020-01-01") + seq_len(n),
+                "not an object of class \"Date\". Give it as a column of a data frame."),
+    difftime = list(as.difftime(seq_len(n), units = "days"),
+                    "not an object of class \"difftime\". Give it as a column of a data frame."),
+    one_dimensional = list(array(d$z), "not a one-dimensional array."),
     duplicated = list(cbind(z = d$z, z = d$w),
                       "`covariates` has more than one column named z. Give each"),
     duplicated_frame = list(cbind(data.frame(z = d$z), data.frame(z = d$w)),
@@ -368,8 +379,10 @@ test_that("every other form stops with an error that says what to give", {
     taken = list(taken, paste("Column 2 of `covariates` has no name, and the name it takes",
                               "by its position, covariate2, is that of another column.")),
     twice_and_blank = list(twice_and_blank, "`covariates` has more than one column named a."),
-    short_vector = list(d$z[-1], "Inputs must have the same length"),
-    short_matrix = list(cbind(z = d$z, w = d$w)[-1, ], "Inputs must have the same length")
+    short_vector = list(d$z[-1], paste("covariates = 119.", per_row)),
+    short_matrix = list(cbind(z = d$z, w = d$w)[-1, ], paste("covariates = 119.", per_row)),
+    short_frame = list(data.frame(z = d$z[-1]), paste("covariates = 119.", per_row)),
+    short_transposed = list(rbind(d$z, d$w), paste("covariates = 2.", per_row))
   )
 
   for (form in names(refused)) {
@@ -400,6 +413,17 @@ test_that("every other form stops with an error that says what to give", {
   names(four_frame) <- c("", "", "w", "")
   expect_error(fit4(d, four_frame), "Columns 1, 2, and 4 of `covariates` have no name.",
                fixed = TRUE)
+
+  # The advice on `covariates` is given only when it alone has another
+  # length.
+  expect_error(
+    fit_solomon_glm(d$y_post[-1], d$treat, d$pretested, d$y_pre, covariates = d$z),
+    "y_post = 119, treat = 120, pretested = 120, y_pre = 120, covariates = 120.$"
+  )
+  expect_error(
+    fit_solomon_glm(d$y_post[-1], d$treat, d$pretested, d$y_pre[-1], covariates = d$z),
+    "covariates = 120.$"
+  )
 })
 
 
@@ -432,20 +456,35 @@ test_that("with data, names that are not columns are listed", {
     paste0(message, "agee."), fixed = TRUE
   )
 
-  # A character vector outside `data` is read as names too, and a long list
-  # is cut to five and an ellipsis.
+  # A character vector outside `data` is read as names too, and a list of
+  # more than six is cut to five and the number of the others.
   grade <- ifelse(d$z > 0, "high", "low")
   expect_error(
     fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = grade, data = d),
     paste0(message, paste(unique(grade), collapse = ", "), "."), fixed = TRUE
   )
+  # Of the 26 letters, w and z are columns of `d`.
   expect_error(
     fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = letters, data = d),
-    paste0(message, "a, b, c, d, e, .... Give"), fixed = TRUE
+    paste0(message, "a, b, c, d, e, and 19 others. Give"), fixed = TRUE
+  )
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = letters[1:6], data = d),
+    paste0(message, "a, b, c, d, e, f. Give"), fixed = TRUE
   )
   expect_error(
     fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = character(), data = d),
     "`covariates` names no columns of `data`. Give NULL for no covariates.", fixed = TRUE
+  )
+
+  # The values of a column of `data`, given as `d$site`, have the column's
+  # name in the message.
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = d$site, data = d),
+    paste("`covariates` holds the values of the column site of `data`, and they are read",
+          "as names of columns. Give the column by its name: `covariates = site` or",
+          "`covariates = \"site\"`."),
+    fixed = TRUE
   )
 
   # A name given twice would select two copies of one column.
@@ -464,6 +503,44 @@ test_that("with data, names that are not columns are listed", {
     fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
                     covariates = c("z", "z"), data = forms_six()),
     "`covariates` names these columns more than once: z.", fixed = TRUE
+  )
+})
+
+
+test_that("with data, a date is used as a column and refused outside `data`", {
+
+  d <- forms_data()
+  d$when <- as.Date("2020-01-01") + seq_len(nrow(d))
+  d$span <- as.difftime(seq_len(nrow(d)) %% 17, units = "days")
+
+  # A column of `data`, by its bare name or by name, as a data frame takes
+  # it (as before this change).
+  ref <- fit4(d, data.frame(when = d$when))
+  expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = when,
+                                  data = d), ref)
+  expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "when",
+                                  data = d), ref)
+  expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = span,
+                                  data = d), fit4(d, data.frame(span = d$span)))
+
+  # A vector outside `data`, given by its bare name, was used before this
+  # change; it now stops, as without `data`.
+  outside_when <- d$when
+  outside_span <- d$span
+  d$when <- NULL
+  d$span <- NULL
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = outside_when, data = d),
+    "not an object of class \"Date\". Give it as a column of a data frame.", fixed = TRUE
+  )
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = outside_span, data = d),
+    "not an object of class \"difftime\". Give it as a column of a data frame.", fixed = TRUE
+  )
+  expect_error(
+    check_solomon_missing(y_post, treat, pretested, y_pre, covariates = outside_when,
+                          data = d),
+    "not an object of class \"Date\".", fixed = TRUE
   )
 })
 

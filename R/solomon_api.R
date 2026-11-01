@@ -174,12 +174,26 @@
       }
       return(data[x])
     }
-    shown <- if (length(absent) > 6L) c(absent[1:5], "...") else absent
+    # The values of a column of `data`, such as `data$gender`.
+    same <- names(data)[vapply(data, identical, logical(1), x)]
+    if (length(same)) {
+      stop(
+        "`covariates` holds the values of the column ", same[1], " of `data`, and ",
+        "they are read as names of columns. Give the column by its name: ",
+        "`covariates = ", .formula_names(same[1]), "` or `covariates = ",
+        encodeString(same[1], quote = "\""), "`.",
+        call. = FALSE
+      )
+    }
+    shown <- if (length(absent) > 6L) {
+      paste0(paste(absent[1:5], collapse = ", "), ", and ", length(absent) - 5L, " others")
+    } else {
+      paste(absent, collapse = ", ")
+    }
     stop(
-      "These names in `covariates` are not columns of `data`: ",
-      paste(shown, collapse = ", "), ". Give the names of columns of `data`. ",
-      "A categorical covariate that is not in `data` goes in as a factor, or ",
-      "as a column of a data frame.",
+      "These names in `covariates` are not columns of `data`: ", shown, ". ",
+      "Give the names of columns of `data`. A categorical covariate that is ",
+      "not in `data` goes in as a factor, or as a column of a data frame.",
       call. = FALSE
     )
   }
@@ -215,16 +229,31 @@
     return(one(x))
   }
 
-  what <- if (length(dims) == 2L) {
-    paste("a", typeof(x), "matrix")
+  # What `x` is, described by its class when it has one (a date, a factor
+  # with dimensions, an S4 matrix) and by its type otherwise.
+  classed <- !is.null(oldClass(x)) || isS4(x)
+  what <- if (classed && length(dims)) {
+    paste0("a ", c("one", "two")[length(dims)], "-dimensional object of class \"",
+           class(x)[1], "\"")
+  } else if (classed || !is.atomic(x)) {
+    paste0("an object of class \"", class(x)[1], "\"")
+  } else if (length(dims) == 2L) {
+    paste0("a matrix of type \"", typeof(x), "\"")
   } else if (length(dims) == 1L) {
     "a one-dimensional array"
   } else {
-    paste0("an object of class \"", class(x)[1], "\"")
+    paste0("a vector of type \"", typeof(x), "\"")
+  }
+  # A date or another classed vector goes in as a column of a data frame,
+  # as glm() takes it there.
+  advice <- if (classed && is.atomic(x) && is.null(dims)) {
+    " Give it as a column of a data frame."
+  } else {
+    ""
   }
   stop(
     "`covariates` must be a data frame, a numeric, logical, or factor vector, ",
-    "or a numeric or logical matrix, not ", what, ".",
+    "or a numeric or logical matrix, not ", what, ".", advice,
     call. = FALSE
   )
 }
