@@ -584,9 +584,17 @@ lie, however their spreads differ, and in any order of the covariates,
 as long as its values carry no more rounding error than the check
 allows for. Values stored from exact data, or computed from one another
 in a few operations, do not exceed it. The message names a term of the
-relation: the last in that order, or the one that \code{\link[stats:glm]{stats::glm()}} takes
-to be collinear in the model as given, which it does when the spread of
-a term falls below about 1e-11 of its distance from zero.
+relation. \code{\link[stats:glm]{stats::glm()}} fits the model as given first and takes a
+column to be collinear with the columns before it, in the order of the
+model matrix, when its residual on them falls below 1e-11 of its norm.
+That is so for the relation's last column in that order whenever the
+relation's rounding error stays below that tolerance, as it does near
+zero, and for a column whose spread falls below about 1e-11 of its
+distance from zero; in that order the interaction \code{treat:pretested}
+comes after the covariates. The message then names that column.
+Otherwise it names the relation's last term in the order of the check:
+the treatment and pretest terms first, then the covariates in their
+order.
 \item A term that is not exactly collinear stops the fit only when its
 residual is within that bound or below the tolerance of
 \code{\link[stats:glm]{stats::glm()}}. Near zero the bound grows with the coefficients: it is

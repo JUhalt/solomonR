@@ -878,6 +878,32 @@ test_that("an exact relation with the pretest, an indicator, or a factor stops a
   }
 })
 
+test_that("the message names the column glm() takes to be collinear, or the check's last term", {
+  # glm() fits the model as given first, and takes a column to be
+  # collinear with the columns before it, in the order of the model matrix,
+  # when its residual falls below 1e-11 of its norm: the last column of an
+  # exact relation near zero, where the interaction treat:pretested comes
+  # after the covariates, or a covariate whose spread falls below about
+  # 1e-11 of its distance from zero. The message names that column. When
+  # glm() takes the terms for distinct ones, the check names the relation's
+  # last term in its own order, the covariates last, in their order.
+  d <- collinear_set()
+  w <- withr::with_seed(5, stats::rnorm(nrow(d)))
+  names_term <- function(covariates, term) {
+    expect_error(collinear_pair_fit(d, "four", covariates, "none"),
+                 paste0("collinear with other terms of the model: ", term, "[.]"),
+                 info = paste(names(covariates), collapse = ","))
+  }
+  interaction <- function(k) data.frame(cg = k + 3 * d$treat * d$pretested + 1e-3 * w, w = w)
+  names_term(interaction(0), "treat:pretested")
+  names_term(interaction(1e4), "treat:pretested")
+  names_term(interaction(1e6), "w")
+  names_term(data.frame(cg = 1e8 + 2 * d$treat + 1e-3 * w, w = w), "cg")
+  far <- d$z + 1e6 * stats::sd(d$z)
+  names_term(data.frame(z = far, z2 = 2 * d$z + 3), "z2")
+  names_term(data.frame(z2 = 2 * d$z + 3, z = far), "z")
+})
+
 test_that("an exact relation whose terms nearly cancel stops, whatever the decomposition's rounding", {
   # A covariate that is twice the pretest indicator less 0.00111 times a
   # covariate with a spread of 0.0057, and 0.000174 times a treatment
