@@ -1003,6 +1003,75 @@ test_that("the intercept as given keeps its accuracy with nearly collinear covar
   }
 })
 
+test_that("the CR2 degrees of freedom of a combination are clubSandwich's on a well-conditioned design", {
+  # .cr2_contrast_df() evaluates the Satterthwaite degrees of freedom of
+  # Pustejovsky and Tipton (2018) from the matrices clubSandwich keeps,
+  # through R^{-T} rather than through the inverse of X'WX, which gives the
+  # same number when the design is well conditioned: for unit contrasts, a
+  # map of the intercept by covariate means, and a random combination.
+  d <- location_data()$four
+  d <- d[!is.na(d$y_g), ]
+  d$y_b <- as.integer(d$y_g > stats::median(d$y_g))
+  for (family in c("gaussian", "binomial", "poisson")) {
+    model <- stats::glm(stats::reformulate(c("treat * pretested", "age", "sex", "z"),
+                                           c(gaussian = "y_g", binomial = "y_b", poisson = "y_p")[[family]]),
+                        family = family, data = d)
+    V <- clubSandwich::vcovCR(model, cluster = d$site, type = "CR2")
+    parts <- .cr2_parts(model, V)
+    expect_false(is.null(parts), info = family)
+    p <- length(stats::coef(model))
+    contrasts <- rbind(diag(p)[1:3, ], c(1, 0, 0, -40, -0.5, 0.1, 0),
+                       withr::with_seed(1, stats::rnorm(p)))
+    for (i in seq_len(nrow(contrasts))) {
+      expected <- as.data.frame(clubSandwich::linear_contrast(
+        model, vcov = V, contrasts = contrasts[i, , drop = FALSE], test = "Satterthwaite"
+      ))$df
+      expect_equal(.cr2_contrast_df(parts, contrasts[i, ]), expected, tolerance = 1e-10,
+                   info = paste(family, i))
+    }
+  }
+})
+
+test_that("the CR2 intercept's degrees of freedom do not cancel with nearly collinear covariates", {
+  # Two covariates 10^-8 standard deviations apart at a mean of 5 or 50,
+  # under CR2. The intercept as given is the combination of the standardized
+  # coefficients that its row of the map gives, whose terms are large and
+  # cancel; clubSandwich forms that combination of the rows of the inverse
+  # of X'WX, and the intercept's degrees of freedom came out 6.18 for 18.88
+  # at a mean of 5, and 4.70 for 19.05 at 50, with p-values 9.9 and 6.5
+  # times too large. The reference replaces the second covariate by the
+  # difference of the two, an exact reparameterization that leaves the
+  # intercept unchanged; CR2 adjustments and Satterthwaite degrees of
+  # freedom depend only on the columns' span. The remaining differences,
+  # about 1e-4, are those of clubSandwich's adjustment matrices, which the
+  # standard errors of the coefficients share.
+  withr::local_seed(5)
+  n <- 240
+  treat <- rep(c(0, 1, 1), length.out = n)
+  pretested <- rep(c(0, 1), each = n / 2)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  z <- stats::rnorm(n)
+  site <- rep(1:24, length.out = n)
+  y <- 0.3 * treat + ifelse(is.na(pre), 0, 0.5 * pre) + 0.3 * z + stats::rnorm(n) +
+    stats::rnorm(24)[site]
+  e <- stats::rnorm(n)
+  intercept <- function(fit) fit$coefficients[fit$coefficients$term == "(Intercept)", ]
+  for (mean in c(5, 50)) {
+    covariates <- data.frame(x = mean + z, x2 = mean + z + 1e-8 * e)
+    reference <- covariates
+    reference$x2 <- covariates$x2 - covariates$x
+    fit <- suppressWarnings(fit_solomon_glm(y, treat, pretested, pre, covariates = covariates,
+                                            robust = "CR2", cluster = site))
+    ref <- suppressWarnings(fit_solomon_glm(y, treat, pretested, pre, covariates = reference,
+                                            robust = "CR2", cluster = site))
+    expect_equal(intercept(fit)$df, intercept(ref)$df, tolerance = 1e-3, info = paste(mean))
+    expect_equal(intercept(fit)$std.error, intercept(ref)$std.error, tolerance = 1e-3,
+                 info = paste(mean))
+    expect_equal(intercept(fit)$p.value, intercept(ref)$p.value, tolerance = 1e-2,
+                 info = paste(mean))
+  }
+})
+
 test_that("the covariance as given comes from a factor of the model's covariance", {
   # On a well-conditioned design .given_vcov() gives M V M' for the
   # covariance V it factors: vcov(), sandwich's HC3, and clubSandwich's

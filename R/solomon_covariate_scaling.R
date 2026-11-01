@@ -170,11 +170,12 @@
 # A map that is diagonal only divides, which cancels nothing: the pretest
 # alone, divided by a power of two, which is exact, so that such fits keep
 # the covariance they had, or covariates whose mean is zero. It is applied
-# as M V_s M'. Returns a matrix named by the terms.
-.given_vcov <- function(fit, fit_cr, V, M, robust) {
+# as M V_s M'. `parts`, for CR2, are those of .cr2_parts(), computed here
+# when not given. Returns a matrix named by the terms.
+.given_vcov <- function(fit, fit_cr, V, M, robust, parts = NULL) {
   model <- if (robust == "CR2") fit_cr else fit
   mapped <- function() M %*% as.matrix(V) %*% t(M)
-  if (all(M[row(M) != col(M)] == 0)) return(mapped())
+  if (.diagonal_map(M)) return(mapped())
   q <- model$qr
   p <- ncol(M)
   if (is.null(q) || q$rank < p || !identical(q$pivot, seq_len(p))) return(mapped())
@@ -186,32 +187,101 @@
     infl <- .glm_influence(model, map = M)
     G <- infl$influence / (1 - infl$hat)
   } else {
-    est <- attr(V, "est_mats")
-    adj <- attr(V, "adjustments")
-    cluster <- attr(V, "cluster")
-    bread <- attr(V, "bread")
-    v_scale <- attr(V, "v_scale")
-    e <- stats::residuals(model, type = "response")
-    if (!is.list(est) || !is.list(adj) || length(est) != length(adj) || !is.factor(cluster) ||
-        length(cluster) != length(e) || nlevels(cluster) != length(est) ||
-        !is.matrix(bread) || !identical(dim(bread), c(p, p)) || !is.numeric(v_scale)) {
-      return(mapped())
-    }
-    comp <- tryCatch(
-      do.call(cbind, Map(function(x, a, r) x %*% a %*% r, est, adj, split(e, cluster))),
-      error = function(err) NULL
-    )
-    if (is.null(comp) || !identical(dim(comp), c(p, length(est))) ||
-        !isTRUE(all.equal(unname(bread %*% (tcrossprod(comp) / v_scale) %*% bread / v_scale),
-                          unname(as.matrix(V)), tolerance = 1e-10)) ||
-        !isTRUE(all.equal(unname(bread / v_scale), chol2inv(R), tolerance = 1e-10))) {
-      return(mapped())
-    }
-    G <- crossprod(backsolve(R, comp, transpose = TRUE), U)
+    if (is.null(parts)) parts <- .cr2_parts(model, V)
+    if (is.null(parts)) return(mapped())
+    G <- crossprod(backsolve(R, parts$comp, transpose = TRUE), U)
   }
   out <- crossprod(G)
   dimnames(out) <- dimnames(M)
   out
+}
+
+# Whether the map `M` (.covariate_map()) is diagonal: it only divides.
+.diagonal_map <- function(M) all(M[row(M) != col(M)] == 0)
+
+# The matrices of a CR2 covariance `V` of the glm fit `fit_cr` that
+# .given_vcov() and .cr2_contrast_df() use, from those clubSandwich keeps
+# with `V`: the R of the fit's decomposition W^{1/2} X = QR; the clusters'
+# estimating matrices X_j' W_j (`est`), adjustment matrices A_j (`adj`),
+# and working variances Phi_j (`target`); and their adjusted estimating
+# functions X_j' W_j A_j e_j (`comp`, one column per cluster), with e_j the
+# residuals. They are checked to give `V` as clubSandwich computes it, and
+# its bread over its scale to be the inverse of R'R; should clubSandwich
+# keep other matrices, the check fails and NULL is returned, as it is when
+# the fit has no decomposition of full rank in the order of its terms.
+.cr2_parts <- function(fit_cr, V) {
+  q <- fit_cr$qr
+  p <- nrow(as.matrix(V))
+  if (is.null(q) || q$rank < p || !identical(q$pivot, seq_len(p))) return(NULL)
+  R <- qr.R(q)
+  est <- attr(V, "est_mats")
+  adj <- attr(V, "adjustments")
+  cluster <- attr(V, "cluster")
+  bread <- attr(V, "bread")
+  v_scale <- attr(V, "v_scale")
+  e <- stats::residuals(fit_cr, type = "response")
+  if (!is.list(est) || !is.list(adj) || length(est) != length(adj) || !is.factor(cluster) ||
+      length(cluster) != length(e) || nlevels(cluster) != length(est) ||
+      !is.matrix(bread) || !identical(dim(bread), c(p, p)) || !is.numeric(v_scale)) {
+    return(NULL)
+  }
+  comp <- tryCatch(
+    do.call(cbind, Map(function(x, a, r) x %*% a %*% r, est, adj, split(e, cluster))),
+    error = function(err) NULL
+  )
+  if (is.null(comp) || !identical(dim(comp), c(p, length(est))) ||
+      !isTRUE(all.equal(unname(bread %*% (tcrossprod(comp) / v_scale) %*% bread / v_scale),
+                        unname(as.matrix(V)), tolerance = 1e-10)) ||
+      !isTRUE(all.equal(unname(bread / v_scale), chol2inv(R), tolerance = 1e-10))) {
+    return(NULL)
+  }
+  list(R = R, comp = comp, est = est, adj = adj, target = attr(V, "target"),
+       inverse_var = isTRUE(attr(V, "inverse_var")))
+}
+
+# The Satterthwaite degrees of freedom of the CR2 test of the combination
+# c'b of the coefficients (Pustejovsky & Tipton, 2018), `contrast` being c,
+# as clubSandwich::linear_contrast() computes them, from the matrices of
+# .cr2_parts(), without forming (X'WX)^{-1} c. For a glm, clubSandwich takes
+# the working model of cluster j to be Phi_j = W_j^{-1}, the inverse of its
+# weights, and then, with X_j the cluster's rows of the working design and
+# A_j its adjustment,
+#   f_j = A_j' W_j X_j (X'WX)^{-1} c,
+#   P_jk = [j = k] f_j' Phi_j f_j - f_j' X_j (X'WX)^{-1} X_k' f_k,
+#   df = (sum_j P_jj)^2 / sum_jk P_jk^2.
+# It computes W_j X_j (X'WX)^{-1} c from the inverse it forms, whose
+# entries are large for nearly collinear covariates and cancel in such a
+# combination as the intercept as given: for two covariates 10^-8 standard
+# deviations apart at a mean of 5, the intercept's degrees of freedom came
+# out 6.18 for 18.88, as the same model with the second covariate replaced
+# by their difference, an exact reparameterization, gives. Here
+# (X'WX)^{-1} = R^{-1} R^{-T}, so that with g = R^{-T} c and
+# K_j = R^{-T} X_j' W_j, both from backsolve(), which form no large terms,
+#   f_j = A_j' K_j' g,  R^{-T} X_j' f_j = K_j Phi_j f_j = h_j,
+#   P_jk = [j = k] f_j' Phi_j f_j - h_j' h_k,
+# the computation through R^{-T} that the standard error takes
+# (.given_vcov()). On well-conditioned designs it gives clubSandwich's
+# degrees of freedom to about 1e-12. NULL without the parts, or with
+# another working model.
+.cr2_contrast_df <- function(parts, contrast) {
+  if (is.null(parts) || !parts$inverse_var || !is.list(parts$target) ||
+      length(parts$target) != length(parts$est)) {
+    return(NULL)
+  }
+  g <- backsolve(parts$R, contrast, transpose = TRUE)
+  clusters <- length(parts$est)
+  diagonal <- numeric(clusters)
+  H <- matrix(0, length(g), clusters)
+  for (j in seq_len(clusters)) {
+    K <- backsolve(parts$R, parts$est[[j]], transpose = TRUE)
+    f <- drop(crossprod(parts$adj[[j]], crossprod(K, g)))
+    phi_f <- drop(parts$target[[j]] %*% f)
+    diagonal[j] <- sum(f * phi_f)
+    H[, j] <- K %*% phi_f
+  }
+  P <- -crossprod(H)
+  diag(P) <- diag(P) + diagonal
+  sum(diag(P))^2 / sum(P^2)
 }
 
 # Whether .covariate_scaling() standardizes anything in `df`: a pretest, or
@@ -248,8 +318,9 @@
 # With standardized covariates (`scaling` from .covariate_scaling(), with
 # `fit` and `fit_cr` fitted to them), the coefficients and their covariance
 # are mapped to the covariates as given; the Satterthwaite degrees of
-# freedom of a CR2 intercept are then those of the contrast that maps it,
-# and a covariate's are those of its standardized coefficient. Returns the
+# freedom of a CR2 intercept are then those of the contrast that maps it
+# (.cr2_contrast_df()), and a covariate's are those of its standardized
+# coefficient. Returns the
 # table, `table`, and the covariance of the coefficients as given, `vcov`:
 # `V` itself without standardized covariates, and otherwise a matrix
 # (.given_vcov()). The rows of the table are the coefficients, in their
@@ -261,13 +332,15 @@
   cf <- stats::coef(fit)
   rows <- if (identical(tidy$term, names(cf))) seq_along(cf) else match(tidy$term, names(cf))
   V_given <- V
+  parts <- NULL
   if (standardized) {
     M <- .covariate_map(fit, scaling)
     # broom names the estimates of a negative-binomial fit by term; they
     # keep their names.
     estimate <- drop(M %*% cf)[rows]
     tidy$estimate <- if (is.null(names(tidy$estimate))) unname(estimate) else estimate
-    V_given <- .given_vcov(fit, fit_cr, V, M, robust)
+    if (robust == "CR2" && !.diagonal_map(M)) parts <- .cr2_parts(fit_cr, V)
+    V_given <- .given_vcov(fit, fit_cr, V, M, robust, parts)
   }
   se_vec <- sqrt(diag(V_given))
   tidy$std.error <- unname(se_vec[rows])
@@ -287,11 +360,19 @@
     tidy$df <- if (nrow(ct) == length(cf)) ct$df_Satt[rows] else
       ct$df_Satt[match(tidy$term, ct$Coef)]
     if (standardized) {
+      # The intercept as given combines the standardized coefficients, whose
+      # terms cancel for nearly collinear covariates, so its degrees of
+      # freedom are computed through R^{-T} (.cr2_contrast_df()). A diagonal
+      # map only divides: the contrast is the standardized intercept.
       intercept <- M["(Intercept)", , drop = FALSE]
-      tidy$df[tidy$term == "(Intercept)"] <- suppressWarnings(as.data.frame(
-        clubSandwich::linear_contrast(fit_cr, vcov = V, contrasts = intercept,
-                                      test = "Satterthwaite")
-      ))$df
+      df <- .cr2_contrast_df(parts, drop(intercept))
+      if (is.null(df)) {
+        df <- suppressWarnings(as.data.frame(
+          clubSandwich::linear_contrast(fit_cr, vcov = V, contrasts = intercept,
+                                        test = "Satterthwaite")
+        ))$df
+      }
+      tidy$df[tidy$term == "(Intercept)"] <- df
     }
   } else {
     tidy$df <- df_model
