@@ -407,6 +407,7 @@
 <div class="section level2">
 <h2 id="v090---release-candidate">v0.9.0 - Release candidate<a class="anchor" aria-label="anchor" href="#v090---release-candidate"></a></h2>
 <p><strong>Status:</strong> Active development — <a href="https://github.com/JUhalt/solomonR/milestone/8" class="external-link">v0.9.0 milestone</a>.</p>
+<p>0.9.0 is the release candidate. It is released on R-universe only, after every open item under “Audit before the release” below, the robustness study (<a href="https://github.com/JUhalt/solomonR/issues/116" class="external-link">#116</a>), the validation runs of <a href="https://github.com/JUhalt/solomonR/issues/117" class="external-link">#117</a>, and <a href="https://github.com/JUhalt/solomonR/issues/84" class="external-link">#84</a>, so that v1.0.0 changes no default and no result. Those issues are on the v0.9.0 milestone.</p>
 <ul><li>
 <label><input type="checkbox" checked>Stable public API: consistent argument names and lifecycle labels — <a href="https://github.com/JUhalt/solomonR/issues/83" class="external-link">#83</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/91" class="external-link">PR #91</a></label>
 <ul><li>
@@ -417,6 +418,7 @@
 <ul><li>Examples for every exported function and the CRAN form of the package’s references were released in 0.8.0 (<a href="https://github.com/JUhalt/solomonR/pull/90" class="external-link">PR #90</a>, <a href="https://github.com/JUhalt/solomonR/pull/98" class="external-link">PR #98</a>).</li>
 <li>Nothing is submitted without the maintainer’s sign-off.</li>
 </ul></li>
+<li><label><input type="checkbox">The validation studies run on GitHub-hosted runners, under each protocol’s platform amendment posted before its run — harness in <a href="https://github.com/JUhalt/solomonR/pull/149" class="external-link">PR #149</a> (<a href="https://github.com/JUhalt/solomonR/issues/116" class="external-link">#116</a>, <a href="https://github.com/JUhalt/solomonR/issues/117" class="external-link">#117</a>)</label></li>
 <li>Complete reproducible simulations, and manuscript tables and figures.</li>
 <li>A public preprint when appropriate.</li>
 </ul><hr></div>
@@ -454,7 +456,7 @@
 </ul><p>Publication acceptance is not required before the v1.0 release.</p>
 <div class="section level2">
 <h2 id="audit-before-the-release">Audit before the release<a class="anchor" aria-label="anchor" href="#audit-before-the-release"></a></h2>
-<p>On October 3, 2026, the package was audited against the aim above. The maintainer decided to fix every gap the audit found, to leave no function experimental at 1.0, and to run a robustness study before the release is tagged. The items, with their status, and those found since the audit:</p>
+<p>On October 3, 2026, the package was audited against the aim above. The maintainer decided to fix every gap the audit found, to leave no function experimental at 1.0, and to run a robustness study before the release is tagged. The open items are on the v0.9.0 milestone, so that 0.9.0 is the release candidate. The items, with their status, and those found since the audit:</p>
 <ul><li>
 <strong>Estimates and their sources</strong>
 <ul class="task-list"><li><label><input type="checkbox" checked>The pretest (testing) effect as named contrasts, with the pretest centered at the pretested participants’ mean — <a href="https://github.com/JUhalt/solomonR/issues/104" class="external-link">#104</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/121" class="external-link">PR #121</a></label></li>
@@ -465,6 +467,7 @@
 <li><label><input type="checkbox">Pretested participants without a pretest, whom every fit with a pretest drops — <a href="https://github.com/JUhalt/solomonR/issues/142" class="external-link">#142</a></label></li>
 <li><label><input type="checkbox">Pretest × Treatment when attrition differs between the treatment arms — <a href="https://github.com/JUhalt/solomonR/issues/143" class="external-link">#143</a></label></li>
 <li><label><input type="checkbox"><code><a href="reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> with a covariate far from zero — <a href="https://github.com/JUhalt/solomonR/issues/137" class="external-link">#137</a></label></li>
+<li><label><input type="checkbox"><code><a href="reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> drops, without saying so, a covariate given as a vector or a matrix — <a href="https://github.com/JUhalt/solomonR/issues/146" class="external-link">#146</a></label></li>
 </ul></li>
 <li>
 <strong>Figures and reports</strong>

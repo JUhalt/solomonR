@@ -585,6 +585,15 @@ final, and drafting of the companion manuscript begins.
 **Status:** Active development — [v0.9.0
 milestone](https://github.com/JUhalt/solomonR/milestone/8).
 
+0.9.0 is the release candidate. It is released on R-universe only, after
+every open item under “Audit before the release” below, the robustness
+study ([\#116](https://github.com/JUhalt/solomonR/issues/116)), the
+validation runs of
+[\#117](https://github.com/JUhalt/solomonR/issues/117), and
+[\#84](https://github.com/JUhalt/solomonR/issues/84), so that v1.0.0
+changes no default and no result. Those issues are on the v0.9.0
+milestone.
+
 Stable public API: consistent argument names and lifecycle labels —
 [\#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR
 \#91](https://github.com/JUhalt/solomonR/pull/91)
@@ -605,6 +614,12 @@ CRAN pre-submission readiness —
   \#90](https://github.com/JUhalt/solomonR/pull/90), [PR
   \#98](https://github.com/JUhalt/solomonR/pull/98)).
 - Nothing is submitted without the maintainer’s sign-off.
+
+The validation studies run on GitHub-hosted runners, under each
+protocol’s platform amendment posted before its run — harness in [PR
+\#149](https://github.com/JUhalt/solomonR/pull/149)
+([\#116](https://github.com/JUhalt/solomonR/issues/116),
+[\#117](https://github.com/JUhalt/solomonR/issues/117))
 
 Complete reproducible simulations, and manuscript tables and figures.
 
@@ -706,8 +721,9 @@ Publication acceptance is not required before the v1.0 release.
 On October 3, 2026, the package was audited against the aim above. The
 maintainer decided to fix every gap the audit found, to leave no
 function experimental at 1.0, and to run a robustness study before the
-release is tagged. The items, with their status, and those found since
-the audit:
+release is tagged. The open items are on the v0.9.0 milestone, so that
+0.9.0 is the release candidate. The items, with their status, and those
+found since the audit:
 
 **Estimates and their sources**
 
@@ -743,6 +759,10 @@ Pretest × Treatment when attrition differs between the treatment arms —
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
 with a covariate far from zero —
 [\#137](https://github.com/JUhalt/solomonR/issues/137)
+
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+drops, without saying so, a covariate given as a vector or a matrix —
+[\#146](https://github.com/JUhalt/solomonR/issues/146)
 
 **Figures and reports**
 
