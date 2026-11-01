@@ -19,6 +19,10 @@ test_that("coefficient tables have broom's columns, from summary()", {
   aliased <- .tidy_coefficients(stats::lm(y_post ~ treat + twice + pretested, data = d))
   expect_identical(aliased$term, c("(Intercept)", "treat", "twice", "pretested"))
   expect_true(is.na(aliased$estimate[3]) && is.na(aliased$std.error[3]))
+
+  # broom's tidiers named the fit `x`, which a warning of summary() shows in
+  # its call, summary.lm(x).
+  expect_named(formals(.tidy_coefficients), "x")
 })
 
 test_that("a negative binomial fit keeps the coefficient names on its columns", {

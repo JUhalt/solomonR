@@ -10,10 +10,12 @@
 # one row for each coefficient of summary(), or, when a coefficient is
 # aliased, one row for each coefficient of coef(), with NA for the aliased
 # ones. A fit of MASS::glm.nb() follows broom's tidier for it, whose numeric
-# columns keep the coefficient names.
-.tidy_coefficients <- function(fit) {
-  co <- summary(fit)$coefficients
-  if (inherits(fit, "negbin")) {
+# columns keep the coefficient names. The fit is named `x`, as in broom's
+# tidiers, so that a warning of summary(), such as the one of an exact fit,
+# names the call summary.lm(x) or summary.glm(x), as it did.
+.tidy_coefficients <- function(x) {
+  co <- summary(x)$coefficients
+  if (inherits(x, "negbin")) {
     return(tibble::tibble(
       term = row.names(co), estimate = co[, 1], std.error = co[, 2],
       statistic = co[, 3], p.value = co[, 4]
@@ -21,7 +23,7 @@
   }
   out <- tibble::as_tibble(co, rownames = "term")
   names(out) <- c("term", "estimate", "std.error", "statistic", "p.value")
-  cf <- stats::coef(fit)
+  cf <- stats::coef(x)
   if (length(cf) != nrow(out)) {
     i <- match(names(cf), out$term)
     out <- tibble::tibble(
