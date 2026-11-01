@@ -496,6 +496,8 @@ the audit:
 - **Reproducibility**
   - [x] The validation scripts rerun against the current package, each
     with a smoke mode that a GitHub Actions workflow runs — [#140](https://github.com/JUhalt/solomonR/issues/140); merged in [PR #144](https://github.com/JUhalt/solomonR/pull/144)
+  - [ ] The validation scripts run from a downloaded copy of the
+    repository, outside a git clone — [#152](https://github.com/JUhalt/solomonR/issues/152)
 
 # Later / exploratory
 
