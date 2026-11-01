@@ -662,12 +662,12 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
   # distinct covariates, so the fit would go on to meaningless coefficients
   # and standard errors; master fitted them under model-based covariance
   # and stopped under HC3 and CR2 with "system is computationally
-  # singular". The standardized model is checked at a tolerance that
-  # follows that rounding error (.collinear_tolerance()); a fixed tolerance
-  # of 1e-7 missed them from about 2.5 * 10^9 standard deviations, and with
-  # 2z + treat + 3 the fit then gave the treatment effect a standard error
-  # a million times too large. From about 10^11, glm() catches them as
-  # given, and may name z.
+  # singular". The standardized model is checked for terms collinear but
+  # for the rounding error of the values given (.collinear_terms()); a fixed
+  # tolerance of 1e-7 missed them from about 2.5 * 10^9 standard deviations,
+  # and with 2z + treat + 3 the fit then gave the treatment effect a
+  # standard error a million times too large. From about 10^11, glm()
+  # catches them as given, and may name z.
   d <- collinear_set()
   collinear <- "collinear with other terms of the model: z2?[.]"
   for (design in c("four", "six")) {
@@ -698,11 +698,12 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
 })
 
 test_that("near zero, nearly collinear covariates are fitted as glm() fits them", {
-  # Near zero the tolerance is that of glm(), 1e-11, so that covariates
-  # that differ by 10^-8 of their standard deviation, or a covariate and its
-  # copy in single precision, are fitted as master fitted them; a fixed
-  # tolerance of 1e-7 stopped them. Those that differ by 10^-13 stop, at
-  # the check of glm() itself.
+  # Near zero the rounding error of the values given is of the order of
+  # .Machine$double.eps, far below the tolerance of glm(), 1e-11, which
+  # therefore decides, so that covariates that differ by 10^-8 of their
+  # standard deviation, or a covariate and its copy in single precision, are
+  # fitted as master fitted them; a fixed tolerance of 1e-7 stopped them.
+  # Those that differ by 10^-13 stop, at the check of glm() itself.
   d <- collinear_set()
   e <- withr::with_seed(1, stats::rnorm(nrow(d)))
   single <- function(x) readBin(writeBin(x, raw(), size = 4), "double", n = length(x), size = 4)
@@ -726,36 +727,46 @@ test_that("near zero, nearly collinear covariates are fitted as glm() fits them"
   }
   expect_error(collinear_pair_fit(d, "four", pair(1e-13)), collinear)
   expect_error(collinear_pair_fit(d, "six", pair(1e-13), "none"), collinear)
-  rows <- !is.na(d$y4) & !is.na(d$z_grid)
-  expect_identical(.collinear_tolerance(d, c("z", "z_grid"), rows), 1e-11)
   model <- stats::glm(y4 ~ treat * pretested + z + z2, data = cbind(d, pair(1e-8)[2]),
                       na.action = stats::na.exclude)
   expect_false(anyNA(stats::coef(model)))
-  expect_identical(.collinear_terms(model, 1e-7), "z2")
-  expect_identical(.collinear_terms(model, 1e-11), character())
+  noise <- .representation_error(model, model, list(means = numeric(), scales = numeric()))
+  expect_lt(max(noise), 1e-14)
+  expect_identical(.collinear_terms(model, noise), character())
+  expect_identical(.collinear_terms(model, noise + 1e-8), "z2")
 })
 
-test_that("the collinearity tolerance follows the rounding error of where the covariates lie", {
-  # 4 * .Machine$double.eps times the largest ratio of a value's magnitude
-  # to its standard deviation, over the numeric covariates and the pretest
-  # as given, in the model's rows; factors do not count.
+test_that("each term is checked against the rounding error its regression carries into it", {
+  # .representation_error() takes the error of each entry of the model
+  # matrix to be eps (|x| / s + |z|), with x the value as given, s the
+  # number it was divided by, and z the value standardized; the pretest's x
+  # is the pretest as given, before it was centered, and factors and
+  # indicators are 0 or 1.
   d <- collinear_set()
-  rows <- !is.na(d$y4) & !is.na(d$z_grid)
-  far <- data.frame(z = d$z + 1e8 * stats::sd(d$z), site = factor(d$site), z_grid = d$z_grid,
-                    pre_obs = ifelse(d$pretested == 1, d$pre - 3, 0), pretested = d$pretested)
-  bound <- function(x) 4 * .Machine$double.eps * max(abs(x)) / stats::sd(x)
-  expect_equal(.collinear_tolerance(far, c("z", "site", "z_grid"), rows), bound(far$z[rows]))
-  pretest <- rows & d$pretested == 1
-  expect_equal(.collinear_tolerance(far[c("pre_obs", "pretested")], character(), rows, 3e6),
-               bound(d$pre[pretest] - 3 + 3e6))
-  expect_identical(.collinear_tolerance(far[c("pre_obs", "pretested")], character(), rows), 1e-11)
+  rows <- !is.na(d$y4)
+  df <- data.frame(y = d$y4, treat = d$treat, pretested = d$pretested,
+                   pre_obs = ifelse(d$pretested == 1, d$pre - 3, 0),
+                   z = d$z + 1e8 * stats::sd(d$z), site = factor(d$site))
+  fml <- y ~ treat * pretested + pre_obs + z + site
+  given <- stats::glm(fml, data = df, na.action = stats::na.exclude)
+  scaling <- .covariate_scaling(df, c("z", "site"), rows)
+  fit <- stats::glm(fml, data = scaling$data, na.action = stats::na.exclude)
+  noise <- .representation_error(fit, given, scaling, center = 3)
+  eps <- .Machine$double.eps
+  X <- stats::model.matrix(given)
+  Z <- stats::model.matrix(fit)
+  expect_identical(dim(noise), dim(Z))
+  expect_equal(noise[, "z"], eps * (abs(X[, "z"]) / scaling$scales[["z"]] + abs(Z[, "z"])))
+  expect_equal(noise[, "pre_obs"], eps * (abs(X[, "pre_obs"] + 3 * X[, "pretested"]) /
+                                            scaling$scales[["pre_obs"]] + abs(Z[, "pre_obs"])))
+  expect_equal(noise[, "site2"], 2 * eps * X[, "site2"])
 
   # 10^8 standard deviations from zero, where z is stored to about 1e-8 of
   # its standard deviation: a second covariate near zero that differs from
   # a combination of z and the constant by less than that stops, and one
   # that differs by more is fitted.
   e <- withr::with_seed(3, stats::rnorm(nrow(d)))
-  near <- function(size) data.frame(z = far$z, z2 = 2 * d$z + 3 + size * e)
+  near <- function(size) data.frame(z = df$z, z2 = 2 * d$z + 3 + size * e)
   expect_error(collinear_pair_fit(d, "four", near(2e-9)),
                "collinear with other terms of the model: z2[.]")
   expect_no_error(collinear_pair_fit(d, "four", near(1e-5)))
@@ -763,7 +774,8 @@ test_that("the collinearity tolerance follows the rounding error of where the co
   # The columns are weighed by the working weights, as glm() weighs them: in
   # a Poisson model whose few rows of large mean carry the difference of
   # two covariates, it is larger relative to the weighted spread than to
-  # the unweighted one.
+  # the unweighted one, and so above the bound that an error of 1e-8 in
+  # every entry gives it in the one metric and below it in the other.
   x <- withr::with_seed(9, {
     n <- 400
     heavy <- as.numeric(seq_len(n) %in% seq(1, n, by = 25))
@@ -773,8 +785,129 @@ test_that("the collinearity tolerance follows the rounding error of where the co
   })
   model <- stats::glm(y ~ heavy + z + z2, family = stats::poisson(), data = x)
   unweighted <- stats::lm(y ~ heavy + z + z2, data = x)
-  expect_identical(.collinear_terms(model, 1e-7), character())
-  expect_identical(.collinear_terms(unweighted, 1e-7), "z2")
+  noise <- matrix(1e-8, nrow(x), 4L)
+  expect_identical(.collinear_terms(model, noise), character())
+  expect_identical(.collinear_terms(unweighted, noise), "z2")
+})
+
+test_that("an exact relation stops however its terms' spreads differ, in every order", {
+  # A time of testing that is the time of enrolment plus a delay, with the
+  # times as dates in seconds, about 1.8e9 from zero: the error of the
+  # stored times, about 2e-7 seconds, reaches the delay, whose spread is
+  # 1,200 times smaller than theirs, amplified by that ratio. A tolerance
+  # relative to each term's own spread missed it: under HC3 the fit went on
+  # to a standard error of 1351 for the average treatment effect and NaN
+  # for the others. So did covariates z + k, v = z + 0.01 w + 3, and w,
+  # whose relation carries the error of z to w multiplied by 100, at 10^4
+  # and 10^6 standard deviations from zero: every standard error was NaN,
+  # or the average treatment effect was 0.306 for 0.390. Each is now caught
+  # at its last term in the order given, under every covariance. The
+  # standardized fit of z, v, and w can warn that glm() did not converge
+  # before the check stops it, as it warned before.
+  d <- collinear_set()
+  set.seed(8)
+  start <- as.POSIXct("2026-03-02 09:00:00", tz = "UTC")
+  offset <- 30 * 86400 * stats::runif(nrow(d)) + stats::runif(nrow(d))
+  delay <- 3600 + 600 * stats::rnorm(nrow(d))
+  times <- data.frame(enrol = start + offset, test = start + offset + delay, delay = delay)
+  w <- withr::with_seed(5, stats::rnorm(nrow(d)))
+  orders <- list(1:3, c(1, 3, 2), c(2, 1, 3), c(2, 3, 1), c(3, 1, 2), c(3, 2, 1))
+  stops_at <- function(name) paste0("collinear with other terms of the model: ", name, "[.]")
+  for (robust in c("none", "HC3", "CR2")) {
+    for (o in orders) {
+      expect_error(suppressWarnings(collinear_pair_fit(d, "four", times[o], robust)),
+                   stops_at(names(times)[o[3]]),
+                   info = paste(robust, paste(names(times)[o], collapse = ",")))
+    }
+    for (k in c(1e4, 1e6)) {
+      z <- d$z + k * stats::sd(d$z)
+      relations <- list(v = d$z + 0.01 * w + 3, treat = d$z + 0.01 * w + d$treat + 3,
+                        "2z + treat" = 2 * d$z + d$treat + 0.01 * w + 3)
+      for (name in names(relations)) {
+        covariates <- data.frame(z = z, v = relations[[name]], w = w)
+        expect_error(suppressWarnings(collinear_pair_fit(d, "four", covariates, robust)),
+                     stops_at("w"), info = paste(robust, k, name))
+        if (k == 1e6 && name == "v") {
+          for (o in orders[-1]) {
+            expect_error(suppressWarnings(collinear_pair_fit(d, "six", covariates[o], robust)),
+                         stops_at(names(covariates)[o[3]]),
+                         info = paste(robust, paste(names(covariates)[o], collapse = ",")))
+          }
+        }
+      }
+    }
+  }
+})
+
+test_that("an exact relation with the pretest, an indicator, or a factor stops at any location", {
+  # Relations that hold the treatment or pretest indicators, their
+  # interaction, the indicators of a factor, or the pretest itself, with a
+  # term whose spread is a thousandth of that of the term far from zero,
+  # 10^4 to 10^8 of its standard deviations: the term with the small spread
+  # receives the far term's rounding error multiplied by 1,000. Where the
+  # far term's spread falls to about 1e-11 of its distance from zero,
+  # glm() takes a term of the relation to be collinear in the model as
+  # given, and the message names that term.
+  d <- collinear_set()
+  w <- withr::with_seed(5, stats::rnorm(nrow(d)))
+  code <- as.integer(factor(d$site)) %% 3
+  site <- factor(code)
+  for (k in c(1e4, 1e6, 1e8)) {
+    cases <- list(
+      treatment = data.frame(cg = k + 2 * d$treat + 1e-3 * w, w = w),
+      interaction = data.frame(cg = k + 3 * d$treat * d$pretested + 1e-3 * w, w = w),
+      factor = data.frame(x = k + 1.5 * code + 1e-3 * w, site = site, w = w),
+      "factor last" = data.frame(x = k + 1.5 * code + 1e-3 * w, w = w, site = site)
+    )
+    for (robust in c("none", "HC3", "CR2")) {
+      for (name in names(cases)) {
+        expect_error(collinear_pair_fit(d, "four", cases[[name]], robust),
+                     "collinear with other terms of the model: (cg|x|w|site[12]|treat:pretested)[.]",
+                     info = paste(k, robust, name))
+      }
+      pre <- k + d$pre
+      covariates <- data.frame(cp = ifelse(d$pretested == 1, pre, 0) + 1e-3 * w, w = w)
+      expect_error(suppressWarnings(fit_solomon_glm(
+        d$y4, d$treat, d$pretested, pre, covariates = covariates, robust = robust,
+        cluster = if (robust == "CR2") d$site
+      )), "collinear with other terms of the model: (cp|w)[.]", info = paste(k, robust, "pretest"))
+    }
+  }
+})
+
+test_that("a nearly collinear pair near zero fits beside a covariate far from zero", {
+  # Covariates 10^-9 standard deviations apart near zero, which glm() and
+  # master fit, with a third, unrelated covariate 10^6 or 10^9 standard
+  # deviations from zero. The third's rounding error is its own and cannot
+  # make the pair collinear; one tolerance for every term, set by the
+  # covariate farthest from zero, stopped the pair. The fit has all eight
+  # coefficients, those of glm() for the model as given, and the contrasts
+  # of the model with the second covariate replaced by the pair's
+  # difference, an exact reparameterization.
+  withr::local_seed(3)
+  n <- 160
+  d <- data.frame(treat = rep(0:1, each = n / 2), pretested = rep(rep(0:1, each = n / 4), 2))
+  d$pre <- ifelse(d$pretested == 1, stats::rnorm(n, 50, 10), NA)
+  d$y <- 10 + 2 * d$treat + 0.5 * ifelse(is.na(d$pre), 50, d$pre) + stats::rnorm(n, 0, 5)
+  z <- stats::rnorm(n)
+  z2 <- z + stats::rnorm(n, 0, 1e-9)
+  noise <- stats::rnorm(n)
+  for (k in c(1e6, 1e9)) {
+    covariates <- data.frame(z = z, z2 = z2, t = noise + k)
+    fit <- fit_solomon_glm(d$y, d$treat, d$pretested, d$pre, covariates = covariates,
+                           robust = "none")
+    expect_identical(nrow(fit$coefficients), 8L)
+    pre_obs <- ifelse(d$pretested == 1, d$pre - fit$pretest_mean, 0)
+    model <- stats::glm(d$y ~ d$treat * d$pretested + pre_obs + z + z2 + covariates$t)
+    expect_identical(model$rank, 8L)
+    expect_equal(fit$coefficients$estimate, unname(stats::coef(model)), tolerance = 1e-6,
+                 info = paste(k))
+    reparameterized <- covariates
+    reparameterized$z2 <- z2 - z
+    ref <- fit_solomon_glm(d$y, d$treat, d$pretested, d$pre, covariates = reparameterized,
+                           robust = "none")
+    expect_equal(fit$effects, ref$effects, tolerance = 1e-6, info = paste(k))
+  }
 })
 
 test_that("nearly collinear covariates are fitted as master fitted them", {

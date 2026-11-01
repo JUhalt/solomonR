@@ -557,23 +557,34 @@ which do not depend on the parameterization. Far from zero, a fit to a
 covariate as given can warn where the same model standardized does not.
 
 Covariates collinear with the other terms stop the fit wherever they
-lie. Far from zero, the rounding error of a covariate can make
-\code{\link[stats:glm]{stats::glm()}} take collinear covariates, such as \code{z + 1e6} and
-\code{2 * z + 3}, for distinct ones, so the standardized model is checked
-too: a covariate within a tolerance of its standard deviation of a
-combination of the terms before it, weighted as \code{\link[stats:glm]{stats::glm()}} weighs
-them, is taken to be collinear with them. The tolerance follows the
-rounding error of where the covariates and the pretest lie: it is 4
-times \code{.Machine$double.eps} times the largest ratio of a value's
-magnitude to its standard deviation, about 9e-10 for a covariate 10^6
-standard deviations from zero, and never less than 1e-11, the tolerance
-of \code{\link[stats:glm]{stats::glm()}}, so near zero nearly collinear covariates, such as a
-covariate and its copy in single precision, are fitted as
-\code{\link[stats:glm]{stats::glm()}} fits them. Nearly collinear covariates far enough from
-zero that their difference falls below about 1e-11 of their distance
-from zero, such as covariates 10^-6 standard deviations apart at 10^6
-standard deviations from zero, are taken to be collinear by
-\code{\link[stats:glm]{stats::glm()}} as given, which stops the fit too.
+lie. Far from zero, the rounding error of the stored values can make
+\code{\link[stats:glm]{stats::glm()}} take collinear terms for distinct ones, such as \code{z + 1e6}
+and \code{2 * z + 3}, or a time of testing that is the time of enrolment plus
+a delay, with the times as dates, so the standardized model is checked
+too. Each term is regressed on the terms before it, the covariates after
+the treatment and pretest terms, weighted as \code{\link[stats:glm]{stats::glm()}} weighs them.
+It is taken to be collinear with them when its residual is within 4
+times the rounding error that the regression carries into it, or within
+1e-11 of its norm, the tolerance of \code{\link[stats:glm]{stats::glm()}}. That rounding error
+is the term's own plus each other term's times the magnitude of its
+coefficient, relative to the term's standard deviation, with the error
+of each value taken to be \code{.Machine$double.eps} times its magnitude as
+given; the pretest's values are taken before it is centered. An exactly
+collinear term is thereby found however far from zero the terms lie and
+however their spreads differ, in any order of the covariates. The
+message names a term of the relation: the last in that order, or the
+one that \code{\link[stats:glm]{stats::glm()}} takes to be collinear in the model as given,
+which it does when the spread of a term falls below about 1e-11 of its
+distance from zero. Near zero that rounding error is of the order of
+\code{.Machine$double.eps}, far below the tolerance of \code{\link[stats:glm]{stats::glm()}}, which
+then decides as it does for the model as given: nearly collinear
+covariates, such as a covariate and its copy in single precision, or
+covariates 10^-9 standard deviations apart, are fitted as \code{\link[stats:glm]{stats::glm()}}
+fits them, whatever other covariates lie far from zero. Nearly collinear
+covariates far enough from zero that their difference falls below about
+1e-11 of their distance from zero, such as covariates 10^-6 standard
+deviations apart at 10^6 standard deviations from zero, are taken to be
+collinear by \code{\link[stats:glm]{stats::glm()}} as given, which stops the fit too.
 
 A numeric covariate is standardized whatever its class, such as that of a
 variable with value labels read from an SPSS file, or of one wrapped in

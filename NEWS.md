@@ -50,14 +50,19 @@
   covariates, were fitted under model-based covariance, with meaningless
   coefficients for the two, and stopped under HC3 and CR2 with "system is
   computationally singular". The standardized model is now checked for
-  collinear terms too, at a tolerance that follows the rounding error of
-  where the covariates and the pretest lie: 4 times `.Machine$double.eps`
-  times the largest ratio of a value's magnitude to its standard
-  deviation, and never less than the 1e-11 of `glm()`. They therefore stop
-  with the message that names the collinear term, as they do near zero, in
-  checks from 10^4 to 10^12 standard deviations from zero. Near zero the
-  check is that of `glm()`, so nearly collinear covariates, such as a
-  covariate and its copy in single precision, are fitted as before.
+  collinear terms too: each term, regressed on the terms before it, is
+  taken to be collinear when its residual is within 4 times the rounding
+  error that the regression carries into it, or within the 1e-11 of
+  `glm()`. That error is the term's own plus each other term's times the
+  magnitude of its coefficient, with each value's error taken to be
+  `.Machine$double.eps` times its magnitude as given, so that it covers a
+  term whose spread is small next to that of the far terms it is a
+  combination of, such as a delay that is the difference of two dates.
+  Exactly collinear terms therefore stop with the message that names the
+  collinear term, as they do near zero. Near zero the check is that of
+  `glm()`, so nearly collinear covariates, such as a covariate and its copy
+  in single precision, are fitted as before, whatever other covariates lie
+  far from zero.
 * `fit_solomon_sem(ancova = TRUE)` lost accuracy when the pretest lay far
   from zero: at 10^4 standard deviations its p-values were off by 7% to
   100% of their value in six checks, and in another it stopped, as it did

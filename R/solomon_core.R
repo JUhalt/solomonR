@@ -983,23 +983,34 @@ stouffer_solomon <- function(p) {
 #' covariate as given can warn where the same model standardized does not.
 #'
 #' Covariates collinear with the other terms stop the fit wherever they
-#' lie. Far from zero, the rounding error of a covariate can make
-#' [stats::glm()] take collinear covariates, such as `z + 1e6` and
-#' `2 * z + 3`, for distinct ones, so the standardized model is checked
-#' too: a covariate within a tolerance of its standard deviation of a
-#' combination of the terms before it, weighted as [stats::glm()] weighs
-#' them, is taken to be collinear with them. The tolerance follows the
-#' rounding error of where the covariates and the pretest lie: it is 4
-#' times `.Machine$double.eps` times the largest ratio of a value's
-#' magnitude to its standard deviation, about 9e-10 for a covariate 10^6
-#' standard deviations from zero, and never less than 1e-11, the tolerance
-#' of [stats::glm()], so near zero nearly collinear covariates, such as a
-#' covariate and its copy in single precision, are fitted as
-#' [stats::glm()] fits them. Nearly collinear covariates far enough from
-#' zero that their difference falls below about 1e-11 of their distance
-#' from zero, such as covariates 10^-6 standard deviations apart at 10^6
-#' standard deviations from zero, are taken to be collinear by
-#' [stats::glm()] as given, which stops the fit too.
+#' lie. Far from zero, the rounding error of the stored values can make
+#' [stats::glm()] take collinear terms for distinct ones, such as `z + 1e6`
+#' and `2 * z + 3`, or a time of testing that is the time of enrolment plus
+#' a delay, with the times as dates, so the standardized model is checked
+#' too. Each term is regressed on the terms before it, the covariates after
+#' the treatment and pretest terms, weighted as [stats::glm()] weighs them.
+#' It is taken to be collinear with them when its residual is within 4
+#' times the rounding error that the regression carries into it, or within
+#' 1e-11 of its norm, the tolerance of [stats::glm()]. That rounding error
+#' is the term's own plus each other term's times the magnitude of its
+#' coefficient, relative to the term's standard deviation, with the error
+#' of each value taken to be `.Machine$double.eps` times its magnitude as
+#' given; the pretest's values are taken before it is centered. An exactly
+#' collinear term is thereby found however far from zero the terms lie and
+#' however their spreads differ, in any order of the covariates. The
+#' message names a term of the relation: the last in that order, or the
+#' one that [stats::glm()] takes to be collinear in the model as given,
+#' which it does when the spread of a term falls below about 1e-11 of its
+#' distance from zero. Near zero that rounding error is of the order of
+#' `.Machine$double.eps`, far below the tolerance of [stats::glm()], which
+#' then decides as it does for the model as given: nearly collinear
+#' covariates, such as a covariate and its copy in single precision, or
+#' covariates 10^-9 standard deviations apart, are fitted as [stats::glm()]
+#' fits them, whatever other covariates lie far from zero. Nearly collinear
+#' covariates far enough from zero that their difference falls below about
+#' 1e-11 of their distance from zero, such as covariates 10^-6 standard
+#' deviations apart at 10^6 standard deviations from zero, are taken to be
+#' collinear by [stats::glm()] as given, which stops the fit too.
 #'
 #' A numeric covariate is standardized whatever its class, such as that of a
 #' variable with value labels read from an SPSS file, or of one wrapped in
@@ -1515,10 +1526,9 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # the several-treatment path does. The groups are named by the conditions
   # when `control` named them. With `pretest_center = "observed"` the center
   # exists even when a pretested group has no posttest, so the model's own
-  # check is needed. The standardized model is checked as well, at a
-  # tolerance that follows the rounding error of where the covariates lie,
-  # since glm() can take covariates that are collinear but for that error
-  # for distinct ones (.collinear_tolerance()).
+  # check is needed. The standardized model is checked as well, for terms
+  # collinear but for the rounding error of the values given, which glm()
+  # can take for distinct ones far from zero (.collinear_terms()).
   arms <- if (is.null(conditions$control)) {
     c("treatment", "control")
   } else {
@@ -1530,7 +1540,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   )
   .stop_inestimable(fit_given, .group_names(group_counts, group_counts == 0))
   .stop_inestimable(fit, .group_names(group_counts, group_counts == 0),
-                    .collinear_tolerance(df, names(covariates), in_model, pretest_mean))
+                    noise = .representation_error(fit, fit_given, scaling, pretest_mean),
+                    covariates = .formula_names(names(covariates)))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2, so its standard errors

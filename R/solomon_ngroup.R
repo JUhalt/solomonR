@@ -202,12 +202,14 @@
 # Stop when a coefficient of the fitted model is inestimable: an empty
 # group, or a term collinear with the others. `empty` names the groups
 # without an analyzable participant (.group_names()). Used by the four-group
-# and the several-treatment paths of fit_solomon_glm(). With `tol`, a term
-# whose column of the model matrix lies within `tol` of the span of the
-# columns before it is collinear too (.collinear_terms()).
-.stop_inestimable <- function(fit, empty, tol = NULL) {
+# and the several-treatment paths of fit_solomon_glm(). With `noise`, the
+# rounding error of each entry of the model matrix (.representation_error()),
+# a term that is collinear with the others but for that error is collinear
+# too (.collinear_terms()); `covariates` names the covariates' terms, which
+# are checked last.
+.stop_inestimable <- function(fit, empty, noise = NULL, covariates = character()) {
   aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
-  if (!length(aliased) && !is.null(tol)) aliased <- .collinear_terms(fit, tol)
+  if (!length(aliased) && !is.null(noise)) aliased <- .collinear_terms(fit, noise, covariates)
   if (!length(aliased)) return(invisible(NULL))
   if (length(empty)) {
     stop(
@@ -226,61 +228,130 @@
   )
 }
 
-# The tolerance at which fit_solomon_glm() checks the model with its
-# covariates standardized and its pretest scaled (.covariate_scaling()) for
-# collinear terms (issue #137). glm() takes a term to be collinear when its
-# column falls below 1e-11 of its norm once the columns before it are
-# projected out, which, for the covariates as given, depends on where they
-# lie. A value x is stored with a rounding error of up to |x| times 1.1e-16,
-# half of .Machine$double.eps, so two covariates that are exactly
-# collinear, such as z + 10^6 and 2z + 3, differ once standardized by that
-# error relative to the standard deviation, about 1e-10 at 10^6 standard
-# deviations from zero, and glm() would take them for distinct covariates:
-# the fit would go on to meaningless coefficients and standard errors. The
-# tolerance therefore follows that error: 4 * .Machine$double.eps times the
-# largest ratio of a value's magnitude to its standard deviation, over the
-# numeric covariates and the pretest as given and the participants in the
-# model, and never below 1e-11, so that near zero the check is glm()'s own.
-# In checks from 10^6 to 3 * 10^10 standard deviations from zero, exactly
-# collinear covariates differed by 0.14 to 0.25 of .Machine$double.eps
-# times that ratio, a sixteenth of the tolerance or less. `df`,
-# `covariates`, and `in_model` are those of .covariate_scaling(), and
-# `center` is the mean the pretest `pre_obs` was centered at, NA without a
-# pretest.
-.collinear_tolerance <- function(df, covariates, in_model, center = NA_real_) {
-  ratio <- function(x) {
-    s <- stats::sd(x, na.rm = TRUE)
-    if (is.finite(s) && s > 0) max(abs(x), na.rm = TRUE) / s else 0
+# The rounding error that each entry of the model matrix of the
+# standardized model `fit` carries from the values the model was given, for
+# .collinear_terms() (issue #137). `given` is the model as given, `scaling`
+# comes from .covariate_scaling(), and `center` is the mean the pretest was
+# centered at, NA without a pretest. A value x is stored with an error of up
+# to |x| eps / 2, with eps = .Machine$double.eps, and a covariate computed
+# from others, such as a time of testing that is the time of enrolment plus
+# a delay, carries the errors of that computation, of the same order.
+# Standardizing a covariate divides that error by the covariate's standard
+# deviation and adds an error of its own, of up to the standardized value
+# times eps / 2, and dividing the pretest by a power of two is exact. The
+# error of entry (i, j) is therefore taken to be
+#   eps (|x_ij| / s_j + |z_ij|),
+# with x_ij the value as given, s_j the number column j was divided by (1
+# for a column that is not standardized), and z_ij the value in `fit`. The
+# pretest enters centered, but it was stored before centering, so its x_ij
+# is the pretest as given, the centered value plus the center, in the
+# pretested rows; the 0 of the unpretested rows is exact. The intercept,
+# the treatment and pretest indicators, their interactions, and the
+# indicators of factors hold 0s and 1s, exactly, and get eps (|x| + |z|)
+# too. Returns a matrix of the dimensions of the model matrix.
+.representation_error <- function(fit, given, scaling, center = NA_real_) {
+  Z <- stats::model.matrix(fit)
+  X <- stats::model.matrix(given)
+  s <- rep(1, ncol(Z))
+  if (length(scaling$means)) {
+    columns <- .scaled_columns(fit, scaling)
+    s[columns] <- scaling$scales
+    if ("pre_obs" %in% names(columns) && is.finite(center)) {
+      j <- columns[["pre_obs"]]
+      X[, j] <- X[, j] + center * X[, match("pretested", colnames(X))]
+    }
   }
-  ratios <- vapply(covariates, function(name) {
-    x <- .covariate_values(df[[name]])
-    if (is.null(x)) 0 else ratio(x[in_model])
-  }, numeric(1))
-  if (is.finite(center) && "pre_obs" %in% setdiff(names(df), covariates)) {
-    ratios <- c(ratios, ratio(df$pre_obs[in_model & df$pretested %in% 1] + center))
-  }
-  max(1e-11, 4 * .Machine$double.eps * max(0, ratios))
+  .Machine$double.eps * (sweep(abs(X), 2L, s, "/") + abs(Z))
 }
 
-# The terms of the model `fit` whose columns of the model matrix are within
-# `tol` of the span of the columns before them, in the metric of the
-# model's working weights, as glm() judges them, with each column but the
-# intercept centered at its weighted mean, so that `tol` is relative to the
-# column's standard deviation over the rows of the model and the answer
-# does not depend on where a column lies: the columns beyond the rank of
-# qr() at `tol`, which it moves to the end. An empty vector when there are
-# none.
-.collinear_terms <- function(fit, tol) {
+# The terms of the standardized model `fit` that are collinear with the
+# other terms but for the rounding error of the values the model was given
+# (issue #137), from `noise`, the error of each entry of its model matrix
+# (.representation_error()).
+#
+# Terms that are exactly collinear in the data as given, sum_j c_j x_j = 0
+# with the intercept among the x_j, satisfy it once stored only up to their
+# rounding errors: sum_j c_j x_j = r, with |r_i| <= sum_j |c_j| e_ij for the
+# errors e_ij of the entries. Standardizing changes the units of the terms,
+# not the relation. Regressed on the other terms, as glm()'s QR
+# decomposition does in the metric of the fit's weights (the working
+# weights, times the prior weights), a term k of the relation then has a
+# residual of at most || r || / |c_k|, and its coefficients are those of
+# the relation, b_kj = -c_j / c_k. So its residual is at most
+#   B_k = || e_k + sum_j |b_kj| e_j ||,
+# the rounding error the regression carries into term k from the terms it
+# is regressed on: in the units of the terms as given, with coefficients
+# beta_kj, entry i is eps (|x_ik| + sum_j |beta_kj| |x_ij|) / s_k, which
+# grows with the coefficients and so with the spreads of the far terms
+# relative to term k's own. A tolerance relative to each term's own spread,
+# the same for every term, missed a time of testing that is the time of
+# enrolment plus a delay, with the times as dates in seconds: the error of
+# the times reached the delay amplified by their spreads relative to its
+# spread, 1,200 times its own, and the fit went on to meaningless standard
+# errors. A single tolerance large enough to cover that amplification
+# would instead stop nearly collinear covariates near zero whenever another
+# covariate lies far from zero, though glm() and master fit them.
+#
+# Each term is therefore compared with its own bound: it is taken to be
+# collinear with the terms before it when its residual, in the metric of
+# the weights and with each column but the intercept centered at its
+# weighted mean, is at most 4 B_k, or at most 1e-11 of its norm, the
+# tolerance of glm(). The bound holds with the coefficients of an exact
+# relation, and the regression's coefficients equal them to within the
+# relation's own rounding error; the margin of 4 covers errors several
+# times eps / 2 per entry, as computed covariates carry, and the rounding
+# of the decomposition. A term that is not collinear is stopped only if its
+# residual is within 4 B_k: near zero B_k is of the order of eps, so that
+# glm()'s tolerance decides, as in master, and a covariate far from zero
+# that is unrelated to the term enters its regression with a coefficient
+# near zero and adds nothing to its bound.
+#
+# The terms are checked in turn, each regressed on those before it, with
+# the covariates (the terms named in `covariates`) after the treatment and
+# pretest terms, so that a relation is found at its last term in that order
+# whatever the order of the covariates; a term found collinear is left out
+# and the rest are checked again. Returns the names of the collinear terms'
+# columns, in the order of the model, or an empty vector.
+.collinear_terms <- function(fit, noise, covariates = character(), margin = 4, floor = 1e-11) {
   X <- stats::model.matrix(fit)
   w <- fit$weights
   if (is.null(w) || length(w) != nrow(X)) w <- rep(1, nrow(X))
-  X <- X[w > 0, , drop = FALSE]
-  w <- w[w > 0]
-  j <- colnames(X) != "(Intercept)"
-  X[, j] <- sweep(X[, j, drop = FALSE], 2L, colSums(w * X[, j, drop = FALSE]) / sum(w))
-  q <- qr(sqrt(w) * X, tol = tol)
-  if (q$rank == ncol(X)) return(character())
-  colnames(X)[q$pivot[seq(q$rank + 1L, ncol(X))]]
+  labels <- attr(stats::terms(fit), "term.labels")
+  last <- attr(X, "assign") %in% match(covariates, labels)
+  order <- c(which(!last), which(last))
+  keep <- w > 0
+  A <- X[keep, order, drop = FALSE]
+  E <- noise[keep, order, drop = FALSE]
+  w <- w[keep]
+  j <- order != match(0L, attr(X, "assign"))
+  A[, j] <- sweep(A[, j, drop = FALSE], 2L, colSums(w * A[, j, drop = FALSE]) / sum(w))
+  A <- sqrt(w) * A
+  E <- sqrt(w) * E
+  # The first term, in this order, collinear with the terms before it; NA
+  # for none. qr() with a tolerance of 0 keeps the columns in order.
+  first <- function(A, E) {
+    R <- qr.R(qr(A, tol = 0))
+    for (k in seq_len(ncol(A))[-1L]) {
+      before <- seq_len(k - 1L)
+      b <- backsolve(R[before, before, drop = FALSE], R[before, k])
+      bound <- E[, k] + drop(E[, before, drop = FALSE] %*% abs(b))
+      residual <- abs(R[k, k])
+      if (!is.finite(residual) || !all(is.finite(bound)) ||
+          residual <= max(margin * sqrt(sum(bound^2)), floor * sqrt(sum(A[, k]^2)))) {
+        return(k)
+      }
+    }
+    NA_integer_
+  }
+  active <- seq_len(ncol(A))
+  found <- integer()
+  repeat {
+    k <- first(A[, active, drop = FALSE], E[, active, drop = FALSE])
+    if (is.na(k)) break
+    found <- c(found, active[k])
+    active <- active[-k]
+  }
+  colnames(X)[sort(order[found])]
 }
 
 # Fit the joint model of an N-group design. Called by fit_solomon_glm()
@@ -410,11 +481,12 @@
 
   # An empty group, or a term collinear with the others, leaves a
   # coefficient inestimable, in the model as given or standardized, the
-  # latter checked as well at a tolerance that follows the rounding error of
-  # where the covariates lie (.collinear_tolerance()).
+  # latter checked as well for terms collinear but for the rounding error of
+  # the values given, as in the four-group model (.collinear_terms()).
   .stop_inestimable(fit_given, .group_names(counts, counts == 0))
   .stop_inestimable(fit, .group_names(counts, counts == 0),
-                    .collinear_tolerance(df, names(covariates), used, pretest_mean))
+                    noise = .representation_error(fit, fit_given, scaling, pretest_mean),
+                    covariates = .formula_names(names(covariates)))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2.
