@@ -22,8 +22,8 @@ package or of the validation-scripts check.
 | `job-info.R` | The machine of a job (a chunk, the plan, or the merge): runner image, CPUs, processor, memory, attempt, local resumptions |
 | `merge-chunks.R` | The checks before any summary; manifest, completeness, replay list |
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
-| `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in a protocol's gate or test, only the files agreement, run information, timing, and the harness's own (by name; contents are not inspected) |
-| `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder |
+| `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in every run, no file under a name the harness writes after it; in a protocol's gate or test, only agreement, run information, `summary.rds`, and timing (by name; contents are not inspected) |
+| `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder; refuses a file under one of their names, and a `logs/` folder, that is already there |
 | `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path; a format other than .csv, .txt, .json, and .rds; a text file with a NUL byte, a UTF-16 byte-order mark, a gzip or zlib header at its start, or bytes that are not valid UTF-8; an object it cannot walk) |
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
@@ -239,23 +239,24 @@ Rscript tools/sim/tests/run-tests.R --only merge --run <folder of a finished run
 
 Each case builds its input in a temporary folder (`--work` names another)
 and runs one check in a new R process: the MCSE, decision, and file-name
-rules of `check-results.R`; 57 folders that `scan-addresses.R` must refuse,
-built around a placeholder address at example.org that is assembled at run
-time (11 of them by a named rule: a NUL byte, a gzip or zlib header, or
-bytes that are not valid UTF-8, among them compressed text without a NUL
-byte), and 9 it must pass (among them UTF-8 text with the characters the
-package prints, a UTF-8 byte-order mark, and empty files); the job sizes of
+rules of `check-results.R`, including the names the harness writes after
+it; 57 folders that `scan-addresses.R` must refuse, built around a
+placeholder address at example.org that is assembled at run time (11 of
+them by a named rule: a NUL byte, a gzip or zlib header, or bytes that are
+not valid UTF-8, among them compressed text without a NUL byte), and 9 it
+must pass (among them UTF-8 text with the characters the package prints, a
+UTF-8 byte-order mark, and empty files); the job sizes of
 `assign-chunks.R`; the workflow's "Check the inputs" step, run with bash
 (`--bash <path>` if bash is not on the PATH); the contract's plan stage and
 `sim_verify_plan()` on the synthetic study `tests/synthetic-study.R`, which
 loads no package (with git, also the clean-checkout rule); the replay list
-of `merge-chunks.R` and the items of `finalize-results.R` on files made up
-there; and, with `--run`, `merge-chunks.R` on tampered copies of a run's
-`plan/` and `chunks/`, and the address scan of the run's own folders. Any
-case that ends otherwise than expected makes the exit status 1. The
-workflow runs them in the pull requests that change the harness: the job
-"Harness tests", and the merge cases at the end of the merge job, on that
-run's own chunks. Run them after any change to a check.
+of `merge-chunks.R` and the items and refusals of `finalize-results.R` on
+files made up there; and, with `--run`, `merge-chunks.R` on tampered
+copies of a run's `plan/` and `chunks/`, and the address scan of the run's
+own folders. Any case that ends otherwise than expected makes the exit
+status 1. The workflow runs them in the pull requests that change the
+harness: the job "Harness tests", and the merge cases at the end of the
+merge job, on that run's own chunks. Run them after any change to a check.
 
 The software check runs without its repository and tool checks, so the
 local package versions must match the pins. On Windows, R reports no BLAS or
@@ -304,14 +305,25 @@ In the study's own pull request, before its run (the order rule of #117):
    does not, such as the number of permutations). In a protocol's smoke
    mode, test runs, and gate, it may return only elements named
    `agreement`, `run-information`, and `timing/<name>`; the contract stops
-   on any other name, and `check-results.R` on any other file. Both check
+   on any other name. In test and gate runs, `check-results.R` then allows
+   in the results folder only `agreement.csv`, `run-information.csv`,
+   `summary.rds`, and files directly under `timing/`. In every run it also
+   refuses a file under a name that the harness writes after it
+   (`manifest.csv`, `completeness.csv`, `software.csv`, `replay.csv`,
+   `preflight.csv`, `timing/jobs.csv`, `timing/plan-job.csv`,
+   `timing/merge-job.csv`, `timing/rng-fingerprint.txt`,
+   `timing/sessionInfo-<chunk>.txt`, and anything under `logs/`): only a
+   `summarize()` that writes into `SOLOMONR_SIM_OUT` itself can have put
+   it there, since both routes run the check after the summary and before
+   `finalize-results.R`, which refuses these names too. These checks read
    names only, not contents: a performance measure, decision, or failure
    count returned as a column of `agreement`, an item of `run-information`,
-   or a `timing/` element would pass them. That these runs compute none
-   rests on the study's `summarize()`, whose code its pull request shows.
-   A `gate$project` may not
-   return a name the harness or the summary writes (other than
-   `gate-times`, `gate-projection`, and `gate-summary`).
+   or a `timing/` element, or written as a file under `timing/` with a name
+   the harness does not write, would pass them. That these runs compute
+   none rests on the study's `summarize()`, whose code its pull request
+   shows. A `gate$project` may not return a name the harness or the
+   summary writes (other than `gate-times`, `gate-projection`, and
+   `gate-summary`).
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,
    the extra packages, every package version the protocol records, and
    `tool,pak`. A protocol study (registry flag `TRUE`) must also give

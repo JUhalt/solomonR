@@ -9,10 +9,13 @@
 # the plan job, which ran the preflight, and of the merge job, which ran the
 # replay and the summary; job-info.R in plan/ and <merged dir>),
 # timing/sessionInfo-<chunk>.txt, and timing/rng-fingerprint.txt (if the plan
-# job wrote one); it stops rather than replace a file of the same name that
-# the study wrote. run-information.csv (item, value) keeps the items the
-# study's summary wrote, in their order, and adds the harness's items after
-# them; an item that both write stops the run. The results folder then holds
+# job wrote one). It stops if a file of one of these names is already there,
+# even one it has nothing to put in (preflight.csv of a study without
+# checks), and if logs/ is (which the workflow fills after this script): only
+# the study's summary can have written them. run-information.csv (item,
+# value) keeps the items the study's summary wrote, in their order, and adds
+# the harness's items after them; an item that both write stops the run.
+# The results folder then holds
 # the files that go into the study's folder by a pull request (and
 # summary.rds, which tools/sim/compare-runs.R reads); the task files stay in
 # the chunk artifacts. Among the harness's items, started_utc is when the
@@ -39,10 +42,20 @@ merged_dir <- args[[3]]
 results_dir <- args[[4]]
 dir.create(file.path(results_dir, "timing"), showWarnings = FALSE, recursive = TRUE)
 
+# A file of a name the harness writes is refused if it is already there,
+# whether or not the harness has one to put there (the plan of a study
+# without checks has no preflight.csv, for one): only the study's summary
+# can have written it.
 copy <- function(from, to) {
+  if (file.exists(to)) h_fail("The study wrote ", to, ", a name that the harness writes.")
   if (!file.exists(from)) return(invisible(FALSE))
-  if (file.exists(to)) h_fail("The study wrote ", to, ", a file that the harness writes.")
   invisible(file.copy(from, to))
+}
+# The workflow copies the logs into logs/ after this script, and
+# tools/sim/run-local.R keeps them outside the results folder, so any
+# logs/ here is the study's.
+if (file.exists(file.path(results_dir, "logs"))) {
+  h_fail("The study wrote ", file.path(results_dir, "logs"), ", a folder that the harness writes.")
 }
 for (f in c("manifest.csv", "completeness.csv", "software.csv", "replay.csv")) {
   copy(file.path(merged_dir, f), file.path(results_dir, f))

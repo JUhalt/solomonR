@@ -10,10 +10,11 @@
 #   results  check-results.R: the MCSE rule on performance.csv written by the
 #            contract's own sim_write_csv() (a missing note, written as NA,
 #            is no note), the basis of decisions.csv, the protocol flag and
-#            purpose, and the file names a protocol's gate or test may hold.
-#            Two cases record the limit of that rule: it reads names only,
-#            so a measure under an allowed name passes (README, "Adding a
-#            study", item 4).
+#            purpose, the file names a protocol's gate or test may hold, and,
+#            in any run, the refusal of every name the harness writes after
+#            the check (by its message). Two cases record the limit of the
+#            name rule: it reads names only, so a measure under an allowed
+#            name passes (README, "Adding a study", item 4).
 #   scan     scan-addresses.R on folders built here around a placeholder
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
@@ -52,8 +53,10 @@
 #   finalize finalize-results.R on a run's folders made up here: the first
 #            task's start and the last task's finish (the earliest and the
 #            latest, not the first and last rows), NA without the task
-#            times, and the sourced files' SHA-256 (NA for a plan of
-#            contract 2).
+#            times, the sourced files' SHA-256 (NA for a plan of contract
+#            2), and the refusal (by its message) of a file the study wrote
+#            under a name the harness writes, also when the plan has none
+#            to copy, and of a logs/ folder.
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it), and
@@ -110,6 +113,14 @@ with_env <- function(vars, code) {
   })
   code
 }
+# "refuse" only when the script's own check stops it, with its message
+# `msg` and no R warning before it; an R error further on is not a refusal
+# by the check.
+refusal <- function(r, msg) {
+  if (r$status == 0L) return("accept")
+  if (!any(grepl(msg, r$out, fixed = TRUE))) return("R error")
+  if (any(grepl("Warning message", r$out, fixed = TRUE))) "R warning" else "refuse"
+}
 outcomes <- list()
 record <- function(group, label, expected, got, note = "") {
   ok <- identical(expected, got)
@@ -147,9 +158,11 @@ if ("results" %in% groups) local({
     }
     d
   }
-  check <- function(label, d, purpose, flag, expected) {
+  # With `msg`, "refuse" only by that message (refusal()).
+  check <- function(label, d, purpose, flag, expected, msg = NULL) {
     r <- run_r("check-results.R", c(file.path(d, "results"), purpose, flag, file.path(d, "plan")))
-    record("results", label, expected, if (r$status == 0L) "accept" else "refuse", last_line(r$out))
+    got <- if (is.null(msg)) { if (r$status == 0L) "accept" else "refuse" } else refusal(r, msg)
+    record("results", label, expected, got, last_line(r$out))
   }
   perf <- function(mcse, note) {
     data.frame(scenario = 1L, method = "T0", contrast = "x", measure = "bias", estimate = 0.1,
@@ -191,16 +204,33 @@ if ("results" %in% groups) local({
   allowed <-list(`run-information.csv` = data.frame(item = "permutations", value = "999"),
                   summary.rds = list(agreement = data.frame(check = "a1")),
                   `timing/task-times.csv` = data.frame(task_id = "s0001-t0001", elapsed = 1))
-  harness_files <- list(manifest.csv = data.frame(task_id = "s0001-t0001"), completeness.csv = data.frame(x = 1),
-                        software.csv = data.frame(kind = "r", name = "version", value = "4.6.1"),
-                        replay.csv = data.frame(x = 1), preflight.csv = data.frame(check = "c", passed = TRUE),
-                        `logs/plan-log.txt` = "log", `timing/jobs.csv` = data.frame(chunk = "0001"),
-                        `timing/plan-job.csv` = data.frame(item = "chunk", value = "plan"),
-                        `timing/sessionInfo-0001.txt` = "session")
   extra <- function(...) c(allowed, list(...))
   check("protocol test: agreement, run information, timing", make("TRUE", "test", files = allowed), "test", "TRUE", "accept")
-  check("protocol test: and the harness's own files", make("TRUE", "test", files = c(allowed, harness_files)),
-        "test", "TRUE", "accept")
+  # The names finalize-results.R and the workflow write after this check
+  # (finding 2 of review 3): in the results at check time, only the study
+  # can have written them, in any run.
+  later <- list(manifest.csv = data.frame(task_id = "s0001-t0001"), completeness.csv = data.frame(x = 1),
+                software.csv = data.frame(kind = "r", name = "version", value = "4.6.1"),
+                replay.csv = data.frame(x = 1), preflight.csv = data.frame(check = "c", passed = TRUE),
+                `logs/plan-log.txt` = "log", `logs/coverage.txt` = c("scenario,method,coverage", "1,T0,0.947"),
+                `timing/jobs.csv` = data.frame(chunk = "0001"),
+                `timing/plan-job.csv` = data.frame(item = "chunk", value = "plan"),
+                `timing/merge-job.csv` = data.frame(item = "chunk", value = "merge"),
+                `timing/rng-fingerprint.txt` = "fingerprint", `timing/sessionInfo-0001.txt` = "session")
+  taken <- "under names that the harness writes after this check"
+  for (nm in names(later)) {
+    check(paste0("protocol test: ", nm, ", a harness name"), make("TRUE", "test", files = c(allowed, later[nm])),
+          "test", "TRUE", "refuse", taken)
+  }
+  d <- make("TRUE", "test", files = allowed)
+  dir.create(file.path(d, "results", "logs"))
+  check("protocol test: an empty logs/ folder", d, "test", "TRUE", "refuse", taken)
+  check("test run, not a protocol: preflight.csv", make("FALSE", "test", files = later["preflight.csv"]),
+        "test", "FALSE", "refuse", taken)
+  coverage <- c("scenario,method,coverage", "1,T0,0.947")
+  check("review 3's case: preflight.csv and logs/coverage.txt of the study",
+        make("TRUE", "test", files = extra(preflight.csv = coverage, `logs/coverage.txt` = coverage)),
+        "test", "TRUE", "refuse", taken)
   check("protocol test: coverage.csv", make("TRUE", "test", files = extra(coverage.csv = data.frame(coverage = 0.9))),
         "test", "TRUE", "refuse")
   check("protocol test: performance.csv", make("TRUE", "test", files = extra(performance.csv = perf(0.01, ""))),
@@ -229,6 +259,10 @@ if ("results" %in% groups) local({
         make("TRUE", "study", files = study_files), "study", "TRUE", "accept")
   check("protocol study run without decisions.csv",
         make("TRUE", "study", files = study_files[-2]), "study", "TRUE", "refuse")
+  check("protocol study run: preflight.csv of the study",
+        make("TRUE", "study", files = c(study_files, later["preflight.csv"])), "study", "TRUE", "refuse", taken)
+  check("protocol study run: logs/coverage.txt of the study",
+        make("TRUE", "study", files = c(study_files, later["logs/coverage.txt"])), "study", "TRUE", "refuse", taken)
 })
 
 # ---- scan: scan-addresses.R --------------------------------------------------
@@ -570,14 +604,6 @@ if ("contract" %in% groups) local({
   }
   verify_vars <- function(plan_dir) c(SOLOMONR_SIM_PLAN = plan_dir, HARNESS_TEST_VERIFY = "1")
   outcome <- function(r) if (r$status == 0L) "accept" else "refuse"
-  # "refuse" only when the contract's own check stops the stage, with its
-  # message `msg` and no R warning before it; an R error further on is not
-  # a refusal by the contract.
-  refusal <- function(r, msg) {
-    if (r$status == 0L) return("accept")
-    if (!any(grepl(msg, r$out, fixed = TRUE))) return("R error")
-    if (any(grepl("Warning message", r$out, fixed = TRUE))) "R warning" else "refuse"
-  }
   item <- function(kv, name) if (name %in% names(kv)) kv[[name]] else NA_character_
   read_info <- function(plan_dir) {
     f <- file.path(plan_dir, "plan-info.csv")
@@ -865,7 +891,7 @@ if ("finalize" %in% groups) local({
   # The folders of a finished run as finalize-results.R reads them: three
   # tasks, whose earliest start and latest finish are in neither the first
   # nor the last row of timing/task-times.csv.
-  make <- function(name, times = TRUE, files_item = TRUE) {
+  make <- function(name, times = TRUE, files_item = TRUE, preflight = FALSE) {
     d <- file.path(root, name)
     info <- c(contract = "3", study = "synthetic", issue = "117", protocol = "FALSE", purpose = "test",
               design = "run", base_seed = "13", rng_kind = "L'Ecuyer-CMRG", normal_kind = "Inversion",
@@ -875,6 +901,7 @@ if ("finalize" %in% groups) local({
               package_sha = strrep("0", 40), package_dirty = "NA", created_utc = "2026-11-01T00:00:00.000Z")
     if (!files_item) info <- info[names(info) != "files_sha256"]
     h_write_kv(info, file.path(d, "plan", "plan-info.csv"))
+    if (preflight) h_write_csv(data.frame(check = "c1", passed = TRUE), file.path(d, "plan", "preflight.csv"))
     dir.create(file.path(d, "chunks", "chunk-0001"), recursive = TRUE)
     m <- file.path(d, "merged")
     h_write_csv(data.frame(task_id = "s0001-t0001", content_sha256 = "x"), file.path(m, "manifest.csv"))
@@ -918,6 +945,36 @@ if ("finalize" %in% groups) local({
   v <- item(x$kv, "sourced_files_sha256")
   record("finalize", "a plan without files_sha256 (contract 2): NA", "yes", if (identical(v, "NA")) "yes" else "no",
          paste(v, last_line(x$r$out)))
+  # Files the study wrote under names the harness writes (finding 2 of
+  # review 3), refused even when the harness has nothing to put there: this
+  # plan has no preflight.csv, rng-fingerprint.txt, or job-info.csv.
+  coverage <- c("scenario,method,coverage", "1,T0,0.947")
+  study_wrote <- list(
+    list("the study wrote preflight.csv, the plan has none", "f04", "preflight.csv", FALSE, "a name that the harness writes"),
+    list("the study wrote preflight.csv, the plan has one", "f05", "preflight.csv", TRUE, "a name that the harness writes"),
+    list("the study wrote timing/rng-fingerprint.txt, the plan has none", "f06", file.path("timing", "rng-fingerprint.txt"),
+         FALSE, "a name that the harness writes"),
+    list("the study wrote timing/plan-job.csv, the plan has no job-info.csv", "f07", file.path("timing", "plan-job.csv"),
+         FALSE, "a name that the harness writes"),
+    list("the study wrote logs/coverage.txt", "f08", file.path("logs", "coverage.txt"), FALSE,
+         "a folder that the harness writes"))
+  for (cs in study_wrote) {
+    d <- make(cs[[2]], preflight = cs[[4]])
+    f <- file.path(d, "results", cs[[3]])
+    dir.create(dirname(f), showWarnings = FALSE, recursive = TRUE)
+    writeLines(coverage, f)
+    x <- finalize(d)
+    record("finalize", cs[[1]], "refuse", refusal(x$r, cs[[5]]), last_line(x$r$out))
+  }
+  d <- make("f09")
+  dir.create(file.path(d, "results", "logs"))
+  x <- finalize(d)
+  record("finalize", "the study wrote an empty logs/ folder", "refuse", refusal(x$r, "a folder that the harness writes"),
+         last_line(x$r$out))
+  x <- finalize(make("f10", preflight = TRUE))
+  record("finalize", "the plan's preflight.csv is copied", "yes",
+         if (x$r$status == 0L && file.exists(file.path(root, "f10", "results", "preflight.csv"))) "yes" else "no",
+         last_line(x$r$out))
 })
 
 # ---- merge: merge-chunks.R on tampered copies ----------------------------------

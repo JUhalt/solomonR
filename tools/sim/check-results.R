@@ -6,13 +6,22 @@
 # FALSE and equal the flag the study script wrote into the plan. Then:
 #
 #   - agreement.csv must exist; a gate design needs timing/gate-projection.csv;
+#   - in every run, the folder may not hold a file under a name that the
+#     harness writes into it after this check: manifest.csv,
+#     completeness.csv, software.csv, replay.csv, preflight.csv,
+#     timing/jobs.csv, timing/plan-job.csv, timing/merge-job.csv,
+#     timing/rng-fingerprint.txt, and timing/sessionInfo-<chunk>.txt
+#     (finalize-results.R), or anything under logs/ (the workflow's copy of
+#     the logs). Both routes run this check after the study's summary and
+#     before finalize-results.R (the workflow's merge job and
+#     tools/sim/run-local.R), so such a file can only be one that the
+#     study's summarize() wrote into SOLOMONR_SIM_OUT itself;
 #   - for a protocol, a gate or test run may hold only agreement.csv,
-#     run-information.csv, summary.rds, and files directly under timing/
-#     (and the files the harness itself writes: manifest.csv,
-#     completeness.csv, software.csv, replay.csv, preflight.csv, logs/*.txt).
+#     run-information.csv, summary.rds, and files directly under timing/.
 #     Only the file names are checked, not their contents, so a measure
 #     written as a column of agreement.csv, an item of run-information.csv,
-#     or a file under timing/ is not caught here;
+#     or a file under timing/ with a name other than those above is not
+#     caught here;
 #   - for a protocol's study run, performance.csv, decisions.csv, and the
 #     study's part of run-information.csv must exist;
 #   - wherever performance.csv is written, it needs the columns scenario,
@@ -49,14 +58,22 @@ if (!file.exists(file.path(dir, "agreement.csv"))) h_fail("agreement.csv is miss
 if (identical(info[["design"]], "gate") && !file.exists(file.path(dir, "timing", "gate-projection.csv"))) {
   h_fail("timing/gate-projection.csv is missing.")
 }
+present <- list.files(dir, recursive = TRUE, all.files = TRUE, no.. = TRUE, include.dirs = TRUE)
+# The names finalize-results.R and the workflow write after this check.
+later <- c("manifest.csv", "completeness.csv", "software.csv", "replay.csv", "preflight.csv",
+           "timing/jobs.csv", "timing/plan-job.csv", "timing/merge-job.csv", "timing/rng-fingerprint.txt")
+taken <- present[present %in% later | grepl("^timing/sessionInfo-[0-9]{4}[.]txt$", present) |
+                   grepl("^logs(/|$)", present)]
+if (length(taken)) {
+  h_fail("The results hold files under names that the harness writes after this check, so the study wrote them: ",
+         paste(head(taken, 10), collapse = ", "), ".")
+}
 if (protocol && purpose != "study") {
-  allowed <- c("agreement.csv", "run-information.csv", "summary.rds",
-               "manifest.csv", "completeness.csv", "software.csv", "replay.csv", "preflight.csv")
-  present <- list.files(dir, recursive = TRUE, all.files = TRUE, no.. = TRUE)
-  other <- present[!present %in% allowed & !grepl("^timing/[^/]+$", present) & !grepl("^logs/[^/]+[.]txt$", present)]
+  allowed <- c("agreement.csv", "run-information.csv", "summary.rds", "timing")
+  other <- present[!present %in% allowed & !grepl("^timing/[^/]+$", present)]
   if (length(other)) {
     h_fail("A ", purpose, " run of a protocol may hold only agreement.csv, run-information.csv, summary.rds, ",
-           "timing/, and the harness's files; it holds ", paste(head(other, 10), collapse = ", "), ".")
+           "and files directly under timing/; it holds ", paste(head(other, 10), collapse = ", "), ".")
   }
 }
 if (protocol && purpose == "study") {

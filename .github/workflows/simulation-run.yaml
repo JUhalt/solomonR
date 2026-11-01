@@ -482,6 +482,9 @@ jobs:
       # check-results.R names files of results/ in its messages, names that
       # the study's summarize() chose, so results/ is scanned before the
       # check prints anything. The later scan covers the files added after.
+      # The check runs before finalize-results.R and before results/logs/ is
+      # made: it refuses the names those write, which here only the study
+      # can have written.
       - name: Scan the summary for e-mail addresses
         shell: bash
         run: Rscript harness/tools/sim/scan-addresses.R results
