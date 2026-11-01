@@ -16,7 +16,8 @@
 #   - wherever performance.csv is written, it needs the columns scenario,
 #     method, contrast, measure, estimate, mcse, mcse_note, and n_success, and
 #     every row a Monte Carlo standard error greater than 0 or a note that
-#     says why there is none;
+#     says why there is none (a missing note, which the contract writes as
+#     NA, is not a note);
 #   - wherever decisions.csv is written, it needs the columns rule and
 #     verdict and at least one of mcse, threshold, and p_value, and every row
 #     a number in one of them.
@@ -70,7 +71,9 @@ if (file.exists(perf_file)) {
   lacking <- setdiff(need, names(perf))
   if (length(lacking)) h_fail("performance.csv lacks the columns ", paste(lacking, collapse = ", "), ".")
   mcse <- suppressWarnings(as.numeric(perf$mcse))
-  ok <- (is.finite(mcse) & mcse > 0) | nzchar(trimws(perf$mcse_note))
+  # The contract writes a missing value as NA, which reads back as "NA".
+  note <- trimws(perf$mcse_note)
+  ok <- (is.finite(mcse) & mcse > 0) | (nzchar(note) & note != "NA")
   if (!all(ok)) {
     h_fail(sum(!ok), " rows of performance.csv have neither an MCSE above 0 nor a note, e.g. row ",
            which(!ok)[[1]], ".")

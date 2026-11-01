@@ -170,8 +170,7 @@ completeness <- do.call(rbind, lapply(scenarios, function(s) {
 sources <- c(plan = file.path(plan_dir, "software.csv"),
              stats::setNames(file.path(chunks_dir, paste0("chunk-", found), "software.csv"), paste0("chunk-", found)))
 present <- file.exists(sources)
-if (!all(present[-1])) h_fail("software.csv is missing from: ", paste(names(sources)[-1][!present[-1]], collapse = ", "), ".")
-sources <- sources[present]
+if (!all(present)) h_fail("software.csv is missing from: ", paste(names(sources)[!present], collapse = ", "), ".")
 software <- lapply(sources, h_read_csv)
 ref <- software[[length(software)]]
 differ <- names(software)[!vapply(software, identical, TRUE, ref)]
