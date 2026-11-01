@@ -36,8 +36,24 @@ conditions, with the control named by \code{control}}
 \item{y_pre}{numeric pretest vector: the pretest score for pretested
 participants and \code{NA} for the others}
 
-\item{covariates}{optional data frame of additional covariates, or, with
-\code{data}, the names of its columns to use}
+\item{covariates}{optional covariates, one value or row per participant:
+\itemize{
+\item a data frame, one covariate per column;
+\item a numeric, logical, or factor vector, one covariate, named by the
+variable when given by its bare name (\code{covariates = age}), and
+\code{covariate} otherwise;
+\item a numeric or logical matrix, one covariate per column, named by its
+column names, with \code{covariate1}, \code{covariate2}, ... for columns
+without one;
+\item with \code{data}, the names of its columns (\code{covariates = c("age", "z")}),
+each of which must be a column, or one column by its bare name.
+}
+
+Any other form stops with an error, so that no covariate is left out
+unnoticed: a character vector without \code{data} (give the data frame as
+\code{data}, or a categorical covariate as a factor), a list that is not a
+data frame, an array of more than two dimensions, a matrix with two
+columns of the same name, or a value of the wrong length.}
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 

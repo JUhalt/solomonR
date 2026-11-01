@@ -1,5 +1,54 @@
 # solomonR (development version)
 
+## Covariates given as a vector or a matrix (bug fix, #146)
+
+* `fit_solomon_glm()` left a covariate given as a vector or a matrix out
+  of the model, without an error or a warning, so its results were those
+  of a fit without that covariate. The help named two forms, a data frame
+  and, with `data`, the names of its columns; other forms were neither
+  used nor refused. In `fit_solomon_glm()`, with one treatment or several,
+  and in `check_solomon_missing()`, every form now enters the model or
+  stops with an error:
+
+  - A numeric, logical, or factor vector is one covariate. It is named by
+    the variable when given by its bare name (`covariates = age`), as
+    `data` already allowed, and `covariate` otherwise.
+  - A numeric or logical matrix is one covariate per column, named by its
+    column names, with `covariate1`, `covariate2`, ... for columns without
+    one. Two columns of the same name stop the fit.
+  - Any other form stops with an error that says what to give instead: a
+    character vector without `data` (names of columns need `data`, and a
+    categorical covariate goes in as a factor), a list that is not a data
+    frame, an array of more than two dimensions, and any other type, such
+    as dates outside a data frame.
+* With `data`, names in `covariates` that are not columns of `data` stop
+  with an error that lists them. Before, the error was "Inputs must have
+  the same length", which did not say why. A character vector from outside
+  `data` is read as names too. Given by its bare name, it was taken before
+  as a categorical covariate; give it as a factor, or as a column of a data
+  frame.
+* `check_solomon_missing()` converted other forms with `as.data.frame()`:
+  a vector was named `covariates`, the columns of a matrix without names
+  `V1`, `V2`, ..., and a list or a character vector was accepted. They are
+  now named, or refused, as in `fit_solomon_glm()`.
+* **Results are unchanged** for the forms that the help named. For 81
+  results, the values, names, classes, attributes, and printed output are
+  identical to those of the development version before this change: fits
+  with one and with several treatments, with covariates given as data
+  frames, tibbles, data frames with row names, names of columns, and bare
+  column names, with model-based, HC3, and CR2 covariances, binary and
+  count outcomes, both pretest centers, and missing posttests; their
+  prints, summaries, `tidy()`, and reports; `perm_solomon()`,
+  `marginal_solomon()`, `plot_sensitization()`, and
+  `equivalence_solomon()` of them; and `check_solomon_missing()` and
+  `validate_solomon()`. A test compares such fits with results stored
+  from that version.
+* `perm_solomon()`, `marginal_solomon()`, and `plot_sensitization()`
+  work from the data stored in the fit, and `report_solomon()`,
+  `equivalence_solomon()`, `tidy()`, and `glance()` from its results, so a
+  vector or a matrix gives them the same results as the equivalent data
+  frame. Tests check this for each.
+
 ## broom and dplyr are no longer imported (#84, fourth part)
 
 * solomonR no longer imports broom and dplyr, which brought in 8 of the

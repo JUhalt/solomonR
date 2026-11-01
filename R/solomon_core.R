@@ -996,8 +996,22 @@ stouffer_solomon <- function(p) {
 #' @param pretested 0/1 (or logical) pretest indicator (1 = group received pretest)
 #' @param y_pre numeric pretest vector: the pretest score for pretested
 #'   participants and `NA` for the others
-#' @param covariates optional data frame of additional covariates, or, with
-#'   `data`, the names of its columns to use
+#' @param covariates optional covariates, one value or row per participant:
+#'   - a data frame, one covariate per column;
+#'   - a numeric, logical, or factor vector, one covariate, named by the
+#'     variable when given by its bare name (`covariates = age`), and
+#'     `covariate` otherwise;
+#'   - a numeric or logical matrix, one covariate per column, named by its
+#'     column names, with `covariate1`, `covariate2`, ... for columns
+#'     without one;
+#'   - with `data`, the names of its columns (`covariates = c("age", "z")`),
+#'     each of which must be a column, or one column by its bare name.
+#'
+#'   Any other form stops with an error, so that no covariate is left out
+#'   unnoticed: a character vector without `data` (give the data frame as
+#'   `data`, or a categorical covariate as a factor), a list that is not a
+#'   data frame, an array of more than two dimensions, a matrix with two
+#'   columns of the same name, or a value of the wrong length.
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
 #'   participant. CR2 fits refuse designs in which a Solomon cell contains a
