@@ -42,11 +42,20 @@
 # column, and several give a data frame. A bare name of a column gives that
 # column as it is, so a character column whose values happen to be column
 # names (such as a treatment column) is never read as a selection.
-# Arguments listed in `as_frame` (such as `covariates`) always give a data
-# frame. With `data = NULL`, the arguments are left as they are.
+# Arguments listed in `as_frame` (`covariates`) always give a data frame or
+# NULL, with `data` or without it: .solomon_covariates() converts or
+# refuses any other value (issue #146). With `data = NULL`, the other
+# arguments are left as they are.
 .solomon_data_args <- function(data, args, frame, caller, as_frame = character()) {
 
   if (is.null(data)) {
+    for (nm in intersect(as_frame, args)) {
+      if (eval(call("missing", as.name(nm)), frame)) {
+        next
+      }
+      expr <- eval(call("substitute", as.name(nm)), frame)
+      assign(nm, .solomon_covariates(get(nm, envir = frame), expr), envir = frame)
+    }
     return(invisible(NULL))
   }
 
@@ -64,14 +73,115 @@
     if (!is_column && is.character(value) && length(value) >= 1L &&
         all(value %in% names(data))) {
       value <- if (length(value) == 1L && !nm %in% as_frame) data[[value]] else data[value]
-    } else if (nm %in% as_frame && is.symbol(expr) && is.atomic(value) && is.null(dim(value))) {
-      # A single bare column name, such as `covariates = age`.
-      value <- stats::setNames(data.frame(value), as.character(expr))
+    } else if (nm %in% as_frame) {
+      value <- .solomon_covariates(value, expr, data, column = is_column)
     }
     assign(nm, value, envir = frame)
   }
 
   invisible(NULL)
+}
+
+
+# Make `covariates` a data frame, or stop, so that no covariate is left out
+# of a model unnoticed (issue #146). `x` is the value, `expr` the
+# expression it was given as, `data` the data frame of .solomon_data_args()
+# or NULL, and `column` whether `x` is the column of `data` that `expr`
+# names. The forms:
+#   - NULL or a data frame: as it is.
+#   - A column given by its bare name (`covariates = age`): one covariate
+#     of any atomic type, named by the column, as before.
+#   - A numeric, logical, or factor vector: one covariate, named by `expr`
+#     when it is a bare name, and "covariate" otherwise.
+#   - A numeric or logical matrix: one covariate per column, named by the
+#     column names, with covariate1, covariate2, ... by position for
+#     columns without one. Duplicated names stop.
+# Anything else stops with an error that says what to give instead. A
+# character vector is read as names of columns: with `data`, those that
+# name columns were selected already, so the others are listed; without
+# `data`, it may be names or a categorical covariate, and both are
+# answered. The length is checked with the other arguments
+# (.solomon_check_lengths()).
+.solomon_covariates <- function(x, expr = NULL, data = NULL, column = FALSE) {
+
+  if (is.null(x) || is.data.frame(x)) {
+    return(x)
+  }
+
+  dims <- dim(x)
+  one <- function(value) {
+    stats::setNames(data.frame(value), if (is.symbol(expr)) as.character(expr) else "covariate")
+  }
+
+  if (column && is.atomic(x) && is.null(dims)) {
+    return(one(x))
+  }
+
+  if (is.character(x) && is.null(dims)) {
+    if (!is.null(data)) {
+      absent <- setdiff(x, names(data))
+      if (!length(absent)) {
+        stop("`covariates` names no columns of `data`. Give NULL for no covariates.",
+             call. = FALSE)
+      }
+      shown <- if (length(absent) > 6L) c(absent[1:5], "...") else absent
+      stop(
+        "These names in `covariates` are not columns of `data`: ",
+        paste(shown, collapse = ", "), ". Give the names of columns of `data`. ",
+        "A categorical covariate that is not in `data` goes in as a factor, or ",
+        "as a column of a data frame.",
+        call. = FALSE
+      )
+    }
+    stop(
+      "`covariates` is a character vector, and `data` was not given. If it ",
+      "holds the names of columns, give the data frame as `data`. If it is a ",
+      "categorical covariate, give it as a factor, or as a column of a data frame.",
+      call. = FALSE
+    )
+  }
+
+  if (is.list(x)) {
+    stop("`covariates` is a list. Give a data frame, one column per covariate, ",
+         "such as `as.data.frame(covariates)`.", call. = FALSE)
+  }
+
+  if (length(dims) > 2L) {
+    stop("`covariates` is an array of ", length(dims), " dimensions. Give a data ",
+         "frame or a matrix, one column per covariate.", call. = FALSE)
+  }
+
+  if (length(dims) == 2L && (is.numeric(x) || is.logical(x))) {
+    labels <- colnames(x)
+    if (is.null(labels)) labels <- character(ncol(x))
+    blank <- is.na(labels) | !nzchar(labels)
+    labels[blank] <- paste0("covariate", seq_len(ncol(x)))[blank]
+    twice <- unique(labels[duplicated(labels)])
+    if (length(twice)) {
+      stop("`covariates` has more than one column named ", paste(twice, collapse = ", "),
+           ". Give each column its own name.", call. = FALSE)
+    }
+    out <- as.data.frame(unclass(x))
+    names(out) <- labels
+    return(out)
+  }
+
+  if (is.null(dims) && (is.numeric(x) || is.logical(x) || is.factor(x))) {
+    return(one(x))
+  }
+
+  what <- if (length(dims) == 2L) {
+    paste("a", typeof(x), "matrix")
+  } else if (length(dims) == 1L) {
+    "a one-dimensional array"
+  } else {
+    paste0("an object of class \"", class(x)[1], "\"")
+  }
+  stop(
+    "`covariates` must be a data frame, a numeric, logical, or factor vector, ",
+    "or a numeric or logical matrix, not ", what, ".",
+    call. = FALSE
+  )
 }
 
 

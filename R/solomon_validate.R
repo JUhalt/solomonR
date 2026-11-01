@@ -432,8 +432,9 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
 }
 
 # The work of check_solomon_missing(), once the data arguments are
-# resolved. `diagnostics = FALSE` leaves out the diagnostics of missing
-# posttests for the pretest effects (issue #135) and the fits behind them:
+# resolved: `covariates` is NULL or a data frame (.solomon_covariates()).
+# `diagnostics = FALSE` leaves out the diagnostics of missing posttests for
+# the pretest effects (issue #135) and the fits behind them:
 # validate_solomon() uses only the classification of the missing values.
 .solomon_missing <- function(y_post, treat, pretested, y_pre = NULL, control = NULL,
                              covariates = NULL, diagnostics = TRUE) {
@@ -442,9 +443,6 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
   several <- design$k > 1L
   treat <- if (several) design$condition else design$treat
   pretested <- .solomon_indicator(pretested, "pretested")
-  if (!is.null(covariates) && !is.data.frame(covariates)) {
-    covariates <- as.data.frame(covariates)
-  }
   .solomon_check_lengths(
     y_post = y_post,
     treat = treat,
