@@ -1003,15 +1003,21 @@ stouffer_solomon <- function(p) {
 #'     `covariate` otherwise;
 #'   - a numeric or logical matrix, one covariate per column, named by its
 #'     column names, with `covariate1`, `covariate2`, ... for columns
-#'     without one;
+#'     without one. `cbind()` turns a factor into its integer codes, so give
+#'     a factor in a data frame, such as `data.frame(age, region)`, or by
+#'     name with `data`;
 #'   - with `data`, the names of its columns (`covariates = c("age", "z")`),
-#'     each of which must be a column, or one column by its bare name.
+#'     each of which must be a column and be given once, or one column by
+#'     its bare name.
 #'
-#'   Any other form stops with an error, so that no covariate is left out
-#'   unnoticed: a character vector without `data` (give the data frame as
-#'   `data`, or a categorical covariate as a factor), a list that is not a
-#'   data frame, an array of more than two dimensions, a matrix with two
-#'   columns of the same name, or a value of the wrong length.
+#'   A data frame or a matrix stops with an error when two of its columns
+#'   have the same name, and a data frame when a column has no name. A value
+#'   of the wrong length stops too. Any other form stops with an error, so
+#'   that no covariate is left out unnoticed, for example: a character
+#'   vector without `data` (give the data frame as `data`, or a categorical
+#'   covariate as a factor); a list that is not a data frame; an array of
+#'   more than two dimensions; and a vector of another type, such as a date
+#'   (give it as a column of a data frame).
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
 #'   participant. CR2 fits refuse designs in which a Solomon cell contains a

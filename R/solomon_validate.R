@@ -289,10 +289,10 @@
 #' @param covariates Optional covariates recorded in all groups, such as
 #'   gender, in the forms that [fit_solomon_glm()] takes: a data frame; a
 #'   numeric, logical, or factor vector; a numeric or logical matrix; or,
-#'   with `data`, the names of its columns. They are named, and other forms
-#'   stop with an error, as there. They enter the fit behind the gap and the
-#'   delta line, and loss is shown by each of them (see "Missing posttests
-#'   and the pretest effects").
+#'   with `data`, the names of its columns or one column by its bare name.
+#'   They are named, and other forms stop with an error, as there. They
+#'   enter the fit behind the gap and the delta line, and loss is shown by
+#'   each of them (see "Missing posttests and the pretest effects").
 #' @return An object of class `solomon_missing`, a list with:
 #'   - `by_cell`: the counts in each Solomon cell, in the columns `group`,
 #'     `cell`, `pretested`, `treat`, `n`, `posttest_missing`,

@@ -37,10 +37,10 @@ strings (\code{y_post = "post"}).}
 \item{covariates}{Optional covariates recorded in all groups, such as
 gender, in the forms that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} takes: a data frame; a
 numeric, logical, or factor vector; a numeric or logical matrix; or,
-with \code{data}, the names of its columns. They are named, and other forms
-stop with an error, as there. They enter the fit behind the gap and the
-delta line, and loss is shown by each of them (see "Missing posttests
-and the pretest effects").}
+with \code{data}, the names of its columns or one column by its bare name.
+They are named, and other forms stop with an error, as there. They
+enter the fit behind the gap and the delta line, and loss is shown by
+each of them (see "Missing posttests and the pretest effects").}
 }
 \value{
 An object of class \code{solomon_missing}, a list with:

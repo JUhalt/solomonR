@@ -2,47 +2,83 @@
 
 ## Covariates given as a vector or a matrix (bug fix, #146)
 
-* `fit_solomon_glm()` left a covariate given as a vector or a matrix out
-  of the model, without an error or a warning, so its results were those
-  of a fit without that covariate. The help named two forms, a data frame
-  and, with `data`, the names of its columns; other forms were neither
-  used nor refused. In `fit_solomon_glm()`, with one treatment or several,
-  and in `check_solomon_missing()`, every form now enters the model or
-  stops with an error:
+* `fit_solomon_glm()`, with one treatment or several, left some forms of
+  `covariates` out of the model without an error or a warning, so its
+  results were those of a fit without them. The help named two forms, a
+  data frame and, with `data`, the names of its columns. These forms were
+  left out:
+
+  - without `data`, a vector, a matrix, or an array;
+  - with `data`, a matrix, such as `cbind(age, w)`, and a vector given as
+    an expression, such as `age / 10` or `d$age`.
+
+  With `data`, a vector given by its bare name (`covariates = w`) was
+  used, whether or not it was a column of `data`. A value of the wrong
+  length stopped, as it still does.
+* In `fit_solomon_glm()` and `check_solomon_missing()`, every form now
+  enters the model or stops with an error:
 
   - A numeric, logical, or factor vector is one covariate. It is named by
-    the variable when given by its bare name (`covariates = age`), as
-    `data` already allowed, and `covariate` otherwise.
+    the variable when given by its bare name (`covariates = age`), as with
+    `data` before, and `covariate` otherwise.
   - A numeric or logical matrix is one covariate per column, named by its
-    column names, with `covariate1`, `covariate2`, ... for columns without
-    one. Two columns of the same name stop the fit.
-  - Any other form stops with an error that says what to give instead: a
-    character vector without `data` (names of columns need `data`, and a
-    categorical covariate goes in as a factor), a list that is not a data
-    frame, an array of more than two dimensions, and any other type, such
-    as dates outside a data frame.
+    column names, with `covariate1`, `covariate2`, ... by position for
+    columns without one. `cbind()` turns a factor into its integer codes,
+    so a factor goes in a data frame, such as `data.frame(age, region)`.
+  - A data frame or a matrix with two columns of the same name stops, and
+    so does a data frame with a column without a name.
+  - Any other form stops with an error that says what to give instead.
+    Examples are a character vector without `data` (names of columns need
+    `data`, and a categorical covariate goes in as a factor), a list that
+    is not a data frame, an array of more than two dimensions, and a
+    vector of another type, such as a date (it goes in as a column of a
+    data frame).
+  - When `covariates` alone has the wrong length, the error now says that
+    it takes one value or one row per participant.
 * With `data`, names in `covariates` that are not columns of `data` stop
   with an error that lists them. Before, the error was "Inputs must have
-  the same length", which did not say why. A character vector from outside
-  `data` is read as names too. Given by its bare name, it was taken before
-  as a categorical covariate; give it as a factor, or as a column of a data
-  frame.
+  the same length", which did not say why. A name given twice stops too;
+  before, `fit_solomon_glm()` stopped because the two copies were
+  collinear, and `check_solomon_missing()` gave no gap.
+* **Forms that gave a fit before and now stop.** With `data`, a vector
+  from outside `data` given by its bare name is now used only when it is
+  numeric, logical, or a factor, as without `data`. Before, it entered
+  the model as it was, whatever its type. A character vector, which was a
+  categorical covariate, is now read as names of columns, so it stops with
+  the error above. A date (`Date`) or a time difference (`difftime`) stops
+  too. Give either as a column of a data frame, or of `data`: a column of
+  `data` given by its bare name is used as before, whatever its type.
+* **Data frames whose columns lack names of their own now stop.** Before:
+
+  - with two columns of the same name, `fit_solomon_glm()` used only the
+    first, and `check_solomon_missing()` showed the first twice and left
+    the second out of its fit;
+  - a data frame without names was left out of both;
+  - a column named `""` stopped `fit_solomon_glm()` with "attempt to use
+    zero-length variable name", and `check_solomon_missing()` gave it an
+    empty table and gave no gap;
+  - a column named `NA` was used by `fit_solomon_glm()`, but
+    `check_solomon_missing()` gave it an empty table.
 * `check_solomon_missing()` converted other forms with `as.data.frame()`:
   a vector was named `covariates`, the columns of a matrix without names
   `V1`, `V2`, ..., and a list or a character vector was accepted. They are
   now named, or refused, as in `fit_solomon_glm()`.
-* **Results are unchanged** for the forms that the help named. For 81
-  results, the values, names, classes, attributes, and printed output are
-  identical to those of the development version before this change: fits
-  with one and with several treatments, with covariates given as data
-  frames, tibbles, data frames with row names, names of columns, and bare
-  column names, with model-based, HC3, and CR2 covariances, binary and
-  count outcomes, both pretest centers, and missing posttests; their
-  prints, summaries, `tidy()`, and reports; `perm_solomon()`,
-  `marginal_solomon()`, `plot_sensitization()`, and
+* **Results are unchanged** for every other form that the help named, and
+  for a numeric, logical, or factor vector given by its bare name with
+  `data`. In a comparison of 88 results made for this change, the values,
+  names, classes, attributes, and printed output are identical to those
+  of the development version before it: fits with one and with several
+  treatments, with covariates given as data frames, tibbles, data frames
+  with row names, names of columns, bare column names, and vectors
+  outside `data` by their bare names, with model-based, HC3, and CR2
+  covariances, binary and count outcomes, both pretest centers, and
+  missing posttests; their prints, summaries, `tidy()`, and reports;
+  `perm_solomon()`, `marginal_solomon()`, `plot_sensitization()`, and
   `equivalence_solomon()` of them; and `check_solomon_missing()` and
-  `validate_solomon()`. A test compares such fits with results stored
-  from that version.
+  `validate_solomon()`. A test stores 18 such results from that version,
+  14 fits and 4 `check_solomon_missing()` results. It compares the model
+  data, formulas, coefficient names, classes, and tables exactly, and the
+  effects, coefficients, gaps, and deltas to 1e-8.
 * `perm_solomon()`, `marginal_solomon()`, and `plot_sensitization()`
   work from the data stored in the fit, and `report_solomon()`,
   `equivalence_solomon()`, `tidy()`, and `glance()` from its results, so a
