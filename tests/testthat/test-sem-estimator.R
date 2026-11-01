@@ -367,8 +367,9 @@ test_that("the reports of fit_solomon_sem() name the software and the estimator"
     }
 
     # With equal_var = TRUE the four-group model has 3 degrees of freedom,
-    # so it is not called saturated (the review of #133). Under MLR lavaan
-    # warns that the robust CFI is NA, as before this change.
+    # so it is not called saturated (the review of #133). Under both
+    # estimators lavaan warns that the robust CFI is NA, as before this
+    # change.
     fit <- suppressWarnings(fit_solomon_sem(y_post, treat, pretested, equal_var = TRUE,
                                             estimator = est, data = solomon_example))
     expect_identical(as.numeric(lavaan::fitMeasures(fit$fit, "df")), 3, info = est)
