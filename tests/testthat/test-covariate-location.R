@@ -1140,8 +1140,11 @@ test_that("the CR2 intercept's degrees of freedom do not cancel with nearly coll
     expect_equal(intercept(fit)$df, intercept(ref)$df, tolerance = 1e-3, info = paste(mean))
     expect_equal(intercept(fit)$std.error, intercept(ref)$std.error, tolerance = 1e-3,
                  info = paste(mean))
-    expect_equal(intercept(fit)$p.value, intercept(ref)$p.value, tolerance = 1e-2,
-                 info = paste(mean))
+    # The p-values are below the tolerance, where expect_equal() compares
+    # absolute differences: it accepted c99f639's, 9.9 times too large at a
+    # mean of 5. They are compared relative to the reference.
+    expect_lt(abs(intercept(fit)$p.value / intercept(ref)$p.value - 1), 1e-2,
+              label = paste("relative error of the p-value at a mean of", mean))
   }
 })
 
