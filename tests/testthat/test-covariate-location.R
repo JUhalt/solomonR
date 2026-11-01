@@ -1296,7 +1296,7 @@ test_that("marginal_solomon() keeps its accuracy with nearly collinear covariate
   # that leaves every marginal contrast unchanged. The standardized
   # coefficients of the pair are about 2e6, of opposite signs. The delta
   # method took numerical derivatives with steps of 1e-6 times each
-  # coefficient, here about 2, and computed grad' V grad, which cancelled
+  # coefficient, here about 2, and computed grad' V grad, which canceled
   # the large entries of the pair's covariance: with counts under HC3 the
   # standard errors of the rate differences were NaN and that of the
   # rate-ratio average treatment effect 9.36 for 0.119; with a binary

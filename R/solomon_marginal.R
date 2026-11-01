@@ -899,7 +899,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # decomposition of the model (.combination_variance()), or under CR2 with
   # a numeric covariate in its orthonormal basis (.cr2_basis()): with nearly
   # collinear covariates the gradient weights their standardized
-  # coefficients nearly equally, and grad' V grad cancelled the large
+  # coefficients nearly equally, and grad' V grad canceled the large
   # entries of their covariance, so that the standard errors were NaN or up
   # to 78 times too large (issue #137).
   delta_at <- function(set, estimate, cluster = NULL) {

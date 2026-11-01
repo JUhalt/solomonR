@@ -158,39 +158,40 @@
   the covariate renamed. `plot_sensitization()` also took a covariate named
   `pre_obs`, in a fit without a pretest, for the pretest; it is now a
   covariate like any other.
-* Nearly collinear covariates, about 10^-7 of their standard deviation
-  apart or closer. `sandwich::vcovHC()` and `clubSandwich::vcovCR()` form
-  the HC3 and CR2 covariances from the inverse of `X'WX`, whose condition
-  number is the square of the design's, so their standard errors lost
-  accuracy, by 2% and 3% for a covariate near zero and its copy in single
-  precision in one check, and from about 10^-8 apart near zero HC3 and CR2
-  fits stopped with "system is computationally singular". With a numeric
-  covariate they are now computed from the QR decomposition of the
-  standardized model: HC3 from the participants' influences, and CR2 by
-  clubSandwich in an orthonormal basis of the same columns, which gives
-  the same covariance, Satterthwaite degrees of freedom, and HTZ tests.
-  With covariates 10^-8 standard deviations apart near zero, the standard
-  errors, degrees of freedom, and p-values of the contrasts and the
-  coefficients, the omnibus tests of several treatments, and the cells of
-  `plot_sensitization()` agreed with those of an exact reparameterization
-  to about 1e-8 of their value under every covariance, and to about 1e-6
-  at 10^-10. The studentized statistic of `perm_solomon()` uses the HC3
-  variance computed the same way. Fits without a numeric covariate keep
-  the computations of sandwich and clubSandwich, and their results.
-* With such covariates the delta method of `marginal_solomon()` was
-  wrong too. For a covariate near zero and its copy in single precision,
-  its standard errors under model-based covariance were up to 45 times too
+* Nearly collinear covariates, about 10^-7 of their standard deviation apart
+  or closer. `sandwich::vcovHC()` and `clubSandwich::vcovCR()` form the HC3
+  and CR2 covariances from the inverse of `X'WX`, whose condition number is
+  the square of the design's, so their standard errors lost accuracy, by 2%
+  and 3% for a covariate near zero and its copy in single precision in one
+  check, and from about 10^-8 apart near zero HC3 and CR2 fits stopped with
+  "system is computationally singular". With a numeric covariate they are
+  now computed from the QR decomposition of the standardized model: HC3 from
+  the participants' influences, and CR2 by clubSandwich in an orthonormal
+  basis of the same columns, which gives the same covariance, Satterthwaite
+  degrees of freedom, and Wald tests. With covariates 10^-8 standard
+  deviations apart near zero, the standard errors and degrees of freedom of
+  the contrasts and the coefficients and the statistics of the omnibus tests
+  of several treatments agreed with those of an exact reparameterization to
+  about 2e-8 of their value under every covariance, in a battery of 708
+  cases, and their p-values to about 1e-6; at 10^-9, to about 2e-7 and 3e-6;
+  and the standard errors of the contrasts to about 1e-6 at 10^-10 under HC3
+  and CR2. The studentized statistic of `perm_solomon()` uses the HC3
+  variance computed the same way. Fits without a numeric covariate keep the
+  computations of sandwich and clubSandwich, and their results.
+* With such covariates the delta method of `marginal_solomon()` was wrong
+  too. For a covariate near zero and its copy in single precision, its
+  standard errors under model-based covariance were up to 45 times too
   large: its numerical derivatives took steps of 1e-6 times each
   coefficient, too large for the large coefficients of nearly collinear
-  covariates, and the variance of its linear approximation, formed from
-  the covariance, cancelled the covariance's large entries. Its bootstrap,
+  covariates, and the variance of its linear approximation, formed from the
+  covariance, canceled the large entries of the covariance. Its bootstrap,
   which solved the normal equations, failed in every resample. The delta
-  method now takes the exact derivatives of the contrasts and computes
-  their variance through the QR decomposition, or in the orthonormal basis
-  under CR2, and the bootstrap refits by QR. For that copy, the delta
-  method's results agree with those of the exact reparameterization to
-  about 2e-8 of their value under every covariance, and the bootstrap's
-  standard errors to 1e-9.
+  method now takes the exact derivatives of the contrasts and computes their
+  variance through the QR decomposition, or in the orthonormal basis under
+  CR2, and the bootstrap refits by QR. For that copy, the delta method's
+  results agree with those of the exact reparameterization to about 2e-8 of
+  their value under every covariance, and the bootstrap's standard errors to
+  1e-9.
 * Not changed here: `glm()` takes nearly collinear covariates as given to
   be collinear, which stops the fit, when they lie so far from zero that
   their difference falls below about 1e-11 of their distance from zero, as

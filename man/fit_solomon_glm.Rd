@@ -649,12 +649,19 @@ condition number is the square of the design's, they lost accuracy with
 covariates 10^-7 standard deviations apart or closer, and earlier
 versions stopped with "system is computationally singular" from about
 10^-8 near zero. With covariates 10^-8 standard deviations apart near
-zero, the standard errors, degrees of freedom, and p-values of the
-contrasts and the coefficients, the omnibus tests of several
-treatments, and the cells of \code{\link[=plot_sensitization]{plot_sensitization()}} agreed with those of
-the exact reparameterization, the second covariate replaced by the
-difference, to about 10^-8 of their value under every covariance in one
-check, and to about 10^-6 at 10^-10.
+zero, the standard errors and degrees of freedom of the contrasts and
+the coefficients, the statistics of the omnibus tests of several
+treatments, and the delta-method standard errors of
+\code{\link[=marginal_solomon]{marginal_solomon()}} agreed with those of the exact reparameterization,
+the second covariate replaced by the difference, to about 2 * 10^-8 of
+their value under every covariance in one check, and their p-values to
+about 10^-6; at 10^-9, to about 2 * 10^-7 and 3 * 10^-6. Closer still,
+the standard errors of the contrasts agreed to about 10^-6 under HC3 and
+CR2 at 10^-10, and to 3 * 10^-5 in one logistic fit under model-based
+covariance. The cells of \code{\link[=plot_sensitization]{plot_sensitization()}} are at the covariates'
+means, which far from zero are stored with an error that the large
+coefficients of nearly collinear covariates multiply; their standard
+errors agreed to about 10^-7 at 10^-8 near zero.
 
 A numeric covariate is standardized whatever its class, such as that of a
 variable with value labels read from an SPSS file, or of one wrapped in
