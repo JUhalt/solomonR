@@ -31,6 +31,7 @@ CMD
 CRC
 Cai
 Cheung
+Choy
 Cipriani
 Cousens
 Cro
@@ -77,6 +78,7 @@ Heteroskedasticity
 Holm
 Holm's
 Hróbjartsson
+Hu
 II's
 Imbens
 Isager
@@ -222,6 +224,7 @@ Tetzlaff
 Tipton
 Toeplitz
 Totaal
+Trafimow
 Trivedi
 Twente
 Ullman
@@ -325,12 +328,14 @@ ojs
 pkgdown
 pms
 pnas
+postdata
 postdiction
 posttest
 posttested
 posttests
 ppc
 pre
+predata
 pretest's
 programme
 purrr

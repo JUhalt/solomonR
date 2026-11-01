@@ -38,7 +38,7 @@ Imports:
     withr,
     lifecycle
 Suggests:
-    testthat (>= 3.0.0),
+    testthat (>= 3.1.7),
     knitr,
     rmarkdown,
     lavaan,

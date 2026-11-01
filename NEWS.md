@@ -60,6 +60,18 @@
   stops on tables that it could not bind as `dplyr::bind_rows()` did; a
   test builds its stored table without broom. Every validation script
   passes in smoke mode without either package.
+* The tests need testthat 3.1.7 or later, for `with_mocked_bindings()`,
+  and `DESCRIPTION` now says so; the minimum it declared, 3.0.0, was
+  already too low for `expect_no_warning()`, which came in 3.1.5.
+
+## The a priori procedure in the planning article (#147)
+
+* "Planning a Solomon Study" gains a short section, "Planning for
+  precision", on the a priori procedure (APP) of Trafimow (2017): a sample
+  size chosen for how close an estimate will be to its parameter, and with
+  what probability, rather than for power. The package does not implement
+  it; the proposal is #147, on the Post-1.0 milestone with #118. The
+  article's four sources are added to the references.
 
 ## The pretest center when posttests are missing (#135)
 
