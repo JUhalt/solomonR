@@ -29,6 +29,7 @@ package or of the validation-scripts check.
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
 | `harness-lib.R` | Helpers of the harness scripts |
+| `tests/run-tests.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's check of the inputs, and `merge-chunks.R` on tampered copies of a run |
 | `studies/smoke/` | The harness's smoke study; not a protocol, and it computes no measure for the package's methods |
 
 The workflow is `.github/workflows/simulation-run.yaml`, with the composite
@@ -201,6 +202,26 @@ chunks, runs only the tasks whose files are missing or unreadable, records
 the resumption in the chunk's `resumes.csv` (and in `run-information.csv`),
 and merges afresh; it refuses to continue if `software.csv` has changed. A
 gate or study run needs a clean checkout of a commit.
+
+The harness's own tests need R alone and take a few minutes:
+
+```
+Rscript tools/sim/tests/run-tests.R
+Rscript tools/sim/tests/run-tests.R --only merge --run <folder of a finished run>
+```
+
+Each case builds its input in a temporary folder (`--work` names another)
+and runs one check in a new R process: the MCSE, decision, and file-name
+rules of `check-results.R`; 47 folders that `scan-addresses.R` must refuse,
+built around a placeholder address at example.org that is assembled at run
+time, and 5 it must pass; the job sizes of `assign-chunks.R`; the
+workflow's "Check the inputs" step, run with bash (`--bash <path>` if bash
+is not on the PATH); and, with `--run`, `merge-chunks.R` on tampered copies
+of a run's `plan/` and `chunks/`. Any case that ends otherwise than
+expected makes the exit status 1. The workflow runs them in the pull
+requests that change the harness: the job "Harness tests", and the merge
+cases at the end of the merge job, on that run's own chunks. Run them
+after any change to a check.
 
 The software check runs without its repository and tool checks, so the
 local package versions must match the pins. On Windows, R reports no BLAS or

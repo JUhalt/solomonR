@@ -492,3 +492,40 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 90
+
+      # The harness's own tests of merge-chunks.R, in its pull requests only:
+      # tampered copies of this run's plan and chunks, made in the runner's
+      # temporary folder, which is never uploaded.
+      - name: Test the merge checks on tampered copies of the chunks
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: Rscript harness/tools/sim/tests/run-tests.R --only merge --run . --work "$RUNNER_TEMP/sim-tests"
+
+  # The harness's own tests (tools/sim/tests/run-tests.R), in its pull
+  # requests only: check-results.R, scan-addresses.R, assign-chunks.R, and the
+  # check of the inputs, on cases built in the runner's temporary folder,
+  # which is never uploaded. They need R alone, not the study's software.
+  tests:
+    name: Harness tests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Remove stale Google Chrome apt source
+        shell: bash
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources*
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          r-version: '4.6.1'
+          use-public-rspm: true
+
+      - name: Run the harness's tests
+        shell: bash
+        run: Rscript harness/tools/sim/tests/run-tests.R --only results,scan,sizing,inputs --work "$RUNNER_TEMP/sim-tests"
