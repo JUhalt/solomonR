@@ -11,13 +11,20 @@
 }
 
 # The estimators that fit_solomon_sem(), fit_solomon_sem_latent(), and
-# invariance_solomon() accept (issue #133): MLR and ML, the two that the
-# validation protocols posted on issues #117 and #55 study. Other lavaan
-# estimators either cannot be fitted with missing = "fiml" (MLM and MLMV)
-# or would be fitted, labeled, and reported without validation. As in
-# lavaan, the name is matched without regard to case; it is returned in
-# upper case and without names, as the fits store and print it, since
-# report_solomon() compares the stored name with "MLR".
+# invariance_solomon() accept (issue #133): MLR and ML, the estimators of
+# the validation protocols. The protocol posted on issue #117 restricts
+# fit_solomon_sem() to them. The amendment of October 9, 2026, on issue #55
+# studies the latent contrasts of fit_solomon_sem_latent() under both, and
+# computes the invariance check's tests from MLR fits, the unscaled
+# difference among them, which equals the difference of ML fits;
+# invariance_solomon() accepts the estimators of fit_solomon_sem_latent(),
+# which runs it. Of the other lavaan estimators, MLM and MLMV cannot be
+# fitted with missing = "fiml", lavaan failed to estimate the package's
+# models with RBM (#117, #55), and those that can be fitted would be
+# fitted, labeled, and reported without validation. As in lavaan, the name
+# is matched without regard to case; it is returned in upper case and
+# without names, as the fits store and print it, since report_solomon()
+# compares the stored name with "MLR".
 .sem_estimators <- c("MLR", "ML")
 
 .check_sem_estimator <- function(estimator) {
@@ -25,8 +32,8 @@
   if (!one || !toupper(estimator) %in% .sem_estimators) {
     stop(sprintf(paste0(
       "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), %s. These are the ",
-      "estimators whose validation is planned for solomonR's SEM functions (issues #117 ",
-      "and #55); other estimators can be fitted with lavaan directly."
+      "estimators of the validation protocols posted on issues #117 and #55; other ",
+      "estimators can be fitted with lavaan directly."
     ), if (one) sprintf("not \"%s\"", estimator) else "given as a single character string"),
     call. = FALSE)
   }
@@ -137,7 +144,7 @@
 #' results, which use a large-sample normal reference distribution.
 #'
 #' @section Lifecycle:
-#' Experimental. Its tests rest on large-sample (MLR) theory, and no
+#' Experimental. Its tests rest on large-sample theory (MLR or ML), and no
 #' simulation study in the package has yet checked their error rates at
 #' Solomon sample sizes. [fit_solomon_glm()] is the validated analysis of an
 #' observed outcome. The defaults may change after such a study.

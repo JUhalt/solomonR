@@ -113,10 +113,10 @@
 #'   written before `=~`. See [invariance_solomon()].
 #' @param estimator The lavaan estimator, `"MLR"` (the default) or `"ML"`,
 #'   in upper or lower case. Any other value stops with an error: these two
-#'   are the estimators whose validation is planned for this function (the
-#'   amendment of October 9, 2026, on issue #55). Other estimators can be
-#'   fitted with lavaan directly. The invariance check uses the same
-#'   estimator.
+#'   are the estimators under which the validation of the latent contrasts
+#'   is planned (the amendment of October 9, 2026, on issue #55). Other
+#'   estimators can be fitted with lavaan directly. The invariance check
+#'   uses the same estimator; see [invariance_solomon()].
 #' @param std_lv logical; if TRUE (default), lavaan's `std.lv = TRUE`: the
 #'   latent variance is fixed at 1 in the first group, the pretested
 #'   treatment group (P1), so latent contrasts are in that group's latent SD

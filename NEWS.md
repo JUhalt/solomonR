@@ -5,16 +5,20 @@
 * **A change in behavior.** `fit_solomon_sem()`, `fit_solomon_sem_latent()`,
   and `invariance_solomon()` now accept only `estimator = "MLR"`, the
   default, and `"ML"`, in upper or lower case, and store the name in upper
-  case, as `invariance_solomon()` prints it. Any other value, such as `"MLM"`, `"MLMV"`, `"WLS"`,
-  `"GLS"`, `"ULS"`, `"DLS"`, or `"RBM"`, now stops with an error that names
-  the two and says that other estimators can be fitted with lavaan
-  directly. Before, the functions passed any value to lavaan. MLR and ML
-  are the estimators of the posted validation protocols: the protocol for
-  `fit_solomon_sem()` on #117 restricts `estimator` to them, and the
-  amendment of October 9, 2026, on #55 studies `fit_solomon_sem_latent()`
-  and `invariance_solomon()` under these two. The functions fit with
-  full-information maximum likelihood (`missing = "fiml"`), with which
-  lavaan refuses MLM and MLMV, so neither could be fitted, although
+  case, as `invariance_solomon()` prints it. Any other value, such as
+  `"MLM"`, `"MLMV"`, `"WLS"`, `"GLS"`, `"ULS"`, `"DLS"`, or `"RBM"`, now
+  stops with an error that names the two and says that other estimators
+  can be fitted with lavaan directly. Before, the functions passed any
+  value to lavaan. MLR and ML are the estimators of the posted validation
+  protocols. The protocol for `fit_solomon_sem()` on #117 restricts
+  `estimator` to them. The amendment of October 9, 2026, on #55 studies
+  the latent contrasts of `fit_solomon_sem_latent()` under both, and it
+  computes the invariance check's tests from MLR fits, the unscaled
+  difference among them, which equals the difference that
+  `invariance_solomon()` gives under ML. `invariance_solomon()` accepts the
+  estimators of `fit_solomon_sem_latent()`, which runs it. The functions
+  fit with full-information maximum likelihood (`missing = "fiml"`), with
+  which lavaan refuses MLM and MLMV, so neither could be fitted, although
   `?invariance_solomon` named both.
 * **The difference test is labeled by the fitted models.**
   `invariance_solomon()` decided from the estimator's name whether its

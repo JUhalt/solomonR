@@ -42,10 +42,10 @@ Designs with several treatments are not supported; see
 
 \item{estimator}{The lavaan estimator, \code{"MLR"} (the default) or \code{"ML"},
 in upper or lower case. Any other value stops with an error: these two
-are the estimators whose validation is planned for this function (the
-amendment of October 9, 2026, on issue #55). Other estimators can be
-fitted with lavaan directly. The invariance check uses the same
-estimator.}
+are the estimators under which the validation of the latent contrasts
+is planned (the amendment of October 9, 2026, on issue #55). Other
+estimators can be fitted with lavaan directly. The invariance check
+uses the same estimator; see \code{\link[=invariance_solomon]{invariance_solomon()}}.}
 
 \item{std_lv}{logical; if TRUE (default), lavaan's \code{std.lv = TRUE}: the
 latent variance is fixed at 1 in the first group, the pretested

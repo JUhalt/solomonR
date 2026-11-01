@@ -1,6 +1,6 @@
 # The estimators of the SEM functions (issue #133): fit_solomon_sem(),
 # fit_solomon_sem_latent(), and invariance_solomon() accept MLR and ML, the
-# two that the validation protocols posted on #117 and #55 study, matched
+# estimators of the validation protocols posted on #117 and #55, matched
 # without regard to case. Whether a test is scaled is read from the fitted
 # models, and the reports describe only these two estimators.
 
@@ -54,8 +54,9 @@ test_that("estimators other than MLR and ML stop with an error that names the ac
     latent = function(e) fit_solomon_sem_latent(d, items, d$treat, d$pretested, estimator = e),
     invariance = function(e) invariance_solomon(d, items, d$treat, d$pretested, estimator = e)
   )
-  # MLM and MLMV cannot be fitted with missing = "fiml"; the others were
-  # fitted, labeled, and reported without validation.
+  # MLM and MLMV cannot be fitted with missing = "fiml", lavaan failed to
+  # estimate the package's models with RBM, and those that can be fitted
+  # were fitted, labeled, and reported without validation.
   refused <- c("MLM", "MLMV", "WLS", "GLS", "ULS", "DLS", "RBM", "MLF", "WLSMV", "DWLS",
                "default", "mlm", "gls", "MLR ", "")
   for (fun in names(calls)) {
@@ -73,8 +74,8 @@ test_that("estimators other than MLR and ML stop with an error that names the ac
   }
   expect_error(calls$invariance("GLS"), paste0(
     "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), not \"GLS\". These are the ",
-    "estimators whose validation is planned for solomonR's SEM functions (issues #117 and #55); ",
-    "other estimators can be fitted with lavaan directly."
+    "estimators of the validation protocols posted on issues #117 and #55; other estimators ",
+    "can be fitted with lavaan directly."
   ), fixed = TRUE)
 })
 
@@ -301,18 +302,28 @@ test_that("whether the difference test is scaled follows the fitted models, not 
   items <- paste0("y", 1:4)
   group <- factor(interaction(d$pretested, d$treat, drop = TRUE),
                   levels = c("1.1", "1.0", "0.1", "0.0"), labels = c("P1", "P0", "U1", "U0"))
+  out <- list()
   for (e in c("mlr", "ml")) {
-    out <- .invariance_steps(d, items, group, e, NULL)
+    out[[e]] <- .invariance_steps(d, items, group, e, NULL)
     scaled <- e == "mlr"
-    expect_identical(vapply(out$fits, .sem_scaled, NA),
+    expect_identical(vapply(out[[e]]$fits, .sem_scaled, NA),
                      c(configural = scaled, metric = scaled, scalar = scaled), info = e)
-    expect_identical(out$scaled, scaled, info = e)
+    expect_identical(out[[e]]$scaled, scaled, info = e)
     for (i in 1:2) {
-      direct <- lavaan::lavTestLRT(out$fits[[i]], out$fits[[i + 1]],
+      direct <- lavaan::lavTestLRT(out[[e]]$fits[[i]], out[[e]]$fits[[i + 1]],
                                    method = if (scaled) "satorra.bentler.2001" else "standard")
-      expect_equal(out$tests$chisq_diff[i], direct[2, "Chisq diff"], info = e)
-      expect_equal(out$tests$p.value[i], direct[2, "Pr(>Chisq)"], info = e)
+      expect_equal(out[[e]]$tests$chisq_diff[i], direct[2, "Chisq diff"], info = e)
+      expect_equal(out[[e]]$tests$p.value[i], direct[2, "Pr(>Chisq)"], info = e)
     }
+  }
+  # Under ML the difference test equals the unscaled difference of the MLR
+  # fits, as ?invariance_solomon says: the two estimators have the same
+  # estimates and the same unscaled chi-square.
+  for (i in 1:2) {
+    unscaled <- lavaan::lavTestLRT(out$mlr$fits[[i]], out$mlr$fits[[i + 1]], method = "standard")
+    expect_equal(out$ml$tests$chisq_diff[i], unscaled[2, "Chisq diff"], info = i)
+    expect_equal(out$ml$tests$df_diff[i], unscaled[2, "Df diff"], info = i)
+    expect_equal(out$ml$tests$p.value[i], unscaled[2, "Pr(>Chisq)"], info = i)
   }
 })
 

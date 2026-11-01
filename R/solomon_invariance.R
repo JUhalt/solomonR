@@ -256,10 +256,13 @@
 #' @param treat,pretested Treatment and pretest indicators (0/1). Designs with
 #'   several treatments are not supported; see [fit_solomon_glm()].
 #' @param estimator The lavaan estimator, `"MLR"` (the default) or `"ML"`,
-#'   in upper or lower case. Any other value stops with an error: these two
-#'   are the estimators whose validation is planned for this function (the
-#'   amendment of October 9, 2026, on issue #55). Other estimators can be
-#'   fitted with lavaan directly.
+#'   in upper or lower case: the estimators of [fit_solomon_sem_latent()],
+#'   which runs this check. Any other value stops with an error. Under ML
+#'   the difference test is unscaled, and it equals the unscaled difference
+#'   of MLR fits. The validation planned for the check (the amendment of
+#'   October 9, 2026, on issue #55) computes its tests from MLR fits, the
+#'   unscaled difference among them. Other estimators can be fitted with
+#'   lavaan directly.
 #' @param partial Optional character vector of freed parameters (see Partial
 #'   invariance).
 #' @param alpha Significance level of the chi-square difference test.

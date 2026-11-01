@@ -98,7 +98,7 @@ results, which use a large-sample normal reference distribution.
 }
 \section{Lifecycle}{
 
-Experimental. Its tests rest on large-sample (MLR) theory, and no
+Experimental. Its tests rest on large-sample theory (MLR or ML), and no
 simulation study in the package has yet checked their error rates at
 Solomon sample sizes. \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} is the validated analysis of an
 observed outcome. The defaults may change after such a study.
