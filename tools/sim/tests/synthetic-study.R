@@ -2,10 +2,11 @@
 # group "contract"; issue #117). run-tests.R copies it, with the contract
 # under test and a one-line lib/helper.R that it sources, into a package
 # folder of its own, and runs it with Rscript: its plan stage through
-# sim_main(), or, with HARNESS_TEST_VERIFY set, sim_verify_plan() on a plan,
-# so that the contract reads its settings from the environment as in a run.
-# It loads no package and draws no random number (the plan stage only sets
-# the streams); the workflow's study jobs never run it.
+# sim_main(), its run stage with no task to run, its smoke mode (refused at
+# its settings), or, with HARNESS_TEST_VERIFY set, sim_verify_plan() on a
+# plan, so that the contract reads its settings from the environment as in
+# a run. It loads no package and draws no random number (the plan stage
+# only sets the streams); the workflow's study jobs never run it.
 # HARNESS_TEST_VARIANT changes one field of `study` for a refusal case.
 
 source(file.path("tools", "sim", "contract.R"))
@@ -34,6 +35,12 @@ if (identical(variant, "repeated-file")) study$files <- rep(study$files, 2L)
 if (identical(variant, "negative-agreement-cost")) study$agreement_cost <- function(s) -1
 if (identical(variant, "agreement-cost-not-a-function")) study$agreement_cost <- 5
 if (identical(variant, "no-gate")) study$gate <- NULL
+# Numbers the contract checks in sim_check_study().
+if (identical(variant, "seed-beyond-integers")) study$seeds[["test"]] <- 3e9
+if (identical(variant, "seed-fraction")) study$seeds[["test"]] <- 13.5
+if (identical(variant, "gate-seed-at-max")) study$seeds[["gate"]] <- 2147483647
+if (identical(variant, "task-size-fraction")) study$task_size <- 2.5
+if (identical(variant, "gate-reps-beyond")) study$gate$reps <- 3e9
 
 if (nzchar(Sys.getenv("HARNESS_TEST_VERIFY"))) {
   sim_check_study(study)

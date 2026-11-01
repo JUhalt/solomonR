@@ -245,9 +245,10 @@ placeholder address at example.org that is assembled at run time (11 of
 them by a named rule: a NUL byte, a gzip or zlib header, or bytes that are
 not valid UTF-8, among them compressed text without a NUL byte), and 9 it
 must pass (among them UTF-8 text with the characters the package prints, a
-UTF-8 byte-order mark, and empty files); the job sizes of
-`assign-chunks.R`; the workflow's "Check the inputs" step, run with bash
-(`--bash <path>` if bash is not on the PATH); the contract's plan stage and
+UTF-8 byte-order mark, and empty files); the job sizes and the number
+formats of `assign-chunks.R`; the workflow's "Check the inputs" step, run
+with bash (`--bash <path>` if bash is not on the PATH); the contract's plan
+stage, its refusals of numbers it cannot read as whole numbers, and
 `sim_verify_plan()` on the synthetic study `tests/synthetic-study.R`, which
 loads no package (with git, also the clean-checkout rule); the replay list
 of `merge-chunks.R` and the items and refusals of `finalize-results.R` on

@@ -114,13 +114,16 @@ jobs:
           fail() { echo "::error::$1"; exit 1; }
           [[ "$SIM_STUDY" =~ ^[a-z0-9-]+$ ]] || fail "Bad study key."
           [[ "$SIM_PACKAGE_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "package_sha must be a full commit SHA."
-          [[ "$SIM_CHUNKS" =~ ^[0-9]+$ ]] || fail "chunks must be a whole number."
-          if (( SIM_CHUNKS < 1 || SIM_CHUNKS > 256 )); then fail "chunks must be 1 to 256."; fi
-          [[ "$SIM_REPS" =~ ^[0-9]+$ ]] || fail "reps must be a whole number."
+          # Digits without a leading zero, and few enough of them before any
+          # arithmetic: bash wraps a number beyond 64 bits without an error
+          # and reads a leading 0 as octal. The plan stage checks reps
+          # against the study's limits (tools/sim/contract.R).
+          [[ "$SIM_CHUNKS" =~ ^[1-9][0-9]{0,2}$ ]] && (( SIM_CHUNKS <= 256 )) || fail "chunks must be a whole number from 1 to 256."
+          [[ "$SIM_REPS" =~ ^[1-9][0-9]*$ ]] || fail "reps must be a whole number of at least 1, without a leading zero."
           number='^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$'
           [[ "$SIM_COST_SECONDS" =~ $number ]] || fail "cost_seconds must be a number."
           if [[ "$SIM_SMOKE" == "true" ]]; then
-            if (( SIM_REPS < 2 || SIM_REPS > 20 )); then fail "A smoke run has 2 to 20 replications."; fi
+            [[ "$SIM_REPS" =~ ^[1-9][0-9]?$ ]] && (( SIM_REPS >= 2 && SIM_REPS <= 20 )) || fail "A smoke run has 2 to 20 replications."
             purpose=test
           else
             # A gate or a study run is checked by the harness on master only.

@@ -27,22 +27,30 @@
 #   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
 #            protocol flag; refused if absent, below 1, or not a number,
 #            or if given as a fifth argument), the 2- and 4-hour limits, a
-#            task cost of 0, and seconds per cost that R reads as 0 or as
-#            infinite.
+#            task cost of 0, seconds per cost that R reads as 0 or as
+#            infinite, and, by the script's own message, numbers of chunks
+#            or workers that are not whole numbers in digits (2.5, 1e2, 010,
+#            99999999999) and seconds per cost not in the workflow's form
+#            (0x10).
 #   inputs   the workflow's "Check the inputs" step, read from
 #            .github/workflows/simulation-run.yaml and run with bash (--bash,
-#            or bash on the PATH; skipped without one). Its outputs go to
-#            files in the work folder, never to the job's own.
+#            or bash on the PATH; skipped without one), among them numbers
+#            that bash's arithmetic would misread (beyond 64 bits, or with a
+#            leading zero). Its outputs go to files in the work folder, never
+#            to the job's own.
 #   contract contract.R through tests/synthetic-study.R, copied with the
 #            contract under test into a package folder of its own and run
 #            with Rscript: what the plan records (the SHA-256 of the files
 #            the study sources, the same with CRLF or LF line ends; task
 #            1's agreement cost; the gate's allowance; the scenarios of a
 #            subset, with the full table's streams; a test's task size),
-#            the plan stage's refusals (a task size, or a scenario number
-#            of a list, by the contract's own message, also beyond R's
-#            integers), sim_verify_plan() after a sourced file changed,
-#            and, with git, the clean-checkout rule and the plan options
+#            the refusals of whole numbers (a task size, the replications,
+#            a scenario number of a list, the workers, the smoke mode's
+#            replications, a plan's recorded reps and subset, and the
+#            study's seeds and task sizes) by the contract's own message,
+#            without an R warning, also beyond R's integers;
+#            sim_verify_plan() after a sourced file changed; and, with git,
+#            the clean-checkout rule and the plan options
 #            of a gate or study run; and the gate's seconds per unit of
 #            cost (sim_gate_default() on timings made up here).
 #   replay   merge-chunks.R's replay list (rules a to d) on task files made
@@ -120,6 +128,27 @@ refusal <- function(r, msg) {
   if (r$status == 0L) return("accept")
   if (!any(grepl(msg, r$out, fixed = TRUE))) return("R error")
   if (any(grepl("Warning message", r$out, fixed = TRUE))) "R warning" else "refuse"
+}
+# A script in a new R process, run from the folder `dir`, with none of the
+# contract's settings (and none of the synthetic study's) but those `set`
+# gives.
+sim_vars <- c("SOLOMONR_SMOKE_DIR", "SOLOMONR_SMOKE_REPS", "SOLOMONR_SIM_ROLE", "SOLOMONR_SIM_SCRIPT",
+              "SOLOMONR_SIM_STAGE", "SOLOMONR_SIM_PURPOSE", "SOLOMONR_SIM_DESIGN", "SOLOMONR_SIM_REPS",
+              "SOLOMONR_SIM_PLAN", "SOLOMONR_SIM_SUBSET", "SOLOMONR_SIM_TASK_SIZE", "SOLOMONR_SIM_PACKAGE_SHA",
+              "SOLOMONR_SIM_TASKS", "SOLOMONR_SIM_OUT", "SOLOMONR_SIM_IN", "SOLOMONR_SIM_WORKERS",
+              "HARNESS_TEST_VARIANT", "HARNESS_TEST_VERIFY", "GIT_DIR")
+run_from <- function(dir, script, args = character(), set = character()) {
+  vars <- union(sim_vars, names(set))
+  old_env <- Sys.getenv(vars, unset = NA, names = TRUE)
+  old_wd <- setwd(dir)
+  on.exit({
+    setwd(old_wd)
+    for (v in vars) if (is.na(old_env[[v]])) Sys.unsetenv(v) else do.call(Sys.setenv, stats::setNames(list(old_env[[v]]), v))
+  })
+  Sys.unsetenv(vars)
+  if (length(set)) do.call(Sys.setenv, as.list(set))
+  out <- suppressWarnings(system2(rscript, shQuote(c(script, args)), stdout = TRUE, stderr = TRUE))
+  list(status = if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status")), out = out)
 }
 outcomes <- list()
 record <- function(group, label, expected, got, note = "") {
@@ -474,6 +503,24 @@ if ("sizing" %in% groups) local({
   }
   r <- run_r("assign-chunks.R", c(plan("FALSE", "test", "1", cost = "0"), "1"))
   record("sizing", "a task cost of 0", "refuse", if (r$status != 0L) "refuse" else "pass", last_line(r$out))
+  # Whole numbers in digits, and seconds per cost in the workflow's form
+  # (follow-up 4), by the script's own message and without an R warning.
+  chunks_msg <- "The number of chunks must be a whole number from 1 to 256"
+  workers_msg <- "The workers per chunk must be a whole number"
+  number_cases <- list(
+    list("2.5 chunks, which as.integer() reads as 2", "2.5", chunks_msg),
+    list("1e2 chunks, which as.integer() reads as 100", "1e2", chunks_msg),
+    list("010 chunks, a leading zero", "010", chunks_msg),
+    list("99999999999 chunks, beyond R's integers", "99999999999", chunks_msg),
+    list("workers 2.5", c("1", "100", "2.5"), workers_msg),
+    list("workers 0", c("1", "100", "0"), workers_msg),
+    list("workers 99999999999", c("1", "100", "99999999999"), workers_msg),
+    list("seconds per cost 0x10, which as.numeric() reads as 16", c("1", "0x10", "4"),
+         "The seconds per cost must be a number in digits"))
+  for (cs in number_cases) {
+    r <- run_r("assign-chunks.R", c(plan("FALSE", "test", "1"), cs[[2]]))
+    record("sizing", cs[[1]], "refuse", refusal(r, cs[[3]]), last_line(r$out))
+  }
   # chunk-loads.csv: the hours without and with the plan's allowance.
   d <- plan("TRUE", "study", "1.3")
   r <- run_r("assign-chunks.R", c(d, "1", "21600", "4"))
@@ -549,13 +596,29 @@ if ("inputs" %in% groups) local({
     list("smoke, task_size 0", c(SIM_TASK_SIZE = "0"), "refuse"),
     list("smoke, task_size 2.5", c(SIM_TASK_SIZE = "2.5"), "refuse"),
     list("smoke, task_size abc", c(SIM_TASK_SIZE = "abc"), "refuse"),
-    list("smoke, task_size 99999999999 (the contract refuses it)", c(SIM_TASK_SIZE = "99999999999"), "accept"))
+    list("smoke, task_size 99999999999 (the contract refuses it)", c(SIM_TASK_SIZE = "99999999999"), "accept"),
+    # Numbers bash's arithmetic would misread (follow-up 4), refused by the
+    # step's own message: it wraps beyond 64 bits and reads a leading 0 as
+    # octal.
+    list("chunks 18446744073709551619 (2^64 + 3, bash reads 3)", c(SIM_CHUNKS = "18446744073709551619"), "refuse",
+         "chunks must be a whole number from 1 to 256"),
+    list("chunks 010 (bash reads 8)", c(SIM_CHUNKS = "010"), "refuse", "chunks must be a whole number from 1 to 256"),
+    list("chunks 256", c(SIM_CHUNKS = "256"), "accept"),
+    list("smoke, reps 18446744073709551626 (2^64 + 10, bash reads 10)", c(SIM_REPS = "18446744073709551626"), "refuse",
+         "A smoke run has 2 to 20 replications"),
+    list("smoke, reps 020 (bash reads 16)", c(SIM_REPS = "020"), "refuse", "reps must be a whole number"),
+    list("smoke, reps 09 (not octal to bash)", c(SIM_REPS = "09"), "refuse", "reps must be a whole number"),
+    list("study, reps 0", c(study, SIM_COST_SECONDS = "1", SIM_REPS = "0"), "refuse", "reps must be a whole number"),
+    list("study, reps 99999999999 (the contract refuses it)", c(study, SIM_COST_SECONDS = "1", SIM_REPS = "99999999999"),
+         "accept"))
   for (cs in cases) {
     vars <- base
     vars[names(cs[[2]])] <- cs[[2]]
     out <- with_env(vars, suppressWarnings(system2(bash, shQuote(step), stdout = TRUE, stderr = TRUE)))
     status <- if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status"))
-    record("inputs", cs[[1]], cs[[3]], if (status == 0L) "accept" else "refuse", last_line(out))
+    # With a fourth element, "refuse" only by that message.
+    got <- if (length(cs) >= 4L) refusal(list(status = status, out = out), cs[[4]]) else if (status == 0L) "accept" else "refuse"
+    record("inputs", cs[[1]], cs[[3]], got, last_line(out))
   }
 })
 
@@ -581,22 +644,9 @@ if ("contract" %in% groups) local({
   }
   # The study script in a new R process, from the package folder, with only
   # the given settings; git finds no repository unless `git` is TRUE.
-  vars <- c("SOLOMONR_SMOKE_DIR", "SOLOMONR_SIM_ROLE", "SOLOMONR_SIM_SCRIPT", "SOLOMONR_SIM_STAGE",
-            "SOLOMONR_SIM_PURPOSE", "SOLOMONR_SIM_DESIGN", "SOLOMONR_SIM_REPS", "SOLOMONR_SIM_PLAN",
-            "SOLOMONR_SIM_SUBSET", "SOLOMONR_SIM_TASK_SIZE", "SOLOMONR_SIM_PACKAGE_SHA",
-            "HARNESS_TEST_VARIANT", "HARNESS_TEST_VERIFY", "GIT_DIR")
   run_study <- function(d, set, git = FALSE) {
     if (!git) set <- c(set, GIT_DIR = file.path(work, "no-repository-here"))
-    old_env <- Sys.getenv(vars, unset = NA, names = TRUE)
-    old_wd <- setwd(d)
-    on.exit({
-      setwd(old_wd)
-      for (v in vars) if (is.na(old_env[[v]])) Sys.unsetenv(v) else do.call(Sys.setenv, stats::setNames(list(old_env[[v]]), v))
-    })
-    Sys.unsetenv(vars)
-    do.call(Sys.setenv, as.list(set))
-    out <- suppressWarnings(system2(rscript, shQuote(file.path(d, "study.R")), stdout = TRUE, stderr = TRUE))
-    list(status = if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status")), out = out)
+    run_from(d, file.path(d, "study.R"), set = set)
   }
   plan_vars <- function(plan_dir, purpose = "test", design = "run", reps = "4", ...) {
     c(SOLOMONR_SIM_STAGE = "plan", SOLOMONR_SIM_PURPOSE = purpose, SOLOMONR_SIM_DESIGN = design,
@@ -773,6 +823,63 @@ if ("contract" %in% groups) local({
          last_line(r$out))
   r <- size_plan("plan-size-gate-design", "1", design = "gate")
   record("contract", "plan: a task size in a test of the gate's design", "refuse", outcome(r), last_line(r$out))
+
+  # The other whole numbers the contract reads (follow-up 4), by its own
+  # message and without an R warning: the replications, the workers, the
+  # smoke mode's replications, a plan's recorded reps and subset, and the
+  # study's seeds and sizes.
+  for (cs in list(list("0", "plan: reps 0"), list("2.5", "plan: reps 2.5, which as.integer() reads as 2"),
+                  list("1e1", "plan: reps 1e1, which as.integer() reads as 10"), list("x", "plan: reps x"),
+                  list("2147483648", "plan: reps 2147483648, one above R's integers"),
+                  list("99999999999", "plan: reps 99999999999, beyond R's integers"))) {
+    r <- run_study(p, plan_vars(file.path(p, paste0("plan-reps-", cs[[1]])), reps = cs[[1]]))
+    record("contract", cs[[2]], "refuse", refusal(r, "The number of replications must be a whole number"), last_line(r$out))
+  }
+  tamper <- function(name, from, item, value) {
+    d <- file.path(p, name)
+    dir.create(d)
+    file.copy(list.files(file.path(p, from), full.names = TRUE), d)
+    kv <- h_read_kv(file.path(d, "plan-info.csv"))
+    kv[[item]] <- value
+    h_write_kv(kv, file.path(d, "plan-info.csv"))
+    d
+  }
+  r <- run_study(p, verify_vars(tamper("plan-tampered-reps", "plan", "reps", "99999999999")))
+  record("contract", "verify: a plan whose reps is 99999999999", "refuse",
+         refusal(r, "The number of replications must be a whole number"), last_line(r$out))
+  r <- run_study(p, verify_vars(tamper("plan-tampered-subset", "plan-fallback", "subset", "1 3 99999999999")))
+  record("contract", "verify: a plan whose subset holds 99999999999", "refuse",
+         refusal(r, "The plan's subset must be scenario numbers"), last_line(r$out))
+  # The run stage with no task to run: the workers are read first, and no
+  # package is loaded and no worker started.
+  no_tasks <- file.path(root, "no-tasks.txt")
+  file.create(no_tasks)
+  run_vars <- function(workers) {
+    c(SOLOMONR_SIM_STAGE = "run", SOLOMONR_SIM_PLAN = file.path(p, "plan"), SOLOMONR_SIM_TASKS = no_tasks,
+      SOLOMONR_SIM_OUT = file.path(root, paste0("run-workers-", workers)), SOLOMONR_SIM_WORKERS = workers)
+  }
+  r <- run_study(p, run_vars("0"))
+  record("contract", "run: workers 0, no tasks", "accept", outcome(r), last_line(r$out))
+  for (w in c("2.5", "-1", "x", "99999999999")) {
+    r <- run_study(p, run_vars(w))
+    record("contract", paste("run: workers", w), "refuse", refusal(r, "SOLOMONR_SIM_WORKERS must be a whole number"),
+           last_line(r$out))
+  }
+  for (v in c("2.5", "99999999999")) {
+    r <- run_study(p, c(SOLOMONR_SMOKE_DIR = file.path(root, paste0("smoke-", v)), SOLOMONR_SMOKE_REPS = v))
+    record("contract", paste("smoke mode: SOLOMONR_SMOKE_REPS", v), "refuse",
+           refusal(r, "The number of replications must be a whole number"), last_line(r$out))
+  }
+  seeds_msg <- "The base seeds of study, gate, and test must be whole numbers"
+  for (cs in list(list("seed-beyond-integers", "study: a test seed of 3e9, beyond R's integers", seeds_msg),
+                  list("seed-fraction", "study: a test seed of 13.5", seeds_msg),
+                  list("gate-seed-at-max", "study: a gate seed of 2147483647 (the gate orders with seed + 1)", seeds_msg),
+                  list("task-size-fraction", "study: task_size 2.5", "`study$task_size` must be a whole number"),
+                  list("gate-reps-beyond", "study: gate reps 3e9",
+                       "`study$gate$reps` and `study$gate$task_size` must be whole numbers"))) {
+    r <- run_study(p, c(plan_vars(file.path(p, paste0("plan-", cs[[1]]))), HARNESS_TEST_VARIANT = cs[[1]]))
+    record("contract", cs[[2]], "refuse", refusal(r, cs[[3]]), last_line(r$out))
+  }
 
   # A gate needs a clean checkout, the sourced files included.
   git <- unname(Sys.which("git"))

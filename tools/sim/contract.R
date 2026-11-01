@@ -30,6 +30,13 @@
 #                             its task size, and its timing projection.
 #   SOLOMONR_SIM_REPS         Replications per scenario (a gate's size is
 #                             fixed by the study; a test is at most 20).
+#                             Read with sim_whole(), as are the task size,
+#                             the workers, SOLOMONR_SMOKE_REPS, the scenario
+#                             numbers of a subset, and plan-info.csv's reps,
+#                             task_size, and subset: a whole number in
+#                             digits without a leading zero, within R's
+#                             integers; anything else stops with the
+#                             contract's message, which names the range.
 #   SOLOMONR_SIM_SUBSET       Plan stage: empty or "all" (every scenario),
 #                             "fallback" (the scenarios study$gate$fallback()
 #                             keeps: a study run after a gate that chose
@@ -42,8 +49,8 @@
 #                             so that a test has several tasks per scenario.
 #   SOLOMONR_SIM_PLAN         Folder of the plan files (written by plan).
 #   SOLOMONR_SIM_TASKS        File with the ids of the tasks to run (run).
-#   SOLOMONR_SIM_WORKERS      PSOCK workers (run); 0 runs the tasks in this
-#                             process.
+#   SOLOMONR_SIM_WORKERS      PSOCK workers (run), 0 or more; 0 runs the
+#                             tasks in this process.
 #   SOLOMONR_SIM_OUT          Output folder (run, summarize).
 #   SOLOMONR_SIM_IN           File listing the task files (summarize).
 #   SOLOMONR_SIM_PACKAGE_SHA  The package commit. When git is available, it
@@ -97,6 +104,23 @@ sim_need <- function(name) {
 }
 
 sim_is_worker <- function() identical(Sys.getenv("SOLOMONR_SIM_ROLE"), "worker")
+
+# A whole number of at least `lowest`, written in digits without a leading
+# zero and within R's integers (to 2147483647), from a setting or a plan
+# file; NA otherwise. as.integer() alone reads "2.5" as 2 and "1e2" as 100,
+# and turns a longer number into NA with a warning.
+sim_whole <- function(x, lowest = 1L) {
+  if (length(x) != 1L || is.na(x)) return(NA_integer_)
+  x <- trimws(as.character(x))
+  v <- if (grepl("^(0|[1-9][0-9]*)$", x)) suppressWarnings(as.integer(x)) else NA_integer_
+  if (is.na(v) || v < lowest) NA_integer_ else v
+}
+
+# TRUE if `x`, a value the study's script gives, is one whole number from
+# `lowest` to `highest` (R's integers by default).
+sim_is_whole <- function(x, lowest = 1, highest = .Machine$integer.max) {
+  is.numeric(x) && length(x) == 1L && is.finite(x) && x == trunc(x) && x >= lowest && x <= highest
+}
 
 # CSV files with LF line ends on every platform, so that their bytes do not
 # depend on where they were written.
@@ -225,6 +249,20 @@ sim_check_study <- function(study) {
   if (length(unique(study$seeds[c("study", "gate", "test")])) != 3L) {
     stop("The base seeds of study, gate, and test must differ.", call. = FALSE)
   }
+  # set.seed() takes an integer, and a run of the gate's design orders its
+  # tasks with set.seed(seed + 1).
+  if (!all(vapply(c("study", "gate", "test"), function(p) sim_is_whole(study$seeds[[p]], -.Machine$integer.max,
+                                                                      .Machine$integer.max - 1), TRUE))) {
+    stop("The base seeds of study, gate, and test must be whole numbers from ", -.Machine$integer.max, " to ",
+         .Machine$integer.max - 1L, ".", call. = FALSE)
+  }
+  if (!sim_is_whole(study$task_size)) {
+    stop("`study$task_size` must be a whole number from 1 to ", .Machine$integer.max, ".", call. = FALSE)
+  }
+  if (!is.null(study$gate) && !(sim_is_whole(study$gate$reps) && sim_is_whole(study$gate$task_size))) {
+    stop("`study$gate$reps` and `study$gate$task_size` must be whole numbers from 1 to ", .Machine$integer.max, ".",
+         call. = FALSE)
+  }
   sc <- study$scenarios
   if (!is.data.frame(sc) || !identical(sc$scenario, seq_len(nrow(sc)))) {
     stop("`study$scenarios$scenario` must be 1, 2, ... in table order.", call. = FALSE)
@@ -286,15 +324,20 @@ sim_streams <- function(base_seed, n_scenarios, n_tasks) {
   out
 }
 
-# The size and seed of a plan, from its purpose and design. `task_size`
-# (text; empty for the study's own) is for test runs of design run only.
+# The size and seed of a plan, from its purpose and design. `reps` is text
+# (a setting, or the plan's item); `task_size` (text; empty for the study's
+# own) is for test runs of design run only.
 sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
   if (!purpose %in% c("test", "gate", "study")) stop("Unknown purpose: ", purpose, call. = FALSE)
   if (!design %in% c("run", "gate")) stop("Unknown design: ", design, call. = FALSE)
   if (purpose == "gate" && design != "gate") stop("Purpose gate needs design gate.", call. = FALSE)
   if (purpose == "study" && design != "run") stop("Purpose study needs design run.", call. = FALSE)
   if (design == "gate" && is.null(study$gate)) stop("This study has no timing gate.", call. = FALSE)
-  reps <- as.integer(reps)
+  reps <- sim_whole(reps, 1L)
+  # Refused for every purpose, though a gate then takes its own.
+  if (is.na(reps)) {
+    stop("The number of replications must be a whole number from 1 to ", .Machine$integer.max, ".", call. = FALSE)
+  }
   if (design == "gate") {
     size <- as.integer(study$gate$task_size)
     reps <- if (purpose == "test") min(as.integer(study$gate$reps), reps) else as.integer(study$gate$reps)
@@ -309,12 +352,11 @@ sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
     }
     # Digits only, and within R's integers: a longer number fits the pattern
     # but is NA to as.integer().
-    size <- if (grepl("^[1-9][0-9]*$", task_size)) suppressWarnings(as.integer(task_size)) else NA_integer_
+    size <- sim_whole(task_size, 1L)
     if (is.na(size)) {
       stop("The task size must be a whole number from 1 to ", .Machine$integer.max, ".", call. = FALSE)
     }
   }
-  if (is.na(reps) || reps < 1L) stop("The number of replications must be positive.", call. = FALSE)
   # The protocols allow code-testing runs of at most 20 replications per
   # scenario, with seeds the study and the gate do not use.
   if (purpose == "test" && reps > 20L) stop("A test run has at most 20 replications.", call. = FALSE)
@@ -349,7 +391,7 @@ sim_plan_subset <- function(study, spec, value) {
   if (spec$purpose != "test") stop("Only a test run may plan a list of scenarios.", call. = FALSE)
   tokens <- strsplit(value, "[ ,]+")[[1]]
   # A number beyond R's integers is NA, and refused below.
-  s <- if (all(grepl("^[1-9][0-9]*$", tokens))) suppressWarnings(as.integer(tokens)) else NA_integer_
+  s <- vapply(tokens, sim_whole, 0L, lowest = 1L, USE.NAMES = FALSE)
   if (!length(s) || anyNA(s) || anyDuplicated(s) || !all(s %in% sc$scenario)) {
     stop("SOLOMONR_SIM_SUBSET must be \"all\", \"fallback\", or distinct scenario numbers of the table.",
          call. = FALSE)
@@ -514,6 +556,19 @@ sim_read_plan <- function(plan_dir) {
        info = sim_read_kv(file.path(plan_dir, "plan-info.csv")))
 }
 
+# The scenarios of a plan's item subset (numbers separated by spaces, as
+# sim_write_plan() writes them), or NULL for every scenario.
+sim_recorded_subset <- function(info) {
+  value <- info[["subset"]]
+  if (!nzchar(value)) return(NULL)
+  s <- vapply(strsplit(value, " ", fixed = TRUE)[[1]], sim_whole, 0L, lowest = 1L, USE.NAMES = FALSE)
+  if (!length(s) || anyNA(s)) {
+    stop("The plan's subset must be scenario numbers from 1 to ", .Machine$integer.max, " separated by spaces.",
+         call. = FALSE)
+  }
+  s
+}
+
 # The plan must be the one that this script, the files it sources, this
 # contract, and this commit make; otherwise the tasks would run with seeds,
 # or code, that the plan does not record.
@@ -528,8 +583,7 @@ sim_verify_plan <- function(study, plan) {
   own_size <- identical(info[["purpose"]], "test") && identical(info[["design"]], "run")
   spec <- sim_plan_spec(study, info[["purpose"]], info[["design"]], info[["reps"]],
                         task_size = if (own_size) info[["task_size"]] else "")
-  subset <- if (nzchar(info[["subset"]])) as.integer(strsplit(info[["subset"]], " ")[[1]]) else NULL
-  fresh <- sim_plan(study, spec, subset)
+  fresh <- sim_plan(study, spec, sim_recorded_subset(info))
   checks <- c(
     study = identical(info[["study"]], study$key),
     tasks = identical(fresh[setdiff(names(fresh), "cost")], plan$tasks[setdiff(names(fresh), "cost")]),
@@ -853,7 +907,8 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
   rownames(times) <- NULL
   times$cost <- as.numeric(plan$tasks$cost[match(times$task_id, plan$tasks$task_id)])
   sc <- study$scenarios
-  if (nzchar(info[["subset"]])) sc <- sc[sc$scenario %in% as.integer(strsplit(info[["subset"]], " ")[[1]]), , drop = FALSE]
+  subset <- sim_recorded_subset(info)
+  if (!is.null(subset)) sc <- sc[sc$scenario %in% subset, , drop = FALSE]
   results <- sim_bind_part(parts$results[o], scen[o], "results")
   parts$results <- NULL
   agreement <- sim_bind_part(parts$agreement[o], scen[o], "agreement")
@@ -1024,9 +1079,8 @@ sim_gate_default <- function(study, times, scenarios, info) {
 # ---- Smoke mode and dispatch ---------------------------------------------------
 
 sim_smoke <- function(study, dir) {
-  reps <- as.integer(sim_setting("SOLOMONR_SMOKE_REPS", "2"))
   root <- file.path(dir, paste0("sim-", study$key))
-  spec <- sim_plan_spec(study, "test", "run", reps)
+  spec <- sim_plan_spec(study, "test", "run", sim_setting("SOLOMONR_SMOKE_REPS", "2"))
   plan_dir <- file.path(root, "plan")
   plan <- sim_write_plan(study, spec, plan_dir, subset = study$smoke_scenarios)
   sim_preflight(study, plan_dir)
@@ -1055,8 +1109,10 @@ sim_main <- function(study) {
     run = {
       ids <- readLines(sim_need("SOLOMONR_SIM_TASKS"), warn = FALSE)
       ids <- ids[nzchar(ids)]
-      workers <- as.integer(sim_setting("SOLOMONR_SIM_WORKERS", "0"))
-      if (is.na(workers) || workers < 0L) stop("SOLOMONR_SIM_WORKERS must be 0 or more.", call. = FALSE)
+      workers <- sim_whole(sim_setting("SOLOMONR_SIM_WORKERS", "0"), 0L)
+      if (is.na(workers)) {
+        stop("SOLOMONR_SIM_WORKERS must be a whole number from 0 to ", .Machine$integer.max, ".", call. = FALSE)
+      }
       sim_run(study, plan_dir(), ids, sim_need("SOLOMONR_SIM_OUT"), workers)
     },
     summarize = {

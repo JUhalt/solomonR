@@ -30,7 +30,12 @@
 # for a study run (plan-info.csv purpose "study", as on the runners), it must
 # be a finite number greater than 0 as R reads it, so that a value such as
 # 1e-400, which the workflow's pattern accepts and R reads as 0, cannot skip
-# the check. run-local.R passes none: a local job has no time limit.
+# the check. run-local.R passes none: a local job has no time limit. The
+# number of chunks and the workers must be whole numbers in digits without
+# a leading zero (h_whole()), and the seconds per cost must have the
+# workflow's form (digits, an optional decimal part and exponent), so that
+# as.numeric() and as.integer() cannot read "2.5", "1e2", or "0x10" as
+# something else.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -40,12 +45,19 @@ usage <- "assign-chunks.R <plan dir> <number of chunks> [<seconds per cost> <wor
 args <- h_args(2L, usage)
 if (length(args) > 4L) h_fail("Usage: ", usage, " (the allowance comes from the plan).")
 plan_dir <- args[[1]]
-requested <- suppressWarnings(as.integer(args[[2]]))
-if (is.na(requested) || requested < 1L || requested > 256L) h_fail("The number of chunks must be 1 to 256.")
+# Whole numbers in digits (h_whole()): "2.5" or "1e2" chunks are refused,
+# not read as 2 or 100.
+requested <- h_whole(args[[2]], 1L)
+if (is.na(requested) || requested > 256L) h_fail("The number of chunks must be a whole number from 1 to 256.")
+# The seconds per cost in the workflow's form (digits, a decimal part, an
+# exponent): as.numeric() alone would also read "0x10" as 16.
+if (length(args) >= 3L && !grepl("^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$", args[[3]])) {
+  h_fail("The seconds per cost must be a number in digits, such as 0.000123 or 1.2e-05.")
+}
 spc <- if (length(args) >= 3L) suppressWarnings(as.numeric(args[[3]])) else 0
-workers <- if (length(args) >= 4L) suppressWarnings(as.integer(args[[4]])) else 1L
+workers <- if (length(args) >= 4L) h_whole(args[[4]], 1L) else 1L
 if (is.na(spc) || !is.finite(spc) || spc < 0) h_fail("The seconds per cost must be a finite number, 0 or more.")
-if (is.na(workers) || workers < 1L) h_fail("The workers per chunk must be 1 or more.")
+if (is.na(workers)) h_fail("The workers per chunk must be a whole number from 1 to ", .Machine$integer.max, ".")
 info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
 if (length(args) >= 3L && identical(info[["purpose"]], "study") && !(spc > 0)) {
   h_fail("A study run needs seconds per cost greater than 0; \"", args[[3]], "\" is read as ", format(spc), ".")

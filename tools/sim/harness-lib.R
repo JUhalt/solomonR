@@ -15,6 +15,17 @@ h_fail <- function(...) {
   quit(save = "no", status = 1L)
 }
 
+# A whole number of at least `lowest`, written in digits without a leading
+# zero and within R's integers; NA otherwise (as sim_whole() in contract.R).
+# as.integer() alone reads "2.5" as 2 and "1e2" as 100, and turns a longer
+# number into NA with a warning.
+h_whole <- function(x, lowest = 1L) {
+  if (length(x) != 1L || is.na(x)) return(NA_integer_)
+  x <- trimws(as.character(x))
+  v <- if (grepl("^(0|[1-9][0-9]*)$", x)) suppressWarnings(as.integer(x)) else NA_integer_
+  if (is.na(v) || v < lowest) NA_integer_ else v
+}
+
 h_args <- function(n, usage) {
   args <- commandArgs(trailingOnly = TRUE)
   if (length(args) < n) h_fail("Usage: ", usage)
