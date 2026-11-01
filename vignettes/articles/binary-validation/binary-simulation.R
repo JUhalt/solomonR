@@ -49,6 +49,51 @@ effects <- list(
   sensitization = c(bT = 0, bP = 0, bTP = log(2))
 )
 
+# The rows of several data frames in one, as dplyr::bind_rows() bound the
+# tables of this script before #84 removed dplyr from the package's
+# dependencies: the columns of all of them, in the order in which they first
+# appear, with NA where a data frame lacks one (only the conditional-logit
+# rows have `mean_estimate`), a logical column of NA taking the type of the
+# values bound to it, and automatic row names. It is not a general
+# replacement for bind_rows(). It binds what this script makes, data frames
+# of one row or more with automatic row names, and stops for what it would
+# bind otherwise than bind_rows() did or where bind_rows() stopped: a NULL, a
+# data frame without rows or with row names, a column of one type in one
+# data frame and of another type elsewhere (character and numbers, say), and
+# a column of a class, such as a Date, that a data frame lacks or leaves NA.
+bind_rows_filled <- function(dfs) {
+  is_table <- function(d) is.data.frame(d) && nrow(d) > 0L && .row_names_info(d) < 0L
+  if (!length(dfs) || !all(vapply(dfs, is_table, logical(1)))) {
+    stop("bind_rows_filled() binds data frames of one row or more ",
+         "with automatic row names.", call. = FALSE)
+  }
+  cols <- unique(unlist(lapply(dfs, names)))
+  for (m in cols) {
+    kinds <- vapply(dfs, function(d) {
+      v <- d[[m]]
+      if (is.null(v)) "absent"
+      else if (is.object(v)) paste(class(v), collapse = "/")
+      else if (is.logical(v) && all(is.na(v))) "NA"
+      else if (is.character(v)) "character"
+      else if (is.numeric(v) || is.logical(v)) "number"
+      else typeof(v)
+    }, character(1))
+    known <- setdiff(unique(kinds), c("absent", "NA"))
+    plain <- all(known %in% c("number", "character"))
+    if (length(known) > 1L || !plain && any(kinds %in% c("absent", "NA"))) {
+      stop("bind_rows_filled() cannot bind the column `", m, "`: ",
+           paste(unique(kinds), collapse = ", "), ".", call. = FALSE)
+    }
+  }
+  dfs <- lapply(dfs, function(d) {
+    for (m in setdiff(cols, names(d))) d[[m]] <- NA
+    d[cols]
+  })
+  out <- do.call(rbind, dfs)
+  rownames(out) <- NULL
+  out
+}
+
 run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
   cache_file <- file.path(cache_dir, sprintf("scenario-%02d.rds", s$scenario))
   if (file.exists(cache_file)) return(readRDS(cache_file))
@@ -223,7 +268,7 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
     rejection_mcse = sqrt(mean(fisher_rule) * (1 - mean(fisher_rule)) / reps),
     stringsAsFactors = FALSE
   )
-  out <- do.call(dplyr::bind_rows, rows)
+  out <- bind_rows_filled(rows)
   out$fit_failures <- sum(fit_failed)
   out$unadjusted_failures <- sum(un_failed)
   out$interval_failures <- sum(interval_failed)
@@ -239,12 +284,13 @@ run_scenario <- function(s, reps, boot_R, pkg_dir, effects, cache_dir) {
 started <- Sys.time()
 cl <- parallel::makeCluster(if (smoke) 1L else max(1L, parallel::detectCores() - 1L))
 on.exit(parallel::stopCluster(cl), add = TRUE)
+parallel::clusterExport(cl, "bind_rows_filled")
 order_run <- order(-scenarios$n)  # largest scenarios first, for load balance
 results <- parallel::parLapplyLB(cl, split(scenarios[order_run, ], seq_along(order_run)),
                                  run_scenario, reps = reps, boot_R = boot_R,
                                  pkg_dir = pkg_dir, effects = effects,
                                  cache_dir = normalizePath(cache_dir))
-performance <- dplyr::bind_rows(results)
+performance <- bind_rows_filled(results)
 performance <- merge(scenarios, performance, by = "scenario")
 performance <- performance[order(performance$scenario, performance$method,
                                  performance$scale, performance$contrast), ]

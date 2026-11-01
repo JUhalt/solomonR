@@ -410,7 +410,7 @@
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
-  tidy <- broom::tidy(fit)
+  tidy <- .tidy_coefficients(fit)
   se_vec <- sqrt(diag(vcovM))
   tidy$std.error <- unname(se_vec[match(tidy$term, names(se_vec))])
   tidy$statistic <- tidy$estimate / tidy$std.error
