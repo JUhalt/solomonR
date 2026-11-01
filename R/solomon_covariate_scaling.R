@@ -225,14 +225,14 @@
 # `V` itself without standardized covariates, and otherwise a matrix
 # (.given_vcov()).
 .coefficient_table <- function(fit, fit_cr, V, scaling, robust, df_model, conf_level) {
-  tidy <- broom::tidy(fit)
+  tidy <- .tidy_coefficients(fit)
   standardized <- length(scaling$means) > 0L
   V_given <- V
   if (standardized) {
     cf <- stats::coef(fit)
     M <- .covariate_map(names(cf), scaling)
-    # broom names the estimates of a negative-binomial fit by term; they
-    # keep their names.
+    # .tidy_coefficients() names the estimates of a negative-binomial fit by
+    # term, as broom did; they keep their names.
     estimate <- drop(M %*% cf)[tidy$term]
     tidy$estimate <- if (is.null(names(tidy$estimate))) unname(estimate) else estimate
     V_given <- .given_vcov(fit, fit_cr, V, M, robust)
