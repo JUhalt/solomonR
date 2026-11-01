@@ -63,7 +63,9 @@
 # dplyr::summarise() of the data grouped by `pretested` and `treat` gave
 # them: one row for each combination present, sorted by `pretested` and
 # then `treat`, a missing value last, with the number of scores, their mean,
-# and their standard deviation.
+# and their standard deviation. The means are joined with c(), which keeps a
+# class that mean() returns, such as Date or difftime, as dplyr kept it;
+# vapply() would drop it.
 .cell_summaries <- function(df) {
   cells <- unique(df[c("pretested", "treat")])
   cells <- cells[order(cells$pretested, cells$treat), , drop = FALSE]
@@ -71,12 +73,13 @@
   rows <- lapply(paste(as.integer(cells$pretested), as.integer(cells$treat)),
                  function(k) which(key == k))
   y <- lapply(rows, function(r) df$y[r])
+  per_cell <- function(f) if (length(y)) do.call(c, lapply(y, f)) else numeric(0)
   tibble::tibble(
     pretested = cells$pretested,
     treat = cells$treat,
     n = lengths(rows),
-    mean = vapply(y, mean, numeric(1)),
-    sd = vapply(y, stats::sd, numeric(1))
+    mean = per_cell(mean),
+    sd = per_cell(stats::sd)
   )
 }
 

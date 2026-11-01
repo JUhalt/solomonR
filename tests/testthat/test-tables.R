@@ -110,7 +110,11 @@ test_that("without dplyr, plot_solomon() returns the table that dplyr makes", {
     standard = list(d$y_post, d$treat, d$pretested),
     labels = list(d$y_post, ifelse(d$treat == 1, "T", "C"),
                   factor(d$pretested, levels = c(1, 0))),
-    unsorted = list(rev(d$y_post), rev(d$treat), rev(d$pretested))
+    unsorted = list(rev(d$y_post), rev(d$treat), rev(d$pretested)),
+    integer = list(as.integer(round(d$y_post)), d$treat, d$pretested),
+    # Means that keep a class, which dplyr kept.
+    dates = list(as.Date("2020-01-01") + round(d$y_post), d$treat, d$pretested),
+    minutes = list(as.difftime(d$y_post, units = "mins"), d$treat, d$pretested)
   )
   for (nm in names(inputs)) {
     a <- do.call(cell, inputs[[nm]])
