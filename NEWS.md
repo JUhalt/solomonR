@@ -124,6 +124,15 @@
   fitted by iteration, and the first stage of its clustered test, which is
   fitted to the covariates as given, remain on #134.
 
+## The a priori procedure in the planning article (#147)
+
+* "Planning a Solomon Study" gains a short section, "Planning for
+  precision", on the a priori procedure (APP) of Trafimow (2017): a sample
+  size chosen for how close an estimate will be to its parameter, and with
+  what probability, rather than for power. The package does not implement
+  it; the proposal is #147, on the Post-1.0 milestone with #118. The
+  article's four sources are added to the references.
+
 ## The pretest center when posttests are missing (#135)
 
 With a pretest covariate, the pretest effects compare the pretested
