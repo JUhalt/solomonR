@@ -118,9 +118,10 @@
   results agree with it to about 1e-8 of their value, as a test against
   results stored from it shows, for every family and covariance, with
   missing posttests and clusters; the delta-method standard errors of
-  `marginal_solomon()` move by about that much, the error of its numerical
-  derivatives, whose steps depend on the coefficients, and negative-binomial
-  results by the convergence tolerance of theta, about 1e-9. With a
+  `marginal_solomon()` move by about that much, because the delta method
+  now takes the exact derivatives of the contrasts rather than numerical
+  ones, whose error that was, and negative-binomial results by the
+  convergence tolerance of theta, about 1e-9. With a
   covariate on a large scale, such as an income in dollars, or far from
   zero, such as a calendar year or a date, the previous CR2 and delta-method
   results were off by up to about 5e-5 of their value, and the delta-method
@@ -176,6 +177,20 @@
   at 10^-10. The studentized statistic of `perm_solomon()` uses the HC3
   variance computed the same way. Fits without a numeric covariate keep
   the computations of sandwich and clubSandwich, and their results.
+* With such covariates the delta method of `marginal_solomon()` was
+  wrong too. For a covariate near zero and its copy in single precision,
+  its standard errors under model-based covariance were up to 45 times too
+  large: its numerical derivatives took steps of 1e-6 times each
+  coefficient, too large for the large coefficients of nearly collinear
+  covariates, and the variance of its linear approximation, formed from
+  the covariance, cancelled the covariance's large entries. Its bootstrap,
+  which solved the normal equations, failed in every resample. The delta
+  method now takes the exact derivatives of the contrasts and computes
+  their variance through the QR decomposition, or in the orthonormal basis
+  under CR2, and the bootstrap refits by QR. For that copy, the delta
+  method's results agree with those of the exact reparameterization to
+  about 2e-8 of their value under every covariance, and the bootstrap's
+  standard errors to 1e-9.
 * Not changed here: `glm()` takes nearly collinear covariates as given to
   be collinear, which stops the fit, when they lie so far from zero that
   their difference falls below about 1e-11 of their distance from zero, as

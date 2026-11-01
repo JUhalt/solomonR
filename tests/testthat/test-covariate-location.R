@@ -1263,6 +1263,79 @@ test_that("robust standard errors keep their accuracy with nearly collinear cova
   expect_equal(fit$effects, ref$effects, tolerance = 1e-6)
 })
 
+test_that("marginal_solomon() keeps its accuracy with nearly collinear covariates", {
+  # The fixture's score z and its copy in single precision, about 2.5e-8 of
+  # z's standard deviation apart, which the check fits. The reference
+  # replaces the copy by its difference from z, an exact reparameterization
+  # that leaves every marginal contrast unchanged. The standardized
+  # coefficients of the pair are about 2e6, of opposite signs. The delta
+  # method took numerical derivatives with steps of 1e-6 times each
+  # coefficient, here about 2, and computed grad' V grad, which cancelled
+  # the large entries of the pair's covariance: with counts under HC3 the
+  # standard errors of the rate differences were NaN and that of the
+  # rate-ratio average treatment effect 9.36 for 0.119; with a binary
+  # outcome under CR2 the average treatment effect's was 2.05 for 0.110;
+  # under model-based covariance they were up to 34 times too large; and
+  # every resample of the bootstrap failed, solving the normal equations.
+  # The gradient is now exact, its variance is computed through the QR
+  # decomposition or the orthonormal basis of the model, and the bootstrap
+  # refits by QR.
+  d <- location_data()$four
+  single <- function(x) readBin(writeBin(x, raw(), size = 4), "double", n = length(x), size = 4)
+  given <- data.frame(x = d$z, x2 = single(d$z))
+  reference <- data.frame(x = d$z, x2 = single(d$z) - d$z)
+  fit_with <- function(covariates, outcome, robust) {
+    suppressWarnings(fit_solomon_glm(
+      if (outcome == "count") d$y_p else d$y_b, d$treat, d$pretested, d$pre,
+      covariates = covariates, robust = robust, cluster = if (robust == "CR2") d$site,
+      family = if (outcome == "count") stats::poisson() else stats::binomial()
+    ))
+  }
+  marginal <- function(fit, ...) suppressWarnings(marginal_solomon(fit, ...))
+  for (case in list(c("count", "HC3"), c("count", "none"), c("binary", "HC3"),
+                    c("binary", "none"), c("binary", "CR2"))) {
+    info <- paste(case, collapse = " ")
+    fit <- marginal(fit_with(given, case[1], case[2]), method = "delta")
+    ref <- marginal(fit_with(reference, case[1], case[2]), method = "delta")
+    expect_equal(fit$effects, ref$effects, tolerance = 1e-6, info = info)
+    expect_equal(fit$pretest_sensitivity$effects, ref$pretest_sensitivity$effects,
+                 tolerance = 1e-6, info = info)
+  }
+  fit <- marginal(fit_with(given, "binary", "HC3"), R = 199, seed = 1)
+  ref <- marginal(fit_with(reference, "binary", "HC3"), R = 199, seed = 1)
+  expect_identical(fit$failures, ref$failures)
+  expect_equal(fit$effects, ref$effects, tolerance = 1e-6)
+})
+
+test_that("the delta method's gradient is that of the marginal contrasts", {
+  # .marginal_gradient() against central differences of .marginal_all()
+  # with small steps, on a well-conditioned fit, for every scale.
+  d <- location_data()$four
+  for (outcome in c("binary", "count")) {
+    fit <- suppressWarnings(fit_solomon_glm(
+      if (outcome == "count") d$y_p else d$y_b, d$treat, d$pretested, d$pre,
+      covariates = data.frame(age = d$age, z = d$z),
+      family = if (outcome == "count") stats::poisson() else stats::binomial()
+    ))
+    b <- fit$covariate_scaling$coefficients
+    X <- stats::model.matrix(.standardized_model(fit))
+    pretested <- as.integer(X[, "pretested"])
+    scales <- if (outcome == "count") c("difference", "ratio") else
+      c("difference", "ratio", "odds_ratio")
+    numerical <- vapply(seq_along(b), function(j) {
+      h <- 1e-5
+      up <- b
+      up[j] <- up[j] + h
+      down <- b
+      down[j] <- down[j] - h
+      (.marginal_all(up, X, pretested, scales, outcome == "count") -
+         .marginal_all(down, X, pretested, scales, outcome == "count")) / (2 * h)
+    }, numeric(7 * length(scales)))
+    expect_equal(.marginal_gradient(b, X, pretested, scales, outcome == "count"), numerical,
+                 tolerance = 1e-7, info = outcome)
+  }
+})
+
 test_that("the covariance as given comes from a factor of the model's covariance", {
   # On a well-conditioned design .given_vcov() gives M V M' for the
   # covariance V it computes through R^{-T} M': vcov(), sandwich's HC3, and
@@ -1392,9 +1465,9 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
 
   # Linear algebra agrees to rounding on every platform, and fits by
   # iteration to their convergence tolerance. The delta method of
-  # marginal_solomon() takes numerical derivatives with steps set by the
-  # coefficients, which the standardization changes, so its standard
-  # errors move by the error of the derivatives, about 1e-8.
+  # marginal_solomon() took numerical derivatives on master, with steps set
+  # by the coefficients; its derivatives are exact now, so its standard
+  # errors move by the error of master's, about 1e-8.
   tolerance <- function(name) {
     if (grepl("negbin", name)) 1e-5
     else if (grepl("logit|poisson|marginal", name)) 1e-6
