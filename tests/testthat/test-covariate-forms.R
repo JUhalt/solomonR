@@ -267,7 +267,22 @@ test_that("with data, a matrix column is named as by its name, by its bare name 
   # when it has several. Given by its bare name, it is taken as a matrix
   # and named the same way, not covariate1, so the two calls have the same
   # coefficient table. Only the model data differ: they hold the matrix
-  # by its name, and its columns by its bare name.
+  # by its name, and its columns by its bare name. The inference of #137
+  # standardizes numeric covariates but leaves a matrix as given, so the
+  # numbers of the two calls are compared to 1e-8 of their value, and the
+  # record of that standardization (`covariate_scaling`) is left out.
+  same_numbers <- function(object, expected, ...) {
+    expect_equal(object, expected, tolerance = 1e-8, ...)
+  }
+  same_but_data <- function(bare, by_name, ...) {
+    expect_identical(names(bare), names(by_name), ...)
+    keep <- setdiff(names(by_name), c("call", "model", "family", "data", "covariate_scaling"))
+    same_numbers(unclass(bare)[keep], unclass(by_name)[keep], ...)
+    expect_identical(names(stats::coef(bare$model)), names(stats::coef(by_name$model)), ...)
+    expect_identical(bare$coefficients$term, by_name$coefficients$term, ...)
+    expect_identical(lapply(bare$coefficients, class), lapply(by_name$coefficients, class),
+                     ...)
+  }
   d <- forms_data()
   d$age_z <- scale(d$age)
   d$age_s <- scale(d["age"])
@@ -288,11 +303,9 @@ test_that("with data, a matrix column is named as by its name, by its bare name 
     bare <- by_bare_name(name, d)
     by_name <- fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = name, data = d)
     expect_true(all(expected[[name]] %in% bare$coefficients$term), info = name)
-    keep <- setdiff(names(by_name), c("call", "model", "family", "data"))
-    expect_identical(unclass(bare)[keep], unclass(by_name)[keep], info = name)
-    expect_identical(stats::coef(bare$model), stats::coef(by_name$model), info = name)
-    expect_identical(tidy(bare), tidy(by_name), info = name)
-    expect_identical(report_solomon(bare), report_solomon(by_name), info = name)
+    same_but_data(bare, by_name, info = name)
+    same_numbers(tidy(bare), tidy(by_name), info = name)
+    same_numbers(report_solomon(bare), report_solomon(by_name), info = name)
     # The printed formula names the matrix by its name, and its columns by
     # its bare name, so the prints differ when it has several columns.
     if (length(expected[[name]]) == 1L) {
@@ -338,9 +351,12 @@ test_that("with data, a matrix column is named as by its name, by its bare name 
     eval(bquote(check_solomon_missing(y_post, treat, pretested, y_pre,
                                       covariates = .(as.name(name)), data = d)))
   }
-  expect_identical(missing_bare("age_z"),
-                   check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "age_z",
-                                         data = d))
+  age_z_missing <- missing_bare("age_z")
+  expect_identical(names(age_z_missing$covariates), "age_z")
+  same_numbers(age_z_missing,
+               check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "age_z",
+                                     data = d))
+  # By its bare name, each column of `two` has its own table.
   expect_identical(
     missing_bare("two"),
     check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
@@ -349,10 +365,9 @@ test_that("with data, a matrix column is named as by its name, by its bare name 
   for (name in c("age_z", "two")) {
     bare <- by_bare_name(name, d)
     by_name <- fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = name, data = d)
-    expect_identical(perm_solomon(bare, reps = 49, seed = 1),
-                     perm_solomon(by_name, reps = 49, seed = 1), info = name)
-    expect_identical(plot_sensitization(bare)$data, plot_sensitization(by_name)$data,
-                     info = name)
+    same_numbers(perm_solomon(bare, reps = 49, seed = 1),
+                 perm_solomon(by_name, reps = 49, seed = 1), info = name)
+    same_numbers(plot_sensitization(bare)$data, plot_sensitization(by_name)$data, info = name)
   }
   d$passed <- as.integer(d$y_post > stats::median(d$y_post, na.rm = TRUE))
   # The warning that the logit contrast is noncollapsible is expected.
@@ -363,8 +378,8 @@ test_that("with data, a matrix column is named as by its name, by its bare name 
                                    data = d, family = stats::binomial())),
     classes = "solomonR_noncollapsible_warning"
   )
-  expect_identical(marginal_solomon(logit$bare, method = "delta"),
-                   marginal_solomon(logit$by_name, method = "delta"))
+  same_numbers(marginal_solomon(logit$bare, method = "delta"),
+               marginal_solomon(logit$by_name, method = "delta"))
 
   m <- forms_six()
   m$z_s <- scale(m$z)
@@ -375,8 +390,7 @@ test_that("with data, a matrix column is named as by its name, by its bare name 
                               control = "Control", covariates = "z_s", data = m)
   )
   expect_true("z_s" %in% six$bare$coefficients$term)
-  keep <- setdiff(names(six$by_name), c("call", "model", "family", "data"))
-  expect_identical(unclass(six$bare)[keep], unclass(six$by_name)[keep])
+  same_but_data(six$bare, six$by_name)
   expect_identical(utils::capture.output(print(six$bare)),
                    utils::capture.output(print(six$by_name)))
 })
