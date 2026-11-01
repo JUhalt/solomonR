@@ -121,6 +121,32 @@ test_that("lower-case names are accepted, stored in upper case, and change nothi
   expect_identical(ml$estimator, "ML")
   expect_false(ml$scaled)
   expect_output(print(ml), "estimator: ML;", fixed = TRUE)
+
+  # fit_solomon_sem_latent() with "ml", with three and with four
+  # indicators, and with "mlr" and three (four are tested above): stored in
+  # upper case, with a check that is scaled under MLR only, and the same as
+  # with the upper-case name. Before review round 3 of #133, only "mlr"
+  # with four indicators was tested.
+  data <- sem_estimator_data()
+  for (case in list(c("ML", "three"), c("ML", "four"), c("MLR", "three"))) {
+    e <- case[1]
+    info <- paste(case, collapse = " ")
+    dk <- data[[case[2]]]
+    items_k <- grep("^y", names(dk), value = TRUE)
+    up <- suppressWarnings(fit_solomon_sem_latent(dk, items_k, dk$treat, dk$pretested,
+                                                  estimator = e))
+    low <- suppressWarnings(fit_solomon_sem_latent(dk, items_k, dk$treat, dk$pretested,
+                                                   estimator = tolower(e)))
+    expect_identical(low$settings$estimator, e, info = info)
+    expect_identical(low$invariance$estimator, e, info = info)
+    expect_identical(low$invariance$scaled, e == "MLR", info = info)
+    expect_identical(low$effects, up$effects, info = info)
+    r <- report_solomon(low)
+    expect_identical(r, report_solomon(up), info = info)
+    expect_match(r$method, estimator_text[[e]], fixed = TRUE, info = info)
+    expect_identical(utils::capture.output(print(low)), utils::capture.output(print(up)),
+                     info = info)
+  }
 })
 
 test_that("a named estimator is stored without its name, and a stored name does not stop the report", {
