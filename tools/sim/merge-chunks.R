@@ -5,8 +5,10 @@
 #
 # <chunks dir> holds one folder per chunk, chunk-NNNN, as the chunk jobs
 # uploaded them (tasks/*.rds, software.csv, job-info.csv, run-times.csv,
-# run-info.csv, session-info.txt, log.txt). The merge stops, and nothing is
-# summarized, unless:
+# run-info.csv, session-info.txt, log.txt); each chunk's artifact holds its
+# folder chunk-NNNN/, and the workflow downloads them with merge-multiple,
+# so the layout is the same for 1 chunk and for 256. The merge stops, and
+# nothing is summarized, unless:
 #
 #   1. every task of the plan appears in exactly one chunk, the chunk the
 #      assignment named, and no other task file exists;
@@ -63,6 +65,10 @@ expected <- sort(unique(assignment$chunk))
 dirs <- list.dirs(chunks_dir, recursive = FALSE, full.names = FALSE)
 dirs <- sort(dirs[grepl("^chunk-[0-9]{4}$", dirs)])
 found <- sub("^chunk-", "", dirs)
+if (!length(found) && dir.exists(file.path(chunks_dir, "tasks"))) {
+  h_fail("The chunks folder holds a chunk's files directly, not in chunk-NNNN/ (expected: ",
+         paste(expected, collapse = " "), ").")
+}
 if (!identical(found, expected)) {
   h_fail("Chunks expected: ", paste(expected, collapse = " "), "; found: ", paste(found, collapse = " "), ".")
 }

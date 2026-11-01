@@ -122,8 +122,11 @@ gh run watch <run id> --repo JUhalt/solomonR
 - Results: `gh run download <run id> --repo JUhalt/solomonR -n
   results-<study>-<purpose>-<stage> -D <folder>`. The task files: `gh run
   download <run id> --repo JUhalt/solomonR -p "chunk-*" -D <archive
-  folder>`. Artifacts and run logs are deleted after 90 days, so download
-  them when the run ends.
+  folder>`; each artifact `chunk-NNNN` holds the folder `chunk-NNNN/` itself
+  (so that the merge job's download gives `chunks/chunk-NNNN/` for 1 chunk as
+  for 256), and `gh` puts each artifact in a folder of its name, so the
+  archive holds `chunk-NNNN/chunk-NNNN/tasks/`. Artifacts and run logs are
+  deleted after 90 days, so download them when the run ends.
 - The results folder holds the files that go into the study's folder
   (`performance.csv`, `agreement.csv`, and the others its protocol names),
   plus `run-information.csv`, `manifest.csv`, `software.csv`, `replay.csv`,
