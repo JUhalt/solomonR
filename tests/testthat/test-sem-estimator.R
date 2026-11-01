@@ -197,6 +197,41 @@ test_that("a result saved with the unscaled flag on MLR fits is labeled by its f
   }
 })
 
+test_that("a result without its fitted models is labeled by its stored flag", {
+  skip_if_not_installed("lavaan")
+  # The print reads the label from the fits (see above). When the result no
+  # longer holds the three fits, as when they were removed to make it
+  # smaller, it uses the stored `scaled`, which was computed from them. The
+  # print of such a result called a scaled test unscaled before this was
+  # fixed (review round 2 of #133).
+  data <- sem_estimator_data()
+  label <- "Chi-square difference test (scaled; Satorra & Bentler, 2001) at alpha"
+  has_label <- function(x) any(grepl(label, utils::capture.output(print(x)), fixed = TRUE))
+  for (k in c("three", "four")) {
+    d <- data[[k]]
+    items <- grep("^y", names(d), value = TRUE)
+    for (est in c("MLR", "ML")) {
+      info <- paste(k, est)
+      inv <- suppressWarnings(invariance_solomon(d, items, d$treat, d$pretested, estimator = est))
+      expect_identical(inv$scaled, est == "MLR", info = info)
+      expect_identical(has_label(inv), est == "MLR", info = info)
+      full <- utils::capture.output(print(inv))
+      no_fits <- inv
+      no_fits$fits <- NULL
+      two_fits <- inv
+      two_fits$fits$scalar <- NULL
+      not_lavaan <- inv
+      not_lavaan$fits$metric <- list()
+      for (stripped in list(no_fits, two_fits, not_lavaan)) {
+        expect_identical(utils::capture.output(print(stripped)), full, info = info)
+      }
+      # Without the fits, the label follows the stored flag alone.
+      no_fits$scaled <- est != "MLR"
+      expect_identical(has_label(no_fits), est != "MLR", info = info)
+    }
+  }
+})
+
 test_that("each accepted estimator gives a complete, correctly labeled report with three and four indicators", {
   skip_if_not_installed("lavaan")
   data <- sem_estimator_data()

@@ -105,7 +105,8 @@
 # too, not the stored `scaled`: before #133 that flag followed the
 # estimator's name, so a result fitted with estimator = "mlr" stored FALSE,
 # although lavTestLRT() had computed the scaled differences, its default for
-# fits with a scaled test.
+# fits with a scaled test. The print uses the stored flag only when it
+# cannot read the fits; see print.solomon_invariance().
 .invariance_scaled <- function(fits) {
   length(fits) > 0L && all(vapply(fits, .sem_scaled, logical(1)))
 }
@@ -390,13 +391,13 @@ print.solomon_invariance <- function(x, digits = 3, ...) {
       paste(level, "supported")
   }
   # Whether the differences are scaled is read from the fitted models, not
-  # from the stored flag (issue #133); without lavaan, which reads them, the
-  # flag is used.
-  scaled <- if (requireNamespace("lavaan", quietly = TRUE)) {
-    .invariance_scaled(x$fits)
-  } else {
-    isTRUE(x$scaled)
-  }
+  # from the stored flag (issue #133). The flag is used when the models
+  # cannot be read: when lavaan, which reads them, is not installed, or when
+  # the result no longer holds the three fits, for example because they were
+  # removed to make it smaller. The flag was computed from the same fits.
+  has_fits <- requireNamespace("lavaan", quietly = TRUE) &&
+    length(x$fits) == 3L && all(vapply(x$fits, inherits, logical(1), "lavaan"))
+  scaled <- if (has_fits) .invariance_scaled(x$fits) else isTRUE(x$scaled)
   cat(sprintf(
     "\nChi-square difference test%s at alpha = %s (Vandenberg & Lance, 2000, p. 46): %s.\n",
     if (scaled) " (scaled; Satorra & Bentler, 2001)" else "", x$alpha,

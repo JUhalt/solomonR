@@ -29,7 +29,10 @@
   factor, the rule of #130; otherwise the unscaled test is computed. The
   printout and the report take the label from the fitted models too, not
   from the stored `scaled`, so a result saved before this change with
-  `"mlr"`, which stored `scaled = FALSE`, is now labeled scaled.
+  `"mlr"`, which stored `scaled = FALSE`, is now labeled scaled. The
+  printout uses the stored `scaled` only when it cannot read the fitted
+  models: when lavaan is not installed, or when the result no longer holds
+  the three of them.
 * **Reports.** `report_solomon()` describes MLR and ML fits only. With
   three indicators under GLS, WLS, ULS, or DLS, the method statement of an
   invariance report had lost its sentence on the software and the
