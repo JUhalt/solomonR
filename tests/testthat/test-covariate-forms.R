@@ -564,19 +564,19 @@ test_that("a data frame passes through the resolver as it is", {
 })
 
 
-# ---- data frames as master gave them ----------------------------------------
+# ---- the forms master used, as master gave them ------------------------------
 
-test_that("data frames give master's model data, formulas, and results", {
+test_that("the forms master used give master's model data, formulas, and results", {
 
   # fixtures/covariate-forms-master.rds holds results computed on master
-  # (2ddbc9f), before this change, for covariates given as data frames and
-  # as names of columns; fixtures/covariate-forms-master.R made it and
-  # defines the calls. The data each model was fitted to, its formula, the
-  # names and classes of the result, and the tables of
-  # check_solomon_missing() must be identical. The numbers are compared to
-  # 1e-8 of their value: this change leaves them identical, as the record
-  # of #146 shows, but the inference of #137, computed with the covariates
-  # standardized, changes them by rounding.
+  # (2ddbc9f), before this change, for covariates given as data frames, as
+  # names of columns, and, with `data`, as vectors by their bare names;
+  # fixtures/covariate-forms-master.R made it and defines the calls. The
+  # data each model was fitted to, its formula, the names and classes of
+  # the result, and the tables of check_solomon_missing() must be
+  # identical. The numbers are compared to 1e-8 of their value: this change
+  # leaves them identical to master's, but the inference of #137, computed
+  # with the covariates standardized, changes them by rounding.
   source(test_path("fixtures", "covariate-forms-master.R"), local = TRUE)
   stored <- readRDS(test_path("fixtures", "covariate-forms-master.rds"))
   now <- covariate_forms_results(stored$data)

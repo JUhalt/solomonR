@@ -13,6 +13,8 @@
 #
 # The forms that master documented, a data frame and, with `data`, names of
 # its columns (or one column by its bare name), must give what master gave.
+# So must a numeric vector and a factor outside `data`, given by their bare
+# names with `data`, which master used without documenting them.
 # The calls cover four groups and three conditions, with and without
 # `data`, a tibble, a data frame with row names, numeric, factor, character,
 # and logical covariates, posttests missing, both pretest centers, HC3 and
@@ -52,13 +54,19 @@ covariate_forms_data <- function() {
 
   six <- mai2020
   six$z <- stats::rnorm(nrow(six))
-  list(four = four, six = six)
+
+  # Vectors that are not columns of `four`.
+  outside <- list(score = stats::rnorm(n),
+                  band = factor(sample(c("low", "mid", "high"), n, replace = TRUE)))
+  list(four = four, six = six, outside = outside)
 }
 
 # The results of master's interface.
 covariate_forms_results <- function(data) {
   four <- data$four
   six <- data$six
+  score <- data$outside$score
+  band <- data$outside$band
   rownamed <- data.frame(z = four$z, row.names = paste0("p", seq_len(nrow(four))))
 
   fits <- list(
@@ -91,7 +99,12 @@ covariate_forms_results <- function(data) {
                                 covariates = six[c("z", "gender")]),
     six_names = fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
                                 control = "Control", covariates = c("z", "gender"),
-                                data = six)
+                                data = six),
+    # Vectors outside `four`, by their bare names.
+    bare_outside = fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = score,
+                                   data = four),
+    bare_outside_factor = fit_solomon_glm(y_post, treat, pretested, y_pre,
+                                          covariates = band, data = four)
   )
   fit_parts <- lapply(fits, function(fit) {
     list(
@@ -110,7 +123,9 @@ covariate_forms_results <- function(data) {
                                           covariates = c("flag", "site"), data = four),
     missing_six = check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
                                         control = "Control", covariates = "gender",
-                                        data = six)
+                                        data = six),
+    missing_bare_outside = check_solomon_missing(y_post, treat, pretested, y_pre,
+                                                 covariates = score, data = four)
   )
   missing_parts <- lapply(missing, function(x) {
     list(
