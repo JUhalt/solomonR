@@ -108,16 +108,17 @@
     if (is.na(present[i])) which(is.na(x$pretested)) else
       which(x$pretested == present[i] & !is.na(x$pretested))
   })
-  groups <- structure(
-    list(
-      pretested = present,
-      .rows = structure(rows, ptype = integer(),
-                        class = c("vctrs_list_of", "vctrs_vctr", "list"))
-    ),
-    row.names = c(NA_integer_, -length(rows)),
-    class = c("tbl_df", "tbl", "data.frame"),
-    .drop = TRUE
+  # Built as dplyr's compute_groups() builds it, with tibble() and then the
+  # .drop attribute, so that the order of its attributes follows R's as
+  # dplyr's does: R 4.5.3 and 4.1 put row.names before names, R 4.6.1 after.
+  # The column .rows is spliced in, as dplyr does, because tibble() has an
+  # argument of that name.
+  groups <- tibble::tibble(
+    pretested = present,
+    !!!list(.rows = structure(rows, ptype = integer(),
+                              class = c("vctrs_list_of", "vctrs_vctr", "list")))
   )
+  attr(groups, ".drop") <- TRUE
   attributes(x) <- list(
     names = names(x),
     row.names = .row_names_info(x, 0L),

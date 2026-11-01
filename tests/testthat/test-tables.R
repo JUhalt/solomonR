@@ -75,7 +75,11 @@ test_that("plot_solomon() returns its cells grouped by pretest, as dplyr did", {
 
   groups <- attr(agg, "groups")
   expect_s3_class(groups, c("tbl_df", "tbl", "data.frame"), exact = TRUE)
-  expect_identical(names(attributes(groups)), c("names", "row.names", "class", ".drop"))
+  # dplyr builds it with tibble(), whose order of names and row.names
+  # depends on the version of R (row.names first on R 4.5.3 and 4.1).
+  expect_identical(names(attributes(groups)),
+                   c(names(attributes(tibble::tibble(a = 1))), ".drop"))
+  expect_setequal(names(attributes(groups)), c("names", "row.names", "class", ".drop"))
   expect_identical(groups$pretested, factor(c("0", "1")))
   expect_identical(unclass(groups$.rows), structure(list(1:2, 3:4), ptype = integer()))
   expect_s3_class(groups$.rows, c("vctrs_list_of", "vctrs_vctr", "list"), exact = TRUE)
