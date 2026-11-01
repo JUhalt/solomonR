@@ -365,6 +365,20 @@ test_that("the reports of fit_solomon_sem() name the software and the estimator"
       expect_identical(.sem_lavaan_estimator(old$fit), est, info = info)
       expect_identical(report_solomon(old), r, info = info)
     }
+
+    # With equal_var = TRUE the four-group model has 3 degrees of freedom,
+    # so it is not called saturated (the review of #133). Under MLR lavaan
+    # warns that the robust CFI is NA, as before this change.
+    fit <- suppressWarnings(fit_solomon_sem(y_post, treat, pretested, equal_var = TRUE,
+                                            estimator = est, data = solomon_example))
+    expect_identical(as.numeric(lavaan::fitMeasures(fit$fit, "df")), 3, info = est)
+    r <- report_solomon(fit)
+    expect_identical(r$method, sprintf(paste(
+      "A four-group mean-structure structural equation model, with the posttest variances",
+      "constrained to be equal across the groups, estimated the posttest means of the Solomon",
+      "groups. It was fitted with lavaan (Version %s; Rosseel, 2012) by %s."
+    ), fit$fit@version, estimator_text[[est]]), info = est)
+    expect_false(grepl("saturated", r$method, fixed = TRUE), info = est)
   }
 })
 

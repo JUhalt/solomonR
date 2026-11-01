@@ -41,7 +41,11 @@
   the estimator, and cites Yuan and Bentler (2000) under MLR, as the latent
   reports do; before, it gave an ML fit the same words as an MLR fit.
   `fit_solomon_sem()` stores the name in `estimator`; for a fit saved
-  before, the report reads the estimator from lavaan's options.
+  before, the report reads the estimator from lavaan's options. With
+  `equal_var = TRUE`, its method statement said that the four-group model
+  is saturated, which it is not, since the constraint gives it 3 degrees of
+  freedom; it now says that the posttest variances were constrained to be
+  equal, and `?fit_solomon_sem` says when the model is saturated.
 * **Results are unchanged** under `"MLR"` and `"ML"`. With three and with
   four indicators, every number, table, print, and report sentence of
   `fit_solomon_sem_latent()` and `invariance_solomon()`, and every number,

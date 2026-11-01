@@ -1028,8 +1028,12 @@
   model <- if (identical(fit$mode, "ancova_pretested")) {
     refs <- c(refs, "huck1973")
     "A two-group structural equation model of the pretested groups, with the pretest as a covariate (Huck & Sandler, 1973), estimated the treatment effect among pretested participants."
-  } else {
+  } else if (isTRUE(as.numeric(lavaan::fitMeasures(fit$fit, "df")) == 0)) {
     "A four-group mean-structure structural equation model estimated the posttest means of the Solomon groups; the model is saturated, so global fit is not reported."
+  } else {
+    # With equal_var = TRUE the model has degrees of freedom and is not
+    # saturated; the four posttest variances are then one parameter.
+    "A four-group mean-structure structural equation model, with the posttest variances constrained to be equal across the groups, estimated the posttest means of the Solomon groups."
   }
   method <- paste(model, sprintf("It was fitted with %s by %s.", est$software, est$text))
   eff <- as.data.frame(fit$effects)
