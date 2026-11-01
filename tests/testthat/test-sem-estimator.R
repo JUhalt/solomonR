@@ -156,6 +156,39 @@ test_that("a named estimator is stored without its name, and a stored name does 
   expect_identical(report_solomon(plain), report_solomon(lat))
 })
 
+test_that("a result saved with the unscaled flag on MLR fits is labeled by its fitted models", {
+  skip_if_not_installed("lavaan")
+  # Before #133, invariance_solomon(estimator = "mlr") stored the name as
+  # given and `scaled = FALSE`, although lavTestLRT() computed the scaled
+  # differences, its default for fits with a scaled test. The print and the
+  # reports take the label from the fitted models, not from the flag.
+  data <- sem_estimator_data()
+  for (k in c("three", "four")) {
+    d <- data[[k]]
+    items <- grep("^y", names(d), value = TRUE)
+    lat <- suppressWarnings(fit_solomon_sem_latent(d, items, d$treat, d$pretested))
+    inv <- lat$invariance
+    expect_true(inv$scaled, info = k)
+    for (i in 1:2) {
+      default <- lavaan::lavTestLRT(inv$fits[[i]], inv$fits[[i + 1]], method = "default")
+      expect_equal(inv$tests$chisq_diff[i], default[2, "Chisq diff"], info = k)
+    }
+    old <- inv
+    old$estimator <- "mlr"
+    old$scaled <- FALSE
+    expect_identical(utils::capture.output(print(old)), utils::capture.output(print(inv)), info = k)
+    expect_identical(report_solomon(old), report_solomon(inv), info = k)
+    old_lat <- lat
+    old_lat$settings$estimator <- "mlr"
+    old_lat$invariance <- old
+    r <- report_solomon(old_lat)
+    expect_identical(r, report_solomon(lat), info = k)
+    expect_match(r$method, "the scaled chi-square difference test (Satorra & Bentler, 2001)",
+                 fixed = TRUE, info = k)
+    expect_true(any(startsWith(r$references, "Satorra, A.")), info = k)
+  }
+})
+
 test_that("each accepted estimator gives a complete, correctly labeled report with three and four indicators", {
   skip_if_not_installed("lavaan")
   data <- sem_estimator_data()
@@ -169,8 +202,10 @@ test_that("each accepted estimator gives a complete, correctly labeled report wi
       lat <- suppressWarnings(fit_solomon_sem_latent(d, items, d$treat, d$pretested, estimator = est))
       software <- sprintf("lavaan (Version %s; Rosseel, 2012)", lat$fit@version)
 
-      # The invariance check: whether the difference test is scaled is read
-      # from the fitted models, and the tests are lavaan's.
+      # The invariance check: each model's test and the difference test are
+      # scaled under MLR and not under ML, and the tests are lavaan's. That
+      # the label is read from the fits, not from the name, is tested below
+      # with .invariance_steps().
       inv <- lat$invariance
       expect_identical(inv$estimator, est, info = info)
       expect_identical(vapply(inv$fits, .sem_scaled, NA),
@@ -251,6 +286,32 @@ test_that("each accepted estimator gives a complete, correctly labeled report wi
       expect_identical(any(startsWith(ri$references, "Yuan, K.-H.")), scaled, info = info)
       expect_identical(any(grepl("(scaled; Satorra & Bentler, 2001)", utils::capture.output(print(inv)),
                                  fixed = TRUE)), scaled, info = info)
+    }
+  }
+})
+
+test_that("whether the difference test is scaled follows the fitted models, not the name", {
+  skip_if_not_installed("lavaan")
+  # The exported functions pass the name in upper case, so through them a
+  # rule by name and the rule by the fits give the same label. Called with
+  # a lower-case name, .invariance_steps() shows which rule it uses: lavaan
+  # fits MLR, and the difference test must be labeled scaled, which a rule
+  # by name, `estimator %in% c("MLR", "MLM", "MLMV")`, did not do (#130).
+  d <- sem_estimator_data()$four
+  items <- paste0("y", 1:4)
+  group <- factor(interaction(d$pretested, d$treat, drop = TRUE),
+                  levels = c("1.1", "1.0", "0.1", "0.0"), labels = c("P1", "P0", "U1", "U0"))
+  for (e in c("mlr", "ml")) {
+    out <- .invariance_steps(d, items, group, e, NULL)
+    scaled <- e == "mlr"
+    expect_identical(vapply(out$fits, .sem_scaled, NA),
+                     c(configural = scaled, metric = scaled, scalar = scaled), info = e)
+    expect_identical(out$scaled, scaled, info = e)
+    for (i in 1:2) {
+      direct <- lavaan::lavTestLRT(out$fits[[i]], out$fits[[i + 1]],
+                                   method = if (scaled) "satorra.bentler.2001" else "standard")
+      expect_equal(out$tests$chisq_diff[i], direct[2, "Chisq diff"], info = e)
+      expect_equal(out$tests$p.value[i], direct[2, "Pr(>Chisq)"], info = e)
     }
   }
 })

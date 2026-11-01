@@ -1347,6 +1347,9 @@
   target <- if (is.null(inv$partial)) "scalar" else "partial scalar"
   verdict <- .invariance_verdicts(inv$supported, target)
   support <- inv$supported == target
+  # Read from the check's fitted models, not from its stored flag (issue
+  # #133); see .invariance_scaled().
+  scaled <- .invariance_scaled(inv$fits)
   scalar <- inv$fits$scalar
   freed_check <- .sem_freed(scalar, stats::setNames(list(inv$items),
                                                     .sem_factor_name(scalar)))
@@ -1364,10 +1367,10 @@
     freed_note
   )
   criteria <- if (identical(verdict[["chisq"]], verdict[["chen2007"]])) {
-    sprintf("%s and the change in fit (Chen, 2007) both %s", .chisq_criterion(isTRUE(inv$scaled)),
+    sprintf("%s and the change in fit (Chen, 2007) both %s", .chisq_criterion(scaled),
             verdict[["chisq"]])
   } else {
-    sprintf("%s %s, and the change in fit (Chen, 2007) %s", .chisq_criterion(isTRUE(inv$scaled)),
+    sprintf("%s %s, and the change in fit (Chen, 2007) %s", .chisq_criterion(scaled),
             verdict[["chisq"]], verdict[["chen2007"]])
   }
   text <- if (all(support)) {
@@ -1378,7 +1381,7 @@
             if (any(support)) "only one criterion supported" else "neither criterion supported",
             target)
   }
-  list(text = text, refs = c("chen2007", if (isTRUE(inv$scaled)) "satorra2001"))
+  list(text = text, refs = c("chen2007", if (scaled) "satorra2001"))
 }
 
 # The factor of a one-factor lavaan model, such as the F of
@@ -1550,7 +1553,9 @@
   .need_lavaan()
   configural <- fit$fits$configural
   est <- .sem_estimator(fit$estimator, configural)
-  scaled_diff <- isTRUE(fit$scaled)
+  # Read from the fitted models, not from the stored flag (issue #133); see
+  # .invariance_scaled().
+  scaled_diff <- .invariance_scaled(fit$fits)
   partial <- fit$partial
   target <- if (is.null(partial)) "scalar" else "partial scalar"
   items <- fit$items

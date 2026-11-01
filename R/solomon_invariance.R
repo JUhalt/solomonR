@@ -98,6 +98,18 @@
   if (flags[2]) "metric" else if (is.null(partial)) "scalar" else "partial scalar"
 }
 
+# Whether the chi-square differences of the three models are scaled, read
+# from the fitted models (issue #133): every model has a scaled test, by the
+# rule of .sem_scaled(), as under MLR. The Satorra-Bentler difference needs
+# the scaling of both models. The report and the print of a result read this
+# too, not the stored `scaled`: before #133 that flag followed the
+# estimator's name, so a result fitted with estimator = "mlr" stored FALSE,
+# although lavTestLRT() had computed the scaled differences, its default for
+# fits with a scaled test.
+.invariance_scaled <- function(fits) {
+  length(fits) > 0L && all(vapply(fits, .sem_scaled, logical(1)))
+}
+
 # Configural, metric, and scalar models across the levels of `group`, with
 # the change in fit and the chi-square difference test at each step.
 .invariance_steps <- function(data, items, group, estimator, partial, alpha = 0.05) {
@@ -129,9 +141,9 @@
   sizes <- as.vector(table(group))
   cut <- .chen2007_cutoffs(sizes)
   # Whether the difference test is scaled is read from the fitted models,
-  # not from the estimator's name (issue #133): it is scaled when every
-  # model has a scaled test, as under MLR, and unscaled under ML.
-  scaled <- all(vapply(fits, .sem_scaled, logical(1)))
+  # not from the estimator's name (issue #133): scaled under MLR, unscaled
+  # under ML.
+  scaled <- .invariance_scaled(fits)
   step <- function(less, more, srmr_cut) {
     # The scaled difference test can fail inside lavaan when its scaling
     # correction is undefined, as in one replication of the #55 simulation
@@ -350,8 +362,11 @@ invariance_solomon <- function(data, items, treat, pretested, estimator = "MLR",
 #' @export
 print.solomon_invariance <- function(x, digits = 3, ...) {
   cat("Measurement invariance across the four Solomon groups\n")
+  # The estimator in upper case, as it is stored since issue #133; a result
+  # saved before may hold "mlr".
   cat(sprintf("Indicators: %s; estimator: %s; group sizes (P1, P0, U1, U0): %s\n",
-              paste(x$items, collapse = ", "), x$estimator, paste(x$sizes, collapse = ", ")))
+              paste(x$items, collapse = ", "), toupper(x$estimator),
+              paste(x$sizes, collapse = ", ")))
   if (!is.null(x$partial)) {
     cat("Freed parameters (partial invariance):", paste(x$partial, collapse = "; "), "\n")
   }
@@ -371,9 +386,17 @@ print.solomon_invariance <- function(x, digits = 3, ...) {
     if (level == "undetermined") "could not be determined (a statistic was unavailable)" else
       paste(level, "supported")
   }
+  # Whether the differences are scaled is read from the fitted models, not
+  # from the stored flag (issue #133); without lavaan, which reads them, the
+  # flag is used.
+  scaled <- if (requireNamespace("lavaan", quietly = TRUE)) {
+    .invariance_scaled(x$fits)
+  } else {
+    isTRUE(x$scaled)
+  }
   cat(sprintf(
     "\nChi-square difference test%s at alpha = %s (Vandenberg & Lance, 2000, p. 46): %s.\n",
-    if (isTRUE(x$scaled)) " (scaled; Satorra & Bentler, 2001)" else "", x$alpha,
+    if (scaled) " (scaled; Satorra & Bentler, 2001)" else "", x$alpha,
     verdict(x$supported[["chisq"]])
   ))
   cat(sprintf(

@@ -22,7 +22,10 @@
   computed the scaled test (Satorra & Bentler, 2001), and the printout and
   the report called it the unscaled one. The scaled test is now computed,
   and `scaled` is `TRUE`, when every model has a test with a scaling
-  factor, the rule of #130; otherwise the unscaled test is computed.
+  factor, the rule of #130; otherwise the unscaled test is computed. The
+  printout and the report take the label from the fitted models too, not
+  from the stored `scaled`, so a result saved before this change with
+  `"mlr"`, which stored `scaled = FALSE`, is now labeled scaled.
 * **Reports.** `report_solomon()` describes MLR and ML fits only. With
   three indicators under GLS, WLS, ULS, or DLS, the method statement of an
   invariance report had lost its sentence on the software and the
