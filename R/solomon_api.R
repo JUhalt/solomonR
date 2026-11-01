@@ -93,7 +93,8 @@
 #     column without a name (empty or NA), or two columns of the same name,
 #     stop: the model formula would leave one out, or fail.
 #   - A column given by its bare name (`covariates = age`): one covariate
-#     of any atomic type, named by the column, as before.
+#     of any atomic type, or a date-time of class POSIXlt, named by the
+#     column, as a data frame would hold it.
 #   - With `data`, a character vector of names of its columns, each named
 #     once: those columns, as before.
 #   - A numeric, logical, or factor vector: one covariate, named by `expr`
@@ -152,7 +153,11 @@
     stats::setNames(data.frame(value), if (is.symbol(expr)) as.character(expr) else "covariate")
   }
 
-  if (column && is.atomic(x) && flat) {
+  # A date-time of class POSIXlt is a list, and a data frame holds it as a
+  # column as it holds an atomic one.
+  date_time <- inherits(x, "POSIXlt")
+
+  if (column && ((is.atomic(x) && flat) || date_time)) {
     return(one(x))
   }
 
@@ -202,7 +207,7 @@
     )
   }
 
-  if (is.list(x)) {
+  if (is.list(x) && !date_time) {
     stop("`covariates` is a list. Give a data frame, one column per covariate, ",
          "such as `as.data.frame(covariates)`.", call. = FALSE)
   }
@@ -252,7 +257,7 @@
   # as glm() takes it there. A one-dimensional object with a class, such
   # as table(cluster)[cluster] gives, becomes a vector with c(), which
   # keeps a factor a factor.
-  advice <- if (classed && is.atomic(x) && is.null(dims)) {
+  advice <- if (classed && (is.atomic(x) || date_time) && is.null(dims)) {
     " Give it as a column of a data frame."
   } else if (classed && length(dims) == 1L) {
     " Give it as a vector, such as `c(covariates)`."

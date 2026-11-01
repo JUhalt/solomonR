@@ -509,6 +509,8 @@ test_that("every other form stops with an error that says what to give", {
                 "not an object of class \"Date\". Give it as a column of a data frame."),
     difftime = list(as.difftime(seq_len(n), units = "days"),
                     "not an object of class \"difftime\". Give it as a column of a data frame."),
+    date_time = list(as.POSIXlt(as.POSIXct("2020-01-01", tz = "UTC") + seq_len(n) * 86400),
+                     "not an object of class \"POSIXlt\". Give it as a column of a data frame."),
     one_dimensional = list(array(complex(real = d$z)),
                            "not a one-dimensional array of type \"complex\"."),
     table = list(table(d$count)[as.character(d$count)],
@@ -681,12 +683,28 @@ test_that("with data, a date is used as a column and refused outside `data`", {
   expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = span,
                                   data = d), fit4(d, data.frame(span = d$span)))
 
+  # A date-time of class POSIXlt is a list. Given by its bare name, the
+  # column was left out before this change; it is now used as
+  # data.frame() holds it, as a POSIXct column. Minutes from the origin
+  # keep the model estimable.
+  d$stamp <- as.POSIXlt(as.POSIXct(60 * seq_len(nrow(d)), origin = "1970-01-01", tz = "UTC"))
+  ref <- fit4(d, data.frame(stamp = d$stamp))
+  expect_true("stamp" %in% names(stats::coef(ref$model)))
+  expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = stamp,
+                                  data = d), ref)
+
   # A vector outside `data`, given by its bare name, was used before this
-  # change; it now stops, as without `data`.
+  # change (a POSIXlt was left out); it now stops, as without `data`.
   outside_when <- d$when
   outside_span <- d$span
+  outside_stamp <- d$stamp
   d$when <- NULL
   d$span <- NULL
+  d$stamp <- NULL
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = outside_stamp, data = d),
+    "not an object of class \"POSIXlt\". Give it as a column of a data frame.", fixed = TRUE
+  )
   expect_error(
     fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = outside_when, data = d),
     "not an object of class \"Date\". Give it as a column of a data frame.", fixed = TRUE
