@@ -710,7 +710,20 @@ test_that("near zero, nearly collinear covariates are fitted as glm() fits them"
   collinear <- "collinear with other terms of the model: z2[.]"
   expect_no_error(collinear_pair_fit(d, "four", pair(1e-8)))
   expect_no_error(collinear_pair_fit(d, "six", pair(1e-8), "none"))
-  expect_no_error(collinear_pair_fit(d, "four", data.frame(z = d$z, z2 = single(d$z)), "CR2"))
+  # Under CR2 no fit may warn that NaNs were produced: clubSandwich's own
+  # standard errors of the standardized coefficients, whose rounding error
+  # made them NaN here, are not used.
+  for (design in c("four", "six")) {
+    warnings <- character()
+    expect_no_error(withCallingHandlers(
+      collinear_pair_fit(d, design, data.frame(z = d$z, z2 = single(d$z)), "CR2"),
+      warning = function(w) {
+        warnings <<- c(warnings, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    ))
+    expect_false(any(grepl("NaN", warnings)), info = design)
+  }
   expect_error(collinear_pair_fit(d, "four", pair(1e-13)), collinear)
   expect_error(collinear_pair_fit(d, "six", pair(1e-13), "none"), collinear)
   rows <- !is.na(d$y4) & !is.na(d$z_grid)

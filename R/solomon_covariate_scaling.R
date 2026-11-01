@@ -237,12 +237,15 @@
   tidy$std.error <- unname(se_vec[match(tidy$term, names(se_vec))])
   tidy$statistic <- tidy$estimate / tidy$std.error
   if (robust == "CR2") {
-    ct <- clubSandwich::coef_test(fit_cr, vcov = V, test = "Satterthwaite")
+    # Only the degrees of freedom are taken from clubSandwich. With
+    # standardized covariates the standard errors it computes as well, of
+    # the standardized coefficients and of the intercept as given from
+    # M V_s M', are not used; with nearly collinear covariates their
+    # rounding error can make them NaN, with a warning (.given_vcov()).
+    df_only <- function(expr) if (standardized) suppressWarnings(expr) else expr
+    ct <- df_only(clubSandwich::coef_test(fit_cr, vcov = V, test = "Satterthwaite"))
     tidy$df <- ct$df_Satt[match(tidy$term, ct$Coef)]
     if (standardized) {
-      # Only the degrees of freedom are taken: the standard error that
-      # linear_contrast() computes as well, from M V_s M', can come out NaN
-      # with nearly collinear covariates (.given_vcov()), with a warning.
       intercept <- M["(Intercept)", , drop = FALSE]
       tidy$df[tidy$term == "(Intercept)"] <- suppressWarnings(as.data.frame(
         clubSandwich::linear_contrast(fit_cr, vcov = V, contrasts = intercept,
