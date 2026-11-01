@@ -1,10 +1,12 @@
 # Checks R, the packages, and the numerical libraries against a study's
 # pins, and writes what it found (issue #117). Usage:
 #
-#   Rscript tools/sim/check-software.R <run-pins.csv> <software.csv> [--local]
+#   Rscript tools/sim/check-software.R <run-pins.csv> <software.csv> [--local] [--protocol]
 #
-# Stops if R is not the pinned version (or, when the pins give one, if the
-# SHA-256 of R's shared library differs), if a pinned package has another
+# Stops if R is not the pinned version, if the SHA-256 of R's shared library
+# on Linux (libR.so of the r-builds package that setup-r installs) differs
+# from the pins' r,libR_sha256, if --protocol (a study whose registry flag is
+# TRUE) and the pins lack r,libR_sha256, if a pinned package has another
 # version, if R does not use a reference BLAS and LAPACK, if the default RNG
 # kinds were changed, or, unless --local, if a tool (pak) has another version
 # than pinned or a repository other than the pinned snapshot is set, in R or
@@ -28,10 +30,11 @@ local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
   source(file.path(dirname(file), "harness-lib.R"))
 })
-args <- h_args(2L, "check-software.R <run-pins.csv> <software.csv> [--local]")
+args <- h_args(2L, "check-software.R <run-pins.csv> <software.csv> [--local] [--protocol]")
 pins <- h_read_csv(args[[1]])
 out_file <- args[[2]]
 local_run <- "--local" %in% args
+protocol <- "--protocol" %in% args
 
 pin <- function(kind, name, optional = FALSE) {
   v <- pins$value[pins$kind == kind & pins$name == name]
@@ -64,8 +67,13 @@ if (!identical(r_version, pin("r", "version"))) problem("R is ", r_version, ", p
 libR <- if (windows) file.path(R.home("bin"), "R.dll") else file.path(R.home("lib"), "libR.so")
 libR_sha <- sha(libR)
 add("r", "libR_sha256", libR_sha)
+# The pin ties a protocol's runs to the R build that harness test T2 checked;
+# it names the Linux build, so elsewhere the checksum is recorded only.
 want_libR <- pin("r", "libR_sha256", optional = TRUE)
-if (!is.na(want_libR) && !identical(libR_sha, want_libR)) problem("R's shared library has SHA-256 ", libR_sha, ", pinned ", want_libR, ".")
+if (protocol && is.na(want_libR)) problem("A protocol study must pin r,libR_sha256 (R's shared library on the runners).")
+if (linux && !is.na(want_libR) && !identical(libR_sha, want_libR)) {
+  problem("R's shared library has SHA-256 ", libR_sha, ", pinned ", want_libR, ".")
+}
 if (linux) {
   # The r-builds package that setup-r installs, with its build revision.
   add("r", "build", run("dpkg-query", c("-W", shQuote("-f=${Package} ${Version}"), paste0("r-", r_version))))

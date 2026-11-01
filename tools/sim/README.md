@@ -203,7 +203,12 @@ In the study's own pull request, before its run (the order rule of #117):
    `failures`; the contract stops if they do.
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,
    the extra packages, every package version the protocol records, and
-   `tool,pak`.
+   `tool,pak`. A protocol study (registry flag `TRUE`) must also give
+   `r,libR_sha256`, the SHA-256 of `libR.so` of the r-builds package that
+   setup-r installs; every job on the runners stops if it differs. For
+   `r-4.6.1 1`, the build that test T2 checked (run 41255391619), it is
+   `70c4de5e29eef6269aec5e1841477c07e84839812aaca3b2f240941bfd223953`.
+   Elsewhere (Windows) the library's checksum is recorded, not compared.
 6. A row in `studies.csv`, and the key in the workflow's `study` options.
 7. Code-testing runs (`smoke=true`) before the gate; the gate's amendment
    and the run's amendment are posted on the issue before each.
@@ -221,10 +226,12 @@ In the study's own pull request, before its run (the order rule of #117):
   included): no Actions cache, which any workflow on the branch can write
   and to which pak only adds; no Bioconductor repository
   (`PKG_USE_BIOCONDUCTOR=false`); extra packages only from CRAN (a name,
-  `any::`, or `cran::`); no pandoc or Quarto. R 4.6.1, the snapshot as the
-  only repository of R and of pak, pak, the pinned package versions, and
-  Ubuntu's reference BLAS and LAPACK are checked in every job before any
-  task.
+  `any::`, or `cran::`); no pandoc or Quarto. R 4.6.1 (for a protocol, also
+  the checksum of its shared library), the snapshot as the only repository
+  of R and of pak, pak, the pinned package versions, and Ubuntu's reference
+  BLAS and LAPACK are checked in every job before any task. The R package
+  itself (the r-builds `.deb`) is installed by setup-r, which checks no
+  checksum, before any of these checks runs.
 
 ## Reference
 

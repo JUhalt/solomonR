@@ -73,6 +73,9 @@ root <- normalizePath(".", winslash = "/")
 registry <- h_read_csv(file.path(harness, "studies.csv"))
 entry <- registry[registry$key == opts$study, , drop = FALSE]
 if (nrow(entry) != 1L) h_fail("Study ", opts$study, " is not in tools/sim/studies.csv.")
+if (!entry$protocol %in% c("TRUE", "FALSE")) h_fail("The protocol flag of ", opts$study, " in tools/sim/studies.csv must be TRUE or FALSE.")
+# A protocol study must pin R's shared library (check-software.R --protocol).
+software_flags <- c("--local", if (identical(entry$protocol, "TRUE")) "--protocol")
 script <- entry$script
 pins <- file.path(root, entry$pins)
 out <- normalizePath(opts$out, winslash = "/", mustWork = FALSE)
@@ -200,7 +203,7 @@ if (isTRUE(opts$resume)) {
   for (f in c(file.path(plan_dir, "plan-info.csv"), file.path(plan_dir, "chunks.json"), file.path(out, "software.csv"))) {
     if (!file.exists(f)) h_fail("Nothing to resume in ", out, ": ", f, " is missing.")
   }
-  step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software-resume.csv"), "--local"))
+  step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software-resume.csv"), software_flags))
   if (!identical(h_read_csv(file.path(out, "software.csv")), h_read_csv(file.path(out, "software-resume.csv")))) {
     h_fail("The software changed since the run started (compare software.csv and software-resume.csv). ",
            "A run never mixes software: start it again in a new folder.")
@@ -242,7 +245,7 @@ if (dir.exists(out) && length(list.files(out, all.files = TRUE, no.. = TRUE))) {
   h_fail("The folder ", out, " must be empty or absent (or use --resume).")
 }
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
-step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software.csv"), "--local"))
+step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software.csv"), software_flags))
 step("Plan", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "plan"))
 step("Preflight", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "preflight"))
 invisible(file.copy(file.path(out, "software.csv"), file.path(plan_dir, "software.csv")))

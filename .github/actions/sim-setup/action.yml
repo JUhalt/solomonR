@@ -33,6 +33,9 @@ runs:
         if [[ ! -f "pkg/$script" || ! -f "pkg/$pins" ]]; then
           echo "::error::The package commit lacks $script or $pins"; exit 1
         fi
+        if [[ "$protocol" != TRUE && "$protocol" != FALSE ]]; then
+          echo "::error::The protocol flag of $STUDY in $registry must be TRUE or FALSE"; exit 1
+        fi
         val() { tr -d '\r' < "pkg/$pins" | awk -F, -v k="$1" -v n="$2" 'NR > 1 && $1 == k && $2 == n { print $3 }'; }
         r_version=$(val r version)
         snapshot=$(val repos snapshot)
@@ -115,6 +118,11 @@ runs:
         install-pandoc: 'false'
         install-quarto: 'false'
 
+    # A protocol study must pin R's shared library (r,libR_sha256).
     - name: Check R, the packages, and the libraries
       shell: bash
-      run: Rscript harness/tools/sim/check-software.R "pkg/$SIM_PINS" software.csv
+      run: |
+        set -euo pipefail
+        flags=()
+        if [[ "$SIM_PROTOCOL" == TRUE ]]; then flags+=(--protocol); fi
+        Rscript harness/tools/sim/check-software.R "pkg/$SIM_PINS" software.csv ${flags[@]+"${flags[@]}"}
