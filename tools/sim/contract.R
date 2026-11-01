@@ -844,12 +844,14 @@ sim_gate_default <- function(study, times, scenarios, info) {
   if (!any(used)) used <- rep(TRUE, nrow(times))
   summary <- c(purpose = info[["purpose"]], tasks = nrow(times), warmup_minutes = warm,
                tasks_after_warmup = sum(times$after_warmup),
-               agreement_seconds = format(sum(times$agreement_seconds), digits = 10),
+               agreement_seconds = format(sum(times$agreement_seconds), scientific = FALSE, digits = 10),
                divisor = g$divisor, allowance = allowance, cap_hours = g$cap_hours,
                decision = decision,
                chosen_R = if (any(proj$chosen)) proj$R[proj$chosen] else NA,
                chosen_set = if (any(proj$chosen)) proj$set[proj$chosen] else NA,
-               seconds_per_cost = format(sum(times$elapsed[used]) / sum(times$cost[used]), digits = 10))
+               # fixed notation: the workflow's cost_seconds input takes it as written
+               seconds_per_cost = format(sum(times$elapsed[used]) / sum(times$cost[used]), scientific = FALSE,
+                                         digits = 10))
   list(`gate-times` = per, `gate-projection` = proj,
        `gate-summary` = data.frame(item = names(summary), value = unname(as.character(summary)),
                                    stringsAsFactors = FALSE))

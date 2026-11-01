@@ -37,7 +37,7 @@ on:
         type: number
         default: 3
       cost_seconds:
-        description: Worker seconds per unit of task cost, from the gate's timing/gate-summary.csv (required for a study run; 0 skips the job-size check)
+        description: Worker seconds per unit of task cost, as the gate's timing/gate-summary.csv gives it (required for a study run; 0 skips the job-size check)
         type: string
         default: '0'
       smoke:
@@ -103,7 +103,8 @@ jobs:
           [[ "$SIM_CHUNKS" =~ ^[0-9]+$ ]] || fail "chunks must be a whole number."
           if (( SIM_CHUNKS < 1 || SIM_CHUNKS > 256 )); then fail "chunks must be 1 to 256."; fi
           [[ "$SIM_REPS" =~ ^[0-9]+$ ]] || fail "reps must be a whole number."
-          [[ "$SIM_COST_SECONDS" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "cost_seconds must be a number."
+          number='^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$'
+          [[ "$SIM_COST_SECONDS" =~ $number ]] || fail "cost_seconds must be a number."
           if [[ "$SIM_SMOKE" == "true" ]]; then
             if (( SIM_REPS < 2 || SIM_REPS > 20 )); then fail "A smoke run has 2 to 20 replications."; fi
             purpose=test
@@ -114,7 +115,8 @@ jobs:
               purpose=gate
             else
               purpose=study
-              [[ "$SIM_COST_SECONDS" =~ [1-9] ]] || fail "A study run needs cost_seconds from its gate."
+              mantissa="${SIM_COST_SECONDS%%[eE]*}"
+              [[ "$mantissa" =~ [1-9] ]] || fail "A study run needs cost_seconds from its gate."
             fi
           fi
           if [[ "$SIM_FAIL_ONCE" == "true" && "$SIM_SMOKE" != "true" ]]; then fail "fail_once is for smoke runs only."; fi
@@ -199,7 +201,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          Rscript harness/tools/sim/assign-chunks.R plan "$SIM_CHUNKS" "$SIM_COST_SECONDS" "$SIM_WORKERS"
+          Rscript harness/tools/sim/assign-chunks.R plan "$SIM_CHUNKS" "$SIM_COST_SECONDS" "$SIM_WORKERS" "${SIM_ALLOWANCE:-}"
           echo "chunks=$(cat plan/chunks.json)" >> "$GITHUB_OUTPUT"
           cp software.csv plan/software.csv
           cp plan-log.txt plan/log.txt
@@ -232,7 +234,7 @@ jobs:
     runs-on: ubuntu-24.04
     # GitHub stops a job after 6 hours. The tasks get 330 minutes, so that the
     # job keeps time to save its log; run jobs are sized at about 2 hours
-    # (assign-chunks.R warns above 2 and stops above 4).
+    # with the allowance (assign-chunks.R warns above 2 and stops above 4).
     timeout-minutes: 355
     strategy:
       fail-fast: false

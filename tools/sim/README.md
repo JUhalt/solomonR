@@ -98,12 +98,18 @@ gh run watch <run id> --repo JUhalt/solomonR
 
 - `smoke=true` (the default) is a code-testing run: the study's test seed,
   at most 20 replications. A study run is `smoke=false`, `stage=run`, `reps`
-  on the protocol's list, a `package_sha` on master, and `cost_seconds` from
-  the gate's `timing/gate-summary.csv`; a timing gate is `smoke=false`,
-  `stage=gate`. Both must be dispatched with `--ref master`, so that the
-  harness that checks them is the merged one.
-- The plan job stops a study run whose largest chunk is expected to take
-  more than 4 hours on 4 workers, and warns above 2 hours; use more chunks.
+  on the protocol's list, a `package_sha` on master, and `cost_seconds`,
+  the gate's `seconds_per_cost` in `timing/gate-summary.csv` as written
+  there (fixed notation; the input also takes an exponent, such as
+  `1.2e-05`); a timing gate is `smoke=false`, `stage=gate`. Both must be
+  dispatched with `--ref master`, so that the harness that checks them is
+  the merged one.
+- The plan job multiplies each chunk's expected hours on 4 workers by an
+  allowance, then stops a study run whose largest chunk would take more
+  than 4 hours and warns above 2 hours; use more chunks. The allowance is
+  the pins' `sizing,allowance` if given, otherwise 1.3 for a protocol study
+  (the 30% allowance of #116's timing gate) and 1 for any other. 4 hours
+  with 1.3 is 3.1 hours expected, against the 5.5 hours a job's tasks get.
 - One study run (`smoke=false`) runs at a time. GitHub keeps at most one
   pending run per concurrency group and cancels an older pending one, so a
   third dispatch would cancel the second: start a study only when the
@@ -203,7 +209,9 @@ In the study's own pull request, before its run (the order rule of #117):
    `failures`; the contract stops if they do.
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,
    the extra packages, every package version the protocol records, and
-   `tool,pak`. A protocol study (registry flag `TRUE`) must also give
+   `tool,pak`; optionally `sizing,allowance`, the factor on a job's
+   expected hours (default 1.3 for a protocol). A protocol study (registry
+   flag `TRUE`) must also give
    `r,libR_sha256`, the SHA-256 of `libR.so` of the r-builds package that
    setup-r installs; every job on the runners stops if it differs. For
    `r-4.6.1 1`, the build that test T2 checked (run 41255391619), it is
