@@ -121,12 +121,19 @@ check4_shift <- c(0.75, 0.5, 1.0, 0.5, 0.5, 1.0, 0.75)
 # [Left to the script] Agreement check 2's 20 fixed data sets (groups of 4,
 # 4, 3, and 3) come from the normal generator with rho = .5 and h = 1 under
 # L'Ecuyer-CMRG, data set d with set.seed(9118600 + d) and its permutations
-# with seed 9118700 + d. These seeds are not the study's (1160116) or the
-# gate's (9118000) and are not the code-testing base seed (9118500).
+# with seed 9118700 + d (d = 1 to 20). These 40 seeds belong to check 2 in
+# every run, the gate and the study included. They are not the study's base
+# seed (1160116), the gate's (9118000), or the code-testing base seed
+# (9118500); code-testing runs use other seeds of 9118501 to 9118999 for
+# their other checks.
 check2_sets <- 20L
 check2_sizes <- c(4L, 4L, 3L, 3L)
 check2_data_seed <- 9118600L
 check2_perm_seed <- 9118700L
+# The class of the warning that #122 added (perm_solomon() with the
+# difference statistic when the arms differ in number); agreement checks 1
+# and 2 count it ("Warnings from #122 are muffled and counted").
+warning_class_122 <- "solomonR_unbalanced_arms_warning"
 
 # ---- Scenarios -------------------------------------------------------------------------
 
@@ -390,10 +397,11 @@ fit_m2 <- function(d) fit_solomon_ml(y_post, treat, pretested, y_pre, data = d)
 # fit; any other error stops the task as a code fault (the contract).
 try_fit <- function(f, d) tryCatch(f(d), error = function(e) e)
 
-# A fit's seven contrasts, selected by label. [Left to the script] A failed
-# fit is an error (M1, M2) or convergence != 0 (M2); a contrast whose
-# estimate, standard error, or degrees of freedom is not finite, or whose
-# standard error is not positive, is an undefined statistic.
+# A fit's seven contrasts, selected by label. A failed fit is an error (M1,
+# M2) or convergence != 0 (M2) (protocol). [Left to the script] A contrast
+# whose estimate, standard error, or degrees of freedom is not finite, or
+# whose standard error is not positive, is an undefined statistic: this
+# extends the protocol's "undefined observed statistic" to M1 and M2.
 fit_values <- function(method, fit) {
   if (inherits(fit, "error")) {
     return(list(status = rep("error", 7), estimate = rep(NA_real_, 7), std_error = rep(NA_real_, 7),
@@ -421,23 +429,34 @@ agreement_rows <- function(check, method, contrast, quantity, package, direct, t
              delta = as.numeric(delta), bound = bound, quantity = quantity,
              package = as.numeric(package), direct = as.numeric(direct), abs_diff = abs_diff,
              tolerance = as.numeric(tolerance), passed = as.logical(passed),
-             warnings_muffled = as.integer(warnings), warning_classes = classes,
+             warnings_muffled = as.integer(warnings), warnings_122 = 0L, warning_classes = classes,
              stringsAsFactors = FALSE)
 }
 
 # Evaluates `expr` with its warnings muffled and counted (agreement checks
 # 1 and 2: "Warnings from #122 are muffled and counted"; the same is done in
 # checks 3 and 4, so that the checks' warnings stay apart from the methods'
-# warnings that the contract counts).
+# warnings that the contract counts). `n122` counts the warnings of #122's
+# class among them. The summary shows these counts in the study run only,
+# because outside it a count could stand in for failed fits (see
+# agreement_summary() in robustness-summarize.R).
 with_counted_warnings <- function(expr) {
   n <- 0L
+  n122 <- 0L
   classes <- character()
   value <- withCallingHandlers(expr, warning = function(w) {
     n <<- n + 1L
+    if (inherits(w, warning_class_122)) n122 <<- n122 + 1L
     classes <<- union(classes, class(w)[[1L]])
     invokeRestart("muffleWarning")
   })
-  list(value = value, warnings = n, classes = paste(classes, collapse = " "))
+  list(value = value, warnings = n, n122 = n122, classes = paste(classes, collapse = " "))
+}
+
+# The union of two space-separated lists of warning classes.
+union_classes <- function(a, b) {
+  v <- unique(c(strsplit(a, " ", fixed = TRUE)[[1]], strsplit(b, " ", fixed = TRUE)[[1]]))
+  paste(v[nzchar(v)], collapse = " ")
 }
 
 # perm_solomon(fit, contrast, reps = B, seed, statistic, return_dist = TRUE)
@@ -480,6 +499,7 @@ compare_perm <- function(check, fit, direct, k, statistic, B, seed) {
     out$abs_diff[out$quantity == "permuted_statistics"] <- perm_diff
   }
   out$warnings_muffled[1L] <- w$warnings
+  out$warnings_122[1L] <- w$n122
   out$warning_classes[1L] <- w$classes
   list(rows = out, package = pk, own = own)
 }
@@ -534,6 +554,7 @@ check3 <- function(fits, values) {
             agreement_rows("3. TOST", m, contrasts_all[[k]], "p_upper", pk$p_upper, own$p_upper, tol_check3,
                            delta = d, bound = bound))
           r$warnings_muffled[1L] <- w$warnings
+          r$warnings_122[1L] <- w$n122
           r$warning_classes[1L] <- w$classes
           rows[[length(rows) + 1L]] <- r
         }
@@ -549,7 +570,9 @@ check3 <- function(fits, values) {
 # G4 0). The estimates must shift by the true values, and the standard
 # errors and degrees of freedom stay unchanged, within 1e-10 for M1 and
 # 1e-6 for M2 (absolute). [Left to the script] A fit or refit that fails is
-# not compared.
+# not compared. The refits' warnings are muffled and counted here, apart
+# from the methods' warnings; because fit_solomon_ml() warns when optim()
+# does not converge, the summary shows them in the study run only.
 check4 <- function(d, values) {
   shifted <- d
   shifted$y_post <- d$y_post + 0.5 * d$treat + 0.5 * d$treat * d$pretested + 0.5 * d$pretested
@@ -568,6 +591,7 @@ check4 <- function(d, values) {
       agreement_rows("4. equivariance", m, contrasts_all[k], "std_error", v2$std_error[k], v$std_error[k], tol),
       agreement_rows("4. equivariance", m, contrasts_all[k], "df", v2$df[k], v$df[k], tol))
     r$warnings_muffled[1L] <- w$warnings
+    r$warnings_122[1L] <- w$n122
     r$warning_classes[1L] <- w$classes
     rows[[length(rows) + 1L]] <- r
   }
@@ -590,11 +614,17 @@ result_frame <- function(method, contrast, status, estimate = NA_real_, std_erro
 # then e) and then its 999 permutations from the task's substream, and
 # nothing else draws from it: the agreement checks set their own seeds in
 # withr::with_seed() and perm_solomon(seed =), and the replication stops as
-# a code fault if they moved the stream. The same 999 permutations serve the
-# four contrasts and both statistics (protocol).
+# a code fault if the fits, the permutation statistics, or the checks moved
+# the stream. The same 999 permutations serve the four contrasts and both
+# statistics (protocol).
+# [Left to the script] M3 and M4 are computed directly whether or not the
+# M1 fit of the replication succeeded: the direct computation does not use
+# that fit, while perm_solomon(fit_M1) could not run without it.
 replicate_robustness <- function(s, rep) {
   d <- make_data(s)
   perms <- draw_permutations(d$treat, d$pretested, n_perm)
+  # The state after the replication's own draws; nothing below may move it.
+  stream <- get(".Random.seed", envir = globalenv())
   e0 <- identical(s$pattern, "E0")
   rows <- list()
   fits <- list()
@@ -621,15 +651,27 @@ replicate_robustness <- function(s, rep) {
   }
   results <- do.call(rbind, unname(rows))
   rownames(results) <- NULL
+  if (!identical(stream, get(".Random.seed", envir = globalenv()))) {
+    stop("A fit or the permutation statistics moved the task's random-number stream.", call. = FALSE)
+  }
   agreement <- NULL
   if (rep <= check1_reps || (e0 && rep <= check34_reps)) {
-    stream <- get(".Random.seed", envir = globalenv())
     agreement <- sim_time_agreement({
       parts <- list()
       if (rep <= check1_reps) {
-        # In ET, M1 is fitted for this check only (protocol).
-        fit1 <- if (e0) fits$M1 else try_fit(fit_m1, d)
-        if (!inherits(fit1, "error")) parts$check1 <- check1(s, rep, d, fit1)
+        # In ET, M1 is fitted for this check only (protocol). Its warnings
+        # are muffled and counted with the check's, not as warnings of the
+        # scenario's methods; if that fit fails, check 1 cannot run in this
+        # replication, and its warnings have no row to be counted in.
+        fit1 <- if (e0) list(value = fits$M1, warnings = 0L, n122 = 0L, classes = "") else
+          with_counted_warnings(try_fit(fit_m1, d))
+        if (!inherits(fit1$value, "error")) {
+          c1 <- check1(s, rep, d, fit1$value)
+          c1$warnings_muffled[1L] <- c1$warnings_muffled[1L] + fit1$warnings
+          c1$warnings_122[1L] <- c1$warnings_122[1L] + fit1$n122
+          c1$warning_classes[1L] <- union_classes(c1$warning_classes[1L], fit1$classes)
+          parts$check1 <- c1
+        }
       }
       if (e0 && rep <= check34_reps) {
         parts$check3 <- check3(fits, values)
@@ -665,8 +707,15 @@ fixed_data <- function() {
 # 199 permutations, and, for every permutation whose labels, throughout the
 # strata the contrast uses, all equal the observed labels or all differ
 # from them (a full swap, possible because the arms are equal), both the
-# package (its own z_perm against its own z_obs, by the tie rule above) and
-# the direct computation must count it as at least as extreme.
+# package and the direct computation must count it as at least as extreme.
+# The package's count applies the package's own rule to its own statistics
+# (its z_perm against its z_obs, with .perm_at_least(), .perm_unit(), and
+# .perm_tie_tolerance() of the fit's family, as perm_solomon() calls them;
+# pkgload::load_all() makes these internal functions visible); the direct
+# count applies the script's copy of the rule (at_least()) to the direct
+# statistics. The stored n_tied of the direct computation (perm_test()) is
+# reported beside the tie-labelled count, as information: the protocol's
+# pass rule does not include it.
 check2_set <- function(ds) {
   s <- list(level = "main", dist = "normal", n1 = check2_sizes[[1]], n2 = check2_sizes[[2]],
             n3 = check2_sizes[[3]], n4 = check2_sizes[[4]], h = 1, rho = 0.5, delta = 0, sens = 0,
@@ -701,9 +750,12 @@ check2_set <- function(ds) {
       if (!inherits(pk, "error") && length(pk$z_perm) == sum(fin)) {
         z <- rep(NA_real_, length(sb))
         z[fin] <- pk$z_perm
-        counted_package <- sum(tied & fin & at_least(z, pk$z_obs, tie_unit(pk$z_perm, statistic)), na.rm = TRUE)
+        counted_package <- sum(tied & fin & .perm_at_least(z, pk$z_obs, .perm_unit(pk$z_perm, statistic),
+                                                             .perm_tie_tolerance(stats::family(fit$model))),
+                               na.rm = TRUE)
       }
       n_tied <- sum(tied & fin)
+      stored <- if (identical(cmp$own$status, "ok")) as.integer(cmp$own$n_tied) else NA_integer_
       ok <- all(r$passed) && counted_direct == n_tied && counted_package == n_tied
       diff <- suppressWarnings(max(r$abs_diff[r$quantity %in% c("observed_statistic", "permuted_statistics")],
                                    na.rm = TRUE))
@@ -713,11 +765,12 @@ check2_set <- function(ds) {
         passed = ok,
         detail = paste0("p-values identical: ", r$passed[r$quantity == "p_value"][1],
                         "; tie-labelled permutations ", n_tied, ", counted by the package ", counted_package,
-                        ", by the direct computation ", counted_direct),
+                        ", by the direct computation ", counted_direct, "; stored n_tied ", stored),
         dataset = ds, method = r$method[[1]], contrast = contrasts_treat[[k]], statistic = statistic,
         max_abs_diff = if (is.finite(diff)) diff else NA_real_, tie_labelled = n_tied,
-        counted_package = counted_package, counted_direct = counted_direct,
-        warnings_muffled = sum(r$warnings_muffled), stringsAsFactors = FALSE)
+        counted_package = counted_package, counted_direct = counted_direct, n_tied_stored = stored,
+        warnings_muffled = sum(r$warnings_muffled), warnings_122 = sum(r$warnings_122),
+        stringsAsFactors = FALSE)
     }
   }
   do.call(rbind, out)
@@ -750,7 +803,8 @@ preflight_robustness <- function() {
                       sum(contrasts_all %in% f2$effects$contrast), " of 7")),
     dataset = NA_integer_, method = NA_character_, contrast = NA_character_, statistic = NA_character_,
     max_abs_diff = NA_real_, tie_labelled = NA_integer_, counted_package = NA_integer_,
-    counted_direct = NA_integer_, warnings_muffled = NA_integer_, stringsAsFactors = FALSE)
+    counted_direct = NA_integer_, n_tied_stored = NA_integer_, warnings_muffled = NA_integer_,
+    warnings_122 = NA_integer_, stringsAsFactors = FALSE)
   ties <- do.call(rbind, lapply(seq_len(check2_sets), check2_set))
   out <- rbind(stops, ties)
   rownames(out) <- NULL

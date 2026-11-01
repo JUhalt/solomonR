@@ -1,8 +1,8 @@
 # Summaries for the issue #116 simulation (robustness of the recommended
 # inference): the agreement checks, and, in the study run only, the
 # performance measures with their Monte Carlo standard errors (MCSEs), the
-# decision rules, the failed fits and warnings, and the study's part of
-# run-information.csv.
+# decision rules, the failed fits and warnings, the scenario table, and the
+# study's part of run-information.csv.
 #
 # Sourced by robustness-simulation.R, whose constants and scenario table it
 # uses; it defines functions only. It is base R, because the harness does
@@ -13,10 +13,18 @@
 # which includes the smoke mode of tools/check-validation-scripts.R) and in
 # the timing gate, summarize_robustness() computes the agreement checks and
 # the run information only: no performance measure, no decision, and no
-# count of failed fits. It checks the purpose before it computes anything
-# else, and the contract stops if such a summary contains performance,
-# decisions, or failures. The unit tests of these functions are in
-# robustness-summarize-tests.R and use synthetic inputs only.
+# count of failed fits. Before that it checks only that every status is one
+# that replicate() writes and that the preflight's checks are present,
+# which counts nothing. Outside the study run, agreement.csv is also kept
+# from standing in for a count of failed fits: a comparison is skipped when
+# a fit failed, so that run's rows are aggregated over the scenarios on a
+# fixed plan of checks, methods, and quantities, without the number of
+# comparisons and without the warnings counted in checks 1, 3, and 4 (check
+# 1 says only whether #122's warning was muffled); the study run gives every
+# scenario's row, with these counts. The contract stops if a summary
+# outside the study run contains performance, decisions, or failures. The
+# unit tests of these functions are in robustness-summarize-tests.R and use
+# synthetic inputs only.
 #
 # Sources (APA 7):
 # Bradley, J. V. (1978). Robustness? British Journal of Mathematical and
@@ -62,6 +70,9 @@ binom_p_upper <- function(x, n, p0) {
 bias_p <- function(bias, mcse) {
   ifelse(is.finite(bias) & is.finite(mcse) & mcse > 0, 2 * stats::pnorm(-abs(bias / mcse)), NA_real_)
 }
+
+# The largest value, NA when there is none.
+biggest <- function(v) if (!length(v) || all(is.na(v))) NA_real_ else max(v, na.rm = TRUE)
 
 # ---- The judged cells and C --------------------------------------------------------
 
@@ -141,6 +152,50 @@ family_size <- function(sc) {
        "(the main grid without the uniform distribution).", call. = FALSE)
 }
 
+# ---- Inputs ---------------------------------------------------------------------------
+
+# The statuses replicate() writes (robustness-simulation.R): "ok", a failed
+# fit of M1 or M2 ("error", "nonconverged"), or an undefined statistic
+# ("undefined", "no_valid_permutations").
+status_values <- c("ok", "error", "nonconverged", "undefined", "no_valid_permutations")
+
+# Stops, naming the scenario and the replication, if a status is missing or
+# is not one of these, so that an unknown spelling is never taken for a
+# failed fit or a success. It counts nothing.
+check_statuses <- function(results) {
+  bad <- which(!results$status %in% status_values)
+  if (length(bad)) {
+    i <- bad[[1L]]
+    stop("Status ", if (is.na(results$status[i])) "NA" else paste0("\"", results$status[i], "\""),
+         " in scenario ", results$scenario[i], ", replication ", results$rep[i], " (", results$method[i],
+         ", ", results$contrast[i], ") is not one of ", paste(status_values, collapse = ", "), ".",
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+# The preflight's checks (plan/preflight.csv, read as text): the protocol's
+# two stops and agreement check 2 on its 20 fixed data sets, for M3 and M4
+# and the four treatment contrasts. Every summary needs them: check 2 is
+# reported in agreement.csv, and its failure is a defect.
+check_preflight <- function(preflight) {
+  if (is.null(preflight) || !all(c("dataset", "method", "contrast", "passed") %in% names(preflight))) {
+    stop("The preflight's checks (plan/preflight.csv) are missing, so agreement check 2 cannot be ",
+         "reported.", call. = FALSE)
+  }
+  ds <- as.character(preflight$dataset)
+  p <- preflight[!is.na(ds) & nzchar(ds) & ds != "NA", , drop = FALSE]
+  want <- expand.grid(contrast = contrasts_treat, method = c("M3", "M4"), dataset = seq_len(check2_sets),
+                      KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+  key <- paste(as.character(p$dataset), p$method, p$contrast, sep = "\r")
+  if (nrow(p) != nrow(want) || anyDuplicated(key) ||
+      !setequal(key, paste(want$dataset, want$method, want$contrast, sep = "\r"))) {
+    stop("The preflight does not hold agreement check 2's ", nrow(want), " rows (", check2_sets,
+         " data sets, M3 and M4, four contrasts).", call. = FALSE)
+  }
+  p
+}
+
 # ---- Per-scenario blocks of the results ----------------------------------------------
 
 # The rows of each scenario in `results`, which the contract binds in the
@@ -176,7 +231,9 @@ scenario_block <- function(results, from, to, layout) {
 
 # Agreement check 5 (protocol): in every E0 replication, M2's seven
 # estimates equal M1's within 1e-6, over the replications in which both
-# fits of the contrast succeeded. One row per scenario and contrast.
+# fits of the contrast succeeded. One row per scenario and contrast, with
+# the number of replications compared; with none, `passed` is NA (not
+# compared).
 check5_rows <- function(results, sc) {
   rg <- scenario_ranges(results)
   out <- list()
@@ -189,9 +246,11 @@ check5_rows <- function(results, sc) {
     both <- b$status[i1, , drop = FALSE] == "ok" & b$status[i2, , drop = FALSE] == "ok"
     d <- abs(b$estimate[i2, , drop = FALSE] - b$estimate[i1, , drop = FALSE])
     d[!both] <- NA_real_
-    mx <- apply(d, 1L, function(v) if (all(is.na(v))) NA_real_ else max(v, na.rm = TRUE))
+    n <- as.integer(rowSums(both))
+    mx <- apply(d, 1L, biggest)
     out[[length(out) + 1L]] <- data.frame(scenario = s$scenario, contrast = contrasts_all,
-                                          max_abs_diff = unname(mx), passed = is.na(mx) | mx <= tol_check5,
+                                          max_abs_diff = unname(mx), comparisons = n,
+                                          passed = ifelse(n > 0L, !is.na(mx) & mx <= tol_check5, NA),
                                           stringsAsFactors = FALSE)
   }
   if (!length(out)) return(NULL)
@@ -200,73 +259,171 @@ check5_rows <- function(results, sc) {
 
 # ---- Agreement summary ---------------------------------------------------------------
 
-# One row per check, scenario, method, and quantity: whether every
-# comparison passed and the largest absolute difference. In code-testing
-# runs and the gate no row says how many comparisons were made, because a
-# comparison is skipped when a fit failed, so a count would reveal failed
-# fits; the study run adds the count (column `comparisons`). Check 5's
-# largest difference is also one of the protocol's descriptive measures, so
-# outside the study run only its verdict is shown.
-agreement_summary <- function(agreement, results, sc, preflight, study_run) {
-  rows <- list()
-  biggest <- function(v) if (all(is.na(v))) NA_real_ else max(v, na.rm = TRUE)
-  # Check 2 (ties), from the preflight, which runs before any task.
-  if (!is.null(preflight) && "dataset" %in% names(preflight)) {
-    p <- preflight[nzchar(preflight$dataset) & preflight$dataset != "NA", , drop = FALSE]
-    p$passed <- as.logical(p$passed)
-    p$max_abs_diff <- as.numeric(p$max_abs_diff)
-    for (key in unique(paste(p$method, p$contrast, sep = "\r"))) {
-      q <- p[paste(p$method, p$contrast, sep = "\r") == key, , drop = FALSE]
-      rows[[length(rows) + 1L]] <- data.frame(
-        check = "2. ties (preflight)", scenario = NA_integer_, method = q$method[[1]],
-        contrast = q$contrast[[1]], quantity = "p-value, valid and tie-labelled permutations, statistics",
-        max_abs_diff = biggest(q$max_abs_diff), tolerance = tol_check1,
-        passed = all(q$passed), warnings_muffled = sum(as.integer(q$warnings_muffled)),
-        detail = paste0(nrow(q), " fixed data sets; tie-labelled permutations ", sum(as.integer(q$tie_labelled)),
-                        ", counted by the package ", sum(as.integer(q$counted_package)),
-                        ", by the direct computation ", sum(as.integer(q$counted_direct))),
-        comparisons = nrow(q), stringsAsFactors = FALSE)
-    }
-  }
-  # Checks 1, 3, and 4, from the replications.
-  if (!is.null(agreement) && nrow(agreement)) {
-    key <- paste(agreement$check, agreement$scenario, agreement$method, agreement$quantity, sep = "\r")
-    grp <- match(key, unique(key))
-    first <- !duplicated(grp)
-    classes <- tapply(agreement$warning_classes, grp, function(v) {
+# The comparisons that agreement checks 1, 3, and 4 plan, from the protocol
+# alone: check 1 in every scenario for M3 and M4, checks 3 and 4 in every E0
+# scenario for M1 and M2, each with these quantities and tolerances.
+# agreement.csv has a row for each planned group whether or not a fit
+# succeeded, so that the presence of a row never depends on a fit.
+agreement_plan <- function() {
+  data.frame(
+    check = rep(c("1. permutation tests", "3. TOST", "4. equivariance"), c(8L, 6L, 6L)),
+    method = c(rep(c("M3", "M4"), each = 4L), rep(c("M1", "M2"), each = 3L), rep(c("M1", "M2"), each = 3L)),
+    quantity = c(rep(c("p_value", "valid_permutations", "observed_statistic", "permuted_statistics"), 2L),
+                 rep(c("equivalent", "p_lower", "p_upper"), 2L), rep(c("estimate_shift", "std_error", "df"), 2L)),
+    tolerance = c(rep(c(0, 0, tol_check1, tol_check1), 2L), rep(c(0, tol_check3, tol_check3), 2L),
+                  rep(tol_check4[["M1"]], 3L), rep(tol_check4[["M2"]], 3L)),
+    e0_only = rep(c(FALSE, TRUE, TRUE), c(8L, 6L, 6L)), stringsAsFactors = FALSE)
+}
+
+empty_agreement <- function() {
+  data.frame(check = character(), scenario = integer(), method = character(), quantity = character(),
+             abs_diff = numeric(), passed = logical(), warnings_muffled = integer(), warnings_122 = integer(),
+             warning_classes = character(), stringsAsFactors = FALSE)
+}
+
+# Per group g (1 to n_groups) of the agreement rows: the number of
+# comparisons, whether all passed (NA without one), the largest absolute
+# difference, the warnings and their classes, and the scenarios in which a
+# comparison failed.
+group_summary <- function(rows, g, n_groups) {
+  f <- factor(g, levels = seq_len(n_groups))
+  zero <- function(v) { v <- as.integer(v); v[is.na(v)] <- 0L; v }
+  text <- function(v) { v <- as.character(v); v[is.na(v)] <- ""; v }
+  failed <- !rows$passed
+  list(
+    n = tabulate(g, nbins = n_groups),
+    passed = unname(as.logical(tapply(rows$passed, f, all))),
+    max_abs_diff = unname(as.numeric(tapply(rows$abs_diff, f, biggest))),
+    warnings = zero(unname(tapply(rows$warnings_muffled, f, sum))),
+    warnings_122 = zero(unname(tapply(rows$warnings_122, f, sum))),
+    classes = text(unname(tapply(rows$warning_classes, f, function(v) {
       v <- unique(unlist(strsplit(v[nzchar(v)], " ", fixed = TRUE)))
       paste(v, collapse = " ")
-    })
-    rows[[length(rows) + 1L]] <- data.frame(
-      check = agreement$check[first], scenario = agreement$scenario[first],
-      method = agreement$method[first], contrast = "all", quantity = agreement$quantity[first],
-      max_abs_diff = unname(tapply(agreement$abs_diff, grp, biggest)),
-      tolerance = agreement$tolerance[first],
-      passed = unname(tapply(agreement$passed, grp, all)),
-      warnings_muffled = unname(as.integer(tapply(agreement$warnings_muffled, grp, sum))),
-      detail = ifelse(nzchar(classes), paste("warnings muffled:", classes), ""),
-      comparisons = unname(as.integer(tabulate(grp))), stringsAsFactors = FALSE)
+    }))),
+    failed_in = text(unname(tapply(rows$scenario[failed], f[failed], function(v) {
+      paste(sort(unique(v)), collapse = " ")
+    }))))
+}
+
+# agreement.csv. Check 2 comes from the preflight (one row per method and
+# contrast, over its 20 fixed data sets). Checks 1, 3, and 4 come from the
+# replications: in the study run one row per scenario, method, and quantity
+# of the plan above, with the number of comparisons, the warnings muffled
+# in the check, and their classes, and "not compared" where every fit
+# failed; outside the study run one row per check, method, and quantity
+# over all scenarios, with the scenarios in which a comparison failed, and,
+# for check 1, whether #122's warning was muffled (yes or no, never a
+# count). Check 5 comes from the stored estimates: per scenario and
+# contrast in the study run, per contrast outside it, where its largest
+# difference, one of the protocol's descriptive measures, is not shown.
+agreement_summary <- function(agreement, results, sc, preflight, study_run) {
+  out <- list()
+  num <- function(v) suppressWarnings(as.integer(v))
+  # Check 2 (ties), from the preflight, which runs before any task.
+  p <- check_preflight(preflight)
+  p$passed <- as.logical(p$passed)
+  p$max_abs_diff <- suppressWarnings(as.numeric(p$max_abs_diff))
+  pk <- paste(p$method, p$contrast, sep = "\r")
+  for (key in unique(pk)) {
+    q <- p[pk == key, , drop = FALSE]
+    out[[length(out) + 1L]] <- data.frame(
+      check = "2. ties (preflight)", scenario = NA_integer_, method = q$method[[1]],
+      contrast = q$contrast[[1]], quantity = "p-value, valid and tie-labelled permutations, statistics",
+      max_abs_diff = biggest(q$max_abs_diff), tolerance = tol_check1, passed = all(q$passed),
+      comparisons = nrow(q), warnings_muffled = sum(num(q$warnings_muffled)),
+      warnings_122 = if ("warnings_122" %in% names(q)) sum(num(q$warnings_122)) else NA_integer_,
+      detail = paste0(nrow(q), " fixed data sets; tie-labelled permutations ", sum(num(q$tie_labelled)),
+                      ", counted by the package ", sum(num(q$counted_package)),
+                      ", by the direct computation ", sum(num(q$counted_direct)),
+                      if ("n_tied_stored" %in% names(q)) paste0("; stored n_tied ", sum(num(q$n_tied_stored))) else ""),
+      stringsAsFactors = FALSE)
+  }
+  # Checks 1, 3, and 4, from the replications, on the plan's grid. A row
+  # outside the grid is a code fault.
+  plan <- agreement_plan()
+  rows <- if (is.null(agreement) || !nrow(agreement)) empty_agreement() else agreement
+  e0 <- sc$scenario[sc$pattern == "E0"]
+  grid <- do.call(rbind, lapply(seq_len(nrow(plan)), function(i) {
+    scen <- if (plan$e0_only[i]) e0 else sc$scenario
+    if (!length(scen)) return(NULL)
+    data.frame(plan = i, check = plan$check[i], scenario = scen, method = plan$method[i],
+               quantity = plan$quantity[i], tolerance = plan$tolerance[i], stringsAsFactors = FALSE)
+  }))
+  grid <- grid[order(match(grid$check, unique(plan$check)), grid$scenario, grid$plan), , drop = FALSE]
+  rownames(grid) <- NULL
+  g <- match(paste(rows$check, rows$scenario, rows$method, rows$quantity, sep = "\r"),
+             paste(grid$check, grid$scenario, grid$method, grid$quantity, sep = "\r"))
+  if (anyNA(g)) {
+    i <- which(is.na(g))[[1]]
+    stop("An agreement row is not one of the planned comparisons: ", rows$check[i], ", scenario ",
+         rows$scenario[i], ", ", rows$method[i], ", ", rows$quantity[i], ".", call. = FALSE)
+  }
+  if (study_run) {
+    s <- group_summary(rows, g, nrow(grid))
+    out[[length(out) + 1L]] <- data.frame(
+      check = grid$check, scenario = grid$scenario, method = grid$method, contrast = "all",
+      quantity = grid$quantity, max_abs_diff = s$max_abs_diff, tolerance = grid$tolerance, passed = s$passed,
+      comparisons = s$n, warnings_muffled = s$warnings, warnings_122 = s$warnings_122,
+      detail = ifelse(s$n == 0L, "not compared",
+                      ifelse(nzchar(s$classes), paste("warnings muffled:", s$classes), "")),
+      stringsAsFactors = FALSE)
+  } else {
+    s <- group_summary(rows, grid$plan[g], nrow(plan))
+    cm <- paste(plan$check, plan$method, sep = "\r")
+    any122 <- tapply(s$warnings_122 > 0L, cm, any)[cm]
+    detail <- mapply(function(n, failed_in, check, w) {
+      parts <- c(if (n == 0L) "not compared in any scenario",
+                 if (nzchar(failed_in)) paste("failed in scenarios", failed_in),
+                 if (startsWith(check, "1")) paste("#122 warnings muffled:", if (isTRUE(w)) "yes" else "none"))
+      paste(parts, collapse = "; ")
+    }, s$n, s$failed_in, plan$check, any122, USE.NAMES = FALSE)
+    out[[length(out) + 1L]] <- data.frame(
+      check = plan$check, scenario = NA_integer_, method = plan$method, contrast = "all",
+      quantity = plan$quantity, max_abs_diff = s$max_abs_diff, tolerance = plan$tolerance, passed = s$passed,
+      comparisons = NA_integer_, warnings_muffled = NA_integer_, warnings_122 = NA_integer_,
+      detail = detail, stringsAsFactors = FALSE)
   }
   # Check 5, from the stored estimates.
   c5 <- if (is.null(results)) NULL else check5_rows(results, sc)
   if (!is.null(c5)) {
-    rows[[length(rows) + 1L]] <- data.frame(
-      check = "5. M2 equals M1", scenario = c5$scenario, method = "M2", contrast = c5$contrast,
-      quantity = "estimate", max_abs_diff = if (study_run) c5$max_abs_diff else NA_real_,
-      tolerance = tol_check5, passed = c5$passed, warnings_muffled = 0L,
-      detail = if (study_run) "" else "largest difference shown in the study run only (a descriptive measure)",
-      comparisons = NA_integer_, stringsAsFactors = FALSE)
+    if (study_run) {
+      out[[length(out) + 1L]] <- data.frame(
+        check = "5. M2 equals M1", scenario = c5$scenario, method = "M2", contrast = c5$contrast,
+        quantity = "estimate", max_abs_diff = c5$max_abs_diff, tolerance = tol_check5, passed = c5$passed,
+        comparisons = c5$comparisons, warnings_muffled = 0L, warnings_122 = 0L,
+        detail = ifelse(c5$comparisons == 0L, "not compared", ""), stringsAsFactors = FALSE)
+    } else {
+      f <- factor(c5$contrast, levels = contrasts_all)
+      bad <- c5$passed %in% FALSE
+      n <- as.integer(tapply(c5$comparisons, f, sum))
+      passed <- as.logical(tapply(c5$passed, f, function(v) if (all(is.na(v))) NA else all(v, na.rm = TRUE)))
+      failed_in <- as.character(tapply(c5$scenario[bad], f[bad], function(v) paste(sort(unique(v)), collapse = " ")))
+      failed_in[is.na(failed_in)] <- ""
+      detail <- vapply(seq_along(contrasts_all), function(k) {
+        paste(c("largest difference shown in the study run only (a descriptive measure)",
+                if (n[k] == 0L) "not compared in any scenario",
+                if (nzchar(failed_in[k])) paste("failed in scenarios", failed_in[k])), collapse = "; ")
+      }, "")
+      out[[length(out) + 1L]] <- data.frame(
+        check = "5. M2 equals M1", scenario = NA_integer_, method = "M2", contrast = contrasts_all,
+        quantity = "estimate", max_abs_diff = NA_real_, tolerance = tol_check5, passed = passed,
+        comparisons = NA_integer_, warnings_muffled = NA_integer_, warnings_122 = NA_integer_,
+        detail = detail, stringsAsFactors = FALSE)
+    }
   }
-  if (!length(rows)) stop("No agreement check was run.", call. = FALSE)
-  out <- do.call(rbind, rows)
+  out <- do.call(rbind, out)
   rownames(out) <- NULL
-  if (!study_run) out$comparisons <- NULL
+  if (!study_run) {
+    out$comparisons <- NULL
+    out$warnings_122 <- NULL
+  }
   out
 }
 
 # ---- Performance measures ------------------------------------------------------------
 
 note_rate <- "proportion at 0 or 1: the binomial formula gives 0"
+note_t3 <- "unavailable: the fourth moment of t (3 df) is infinite (protocol)"
 
 # Proportions with their binomial MCSE, sqrt(r(1 - r)/n), n the number of
 # successful fits (Morris et al., 2019, Table 6).
@@ -286,12 +443,19 @@ jackknife_se <- function(loo) {
   sqrt((n - 1) / n * sum((loo - mean(loo))^2))
 }
 
+# The leave-one-out empirical SEs, sqrt(SS_(j) / (n - 2)) with
+# SS_(j) = SS - n/(n - 1) (x_j - mean)^2, computed in O(n).
+loo_empirical_se <- function(est) {
+  n <- length(est)
+  dev2 <- (est - mean(est))^2
+  sqrt(pmax(sum(dev2) - n / (n - 1) * dev2, 0) / (n - 2))
+}
+
 # Empirical SE, SD(estimate); model SE, sqrt(mean(SE^2)); and the relative
 # error of the model SE, 100 (model SE / empirical SE - 1), with jackknife
 # MCSEs over the replications (protocol). The leave-one-out values are
-# computed in O(n) from centered sums:
-#   SS_(j) = SS - n/(n - 1) (x_j - mean)^2, empirical SE_(j) = sqrt(SS_(j)/(n - 2));
-#   model SE_(j) = sqrt((sum SE^2 - SE_j^2)/(n - 1)).
+# computed in O(n): the empirical SE by loo_empirical_se(), the model SE as
+# sqrt((sum SE^2 - SE_j^2)/(n - 1)).
 # [Left to the script: the protocol names jackknife estimates without a
 # formula; this is the standard leave-one-out jackknife.] Under t (3 df) the
 # MCSEs are unavailable (protocol).
@@ -303,13 +467,11 @@ se_rows <- function(est, se, heavy_tailed) {
   mcse <- rep(NA_real_, 3)
   note <- rep("", 3)
   if (heavy_tailed) {
-    note[] <- "unavailable: the fourth moment of t (3 df) is infinite (protocol)"
+    note[] <- note_t3
   } else if (n < 3) {
     note[] <- "fewer than 3 successful fits"
   } else {
-    dev2 <- (est - mean(est))^2
-    ss <- sum(dev2)
-    emp_j <- sqrt(pmax(ss - n / (n - 1) * dev2, 0) / (n - 2))
+    emp_j <- loo_empirical_se(est)
     s2 <- se^2
     mod_j <- sqrt((sum(s2) - s2) / (n - 1))
     rel_j <- 100 * (mod_j / emp_j - 1)
@@ -321,17 +483,28 @@ se_rows <- function(est, se, heavy_tailed) {
              events = NA_integer_, stringsAsFactors = FALSE)
 }
 
-# Bias of M1, mean(estimate) in E0, with MCSE SD(estimate)/sqrt(n); and the
-# standardized bias, bias / empirical SE. [Left to the script: the protocol
-# gives no MCSE for the standardized bias.]
-bias_rows <- function(est) {
+# Bias of M1, mean(estimate) in E0, with MCSE SD(estimate)/sqrt(n)
+# (protocol); and the standardized bias, bias / empirical SE. [Left to the
+# script: the protocol says that each measure carries an MCSE but gives
+# none for the standardized bias. It is the leave-one-out jackknife over the
+# replications, as for the measures built on the empirical SE, and, like
+# theirs, unavailable under t (3 df).]
+bias_rows <- function(est, heavy_tailed) {
   n <- length(est)
   b <- if (n >= 1) mean(est) else NA_real_
   sdv <- if (n >= 2) stats::sd(est) else NA_real_
+  mcse_std <- NA_real_
+  note_std <- ""
+  if (heavy_tailed) {
+    note_std <- note_t3
+  } else if (n < 3) {
+    note_std <- "fewer than 3 successful fits"
+  } else {
+    mcse_std <- jackknife_se(((sum(est) - est) / (n - 1)) / loo_empirical_se(est))
+  }
   data.frame(measure = c("bias", "standardized_bias"), estimate = c(b, b / sdv),
-             mcse = c(sdv / sqrt(n), NA_real_),
-             mcse_note = c(if (n < 2) "fewer than 2 successful fits" else "",
-                           "not specified by the protocol; the bias carries its MCSE"),
+             mcse = c(sdv / sqrt(n), mcse_std),
+             mcse_note = c(if (n < 2) "fewer than 2 successful fits" else "", note_std),
              n_success = as.integer(n), events = NA_integer_, stringsAsFactors = FALSE)
 }
 
@@ -357,7 +530,7 @@ fit_measures <- function(method, est, se, df, heavy_tailed) {
   }
   hits$power <- 2 * stats::pt(-abs((est + power_effect) / se), df) < alpha
   out <- rate_rows(hits, n)
-  if (method == "M1") out <- rbind(out, bias_rows(est))
+  if (method == "M1") out <- rbind(out, bias_rows(est, heavy_tailed))
   rbind(out, se_rows(est, se, heavy_tailed))
 }
 
@@ -400,7 +573,7 @@ performance_roles <- function(perf, sc) {
 
 # Performance measures of every scenario, method, and contrast, plus, per E0
 # scenario, the proportion of rejected contrasts of M4 in each replication
-# (for the Romano check).
+# (for the Romano check's MCSE).
 performance_table <- function(results, sc, check5) {
   rg <- scenario_ranges(results)
   perf <- vector("list", nrow(rg))
@@ -430,7 +603,7 @@ performance_table <- function(results, sc, check5) {
       rows[[length(rows) + 1L]] <- data.frame(
         scenario = s$scenario, method = "M2", contrast = c5$contrast, measure = "max_abs_difference_from_M1",
         estimate = c5$max_abs_diff, mcse = NA_real_, mcse_note = "a maximum; no MCSE",
-        n_success = NA_integer_, events = NA_integer_, stringsAsFactors = FALSE)
+        n_success = as.integer(c5$comparisons), events = NA_integer_, stringsAsFactors = FALSE)
       i4 <- which(layout$method == "M4")
       ok4 <- b$status[i4, , drop = FALSE] == "ok"
       rej4 <- ok4 & b$p_value[i4, , drop = FALSE] < alpha
@@ -438,12 +611,13 @@ performance_table <- function(results, sc, check5) {
       q <- colSums(rej4)[defined > 0] / defined[defined > 0]
       romano[[j]] <- data.frame(scenario = s$scenario, mean_q = if (length(q)) mean(q) else NA_real_,
                                 var_q = if (length(q) > 1L) stats::var(q) else NA_real_,
-                                reps_q = length(q))
+                                reps_q = length(q), failed = any(!ok4))
     }
-    # Failed fits per method: the replications in which the method failed for
-    # at least one contrast, and, per status, the replications with a
-    # contrast in that status. [Left to the script: the protocol counts
-    # failures "per method and scenario".]
+    # Failed fits per method: the replications in which the method failed,
+    # and, per status, the replications with a contrast in that status.
+    # [Left to the script: the protocol counts failures "per method and
+    # scenario"; a replication counts as a failed fit of a method when any
+    # one of its contrasts failed.]
     fr <- list()
     for (m in unique(layout$method)) {
       st <- b$status[layout$method == m, , drop = FALSE]
@@ -473,19 +647,58 @@ performance_table <- function(results, sc, check5) {
 
 # Which function a failure belongs to (protocol, "Which function"): a rule 1
 # failure to the function that computes the test, a rule 2 failure to
-# equivalence_solomon() for fits of that method. [Left to the script: rule
-# 2's function is kept apart by the fit's method, and M3 and M4 are one
-# function, perm_solomon(), as the protocol names it.]
+# equivalence_solomon() for fits of that method, and a fit failure to the
+# function that fits or tests. [Left to the script: rule 2's function is
+# kept apart by the fit's method, and M3 and M4 are one function,
+# perm_solomon(), as the protocol names it.]
+method_function <- c(M1 = "fit_solomon_glm", M2 = "fit_solomon_ml", M3 = "perm_solomon", M4 = "perm_solomon")
 rule_function <- function(rule, method) {
-  fit <- c(M1 = "fit_solomon_glm", M2 = "fit_solomon_ml", M3 = "perm_solomon", M4 = "perm_solomon")
-  ifelse(startsWith(rule, "2"), paste0("equivalence_solomon (", fit[method], " fits)"), fit[method])
+  ifelse(startsWith(rule, "2"), paste0("equivalence_solomon (", method_function[method], " fits)"),
+         method_function[method])
+}
+
+# The columns of decisions.csv. `n_success` is the number of successful fits
+# of a judged rate and `count` its events; elsewhere `count` and `total`
+# are what `measure` names (failed replications of all replications, flagged
+# rates of all rates, comparisons, material failures).
+decision_frame <- function(n, ...) {
+  x <- data.frame(rule = rep(NA_character_, max(n, 1L)), scenario = NA_integer_, level = NA_character_,
+                  pattern = NA_character_, dist = NA_character_, alloc = NA_character_,
+                  alloc_type = NA_character_, min_cell = NA_integer_, h = NA_real_, rho = NA_real_,
+                  method = NA_character_, contrast = NA_character_, measure = NA_character_,
+                  n_success = NA_integer_, count = NA_integer_, total = NA_integer_, estimate = NA_real_,
+                  mcse = NA_real_, p_value = NA_real_, p_value_material = NA_real_, threshold = NA_real_,
+                  verdict = "", class = "", `function` = NA_character_, stress_test = NA, feature = "",
+                  stringsAsFactors = FALSE, check.names = FALSE)[seq_len(n), , drop = FALSE]
+  values <- list(...)
+  for (nm in names(values)) {
+    if (!nm %in% names(x)) stop("decisions.csv has no column ", nm, ".", call. = FALSE)
+    x[[nm]] <- rep_len(if (is.factor(values[[nm]])) as.character(values[[nm]]) else values[[nm]], n)
+  }
+  rownames(x) <- NULL
+  x
+}
+
+# A row of decisions.csv that is not a judged rate.
+decision_row <- function(rule, verdict, fun = NA_character_, ...) {
+  decision_frame(1L, rule = rule, verdict = verdict, `function` = fun, ...)
+}
+
+# The scenario's factor columns of decision rows.
+scenario_columns <- function(scenario, sc) {
+  x <- sc[match(scenario, sc$scenario), , drop = FALSE]
+  list(scenario = scenario, level = x$level, pattern = x$pattern, dist = x$dist, alloc = x$alloc,
+       alloc_type = x$alloc_type, min_cell = x$min_cell, h = x$h, rho = x$rho,
+       stress_test = x$dist %in% stress_dists)
 }
 
 # Rules 1 to 3 on every judged rate, at the Bonferroni level .05/C, with the
 # material tier (a failing rate whose one-sided exact binomial test of rate
 # <= .075 also has p < .05/C; Bradley's, 1978, liberal criterion) and the
 # defects. A rate whose fits all failed counts as failed (protocol); so does
-# a bias that cannot be computed [left to the script].
+# a bias that cannot be computed [left to the script]. [Left to the script:
+# such a rate, having no estimate, is classed as a documented limitation
+# (a defect under the sharp null, or under rule 3), never as material.]
 judge_rates <- function(perf, sc, C) {
   level <- 0.05 / C
   j <- judged_rates(sc)
@@ -502,14 +715,31 @@ judge_rates <- function(perf, sc, C) {
   sharp <- j$method %in% c("M3", "M4") & startsWith(j$rule, "1") & x$sharp_null
   class <- ifelse(!fail, "", ifelse(bias | sharp, "defect",
                                     ifelse(material, "material failure", "documented limitation")))
-  stress <- x$dist %in% stress_dists
-  data.frame(rule = j$rule, scenario = j$scenario, level = x$level, pattern = x$pattern, dist = x$dist,
-             alloc = x$alloc, alloc_type = x$alloc_type, min_cell = x$min_cell, h = x$h, rho = x$rho,
-             method = j$method, contrast = j$contrast, measure = j$measure, n_success = p$n_success,
-             estimate = p$estimate, mcse = p$mcse, p_value = p_value, p_value_material = p_material,
-             threshold = level, verdict = ifelse(fail, "fail", "pass"), class = class,
-             `function` = rule_function(j$rule, j$method), stress_test = stress, feature = "",
-             stringsAsFactors = FALSE, check.names = FALSE)
+  do.call(decision_frame, c(list(nrow(j)), scenario_columns(j$scenario, sc),
+                            list(rule = j$rule, method = j$method, contrast = j$contrast, measure = j$measure,
+                                 n_success = p$n_success, count = p$events, estimate = p$estimate,
+                                 mcse = p$mcse, p_value = p_value, p_value_material = p_material,
+                                 threshold = level, verdict = ifelse(fail, "fail", "pass"), class = class,
+                                 `function` = rule_function(j$rule, j$method))))
+}
+
+# The fit-failure rule (protocol): a method with more than 1% failed fits in
+# a scenario has a documented limitation there, and more than 5% is a
+# material failure. It is not part of C. The rows carry the scenario's
+# factors, so that a material one enters (a) to (c) below like a material
+# rate failure, and one under a stress-test distribution does not.
+fit_failure_rows <- function(failed_fits, sc) {
+  ff <- failed_fits[failed_fits$status == "any", , drop = FALSE]
+  prop <- ff$count / ff$replications
+  do.call(decision_frame, c(list(nrow(ff)), scenario_columns(ff$scenario, sc),
+                            list(rule = "fit failures", method = ff$method,
+                                 measure = "proportion of replications with a failed fit",
+                                 count = as.integer(ff$count), total = as.integer(ff$replications),
+                                 estimate = prop, threshold = 0.01,
+                                 verdict = ifelse(prop > 0.01, "fail", "pass"),
+                                 class = ifelse(prop > 0.05, "material failure",
+                                                ifelse(prop > 0.01, "documented limitation", "")),
+                                 `function` = unname(method_function[ff$method]))))
 }
 
 # Consequence (a) of the material failures (protocol): per function, n* is
@@ -518,18 +748,23 @@ judge_rates <- function(perf, sc, C) {
 # remains at 60 per group). Each material failure outside the stress tests
 # counts toward the first feature that covers it: a small cell (n* of 20 or
 # 60, and a smallest cell below n*), unequal arms (1:3 or 3:1), or unequal
-# pretest conditions. [Left to the script: computed mechanically from the
-# rate failures of rules 1 and 2; the fit-failure rule's material failures
-# are not counted toward n* (a question for the maintainer).]
+# pretest conditions. [Left to the script: computed mechanically. The
+# protocol calls more than 5% failed fits "a material failure", and a
+# material failure leads to whichever of (a), (b), and (c) applies; the
+# script takes this literally, so the fit-failure rule's material failures
+# count toward n*, the features, (b), and (c) like those of rules 1 and 2.
+# Draft Amendment 2 is to confirm this reading before the gate.]
 assign_features <- function(dec) {
-  dec$feature[dec$class == "material failure" & dec$stress_test] <-
+  dec$feature[dec$class == "material failure" & dec$stress_test %in% TRUE] <-
     "stress test: documented, not counted toward (a), (b), or (c)"
   nstar <- list()
+  counts <- list()
   for (f in sort(unique(dec$`function`))) {
-    mat <- dec$`function` == f & dec$class == "material failure" & !dec$stress_test
+    mat <- dec$`function` == f & dec$class == "material failure" & dec$stress_test %in% FALSE
     bal <- dec$min_cell[mat & dec$alloc_type == "balanced"]
     n_star <- if (!length(bal)) 10L else if (max(bal) < 20L) 20L else if (max(bal) < 60L) 60L else NA_integer_
     nstar[[f]] <- n_star
+    counts[[f]] <- sum(mat)
     small <- !is.na(n_star) & n_star > 10L & dec$min_cell < n_star
     feat <- ifelse(small, paste0("small cell (n* = ", n_star, ")"),
                    ifelse(dec$alloc_type %in% c("treated smaller", "treated larger"), "unequal arms",
@@ -537,121 +772,150 @@ assign_features <- function(dec) {
                                  "unequal pretest conditions", "none: (b) is considered")))
     dec$feature[mat] <- feat[mat]
   }
-  list(decisions = dec, n_star = unlist(nstar))
-}
-
-# A row of decisions.csv that is not a judged rate.
-decision_row <- function(rule, verdict, class = "", method = NA_character_, scenario = NA_integer_,
-                         measure = NA_character_, estimate = NA_real_, mcse = NA_real_,
-                         threshold = NA_real_, n_success = NA_integer_, fun = NA_character_,
-                         contrast = NA_character_, feature = "") {
-  data.frame(rule = rule, scenario = scenario, level = NA_character_, pattern = NA_character_,
-             dist = NA_character_, alloc = NA_character_, alloc_type = NA_character_,
-             min_cell = NA_integer_, h = NA_real_, rho = NA_real_, method = method, contrast = contrast,
-             measure = measure, n_success = n_success, estimate = estimate, mcse = mcse,
-             p_value = NA_real_, p_value_material = NA_real_, threshold = threshold, verdict = verdict,
-             class = class, `function` = fun, stress_test = NA, feature = feature,
-             stringsAsFactors = FALSE, check.names = FALSE)
+  list(decisions = dec, n_star = unlist(nstar), material = unlist(counts))
 }
 
 # The Romano check (protocol): over the 40 M4 scenarios of each pairing
-# (main grid, E0, h > 1), the mean rate should exceed .05 by more than 2
-# MCSE where the treated arms are smaller and fall below .05 by more than 2
-# MCSE where they are larger. The mean and its MCSE come from each
+# (main grid, E0, h > 1), "two means are taken over the 160 M4 rates": the
+# mean of the 160 rejection rates (40 scenarios, 4 contrasts) should exceed
+# .05 by more than 2 MCSE where the treated arms are smaller and fall below
+# .05 by more than 2 MCSE where they are larger. The MCSE comes from each
 # replication's proportion q of rejected contrasts among those defined:
-# mean = (1/40) sum_s mean_r(q), MCSE = (1/40) sqrt(sum_s var_r(q) / R_s).
-# [Left to the script: this formula; the protocol says only that the MCSE
-# "is computed from each replication's proportion of rejected contrasts".]
-romano_rows <- function(romano, sc) {
+# (1/40) sqrt(sum_s var_r(q) / R_s). [Left to the script: this formula; the
+# protocol says only that the MCSE "is computed from each replication's
+# proportion of rejected contrasts".] Where no M4 contrast failed in the
+# pairing, the mean of the rates equals (1/40) sum_s mean_r(q), and the
+# summary stops if it does not.
+romano_rows <- function(romano, perf, sc) {
   x <- sc[match(romano$scenario, sc$scenario), , drop = FALSE]
   pick <- x$level == "main" & !is.na(x$h) & x$h > 1
   out <- list()
   for (pairing in c("treated smaller", "treated larger")) {
     r <- romano[pick & x$alloc_type == pairing, , drop = FALSE]
     k <- nrow(r)
-    mean_rate <- mean(r$mean_q)
+    rates <- perf$estimate[perf$method == "M4" & perf$measure == "rejection" & perf$scenario %in% r$scenario]
+    mean_rate <- if (any(!is.na(rates))) mean(rates, na.rm = TRUE) else NA_real_
+    if (k && !any(r$failed) && !isTRUE(abs(mean_rate - mean(r$mean_q)) <= 1e-12)) {
+      stop("The Romano check's two means of the M4 rates disagree (", pairing, ").", call. = FALSE)
+    }
     mcse <- sqrt(sum(r$var_q / r$reps_q)) / k
     as_predicted <- if (pairing == "treated smaller") mean_rate - nominal > 2 * mcse else nominal - mean_rate > 2 * mcse
     as_predicted <- isTRUE(as_predicted)
     out[[pairing]] <- decision_row(
       rule = paste0("Romano check (", pairing, " arms, h > 1)"),
       verdict = if (as_predicted) "as predicted" else "contradicted",
-      class = if (as_predicted) "" else "defect", method = "M4", measure = "mean rejection rate",
-      estimate = mean_rate, mcse = mcse, threshold = nominal, n_success = as.integer(k),
-      fun = "perm_solomon", contrast = "the four treatment contrasts")
+      class = if (as_predicted) "" else "defect", method = "M4",
+      measure = "mean rejection rate of the 160 M4 rates", estimate = mean_rate, mcse = mcse,
+      threshold = nominal, total = as.integer(sum(!is.na(rates))), fun = "perm_solomon",
+      contrast = "the four treatment contrasts")
+  }
+  do.call(rbind, out)
+}
+
+# Patterns (protocol): for each rule and method, the number of rates flagged
+# at an unadjusted .05 against the 5% expected by chance, overall and broken
+# down by distribution, allocation, spread, correlation, and contrast, one
+# factor at a time, as in #45 (the pattern tables of the article on designs
+# with several treatments). Each row gives the flagged rates (`count`), the
+# rates (`total`), their share (`estimate`), and .05 (`threshold`); the
+# level is in the factor's own column. In the slopes level h and rho are NA.
+pattern_factors <- c(distribution = "dist", allocation = "alloc", spread = "h", correlation = "rho",
+                     contrast = "contrast")
+pattern_rows <- function(dec) {
+  judged <- dec[dec$rule %in% c("1. error control", "2. one-sided error (TOST)", "3. bias"), , drop = FALSE]
+  out <- list()
+  one <- function(rule, m, label, d, extra = list()) {
+    flagged <- !is.na(d$p_value) & d$p_value < 0.05
+    do.call(decision_row, c(list(rule = paste("patterns,", rule), verdict = "described", method = m,
+                                 measure = paste("share of rates with p < .05 (unadjusted),", label),
+                                 estimate = mean(flagged), count = as.integer(sum(flagged)),
+                                 total = nrow(d), threshold = 0.05), extra))
+  }
+  for (rule in unique(judged$rule)) {
+    for (m in unique(judged$method[judged$rule == rule])) {
+      d <- judged[judged$rule == rule & judged$method == m, , drop = FALSE]
+      out[[length(out) + 1L]] <- one(rule, m, "all rates", d)
+      for (f in names(pattern_factors)) {
+        col <- pattern_factors[[f]]
+        lev <- d[[col]]
+        key <- ifelse(is.na(lev), "NA", as.character(lev))
+        for (k in unique(key)) {
+          i <- key == k
+          extra <- stats::setNames(list(lev[i][[1]]), col)
+          out[[length(out) + 1L]] <- one(rule, m, paste("by", f), d[i, , drop = FALSE], extra)
+        }
+      }
+    }
+  }
+  do.call(rbind, out)
+}
+
+# The agreement checks (protocol): a failure of check 1, 2, 3, or 5 is a
+# defect; if check 4 fails, the E0 shortcut is abandoned. One row per check,
+# method, and quantity, with that quantity's own tolerance and the number of
+# comparisons.
+agreement_decision_rows <- function(agreement) {
+  key <- paste(agreement$check, agreement$method, agreement$quantity, sep = "\r")
+  out <- list()
+  for (k in unique(key)) {
+    a <- agreement[key == k, , drop = FALSE]
+    compared <- !is.na(a$passed)
+    verdict <- if (!any(compared)) "not compared" else if (all(a$passed[compared])) "pass" else "fail"
+    four <- startsWith(a$check[[1]], "4")
+    out[[length(out) + 1L]] <- decision_row(
+      rule = paste("agreement check", a$check[[1]]), verdict = verdict, method = a$method[[1]],
+      class = if (verdict != "fail") "" else if (four) "E0 shortcut abandoned (an amendment adds a pattern)" else "defect",
+      measure = paste("largest absolute difference:", a$quantity[[1]]), estimate = biggest(a$max_abs_diff),
+      threshold = a$tolerance[[1]], count = as.integer(sum(a$comparisons, na.rm = TRUE)))
   }
   do.call(rbind, out)
 }
 
 decisions_table <- function(perf, romano, failed_fits, agreement, sc, C) {
-  dec <- judge_rates(perf, sc, C)
+  dec <- rbind(judge_rates(perf, sc, C), fit_failure_rows(failed_fits, sc))
   feat <- assign_features(dec)
   dec <- feat$decisions
   level <- 0.05 / C
+  outside <- dec$class == "material failure" & dec$stress_test %in% FALSE
   more <- list()
-  # n* per function, and consequences (b) and (c).
+  # n* per function (the level is that of the material tier), and
+  # consequences (b) and (c).
   for (f in names(feat$n_star)) {
     n_star <- feat$n_star[[f]]
     more[[length(more) + 1L]] <- decision_row(
       rule = "(a) small-cell warning: n*", fun = f, measure = "n_star", estimate = n_star,
-      threshold = level,
+      count = as.integer(feat$material[[f]]), threshold = level,
       verdict = if (is.na(n_star)) "a material failure remains at 60 per group: no small-cell warning; (b) is considered"
                 else if (n_star == 10L) "n* = 10: no small-cell warning"
                 else paste0("n* = ", n_star, ": warning when a cell has fewer than ", n_star))
   }
-  m1 <- sum(dec$`function` == "fit_solomon_glm" & dec$class == "material failure" & !dec$stress_test)
+  # [Left to the script] (b) counts the material failures of M1's own
+  # function, fit_solomon_glm() (rule 1 and fit failures); rule 2 failures
+  # of M1's intervals belong to equivalence_solomon() ("each function from
+  # its own failures") and are reported on the next row, not counted.
+  m1 <- sum(dec$`function` == "fit_solomon_glm" & outside)
   more[[length(more) + 1L]] <- decision_row(
     rule = "(b) changed default", fun = "fit_solomon_glm", method = "M1",
-    measure = "material failures outside the stress tests", estimate = m1, threshold = level,
+    measure = "material failures outside the stress tests", estimate = m1, count = as.integer(m1),
+    threshold = level,
     verdict = if (m1 > 0) "judgment required (see the M1 material failures)" else "not applicable")
-  m4 <- sum(dec$method == "M4" & dec$class == "material failure" & !dec$stress_test &
-              sc$equal_arms[match(dec$scenario, sc$scenario)])
+  m1_rule2 <- sum(dec$`function` == "equivalence_solomon (fit_solomon_glm fits)" & outside)
+  more[[length(more) + 1L]] <- decision_row(
+    rule = "(b) changed default: rule 2 of fit_solomon_glm fits", fun = "equivalence_solomon (fit_solomon_glm fits)",
+    method = "M1", measure = "material failures outside the stress tests (reported, not counted toward (b))",
+    estimate = m1_rule2, count = as.integer(m1_rule2), threshold = level, verdict = "reported")
+  m4 <- sum(dec$method == "M4" & outside & sc$equal_arms[match(dec$scenario, sc$scenario)], na.rm = TRUE)
   more[[length(more) + 1L]] <- decision_row(
     rule = "(c) difference statistic", fun = "perm_solomon", method = "M4",
     measure = "material failures in equal-arm allocations outside the stress tests", estimate = m4,
-    threshold = level,
+    count = as.integer(m4), threshold = level,
     verdict = if (m4 > 0) "warning extended to every call with statistic = \"difference\"" else "not triggered")
   # The Romano check.
-  more[[length(more) + 1L]] <- romano_rows(romano, sc)
-  # The fit-failure rule: more than 1% is a documented limitation, more than
-  # 5% a material failure (protocol). It is not part of C.
-  ff <- failed_fits[failed_fits$status == "any", , drop = FALSE]
-  prop <- ff$count / ff$replications
-  ff_class <- ifelse(prop > 0.05, "material failure", ifelse(prop > 0.01, "documented limitation", ""))
-  fun <- c(M1 = "fit_solomon_glm", M2 = "fit_solomon_ml", M3 = "perm_solomon", M4 = "perm_solomon")
-  more[[length(more) + 1L]] <- do.call(rbind, lapply(seq_len(nrow(ff)), function(i) {
-    decision_row(rule = "fit failures", scenario = ff$scenario[i], method = ff$method[i],
-                 measure = "proportion of replications with a failed fit", estimate = prop[i],
-                 threshold = 0.01, n_success = as.integer(ff$replications[i]),
-                 verdict = if (prop[i] > 0.01) "fail" else "pass", class = ff_class[i],
-                 fun = unname(fun[ff$method[i]]))
-  }))
-  # The agreement checks: a failure of check 1, 2, 3, or 5 is a defect; if
-  # check 4 fails, the E0 shortcut is abandoned (protocol).
-  for (chk in unique(agreement$check)) {
-    a <- agreement[agreement$check == chk, , drop = FALSE]
-    ok <- all(a$passed)
-    four <- startsWith(chk, "4")
-    biggest <- if (all(is.na(a$max_abs_diff))) NA_real_ else max(a$max_abs_diff, na.rm = TRUE)
-    more[[length(more) + 1L]] <- decision_row(
-      rule = paste("agreement check", chk), verdict = if (ok) "pass" else "fail",
-      class = if (ok) "" else if (four) "E0 shortcut abandoned (an amendment adds a pattern)" else "defect",
-      measure = "largest absolute difference", estimate = biggest,
-      threshold = max(a$tolerance, na.rm = TRUE))
-  }
-  # Patterns (protocol): for each rule and method, the share of rates
-  # flagged at an unadjusted .05, against the 5% expected by chance. The
-  # breakdown by factor is made from the rows above, which carry every
-  # rate's p-value and factor columns.
-  for (rule in unique(dec$rule)) {
-    for (m in unique(dec$method[dec$rule == rule])) {
-      d <- dec[dec$rule == rule & dec$method == m, , drop = FALSE]
-      more[[length(more) + 1L]] <- decision_row(
-        rule = paste("patterns,", rule), method = m, measure = "share of rates with p < .05 (unadjusted)",
-        estimate = mean(!is.na(d$p_value) & d$p_value < 0.05), n_success = nrow(d), threshold = 0.05,
-        verdict = "described")
-    }
-  }
+  more[[length(more) + 1L]] <- romano_rows(romano, perf, sc)
+  # The agreement checks.
+  more[[length(more) + 1L]] <- agreement_decision_rows(agreement)
+  # Patterns.
+  more[[length(more) + 1L]] <- pattern_rows(dec)
   out <- rbind(dec, do.call(rbind, more))
   rownames(out) <- NULL
   out
@@ -661,14 +925,18 @@ decisions_table <- function(perf, romano, failed_fits, agreement, sc, C) {
 
 # failures.csv: the failed fits per method and scenario (every scenario and
 # method, zeros included), and the warnings the contract muffled and
-# counted in the replications, by scenario and class.
+# counted in the replications, by scenario and class (protocol: "counted by
+# class and reported"), with every distinct message of the class
+# (`messages`, separated by " | ", in the order they first occur).
 failures_table <- function(failed_fits, failures, ranges, sc) {
   ff <- failed_fits
   ff$class <- NA_character_
-  ff$message <- NA_character_
+  ff$messages <- NA_character_
+  ff$n_messages <- NA_integer_
   ff$proportion <- ff$count / ff$replications
-  out <- ff[, c("scenario", "type", "method", "status", "class", "message", "count", "replications",
-                "proportion")]
+  cols <- c("scenario", "type", "method", "status", "class", "messages", "n_messages", "count", "replications",
+            "proportion")
+  out <- ff[, cols]
   if (!is.null(failures) && nrow(failures)) {
     reps <- ranges$reps[match(failures$scenario, ranges$scenario)]
     key <- paste(failures$scenario, failures$class, sep = "\r")
@@ -676,12 +944,15 @@ failures_table <- function(failed_fits, failures, ranges, sc) {
     first <- !duplicated(grp)
     w <- data.frame(scenario = failures$scenario[first], type = "warning", method = NA_character_,
                     status = NA_character_, class = failures$class[first],
-                    message = failures$message[first],
+                    messages = unname(as.character(tapply(failures$message, grp, function(v) {
+                      paste(unique(v), collapse = " | ")
+                    }))),
+                    n_messages = unname(as.integer(tapply(failures$message, grp, function(v) length(unique(v))))),
                     count = unname(as.numeric(tapply(failures$count, grp, sum))),
                     replications = reps[first], stringsAsFactors = FALSE)
     w$proportion <- unname(as.numeric(tapply(failures$rep, grp, function(r) length(unique(r))))) /
       w$replications
-    out <- rbind(out, w)
+    out <- rbind(out, w[, cols])
   }
   out <- out[order(out$scenario, out$type, out$method, out$status), , drop = FALSE]
   rownames(out) <- NULL
@@ -691,10 +962,12 @@ failures_table <- function(failed_fits, failures, ranges, sc) {
 # ---- Run information -----------------------------------------------------------------
 
 # The study's part of run-information.csv: what the protocol lists that the
-# harness does not record itself (the harness adds the commit, the package
-# and R versions, BLAS and LAPACK, the RNG kinds, the seed, R, the workers,
-# and the times). Package versions come from the Version field only; broom
-# is "not installed" once it has left the Imports (draft Amendment 2, item 5).
+# harness does not record itself. The harness (tools/sim/finalize-results.R)
+# adds, after these, the commit, the package and R versions, the platform,
+# BLAS and LAPACK, the RNG kinds, the base seed, R, the workers, and the
+# times; sessionInfo() is saved for each job in timing/sessionInfo-<job>.txt.
+# Package versions come from the Version field only; broom is "not
+# installed" once it has left the Imports (draft Amendment 2, item 5).
 version_of <- function(pkg) {
   v <- suppressWarnings(utils::packageDescription(pkg, fields = "Version"))
   if (is.null(v) || length(v) != 1L || is.na(v)) "not installed" else as.character(v)
@@ -726,6 +999,7 @@ summarize_robustness <- function(results, agreement, failures, scenarios, info, 
   purpose <- info[["purpose"]]
   study_run <- identical(purpose, "study")
   sc <- scenarios
+  if (!is.null(results)) check_statuses(results)
   out <- list()
   out$agreement <- agreement_summary(agreement, results, sc, preflight, study_run)
   # Outside the study run, nothing else is computed: no performance measure,
@@ -733,11 +1007,11 @@ summarize_robustness <- function(results, agreement, failures, scenarios, info, 
   # item 9). The family size reported is the protocol's.
   if (!study_run) {
     out$`run-information` <- run_information(family_full)
-    bad <- out$agreement[!out$agreement$passed, , drop = FALSE]
+    bad <- out$agreement[out$agreement$passed %in% FALSE, , drop = FALSE]
     if (nrow(bad) && identical(purpose, "test")) {
       stop("Agreement check failed: ",
-           paste(unique(paste0(bad$check, " (", bad$method, ", scenario ",
-                               ifelse(is.na(bad$scenario), "-", bad$scenario), ")")), collapse = "; "),
+           paste(unique(paste0(bad$check, " (", bad$method, ", ", bad$quantity, ")",
+                               ifelse(nzchar(bad$detail), paste0(": ", bad$detail), ""))), collapse = "; "),
            ".", call. = FALSE)
     }
     return(out)
@@ -754,5 +1028,8 @@ summarize_robustness <- function(results, agreement, failures, scenarios, info, 
   out$performance <- pt$performance
   out$decisions <- decisions_table(pt$performance, pt$romano, pt$failed_fits, out$agreement, sc, C)
   out$failures <- failures_table(pt$failed_fits, failures, ranges, sc)
+  # The scenario table, so that the rows of performance.csv and decisions.csv
+  # can be read by their factors (the protocol's tables by factor).
+  out$scenarios <- sc
   out
 }
