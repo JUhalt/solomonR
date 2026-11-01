@@ -122,6 +122,70 @@ test_that("a vector is one covariate, named by its bare name or `covariate`", {
 })
 
 
+test_that("a one-dimensional array, as tapply() gives, is taken as a vector", {
+
+  # The mean of z in each of 12 clusters, one value per participant: a
+  # numeric array of one dimension, named by the clusters.
+  d <- forms_data()
+  d$cl <- rep(seq_len(12), length.out = nrow(d))
+  cl_mean <- tapply(d$z, d$cl, mean)[d$cl]
+  expect_identical(dim(cl_mean), nrow(d))
+
+  ref <- fit4(d, data.frame(cl_mean = cl_mean))
+  expect_same_fit(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = cl_mean),
+                  ref)
+  expect_same_fit(fit4(d, data.frame(cl_mean = as.vector(cl_mean))), ref)
+  expect_same_fit(
+    fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre,
+                    covariates = tapply(d$z, d$cl, mean)[d$cl]),
+    fit4(d, data.frame(covariate = as.vector(cl_mean)))
+  )
+  flags <- array(d$flag)
+  expect_same_fit(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = flags),
+                  fit4(d, data.frame(flags = d$flag)))
+
+  # With data: a vector outside `data`, an expression, and a column, by its
+  # bare name or by name. A column keeps its dimension when given by name,
+  # as before this change, so that fit is compared by its coefficients.
+  expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = cl_mean,
+                                  data = d), ref)
+  expect_same_fit(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = tapply(z, cl, mean)[cl],
+                    data = d),
+    fit4(d, data.frame(covariate = as.vector(cl_mean)))
+  )
+  d$cl_mean <- cl_mean
+  expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = cl_mean,
+                                  data = d), ref)
+  expect_identical(
+    stats::coef(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "cl_mean",
+                                data = d)$model),
+    stats::coef(ref$model)
+  )
+  # A one-dimensional array of names selects columns.
+  expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre,
+                                  covariates = array(c("age", "z")), data = d),
+                  fit4(d, d[c("age", "z")]))
+
+  # check_solomon_missing() and a design with several treatments.
+  d$y_post[c(3, 8, 70, 95)] <- NA
+  expect_identical(
+    check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre, covariates = cl_mean),
+    check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
+                          covariates = data.frame(cl_mean = cl_mean))
+  )
+  m <- forms_six()
+  m$cl <- rep(seq_len(15), length.out = nrow(m))
+  six_mean <- tapply(m$z, m$cl, mean)[m$cl]
+  expect_same_fit(
+    fit_solomon_glm(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                    control = "Control", covariates = six_mean),
+    fit_solomon_glm(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                    control = "Control", covariates = data.frame(six_mean = six_mean))
+  )
+})
+
+
 test_that("a matrix is one covariate per column, named by its column names", {
 
   d <- forms_data()
@@ -445,7 +509,11 @@ test_that("every other form stops with an error that says what to give", {
                 "not an object of class \"Date\". Give it as a column of a data frame."),
     difftime = list(as.difftime(seq_len(n), units = "days"),
                     "not an object of class \"difftime\". Give it as a column of a data frame."),
-    one_dimensional = list(array(d$z), "not a one-dimensional array."),
+    one_dimensional = list(array(complex(real = d$z)),
+                           "not a one-dimensional array of type \"complex\"."),
+    table = list(table(d$count)[as.character(d$count)],
+                 paste("not a one-dimensional object of class \"table\". Give it as a",
+                       "vector, such as `c(covariates)`.")),
     duplicated = list(cbind(z = d$z, z = d$w),
                       "`covariates` has more than one column named z. Give each"),
     duplicated_frame = list(cbind(data.frame(z = d$z), data.frame(z = d$w)),
@@ -487,6 +555,16 @@ test_that("every other form stops with an error that says what to give", {
     "If it holds the names of columns, give the data frame as `data`. If it is a",
     "categorical covariate, give it as a factor, or as a column of a data frame."
   ), fixed = TRUE)
+
+  # The advice for a one-dimensional object with a class works: c() makes a
+  # table a vector, and keeps a factor a factor.
+  counts <- table(d$count)[as.character(d$count)]
+  expect_same_fit(fit4(d, c(counts)), fit4(d, data.frame(covariates = as.vector(counts))))
+  region_1d <- d$region
+  dim(region_1d) <- n
+  expect_error(fit4(d, region_1d), "not a one-dimensional object of class \"factor\". Give it",
+               fixed = TRUE)
+  expect_same_fit(fit4(d, c(region_1d)), fit4(d, data.frame(covariates = d$region)))
 
   # Three columns without a name are listed with commas.
   four_frame <- data.frame(a = d$z, b = d$w, w = d$w, c = d$age)

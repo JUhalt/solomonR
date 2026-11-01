@@ -97,7 +97,10 @@
 #   - With `data`, a character vector of names of its columns, each named
 #     once: those columns, as before.
 #   - A numeric, logical, or factor vector: one covariate, named by `expr`
-#     when it is a bare name, and "covariate" otherwise.
+#     when it is a bare name, and "covariate" otherwise. A one-dimensional
+#     array without a class, such as tapply(age, cluster, mean)[cluster]
+#     gives, is taken as a vector, here and above; data.frame() drops its
+#     dimension.
 #   - A numeric or logical matrix: one covariate per column, named by the
 #     column names, with covariate1, covariate2, ... by position for
 #     columns without one. Duplicated names stop.
@@ -144,15 +147,16 @@
   }
 
   dims <- dim(x)
+  flat <- is.null(dims) || (length(dims) == 1L && is.null(oldClass(x)) && !isS4(x))
   one <- function(value) {
     stats::setNames(data.frame(value), if (is.symbol(expr)) as.character(expr) else "covariate")
   }
 
-  if (column && is.atomic(x) && is.null(dims)) {
+  if (column && is.atomic(x) && flat) {
     return(one(x))
   }
 
-  if (is.character(x) && is.null(dims)) {
+  if (is.character(x) && flat) {
     if (is.null(data)) {
       stop(
         "`covariates` is a character vector, and `data` was not given. If it ",
@@ -225,12 +229,12 @@
     return(out)
   }
 
-  if (is.null(dims) && (is.numeric(x) || is.logical(x) || is.factor(x))) {
+  if (flat && (is.numeric(x) || is.logical(x) || is.factor(x))) {
     return(one(x))
   }
 
   # What `x` is, described by its class when it has one (a date, a factor
-  # with dimensions, an S4 matrix) and by its type otherwise.
+  # with dimensions, an S4 matrix, a table) and by its type otherwise.
   classed <- !is.null(oldClass(x)) || isS4(x)
   what <- if (classed && length(dims)) {
     paste0("a ", c("one", "two")[length(dims)], "-dimensional object of class \"",
@@ -240,14 +244,18 @@
   } else if (length(dims) == 2L) {
     paste0("a matrix of type \"", typeof(x), "\"")
   } else if (length(dims) == 1L) {
-    "a one-dimensional array"
+    paste0("a one-dimensional array of type \"", typeof(x), "\"")
   } else {
     paste0("a vector of type \"", typeof(x), "\"")
   }
   # A date or another classed vector goes in as a column of a data frame,
-  # as glm() takes it there.
+  # as glm() takes it there. A one-dimensional object with a class, such
+  # as table(cluster)[cluster] gives, becomes a vector with c(), which
+  # keeps a factor a factor.
   advice <- if (classed && is.atomic(x) && is.null(dims)) {
     " Give it as a column of a data frame."
+  } else if (classed && length(dims) == 1L) {
+    " Give it as a vector, such as `c(covariates)`."
   } else {
     ""
   }

@@ -20,7 +20,10 @@
 
   - A numeric, logical, or factor vector is one covariate. It is named by
     the variable when given by its bare name (`covariates = age`), as with
-    `data` before, and `covariate` otherwise.
+    `data` before, and `covariate` otherwise. A one-dimensional array
+    without a class, such as `tapply(age, cluster, mean)[cluster]` gives,
+    is taken as a vector. One with a class, such as a table, stops with
+    the advice to give `c(covariates)`.
   - A numeric or logical matrix is one covariate per column, named by its
     column names, with `covariate1`, `covariate2`, ... by position for
     columns without one. `cbind()` turns a factor into its integer codes,
