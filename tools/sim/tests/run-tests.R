@@ -77,10 +77,12 @@
 #            beside smoke (needs pkgload; skipped without it): a new run of
 #            the synthetic study; --resume and --rerun-chunk without
 #            --study, which take the run's study from its plan; a --study
-#            that names another study, refused before anything runs, for a
-#            synthetic and for a smoke run; a new run without --study, a
-#            smoke run; and --rerun-chunk's chunk number in at most four
-#            digits, with or without leading zeros (0002 is chunk 0002).
+#            that names another study, refused before anything runs or
+#            changes, for a synthetic run and for a smoke run (a full copy of
+#            the synthetic run with its plan's study made smoke); a new run
+#            without --study, a smoke run; and --rerun-chunk's chunk number
+#            in at most four digits, with or without leading zeros (0002 is
+#            chunk 0002).
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it), and
@@ -1269,24 +1271,35 @@ if ("local" %in% groups) local({
     record("local", paste0("--rerun-chunk \"", v, "\""), "refuse",
            refusal(r, "--rerun-chunk takes a chunk number from 1 to 256, in at most four digits"), last_line(r$out))
   }
-  # A smoke run's plan (this plan, its study item made smoke; no software.csv,
-  # so that a resume that passes the study's check stops at once).
+  # A smoke run (review round 1): a copy of every file of the synthetic
+  # run, its plan's study item made smoke. Its software.csv and chunks are
+  # there, so a --study synthetic that were not refused would resume or
+  # rerun it and write into the folder.
   smoke <- file.path(root, "smoke-run")
-  dir.create(file.path(smoke, "plan"), recursive = TRUE)
-  kv <- h_read_kv(file.path(run, "plan", "plan-info.csv"))
+  dir.create(smoke)
+  file.copy(list.files(run, full.names = TRUE, all.files = TRUE, no.. = TRUE), smoke, recursive = TRUE)
+  kv <- h_read_kv(file.path(smoke, "plan", "plan-info.csv"))
   kv[["study"]] <- "smoke"
   h_write_kv(kv, file.path(smoke, "plan", "plan-info.csv"))
-  file.copy(file.path(run, "plan", "chunks.json"), file.path(smoke, "plan"))
   before <- listing(smoke)
+  record("local", "the smoke run's copy holds software.csv and both chunks", "yes",
+         yes(file.exists(file.path(smoke, "software.csv")) &&
+               all(dir.exists(file.path(smoke, "chunks", c("chunk-0001", "chunk-0002"))))), "")
   r <- run_local("--out", smoke, "--resume", "--study", "synthetic")
   record("local", "--resume --study synthetic, a smoke run: refused", "refuse", refusal(r, mismatch), last_line(r$out))
   r <- run_local("--out", smoke, "--rerun-chunk", "1", "--study", "synthetic")
   record("local", "--rerun-chunk 1 --study synthetic, a smoke run: refused", "refuse", refusal(r, mismatch),
          last_line(r$out))
   record("local", "both refusals left the smoke run's folder as it was", "yes", yes(identical(listing(smoke), before)), "")
+  # Without --study, the plan's study, smoke: its software check (the smoke
+  # pins, which add a tool row) differs from this run's software.csv (the
+  # synthetic pins'), or fails where the smoke study's packages differ
+  # from its pins, so the resume stops there, before any chunk.
   r <- run_local("--out", smoke, "--resume")
-  ok <- said(r, "== Study smoke (tools/sim/studies/smoke/smoke-simulation.R), from ") && said(r, "software.csv is missing")
-  record("local", "--resume without --study, a smoke run: the smoke study", "yes", yes(ok), last_line(r$out))
+  ok <- r$status != 0L && said(r, "== Study smoke (tools/sim/studies/smoke/smoke-simulation.R), from ") &&
+    (said(r, "The software changed since the run started") || said(r, "Software failed")) && !said(r, "== Chunk")
+  record("local", "--resume without --study, a smoke run: the smoke study, stopped by its software", "yes", yes(ok),
+         last_line(r$out))
   # A new run without --study is a smoke run, as before (stopped here by its
   # folder, which is not empty).
   r <- run_local("--out", run)
