@@ -575,9 +575,9 @@ above the working directory, whose `DESCRIPTION` names a package, as
 `pkgload::load_all()` finds it. The scripts of the maximum-likelihood,
 power, and sample-size planning studies search from the folder given as
 their first argument, the working directory by default, so they record the
-commit of the copy given there.
-git looks for the repository from the copy alone; the variables `GIT_DIR`
-and `GIT_WORK_TREE` are ignored.
+commit of the copy given there. Only the copy decides which repository is
+used: the variables `GIT_DIR` and `GIT_WORK_TREE`, which can point git at
+another one, are ignored.
 
 A copy downloaded with GitHub's "Download ZIP", or made with `git archive`,
 contains no git repository, so a run from it records `NA`. So does a run
