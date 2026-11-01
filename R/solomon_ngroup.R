@@ -228,32 +228,57 @@
 
 # The tolerance at which fit_solomon_glm() checks the model with its
 # covariates standardized and its pretest scaled (.covariate_scaling()) for
-# collinear terms (issue #137): 1e-7, the default tolerance of lm() and
-# qr(). glm() takes a term to be collinear when its column falls below
-# 1e-11 of its norm once the columns before it are projected out, which,
-# for the covariates as given, depends on where they lie. A value k
-# standard deviations from zero is stored with a rounding error of up to
-# about k * 1.1e-16 standard deviations, so two covariates that are
-# exactly collinear, such as z + 10^6 and 2z + 3, differ once standardized
-# by that error, about 1e-10 at 10^6, which glm() takes for a real
-# difference: the fit then went on to huge coefficients and wrong standard
-# errors, or failed in clubSandwich. The error is about 1e-8 at 10^8, below
-# 1e-7, so collinear covariates are caught wherever they lie up to 10^8
-# standard deviations, as near zero; covariates that differ by 10^-6 of
-# their standard deviation or more, which master fitted, are kept.
-.collinear_tolerance <- 1e-7
+# collinear terms (issue #137). glm() takes a term to be collinear when its
+# column falls below 1e-11 of its norm once the columns before it are
+# projected out, which, for the covariates as given, depends on where they
+# lie. A value x is stored with a rounding error of up to |x| times 1.1e-16,
+# half of .Machine$double.eps, so two covariates that are exactly
+# collinear, such as z + 10^6 and 2z + 3, differ once standardized by that
+# error relative to the standard deviation, about 1e-10 at 10^6 standard
+# deviations from zero, and glm() would take them for distinct covariates:
+# the fit would go on to meaningless coefficients and standard errors. The
+# tolerance therefore follows that error: 4 * .Machine$double.eps times the
+# largest ratio of a value's magnitude to its standard deviation, over the
+# numeric covariates and the pretest as given and the participants in the
+# model, and never below 1e-11, so that near zero the check is glm()'s own.
+# In checks from 10^6 to 3 * 10^10 standard deviations from zero, exactly
+# collinear covariates differed by 0.14 to 0.25 of .Machine$double.eps
+# times that ratio, a sixteenth of the tolerance or less. `df`,
+# `covariates`, and `in_model` are those of .covariate_scaling(), and
+# `center` is the mean the pretest `pre_obs` was centered at, NA without a
+# pretest.
+.collinear_tolerance <- function(df, covariates, in_model, center = NA_real_) {
+  ratio <- function(x) {
+    s <- stats::sd(x, na.rm = TRUE)
+    if (is.finite(s) && s > 0) max(abs(x), na.rm = TRUE) / s else 0
+  }
+  ratios <- vapply(covariates, function(name) {
+    x <- .covariate_values(df[[name]])
+    if (is.null(x)) 0 else ratio(x[in_model])
+  }, numeric(1))
+  if (is.finite(center) && "pre_obs" %in% setdiff(names(df), covariates)) {
+    ratios <- c(ratios, ratio(df$pre_obs[in_model & df$pretested %in% 1] + center))
+  }
+  max(1e-11, 4 * .Machine$double.eps * max(0, ratios))
+}
 
 # The terms of the model `fit` whose columns of the model matrix are within
-# `tol` of the span of the columns before them, with each column but the
-# intercept centered, so that `tol` is relative to the column's standard
-# deviation over the rows of the model and the answer does not depend on
-# where a column lies: the columns beyond the rank of qr() at `tol`, which
-# it moves to the end. An empty vector when there are none.
+# `tol` of the span of the columns before them, in the metric of the
+# model's working weights, as glm() judges them, with each column but the
+# intercept centered at its weighted mean, so that `tol` is relative to the
+# column's standard deviation over the rows of the model and the answer
+# does not depend on where a column lies: the columns beyond the rank of
+# qr() at `tol`, which it moves to the end. An empty vector when there are
+# none.
 .collinear_terms <- function(fit, tol) {
   X <- stats::model.matrix(fit)
+  w <- fit$weights
+  if (is.null(w) || length(w) != nrow(X)) w <- rep(1, nrow(X))
+  X <- X[w > 0, , drop = FALSE]
+  w <- w[w > 0]
   j <- colnames(X) != "(Intercept)"
-  X[, j] <- sweep(X[, j, drop = FALSE], 2L, colMeans(X[, j, drop = FALSE]))
-  q <- qr(X, tol = tol)
+  X[, j] <- sweep(X[, j, drop = FALSE], 2L, colSums(w * X[, j, drop = FALSE]) / sum(w))
+  q <- qr(sqrt(w) * X, tol = tol)
   if (q$rank == ncol(X)) return(character())
   colnames(X)[q$pivot[seq(q$rank + 1L, ncol(X))]]
 }
@@ -385,9 +410,11 @@
 
   # An empty group, or a term collinear with the others, leaves a
   # coefficient inestimable, in the model as given or standardized, the
-  # latter checked at the tolerance of lm() as well (.collinear_tolerance).
+  # latter checked as well at a tolerance that follows the rounding error of
+  # where the covariates lie (.collinear_tolerance()).
   .stop_inestimable(fit_given, .group_names(counts, counts == 0))
-  .stop_inestimable(fit, .group_names(counts, counts == 0), .collinear_tolerance)
+  .stop_inestimable(fit, .group_names(counts, counts == 0),
+                    .collinear_tolerance(df, names(covariates), used, pretest_mean))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2.

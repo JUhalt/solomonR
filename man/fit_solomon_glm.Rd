@@ -560,14 +560,20 @@ Covariates collinear with the other terms stop the fit wherever they
 lie. Far from zero, the rounding error of a covariate can make
 \code{\link[stats:glm]{stats::glm()}} take collinear covariates, such as \code{z + 1e6} and
 \code{2 * z + 3}, for distinct ones, so the standardized model is checked
-too, at the tolerance of \code{\link[stats:lm]{stats::lm()}}: a covariate within 1e-7 of its
-standard deviation of a combination of the terms before it is taken to
-be collinear with them. Covariates that differ by real variation of
-10^-6 of their standard deviation or more are fitted. Nearly collinear
-covariates far enough from zero that their difference falls below about
-1e-11 of their distance from zero, such as covariates 10^-6 standard
-deviations apart at 10^6 standard deviations from zero, are taken to be
-collinear by \code{\link[stats:glm]{stats::glm()}} as given, which stops the fit too.
+too: a covariate within a tolerance of its standard deviation of a
+combination of the terms before it, weighted as \code{\link[stats:glm]{stats::glm()}} weighs
+them, is taken to be collinear with them. The tolerance follows the
+rounding error of where the covariates and the pretest lie: it is 4
+times \code{.Machine$double.eps} times the largest ratio of a value's
+magnitude to its standard deviation, about 9e-10 for a covariate 10^6
+standard deviations from zero, and never less than 1e-11, the tolerance
+of \code{\link[stats:glm]{stats::glm()}}, so near zero nearly collinear covariates, such as a
+covariate and its copy in single precision, are fitted as
+\code{\link[stats:glm]{stats::glm()}} fits them. Nearly collinear covariates far enough from
+zero that their difference falls below about 1e-11 of their distance
+from zero, such as covariates 10^-6 standard deviations apart at 10^6
+standard deviations from zero, are taken to be collinear by
+\code{\link[stats:glm]{stats::glm()}} as given, which stops the fit too.
 
 A numeric covariate is standardized whatever its class, such as that of a
 variable with value labels read from an SPSS file, or of one wrapped in

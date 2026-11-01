@@ -3,7 +3,7 @@
 #
 # collinear-master.rds was made with the package loaded from the source of
 # master at commit d446577, before fit_solomon_glm() checked the model with
-# standardized covariates for collinear terms at the tolerance of lm():
+# standardized covariates for collinear terms:
 #
 #   git archive d446577 | tar -x -C <folder>
 #   pkgload::load_all("<folder>")
@@ -15,9 +15,9 @@
 # fitted as master fitted them. Each data set has a standard normal score,
 # `z`, and two second measures of it: `z_grid`, which differs from it by
 # multiples of 2^-16 (about 6e-5 of its standard deviation), and `z_fine`,
-# by about 1e-6 of it, ten times the tolerance. The data sets have four
-# groups, and three conditions, with two posttests and one score missing
-# and 12 clusters (`site`). The design of the fine pair is so nearly
+# by about 1e-6 of it. The data sets have four groups, and three
+# conditions, with two posttests and one score missing and 12 clusters
+# (`site`). The design of the fine pair is so nearly
 # singular that the HC3 and CR2 contrasts of master and of the current
 # version differ from those of the exact reparameterization, the fit to `z`
 # and the difference of the two measures, by up to about 2e-4 of their

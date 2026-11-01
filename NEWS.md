@@ -50,13 +50,14 @@
   covariates, were fitted under model-based covariance, with meaningless
   coefficients for the two, and stopped under HC3 and CR2 with "system is
   computationally singular". The standardized model is now checked for
-  collinear terms at the tolerance of `lm()`, 1e-7 of a column's standard
-  deviation, so they stop with the message that names the collinear term,
-  as they do near zero, up to at least 10^8 standard deviations from zero.
-  Covariates that differ by 10^-6 of their standard deviation or more are
-  fitted as before; those collinear but for a difference of less than
-  about 10^-7 of their standard deviation, which `glm()` kept at its
-  tolerance of 1e-11, now stop, as `lm()` would take them to be collinear.
+  collinear terms too, at a tolerance that follows the rounding error of
+  where the covariates and the pretest lie: 4 times `.Machine$double.eps`
+  times the largest ratio of a value's magnitude to its standard
+  deviation, and never less than the 1e-11 of `glm()`. They therefore stop
+  with the message that names the collinear term, as they do near zero, in
+  checks from 10^4 to 10^12 standard deviations from zero. Near zero the
+  check is that of `glm()`, so nearly collinear covariates, such as a
+  covariate and its copy in single precision, are fitted as before.
 * `fit_solomon_sem(ancova = TRUE)` lost accuracy when the pretest lay far
   from zero, with p-values off by 7% to 12% at 10^4 standard deviations,
   and stopped from 10^6, where `compare_solomon_methods()` then left out
