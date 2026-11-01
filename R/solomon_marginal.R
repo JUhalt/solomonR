@@ -848,11 +848,20 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       fit_cr <- stats::glm(stats::formula(model), data = stats::model.frame(model),
                            family = fit$family)
       ok <- is.finite(estimate) & is.finite(std.error) & std.error > 0
-      df[ok] <- vapply(which(ok), function(i) {
-        as.data.frame(clubSandwich::linear_contrast(
-          fit_cr, vcov = V, contrasts = grad[i, , drop = FALSE], test = "Satterthwaite"
-        ))$df
-      }, numeric(1))
+      # With a numeric covariate, in the orthonormal basis of the
+      # standardized model, as the fit's (.cr2_basis()).
+      basis <- if (.numeric_covariates(scaling)) {
+        .cr2_basis(fit_cr, fit$cluster[.glm_rows_used(fit)])
+      }
+      df[ok] <- if (is.null(basis)) {
+        vapply(which(ok), function(i) {
+          as.data.frame(clubSandwich::linear_contrast(
+            fit_cr, vcov = V, contrasts = grad[i, , drop = FALSE], test = "Satterthwaite"
+          ))$df
+        }, numeric(1))
+      } else {
+        .cr2_df(grad[ok, , drop = FALSE], fit_cr, V, basis)
+      }
     }
     # The pretest effects compare risks standardized over two different
     # samples, the pretested and the unpretested participants, so the

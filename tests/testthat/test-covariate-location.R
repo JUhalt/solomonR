@@ -213,6 +213,9 @@ test_that("covariate fits return the model and the coefficients for the covariat
     expect_equal(unname(drop(M %*% s$coefficients)), fit$coefficients$estimate,
                  tolerance = 1e-12)
     expect_equal(M %*% as.matrix(s$vcov) %*% t(M), as.matrix(fit$vcov), tolerance = 1e-12)
+    # With a numeric covariate the CR2 covariance of the standardized model
+    # is a matrix, computed in an orthonormal basis (.cr2_basis()).
+    if (robust == "CR2") expect_false(inherits(s$vcov, "clubSandwich"))
   }
 
   # With a pretest and no numeric covariate, only the pretest is scaled, by
@@ -1041,11 +1044,13 @@ test_that("the intercept as given keeps its accuracy with nearly collinear covar
   # its HC3 and CR2 standard errors came out NaN, with a warning, or off by
   # up to 1e-4 of their value. The reference replaces the second covariate
   # by its difference from the first, which spans the same columns without
-  # the intercept and leaves the intercept unchanged. Under CR2 the copy
-  # in single precision is as accurate as the contrasts, about 1e-3, which
-  # clubSandwich's adjustments limit, and the pair to about 2e-8; the pair
-  # is compared, at 1e-6. Six groups in 12 clusters warn of small degrees
-  # of freedom; no fit may warn that NaNs were produced.
+  # the intercept and leaves the intercept unchanged. Under CR2 the copy in
+  # single precision was as accurate as the contrasts, about 1e-3, which
+  # clubSandwich's adjustments, computed from the inverse of X'WX, limited;
+  # in the orthonormal basis of the standardized model (.cr2_basis()) both
+  # agree to about 1e-8, and are compared at 1e-6. Six groups in 12
+  # clusters warn of small degrees of freedom; no fit may warn that NaNs
+  # were produced.
   d <- collinear_set()
   single <- function(x) readBin(writeBin(x, raw(), size = 4), "double", n = length(x), size = 4)
   e <- withr::with_seed(2, stats::rnorm(nrow(d)))
@@ -1054,7 +1059,7 @@ test_that("the intercept as given keeps its accuracy with nearly collinear covar
   intercept <- function(fit) fit$coefficients[fit$coefficients$term == "(Intercept)", ]
   for (design in c("four", "six")) {
     for (robust in c("none", "HC3", "CR2")) {
-      for (name in if (robust == "CR2") "pair" else names(pairs)) {
+      for (name in names(pairs)) {
         covariates <- pairs[[name]]
         reference <- covariates
         reference$x2 <- covariates$x2 - covariates$x
@@ -1076,32 +1081,48 @@ test_that("the intercept as given keeps its accuracy with nearly collinear covar
   }
 })
 
-test_that("the CR2 degrees of freedom of a combination are clubSandwich's on a well-conditioned design", {
-  # .cr2_contrast_df() evaluates the Satterthwaite degrees of freedom of
-  # Pustejovsky and Tipton (2018) from the matrices clubSandwich keeps,
-  # through R^{-T} rather than through the inverse of X'WX, which gives the
-  # same number when the design is well conditioned: for unit contrasts, a
+test_that("the covariances from the QR decomposition are sandwich's and clubSandwich's on a well-conditioned design", {
+  # With a numeric covariate the HC3 covariance is the sum of the
+  # participants' influences from the QR decomposition (.hc3_vcov()), and
+  # the CR2 covariance, its degrees of freedom, and the HTZ test come from
+  # clubSandwich on the model refitted in an orthonormal basis of the same
+  # columns (.cr2_basis()). On a well-conditioned design they give what
+  # sandwich and clubSandwich give on the model itself: for unit contrasts, a
   # map of the intercept by covariate means, and a random combination.
   d <- location_data()$four
   d <- d[!is.na(d$y_g), ]
   d$y_b <- as.integer(d$y_g > stats::median(d$y_g))
   for (family in c("gaussian", "binomial", "poisson")) {
-    model <- stats::glm(stats::reformulate(c("treat * pretested", "age", "sex", "z"),
-                                           c(gaussian = "y_g", binomial = "y_b", poisson = "y_p")[[family]]),
+    y <- c(gaussian = "y_g", binomial = "y_b", poisson = "y_p")[[family]]
+    model <- stats::glm(stats::reformulate(c("treat * pretested", "age", "sex", "z"), y),
                         family = family, data = d)
-    V <- clubSandwich::vcovCR(model, cluster = d$site, type = "CR2")
-    parts <- .cr2_parts(model, V)
-    expect_false(is.null(parts), info = family)
+    site <- d$site
+    if (!is.null(model$na.action)) site <- site[-model$na.action]
     p <- length(stats::coef(model))
     contrasts <- rbind(diag(p)[1:3, ], c(1, 0, 0, -40, -0.5, 0.1, 0),
                        withr::with_seed(1, stats::rnorm(p)))
-    for (i in seq_len(nrow(contrasts))) {
-      expected <- as.data.frame(clubSandwich::linear_contrast(
-        model, vcov = V, contrasts = contrasts[i, , drop = FALSE], test = "Satterthwaite"
-      ))$df
-      expect_equal(.cr2_contrast_df(parts, contrasts[i, ]), expected, tolerance = 1e-10,
-                   info = paste(family, i))
-    }
+    hc3 <- sandwich::vcovHC(model, type = "HC3")
+    expect_equal(.hc3_vcov(model), hc3, tolerance = 1e-10, info = family)
+    expect_equal(.combination_variance(model, "HC3", contrasts),
+                 diag(contrasts %*% hc3 %*% t(contrasts)), tolerance = 1e-10, info = family)
+    expect_equal(.combination_variance(model, "none", contrasts),
+                 diag(contrasts %*% stats::vcov(model) %*% t(contrasts)), tolerance = 1e-10,
+                 info = family)
+    V <- clubSandwich::vcovCR(model, cluster = site, type = "CR2")
+    basis <- .cr2_basis(model, site)
+    expect_false(is.null(basis), info = family)
+    expect_equal(unname(.cr2_standardized_vcov(basis, names(stats::coef(model)))),
+                 .plain_matrix(V), tolerance = 1e-10, info = family)
+    expect_equal(.cr2_df(contrasts, model, V, basis), .cr2_df(contrasts, model, V),
+                 tolerance = 1e-10, info = family)
+    expect_equal(.cr2_df(contrasts, model, V), as.data.frame(clubSandwich::linear_contrast(
+      model, vcov = V, contrasts = contrasts, test = "Satterthwaite"
+    ))$df, info = family)
+    columns <- c("Fstat", "df_denom", "p_val")
+    expect_equal(as.data.frame(.cr2_wald(contrasts[2:3, ], model, V, basis))[columns],
+                 as.data.frame(clubSandwich::Wald_test(model, constraints = contrasts[2:3, ],
+                                                       vcov = V, test = "HTZ"))[columns],
+                 tolerance = 1e-10, info = family)
   }
 })
 
@@ -1115,9 +1136,10 @@ test_that("the CR2 intercept's degrees of freedom do not cancel with nearly coll
   # times too large. The reference replaces the second covariate by the
   # difference of the two, an exact reparameterization that leaves the
   # intercept unchanged; CR2 adjustments and Satterthwaite degrees of
-  # freedom depend only on the columns' span. The remaining differences,
-  # about 1e-4, are those of clubSandwich's adjustment matrices, which the
-  # standard errors of the coefficients share.
+  # freedom depend only on the columns' span. With clubSandwich's
+  # adjustment matrices, computed from the inverse of X'WX, they differed
+  # by about 1e-4; computed in the orthonormal basis of the standardized
+  # model (.cr2_basis()), they agree to about 1e-8.
   withr::local_seed(5)
   n <- 240
   treat <- rep(c(0, 1, 1), length.out = n)
@@ -1137,23 +1159,116 @@ test_that("the CR2 intercept's degrees of freedom do not cancel with nearly coll
                                             robust = "CR2", cluster = site))
     ref <- suppressWarnings(fit_solomon_glm(y, treat, pretested, pre, covariates = reference,
                                             robust = "CR2", cluster = site))
-    expect_equal(intercept(fit)$df, intercept(ref)$df, tolerance = 1e-3, info = paste(mean))
-    expect_equal(intercept(fit)$std.error, intercept(ref)$std.error, tolerance = 1e-3,
+    expect_equal(intercept(fit)$df, intercept(ref)$df, tolerance = 1e-6, info = paste(mean))
+    expect_equal(intercept(fit)$std.error, intercept(ref)$std.error, tolerance = 1e-6,
                  info = paste(mean))
     # The p-values are below the tolerance, where expect_equal() compares
     # absolute differences: it accepted c99f639's, 9.9 times too large at a
     # mean of 5. They are compared relative to the reference.
-    expect_lt(abs(intercept(fit)$p.value / intercept(ref)$p.value - 1), 1e-2,
+    expect_lt(abs(intercept(fit)$p.value / intercept(ref)$p.value - 1), 1e-6,
               label = paste("relative error of the p-value at a mean of", mean))
   }
 })
 
+test_that("robust standard errors keep their accuracy with nearly collinear covariates", {
+  # Covariates 10^-7 to 10^-10 standard deviations apart near zero, which
+  # the check fits as glm() does. The reference replaces the second by the
+  # pair's difference, scaled, an exact reparameterization that is well
+  # conditioned and leaves every contrast and the coefficients but the
+  # first covariate's unchanged. sandwich and clubSandwich formed the HC3
+  # and CR2 covariances from the inverse of X'WX, whose condition number is
+  # the square of the design's. At 10^-8 the HC3 standard error of the
+  # average treatment effect came out 0.117 for 0.151 (p = 0.027 for 0.087),
+  # without a warning, and at 10^-10 the contrasts' were up to 54 times too
+  # large, while the coefficient table, computed through R, gave treat's
+  # right; the six-group omnibus tests and the cells of plot_sensitization()
+  # were off likewise. Under CR2, clubSandwich's adjustments put the
+  # coefficients' standard errors and degrees of freedom off by up to 2.4%
+  # at 10^-7, and fits stopped inside it at 10^-8 ("the leading minor ...
+  # is not positive"). The covariances now come from the QR decomposition
+  # (.hc3_vcov(), .cr2_basis()), accurate to about eps times the design's
+  # condition number: 1e-8 here at 10^-8, and 1e-6 at 10^-10.
+  pair <- function(seed, gap, groups = 4) {
+    withr::local_seed(seed)
+    n <- 50 * groups
+    g <- rep(seq_len(groups), each = 50)
+    treat <- if (groups == 4) c(1, 0, 1, 0)[g] else c("A", "B", "Ctl", "A", "B", "Ctl")[g]
+    pretested <- if (groups == 4) c(1, 1, 0, 0)[g] else c(1, 1, 1, 0, 0, 0)[g]
+    z <- stats::rnorm(n)
+    e <- stats::rnorm(n)
+    x2 <- z + gap * e
+    pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+    y <- 0.3 * (treat %in% c(1, "A")) + ifelse(is.na(pre), 0, 0.4 * pre) + 0.3 * z +
+      stats::rnorm(n)
+    fit_to <- function(covariates, robust) {
+      suppressWarnings(fit_solomon_glm(
+        y, treat, pretested, pre, covariates = covariates, robust = robust,
+        cluster = if (robust == "CR2") paste0(g, "-", rep(1:6, length.out = n)),
+        control = if (groups == 6) "Ctl"
+      ))
+    }
+    list(fit = function(robust) fit_to(data.frame(x = z, x2 = x2), robust),
+         ref = function(robust) fit_to(data.frame(x = z, dx = (x2 - z) / stats::sd(x2 - z)),
+                                       robust))
+  }
+  same <- function(fit, ref, tolerance, info) {
+    expect_equal(fit$effects, ref$effects, tolerance = tolerance, info = info)
+    rows <- !fit$coefficients$term %in% c("x", "x2")
+    expect_equal(fit$coefficients[rows, -1], ref$coefficients[!ref$coefficients$term %in% c("x", "dx"), -1],
+                 tolerance = tolerance, info = info, check.attributes = FALSE)
+    expect_equal(fit$omnibus, ref$omnibus, tolerance = tolerance, info = info)
+    cells <- function(x) plot_sensitization(x)$data[c("estimate", "std.error", "df", "conf.low", "conf.high")]
+    if (is.null(fit$omnibus)) expect_equal(cells(fit), cells(ref), tolerance = tolerance, info = info)
+  }
+  d <- pair(1004, 1e-8)
+  for (robust in c("HC3", "CR2")) {
+    fit <- d$fit(robust)
+    ref <- d$ref(robust)
+    same(fit, ref, 1e-6, info = paste(robust, "1e-8"))
+    ate <- fit$effects$contrast == "ATE (avg over pretest)"
+    expect_equal(fit$effects$p.value[ate], ref$effects$p.value[ate], tolerance = 1e-6, info = robust)
+    # The contrast Treatment | unpretested is the coefficient of treat.
+    expect_equal(fit$effects$std.error[fit$effects$contrast == "Treatment | unpretested"],
+                 fit$coefficients$std.error[fit$coefficients$term == "treat"], tolerance = 1e-8,
+                 info = robust)
+  }
+  d <- pair(1012, 1e-10)
+  for (robust in c("HC3", "CR2")) same(d$fit(robust), d$ref(robust), 1e-5, info = paste(robust, "1e-10"))
+  d <- pair(1004, 1e-8, groups = 6)
+  for (robust in c("HC3", "CR2")) same(d$fit(robust), d$ref(robust), 1e-6, info = paste(robust, "six"))
+
+  # The coefficients' CR2 standard errors and degrees of freedom, with
+  # missing posttests and a pretest far from zero, at 10^-7.
+  withr::local_seed(13)
+  n <- 240
+  treat <- rep(c(0, 1, 1), length.out = n)
+  pretested <- rep(c(0, 1), each = n / 2)
+  pre <- ifelse(pretested == 1, stats::rnorm(n, 20, 4), NA)
+  z <- stats::rnorm(n)
+  site <- rep(1:24, length.out = n)
+  y <- 0.3 * treat + ifelse(is.na(pre), 0, 0.1 * (pre - 20)) + 0.3 * z + stats::rnorm(n) +
+    stats::rnorm(24)[site]
+  y[sample(n, 10)] <- NA
+  e <- stats::rnorm(n)
+  covariates <- data.frame(x = z, x2 = z + 1e-7 * e)
+  reference <- covariates
+  reference$x2 <- covariates$x2 - covariates$x
+  fit <- suppressWarnings(fit_solomon_glm(y, treat, pretested, pre, covariates = covariates,
+                                          robust = "CR2", cluster = site))
+  ref <- suppressWarnings(fit_solomon_glm(y, treat, pretested, pre, covariates = reference,
+                                          robust = "CR2", cluster = site))
+  rows <- fit$coefficients$term != "x"
+  expect_equal(fit$coefficients[rows, c("std.error", "df", "p.value")],
+               ref$coefficients[rows, c("std.error", "df", "p.value")], tolerance = 1e-6)
+  expect_equal(fit$effects, ref$effects, tolerance = 1e-6)
+})
+
 test_that("the covariance as given comes from a factor of the model's covariance", {
   # On a well-conditioned design .given_vcov() gives M V M' for the
-  # covariance V it factors: vcov(), sandwich's HC3, and clubSandwich's
-  # CR2, from the matrices clubSandwich keeps with it. The map moves the
-  # intercept by the coefficients of age and z, as the means of
-  # covariates do; a diagonal map is applied as M V M' itself.
+  # covariance V it computes through R^{-T} M': vcov(), sandwich's HC3, and
+  # clubSandwich's CR2, the last in the orthonormal basis of .cr2_basis().
+  # The map moves the intercept by the coefficients of age and z, as the
+  # means of covariates do; a diagonal map is applied as M V M' itself.
   d <- location_data()$four
   d <- d[!is.na(d$y_g), ]
   d$y_b <- as.integer(d$y_g > stats::median(d$y_g))
@@ -1164,11 +1279,14 @@ test_that("the covariance as given comes from a factor of the model's covariance
     M <- diag(length(stats::coef(model)))
     dimnames(M) <- list(names(stats::coef(model)), names(stats::coef(model)))
     M["(Intercept)", c("age", "z")] <- c(-4, 0.5)
+    site <- d$site
+    if (!is.null(model$na.action)) site <- site[-model$na.action]
     V <- list(none = stats::vcov(model), HC3 = sandwich::vcovHC(model, type = "HC3"),
-              CR2 = clubSandwich::vcovCR(model, cluster = d$site, type = "CR2"))
+              CR2 = clubSandwich::vcovCR(model, cluster = site, type = "CR2"))
     for (robust in names(V)) {
-      expect_equal(.given_vcov(model, model, V[[robust]], M, robust),
-                   M %*% matrix(V[[robust]], nrow(M)) %*% t(M), tolerance = 1e-12,
+      basis <- if (robust == "CR2") .cr2_basis(model, site)
+      expect_equal(.given_vcov(model, V[[robust]], M, robust, basis),
+                   M %*% matrix(V[[robust]], nrow(M)) %*% t(M), tolerance = 1e-10,
                    info = paste(family, robust))
     }
   }

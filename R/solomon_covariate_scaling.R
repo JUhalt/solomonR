@@ -146,7 +146,7 @@
 }
 
 # The covariance of the coefficients as given, M V_s M', from the
-# covariance `V` of the standardized model and the map `M`
+# covariance `V` of the standardized model `fit` and the map `M`
 # (.covariate_map()). Formed as M V_s M', it can cancel: nearly collinear
 # covariates have standardized coefficients with large variances whose
 # combination, the variance of the intercept as given, is small, so that
@@ -154,42 +154,39 @@
 # precision, the HC3 and CR2 standard errors of the intercept came out NaN,
 # or off by a fifth of their value for covariates 10^-6 standard deviations
 # apart, where the fit to the covariates as given was accurate. It is
-# therefore computed from a factor of V_s = S S', as G'G with G = (M S)',
-# and G from the QR decomposition W^(1/2) X = QR of the standardized model
-# through R^{-T} M', which backsolve() computes without that cancellation:
-# - model-based ("none"): S = sigma R^{-1}, so that G = sigma R^{-T} M';
-# - HC3: a row of G is a participant's influence on M b divided by 1 - h_i
-#   (.glm_influence());
-# - CR2: a column of S is a cluster's adjusted estimating function,
-#   (X'WX)^{-1} X_j' W_j A_j e_j (Bell & McCaffrey, 2002), from the matrices
-#   X_j' W_j and A_j and the clusters that clubSandwich keeps with `V`, and
-#   the residuals of the complete-case refit `fit_cr` it was computed on.
-#   They are first checked to give `V` as clubSandwich computes it, and its
-#   bread over its scale to be the inverse of R'R; should clubSandwich keep
-#   other matrices, the check fails and the covariance is M V_s M'.
+# therefore computed through U = R^{-T} M', with R from the QR
+# decomposition W^(1/2) X = QR of the standardized model, which
+# backsolve() computes without that cancellation:
+# - model-based ("none"): sigma^2 U'U;
+# - HC3: G'G, a row of G being a participant's influence on M b divided by
+#   1 - h_i (.glm_influence());
+# - CR2: U' V_o U, with V_o the CR2 covariance of the standardized model in
+#   an orthonormal basis and R the decomposition that gives the basis
+#   (`basis`, from .cr2_basis()).
 # A map that is diagonal only divides, which cancels nothing: the pretest
 # alone, divided by a power of two, which is exact, so that such fits keep
-# the covariance they had, or covariates whose mean is zero. It is applied
-# as M V_s M'. `parts`, for CR2, are those of .cr2_parts(), computed here
-# when not given. Returns a matrix named by the terms.
-.given_vcov <- function(fit, fit_cr, V, M, robust, parts = NULL) {
-  model <- if (robust == "CR2") fit_cr else fit
+# the covariance they had, or covariates whose mean is zero. Without a
+# basis it is applied as M V_s M'. Returns a matrix named by the terms.
+.given_vcov <- function(fit, V, M, robust, basis = NULL) {
   mapped <- function() M %*% as.matrix(V) %*% t(M)
+  if (robust == "CR2") {
+    if (is.null(basis)) return(mapped())
+    U <- backsolve(basis$R, t(M), transpose = TRUE)
+    out <- crossprod(U, .plain_matrix(basis$vcov) %*% U)
+    out <- (out + t(out)) / 2
+    dimnames(out) <- dimnames(M)
+    return(out)
+  }
   if (.diagonal_map(M)) return(mapped())
-  q <- model$qr
+  q <- fit$qr
   p <- ncol(M)
   if (is.null(q) || q$rank < p || !identical(q$pivot, seq_len(p))) return(mapped())
-  R <- qr.R(q)
-  U <- backsolve(R, t(M), transpose = TRUE)
+  U <- backsolve(qr.R(q), t(M), transpose = TRUE)
   if (robust == "none") {
-    G <- sqrt(summary(model)$dispersion) * U
-  } else if (robust == "HC3") {
-    infl <- .glm_influence(model, map = M)
-    G <- infl$influence / (1 - infl$hat)
+    G <- sqrt(summary(fit)$dispersion) * U
   } else {
-    if (is.null(parts)) parts <- .cr2_parts(model, V)
-    if (is.null(parts)) return(mapped())
-    G <- crossprod(backsolve(R, parts$comp, transpose = TRUE), U)
+    infl <- .glm_influence(fit, map = M)
+    G <- infl$influence / (1 - infl$hat)
   }
   out <- crossprod(G)
   dimnames(out) <- dimnames(M)
@@ -199,89 +196,120 @@
 # Whether the map `M` (.covariate_map()) is diagonal: it only divides.
 .diagonal_map <- function(M) all(M[row(M) != col(M)] == 0)
 
-# The matrices of a CR2 covariance `V` of the glm fit `fit_cr` that
-# .given_vcov() and .cr2_contrast_df() use, from those clubSandwich keeps
-# with `V`: the R of the fit's decomposition W^{1/2} X = QR; the clusters'
-# estimating matrices X_j' W_j (`est`), adjustment matrices A_j (`adj`),
-# and working variances Phi_j (`target`); and their adjusted estimating
-# functions X_j' W_j A_j e_j (`comp`, one column per cluster), with e_j the
-# residuals. They are checked to give `V` as clubSandwich computes it, and
-# its bread over its scale to be the inverse of R'R; should clubSandwich
-# keep other matrices, the check fails and NULL is returned, as it is when
-# the fit has no decomposition of full rank in the order of its terms.
-.cr2_parts <- function(fit_cr, V) {
-  q <- fit_cr$qr
-  p <- nrow(as.matrix(V))
-  if (is.null(q) || q$rank < p || !identical(q$pivot, seq_len(p))) return(NULL)
-  R <- qr.R(q)
-  est <- attr(V, "est_mats")
-  adj <- attr(V, "adjustments")
-  cluster <- attr(V, "cluster")
-  bread <- attr(V, "bread")
-  v_scale <- attr(V, "v_scale")
-  e <- stats::residuals(fit_cr, type = "response")
-  if (!is.list(est) || !is.list(adj) || length(est) != length(adj) || !is.factor(cluster) ||
-      length(cluster) != length(e) || nlevels(cluster) != length(est) ||
-      !is.matrix(bread) || !identical(dim(bread), c(p, p)) || !is.numeric(v_scale)) {
-    return(NULL)
-  }
-  comp <- tryCatch(
-    do.call(cbind, Map(function(x, a, r) x %*% a %*% r, est, adj, split(e, cluster))),
-    error = function(err) NULL
-  )
-  if (is.null(comp) || !identical(dim(comp), c(p, length(est))) ||
-      !isTRUE(all.equal(unname(bread %*% (tcrossprod(comp) / v_scale) %*% bread / v_scale),
-                        unname(as.matrix(V)), tolerance = 1e-10)) ||
-      !isTRUE(all.equal(unname(bread / v_scale), chol2inv(R), tolerance = 1e-10))) {
-    return(NULL)
-  }
-  list(R = R, comp = comp, est = est, adj = adj, target = attr(V, "target"),
-       inverse_var = isTRUE(attr(V, "inverse_var")))
+# The robust covariances of the standardized model are computed from its QR
+# decomposition W^(1/2) X = QR when it has a numeric covariate, rather than
+# by sandwich::vcovHC() and clubSandwich::vcovCR() (issue #137). Those form
+# them from the inverse of X'WX, whose condition number is the square of
+# the design's, so that with nearly collinear covariates their entries lost
+# their accuracy, though the coefficient table, computed through R, kept
+# it. With covariates 10^-8 standard deviations apart near zero, the HC3
+# standard error of the average treatment effect came out 0.117 for 0.151,
+# without a warning; at 10^-10 those of other contrasts were up to 54 times
+# too large. CR2 fits stopped inside clubSandwich ("the leading minor ...
+# is not positive"), or its adjustment matrices, computed from that
+# inverse with its eigenvalues below 1e-12 set to zero, put the
+# coefficients' standard errors and degrees of freedom off by percents.
+# A fit without a numeric covariate, whose design is well conditioned,
+# keeps the computations of sandwich and clubSandwich, and its results.
+# `scaling` comes from .covariate_scaling().
+.numeric_covariates <- function(scaling) any(names(scaling$means) != "pre_obs")
+
+# A covariance as a plain matrix, without the attributes of a clubSandwich
+# object.
+.plain_matrix <- function(V) matrix(as.numeric(V), nrow(V), ncol(V))
+
+# The HC3 covariance of a glm fit (MacKinnon & White, 1985): the sum of the
+# cross-products of the participants' influences, each divided by 1 - h_i,
+# from the fit's QR decomposition (.glm_influence()). It is the covariance
+# that sandwich::vcovHC() computes, to about 1e-13 on well-conditioned
+# designs, without forming the inverse of X'WX. Named by the coefficients.
+.hc3_vcov <- function(model) {
+  infl <- .glm_influence(model)
+  crossprod(infl$influence / (1 - infl$hat))
 }
 
-# The Satterthwaite degrees of freedom of the CR2 test of the combination
-# c'b of the coefficients (Pustejovsky & Tipton, 2018), `contrast` being c,
-# as clubSandwich::linear_contrast() computes them, from the matrices of
-# .cr2_parts(), without forming (X'WX)^{-1} c. For a glm, clubSandwich takes
-# the working model of cluster j to be Phi_j = W_j^{-1}, the inverse of its
-# weights, and then, with X_j the cluster's rows of the working design and
-# A_j its adjustment,
-#   f_j = A_j' W_j X_j (X'WX)^{-1} c,
-#   P_jk = [j = k] f_j' Phi_j f_j - f_j' X_j (X'WX)^{-1} X_k' f_k,
-#   df = (sum_j P_jj)^2 / sum_jk P_jk^2.
-# It computes W_j X_j (X'WX)^{-1} c from the inverse it forms, whose
-# entries are large for nearly collinear covariates and cancel in such a
-# combination as the intercept as given: for two covariates 10^-8 standard
-# deviations apart at a mean of 5, the intercept's degrees of freedom came
-# out 6.18 for 18.88, as the same model with the second covariate replaced
-# by their difference, an exact reparameterization, gives. Here
-# (X'WX)^{-1} = R^{-1} R^{-T}, so that with g = R^{-T} c and
-# K_j = R^{-T} X_j' W_j, both from backsolve(), which form no large terms,
-#   f_j = A_j' K_j' g,  R^{-T} X_j' f_j = K_j Phi_j f_j = h_j,
-#   P_jk = [j = k] f_j' Phi_j f_j - h_j' h_k,
-# the computation through R^{-T} that the standard error takes
-# (.given_vcov()). On well-conditioned designs it gives clubSandwich's
-# degrees of freedom to about 1e-12. NULL without the parts, or with
-# another working model.
-.cr2_contrast_df <- function(parts, contrast) {
-  if (is.null(parts) || !parts$inverse_var || !is.list(parts$target) ||
-      length(parts$target) != length(parts$est)) {
-    return(NULL)
+# The variances of the combinations `L` (one per row) of the coefficients
+# of the glm fit `model`, model-based ("none") or HC3, through its QR
+# decomposition W^(1/2) X = QR: sigma^2 ||R^{-T} l||^2, or the sum of the
+# squared influences on l'b, each divided by 1 - h_i (.glm_influence()).
+# The covariance of nearly collinear covariates has large entries, which
+# cancel in a combination that weights them nearly equally, as the
+# gradients of the delta method do; these do not form it.
+.combination_variance <- function(model, robust, L) {
+  if (robust == "HC3") {
+    infl <- .glm_influence(model, map = L)
+    return(colSums((infl$influence / (1 - infl$hat))^2))
   }
-  g <- backsolve(parts$R, contrast, transpose = TRUE)
-  clusters <- length(parts$est)
-  diagonal <- numeric(clusters)
-  H <- matrix(0, length(g), clusters)
-  for (j in seq_len(clusters)) {
-    K <- backsolve(parts$R, parts$est[[j]], transpose = TRUE)
-    f <- drop(crossprod(parts$adj[[j]], crossprod(K, g)))
-    phi_f <- drop(parts$target[[j]] %*% f)
-    diagonal[j] <- sum(f * phi_f)
-    H[, j] <- K %*% phi_f
+  q <- model$qr
+  rank <- seq_len(q$rank)
+  U <- backsolve(qr.R(q)[rank, rank, drop = FALSE], t(L[, q$pivot[rank], drop = FALSE]),
+                 transpose = TRUE)
+  summary(model)$dispersion * colSums(U^2)
+}
+
+# The CR2 covariance (Bell & McCaffrey, 2002) of the glm fit `fit_cr`, with
+# `cluster` the clusters of its rows, computed by clubSandwich in an
+# orthonormal basis of the same columns. With W^(1/2) X = QR the fit's
+# decomposition, the model is refitted to X_o = X R^{-1}, whose weighted
+# columns are those of Q and so orthonormal. That is a reparameterization,
+# b_o = R b, with the same fitted values, iterations, and weights, and the
+# CR2 adjustments with clubSandwich's working model, the covariance, and
+# the Satterthwaite degrees of freedom (Pustejovsky & Tipton, 2018) do not
+# depend on the parameterization: a combination L b is the combination
+# L R^{-1} b_o, which backsolve() computes. In the basis, the inverse of
+# X'WX is the identity, and clubSandwich's computations are accurate. On
+# well-conditioned designs the covariance equals that of clubSandwich on
+# `fit_cr` to about 1e-12, and the degrees of freedom to about 1e-13.
+# Returns `R`, the refit `fit`, and its CR2 covariance `vcov`, the
+# clubSandwich object; NULL when the fit holds no decomposition of full
+# rank in the order of its terms.
+.cr2_basis <- function(fit_cr, cluster) {
+  q <- fit_cr$qr
+  p <- length(stats::coef(fit_cr))
+  if (is.null(q) || q$rank < p || !identical(q$pivot, seq_len(p))) return(NULL)
+  R <- qr.R(q)
+  frame <- list(y = fit_cr$y,
+                basis = t(backsolve(R, t(stats::model.matrix(fit_cr)), transpose = TRUE)))
+  fit <- suppressWarnings(stats::glm(y ~ 0 + basis, family = stats::family(fit_cr), data = frame,
+                                     offset = fit_cr$offset, control = fit_cr$control))
+  list(R = R, fit = fit, vcov = clubSandwich::vcovCR(fit, cluster = cluster, type = "CR2"))
+}
+
+# The covariance of the standardized coefficients from the basis of
+# .cr2_basis(), R^{-1} V_o R^{-T}, through backsolve(), named by `terms`.
+.cr2_standardized_vcov <- function(basis, terms) {
+  V <- backsolve(basis$R, t(backsolve(basis$R, .plain_matrix(basis$vcov))))
+  V <- (V + t(V)) / 2
+  dimnames(V) <- list(terms, terms)
+  V
+}
+
+# The Satterthwaite degrees of freedom (Pustejovsky & Tipton, 2018) of the
+# CR2 tests of the combinations `L` (one per row) of the coefficients of
+# `fit_cr`, whose CR2 covariance is `V`, from clubSandwich: in the
+# orthonormal basis of .cr2_basis() when `basis` is given, and with `fit_cr`
+# and `V` otherwise.
+.cr2_df <- function(L, fit_cr, V, basis = NULL) {
+  L <- matrix(L, ncol = length(stats::coef(fit_cr)))
+  if (!is.null(basis)) {
+    fit_cr <- basis$fit
+    V <- basis$vcov
+    L <- t(backsolve(basis$R, t(L), transpose = TRUE))
   }
-  P <- -crossprod(H)
-  diag(P) <- diag(P) + diagonal
-  sum(diag(P))^2 / sum(P^2)
+  as.data.frame(clubSandwich::linear_contrast(fit_cr, vcov = V, contrasts = L,
+                                              test = "Satterthwaite"))$df
+}
+
+# The HTZ test (Pustejovsky & Tipton, 2018) of the constraints L b = 0 with
+# the CR2 covariance `V` of `fit_cr`, from clubSandwich, in the basis of
+# .cr2_basis() when `basis` is given, as for .cr2_df().
+.cr2_wald <- function(L, fit_cr, V, basis = NULL) {
+  if (!is.null(basis)) {
+    fit_cr <- basis$fit
+    V <- basis$vcov
+    L <- t(backsolve(basis$R, t(L), transpose = TRUE))
+  }
+  clubSandwich::Wald_test(fit_cr, constraints = L, vcov = V, test = "HTZ")
 }
 
 # Whether .covariate_scaling() standardizes anything in `df`: a pretest, or
@@ -317,40 +345,40 @@
 # and, for CR2, the complete-case refit `fit_cr` that `V` was computed on.
 # With standardized covariates (`scaling` from .covariate_scaling(), with
 # `fit` and `fit_cr` fitted to them), the coefficients and their covariance
-# are mapped to the covariates as given; the Satterthwaite degrees of
-# freedom of a CR2 intercept are then those of the contrast that maps it
-# (.cr2_contrast_df()), and a covariate's are those of its standardized
-# coefficient. Returns the
-# table, `table`, and the covariance of the coefficients as given, `vcov`:
-# `V` itself without standardized covariates, and otherwise a matrix
-# (.given_vcov()). The rows of the table are the coefficients, in their
-# order, and are matched to the coefficients and the covariance by
-# position, since two terms can share a name (.scaled_columns()).
-.coefficient_table <- function(fit, fit_cr, V, scaling, robust, df_model, conf_level) {
+# are mapped to the covariates as given (.given_vcov()). Under CR2 with a
+# numeric covariate, `basis` is the orthonormal basis of .cr2_basis(), and
+# the Satterthwaite degrees of freedom of each coefficient as given are
+# those of the combination of the standardized coefficients that its row
+# of the map gives (.cr2_df()). Returns the table, `table`, and the
+# covariance of the coefficients as given, `vcov`: `V` itself without
+# standardized covariates, and otherwise a matrix (.given_vcov()). The rows
+# of the table are the coefficients, in their order, and are matched to the
+# coefficients and the covariance by position, since two terms can share a
+# name (.scaled_columns()).
+.coefficient_table <- function(fit, fit_cr, V, scaling, robust, df_model, conf_level,
+                               basis = NULL) {
   tidy <- broom::tidy(fit)
   standardized <- length(scaling$means) > 0L
   cf <- stats::coef(fit)
   rows <- if (identical(tidy$term, names(cf))) seq_along(cf) else match(tidy$term, names(cf))
   V_given <- V
-  parts <- NULL
   if (standardized) {
     M <- .covariate_map(fit, scaling)
     # broom names the estimates of a negative-binomial fit by term; they
     # keep their names.
     estimate <- drop(M %*% cf)[rows]
     tidy$estimate <- if (is.null(names(tidy$estimate))) unname(estimate) else estimate
-    if (robust == "CR2" && !.diagonal_map(M)) parts <- .cr2_parts(fit_cr, V)
-    V_given <- .given_vcov(fit, fit_cr, V, M, robust, parts)
+    V_given <- .given_vcov(fit, V, M, robust, if (robust == "CR2") basis)
   }
   se_vec <- sqrt(diag(V_given))
   tidy$std.error <- unname(se_vec[rows])
   tidy$statistic <- tidy$estimate / tidy$std.error
-  if (robust == "CR2") {
+  if (robust == "CR2" && standardized && !is.null(basis)) {
+    tidy$df <- .cr2_df(M, fit_cr, V, basis)[rows]
+  } else if (robust == "CR2") {
     # Only the degrees of freedom are taken from clubSandwich. With
     # standardized covariates the standard errors it computes as well, of
-    # the standardized coefficients and of the intercept as given from
-    # M V_s M', are not used; with nearly collinear covariates their
-    # rounding error can make them NaN, with a warning (.given_vcov()).
+    # the standardized coefficients, are not used.
     # clubSandwich names the rows of its table by the coefficients, which
     # must then be unique; the rows are the coefficients in their order.
     df_only <- function(expr) if (standardized) suppressWarnings(expr) else expr
@@ -360,19 +388,11 @@
     tidy$df <- if (nrow(ct) == length(cf)) ct$df_Satt[rows] else
       ct$df_Satt[match(tidy$term, ct$Coef)]
     if (standardized) {
-      # The intercept as given combines the standardized coefficients, whose
-      # terms cancel for nearly collinear covariates, so its degrees of
-      # freedom are computed through R^{-T} (.cr2_contrast_df()). A diagonal
-      # map only divides: the contrast is the standardized intercept.
-      intercept <- M["(Intercept)", , drop = FALSE]
-      df <- .cr2_contrast_df(parts, drop(intercept))
-      if (is.null(df)) {
-        df <- suppressWarnings(as.data.frame(
-          clubSandwich::linear_contrast(fit_cr, vcov = V, contrasts = intercept,
-                                        test = "Satterthwaite")
-        ))$df
-      }
-      tidy$df[tidy$term == "(Intercept)"] <- df
+      # The intercept as given is the combination of the standardized
+      # coefficients that its row of the map gives: the standardized
+      # intercept for a diagonal map.
+      tidy$df[tidy$term == "(Intercept)"] <-
+        df_only(.cr2_df(M["(Intercept)", , drop = FALSE], fit_cr, V))
     }
   } else {
     tidy$df <- df_model
@@ -387,7 +407,9 @@
 # The `covariate_scaling` element of a fit: the `means` and `scales` of the
 # standardized covariates and the scaled pretest, and the `coefficients`
 # and the covariance `vcov` of the standardized model `fit` (for CR2, the
-# clubSandwich object); NULL with neither a pretest nor a numeric covariate.
+# clubSandwich object, or with a numeric covariate the matrix of
+# .cr2_standardized_vcov()); NULL with neither a pretest nor a numeric
+# covariate.
 .covariate_scaling_element <- function(scaling, fit, V) {
   if (!length(scaling$means)) return(NULL)
   list(means = scaling$means, scales = scaling$scales, coefficients = stats::coef(fit),

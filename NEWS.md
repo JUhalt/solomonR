@@ -157,25 +157,32 @@
   the covariate renamed. `plot_sensitization()` also took a covariate named
   `pre_obs`, in a fit without a pretest, for the pretest; it is now a
   covariate like any other.
-* Not changed here: with nearly collinear covariates, about 10^-7 of
-  their standard deviation apart or closer, the HC3 and CR2 standard errors
-  of the contrasts lose accuracy, because `sandwich::vcovHC()` and
-  `clubSandwich::vcovCR()` form the covariance from the inverse of `X'WX`. In
-  one check, under HC3 and CR2, they were off by up to 3% and 4% for a
-  covariate near zero and its copy in single precision (2% and 3% in
-  earlier versions), 0.3% and 1.5% at 10^-7, and 76% and 28% at 10^-8; at
-  10^-9, HC3 standard errors were off by up to a factor of 11 or `NaN`, and
-  CR2 fits gave `NaN` or stopped with "the leading minor ... is not
-  positive". Earlier versions stopped from 10^-8 near zero. The
-  model-based standard errors, and the standard errors of the coefficients
-  under every covariance, keep their accuracy. Also not changed: `glm()`
-  takes nearly collinear covariates as given to be collinear, which stops
-  the fit, when they lie so far from zero that their difference falls below
-  about 1e-11 of their distance from zero, as for covariates 10^-6 standard
-  deviations apart at 10^6 standard deviations from zero; and the ties of
-  `perm_solomon()` with models fitted by iteration, and the first stage of
-  its clustered test, which is fitted to the covariates as given, remain
-  on #134.
+* Nearly collinear covariates, about 10^-7 of their standard deviation
+  apart or closer. `sandwich::vcovHC()` and `clubSandwich::vcovCR()` form
+  the HC3 and CR2 covariances from the inverse of `X'WX`, whose condition
+  number is the square of the design's, so their standard errors lost
+  accuracy, by 2% and 3% for a covariate near zero and its copy in single
+  precision in one check, and from about 10^-8 apart near zero HC3 and CR2
+  fits stopped with "system is computationally singular". With a numeric
+  covariate they are now computed from the QR decomposition of the
+  standardized model: HC3 from the participants' influences, and CR2 by
+  clubSandwich in an orthonormal basis of the same columns, which gives
+  the same covariance, Satterthwaite degrees of freedom, and HTZ tests.
+  With covariates 10^-8 standard deviations apart near zero, the standard
+  errors, degrees of freedom, and p-values of the contrasts and the
+  coefficients, the omnibus tests of several treatments, and the cells of
+  `plot_sensitization()` agreed with those of an exact reparameterization
+  to about 1e-8 of their value under every covariance, and to about 1e-6
+  at 10^-10. The studentized statistic of `perm_solomon()` uses the HC3
+  variance computed the same way. Fits without a numeric covariate keep
+  the computations of sandwich and clubSandwich, and their results.
+* Not changed here: `glm()` takes nearly collinear covariates as given to
+  be collinear, which stops the fit, when they lie so far from zero that
+  their difference falls below about 1e-11 of their distance from zero, as
+  for covariates 10^-6 standard deviations apart at 10^6 standard
+  deviations from zero; and the ties of `perm_solomon()` with models fitted
+  by iteration, and the first stage of its clustered test, which is fitted
+  to the covariates as given, remain on #134.
 
 ## The a priori procedure in the planning article (#147)
 

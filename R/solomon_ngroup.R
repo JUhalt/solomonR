@@ -593,11 +593,15 @@
     )
   }
 
-  # Robust covariance, as in the four-group model.
+  # Robust covariance, as in the four-group model: with a numeric covariate,
+  # from the standardized model's QR decomposition (.hc3_vcov(),
+  # .cr2_basis()).
   fit_cr <- fit
   n_clusters <- NULL
+  cr2_basis <- NULL
+  numeric_covariates <- .numeric_covariates(scaling)
   if (robust == "HC3") {
-    vcovM <- sandwich::vcovHC(fit, type = "HC3")
+    vcovM <- if (numeric_covariates) .hc3_vcov(fit) else sandwich::vcovHC(fit, type = "HC3")
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
@@ -617,7 +621,12 @@
     }
 
     fit_cr <- stats::glm(fml, data = scaling$data[used, , drop = FALSE], family = family)
-    vcovM <- clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
+    if (numeric_covariates) cr2_basis <- .cr2_basis(fit_cr, cluster_fit)
+    vcovM <- if (is.null(cr2_basis)) {
+      clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
+    } else {
+      .cr2_standardized_vcov(cr2_basis, names(stats::coef(fit_cr)))
+    }
   } else {
     vcovM <- stats::vcov(fit)
   }
@@ -644,7 +653,8 @@
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
-  coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level)
+  coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
+                                     cr2_basis)
 
   cf <- stats::coef(fit)
   cn <- names(cf)
@@ -655,18 +665,7 @@
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
-    dfc <- if (robust == "CR2") {
-      as.data.frame(
-        clubSandwich::linear_contrast(
-          fit_cr,
-          vcov = vcovM,
-          contrasts = Lm,
-          test = "Satterthwaite"
-        )
-      )$df
-    } else {
-      df_model
-    }
+    dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
     adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
@@ -829,7 +828,7 @@
     b <- as.numeric(L %*% cf)
     W <- as.numeric(t(b) %*% solve(L %*% vcovM %*% t(L), b))
     if (robust == "CR2") {
-      wt <- clubSandwich::Wald_test(fit_cr, constraints = L, vcov = vcovM, test = "HTZ")
+      wt <- .cr2_wald(L, fit_cr, vcovM, cr2_basis)
       data.frame(test = omnibus_labels[[type]], statistic = wt$Fstat,
                  df1 = wt$df_num, df2 = wt$df_denom, p.value = wt$p_val,
                  reference = "F", stringsAsFactors = FALSE)

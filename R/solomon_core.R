@@ -1048,21 +1048,29 @@ stouffer_solomon <- function(p) {
 #'   relation with a covariate 3 * 10^10 standard deviations from zero, the
 #'   fit stops with that error, as in earlier versions, before the check
 #'   can name a term.
-#' - Fitting nearly collinear covariates is not the same as estimating
-#'   their standard errors well. With covariates that differ by about 10^-7
-#'   of their standard deviation or less, as a covariate near zero and its
-#'   copy in single precision do, the HC3 and CR2 standard errors of the
-#'   contrasts lose accuracy, as [sandwich::vcovHC()] and
-#'   [clubSandwich::vcovCR()] form the covariance from the inverse of `X'WX`.
-#'   In one check, under HC3 and CR2, they were off by up to 3% and 4% for
-#'   such a copy (2% and 3% in earlier versions), 0.3% and 1.5% at 10^-7,
-#'   and 76% and 28% at 10^-8. At 10^-9, HC3 standard errors were off by up
-#'   to a factor of 11 or `NaN`, with a warning, and CR2 fits gave `NaN` or
-#'   stopped with "the leading minor ... is not positive", as some did at
-#'   10^-8. Earlier versions stopped with "system is computationally
-#'   singular" from 10^-8 near zero, and from 10^-7 for covariates 5
-#'   standard deviations from zero. The model-based standard errors, and
-#'   those of the coefficients under every covariance, keep their accuracy.
+#'
+#' Nearly collinear covariates that are fitted keep accurate standard
+#' errors under every covariance, as far as the design allows: the
+#' coefficients and their covariance are accurate to about
+#' `.Machine$double.eps` times the condition number of the standardized
+#' design, which for two covariates near zero is about the inverse of their
+#' difference in standard deviations. With a numeric covariate the HC3 and
+#' CR2 covariances are therefore computed from the QR decomposition of the
+#' standardized model, as the model-based one is: HC3 from the
+#' participants' influences, and CR2 by clubSandwich in an orthonormal
+#' basis of the same columns, which gives the same covariance, degrees of
+#' freedom, and tests. Formed from the inverse of `X'WX`, as
+#' [sandwich::vcovHC()] and [clubSandwich::vcovCR()] form them, whose
+#' condition number is the square of the design's, they lost accuracy with
+#' covariates 10^-7 standard deviations apart or closer, and earlier
+#' versions stopped with "system is computationally singular" from about
+#' 10^-8 near zero. With covariates 10^-8 standard deviations apart near
+#' zero, the standard errors, degrees of freedom, and p-values of the
+#' contrasts and the coefficients, the omnibus tests of several
+#' treatments, and the cells of [plot_sensitization()] agreed with those of
+#' the exact reparameterization, the second covariate replaced by the
+#' difference, to about 10^-8 of their value under every covariance in one
+#' check, and to about 10^-6 at 10^-10.
 #'
 #' A numeric covariate is standardized whatever its class, such as that of a
 #' variable with value labels read from an SPSS file, or of one wrapped in
@@ -1612,11 +1620,16 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     .warn_noncollapsible(stats::family(fit)$link)
   }
 
-  # Robust VCOV
+  # Robust VCOV. With a numeric covariate, the HC3 and CR2 covariances
+  # are computed from the standardized model's QR decomposition, which
+  # stays accurate when covariates are nearly collinear (.hc3_vcov(),
+  # .cr2_basis()); without one, by sandwich and clubSandwich, as before.
   fit_cr <- fit
   n_clusters <- NULL
+  cr2_basis <- NULL
+  numeric_covariates <- .numeric_covariates(scaling)
   if (robust == "HC3") {
-    vcovM <- sandwich::vcovHC(fit, type = "HC3")
+    vcovM <- if (numeric_covariates) .hc3_vcov(fit) else sandwich::vcovHC(fit, type = "HC3")
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
@@ -1641,7 +1654,12 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     # so CR2 quantities come from a complete-case refit of the same rows
     # (identical coefficients), with the covariates standardized as `fit`.
     fit_cr <- stats::glm(fml, data = scaling$data[used, , drop = FALSE], family = family)
-    vcovM <- clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
+    if (numeric_covariates) cr2_basis <- .cr2_basis(fit_cr, cluster_fit)
+    vcovM <- if (is.null(cr2_basis)) {
+      clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
+    } else {
+      .cr2_standardized_vcov(cr2_basis, names(stats::coef(fit_cr)))
+    }
   } else {
     vcovM <- stats::vcov(fit)
   }
@@ -1679,7 +1697,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
   # --- tidy coefficients with chosen vcov, for the covariates as given ---
-  coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level)
+  coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
+                                     cr2_basis)
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -1693,18 +1712,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
-    dfc <- if (robust == "CR2") {
-      as.data.frame(
-        clubSandwich::linear_contrast(
-          fit_cr,
-          vcov = vcovM,
-          contrasts = Lm,
-          test = "Satterthwaite"
-        )
-      )$df
-    } else {
-      df_model
-    }
+    dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
     adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
@@ -2138,6 +2146,7 @@ perm_solomon <- function(
   # far a covariate lies from zero.
   df <- fit$data
   if (!is.null(fit$covariate_scaling)) df <- .standardized_frame(df, fit$covariate_scaling)
+  numeric_covariates <- .numeric_covariates(fit$covariate_scaling)
   form <- stats::formula(fit$model)
   fam <- stats::family(fit$model)
 
@@ -2218,17 +2227,25 @@ perm_solomon <- function(
       return(estimate)
     }
 
-    V <- sandwich::vcovHC(
-      fit,
-      type = "HC3"
-    )
+    # With a numeric covariate, the HC3 variance comes from the QR
+    # decomposition, as the fit's does (.hc3_vcov()), so that nearly
+    # collinear covariates leave the statistic accurate.
+    variance <- if (numeric_covariates) {
+      infl <- .glm_influence(fit, map = Lm)
+      sum((infl$influence / (1 - infl$hat))^2)
+    } else {
+      V <- sandwich::vcovHC(
+        fit,
+        type = "HC3"
+      )
 
-    # Force coefficient and covariance-matrix order to match.
-    V <- V[names(b), names(b), drop = FALSE]
+      # Force coefficient and covariance-matrix order to match.
+      V <- V[names(b), names(b), drop = FALSE]
 
-    variance <- as.numeric(
-      Lm %*% V %*% t(Lm)
-    )
+      as.numeric(
+        Lm %*% V %*% t(Lm)
+      )
+    }
 
     if (!is.finite(variance) || variance <= 0) {
       return(NA_real_)

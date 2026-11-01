@@ -8,7 +8,8 @@
 # .covariate_scaling()): the combinations become L M of the standardized
 # coefficients, which give the same estimates and are accurate however far a
 # covariate lies from zero, and whatever the scale of a covariate or the
-# pretest.
+# pretest. With a numeric covariate, the CR2 degrees of freedom come from the
+# orthonormal basis of the standardized model, as the fit's (.cr2_basis()).
 .glm_linear_combination <- function(fit, L) {
   model <- fit$model
   scaling <- fit$covariate_scaling
@@ -26,23 +27,28 @@
 
   if (identical(fit$robust, "CR2")) {
     frame <- stats::model.frame(model)
+    used <- rep(TRUE, nrow(fit$data))
+    if (!is.null(model$na.action)) used[model$na.action] <- FALSE
     if (!is.null(scaling) || !is.null(stats::model.offset(frame))) {
       # A model frame cannot rebuild an exposure offset, nor hold the
       # standardized covariates, so the model is refitted to the rows of the
       # fit's data that it used.
-      used <- rep(TRUE, nrow(fit$data))
-      if (!is.null(model$na.action)) used[model$na.action] <- FALSE
       frame <- fit$data[used, , drop = FALSE]
       if (!is.null(scaling)) frame <- .standardized_frame(frame, scaling)
     }
     fit_cr <- stats::glm(stats::formula(model), data = frame, family = fit$family)
-    df <- vapply(seq_len(nrow(L)), function(i) {
-      as.data.frame(
-        clubSandwich::linear_contrast(fit_cr, vcov = V,
-                                      contrasts = L[i, , drop = FALSE],
-                                      test = "Satterthwaite")
-      )$df
-    }, numeric(1))
+    basis <- if (.numeric_covariates(scaling)) .cr2_basis(fit_cr, fit$cluster[used])
+    df <- if (is.null(basis)) {
+      vapply(seq_len(nrow(L)), function(i) {
+        as.data.frame(
+          clubSandwich::linear_contrast(fit_cr, vcov = V,
+                                        contrasts = L[i, , drop = FALSE],
+                                        test = "Satterthwaite")
+        )$df
+      }, numeric(1))
+    } else {
+      .cr2_df(L, fit_cr, V, basis)
+    }
   } else {
     fixed <- .fixed_dispersion(stats::family(model))
     df <- rep(if (fixed) Inf else stats::df.residual(model), nrow(L))

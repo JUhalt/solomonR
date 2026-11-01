@@ -623,22 +623,30 @@ itself, as \code{\link[MASS:glm.nb]{MASS::glm.nb()}} did with "NA/NaN/Inf in 'x'
 relation with a covariate 3 * 10^10 standard deviations from zero, the
 fit stops with that error, as in earlier versions, before the check
 can name a term.
-\item Fitting nearly collinear covariates is not the same as estimating
-their standard errors well. With covariates that differ by about 10^-7
-of their standard deviation or less, as a covariate near zero and its
-copy in single precision do, the HC3 and CR2 standard errors of the
-contrasts lose accuracy, as \code{\link[sandwich:vcovHC]{sandwich::vcovHC()}} and
-\code{\link[clubSandwich:vcovCR]{clubSandwich::vcovCR()}} form the covariance from the inverse of \verb{X'WX}.
-In one check, under HC3 and CR2, they were off by up to 3\% and 4\% for
-such a copy (2\% and 3\% in earlier versions), 0.3\% and 1.5\% at 10^-7,
-and 76\% and 28\% at 10^-8. At 10^-9, HC3 standard errors were off by up
-to a factor of 11 or \code{NaN}, with a warning, and CR2 fits gave \code{NaN} or
-stopped with "the leading minor ... is not positive", as some did at
-10^-8. Earlier versions stopped with "system is computationally
-singular" from 10^-8 near zero, and from 10^-7 for covariates 5
-standard deviations from zero. The model-based standard errors, and
-those of the coefficients under every covariance, keep their accuracy.
 }
+
+Nearly collinear covariates that are fitted keep accurate standard
+errors under every covariance, as far as the design allows: the
+coefficients and their covariance are accurate to about
+\code{.Machine$double.eps} times the condition number of the standardized
+design, which for two covariates near zero is about the inverse of their
+difference in standard deviations. With a numeric covariate the HC3 and
+CR2 covariances are therefore computed from the QR decomposition of the
+standardized model, as the model-based one is: HC3 from the
+participants' influences, and CR2 by clubSandwich in an orthonormal
+basis of the same columns, which gives the same covariance, degrees of
+freedom, and tests. Formed from the inverse of \verb{X'WX}, as
+\code{\link[sandwich:vcovHC]{sandwich::vcovHC()}} and \code{\link[clubSandwich:vcovCR]{clubSandwich::vcovCR()}} form them, whose
+condition number is the square of the design's, they lost accuracy with
+covariates 10^-7 standard deviations apart or closer, and earlier
+versions stopped with "system is computationally singular" from about
+10^-8 near zero. With covariates 10^-8 standard deviations apart near
+zero, the standard errors, degrees of freedom, and p-values of the
+contrasts and the coefficients, the omnibus tests of several
+treatments, and the cells of \code{\link[=plot_sensitization]{plot_sensitization()}} agreed with those of
+the exact reparameterization, the second covariate replaced by the
+difference, to about 10^-8 of their value under every covariance in one
+check, and to about 10^-6 at 10^-10.
 
 A numeric covariate is standardized whatever its class, such as that of a
 variable with value labels read from an SPSS file, or of one wrapped in
