@@ -65,6 +65,14 @@
 #            2), and the refusal (by its message) of a file the study wrote
 #            under a name the harness writes, also when the plan has none
 #            to copy, and of a logs/ folder.
+#   local    tools/sim/run-local.R in a package folder made here, with the
+#            harness under test and the synthetic study as a second study
+#            beside smoke (needs pkgload; skipped without it): a new run of
+#            the synthetic study; --resume and --rerun-chunk without
+#            --study, which take the run's study from its plan; a --study
+#            that names another study, refused before anything runs, for a
+#            synthetic and for a smoke run; a new run without --study, a
+#            smoke run; and --rerun-chunk's chunk number in digits.
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it), and
@@ -75,8 +83,9 @@
 # Messages are printed without their "::error::" or "::warning::" prefix, so
 # that a workflow log shows no annotation for an expected refusal; the scan
 # cases print no message at all. The exit status is 1 if any case ends
-# otherwise than expected. At most two R processes run at a time: this one
-# and the script under test.
+# otherwise than expected. One R process computes at a time: the script
+# under test, while this one waits (and, in the local group, run-local.R
+# between them).
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -84,7 +93,7 @@ local({
 })
 source(file.path(harness, "harness-lib.R"))
 
-all_groups <- c("results", "scan", "sizing", "inputs", "contract", "replay", "finalize", "merge")
+all_groups <- c("results", "scan", "sizing", "inputs", "contract", "replay", "finalize", "local", "merge")
 opts <- list(only = paste(all_groups, collapse = ","), work = "", run = "", bash = "")
 args <- commandArgs(trailingOnly = TRUE)
 i <- 1L
@@ -1082,6 +1091,110 @@ if ("finalize" %in% groups) local({
   record("finalize", "the plan's preflight.csv is copied", "yes",
          if (x$r$status == 0L && file.exists(file.path(root, "f10", "results", "preflight.csv"))) "yes" else "no",
          last_line(x$r$out))
+})
+
+# ---- local: run-local.R's choice of the study ------------------------------------
+
+if ("local" %in% groups) local({
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    return(skip("local", "no pkgload (the synthetic study's tasks load their package folder with it)"))
+  }
+  root <- file.path(work, "local")
+  # A package folder for run-local.R, which runs only where DESCRIPTION names
+  # solomonR (this one holds no code): the harness under test in
+  # tools/sim, with a registry row and pins for the synthetic study
+  # (tests/synthetic-study.R), and the file that study sources.
+  pkg <- file.path(root, "pkg")
+  sim <- file.path(pkg, "tools", "sim")
+  dir.create(sim, recursive = TRUE)
+  dir.create(file.path(pkg, "lib"))
+  h_write_lines(c("Package: solomonR", "Version: 0.0.0"), file.path(pkg, "DESCRIPTION"))
+  h_write_lines(c("# Sourced by the synthetic study.", "helper_value <- function() 1"), file.path(pkg, "lib", "helper.R"))
+  file.copy(list.files(harness, full.names = TRUE), sim, recursive = TRUE)
+  cat("synthetic,117,tools/sim/tests/synthetic-study.R,tools/sim/tests/synthetic-pins.csv,FALSE,\n",
+      file = file.path(sim, "studies.csv"), append = TRUE)
+  h_write_csv(data.frame(kind = c("r", "libraries", "repos"), name = c("version", "blas", "snapshot"),
+                         value = c(paste(R.version$major, R.version$minor, sep = "."), "any", "none")),
+              file.path(sim, "tests", "synthetic-pins.csv"))
+  # run-local.R from the package folder; git finds no repository there.
+  run_local <- function(...) {
+    run_from(pkg, file.path(sim, "run-local.R"), c(...), set = c(GIT_DIR = file.path(work, "no-repository-here")))
+  }
+  said <- function(r, txt) any(grepl(txt, r$out, fixed = TRUE))
+  yes <- function(ok) if (isTRUE(ok)) "yes" else "no"
+  # The entries of a folder and the MD5 of each file, to show that a refused
+  # command changed nothing.
+  listing <- function(d) {
+    f <- sort(list.files(d, recursive = TRUE, all.files = TRUE, include.dirs = TRUE, no.. = TRUE))
+    paste(f, ifelse(dir.exists(file.path(d, f)), "folder", unname(tools::md5sum(file.path(d, f)))))
+  }
+  mismatch <- "is a run of study"
+
+  # A run of the synthetic study, a second study beside smoke.
+  run <- file.path(root, "run")
+  r <- run_local("--study", "synthetic", "--reps", "4", "--chunks", "2", "--out", run)
+  info <- file.path(run, "results", "run-information.csv")
+  ok <- r$status == 0L && file.exists(info) && identical(h_read_kv(info)[["study"]], "synthetic")
+  record("local", "new run, --study synthetic: every stage passes", "yes", yes(ok), last_line(r$out))
+  if (!ok) return(invisible())
+  # A --study that names another study is refused before anything runs.
+  before <- listing(run)
+  r <- run_local("--out", run, "--resume", "--study", "smoke")
+  record("local", "--resume --study smoke, a synthetic run: refused", "refuse", refusal(r, mismatch), last_line(r$out))
+  r <- run_local("--out", run, "--rerun-chunk", "1", "--study", "smoke")
+  record("local", "--rerun-chunk 1 --study smoke, a synthetic run: refused", "refuse", refusal(r, mismatch),
+         last_line(r$out))
+  record("local", "both refusals left the run's folder as it was", "yes", yes(identical(listing(run), before)), "")
+  # Without --study, the run's own study: a chunk again, then a resume after
+  # a task file was lost.
+  r <- run_local("--out", run, "--rerun-chunk", "1")
+  ok <- r$status == 0L && said(r, "== Study synthetic (tools/sim/tests/synthetic-study.R), from ") &&
+    length(list.files(file.path(run, "rerun", "chunk-0001", "tasks"), pattern = "[.]rds$")) > 0L
+  record("local", "--rerun-chunk 1 without --study: the plan's study, identical tasks", "yes", yes(ok), last_line(r$out))
+  lost <- sort(list.files(file.path(run, "chunks", "chunk-0002", "tasks"), pattern = "[.]rds$", full.names = TRUE))[[1]]
+  want <- h_content_sha256(readRDS(lost))
+  unlink(lost)
+  r <- run_local("--out", run, "--resume")
+  resumes <- file.path(run, "chunks", "chunk-0002", "resumes.csv")
+  ok <- r$status == 0L && said(r, "== Study synthetic (tools/sim/tests/synthetic-study.R), from ") &&
+    file.exists(lost) && identical(h_content_sha256(readRDS(lost)), want) &&
+    file.exists(resumes) && nrow(h_read_csv(resumes)) == 1L && file.exists(info)
+  record("local", "--resume without --study: the plan's study, the lost task again identical", "yes", yes(ok),
+         last_line(r$out))
+  r <- run_local("--out", run, "--resume", "--study", "synthetic")
+  record("local", "--resume --study synthetic, the plan's own study", "accept", if (r$status == 0L) "accept" else "refuse",
+         last_line(r$out))
+  for (v in c("1.5", "99999999999")) {
+    r <- run_local("--out", run, "--rerun-chunk", v)
+    record("local", paste("--rerun-chunk", v), "refuse", refusal(r, "--rerun-chunk takes a chunk number from 1 to 256"),
+           last_line(r$out))
+  }
+  # A smoke run's plan (this plan, its study item made smoke; no software.csv,
+  # so that a resume that passes the study's check stops at once).
+  smoke <- file.path(root, "smoke-run")
+  dir.create(file.path(smoke, "plan"), recursive = TRUE)
+  kv <- h_read_kv(file.path(run, "plan", "plan-info.csv"))
+  kv[["study"]] <- "smoke"
+  h_write_kv(kv, file.path(smoke, "plan", "plan-info.csv"))
+  file.copy(file.path(run, "plan", "chunks.json"), file.path(smoke, "plan"))
+  before <- listing(smoke)
+  r <- run_local("--out", smoke, "--resume", "--study", "synthetic")
+  record("local", "--resume --study synthetic, a smoke run: refused", "refuse", refusal(r, mismatch), last_line(r$out))
+  r <- run_local("--out", smoke, "--rerun-chunk", "1", "--study", "synthetic")
+  record("local", "--rerun-chunk 1 --study synthetic, a smoke run: refused", "refuse", refusal(r, mismatch),
+         last_line(r$out))
+  record("local", "both refusals left the smoke run's folder as it was", "yes", yes(identical(listing(smoke), before)), "")
+  r <- run_local("--out", smoke, "--resume")
+  ok <- said(r, "== Study smoke (tools/sim/studies/smoke/smoke-simulation.R), from ") && said(r, "software.csv is missing")
+  record("local", "--resume without --study, a smoke run: the smoke study", "yes", yes(ok), last_line(r$out))
+  # A new run without --study is a smoke run, as before (stopped here by its
+  # folder, which is not empty).
+  r <- run_local("--out", run)
+  ok <- said(r, "== Study smoke (tools/sim/studies/smoke/smoke-simulation.R)") && !said(r, "smoke-simulation.R), from") &&
+    said(r, "must be empty or absent")
+  record("local", "a new run without --study: the smoke study", "yes", yes(ok), last_line(r$out))
+  r <- run_local("--out", file.path(root, "nothing-here"), "--resume")
+  record("local", "--resume of a folder without a plan", "refuse", refusal(r, "Nothing to resume"), last_line(r$out))
 })
 
 # ---- merge: merge-chunks.R on tampered copies ----------------------------------

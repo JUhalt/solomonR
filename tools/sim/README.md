@@ -29,7 +29,7 @@ package or of the validation-scripts check.
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
 | `harness-lib.R` | Helpers of the harness scripts |
-| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's check of the inputs, the contract's plan stage on a synthetic study, and `merge-chunks.R` on tampered copies of a run |
+| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's check of the inputs, the contract's plan stage on a synthetic study, `finalize-results.R`, `run-local.R` on the synthetic study, and `merge-chunks.R` on tampered copies of a run |
 | `studies/smoke/` | The harness's smoke study (its script, and `smoke-summarize.R`, which the script sources); not a protocol, and it computes no measure for the package's methods |
 
 The workflow is `.github/workflows/simulation-run.yaml`, with the composite
@@ -229,8 +229,17 @@ the resumption in the chunk's `resumes.csv` (and in `run-information.csv`),
 and merges afresh; it refuses to continue if `software.csv` has changed. A
 gate or study run needs a clean checkout of a commit.
 
+A new run is of the study `--study` names (smoke without it). `--resume`
+and `--rerun-chunk` take the study from the run's `plan/plan-info.csv`
+(item `study`), and its script and pins from `studies.csv`, so the
+commands above need no `--study` for any study; a `--study` that names
+another study is refused before anything runs or changes. Each run first
+prints the study it runs. `--rerun-chunk` takes a chunk number from 1 to
+256 in digits.
+
 The harness's own tests need R alone (and git, for the clean-checkout
-cases) and take a few minutes:
+cases, and pkgload, for the cases of `run-local.R`) and take a few
+minutes:
 
 ```
 Rscript tools/sim/tests/run-tests.R
@@ -250,14 +259,18 @@ formats of `assign-chunks.R`; the workflow's "Check the inputs" step, run
 with bash (`--bash <path>` if bash is not on the PATH); the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and
 `sim_verify_plan()` on the synthetic study `tests/synthetic-study.R`, which
-loads no package (with git, also the clean-checkout rule); the replay list
-of `merge-chunks.R` and the items and refusals of `finalize-results.R` on
-files made up there; and, with `--run`, `merge-chunks.R` on tampered
-copies of a run's `plan/` and `chunks/`, and the address scan of the run's
-own folders. Any case that ends otherwise than expected makes the exit
-status 1. The workflow runs them in the pull requests that change the
-harness: the job "Harness tests", and the merge cases at the end of the
-merge job, on that run's own chunks. Run them after any change to a check.
+loads no package there (with git, also the clean-checkout rule); the
+replay list of `merge-chunks.R` and the items and refusals of
+`finalize-results.R` on files made up there; `run-local.R` on the
+synthetic study, as a second study beside smoke, in a package folder made
+there (the study it takes for `--resume` and `--rerun-chunk`, and its
+refusal of another `--study`); and, with `--run`, `merge-chunks.R` on
+tampered copies of a run's `plan/` and `chunks/`, and the address scan of
+the run's own folders. Any case that ends otherwise than expected makes
+the exit status 1. The workflow runs them in the pull requests that change
+the harness: the job "Harness tests", and the merge and `run-local.R` cases
+at the end of the merge job, on that run's own chunks and with the study's
+software. Run them after any change to a check.
 
 The software check runs without its repository and tool checks, so the
 local package versions must match the pins. On Windows, R reports no BLAS or

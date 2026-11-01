@@ -1,12 +1,15 @@
 # A synthetic study for the harness's tests (tools/sim/tests/run-tests.R,
-# group "contract"; issue #117). run-tests.R copies it, with the contract
-# under test and a one-line lib/helper.R that it sources, into a package
-# folder of its own, and runs it with Rscript: its plan stage through
-# sim_main(), its run stage with no task to run, its smoke mode (refused at
-# its settings), or, with HARNESS_TEST_VERIFY set, sim_verify_plan() on a
-# plan, so that the contract reads its settings from the environment as in
-# a run. It loads no package and draws no random number (the plan stage
-# only sets the streams); the workflow's study jobs never run it.
+# groups "contract" and "local"; issue #117). In the contract group,
+# run-tests.R copies it, with the contract under test and a one-line
+# lib/helper.R that it sources, into a package folder of its own, and runs
+# it with Rscript: its plan stage through sim_main(), its run stage with no
+# task to run, its smoke mode (refused at its settings), or, with
+# HARNESS_TEST_VERIFY set, sim_verify_plan() on a plan, so that the
+# contract reads its settings from the environment as in a run; there it
+# loads no package. In the local group, tools/sim/run-local.R runs every
+# stage of it from a package folder whose DESCRIPTION holds no code, which
+# its tasks load with pkgload::load_all(). Its replicate() draws no random
+# number; the workflow's study jobs never run it.
 # HARNESS_TEST_VARIANT changes one field of `study` for a refusal case.
 
 source(file.path("tools", "sim", "contract.R"))

@@ -521,19 +521,22 @@ jobs:
 
       # The harness's own tests of merge-chunks.R, in its pull requests only:
       # tampered copies of this run's plan and chunks, and the address scan
-      # of this run's own folders, made in the runner's temporary folder,
-      # which is never uploaded.
-      - name: Test the merge checks on tampered copies of the chunks
+      # of this run's own folders; and run-local.R on the synthetic study
+      # (group local), which needs pkgload, installed here with the study's
+      # software. All in the runner's temporary folder, which is never
+      # uploaded.
+      - name: Test the merge checks and run-local.R
         if: github.event_name == 'pull_request'
         shell: bash
-        run: Rscript harness/tools/sim/tests/run-tests.R --only merge --run . --work "$RUNNER_TEMP/sim-tests"
+        run: Rscript harness/tools/sim/tests/run-tests.R --only merge,local --run . --work "$RUNNER_TEMP/sim-tests"
 
   # The harness's own tests (tools/sim/tests/run-tests.R), in its pull
   # requests only: check-results.R, scan-addresses.R, assign-chunks.R, the
   # check of the inputs, the contract's plan stage on a synthetic study,
   # merge-chunks.R's replay list, and finalize-results.R, on cases built in
   # the runner's temporary folder, which is never uploaded. They need R and
-  # git alone, not the study's software.
+  # git alone, not the study's software (the merge job runs the groups merge
+  # and local).
   tests:
     name: Harness tests
     if: github.event_name == 'pull_request'

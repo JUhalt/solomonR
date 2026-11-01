@@ -8,6 +8,12 @@
 #   Rscript tools/sim/run-local.R --out DIR --resume [--workers 0]
 #   Rscript tools/sim/run-local.R --out DIR --rerun-chunk 2 [--workers 1]
 #
+# A new run is of the study --study names (smoke without it). --resume and
+# --rerun-chunk take the study of the run in DIR from its
+# plan/plan-info.csv (item study), and its script and pins from
+# tools/sim/studies.csv; they refuse a --study that names another study,
+# before any step. Each run first prints the study it runs.
+#
 # --subset plans only some scenarios, with the full table's streams: a list
 # of scenario numbers (a test only), or "fallback", the study's fallback
 # (gate$fallback(); a study run after a gate that chose it, or a test of
@@ -57,7 +63,7 @@ local({
 harness <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1]),
                                  winslash = "/"))
 
-opts <- list(study = "smoke", purpose = "test", design = "run", reps = "20", chunks = "3",
+opts <- list(study = "", purpose = "test", design = "run", reps = "20", chunks = "3",
              workers = "0", out = "", rerun_chunk = "", resume = FALSE, subset = "", task_size = "")
 flags <- "resume"
 args <- commandArgs(trailingOnly = TRUE)
@@ -80,16 +86,35 @@ if (!file.exists("DESCRIPTION") ||
   h_fail("Run this from the root of the solomonR package.")
 }
 root <- normalizePath(".", winslash = "/")
+out <- normalizePath(opts$out, winslash = "/", mustWork = FALSE)
+plan_dir <- file.path(out, "plan")
+# The study: a new run's from --study; that of the run in DIR, from its
+# plan, for --resume and --rerun-chunk, which refuse another --study before
+# anything is run or changed.
+continuing <- isTRUE(opts$resume) || nzchar(opts$rerun_chunk)
+if (continuing) {
+  plan_info <- file.path(plan_dir, "plan-info.csv")
+  what <- if (nzchar(opts$rerun_chunk)) "run again" else "resume"
+  if (!file.exists(plan_info)) h_fail("Nothing to ", what, " in ", out, ": ", plan_info, " is missing.")
+  planned <- h_read_kv(plan_info)
+  study_key <- if ("study" %in% names(planned)) planned[["study"]] else ""
+  if (!nzchar(study_key)) h_fail(plan_info, " names no study.")
+  if (nzchar(opts$study) && !identical(opts$study, study_key)) {
+    h_fail("--study ", opts$study, " was given, but the run in ", out, " is a run of study ", study_key,
+           " (", plan_info, "). Leave out --study, or give --study ", study_key, ".")
+  }
+} else {
+  study_key <- if (nzchar(opts$study)) opts$study else "smoke"
+}
 registry <- h_read_csv(file.path(harness, "studies.csv"))
-entry <- registry[registry$key == opts$study, , drop = FALSE]
-if (nrow(entry) != 1L) h_fail("Study ", opts$study, " is not in tools/sim/studies.csv.")
-if (!entry$protocol %in% c("TRUE", "FALSE")) h_fail("The protocol flag of ", opts$study, " in tools/sim/studies.csv must be TRUE or FALSE.")
+entry <- registry[registry$key == study_key, , drop = FALSE]
+if (nrow(entry) != 1L) h_fail("Study ", study_key, " is not in tools/sim/studies.csv.")
+if (!entry$protocol %in% c("TRUE", "FALSE")) h_fail("The protocol flag of ", study_key, " in tools/sim/studies.csv must be TRUE or FALSE.")
 # A protocol study must pin R's shared library (check-software.R --protocol).
 software_flags <- c("--local", if (identical(entry$protocol, "TRUE")) "--protocol")
 script <- entry$script
 pins <- file.path(root, entry$pins)
-out <- normalizePath(opts$out, winslash = "/", mustWork = FALSE)
-plan_dir <- file.path(out, "plan")
+cat("== Study ", study_key, " (", script, ")", if (continuing) paste0(", from ", plan_info), "\n", sep = "")
 chunks_dir <- file.path(out, "chunks")
 merged_dir <- file.path(out, "merged")
 replay_dir <- file.path(out, "replay")
@@ -200,7 +225,10 @@ finish <- function() {
 started <- Sys.time()
 
 if (nzchar(opts$rerun_chunk)) {
-  ch <- sprintf("%04d", as.integer(opts$rerun_chunk))
+  # A chunk number in digits (h_whole()): "1.5" is refused, not read as 1.
+  n_chunk <- h_whole(opts$rerun_chunk, 1L)
+  if (is.na(n_chunk) || n_chunk > 256L) h_fail("--rerun-chunk takes a chunk number from 1 to 256.")
+  ch <- sprintf("%04d", n_chunk)
   first <- file.path(chunks_dir, paste0("chunk-", ch))
   if (!dir.exists(first)) h_fail("No chunk ", ch, " in ", chunks_dir, ".")
   again <- file.path(out, "rerun", paste0("chunk-", ch))
