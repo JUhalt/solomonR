@@ -4,7 +4,9 @@
 # built package (.Rbuildignore), so these tests skip where the articles are
 # absent, as in R CMD check.
 
-articles <- testthat::test_path("..", "..", "vignettes", "articles")
+# An absolute path, so that the paths below it stay short on Windows.
+articles <- normalizePath(testthat::test_path("..", "..", "vignettes", "articles"),
+                          winslash = "/", mustWork = FALSE)
 block_begin <- "# ---- validation_commit(): the same in every validation script (#152) ----"
 block_end <- "# ---- end of validation_commit() ----"
 
@@ -24,6 +26,10 @@ records_commit <- c(
   "plan-validation/plan-resimulation.R",
   "power-validation/power-simulation.R"
 )
+
+# The files that a script sources, where it loads the package, as in
+# tools/check-validation-scripts.R.
+sources <- list("ngroup-validation/ngroup-simulation.R" = "ngroup-validation/ngroup-summarize.R")
 
 skip_without_articles <- function() {
   testthat::skip_if_not(dir.exists(articles), "the articles are not part of the built package")
@@ -56,9 +62,32 @@ commit_block <- function(script) {
   list(lines = lines[begin:end], at = c(begin, end))
 }
 
+# The parse data of a script.
+parse_data <- function(script) {
+  utils::getParseData(parse(file.path(articles, script), keep.source = TRUE))
+}
+
+# The calls to a function in the rows `keep` of parse data, as calls.
+calls_to <- function(data, name, keep = rep(TRUE, nrow(data))) {
+  rows <- which(keep & data$token == "SYMBOL_FUNCTION_CALL" & data$text == name)
+  lapply(rows, function(r) {
+    call <- data$parent[data$id == data$parent[r]]
+    str2lang(utils::getParseText(data, call))
+  })
+}
+
+# The folder that a call to validation_commit() or pkgload::load_all()
+# passes: its `path` or its first argument, "." by default.
+folder_of <- function(call) {
+  args <- as.list(call)[-1]
+  if (!is.null(args[["path"]])) args[["path"]] else if (length(args)) args[[1]] else "."
+}
+
 # validation_commit() as the scripts define it, evaluated with base R only.
-load_validation_commit <- function() {
-  env <- new.env(parent = baseenv())
+# `replace` gives functions that it finds before base R's, such as a
+# system2() that records its calls.
+load_validation_commit <- function(replace = list()) {
+  env <- list2env(replace, parent = baseenv())
   eval(parse(text = commit_block(records_commit[[1]])$lines), envir = env)
   env$validation_commit
 }
@@ -97,6 +126,12 @@ make_copy <- function(dir, package = "solomonR") {
   normalizePath(dir, winslash = "/")
 }
 
+# A folder without a DESCRIPTION, by its absolute path.
+make_folder <- function(dir) {
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  normalizePath(dir, winslash = "/")
+}
+
 # A git repository at `dir` with one empty commit; returns the commit, or
 # skips the test when git cannot make it.
 make_repository <- function(dir) {
@@ -118,18 +153,30 @@ test_that("every validation script that records a commit has the same validation
               info = paste(setdiff(records_commit, with_block), collapse = ", "))
   # Every copy is the same, line by line, comments included.
   for (s in with_block) expect_identical(blocks[[s]]$lines, blocks[[records_commit[[1]]]]$lines, info = s)
-  # Each script with the block calls it, and no script records a commit in
-  # another way: outside the block, no string in its code runs git
-  # rev-parse or names SOLOMONR_COMMIT.
+  # No script records a commit in another way: outside the block, no string
+  # in its code runs git rev-parse or names SOLOMONR_COMMIT.
   for (s in scripts) {
-    data <- utils::getParseData(parse(file.path(articles, s), keep.source = TRUE))
+    data <- parse_data(s)
     at <- blocks[[s]]$at
     outside <- if (is.null(at)) rep(TRUE, nrow(data)) else data$line1 < at[1] | data$line1 > at[2]
     strings <- data$text[outside & data$token == "STR_CONST"]
     expect_false(any(grepl("rev-parse|SOLOMONR_COMMIT", strings)), info = s)
-    if (!is.null(at)) {
-      calls <- data$text[outside & data$token == "SYMBOL_FUNCTION_CALL"]
-      expect_true("validation_commit" %in% calls, info = s)
+  }
+  # Each script with the block calls it, with the folder that it passes to
+  # pkgload::load_all(), itself or in a file that it sources: the commit is
+  # that of the copy of the package that the script runs.
+  for (s in with_block) {
+    data <- parse_data(s)
+    at <- blocks[[s]]$at
+    calls <- calls_to(data, "validation_commit", data$line1 < at[1] | data$line1 > at[2])
+    expect_gte(length(calls), 1L)
+    loaded <- unlist(lapply(c(s, sources[[s]]), function(f) {
+      lapply(calls_to(parse_data(f), "load_all"), folder_of)
+    }), recursive = FALSE)
+    expect_gte(length(loaded), 1L)
+    for (call in calls) {
+      expect_true(any(vapply(loaded, identical, logical(1), folder_of(call))),
+                  info = paste(s, deparse(call)))
     }
   }
 })
@@ -144,7 +191,8 @@ test_that("validation_commit() takes SOLOMONR_COMMIT first, when it is not empty
   withr::local_envvar(SOLOMONR_COMMIT = "4e1d820 plus a draft")
   expect_identical(load_validation_commit()(clone), "4e1d820 plus a draft")
   expect_identical(load_validation_commit()(outside), "4e1d820 plus a draft")
-  # Empty counts as unset.
+  # Empty counts as unset. On Windows, setting a variable to "" unsets it,
+  # so this case differs from the unset case only on Unix-alikes.
   withr::local_envvar(SOLOMONR_COMMIT = "")
   expect_identical(load_validation_commit()(clone), head)
   expect_identical(load_validation_commit()(outside), NA_character_)
@@ -162,8 +210,12 @@ test_that("validation_commit() records the HEAD commit inside a clone of the pac
   expect_true(succeeded(head))
   expect_match(head, "^[0-9a-f]{40}([0-9a-f]{24})?$")
   expect_identical(load_validation_commit()(root), as.vector(head))
-  # The same at the top level of a repository made here, with the
-  # DESCRIPTION of solomonR.
+})
+
+test_that("validation_commit() records the HEAD commit at the top level of a repository of solomonR", {
+  skip_without_articles()
+  skip_without_git()
+  # A repository made here, with the DESCRIPTION of solomonR.
   parent <- git_sandbox()
   clone <- make_copy(file.path(parent, "clone"))
   clone_head <- make_repository(clone)
@@ -179,14 +231,18 @@ test_that("validation_commit() records NA outside any git repository, without a 
           "the temporary folder is inside a git repository")
   expect_silent(value <- load_validation_commit()(outside))
   expect_identical(value, NA_character_)
+  expect_silent(value <- load_validation_commit()(make_folder(file.path(outside, "vignettes"))))
+  expect_identical(value, NA_character_)
+  # And in a folder with no DESCRIPTION at or above it.
+  expect_silent(value <- load_validation_commit()(make_folder(file.path(parent, "empty"))))
+  expect_identical(value, NA_character_)
 })
 
 test_that("validation_commit() records NA for a copy inside another git repository", {
   skip_without_articles()
   skip_without_git()
   parent <- git_sandbox()
-  outer <- file.path(parent, "outer")
-  dir.create(outer)
+  outer <- make_folder(file.path(parent, "outer"))
   outer_head <- make_repository(outer)
   copy <- make_copy(file.path(outer, "solomonR"))
   # git finds the outer repository from the copy, so `git rev-parse HEAD`
@@ -198,4 +254,41 @@ test_that("validation_commit() records NA for a copy inside another git reposito
   other <- make_copy(file.path(parent, "other"), package = "otherpackage")
   make_repository(other)
   expect_identical(load_validation_commit()(other), NA_character_)
+})
+
+test_that("validation_commit() records NA in a repository without commits", {
+  skip_without_articles()
+  skip_without_git()
+  parent <- git_sandbox()
+  empty <- make_copy(file.path(parent, "empty"))
+  skip_if_not(succeeded(run_git(empty, "init", "-q")), "git could not make a repository")
+  # Here `git rev-parse HEAD` prints "HEAD" and exits with status 128, so the
+  # exit status, not only the output, decides.
+  expect_false(succeeded(run_git(empty, "rev-parse", "HEAD")))
+  expect_identical(load_validation_commit()(empty), NA_character_)
+})
+
+test_that("validation_commit() runs git with its messages discarded", {
+  skip_without_articles()
+  skip_without_git()
+  parent <- git_sandbox()
+  clone <- make_copy(file.path(parent, "clone"))
+  clone_head <- make_repository(clone)
+  outside <- make_copy(file.path(parent, "outside"))
+  # system2() as the block calls it, recording its arguments.
+  seen <- list()
+  record <- function(command, args = character(), stdout = "", stderr = "", ...) {
+    seen[[length(seen) + 1L]] <<- list(command = command, stdout = stdout, stderr = stderr)
+    base::system2(command, args, stdout = stdout, stderr = stderr, ...)
+  }
+  vc <- load_validation_commit(list(system2 = record))
+  expect_identical(vc(clone), clone_head)
+  # Outside any repository, git fails with an error message.
+  expect_identical(vc(outside), NA_character_)
+  expect_gte(length(seen), 3L)
+  for (call in seen) {
+    expect_identical(call$command, "git")
+    expect_identical(call$stdout, TRUE)
+    expect_identical(call$stderr, FALSE)
+  }
 })
