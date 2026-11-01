@@ -30,6 +30,16 @@
 #                             its task size, and its timing projection.
 #   SOLOMONR_SIM_REPS         Replications per scenario (a gate's size is
 #                             fixed by the study; a test is at most 20).
+#   SOLOMONR_SIM_SUBSET       Plan stage: empty or "all" (every scenario),
+#                             "fallback" (the scenarios study$gate$fallback()
+#                             keeps: a study run after a gate that chose
+#                             them, or a test of that plan; never a gate's
+#                             design), or, in a test only, scenario numbers
+#                             separated by spaces or commas. A subset keeps
+#                             the full table's streams.
+#   SOLOMONR_SIM_TASK_SIZE    Plan stage, test runs of design run only:
+#                             replications per task instead of the study's,
+#                             so that a test has several tasks per scenario.
 #   SOLOMONR_SIM_PLAN         Folder of the plan files (written by plan).
 #   SOLOMONR_SIM_TASKS        File with the ids of the tasks to run (run).
 #   SOLOMONR_SIM_WORKERS      PSOCK workers (run); 0 runs the tasks in this
@@ -276,8 +286,9 @@ sim_streams <- function(base_seed, n_scenarios, n_tasks) {
   out
 }
 
-# The size and seed of a plan, from its purpose and design.
-sim_plan_spec <- function(study, purpose, design, reps) {
+# The size and seed of a plan, from its purpose and design. `task_size`
+# (text; empty for the study's own) is for test runs of design run only.
+sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
   if (!purpose %in% c("test", "gate", "study")) stop("Unknown purpose: ", purpose, call. = FALSE)
   if (!design %in% c("run", "gate")) stop("Unknown design: ", design, call. = FALSE)
   if (purpose == "gate" && design != "gate") stop("Purpose gate needs design gate.", call. = FALSE)
@@ -290,6 +301,15 @@ sim_plan_spec <- function(study, purpose, design, reps) {
   } else {
     size <- as.integer(study$task_size)
   }
+  task_size <- if (is.null(task_size)) "" else trimws(as.character(task_size))
+  if (length(task_size) != 1L || is.na(task_size)) stop("The task size must be one value.", call. = FALSE)
+  if (nzchar(task_size)) {
+    if (purpose != "test" || design != "run") {
+      stop("Only a test run of design run may set its own task size.", call. = FALSE)
+    }
+    if (!grepl("^[1-9][0-9]*$", task_size)) stop("The task size must be a whole number of at least 1.", call. = FALSE)
+    size <- as.integer(task_size)
+  }
   if (is.na(reps) || reps < 1L) stop("The number of replications must be positive.", call. = FALSE)
   # The protocols allow code-testing runs of at most 20 replications per
   # scenario, with seeds the study and the gate do not use.
@@ -300,6 +320,36 @@ sim_plan_spec <- function(study, purpose, design, reps) {
   }
   list(purpose = purpose, design = design, reps = reps, size = size,
        base_seed = as.integer(study$seeds[[purpose]]))
+}
+
+# The scenarios a plan covers (SOLOMONR_SIM_SUBSET): NULL for all of them;
+# "fallback" for those study$gate$fallback() keeps (the protocol's smaller
+# design, for a study run after a gate that chose it, or a test of that
+# plan; never a plan of the gate's design); or, in a test only, a list of
+# scenario numbers. sim_plan() keeps the full table's streams for them.
+sim_plan_subset <- function(study, spec, value) {
+  value <- trimws(value)
+  if (!nzchar(value) || identical(value, "all")) return(NULL)
+  sc <- study$scenarios
+  if (identical(value, "fallback")) {
+    if (spec$design == "gate") stop("The timing gate runs every scenario.", call. = FALSE)
+    if (is.null(study$gate) || !is.function(study$gate$fallback)) {
+      stop("This study has no fallback.", call. = FALSE)
+    }
+    keep <- as.logical(study$gate$fallback(sc))
+    if (length(keep) != nrow(sc) || anyNA(keep) || !any(keep)) {
+      stop("study$gate$fallback() must keep some scenarios and say so for each.", call. = FALSE)
+    }
+    return(sc$scenario[keep])
+  }
+  if (spec$purpose != "test") stop("Only a test run may plan a list of scenarios.", call. = FALSE)
+  tokens <- strsplit(value, "[ ,]+")[[1]]
+  s <- if (all(grepl("^[1-9][0-9]*$", tokens))) as.integer(tokens) else NA_integer_
+  if (!length(s) || anyNA(s) || anyDuplicated(s) || !all(s %in% sc$scenario)) {
+    stop("SOLOMONR_SIM_SUBSET must be \"all\", \"fallback\", or distinct scenario numbers of the table.",
+         call. = FALSE)
+  }
+  sort(s)
 }
 
 sim_plan <- function(study, spec, subset = NULL) {
@@ -468,7 +518,11 @@ sim_verify_plan <- function(study, plan) {
     stop("The plan was made by contract ", info[["contract"]], ", this is contract ",
          sim_contract_version, ". Make the plan again from the same commit.", call. = FALSE)
   }
-  spec <- sim_plan_spec(study, info[["purpose"]], info[["design"]], info[["reps"]])
+  # A test run of design run may have its own task size, which the plan
+  # records; any other plan has the study's.
+  own_size <- identical(info[["purpose"]], "test") && identical(info[["design"]], "run")
+  spec <- sim_plan_spec(study, info[["purpose"]], info[["design"]], info[["reps"]],
+                        task_size = if (own_size) info[["task_size"]] else "")
   subset <- if (nzchar(info[["subset"]])) as.integer(strsplit(info[["subset"]], " ")[[1]]) else NULL
   fresh <- sim_plan(study, spec, subset)
   checks <- c(
@@ -987,8 +1041,10 @@ sim_main <- function(study) {
     plan = {
       spec <- sim_plan_spec(study, sim_setting("SOLOMONR_SIM_PURPOSE", "test"),
                             sim_setting("SOLOMONR_SIM_DESIGN", "run"),
-                            sim_setting("SOLOMONR_SIM_REPS", "2"))
-      sim_write_plan(study, spec, plan_dir())
+                            sim_setting("SOLOMONR_SIM_REPS", "2"),
+                            task_size = sim_setting("SOLOMONR_SIM_TASK_SIZE", ""))
+      subset <- sim_plan_subset(study, spec, sim_setting("SOLOMONR_SIM_SUBSET", ""))
+      sim_write_plan(study, spec, plan_dir(), subset)
     },
     preflight = sim_preflight(study, plan_dir()),
     run = {

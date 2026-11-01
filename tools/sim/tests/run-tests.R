@@ -31,11 +31,12 @@
 #            contract under test into a package folder of its own and run
 #            with Rscript: what the plan records (the SHA-256 of the files
 #            the study sources, the same with CRLF or LF line ends; task
-#            1's agreement cost; the gate's allowance), the plan stage's
-#            refusals, sim_verify_plan() after a sourced file changed, and,
-#            with git, the clean-checkout rule of a gate; and the gate's
-#            seconds per unit of cost (sim_gate_default() on timings made
-#            up here).
+#            1's agreement cost; the gate's allowance; the scenarios of a
+#            subset, with the full table's streams; a test's task size),
+#            the plan stage's refusals, sim_verify_plan() after a sourced
+#            file changed, and, with git, the clean-checkout rule and the
+#            plan options of a gate or study run; and the gate's seconds
+#            per unit of cost (sim_gate_default() on timings made up here).
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it).
@@ -401,7 +402,7 @@ if ("inputs" %in% groups) local({
   con <- file(step, open = "wb"); writeLines(body, con, sep = "\n"); close(con)
   base <- c(SIM_STUDY = "smoke", SIM_PACKAGE_SHA = "e13e8bbd9bbcb9408afd267bd633fb4ab4a09fe5", SIM_CHUNKS = "3",
             SIM_REPS = "20", SIM_SMOKE = "true", SIM_STAGE = "run", SIM_COST_SECONDS = "0", SIM_FAIL_ONCE = "false",
-            GITHUB_REF = "refs/heads/master",
+            SIM_SCENARIOS = "all", SIM_TASK_SIZE = "", GITHUB_REF = "refs/heads/master",
             GITHUB_OUTPUT = file.path(work, "inputs", "output.txt"), GITHUB_ENV = file.path(work, "inputs", "env.txt"))
   study <- c(SIM_SMOKE = "false", SIM_STAGE = "run")
   cases <- list(
@@ -426,7 +427,22 @@ if ("inputs" %in% groups) local({
     list("study, cost_seconds 1e", c(study, SIM_COST_SECONDS = "1e"), "refuse"),
     list("study from a branch", c(study, SIM_COST_SECONDS = "1", GITHUB_REF = "refs/heads/feature"), "refuse"),
     list("gate, cost_seconds 0", c(SIM_SMOKE = "false", SIM_STAGE = "gate"), "accept"),
-    list("fail_once in a gate run", c(SIM_SMOKE = "false", SIM_STAGE = "gate", SIM_FAIL_ONCE = "true"), "refuse"))
+    list("fail_once in a gate run", c(SIM_SMOKE = "false", SIM_STAGE = "gate", SIM_FAIL_ONCE = "true"), "refuse"),
+    # The plan options (scenarios, task_size).
+    list("smoke, scenarios fallback", c(SIM_SCENARIOS = "fallback"), "accept"),
+    list("study, scenarios fallback", c(study, SIM_COST_SECONDS = "1", SIM_SCENARIOS = "fallback"), "accept"),
+    list("gate, scenarios fallback", c(SIM_SMOKE = "false", SIM_STAGE = "gate", SIM_SCENARIOS = "fallback"), "refuse"),
+    list("smoke gate, scenarios fallback", c(SIM_STAGE = "gate", SIM_SCENARIOS = "fallback"), "refuse"),
+    list("scenarios uniform (not all or fallback)", c(SIM_SCENARIOS = "uniform"), "refuse"),
+    list("scenarios \"1 3\" (a list is for run-local.R)", c(SIM_SCENARIOS = "1 3"), "refuse"),
+    list("smoke, task_size 5", c(SIM_TASK_SIZE = "5"), "accept"),
+    list("smoke, task_size 5 and scenarios fallback", c(SIM_TASK_SIZE = "5", SIM_SCENARIOS = "fallback"), "accept"),
+    list("study, task_size 5", c(study, SIM_COST_SECONDS = "1", SIM_TASK_SIZE = "5"), "refuse"),
+    list("gate, task_size 5", c(SIM_SMOKE = "false", SIM_STAGE = "gate", SIM_TASK_SIZE = "5"), "refuse"),
+    list("smoke gate, task_size 5", c(SIM_STAGE = "gate", SIM_TASK_SIZE = "5"), "refuse"),
+    list("smoke, task_size 0", c(SIM_TASK_SIZE = "0"), "refuse"),
+    list("smoke, task_size 2.5", c(SIM_TASK_SIZE = "2.5"), "refuse"),
+    list("smoke, task_size abc", c(SIM_TASK_SIZE = "abc"), "refuse"))
   for (cs in cases) {
     vars <- base
     vars[names(cs[[2]])] <- cs[[2]]
@@ -571,6 +587,70 @@ if ("contract" %in% groups) local({
   record("contract", "gate without agreement_cost: worker seconds per cost", "yes",
          yes(isTRUE(abs(num(v) - (18 + 12e-4) / 120) < 1e-12) && identical(w, "NA")), paste(v, w))
 
+  # Scenario subsets (SOLOMONR_SIM_SUBSET). The study's fallback keeps the
+  # odd scenarios; a subset keeps the full table's streams.
+  plan_tasks <- function(plan_dir) {
+    f <- file.path(plan_dir, "tasks.csv")
+    if (file.exists(f)) h_read_csv(f) else NULL
+  }
+  full <- plan_tasks(file.path(p, "plan"))
+  subset_plan <- function(name, value, purpose = "test", design = "run", ...) {
+    run_study(p, c(plan_vars(file.path(p, name), purpose = purpose, design = design, ...), SOLOMONR_SIM_SUBSET = value))
+  }
+  r <- subset_plan("plan-fallback", "fallback")
+  fb <- plan_tasks(file.path(p, "plan-fallback"))
+  info <- read_info(file.path(p, "plan-fallback"))
+  record("contract", "plan: subset fallback keeps scenarios 1, 3, 5", "yes",
+         yes(!is.null(fb) && identical(sort(unique(fb$scenario)), c("1", "3", "5")) &&
+               identical(item(info, "subset"), "1 3 5") && identical(item(info, "n_scenarios"), "3")),
+         last_line(r$out))
+  ref <- if (is.null(full)) NULL else full[full$scenario %in% c("1", "3", "5"), , drop = FALSE]
+  if (!is.null(ref)) rownames(ref) <- NULL
+  record("contract", "plan: the fallback's tasks are the full table's rows", "yes",
+         yes(!is.null(fb) && nrow(fb) == 6L && identical(fb, ref)), "")
+  r <- subset_plan("plan-all", "all")
+  record("contract", "plan: subset all", "yes", yes(identical(nrow(plan_tasks(file.path(p, "plan-all"))), 12L)),
+         last_line(r$out))
+  r <- subset_plan("plan-uniform", "uniform")
+  record("contract", "plan: a subset name other than fallback (uniform)", "refuse", outcome(r), last_line(r$out))
+  r <- subset_plan("plan-gate-design", "fallback", design = "gate")
+  record("contract", "plan: fallback in a test of the gate's design", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-no-fallback")), SOLOMONR_SIM_SUBSET = "fallback",
+                      HARNESS_TEST_VARIANT = "no-gate"))
+  record("contract", "plan: fallback of a study without one", "refuse", outcome(r), last_line(r$out))
+  r <- subset_plan("plan-list", "2, 4")
+  lt <- plan_tasks(file.path(p, "plan-list"))
+  record("contract", "plan: a test's list \"2, 4\"", "yes",
+         yes(!is.null(lt) && identical(sort(unique(lt$scenario)), c("2", "4"))), last_line(r$out))
+  r <- subset_plan("plan-list-9", "2 9")
+  record("contract", "plan: a list with a scenario not in the table", "refuse", outcome(r), last_line(r$out))
+  r <- subset_plan("plan-list-frac", "2.5")
+  record("contract", "plan: a list with 2.5", "refuse", outcome(r), last_line(r$out))
+  r <- subset_plan("plan-list-twice", "2 2")
+  record("contract", "plan: a list with a scenario twice", "refuse", outcome(r), last_line(r$out))
+
+  # A test's own task size (SOLOMONR_SIM_TASK_SIZE).
+  size_plan <- function(name, value, purpose = "test", design = "run") {
+    run_study(p, c(plan_vars(file.path(p, name), purpose = purpose, design = design), SOLOMONR_SIM_TASK_SIZE = value))
+  }
+  r <- size_plan("plan-size-1", "1")
+  st <- plan_tasks(file.path(p, "plan-size-1"))
+  info <- read_info(file.path(p, "plan-size-1"))
+  record("contract", "plan: a test's task size 1, 4 tasks per scenario", "yes",
+         yes(!is.null(st) && nrow(st) == 24L && identical(item(info, "task_size"), "1") &&
+               identical(st$seed[st$task_id == "s0003-t0002"], full$seed[full$task_id == "s0003-t0002"])),
+         last_line(r$out))
+  r <- run_study(p, verify_vars(file.path(p, "plan-size-1")))
+  record("contract", "verify: a plan with its own task size", "accept", outcome(r), last_line(r$out))
+  r <- run_study(p, verify_vars(file.path(p, "plan-fallback")))
+  record("contract", "verify: a plan of the fallback", "accept", outcome(r), last_line(r$out))
+  for (cs in list(list("0", "plan: task size 0"), list("2.5", "plan: task size 2.5"), list("x", "plan: task size x"))) {
+    r <- size_plan(paste0("plan-size-", cs[[1]]), cs[[1]])
+    record("contract", cs[[2]], "refuse", outcome(r), last_line(r$out))
+  }
+  r <- size_plan("plan-size-gate-design", "1", design = "gate")
+  record("contract", "plan: a task size in a test of the gate's design", "refuse", outcome(r), last_line(r$out))
+
   # A gate needs a clean checkout, the sourced files included.
   git <- unname(Sys.which("git"))
   if (!nzchar(git)) return(skip("contract", "no git on the PATH: the clean-checkout cases"))
@@ -594,6 +674,24 @@ if ("contract" %in% groups) local({
   commit("the sourced file")
   r <- gate("clean")
   record("contract", "gate plan: a clean checkout", "accept", outcome(r), last_line(r$out))
+  # The plan options outside a test, from the same clean checkout.
+  study_plan <- function(name, ...) {
+    run_study(g, c(plan_vars(file.path(root, "git-plans", name), purpose = "study", design = "run"), ...), git = TRUE)
+  }
+  r <- run_study(g, c(plan_vars(file.path(root, "git-plans", "gate-fallback"), purpose = "gate", design = "gate"),
+                      SOLOMONR_SIM_SUBSET = "fallback"), git = TRUE)
+  record("contract", "gate plan: subset fallback", "refuse", outcome(r), last_line(r$out))
+  r <- study_plan("study-fallback", SOLOMONR_SIM_SUBSET = "fallback")
+  info <- read_info(file.path(root, "git-plans", "study-fallback"))
+  record("contract", "study plan: subset fallback, scenarios 1, 3, 5", "yes",
+         yes(identical(item(info, "subset"), "1 3 5") && identical(item(info, "purpose"), "study")), last_line(r$out))
+  r <- study_plan("study-list", SOLOMONR_SIM_SUBSET = "1 3")
+  record("contract", "study plan: a list of scenarios", "refuse", outcome(r), last_line(r$out))
+  r <- study_plan("study-task-size", SOLOMONR_SIM_TASK_SIZE = "1")
+  record("contract", "study plan: a task size", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(g, c(plan_vars(file.path(root, "git-plans", "gate-task-size"), purpose = "gate", design = "gate"),
+                      SOLOMONR_SIM_TASK_SIZE = "1"), git = TRUE)
+  record("contract", "gate plan: a task size", "refuse", outcome(r), last_line(r$out))
   cat("# changed, not committed\n", file = file.path(g, "lib", "helper.R"), append = TRUE)
   r <- gate("changed")
   record("contract", "gate plan: the sourced file changed, not committed", "refuse", outcome(r), last_line(r$out))

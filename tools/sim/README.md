@@ -15,7 +15,7 @@ package or of the validation-scripts check.
 
 | File | Role |
 |---|---|
-| `contract.R` | Sourced by every study script, from the package checkout (contract version 3): stages, stream assignment, the SHA-256 of the files a script sources, task files with their timing, the timing gate's projection, summary order, fault handling |
+| `contract.R` | Sourced by every study script, from the package checkout (contract version 3): stages, stream assignment, scenario subsets and test task sizes, the SHA-256 of the files a script sources, task files with their timing, the timing gate's projection, summary order, fault handling |
 | `studies.csv` | Registry: study key, issue, script, pins file, whether it is a protocol, commits the pinned commit must include |
 | `assign-chunks.R` | Assigns tasks to chunks, longest processing time first (no random numbers); checks the expected hours per chunk, with the study's allowance from the plan, when the gate's seconds per unit of cost are given |
 | `check-software.R` | R and its build, the pinned package and tool versions, BLAS and LAPACK, the processor flags, RNG kinds, repositories; writes `software.csv` |
@@ -42,8 +42,10 @@ action `.github/actions/sim-setup/action.yml`.
    the task's L'Ecuyer-CMRG substream (L'Ecuyer et al., 2002). Scenario 1
    takes `nextRNGStream()` of the state `set.seed(base)` leaves, scenario
    s the s-th stream, in the order of the scenario table; task k takes the
-   stream after k - 1 calls of `nextRNGSubStream()`. Then the protocol's
-   stops run (preflight), and `assign-chunks.R` divides the tasks.
+   stream after k - 1 calls of `nextRNGSubStream()`. A plan of some
+   scenarios only (the study's fallback, or a test's list) keeps these
+   streams. Then the protocol's stops run (preflight), and
+   `assign-chunks.R` divides the tasks.
 2. **Chunks** (up to 256 jobs, at most 16 at a time, 4 workers each). Each
    job runs its tasks; each task sets its substream at its start and draws
    only from it, and is written as `tasks/<task id>.rds` with its envelope
@@ -145,6 +147,14 @@ every such field).
   agreement checks, and its gate's `seconds_per_cost` then comes from
   replication time alone (`agreement_seconds_per_cost` beside it shows
   how well the agreement checks were priced).
+- `scenarios=fallback` plans only the scenarios of the study's fallback
+  (its gate's `fallback`), with the full table's streams: a study run after
+  a gate that chose the fallback, or a test of that plan; a gate always
+  runs every scenario. `task_size` (smoke runs of stage run only) gives a
+  test several tasks per scenario, so that a test of at most 20
+  replications reaches substreams 2 and later and the merge's checks
+  across a scenario's tasks. The plan records both (`subset`,
+  `task_size`), and the contract checks them again.
 - One study run (`smoke=false`) runs at a time. GitHub keeps at most one
   pending run per concurrency group and cancels an older pending one, so a
   third dispatch would cancel the second: start a study only when the
@@ -204,9 +214,12 @@ Rscript tools/sim/compare-runs.R tasks <folder A>/chunks <folder B>/chunks
 
 `--workers 0` (the default) runs a chunk's tasks in the stage's own process;
 `--workers 10` starts 10 PSOCK workers. `--purpose`, `--design`, and
-`--reps` are those of the workflow. Each stage writes its log as it runs
-(`<folder>/logs/` and each chunk's `log.txt`), so a long chunk can be
-followed with `Get-Content -Wait` or `tail -f`.
+`--reps` are those of the workflow. `--subset` plans only some scenarios
+with the full table's streams (`fallback`, or in a test a list such as
+`"1 18 131"`), and `--task-size` sets a test's replications per task. Each
+stage writes its log as it runs (`<folder>/logs/` and each chunk's
+`log.txt`), so a long chunk can be followed with `Get-Content -Wait` or
+`tail -f`.
 
 After a reboot, sleep, or crash, `--resume` keeps the plan and the finished
 chunks, runs only the tasks whose files are missing or unreadable, records
