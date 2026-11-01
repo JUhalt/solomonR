@@ -59,6 +59,17 @@
     empty table and gave no gap;
   - a column named `NA` was used by `fit_solomon_glm()`, but
     `check_solomon_missing()` gave it an empty table.
+* **A covariate named as a column of the model now stops
+  `check_solomon_missing()`** when `y_pre` is numeric, with the error that
+  `fit_solomon_glm()` gives ("Rename these covariates, whose names the
+  model uses: y."). The names are `y`, `pretested`, `pre_obs`,
+  `log_exposure`, and `treat` or, with several treatments, `condition` and
+  `treat_` followed by each treatment's name. Before, a data frame with
+  such a column stopped the fit behind the gap and the delta line, and
+  `check_solomon_missing()` left both out without a word. A vector now
+  takes its bare name, so `covariates = y` stops too; before, it was named
+  `covariates`. Without `y_pre` there is no such fit, and a covariate of
+  any name is shown by its loss.
 * `check_solomon_missing()` converted other forms with `as.data.frame()`:
   a vector was named `covariates`, the columns of a matrix without names
   `V1`, `V2`, ..., and a list or a character vector was accepted. They are

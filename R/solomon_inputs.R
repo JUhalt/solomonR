@@ -127,6 +127,29 @@
 }
 
 
+# Stop when a covariate has a name that the model's data use: `used`, the
+# names of the columns of the model data, and `log_exposure`, which is
+# reserved with or without `exposure`, as report_solomon() and the
+# clustered permutation test read a column of that name in the fit's data
+# as the exposure offset. The error has the class
+# `solomonR_covariate_name_clash`, so that check_solomon_missing() passes
+# it on rather than leave out the fit behind its gap (issue #146).
+.solomon_check_clash <- function(covariates, used) {
+  clash <- intersect(names(covariates), c(used, "log_exposure"))
+  if (length(clash)) {
+    stop(structure(
+      class = c("solomonR_covariate_name_clash", "error", "condition"),
+      list(
+        message = paste0("Rename these covariates, whose names the model uses: ",
+                         paste(clash, collapse = ", "), "."),
+        call = NULL
+      )
+    ))
+  }
+  invisible(NULL)
+}
+
+
 # Names as they must be written in a formula: a name that is not
 # syntactic (such as "my cov") is quoted with backticks.
 .formula_names <- function(x) {

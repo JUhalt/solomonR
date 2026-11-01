@@ -1012,12 +1012,15 @@ stouffer_solomon <- function(p) {
 #'
 #'   A data frame or a matrix stops with an error when two of its columns
 #'   have the same name, and a data frame when a column has no name. A value
-#'   of the wrong length stops too. Any other form stops with an error, so
-#'   that no covariate is left out unnoticed, for example: a character
-#'   vector without `data` (give the data frame as `data`, or a categorical
-#'   covariate as a factor); a list that is not a data frame; an array of
-#'   more than two dimensions; and a vector of another type, such as a date
-#'   (give it as a column of a data frame).
+#'   of the wrong length stops too, and so does a covariate named as a
+#'   column of the model: `y`, `pretested`, `log_exposure`, `pre_obs` when
+#'   `y_pre` is given, and `treat` or, with several treatments, `condition`
+#'   and `treat_` followed by each treatment's name. Any other form stops
+#'   with an error, so that no covariate is left out unnoticed, for
+#'   example: a character vector without `data` (give the data frame as
+#'   `data`, or a categorical covariate as a factor); a list that is not a
+#'   data frame; an array of more than two dimensions; and a vector of
+#'   another type, such as a date (give it as a column of a data frame).
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
 #'   participant. CR2 fits refuse designs in which a Solomon cell contains a
@@ -1375,17 +1378,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
 
   if (!is.null(covariates)) {
-    # `log_exposure` is reserved with or without `exposure`: report_solomon()
-    # and the clustered permutation test read a column of that name in the
-    # fit's data as the exposure offset.
-    clash <- intersect(names(covariates), c(names(df), "log_exposure"))
-    if (length(clash)) {
-      stop(
-        "Rename these covariates, whose names the model uses: ",
-        paste(clash, collapse = ", "), ".",
-        call. = FALSE
-      )
-    }
+    .solomon_check_clash(covariates, names(df))
     df <- cbind(df, covariates)
   }
 

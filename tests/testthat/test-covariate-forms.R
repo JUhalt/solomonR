@@ -264,6 +264,86 @@ test_that("check_solomon_missing() takes the same forms", {
 })
 
 
+test_that("check_solomon_missing() stops on a name the model uses, as fit_solomon_glm() does", {
+
+  # A vector is named by its bare name, so a vector named y would stop the
+  # fit behind the gap and the delta line. check_solomon_missing() left out
+  # both without a word when that fit stopped, as it did before this change
+  # for a data frame with a column y; it now stops with the fit's error.
+  d <- forms_data()
+  d$y_post[c(3, 8, 70, 95)] <- NA
+  clash <- "Rename these covariates, whose names the model uses: "
+  for (name in c("y", "treat", "pretested", "pre_obs", "log_exposure")) {
+    assign(name, d$z)
+    message <- paste0(clash, name, ".")
+    expect_error(
+      eval(bquote(check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
+                                        covariates = .(as.name(name))))),
+      message, fixed = TRUE, info = name
+    )
+    expect_error(
+      eval(bquote(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre,
+                                  covariates = .(as.name(name))))),
+      message, fixed = TRUE, info = name
+    )
+    frame <- stats::setNames(data.frame(d$z), name)
+    expect_error(
+      check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre, covariates = frame),
+      message, fixed = TRUE, info = name
+    )
+  }
+  d$y <- d$z
+  expect_error(
+    check_solomon_missing(y_post, treat, pretested, y_pre, data = d, covariates = "y"),
+    paste0(clash, "y."), fixed = TRUE
+  )
+  d$y <- NULL
+
+  # Other names keep the gap and the delta line.
+  age <- d$age
+  kept <- check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre, covariates = age)
+  expect_false(is.null(kept$gap))
+  expect_false(is.null(kept$unpretested))
+  # Without a pretest there is no fit behind a gap, and loss is shown by a
+  # covariate of any name.
+  expect_identical(
+    names(check_solomon_missing(d$y_post, d$treat, d$pretested, covariates = y)$covariates),
+    "y"
+  )
+
+  # With several treatments, the model uses condition and a column for each
+  # treatment, and not treat.
+  m <- forms_six()
+  for (name in c("y", "condition", "treat_RP", "pre_obs")) {
+    assign(name, m$z)
+    message <- paste0(clash, name, ".")
+    expect_error(
+      eval(bquote(check_solomon_missing(m$post_behavior, m$condition, m$pretested,
+                                        m$pre_behavior, control = "Control",
+                                        covariates = .(as.name(name))))),
+      message, fixed = TRUE, info = name
+    )
+    expect_error(
+      eval(bquote(fit_solomon_glm(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                                  control = "Control", covariates = .(as.name(name))))),
+      message, fixed = TRUE, info = name
+    )
+    frame <- stats::setNames(data.frame(m$z), name)
+    expect_error(
+      check_solomon_missing(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                            control = "Control", covariates = frame),
+      message, fixed = TRUE, info = name
+    )
+  }
+  treat <- m$z
+  kept <- check_solomon_missing(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                                control = "Control", covariates = treat)
+  expect_identical(names(kept$covariates), "treat")
+  expect_false(is.null(kept$gap))
+  expect_false(is.null(kept$unpretested))
+})
+
+
 test_that("functions that use a fit give the same results for every form", {
 
   d <- forms_data()

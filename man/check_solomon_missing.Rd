@@ -38,9 +38,11 @@ strings (\code{y_post = "post"}).}
 gender, in the forms that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} takes: a data frame; a
 numeric, logical, or factor vector; a numeric or logical matrix; or,
 with \code{data}, the names of its columns or one column by its bare name.
-They are named, and other forms stop with an error, as there. They
-enter the fit behind the gap and the delta line, and loss is shown by
-each of them (see "Missing posttests and the pretest effects").}
+They are named, and other forms stop with an error, as there. With
+numeric \code{y_pre}, they enter the fit behind the gap and the delta line,
+so a covariate named as a column of that model, such as \code{y}, stops
+with the error that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} gives. Loss is shown by each of
+them (see "Missing posttests and the pretest effects").}
 }
 \value{
 An object of class \code{solomon_missing}, a list with:

@@ -54,12 +54,15 @@ its bare name.
 
 A data frame or a matrix stops with an error when two of its columns
 have the same name, and a data frame when a column has no name. A value
-of the wrong length stops too. Any other form stops with an error, so
-that no covariate is left out unnoticed, for example: a character
-vector without \code{data} (give the data frame as \code{data}, or a categorical
-covariate as a factor); a list that is not a data frame; an array of
-more than two dimensions; and a vector of another type, such as a date
-(give it as a column of a data frame).}
+of the wrong length stops too, and so does a covariate named as a
+column of the model: \code{y}, \code{pretested}, \code{log_exposure}, \code{pre_obs} when
+\code{y_pre} is given, and \code{treat} or, with several treatments, \code{condition}
+and \code{treat_} followed by each treatment's name. Any other form stops
+with an error, so that no covariate is left out unnoticed, for
+example: a character vector without \code{data} (give the data frame as
+\code{data}, or a categorical covariate as a factor); a list that is not a
+data frame; an array of more than two dimensions; and a vector of
+another type, such as a date (give it as a column of a data frame).}
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
