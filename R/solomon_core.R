@@ -995,7 +995,9 @@ stouffer_solomon <- function(p) {
 #' is the term's own plus each other term's times the magnitude of its
 #' coefficient, relative to the term's standard deviation, with the error
 #' of each value taken to be `.Machine$double.eps` times its magnitude as
-#' given; the pretest's values are taken before it is centered.
+#' given (the pretest's before it is centered), plus the rounding of the QR
+#' decomposition that computes the residual, which the same coefficients
+#' multiply.
 #'
 #' The check guarantees two things.
 #'

@@ -292,19 +292,35 @@
 # would instead stop nearly collinear covariates near zero whenever another
 # covariate lies far from zero, though glm() and master fit them.
 #
+# The decomposition that computes the residual rounds too. Householder QR
+# is backward stable: the R it computes is that of columns perturbed by a
+# small multiple of m k eps times their norms at worst, for m rows and k
+# columns (Higham, 2002, chap. 19), and by much less in practice; the check
+# takes sqrt(m k) eps. That perturbation reaches term k's residual through
+# the same coefficients, by up to
+#   D_k = sqrt(m k) eps (||a_k|| + sum_j |b_kj| ||a_j||),
+# which exceeds B_k when the coefficients are large. A covariate that is
+# twice the pretest indicator less 0.00111 times a covariate with a spread
+# of 0.0057 (and 0.000174 times a treatment indicator) gives that
+# covariate coefficients of up to 3e5 in the standardized units, and in
+# six groups of 51 it had a residual of 1.06 times 4 B_k, so that the
+# relation went unnoticed until the omnibus test found its covariance
+# singular.
+#
 # Each term is therefore compared with its own bound: it is taken to be
 # collinear with the terms before it when its residual, in the metric of
 # the weights and with each column but the intercept centered at its
-# weighted mean, is at most 4 B_k, or at most 1e-11 of its norm, the
-# tolerance of glm(). The bound holds with the coefficients of an exact
+# weighted mean, is at most 4 (B_k + D_k), or at most 1e-11 of its norm,
+# the tolerance of glm(). The bound holds with the coefficients of an exact
 # relation, and the regression's coefficients equal them to within the
 # relation's own rounding error; the margin of 4 covers errors several
-# times eps / 2 per entry, as computed covariates carry, and the rounding
-# of the decomposition. A term that is not collinear is stopped only if its
-# residual is within 4 B_k: near zero B_k is of the order of eps, so that
-# glm()'s tolerance decides, as in master, and a covariate far from zero
-# that is unrelated to the term enters its regression with a coefficient
-# near zero and adds nothing to its bound.
+# times eps / 2 per entry, as computed covariates carry. Of 304 random exact
+# relations that glm() did not catch itself, the largest residual was 0.09
+# of the bound. A term that is not collinear is stopped only if its
+# residual is within the bound: near zero the bound is of the order of eps,
+# so that glm()'s tolerance decides, as in master, and a covariate far from
+# zero that is unrelated to the term enters its regression with a
+# coefficient near zero and adds nothing to it.
 #
 # The terms are checked in turn, each regressed on those before it, with
 # the covariates (the terms named in `covariates`) after the treatment and
@@ -331,13 +347,15 @@
   # for none. qr() with a tolerance of 0 keeps the columns in order.
   first <- function(A, E) {
     R <- qr.R(qr(A, tol = 0))
+    norms <- sqrt(colSums(A^2))
     for (k in seq_len(ncol(A))[-1L]) {
       before <- seq_len(k - 1L)
       b <- backsolve(R[before, before, drop = FALSE], R[before, k])
-      bound <- E[, k] + drop(E[, before, drop = FALSE] %*% abs(b))
+      carried <- sqrt(sum((E[, k] + drop(E[, before, drop = FALSE] %*% abs(b)))^2))
+      rounding <- sqrt(nrow(A) * k) * .Machine$double.eps * (norms[k] + sum(abs(b) * norms[before]))
       residual <- abs(R[k, k])
-      if (!is.finite(residual) || !all(is.finite(bound)) ||
-          residual <= max(margin * sqrt(sum(bound^2)), floor * sqrt(sum(A[, k]^2)))) {
+      if (!is.finite(residual) || !is.finite(carried) || !is.finite(rounding) ||
+          residual <= max(margin * (carried + rounding), floor * norms[k])) {
         return(k)
       }
     }

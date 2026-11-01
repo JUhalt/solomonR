@@ -55,9 +55,12 @@
   error that the regression carries into it, or within the 1e-11 of
   `glm()`. That error is the term's own plus each other term's times the
   magnitude of its coefficient, with each value's error taken to be
-  `.Machine$double.eps` times its magnitude as given, so that it covers a
-  term whose spread is small next to that of the far terms it is a
-  combination of, such as a delay that is the difference of two dates.
+  `.Machine$double.eps` times its magnitude as given, plus the rounding of
+  the QR decomposition that computes the residual, which the same
+  coefficients multiply. So it covers a term whose spread is small next to
+  that of the far terms it is a combination of, such as a delay that is the
+  difference of two dates, and a term that is the small difference of two
+  nearly equal ones.
   An exact relation among the covariates, the pretest, the treatment and
   pretest indicators, their interaction, and factor indicators therefore
   stops with the message that names a collinear term, as it does near

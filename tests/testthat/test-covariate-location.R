@@ -875,6 +875,35 @@ test_that("an exact relation with the pretest, an indicator, or a factor stops a
   }
 })
 
+test_that("an exact relation whose terms nearly cancel stops, whatever the decomposition's rounding", {
+  # A covariate that is twice the pretest indicator less 0.00111 times a
+  # covariate with a spread of 0.0057, and 0.000174 times a treatment
+  # indicator, given first. The second covariate is the difference of two
+  # nearly equal terms over 0.00111, so its coefficients in the regression
+  # on them are about 3e5, and the rounding of the QR decomposition,
+  # multiplied by them, outweighs the rounding error of the values. The
+  # bound of the check counts both (.collinear_terms()). Counting the values'
+  # error alone, as 16f0d38 did, missed this relation in 126 of 300 data
+  # sets like this one, and the fit stopped at the omnibus test with "system
+  # is computationally singular", as on master.
+  withr::local_seed(53)
+  n <- 306
+  g <- rep(1:6, each = 51)
+  cond <- c("A", "B", "Ctl", "A", "B", "Ctl")[g]
+  pretested <- c(1, 1, 1, 0, 0, 0)[g]
+  pre <- ifelse(pretested == 1, 264 + 0.03 * stats::rnorm(n), NA)
+  z <- 0.0127 + 0.0057 * stats::rnorm(n)
+  x <- 2 * pretested + (-0.00111 * z + 0.000174 * (cond == "B"))
+  y <- 0.3 * (cond == "A") + stats::rnorm(n)
+  site <- paste(g, rep(1:3, length.out = n))
+  for (robust in c("none", "HC3", "CR2")) {
+    expect_error(suppressWarnings(fit_solomon_glm(
+      y, cond, pretested, pre, covariates = data.frame(x, z), robust = robust,
+      cluster = if (robust == "CR2") site, control = "Ctl"
+    )), "collinear with other terms of the model: z[.]", info = robust)
+  }
+})
+
 test_that("a nearly collinear pair near zero fits beside a covariate far from zero", {
   # Covariates 10^-9 standard deviations apart near zero, which glm() and
   # master fit, with a third, unrelated covariate 10^6 or 10^9 standard
