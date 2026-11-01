@@ -83,6 +83,8 @@
 
 # The columns of a data frame (`frame`) or of a design matrix (`X`)
 # standardized as `scaling` (.covariate_scaling()) standardized the data.
+# The columns of `X` are those of the model matrix of `model`, and are
+# found by position (.scaled_columns()).
 .standardized_frame <- function(frame, scaling) {
   for (name in names(scaling$means)) {
     frame[[name]] <- (.covariate_values(frame[[name]]) - scaling$means[[name]]) /
@@ -91,27 +93,54 @@
   frame
 }
 
-.standardized_columns <- function(X, scaling) {
-  columns <- .formula_names(names(scaling$means))
+.standardized_columns <- function(X, scaling, model) {
+  columns <- .scaled_columns(model, scaling)
   for (j in seq_along(columns)) {
-    X[, columns[j]] <- (X[, columns[j]] - scaling$means[[j]]) / scaling$scales[[j]]
+    X[, columns[[j]]] <- (X[, columns[[j]]] - scaling$means[[j]]) / scaling$scales[[j]]
   }
   X
+}
+
+# The positions of the standardized covariates and of the scaled pretest of
+# `scaling` among the columns of the model matrix of `model`, which are
+# those of its coefficients, named as in `scaling`. Each is found from the
+# term it enters the model as, not from the name of its column, which
+# another column can share: a numeric covariate named `wave2` and the
+# indicator of the second level of a factor `wave` both give a column
+# `wave2`, so that a map indexed by name rescaled the indicator (issue
+# #137). A covariate whose term is not found is looked up by name.
+.scaled_columns <- function(model, scaling) {
+  X <- stats::model.matrix(model)
+  labels <- attr(stats::terms(model), "term.labels")
+  assign <- attr(X, "assign")
+  columns <- .formula_names(names(scaling$means))
+  index <- vapply(columns, function(column) {
+    j <- which(assign == match(column, labels))
+    if (length(j) == 1L) j else match(column, colnames(X))
+  }, integer(1), USE.NAMES = FALSE)
+  if (anyNA(index)) {
+    stop("The model has no column for ", paste(columns[is.na(index)], collapse = ", "), ".",
+         call. = FALSE)
+  }
+  stats::setNames(index, names(scaling$means))
 }
 
 # The map from the coefficients of the model with standardized covariates
 # to those of the covariates as given, b = M b_s, so that V = M V_s M'. A
 # covariate's coefficient is divided by its standard deviation, and the
 # intercept loses each covariate's mean times its coefficient; the
-# pretest's coefficient is divided by its scale, and its mean is 0. `terms`
-# are the names of the coefficients.
-.covariate_map <- function(terms, scaling) {
+# pretest's coefficient is divided by its scale, and its mean is 0. `model`
+# is either fit, as given or standardized: they have the same terms, whose
+# columns are found by position (.scaled_columns()).
+.covariate_map <- function(model, scaling) {
+  terms <- names(stats::coef(model))
   M <- diag(length(terms))
   dimnames(M) <- list(terms, terms)
-  columns <- .formula_names(names(scaling$means))
+  columns <- .scaled_columns(model, scaling)
+  intercept <- match("(Intercept)", terms)
   for (j in seq_along(columns)) {
-    M[columns[j], columns[j]] <- 1 / scaling$scales[[j]]
-    M["(Intercept)", columns[j]] <- -scaling$means[[j]] / scaling$scales[[j]]
+    M[columns[[j]], columns[[j]]] <- 1 / scaling$scales[[j]]
+    M[intercept, columns[[j]]] <- -scaling$means[[j]] / scaling$scales[[j]]
   }
   M
 }
@@ -223,22 +252,25 @@
 # and a covariate's are those of its standardized coefficient. Returns the
 # table, `table`, and the covariance of the coefficients as given, `vcov`:
 # `V` itself without standardized covariates, and otherwise a matrix
-# (.given_vcov()).
+# (.given_vcov()). The rows of the table are the coefficients, in their
+# order, and are matched to the coefficients and the covariance by
+# position, since two terms can share a name (.scaled_columns()).
 .coefficient_table <- function(fit, fit_cr, V, scaling, robust, df_model, conf_level) {
   tidy <- broom::tidy(fit)
   standardized <- length(scaling$means) > 0L
+  cf <- stats::coef(fit)
+  rows <- if (identical(tidy$term, names(cf))) seq_along(cf) else match(tidy$term, names(cf))
   V_given <- V
   if (standardized) {
-    cf <- stats::coef(fit)
-    M <- .covariate_map(names(cf), scaling)
+    M <- .covariate_map(fit, scaling)
     # broom names the estimates of a negative-binomial fit by term; they
     # keep their names.
-    estimate <- drop(M %*% cf)[tidy$term]
+    estimate <- drop(M %*% cf)[rows]
     tidy$estimate <- if (is.null(names(tidy$estimate))) unname(estimate) else estimate
     V_given <- .given_vcov(fit, fit_cr, V, M, robust)
   }
   se_vec <- sqrt(diag(V_given))
-  tidy$std.error <- unname(se_vec[match(tidy$term, names(se_vec))])
+  tidy$std.error <- unname(se_vec[rows])
   tidy$statistic <- tidy$estimate / tidy$std.error
   if (robust == "CR2") {
     # Only the degrees of freedom are taken from clubSandwich. With
@@ -246,9 +278,14 @@
     # the standardized coefficients and of the intercept as given from
     # M V_s M', are not used; with nearly collinear covariates their
     # rounding error can make them NaN, with a warning (.given_vcov()).
+    # clubSandwich names the rows of its table by the coefficients, which
+    # must then be unique; the rows are the coefficients in their order.
     df_only <- function(expr) if (standardized) suppressWarnings(expr) else expr
-    ct <- df_only(clubSandwich::coef_test(fit_cr, vcov = V, test = "Satterthwaite"))
-    tidy$df <- ct$df_Satt[match(tidy$term, ct$Coef)]
+    fit_named <- fit_cr
+    names(fit_named$coefficients) <- make.unique(names(fit_named$coefficients))
+    ct <- df_only(clubSandwich::coef_test(fit_named, vcov = V, test = "Satterthwaite"))
+    tidy$df <- if (nrow(ct) == length(cf)) ct$df_Satt[rows] else
+      ct$df_Satt[match(tidy$term, ct$Coef)]
     if (standardized) {
       intercept <- M["(Intercept)", , drop = FALSE]
       tidy$df[tidy$term == "(Intercept)"] <- suppressWarnings(as.data.frame(

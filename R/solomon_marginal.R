@@ -74,7 +74,10 @@
   in_model <- used[rows]
   X <- matrix(NA_real_, sum(rows), ncol(X_model), dimnames = list(NULL, colnames(X_model)))
   X[in_model, ] <- X_model
-  X[!in_model, ] <- X_extra[, colnames(X_model), drop = FALSE]
+  # The columns are those of the model, in its order, and are taken by
+  # position: two can share a name (.scaled_columns()).
+  X[!in_model, ] <- if (identical(colnames(X_extra), colnames(X_model))) X_extra else
+    X_extra[, colnames(X_model), drop = FALSE]
   list(
     X = X, pretested = as.integer(d$pretested[rows]), treat = as.integer(d$treat[rows]),
     in_model = in_model, index = which(rows), n = n
@@ -774,7 +777,9 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
          in_model = NULL, index = NULL)
   }
   observed_set <- .marginal_rows(fit)
-  if (!is.null(scaling)) observed_set$X <- .standardized_columns(observed_set$X, scaling)
+  if (!is.null(scaling)) {
+    observed_set$X <- .standardized_columns(observed_set$X, scaling, fit$model)
+  }
   standardized <- observed_set$n
   set <- if (pretest_center == "analyzed") model_set() else observed_set
   X <- set$X

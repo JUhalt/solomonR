@@ -209,7 +209,7 @@ test_that("covariate fits return the model and the coefficients for the covariat
     expect_named(s$means, c("pre_obs", "age", "sex", "z"))
     expect_identical(s$means[["pre_obs"]], 0)
     expect_identical(s$scales[["pre_obs"]], 8)
-    M <- .covariate_map(fit$coefficients$term, s)
+    M <- .covariate_map(fit$model, s)
     expect_equal(unname(drop(M %*% s$coefficients)), fit$coefficients$estimate,
                  tolerance = 1e-12)
     expect_equal(M %*% as.matrix(s$vcov) %*% t(M), as.matrix(fit$vcov), tolerance = 1e-12)
@@ -893,6 +893,92 @@ test_that("the covariance as given comes from a factor of the model's covariance
                    M %*% matrix(V[[robust]], nrow(M)) %*% t(M), tolerance = 1e-12,
                    info = paste(family, robust))
     }
+  }
+})
+
+
+# ---- covariate names ----------------------------------------------------------------
+
+test_that("a covariate is standardized as itself when another column shares its name", {
+  # A numeric covariate named `wave2` beside a factor `wave`, whose second
+  # level's indicator is also named `wave2`, or named `flagTRUE` beside a
+  # logical `flag`, gives the model two columns of one name. Indexed by
+  # name, the map of the standardized covariates rescaled the indicator
+  # instead: the intercept and the covariates' estimates and standard errors
+  # were wrong, without a warning, and so were the cells of
+  # plot_sensitization() and the marginal contrasts at the observed center.
+  # With CR2 the fit stopped with "duplicate 'row.names' are not allowed",
+  # as on master, which also gave the second column the standard error of
+  # the first and left it out of the cells. The reference renames the
+  # covariate, which changes nothing else. A covariate named `pre_obs` in a
+  # fit without a pretest was taken for the pretest by plot_sensitization(),
+  # on master too; covariates whose names must be quoted in a formula, such
+  # as `(Intercept)`, are found as well.
+  d <- location_data()
+  numbers <- function(x) unname(as.matrix(x[vapply(x, is.numeric, logical(1))]))
+  same <- function(fit, ref, info) {
+    expect_equal(numbers(fit$coefficients), numbers(ref$coefficients), tolerance = 1e-10,
+                 info = info)
+    expect_equal(unname(as.matrix(fit$vcov)), unname(as.matrix(ref$vcov)), tolerance = 1e-10,
+                 info = info)
+    expect_equal(fit$effects, ref$effects, tolerance = 1e-10, info = info)
+    expect_equal(fit$pretest_sensitivity$effects, ref$pretest_sensitivity$effects,
+                 tolerance = 1e-10, info = info)
+    cells <- function(x) numbers(plot_sensitization(x)$data)
+    expect_equal(cells(fit), cells(ref), tolerance = 1e-10, info = info)
+  }
+  fit_with <- function(d, design, covariates, robust, family = "gaussian", ...) {
+    four <- design == "four"
+    y <- if (family == "poisson") d$y_p else d$y_g
+    suppressWarnings(fit_solomon_glm(
+      y, if (four) d$treat else d$cond, d$pretested, d$pre, covariates = covariates,
+      robust = robust, cluster = if (robust == "CR2") d$site,
+      family = if (family == "poisson") stats::poisson() else stats::gaussian(),
+      control = if (!four) "Ctl", ...
+    ))
+  }
+  for (design in c("four", "six")) {
+    x <- d[[design]]
+    wave <- factor(1 + seq_len(nrow(x)) %% 2)
+    flag <- x$z > 0
+    collisions <- list(
+      "factor first" = list(data.frame(wave, wave2 = x$age), data.frame(wave, w2 = x$age)),
+      "numeric first" = list(data.frame(wave2 = x$age, wave), data.frame(w2 = x$age, wave)),
+      "logical" = list(data.frame(flag, flagTRUE = x$age), data.frame(flag, f2 = x$age))
+    )
+    for (name in names(collisions)) {
+      for (robust in c("none", "HC3", "CR2")) {
+        for (center in if (name == "factor first") c("analyzed", "observed") else "analyzed") {
+          info <- paste(design, name, robust, center)
+          same(fit_with(x, design, collisions[[name]][[1]], robust, pretest_center = center),
+               fit_with(x, design, collisions[[name]][[2]], robust, pretest_center = center),
+               info)
+        }
+      }
+    }
+  }
+  # The marginal contrasts of counts, whose observed center standardizes
+  # over participants outside the model.
+  x <- d$four
+  wave <- factor(1 + seq_len(nrow(x)) %% 2)
+  for (robust in c("none", "HC3")) {
+    marginal <- function(covariates) {
+      fit <- fit_with(x, "four", covariates, robust, family = "poisson")
+      suppressWarnings(marginal_solomon(fit, pretest_center = "observed"))$effects
+    }
+    expect_equal(marginal(data.frame(wave, wave2 = x$age)), marginal(data.frame(wave, w2 = x$age)),
+                 tolerance = 1e-10, info = robust)
+  }
+  # Without a pretest, a covariate named pre_obs; and names that must be
+  # quoted.
+  for (name in c("pre_obs", "(Intercept)", "my cov")) {
+    covariates <- stats::setNames(data.frame(x$age, wave), c(name, "wave"))
+    fit <- suppressWarnings(fit_solomon_glm(x$y_g, x$treat, x$pretested, covariates = covariates,
+                                            robust = "HC3"))
+    ref <- suppressWarnings(fit_solomon_glm(x$y_g, x$treat, x$pretested,
+                                            covariates = data.frame(age = x$age, wave),
+                                            robust = "HC3"))
+    same(fit, ref, name)
   }
 })
 

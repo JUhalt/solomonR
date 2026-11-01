@@ -16,7 +16,7 @@
   L <- matrix(L, ncol = length(cf), dimnames = list(NULL, names(cf)))
   V <- fit$vcov
   if (!is.null(scaling)) {
-    L <- L %*% .covariate_map(names(cf), scaling)
+    L <- L %*% .covariate_map(model, scaling)
     cf <- scaling$coefficients
     V <- scaling$vcov
   }
@@ -65,11 +65,32 @@
 # (issue #135), so the cells are at pre_obs = 0, where the fit's pretest
 # effects are evaluated. Fits made by earlier versions are uncentered and
 # have no `pretest_mean`; for them it is the mean of `pre_obs` over the
-# pretested rows of the model.
+# pretested rows of the model. A fit without a pretest has a `pretest_mean`
+# of NA, and may have a covariate named `pre_obs` (.covariate_scaling()),
+# which is then a covariate like any other (.has_pretest_column()).
 .cell_pretest <- function(fit, X) {
-  if (!"pre_obs" %in% colnames(X)) return(NA_real_)
+  if (!.has_pretest_column(fit, X)) return(NA_real_)
   if (is.finite(.null_na(fit$pretest_mean))) return(0)
   mean(X[X[, "pretested"] == 1, "pre_obs"])
+}
+
+# Whether the column `pre_obs` of the model matrix `X` of a fit is the
+# pretest: it is unless the fit, made since #104, has no pretest.
+.has_pretest_column <- function(fit, X) {
+  "pre_obs" %in% colnames(X) && (is.null(fit$pretest_mean) || is.finite(fit$pretest_mean))
+}
+
+# The columns of the model matrix `X` of a fit that are covariates, by
+# position: all but the first column of each name in `design`, the
+# intercept and the treatment and pretest terms. They come before the
+# covariates, but for the interactions, whose names no covariate's column
+# can have. A covariate's column can share the name of another, such as
+# the indicator `wave2` of a factor `wave` and a numeric covariate `wave2`,
+# so that a lookup by name set only one of them (issue #137); and `pre_obs`
+# is a covariate in a fit without a pretest (.has_pretest_column()).
+.covariate_columns <- function(fit, X, design) {
+  if (!.has_pretest_column(fit, X)) design <- setdiff(design, "pre_obs")
+  setdiff(seq_len(ncol(X)), match(design, colnames(X)))
 }
 
 # Coefficient vectors for the four model-adjusted cell means: pretested cells
@@ -87,11 +108,11 @@
   L[, "treat"] <- cells$treat
   L[, "pretested"] <- cells$pretested
   if ("treat:pretested" %in% cn) L[, "treat:pretested"] <- cells$treat * cells$pretested
-  if ("pre_obs" %in% cn) L[, "pre_obs"] <- cells$pretested * pre_mean
+  if (.has_pretest_column(fit, X)) L[, "pre_obs"] <- cells$pretested * pre_mean
 
   design_cols <- c("(Intercept)", "treat", "pretested", "treat:pretested", "pre_obs")
-  for (column in setdiff(cn, design_cols)) {
-    L[, column] <- mean(X[, column])
+  for (j in .covariate_columns(fit, X, design_cols)) {
+    L[, j] <- mean(X[, j])
   }
 
   list(L = L, cells = cells, pretest_mean = .raw_pretest_mean(fit, pre_mean))
@@ -142,11 +163,11 @@
     L[, terms[j]] <- in_treatment
     L[, interactions[j]] <- in_treatment * cells$pretested
   }
-  if ("pre_obs" %in% cn) L[, "pre_obs"] <- cells$pretested * pre_mean
+  if (.has_pretest_column(fit, X)) L[, "pre_obs"] <- cells$pretested * pre_mean
 
   design_cols <- c("(Intercept)", terms, "pretested", interactions, "pre_obs")
-  for (column in setdiff(cn, design_cols)) {
-    L[, column] <- mean(X[, column])
+  for (j in .covariate_columns(fit, X, design_cols)) {
+    L[, j] <- mean(X[, j])
   }
 
   list(L = L, cells = cells, pretest_mean = .raw_pretest_mean(fit, pre_mean))

@@ -116,6 +116,21 @@
   estimates at the two pretest centers that is zero but for rounding
   error, such as that of a rate ratio, which does not depend on the
   center, is printed without the sign of that error.
+* A numeric covariate whose name another column of the model shares, such
+  as a covariate `wave2` beside a factor `wave`, whose second level's
+  indicator is also named `wave2`, or `flagTRUE` beside a logical `flag`.
+  The standardized covariates were found by name, so the indicator was
+  rescaled in place of the covariate, and the estimates and standard
+  errors of the intercept and the covariates, the cells of
+  `plot_sensitization()`, and the marginal contrasts at the observed center
+  were wrong, without a warning. The covariates are now found by their
+  position in the model. Earlier versions also gave the second of the two
+  columns the standard error of the first and left it out of the cells of
+  `plot_sensitization()`, and CR2 fits stopped with "duplicate 'row.names'
+  are not allowed"; such fits now give the results of the same model with
+  the covariate renamed. `plot_sensitization()` also took a covariate named
+  `pre_obs`, in a fit without a pretest, for the pretest; it is now a
+  covariate like any other.
 * Not changed here: `glm()` takes nearly collinear covariates as given to
   be collinear, which stops the fit, when they lie so far from zero that
   their difference falls below about 1e-11 of their distance from zero,

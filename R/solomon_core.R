@@ -283,6 +283,9 @@ NULL
 # intercept of covariates as given computed from their standardized
 # coefficients (.given_vcov()), where the influences on the terms, combined
 # afterwards, would carry their rounding error into it.
+#
+# The columns of the decomposition are the coefficients q$pivot, taken by
+# position: two coefficients can share a name (.scaled_columns()).
 .glm_influence <- function(model, map = NULL) {
   cf <- stats::coef(model)
   w <- model$weights
@@ -297,17 +300,18 @@ NULL
   Q <- qr.Q(q)[, rank, drop = FALSE]
   hat <- numeric(length(w))
   hat[good] <- rowSums(Q^2)
+  pivot <- q$pivot[rank]
   if (!is.null(map)) {
-    B <- backsolve(qr.R(q)[rank, rank, drop = FALSE],
-                   t(map[, names(cf)[q$pivot[rank]], drop = FALSE]), transpose = TRUE)
+    B <- backsolve(qr.R(q)[rank, rank, drop = FALSE], t(map[, pivot, drop = FALSE]),
+                   transpose = TRUE)
     influence <- matrix(0, length(w), nrow(map), dimnames = list(NULL, rownames(map)))
     influence[good, ] <- (Q * (sqrt(w[good]) * e[good])) %*% B
     return(list(influence = influence, hat = hat))
   }
-  influence <- matrix(0, length(w), q$rank, dimnames = list(NULL, names(cf)[q$pivot[rank]]))
-  influence[good, ] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE],
-                                   t(Q * (sqrt(w[good]) * e[good]))))
-  list(influence = influence[, names(cf)[!is.na(cf)], drop = FALSE], hat = hat)
+  influence <- matrix(0, length(w), length(cf), dimnames = list(NULL, names(cf)))
+  influence[good, pivot] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE],
+                                        t(Q * (sqrt(w[good]) * e[good]))))
+  list(influence = influence[, !is.na(cf), drop = FALSE], hat = hat)
 }
 
 # The variance that estimated sample means add to a contrast evaluated at
@@ -542,7 +546,10 @@ NULL
   variance <- as.numeric(t(L) %*% V %*% L)
   k <- if (is.null(center) || !"pretested" %in% names(L)) 0 else L[["pretested"]] * cf[["pre_obs"]]
   if (!is.finite(k) || k == 0) return(list(variance = variance, added = 0, df = df_contrast))
-  v_contrast <- variance + 2 * k * sum(L[names(center$cross)] * center$cross)
+  # `cross` runs over the coefficients in their order, as `L` does; by
+  # position, since two coefficients can share a name (.scaled_columns()).
+  weights <- if (length(center$cross) == length(L)) L else L[names(center$cross)]
+  v_contrast <- variance + 2 * k * sum(weights * center$cross)
   v_center <- k^2 * center$v
   df <- if (robust == "CR2") {
     .welch_df(c(v_contrast, v_center), c(df_contrast, center$df))
