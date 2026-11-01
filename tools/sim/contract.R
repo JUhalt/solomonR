@@ -208,8 +208,9 @@ sim_check_study <- function(study) {
 # Files the harness writes into the results folder; a study's summary may not
 # use these names.
 sim_reserved_names <- c("manifest", "completeness", "software", "replay", "preflight", "summary",
-                        "timing/task-times", "timing/jobs", "timing/gate-times",
-                        "timing/gate-projection", "timing/gate-summary", "timing/rng-fingerprint")
+                        "timing/task-times", "timing/jobs", "timing/plan-job", "timing/merge-job",
+                        "timing/gate-times", "timing/gate-projection", "timing/gate-summary",
+                        "timing/rng-fingerprint")
 # The files of the timing gate's projection (sim_gate_default() or the
 # study's gate$project), written under timing/.
 sim_gate_names <- c("gate-times", "gate-projection", "gate-summary")

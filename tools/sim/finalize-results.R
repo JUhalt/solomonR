@@ -4,7 +4,10 @@
 #   Rscript tools/sim/finalize-results.R <plan dir> <chunks dir> <merged dir> <results dir>
 #
 # Adds to <results dir>: manifest.csv, completeness.csv, software.csv,
-# replay.csv, preflight.csv (if the study has checks), timing/jobs.csv,
+# replay.csv, preflight.csv (if the study has checks), timing/jobs.csv (the
+# chunk jobs), timing/plan-job.csv and timing/merge-job.csv (the machines of
+# the plan job, which ran the preflight, and of the merge job, which ran the
+# replay and the summary; job-info.R in plan/ and <merged dir>),
 # timing/sessionInfo-<chunk>.txt, and timing/rng-fingerprint.txt (if the plan
 # job wrote one); it stops rather than replace a file of the same name that
 # the study wrote. run-information.csv (item, value) keeps the items the
@@ -15,6 +18,9 @@
 # the chunk artifacts. The event, ref, and workflow path of the run are
 # recorded for information only: the run writes this file itself, so the
 # README's results procedure checks them with `gh run view` instead.
+# harness_sha is the workflow's github.sha: on a pull_request run, GitHub's
+# temporary merge commit of the pull request (refs/pull/N/merge), which is
+# on no branch, while package_sha is then the pull request's head.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -38,6 +44,8 @@ for (f in c("manifest.csv", "completeness.csv", "software.csv", "replay.csv")) {
 copy(file.path(merged_dir, "jobs.csv"), file.path(results_dir, "timing", "jobs.csv"))
 copy(file.path(plan_dir, "preflight.csv"), file.path(results_dir, "preflight.csv"))
 copy(file.path(plan_dir, "rng-fingerprint.txt"), file.path(results_dir, "timing", "rng-fingerprint.txt"))
+copy(file.path(plan_dir, "job-info.csv"), file.path(results_dir, "timing", "plan-job.csv"))
+copy(file.path(merged_dir, "job-info.csv"), file.path(results_dir, "timing", "merge-job.csv"))
 chunks <- sort(list.dirs(chunks_dir, recursive = FALSE, full.names = FALSE))
 chunks <- chunks[grepl("^chunk-[0-9]{4}$", chunks)]
 for (ch in chunks) {
@@ -59,6 +67,12 @@ attempt <- if ("run_attempt" %in% names(jobs)) suppressWarnings(as.integer(jobs$
 resumed <- if ("resumes" %in% names(jobs)) suppressWarnings(as.integer(jobs$resumes)) else NA_integer_
 env <- function(name, default = NA_character_) { v <- Sys.getenv(name); if (nzchar(v)) v else default }
 cpu <- if ("cpu_model" %in% names(jobs)) paste(sort(unique(jobs$cpu_model)), collapse = "; ") else NA_character_
+# The plan and merge jobs' machines (NA for a run made before they were recorded).
+job_kv <- function(path) if (file.exists(path)) h_read_kv(path) else character()
+job_item <- function(kv, name) if (name %in% names(kv)) kv[[name]] else NA_character_
+plan_job <- job_kv(file.path(plan_dir, "job-info.csv"))
+merge_job <- job_kv(file.path(merged_dir, "job-info.csv"))
+image <- function(kv) if (!length(kv)) NA_character_ else paste(job_item(kv, "image_os"), job_item(kv, "image_version"))
 
 values <- c(
   study = info[["study"]], issue = info[["issue"]], purpose = info[["purpose"]], design = info[["design"]],
@@ -89,6 +103,8 @@ values <- c(
   chunks = length(chunks),
   workers_per_chunk = paste(unique(jobs$workers), collapse = " "),
   runner_images = paste(unique(paste(jobs$image_os, jobs$image_version)), collapse = "; "),
+  plan_cpu_model = job_item(plan_job, "cpu_model"), plan_runner_image = image(plan_job),
+  merge_cpu_model = job_item(merge_job, "cpu_model"), merge_runner_image = image(merge_job),
   chunks_rerun = paste(jobs$chunk[!is.na(attempt) & attempt > 1L], collapse = " "),
   chunks_resumed = paste(jobs$chunk[!is.na(resumed) & resumed > 0L], collapse = " "),
   started_utc = info[["created_utc"]], finished_utc = h_now(),

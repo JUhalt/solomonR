@@ -19,7 +19,7 @@ package or of the validation-scripts check.
 | `studies.csv` | Registry: study key, issue, script, pins file, whether it is a protocol, commits the pinned commit must include |
 | `assign-chunks.R` | Assigns tasks to chunks, longest processing time first (no random numbers); checks the expected hours per chunk when the gate's seconds per unit of cost are given |
 | `check-software.R` | R and its build, the pinned package and tool versions, BLAS and LAPACK, the processor flags, RNG kinds, repositories; writes `software.csv` |
-| `job-info.R` | The machine of a chunk: runner image, CPUs, processor, memory, attempt, local resumptions |
+| `job-info.R` | The machine of a job (a chunk, the plan, or the merge): runner image, CPUs, processor, memory, attempt, local resumptions |
 | `merge-chunks.R` | The checks before any summary; manifest, completeness, replay list |
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
 | `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in a protocol's gate or test, only agreement, run information, timing, and the harness's files |
@@ -76,11 +76,19 @@ double digits; the processor's AVX2 and FMA flags (both required, so that
 glibc picks the same variants of `exp()`, `log()`, and `pow()` everywhere);
 the RNG kinds; the repositories of R and of pak; pak; and every installed
 package with its version. The runner image's version may differ between
-jobs; it is recorded in `timing/jobs.csv` and `run-information.csv`.
+jobs; it is recorded in `timing/jobs.csv` (the chunk jobs),
+`timing/plan-job.csv` and `timing/merge-job.csv` (the plan job, which runs
+the preflight, and the merge job, which runs the replay and the summary),
+and `run-information.csv` (`runner_images`, `plan_runner_image`, and
+`merge_runner_image`, with the processor models beside them).
 
 The package commit fixes everything a task computes, because the study
 script, its pins, and `contract.R` are read from the package checkout. The
-harness checkout (the workflow's own commit) only runs the jobs and checks.
+harness checkout (the workflow's own commit, `harness_sha`) only runs the
+jobs and checks. On a `pull_request` run, that commit is GitHub's temporary
+merge commit of the pull request into master (`refs/pull/<number>/merge`,
+on no branch), while `package_sha` is the pull request's head; on a gate
+or study run, both are commits on master.
 
 ## Running in the cloud
 

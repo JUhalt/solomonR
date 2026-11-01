@@ -208,6 +208,7 @@ jobs:
           echo "chunks=$(cat plan/chunks.json)" >> "$GITHUB_OUTPUT"
           cp software.csv plan/software.csv
           cp plan-log.txt plan/log.txt
+          Rscript harness/tools/sim/job-info.R plan plan
 
       # Informational: compared with R 4.6.1 on the maintainer's laptop. No
       # study mixes platforms.
@@ -473,6 +474,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          Rscript harness/tools/sim/job-info.R merged merge
           Rscript harness/tools/sim/finalize-results.R plan chunks merged results
           mkdir -p results/logs
           cp plan/log.txt results/logs/plan-log.txt

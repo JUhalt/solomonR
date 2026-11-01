@@ -181,6 +181,8 @@ finish <- function() {
                SOLOMONR_SIM_OUT = results_dir))
   purpose <- h_read_kv(file.path(plan_dir, "plan-info.csv"))[["purpose"]]
   step("Check the results", c(file.path(harness, "check-results.R"), results_dir, purpose, entry$protocol, plan_dir))
+  step("Merge job information", c(file.path(harness, "job-info.R"), merged_dir, "merge"),
+       env = c(SOLOMONR_SIM_WORKERS = opts$workers))
   step("Run information", c(file.path(harness, "finalize-results.R"), plan_dir, chunks_dir, merged_dir, results_dir),
        env = c(SIM_HARNESS_SHA = harness_sha))
   step("Address scan", c(file.path(harness, "scan-addresses.R"), plan_dir, chunks_dir, results_dir))
@@ -250,6 +252,7 @@ step("Plan", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "plan"))
 step("Preflight", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "preflight"))
 if (!file.copy(file.path(out, "software.csv"), file.path(plan_dir, "software.csv"))) h_fail("Could not copy software.csv into the plan.")
 step("Assign the tasks", c(file.path(harness, "assign-chunks.R"), plan_dir, opts$chunks))
+step("Plan job information", c(file.path(harness, "job-info.R"), plan_dir, "plan"))
 step("RNG fingerprint", file.path(harness, "rng-fingerprint.R"), log = file.path(plan_dir, "rng-fingerprint.txt"))
 for (ch in chunk_ids()) run_chunk(ch, file.path(chunks_dir, paste0("chunk-", ch)), paste("Chunk", ch))
 finish()
