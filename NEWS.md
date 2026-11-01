@@ -58,11 +58,17 @@
   `.Machine$double.eps` times its magnitude as given, so that it covers a
   term whose spread is small next to that of the far terms it is a
   combination of, such as a delay that is the difference of two dates.
-  Exactly collinear terms therefore stop with the message that names the
-  collinear term, as they do near zero. Near zero the check is that of
-  `glm()`, so nearly collinear covariates, such as a covariate and its copy
-  in single precision, are fitted as before, whatever other covariates lie
-  far from zero.
+  An exact relation among the covariates, the pretest, the treatment and
+  pretest indicators, their interaction, and factor indicators therefore
+  stops with the message that names a collinear term, as it does near
+  zero, however far from zero its terms lie and however their spreads
+  differ, as long as its values carry no more rounding error than values
+  stored from exact data or computed in a few operations. A term that is
+  not exactly collinear stops only when its residual is within that bound
+  or below the tolerance of `glm()`. Near zero the bound is far below that
+  tolerance, so the check is that of `glm()`, and nearly collinear
+  covariates, such as a covariate and its copy in single precision, are
+  fitted as before, whatever other covariates lie far from zero.
 * `fit_solomon_sem(ancova = TRUE)` lost accuracy when the pretest lay far
   from zero: at 10^4 standard deviations its p-values were off by 7% to
   100% of their value in six checks, and in another it stopped, as it did
@@ -136,13 +142,25 @@
   the covariate renamed. `plot_sensitization()` also took a covariate named
   `pre_obs`, in a fit without a pretest, for the pretest; it is now a
   covariate like any other.
-* Not changed here: `glm()` takes nearly collinear covariates as given to
-  be collinear, which stops the fit, when they lie so far from zero that
-  their difference falls below about 1e-11 of their distance from zero,
-  as for covariates 10^-6 standard deviations apart at 10^6 standard
-  deviations from zero; and the ties of `perm_solomon()` with models
-  fitted by iteration, and the first stage of its clustered test, which is
-  fitted to the covariates as given, remain on #134.
+* Not changed here: with nearly collinear covariates, about 10^-7 of
+  their standard deviation apart or closer, the HC3 and CR2 standard errors
+  of the contrasts lose accuracy, because `sandwich::vcovHC()` and
+  `clubSandwich::vcovCR()` form the covariance from the inverse of `X'WX`. In
+  one check, under HC3 and CR2, they were off by up to 3% and 4% for a
+  covariate near zero and its copy in single precision (2% and 3% in
+  earlier versions), 0.3% and 1.5% at 10^-7, and 76% and 28% at 10^-8; at
+  10^-9, HC3 standard errors were off by up to a factor of 11 or `NaN`, and
+  CR2 fits gave `NaN` or stopped with "the leading minor ... is not
+  positive". Earlier versions stopped from 10^-8 near zero. The
+  model-based standard errors, and the standard errors of the coefficients
+  under every covariance, keep their accuracy. Also not changed: `glm()`
+  takes nearly collinear covariates as given to be collinear, which stops
+  the fit, when they lie so far from zero that their difference falls below
+  about 1e-11 of their distance from zero, as for covariates 10^-6 standard
+  deviations apart at 10^6 standard deviations from zero; and the ties of
+  `perm_solomon()` with models fitted by iteration, and the first stage of
+  its clustered test, which is fitted to the covariates as given, remain
+  on #134.
 
 ## The a priori procedure in the planning article (#147)
 

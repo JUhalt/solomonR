@@ -559,7 +559,7 @@ covariate as given can warn where the same model standardized does not.
 Covariates collinear with the other terms stop the fit wherever they
 lie. Far from zero, the rounding error of the stored values can make
 \code{\link[stats:glm]{stats::glm()}} take collinear terms for distinct ones, such as \code{z + 1e6}
-and \code{2 * z + 3}, or a time of testing that is the time of enrolment plus
+and \code{2 * z + 3}, or a time of testing that is the time of enrollment plus
 a delay, with the times as dates, so the standardized model is checked
 too. Each term is regressed on the terms before it, the covariates after
 the treatment and pretest terms, weighted as \code{\link[stats:glm]{stats::glm()}} weighs them.
@@ -569,22 +569,56 @@ times the rounding error that the regression carries into it, or within
 is the term's own plus each other term's times the magnitude of its
 coefficient, relative to the term's standard deviation, with the error
 of each value taken to be \code{.Machine$double.eps} times its magnitude as
-given; the pretest's values are taken before it is centered. An exactly
-collinear term is thereby found however far from zero the terms lie and
-however their spreads differ, in any order of the covariates. The
-message names a term of the relation: the last in that order, or the
-one that \code{\link[stats:glm]{stats::glm()}} takes to be collinear in the model as given,
-which it does when the spread of a term falls below about 1e-11 of its
-distance from zero. Near zero that rounding error is of the order of
-\code{.Machine$double.eps}, far below the tolerance of \code{\link[stats:glm]{stats::glm()}}, which
-then decides as it does for the model as given: nearly collinear
-covariates, such as a covariate and its copy in single precision, or
-covariates 10^-9 standard deviations apart, are fitted as \code{\link[stats:glm]{stats::glm()}}
-fits them, whatever other covariates lie far from zero. Nearly collinear
-covariates far enough from zero that their difference falls below about
-1e-11 of their distance from zero, such as covariates 10^-6 standard
-deviations apart at 10^6 standard deviations from zero, are taken to be
-collinear by \code{\link[stats:glm]{stats::glm()}} as given, which stops the fit too.
+given; the pretest's values are taken before it is centered.
+
+The check guarantees two things.
+\itemize{
+\item An exact relation among the terms (the covariates, the pretest, the
+treatment and pretest indicators, their interaction, and the
+indicators of factors) stops the fit, however far from zero its terms
+lie, however their spreads differ, and in any order of the covariates,
+as long as its values carry no more rounding error than the check
+allows for. Values stored from exact data, or computed from one another
+in a few operations, do not exceed it. The message names a term of the
+relation: the last in that order, or the one that \code{\link[stats:glm]{stats::glm()}} takes
+to be collinear in the model as given, which it does when the spread of
+a term falls below about 1e-11 of its distance from zero.
+\item A term that is not exactly collinear stops the fit only when its
+residual is within that bound or below the tolerance of
+\code{\link[stats:glm]{stats::glm()}}. Near zero the bound is of the order of
+\code{.Machine$double.eps}, far below that tolerance, which then decides as
+it does for the model as given. Nearly collinear covariates near zero,
+such as a covariate and its copy in single precision, or covariates
+10^-9 standard deviations apart, are therefore fitted as
+\code{\link[stats:glm]{stats::glm()}} fits them, whatever other covariates lie far from zero.
+}
+
+Its limits:
+\itemize{
+\item A relation computed with more rounding error, such as one among values
+rounded to fewer digits, is not exact in double precision, and its
+terms are fitted as nearly collinear ones.
+\item Nearly collinear covariates far enough from zero that their difference
+falls below about 1e-11 of their distance from zero, such as
+covariates 10^-6 standard deviations apart at 10^6 standard deviations
+from zero, are taken to be collinear by \code{\link[stats:glm]{stats::glm()}} as given, which
+stops the fit too.
+\item Fitting nearly collinear covariates is not the same as estimating
+their standard errors well. With covariates that differ by about 10^-7
+of their standard deviation or less, as a covariate near zero and its
+copy in single precision do, the HC3 and CR2 standard errors of the
+contrasts lose accuracy, as \code{\link[sandwich:vcovHC]{sandwich::vcovHC()}} and
+\code{\link[clubSandwich:vcovCR]{clubSandwich::vcovCR()}} form the covariance from the inverse of \verb{X'WX}.
+In one check, under HC3 and CR2, they were off by up to 3\% and 4\% for
+such a copy (2\% and 3\% in earlier versions), 0.3\% and 1.5\% at 10^-7,
+and 76\% and 28\% at 10^-8. At 10^-9, HC3 standard errors were off by up
+to a factor of 11 or \code{NaN}, with a warning, and CR2 fits gave \code{NaN} or
+stopped with "the leading minor ... is not positive", as some did at
+10^-8. Earlier versions stopped with "system is computationally
+singular" from 10^-8 near zero, and from 10^-7 for covariates 5
+standard deviations from zero. The model-based standard errors, and
+those of the coefficients under every covariance, keep their accuracy.
+}
 
 A numeric covariate is standardized whatever its class, such as that of a
 variable with value labels read from an SPSS file, or of one wrapped in

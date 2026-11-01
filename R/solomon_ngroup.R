@@ -234,7 +234,7 @@
 # comes from .covariate_scaling(), and `center` is the mean the pretest was
 # centered at, NA without a pretest. A value x is stored with an error of up
 # to |x| eps / 2, with eps = .Machine$double.eps, and a covariate computed
-# from others, such as a time of testing that is the time of enrolment plus
+# from others, such as a time of testing that is the time of enrollment plus
 # a delay, carries the errors of that computation, of the same order.
 # Standardizing a covariate divides that error by the covariate's standard
 # deviation and adds an error of its own, of up to the standardized value
@@ -285,7 +285,7 @@
 # grows with the coefficients and so with the spreads of the far terms
 # relative to term k's own. A tolerance relative to each term's own spread,
 # the same for every term, missed a time of testing that is the time of
-# enrolment plus a delay, with the times as dates in seconds: the error of
+# enrollment plus a delay, with the times as dates in seconds: the error of
 # the times reached the delay amplified by their spreads relative to its
 # spread, 1,200 times its own, and the fit went on to meaningless standard
 # errors. A single tolerance large enough to cover that amplification

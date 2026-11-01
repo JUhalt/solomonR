@@ -791,7 +791,7 @@ test_that("each term is checked against the rounding error its regression carrie
 })
 
 test_that("an exact relation stops however its terms' spreads differ, in every order", {
-  # A time of testing that is the time of enrolment plus a delay, with the
+  # A time of testing that is the time of enrollment plus a delay, with the
   # times as dates in seconds, about 1.8e9 from zero: the error of the
   # stored times, about 2e-7 seconds, reaches the delay, whose spread is
   # 1,200 times smaller than theirs, amplified by that ratio. A tolerance
