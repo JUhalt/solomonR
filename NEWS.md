@@ -27,7 +27,9 @@
   - A numeric or logical matrix is one covariate per column, named by its
     column names, with `covariate1`, `covariate2`, ... by position for
     columns without one. `cbind()` turns a factor into its integer codes,
-    so a factor goes in a data frame, such as `data.frame(age, region)`.
+    and with a character vector makes every column character, which
+    stops, so such covariates go in a data frame, such as
+    `data.frame(age, region)`.
   - A data frame or a matrix with two columns of the same name stops, and
     so does a data frame with a column without a name.
   - Any other form stops with an error that says what to give instead.

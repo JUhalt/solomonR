@@ -256,11 +256,15 @@
   # A date or another classed vector goes in as a column of a data frame,
   # as glm() takes it there. A one-dimensional object with a class, such
   # as table(cluster)[cluster] gives, becomes a vector with c(), which
-  # keeps a factor a factor.
+  # keeps a factor a factor. A character matrix most often comes from
+  # cbind() of a numeric and a character vector, such as cbind(age, site).
   advice <- if (classed && (is.atomic(x) || date_time) && is.null(dims)) {
     " Give it as a column of a data frame."
   } else if (classed && length(dims) == 1L) {
     " Give it as a vector, such as `c(covariates)`."
+  } else if (!classed && length(dims) == 2L && is.character(x)) {
+    paste0(" A matrix has one type, and cbind() makes every column character when ",
+           "one is. Give such covariates in a data frame, such as `data.frame(age, site)`.")
   } else {
     ""
   }

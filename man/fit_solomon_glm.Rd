@@ -45,9 +45,10 @@ variable when given by its bare name (\code{covariates = age}), and
 as \code{tapply(age, cluster, mean)[cluster]} gives, is taken as a vector;
 \item a numeric or logical matrix, one covariate per column, named by its
 column names, with \code{covariate1}, \code{covariate2}, ... for columns
-without one. \code{cbind()} turns a factor into its integer codes, so give
-a factor in a data frame, such as \code{data.frame(age, region)}, or by
-name with \code{data};
+without one. \code{cbind()} turns a factor into its integer codes, and
+with a character vector makes every column character, which stops,
+so give such covariates in a data frame, such as
+\code{data.frame(age, region)}, or by name with \code{data};
 \item with \code{data}, the names of its columns (\code{covariates = c("age", "z")}),
 each of which must be a column and be given once, or one column by
 its bare name.

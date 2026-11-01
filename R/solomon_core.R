@@ -1004,9 +1004,10 @@ stouffer_solomon <- function(p) {
 #'     as `tapply(age, cluster, mean)[cluster]` gives, is taken as a vector;
 #'   - a numeric or logical matrix, one covariate per column, named by its
 #'     column names, with `covariate1`, `covariate2`, ... for columns
-#'     without one. `cbind()` turns a factor into its integer codes, so give
-#'     a factor in a data frame, such as `data.frame(age, region)`, or by
-#'     name with `data`;
+#'     without one. `cbind()` turns a factor into its integer codes, and
+#'     with a character vector makes every column character, which stops,
+#'     so give such covariates in a data frame, such as
+#'     `data.frame(age, region)`, or by name with `data`;
 #'   - with `data`, the names of its columns (`covariates = c("age", "z")`),
 #'     each of which must be a column and be given once, or one column by
 #'     its bare name.

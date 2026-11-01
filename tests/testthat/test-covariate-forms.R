@@ -558,6 +558,21 @@ test_that("every other form stops with an error that says what to give", {
     "categorical covariate, give it as a factor, or as a column of a data frame."
   ), fixed = TRUE)
 
+  # cbind() of a numeric and a character column gives a character matrix;
+  # the error says why, and the data frame it advises gives the fit.
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = cbind(age, site), data = d),
+    paste("not a matrix of type \"character\". A matrix has one type, and cbind() makes",
+          "every column character when one is. Give such covariates in a data frame, such",
+          "as `data.frame(age, site)`."),
+    fixed = TRUE
+  )
+  expect_same_fit(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = data.frame(age, site),
+                    data = d),
+    fit4(d, d[c("age", "site")])
+  )
+
   # The advice for a one-dimensional object with a class works: c() makes a
   # table a vector, and keeps a factor a factor.
   counts <- table(d$count)[as.character(d$count)]
