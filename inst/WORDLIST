@@ -249,6 +249,7 @@ bP
 bT
 bTP
 bX
+backports
 behaviour
 benchmarked
 bimj
@@ -267,6 +268,8 @@ covariate's
 df
 directionally
 doi
+dplyr
+dplyr's
 dr
 edu
 educsci
@@ -330,6 +333,7 @@ ppc
 pre
 pretest's
 programme
+purrr
 randomised
 rejective
 relicense
@@ -345,11 +349,16 @@ solomon
 solomonR's
 standardizations
 standardizers
+stringi
+stringr
 studentization
 subscale
 subscales
 substream
 th
+tibble
+tidyr
+tidyselect
 ua
 unblinded
 unclustered
