@@ -42,6 +42,11 @@
 #            rules c and d must fall back to the lowest- and highest-
 #            numbered chunks once every chunk has been chosen, and ties
 #            broken by task id.
+#   finalize finalize-results.R on a run's folders made up here: the first
+#            task's start and the last task's finish (the earliest and the
+#            latest, not the first and last rows), NA without the task
+#            times, and the sourced files' SHA-256 (NA for a plan of
+#            contract 2).
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it).
@@ -58,7 +63,7 @@ local({
 })
 source(file.path(harness, "harness-lib.R"))
 
-all_groups <- c("results", "scan", "sizing", "inputs", "contract", "replay", "merge")
+all_groups <- c("results", "scan", "sizing", "inputs", "contract", "replay", "finalize", "merge")
 opts <- list(only = paste(all_groups, collapse = ","), work = "", run = "", bash = "")
 args <- commandArgs(trailingOnly = TRUE)
 i <- 1L
@@ -764,6 +769,68 @@ if ("replay" %in% groups) local({
     } else "merge refused"
     record("replay", cs[[1]], "yes", if (identical(got, cs[[3]])) "yes" else "no", got)
   }
+})
+
+# ---- finalize: finalize-results.R ----------------------------------------------
+
+if ("finalize" %in% groups) local({
+  root <- file.path(work, "finalize")
+  # The folders of a finished run as finalize-results.R reads them: three
+  # tasks, whose earliest start and latest finish are in neither the first
+  # nor the last row of timing/task-times.csv.
+  make <- function(name, times = TRUE, files_item = TRUE) {
+    d <- file.path(root, name)
+    info <- c(contract = "3", study = "synthetic", issue = "117", protocol = "FALSE", purpose = "test",
+              design = "run", base_seed = "13", rng_kind = "L'Ecuyer-CMRG", normal_kind = "Inversion",
+              sample_kind = "Rejection", r_version = "4.6.1", reps = "4", task_size = "2", n_scenarios = "2",
+              n_tasks = "3", subset = "", script_sha256 = "s", contract_sha256 = "c",
+              files_sha256 = "lib/helper.R=abc", package = "harnesstest", package_version = "1.0",
+              package_sha = strrep("0", 40), package_dirty = "NA", created_utc = "2026-11-01T00:00:00.000Z")
+    if (!files_item) info <- info[names(info) != "files_sha256"]
+    h_write_kv(info, file.path(d, "plan", "plan-info.csv"))
+    dir.create(file.path(d, "chunks", "chunk-0001"), recursive = TRUE)
+    m <- file.path(d, "merged")
+    h_write_csv(data.frame(task_id = "s0001-t0001", content_sha256 = "x"), file.path(m, "manifest.csv"))
+    h_write_csv(data.frame(scenario = 1L), file.path(m, "completeness.csv"))
+    h_write_csv(data.frame(kind = "r", name = "version", value = "4.6.1"), file.path(m, "software.csv"))
+    h_write_csv(data.frame(task_id = "s0001-t0001", identical = TRUE, other_cpu = FALSE), file.path(m, "replay.csv"))
+    h_write_csv(data.frame(chunk = "0001", workers = "0", image_os = "local", image_version = "local"),
+                file.path(m, "jobs.csv"))
+    dir.create(file.path(d, "results", "timing"), recursive = TRUE)
+    if (times) {
+      h_write_csv(data.frame(task_id = c("s0001-t0001", "s0001-t0002", "s0002-t0001"),
+                             started = c("2026-11-01T00:00:05.000Z", "2026-11-01T00:00:01.500Z",
+                                         "2026-11-01T00:00:03.000Z"),
+                             finished = c("2026-11-01T00:00:09.000Z", "2026-11-01T00:00:04.000Z",
+                                          "2026-11-01T00:00:12.250Z"),
+                             elapsed = c(4, 2.5, 9.25), agreement_seconds = c(1, 0, 1)),
+                  file.path(d, "results", "timing", "task-times.csv"))
+    }
+    d
+  }
+  finalize <- function(d) {
+    r <- run_r("finalize-results.R", file.path(d, c("plan", "chunks", "merged", "results")))
+    f <- file.path(d, "results", "run-information.csv")
+    list(r = r, kv = if (r$status == 0L && file.exists(f)) h_read_kv(f) else character())
+  }
+  item <- function(kv, name) if (name %in% names(kv)) kv[[name]] else "absent"
+  x <- finalize(make("f01"))
+  v <- item(x$kv, "first_task_started_utc")
+  record("finalize", "first_task_started_utc: the earliest start", "yes",
+         if (identical(v, "2026-11-01T00:00:01.500Z")) "yes" else "no", v)
+  v <- item(x$kv, "last_task_finished_utc")
+  record("finalize", "last_task_finished_utc: the latest finish", "yes",
+         if (identical(v, "2026-11-01T00:00:12.250Z")) "yes" else "no", v)
+  v <- item(x$kv, "sourced_files_sha256")
+  record("finalize", "sourced_files_sha256: the plan's files_sha256", "yes",
+         if (identical(v, "lib/helper.R=abc")) "yes" else "no", v)
+  x <- finalize(make("f02", times = FALSE))
+  v <- paste(item(x$kv, "first_task_started_utc"), item(x$kv, "last_task_finished_utc"))
+  record("finalize", "no timing/task-times.csv: both NA", "yes", if (identical(v, "NA NA")) "yes" else "no", v)
+  x <- finalize(make("f03", files_item = FALSE))
+  v <- item(x$kv, "sourced_files_sha256")
+  record("finalize", "a plan without files_sha256 (contract 2): NA", "yes", if (identical(v, "NA")) "yes" else "no",
+         paste(v, last_line(x$r$out)))
 })
 
 # ---- merge: merge-chunks.R on tampered copies ----------------------------------

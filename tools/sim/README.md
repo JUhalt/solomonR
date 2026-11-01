@@ -229,7 +229,8 @@ the resumption in the chunk's `resumes.csv` (and in `run-information.csv`),
 and merges afresh; it refuses to continue if `software.csv` has changed. A
 gate or study run needs a clean checkout of a commit.
 
-The harness's own tests need R alone and take a few minutes:
+The harness's own tests need R alone (and git, for the clean-checkout
+cases) and take a few minutes:
 
 ```
 Rscript tools/sim/tests/run-tests.R
@@ -244,12 +245,13 @@ time, and 5 it must pass; the job sizes of `assign-chunks.R`; the
 workflow's "Check the inputs" step, run with bash (`--bash <path>` if bash
 is not on the PATH); the contract's plan stage and `sim_verify_plan()` on
 the synthetic study `tests/synthetic-study.R`, which loads no package (with
-git, also the clean-checkout rule); and, with `--run`, `merge-chunks.R` on
-tampered copies of a run's `plan/` and `chunks/`. Any case that ends
-otherwise than expected makes the exit status 1. The workflow runs them in
-the pull requests that change the harness: the job "Harness tests", and the
-merge cases at the end of the merge job, on that run's own chunks. Run them
-after any change to a check.
+git, also the clean-checkout rule); the replay list of `merge-chunks.R`
+and the items of `finalize-results.R` on files made up there; and, with
+`--run`, `merge-chunks.R` on tampered copies of a run's `plan/` and
+`chunks/`. Any case that ends otherwise than expected makes the exit
+status 1. The workflow runs them in the pull requests that change the
+harness: the job "Harness tests", and the merge cases at the end of the
+merge job, on that run's own chunks. Run them after any change to a check.
 
 The software check runs without its repository and tool checks, so the
 local package versions must match the pins. On Windows, R reports no BLAS or

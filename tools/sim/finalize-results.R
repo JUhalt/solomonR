@@ -15,9 +15,13 @@
 # them; an item that both write stops the run. The results folder then holds
 # the files that go into the study's folder by a pull request (and
 # summary.rds, which tools/sim/compare-runs.R reads); the task files stay in
-# the chunk artifacts. sourced_files_sha256 is the plan's SHA-256 of the
-# files the study script sources (study$files; empty without any, NA for a
-# plan made before contract 3). The event, ref, and workflow path of the run
+# the chunk artifacts. Among the harness's items, started_utc is when the
+# plan was made, first_task_started_utc and last_task_finished_utc are the
+# earliest start and the latest finish of a task (timing/task-times.csv; NA
+# without it), and finished_utc is when this script ran.
+# sourced_files_sha256 is the plan's SHA-256 of the files the study script
+# sources (study$files; empty without any, NA for a plan made before
+# contract 3). The event, ref, and workflow path of the run
 # are recorded for information only: the run writes this file itself, so the
 # README's results procedure checks them with `gh run view` instead.
 # harness_sha is the workflow's github.sha: on a pull_request run, GitHub's
@@ -111,7 +115,10 @@ values <- c(
   merge_cpu_model = job_item(merge_job, "cpu_model"), merge_runner_image = image(merge_job),
   chunks_rerun = paste(jobs$chunk[!is.na(attempt) & attempt > 1L], collapse = " "),
   chunks_resumed = paste(jobs$chunk[!is.na(resumed) & resumed > 0L], collapse = " "),
-  started_utc = info[["created_utc"]], finished_utc = h_now(),
+  started_utc = info[["created_utc"]],
+  first_task_started_utc = if (is.null(times) || !nrow(times)) NA else min(times$started),
+  last_task_finished_utc = if (is.null(times) || !nrow(times)) NA else max(times$finished),
+  finished_utc = h_now(),
   worker_seconds = if (is.null(times)) NA else format(sum(as.numeric(times$elapsed)), digits = 10),
   agreement_seconds = if (is.null(times)) NA else format(sum(as.numeric(times$agreement_seconds)), digits = 10),
   replay = sprintf("%d of %d tasks identical (%d first ran on another processor model)",
