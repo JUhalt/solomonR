@@ -20,10 +20,13 @@
 #     has one) with a gzip header (1f 8b) or a zlib header (78 01, 78 5e,
 #     78 9c, 78 da), or is not valid UTF-8 (as validUTF8() reads it, which
 #     refuses overlong forms, surrogates, and code points above U+10FFFF);
-#     each of these could hide its text from the pattern. A text file that
-#     starts with the characters "x^" (78 5e) is refused too. Valid UTF-8
-#     text, with or without a UTF-8 byte-order mark, and an empty file pass
-#     these rules. Text compressed or encoded in another way that leaves
+#     each of these could hide its text from the pattern. Valid UTF-8 text
+#     that starts (after a UTF-8 byte-order mark, if it has one) with "x^"
+#     (78 5e), with "x" and U+0001 (78 01), or with "x" and a character
+#     from U+0680 to U+06BF (78 da 80 to 78 da bf) is refused as a zlib
+#     header too. Other valid UTF-8 text without a NUL byte, with or
+#     without a UTF-8 byte-order mark, and an empty file pass these rules.
+#     Text compressed or encoded in another way that leaves
 #     valid UTF-8 without such a header (base64, for one) is not detected;
 #   - an .rds file is read with readRDS(), and every character string in the
 #     object is scanned: values, factor levels, every attribute of every

@@ -20,12 +20,14 @@
 #   scan     scan-addresses.R on folders built here around a placeholder
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
-#            every "c-" folder pass, and no promise may be evaluated. Twelve
-#            "f-" folders must fail by a named rule (a NUL byte, a gzip or
-#            zlib header, bytes that are not valid UTF-8), among them
-#            compressed text without a NUL byte; the "c-" folders include
-#            UTF-8 text with the characters the package prints, a UTF-8
-#            byte-order mark, empty files, and text that starts with "x".
+#            every "c-" folder pass, and no promise may be evaluated.
+#            Fourteen "f-" folders must fail by a named rule (a NUL byte, a
+#            gzip or zlib header, bytes that are not valid UTF-8), among
+#            them compressed text without a NUL byte and valid UTF-8 text
+#            that starts with a zlib header; the "c-" folders include UTF-8
+#            text with the characters the package prints, a UTF-8
+#            byte-order mark, empty files, and text that starts with "x"
+#            but not with a zlib header.
 #   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
 #            protocol flag; refused if absent, below 1, or not a number,
 #            or if given as a fifth argument), the 2- and 4-hour limits, a
@@ -428,6 +430,12 @@ if ("scan" %in% groups) {
   writeBin(c(charToRaw("caf"), as.raw(0xe9), charToRaw(" au lait")), file.path(case("f-55-not-utf8-latin1"), "a.txt"))
   writeBin(c(charToRaw("a,b\n1,"), as.raw(c(0xed, 0xa0, 0x80)), charToRaw("\n")), file.path(case("f-56-not-utf8-surrogate"), "a.csv"))
   writeBin(c(charToRaw("{\"a\": \""), as.raw(c(0xc0, 0xaf)), charToRaw("\"}")), file.path(case("f-57-not-utf8-overlong"), "a.json"))
+  # The ends of the valid UTF-8 text that the zlib header 78 da refuses
+  # (review round 2): "x" and U+06BF, and a UTF-8 byte-order mark, "x", and
+  # U+0680. c-10 holds the characters next to them, which pass.
+  writeBin(c(as.raw(c(0x78, 0xda, 0xbf)), charToRaw(" clean text\n")), file.path(case("f-58-zlib-header-78-da-x-u06bf"), "a.txt"))
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf, 0x78, 0xda, 0x80)), charToRaw(" clean text\n")),
+           file.path(case("f-59-utf8-bom-then-x-u0680"), "a.csv"))
   # The rule each of these must fail by (a part of its message); the other
   # "f-" folders need only fail.
   scan_rule <- c(`f-15-nul-byte` = "holds a NUL byte", `f-38-nul-byte-in-zlib-text` = "holds a NUL byte",
@@ -439,7 +447,9 @@ if ("scan" %in% groups) {
                  `f-53-zlib-header-78-da-valid-utf8` = "starts with a zlib header (78 da)",
                  `f-54-utf8-bom-then-zlib-header` = "starts with a zlib header (78 5e)",
                  `f-55-not-utf8-latin1` = "is not valid UTF-8", `f-56-not-utf8-surrogate` = "is not valid UTF-8",
-                 `f-57-not-utf8-overlong` = "is not valid UTF-8")
+                 `f-57-not-utf8-overlong` = "is not valid UTF-8",
+                 `f-58-zlib-header-78-da-x-u06bf` = "starts with a zlib header (78 da)",
+                 `f-59-utf8-bom-then-x-u0680` = "starts with a zlib header (78 da)")
 
   # Each of these must pass.
   put(case("c-01-plain"), "a.txt", c("pkgload@1.5.3", "cran::MASS@7.3-66", "x86_64-pc-linux-gnu",
@@ -473,6 +483,13 @@ if ("scan" %in% groups) {
   put(d, "a.csv", c("x,y", "1,2"))
   writeBin(charToRaw("x"), file.path(d, "b.txt"))
   put(d, "c.json", "x")
+  # Valid UTF-8 text next to the starts that the zlib headers 78 01, 78 5e,
+  # and 78 da refuse (review round 2): "x" and U+0002, "x]", "x_", "x" and
+  # U+067F, and "x" and U+06C0. None of them is a zlib header.
+  d <- case("c-10-text-next-to-the-zlib-headers")
+  nxt <- list(a.txt = c(0x78, 0x02), b.txt = c(0x78, 0x5d), c.csv = c(0x78, 0x5f), d.txt = c(0x78, 0xd9, 0xbf),
+              e.json = c(0x78, 0xdb, 0x80))
+  for (fn in names(nxt)) writeBin(c(as.raw(nxt[[fn]]), charToRaw(" clean text\n")), file.path(d, fn))
 
   for (d in sort(list.dirs(root, recursive = FALSE))) {
     r <- run_r("scan-addresses.R", d)
@@ -488,7 +505,7 @@ if ("scan" %in% groups) {
   r <- run_r("scan-addresses.R", c(file.path(root, "c-01-plain"), file.path(root, "no-such-file.txt")))
   record("scan", "a clean folder and a missing file", "fail", if (r$status == 0L) "pass" else "fail")
   record("scan", "no promise evaluated by any scan", "no", if (file.exists(marker)) "yes" else "no")
-  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule)
+  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule, nxt, fn)
 }
 
 # ---- sizing: assign-chunks.R -------------------------------------------------

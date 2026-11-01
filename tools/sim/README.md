@@ -250,12 +250,13 @@ Rscript tools/sim/tests/run-tests.R --only merge --run <folder of a finished run
 Each case builds its input in a temporary folder (`--work` names another)
 and runs one check in a new R process: the MCSE, decision, and file-name
 rules of `check-results.R`, including the names the harness writes after
-it, in any case; 57 folders that `scan-addresses.R` must refuse, built around a
-placeholder address at example.org that is assembled at run time (12 of
+it, in any case; 59 folders that `scan-addresses.R` must refuse, built around a
+placeholder address at example.org that is assembled at run time (14 of
 them by a named rule: a NUL byte, a gzip or zlib header, or bytes that are
-not valid UTF-8, among them compressed text without a NUL byte), and 9 it
+not valid UTF-8, among them compressed text without a NUL byte), and 10 it
 must pass (among them UTF-8 text with the characters the package prints, a
-UTF-8 byte-order mark, and empty files); the job sizes and the number
+UTF-8 byte-order mark, empty files, and text that starts with `x` but not
+with a zlib header); the job sizes and the number
 formats of `assign-chunks.R`; the workflow's "Check the inputs" step, run
 with bash (`--bash <path>` if bash is not on the PATH); the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and
@@ -384,9 +385,11 @@ In the study's own pull request, before its run (the order rule of #117):
   as code, never evaluated), and fails on a path that does not exist, on
   any file it cannot read completely, and on a text file (.csv, .txt,
   .json) that holds a NUL byte, starts with a UTF-16 byte-order mark or
-  with a gzip or zlib header, or is not valid UTF-8 (text that starts with
-  `x^` is refused as a zlib header too). These rules catch, in a text
-  file, a gzip or zlib stream at its start and bytes that are not UTF-8.
+  with a gzip or zlib header, or is not valid UTF-8 (valid UTF-8 text that
+  starts with `x^`, with `x` and U+0001, or with `x` and a character from
+  U+0680 to U+06BF is refused as a zlib header too). These rules catch, in
+  a text file, a gzip or zlib stream at its start and bytes that are not
+  UTF-8.
   Beyond `%40`, the scan decodes nothing: text compressed or encoded in a
   way that stays valid UTF-8 without such a header (base64, for one) is
   not detected, and in an `.rds` the strings and raw vectors are scanned
