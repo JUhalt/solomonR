@@ -1,7 +1,9 @@
 # Tables that solomonR made with broom and dplyr until #84 removed both
 # packages from Imports. Each helper returns the object that those packages
 # returned, with the same values, names, column order, classes, attributes,
-# and row names, so that every result is unchanged.
+# and row names, so that every result is unchanged. (The tidy() and glance()
+# methods of solomonR's results are in R/solomon_output.R and
+# R/solomon_glance.R.)
 
 # The coefficients of an lm() or glm() fit, as broom::tidy() gave them: a
 # tibble with `term`, `estimate`, `std.error`, `statistic`, and `p.value`,

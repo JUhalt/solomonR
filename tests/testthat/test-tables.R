@@ -1,5 +1,5 @@
 # The tables that broom and dplyr made until #84 removed both from Imports.
-# The helpers of R/solomon_tidiers.R rebuild them; these tests keep the form
+# The helpers of R/solomon_tables.R rebuild them; these tests keep the form
 # that they had, quirks included.
 
 test_that("coefficient tables have broom's columns, from summary()", {
