@@ -22,7 +22,7 @@ package or of the validation-scripts check.
 | `job-info.R` | The machine of a job (a chunk, the plan, or the merge): runner image, CPUs, processor, memory, attempt, local resumptions |
 | `merge-chunks.R` | The checks before any summary; manifest, completeness, replay list |
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
-| `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in a protocol's gate or test, only agreement, run information, timing, and the harness's files |
+| `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in a protocol's gate or test, only the files agreement, run information, timing, and the harness's own (by name; contents are not inspected) |
 | `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder |
 | `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path, a format other than .csv, .txt, .json, and .rds, a NUL byte or UTF-16 text, an object it cannot walk) |
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
@@ -109,10 +109,14 @@ manifest only if they ran at the same `package_sha`; the summaries do not
 depend on it. The harness's own tests after its merge are therefore
 defined against each other: T3 (3 chunks, `fail_once=true`, then
 `gh run rerun --failed`) and T4 (1 chunk) are dispatched with the same
-`package_sha`, a master commit; T4's manifest must equal T3's, and both
-runs' summaries must equal those of T1, the first cloud run (run
-41255391619, at e13e8bb). T1's task files differ from theirs in the
-envelope only: the package commit, and the contract's checksum, since
+`package_sha`, a master commit; the content hashes of their manifests must
+be identical (`compare-runs.R results <T3 results> <T4 results>` prints
+"Manifest content hashes: identical"), and both runs' summaries must
+equal those of T1, the first cloud run (run 41255391619, at e13e8bb). The
+two `manifest.csv` files themselves differ: their `chunk` and `attempt`
+columns follow the division and the reruns, and `file_sha256` hashes the
+whole task file, timing included. T1's task files differ from theirs in
+the envelope only: the package commit, and the contract's checksum, since
 `contract.R` has changed after e13e8bb.
 
 - `smoke=true` (the default) is a code-testing run: the study's test seed,
@@ -235,11 +239,15 @@ In the study's own pull request, before its run (the order rule of #117):
    `performance` (with `mcse` and `mcse_note`), `decisions` (with `rule`,
    `verdict`, and at least one of `mcse`, `threshold`, and `p_value`), and
    `run-information` (item, value: what the protocol lists that the harness
-   does not, such as the number of permutations). A protocol's smoke mode,
-   test runs, and gate may return only `agreement`, `run-information`, and
-   `timing/` elements, so that they compute no performance measure,
-   decision, or failure count under any name; the contract stops on any
-   other, and `check-results.R` on any other file. A `gate$project` may not
+   does not, such as the number of permutations). In a protocol's smoke
+   mode, test runs, and gate, it may return only elements named
+   `agreement`, `run-information`, and `timing/<name>`; the contract stops
+   on any other name, and `check-results.R` on any other file. Both check
+   names only, not contents: a performance measure, decision, or failure
+   count returned as a column of `agreement`, an item of `run-information`,
+   or a `timing/` element would pass them. That these runs compute none
+   rests on the study's `summarize()`, whose code its pull request shows.
+   A `gate$project` may not
    return a name the harness or the summary writes (other than
    `gate-times`, `gate-projection`, and `gate-summary`).
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,

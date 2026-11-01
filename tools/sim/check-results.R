@@ -7,10 +7,12 @@
 #
 #   - agreement.csv must exist; a gate design needs timing/gate-projection.csv;
 #   - for a protocol, a gate or test run may hold only agreement.csv,
-#     run-information.csv, summary.rds, and files under timing/ (and the
-#     files the harness itself writes: manifest.csv, completeness.csv,
-#     software.csv, replay.csv, preflight.csv, logs/), so that no performance
-#     measure, decision, or failure count leaves it under any name;
+#     run-information.csv, summary.rds, and files directly under timing/
+#     (and the files the harness itself writes: manifest.csv,
+#     completeness.csv, software.csv, replay.csv, preflight.csv, logs/*.txt).
+#     Only the file names are checked, not their contents, so a measure
+#     written as a column of agreement.csv, an item of run-information.csv,
+#     or a file under timing/ is not caught here;
 #   - for a protocol's study run, performance.csv, decisions.csv, and the
 #     study's part of run-information.csv must exist;
 #   - wherever performance.csv is written, it needs the columns scenario,

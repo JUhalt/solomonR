@@ -146,9 +146,11 @@ sim_time_agreement <- function(expr) {
 #   issue            the issue that holds the protocol
 #   protocol         TRUE for a validation protocol: then the summary of
 #                    any purpose but "study" (smoke mode included) may hold
-#                    only agreement, run-information, and timing/ elements,
-#                    so that it computes no performance measure, decision,
-#                    or failure count
+#                    only elements named agreement, run-information, and
+#                    timing/<name>. Only the names are checked, not what
+#                    the elements hold: that such a summary computes no
+#                    performance measure, decision, or failure count rests
+#                    on the study's summarize()
 #   seeds            named integers: study, gate, test (base seeds)
 #   scenarios        data frame; column `scenario` is 1, 2, ... in the order
 #                    of the protocol's scenario table
