@@ -132,12 +132,16 @@ adjusted effect, which with \code{std_lv = TRUE} is a residual standard
 deviation of the latent posttest, not the unit of the four-group
 contrasts. With the default MLR estimator, the chi-square is the scaled
 one, and the CFI and RMSEA are those of the unscaled maximum likelihood
-chi-square, as the fit prints them. For \code{\link[=invariance_solomon]{invariance_solomon()}}, the
+chi-square, as the fit prints them; with ML, it is the maximum likelihood
+chi-square. For \code{\link[=invariance_solomon]{invariance_solomon()}}, the
 report gives the minimal information Putnick and Bornstein (2016)
 propose for invariance tests: the group sizes, the handling of missing
 data, the criteria, and the fit of each model (its chi-square test, CFI,
 RMSEA, and SRMR) with the comparisons and the decision under each
-criterion.
+criterion. The reports of these functions and of \code{\link[=fit_solomon_sem]{fit_solomon_sem()}}
+name the lavaan version and the estimator, MLR or ML, the two that the
+functions accept; a fit with any other estimator, which an earlier
+version could make, is refused.
 
 \strong{Nonrandomized designs.} With \code{design$assignment = "nonrandom"}, the
 results describe differences between groups rather than treatment

@@ -30,7 +30,11 @@ treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm(
 
 \item{ancova}{logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)}
 
-\item{estimator}{lavaan estimator (default "MLR")}
+\item{estimator}{The lavaan estimator, \code{"MLR"} (the default) or \code{"ML"},
+in upper or lower case. Any other value stops with an error: these two
+are the estimators whose validation is planned for this function (the
+protocol posted on issue #117). Other estimators can be fitted with
+lavaan directly.}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
 
@@ -54,6 +58,8 @@ for the normal reference distribution), \code{p.value}, \code{conf.low}, and
 mode gives \code{Treatment | pretested}
 \item \code{fitmeasures}: named vector (CFI, RMSEA, SRMR, df)
 \item \code{conf_level}: the confidence level of the intervals
+\item \code{estimator}: \code{"MLR"} or \code{"ML"}, which \code{\link[=report_solomon]{report_solomon()}}
+reports
 }
 
 The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},

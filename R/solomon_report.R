@@ -1021,13 +1021,17 @@
 
 .report_sem <- function(fit, digits, md) {
   .stop_former_sem_labels(fit$effects, "fit_solomon_sem")
-  refs <- .solomon_function_refs$fit_solomon_sem
-  method <- if (identical(fit$mode, "ancova_pretested")) {
+  .need_lavaan()
+  # The software and the estimator, as in the latent reports (issue #133).
+  est <- .sem_estimator(fit$estimator, fit$fit)
+  refs <- c(.solomon_function_refs$fit_solomon_sem, est$refs)
+  model <- if (identical(fit$mode, "ancova_pretested")) {
     refs <- c(refs, "huck1973")
-    "A two-group structural equation model of the pretested groups, with the pretest as a covariate (Huck & Sandler, 1973; Rosseel, 2012), estimated the treatment effect among pretested participants."
+    "A two-group structural equation model of the pretested groups, with the pretest as a covariate (Huck & Sandler, 1973), estimated the treatment effect among pretested participants."
   } else {
-    "A four-group mean-structure structural equation model (Rosseel, 2012) estimated the posttest means of the Solomon groups; the model is saturated, so global fit is not reported."
+    "A four-group mean-structure structural equation model estimated the posttest means of the Solomon groups; the model is saturated, so global fit is not reported."
   }
+  method <- paste(model, sprintf("It was fitted with %s by %s.", est$software, est$text))
   eff <- as.data.frame(fit$effects)
   # The four-group model also gives the pretest effects, as differences
   # between group means (issue #110); the tests are Wald z tests.
@@ -1067,9 +1071,13 @@
 }
 
 # The software, the estimator, and its references for the method statement.
-# `estimator` is the value given to fit_solomon_sem_latent() or
-# invariance_solomon(); `scaled` says whether the fit has a scaled test
-# statistic as well as the standard one.
+# `estimator` is the name the fit stores, "MLR" or "ML" (issue #133). A fit
+# of fit_solomon_sem() made before it stored the name has none, and its
+# estimator is read from lavaan's options. `scaled` says whether the fit has
+# a scaled test statistic as well as the standard one, by the rule of
+# .sem_scaled(). Only MLR, with its scaled test, and ML, without one, are
+# described; any other fit, such as one saved by an earlier version with
+# another estimator, is refused rather than described.
 .sem_estimator <- function(estimator, fit) {
   version <- tryCatch(as.character(fit@version), error = function(e) "")
   software <- if (length(version) == 1L && nzchar(version)) {
@@ -1077,29 +1085,41 @@
   } else {
     "lavaan (Rosseel, 2012)"
   }
-  # A scaled test is one with a scaling factor. A second test in the list is
-  # not enough: since lavaan 0.7-3 a maximum likelihood fit also carries
-  # Browne's residual test, which scales nothing.
-  tests <- lavaan::lavInspect(fit, "test")
-  is_scaled <- vapply(tests, function(x) !is.null(x$scaling.factor), logical(1))
-  scaled <- any(is_scaled)
-  est <- toupper(estimator)
+  scaled <- .sem_scaled(fit)
+  est <- if (is.null(estimator)) .sem_lavaan_estimator(fit) else toupper(estimator)
+  if (!isTRUE(est %in% .sem_estimators) || scaled != identical(est, "MLR")) {
+    stop(sprintf(paste0(
+      "report_solomon() describes structural equation models fitted by MLR, with its scaled ",
+      "test statistic, or by ML, without one, the estimators that solomonR's SEM functions ",
+      "accept. This fit%s is neither; fit it again with estimator = \"MLR\" or \"ML\"."
+    ), if (is.character(estimator) && length(estimator) == 1L) {
+      sprintf(" (estimator = \"%s\")", estimator)
+    } else ""), call. = FALSE)
+  }
   if (est == "MLR") {
     text <- paste(
       "maximum likelihood with Huber-White robust standard errors and a scaled test",
       "statistic asymptotically equal to the Yuan-Bentler statistic (MLR; Yuan & Bentler, 2000)"
     )
     refs <- "yuan2000"
-  } else if (est == "ML" && !scaled) {
-    text <- "maximum likelihood (ML)"
-    refs <- character(0)
   } else {
-    label <- if (scaled) tolower(tests[[which(is_scaled)[1]]]$label)
-    text <- sprintf("the %s estimator%s", estimator,
-                    if (scaled) sprintf(", with a scaled test statistic (%s)", label) else "")
+    text <- "maximum likelihood (ML)"
     refs <- character(0)
   }
   list(software = software, text = text, refs = refs, scaled = scaled)
+}
+
+# The estimator of a lavaan fit that does not store its name, from lavaan's
+# options: "MLR" for maximum likelihood with Huber-White standard errors and
+# the Yuan-Bentler test (Mplus variant), as lavaan sets MLR; "ML" for
+# maximum likelihood with standard errors from the information matrix; and
+# NA for anything else.
+.sem_lavaan_estimator <- function(fit) {
+  o <- lavaan::lavInspect(fit, "options")
+  if (!identical(o$estimator, "ML")) return(NA_character_)
+  if (identical(o$se, "robust.huber.white") && "yuan.bentler.mplus" %in% o$test) return("MLR")
+  if (identical(o$se, "standard")) return("ML")
+  NA_character_
 }
 
 # One sentence on the global fit of a lavaan model: the chi-square test, CFI,
@@ -1422,8 +1442,7 @@
   s <- fit$settings
   level <- .latent_conf_level(fit)
   fp <- fit$fit
-  estimator <- if (is.null(s$estimator)) lavaan::lavInspect(fp, "options")$estimator else s$estimator
-  est <- .sem_estimator(estimator, fp)
+  est <- .sem_estimator(s$estimator, fp)
   refs <- c(.solomon_function_refs$fit_solomon_sem_latent, est$refs)
   pt <- lavaan::parTable(fp)
   items <- unique(pt$rhs[pt$op == "=~" & pt$lhs == "POST"])
@@ -1581,9 +1600,9 @@
     }
   ), collapse = " ")
 
-  # Each model's chi-square test with its p-value: the scaled statistic for
-  # a robust estimator, as in the fit sentence of fit_solomon_sem_latent(),
-  # with the unscaled one whose CFI and RMSEA are reported.
+  # Each model's chi-square test with its p-value: under MLR, the scaled
+  # statistic, as in the fit sentence of fit_solomon_sem_latent(), with the
+  # unscaled one whose CFI and RMSEA are reported.
   m <- fit$models
   saturated <- m$df == 0
   test_stats <- function(i, what) {
@@ -2205,12 +2224,16 @@
 #' deviation of the latent posttest, not the unit of the four-group
 #' contrasts. With the default MLR estimator, the chi-square is the scaled
 #' one, and the CFI and RMSEA are those of the unscaled maximum likelihood
-#' chi-square, as the fit prints them. For [invariance_solomon()], the
+#' chi-square, as the fit prints them; with ML, it is the maximum likelihood
+#' chi-square. For [invariance_solomon()], the
 #' report gives the minimal information Putnick and Bornstein (2016)
 #' propose for invariance tests: the group sizes, the handling of missing
 #' data, the criteria, and the fit of each model (its chi-square test, CFI,
 #' RMSEA, and SRMR) with the comparisons and the decision under each
-#' criterion.
+#' criterion. The reports of these functions and of [fit_solomon_sem()]
+#' name the lavaan version and the estimator, MLR or ML, the two that the
+#' functions accept; a fit with any other estimator, which an earlier
+#' version could make, is refused.
 #'
 #' **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
 #' results describe differences between groups rather than treatment

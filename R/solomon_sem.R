@@ -10,6 +10,38 @@
   if (inherits(fm, "try-error")) c(cfi = NA, rmsea = NA, srmr = NA, df = df) else fm
 }
 
+# The estimators that fit_solomon_sem(), fit_solomon_sem_latent(), and
+# invariance_solomon() accept (issue #133): MLR and ML, the two that the
+# validation protocols posted on issues #117 and #55 study. Other lavaan
+# estimators either cannot be fitted with missing = "fiml" (MLM and MLMV)
+# or would be fitted, labeled, and reported without validation. As in
+# lavaan, the name is matched without regard to case; it is returned in
+# upper case, as the fits store and print it.
+.sem_estimators <- c("MLR", "ML")
+
+.check_sem_estimator <- function(estimator) {
+  one <- is.character(estimator) && length(estimator) == 1L && !is.na(estimator)
+  if (!one || !toupper(estimator) %in% .sem_estimators) {
+    stop(sprintf(paste0(
+      "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), %s. These are the ",
+      "estimators whose validation is planned for solomonR's SEM functions (issues #117 ",
+      "and #55); other estimators can be fitted with lavaan directly."
+    ), if (one) sprintf("not \"%s\"", estimator) else "given as a single character string"),
+    call. = FALSE)
+  }
+  toupper(estimator)
+}
+
+# Whether a lavaan fit has a scaled test statistic: a test with a scaling
+# factor (issue #130). A second test in the list is not enough: since lavaan
+# 0.7-3 a maximum likelihood fit also carries Browne's residual test, which
+# scales nothing. A saturated MLR model has a scaling factor of NA, and its
+# test is still the scaled one.
+.sem_scaled <- function(fit) {
+  tests <- lavaan::lavInspect(fit, "test")
+  any(vapply(tests, function(x) !is.null(x$scaling.factor), logical(1)))
+}
+
 # The Solomon contrasts as lavaan defined parameters (":=") of the group
 # means mu_P1, mu_P0, mu_U1, and mu_U0 (issue #110). Inside the model syntax
 # they have the short names below; the effects tables that the SEM functions
@@ -116,7 +148,11 @@
 #' @param y_pre optional pretest score (required if ancova = TRUE)
 #' @param equal_var logical; if TRUE, constrain posttest variances equal across groups
 #' @param ancova logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)
-#' @param estimator lavaan estimator (default "MLR")
+#' @param estimator The lavaan estimator, `"MLR"` (the default) or `"ML"`,
+#'   in upper or lower case. Any other value stops with an error: these two
+#'   are the estimators whose validation is planned for this function (the
+#'   protocol posted on issue #117). Other estimators can be fitted with
+#'   lavaan directly.
 #' @param conf_level confidence level for intervals (default 0.95)
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
@@ -144,6 +180,8 @@
 #'       mode gives `Treatment | pretested`
 #'     \item `fitmeasures`: named vector (CFI, RMSEA, SRMR, df)
 #'     \item `conf_level`: the confidence level of the intervals
+#'     \item `estimator`: `"MLR"` or `"ML"`, which [report_solomon()]
+#'       reports
 #'   }
 #'
 #'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
@@ -172,6 +210,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     y_pre = y_pre
   )
   .check_conf_level(conf_level)
+  estimator <- .check_sem_estimator(estimator)
 
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
@@ -217,7 +256,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     fm <- .sem_fit_measures(fit)
 
     structure(list(mode = "mean", fit = fit, effects = eff, fitmeasures = fm,
-                   conf_level = conf_level),
+                   conf_level = conf_level, estimator = estimator),
               class = "solomon_sem")
 
   } else {
@@ -262,7 +301,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     fm2 <- .sem_fit_measures(fit2)
 
     structure(list(mode = "ancova_pretested", fit = fit2, effects = eff2, fitmeasures = fm2,
-                   conf_level = conf_level),
+                   conf_level = conf_level, estimator = estimator),
               class = "solomon_sem")
   }
 }

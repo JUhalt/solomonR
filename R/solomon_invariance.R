@@ -128,7 +128,10 @@
 
   sizes <- as.vector(table(group))
   cut <- .chen2007_cutoffs(sizes)
-  robust <- estimator %in% c("MLR", "MLM", "MLMV")
+  # Whether the difference test is scaled is read from the fitted models,
+  # not from the estimator's name (issue #133): it is scaled when every
+  # model has a scaled test, as under MLR, and unscaled under ML.
+  scaled <- all(vapply(fits, .sem_scaled, logical(1)))
   step <- function(less, more, srmr_cut) {
     # The scaled difference test can fail inside lavaan when its scaling
     # correction is undefined, as in one replication of the #55 simulation
@@ -136,7 +139,7 @@
     lrt <- tryCatch(
       suppressWarnings(lavaan::lavTestLRT(
         fits[[less]], fits[[more]],
-        method = if (robust) "satorra.bentler.2001" else "default"
+        method = if (scaled) "satorra.bentler.2001" else "standard"
       )),
       error = function(e) NULL
     )
@@ -165,7 +168,7 @@
     supported = c(chisq = .invariance_level(tests$noninvariant_chisq, partial),
                   chen2007 = .invariance_level(tests$noninvariant_chen, partial)),
     cutoffs = cut, sizes = sizes, partial = partial, alpha = alpha,
-    scaled = robust
+    scaled = scaled
   )
 }
 
@@ -184,10 +187,11 @@
 #' two ways, and the output gives the decision under each.
 #'
 #' - **Chi-square difference test** (`noninvariant_chisq`): noninvariance
-#'   when the difference test rejects at `alpha`. For the robust estimators
-#'   MLR, MLM, and MLMV the difference is scaled (Satorra & Bentler, 2001).
-#'   Vandenberg and Lance (2000, p. 46) recommend this test as the primary
-#'   criterion, with the change in CFI as a supplement.
+#'   when the difference test rejects at `alpha`. Under MLR, the default,
+#'   the difference is scaled (Satorra & Bentler, 2001); under ML it is the
+#'   unscaled difference of the maximum likelihood chi-squares. Vandenberg
+#'   and Lance (2000, p. 46) recommend this test as the primary criterion,
+#'   with the change in CFI as a supplement.
 #' - **Change in fit** (`noninvariant_chen`): noninvariance when CFI drops by
 #'   at least .005 and, in addition, RMSEA rises by at least .010 or SRMR by
 #'   at least .025 (loadings) or .005 (intercepts), the cutoffs Chen (2007,
@@ -239,7 +243,11 @@
 #' @param items Names of at least three indicators.
 #' @param treat,pretested Treatment and pretest indicators (0/1). Designs with
 #'   several treatments are not supported; see [fit_solomon_glm()].
-#' @param estimator lavaan estimator, default `"MLR"`.
+#' @param estimator The lavaan estimator, `"MLR"` (the default) or `"ML"`,
+#'   in upper or lower case. Any other value stops with an error: these two
+#'   are the estimators whose validation is planned for this function (the
+#'   amendment of October 9, 2026, on issue #55). Other estimators can be
+#'   fitted with lavaan directly.
 #' @param partial Optional character vector of freed parameters (see Partial
 #'   invariance).
 #' @param alpha Significance level of the chi-square difference test.
@@ -260,8 +268,11 @@
 #'   - `cutoffs`: the cutoffs of the change-in-fit criterion that were
 #'     applied.
 #'   - `sizes`: the four group sizes.
-#'   - `partial`, `alpha`, `items`, and `estimator`: the settings used.
-#'   - `scaled`: whether the chi-square difference was scaled.
+#'   - `partial`, `alpha`, `items`, and `estimator`: the settings used, with
+#'     `estimator` in upper case.
+#'   - `scaled`: whether the chi-square difference was scaled, read from
+#'     the fitted models: `TRUE` when every model has a scaled test
+#'     statistic, as under MLR.
 #'
 #'   The tables compare models and estimate no Solomon contrast, so the
 #'   result has no effects table, and the lavaan objects are not part of
@@ -327,6 +338,7 @@ invariance_solomon <- function(data, items, treat, pretested, estimator = "MLR",
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(data = data, treat = treat, pretested = pretested)
   .check_partial(partial, items)
+  estimator <- .check_sem_estimator(estimator)
   group <- factor(interaction(pretested, treat, drop = TRUE),
                   levels = c("1.1", "1.0", "0.1", "0.0"), labels = c("P1", "P0", "U1", "U0"))
   out <- .invariance_steps(data, items, group, estimator, partial, alpha)
