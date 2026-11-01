@@ -370,7 +370,7 @@ test_that("the several-treatment script reads a checkpoint without a commit as N
   expect_identical(env$first_start(start_file, "abc1234")$commit, "abc1234")
   expect_identical(env$first_start(start_file, NA_character_)$commit, "abc1234")
   # Before #152, the script saved character(0), with an exit status, outside
-  # a git clone.
+  # any git repository.
   empty <- structure(character(0), status = 128L)
   saveRDS(list(time = Sys.time(), commit = empty), start_file)
   expect_identical(env$first_start(start_file, "def5678")$commit, NA_character_)

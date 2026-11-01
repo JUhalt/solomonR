@@ -192,9 +192,9 @@ reasons are set out in the decision record posted on #135.
 ## Validation scripts outside a git clone (bug fix, #152)
 
 * Ten validation scripts stopped at the end of a run, before writing
-  `run-information.csv`, when the copy of the package that they ran was
-  not a git clone, as a copy downloaded with GitHub's "Download ZIP" is
-  not: the scripts of the binary, historical-test, cluster-marginal,
+  `run-information.csv`, when they ran outside any git repository, as in
+  a copy downloaded with GitHub's "Download ZIP" and unpacked outside
+  one: the scripts of the binary, historical-test, cluster-marginal,
   cluster, count, negative-binomial, invariance, multiple-imputation,
   repeated-measures, and several-treatment studies. They took the commit
   from `git rev-parse HEAD`. Outside a repository, git fails, and R's
@@ -202,9 +202,9 @@ reasons are set out in the decision record posted on #135.
   warning that the scripts' `tryCatch()` did not catch, so there was no
   commit to record, not even `NA`. In such a copy,
   `tools/check-validation-scripts.R` failed these ten and the two scripts
-  that depend on them, 12 of the 16. In a copy
-  unpacked inside another git repository, the ten recorded that
-  repository's commit.
+  that depend on them, 12 of the 16. In a copy unpacked inside another
+  git repository, git finds that repository, and the ten recorded its
+  commit.
 * Every validation script that records a commit now takes it by one rule:
   the environment variable `SOLOMONR_COMMIT` when it is set and not empty;
   otherwise the commit checked out, when git is on the PATH, the copy is
@@ -223,8 +223,9 @@ reasons are set out in the decision record posted on #135.
   page states the rule and says how to record the commit of a downloaded
   copy. The stored results do not change.
 * The several-treatment script, rerun where the old script stopped
-  outside a clone, resumes from the checkpoints that it left, whose
-  commit is empty, and records `NA` as the commit of their replications.
+  outside any git repository, resumes from the checkpoints that it left,
+  whose commit is empty, and records `NA` as the commit of their
+  replications.
 * A new test checks that the scripts share one definition of the rule and
   pass it the folder of the package that they load. It checks the rule
   with `SOLOMONR_COMMIT` set; in a clone, also from a folder below its

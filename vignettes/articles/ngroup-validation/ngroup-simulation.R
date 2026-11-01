@@ -431,8 +431,8 @@ validation_commit <- function(root = ".") {
 
 # The first start of the replications, and the commit they were run from,
 # are kept with the checkpoints, so a resumed or rebuilt run reports them.
-# A checkpoint saved by the script before #152 outside a git clone holds no
-# commit (character(0)); it is read as NA.
+# A checkpoint saved by the script before #152 outside any git repository
+# holds no commit (character(0)); it is read as NA.
 first_start <- function(start_file, commit) {
   if (!file.exists(start_file)) {
     saveRDS(list(time = Sys.time(), commit = commit), start_file)
