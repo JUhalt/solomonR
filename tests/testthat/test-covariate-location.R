@@ -871,9 +871,11 @@ test_that("the intercept as given keeps its accuracy with nearly collinear covar
 })
 
 test_that("the covariance as given comes from a factor of the model's covariance", {
-  # .given_vcov() with the identity for the map gives the covariance it
-  # factors: vcov(), sandwich's HC3, and clubSandwich's CR2, from the
-  # matrices clubSandwich keeps with it.
+  # On a well-conditioned design .given_vcov() gives M V M' for the
+  # covariance V it factors: vcov(), sandwich's HC3, and clubSandwich's
+  # CR2, from the matrices clubSandwich keeps with it. The map moves the
+  # intercept by the coefficients of age and z, as the means of
+  # covariates do; a diagonal map is applied as M V M' itself.
   d <- location_data()$four
   d <- d[!is.na(d$y_g), ]
   d$y_b <- as.integer(d$y_g > stats::median(d$y_g))
@@ -883,11 +885,12 @@ test_that("the covariance as given comes from a factor of the model's covariance
                         family = family, data = d)
     M <- diag(length(stats::coef(model)))
     dimnames(M) <- list(names(stats::coef(model)), names(stats::coef(model)))
+    M["(Intercept)", c("age", "z")] <- c(-4, 0.5)
     V <- list(none = stats::vcov(model), HC3 = sandwich::vcovHC(model, type = "HC3"),
               CR2 = clubSandwich::vcovCR(model, cluster = d$site, type = "CR2"))
     for (robust in names(V)) {
       expect_equal(.given_vcov(model, model, V[[robust]], M, robust),
-                   matrix(V[[robust]], nrow(M), dimnames = dimnames(M)), tolerance = 1e-12,
+                   M %*% matrix(V[[robust]], nrow(M)) %*% t(M), tolerance = 1e-12,
                    info = paste(family, robust))
     }
   }

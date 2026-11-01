@@ -138,10 +138,14 @@
 #   They are first checked to give `V` as clubSandwich computes it, and its
 #   bread over its scale to be the inverse of R'R; should clubSandwich keep
 #   other matrices, the check fails and the covariance is M V_s M'.
-# Returns a matrix named by the terms.
+# A map that is diagonal only divides, which cancels nothing: the pretest
+# alone, divided by a power of two, which is exact, so that such fits keep
+# the covariance they had, or covariates whose mean is zero. It is applied
+# as M V_s M'. Returns a matrix named by the terms.
 .given_vcov <- function(fit, fit_cr, V, M, robust) {
   model <- if (robust == "CR2") fit_cr else fit
   mapped <- function() M %*% as.matrix(V) %*% t(M)
+  if (all(M[row(M) != col(M)] == 0)) return(mapped())
   q <- model$qr
   p <- ncol(M)
   if (is.null(q) || q$rank < p || !identical(q$pivot, seq_len(p))) return(mapped())
