@@ -202,9 +202,14 @@
 # Stop when a coefficient of the fitted model is inestimable: an empty
 # group, or a term collinear with the others. `empty` names the groups
 # without an analyzable participant (.group_names()). Used by the four-group
-# and the several-treatment paths of fit_solomon_glm().
-.stop_inestimable <- function(fit, empty) {
+# and the several-treatment paths of fit_solomon_glm(). With `noise`, the
+# rounding error of each entry of the model matrix (.representation_error()),
+# a term that is collinear with the others but for that error is collinear
+# too (.collinear_terms()); `covariates` names the covariates' terms, which
+# are checked last.
+.stop_inestimable <- function(fit, empty, noise = NULL, covariates = character()) {
   aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
+  if (!length(aliased) && !is.null(noise)) aliased <- .collinear_terms(fit, noise, covariates)
   if (!length(aliased)) return(invisible(NULL))
   if (length(empty)) {
     stop(
@@ -221,6 +226,226 @@
     "term, causes this.",
     call. = FALSE
   )
+}
+
+# The rounding error that each entry of the model matrix of the
+# standardized model `fit` carries from the values the model was given, for
+# .collinear_terms() (issue #137). `given` is the model as given, `scaling`
+# comes from .covariate_scaling(), and `center` is the mean the pretest was
+# centered at, NA without a pretest. A value x is stored with an error of up
+# to |x| eps / 2, with eps = .Machine$double.eps, and a covariate computed
+# from others, such as a time of testing that is the time of enrollment plus
+# a delay, carries the errors of that computation, of the same order.
+# Standardizing a covariate divides that error by the covariate's standard
+# deviation and adds an error of its own, of up to the standardized value
+# times eps / 2, and dividing the pretest by a power of two is exact. The
+# error of entry (i, j) is therefore taken to be
+#   eps (|x_ij| / s_j + |z_ij|),
+# with x_ij the value as given, s_j the number column j was divided by (1
+# for a column that is not standardized), and z_ij the value in `fit`. The
+# pretest enters centered, but it was stored before centering, so its x_ij
+# is the pretest as given, the centered value plus the center, in the
+# pretested rows; the 0 of the unpretested rows is exact. The intercept,
+# the treatment and pretest indicators, their interactions, and the
+# indicators of factors hold 0s and 1s, exactly, and get eps (|x| + |z|)
+# too. Returns a matrix of the dimensions of the model matrix.
+.representation_error <- function(fit, given, scaling, center = NA_real_) {
+  Z <- stats::model.matrix(fit)
+  X <- stats::model.matrix(given)
+  s <- rep(1, ncol(Z))
+  if (length(scaling$means)) {
+    columns <- .scaled_columns(fit, scaling)
+    s[columns] <- scaling$scales
+    if ("pre_obs" %in% names(columns) && is.finite(center)) {
+      j <- columns[["pre_obs"]]
+      X[, j] <- X[, j] + center * X[, match("pretested", colnames(X))]
+    }
+  }
+  .Machine$double.eps * (sweep(abs(X), 2L, s, "/") + abs(Z))
+}
+
+# The terms of the standardized model `fit` that are collinear with the
+# other terms but for the rounding error of the values the model was given
+# (issue #137), from `noise`, the error of each entry of its model matrix
+# (.representation_error()).
+#
+# Terms that are exactly collinear in the data as given, sum_j c_j x_j = 0
+# with the intercept among the x_j, satisfy it once stored only up to their
+# rounding errors: sum_j c_j x_j = r, with |r_i| <= sum_j |c_j| e_ij for the
+# errors e_ij of the entries. Standardizing changes the units of the terms,
+# not the relation. Regressed on the other terms, as glm()'s QR
+# decomposition does in the metric of the fit's weights (the working
+# weights, times the prior weights), a term k of the relation then has a
+# residual of at most || r || / |c_k|, and its coefficients are those of
+# the relation, b_kj = -c_j / c_k. So its residual is at most
+#   B_k = || e_k + sum_j |b_kj| e_j ||,
+# the rounding error the regression carries into term k from the terms it
+# is regressed on: in the units of the terms as given, with coefficients
+# beta_kj, entry i is eps (|x_ik| + sum_j |beta_kj| |x_ij|) / s_k, which
+# grows with the coefficients and so with the spreads of the far terms
+# relative to term k's own. A tolerance relative to each term's own spread,
+# the same for every term, missed a time of testing that is the time of
+# enrollment plus a delay, with the times as dates in seconds: the error of
+# the times reached the delay amplified by their spreads relative to its
+# spread, 1,200 times its own, and the fit went on to meaningless standard
+# errors. A single tolerance large enough to cover that amplification
+# would instead stop nearly collinear covariates near zero whenever another
+# covariate lies far from zero, though glm() and master fit them.
+#
+# Centering a column at its weighted mean and multiplying it by the root
+# of the weights round each entry too, by up to eps / 2 of the result
+# each; the rounding of the root itself scales a whole row, which keeps a
+# relation. So the error of entry (i, j) of the weighted, centered design,
+# a_ij, is taken to be the representation error, weighted, plus eps |a_ij|.
+#
+# The residual must not carry a larger error of its own. The QR
+# decomposition leaves the residual of term k in R_kk, but Householder QR
+# is only backward stable: its R is the exact one of columns perturbed by
+# a multiple of eps times their norms (Higham, 2002, chap. 19), and the
+# perturbation reaches term k through the same coefficients, by up to
+# about eps (||a_k|| + sum_j |b_kj| ||a_j||) times a factor that grows with
+# the size of the design. A covariate that is twice the pretest indicator
+# less 0.00111 times a covariate with a spread of 0.0057 (and 0.000174
+# times a treatment indicator) gives that covariate coefficients of up to
+# 3e5 in the standardized units, and in six groups of 51 its exact relation
+# had an R_kk of 1.06 times 4 B_k, so that it went unnoticed until the
+# omnibus test found its covariance singular. Adding a bound on that
+# rounding, sqrt(m k) eps (||a_k|| + sum_j |b_kj| ||a_j||) for m rows and
+# k columns, as ab2ddc1 did, stopped nested near-collinearity near zero
+# that glm() and master fit at full rank, such as z2 = z1 + 1e-6 e1 and
+# z3 = e1 + 1e-8 e2, whose coefficients sum to about 2e6: the residual of
+# z3, 1.06e-8 of its norm, was within that bound, 6.9e-8, though it was
+# three times 4 B_k, 3.4e-9. The residual is therefore computed from the
+# stored columns rather than read from R_kk. The coefficients that the
+# decomposition gives are refined three times (Higham, 2002, chap. 20):
+# the residual a_k - sum_j b_kj a_j is accumulated in twice the working
+# precision and rounded once (.accurate_residual(); Ogita, Rump, & Oishi,
+# 2005), the least-squares correction for it is solved with the same
+# decomposition, and the coefficients are updated. Each step multiplies
+# the error of the coefficients by about eps times the condition number of
+# the terms before k, which are not collinear, having been checked. What
+# is left of the final residual in the span of those terms is removed, so
+# that the residual is that of the stored values, to about eps times that
+# condition number of its own size, without the decomposition's rounding.
+# That rounding moves R_kk by at most a small multiple of m k eps
+# (||a_k|| + sum_j |b_kj| ||a_j||) (Higham, 2002, Theorem 19.4), taken as
+# 10 m k eps; a term whose R_kk exceeds its bound by more is not collinear
+# and needs no refinement, which most terms of most designs do not.
+#
+# Each term is therefore compared with its own bound: it is taken to be
+# collinear with the terms before it when its residual, in the metric of
+# the weights and with each column but the intercept centered at its
+# weighted mean, is at most 4 B_k, or at most 1e-11 of its norm, the
+# tolerance of glm(). The bound holds with the coefficients of an exact
+# relation, and the regression's coefficients equal them to within the
+# relation's own rounding error; the margin of 4 covers errors several
+# times eps / 2 per entry, as computed covariates carry. A term that is not
+# collinear is stopped only if its residual is within the bound or the
+# tolerance. A covariate far from zero that is unrelated to the term
+# enters its regression with a coefficient near zero and adds nothing to
+# the bound. Near zero, where |x_ij| / s_j is about |z_ij|, B_k is about
+# 3 eps (||a_k|| + sum_j |b_kj| ||a_j||): below glm()'s tolerance, which
+# then decides as in master, for a covariate that nearly repeats another
+# or a combination of others with coefficients of order 1, such as a pair
+# or a copy in single precision; above it once the coefficients sum to
+# more than about 10^3.5, as in nested near-collinearity, where a residual
+# within the bound cannot be told from that of an exact relation between
+# rounded values, and stops the fit though glm() fits it.
+#
+# The terms are checked in turn, each regressed on those before it, with
+# the covariates (the terms named in `covariates`) after the treatment and
+# pretest terms, so that a relation is found at its last term in that order
+# whatever the order of the covariates; a term found collinear is left out
+# and the rest are checked again. Returns the names of the collinear terms'
+# columns, in the order of the model, or an empty vector.
+.collinear_terms <- function(fit, noise, covariates = character(), margin = 4, floor = 1e-11) {
+  X <- stats::model.matrix(fit)
+  w <- fit$weights
+  if (is.null(w) || length(w) != nrow(X)) w <- rep(1, nrow(X))
+  labels <- attr(stats::terms(fit), "term.labels")
+  last <- attr(X, "assign") %in% match(covariates, labels)
+  order <- c(which(!last), which(last))
+  keep <- w > 0
+  A <- X[keep, order, drop = FALSE]
+  E <- noise[keep, order, drop = FALSE]
+  w <- w[keep]
+  j <- order != match(0L, attr(X, "assign"))
+  A[, j] <- sweep(A[, j, drop = FALSE], 2L, colSums(w * A[, j, drop = FALSE]) / sum(w))
+  A <- sqrt(w) * A
+  E <- sqrt(w) * E + .Machine$double.eps * abs(A)
+  # The first term, in this order, collinear with the terms before it; NA
+  # for none. qr() with a tolerance of 0 keeps the columns in order, so
+  # that the first k - 1 columns of its Q span the terms before term k.
+  first <- function(A, E) {
+    qa <- qr(A, tol = 0)
+    R <- qr.R(qa)
+    m <- nrow(A)
+    norms <- sqrt(colSums(A^2))
+    for (k in seq_len(ncol(A))[-1L]) {
+      before <- seq_len(k - 1L)
+      Rk <- R[before, before, drop = FALSE]
+      Ak <- A[, before, drop = FALSE]
+      b <- backsolve(Rk, R[before, k])
+      bound <- function(b) {
+        carried <- sqrt(sum((E[, k] + drop(E[, before, drop = FALSE] %*% abs(b)))^2))
+        max(margin * carried, floor * norms[k])
+      }
+      rounding <- 10 * m * k * .Machine$double.eps * (norms[k] + sum(abs(b) * norms[before]))
+      screen <- abs(R[k, k]) - rounding - bound(b)
+      if (is.finite(screen) && screen > 0) next
+      for (step in 1:3) {
+        r <- .accurate_residual(A[, k], Ak, b)
+        b <- b + backsolve(Rk, qr.qty(qa, r)[before])
+      }
+      r <- .accurate_residual(A[, k], Ak, b)
+      r <- r - qr.qy(qa, c(qr.qty(qa, r)[before], numeric(m - k + 1L)))
+      residual <- sqrt(sum(r^2))
+      limit <- bound(b)
+      if (!is.finite(residual) || !is.finite(limit) || residual <= limit) return(k)
+    }
+    NA_integer_
+  }
+  active <- seq_len(ncol(A))
+  found <- integer()
+  repeat {
+    k <- first(A[, active, drop = FALSE], E[, active, drop = FALSE])
+    if (is.na(k)) break
+    found <- c(found, active[k])
+    active <- active[-k]
+  }
+  colnames(X)[sort(order[found])]
+}
+
+# a - A b for a vector `a`, a matrix `A`, and coefficients `b`, accumulated
+# in twice the working precision and rounded once, so that it is accurate to
+# about .Machine$double.eps of its own size however much its terms cancel:
+# each product is split exactly into its rounded value and its error
+# (Dekker's product, with Veltkamp's split by 2^27 + 1), each sum likewise
+# (Knuth's two-sum), and the errors are summed apart, as the algorithm Dot2
+# of Ogita, Rump, and Oishi (2005) does. Used by .collinear_terms().
+.accurate_residual <- function(a, A, b) {
+  split <- function(x) {
+    y <- 134217729 * x
+    high <- y - (y - x)
+    list(high = high, low = x - high)
+  }
+  s <- a
+  error <- numeric(length(a))
+  for (j in seq_along(b)) {
+    x <- A[, j]
+    y <- -b[[j]]
+    p <- x * y
+    xs <- split(x)
+    ys <- split(y)
+    p_error <- ((xs$high * ys$high - p) + xs$high * ys$low + xs$low * ys$high) +
+      xs$low * ys$low
+    t <- s + p
+    z <- t - s
+    s_error <- (s - (t - z)) + (p - z)
+    s <- t
+    error <- error + (s_error + p_error)
+  }
+  s + error
 }
 
 # Fit the joint model of an N-group design. Called by fit_solomon_glm()
@@ -325,12 +550,17 @@
     df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
   }
 
-  if (negbin) {
-    fit <- .fit_negbin(fml, df)
-    family <- stats::family(fit)
-  } else {
-    fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
-  }
+  # The model as given, and the model refitted with the numeric covariates
+  # standardized and the pretest scaled, which the inference comes from and
+  # which gives the warnings, as in the four-group model (issue #137).
+  standardize <- .standardizes(df, names(covariates))
+  fit <- .fit_model(fml, df, family, negbin, quiet = standardize)
+  used <- rep(TRUE, nrow(df))
+  if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
+  fit_given <- fit
+  scaling <- .covariate_scaling(df, names(covariates), used)
+  if (standardize) fit <- .fit_model(fml, scaling$data, family, negbin)
+  if (negbin) family <- stats::family(fit)
 
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link, ngroup = TRUE)
@@ -338,16 +568,19 @@
 
   # Analyzable participants (the rows the model kept) in each of the
   # 2(k + 1) groups.
-  used <- rep(TRUE, nrow(df))
-  if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
   counts <- table(
     factor(df$condition[used], levels = lev),
     factor(df$pretested[used], levels = c(1L, 0L))
   )
 
   # An empty group, or a term collinear with the others, leaves a
-  # coefficient inestimable.
-  .stop_inestimable(fit, .group_names(counts, counts == 0))
+  # coefficient inestimable, in the model as given or standardized, the
+  # latter checked as well for terms collinear but for the rounding error of
+  # the values given, as in the four-group model (.collinear_terms()).
+  .stop_inestimable(fit_given, .group_names(counts, counts == 0))
+  .stop_inestimable(fit, .group_names(counts, counts == 0),
+                    noise = .representation_error(fit, fit_given, scaling, pretest_mean),
+                    covariates = .formula_names(names(covariates)))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2.
@@ -360,11 +593,15 @@
     )
   }
 
-  # Robust covariance, as in the four-group model.
+  # Robust covariance, as in the four-group model: with a numeric covariate,
+  # from the standardized model's QR decomposition (.hc3_vcov(),
+  # .cr2_basis()).
   fit_cr <- fit
   n_clusters <- NULL
+  cr2_basis <- NULL
+  numeric_covariates <- .numeric_covariates(scaling)
   if (robust == "HC3") {
-    vcovM <- sandwich::vcovHC(fit, type = "HC3")
+    vcovM <- if (numeric_covariates) .hc3_vcov(fit) else sandwich::vcovHC(fit, type = "HC3")
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
@@ -383,23 +620,29 @@
       .stop_confounded_clusters(single)
     }
 
-    fit_cr <- stats::glm(fml, data = df[used, , drop = FALSE], family = family)
-    vcovM <- clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
+    fit_cr <- stats::glm(fml, data = scaling$data[used, , drop = FALSE], family = family)
+    if (numeric_covariates) cr2_basis <- .cr2_basis(fit_cr, cluster_fit)
+    vcovM <- if (is.null(cr2_basis)) {
+      clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
+    } else {
+      .cr2_standardized_vcov(cr2_basis, names(stats::coef(fit_cr)))
+    }
   } else {
     vcovM <- stats::vcov(fit)
   }
 
   # The sampling variance of the mean pretest at which the pretest effects
   # are evaluated, as in the four-group model (issues #104 and #135), and the
-  # other center's, when the two differ, for `pretest_sensitivity`.
+  # other center's, when the two differ, for `pretest_sensitivity`, in the
+  # units of the scaled pretest of `fit`.
   center <- NULL
   center_other <- NULL
   center_note <- NULL
   parts <- NULL
   differ <- FALSE
   if (!is.null(y_pre)) {
-    both <- .center_terms_both(df, y_pre, used, if (robust == "CR2") fit_cr else fit, robust,
-                               cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    both <- .center_terms_both(scaling$data, y_pre, used, if (robust == "CR2") fit_cr else fit,
+                               robust, cluster, if (robust == "CR2") cluster_fit, pretest_center)
     center <- both$center
     center_other <- both$other
     center_note <- both$note
@@ -410,21 +653,8 @@
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
-  tidy <- .tidy_coefficients(fit)
-  se_vec <- sqrt(diag(vcovM))
-  tidy$std.error <- unname(se_vec[match(tidy$term, names(se_vec))])
-  tidy$statistic <- tidy$estimate / tidy$std.error
-  if (robust == "CR2") {
-    ct <- clubSandwich::coef_test(fit_cr, vcov = vcovM, test = "Satterthwaite")
-    tidy$df <- ct$df_Satt[match(tidy$term, ct$Coef)]
-  } else {
-    tidy$df <- df_model
-  }
-  tidy$p.value <- 2 * stats::pt(-abs(tidy$statistic), df = tidy$df)
-  coef_ci <- .wald_ci(tidy$estimate, tidy$std.error, tidy$df, conf_level)
-  tidy$conf.low <- unname(coef_ci[, "conf.low"])
-  tidy$conf.high <- unname(coef_ci[, "conf.high"])
-  tidy <- tidy[, .solomon_coefficient_columns]
+  coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
+                                     cr2_basis)
 
   cf <- stats::coef(fit)
   cn <- names(cf)
@@ -435,18 +665,7 @@
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
-    dfc <- if (robust == "CR2") {
-      as.data.frame(
-        clubSandwich::linear_contrast(
-          fit_cr,
-          vcov = vcovM,
-          contrasts = Lm,
-          test = "Satterthwaite"
-        )
-      )$df
-    } else {
-      df_model
-    }
+    dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
     adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
@@ -546,7 +765,9 @@
   effects <- .effects_table(effects, keys = "comparison")
 
   # The pretest effects at both centers (issue #135), computed for the
-  # other center by shifting the contrasts, as in the four-group model.
+  # other center by shifting the contrasts, as in the four-group model: the
+  # shift in the units of the scaled pretest, the slope in those of the
+  # pretest as given.
   sensitivity <- NULL
   if (!is.null(y_pre)) {
     pretest_labels <- c(cond$control, cond$treatments, "All conditions")
@@ -557,7 +778,8 @@
     other_rows <- NULL
     if (differ) {
       other_rows <- .other_center_rows(
-        L_pretest, pretest_types, centers[[.other_center(pretest_center)]] - pretest_mean,
+        L_pretest, pretest_types,
+        (centers[[.other_center(pretest_center)]] - pretest_mean) / .pretest_scale(scaling),
         function(L) lin_contrast(L, center_other), comparison = pretest_labels,
         no_se = !is.null(center_note)
       )
@@ -568,7 +790,7 @@
       other_rows <- other_rows[, columns]
     }
     identity <- identical(stats::family(fit)$link, "identity")
-    slope <- cf[["pre_obs"]]
+    slope <- cf[["pre_obs"]] / .pretest_scale(scaling)
     sensitivity <- .pretest_sensitivity(
       used_rows, other_rows, pretest_center, "comparison", parts, centers, slope, identity,
       .pretest_attrition(as.character(df$condition), lev, df$pretested, df$y, used, slope,
@@ -606,7 +828,7 @@
     b <- as.numeric(L %*% cf)
     W <- as.numeric(t(b) %*% solve(L %*% vcovM %*% t(L), b))
     if (robust == "CR2") {
-      wt <- clubSandwich::Wald_test(fit_cr, constraints = L, vcov = vcovM, test = "HTZ")
+      wt <- .cr2_wald(L, fit_cr, vcovM, cr2_basis)
       data.frame(test = omnibus_labels[[type]], statistic = wt$Fstat,
                  df1 = wt$df_num, df2 = wt$df_denom, p.value = wt$p_val,
                  reference = "F", stringsAsFactors = FALSE)
@@ -624,6 +846,8 @@
   }))
   rownames(omnibus) <- NULL
 
+  # The dispersion and theta come from the fit the inference came from, as
+  # in the four-group model.
   dispersion <- if (dispersion_fixed) {
     sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
   } else {
@@ -631,8 +855,8 @@
   }
 
   out <- list(
-    model = fit,
-    coefficients = tidy,
+    model = fit_given,
+    coefficients = coefficients$table,
     effects = effects,
     omnibus = omnibus,
     conditions = data.frame(
@@ -645,7 +869,8 @@
     adjust = adjust,
     dispersion = dispersion,
     theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
-    vcov = vcovM,
+    vcov = coefficients$vcov,
+    covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
     data = df,
     pretest_mean = pretest_mean,
     pretest_center = pretest_center,

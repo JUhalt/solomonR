@@ -54,14 +54,25 @@
 
 # The imputation model of each group, fitted to its observed posttests: the
 # posttest on the pretest in the pretested groups, and on a constant in the
-# unpretested groups (Carpenter et al., 2023, section 3.1).
+# unpretested groups (Carpenter et al., 2023, section 3.1). The pretest is
+# centered at its mean among the group's observed posttests. That changes
+# neither the model nor the distribution of its draws, and makes the model,
+# its check of a constant pretest, and the draws of a seed the same
+# wherever the pretest lies; uncentered, a pretest far from zero made them
+# differ, and from about 10^7 standard deviations taken to be constant
+# (issue #137).
 .mi_models <- function(d) {
   lapply(1:4, function(j) {
     rows <- which(d$group == j)
     obs <- !is.na(d$y_post[rows])
     if (all(obs)) return(NULL)
     use_pre <- !is.null(d$y_pre) && j <= 2L
-    X <- if (use_pre) cbind(1, d$y_pre[rows]) else matrix(1, length(rows), 1L)
+    X <- if (use_pre) {
+      x <- d$y_pre[rows]
+      cbind(1, x - mean(x[obs]))
+    } else {
+      matrix(1, length(rows), 1L)
+    }
     p <- ncol(X)
     if (sum(obs) < p + 1L) {
       stop(sprintf(
@@ -103,12 +114,22 @@
 # weights A = L (X'X)^-1 X' and the leverages are computed once: the
 # estimates are A y and the HC3 variances are (A * A) w, with
 # w = (e / (1 - h))^2 (MacKinnon & White, 1985). test-mi.R checks that the
-# results equal fit_solomon_glm()'s.
+# results equal fit_solomon_glm()'s. The pretest is centered at its mean
+# among the pretested participants, and divided by the power of two nearest
+# its standard deviation among them, as in fit_solomon_glm()
+# (.covariate_scaling()). That changes none of the contrasts, and keeps X'X
+# well-conditioned however far the pretest lies from zero and whatever its
+# scale (issue #137); dividing by a power of two is exact.
 .mi_design <- function(d, robust) {
   pre <- !is.null(d$y_pre)
-  X <- cbind(1, d$treat, d$pretested,
-             if (pre) ifelse(d$pretested == 1L, d$y_pre, 0),
-             d$treat * d$pretested)
+  pretest <- NULL
+  if (pre) {
+    observed <- d$y_pre[d$pretested == 1L]
+    unit <- stats::sd(observed)
+    unit <- if (is.finite(unit) && unit > 0) 2^round(log2(unit)) else 1
+    pretest <- ifelse(d$pretested == 1L, (d$y_pre - mean(observed)) / unit, 0)
+  }
+  X <- cbind(1, d$treat, d$pretested, pretest, d$treat * d$pretested)
   L <- rbind(
     c(0, 1, 0, if (pre) 0, 0.5),  # ATE (avg over pretest)
     c(0, 0, 0, if (pre) 0, 1),    # Pretest x Treatment
@@ -191,7 +212,10 @@
 #'    contains the Pretest x Treatment interaction of two fully observed
 #'    indicators, and imputing separately in the groups they define is the
 #'    simplest approach to such interactions (Carpenter et al., 2023,
-#'    section 6.3.5, p. 149).
+#'    section 6.3.5, p. 149). The pretest is centered at its mean among the
+#'    group's observed posttests, which leaves the model unchanged and makes
+#'    the imputations of a seed the same wherever the pretest lies (issue
+#'    #137).
 #' 2. **Proper imputation.** For each imputation the residual variance and
 #'    the coefficients are drawn from their posterior distribution, and the
 #'    missing posttests are then drawn from the model (Carpenter et al.,

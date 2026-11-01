@@ -1,5 +1,205 @@
 # solomonR (development version)
 
+## Covariates far from zero (bug fix, #137)
+
+* `fit_solomon_glm()` stopped with "system is computationally singular"
+  when a covariate lay far from zero relative to its spread, as a calendar
+  year, an identification number, or a score with a large offset can, or
+  was on a scale far from 1, as an income in dollars can: in the issue's
+  example, a covariate with a mean of 10,000 and a standard deviation of 1.
+  The influence functions of the pretest effects, added in #104, inverted
+  the cross-products of the design, which square its condition number;
+  they now come from the model's QR decomposition. Short of that error, the
+  HC3 and CR2 standard errors and Satterthwaite degrees of freedom, the
+  delta method and the bootstrap of `marginal_solomon()`, and the intervals
+  of the cell means of `plot_sensitization()` lost accuracy, without a
+  warning. At a mean of 1,000 standard deviations the delta-method standard
+  errors of `marginal_solomon()` for counts were off by up to 4e-3 of their
+  value, and from 10,000 every bootstrap resample failed.
+* A pretest on a scale far from 1 did the same. With a pretest standard
+  deviation of 10^-8 or 10^8, HC3 and CR2 fits stopped with the same
+  error. Short of that, the CR2 standard errors were off, in three
+  checks, by 3.5e-6 to 5.8e-6 of their value at a standard deviation of
+  10^6 and by 1.2e-3 to 5.5e-3 at 10^7; in one check, the delta-method
+  standard errors of `marginal_solomon()`, whose numerical derivatives
+  took steps unsuited to the pretest's coefficient, were off by 3e-7 to
+  4e-7 of their value at 10^4 and by 2e-3 to 3e-3 at 10^6.
+* The inference is now computed with each numeric covariate standardized,
+  centered at its mean and divided by its standard deviation over the
+  participants in the model, and with the pretest, centered already,
+  divided by the power of two nearest its standard deviation. That is a
+  reparameterization of the same model, so adding a constant to a
+  covariate or to the pretest, or changing the scale of either, changes no
+  contrast, standard error, degrees of freedom, or p-value beyond rounding,
+  for constants up to at least 10^6 standard deviations: under model-based,
+  HC3, and CR2 covariance, with one or several treatments, at either
+  pretest center, and in `marginal_solomon()`, `plot_sensitization()`, and
+  `perm_solomon()`. The model, the coefficients (the intercept included),
+  and their covariance are still those of the covariates and the pretest
+  as given; the standardized ones are in a new element,
+  `covariate_scaling`, outside the stable interface. A numeric covariate is
+  standardized whatever its class, such as a labeled column read from SPSS
+  or one wrapped in `I()`, and dates and times as the numbers they enter
+  the model as. The warnings, `theta`, and `dispersion` come from the
+  standardized fit: far from zero, the negative-binomial fit to the
+  covariates as given could warn that theta did not converge where the
+  same model standardized converged. `?fit_solomon_glm` has a new section,
+  "Covariates".
+* Exactly collinear covariates far from zero, such as `z + 1e6` and
+  `2 * z + 3`, whose rounding error makes `glm()` take them for distinct
+  covariates, were fitted under model-based covariance, with meaningless
+  coefficients for the two, and stopped under HC3 and CR2 with "system is
+  computationally singular". The standardized model is now checked for
+  collinear terms too: each term, regressed on the terms before it, is
+  taken to be collinear when its residual is within 4 times the rounding
+  error that the regression carries into it, or within the 1e-11 of
+  `glm()`. That error is the term's own plus each other term's times the
+  magnitude of its coefficient, with each value's error taken to be
+  `.Machine$double.eps` times its magnitude as given; the residual is
+  computed from the stored values in twice the working precision, rather
+  than taken from the QR decomposition, whose rounding the same
+  coefficients would multiply. So it covers a term whose spread is small
+  next to that of the far terms it is a combination of, such as a delay
+  that is the difference of two dates, and a term that is the small
+  difference of two nearly equal ones.
+  An exact relation among the covariates, the pretest, the treatment and
+  pretest indicators, their interaction, and factor indicators therefore
+  stops with the message that names a collinear term, as it does near
+  zero, however far from zero its terms lie and however their spreads
+  differ, as long as its values carry no more rounding error than values
+  stored from exact data or computed in a few operations. A term that is
+  not exactly collinear stops only when its residual is within that bound
+  or below the tolerance of `glm()`. Near zero the bound grows with the
+  term's coefficients. For a covariate that nearly repeats another, such
+  as a covariate and its copy in single precision, it is about 5e-15 of
+  the covariate's norm, far below that tolerance, so the check is that of
+  `glm()` and such covariates are fitted as before, whatever other
+  covariates lie far from zero. It exceeds that tolerance once the
+  magnitudes of the coefficients sum to more than about 4,000, as in
+  nested near-collinearity: with `z2 = z1 + 1e-6 * e1` and
+  `z3 = e1 + delta * e2`, the fit goes ahead at `delta = 1e-8` and stops at
+  `delta = 3e-9` and below, where `glm()` still fits the model, because
+  such a residual cannot be told from that of an exact relation between
+  rounded values. A fit of
+  the model as given that fails itself stops before the check, as before:
+  `MASS::glm.nb()` did, with "NA/NaN/Inf in 'x'", for an exact relation
+  with a covariate 3 * 10^10 standard deviations from zero.
+* `fit_solomon_sem(ancova = TRUE)` lost accuracy when the pretest lay far
+  from zero: at 10^4 standard deviations its p-values were off by 7% to
+  100% of their value in six checks, and in another it stopped, as it did
+  from 10^6 in every check, where `compare_solomon_methods()` then left
+  out its SEM ANCOVA row; the latent ANCOVA of `fit_solomon_sem_latent()`
+  lost accuracy too. Both now center the pretest, or its items, at the mean
+  among the pretested participants, which changes only intercepts and
+  means: the intercepts of the lavaan model of the observed ANCOVA are now
+  the posttest means adjusted to that pretest. `check_solomon_assumptions()`
+  centers the pretest in its test of homogeneous slopes, which was `NA`,
+  or wrong, from a pretest mean of 10^7 standard deviations.
+* `fit_solomon_mi()` stopped in the same way when the pretest lay far from
+  zero, or was on a scale far from 1, with a standard deviation of about
+  1e-8 or 1e7 in one check. With posttests missing in a pretested group,
+  the results of a seed also changed by Monte Carlo error when a constant
+  was added to the pretest, even one standard deviation, and from a
+  pretest mean of about 10^7 standard deviations the imputation models
+  took the pretest to be constant and stopped. Its analysis of the
+  completed data sets now centers the pretest and divides it by the power
+  of two nearest its standard deviation, as `fit_solomon_glm()` does, and
+  its imputation models center it at its mean among each pretested
+  group's observed posttests, so the results of `fit_solomon_mi()` and
+  `tipping_point_solomon()` no longer depend on where the pretest lies or
+  on its scale. The imputations have the same distribution as before, but
+  those of a given seed differ, so results with a seed change by Monte
+  Carlo error.
+* What changes on ordinary data. Dividing the pretest by a power of two is
+  exact, so fits with a pretest and no numeric covariate agree with the
+  development version before this change within about 2e-11 of their value,
+  except the delta-method standard errors of `marginal_solomon()`, which
+  move by about 1e-9. With covariates of modest magnitude and location,
+  results agree with it to about 1e-8 of their value, as a test against
+  results stored from it shows, for every family and covariance, with
+  missing posttests and clusters; the delta-method standard errors of
+  `marginal_solomon()` move by about that much, because the delta method
+  now takes the exact derivatives of the contrasts rather than numerical
+  ones, whose error that was, and negative-binomial results by the
+  convergence tolerance of theta, about 1e-9. With a
+  covariate on a large scale, such as an income in dollars, or far from
+  zero, such as a calendar year or a date, the previous CR2 and delta-method
+  results were off by up to about 5e-5 of their value, and the delta-method
+  standard errors by about 3e-3 for a covariate with a standard deviation of
+  10^6; the corrected values can change the last printed digit of an
+  interval or a p-value. Fits whose covariates are on scales far from 1,
+  which stopped under HC3 and CR2, now succeed. The contrasts of the SEM
+  ANCOVA move by the convergence tolerance of lavaan's optimization, about
+  1e-7 of their value, and their p-values by up to about 5e-6 of theirs.
+* Other changes. With a pretest or a numeric covariate, `fit_solomon_glm()`
+  fits the model twice, as given and standardized. Under CR2 with a
+  pretest or a numeric covariate, `vcov` is now a plain matrix rather than
+  the clubSandwich object, whose small-sample adjustments belong to the
+  standardized model: it is still what `?fit_solomon_glm` documents, the
+  covariance matrix of the coefficients, but code that passes it to
+  clubSandwich with `model` now stops. As said above, the imputations of
+  `fit_solomon_mi()` for a given seed differ from those of earlier
+  versions, with the same distribution. A difference between a contrast's
+  estimates at the two pretest centers that is zero but for rounding
+  error, such as that of a rate ratio, which does not depend on the
+  center, is printed without the sign of that error.
+* A numeric covariate whose name another column of the model shares, such
+  as a covariate `wave2` beside a factor `wave`, whose second level's
+  indicator is also named `wave2`, or `flagTRUE` beside a logical `flag`.
+  The standardized covariates were found by name, so the indicator was
+  rescaled in place of the covariate, and the estimates and standard
+  errors of the intercept and the covariates, the cells of
+  `plot_sensitization()`, and the marginal contrasts at the observed center
+  were wrong, without a warning. The covariates are now found by their
+  position in the model. Earlier versions also gave the second of the two
+  columns the standard error of the first and left it out of the cells of
+  `plot_sensitization()`, and CR2 fits stopped with "duplicate 'row.names'
+  are not allowed"; such fits now give the results of the same model with
+  the covariate renamed. `plot_sensitization()` also took a covariate named
+  `pre_obs`, in a fit without a pretest, for the pretest; it is now a
+  covariate like any other.
+* Nearly collinear covariates, about 10^-7 of their standard deviation apart
+  or closer. `sandwich::vcovHC()` and `clubSandwich::vcovCR()` form the HC3
+  and CR2 covariances from the inverse of `X'WX`, whose condition number is
+  the square of the design's, so their standard errors lost accuracy, by 2%
+  and 3% for a covariate near zero and its copy in single precision in one
+  check, and from about 10^-8 apart near zero HC3 and CR2 fits stopped with
+  "system is computationally singular". With a numeric covariate they are
+  now computed from the QR decomposition of the standardized model: HC3 from
+  the participants' influences, and CR2 by clubSandwich in an orthonormal
+  basis of the same columns, which gives the same covariance, Satterthwaite
+  degrees of freedom, and Wald tests. With covariates 10^-8 standard
+  deviations apart near zero, the standard errors and degrees of freedom of
+  the contrasts and the coefficients and the statistics of the omnibus tests
+  of several treatments agreed with those of an exact reparameterization to
+  about 2e-8 of their value under every covariance, in a battery of 708
+  cases, and their p-values to about 1e-6; at 10^-9, to about 2e-7 and 3e-6;
+  and the standard errors of the contrasts to about 1e-6 at 10^-10 under HC3
+  and CR2. The studentized statistic of `perm_solomon()` uses the HC3
+  variance computed the same way. Fits without a numeric covariate keep the
+  computations of sandwich and clubSandwich, and their results.
+* With such covariates the delta method of `marginal_solomon()` was wrong
+  too. For a covariate near zero and its copy in single precision, its
+  standard errors under model-based covariance were up to 45 times too
+  large: its numerical derivatives took steps of 1e-6 times each
+  coefficient, too large for the large coefficients of nearly collinear
+  covariates, and the variance of its linear approximation, formed from the
+  covariance, canceled the large entries of the covariance. Its bootstrap,
+  which solved the normal equations, failed in every resample. The delta
+  method now takes the exact derivatives of the contrasts and computes their
+  variance through the QR decomposition, or in the orthonormal basis under
+  CR2, and the bootstrap refits by QR. For that copy, the delta method's
+  results agree with those of the exact reparameterization to about 2e-8 of
+  their value under every covariance, and the bootstrap's standard errors to
+  1e-9.
+* Not changed here: `glm()` takes nearly collinear covariates as given to
+  be collinear, which stops the fit, when they lie so far from zero that
+  their difference falls below about 1e-11 of their distance from zero, as
+  for covariates 10^-6 standard deviations apart at 10^6 standard
+  deviations from zero; and the ties of `perm_solomon()` with models fitted
+  by iteration, and the first stage of its clustered test, which is fitted
+  to the covariates as given, remain on #134.
+
 ## broom and dplyr are no longer imported (#84, fourth part)
 
 * solomonR no longer imports broom and dplyr, which brought in 8 of the

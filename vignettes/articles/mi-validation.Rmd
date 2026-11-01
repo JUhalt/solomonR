@@ -261,10 +261,14 @@ run that checks them against the current package. The adaptation does not
 change what the scripts compute: on two replications of scenarios 1 and 7,
 with the package at commit `r substr(run$commit, 1, 7)`, the original and
 the adapted scripts give identical results, the saved replications
-included. With the current package, only the complete-case results, and
-the agreement table built from them, differ from these, with relative
-differences below 1e-12, because the pretest has been centered since
-[issue #104](https://github.com/JUhalt/solomonR/issues/104). The
+included. With the current package, the complete-case results differ from
+these, with relative differences below 1e-12, because the pretest has been
+centered since [issue #104](https://github.com/JUhalt/solomonR/issues/104).
+The multiple-imputation results, and with them the agreement table, differ
+by Monte Carlo error: since
+[issue #137](https://github.com/JUhalt/solomonR/issues/137) the imputation
+models center the pretest, so a seed gives other draws from the same
+distribution. The
 confirmatory study under
 [amendment 1 of issue #82](https://github.com/JUhalt/solomonR/issues/82#issuecomment-6077908405),
 planned under [issue #117](https://github.com/JUhalt/solomonR/issues/117),

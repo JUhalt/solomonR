@@ -74,7 +74,10 @@
   in_model <- used[rows]
   X <- matrix(NA_real_, sum(rows), ncol(X_model), dimnames = list(NULL, colnames(X_model)))
   X[in_model, ] <- X_model
-  X[!in_model, ] <- X_extra[, colnames(X_model), drop = FALSE]
+  # The columns are those of the model, in its order, and are taken by
+  # position: two can share a name (.scaled_columns()).
+  X[!in_model, ] <- if (identical(colnames(X_extra), colnames(X_model))) X_extra else
+    X_extra[, colnames(X_model), drop = FALSE]
   list(
     X = X, pretested = as.integer(d$pretested[rows]), treat = as.integer(d$treat[rows]),
     in_model = in_model, index = which(rows), n = n
@@ -133,6 +136,66 @@
 .marginal_all <- function(b, X, pretested, scales, count = FALSE) {
   r <- .marginal_risks(b, X, pretested, linkinv = if (count) exp else stats::plogis)
   unlist(lapply(scales, function(s) .marginal_contrasts(r, s, count)), use.names = FALSE)
+}
+
+# The gradient of .marginal_all() with respect to the coefficients `b`: one
+# row per contrast, in its order, and one column per coefficient. A risk
+# r(t, p) is the mean over the participants of pretest condition p of
+# linkinv(eta_i), with eta_i their linear predictor with the treatment
+# terms set to t (.marginal_risks()), so its derivative is the mean of
+# mu.eta(eta_i) x_i(t), with x_i(t) their design row with those terms set
+# likewise. Each contrast is a difference of g() of risks or of their
+# means, with g the identity, the log, or the logit, and takes the
+# derivatives of the risks times g'. Contrasts that .marginal_contrasts()
+# leaves undefined have rows of NA. The delta method took numerical
+# derivatives instead, with steps of 1e-6 times each coefficient: with
+# nearly collinear covariates, whose standardized coefficients are large,
+# the steps were too large, and so were the standard errors (issue #137).
+.marginal_gradient <- function(b, X, pretested, scales, count = FALSE) {
+  b[is.na(b)] <- 0
+  linkinv <- if (count) exp else stats::plogis
+  slope_link <- if (count) exp else stats::dlogis
+  interaction <- "treat:pretested" %in% names(b)
+  b_t <- b[["treat"]]
+  b_tp <- if (interaction) b[["treat:pretested"]] else 0
+  base <- drop(X %*% b) - X[, "treat"] * b_t -
+    if (b_tp != 0) X[, "treat:pretested"] * b_tp else 0
+  pre <- pretested == 1L
+  cell <- function(t, rows, p) {
+    Xc <- X[rows, , drop = FALSE]
+    Xc[, "treat"] <- t
+    if (interaction) Xc[, "treat:pretested"] <- t * p
+    eta <- base[rows] + t * b_t + t * p * b_tp
+    list(risk = mean(linkinv(eta)), slope = colMeans(slope_link(eta) * Xc))
+  }
+  cells <- list(t1p1 = cell(1, pre, 1), t0p1 = cell(0, pre, 1), t1p0 = cell(1, !pre, 0),
+                t0p0 = cell(0, !pre, 0))
+  r <- vapply(cells, `[[`, numeric(1), "risk")
+  D <- do.call(rbind, lapply(cells, `[[`, "slope"))
+  rows <- lapply(scales, function(s) {
+    degenerate <- if (count) any(r < 1e-8) else .degenerate_risk(r)
+    if (s != "difference" && degenerate) {
+      return(matrix(NA_real_, length(.marginal_contrast_names()), ncol(D)))
+    }
+    g <- function(x) switch(s, difference = 1, ratio = 1 / x, odds_ratio = 1 / (x * (1 - x)))
+    treated <- (r[["t1p1"]] + r[["t1p0"]]) / 2
+    control <- (r[["t0p1"]] + r[["t0p0"]]) / 2
+    tested <- (r[["t1p1"]] + r[["t0p1"]]) / 2
+    untested <- (r[["t1p0"]] + r[["t0p0"]]) / 2
+    J <- rbind(
+      c(g(treated), -g(control), g(treated), -g(control)) / 2,
+      c(g(r[["t1p1"]]), -g(r[["t0p1"]]), -g(r[["t1p0"]]), g(r[["t0p0"]])),
+      c(g(r[["t1p1"]]), -g(r[["t0p1"]]), 0, 0),
+      c(0, 0, g(r[["t1p0"]]), -g(r[["t0p0"]])),
+      c(0, g(r[["t0p1"]]), 0, -g(r[["t0p0"]])),
+      c(g(r[["t1p1"]]), 0, -g(r[["t1p0"]]), 0),
+      c(g(tested), g(tested), -g(untested), -g(untested)) / 2
+    )
+    J %*% D
+  })
+  out <- do.call(rbind, rows)
+  dimnames(out) <- NULL
+  out
 }
 
 # The sampling variance of the standardization, for the pretest effects of
@@ -327,6 +390,11 @@
 # Logistic regression by iteratively reweighted least squares, with the
 # convergence rule of stats::glm.fit() (relative change in deviance below
 # `epsilon`). A lean version for bootstrap refits, warm-started at `start`.
+# Each step solves its weighted least-squares problem by QR, with the
+# tolerance of glm.fit(); solving the normal equations, which square the
+# design's condition number, failed in every resample with nearly collinear
+# covariates, such as a covariate and its copy in single precision (issue
+# #137). A resample whose design is not of full rank fails.
 # Fitted risks that reach 0 or 1 in floating point (near separation) make the
 # working response or the deviance non-finite; the fit is then reported as
 # not converged, which the bootstrap counts as a failed resample.
@@ -343,8 +411,11 @@
     w <- mu * (1 - mu)
     z <- eta + (y - mu) / w
     if (!all(is.finite(z))) return(failed)
-    b <- tryCatch(solve(crossprod(X, w * X), crossprod(X, w * z))[, 1],
-                  error = function(e) NULL)
+    b <- tryCatch({
+      root <- sqrt(w)
+      q <- qr(root * X, tol = 1e-11)
+      if (q$rank < ncol(X)) NULL else qr.coef(q, root * z)
+    }, error = function(e) NULL)
     if (is.null(b) || !all(is.finite(b))) return(failed)
     eta <- drop(X %*% b)
     mu <- stats::plogis(eta)
@@ -740,9 +811,24 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stop("`R` must be a single number of at least 99.", call. = FALSE)
   }
 
+  # With a pretest or numeric covariates the fit's inference was computed
+  # with the covariates standardized and the pretest scaled (issue #137;
+  # .covariate_scaling()), and so is this: the model, its coefficients and
+  # covariance, and the design rows are those of the standardized model, in
+  # which the delta method (.marginal_gradient(), .combination_variance())
+  # and the refits of the bootstrap are accurate however far a covariate
+  # lies from zero, and whatever the scale of a covariate or the pretest.
+  # The risks and the contrasts are the same. `V` is the covariance of `b`.
+  scaling <- fit$covariate_scaling
   model <- fit$model
-  y <- model$y
   b <- stats::coef(model)
+  V <- fit$vcov
+  if (!is.null(scaling)) {
+    model <- .standardized_model(fit)
+    b <- scaling$coefficients
+    V <- scaling$vcov
+  }
+  y <- model$y
   n_contrasts <- length(.marginal_contrast_names())
   linkinv <- if (count) exp else stats::plogis
 
@@ -759,6 +845,9 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
          in_model = NULL, index = NULL)
   }
   observed_set <- .marginal_rows(fit)
+  if (!is.null(scaling)) {
+    observed_set$X <- .standardized_columns(observed_set$X, scaling, fit$model)
+  }
   standardized <- observed_set$n
   set <- if (pretest_center == "analyzed") model_set() else observed_set
   X <- set$X
@@ -805,34 +894,55 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # The delta method over a set of participants: the standard errors on the
   # analysis scale, the degrees of freedom, and the intervals. `cluster` is
   # the cluster of each participant of the set, for CR2 fits whose set has
-  # participants outside the model.
+  # participants outside the model. The gradient is exact
+  # (.marginal_gradient()). Its variance is computed through the QR
+  # decomposition of the model (.combination_variance()), or under CR2 with
+  # a numeric covariate in its orthonormal basis (.cr2_basis()): with nearly
+  # collinear covariates the gradient weights their standardized
+  # coefficients nearly equally, and grad' V grad canceled the large
+  # entries of their covariance, so that the standard errors were NaN or up
+  # to 78 times too large (issue #137).
   delta_at <- function(set, estimate, cluster = NULL) {
     X <- set$X
     pretested <- set$pretested
     df <- rep(Inf, length(estimate))
-    V <- as.matrix(fit$vcov)
-    grad <- vapply(seq_along(b), function(j) {
-      h <- 1e-6 * max(1, abs(b[[j]]))
-      up <- b; up[j] <- up[j] + h
-      down <- b; down[j] <- down[j] - h
-      (.marginal_all(up, X, pretested, scale, count) -
-         .marginal_all(down, X, pretested, scale, count)) / (2 * h)
-    }, numeric(length(estimate)))
-    grad <- matrix(grad, nrow = length(estimate))
-    std.error <- sqrt(rowSums((grad %*% V) * grad))
+    grad <- .marginal_gradient(b, X, pretested, scale, count)
+    colnames(grad) <- names(b)
+    basis <- NULL
     if (cr2) {
-      # Satterthwaite degrees of freedom for the delta method's linear
-      # approximation (Pustejovsky & Tipton, 2018), from the complete-case
-      # refit that the CR2 covariance was computed on.
-      colnames(grad) <- names(b)
+      # The complete-case refit that the CR2 covariance was computed on.
       fit_cr <- stats::glm(stats::formula(model), data = stats::model.frame(model),
                            family = fit$family)
+      if (.numeric_covariates(scaling)) {
+        basis <- .cr2_basis(fit_cr, fit$cluster[.glm_rows_used(fit)])
+      }
+    }
+    std.error <- rep(NA_real_, length(estimate))
+    finite <- is.finite(estimate) & rowSums(!is.finite(grad)) == 0
+    if (any(finite)) {
+      G <- grad[finite, , drop = FALSE]
+      std.error[finite] <- sqrt(if (!cr2) {
+        .combination_variance(model, fit$robust, G)
+      } else if (is.null(basis)) {
+        rowSums((G %*% as.matrix(V)) * G)
+      } else {
+        U <- backsolve(basis$R, t(G), transpose = TRUE)
+        colSums(U * (.plain_matrix(basis$vcov) %*% U))
+      })
+    }
+    if (cr2) {
+      # Satterthwaite degrees of freedom for the delta method's linear
+      # approximation (Pustejovsky & Tipton, 2018).
       ok <- is.finite(estimate) & is.finite(std.error) & std.error > 0
-      df[ok] <- vapply(which(ok), function(i) {
-        as.data.frame(clubSandwich::linear_contrast(
-          fit_cr, vcov = fit$vcov, contrasts = grad[i, , drop = FALSE], test = "Satterthwaite"
-        ))$df
-      }, numeric(1))
+      df[ok] <- if (is.null(basis)) {
+        vapply(which(ok), function(i) {
+          as.data.frame(clubSandwich::linear_contrast(
+            fit_cr, vcov = V, contrasts = grad[i, , drop = FALSE], test = "Satterthwaite"
+          ))$df
+        }, numeric(1))
+      } else {
+        .cr2_df(grad[ok, , drop = FALSE], fit_cr, V, basis)
+      }
     }
     # The pretest effects compare risks standardized over two different
     # samples, the pretested and the unpretested participants, so the

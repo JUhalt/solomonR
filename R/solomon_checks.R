@@ -122,7 +122,10 @@ check_solomon_assumptions <- function(y_post, treat, pretested, y_pre,
   # (if interaction significant -> slope heterogeneity). With k treatments
   # the interaction has k degrees of freedom, one slope difference for each
   # treatment; the test needs every one of the k + 1 pretested groups, and
-  # is not reported on fewer degrees of freedom.
+  # is not reported on fewer degrees of freedom. The pretest is centered at
+  # its mean, which leaves the interaction's test unchanged and keeps lm()
+  # from taking a pretest far from zero to be collinear with the
+  # interaction (issue #137).
   p_slope <- NA_real_
   pre_rows <- which(pretested == 1L & is.finite(y_pre) & is.finite(y_post))
   if (several) {
@@ -130,7 +133,8 @@ check_solomon_assumptions <- function(y_post, treat, pretested, y_pre,
   }
   n_groups <- design$k + 1L
   if (length(pre_rows) > 2L * n_groups && length(unique(treat[pre_rows])) == n_groups) {
-    dd <- data.frame(y = y_post[pre_rows], treat = factor(treat[pre_rows]), pre = y_pre[pre_rows])
+    dd <- data.frame(y = y_post[pre_rows], treat = factor(treat[pre_rows]),
+                     pre = y_pre[pre_rows] - mean(y_pre[pre_rows]))
     fit <- stats::lm(y ~ treat * pre, data = dd)
     a <- stats::anova(fit)
     slope_row <- which(rownames(a) == "treat:pre")[1]
