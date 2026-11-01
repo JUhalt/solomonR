@@ -18,7 +18,10 @@
 #     routes run this check after the study's summary and before
 #     finalize-results.R (the workflow's merge job and
 #     tools/sim/run-local.R), so such a file can only be one that the
-#     study's summarize() wrote into SOLOMONR_SIM_OUT itself;
+#     study's summarize() wrote into SOLOMONR_SIM_OUT itself. Only this
+#     folder is checked: files the summary may have written into the plan,
+#     merged, or chunk folders, which finalize-results.R copies from, are
+#     not (see its header);
 #   - for a protocol, a gate or test run may hold only agreement.csv,
 #     run-information.csv, summary.rds, and files directly under timing/.
 #     Only the file names are checked, not their contents, so a measure

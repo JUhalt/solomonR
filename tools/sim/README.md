@@ -339,11 +339,23 @@ In the study's own pull request, before its run (the order rule of #117):
    read names only, not contents: a performance measure, decision, or
    failure count returned as a column of `agreement`, an item of
    `run-information`, or a `timing/` element, or written as a file under
-   `timing/` with a name the harness does not write, would pass them. That
-   these runs compute none rests on the study's `summarize()`, whose code
-   its pull request shows. A `gate$project` may not return a name the
-   harness or the summary writes (other than `gate-times`,
-   `gate-projection`, and `gate-summary`).
+   `timing/` with a name the harness does not write, would pass them. They
+   also look at the results folder only. `finalize-results.R` copies its
+   audit files from the folders the summary read (`manifest.csv`,
+   `completeness.csv`, `software.csv`, `replay.csv`, and `jobs.csv` from
+   `merged/`; `preflight.csv`, `rng-fingerprint.txt`, and the plan job's
+   `job-info.csv` from `plan/`; `session-info.txt` from each chunk), and
+   it reads most items of `run-information.csv` from them and from
+   `plan/plan-info.csv` (`replay` and `reps` among them), as the summary
+   left them. The summary runs on the same machine as
+   those folders, the harness's scripts, and every check after it, and
+   can write to all of them (`SOLOMONR_SIM_PLAN` names the plan folder,
+   and `SOLOMONR_SIM_IN` a file in `merged/`), so no check after it can
+   show that it wrote nowhere else. That these runs compute none, and that
+   `summarize()` writes nowhere but `SOLOMONR_SIM_OUT`, rest on the
+   study's code, which its pull request shows. A `gate$project` may not
+   return a name the harness or the summary writes (other than
+   `gate-times`, `gate-projection`, and `gate-summary`).
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,
    the extra packages, every package version the protocol records, and
    `tool,pak`. A protocol study (registry flag `TRUE`) must also give

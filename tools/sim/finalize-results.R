@@ -16,6 +16,20 @@
 # after this script), or anything under timing/ spelled in another case.
 # Names are compared without regard to case (h_taken() in harness-lib.R, as
 # in check-results.R). Only the study's summary can have written them.
+#
+# The files it copies come from <plan dir> (preflight.csv,
+# rng-fingerprint.txt, job-info.csv), <merged dir> (manifest.csv,
+# completeness.csv, software.csv, replay.csv, jobs.csv), and each chunk
+# (session-info.txt), and most of the harness's items below are read from
+# them and from plan-info.csv (replay and reps among them), as the study's
+# summary left them: it runs before this script, on the same machine, and
+# can write into those folders (SOLOMONR_SIM_PLAN names the plan folder,
+# SOLOMONR_SIM_IN a file in the merged one) and into the harness's
+# scripts. No check here can tell
+# whether it did; that it writes only into SOLOMONR_SIM_OUT rests on the
+# study's code, which its pull request shows (README, "Adding a study",
+# item 4). merged/job-info.csv is written after the summary (job-info.R).
+#
 # run-information.csv (item, value) keeps the items the study's summary
 # wrote, in their order, and adds the harness's items after them; an item
 # that both write stops the run. The results folder then holds
