@@ -135,7 +135,8 @@
 #'
 #' With the default `equal_var = FALSE`, the four-group mean-structure model
 #' is saturated, so its global fit indices are not diagnostic; with
-#' `equal_var = TRUE` it has 3 degrees of freedom. Its contrasts are unadjusted posttest mean
+#' `equal_var = TRUE` it has 3 degrees of freedom. Its contrasts are
+#' unadjusted posttest mean
 #' differences, whereas the ANCOVA mode adjusts for the pretest within the
 #' pretested groups.
 #'

@@ -82,7 +82,8 @@ in U1/U0 and matches Huck & Sandler.
 \details{
 With the default \code{equal_var = FALSE}, the four-group mean-structure model
 is saturated, so its global fit indices are not diagnostic; with
-\code{equal_var = TRUE} it has 3 degrees of freedom. Its contrasts are unadjusted posttest mean
+\code{equal_var = TRUE} it has 3 degrees of freedom. Its contrasts are
+unadjusted posttest mean
 differences, whereas the ANCOVA mode adjusts for the pretest within the
 pretested groups.
 
