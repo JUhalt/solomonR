@@ -235,8 +235,8 @@ pretest condition, as `fit_solomon_mmrm()` does, is necessary.
 
 From the package root,
 `Rscript vignettes/articles/mmrm-validation/mmrm-simulation.R` writes
-`performance.csv` and `run-information.csv`. The script records the commit
-of the copy that it runs by the rule under
+`performance.csv` and `run-information.csv`. The script records its commit
+by the rule under
 [Rerunning a study](validation-evidence.html#rerunning-a-study) on the
 Validation Evidence page. To record the commit when running it from a
 downloaded copy, set `SOLOMONR_COMMIT` to the commit that the copy came

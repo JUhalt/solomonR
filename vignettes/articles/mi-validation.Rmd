@@ -251,7 +251,7 @@ From the package root, `Rscript vignettes/articles/mi-validation/mi-simulation.R
 writes `performance.csv` and `run-information.csv`, and
 `Rscript vignettes/articles/mi-validation/mi-agreement.R` then writes
 `agreement.csv` from the saved replications. The simulation script records
-the commit of the copy that it runs by the rule under
+its commit by the rule under
 [Rerunning a study](validation-evidence.html#rerunning-a-study) on the
 Validation Evidence page. To record the commit when running it from a
 downloaded copy, set `SOLOMONR_COMMIT` to the commit that the copy came
