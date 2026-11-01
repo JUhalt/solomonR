@@ -15,9 +15,9 @@ package or of the validation-scripts check.
 
 | File | Role |
 |---|---|
-| `contract.R` | Sourced by every study script, from the package checkout (contract version 2): stages, stream assignment, task files with their timing, the timing gate's projection, summary order, fault handling |
+| `contract.R` | Sourced by every study script, from the package checkout (contract version 3): stages, stream assignment, scenario subsets and test task sizes, task files with their timing, the timing gate's projection, summary order, fault handling |
 | `studies.csv` | Registry: study key, issue, script, pins file, whether it is a protocol, commits the pinned commit must include |
-| `assign-chunks.R` | Assigns tasks to chunks, longest processing time first (no random numbers); checks the expected hours per chunk when the gate's seconds per unit of cost are given |
+| `assign-chunks.R` | Assigns tasks to chunks, longest processing time first (no random numbers); checks the expected hours per chunk, with the study's allowance, when the gate's seconds per unit of cost are given |
 | `check-software.R` | R and its build, the pinned package and tool versions, BLAS and LAPACK, the processor flags, RNG kinds, repositories; writes `software.csv` |
 | `job-info.R` | The machine of a chunk: runner image, CPUs, processor, memory, attempt, local resumptions |
 | `merge-chunks.R` | The checks before any summary; manifest, completeness, replay list |
@@ -41,12 +41,15 @@ action `.github/actions/sim-setup/action.yml`.
    the task's L'Ecuyer-CMRG substream (L'Ecuyer et al., 2002). Scenario 1
    takes `nextRNGStream()` of the state `set.seed(base)` leaves, scenario
    s the s-th stream, in the order of the scenario table; task k takes the
-   stream after k - 1 calls of `nextRNGSubStream()`. Then the protocol's
-   stops run (preflight), and `assign-chunks.R` divides the tasks.
+   stream after k - 1 calls of `nextRNGSubStream()`. A plan of some
+   scenarios only (the study's fallback, or a test's list) keeps these
+   streams. Then the protocol's stops run (preflight), and
+   `assign-chunks.R` divides the tasks.
 2. **Chunks** (up to 256 jobs, at most 16 at a time, 4 workers each). Each
    job runs its tasks; each task sets its substream at its start and draws
    only from it, and is written as `tasks/<task id>.rds` with its envelope
-   (the plan row, the package commit, the script's SHA-256), results,
+   (the plan row, the package commit, the SHA-256 of the script, of
+   `contract.R`, and of the files the script sources), results,
    agreement checks, failures, and timing (start, finish, the job's start,
    and worker seconds for replications and for agreement checks apart).
 3. **Merge** (one job). `merge-chunks.R` requires every planned task exactly
@@ -57,7 +60,8 @@ action `.github/actions/sim-setup/action.yml`.
    run again on the merge machine and must be `identical()` to the chunks':
    the most costly task, the most costly task 1 (which carries a scenario's
    agreement checks), and the cheapest tasks of the first and last chunks,
-   each from a chunk not yet chosen while one remains. `replay.csv` says
+   each from a chunk not yet chosen while one remains (once every chunk has
+   been chosen, the lowest- and highest-numbered chunks). `replay.csv` says
    which of them first ran on another processor model. Only then does the
    study script summarize, from the replications in the order of scenario
    and replication number.
@@ -104,6 +108,17 @@ gh run watch <run id> --repo JUhalt/solomonR
   harness that checks them is the merged one.
 - The plan job stops a study run whose largest chunk is expected to take
   more than 4 hours on 4 workers, and warns above 2 hours; use more chunks.
+  The expected hours are the chunk's cost times `cost_seconds` times the
+  study's allowance (its gate's, in `plan-info.csv`), the rule with which
+  the gate chose R. A study that gives `agreement_cost` has task 1 priced
+  with its agreement checks, and its gate's `seconds_per_cost` comes from
+  replication time alone.
+- `scenarios=fallback` plans the study's fallback (its gate's `fallback`,
+  with the full table's streams), for a study run after a gate that chose
+  it, or for a test of that plan; a gate always runs every scenario.
+  `task_size` (smoke runs of stage run only) gives a test several tasks
+  per scenario, so that a test of at most 20 replications reaches
+  substreams 2 and later and the merge's checks across a scenario's tasks.
 - One study run (`smoke=false`) runs at a time. GitHub keeps at most one
   pending run per concurrency group and cancels an older pending one, so a
   third dispatch would cancel the second: start a study only when the
@@ -148,7 +163,10 @@ Rscript tools/sim/compare-runs.R tasks <folder A>/chunks <folder B>/chunks
 
 `--workers 0` (the default) runs a chunk's tasks in the stage's own process;
 `--workers 10` starts 10 PSOCK workers. `--purpose`, `--design`, and
-`--reps` are those of the workflow. Each stage writes its log as it runs
+`--reps` are those of the workflow. `--subset` plans only some scenarios
+with the full table's streams (`fallback`, or in a test a list such as
+`"1 18 131"`), and `--task-size` sets a test's replications per task. Each
+stage writes its log as it runs
 (`<folder>/logs/` and each chunk's `log.txt`), so a long chunk can be
 followed with `Get-Content -Wait` or `tail -f`.
 
@@ -183,7 +201,10 @@ In the study's own pull request, before its run (the order rule of #117):
    `tools/sim/contract.R`, defines `study` (the fields are listed in
    `sim_check_study()`), and ends with `sim_main(study)`. Its seeds are the
    protocol's: study, gate, and the code-testing seed. Every task's results
-   have the same columns and column classes; `cost()` is greater than 0.
+   have the same columns and column classes; `cost()` is greater than 0,
+   and `agreement_cost()`, if given, prices the agreement checks of task 1.
+   `files` lists the files the script sources besides `contract.R`, so
+   that their SHA-256 is in the plan and in every envelope.
 2. Its agreement checks run inside `sim_time_agreement()`, so that the gate
    can add their time once instead of multiplying it by R.
 3. Its `gate` gives the protocol's constants (`reps`, `task_size`,

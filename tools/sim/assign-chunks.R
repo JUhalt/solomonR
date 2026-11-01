@@ -15,9 +15,13 @@
 #
 # With <seconds per cost> (worker seconds per unit of cost, from a timing
 # gate's timing/gate-summary.csv) greater than 0, each chunk's expected hours
-# are its cost x seconds per cost / workers / 3600. Above 2 hours it warns
-# (the jobs are sized at about 2 hours); above 4 hours it stops, because a
-# job that reaches GitHub's 6-hour limit fails the same way on every rerun.
+# are its cost x seconds per cost x allowance / workers / 3600, where the
+# allowance is the study's (plan-info.csv, item allowance: its timing gate's,
+# 1.3 for #116; 1 if the plan gives none), the same allowance with which the
+# gate chose R. Above 2 hours it warns (the jobs are sized at about 2
+# hours); above 4 hours it stops, the limit of the rule that chose R, and
+# because a job that reaches GitHub's 6-hour limit fails the same way on
+# every rerun.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -34,6 +38,9 @@ if (is.na(workers) || workers < 1L) h_fail("The workers per chunk must be 1 or m
 
 tasks <- h_read_csv(file.path(plan_dir, "tasks.csv"))
 if (!nrow(tasks)) h_fail("The plan has no tasks.")
+plan_info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
+allowance <- if ("allowance" %in% names(plan_info)) suppressWarnings(as.numeric(plan_info[["allowance"]])) else 1
+if (is.na(allowance) || allowance < 1) h_fail("The plan's allowance must be a number of at least 1.")
 n <- min(requested, nrow(tasks))
 cost <- as.numeric(tasks$cost)
 if (anyNA(cost) || any(!is.finite(cost)) || any(cost <= 0)) h_fail("Every task needs a cost greater than 0.")
@@ -55,7 +62,7 @@ for (j in seq_len(n)) {
   h_write_lines(sort(tasks$task_id[chunk == j]), file.path(plan_dir, "chunks", paste0("chunk-", ids[j], ".txt")))
 }
 h_write_lines(paste0("[", paste0("\"", ids, "\"", collapse = ","), "]"), file.path(plan_dir, "chunks.json"))
-hours <- if (spc > 0) load * spc / workers / 3600 else rep(NA_real_, n)
+hours <- if (spc > 0) load * spc * allowance / workers / 3600 else rep(NA_real_, n)
 h_write_csv(data.frame(chunk = ids, tasks = counts, cost = format(load, digits = 15),
                        expected_hours = if (spc > 0) format(hours, digits = 4) else NA,
                        stringsAsFactors = FALSE),
@@ -63,8 +70,8 @@ h_write_csv(data.frame(chunk = ids, tasks = counts, cost = format(load, digits =
 cat(sprintf("Chunks: %d (requested %d). Tasks per chunk: %d to %d. Cost per chunk: %s to %s.\n",
             n, requested, min(counts), max(counts), format(min(load)), format(max(load))))
 if (spc > 0) {
-  cat(sprintf("Expected hours per chunk on %d workers: %.2f to %.2f (%s seconds per unit of cost).\n",
-              workers, min(hours), max(hours), format(spc)))
+  cat(sprintf("Expected hours per chunk on %d workers, with the allowance of %s: %.2f to %.2f (%s seconds per unit of cost).\n",
+              workers, format(allowance), min(hours), max(hours), format(spc)))
   if (max(hours) > 4) h_fail("The largest chunk is expected to take ", format(max(hours), digits = 3),
                              " hours, above the 4-hour limit; use more chunks.")
   if (max(hours) > 2) cat("::warning::The largest chunk is expected to take ", format(max(hours), digits = 3),

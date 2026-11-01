@@ -582,8 +582,9 @@ expect("patterns: all rates and each factor's levels, whose rates add up",
 
 # ---- The gate's projection ---------------------------------------------------------------------------
 
-# One task of 25 replications per scenario: 0.1 s per replication and 10 s
-# of agreement checks each; half the tasks start 10 minutes into the job.
+# One task of 25 replications per scenario (task 1, which carries the
+# agreement checks and their cost): 0.1 s per replication and 10 s of
+# agreement checks each; half the tasks start 10 minutes into the job.
 gate_times <- function(seconds_per_rep) {
   start <- as.POSIXct("2026-11-01 00:00:00", tz = "UTC")
   n <- nrow(scenarios)
@@ -592,7 +593,9 @@ gate_times <- function(seconds_per_rep) {
              started = sim_utc(start + offset), finished = sim_utc(start + offset + 1),
              job_started = sim_utc(start), elapsed = 25 * seconds_per_rep + 10, cpu = 1,
              replication_seconds = 25 * seconds_per_rep, agreement_seconds = 10,
-             cost = vapply(seq_len(n), function(i) cost_robustness(scenarios[i, ], 25L), 0),
+             cost = vapply(seq_len(n), function(i) {
+               cost_robustness(scenarios[i, ], 25L) + agreement_cost_robustness(scenarios[i, ])
+             }, 0),
              stringsAsFactors = FALSE)
 }
 gi <- c(purpose = "test")
@@ -610,6 +613,19 @@ summ <- g1$`gate-summary`
 expect("the gate summary gives the decision and the posted rule's reading",
        summ$value[summ$item == "chosen_R"] == "5000" && "posted_rule_chosen_R" %in% summ$item)
 expect("the gate summary gives seconds per unit of cost", "seconds_per_cost" %in% summ$item)
+# Seconds per unit of cost from replication time and the replications' cost
+# alone (the tasks after the warm-up: the even scenarios), and the agreement
+# seconds per unit of agreement cost (all tasks).
+even <- scenarios$scenario %% 2 == 0
+rep_cost <- vapply(seq_len(nrow(scenarios)), function(i) cost_robustness(scenarios[i, ], 25L), 0)
+agree_cost <- vapply(seq_len(nrow(scenarios)), function(i) agreement_cost_robustness(scenarios[i, ]), 0)
+expect("seconds per unit of cost leave out the agreement checks and their cost",
+       near(as.numeric(summ$value[summ$item == "seconds_per_cost"]), sum(even) * 2.5 / sum(rep_cost[even]), 1e-12))
+expect("agreement seconds per unit of agreement cost",
+       near(as.numeric(summ$value[summ$item == "agreement_seconds_per_cost"]), 576 * 10 / sum(agree_cost), 1e-12))
+expect("task 1 of an E0 scenario carries check 1 on 3 replications and checks 3 and 4 on 20",
+       agreement_cost_robustness(scenarios[1, ]) == 3 * (9000 + 9 * 40) + 20 * (2000 + 40) &&
+         agreement_cost_robustness(scenarios[271, ]) == 3 * (9000 + 9 * 40))
 expect("the warm-up of 5 minutes is applied", all(g1$`gate-times`$warmup_applied))
 # 2 s per replication: 1,601.6 worker-hours, 1.56 hours per job (2.03 with
 # the allowance) fits at R = 5,000; the posted rule (160 hours) does not, not

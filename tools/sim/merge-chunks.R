@@ -13,7 +13,8 @@
 #   2. each task file's envelope equals its row of the plan (scenario, task,
 #      replications, all 7 seed integers, rows per replication), and the
 #      plan's contract, study, purpose, design, package commit, script
-#      SHA-256, and contract SHA-256;
+#      SHA-256, contract SHA-256, and the SHA-256 of the files the script
+#      sources (study$files);
 #   3. each task's results have no missing replication number, exactly
 #      (rep_to - rep_from + 1) x rows_per_rep rows, rows_per_rep rows for
 #      each replication from rep_from to rep_to, and no other replication;
@@ -35,11 +36,14 @@
 #   a. the task with the largest cost (the heaviest scenario);
 #   b. the task 1 (which carries a scenario's agreement checks) with the
 #      largest cost;
-#   c. the cheapest task of the first chunk;
-#   d. the cheapest task of the last chunk;
+#   c. the cheapest task of the first chunk not yet chosen, or of the
+#      lowest-numbered chunk once every chunk has been chosen;
+#   d. the cheapest task of the last chunk not yet chosen, or of the
+#      highest-numbered chunk once every chunk has been chosen;
 #
-# ties broken by task id. tools/sim/check-replay.R compares them after the
-# study script has run them again on the merge machine.
+# ties broken by task id; a task is never chosen twice. tools/sim/check-replay.R
+# compares them after the study script has run them again on the merge
+# machine.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -91,7 +95,8 @@ files <- files[order(files$task_id), ]
 
 base <- list(contract = info[["contract"]], study = info[["study"]], purpose = info[["purpose"]],
              design = info[["design"]], package_sha = info[["package_sha"]],
-             script_sha256 = info[["script_sha256"]], contract_sha256 = info[["contract_sha256"]])
+             script_sha256 = info[["script_sha256"]], contract_sha256 = info[["contract_sha256"]],
+             files_sha256 = info[["files_sha256"]])
 job_info <- lapply(stats::setNames(found, found), function(ch) {
   f <- file.path(chunks_dir, paste0("chunk-", ch), "job-info.csv")
   if (file.exists(f)) h_read_kv(f) else NULL
@@ -204,8 +209,8 @@ choose <- function(cands, decreasing) {
 }
 chunk_tasks <- function(which) {
   free <- setdiff(found, used_chunks())
-  if (!length(free)) return(plan)
-  plan[plan$chunk == (if (which == "first") min(free) else max(free)), , drop = FALSE]
+  pool <- if (length(free)) free else found
+  plan[plan$chunk == (if (which == "first") min(pool) else max(pool)), , drop = FALSE]
 }
 for (r in c("a", "b", "c", "d")) {
   cands <- switch(r,

@@ -844,7 +844,7 @@ gate_project <- function(times, scenarios, info) {
     g <- gate_constants
     g$divisor <- divisor
     g$cap_hours <- cap
-    x <- sim_gate_default(list(gate = g), times, scenarios, info)
+    x <- sim_gate_default(list(gate = g, agreement_cost = agreement_cost_robustness), times, scenarios, info)
     x$`gate-projection` <- data.frame(reading = label, x$`gate-projection`, stringsAsFactors = FALSE)
     x
   }
@@ -874,9 +874,25 @@ gate_project <- function(times, scenarios, info) {
 # participants); t (3 df) was slower in E0. Largest groups go first within a
 # pattern, and an E0 task with the most participants is the most costly, as
 # draft Amendment 2 (item 3a) assumes. The agreement checks of task 1 are
-# not costed (cost() has no task argument).
+# priced by agreement_cost_robustness() below.
 cost_robustness <- function(s, reps) {
   reps * (s$n1 + s$n2 + s$n3 + s$n4 + 60 + if (identical(s$pattern, "E0")) 200 else 0)
+}
+
+# [Left to the script] The cost, in the units of cost_robustness(), of the
+# agreement checks that task 1 of a scenario carries: check 1 on
+# replications 1 to 3, and checks 3 and 4 on replications 1 to 20 in E0. The
+# contract adds it to the cost of task 1, so that the gate's seconds per
+# unit of cost come from replication time alone and the run's jobs are
+# sized with each task 1's checks (it changes no result). From the
+# 1-replication test gate on the laptop (seed 9118500, run rl-gate): check 1
+# took about 2.5 + 0.0024 n seconds per replication (with n participants;
+# ET, which also fits M1 for it), and checks 3 and 4 together about
+# 0.55 + 0.0003 n more in E0, at about 0.00028 s per unit of cost: about
+# 9,000 + 9 n and 2,000 + n units per replication.
+agreement_cost_robustness <- function(s) {
+  n <- s$n1 + s$n2 + s$n3 + s$n4
+  check1_reps * (9000 + 9 * n) + if (identical(s$pattern, "E0")) check34_reps * (2000 + n) else 0
 }
 
 study <- list(
@@ -888,9 +904,13 @@ study <- list(
   gate = c(gate_constants, list(project = gate_project)),
   rows_per_rep = function(s) if (identical(s$pattern, "E0")) nrow(layout_E0) else nrow(layout_ET),
   cost = cost_robustness,
+  agreement_cost = agreement_cost_robustness,
   replicate = replicate_robustness,
   preflight = preflight_robustness,
   summarize = summarize_robustness,
-  smoke_scenarios = smoke_scenarios)
+  smoke_scenarios = smoke_scenarios,
+  # robustness-summarize.R is sourced above, and agreement check 3 uses its
+  # tost_p(); its SHA-256 is part of the plan and of every task's envelope.
+  files = file.path(robustness_dir, "robustness-summarize.R"))
 
 sim_main(study)

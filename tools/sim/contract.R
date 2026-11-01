@@ -28,6 +28,14 @@
 #                             its task size, and its timing projection.
 #   SOLOMONR_SIM_REPS         Replications per scenario (a gate's size is
 #                             fixed by the study; a test is at most 20).
+#   SOLOMONR_SIM_SUBSET       Plan stage: empty or "all" (every scenario),
+#                             "fallback" (the scenarios study$gate$fallback()
+#                             keeps; not in a gate), or, in a test only,
+#                             scenario numbers separated by spaces or commas.
+#                             A subset keeps the full table's streams.
+#   SOLOMONR_SIM_TASK_SIZE    Plan stage, test runs of design run only:
+#                             replications per task instead of the study's,
+#                             so that a test has several tasks per scenario.
 #   SOLOMONR_SIM_PLAN         Folder of the plan files (written by plan).
 #   SOLOMONR_SIM_TASKS        File with the ids of the tasks to run (run).
 #   SOLOMONR_SIM_WORKERS      PSOCK workers (run); 0 runs the tasks in this
@@ -70,7 +78,7 @@
 # Package and Version fields, or calls git log, Sys.getenv() without a name,
 # or Sys.info().
 
-sim_contract_version <- "2"
+sim_contract_version <- "3"
 
 sim_setting <- function(name, default = "") {
   value <- Sys.getenv(name)
@@ -152,9 +160,11 @@ sim_time_agreement <- function(expr) {
 #   task_size        replications per task in a run
 #   rows_per_rep     function(s): rows that one replication of scenario row s
 #                    stores
-#   cost             function(s, reps): relative expected time of a task,
-#                    greater than 0 (used only to balance the jobs and to
-#                    size them from the gate's seconds per unit of cost)
+#   cost             function(s, reps): relative expected time of a task's
+#                    replications, greater than 0 (used only to balance the
+#                    jobs and to size them from the gate's seconds per unit
+#                    of cost); task 1 adds agreement_cost(s) if the study
+#                    gives one
 #   replicate        function(s, rep): one replication; draws only from the
 #                    current RNG state and returns list(results = data frame
 #                    of rows_per_rep(s) rows, agreement = data frame or NULL),
@@ -180,6 +190,15 @@ sim_time_agreement <- function(expr) {
 #   preflight        function(): data frame (check, passed, detail) of the
 #                    protocol's stops before any task
 #   smoke_scenarios  scenario numbers that the smoke mode runs
+#   agreement_cost   function(s): the cost, in the units of cost(), of the
+#                    agreement checks that task 1 of scenario row s
+#                    carries (0 or more); it is added to that task's cost,
+#                    and the gate's seconds per unit of cost then come from
+#                    replication time alone
+#   files            paths, relative to the package root, of the files the
+#                    script sources besides this one; their SHA-256 is part
+#                    of the plan and of every task's envelope, like the
+#                    script's
 #   package_root     folder of the package (default ".")
 sim_check_study <- function(study) {
   need <- c("key", "issue", "protocol", "seeds", "scenarios", "task_size",
@@ -198,6 +217,12 @@ sim_check_study <- function(study) {
   sc <- study$scenarios
   if (!is.data.frame(sc) || !identical(sc$scenario, seq_len(nrow(sc)))) {
     stop("`study$scenarios$scenario` must be 1, 2, ... in table order.", call. = FALSE)
+  }
+  if (!is.null(study$agreement_cost) && !is.function(study$agreement_cost)) {
+    stop("`study$agreement_cost` must be a function.", call. = FALSE)
+  }
+  if (!is.null(study$files) && (!is.character(study$files) || anyNA(study$files) || anyDuplicated(study$files))) {
+    stop("`study$files` must be distinct paths.", call. = FALSE)
   }
   invisible(study)
 }
@@ -228,8 +253,9 @@ sim_streams <- function(base_seed, n_scenarios, n_tasks) {
   out
 }
 
-# The size and seed of a plan, from its purpose and design.
-sim_plan_spec <- function(study, purpose, design, reps) {
+# The size and seed of a plan, from its purpose and design. `task_size`
+# (text, empty for the study's own) is for test runs of design run only.
+sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
   if (!purpose %in% c("test", "gate", "study")) stop("Unknown purpose: ", purpose, call. = FALSE)
   if (!design %in% c("run", "gate")) stop("Unknown design: ", design, call. = FALSE)
   if (purpose == "gate" && design != "gate") stop("Purpose gate needs design gate.", call. = FALSE)
@@ -242,6 +268,13 @@ sim_plan_spec <- function(study, purpose, design, reps) {
   } else {
     size <- as.integer(study$task_size)
   }
+  if (!is.null(task_size) && nzchar(task_size)) {
+    if (purpose != "test" || design != "run") {
+      stop("Only a test run of design run may set its own task size.", call. = FALSE)
+    }
+    size <- suppressWarnings(as.integer(task_size))
+    if (is.na(size) || size < 1L) stop("The task size must be a whole number of at least 1.", call. = FALSE)
+  }
   if (is.na(reps) || reps < 1L) stop("The number of replications must be positive.", call. = FALSE)
   # The protocols allow code-testing runs of at most 20 replications per
   # scenario, with seeds the study and the gate do not use.
@@ -252,6 +285,45 @@ sim_plan_spec <- function(study, purpose, design, reps) {
   }
   list(purpose = purpose, design = design, reps = reps, size = size,
        base_seed = as.integer(study$seeds[[purpose]]))
+}
+
+# The cost of the agreement checks that task 1 of scenario row `s` carries
+# (study$agreement_cost(), 0 without one).
+sim_agreement_cost <- function(study, s) {
+  if (!is.function(study$agreement_cost)) return(0)
+  a <- as.numeric(study$agreement_cost(s))
+  if (length(a) != 1L || !is.finite(a) || a < 0) {
+    stop("study$agreement_cost() must give a number of 0 or more (scenario ", s$scenario, ").", call. = FALSE)
+  }
+  a
+}
+
+# The scenarios a plan covers (SOLOMONR_SIM_SUBSET): NULL for all of them;
+# "fallback" for those study$gate$fallback() keeps (the protocol's smaller
+# design, for a study run after a gate that chose it, or a test of that
+# plan; never a gate); or, in a test only, a list of scenario numbers.
+sim_plan_subset <- function(study, spec, value) {
+  value <- trimws(value)
+  if (!nzchar(value) || identical(value, "all")) return(NULL)
+  sc <- study$scenarios
+  if (identical(value, "fallback")) {
+    if (spec$design == "gate") stop("The timing gate runs every scenario.", call. = FALSE)
+    if (is.null(study$gate) || !is.function(study$gate$fallback)) {
+      stop("This study has no fallback.", call. = FALSE)
+    }
+    keep <- as.logical(study$gate$fallback(sc))
+    if (length(keep) != nrow(sc) || anyNA(keep) || !any(keep)) {
+      stop("study$gate$fallback() must keep some scenarios and say so for each.", call. = FALSE)
+    }
+    return(sc$scenario[keep])
+  }
+  if (spec$purpose != "test") stop("Only a test run may plan a list of scenarios.", call. = FALSE)
+  s <- suppressWarnings(as.integer(strsplit(value, "[ ,]+")[[1]]))
+  if (!length(s) || anyNA(s) || anyDuplicated(s) || !all(s %in% sc$scenario)) {
+    stop("SOLOMONR_SIM_SUBSET must be \"all\", \"fallback\", or distinct scenario numbers of the table.",
+         call. = FALSE)
+  }
+  sort(s)
 }
 
 sim_plan <- function(study, spec, subset = NULL) {
@@ -268,6 +340,7 @@ sim_plan <- function(study, spec, subset = NULL) {
       if (length(cost) != 1L || !is.finite(cost) || cost <= 0) {
         stop("study$cost() must give a number greater than 0 (scenario ", s, ").", call. = FALSE)
       }
+      if (k == 1L) cost <- cost + sim_agreement_cost(study, sc[s, , drop = FALSE])
       i <- i + 1L
       rows[[i]] <- data.frame(
         task_id = sprintf("s%04d-t%04d", s, k), kind = "replications",
@@ -308,6 +381,18 @@ sim_script_path <- function() {
 }
 
 sim_contract_path <- function(study) file.path(sim_root(study), "tools", "sim", "contract.R")
+
+# The files the script sources besides this one (study$files), and their
+# SHA-256 as one text, "path=sha256" separated by spaces ("" without any).
+sim_files_paths <- function(study) {
+  if (is.null(study$files)) character() else file.path(sim_root(study), study$files)
+}
+sim_files_sha256 <- function(study) {
+  if (is.null(study$files) || !length(study$files)) return("")
+  paths <- sim_files_paths(study)
+  if (!all(file.exists(paths))) stop("A file in study$files does not exist.", call. = FALSE)
+  paste0(study$files, "=", vapply(paths, sim_sha256_text, ""), collapse = " ")
+}
 
 sim_git <- function(args) {
   out <- tryCatch(suppressWarnings(system2("git", args, stdout = TRUE, stderr = FALSE)),
@@ -360,7 +445,7 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
   sc <- study$scenarios
   if (!is.null(subset)) sc <- sc[sc$scenario %in% subset, , drop = FALSE]
   package_sha <- sim_package_sha()
-  dirty <- sim_dirty(c(sim_script_path(), sim_contract_path(study)))
+  dirty <- sim_dirty(c(sim_script_path(), sim_contract_path(study), sim_files_paths(study)))
   # A gate and a study run use a commit as it is; only tests may run from a
   # working tree with changes.
   if (spec$purpose %in% c("study", "gate") && !identical(dirty, FALSE)) {
@@ -377,6 +462,8 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
     subset = if (is.null(subset)) "" else paste(subset, collapse = " "),
     script_sha256 = sim_sha256_text(sim_script_path()),
     contract_sha256 = sim_sha256_text(sim_contract_path(study)),
+    files_sha256 = sim_files_sha256(study),
+    allowance = if (is.null(study$gate$allowance)) 1 else as.numeric(study$gate$allowance),
     package = id[["name"]], package_version = id[["version"]],
     package_sha = package_sha, package_dirty = as.character(dirty),
     created_utc = sim_utc())
@@ -402,7 +489,9 @@ sim_verify_plan <- function(study, plan) {
     stop("The plan was made by contract ", info[["contract"]], ", this is contract ",
          sim_contract_version, ". Make the plan again from the same commit.", call. = FALSE)
   }
-  spec <- sim_plan_spec(study, info[["purpose"]], info[["design"]], info[["reps"]])
+  own_size <- identical(info[["purpose"]], "test") && identical(info[["design"]], "run")
+  spec <- sim_plan_spec(study, info[["purpose"]], info[["design"]], info[["reps"]],
+                        task_size = if (own_size) info[["task_size"]] else "")
   subset <- if (nzchar(info[["subset"]])) as.integer(strsplit(info[["subset"]], " ")[[1]]) else NULL
   fresh <- sim_plan(study, spec, subset)
   checks <- c(
@@ -410,6 +499,7 @@ sim_verify_plan <- function(study, plan) {
     tasks = identical(fresh[setdiff(names(fresh), "cost")], plan$tasks[setdiff(names(fresh), "cost")]),
     script = identical(info[["script_sha256"]], sim_sha256_text(sim_script_path())),
     contract_file = identical(info[["contract_sha256"]], sim_sha256_text(sim_contract_path(study))),
+    sourced_files = identical(info[["files_sha256"]], sim_files_sha256(study)),
     package = identical(info[["package_sha"]], sim_package_sha()),
     package_version = identical(info[["package_version"]], sim_package_id(study)[["version"]]))
   if (!all(checks)) {
@@ -577,7 +667,8 @@ sim_run <- function(study, plan_dir, ids, out_dir, workers) {
                purpose = spec$purpose, design = spec$design,
                package_sha = plan$info[["package_sha"]],
                script_sha256 = plan$info[["script_sha256"]],
-               contract_sha256 = plan$info[["contract_sha256"]])
+               contract_sha256 = plan$info[["contract_sha256"]],
+               files_sha256 = plan$info[["files_sha256"]])
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   out_dir <- normalizePath(out_dir, winslash = "/")
   task_dir <- file.path(out_dir, "tasks")
@@ -842,6 +933,25 @@ sim_gate_default <- function(study, times, scenarios, info) {
   }
   used <- times$after_warmup
   if (!any(used)) used <- rep(TRUE, nrow(times))
+  # Seconds per unit of cost, which size a run's jobs. When the study prices
+  # its agreement checks apart (study$agreement_cost(), part of the cost of
+  # each scenario's task 1), they come from replication seconds and the
+  # replications' cost alone, so that the gate's agreement checks, run on
+  # 25 replications per task, do not inflate the price of a replication;
+  # agreement_seconds_per_cost shows how well the agreement cost was priced.
+  # Otherwise they are worker seconds over cost.
+  if (is.function(study$agreement_cost)) {
+    task_no <- as.integer(sub("^.*-t", "", times$task_id))
+    rows <- match(times$scenario, scenarios$scenario)
+    agree_cost <- vapply(seq_len(nrow(times)), function(i) {
+      if (task_no[i] == 1L) sim_agreement_cost(study, scenarios[rows[i], , drop = FALSE]) else 0
+    }, 0)
+    spc <- sum(times$replication_seconds[used]) / sum((times$cost - agree_cost)[used])
+    agree_spc <- if (sum(agree_cost) > 0) sum(times$agreement_seconds) / sum(agree_cost) else NA_real_
+  } else {
+    spc <- sum(times$elapsed[used]) / sum(times$cost[used])
+    agree_spc <- NA_real_
+  }
   summary <- c(purpose = info[["purpose"]], tasks = nrow(times), warmup_minutes = warm,
                tasks_after_warmup = sum(times$after_warmup),
                agreement_seconds = format(sum(times$agreement_seconds), digits = 10),
@@ -849,7 +959,8 @@ sim_gate_default <- function(study, times, scenarios, info) {
                decision = decision,
                chosen_R = if (any(proj$chosen)) proj$R[proj$chosen] else NA,
                chosen_set = if (any(proj$chosen)) proj$set[proj$chosen] else NA,
-               seconds_per_cost = format(sum(times$elapsed[used]) / sum(times$cost[used]), digits = 10))
+               seconds_per_cost = format(spc, digits = 10),
+               agreement_seconds_per_cost = if (is.na(agree_spc)) NA else format(agree_spc, digits = 10))
   list(`gate-times` = per, `gate-projection` = proj,
        `gate-summary` = data.frame(item = names(summary), value = unname(as.character(summary)),
                                    stringsAsFactors = FALSE))
@@ -880,8 +991,10 @@ sim_main <- function(study) {
     plan = {
       spec <- sim_plan_spec(study, sim_setting("SOLOMONR_SIM_PURPOSE", "test"),
                             sim_setting("SOLOMONR_SIM_DESIGN", "run"),
-                            sim_setting("SOLOMONR_SIM_REPS", "2"))
-      sim_write_plan(study, spec, plan_dir())
+                            sim_setting("SOLOMONR_SIM_REPS", "2"),
+                            task_size = sim_setting("SOLOMONR_SIM_TASK_SIZE", ""))
+      subset <- sim_plan_subset(study, spec, sim_setting("SOLOMONR_SIM_SUBSET", ""))
+      sim_write_plan(study, spec, plan_dir(), subset)
     },
     preflight = sim_preflight(study, plan_dir()),
     run = {

@@ -48,6 +48,15 @@ on:
         description: Test only - chunk 0002 fails on the first attempt
         type: boolean
         default: false
+      scenarios:
+        description: all, or the study's fallback (a study run after a gate that chose it, or a test of that plan)
+        type: choice
+        options: [all, fallback]
+        default: all
+      task_size:
+        description: Test only - replications per task, so that a test has several tasks per scenario (empty for the study's own)
+        type: string
+        default: ''
   # The harness tests itself in its own pull request, before the workflow is
   # on master (workflow_dispatch needs the file on the default branch).
   pull_request:
@@ -88,6 +97,8 @@ env:
   SIM_COST_SECONDS: ${{ inputs.cost_seconds || '0' }}
   SIM_SMOKE: ${{ github.event_name != 'workflow_dispatch' || inputs.smoke }}
   SIM_FAIL_ONCE: ${{ github.event_name == 'workflow_dispatch' && inputs.fail_once }}
+  SIM_SCENARIOS: ${{ inputs.scenarios || 'all' }}
+  SIM_TASK_SIZE: ${{ inputs.task_size || '' }}
   SIM_PACKAGE_SHA: ${{ inputs.package_sha || github.event.pull_request.head.sha || github.sha }}
   SIM_HARNESS_SHA: ${{ github.sha }}
   SIM_WORKERS: 4
@@ -155,9 +166,15 @@ jobs:
             fi
           fi
           if [[ "$SIM_FAIL_ONCE" == "true" && "$SIM_SMOKE" != "true" ]]; then fail "fail_once is for smoke runs only."; fi
+          [[ "$SIM_SCENARIOS" =~ ^(all|fallback)$ ]] || fail "scenarios must be all or fallback."
+          if [[ "$SIM_SCENARIOS" == "fallback" && "$SIM_STAGE" == "gate" ]]; then fail "The timing gate runs every scenario."; fi
+          if [[ -n "$SIM_TASK_SIZE" ]]; then
+            [[ "$SIM_TASK_SIZE" =~ ^[1-9][0-9]*$ ]] || fail "task_size must be a whole number of at least 1."
+            [[ "$SIM_SMOKE" == "true" && "$SIM_STAGE" == "run" ]] || fail "task_size is for smoke runs of stage run only."
+          fi
           echo "purpose=$purpose" >> "$GITHUB_OUTPUT"
           echo "SIM_PURPOSE=$purpose" >> "$GITHUB_ENV"
-          echo "Study $SIM_STUDY, stage $SIM_STAGE, purpose $purpose, R $SIM_REPS, chunks $SIM_CHUNKS, package $SIM_PACKAGE_SHA."
+          echo "Study $SIM_STUDY, stage $SIM_STAGE, purpose $purpose, R $SIM_REPS, chunks $SIM_CHUNKS, scenarios $SIM_SCENARIOS, task size ${SIM_TASK_SIZE:-the study's}, package $SIM_PACKAGE_SHA."
 
       - name: Check out the harness
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -210,6 +227,7 @@ jobs:
         run: |
           set -euo pipefail
           SOLOMONR_SIM_PURPOSE="$SIM_PURPOSE" SOLOMONR_SIM_REPS="$SIM_REPS" \
+            SOLOMONR_SIM_SUBSET="$SIM_SCENARIOS" SOLOMONR_SIM_TASK_SIZE="$SIM_TASK_SIZE" \
             SOLOMONR_SIM_PLAN="$GITHUB_WORKSPACE/plan" SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
             Rscript "$SIM_SCRIPT" > "$GITHUB_WORKSPACE/plan-log.txt" 2>&1
 

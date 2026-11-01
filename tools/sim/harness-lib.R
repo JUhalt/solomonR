@@ -4,7 +4,7 @@
 # checkout instead), so the two copies of the CSV helpers are deliberate.
 # Base R only; ASCII.
 
-h_contracts <- "2"   # contract versions this harness can check and merge
+h_contracts <- "3"   # contract versions this harness can check and merge
 
 h_fail <- function(...) {
   cat("::error::", paste0(...), "\n", sep = "")

@@ -12,7 +12,10 @@
 # them; an item that both write stops the run. The results folder then holds
 # the files that go into the study's folder by a pull request (and
 # summary.rds, which tools/sim/compare-runs.R reads); the task files stay in
-# the chunk artifacts.
+# the chunk artifacts. Among the harness's items, started_utc is when the
+# plan was made, first_task_started_utc and last_task_finished_utc are the
+# first task's start and the last task's finish (timing/task-times.csv),
+# and finished_utc is when this script ran.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -67,7 +70,7 @@ values <- c(
   package_loaded_with = "pkgload::load_all(helpers = FALSE, attach_testthat = FALSE)",
   package_sha = info[["package_sha"]], package_dirty = info[["package_dirty"]],
   script_sha256 = info[["script_sha256"]], contract = info[["contract"]],
-  contract_sha256 = info[["contract_sha256"]],
+  contract_sha256 = info[["contract_sha256"]], sourced_files_sha256 = info[["files_sha256"]],
   r_version = sw("r", "version"), r_build = sw("r", "build"), libR_sha256 = sw("r", "libR_sha256"),
   platform = sw("r", "platform"), os = sw("r", "os"),
   rng_kinds = paste(info[["rng_kind"]], info[["normal_kind"]], info[["sample_kind"]], sep = ", "),
@@ -87,7 +90,10 @@ values <- c(
   runner_images = paste(unique(paste(jobs$image_os, jobs$image_version)), collapse = "; "),
   chunks_rerun = paste(jobs$chunk[!is.na(attempt) & attempt > 1L], collapse = " "),
   chunks_resumed = paste(jobs$chunk[!is.na(resumed) & resumed > 0L], collapse = " "),
-  started_utc = info[["created_utc"]], finished_utc = h_now(),
+  started_utc = info[["created_utc"]],
+  first_task_started_utc = if (is.null(times) || !nrow(times)) NA else min(times$started),
+  last_task_finished_utc = if (is.null(times) || !nrow(times)) NA else max(times$finished),
+  finished_utc = h_now(),
   worker_seconds = if (is.null(times)) NA else format(sum(as.numeric(times$elapsed)), digits = 10),
   agreement_seconds = if (is.null(times)) NA else format(sum(as.numeric(times$agreement_seconds)), digits = 10),
   replay = sprintf("%d of %d tasks identical (%d first ran on another processor model)",

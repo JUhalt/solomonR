@@ -3,9 +3,19 @@
 # package root:
 #
 #   Rscript tools/sim/run-local.R [--study smoke] [--purpose test] [--design run]
-#     [--reps 20] [--chunks 3] [--workers 0] --out DIR
+#     [--reps 20] [--chunks 3] [--workers 0] [--subset "1 18 131" | fallback]
+#     [--task-size 5] --out DIR
 #   Rscript tools/sim/run-local.R --out DIR --resume [--workers 0]
 #   Rscript tools/sim/run-local.R --out DIR --rerun-chunk 2 [--workers 1]
+#
+# --subset plans only some scenarios, with the full table's streams: a list
+# of scenario numbers (a test only), or "fallback", the study's fallback
+# (gate$fallback(); a study run after a gate that chose it, or a test of
+# that plan). --task-size sets a test run's replications per task, so that
+# a test of at most 20 replications can have several tasks per scenario.
+# Both reach the plan stage only (SOLOMONR_SIM_SUBSET and
+# SOLOMONR_SIM_TASK_SIZE); the plan records them, and the contract checks
+# them there.
 #
 # It runs the stages of the workflow simulation-run one after another, each
 # in a new R process, with the same scripts: check the software against the
@@ -48,7 +58,7 @@ harness <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArg
                                  winslash = "/"))
 
 opts <- list(study = "smoke", purpose = "test", design = "run", reps = "20", chunks = "3",
-             workers = "0", out = "", rerun_chunk = "", resume = FALSE)
+             workers = "0", out = "", rerun_chunk = "", resume = FALSE, subset = "", task_size = "")
 flags <- "resume"
 args <- commandArgs(trailingOnly = TRUE)
 i <- 1L
@@ -243,7 +253,8 @@ if (dir.exists(out) && length(list.files(out, all.files = TRUE, no.. = TRUE))) {
 }
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
 step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software.csv"), "--local"))
-step("Plan", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "plan"))
+step("Plan", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "plan", SOLOMONR_SIM_SUBSET = opts$subset,
+                             SOLOMONR_SIM_TASK_SIZE = opts$task_size))
 step("Preflight", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "preflight"))
 invisible(file.copy(file.path(out, "software.csv"), file.path(plan_dir, "software.csv")))
 step("Assign the tasks", c(file.path(harness, "assign-chunks.R"), plan_dir, opts$chunks))
