@@ -357,15 +357,15 @@
 # name (.scaled_columns()).
 .coefficient_table <- function(fit, fit_cr, V, scaling, robust, df_model, conf_level,
                                basis = NULL) {
-  tidy <- broom::tidy(fit)
+  tidy <- .tidy_coefficients(fit)
   standardized <- length(scaling$means) > 0L
   cf <- stats::coef(fit)
   rows <- if (identical(tidy$term, names(cf))) seq_along(cf) else match(tidy$term, names(cf))
   V_given <- V
   if (standardized) {
     M <- .covariate_map(fit, scaling)
-    # broom names the estimates of a negative-binomial fit by term; they
-    # keep their names.
+    # .tidy_coefficients() names the estimates of a negative-binomial fit by
+    # term, as broom did; they keep their names.
     estimate <- drop(M %*% cf)[rows]
     tidy$estimate <- if (is.null(names(tidy$estimate))) unname(estimate) else estimate
     V_given <- .given_vcov(fit, V, M, robust, if (robust == "CR2") basis)
