@@ -125,6 +125,17 @@ gh run watch <run id> --repo JUhalt/solomonR
   `failed-tasks/<task id>.csv` with the replication and the message, and
   the job's remaining tasks are skipped. It fails the same way on a rerun.
   The remedy is a new commit, a new plan, and an amendment, never a rerun.
+- Before the results of a gate or a study run are used, check where the
+  run came from: `gh run view <run id> --repo JUhalt/solomonR --json
+  event,headBranch,headSha,workflowName` must show `"event":"workflow_dispatch"`,
+  `"headBranch":"master"`, `"workflowName":"simulation-run"`, and as
+  `headSha` the master commit it was dispatched at. A pull request from a
+  fork runs this workflow from its own merge commit and can upload
+  artifacts with the same names, but it cannot start a `workflow_dispatch`
+  run, which needs write access to the repository. `run-information.csv`
+  repeats the event, the ref, and the workflow path (`event`, `ref`,
+  `workflow_ref`) for the record; the run writes that file itself, so it is
+  not the check.
 - Results: `gh run download <run id> --repo JUhalt/solomonR -n
   results-<study>-<purpose>-<stage> -D <folder>`. The task files: `gh run
   download <run id> --repo JUhalt/solomonR -p "chunk-*" -D <archive

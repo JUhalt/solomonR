@@ -12,7 +12,9 @@
 # them; an item that both write stops the run. The results folder then holds
 # the files that go into the study's folder by a pull request (and
 # summary.rds, which tools/sim/compare-runs.R reads); the task files stay in
-# the chunk artifacts.
+# the chunk artifacts. The event, ref, and workflow path of the run are
+# recorded for information only: the run writes this file itself, so the
+# README's results procedure checks them with `gh run view` instead.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -63,6 +65,8 @@ values <- c(
   workflow_run = env("GITHUB_RUN_ID", "local"),
   workflow_attempt = env("GITHUB_RUN_ATTEMPT", "1"),
   harness_sha = env("SIM_HARNESS_SHA", env("GITHUB_SHA")),
+  event = env("GITHUB_EVENT_NAME", "local"), ref = env("GITHUB_REF", "local"),
+  workflow_ref = env("GITHUB_WORKFLOW_REF", "local"),
   package = info[["package"]], package_version = info[["package_version"]],
   package_loaded_with = "pkgload::load_all(helpers = FALSE, attach_testthat = FALSE)",
   package_sha = info[["package_sha"]], package_dirty = info[["package_dirty"]],
