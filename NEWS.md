@@ -71,7 +71,10 @@
   or below the tolerance of `glm()`. Near zero the bound is far below that
   tolerance, so the check is that of `glm()`, and nearly collinear
   covariates, such as a covariate and its copy in single precision, are
-  fitted as before, whatever other covariates lie far from zero.
+  fitted as before, whatever other covariates lie far from zero. A fit of
+  the model as given that fails itself stops before the check, as before:
+  `MASS::glm.nb()` did, with "NA/NaN/Inf in 'x'", for an exact relation
+  with a covariate 3 * 10^10 standard deviations from zero.
 * `fit_solomon_sem(ancova = TRUE)` lost accuracy when the pretest lay far
   from zero: at 10^4 standard deviations its p-values were off by 7% to
   100% of their value in six checks, and in another it stopped, as it did

@@ -1030,6 +1030,11 @@ stouffer_solomon <- function(p) {
 #'   covariates 10^-6 standard deviations apart at 10^6 standard deviations
 #'   from zero, are taken to be collinear by [stats::glm()] as given, which
 #'   stops the fit too.
+#' - The check runs once the model as given is fitted. When that fit fails
+#'   itself, as [MASS::glm.nb()] did with "NA/NaN/Inf in 'x'" for an exact
+#'   relation with a covariate 3 * 10^10 standard deviations from zero, the
+#'   fit stops with that error, as in earlier versions, before the check
+#'   can name a term.
 #' - Fitting nearly collinear covariates is not the same as estimating
 #'   their standard errors well. With covariates that differ by about 10^-7
 #'   of their standard deviation or less, as a covariate near zero and its
