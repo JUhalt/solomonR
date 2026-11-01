@@ -307,8 +307,12 @@ sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
     if (purpose != "test" || design != "run") {
       stop("Only a test run of design run may set its own task size.", call. = FALSE)
     }
-    if (!grepl("^[1-9][0-9]*$", task_size)) stop("The task size must be a whole number of at least 1.", call. = FALSE)
-    size <- as.integer(task_size)
+    # Digits only, and within R's integers: a longer number fits the pattern
+    # but is NA to as.integer().
+    size <- if (grepl("^[1-9][0-9]*$", task_size)) suppressWarnings(as.integer(task_size)) else NA_integer_
+    if (is.na(size)) {
+      stop("The task size must be a whole number from 1 to ", .Machine$integer.max, ".", call. = FALSE)
+    }
   }
   if (is.na(reps) || reps < 1L) stop("The number of replications must be positive.", call. = FALSE)
   # The protocols allow code-testing runs of at most 20 replications per
@@ -344,7 +348,8 @@ sim_plan_subset <- function(study, spec, value) {
   }
   if (spec$purpose != "test") stop("Only a test run may plan a list of scenarios.", call. = FALSE)
   tokens <- strsplit(value, "[ ,]+")[[1]]
-  s <- if (all(grepl("^[1-9][0-9]*$", tokens))) as.integer(tokens) else NA_integer_
+  # A number beyond R's integers is NA, and refused below.
+  s <- if (all(grepl("^[1-9][0-9]*$", tokens))) suppressWarnings(as.integer(tokens)) else NA_integer_
   if (!length(s) || anyNA(s) || anyDuplicated(s) || !all(s %in% sc$scenario)) {
     stop("SOLOMONR_SIM_SUBSET must be \"all\", \"fallback\", or distinct scenario numbers of the table.",
          call. = FALSE)

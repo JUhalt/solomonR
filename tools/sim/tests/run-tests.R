@@ -33,10 +33,12 @@
 #            the study sources, the same with CRLF or LF line ends; task
 #            1's agreement cost; the gate's allowance; the scenarios of a
 #            subset, with the full table's streams; a test's task size),
-#            the plan stage's refusals, sim_verify_plan() after a sourced
-#            file changed, and, with git, the clean-checkout rule and the
-#            plan options of a gate or study run; and the gate's seconds
-#            per unit of cost (sim_gate_default() on timings made up here).
+#            the plan stage's refusals (a task size, or a scenario number
+#            of a list, by the contract's own message, also beyond R's
+#            integers), sim_verify_plan() after a sourced file changed,
+#            and, with git, the clean-checkout rule and the plan options
+#            of a gate or study run; and the gate's seconds per unit of
+#            cost (sim_gate_default() on timings made up here).
 #   replay   merge-chunks.R's replay list (rules a to d) on task files made
 #            up here: 6 tasks in 1, 2, and 3 chunks, with costs such that
 #            rules c and d must fall back to the lowest- and highest-
@@ -452,7 +454,8 @@ if ("inputs" %in% groups) local({
     list("smoke gate, task_size 5", c(SIM_STAGE = "gate", SIM_TASK_SIZE = "5"), "refuse"),
     list("smoke, task_size 0", c(SIM_TASK_SIZE = "0"), "refuse"),
     list("smoke, task_size 2.5", c(SIM_TASK_SIZE = "2.5"), "refuse"),
-    list("smoke, task_size abc", c(SIM_TASK_SIZE = "abc"), "refuse"))
+    list("smoke, task_size abc", c(SIM_TASK_SIZE = "abc"), "refuse"),
+    list("smoke, task_size 99999999999 (the contract refuses it)", c(SIM_TASK_SIZE = "99999999999"), "accept"))
   for (cs in cases) {
     vars <- base
     vars[names(cs[[2]])] <- cs[[2]]
@@ -507,6 +510,14 @@ if ("contract" %in% groups) local({
   }
   verify_vars <- function(plan_dir) c(SOLOMONR_SIM_PLAN = plan_dir, HARNESS_TEST_VERIFY = "1")
   outcome <- function(r) if (r$status == 0L) "accept" else "refuse"
+  # "refuse" only when the contract's own check stops the stage, with its
+  # message `msg` and no R warning before it; an R error further on is not
+  # a refusal by the contract.
+  refusal <- function(r, msg) {
+    if (r$status == 0L) return("accept")
+    if (!any(grepl(msg, r$out, fixed = TRUE))) return("R error")
+    if (any(grepl("Warning message", r$out, fixed = TRUE))) "R warning" else "refuse"
+  }
   item <- function(kv, name) if (name %in% names(kv)) kv[[name]] else NA_character_
   read_info <- function(plan_dir) {
     f <- file.path(plan_dir, "plan-info.csv")
@@ -638,6 +649,10 @@ if ("contract" %in% groups) local({
   record("contract", "plan: a list with 2.5", "refuse", outcome(r), last_line(r$out))
   r <- subset_plan("plan-list-twice", "2 2")
   record("contract", "plan: a list with a scenario twice", "refuse", outcome(r), last_line(r$out))
+  # A number of digits beyond R's integers: NA to as.integer().
+  r <- subset_plan("plan-list-huge", "2 99999999999")
+  record("contract", "plan: a list with 99999999999, beyond R's integers", "refuse",
+         refusal(r, "SOLOMONR_SIM_SUBSET must be"), last_line(r$out))
 
   # A test's own task size (SOLOMONR_SIM_TASK_SIZE).
   size_plan <- function(name, value, purpose = "test", design = "run") {
@@ -654,10 +669,22 @@ if ("contract" %in% groups) local({
   record("contract", "verify: a plan with its own task size", "accept", outcome(r), last_line(r$out))
   r <- run_study(p, verify_vars(file.path(p, "plan-fallback")))
   record("contract", "verify: a plan of the fallback", "accept", outcome(r), last_line(r$out))
-  for (cs in list(list("0", "plan: task size 0"), list("2.5", "plan: task size 2.5"), list("x", "plan: task size x"))) {
+  # 2147483648 and 99999999999 fit the pattern of digits but not R's
+  # integers: as.integer() alone gives NA, and the plan would stop with an
+  # R error further on. 2147483647 is the largest task size (one task per
+  # scenario).
+  for (cs in list(list("0", "plan: task size 0"), list("2.5", "plan: task size 2.5"), list("x", "plan: task size x"),
+                  list("2147483648", "plan: task size 2147483648, one above R's integers"),
+                  list("99999999999", "plan: task size 99999999999, beyond R's integers"))) {
     r <- size_plan(paste0("plan-size-", cs[[1]]), cs[[1]])
-    record("contract", cs[[2]], "refuse", outcome(r), last_line(r$out))
+    record("contract", cs[[2]], "refuse", refusal(r, "The task size must be a whole number"), last_line(r$out))
   }
+  r <- size_plan("plan-size-max", "2147483647")
+  st <- plan_tasks(file.path(p, "plan-size-max"))
+  record("contract", "plan: task size 2147483647, 1 task per scenario", "yes",
+         yes(!is.null(st) && nrow(st) == 6L && all(st$rep_to == "4") &&
+               identical(item(read_info(file.path(p, "plan-size-max")), "task_size"), "2147483647")),
+         last_line(r$out))
   r <- size_plan("plan-size-gate-design", "1", design = "gate")
   record("contract", "plan: a task size in a test of the gate's design", "refuse", outcome(r), last_line(r$out))
 
