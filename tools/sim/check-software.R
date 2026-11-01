@@ -7,21 +7,22 @@
 # SHA-256 of R's shared library differs), if a pinned package has another
 # version, if R does not use a reference BLAS and LAPACK, if the default RNG
 # kinds were changed, or, unless --local, if a tool (pak) has another version
-# than pinned or a repository other than the pinned snapshot is set. On
-# Linux, the reference libraries are Ubuntu's libblas3 and liblapack3, and the
-# processor must have AVX2 and FMA, so that the C library picks the same
-# variants of exp(), log(), and pow() in every job; R reporting no BLAS
-# library at all is a failure. On Windows, R reports no library path; there
-# the libraries must be R's own Rblas.dll and Rlapack.dll, which must not
-# contain the names of an optimized library, and their SHA-256 must equal the
-# pins when the pins give them.
+# than pinned or a repository other than the pinned snapshot is set, in R or
+# in pak (pak::repo_get(); PKG_USE_BIOCONDUCTOR must be false, so that pak
+# adds no Bioconductor repository). On Linux, the reference libraries are
+# Ubuntu's libblas3 and liblapack3, and the processor must have AVX2 and FMA,
+# so that the C library picks the same variants of exp(), log(), and pow() in
+# every job; R reporting no BLAS library at all is a failure. On Windows, R
+# reports no library path; there the libraries must be R's own Rblas.dll and
+# Rlapack.dll, which must not contain the names of an optimized library, and
+# their SHA-256 must equal the pins when the pins give them.
 #
 # software.csv lists R and its build, the platform, the libraries with their
-# versions and checksums, the processor flags, the repositories, pak, and
-# every installed package with its version (except this package, which the
-# study loads from its checkout); the merge requires it to be identical in
-# every job of a run. Package versions are read from the Version field only;
-# nothing else of any DESCRIPTION is read.
+# versions and checksums, the processor flags, the repositories (R's, and
+# unless --local pak's), pak, and every installed package with its version
+# (except this package, which the study loads from its checkout); the merge
+# requires it to be identical in every job of a run. Package versions are
+# read from the Version field only; nothing else of any DESCRIPTION is read.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -135,6 +136,20 @@ for (nm in names(repos)) add("repos", nm, repos[[nm]])
 if (!local_run) {
   off <- names(repos)[sub("/+$", "", unname(repos)) != snapshot]
   if (length(off)) problem("Repositories other than the snapshot are set: ", paste(off, collapse = ", "), ".")
+  # The repositories pak resolves the dependencies from: getOption("repos")
+  # and, unless PKG_USE_BIOCONDUCTOR is false (set by sim-setup), the
+  # Bioconductor repositories, which are not dated.
+  if (!identical(tolower(Sys.getenv("PKG_USE_BIOCONDUCTOR")), "false")) {
+    problem("PKG_USE_BIOCONDUCTOR is not false, so pak would also resolve from Bioconductor.")
+  }
+  pak_repos <- tryCatch(as.data.frame(pak::repo_get()), error = function(e) NULL)
+  if (is.null(pak_repos) || !nrow(pak_repos) || !all(c("name", "url") %in% names(pak_repos))) {
+    problem("pak's repositories could not be read (pak::repo_get()).")
+  } else {
+    for (i in seq_len(nrow(pak_repos))) add("pak_repos", pak_repos$name[i], pak_repos$url[i])
+    off <- pak_repos$name[sub("/+$", "", pak_repos$url) != snapshot]
+    if (length(off)) problem("pak resolves from repositories other than the snapshot: ", paste(off, collapse = ", "), ".")
+  }
 }
 
 # Packages: the pinned ones first, then every installed package as R finds it.

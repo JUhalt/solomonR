@@ -74,8 +74,8 @@ package and the SHA-256 of R's shared library; `libc6` (glibc),
 BLAS and LAPACK files R uses, with their SHA-256; `La_version()` and the long
 double digits; the processor's AVX2 and FMA flags (both required, so that
 glibc picks the same variants of `exp()`, `log()`, and `pow()` everywhere);
-the RNG kinds; the repositories; pak; and every installed package with its
-version. The runner image's version may differ between jobs; it is recorded
+the RNG kinds; the repositories of R and of pak; pak; and every installed
+package with its version. The runner image's version may differ between jobs; it is recorded
 in `timing/jobs.csv` and `run-information.csv`.
 
 The package commit fixes everything a task computes, because the study
@@ -217,8 +217,14 @@ In the study's own pull request, before its run (the order rule of #117):
   the Version field only. The study script's output goes to files, which
   the job prints only after `scan-addresses.R` has found no text shaped
   like an e-mail address in them; the same scan runs before every upload.
-- R 4.6.1, the dated snapshot (pak included), and Ubuntu's reference BLAS
-  and LAPACK are checked in every job before any task.
+- Every job installs its R library afresh from the dated snapshot (pak
+  included): no Actions cache, which any workflow on the branch can write
+  and to which pak only adds; no Bioconductor repository
+  (`PKG_USE_BIOCONDUCTOR=false`); extra packages only from CRAN (a name,
+  `any::`, or `cran::`); no pandoc or Quarto. R 4.6.1, the snapshot as the
+  only repository of R and of pak, pak, the pinned package versions, and
+  Ubuntu's reference BLAS and LAPACK are checked in every job before any
+  task.
 
 ## Reference
 
