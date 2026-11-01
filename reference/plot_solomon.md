@@ -31,7 +31,14 @@ plot_solomon(y, treat, pretested)
 
 Invisibly, a data frame with one row for each cell, in the columns
 `pretested`, `treat`, `n`, `mean`, `sd`, `se`, the limits `lo` and `hi`
-of the 95% interval, and `x`, the position of the cell on the axis.
+of the 95% interval, and `x`, the position of the cell on the axis. It
+is a tibble grouped by `pretested`, as dplyr groups one; it is made with
+dplyr where dplyr is installed and with base R and tibble where it is
+not. Without dplyr's methods,
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) keeps its
+`groups` attribute, and taking rows of the table or changing its
+`pretested` column does not update its groups, so a table changed in
+that way gives wrong groups if it is later used with dplyr.
 
 ## Details
 

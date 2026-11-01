@@ -613,6 +613,8 @@ CRAN pre-submission readiness —
   package’s references were released in 0.8.0 ([PR
   \#90](https://github.com/JUhalt/solomonR/pull/90), [PR
   \#98](https://github.com/JUhalt/solomonR/pull/98)).
+- broom and dplyr leave Imports, with every result unchanged ([PR
+  \#153](https://github.com/JUhalt/solomonR/pull/153)).
 - Nothing is submitted without the maintainer’s sign-off.
 
 The validation studies run on GitHub-hosted runners, under each

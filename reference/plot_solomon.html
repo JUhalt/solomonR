@@ -126,7 +126,13 @@ draws in base graphics and returns the cell summaries invisibly.</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Invisibly, a data frame with one row for each cell, in the columns
 <code>pretested</code>, <code>treat</code>, <code>n</code>, <code>mean</code>, <code>sd</code>, <code>se</code>, the limits <code>lo</code> and <code>hi</code>
-of the 95% interval, and <code>x</code>, the position of the cell on the axis.</p>
+of the 95% interval, and <code>x</code>, the position of the cell on the axis. It
+is a tibble grouped by <code>pretested</code>, as dplyr groups one; it is made with
+dplyr where dplyr is installed and with base R and tibble where it is
+not. Without dplyr's methods, <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> keeps its <code>groups</code>
+attribute, and taking rows of the table or changing its <code>pretested</code>
+column does not update its groups, so a table changed in that way gives
+wrong groups if it is later used with dplyr.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

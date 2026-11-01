@@ -2,6 +2,88 @@
 
 ## solomonR (development version)
 
+### broom and dplyr are no longer imported ([\#84](https://github.com/JUhalt/solomonR/issues/84), fourth part)
+
+- solomonR no longer imports broom and dplyr, which brought in 8 of the
+  36 packages that it needed, directly or through other packages
+  (backports, broom, dplyr, purrr, stringi, stringr, tidyr, and
+  tidyselect). None of the 28 that remain needs either one. The
+  coefficient tables of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  and the legacy `ancova` and `t_unpretested` tables of
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  are now made with base R and tibble. tibble is now required at version
+  3.2.0 or later, the version that dplyr required.
+- dplyr is now suggested, for the deprecated
+  [`plot_solomon()`](https://juhalt.github.io/solomonR/reference/plot_solomon.md)
+  alone. Where dplyr is installed,
+  [`plot_solomon()`](https://juhalt.github.io/solomonR/reference/plot_solomon.md)
+  makes its cell summaries with dplyr, as before, and so loads it, and
+  dplyr’s methods keep the groups of the returned table up to date when
+  the table is changed. Where dplyr is not installed, base R and tibble
+  make the same table.
+- **Results are unchanged.** For 1,383 results of the exported functions
+  and of the examples of every help page, with their prints, summaries,
+  [`tidy()`](https://generics.r-lib.org/reference/tidy.html),
+  `glance()`, reports, and plot data, the values, names, column order,
+  classes, attributes, row names, and printed output are identical to
+  those of the development version before this change, except as the
+  next item says, and so is what the smoke run of the binary-outcome
+  validation script writes. The tests pass where neither package is
+  installed.
+- **What depended on the package loading broom and dplyr.**
+  - [`tidy()`](https://generics.r-lib.org/reference/tidy.html) and
+    `glance()` of a model that a result holds, such as `fit$model` of
+    [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+    or `fit$tests$E$model` of
+    [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md),
+    need broom loaded, as they do for any model fitted outside the
+    package; before, the first fit of a session had loaded broom. broom
+    also has a
+    [`tidy()`](https://generics.r-lib.org/reference/tidy.html) method
+    for `NULL`, so `tidy(fit$model)` of a classic fit, whose `model` is
+    `NULL` (its models are `fit$tests$E$model` and `fit$tests$H$model`),
+    returned an empty table, and it now fails unless broom is loaded.
+  - Unless broom is loaded,
+    [`tidy()`](https://generics.r-lib.org/reference/tidy.html) or
+    `glance()` of a result that has no such method fails with the error
+    of generics, “no applicable method for ‘glance’ applied to an object
+    of class …”, instead of broom’s, “No `glance()` method for objects
+    of class …”. This is `glance()` of every result except those of
+    [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+    and [`tidy()`](https://generics.r-lib.org/reference/tidy.html) of
+    the results that have no table of effects, such as equivalence and
+    permutation tests, checks, and reports.
+  - Where dplyr is not installed, the table that
+    [`plot_solomon()`](https://juhalt.github.io/solomonR/reference/plot_solomon.md)
+    returns prints without its `# Groups: pretested [2]` line, and base
+    R and tibble do not maintain its groups:
+    [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) keeps
+    its `groups` attribute, and taking rows of it or changing its
+    `pretested` column leaves the groups as they were, so a table
+    changed in that way gives wrong groups if it is later used with
+    dplyr. Scores that are not numbers, which
+    [`plot_solomon()`](https://juhalt.github.io/solomonR/reference/plot_solomon.md)
+    does not accept by its documentation, give R’s own warnings and
+    errors, cell by cell, instead of the single warning or error of
+    dplyr that wrapped them, and the message that dplyr gives under
+    `options(dplyr.summarise.inform = TRUE)` is not given.
+- **The first fit of a session is faster**, because it loads 6 packages
+  instead of 14. In new R sessions, the first call of
+  [`fit_solomon_classic()`](https://juhalt.github.io/solomonR/reference/fit_solomon_classic.md)
+  on `solomon_example` took a median of 0.53 s before this change and
+  0.23 s after (8 sessions each, alternating, with R 4.6.1 on Windows
+  and the packages’ files in the disk cache); later calls take 0.05 s or
+  less either way.
+- The binary-outcome validation script binds its rows without dplyr, and
+  stops on tables that it could not bind as
+  [`dplyr::bind_rows()`](https://dplyr.tidyverse.org/reference/bind_rows.html)
+  did; a test builds its stored table without broom. Every validation
+  script passes in smoke mode without either package.
+- The tests need testthat 3.1.7 or later, for `with_mocked_bindings()`,
+  and `DESCRIPTION` now says so; the minimum it declared, 3.0.0, was
+  already too low for `expect_no_warning()`, which came in 3.1.5.
+
 ### The a priori procedure in the planning article ([\#147](https://github.com/JUhalt/solomonR/issues/147))
 
 - “Planning a Solomon Study” gains a short section, “Planning for
