@@ -61,7 +61,9 @@
 #            up here: 6 tasks in 1, 2, and 3 chunks, with costs such that
 #            rules c and d must fall back to the lowest- and highest-
 #            numbered chunks once every chunk has been chosen, and ties
-#            broken by task id.
+#            broken by task id; and the plan's reps, which merge-chunks.R
+#            must read in digits (4.0, 04, 99999999999 refused by its
+#            message).
 #   finalize finalize-results.R on a run's folders made up here: the first
 #            task's start and the last task's finish (the earliest and the
 #            latest, not the first and last rows), NA without the task
@@ -1012,10 +1014,10 @@ if ("replay" %in% groups) local({
     rep_from = c("1", "3"), rep_to = c("2", "4"), seed = "1 2 3 4 5 6 7", rows_per_rep = "1",
     cost = c("50", "10", "40", "5", "30", "5"), stringsAsFactors = FALSE)
   # A plan with these tasks in the given chunks, and their task files.
-  make <- function(name, chunk) {
+  make <- function(name, chunk, reps = "4") {
     d <- file.path(root, name)
     h_write_csv(tasks, file.path(d, "plan", "tasks.csv"))
-    h_write_kv(c(unlist(base), reps = "4"), file.path(d, "plan", "plan-info.csv"))
+    h_write_kv(c(unlist(base), reps = reps), file.path(d, "plan", "plan-info.csv"))
     h_write_csv(data.frame(task_id = tasks$task_id, chunk = chunk, stringsAsFactors = FALSE),
                 file.path(d, "plan", "assignment.csv"))
     h_write_csv(software, file.path(d, "plan", "software.csv"))
@@ -1057,6 +1059,16 @@ if ("replay" %in% groups) local({
       paste0(x$rule, "=", x$task_id, collapse = " ")
     } else "merge refused"
     record("replay", cs[[1]], "yes", if (identical(got, cs[[3]])) "yes" else "no", got)
+  }
+  # The plan's reps, read in digits (review round 1): as.integer() alone
+  # reads "4.0" and "04" as 4, and a number beyond R's integers stops the
+  # merge with an R error. Refused by merge-chunks.R's own message.
+  for (v in c("4.0", "04", "99999999999")) {
+    d <- make(paste0("reps-", v), rep("0001", 6), reps = v)
+    r <- run_r("merge-chunks.R", c(file.path(d, "plan"), file.path(d, "chunks"), file.path(d, "merged")))
+    record("replay", paste("merge: the plan's reps", v), "refuse",
+           refusal(r, "The plan's reps must be a whole number from 1 to 2147483647, in digits without a leading zero."),
+           last_line(r$out))
   }
 })
 
@@ -1342,7 +1354,9 @@ if ("merge" %in% groups) {
       "an envelope with another files_sha256" = function(d) edit_task(d, pick(9), function(t) {
         t$envelope$files_sha256 <- other_hash(t$envelope$files_sha256); t }),
       "plan-info's files_sha256 changed after the chunks ran" = function(d) edit_info(d, "files_sha256", other_hash),
-      "a plan of contract 2" = function(d) edit_info(d, "contract", function(x) "2"))
+      "a plan of contract 2" = function(d) edit_info(d, "contract", function(x) "2"),
+      # The plan's reps, which merge-chunks.R reads in digits (review round 1).
+      "plan-info's reps with \".0\" appended" = function(d) edit_info(d, "reps", function(x) paste0(x, ".0")))
     for (k in seq_along(cases)) {
       d <- file.path(work, "merge", sprintf("m%02d", k))
       dir.create(d, recursive = TRUE)

@@ -62,6 +62,13 @@ info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
 assignment <- h_read_csv(file.path(plan_dir, "assignment.csv"))
 if (!info[["contract"]] %in% h_contracts) h_fail("This harness cannot merge contract version ", info[["contract"]], ".")
 if (!identical(sort(assignment$task_id), sort(plan$task_id))) h_fail("The assignment does not list the plan's tasks.")
+# The plan's replications per scenario (step 4), in digits (h_whole()):
+# as.integer() alone reads "20.9" or "2e1" as 20, and turns a number
+# beyond R's integers into NA.
+R <- h_whole(info[["reps"]], 1L)
+if (is.na(R)) {
+  h_fail("The plan's reps must be a whole number from 1 to ", .Machine$integer.max, ", in digits without a leading zero.")
+}
 
 # ---- 1. Every task once, in its chunk -------------------------------------------
 
@@ -161,7 +168,6 @@ manifest <- do.call(rbind, manifest)
 
 # ---- 4. Every scenario, replications 1 to R once ------------------------------------
 
-R <- as.integer(info[["reps"]])
 scenarios <- sort(unique(as.integer(plan$scenario[plan$kind == "replications"])))
 completeness <- do.call(rbind, lapply(scenarios, function(s) {
   r <- covered[[as.character(s)]]
