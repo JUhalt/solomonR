@@ -250,7 +250,11 @@ of the protocol.
 From the package root, `Rscript vignettes/articles/mi-validation/mi-simulation.R`
 writes `performance.csv` and `run-information.csv`, and
 `Rscript vignettes/articles/mi-validation/mi-agreement.R` then writes
-`agreement.csv` from the saved replications. The run used R
+`agreement.csv` from the saved replications. The simulation script records
+the commit of the copy that it runs by the rule under
+[Rerunning a study](validation-evidence.html#rerunning-a-study) on the
+Validation Evidence page; to run it from a downloaded copy, set
+`SOLOMONR_COMMIT` to the commit that the copy came from. The run used R
 `r sub("R version ([0-9.]+).*", "\\1", run$R_version)` and
 `r run$workers` workers and took from `r run$started` to `r run$finished`.
 The simulation script has since been adapted to the current output of the

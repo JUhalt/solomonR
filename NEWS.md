@@ -189,6 +189,33 @@ reasons are set out in the decision record posted on #135.
 * `tools/pretest-center-check.R` reruns the record's checks with both
   centers, from one build of the package.
 
+## Validation scripts outside a git clone (bug fix, #152)
+
+* Ten validation scripts stopped at the end of a run, before writing
+  `run-information.csv`, when the copy of the package that they ran was
+  not a git clone, as a copy downloaded with GitHub's "Download ZIP" is
+  not: the scripts of the binary, historical-test, cluster-marginal,
+  cluster, count, negative-binomial, invariance, multiple-imputation,
+  repeated-measures, and several-treatment studies. They took the commit
+  from `git rev-parse HEAD`. Outside a repository, git fails, and R's
+  `system()` returns no value, with a warning that the scripts'
+  `tryCatch()` did not catch, so there was no commit to record, not even
+  `NA`. In such a copy, `tools/check-validation-scripts.R` failed these
+  ten and the two scripts that depend on them, 12 of the 16. In a copy
+  unpacked inside another git repository, the ten recorded that
+  repository's commit.
+* Every validation script that records a commit now takes it by one rule:
+  the environment variable `SOLOMONR_COMMIT` when it is set and not empty;
+  otherwise the commit checked out, when the copy is the top level of a
+  git repository and its `DESCRIPTION` names solomonR; otherwise `NA`. The
+  scripts of the ML, power, and plan re-simulation studies, which read
+  only `SOLOMONR_COMMIT`, now also record the commit of a clone. The
+  Validation Evidence page states the rule and says how to record the
+  commit of a downloaded copy. The stored results do not change.
+* A new test checks that the scripts share one definition of the rule,
+  and checks the rule with `SOLOMONR_COMMIT` set, in a clone, outside any
+  repository, and inside an unrelated repository.
+
 ## Validation scripts that run against the current package (#140)
 
 * The simulation scripts behind the validation articles select the rows

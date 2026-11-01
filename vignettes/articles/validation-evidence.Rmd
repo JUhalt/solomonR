@@ -554,6 +554,30 @@ the published practice, found at least one significant interaction in
 treatment was sensitized. See the
 [full article](`r studies$article[studies$study == "several-treatments"]`).
 
+## Rerunning a study
+
+Each script of the studies on this page records, with its results, the
+commit of the copy of the package that it ran
+([issue #152](https://github.com/JUhalt/solomonR/issues/152)). The commit
+is:
+
+- the environment variable `SOLOMONR_COMMIT`, when it is set and not empty;
+- otherwise, when the copy is the top level of a git repository, as a clone
+  is, and its `DESCRIPTION` names solomonR, the commit checked out there
+  (`git rev-parse HEAD`);
+- otherwise `NA`.
+
+A copy downloaded with GitHub's "Download ZIP", or made with `git archive`,
+contains no git repository, so a run from it records `NA`. So does a run
+from a copy unpacked inside another git repository, whose commit is not
+that of the copy. To record the commit that a downloaded copy came from,
+set `SOLOMONR_COMMIT` to it when running the script. In a Unix shell, from
+the root of the copy, for example:
+
+```sh
+SOLOMONR_COMMIT=<commit> Rscript vignettes/articles/binary-validation/binary-simulation.R
+```
+
 ## Adding a study
 
 A new study joins this page by:
