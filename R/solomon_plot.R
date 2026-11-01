@@ -17,9 +17,10 @@
 #'   of the 95% interval, and `x`, the position of the cell on the axis. It
 #'   is a tibble grouped by `pretested`, as dplyr groups one; it is made with
 #'   dplyr where dplyr is installed and with base R and tibble where it is
-#'   not. Without dplyr's methods, taking rows of the table or changing its
-#'   `pretested` column does not update its groups, so a table changed in
-#'   that way gives wrong groups if it is later used with dplyr.
+#'   not. Without dplyr's methods, `as.data.frame()` keeps its `groups`
+#'   attribute, and taking rows of the table or changing its `pretested`
+#'   column does not update its groups, so a table changed in that way gives
+#'   wrong groups if it is later used with dplyr.
 #' @examples
 #' # Use plot_solomon_means() instead:
 #' plot_solomon_means(y_post, treat, pretested, data = solomon_example)

@@ -41,9 +41,10 @@
     equivalence and permutation tests, checks, and reports.
   - Where dplyr is not installed, the table that `plot_solomon()` returns
     prints without its `# Groups:   pretested [2]` line, and base R and
-    tibble do not update its groups when rows of it are taken or its
-    `pretested` column is changed, so a table changed in that way gives
-    wrong groups if it is later used with dplyr. Scores that are not
+    tibble do not maintain its groups: `as.data.frame()` keeps its
+    `groups` attribute, and taking rows of it or changing its `pretested`
+    column leaves the groups as they were, so a table changed in that way
+    gives wrong groups if it is later used with dplyr. Scores that are not
     numbers, which `plot_solomon()` does not accept by its documentation,
     give R's own warnings and errors, cell by cell, instead of the single
     warning or error of dplyr that wrapped them, and the message that
