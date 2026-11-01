@@ -181,6 +181,20 @@ test_that("every validation script that records a commit has the same validation
   }
 })
 
+test_that("the article of every script that records a commit points to the rule", {
+  skip_without_articles()
+  # Each study's article is named after its folder. It says how its script
+  # records the commit by linking the rule on the Validation Evidence page.
+  evidence <- readLines(file.path(articles, "validation-evidence.Rmd"), warn = FALSE)
+  expect_true("## Rerunning a study" %in% evidence)
+  for (folder in unique(dirname(records_commit))) {
+    article <- file.path(articles, paste0(folder, ".Rmd"))
+    expect_true(file.exists(article), info = folder)
+    text <- paste(readLines(article, warn = FALSE), collapse = "\n")
+    expect_true(grepl("validation-evidence.html#rerunning-a-study", text, fixed = TRUE), info = folder)
+  }
+})
+
 test_that("validation_commit() takes SOLOMONR_COMMIT first, when it is not empty", {
   skip_without_articles()
   skip_without_git()
