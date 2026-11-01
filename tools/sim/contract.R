@@ -2,11 +2,13 @@
 # (issue #117; see tools/sim/README.md).
 #
 # A study script sources this file from the package checkout, so the package
-# commit fixes the script, this file, and therefore every random number a
-# task draws. The harness (.github/workflows/simulation-run.yaml and the other
-# scripts in tools/sim, which come from the workflow's own commit) passes no
-# seed and draws no random number: it only says which tasks a process runs
-# and where the files go, and it checks and merges what comes back.
+# commit fixes the script, this file, the files the script sources
+# (study$files, whose SHA-256 the plan and every task record), and therefore
+# every random number a task draws. The harness
+# (.github/workflows/simulation-run.yaml and the other scripts in tools/sim,
+# which come from the workflow's own commit) passes no seed and draws no
+# random number: it only says which tasks a process runs and where the files
+# go, and it checks and merges what comes back.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does
@@ -71,7 +73,7 @@
 # Package and Version fields, or calls git log, Sys.getenv() without a name,
 # or Sys.info().
 
-sim_contract_version <- "2"
+sim_contract_version <- "3"
 
 sim_setting <- function(name, default = "") {
   value <- Sys.getenv(name)
@@ -185,6 +187,10 @@ sim_time_agreement <- function(expr) {
 #   preflight        function(): data frame (check, passed, detail) of the
 #                    protocol's stops before any task
 #   smoke_scenarios  scenario numbers that the smoke mode runs
+#   files            paths, relative to the package root, of the files the
+#                    script sources besides this one; their SHA-256 is part
+#                    of the plan and of every task's envelope, like the
+#                    script's, and a gate or study run needs them committed
 #   package_root     folder of the package (default ".")
 sim_check_study <- function(study) {
   need <- c("key", "issue", "protocol", "seeds", "scenarios", "task_size",
@@ -203,6 +209,10 @@ sim_check_study <- function(study) {
   sc <- study$scenarios
   if (!is.data.frame(sc) || !identical(sc$scenario, seq_len(nrow(sc)))) {
     stop("`study$scenarios$scenario` must be 1, 2, ... in table order.", call. = FALSE)
+  }
+  f <- study$files
+  if (!is.null(f) && (!is.character(f) || anyNA(f) || any(!nzchar(f)) || anyDuplicated(f))) {
+    stop("`study$files` must be distinct paths.", call. = FALSE)
   }
   invisible(study)
 }
@@ -320,6 +330,19 @@ sim_script_path <- function() {
 
 sim_contract_path <- function(study) file.path(sim_root(study), "tools", "sim", "contract.R")
 
+# The files the script sources besides this one (study$files), and their
+# SHA-256 as one text, "path=sha256" separated by spaces ("" without any).
+sim_files_paths <- function(study) {
+  if (is.null(study$files)) character() else file.path(sim_root(study), study$files)
+}
+sim_files_sha256 <- function(study) {
+  if (!length(study$files)) return("")
+  paths <- sim_files_paths(study)
+  absent <- study$files[!file.exists(paths)]
+  if (length(absent)) stop("study$files names files that do not exist: ", paste(absent, collapse = ", "), call. = FALSE)
+  paste0(study$files, "=", vapply(paths, sim_sha256_text, ""), collapse = " ")
+}
+
 sim_git <- function(args) {
   out <- tryCatch(suppressWarnings(system2("git", args, stdout = TRUE, stderr = FALSE)),
                   error = function(e) NULL)
@@ -347,8 +370,9 @@ sim_package_id <- function(study) {
   c(name = unname(d[1, "Package"]), version = unname(d[1, "Version"]))
 }
 
-# TRUE if a tracked file differs from the commit, or if the study script or
-# this file is not part of the commit (untracked or changed); NA without git.
+# TRUE if a tracked file differs from the commit, or if the study script,
+# this file, or a file the script sources is not part of the commit
+# (untracked or changed); NA without git.
 sim_dirty <- function(paths) {
   tracked <- sim_git(c("status", "--porcelain", "--untracked-files=no"))
   own <- sim_git(c("status", "--porcelain", "--untracked-files=all", "--", shQuote(paths)))
@@ -371,7 +395,7 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
   sc <- study$scenarios
   if (!is.null(subset)) sc <- sc[sc$scenario %in% subset, , drop = FALSE]
   package_sha <- sim_package_sha()
-  dirty <- sim_dirty(c(sim_script_path(), sim_contract_path(study)))
+  dirty <- sim_dirty(c(sim_script_path(), sim_contract_path(study), sim_files_paths(study)))
   # A gate and a study run use a commit as it is; only tests may run from a
   # working tree with changes.
   if (spec$purpose %in% c("study", "gate") && !identical(dirty, FALSE)) {
@@ -388,6 +412,7 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
     subset = if (is.null(subset)) "" else paste(subset, collapse = " "),
     script_sha256 = sim_sha256_text(sim_script_path()),
     contract_sha256 = sim_sha256_text(sim_contract_path(study)),
+    files_sha256 = sim_files_sha256(study),
     package = id[["name"]], package_version = id[["version"]],
     package_sha = package_sha, package_dirty = as.character(dirty),
     created_utc = sim_utc())
@@ -405,8 +430,9 @@ sim_read_plan <- function(plan_dir) {
        info = sim_read_kv(file.path(plan_dir, "plan-info.csv")))
 }
 
-# The plan must be the one that this script, this contract, and this commit
-# make; otherwise the tasks would run with seeds the code does not imply.
+# The plan must be the one that this script, the files it sources, this
+# contract, and this commit make; otherwise the tasks would run with seeds,
+# or code, that the plan does not record.
 sim_verify_plan <- function(study, plan) {
   info <- plan$info
   if (!identical(info[["contract"]], sim_contract_version)) {
@@ -421,6 +447,7 @@ sim_verify_plan <- function(study, plan) {
     tasks = identical(fresh[setdiff(names(fresh), "cost")], plan$tasks[setdiff(names(fresh), "cost")]),
     script = identical(info[["script_sha256"]], sim_sha256_text(sim_script_path())),
     contract_file = identical(info[["contract_sha256"]], sim_sha256_text(sim_contract_path(study))),
+    sourced_files = identical(info[["files_sha256"]], sim_files_sha256(study)),
     package = identical(info[["package_sha"]], sim_package_sha()),
     package_version = identical(info[["package_version"]], sim_package_id(study)[["version"]]))
   if (!all(checks)) {
@@ -588,7 +615,8 @@ sim_run <- function(study, plan_dir, ids, out_dir, workers) {
                purpose = spec$purpose, design = spec$design,
                package_sha = plan$info[["package_sha"]],
                script_sha256 = plan$info[["script_sha256"]],
-               contract_sha256 = plan$info[["contract_sha256"]])
+               contract_sha256 = plan$info[["contract_sha256"]],
+               files_sha256 = plan$info[["files_sha256"]])
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   out_dir <- normalizePath(out_dir, winslash = "/")
   task_dir <- file.path(out_dir, "tasks")

@@ -15,8 +15,10 @@
 # them; an item that both write stops the run. The results folder then holds
 # the files that go into the study's folder by a pull request (and
 # summary.rds, which tools/sim/compare-runs.R reads); the task files stay in
-# the chunk artifacts. The event, ref, and workflow path of the run are
-# recorded for information only: the run writes this file itself, so the
+# the chunk artifacts. sourced_files_sha256 is the plan's SHA-256 of the
+# files the study script sources (study$files; empty without any, NA for a
+# plan made before contract 3). The event, ref, and workflow path of the run
+# are recorded for information only: the run writes this file itself, so the
 # README's results procedure checks them with `gh run view` instead.
 # harness_sha is the workflow's github.sha: on a pull_request run, GitHub's
 # temporary merge commit of the pull request (refs/pull/N/merge), which is
@@ -54,6 +56,8 @@ for (ch in chunks) {
 }
 
 info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
+# An item that a plan of an earlier contract does not have is NA.
+plan_item <- function(name) if (name %in% names(info)) info[[name]] else NA_character_
 software <- h_read_csv(file.path(merged_dir, "software.csv"))
 sw <- function(kind, name) {
   v <- software$value[software$kind == kind & software$name == name]
@@ -85,7 +89,7 @@ values <- c(
   package_loaded_with = "pkgload::load_all(helpers = FALSE, attach_testthat = FALSE)",
   package_sha = info[["package_sha"]], package_dirty = info[["package_dirty"]],
   script_sha256 = info[["script_sha256"]], contract = info[["contract"]],
-  contract_sha256 = info[["contract_sha256"]],
+  contract_sha256 = info[["contract_sha256"]], sourced_files_sha256 = plan_item("files_sha256"),
   r_version = sw("r", "version"), r_build = sw("r", "build"), libR_sha256 = sw("r", "libR_sha256"),
   platform = sw("r", "platform"), os = sw("r", "os"),
   rng_kinds = paste(info[["rng_kind"]], info[["normal_kind"]], info[["sample_kind"]], sep = ", "),

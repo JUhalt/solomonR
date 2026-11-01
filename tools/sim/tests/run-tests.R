@@ -25,6 +25,12 @@
 #            .github/workflows/simulation-run.yaml and run with bash (--bash,
 #            or bash on the PATH; skipped without one). Its outputs go to
 #            files in the work folder, never to the job's own.
+#   contract contract.R through tests/synthetic-study.R, copied with the
+#            contract under test into a package folder of its own and run
+#            with Rscript: what the plan records (the SHA-256 of the files
+#            the study sources, the same with CRLF or LF line ends), the
+#            plan stage's refusals, sim_verify_plan() after a sourced file
+#            changed, and, with git, the clean-checkout rule of a gate.
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it).
@@ -41,7 +47,7 @@ local({
 })
 source(file.path(harness, "harness-lib.R"))
 
-all_groups <- c("results", "scan", "sizing", "inputs", "merge")
+all_groups <- c("results", "scan", "sizing", "inputs", "contract", "merge")
 opts <- list(only = paste(all_groups, collapse = ","), work = "", run = "", bash = "")
 args <- commandArgs(trailingOnly = TRUE)
 i <- 1L
@@ -67,7 +73,7 @@ run_r <- function(script, args) {
   list(status = if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status")), out = out)
 }
 last_line <- function(out) {
-  out <- out[nzchar(trimws(out))]
+  out <- out[nzchar(trimws(out)) & out != "Execution halted"]
   if (length(out)) out[[length(out)]] else ""
 }
 with_env <- function(vars, code) {
@@ -409,6 +415,111 @@ if ("inputs" %in% groups) local({
   }
 })
 
+# ---- contract: contract.R on a synthetic study --------------------------------
+
+if ("contract" %in% groups) local({
+  root <- file.path(work, "contract")
+  dir.create(root, recursive = TRUE)
+  # A package folder: DESCRIPTION (name and version only), the contract
+  # under test, the synthetic study, and the file it sources.
+  pkg <- function(name, crlf = FALSE) {
+    d <- file.path(root, name)
+    dir.create(file.path(d, "tools", "sim"), recursive = TRUE)
+    dir.create(file.path(d, "lib"))
+    h_write_lines(c("Package: harnesstest", "Version: 1.0"), file.path(d, "DESCRIPTION"))
+    file.copy(file.path(harness, "contract.R"), file.path(d, "tools", "sim", "contract.R"))
+    file.copy(file.path(harness, "tests", "synthetic-study.R"), file.path(d, "study.R"))
+    con <- file(file.path(d, "lib", "helper.R"), open = "wb")
+    writeLines(c("# Sourced by the synthetic study.", "helper_value <- function() 1"), con,
+               sep = if (crlf) "\r\n" else "\n")
+    close(con)
+    normalizePath(d, winslash = "/")
+  }
+  # The study script in a new R process, from the package folder, with only
+  # the given settings; git finds no repository unless `git` is TRUE.
+  vars <- c("SOLOMONR_SMOKE_DIR", "SOLOMONR_SIM_ROLE", "SOLOMONR_SIM_SCRIPT", "SOLOMONR_SIM_STAGE",
+            "SOLOMONR_SIM_PURPOSE", "SOLOMONR_SIM_DESIGN", "SOLOMONR_SIM_REPS", "SOLOMONR_SIM_PLAN",
+            "SOLOMONR_SIM_SUBSET", "SOLOMONR_SIM_TASK_SIZE", "SOLOMONR_SIM_PACKAGE_SHA",
+            "HARNESS_TEST_VARIANT", "HARNESS_TEST_VERIFY", "GIT_DIR")
+  run_study <- function(d, set, git = FALSE) {
+    if (!git) set <- c(set, GIT_DIR = file.path(work, "no-repository-here"))
+    old_env <- Sys.getenv(vars, unset = NA, names = TRUE)
+    old_wd <- setwd(d)
+    on.exit({
+      setwd(old_wd)
+      for (v in vars) if (is.na(old_env[[v]])) Sys.unsetenv(v) else do.call(Sys.setenv, stats::setNames(list(old_env[[v]]), v))
+    })
+    Sys.unsetenv(vars)
+    do.call(Sys.setenv, as.list(set))
+    out <- suppressWarnings(system2(rscript, shQuote(file.path(d, "study.R")), stdout = TRUE, stderr = TRUE))
+    list(status = if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status")), out = out)
+  }
+  plan_vars <- function(plan_dir, purpose = "test", design = "run", reps = "4", ...) {
+    c(SOLOMONR_SIM_STAGE = "plan", SOLOMONR_SIM_PURPOSE = purpose, SOLOMONR_SIM_DESIGN = design,
+      SOLOMONR_SIM_REPS = reps, SOLOMONR_SIM_PLAN = plan_dir, ...)
+  }
+  verify_vars <- function(plan_dir) c(SOLOMONR_SIM_PLAN = plan_dir, HARNESS_TEST_VERIFY = "1")
+  outcome <- function(r) if (r$status == 0L) "accept" else "refuse"
+  item <- function(kv, name) if (name %in% names(kv)) kv[[name]] else NA_character_
+  read_info <- function(plan_dir) {
+    f <- file.path(plan_dir, "plan-info.csv")
+    if (file.exists(f)) h_read_kv(f) else character()
+  }
+  yes <- function(ok) if (isTRUE(ok)) "yes" else "no"
+
+  # The SHA-256 of the files the study sources (study$files), in the plan.
+  p <- pkg("p")
+  helper <- file.path(p, "lib", "helper.R")
+  want <- paste0("lib/helper.R=", unname(tools::sha256sum(helper)))
+  r <- run_study(p, plan_vars(file.path(p, "plan")))
+  record("contract", "plan: files_sha256 is lib/helper.R=<its SHA-256>", "yes",
+         yes(identical(item(read_info(file.path(p, "plan")), "files_sha256"), want)), last_line(r$out))
+  q <- pkg("p-crlf", crlf = TRUE)
+  r <- run_study(q, plan_vars(file.path(q, "plan")))
+  record("contract", "plan: the same SHA-256 with CRLF line ends", "yes",
+         yes(identical(item(read_info(file.path(q, "plan")), "files_sha256"), want)), last_line(r$out))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-missing")), HARNESS_TEST_VARIANT = "missing-file"))
+  record("contract", "plan: study$files names a file that does not exist", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-repeated")), HARNESS_TEST_VARIANT = "repeated-file"))
+  record("contract", "plan: study$files lists a path twice", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(p, verify_vars(file.path(p, "plan")))
+  record("contract", "verify: the plan, nothing changed", "accept", outcome(r), last_line(r$out))
+  # A sourced file that differs from the plan's, as on a chunk or merge
+  # machine whose checkout is not the plan's.
+  kept <- readBin(helper, "raw", file.size(helper))
+  cat("# changed after the plan\n", file = helper, append = TRUE)
+  r <- run_study(p, verify_vars(file.path(p, "plan")))
+  record("contract", "verify: the sourced file changed after the plan", "refuse", outcome(r), last_line(r$out))
+  writeBin(kept, helper)
+
+  # A gate needs a clean checkout, the sourced files included.
+  git <- unname(Sys.which("git"))
+  if (!nzchar(git)) return(skip("contract", "no git on the PATH: the clean-checkout cases"))
+  g <- pkg("p-git")
+  git_c <- function(...) {
+    out <- suppressWarnings(system2(git, c("-C", shQuote(g), ...), stdout = TRUE, stderr = TRUE))
+    if (!is.null(attr(out, "status")) && attr(out, "status") != 0L) h_fail("git failed: ", paste(out, collapse = " "))
+  }
+  commit <- function(msg) {
+    git_c("-c", "user.name=harness-test", "-c", "user.email=harness-test", "commit", "-q", "-m", shQuote(msg))
+  }
+  gate <- function(name) {
+    run_study(g, plan_vars(file.path(root, "git-plans", name), purpose = "gate", design = "gate"), git = TRUE)
+  }
+  git_c("init", "-q")
+  git_c("add", "DESCRIPTION", "study.R", "tools")
+  commit("the study without its sourced file")
+  r <- gate("untracked")
+  record("contract", "gate plan: the sourced file untracked", "refuse", outcome(r), last_line(r$out))
+  git_c("add", "lib")
+  commit("the sourced file")
+  r <- gate("clean")
+  record("contract", "gate plan: a clean checkout", "accept", outcome(r), last_line(r$out))
+  cat("# changed, not committed\n", file = file.path(g, "lib", "helper.R"), append = TRUE)
+  r <- gate("changed")
+  record("contract", "gate plan: the sourced file changed, not committed", "refuse", outcome(r), last_line(r$out))
+})
+
 # ---- merge: merge-chunks.R on tampered copies ----------------------------------
 
 if ("merge" %in% groups) {
@@ -422,8 +533,19 @@ if ("merge" %in% groups) {
     ids <- sort(h_read_csv(file.path(run, "plan", "tasks.csv"))$task_id)
     chunks <- sort(grep("^chunk-[0-9]{4}$", list.dirs(file.path(run, "chunks"), recursive = FALSE, full.names = FALSE),
                         value = TRUE))
-    if (length(ids) < 7L || length(chunks) < 2L) h_fail("The --run folder needs at least 7 tasks in at least 2 chunks.")
+    if (length(ids) < 9L || length(chunks) < 2L) h_fail("The --run folder needs at least 9 tasks in at least 2 chunks.")
     pick <- function(k) ids[[k]]
+    # Another SHA-256 for each file of study$files (or for a file of none).
+    other_hash <- function(x) {
+      if (length(x) && nzchar(x)) gsub("=[0-9a-f]{64}", paste0("=", strrep("0", 64)), x)
+      else paste0("lib/helper.R=", strrep("0", 64))
+    }
+    edit_info <- function(d, name, fun) {
+      f <- file.path(d, "plan", "plan-info.csv")
+      kv <- h_read_kv(f)
+      kv[[name]] <- fun(if (name %in% names(kv)) kv[[name]] else "")
+      h_write_kv(kv, f)
+    }
     task_path <- function(d, id) {
       f <- list.files(file.path(d, "chunks"), pattern = paste0("^", id, "[.]rds$"), recursive = TRUE, full.names = TRUE)
       if (length(f) != 1L) h_fail("Task ", id, " is not once in the copy.")
@@ -459,7 +581,14 @@ if ("merge" %in% groups) {
         src <- file.path(d, "chunks", chunks[[1]])
         file.copy(list.files(src, full.names = TRUE), file.path(d, "chunks"), recursive = TRUE)
         unlink(src, recursive = TRUE)
-      })
+      },
+      # The sourced files' SHA-256 (study$files, contract 3).
+      "an envelope without files_sha256" = function(d) edit_task(d, pick(8), function(t) {
+        t$envelope$files_sha256 <- NULL; t }),
+      "an envelope with another files_sha256" = function(d) edit_task(d, pick(9), function(t) {
+        t$envelope$files_sha256 <- other_hash(t$envelope$files_sha256); t }),
+      "plan-info's files_sha256 changed after the chunks ran" = function(d) edit_info(d, "files_sha256", other_hash),
+      "a plan of contract 2" = function(d) edit_info(d, "contract", function(x) "2"))
     for (k in seq_along(cases)) {
       d <- file.path(work, "merge", sprintf("m%02d", k))
       dir.create(d, recursive = TRUE)

@@ -15,7 +15,8 @@
 #   2. each task file's envelope equals its row of the plan (scenario, task,
 #      replications, all 7 seed integers, rows per replication), and the
 #      plan's contract, study, purpose, design, package commit, script
-#      SHA-256, and contract SHA-256;
+#      SHA-256, contract SHA-256, and the SHA-256 of the files the script
+#      sources (study$files; an envelope without them is refused);
 #   3. each task's results have no missing replication number, exactly
 #      (rep_to - rep_from + 1) x rows_per_rep rows, rows_per_rep rows for
 #      each replication from rep_from to rep_to, and no other replication;
@@ -95,9 +96,11 @@ files <- files[order(files$task_id), ]
 
 # ---- 2 and 3. Each task against its plan row ---------------------------------------
 
-base <- list(contract = info[["contract"]], study = info[["study"]], purpose = info[["purpose"]],
-             design = info[["design"]], package_sha = info[["package_sha"]],
-             script_sha256 = info[["script_sha256"]], contract_sha256 = info[["contract_sha256"]])
+fields <- c("contract", "study", "purpose", "design", "package_sha", "script_sha256", "contract_sha256",
+            "files_sha256")
+absent <- setdiff(fields, names(info))
+if (length(absent)) h_fail("plan-info.csv lacks ", paste(absent, collapse = ", "), ".")
+base <- as.list(info[fields])
 job_info <- lapply(stats::setNames(found, found), function(ch) {
   f <- file.path(chunks_dir, paste0("chunk-", ch), "job-info.csv")
   if (file.exists(f)) h_read_kv(f) else NULL
@@ -118,6 +121,7 @@ for (i in seq_len(nrow(files))) {
   env <- task$envelope
   if (!identical(env$task, want)) h_fail("Task ", id, ": the envelope's task row differs from the plan.")
   for (nm in names(base)) {
+    if (!nm %in% names(env)) h_fail("Task ", id, ": the envelope has no field ", nm, ".")
     if (!identical(env[[nm]], base[[nm]])) h_fail("Task ", id, ": envelope field ", nm, " differs from the plan.")
   }
   res <- task$results

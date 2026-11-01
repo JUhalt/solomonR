@@ -4,7 +4,11 @@
 # checkout instead), so the two copies of the CSV helpers are deliberate.
 # Base R only; ASCII.
 
-h_contracts <- "2"   # contract versions this harness can check and merge
+# Contract versions this harness can check and merge. Version 3 added the
+# SHA-256 of the files a study script sources to the plan and to every
+# task's envelope, which the merge compares, so a plan of version 2 is
+# refused rather than merged without that check.
+h_contracts <- "3"
 
 h_fail <- function(...) {
   cat("::error::", paste0(...), "\n", sep = "")

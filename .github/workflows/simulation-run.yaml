@@ -502,9 +502,10 @@ jobs:
         run: Rscript harness/tools/sim/tests/run-tests.R --only merge --run . --work "$RUNNER_TEMP/sim-tests"
 
   # The harness's own tests (tools/sim/tests/run-tests.R), in its pull
-  # requests only: check-results.R, scan-addresses.R, assign-chunks.R, and the
-  # check of the inputs, on cases built in the runner's temporary folder,
-  # which is never uploaded. They need R alone, not the study's software.
+  # requests only: check-results.R, scan-addresses.R, assign-chunks.R, the
+  # check of the inputs, and the contract's plan stage on a synthetic study,
+  # on cases built in the runner's temporary folder, which is never
+  # uploaded. They need R and git alone, not the study's software.
   tests:
     name: Harness tests
     if: github.event_name == 'pull_request'
@@ -528,4 +529,4 @@ jobs:
 
       - name: Run the harness's tests
         shell: bash
-        run: Rscript harness/tools/sim/tests/run-tests.R --only results,scan,sizing,inputs --work "$RUNNER_TEMP/sim-tests"
+        run: Rscript harness/tools/sim/tests/run-tests.R --only results,scan,sizing,inputs,contract --work "$RUNNER_TEMP/sim-tests"

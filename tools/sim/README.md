@@ -15,7 +15,7 @@ package or of the validation-scripts check.
 
 | File | Role |
 |---|---|
-| `contract.R` | Sourced by every study script, from the package checkout (contract version 2): stages, stream assignment, task files with their timing, the timing gate's projection, summary order, fault handling |
+| `contract.R` | Sourced by every study script, from the package checkout (contract version 3): stages, stream assignment, the SHA-256 of the files a script sources, task files with their timing, the timing gate's projection, summary order, fault handling |
 | `studies.csv` | Registry: study key, issue, script, pins file, whether it is a protocol, commits the pinned commit must include |
 | `assign-chunks.R` | Assigns tasks to chunks, longest processing time first (no random numbers); checks the expected hours per chunk when the gate's seconds per unit of cost are given |
 | `check-software.R` | R and its build, the pinned package and tool versions, BLAS and LAPACK, the processor flags, RNG kinds, repositories; writes `software.csv` |
@@ -29,8 +29,8 @@ package or of the validation-scripts check.
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
 | `harness-lib.R` | Helpers of the harness scripts |
-| `tests/run-tests.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's check of the inputs, and `merge-chunks.R` on tampered copies of a run |
-| `studies/smoke/` | The harness's smoke study; not a protocol, and it computes no measure for the package's methods |
+| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's check of the inputs, the contract's plan stage on a synthetic study, and `merge-chunks.R` on tampered copies of a run |
+| `studies/smoke/` | The harness's smoke study (its script, and `smoke-summarize.R`, which the script sources); not a protocol, and it computes no measure for the package's methods |
 
 The workflow is `.github/workflows/simulation-run.yaml`, with the composite
 action `.github/actions/sim-setup/action.yml`.
@@ -47,21 +47,22 @@ action `.github/actions/sim-setup/action.yml`.
 2. **Chunks** (up to 256 jobs, at most 16 at a time, 4 workers each). Each
    job runs its tasks; each task sets its substream at its start and draws
    only from it, and is written as `tasks/<task id>.rds` with its envelope
-   (the plan row, the package commit, the script's SHA-256), results,
-   agreement checks, failures, and timing (start, finish, the job's start,
-   and worker seconds for replications and for agreement checks apart).
+   (the plan row, the package commit, the SHA-256 of the script, of
+   `contract.R`, and of the files the script sources), results, agreement
+   checks, failures, and timing (start, finish, the job's start, and worker
+   seconds for replications and for agreement checks apart).
 3. **Merge** (one job). `merge-chunks.R` requires every planned task exactly
    once, in its assigned chunk, with the plan's seed, replications, commit,
-   and script; exactly the planned rows of every replication, and the same
-   columns in every task; every scenario's replications 1 to R exactly
-   once; and the same software in every job. Up to four distinct tasks are
-   run again on the merge machine and must be `identical()` to the chunks':
-   the most costly task, the most costly task 1 (which carries a scenario's
-   agreement checks), and the cheapest tasks of the first and last chunks,
-   each from a chunk not yet chosen while one remains. `replay.csv` says
-   which of them first ran on another processor model. Only then does the
-   study script summarize, from the replications in the order of scenario
-   and replication number.
+   script, and sourced files; exactly the planned rows of every
+   replication, and the same columns in every task; every scenario's
+   replications 1 to R exactly once; and the same software in every job.
+   Up to four distinct tasks are run again on the merge machine and must
+   be `identical()` to the chunks': the most costly task, the most costly
+   task 1 (which carries a scenario's agreement checks), and the cheapest
+   tasks of the first and last chunks, each from a chunk not yet chosen
+   while one remains. `replay.csv` says which of them first ran on another
+   processor model. Only then does the study script summarize, from the
+   replications in the order of scenario and replication number.
 
 So a result cannot depend on the number of chunks, the job, the worker, or
 the order of the tasks, given the same arithmetic on every machine: 1 chunk
@@ -84,7 +85,8 @@ and `run-information.csv` (`runner_images`, `plan_runner_image`, and
 `merge_runner_image`, with the processor models beside them).
 
 The package commit fixes everything a task computes, because the study
-script, its pins, and `contract.R` are read from the package checkout. The
+script, the files it sources, its pins, and `contract.R` are read from the
+package checkout. The
 harness checkout (the workflow's own commit, `harness_sha`) only runs the
 jobs and checks. On a `pull_request` run, that commit is GitHub's temporary
 merge commit of the pull request into master (`refs/pull/<number>/merge`,
@@ -117,8 +119,11 @@ equal those of T1, the first cloud run (run 41255391619, at e13e8bb). The
 two `manifest.csv` files themselves differ: their `chunk` and `attempt`
 columns follow the division and the reruns, and `file_sha256` hashes the
 whole task file, timing included. T1's task files differ from theirs in
-the envelope only: the package commit, and the contract's checksum, since
-`contract.R` has changed after e13e8bb.
+the envelope only: the package commit; the contract's version and
+checksum, since `contract.R` has changed after e13e8bb; the script's
+checksum, since the smoke study now sources `smoke-summarize.R`; and
+`files_sha256`, which contract 3 added (`compare-runs.R tasks` names
+every such field).
 
 - `smoke=true` (the default) is a code-testing run: the study's test seed,
   at most 20 replications. A study run is `smoke=false`, `stage=run`, `reps`
@@ -216,11 +221,13 @@ rules of `check-results.R`; 47 folders that `scan-addresses.R` must refuse,
 built around a placeholder address at example.org that is assembled at run
 time, and 5 it must pass; the job sizes of `assign-chunks.R`; the
 workflow's "Check the inputs" step, run with bash (`--bash <path>` if bash
-is not on the PATH); and, with `--run`, `merge-chunks.R` on tampered copies
-of a run's `plan/` and `chunks/`. Any case that ends otherwise than
-expected makes the exit status 1. The workflow runs them in the pull
-requests that change the harness: the job "Harness tests", and the merge
-cases at the end of the merge job, on that run's own chunks. Run them
+is not on the PATH); the contract's plan stage and `sim_verify_plan()` on
+the synthetic study `tests/synthetic-study.R`, which loads no package (with
+git, also the clean-checkout rule); and, with `--run`, `merge-chunks.R` on
+tampered copies of a run's `plan/` and `chunks/`. Any case that ends
+otherwise than expected makes the exit status 1. The workflow runs them in
+the pull requests that change the harness: the job "Harness tests", and the
+merge cases at the end of the merge job, on that run's own chunks. Run them
 after any change to a check.
 
 The software check runs without its repository and tool checks, so the
@@ -249,6 +256,10 @@ In the study's own pull request, before its run (the order rule of #117):
    `sim_check_study()`), and ends with `sim_main(study)`. Its seeds are the
    protocol's: study, gate, and the code-testing seed. Every task's results
    have the same columns and column classes; `cost()` is greater than 0.
+   `files` lists the files the script sources besides `contract.R` (paths
+   from the package root), so that their SHA-256 is in the plan and in
+   every envelope, the merge compares it, and a gate or study run needs
+   them committed.
 2. Its agreement checks run inside `sim_time_agreement()`, so that the gate
    can add their time once instead of multiplying it by R.
 3. Its `gate` gives the protocol's constants (`reps`, `task_size`,
