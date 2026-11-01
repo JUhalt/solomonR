@@ -1,8 +1,8 @@
-# The forms of `covariates` (issue #146). A data frame is used as it is; a
-# vector is one covariate and a matrix one covariate per column; with
-# `data`, names of columns select them. Every other form stops with an
-# error, so that no covariate is left out of a model unnoticed, as a vector
-# and a matrix were before.
+# The forms of `covariates` (issue #146). A data frame is used as it is,
+# when each column has a name of its own; a vector is one covariate and a
+# matrix one covariate per column; with `data`, names of columns select
+# them. Every other form stops with an error, so that no covariate is left
+# out of a model unnoticed, as a vector and a matrix were before.
 
 forms_data <- function() {
   d <- solomon_example
@@ -141,6 +141,9 @@ test_that("a matrix is one covariate per column, named by its column names", {
   expect_same_fit(fit4(d, m), fit4(d, data.frame(covariate1 = z, w = w)))
   colnames(m) <- c("z", NA)
   expect_same_fit(fit4(d, m), fit4(d, data.frame(z = z, covariate2 = w)))
+  # A given name that a column without one would not take is kept.
+  colnames(m) <- c("covariate1", "")
+  expect_same_fit(fit4(d, m), fit4(d, data.frame(covariate1 = z, covariate2 = w)))
   expect_same_fit(fit4(d, matrix(z)), fit4(d, data.frame(covariate1 = z)))
 
   # Integer and logical matrices, and a matrix with attributes, as scale()
@@ -327,6 +330,21 @@ test_that("every other form stops with an error that says what to give", {
   n <- nrow(d)
   m <- forms_six()
 
+  # Data frames and matrices whose columns lack names of their own: a
+  # model formula would keep one term for two columns of the same name.
+  blank_frame <- data.frame(z = d$z, w = d$w)
+  names(blank_frame) <- c("z", "")
+  na_frame <- data.frame(z = d$z, w = d$w)
+  names(na_frame) <- c(NA, "w")
+  blanks_frame <- data.frame(a = d$z, w = d$w, b = d$age)
+  names(blanks_frame) <- c("", "w", "")
+  nameless_frame <- data.frame(z = d$z, w = d$w)
+  names(nameless_frame) <- NULL
+  taken <- cbind(d$z, d$w)
+  colnames(taken) <- c("covariate2", "")
+  twice_and_blank <- cbind(d$z, d$w, d$age)
+  colnames(twice_and_blank) <- c("a", "a", "")
+
   refused <- list(
     character = list(ifelse(d$z > 0, "high", "low"),
                      "`covariates` is a character vector, and `data` was not given"),
@@ -339,6 +357,17 @@ test_that("every other form stops with an error that says what to give", {
     one_dimensional = list(array(d$z), "not a one-dimensional array"),
     duplicated = list(cbind(z = d$z, z = d$w),
                       "`covariates` has more than one column named z. Give each"),
+    duplicated_frame = list(cbind(data.frame(z = d$z), data.frame(z = d$w)),
+                            "`covariates` has more than one column named z. Give each"),
+    blank_frame = list(blank_frame,
+                       "Column 2 of `covariates` has no name. Give each column its own name."),
+    na_frame = list(na_frame, "Column 1 of `covariates` has no name."),
+    blanks_frame = list(blanks_frame, "Columns 1 and 3 of `covariates` have no name."),
+    nameless_frame = list(nameless_frame,
+                          "The columns of `covariates` have no names. Give each column"),
+    taken = list(taken, paste("Column 2 of `covariates` has no name, and the name it takes",
+                              "by its position, covariate2, is that of another column.")),
+    twice_and_blank = list(twice_and_blank, "`covariates` has more than one column named a."),
     short_vector = list(d$z[-1], "Inputs must have the same length"),
     short_matrix = list(cbind(z = d$z, w = d$w)[-1, ], "Inputs must have the same length")
   )
@@ -365,6 +394,12 @@ test_that("every other form stops with an error that says what to give", {
     "If it holds the names of columns, give the data frame as `data`. If it is a",
     "categorical covariate, give it as a factor, or as a column of a data frame."
   ), fixed = TRUE)
+
+  # Three columns without a name are listed with commas.
+  four_frame <- data.frame(a = d$z, b = d$w, w = d$w, c = d$age)
+  names(four_frame) <- c("", "", "w", "")
+  expect_error(fit4(d, four_frame), "Columns 1, 2, and 4 of `covariates` have no name.",
+               fixed = TRUE)
 })
 
 
@@ -411,6 +446,24 @@ test_that("with data, names that are not columns are listed", {
   expect_error(
     fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = character(), data = d),
     "`covariates` names no columns of `data`. Give NULL for no covariates.", fixed = TRUE
+  )
+
+  # A name given twice would select two copies of one column.
+  twice <- "`covariates` names these columns more than once: age. Give each name once."
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = c("age", "z", "age"),
+                    data = d),
+    twice, fixed = TRUE
+  )
+  expect_error(
+    check_solomon_missing(y_post, treat, pretested, y_pre, covariates = c("age", "age"),
+                          data = d),
+    twice, fixed = TRUE
+  )
+  expect_error(
+    fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
+                    covariates = c("z", "z"), data = forms_six()),
+    "`covariates` names these columns more than once: z.", fixed = TRUE
   )
 })
 

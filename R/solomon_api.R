@@ -70,11 +70,11 @@
     expr <- eval(call("substitute", as.name(nm)), frame)
     is_column <- is.symbol(expr) && as.character(expr) %in% names(data)
     value <- if (is_column) data[[as.character(expr)]] else eval(expr, data, caller)
-    if (!is_column && is.character(value) && length(value) >= 1L &&
-        all(value %in% names(data))) {
-      value <- if (length(value) == 1L && !nm %in% as_frame) data[[value]] else data[value]
-    } else if (nm %in% as_frame) {
+    if (nm %in% as_frame) {
       value <- .solomon_covariates(value, expr, data, column = is_column)
+    } else if (!is_column && is.character(value) && length(value) >= 1L &&
+               all(value %in% names(data))) {
+      value <- if (length(value) == 1L) data[[value]] else data[value]
     }
     assign(nm, value, envir = frame)
   }
@@ -88,23 +88,58 @@
 # expression it was given as, `data` the data frame of .solomon_data_args()
 # or NULL, and `column` whether `x` is the column of `data` that `expr`
 # names. The forms:
-#   - NULL or a data frame: as it is.
+#   - NULL: as it is.
+#   - A data frame: as it is, when each column has a name of its own. A
+#     column without a name (empty or NA), or two columns of the same name,
+#     stop: the model formula would leave one out, or fail.
 #   - A column given by its bare name (`covariates = age`): one covariate
 #     of any atomic type, named by the column, as before.
+#   - With `data`, a character vector of names of its columns, each named
+#     once: those columns, as before.
 #   - A numeric, logical, or factor vector: one covariate, named by `expr`
 #     when it is a bare name, and "covariate" otherwise.
 #   - A numeric or logical matrix: one covariate per column, named by the
 #     column names, with covariate1, covariate2, ... by position for
 #     columns without one. Duplicated names stop.
 # Anything else stops with an error that says what to give instead. A
-# character vector is read as names of columns: with `data`, those that
-# name columns were selected already, so the others are listed; without
-# `data`, it may be names or a categorical covariate, and both are
-# answered. The length is checked with the other arguments
+# character vector with names that are not columns of `data` has them
+# listed; without `data`, it may be names or a categorical covariate, and
+# both are answered. The length is checked with the other arguments
 # (.solomon_check_lengths()).
 .solomon_covariates <- function(x, expr = NULL, data = NULL, column = FALSE) {
 
-  if (is.null(x) || is.data.frame(x)) {
+  # Two columns of the same name enter a model formula as one term.
+  once <- function(labels) {
+    twice <- unique(labels[duplicated(labels)])
+    if (length(twice)) {
+      stop("`covariates` has more than one column named ", paste(twice, collapse = ", "),
+           ". Give each column its own name.", call. = FALSE)
+    }
+  }
+
+  if (is.null(x)) {
+    return(x)
+  }
+
+  if (is.data.frame(x)) {
+    labels <- names(x)
+    if (is.null(labels)) labels <- character(length(x))
+    blank <- which(is.na(labels) | !nzchar(labels))
+    if (length(blank) == length(labels) && length(blank) > 1L) {
+      stop("The columns of `covariates` have no names. Give each column its own name.",
+           call. = FALSE)
+    }
+    if (length(blank)) {
+      which_ones <- if (length(blank) == 1L) {
+        paste("Column", blank, "of `covariates` has")
+      } else {
+        paste0("Columns ", paste(blank[-length(blank)], collapse = ", "),
+               if (length(blank) > 2L) "," else "", " and ", blank[length(blank)],
+               " of `covariates` have")
+      }
+      stop(which_ones, " no name. Give each column its own name.", call. = FALSE)
+    }
+    once(labels)
     return(x)
   }
 
@@ -118,25 +153,33 @@
   }
 
   if (is.character(x) && is.null(dims)) {
-    if (!is.null(data)) {
-      absent <- setdiff(x, names(data))
-      if (!length(absent)) {
-        stop("`covariates` names no columns of `data`. Give NULL for no covariates.",
-             call. = FALSE)
-      }
-      shown <- if (length(absent) > 6L) c(absent[1:5], "...") else absent
+    if (is.null(data)) {
       stop(
-        "These names in `covariates` are not columns of `data`: ",
-        paste(shown, collapse = ", "), ". Give the names of columns of `data`. ",
-        "A categorical covariate that is not in `data` goes in as a factor, or ",
-        "as a column of a data frame.",
+        "`covariates` is a character vector, and `data` was not given. If it ",
+        "holds the names of columns, give the data frame as `data`. If it is a ",
+        "categorical covariate, give it as a factor, or as a column of a data frame.",
         call. = FALSE
       )
     }
+    if (!length(x)) {
+      stop("`covariates` names no columns of `data`. Give NULL for no covariates.",
+           call. = FALSE)
+    }
+    absent <- setdiff(x, names(data))
+    if (!length(absent)) {
+      twice <- unique(x[duplicated(x)])
+      if (length(twice)) {
+        stop("`covariates` names these columns more than once: ",
+             paste(twice, collapse = ", "), ". Give each name once.", call. = FALSE)
+      }
+      return(data[x])
+    }
+    shown <- if (length(absent) > 6L) c(absent[1:5], "...") else absent
     stop(
-      "`covariates` is a character vector, and `data` was not given. If it ",
-      "holds the names of columns, give the data frame as `data`. If it is a ",
-      "categorical covariate, give it as a factor, or as a column of a data frame.",
+      "These names in `covariates` are not columns of `data`: ",
+      paste(shown, collapse = ", "), ". Give the names of columns of `data`. ",
+      "A categorical covariate that is not in `data` goes in as a factor, or ",
+      "as a column of a data frame.",
       call. = FALSE
     )
   }
@@ -155,11 +198,13 @@
     labels <- colnames(x)
     if (is.null(labels)) labels <- character(ncol(x))
     blank <- is.na(labels) | !nzchar(labels)
+    once(labels[!blank])
     labels[blank] <- paste0("covariate", seq_len(ncol(x)))[blank]
-    twice <- unique(labels[duplicated(labels)])
-    if (length(twice)) {
-      stop("`covariates` has more than one column named ", paste(twice, collapse = ", "),
-           ". Give each column its own name.", call. = FALSE)
+    taken <- which(blank & labels %in% labels[!blank])
+    if (length(taken)) {
+      stop("Column ", taken[1], " of `covariates` has no name, and the name it takes by ",
+           "its position, ", labels[taken[1]], ", is that of another column. Give each ",
+           "column its own name.", call. = FALSE)
     }
     out <- as.data.frame(unclass(x))
     names(out) <- labels
