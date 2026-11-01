@@ -1,0 +1,531 @@
+name: simulation-run
+
+# Runs a simulation study of a v1.0 validation protocol (issues #116 and
+# #117), or the harness's own smoke study, on GitHub-hosted runners. The
+# package commit fixes what every task computes: the study's script, its
+# pins, and the helper that assigns the random-number streams
+# (tools/sim/contract.R) come from that commit; the other scripts of
+# tools/sim come from this workflow's commit. This workflow passes no seed
+# and draws no random number; it only splits the planned tasks among jobs,
+# checks and merges what the jobs return, and runs up to four tasks again on
+# the merging machine. It never writes to the repository: the results are
+# downloaded and committed through a pull request. See tools/sim/README.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      study:
+        description: Study key in tools/sim/studies.csv
+        type: choice
+        options: [smoke]
+        default: smoke
+      package_sha:
+        description: Full SHA of the package commit (on master unless smoke); empty for this workflow's commit
+        type: string
+        default: ''
+      stage:
+        description: run, or the protocol's timing gate
+        type: choice
+        options: [run, gate]
+        default: run
+      reps:
+        description: Replications per scenario (at most 20 when smoke; a gate fixes its own)
+        type: number
+        default: 20
+      chunks:
+        description: Number of jobs that share the tasks (1 to 256)
+        type: number
+        default: 3
+      cost_seconds:
+        description: Worker seconds per unit of task cost, as the gate's timing/gate-summary.csv gives it (required for a study run; 0 skips the job-size check)
+        type: string
+        default: '0'
+      smoke:
+        description: Code-testing run (test seeds, at most 20 replications)
+        type: boolean
+        default: true
+      fail_once:
+        description: Test only - chunk 0002 fails on the first attempt
+        type: boolean
+        default: false
+  # The harness tests itself in its own pull request, before the workflow is
+  # on master (workflow_dispatch needs the file on the default branch).
+  pull_request:
+    branches: [main, master]
+    paths:
+      - .github/workflows/simulation-run.yaml
+      - .github/actions/sim-setup/**
+      - tools/sim/**
+
+permissions:
+  contents: read
+
+# One study run at a time (the order rule of #117). GitHub keeps at most one
+# pending run per group: a dispatch made while another study run is pending
+# cancels the pending one, so start the next study only after the previous
+# one has finished. Code-testing runs have one group per ref.
+concurrency:
+  group: ${{ (github.event_name == 'workflow_dispatch' && !inputs.smoke) && 'simulation-study' || format('simulation-test-{0}', github.ref) }}
+  cancel-in-progress: false
+
+env:
+  SIM_STUDY: ${{ inputs.study || 'smoke' }}
+  SIM_STAGE: ${{ inputs.stage || 'run' }}
+  # A number input of 0 is falsy in an expression, so it is turned into a
+  # string first; otherwise `|| 20` would replace it and the check of the
+  # inputs would never see it.
+  SIM_REPS: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.reps) || '20' }}
+  SIM_CHUNKS: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.chunks) || '3' }}
+  SIM_COST_SECONDS: ${{ inputs.cost_seconds || '0' }}
+  SIM_SMOKE: ${{ github.event_name != 'workflow_dispatch' || inputs.smoke }}
+  SIM_FAIL_ONCE: ${{ github.event_name == 'workflow_dispatch' && inputs.fail_once }}
+  SIM_PACKAGE_SHA: ${{ inputs.package_sha || github.event.pull_request.head.sha || github.sha }}
+  SIM_HARNESS_SHA: ${{ github.sha }}
+  SIM_WORKERS: 4
+  OPENBLAS_NUM_THREADS: 1
+  OMP_NUM_THREADS: 1
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      chunks: ${{ steps.assign.outputs.chunks }}
+      purpose: ${{ steps.inputs.outputs.purpose }}
+    steps:
+      # The inputs reach the scripts only through the environment.
+      - name: Check the inputs
+        id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          [[ "$SIM_STUDY" =~ ^[a-z0-9-]+$ ]] || fail "Bad study key."
+          [[ "$SIM_PACKAGE_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "package_sha must be a full commit SHA."
+          [[ "$SIM_CHUNKS" =~ ^[0-9]+$ ]] || fail "chunks must be a whole number."
+          if (( SIM_CHUNKS < 1 || SIM_CHUNKS > 256 )); then fail "chunks must be 1 to 256."; fi
+          [[ "$SIM_REPS" =~ ^[0-9]+$ ]] || fail "reps must be a whole number."
+          number='^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$'
+          [[ "$SIM_COST_SECONDS" =~ $number ]] || fail "cost_seconds must be a number."
+          if [[ "$SIM_SMOKE" == "true" ]]; then
+            if (( SIM_REPS < 2 || SIM_REPS > 20 )); then fail "A smoke run has 2 to 20 replications."; fi
+            purpose=test
+          else
+            # A gate or a study run is checked by the harness on master only.
+            [[ "$GITHUB_REF" == "refs/heads/master" ]] || fail "A gate or study run must be started from master, not $GITHUB_REF."
+            if [[ "$SIM_STAGE" == "gate" ]]; then
+              purpose=gate
+            else
+              purpose=study
+              mantissa="${SIM_COST_SECONDS%%[eE]*}"
+              [[ "$mantissa" =~ [1-9] ]] || fail "A study run needs cost_seconds from its gate."
+            fi
+          fi
+          if [[ "$SIM_FAIL_ONCE" == "true" && "$SIM_SMOKE" != "true" ]]; then fail "fail_once is for smoke runs only."; fi
+          echo "purpose=$purpose" >> "$GITHUB_OUTPUT"
+          echo "SIM_PURPOSE=$purpose" >> "$GITHUB_ENV"
+          echo "Study $SIM_STUDY, stage $SIM_STAGE, purpose $purpose, R $SIM_REPS, chunks $SIM_CHUNKS, package $SIM_PACKAGE_SHA."
+
+      - name: Check out the harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Check out the package at the pinned commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.SIM_PACKAGE_SHA }}
+          path: pkg
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Before anything is installed from the commit. Only rev-parse and
+      # merge-base are called: no command that prints author fields.
+      - name: Check the package commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          head=$(git -C pkg rev-parse HEAD)
+          if [[ "$head" != "$SIM_PACKAGE_SHA" ]]; then echo "::error::The checkout is at $head."; exit 1; fi
+          row=$(tr -d '\r' < harness/tools/sim/studies.csv | awk -F, -v k="$SIM_STUDY" 'NR > 1 && $1 == k')
+          if [[ -z "$row" ]]; then echo "::error::Study $SIM_STUDY is not in tools/sim/studies.csv."; exit 1; fi
+          ancestors=$(cut -d, -f6 <<< "$row")
+          if [[ "$SIM_SMOKE" == "true" ]]; then
+            echo "Smoke run: the commit need not be on master."
+          else
+            git -C pkg merge-base --is-ancestor "$SIM_PACKAGE_SHA" origin/master || { echo "::error::$SIM_PACKAGE_SHA is not on master."; exit 1; }
+            for a in $ancestors; do
+              git -C pkg merge-base --is-ancestor "$a" "$SIM_PACKAGE_SHA" || { echo "::error::The commit does not include $a."; exit 1; }
+            done
+            echo "The commit is on master and includes the study's required commits."
+          fi
+
+      - name: Set up R and the study's software
+        uses: ./harness/.github/actions/sim-setup
+        with:
+          study: ${{ env.SIM_STUDY }}
+
+      # The study script's output goes to a file, which is shown only after
+      # the address scan (the logs of a public repository are public).
+      - name: Plan the tasks
+        shell: bash
+        working-directory: pkg
+        env:
+          SOLOMONR_SIM_STAGE: plan
+          SOLOMONR_SIM_DESIGN: ${{ env.SIM_STAGE }}
+        run: |
+          set -euo pipefail
+          SOLOMONR_SIM_PURPOSE="$SIM_PURPOSE" SOLOMONR_SIM_REPS="$SIM_REPS" \
+            SOLOMONR_SIM_PLAN="$GITHUB_WORKSPACE/plan" SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
+            Rscript "$SIM_SCRIPT" > "$GITHUB_WORKSPACE/plan-log.txt" 2>&1
+
+      - name: Run the protocol's checks before any task
+        shell: bash
+        working-directory: pkg
+        env:
+          SOLOMONR_SIM_STAGE: preflight
+        run: |
+          set -euo pipefail
+          SOLOMONR_SIM_PLAN="$GITHUB_WORKSPACE/plan" SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
+            Rscript "$SIM_SCRIPT" >> "$GITHUB_WORKSPACE/plan-log.txt" 2>&1
+
+      - name: Show the plan's log (after the address scan)
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f plan-log.txt ]]; then
+            Rscript harness/tools/sim/scan-addresses.R plan-log.txt && cat plan-log.txt
+          fi
+
+      - name: Assign the tasks to chunks
+        id: assign
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript harness/tools/sim/assign-chunks.R plan "$SIM_CHUNKS" "$SIM_COST_SECONDS" "$SIM_WORKERS" "${SIM_ALLOWANCE:-}"
+          echo "chunks=$(cat plan/chunks.json)" >> "$GITHUB_OUTPUT"
+          cp software.csv plan/software.csv
+          cp plan-log.txt plan/log.txt
+          Rscript harness/tools/sim/job-info.R plan plan
+
+      # Informational: compared with R 4.6.1 on the maintainer's laptop. No
+      # study mixes platforms.
+      - name: RNG fingerprint
+        shell: bash
+        run: |
+          Rscript harness/tools/sim/rng-fingerprint.R > plan/rng-fingerprint.txt
+          diff harness/tools/sim/rng-fingerprint-windows-4.6.1.txt plan/rng-fingerprint.txt > plan/rng-fingerprint-diff.txt || true
+          cat plan/rng-fingerprint-diff.txt
+
+      - name: Scan the plan for e-mail addresses
+        shell: bash
+        run: Rscript harness/tools/sim/scan-addresses.R plan
+
+      - name: Upload the plan
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: plan
+          path: plan
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 90
+
+  chunk:
+    name: Chunk ${{ matrix.chunk }}
+    needs: plan
+    runs-on: ubuntu-24.04
+    # GitHub stops a job after 6 hours. The tasks get 330 minutes, so that the
+    # job keeps time to save its log; run jobs are sized at about 2 hours
+    # with the allowance (assign-chunks.R warns above 2 and stops above 4).
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        chunk: ${{ fromJSON(needs.plan.outputs.chunks) }}
+    env:
+      SIM_PURPOSE: ${{ needs.plan.outputs.purpose }}
+      SIM_CHUNK: ${{ matrix.chunk }}
+    steps:
+      - name: Check out the harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Check out the package at the pinned commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.SIM_PACKAGE_SHA }}
+          path: pkg
+          persist-credentials: false
+
+      - name: Set up R and the study's software
+        uses: ./harness/.github/actions/sim-setup
+        with:
+          study: ${{ env.SIM_STUDY }}
+
+      - name: Download the plan
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: plan
+          path: plan
+
+      # Test T3 of the harness: the first attempt of chunk 0002 fails, and
+      # `gh run rerun --failed` must then complete the run.
+      - name: Fail once
+        if: env.SIM_FAIL_ONCE == 'true' && matrix.chunk == '0002' && github.run_attempt == '1'
+        shell: bash
+        run: |
+          echo "::error::Chunk 0002 fails on purpose on its first attempt (fail_once)."
+          exit 1
+
+      - name: Run the chunk's tasks
+        timeout-minutes: 330
+        shell: bash
+        working-directory: pkg
+        env:
+          SOLOMONR_SIM_STAGE: run
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/out/chunk-$SIM_CHUNK"
+          mkdir -p "$out"
+          cp "$GITHUB_WORKSPACE/plan/chunks/chunk-$SIM_CHUNK.txt" "$out/task-ids.txt"
+          SOLOMONR_SIM_PLAN="$GITHUB_WORKSPACE/plan" SOLOMONR_SIM_TASKS="$out/task-ids.txt" \
+            SOLOMONR_SIM_OUT="$out" SOLOMONR_SIM_WORKERS="$SIM_WORKERS" SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
+            Rscript "$SIM_SCRIPT" > "$out/log.txt" 2>&1
+
+      # The R processes of the tasks step are stopped first: the PSOCK
+      # workers write task files themselves, and after a timeout one may
+      # outlive the step and write into out/ after the scan below, so that
+      # its file would be uploaded unscanned. No other R process runs here.
+      # A .tmp file is a task file whose write was cut off; it is never
+      # used, and the address scan refuses any format but its own four.
+      - name: Record the job
+        id: record
+        if: always()
+        shell: bash
+        run: |
+          pkill -KILL -x R || true
+          for i in 1 2 3 4 5 6 7 8 9 10; do pgrep -x R > /dev/null || break; sleep 1; done
+          if pgrep -x R > /dev/null; then echo "::error::R processes of the tasks step are still running."; exit 1; fi
+          mkdir -p "out/chunk-$SIM_CHUNK"
+          find "out/chunk-$SIM_CHUNK" -type f -name '*.tmp' -delete || true
+          cp software.csv "out/chunk-$SIM_CHUNK/software.csv" || true
+          Rscript harness/tools/sim/job-info.R "out/chunk-$SIM_CHUNK" "$SIM_CHUNK" || true
+
+      - name: Scan the chunk for e-mail addresses
+        id: scan
+        if: always()
+        shell: bash
+        run: Rscript harness/tools/sim/scan-addresses.R out
+
+      - name: Show the chunk's log (after the address scan)
+        if: always() && steps.scan.outcome == 'success'
+        shell: bash
+        run: cat "out/chunk-$SIM_CHUNK/log.txt" || true
+
+      # The artifact's root holds the folder chunk-NNNN itself, so that the
+      # merge job's download gives chunks/chunk-NNNN/ for 1 chunk as for
+      # 256 (download-artifact extracts a single matching artifact straight
+      # into its path).
+      - name: Check that out/ holds only this chunk
+        shell: bash
+        run: |
+          set -euo pipefail
+          held=$(ls -A out)
+          if [[ "$held" != "chunk-$SIM_CHUNK" ]]; then echo "::error::out/ holds more than chunk-$SIM_CHUNK."; exit 1; fi
+
+      # Only a job whose steps have all passed so far uploads under this
+      # name, and a rerun recomputes the chunk from its plan. A job can
+      # still fail after this upload (in a post step), so a rerun may find
+      # an older artifact of the same name: overwrite deletes it where it
+      # can, and the merge reads the newest artifact of each name.
+      - name: Upload the chunk
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chunk-${{ matrix.chunk }}
+          path: out
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+          retention-days: 90
+
+      # Includes failed-tasks/, which names the task, the replication, and
+      # the message of a fault. Same layout as the chunk's artifact.
+      - name: Upload the failed chunk's files for diagnosis
+        if: failure() && steps.record.outcome == 'success' && steps.scan.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: failed-chunk-${{ matrix.chunk }}-attempt-${{ github.run_attempt }}
+          path: out
+          if-no-files-found: ignore
+          retention-days: 14
+
+  merge:
+    name: Merge
+    needs: [plan, chunk]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    env:
+      SIM_PURPOSE: ${{ needs.plan.outputs.purpose }}
+    steps:
+      - name: Check out the harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Check out the package at the pinned commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.SIM_PACKAGE_SHA }}
+          path: pkg
+          persist-credentials: false
+
+      # The replay needs the study's environment.
+      - name: Set up R and the study's software
+        uses: ./harness/.github/actions/sim-setup
+        with:
+          study: ${{ env.SIM_STUDY }}
+
+      - name: Download the plan
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: plan
+          path: plan
+
+      # Each artifact holds its own chunk-NNNN/ folder, so merging them into
+      # chunks/ gives one folder per chunk whatever their number. The
+      # pattern does not match failed-chunk-* (diagnostics only). After
+      # `gh run rerun --failed`, the download takes the newest artifact of
+      # each name (download-artifact lists them with `latest: true`), so a
+      # rerun chunk's artifact is used even if an older one of its name was
+      # left, which the upload's overwrite deletes where it can.
+      - name: Download the chunks
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: chunk-*
+          path: chunks
+          merge-multiple: true
+
+      - name: Check and merge the chunks
+        shell: bash
+        run: Rscript harness/tools/sim/merge-chunks.R plan chunks merged
+
+      - name: Run up to four tasks again on this machine
+        shell: bash
+        working-directory: pkg
+        env:
+          SOLOMONR_SIM_STAGE: run
+        run: |
+          set -euo pipefail
+          SOLOMONR_SIM_PLAN="$GITHUB_WORKSPACE/plan" SOLOMONR_SIM_TASKS="$GITHUB_WORKSPACE/merged/replay-ids.txt" \
+            SOLOMONR_SIM_OUT="$GITHUB_WORKSPACE/replay" SOLOMONR_SIM_WORKERS="$SIM_WORKERS" \
+            SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
+            Rscript "$SIM_SCRIPT" > "$GITHUB_WORKSPACE/merged/replay-log.txt" 2>&1
+
+      - name: Show the replay's log (after the address scan)
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f merged/replay-log.txt ]]; then
+            Rscript harness/tools/sim/scan-addresses.R merged/replay-log.txt && cat merged/replay-log.txt
+          fi
+
+      - name: Compare the replay with the chunks
+        shell: bash
+        run: Rscript harness/tools/sim/check-replay.R merged replay software.csv
+
+      - name: Summarize
+        shell: bash
+        working-directory: pkg
+        env:
+          SOLOMONR_SIM_STAGE: summarize
+        run: |
+          set -euo pipefail
+          SOLOMONR_SIM_PLAN="$GITHUB_WORKSPACE/plan" SOLOMONR_SIM_IN="$GITHUB_WORKSPACE/merged/task-files.txt" \
+            SOLOMONR_SIM_OUT="$GITHUB_WORKSPACE/results" SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
+            Rscript "$SIM_SCRIPT" > "$GITHUB_WORKSPACE/merged/summarize-log.txt" 2>&1
+
+      - name: Show the summary's log (after the address scan)
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f merged/summarize-log.txt ]]; then
+            Rscript harness/tools/sim/scan-addresses.R merged/summarize-log.txt && cat merged/summarize-log.txt
+          fi
+
+      # check-results.R names files of results/ in its messages, names that
+      # the study's summarize() chose, so results/ is scanned before the
+      # check prints anything. The later scan covers the files added after.
+      - name: Scan the summary for e-mail addresses
+        shell: bash
+        run: Rscript harness/tools/sim/scan-addresses.R results
+
+      - name: Check the results
+        shell: bash
+        run: Rscript harness/tools/sim/check-results.R results "$SIM_PURPOSE" "$SIM_PROTOCOL" plan
+
+      - name: Write the run information
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript harness/tools/sim/job-info.R merged merge
+          Rscript harness/tools/sim/finalize-results.R plan chunks merged results
+          mkdir -p results/logs
+          cp plan/log.txt results/logs/plan-log.txt
+          cp merged/replay-log.txt merged/summarize-log.txt results/logs/
+
+      - name: Scan the results for e-mail addresses
+        shell: bash
+        run: Rscript harness/tools/sim/scan-addresses.R results
+
+      - name: Upload the results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: results-${{ env.SIM_STUDY }}-${{ env.SIM_PURPOSE }}-${{ env.SIM_STAGE }}
+          path: results
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 90
+
+      # The harness's own tests of merge-chunks.R, in its pull requests only:
+      # tampered copies of this run's plan and chunks, made in the runner's
+      # temporary folder, which is never uploaded.
+      - name: Test the merge checks on tampered copies of the chunks
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: Rscript harness/tools/sim/tests/run-tests.R --only merge --run . --work "$RUNNER_TEMP/sim-tests"
+
+  # The harness's own tests (tools/sim/tests/run-tests.R), in its pull
+  # requests only: check-results.R, scan-addresses.R, assign-chunks.R, and the
+  # check of the inputs, on cases built in the runner's temporary folder,
+  # which is never uploaded. They need R alone, not the study's software.
+  tests:
+    name: Harness tests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Remove stale Google Chrome apt source
+        shell: bash
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources*
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          r-version: '4.6.1'
+          use-public-rspm: true
+
+      - name: Run the harness's tests
+        shell: bash
+        run: Rscript harness/tools/sim/tests/run-tests.R --only results,scan,sizing,inputs --work "$RUNNER_TEMP/sim-tests"

@@ -1,0 +1,14 @@
+R: R version 4.6.1 (2026-06-24 ucrt) | x86_64-w64-mingw32 
+RNGkind: L'Ecuyer-CMRG, Inversion, Rejection 
+seed after set.seed(116): 10407 -124670005 576853136 -1742354607 -2001684258 667242439 768933212 
+stream 2: 10407 1904448185 -772209983 8719739 460422417 1920033325 -239412905 
+runif[1:3]: 0x1.c773294c0d91ap-1 0x1.ba4a62135c6fcp-1 0x1.d8d2b4402b328p-4 
+rnorm[1:3]: 0x1.0ce9325797b06p-2 0x1.8183cbb71cf02p+0 -0x1.0d78b26e61428p-2 
+sum(u) sum(z) sum(c2): 0x1.e87479350f135p+18 -0x1.6a3e9689e6f7bp+10 0x1.55957104ad4ddp+19 
+sum(b) sum(k): 29911 50032408 
+chol(S)[10,10]: 0x1.334ceae66d43dp+4 
+solve(S)[1,1]: 0x1.722e7b88bbb4fp-9 
+eigen values[1]: 0x1.ec1031b78f19bp+8  sign v[1,1]: 1 
+longdouble.digits: 64 
+BLAS:  | LAPACK:  3.12.1 
+detectCores(): 12  logical=FALSE: 10 
