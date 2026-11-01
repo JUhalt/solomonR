@@ -309,7 +309,7 @@ Veer and Giner-Sorolla’s (2016) preregistration template:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">draft</span><span class="op">$</span><span class="va">text</span>, <span class="fl">12</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # Analysis plan for a Solomon four-group study</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Drafted with solomonR 0.8.2.9000 on 2026-10-31. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).</span></span>
+<span><span class="co">#&gt; Drafted with solomonR 0.8.2.9000 on 2026-11-01. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ## 1. Hypotheses (SPIRIT 12)</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -335,6 +335,31 @@ for the alpha allocations Sawilowsky (1996) proposed to control its
 experiment-wise error. <code>power_solomon(stouffer = TRUE)</code>
 reports the rejection rate of Test I alone, and the article <a href="classic-validation.html">Historical Tests: Replicating the
 Published Error Rates</a> reports the error rates of the sequence.</p>
+</div>
+<div class="section level2">
+<h2 id="planning-for-precision">Planning for precision<a class="anchor" aria-label="anchor" href="#planning-for-precision"></a>
+</h2>
+<p>The plans above rest on power: the chance that a test detects an
+anticipated effect. The a priori procedure (APP) of Trafimow (2017) uses
+a different criterion, precision. Before collecting data, the researcher
+states how close an estimate should come to its parameter, as a fraction
+<em>f</em> of a standard deviation, and with what probability <em>c</em>
+(Trafimow &amp; MacDonald, 2017, pp. 206–207; Trafimow et al., 2024,
+p. 2). For means and differences between means, the APP needs no
+anticipated effect size (Trafimow et al., 2020, p. 188). For example,
+when the standard deviation is known, a sample mean within 0.1 standard
+deviations of the population mean, with probability .95, takes 385
+participants (Trafimow et al., 2020, p. 187). Trafimow et al. (2024,
+pp. 1–2, 17) propose replacing the usual sequence, power analysis before
+the data and significance tests after, with the APP before the data and
+gain-probability analysis after. Earlier, Trafimow et al. (2020, p. 188)
+suggested that researchers who want both precision and power run both
+procedures and collect the larger sample.</p>
+<p>solomonR does not implement the APP. A proposal for Solomon designs,
+planned for after version 1.0 together with the Bayesian extension
+proposed in <a href="https://github.com/JUhalt/solomonR/issues/118" class="external-link">#118</a>, is in <a href="https://github.com/JUhalt/solomonR/issues/147" class="external-link">#147</a>. The
+package’s maintainer studied under David Trafimow and has coauthored
+with him.</p>
 <p>All works cited in solomonR are listed, with notes on how the package
 uses them, on the <a href="references.html">References</a> page.</p>
 </div>
@@ -349,6 +374,20 @@ studies. <em>PLoS ONE, 6</em>(10), Article e25223. <a href="https://doi.org/10.1
 Type I error of meta-analysis in the Solomon four-group design</em>
 [Paper presentation]. First International Conference on Multiple
 Comparisons, Tel Aviv, Israel. <a href="https://digitalcommons.wayne.edu/coe_tbf/29/" class="external-link uri">https://digitalcommons.wayne.edu/coe_tbf/29/</a></p>
+<p>Trafimow, D. (2017). Using the coefficient of confidence to make the
+philosophical switch from a posteriori to a priori inferential
+statistics. <em>Educational and Psychological Measurement, 77</em>(5),
+831–854. <a href="https://doi.org/10.1177/0013164416667977" class="external-link uri">https://doi.org/10.1177/0013164416667977</a></p>
+<p>Trafimow, D., &amp; MacDonald, J. A. (2017). Performing inferential
+statistics prior to data collection. <em>Educational and Psychological
+Measurement, 77</em>(2), 204–219. <a href="https://doi.org/10.1177/0013164416659745" class="external-link uri">https://doi.org/10.1177/0013164416659745</a></p>
+<p>Trafimow, D., Tong, T., Wang, T., Choy, S. T. B., Hu, L., Chen, X.,
+Wang, C., &amp; Wang, Z. (2024). Improving inferential analyses predata
+and postdata. <em>Psychological Methods</em>. Advance online
+publication. <a href="https://doi.org/10.1037/met0000697" class="external-link uri">https://doi.org/10.1037/met0000697</a></p>
+<p>Trafimow, D., Wang, C., &amp; Wang, T. (2020). Making the a priori
+procedure work for differences between means. <em>Educational and
+Psychological Measurement, 80</em>(1), 186–198. <a href="https://doi.org/10.1177/0013164419847509" class="external-link uri">https://doi.org/10.1177/0013164419847509</a></p>
 <p>van ’t Veer, A. E., &amp; Giner-Sorolla, R. (2016). Pre-registration
 in social psychology—A discussion and suggested template. <em>Journal of
 Experimental Social Psychology, 67</em>, 2–12. <a href="https://doi.org/10.1016/j.jesp.2016.03.004" class="external-link uri">https://doi.org/10.1016/j.jesp.2016.03.004</a></p>

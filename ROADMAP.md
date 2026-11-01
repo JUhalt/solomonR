@@ -819,6 +819,10 @@ are agreed in a linked issue and assigned to a milestone.
 - Bayesian Solomon modeling —
   [\#118](https://github.com/JUhalt/solomonR/issues/118), on the
   [Post-1.0 milestone](https://github.com/JUhalt/solomonR/milestone/9)
+- Precision planning by the a priori procedure (APP), to be built with
+  the Bayesian extension —
+  [\#147](https://github.com/JUhalt/solomonR/issues/147), on the
+  [Post-1.0 milestone](https://github.com/JUhalt/solomonR/milestone/9)
 - Rank-based / nonparametric unified methods: aligned-rank or
   permutation approaches only, since rank-transform tests are unsuitable
   for interactions (Sawilowsky, 2000)

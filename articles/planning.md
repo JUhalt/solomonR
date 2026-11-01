@@ -195,7 +195,7 @@ draft <- analysis_plan_solomon(
 cat(head(draft$text, 12), sep = "\n")
 #> # Analysis plan for a Solomon four-group study
 #> 
-#> Drafted with solomonR 0.8.2.9000 on 2026-10-31. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
+#> Drafted with solomonR 0.8.2.9000 on 2026-11-01. Edit every section before registering it; text in square brackets is for the researcher to complete. The sections follow van 't Veer and Giner-Sorolla's (2016) template, and each names the SPIRIT 2013 item it answers (Chan et al., 2013).
 #> 
 #> ## 1. Hypotheses (SPIRIT 12)
 #> 
@@ -226,6 +226,31 @@ Replicating the Published Error
 Rates](https://juhalt.github.io/solomonR/articles/classic-validation.md)
 reports the error rates of the sequence.
 
+## Planning for precision
+
+The plans above rest on power: the chance that a test detects an
+anticipated effect. The a priori procedure (APP) of Trafimow (2017) uses
+a different criterion, precision. Before collecting data, the researcher
+states how close an estimate should come to its parameter, as a fraction
+*f* of a standard deviation, and with what probability *c* (Trafimow &
+MacDonald, 2017, pp. 206–207; Trafimow et al., 2024, p. 2). For means
+and differences between means, the APP needs no anticipated effect size
+(Trafimow et al., 2020, p. 188). For example, when the standard
+deviation is known, a sample mean within 0.1 standard deviations of the
+population mean, with probability .95, takes 385 participants (Trafimow
+et al., 2020, p. 187). Trafimow et al. (2024, pp. 1–2, 17) propose
+replacing the usual sequence, power analysis before the data and
+significance tests after, with the APP before the data and
+gain-probability analysis after. Earlier, Trafimow et al. (2020, p. 188)
+suggested that researchers who want both precision and power run both
+procedures and collect the larger sample.
+
+solomonR does not implement the APP. A proposal for Solomon designs,
+planned for after version 1.0 together with the Bayesian extension
+proposed in [\#118](https://github.com/JUhalt/solomonR/issues/118), is
+in [\#147](https://github.com/JUhalt/solomonR/issues/147). The package’s
+maintainer studied under David Trafimow and has coauthored with him.
+
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the
 [References](https://juhalt.github.io/solomonR/articles/references.md)
@@ -243,6 +268,24 @@ Sawilowsky, S. S. (1996, June 23). *Controlling experiment-wise Type I
 error of meta-analysis in the Solomon four-group design* \[Paper
 presentation\]. First International Conference on Multiple Comparisons,
 Tel Aviv, Israel. <https://digitalcommons.wayne.edu/coe_tbf/29/>
+
+Trafimow, D. (2017). Using the coefficient of confidence to make the
+philosophical switch from a posteriori to a priori inferential
+statistics. *Educational and Psychological Measurement, 77*(5), 831–854.
+<https://doi.org/10.1177/0013164416667977>
+
+Trafimow, D., & MacDonald, J. A. (2017). Performing inferential
+statistics prior to data collection. *Educational and Psychological
+Measurement, 77*(2), 204–219. <https://doi.org/10.1177/0013164416659745>
+
+Trafimow, D., Tong, T., Wang, T., Choy, S. T. B., Hu, L., Chen, X.,
+Wang, C., & Wang, Z. (2024). Improving inferential analyses predata and
+postdata. *Psychological Methods*. Advance online publication.
+<https://doi.org/10.1037/met0000697>
+
+Trafimow, D., Wang, C., & Wang, T. (2020). Making the a priori procedure
+work for differences between means. *Educational and Psychological
+Measurement, 80*(1), 186–198. <https://doi.org/10.1177/0013164419847509>
 
 van ’t Veer, A. E., & Giner-Sorolla, R. (2016). Pre-registration in
 social psychology—A discussion and suggested template. *Journal of
