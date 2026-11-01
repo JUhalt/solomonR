@@ -329,15 +329,16 @@ In the study's own pull request, before its run (the order rule of #117):
    `timing/sessionInfo-<chunk>.txt`, and anything under `logs/`): only a
    `summarize()` that writes into `SOLOMONR_SIM_OUT` itself can have put
    it there, since both routes run the check after the summary and before
-   `finalize-results.R`, which refuses these names too. These checks read
-   names only, not contents: a performance measure, decision, or failure
-   count returned as a column of `agreement`, an item of `run-information`,
-   or a `timing/` element, or written as a file under `timing/` with a name
-   the harness does not write, would pass them. That these runs compute
-   none rests on the study's `summarize()`, whose code its pull request
-   shows. A `gate$project` may not return a name the harness or the
-   summary writes (other than `gate-times`, `gate-projection`, and
-   `gate-summary`).
+   `finalize-results.R`. That script also refuses a file under a name it
+   writes, even one it has nothing to put in, and any `logs/`. These checks
+   read names only, not contents: a performance measure, decision, or
+   failure count returned as a column of `agreement`, an item of
+   `run-information`, or a `timing/` element, or written as a file under
+   `timing/` with a name the harness does not write, would pass them. That
+   these runs compute none rests on the study's `summarize()`, whose code
+   its pull request shows. A `gate$project` may not return a name the
+   harness or the summary writes (other than `gate-times`,
+   `gate-projection`, and `gate-summary`).
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,
    the extra packages, every package version the protocol records, and
    `tool,pak`. A protocol study (registry flag `TRUE`) must also give
