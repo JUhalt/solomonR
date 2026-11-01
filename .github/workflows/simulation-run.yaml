@@ -37,7 +37,7 @@ on:
         type: number
         default: 3
       cost_seconds:
-        description: Worker seconds per unit of task cost, as the gate's timing/gate-summary.csv gives it (required for a study run; 0 skips the job-size check)
+        description: The gate's seconds_per_cost, as its timing/gate-summary.csv gives it (the seconds per unit of cost that size the jobs; required for a study run; 0 skips the job-size check)
         type: string
         default: '0'
       smoke:
