@@ -49,10 +49,11 @@
 # scenario and replication number.
 #
 # Timing. A task records its start, its finish, its job's start (when the
-# job's process began handing out tasks), and its worker seconds, split into
-# agreement checks (the code the study wraps in sim_time_agreement()) and
-# replications (the rest). Timing is the one part of a task file that may
-# differ between two runs of the task; it is never hashed or summarized.
+# job's process began handing out tasks; it tells the tasks of one job from
+# another's), and its worker seconds, split into agreement checks (the code
+# the study wraps in sim_time_agreement()) and replications (the rest).
+# Timing is the one part of a task file that may differ between two runs of
+# the task; it is never hashed or summarized.
 #
 # Faults. A fit that fails is a result. Any other error in a replication
 # stops the task: the task id, the replication, and the message are written
@@ -143,9 +144,11 @@ sim_time_agreement <- function(expr) {
 # Required fields of `study`:
 #   key              short name, as in tools/sim/studies.csv
 #   issue            the issue that holds the protocol
-#   protocol         TRUE for a validation protocol: then only purpose
-#                    "study" may compute performance measures, decisions,
-#                    or failure counts (in smoke mode too)
+#   protocol         TRUE for a validation protocol: then the summary of
+#                    any purpose but "study" (smoke mode included) may hold
+#                    only agreement, run-information, and timing/ elements,
+#                    so that it computes no performance measure, decision,
+#                    or failure count
 #   seeds            named integers: study, gate, test (base seeds)
 #   scenarios        data frame; column `scenario` is 1, 2, ... in the order
 #                    of the protocol's scenario table
@@ -207,6 +210,11 @@ sim_check_study <- function(study) {
 sim_reserved_names <- c("manifest", "completeness", "software", "replay", "preflight", "summary",
                         "timing/task-times", "timing/jobs", "timing/gate-times",
                         "timing/gate-projection", "timing/gate-summary", "timing/rng-fingerprint")
+# The files of the timing gate's projection (sim_gate_default() or the
+# study's gate$project), written under timing/.
+sim_gate_names <- c("gate-times", "gate-projection", "gate-summary")
+# What a protocol's smoke, test, or gate summary may hold, besides timing/.
+sim_test_summary_names <- c("agreement", "run-information")
 
 # ---- Streams and the plan ------------------------------------------------------
 
@@ -754,10 +762,11 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
                           names(summary) %in% sim_reserved_names]
   if (length(bad)) stop("Summary names not allowed: ", paste(bad, collapse = ", "), ".", call. = FALSE)
   if (isTRUE(study$protocol) && !identical(info[["purpose"]], "study")) {
-    banned <- intersect(names(summary), c("performance", "decisions", "failures"))
-    if (length(banned)) {
-      stop("A protocol's ", info[["purpose"]], " run may not compute ", paste(banned, collapse = ", "),
-           ".", call. = FALSE)
+    other <- names(summary)[!names(summary) %in% sim_test_summary_names & !grepl("^timing/", names(summary))]
+    if (length(other)) {
+      stop("A protocol's ", info[["purpose"]], " run may return only ",
+           paste(sim_test_summary_names, collapse = ", "), ", and timing/ elements, not ",
+           paste(other, collapse = ", "), ".", call. = FALSE)
     }
   }
   for (name in names(summary)) sim_write_csv(summary[[name]], file.path(out_dir, paste0(name, ".csv")))
@@ -767,10 +776,17 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
     g <- study$gate
     gate <- if (is.function(g$project)) g$project(times = times, scenarios = sc, info = info)
             else sim_gate_default(study, times, sc, info)
-    if (!is.list(gate) || !"gate-projection" %in% names(gate)) {
+    if (!is.list(gate) || is.null(names(gate)) || !"gate-projection" %in% names(gate)) {
       stop("The gate's projection must return a list with gate-projection.", call. = FALSE)
     }
-    for (name in names(gate)) sim_write_csv(gate[[name]], file.path(out_dir, "timing", paste0(name, ".csv")))
+    # Written as timing/<name>.csv: the summary's name rule, no file the
+    # harness writes other than the gate's own, and none the summary wrote.
+    gn <- names(gate)
+    bad <- gn[!grepl("^[a-z0-9][a-z0-9_-]*$", gn) | duplicated(gn) |
+                (paste0("timing/", gn) %in% sim_reserved_names & !gn %in% sim_gate_names) |
+                paste0("timing/", gn) %in% names(summary)]
+    if (length(bad)) stop("Gate projection names not allowed: ", paste(unique(bad), collapse = ", "), ".", call. = FALSE)
+    for (name in gn) sim_write_csv(gate[[name]], file.path(out_dir, "timing", paste0(name, ".csv")))
   }
   message("Summarize: ", n, " tasks, ", if (is.null(results)) 0L else nrow(results),
           " rows; wrote ", paste0(names(summary), ".csv", collapse = ", "), ".")
@@ -781,9 +797,10 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
 
 # The gate's projection, as #116 posted it and amendment 2 restates it for
 # the runners, with the study's constants:
-#   - tasks that start at least `warmup_minutes` after their job's start (the
-#     moment its process began handing out tasks) are used; a group with no
-#     such task uses all of its tasks, and says so;
+#   - tasks that start at least `warmup_minutes` after the first task of
+#     their job started (the earliest start among the tasks with the same
+#     job start) are used; a group with no such task uses all of its tasks,
+#     and says so;
 #   - replication seconds are averaged per replication within each group of
 #     scenarios that `group(scenarios)` defines (default: each scenario);
 #   - the projection for R sums R times each scenario's group average over
@@ -795,7 +812,10 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
 #     the decision is "stop".
 # Every row is labelled with the purpose, so a test gate is never taken for
 # a gate. A study whose rule differs gives `gate$project`, a function(times,
-# scenarios, info) returning the same files (it may call this one).
+# scenarios, info) returning the same files (it may call this one); the names
+# it returns follow the summary's rule and may not be those of a file the
+# harness or the summary writes, except gate-times, gate-projection, and
+# gate-summary.
 sim_gate_default <- function(study, times, scenarios, info) {
   g <- study$gate
   warm <- if (is.null(g$warmup_minutes)) 0 else as.numeric(g$warmup_minutes)
@@ -803,8 +823,8 @@ sim_gate_default <- function(study, times, scenarios, info) {
   grp <- if (is.function(g$group)) as.character(g$group(scenarios)) else as.character(scenarios$scenario)
   if (length(grp) != nrow(scenarios) || anyNA(grp)) stop("gate$group() must label every scenario.", call. = FALSE)
   times$group <- grp[match(times$scenario, scenarios$scenario)]
-  times$offset_seconds <- as.numeric(difftime(sim_parse_utc(times$started), sim_parse_utc(times$job_started),
-                                              units = "secs"))
+  started <- as.numeric(sim_parse_utc(times$started))
+  times$offset_seconds <- started - stats::ave(started, times$job_started, FUN = min)
   times$after_warmup <- times$offset_seconds >= warm * 60
   groups <- unique(grp)
   per <- do.call(rbind, lapply(groups, function(k) {

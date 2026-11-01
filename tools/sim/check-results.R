@@ -6,8 +6,11 @@
 # FALSE and equal the flag the study script wrote into the plan. Then:
 #
 #   - agreement.csv must exist; a gate design needs timing/gate-projection.csv;
-#   - for a protocol, a gate or test run must not write performance.csv,
-#     decisions.csv, or failures.csv;
+#   - for a protocol, a gate or test run may hold only agreement.csv,
+#     run-information.csv, summary.rds, and files under timing/ (and the
+#     files the harness itself writes: manifest.csv, completeness.csv,
+#     software.csv, replay.csv, preflight.csv, logs/), so that no performance
+#     measure, decision, or failure count leaves it under any name;
 #   - for a protocol's study run, performance.csv, decisions.csv, and the
 #     study's part of run-information.csv must exist;
 #   - wherever performance.csv is written, it needs the columns scenario,
@@ -43,10 +46,15 @@ if (!file.exists(file.path(dir, "agreement.csv"))) h_fail("agreement.csv is miss
 if (identical(info[["design"]], "gate") && !file.exists(file.path(dir, "timing", "gate-projection.csv"))) {
   h_fail("timing/gate-projection.csv is missing.")
 }
-forbidden <- c("performance.csv", "decisions.csv", "failures.csv")
 if (protocol && purpose != "study") {
-  present <- forbidden[file.exists(file.path(dir, forbidden))]
-  if (length(present)) h_fail("A ", purpose, " run of a protocol wrote ", paste(present, collapse = ", "), ".")
+  allowed <- c("agreement.csv", "run-information.csv", "summary.rds",
+               "manifest.csv", "completeness.csv", "software.csv", "replay.csv", "preflight.csv")
+  present <- list.files(dir, recursive = TRUE, all.files = TRUE, no.. = TRUE)
+  other <- present[!present %in% allowed & !grepl("^timing/[^/]+$", present) & !grepl("^logs/[^/]+[.]txt$", present)]
+  if (length(other)) {
+    h_fail("A ", purpose, " run of a protocol may hold only agreement.csv, run-information.csv, summary.rds, ",
+           "timing/, and the harness's files; it holds ", paste(head(other, 10), collapse = ", "), ".")
+  }
 }
 if (protocol && purpose == "study") {
   need <- c("performance.csv", "decisions.csv", "run-information.csv")

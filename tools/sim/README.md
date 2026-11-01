@@ -22,7 +22,7 @@ package or of the validation-scripts check.
 | `job-info.R` | The machine of a chunk: runner image, CPUs, processor, memory, attempt, local resumptions |
 | `merge-chunks.R` | The checks before any summary; manifest, completeness, replay list |
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
-| `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; no performance files in a protocol's gate or test |
+| `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in a protocol's gate or test, only agreement, run information, timing, and the harness's files |
 | `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder |
 | `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path, a format other than .csv, .txt, .json, and .rds, a NUL byte or UTF-16 text, an object it cannot walk) |
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
@@ -205,8 +205,12 @@ In the study's own pull request, before its run (the order rule of #117):
    `verdict`, and at least one of `mcse`, `threshold`, and `p_value`), and
    `run-information` (item, value: what the protocol lists that the harness
    does not, such as the number of permutations). A protocol's smoke mode,
-   test runs, and gate may not return `performance`, `decisions`, or
-   `failures`; the contract stops if they do.
+   test runs, and gate may return only `agreement`, `run-information`, and
+   `timing/` elements, so that they compute no performance measure,
+   decision, or failure count under any name; the contract stops on any
+   other, and `check-results.R` on any other file. A `gate$project` may not
+   return a name the harness or the summary writes (other than
+   `gate-times`, `gate-projection`, and `gate-summary`).
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,
    the extra packages, every package version the protocol records, and
    `tool,pak`; optionally `sizing,allowance`, the factor on a job's
