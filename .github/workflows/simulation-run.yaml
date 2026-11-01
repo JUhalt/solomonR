@@ -291,11 +291,14 @@ jobs:
             SOLOMONR_SIM_OUT="$out" SOLOMONR_SIM_WORKERS="$SIM_WORKERS" SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
             Rscript "$SIM_SCRIPT" > "$out/log.txt" 2>&1
 
+      # A .tmp file is a task file whose write was cut off; it is never
+      # used, and the address scan refuses any format but its own four.
       - name: Record the job
         if: always()
         shell: bash
         run: |
           mkdir -p "out/chunk-$SIM_CHUNK"
+          find "out/chunk-$SIM_CHUNK" -type f -name '*.tmp' -delete || true
           cp software.csv "out/chunk-$SIM_CHUNK/software.csv" || true
           Rscript harness/tools/sim/job-info.R "out/chunk-$SIM_CHUNK" "$SIM_CHUNK" || true
 

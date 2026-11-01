@@ -24,7 +24,7 @@ package or of the validation-scripts check.
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
 | `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; no performance files in a protocol's gate or test |
 | `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder |
-| `scan-addresses.R` | Fails on any text shaped like an e-mail address before an upload or before a log is shown |
+| `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path, a format other than .csv, .txt, .json, and .rds, a NUL byte or UTF-16 text, an object it cannot walk) |
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
@@ -222,6 +222,10 @@ In the study's own pull request, before its run (the order rule of #117):
   the Version field only. The study script's output goes to files, which
   the job prints only after `scan-addresses.R` has found no text shaped
   like an e-mail address in them; the same scan runs before every upload.
+  It also scans the paths of the files, reads `%40` as `@`, walks every
+  string of an `.rds` object (attributes, functions and their
+  environments, promises as code, never evaluated), and fails on a path
+  that does not exist and on any file it cannot read completely.
 - Every job installs its R library afresh from the dated snapshot (pak
   included): no Actions cache, which any workflow on the branch can write
   and to which pak only adds; no Bioconductor repository
