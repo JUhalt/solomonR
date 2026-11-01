@@ -32,8 +32,8 @@
 #            task cost of 0, seconds per cost that R reads as 0 or as
 #            infinite, and, by the script's own message, numbers of chunks
 #            or workers that are not whole numbers in digits (2.5, 1e2, 010,
-#            99999999999) and seconds per cost not in the workflow's form
-#            (0x10).
+#            99999999999, " 2") and seconds per cost not in the workflow's
+#            form (0x10).
 #   inputs   the workflow's "Check the inputs" step, read from
 #            .github/workflows/simulation-run.yaml and run with bash (--bash,
 #            or bash on the PATH; skipped without one), among them numbers
@@ -50,7 +50,8 @@
 #            a scenario number of a list, the workers, the smoke mode's
 #            replications, a plan's recorded reps and subset, and the
 #            study's seeds and task sizes) by the contract's own message,
-#            without an R warning, also beyond R's integers;
+#            without an R warning, also beyond R's integers and with white
+#            space around the digits;
 #            sim_verify_plan() after a sourced file changed; and, with git,
 #            the clean-checkout rule and the plan options
 #            of a gate or study run; and the gate's seconds per unit of
@@ -544,6 +545,9 @@ if ("sizing" %in% groups) local({
     list("workers 2.5", c("1", "100", "2.5"), workers_msg),
     list("workers 0", c("1", "100", "0"), workers_msg),
     list("workers 99999999999", c("1", "100", "99999999999"), workers_msg),
+    # White space around the digits (review round 1).
+    list("\" 2\" chunks, a space before the digits", " 2", chunks_msg),
+    list("workers \"4 \", a space after the digits", c("1", "100", "4 "), workers_msg),
     list("seconds per cost 0x10, which as.numeric() reads as 16", c("1", "0x10", "4"),
          "The seconds per cost must be a number in digits"))
   for (cs in number_cases) {
@@ -864,6 +868,16 @@ if ("contract" %in% groups) local({
     r <- run_study(p, plan_vars(file.path(p, paste0("plan-reps-", cs[[1]])), reps = cs[[1]]))
     record("contract", cs[[2]], "refuse", refusal(r, "The number of replications must be a whole number"), last_line(r$out))
   }
+  # White space around the digits (review round 1): the pattern alone
+  # decides, as the contract's header says.
+  for (cs in list(list("space-before", " 4", "plan: reps \" 4\", a space before the digits"),
+                  list("space-after", "4 ", "plan: reps \"4 \", a space after the digits"))) {
+    r <- run_study(p, plan_vars(file.path(p, paste0("plan-reps-", cs[[1]])), reps = cs[[2]]))
+    record("contract", cs[[3]], "refuse", refusal(r, "The number of replications must be a whole number"), last_line(r$out))
+  }
+  r <- size_plan("plan-size-space-before", " 2")
+  record("contract", "plan: task size \" 2\", a space before the digits", "refuse",
+         refusal(r, "The task size must be a whole number"), last_line(r$out))
   tamper <- function(name, from, item, value) {
     d <- file.path(p, name)
     dir.create(d)

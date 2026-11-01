@@ -32,10 +32,10 @@
 # 1e-400, which the workflow's pattern accepts and R reads as 0, cannot skip
 # the check. run-local.R passes none: a local job has no time limit. The
 # number of chunks and the workers must be whole numbers in digits without
-# a leading zero (h_whole()), and the seconds per cost must have the
-# workflow's form (digits, an optional decimal part and exponent), so that
-# as.numeric() and as.integer() cannot read "2.5", "1e2", or "0x10" as
-# something else.
+# a leading zero or white space around them (h_whole()), and the seconds
+# per cost must have the workflow's form (digits, an optional decimal part
+# and exponent), so that as.numeric() and as.integer() cannot read "2.5",
+# "1e2", or "0x10" as something else.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])

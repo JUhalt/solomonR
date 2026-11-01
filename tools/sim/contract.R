@@ -34,9 +34,11 @@
 #                             the workers, SOLOMONR_SMOKE_REPS, the scenario
 #                             numbers of a subset, and plan-info.csv's reps,
 #                             task_size, and subset: a whole number in
-#                             digits without a leading zero, within R's
-#                             integers; anything else stops with the
-#                             contract's message, which names the range.
+#                             digits without a leading zero or white space
+#                             around them, within R's integers; anything
+#                             else stops with the contract's message, which
+#                             names the range. (A blank task size is the
+#                             study's own.)
 #   SOLOMONR_SIM_SUBSET       Plan stage: empty or "all" (every scenario),
 #                             "fallback" (the scenarios study$gate$fallback()
 #                             keeps: a study run after a gate that chose
@@ -108,10 +110,11 @@ sim_is_worker <- function() identical(Sys.getenv("SOLOMONR_SIM_ROLE"), "worker")
 # A whole number of at least `lowest`, written in digits without a leading
 # zero and within R's integers (to 2147483647), from a setting or a plan
 # file; NA otherwise. as.integer() alone reads "2.5" as 2 and "1e2" as 100,
-# and turns a longer number into NA with a warning.
+# and turns a longer number into NA with a warning. The pattern alone
+# decides: " 5" (white space around the digits) is NA too.
 sim_whole <- function(x, lowest = 1L) {
   if (length(x) != 1L || is.na(x)) return(NA_integer_)
-  x <- trimws(as.character(x))
+  x <- as.character(x)
   v <- if (grepl("^(0|[1-9][0-9]*)$", x)) suppressWarnings(as.integer(x)) else NA_integer_
   if (is.na(v) || v < lowest) NA_integer_ else v
 }
@@ -344,14 +347,15 @@ sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
   } else {
     size <- as.integer(study$task_size)
   }
-  task_size <- if (is.null(task_size)) "" else trimws(as.character(task_size))
+  task_size <- if (is.null(task_size)) "" else as.character(task_size)
   if (length(task_size) != 1L || is.na(task_size)) stop("The task size must be one value.", call. = FALSE)
-  if (nzchar(task_size)) {
+  # Empty or blank: the study's own. Otherwise digits only, with no white
+  # space around them, and within R's integers: a longer number fits the
+  # pattern but is NA to as.integer().
+  if (nzchar(trimws(task_size))) {
     if (purpose != "test" || design != "run") {
       stop("Only a test run of design run may set its own task size.", call. = FALSE)
     }
-    # Digits only, and within R's integers: a longer number fits the pattern
-    # but is NA to as.integer().
     size <- sim_whole(task_size, 1L)
     if (is.na(size)) {
       stop("The task size must be a whole number from 1 to ", .Machine$integer.max, ".", call. = FALSE)
