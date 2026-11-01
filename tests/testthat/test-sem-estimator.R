@@ -441,10 +441,22 @@ test_that("results under MLR and ML are those of master (#133)", {
           paste("the stored results were computed with lavaan", stored$lavaan))
   now <- sem_estimator_results(stored$data)
   expect_named(now, names(stored$results))
+  # PR #151 (issue #137) centers the pretest of the ANCOVA models before
+  # they are fitted. That moves their estimates and fit measures by about
+  # 1e-7 (relative), above the default tolerance of 1.5e-8, and leaves the
+  # prints and the report sentences unchanged. These parts are compared at
+  # 1e-6, so that the test holds whichever of #133 and #137 is merged
+  # first; the others at the default tolerance.
+  centered <- function(key, part) {
+    (startsWith(key, "sem ancova") && part %in% c("effects", "fitmeasures")) ||
+      (startsWith(key, "latent") && part %in% c("effects_pre", "fitmeasures_pre"))
+  }
   for (key in names(now)) {
     expect_named(now[[key]], names(stored$results[[key]]), info = key)
     for (part in names(now[[key]])) {
-      expect_equal(now[[key]][[part]], stored$results[[key]][[part]], info = paste(key, part))
+      tolerance <- if (centered(key, part)) 1e-6 else sqrt(.Machine$double.eps)
+      expect_equal(now[[key]][[part]], stored$results[[key]][[part]], tolerance = tolerance,
+                   info = paste(key, part))
     }
   }
 })

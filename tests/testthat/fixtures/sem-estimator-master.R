@@ -18,6 +18,14 @@
 # change in their last digits from one lavaan version to the next, so the
 # test compares the results only under the version that made them, which is
 # stored as `lavaan`.
+#
+# PR #151 (issue #137) centers the pretest of the ANCOVA models before they
+# are fitted, which moves the stored estimates and fit measures of
+# fit_solomon_sem(ancova = TRUE) and of the latent analysis of covariance
+# (`effects_pre`, `fitmeasures_pre`) by about 1e-7 (relative). The test
+# compares those parts at a tolerance of 1e-6, so that it holds whichever of
+# #133 and #137 is merged first. Once both are merged, the fixture can be
+# made again from the new master and that tolerance removed.
 
 # Three or four posttest indicators of a latent posttest, three pretest
 # indicators in the pretested groups, an intercept shift of the last
