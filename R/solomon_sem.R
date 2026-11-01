@@ -16,7 +16,8 @@
 # estimators either cannot be fitted with missing = "fiml" (MLM and MLMV)
 # or would be fitted, labeled, and reported without validation. As in
 # lavaan, the name is matched without regard to case; it is returned in
-# upper case, as the fits store and print it.
+# upper case and without names, as the fits store and print it, since
+# report_solomon() compares the stored name with "MLR".
 .sem_estimators <- c("MLR", "ML")
 
 .check_sem_estimator <- function(estimator) {
@@ -29,7 +30,7 @@
     ), if (one) sprintf("not \"%s\"", estimator) else "given as a single character string"),
     call. = FALSE)
   }
-  toupper(estimator)
+  unname(toupper(estimator))
 }
 
 # Whether a lavaan fit has a scaled test statistic: a test with a scaling

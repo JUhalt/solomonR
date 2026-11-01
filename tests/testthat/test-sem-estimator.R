@@ -115,6 +115,47 @@ test_that("lower-case names are accepted, stored in upper case, and change nothi
   expect_output(print(ml), "estimator: ML;", fixed = TRUE)
 })
 
+test_that("a named estimator is stored without its name, and a stored name does not stop the report", {
+  skip_if_not_installed("lavaan")
+  d <- sem_estimator_data()$four
+  items <- paste0("y", 1:4)
+  # The review of #133: c(est = "MLR") passed the check but kept its name,
+  # and the report then refused every MLR fit as neither MLR nor ML.
+  for (e in c("MLR", "ML")) {
+    named <- c(est = tolower(e))
+    for (ancova in c(FALSE, TRUE)) {
+      info <- paste(e, ancova)
+      plain <- fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = ancova, estimator = e,
+                               data = solomon_example)
+      fit <- fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = ancova, estimator = named,
+                             data = solomon_example)
+      expect_identical(fit$estimator, e, info = info)
+      expect_identical(report_solomon(fit), report_solomon(plain), info = info)
+      # A result whose stored name has a name, as an earlier version kept it.
+      plain$estimator <- c(est = e)
+      expect_identical(report_solomon(plain), report_solomon(fit), info = info)
+    }
+    plain <- invariance_solomon(d, items, d$treat, d$pretested, estimator = e)
+    inv <- invariance_solomon(d, items, d$treat, d$pretested, estimator = named)
+    expect_identical(inv$estimator, e, info = e)
+    expect_identical(inv$scaled, e == "MLR", info = e)
+    expect_identical(report_solomon(inv), report_solomon(plain), info = e)
+    expect_identical(utils::capture.output(print(inv)), utils::capture.output(print(plain)),
+                     info = e)
+    plain$estimator <- c(est = e)
+    expect_identical(report_solomon(plain), report_solomon(inv), info = e)
+  }
+  plain <- suppressWarnings(fit_solomon_sem_latent(d, items, d$treat, d$pretested))
+  lat <- suppressWarnings(fit_solomon_sem_latent(d, items, d$treat, d$pretested,
+                                                 estimator = c(est = "mlr")))
+  expect_identical(lat$settings$estimator, "MLR")
+  expect_identical(lat$invariance$estimator, "MLR")
+  expect_identical(report_solomon(lat), report_solomon(plain))
+  plain$settings$estimator <- c(est = "MLR")
+  plain$invariance$estimator <- c(est = "MLR")
+  expect_identical(report_solomon(plain), report_solomon(lat))
+})
+
 test_that("each accepted estimator gives a complete, correctly labeled report with three and four indicators", {
   skip_if_not_installed("lavaan")
   data <- sem_estimator_data()

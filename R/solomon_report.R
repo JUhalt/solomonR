@@ -1077,7 +1077,9 @@
 # a scaled test statistic as well as the standard one, by the rule of
 # .sem_scaled(). Only MLR, with its scaled test, and ML, without one, are
 # described; any other fit, such as one saved by an earlier version with
-# another estimator, is refused rather than described.
+# another estimator, is refused rather than described. A stored name may
+# carry names of its own, as an earlier version kept them, so they are
+# dropped before it is compared.
 .sem_estimator <- function(estimator, fit) {
   version <- tryCatch(as.character(fit@version), error = function(e) "")
   software <- if (length(version) == 1L && nzchar(version)) {
@@ -1086,7 +1088,7 @@
     "lavaan (Rosseel, 2012)"
   }
   scaled <- .sem_scaled(fit)
-  est <- if (is.null(estimator)) .sem_lavaan_estimator(fit) else toupper(estimator)
+  est <- if (is.null(estimator)) .sem_lavaan_estimator(fit) else unname(toupper(estimator))
   if (!isTRUE(est %in% .sem_estimators) || scaled != identical(est, "MLR")) {
     stop(sprintf(paste0(
       "report_solomon() describes structural equation models fitted by MLR, with its scaled ",
