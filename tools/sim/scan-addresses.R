@@ -27,12 +27,15 @@
 #     valid UTF-8 without such a header (base64, for one) is not detected;
 #   - an .rds file is read with readRDS(), and every character string in the
 #     object is scanned: values, factor levels, every attribute of every
-#     type (names included), raw vectors as text (not decompressed), the
-#     deparsed code of functions, calls, and formulas, and the bindings of
-#     environments (those of closures and formulas, and their parents),
-#     stopping at namespaces, attached packages, and the global, base, and
-#     empty environments; a promise is read as its code and never
-#     evaluated. An object that cannot be read or walked completely fails;
+#     type (names included), raw vectors as text, the deparsed code of
+#     functions, calls, and formulas, and the bindings of environments
+#     (those of closures and formulas, and their parents), stopping at
+#     namespaces, attached packages, and the global, base, and empty
+#     environments; a promise is read as its code and never evaluated. An
+#     object that cannot be read or walked completely fails.
+#     Strings and raw vectors are scanned as they are stored: nothing is
+#     decompressed or decoded, so compressed bytes in an .rds, in a raw
+#     vector or in a string, are not detected;
 #   - "%40" (a percent-encoded "@") is read as "@".
 
 local({

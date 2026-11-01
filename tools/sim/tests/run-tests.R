@@ -20,7 +20,7 @@
 #   scan     scan-addresses.R on folders built here around a placeholder
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
-#            every "c-" folder pass, and no promise may be evaluated. Eleven
+#            every "c-" folder pass, and no promise may be evaluated. Twelve
 #            "f-" folders must fail by a named rule (a NUL byte, a gzip or
 #            zlib header, bytes that are not valid UTF-8), among them
 #            compressed text without a NUL byte; the "c-" folders include
@@ -416,7 +416,9 @@ if ("scan" %in% groups) {
   }
   writeBin(z, file.path(case("f-48-zlib-text-without-nul"), "a.txt"))
   writeBin(c(as.raw(c(0x1f, 0x8b)), charToRaw("clean text")), file.path(case("f-49-gzip-header"), "a.txt"))
-  con <- gzfile(file.path(case("f-50-gzip-file-named-txt"), "a.txt"), "w"); writeLines(c("x", A), con); close(con)
+  # A real gzip file: its header holds NUL bytes (bytes 4 to 9), so the NUL
+  # rule, which runs first, refuses it; f-49 tests the gzip-header rule.
+  con <- gzfile(file.path(case("f-50-gzip-file-nul-in-header"), "a.txt"), "w"); writeLines(c("x", A), con); close(con)
   writeBin(c(as.raw(c(0x78, 0x01)), charToRaw("clean")), file.path(case("f-51-zlib-header-78-01"), "a.txt"))
   put(case("f-52-zlib-header-78-5e-text-x-caret"), "a.txt", "x^2 is the square of x")
   writeBin(c(as.raw(c(0x78, 0xda, 0x80)), charToRaw("clean")), file.path(case("f-53-zlib-header-78-da-valid-utf8"), "a.csv"))
@@ -427,6 +429,7 @@ if ("scan" %in% groups) {
   # The rule each of these must fail by (a part of its message); the other
   # "f-" folders need only fail.
   scan_rule <- c(`f-15-nul-byte` = "holds a NUL byte", `f-38-nul-byte-in-zlib-text` = "holds a NUL byte",
+                 `f-50-gzip-file-nul-in-header` = "holds a NUL byte",
                  `f-48-zlib-text-without-nul` = "starts with a zlib header (78 9c)",
                  `f-49-gzip-header` = "starts with a gzip header (1f 8b)",
                  `f-51-zlib-header-78-01` = "starts with a zlib header (78 01)",

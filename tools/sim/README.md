@@ -24,7 +24,7 @@ package or of the validation-scripts check.
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
 | `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in every run, no file under a name the harness writes after it, in any case; in a protocol's gate or test, only agreement, run information, `summary.rds`, and timing (by name; contents are not inspected) |
 | `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder; refuses a file under one of their names, and a `logs/` folder, that is already there, in any case |
-| `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path; a format other than .csv, .txt, .json, and .rds; a text file with a NUL byte, a UTF-16 byte-order mark, a gzip or zlib header at its start, or bytes that are not valid UTF-8; an object it cannot walk) |
+| `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path; a format other than .csv, .txt, .json, and .rds; a text file with a NUL byte, a UTF-16 byte-order mark, a gzip or zlib header at its start, or bytes that are not valid UTF-8; an object it cannot walk); decodes nothing but `%40` (base64 text, and compressed bytes in an .rds, are scanned as stored) |
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
@@ -251,7 +251,7 @@ Each case builds its input in a temporary folder (`--work` names another)
 and runs one check in a new R process: the MCSE, decision, and file-name
 rules of `check-results.R`, including the names the harness writes after
 it, in any case; 57 folders that `scan-addresses.R` must refuse, built around a
-placeholder address at example.org that is assembled at run time (11 of
+placeholder address at example.org that is assembled at run time (12 of
 them by a named rule: a NUL byte, a gzip or zlib header, or bytes that are
 not valid UTF-8, among them compressed text without a NUL byte), and 9 it
 must pass (among them UTF-8 text with the characters the package prints, a
@@ -384,12 +384,16 @@ In the study's own pull request, before its run (the order rule of #117):
   as code, never evaluated), and fails on a path that does not exist, on
   any file it cannot read completely, and on a text file (.csv, .txt,
   .json) that holds a NUL byte, starts with a UTF-16 byte-order mark or
-  with a gzip or zlib header, or is not valid UTF-8, so that compressed or
-  re-encoded text cannot pass unread (text that starts with `x^` is refused
-  as a zlib header too). Text encoded otherwise as valid UTF-8, such as
-  base64, is not decoded. A chunk job first stops every R
-  process left from its tasks step (after a timeout, a PSOCK worker could
-  otherwise write a task file after the scan).
+  with a gzip or zlib header, or is not valid UTF-8 (text that starts with
+  `x^` is refused as a zlib header too). These rules catch, in a text
+  file, a gzip or zlib stream at its start and bytes that are not UTF-8.
+  Beyond `%40`, the scan decodes nothing: text compressed or encoded in a
+  way that stays valid UTF-8 without such a header (base64, for one) is
+  not detected, and in an `.rds` the strings and raw vectors are scanned
+  as they are stored, so compressed bytes there, in a raw vector or in a
+  string, are not either. A chunk job first stops every R process left
+  from its tasks step (after a timeout, a PSOCK worker could otherwise
+  write a task file after the scan).
 - Every job installs its R library afresh from the dated snapshot (pak
   included): no Actions cache, which any workflow on the branch can write
   and to which pak only adds; no Bioconductor repository
