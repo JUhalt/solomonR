@@ -718,17 +718,25 @@ test_that("nearly collinear covariates are fitted as master fitted them", {
   # master and of this version each differ from those of the exact
   # reparameterization, the fit to `z` and the difference of the two
   # measures, by up to about 2e-4 of their value, which sets its tolerance.
-  # Its coefficients are not compared: their HC3 and CR2 standard errors
-  # are less accurate still, in both versions, and that of the intercept
-  # as given more so in this one, which maps it from the standardized fit.
+  # Of its coefficients only the intercept is compared, at 1e-4: the HC3
+  # and CR2 standard errors of the two covariates are less accurate still,
+  # in both versions, and the intercept's agree to about 1e-5. Mapped from
+  # the standardized covariance as M V M', the intercept's were off by up to
+  # a fifth of their value (.given_vcov()).
   source(test_path("fixtures", "collinear-master.R"), local = TRUE)
   stored <- readRDS(test_path("fixtures", "collinear-master.rds"))
   now <- suppressWarnings(collinear_results(stored$data))
   expect_setequal(names(now), names(stored$results))
   tolerance <- function(name) if (grepl("z_fine", name)) 1e-3 else 1e-6
+  intercept <- function(coefficients) coefficients[coefficients$term == "(Intercept)", ]
   for (name in names(now)) {
     parts <- names(stored$results[[name]])
-    if (grepl("z_fine", name)) parts <- setdiff(parts, "coefficients")
+    if (grepl("z_fine", name)) {
+      parts <- setdiff(parts, "coefficients")
+      expect_equal(intercept(now[[name]]$coefficients),
+                   intercept(stored$results[[name]]$coefficients), tolerance = 1e-4,
+                   info = paste(name, "intercept"))
+    }
     for (part in parts) {
       expect_equal(now[[name]][[part]], stored$results[[name]][[part]],
                    tolerance = tolerance(name), info = paste(name, part))
@@ -746,6 +754,73 @@ test_that("nearly collinear covariates are fitted as master fitted them", {
         expect_equal(fit$effects, now[[name]]$effects, tolerance = tolerance(name),
                      info = paste(name, k))
       }
+    }
+  }
+})
+
+
+test_that("the intercept as given keeps its accuracy with nearly collinear covariates", {
+  # A covariate 5 standard deviations from zero and its copy in single
+  # precision, which differ by about 3e-7 of its standard deviation, and a
+  # pair that differs by 1e-5 of it. Mapped from the standardized
+  # covariance as M V M', the variance of the intercept as given cancelled:
+  # its HC3 and CR2 standard errors came out NaN, with a warning, or off by
+  # up to 1e-4 of their value. The reference replaces the second covariate
+  # by its difference from the first, which spans the same columns without
+  # the intercept and leaves the intercept unchanged. Under CR2 the copy
+  # in single precision is as accurate as the contrasts, about 1e-3, which
+  # clubSandwich's adjustments limit, and the pair to about 2e-8; the pair
+  # is compared, at 1e-6. Six groups in 12 clusters warn of small degrees
+  # of freedom; no fit may warn that NaNs were produced.
+  d <- collinear_set()
+  single <- function(x) readBin(writeBin(x, raw(), size = 4), "double", n = length(x), size = 4)
+  e <- withr::with_seed(2, stats::rnorm(nrow(d)))
+  pairs <- list(single = data.frame(x = 5 + d$z, x2 = single(5 + d$z)),
+                pair = data.frame(x = d$z, x2 = d$z + 1e-5 * e))
+  intercept <- function(fit) fit$coefficients[fit$coefficients$term == "(Intercept)", ]
+  for (design in c("four", "six")) {
+    for (robust in c("none", "HC3", "CR2")) {
+      for (name in if (robust == "CR2") "pair" else names(pairs)) {
+        covariates <- pairs[[name]]
+        reference <- covariates
+        reference$x2 <- covariates$x2 - covariates$x
+        info <- paste(design, robust, name)
+        tolerance <- if (robust == "CR2") 1e-6 else 1e-8
+        warnings <- character()
+        fit <- withCallingHandlers(collinear_pair_fit(d, design, covariates, robust),
+                                   warning = function(w) {
+                                     warnings <<- c(warnings, conditionMessage(w))
+                                     invokeRestart("muffleWarning")
+                                   })
+        expect_false(any(grepl("NaN", warnings)), info = info)
+        ref <- suppressWarnings(collinear_pair_fit(d, design, reference, robust))
+        expect_equal(intercept(fit), intercept(ref), tolerance = tolerance, info = info)
+        expect_equal(fit$vcov["(Intercept)", "(Intercept)"], ref$vcov["(Intercept)", "(Intercept)"],
+                     tolerance = tolerance, info = info)
+      }
+    }
+  }
+})
+
+test_that("the covariance as given comes from a factor of the model's covariance", {
+  # .given_vcov() with the identity for the map gives the covariance it
+  # factors: vcov(), sandwich's HC3, and clubSandwich's CR2, from the
+  # matrices clubSandwich keeps with it.
+  d <- location_data()$four
+  d <- d[!is.na(d$y_g), ]
+  d$y_b <- as.integer(d$y_g > stats::median(d$y_g))
+  for (family in c("gaussian", "binomial")) {
+    model <- stats::glm(stats::reformulate(c("treat * pretested", "age", "sex", "z"),
+                                           if (family == "gaussian") "y_g" else "y_b"),
+                        family = family, data = d)
+    M <- diag(length(stats::coef(model)))
+    dimnames(M) <- list(names(stats::coef(model)), names(stats::coef(model)))
+    V <- list(none = stats::vcov(model), HC3 = sandwich::vcovHC(model, type = "HC3"),
+              CR2 = clubSandwich::vcovCR(model, cluster = d$site, type = "CR2"))
+    for (robust in names(V)) {
+      expect_equal(.given_vcov(model, model, V[[robust]], M, robust),
+                   matrix(V[[robust]], nrow(M), dimnames = dimnames(M)), tolerance = 1e-12,
+                   info = paste(family, robust))
     }
   }
 })

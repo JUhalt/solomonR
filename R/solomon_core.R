@@ -275,7 +275,15 @@ NULL
 # glm.fit() leaves out, has no influence and a hat value of zero. Should the
 # fit hold no decomposition of exactly those rows, the weighted design is
 # decomposed again, with the fit's tolerance.
-.glm_influence <- function(model) {
+#
+# With `map`, a matrix whose columns are the coefficients, the influence is
+# that on the combinations map %*% b, one column for each row of `map`:
+# q_i' R^{-T} map' w_i^(1/2) e_i, with R^{-T} map' from backsolve(). That
+# keeps a combination accurate whose terms are large and cancel, such as the
+# intercept of covariates as given computed from their standardized
+# coefficients (.given_vcov()), where the influences on the terms, combined
+# afterwards, would carry their rounding error into it.
+.glm_influence <- function(model, map = NULL) {
   cf <- stats::coef(model)
   w <- model$weights
   e <- model$residuals
@@ -287,11 +295,18 @@ NULL
   }
   rank <- seq_len(q$rank)
   Q <- qr.Q(q)[, rank, drop = FALSE]
+  hat <- numeric(length(w))
+  hat[good] <- rowSums(Q^2)
+  if (!is.null(map)) {
+    B <- backsolve(qr.R(q)[rank, rank, drop = FALSE],
+                   t(map[, names(cf)[q$pivot[rank]], drop = FALSE]), transpose = TRUE)
+    influence <- matrix(0, length(w), nrow(map), dimnames = list(NULL, rownames(map)))
+    influence[good, ] <- (Q * (sqrt(w[good]) * e[good])) %*% B
+    return(list(influence = influence, hat = hat))
+  }
   influence <- matrix(0, length(w), q$rank, dimnames = list(NULL, names(cf)[q$pivot[rank]]))
   influence[good, ] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE],
                                    t(Q * (sqrt(w[good]) * e[good]))))
-  hat <- numeric(length(w))
-  hat[good] <- rowSums(Q^2)
   list(influence = influence[, names(cf)[!is.na(cf)], drop = FALSE], hat = hat)
 }
 
