@@ -106,12 +106,48 @@ test_that("with the default center, results equal those of master (a6c771a)", {
     else if (grepl("logit|poisson", name)) 1e-6
     else 1e-8
   }
-  # Printed output and report sentences of complete data are unchanged. With
-  # missing posttests every line that master printed, and every paragraph of
-  # its report, appears unchanged and in the same order; the new output may
-  # add lines and paragraphs for the other center and the attrition, and the
-  # report of a design with several treatments adds its sentences at the
-  # end of its last paragraph, which must then begin with master's.
+  # Printed output and report sentences of complete data are unchanged,
+  # except that a number may be printed one unit of its last digit away
+  # from master's where a value master computed lies within the tolerance
+  # of the rounding boundary between the two. The bootstrap gives such
+  # values: with 199 resamples, the upper limit of the percentile interval
+  # of the treatment effect among unpretested participants is
+  # 13/30 + (1/20)(1/30) = 0.435, which the logistic refits reach only to
+  # their convergence tolerance, so one platform prints 0.43 and another
+  # (macOS on arm64) 0.44. rounding_differences() returns every difference
+  # that no such value explains. With missing posttests every line that
+  # master printed, and every paragraph of its report, appears unchanged
+  # and in the same order; the new output may add lines and paragraphs for
+  # the other center and the attrition, and the report of a design with
+  # several treatments adds its sentences at the end of its last paragraph,
+  # which must then begin with master's.
+  rounding_differences <- function(got, ref, stored, tol) {
+    if (length(got) != length(ref)) return("the number of lines differs")
+    values <- as.numeric(unlist(lapply(Filter(is.data.frame, stored),
+                                       function(d) unlist(Filter(is.numeric, d), use.names = FALSE))))
+    values <- values[is.finite(values)]
+    number <- "-?[0-9]*[.]?[0-9]+"
+    decimals <- function(x) nchar(sub("^[^.]*[.]?", "", x))
+    out <- character()
+    for (i in which(got != ref)) {
+      if (!identical(gsub(number, "#", got[i]), gsub(number, "#", ref[i]))) {
+        out <- c(out, sprintf("line %d: \"%s\" where master printed \"%s\"", i, got[i], ref[i]))
+        next
+      }
+      a <- regmatches(got[i], gregexpr(number, got[i]))[[1]]
+      b <- regmatches(ref[i], gregexpr(number, ref[i]))[[1]]
+      for (k in which(a != b)) {
+        unit <- 10^-decimals(b[k])
+        x <- as.numeric(a[k])
+        y <- as.numeric(b[k])
+        tie <- any(abs(values - (x + y) / 2) <= tol * pmax(1, abs(values)))
+        if (decimals(a[k]) != decimals(b[k]) || abs(abs(x - y) - unit) > unit / 100 || !tie) {
+          out <- c(out, sprintf("line %d: %s where master printed %s", i, a[k], b[k]))
+        }
+      }
+    }
+    out
+  }
   in_order <- function(lines, within, prefix = FALSE) {
     at <- 0L
     for (line in lines) {
@@ -133,7 +169,8 @@ test_that("with the default center, results equal those of master (a6c771a)", {
       info <- paste(name, part)
       if (part %in% c("text", "sentences")) {
         if (grepl("complete|classic", name)) {
-          expect_identical(got, ref, info = info)
+          expect_identical(rounding_differences(got, ref, stored$results[[name]], tolerance(name)),
+                           character(), info = info)
         } else {
           expect_true(in_order(ref, got, prefix = part == "sentences"), info = info)
           expect_gt(length(ref), 0L)
