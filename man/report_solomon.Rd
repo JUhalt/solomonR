@@ -141,7 +141,8 @@ RMSEA, and SRMR) with the comparisons and the decision under each
 criterion. The reports of these functions and of \code{\link[=fit_solomon_sem]{fit_solomon_sem()}}
 name the lavaan version and the estimator, MLR or ML, the two that the
 functions accept; a fit with any other estimator, which an earlier
-version could make, is refused.
+version could make, is refused. They read both from the lavaan models
+that the result stores, so a result without them cannot be reported.
 
 \strong{Nonrandomized designs.} With \code{design$assignment = "nonrandom"}, the
 results describe differences between groups rather than treatment

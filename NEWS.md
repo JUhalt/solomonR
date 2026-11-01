@@ -46,7 +46,10 @@
   the estimator, and cites Yuan and Bentler (2000) under MLR, as the latent
   reports do; before, it gave an ML fit the same words as an MLR fit.
   `fit_solomon_sem()` stores the name in `estimator`; for a fit saved
-  before, the report reads the estimator from lavaan's options. With
+  before, the report reads the estimator from lavaan's options. The report
+  needs the lavaan model in `fit`, from which it reads the version and the
+  degrees of freedom and checks the estimator, so a result without it now
+  stops with a message; the print and `tidy()` do not need it. With
   `equal_var = TRUE`, its method statement said that the four-group model
   is saturated, which it is not, since the constraint gives it 3 degrees of
   freedom; it now says that the posttest variances were constrained to be

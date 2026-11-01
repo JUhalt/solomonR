@@ -399,6 +399,26 @@ test_that("the reports of fit_solomon_sem() name the software and the estimator"
       old$estimator <- NULL
       expect_identical(.sem_lavaan_estimator(old$fit), est, info = info)
       expect_identical(report_solomon(old), r, info = info)
+
+      # A result without its lavaan object, as when it was removed to make
+      # the result smaller, or with something else in its place. With `fit`
+      # removed, `fit$fit` matched `fitmeasures` partially and the report
+      # failed inside lavaan (review round 3 of #133); it now stops with a
+      # message. The print and tidy() do not need the object.
+      no_fit <- fit
+      no_fit$fit <- NULL
+      not_lavaan <- fit
+      not_lavaan$fit <- fit$fitmeasures
+      for (stripped in list(no_fit, not_lavaan)) {
+        expect_error(report_solomon(stripped), paste(
+          "report_solomon() reads the lavaan version and the estimator from the lavaan model",
+          "that fit_solomon_sem() stores in `fit`, and this result does not hold it; fit the",
+          "model again with fit_solomon_sem()."
+        ), fixed = TRUE, info = info)
+        expect_identical(utils::capture.output(print(stripped)), utils::capture.output(print(fit)),
+                         info = info)
+        expect_identical(tidy(stripped), tidy(fit), info = info)
+      }
     }
 
     # With equal_var = TRUE the four-group model has 3 degrees of freedom,

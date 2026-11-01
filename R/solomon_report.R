@@ -1022,13 +1022,25 @@
 .report_sem <- function(fit, digits, md) {
   .stop_former_sem_labels(fit$effects, "fit_solomon_sem")
   .need_lavaan()
-  # The software and the estimator, as in the latent reports (issue #133).
-  est <- .sem_estimator(fit$estimator, fit$fit)
+  # The software and the estimator, as in the latent reports (issue #133),
+  # read from the lavaan object. It is taken with [[, because in a result
+  # without it `fit$fit` matches `fitmeasures` partially; such a result is
+  # refused rather than described without the version and the check of the
+  # estimator.
+  fp <- fit[["fit"]]
+  if (!inherits(fp, "lavaan")) {
+    stop(paste(
+      "report_solomon() reads the lavaan version and the estimator from the lavaan model",
+      "that fit_solomon_sem() stores in `fit`, and this result does not hold it; fit the",
+      "model again with fit_solomon_sem()."
+    ), call. = FALSE)
+  }
+  est <- .sem_estimator(fit$estimator, fp)
   refs <- c(.solomon_function_refs$fit_solomon_sem, est$refs)
   model <- if (identical(fit$mode, "ancova_pretested")) {
     refs <- c(refs, "huck1973")
     "A two-group structural equation model of the pretested groups, with the pretest as a covariate (Huck & Sandler, 1973), estimated the treatment effect among pretested participants."
-  } else if (isTRUE(as.numeric(lavaan::fitMeasures(fit$fit, "df")) == 0)) {
+  } else if (isTRUE(as.numeric(lavaan::fitMeasures(fp, "df")) == 0)) {
     "A four-group mean-structure structural equation model estimated the posttest means of the Solomon groups; the model is saturated, so global fit is not reported."
   } else {
     # With equal_var = TRUE the model has degrees of freedom and is not
@@ -2244,7 +2256,8 @@
 #' criterion. The reports of these functions and of [fit_solomon_sem()]
 #' name the lavaan version and the estimator, MLR or ML, the two that the
 #' functions accept; a fit with any other estimator, which an earlier
-#' version could make, is refused.
+#' version could make, is refused. They read both from the lavaan models
+#' that the result stores, so a result without them cannot be reported.
 #'
 #' **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
 #' results describe differences between groups rather than treatment
