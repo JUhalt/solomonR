@@ -71,8 +71,11 @@ concurrency:
 env:
   SIM_STUDY: ${{ inputs.study || 'smoke' }}
   SIM_STAGE: ${{ inputs.stage || 'run' }}
-  SIM_REPS: ${{ inputs.reps || 20 }}
-  SIM_CHUNKS: ${{ inputs.chunks || 3 }}
+  # A number input of 0 is falsy in an expression, so it is turned into a
+  # string first; otherwise `|| 20` would replace it and the check of the
+  # inputs would never see it.
+  SIM_REPS: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.reps) || '20' }}
+  SIM_CHUNKS: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.chunks) || '3' }}
   SIM_COST_SECONDS: ${{ inputs.cost_seconds || '0' }}
   SIM_SMOKE: ${{ github.event_name != 'workflow_dispatch' || inputs.smoke }}
   SIM_FAIL_ONCE: ${{ github.event_name == 'workflow_dispatch' && inputs.fail_once }}

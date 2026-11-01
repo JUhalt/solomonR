@@ -22,7 +22,11 @@
 # warns (the jobs are sized at about 2 hours); above 4 hours it stops,
 # because a job that reaches GitHub's 6-hour limit fails the same way on
 # every rerun (4 hours with an allowance of 1.3 is 3.1 hours expected,
-# against the 5.5 hours the tasks get).
+# against the 5.5 hours the tasks get). When <seconds per cost> is given
+# for a study run (plan-info.csv purpose "study", as on the runners), it must
+# be a finite number greater than 0 as R reads it, so that a value such as
+# 1e-400, which the workflow's pattern accepts and R reads as 0, cannot skip
+# the check. run-local.R passes none: a local job has no time limit.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -34,9 +38,12 @@ requested <- suppressWarnings(as.integer(args[[2]]))
 if (is.na(requested) || requested < 1L || requested > 256L) h_fail("The number of chunks must be 1 to 256.")
 spc <- if (length(args) >= 3L) suppressWarnings(as.numeric(args[[3]])) else 0
 workers <- if (length(args) >= 4L) suppressWarnings(as.integer(args[[4]])) else 1L
-if (is.na(spc) || spc < 0) h_fail("The seconds per cost must be 0 or more.")
+if (is.na(spc) || !is.finite(spc) || spc < 0) h_fail("The seconds per cost must be a finite number, 0 or more.")
 if (is.na(workers) || workers < 1L) h_fail("The workers per chunk must be 1 or more.")
 info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
+if (length(args) >= 3L && identical(info[["purpose"]], "study") && !(spc > 0)) {
+  h_fail("A study run needs seconds per cost greater than 0; \"", args[[3]], "\" is read as ", format(spc), ".")
+}
 allowance <- if (length(args) >= 5L && nzchar(trimws(args[[5]]))) {
   suppressWarnings(as.numeric(args[[5]]))
 } else if (identical(info[["protocol"]], "TRUE")) 1.3 else 1
