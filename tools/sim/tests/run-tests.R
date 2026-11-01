@@ -12,9 +12,11 @@
 #            is no note), the basis of decisions.csv, the protocol flag and
 #            purpose, the file names a protocol's gate or test may hold, and,
 #            in any run, the refusal of every name the harness writes after
-#            the check (by its message). Two cases record the limit of the
-#            name rule: it reads names only, so a measure under an allowed
-#            name passes (README, "Adding a study", item 4).
+#            the check (by its message), also in another case
+#            (Preflight.csv, LOGS/, timing/Jobs.csv, Timing/). Two cases
+#            record the limit of the name rule: it reads names only, so a
+#            measure under an allowed name passes (README, "Adding a study",
+#            item 4).
 #   scan     scan-addresses.R on folders built here around a placeholder
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
@@ -64,7 +66,8 @@
 #            times, the sourced files' SHA-256 (NA for a plan of contract
 #            2), and the refusal (by its message) of a file the study wrote
 #            under a name the harness writes, also when the plan has none
-#            to copy, and of a logs/ folder.
+#            to copy, and of a logs/ folder, also in another case (by a
+#            message that names the file as the study wrote it).
 #   local    tools/sim/run-local.R in a package folder made here, with the
 #            harness under test and the synthetic study as a second study
 #            beside smoke (needs pkgload; skipped without it): a new run of
@@ -301,6 +304,23 @@ if ("results" %in% groups) local({
         make("TRUE", "study", files = c(study_files, later["preflight.csv"])), "study", "TRUE", "refuse", taken)
   check("protocol study run: logs/coverage.txt of the study",
         make("TRUE", "study", files = c(study_files, later["logs/coverage.txt"])), "study", "TRUE", "refuse", taken)
+  # The same names in another case (review round 1): a file system that
+  # ignores case makes them the harness's files, and on one that does not
+  # the results would hold both. Timing/ is timing/ spelled otherwise.
+  variants <- c("Preflight.csv", "PREFLIGHT.CSV", "Manifest.csv", "replay.CSV", "LOGS/coverage.txt",
+                "Logs/plan-log.txt", "timing/Jobs.csv", "timing/sessioninfo-0001.txt", "timing/sessionInfo-0001.TXT",
+                "timing/RNG-fingerprint.txt", "Timing/coverage.csv")
+  for (nm in variants) {
+    check(paste0("protocol study run: ", nm, ", another case"),
+          make("TRUE", "study", files = c(study_files, stats::setNames(list(coverage), nm))), "study", "TRUE", "refuse",
+          taken)
+  }
+  check("protocol test: timing/Jobs.csv, another case",
+        make("TRUE", "test", files = extra(`timing/Jobs.csv` = data.frame(chunk = "0001"))), "test", "TRUE", "refuse", taken)
+  for (nm in c("Preflight.csv", "LOGS/coverage.txt")) {
+    check(paste0("test run, not a protocol: ", nm, ", another case"),
+          make("FALSE", "test", files = stats::setNames(list(coverage), nm)), "test", "FALSE", "refuse", taken)
+  }
 })
 
 # ---- scan: scan-addresses.R --------------------------------------------------
@@ -1091,6 +1111,23 @@ if ("finalize" %in% groups) local({
   record("finalize", "the plan's preflight.csv is copied", "yes",
          if (x$r$status == 0L && file.exists(file.path(root, "f10", "results", "preflight.csv"))) "yes" else "no",
          last_line(x$r$out))
+  # The same names in another case (review round 1), refused by a message
+  # that names the file as the study wrote it.
+  in_case <- list(
+    list("the study wrote Preflight.csv, the plan has one", "f11", "Preflight.csv", TRUE,
+         "/results/Preflight.csv, a name that the harness writes"),
+    list("the study wrote timing/Jobs.csv", "f12", file.path("timing", "Jobs.csv"), FALSE,
+         "/results/timing/Jobs.csv, a name that the harness writes"),
+    list("the study wrote LOGS/coverage.txt", "f13", file.path("LOGS", "coverage.txt"), FALSE,
+         "/results/LOGS, a folder that the harness writes"))
+  for (cs in in_case) {
+    d <- make(cs[[2]], preflight = cs[[4]])
+    f <- file.path(d, "results", cs[[3]])
+    dir.create(dirname(f), showWarnings = FALSE, recursive = TRUE)
+    writeLines(coverage, f)
+    x <- finalize(d)
+    record("finalize", cs[[1]], "refuse", refusal(x$r, cs[[5]]), last_line(x$r$out))
+  }
 })
 
 # ---- local: run-local.R's choice of the study ------------------------------------

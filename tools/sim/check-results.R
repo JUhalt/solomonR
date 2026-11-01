@@ -12,8 +12,11 @@
 #     timing/jobs.csv, timing/plan-job.csv, timing/merge-job.csv,
 #     timing/rng-fingerprint.txt, and timing/sessionInfo-<chunk>.txt
 #     (finalize-results.R), or anything under logs/ (the workflow's copy of
-#     the logs). Both routes run this check after the study's summary and
-#     before finalize-results.R (the workflow's merge job and
+#     the logs). Names are compared without regard to case (Preflight.csv
+#     and LOGS/ are refused too), and anything under timing/ spelled in
+#     another case (Timing/) is refused (h_taken() in harness-lib.R). Both
+#     routes run this check after the study's summary and before
+#     finalize-results.R (the workflow's merge job and
 #     tools/sim/run-local.R), so such a file can only be one that the
 #     study's summarize() wrote into SOLOMONR_SIM_OUT itself;
 #   - for a protocol, a gate or test run may hold only agreement.csv,
@@ -59,13 +62,12 @@ if (identical(info[["design"]], "gate") && !file.exists(file.path(dir, "timing",
   h_fail("timing/gate-projection.csv is missing.")
 }
 present <- list.files(dir, recursive = TRUE, all.files = TRUE, no.. = TRUE, include.dirs = TRUE)
-# The names finalize-results.R and the workflow write after this check.
-later <- c("manifest.csv", "completeness.csv", "software.csv", "replay.csv", "preflight.csv",
-           "timing/jobs.csv", "timing/plan-job.csv", "timing/merge-job.csv", "timing/rng-fingerprint.txt")
-taken <- present[present %in% later | grepl("^timing/sessionInfo-[0-9]{4}[.]txt$", present) |
-                   grepl("^logs(/|$)", present)]
+# The names finalize-results.R and the workflow write after this check, in
+# any case (h_taken() in harness-lib.R).
+taken <- h_taken(present)
 if (length(taken)) {
-  h_fail("The results hold files under names that the harness writes after this check, so the study wrote them: ",
+  h_fail("The results hold files under names that the harness writes after this check (in any case), ",
+         "so the study wrote them: ",
          paste(head(taken, 10), collapse = ", "), ".")
 }
 if (protocol && purpose != "study") {

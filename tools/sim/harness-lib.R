@@ -26,6 +26,22 @@ h_whole <- function(x, lowest = 1L) {
   if (is.na(v) || v < lowest) NA_integer_ else v
 }
 
+# The names that finalize-results.R writes into a results folder after the
+# study's summary (and timing/sessionInfo-NNNN.txt, one for each chunk), and
+# logs/, which the workflow fills after it. h_taken() gives the entries of a
+# results folder (paths relative to it, as list.files() gives them) that
+# take one of these names in any case, that lie under logs/ in any case, or
+# that lie under timing/ spelled in another case: a file system that ignores
+# case (Windows', macOS') makes Preflight.csv the harness's preflight.csv,
+# and on one that does not, the results would hold both.
+h_later_names <- c("manifest.csv", "completeness.csv", "software.csv", "replay.csv", "preflight.csv",
+                   "timing/jobs.csv", "timing/plan-job.csv", "timing/merge-job.csv", "timing/rng-fingerprint.txt")
+h_taken <- function(entries) {
+  low <- tolower(entries)
+  entries[low %in% h_later_names | grepl("^timing/sessioninfo-[0-9]{4}[.]txt$", low) | grepl("^logs(/|$)", low) |
+            (grepl("^timing(/|$)", low) & !grepl("^timing(/|$)", entries))]
+}
+
 h_args <- function(n, usage) {
   args <- commandArgs(trailingOnly = TRUE)
   if (length(args) < n) h_fail("Usage: ", usage)

@@ -22,8 +22,8 @@ package or of the validation-scripts check.
 | `job-info.R` | The machine of a job (a chunk, the plan, or the merge): runner image, CPUs, processor, memory, attempt, local resumptions |
 | `merge-chunks.R` | The checks before any summary; manifest, completeness, replay list |
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
-| `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in every run, no file under a name the harness writes after it; in a protocol's gate or test, only agreement, run information, `summary.rds`, and timing (by name; contents are not inspected) |
-| `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder; refuses a file under one of their names, and a `logs/` folder, that is already there |
+| `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in every run, no file under a name the harness writes after it, in any case; in a protocol's gate or test, only agreement, run information, `summary.rds`, and timing (by name; contents are not inspected) |
+| `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder; refuses a file under one of their names, and a `logs/` folder, that is already there, in any case |
 | `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path; a format other than .csv, .txt, .json, and .rds; a text file with a NUL byte, a UTF-16 byte-order mark, a gzip or zlib header at its start, or bytes that are not valid UTF-8; an object it cannot walk) |
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
@@ -249,7 +249,7 @@ Rscript tools/sim/tests/run-tests.R --only merge --run <folder of a finished run
 Each case builds its input in a temporary folder (`--work` names another)
 and runs one check in a new R process: the MCSE, decision, and file-name
 rules of `check-results.R`, including the names the harness writes after
-it; 57 folders that `scan-addresses.R` must refuse, built around a
+it, in any case; 57 folders that `scan-addresses.R` must refuse, built around a
 placeholder address at example.org that is assembled at run time (11 of
 them by a named rule: a NUL byte, a gzip or zlib header, or bytes that are
 not valid UTF-8, among them compressed text without a NUL byte), and 9 it
@@ -326,11 +326,16 @@ In the study's own pull request, before its run (the order rule of #117):
    (`manifest.csv`, `completeness.csv`, `software.csv`, `replay.csv`,
    `preflight.csv`, `timing/jobs.csv`, `timing/plan-job.csv`,
    `timing/merge-job.csv`, `timing/rng-fingerprint.txt`,
-   `timing/sessionInfo-<chunk>.txt`, and anything under `logs/`): only a
-   `summarize()` that writes into `SOLOMONR_SIM_OUT` itself can have put
-   it there, since both routes run the check after the summary and before
-   `finalize-results.R`. That script also refuses a file under a name it
-   writes, even one it has nothing to put in, and any `logs/`. These checks
+   `timing/sessionInfo-<chunk>.txt`, and anything under `logs/`), compared
+   without regard to case, and anything under `timing/` spelled in another
+   case (`Timing/`): a file system that ignores case, as Windows' and
+   macOS' do, makes `Preflight.csv` the harness's `preflight.csv`, and on
+   one that does not, the results would hold both. Only a `summarize()`
+   that writes into `SOLOMONR_SIM_OUT` itself can have put such a file
+   there, since both routes run the check after the summary and before
+   `finalize-results.R`. That script refuses the same names, in the same
+   way, before it writes anything, even a name it has nothing to put in
+   (`preflight.csv` of a study without checks). These checks
    read names only, not contents: a performance measure, decision, or
    failure count returned as a column of `agreement`, an item of
    `run-information`, or a `timing/` element, or written as a file under
