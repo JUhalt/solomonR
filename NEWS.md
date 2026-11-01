@@ -5,25 +5,32 @@
 * `fit_solomon_glm()`, with one treatment or several, left some forms of
   `covariates` out of the model without an error or a warning, so its
   results were those of a fit without them. The help named two forms, a
-  data frame and, with `data`, the names of its columns. These forms were
-  left out:
+  data frame and, with `data`, the names of its columns. Before this
+  change:
 
-  - without `data`, a vector, a matrix, or an array;
-  - with `data`, a matrix, such as `cbind(age, w)`, and a vector given as
-    an expression, such as `age / 10` or `d$age`.
+  - Without `data`, a vector, a matrix, or an array was left out.
+  - With `data`, a vector given by its bare name (`covariates = w`) was
+    used, whether or not it was a column of `data`, but a date-time of
+    class `POSIXlt` and an array given by their bare names were left out.
+  - With `data`, a matrix, such as `cbind(age, w)`, and a vector given as
+    an expression, such as `age / 10` or `d$age`, were left out.
+  - A vector or a one-dimensional array with names, such as participant
+    ids or the clusters that name the values of
+    `tapply(age, cluster, mean)[cluster]`, stopped instead with an
+    unclear error, such as "object 'id1' not found", because its names
+    entered the model formula. With `data`, a vector with names given by
+    its bare name was used.
+  - A value of the wrong length stopped, as it still does.
+* In `fit_solomon_glm()` and `check_solomon_missing()`, every form is now
+  used or stops with an error:
 
-  With `data`, a vector given by its bare name (`covariates = w`) was
-  used, whether or not it was a column of `data`. A value of the wrong
-  length stopped, as it still does.
-* In `fit_solomon_glm()` and `check_solomon_missing()`, every form now
-  enters the model or stops with an error:
-
-  - A numeric, logical, or factor vector is one covariate. It is named by
-    the variable when given by its bare name (`covariates = age`), as with
-    `data` before, and `covariate` otherwise. A one-dimensional array
-    without a class, such as `tapply(age, cluster, mean)[cluster]` gives,
-    is taken as a vector. One with a class, such as a table, stops with
-    the advice to give `c(covariates)`.
+  - A numeric, logical, or factor vector is one covariate, with names or
+    without. It is named by the variable when given by its bare name
+    (`covariates = age`), as with `data` before, and `covariate`
+    otherwise. A one-dimensional array without a class, such as
+    `tapply(age, cluster, mean)[cluster]` gives, is taken as a vector.
+    One with a class, such as a table, stops with the advice to give
+    `c(covariates)`.
   - A numeric or logical matrix is one covariate per column, named by its
     column names, with `covariate1`, `covariate2`, ... by position for
     columns without one. `cbind()` turns a factor into its integer codes,
@@ -41,18 +48,25 @@
   - When `covariates` alone has the wrong length, the error now says that
     it takes one value or one row per participant.
 * With `data`, names in `covariates` that are not columns of `data` stop
-  with an error that lists them. Before, the error was "Inputs must have
-  the same length", which did not say why. A name given twice stops too;
-  before, `fit_solomon_glm()` stopped because the two copies were
-  collinear, and `check_solomon_missing()` gave no gap.
+  with an error that lists them. Before, such names stopped with "Inputs
+  must have the same length", which did not say why. A character vector
+  with one value per participant, given as an expression, such as
+  `ifelse(age > 40, "old", "young")`, was left out instead; it now stops
+  with that error, which says that a categorical covariate goes in as a
+  factor. A name given twice stops too; before, `fit_solomon_glm()`
+  stopped because the two copies were collinear, and
+  `check_solomon_missing()` gave no gap.
 * **Forms that gave a fit before and now stop.** With `data`, a vector
   from outside `data` given by its bare name is now used only when it is
   numeric, logical, or a factor, as without `data`. Before, it entered
-  the model as it was, whatever its type. A character vector, which was a
-  categorical covariate, is now read as names of columns, so it stops with
-  the error above. A date (`Date`) or a time difference (`difftime`) stops
-  too. Give either as a column of a data frame, or of `data`: a column of
-  `data` given by its bare name is used as before, whatever its type.
+  the model as it was, whatever its type, but for a `POSIXlt` date-time,
+  which was left out. A character vector, which was a categorical
+  covariate, is now read as names of columns, so it stops with the error
+  above. A date (`Date`) or a time difference (`difftime`) stops too.
+  Give either as a column of a data frame, or of `data`: a column of
+  `data` given by its bare name is used whatever its atomic type. A
+  vector column was used before; a one-dimensional array without a class
+  and a `POSIXlt` date-time, which were left out, are now used too.
 * **Data frames whose columns lack names of their own now stop.** Before:
 
   - with two columns of the same name, `fit_solomon_glm()` used only the
