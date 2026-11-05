@@ -437,9 +437,10 @@ test_that("the reports of fit_solomon_sem() name the software and the estimator"
       not_lavaan$fit <- fit$fitmeasures
       for (stripped in list(no_fit, not_lavaan)) {
         expect_error(report_solomon(stripped), paste(
-          "report_solomon() reads the lavaan version and the estimator from the lavaan model",
-          "that fit_solomon_sem() stores in `fit`, and this result does not hold it; fit the",
-          "model again with fit_solomon_sem()."
+          "report_solomon() needs the lavaan model that fit_solomon_sem() stores in `fit`:",
+          "it reads the lavaan version and the degrees of freedom from it and checks the",
+          "estimator against it. This result does not hold that model; fit it again with",
+          "fit_solomon_sem()."
         ), fixed = TRUE, info = info)
         expect_identical(utils::capture.output(print(stripped)), utils::capture.output(print(fit)),
                          info = info)

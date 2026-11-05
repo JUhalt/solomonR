@@ -1022,17 +1022,20 @@
 .report_sem <- function(fit, digits, md) {
   .stop_former_sem_labels(fit$effects, "fit_solomon_sem")
   .need_lavaan()
-  # The software and the estimator, as in the latent reports (issue #133),
-  # read from the lavaan object. It is taken with [[, because in a result
-  # without it `fit$fit` matches `fitmeasures` partially; such a result is
-  # refused rather than described without the version and the check of the
-  # estimator.
+  # The software and the estimator, as in the latent reports (issue #133).
+  # The version and the degrees of freedom are read from the lavaan model,
+  # and the estimator is checked against it. The model is taken with [[,
+  # because in a result without it `fit$fit` matches `fitmeasures`
+  # partially. Such a result is refused, not described from the stored
+  # name, because without the model the report cannot tell whether the
+  # test is scaled.
   fp <- fit[["fit"]]
   if (!inherits(fp, "lavaan")) {
     stop(paste(
-      "report_solomon() reads the lavaan version and the estimator from the lavaan model",
-      "that fit_solomon_sem() stores in `fit`, and this result does not hold it; fit the",
-      "model again with fit_solomon_sem()."
+      "report_solomon() needs the lavaan model that fit_solomon_sem() stores in `fit`:",
+      "it reads the lavaan version and the degrees of freedom from it and checks the",
+      "estimator against it. This result does not hold that model; fit it again with",
+      "fit_solomon_sem()."
     ), call. = FALSE)
   }
   est <- .sem_estimator(fit$estimator, fp)
@@ -2256,8 +2259,9 @@
 #' criterion. The reports of these functions and of [fit_solomon_sem()]
 #' name the lavaan version and the estimator, MLR or ML, the two that the
 #' functions accept; a fit with any other estimator, which an earlier
-#' version could make, is refused. They read both from the lavaan models
-#' that the result stores, so a result without them cannot be reported.
+#' version could make, is refused. They read the version from the lavaan
+#' models that the result stores and check the estimator against them, so
+#' a result without those models cannot be reported.
 #'
 #' **Nonrandomized designs.** With `design$assignment = "nonrandom"`, the
 #' results describe differences between groups rather than treatment
