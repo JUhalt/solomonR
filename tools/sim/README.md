@@ -250,14 +250,16 @@ Rscript tools/sim/tests/run-tests.R --only merge --run <folder of a finished run
 Each case builds its input in a temporary folder (`--work` names another)
 and runs one check in a new R process: the MCSE, decision, and file-name
 rules of `check-results.R`, including the names the harness writes after
-it, in any case; 59 folders that `scan-addresses.R` must refuse, built around a
-placeholder address at example.org that is assembled at run time (14 of
+it, in any case; 60 folders that `scan-addresses.R` must refuse, built around a
+placeholder address at example.org that is assembled at run time (15 of
 them by a named rule: a NUL byte, a gzip or zlib header, or bytes that are
-not valid UTF-8, among them compressed text without a NUL byte), and 11 it
-must pass (among them UTF-8 text with the characters the package prints, a
-UTF-8 byte-order mark, empty files, text that starts with `x` but not with
-a zlib header, and text that starts with a zlib header the scan does not
-refuse); the job sizes and the number
+not valid UTF-8, among them compressed text without a NUL byte and a zlib
+stream of stored blocks under 78 01), 11 it must pass (among them UTF-8
+text with the characters the package prints, a UTF-8 byte-order mark,
+empty files, text that starts with `x` but not with a zlib header, and
+text that starts with a zlib header the scan does not refuse), and one
+case of the limit stated under "Safety" (the same stored blocks under
+48 4b, `HK`, pass); the job sizes and the number
 formats of `assign-chunks.R`; the workflow's "Check the inputs" step, run
 with bash (`--bash <path>` if bash is not on the PATH); the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and

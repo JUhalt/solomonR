@@ -21,14 +21,17 @@
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
 #            every "c-" folder pass, and no promise may be evaluated.
-#            Fourteen "f-" folders must fail by a named rule (a NUL byte, a
+#            Fifteen "f-" folders must fail by a named rule (a NUL byte, a
 #            gzip or zlib header, bytes that are not valid UTF-8), among
-#            them compressed text without a NUL byte and valid UTF-8 text
-#            that starts with a zlib header; the "c-" folders include UTF-8
-#            text with the characters the package prints, a UTF-8
-#            byte-order mark, empty files, text that starts with "x" but
-#            not with a zlib header, and text that starts with a zlib
-#            header that the scan does not refuse ("HK", "(S", "x ").
+#            them compressed text without a NUL byte, valid UTF-8 text
+#            that starts with a zlib header, and a zlib stream of stored
+#            blocks under 78 01; the "c-" folders include UTF-8 text with
+#            the characters the package prints, a UTF-8 byte-order mark,
+#            empty files, text that starts with "x" but not with a zlib
+#            header, and text that starts with a zlib header that the scan
+#            does not refuse ("HK", "(S", "x "). One case records the limit
+#            that the README states: the same stored blocks under 48 4b
+#            ("HK") pass.
 #   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
 #            protocol flag; refused if absent, below 1, or not a number,
 #            or if given as a fifth argument), the 2- and 4-hour limits, a
@@ -437,6 +440,32 @@ if ("scan" %in% groups) {
   writeBin(c(as.raw(c(0x78, 0xda, 0xbf)), charToRaw(" clean text\n")), file.path(case("f-58-zlib-header-78-da-x-u06bf"), "a.txt"))
   writeBin(c(as.raw(c(0xef, 0xbb, 0xbf, 0x78, 0xda, 0x80)), charToRaw(" clean text\n")),
            file.path(case("f-59-utf8-bom-then-x-u0680"), "a.csv"))
+  # A zlib stream of two stored deflate blocks that split the address at
+  # its "@" (review round 2): LEN 30 41 and NLEN cf be are valid UTF-8,
+  # and k is the first number that makes every byte of the Adler-32 one of
+  # 01 to 7f, so the stream is valid UTF-8 without a NUL byte. Under the
+  # header 78 01 (f-60) the zlib rule must refuse it; under 48 4b ("HK", a
+  # 4 KB window) it passes, the limit that the README's Safety section
+  # states (the "limit:" case below).
+  stored <- function(hdr) {
+    n <- 0x4130
+    at <- regexpr("@", A, fixed = TRUE)
+    for (k in 0:5000) {
+      p1 <- paste("note", k, "contact", substr(A, 1L, at - 1L))
+      d1 <- charToRaw(paste0(strrep(" ", n - nchar(p1)), p1))
+      p2 <- paste(substr(A, at, nchar(A)), "end")
+      d2 <- charToRaw(paste0(p2, strrep(" ", n - nchar(p2))))
+      v <- as.numeric(c(d1, d2))
+      a1 <- (1 + sum(v)) %% 65521
+      a2 <- (length(v) + sum(rev(seq_along(v)) * v)) %% 65521
+      ad <- c(a2 %/% 256, a2 %% 256, a1 %/% 256, a1 %% 256)
+      if (all(ad >= 1 & ad <= 127)) break
+    }
+    blk <- as.raw(c(0x30, 0x41, 0xcf, 0xbe))
+    c(as.raw(hdr), as.raw(0x20), blk, d1, as.raw(0x21), blk, d2, as.raw(ad))
+  }
+  zs <- list(`78 01` = stored(c(0x78, 0x01)), `48 4b` = stored(c(0x48, 0x4b)))
+  writeBin(zs[["78 01"]], file.path(case("f-60-stored-zlib-blocks-78-01"), "a.txt"))
   # The rule each of these must fail by (a part of its message); the other
   # "f-" folders need only fail.
   scan_rule <- c(`f-15-nul-byte` = "holds a NUL byte", `f-38-nul-byte-in-zlib-text` = "holds a NUL byte",
@@ -450,7 +479,8 @@ if ("scan" %in% groups) {
                  `f-55-not-utf8-latin1` = "is not valid UTF-8", `f-56-not-utf8-surrogate` = "is not valid UTF-8",
                  `f-57-not-utf8-overlong` = "is not valid UTF-8",
                  `f-58-zlib-header-78-da-x-u06bf` = "starts with a zlib header (78 da)",
-                 `f-59-utf8-bom-then-x-u0680` = "starts with a zlib header (78 da)")
+                 `f-59-utf8-bom-then-x-u0680` = "starts with a zlib header (78 da)",
+                 `f-60-stored-zlib-blocks-78-01` = "starts with a zlib header (78 01)")
 
   # Each of these must pass.
   put(case("c-01-plain"), "a.txt", c("pkgload@1.5.3", "cran::MASS@7.3-66", "x86_64-pc-linux-gnu",
@@ -517,7 +547,22 @@ if ("scan" %in% groups) {
   r <- run_r("scan-addresses.R", c(file.path(root, "c-01-plain"), file.path(root, "no-such-file.txt")))
   record("scan", "a clean folder and a missing file", "fail", if (r$status == 0L) "pass" else "fail")
   record("scan", "no promise evaluated by any scan", "no", if (file.exists(marker)) "yes" else "no")
-  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule, nxt, fn)
+  # The stored-block streams are what they are meant to be: valid UTF-8,
+  # no NUL byte, and memDecompress() gives text with the address.
+  built <- vapply(zs, function(b) {
+    txt <- tryCatch(rawToChar(memDecompress(b, type = "gzip")), error = function(e) "")
+    validUTF8(rawToChar(b)) && !any(b == as.raw(0L)) && grepl(A, txt, fixed = TRUE)
+  }, TRUE)
+  record("scan", "stored zlib blocks: valid UTF-8, no NUL, inflated address", "yes", if (all(built)) "yes" else "no")
+  # The limit (README, Safety): under 48 4b the scan does not refuse the
+  # stream. If it starts to, this case fails, and the README and the
+  # scanner's header must say so.
+  d <- file.path(work, "scan-limit", "zlib-48-4b")
+  dir.create(d, recursive = TRUE)
+  writeBin(zs[["48 4b"]], file.path(d, "a.txt"))
+  r <- run_r("scan-addresses.R", d)
+  record("scan", "limit: stored zlib blocks under 48 4b pass", "pass", if (r$status == 0L) "pass" else "fail")
+  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule, nxt, fn, stored, zs, built)
 }
 
 # ---- sizing: assign-chunks.R -------------------------------------------------
