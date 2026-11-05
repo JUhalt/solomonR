@@ -400,13 +400,15 @@ In the study's own pull request, before its run (the order rule of #117):
   another way (base64, for one) are not detected when their bytes stay
   valid UTF-8 and hold no NUL byte, as a stream of stored deflate blocks
   can, with an address split between two blocks. The other zlib headers
-  are not refused because many of them start ordinary text (such as `HK`,
-  `(S`, or `X` and a tab), and raw deflate has no header. In an `.rds`
-  the strings and raw vectors are scanned as they are stored, so
-  compressed bytes there, in a raw vector or in a string, are not
-  detected either. A chunk job first stops every R process left
-  from its tasks step (after a timeout, a PSOCK worker could otherwise
-  write a task file after the scan).
+  are not refused because many of them can start ordinary text: of the 28
+  others without a preset dictionary, 21 can start valid UTF-8 text, 14
+  of them as two ASCII characters (such as `HK`, `(S`, or `X` and a tab);
+  the UTF-8 rule refuses the other 7. Raw deflate has no header at all.
+  In an `.rds` the strings and raw vectors are scanned as they are
+  stored, so compressed bytes there, in a raw vector or in a string, are
+  not detected either. A chunk job first stops every R process left from
+  its tasks step (after a timeout, a PSOCK worker could otherwise write a
+  task file after the scan).
 - Every job installs its R library afresh from the dated snapshot (pak
   included): no Actions cache, which any workflow on the branch can write
   and to which pak only adds; no Bioconductor repository

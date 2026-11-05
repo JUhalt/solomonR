@@ -34,10 +34,13 @@
 #     detected when their bytes stay valid UTF-8 and hold no NUL byte, as
 #     a stream of stored deflate blocks can, with an address split between
 #     two blocks. The 28 other zlib headers without a preset dictionary are
-#     not refused: that would refuse text that starts with one of 14 pairs
-#     of ASCII characters (such as "HK", "(S", and "X" and a tab) or with
-#     one of 7 ASCII characters and a character of a range (such as "(" and
-#     a Greek letter from U+03C0 to U+03FF), and raw deflate has no header;
+#     not in the zlib rule: with them, it would refuse text that starts
+#     with one of 14 pairs of ASCII characters (such as "HK", "(S", and "X"
+#     and a tab) or with one of 7 ASCII characters followed by a character
+#     from a range of 64 (such as "(" and a Greek letter from U+03C0 to
+#     U+03FF). The other 7 cannot start valid UTF-8 text, so the UTF-8
+#     rule refuses a file that starts with one of them. Raw deflate has no
+#     header at all;
 #   - an .rds file is read with readRDS(), and every character string in the
 #     object is scanned: values, factor levels, every attribute of every
 #     type (names included), raw vectors as text, the deparsed code of
