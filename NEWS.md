@@ -41,7 +41,10 @@
     two calls give the same coefficients. The model data hold the matrix
     when it is given by its name, and its columns when it is given by its
     bare name, so with several columns the printed formulas differ.
-    `cbind()` turns a factor into its integer codes,
+    `check_solomon_missing()` still shows a matrix column of several
+    columns, given by its name, as one table that pools its columns, as
+    before (see its help); by its bare name, it shows one table per
+    column. `cbind()` turns a factor into its integer codes,
     and with a character vector makes every column character, which
     stops, so such covariates go in a data frame, such as
     `data.frame(age, region)`.

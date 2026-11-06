@@ -357,11 +357,26 @@ test_that("with data, a matrix column is named as by its name, by its bare name 
                check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "age_z",
                                      data = d))
   # By its bare name, each column of `two` has its own table.
+  two_bare <- missing_bare("two")
   expect_identical(
-    missing_bare("two"),
+    two_bare,
     check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
                           covariates = data.frame(two1 = d$age, two2 = d$z))
   )
+  # By its name, or in a data frame, `two` is one table that pools its
+  # columns, counting each participant once per column, as the help says
+  # and as before this change.
+  two_by_name <- check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "two",
+                                       data = d)
+  expect_identical(names(two_by_name$covariates), "two")
+  expect_identical(
+    two_by_name,
+    check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre, covariates = d["two"])
+  )
+  expect_identical(two_by_name$covariates$two$n_with,
+                   two_bare$covariates$two1$n_with + two_bare$covariates$two2$n_with)
+  expect_identical(two_by_name$covariates$two$n_without,
+                   two_bare$covariates$two1$n_without + two_bare$covariates$two2$n_without)
   for (name in c("age_z", "two")) {
     bare <- by_bare_name(name, d)
     by_name <- fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = name, data = d)

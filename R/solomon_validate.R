@@ -290,11 +290,17 @@
 #'   gender, in the forms that [fit_solomon_glm()] takes: a data frame; a
 #'   numeric, logical, or factor vector; a numeric or logical matrix; or,
 #'   with `data`, the names of its columns or one column by its bare name.
-#'   They are named, and other forms stop with an error, as there. With
-#'   numeric `y_pre`, they enter the fit behind the gap and the delta line,
-#'   so a covariate named as a column of that model, such as `y`, stops
-#'   with the error that [fit_solomon_glm()] gives. Loss is shown by each of
-#'   them (see "Missing posttests and the pretest effects").
+#'   They are named, and other forms stop with an error, as there, with one
+#'   exception. A matrix column of several columns, such as
+#'   `d$two <- cbind(d$age, d$z)` makes, given by its name or in a data
+#'   frame, is shown as one table, `two`. That table pools the columns, so
+#'   each participant is counted once per column. Given by its bare name,
+#'   such a column is shown by one table per column, named as in the fit
+#'   (`two1`, `two2`). With numeric `y_pre`, the covariates enter the fit
+#'   behind the gap and the delta line, so a covariate named as a column of
+#'   that model, such as `y`, stops with the error that [fit_solomon_glm()]
+#'   gives. Loss is shown by each of them (see "Missing posttests and the
+#'   pretest effects").
 #' @return An object of class `solomon_missing`, a list with:
 #'   - `by_cell`: the counts in each Solomon cell, in the columns `group`,
 #'     `cell`, `pretested`, `treat`, `n`, `posttest_missing`,
