@@ -192,12 +192,14 @@ reasons are set out in the decision record posted on #135.
 ## Validation scripts outside a git clone (bug fix, #152)
 
 * Ten validation scripts stopped at the end of a run, before writing
-  `run-information.csv`, when they ran outside any git repository, as in
-  a copy downloaded with GitHub's "Download ZIP" and unpacked outside
-  one: the scripts of the binary, historical-test, cluster-marginal,
-  cluster, count, negative-binomial, invariance, multiple-imputation,
-  repeated-measures, and several-treatment studies. They took the commit
-  from `git rev-parse HEAD`. Outside a repository, git fails, and R's
+  their run-information file, when they ran outside any git repository,
+  as in a copy downloaded with GitHub's "Download ZIP" and unpacked
+  outside one: the scripts of the binary, historical-test,
+  cluster-marginal, cluster, count, negative-binomial, invariance,
+  multiple-imputation, repeated-measures, and several-treatment studies.
+  The file is `run-information.csv`, or `nb-run-information.csv` for the
+  negative-binomial study. The scripts took the commit from
+  `git rev-parse HEAD`. Outside a repository, git fails, and R's
   `system()` returns an empty character vector, `character(0)`, with a
   warning that the scripts' `tryCatch()` did not catch, so there was no
   commit to record, not even `NA`. In such a copy,
