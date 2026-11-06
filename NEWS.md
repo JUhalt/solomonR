@@ -220,8 +220,9 @@ reasons are set out in the decision record posted on #135.
   description of the changes, as the stored runs of the ML and power
   studies did. Without it, these three scripts recorded `NA` for such a
   run, and now record the commit checked out. The Validation Evidence
-  page states the rule and says how to record the commit of a downloaded
-  copy. The stored results do not change.
+  page states the rule, says how to record the commit of a downloaded
+  copy, and says under "Adding a study" how a new study's script takes
+  up the rule. The stored results do not change.
 * The several-treatment script, rerun where the old script stopped
   outside any git repository, resumes from the checkpoints that it left,
   whose commit is empty, and records `NA` as the commit of their

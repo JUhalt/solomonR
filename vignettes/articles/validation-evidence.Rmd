@@ -613,8 +613,16 @@ A new study joins this page by:
 
 1. posting its protocol to a GitHub issue before running;
 2. committing its script, `performance.csv`, and `run-information.csv` in a
-   folder under `vignettes/articles/`;
-3. adding a section for it to `validation-evidence/build-benchmarks.R`.
+   folder under `vignettes/articles/` whose name ends in `-validation`;
+3. adding a section for it to `validation-evidence/build-benchmarks.R`;
+4. if its script records a commit, copying the `validation_commit()` block
+   of an existing study's script into it unchanged, calling it with the
+   folder that the script passes to `pkgload::load_all()`, and linking
+   [Rerunning a study](#rerunning-a-study) from the study's article, named
+   after its folder (`binary-validation.Rmd` for `binary-validation/`).
+
+`tests/testthat/test-validation-commit.R` checks step 4 for every script
+with the block in a folder whose name ends in `-validation`.
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.
