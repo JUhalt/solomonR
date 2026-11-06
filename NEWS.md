@@ -389,6 +389,62 @@ reasons are set out in the decision record posted on #135.
 * `tools/pretest-center-check.R` reruns the record's checks with both
   centers, from one build of the package.
 
+## Validation scripts outside a git clone (bug fix, #152)
+
+* Ten validation scripts stopped at the end of a run, before writing
+  their run-information file, when they ran outside any git repository,
+  as in a copy downloaded with GitHub's "Download ZIP" and unpacked
+  outside one: the scripts of the binary, historical-test,
+  cluster-marginal, cluster, count, negative-binomial, invariance,
+  multiple-imputation, repeated-measures, and several-treatment studies.
+  The file is `run-information.csv`, or `nb-run-information.csv` for the
+  negative-binomial study. The scripts took the commit from
+  `git rev-parse HEAD`. Outside a repository, git fails, and R's
+  `system()` returns an empty character vector, `character(0)`, with a
+  warning that the scripts' `tryCatch()` did not catch, so there was no
+  commit to record, not even `NA`. In such a copy,
+  `tools/check-validation-scripts.R` failed these ten and the two scripts
+  that depend on them, 12 of the 16. In a copy unpacked inside another
+  git repository, git finds that repository, and the ten recorded its
+  commit.
+* Every validation script that records a commit now takes it by one rule:
+  the environment variable `SOLOMONR_COMMIT` when it is set and not empty;
+  otherwise the commit checked out, when git is on the PATH, the copy is
+  the top level of a git repository, git agrees to read that repository,
+  and its `DESCRIPTION` names solomonR; otherwise `NA`. A run from a clone
+  that git refuses to read, as by default it refuses one owned by another
+  user unless git's `safe.directory` setting lists it, records `NA`; the
+  scripts leave that setting as it is. The copy is the package that the
+  script loads, found as `pkgload::load_all()` finds it, and git looks for
+  the repository from the copy alone, whatever `GIT_DIR` and
+  `GIT_WORK_TREE` say. The scripts of the ML, power, and plan
+  re-simulation studies, which read only `SOLOMONR_COMMIT`, now also
+  record the commit of a clone. The rule does not detect uncommitted
+  changes: a run from a clone with changes records the commit checked out,
+  which does not contain them. Such a run should set `SOLOMONR_COMMIT` to
+  the commit and a description of the changes, as the stored runs of the
+  ML and power studies did. Without it, these three scripts recorded `NA`
+  for such a run, and now record the commit checked out. The Validation
+  Evidence page states the rule, says where the commit of a downloaded
+  copy is stored and how to record it, and says under "Adding a study" how
+  a new study's script takes up the rule. The stored results do not
+  change.
+* The several-treatment script, rerun where the old script stopped
+  outside any git repository, resumes from the checkpoints that it left,
+  whose commit is empty, and records `NA` as the commit of their
+  replications.
+* A new test checks that the scripts share one definition of the rule and
+  pass it the folder of the package that they load. It checks the rule
+  with `SOLOMONR_COMMIT` set; in a clone, also from a folder below its
+  root and with uncommitted changes; outside any repository; inside an
+  unrelated repository; in a repository without commits; in a clone that
+  git refuses to read; and with `GIT_DIR` or `GIT_WORK_TREE` pointing at
+  another repository. It also checks that the messages that git prints are
+  discarded, that a ZIP or tar file made by `git archive` stores its
+  commit where the page says, and that every study whose script has the
+  definition, including one added later, has an article, named after its
+  folder, that links the rule.
+
 ## Validation scripts that run against the current package (#140)
 
 * The simulation scripts behind the validation articles select the rows
