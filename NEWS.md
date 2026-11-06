@@ -38,13 +38,14 @@
 * **Reports.** `report_solomon()` describes MLR and ML fits only. With
   three indicators under GLS, WLS, ULS, or DLS, the method statement of an
   invariance report had lost its sentence on the software and the
-  estimator, and under GLS, ULS, and DLS the fit sentences said that the
-  CFI and RMSEA came from the unscaled maximum likelihood chi-square; with
-  these estimators refused, neither can happen. A fit saved by an earlier
-  version with another estimator is refused, with a message to fit it
-  again. The report of `fit_solomon_sem()` now names the lavaan version and
-  the estimator, and cites Yuan and Bentler (2000) under MLR, as the latent
-  reports do; before, it gave an ML fit the same words as an MLR fit.
+  estimator. Under all four, the reports of `fit_solomon_sem_latent()` and
+  `invariance_solomon()` said that the CFI and RMSEA came from the
+  unscaled maximum likelihood chi-square. With these estimators refused,
+  neither can happen. A fit saved by an earlier version with another
+  estimator is refused, with a message to fit it again. The report of
+  `fit_solomon_sem()` now names the lavaan version and the estimator, and
+  cites Yuan and Bentler (2000) under MLR, as the latent reports do;
+  before, it gave an ML fit the same words as an MLR fit.
   `fit_solomon_sem()` stores the name in `estimator`; for a fit saved
   before, the report reads the estimator from lavaan's options. The report
   needs the lavaan model in `fit`, from which it reads the version and the
