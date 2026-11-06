@@ -100,9 +100,9 @@
 #     once: those columns, as before.
 #   - A numeric, logical, or factor vector: one covariate, named by `expr`
 #     when it is a bare name, and "covariate" otherwise. A one-dimensional
-#     array without a class, such as tapply(age, cluster, mean)[cluster]
-#     gives, is taken as a vector, here and above; data.frame() drops its
-#     dimension.
+#     array without a class, such as
+#     tapply(age, cluster, mean)[as.character(cluster)] gives, is taken as a
+#     vector, here and above; data.frame() drops its dimension.
 #   - A numeric or logical matrix: one covariate per column, named by the
 #     column names, with covariate1, covariate2, ... by position for
 #     columns without one. Duplicated names stop. A matrix column of `data`

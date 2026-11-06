@@ -42,7 +42,8 @@ participants and \code{NA} for the others}
 \item a numeric, logical, or factor vector, one covariate, named by the
 variable when given by its bare name (\code{covariates = age}), and
 \code{covariate} otherwise. A one-dimensional array without a class, such
-as \code{tapply(age, cluster, mean)[cluster]} gives, is taken as a vector;
+as \code{tapply(age, cluster, mean)[as.character(cluster)]} gives, is taken
+as a vector;
 \item a numeric or logical matrix, one covariate per column, named by its
 column names, with \code{covariate1}, \code{covariate2}, ... for columns
 without one. \code{cbind()} turns a factor into its integer codes, and

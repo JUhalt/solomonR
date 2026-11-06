@@ -125,10 +125,11 @@ test_that("a vector is one covariate, named by its bare name or `covariate`", {
 test_that("a one-dimensional array, as tapply() gives, is taken as a vector", {
 
   # The mean of z in each of 12 clusters, one value per participant: a
-  # numeric array of one dimension, named by the clusters.
+  # numeric array of one dimension, named by the clusters. It is indexed by
+  # the names of the clusters, as the help shows.
   d <- forms_data()
   d$cl <- rep(seq_len(12), length.out = nrow(d))
-  cl_mean <- tapply(d$z, d$cl, mean)[d$cl]
+  cl_mean <- tapply(d$z, d$cl, mean)[as.character(d$cl)]
   expect_identical(dim(cl_mean), nrow(d))
 
   ref <- fit4(d, data.frame(cl_mean = cl_mean))
@@ -137,8 +138,19 @@ test_that("a one-dimensional array, as tapply() gives, is taken as a vector", {
   expect_same_fit(fit4(d, data.frame(cl_mean = as.vector(cl_mean))), ref)
   expect_same_fit(
     fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre,
-                    covariates = tapply(d$z, d$cl, mean)[d$cl]),
+                    covariates = tapply(d$z, d$cl, mean)[as.character(d$cl)]),
     fit4(d, data.frame(covariate = as.vector(cl_mean)))
+  )
+  # Clusters numbered other than 1, 2, ..., such as school codes. Indexed by
+  # their names, the array holds each participant's cluster mean; indexed
+  # by the codes themselves, it would hold the means at those positions.
+  school <- rep(c(2, 3, 5), length.out = nrow(d))
+  school_mean <- tapply(d$z, school, mean)[as.character(school)]
+  expect_identical(dim(school_mean), nrow(d))
+  expect_equal(as.vector(school_mean), stats::ave(d$z, school))
+  expect_same_fit(
+    fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = school_mean),
+    fit4(d, data.frame(school_mean = as.vector(school_mean)))
   )
   flags <- array(d$flag)
   expect_same_fit(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = flags),
@@ -150,8 +162,8 @@ test_that("a one-dimensional array, as tapply() gives, is taken as a vector", {
   expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = cl_mean,
                                   data = d), ref)
   expect_same_fit(
-    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = tapply(z, cl, mean)[cl],
-                    data = d),
+    fit_solomon_glm(y_post, treat, pretested, y_pre,
+                    covariates = tapply(z, cl, mean)[as.character(cl)], data = d),
     fit4(d, data.frame(covariate = as.vector(cl_mean)))
   )
   d$cl_mean <- cl_mean
@@ -176,7 +188,7 @@ test_that("a one-dimensional array, as tapply() gives, is taken as a vector", {
   )
   m <- forms_six()
   m$cl <- rep(seq_len(15), length.out = nrow(m))
-  six_mean <- tapply(m$z, m$cl, mean)[m$cl]
+  six_mean <- tapply(m$z, m$cl, mean)[as.character(m$cl)]
   expect_same_fit(
     fit_solomon_glm(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
                     control = "Control", covariates = six_mean),

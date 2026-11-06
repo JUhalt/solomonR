@@ -16,10 +16,10 @@
     an expression, such as `age / 10` or `d$age`, were left out.
   - A vector or a one-dimensional array with names, such as participant
     ids or the clusters that name the values of
-    `tapply(age, cluster, mean)[cluster]`, stopped instead with an
-    unclear error, such as "object 'id1' not found", because its names
-    entered the model formula. With `data`, a vector with names given by
-    its bare name was used.
+    `tapply(age, cluster, mean)[as.character(cluster)]`, stopped instead
+    with an unclear error, such as "object 'id1' not found", because its
+    names entered the model formula. With `data`, a vector with names
+    given by its bare name was used.
   - A value of the wrong length stopped, as it still does.
 * In `fit_solomon_glm()` and `check_solomon_missing()`, every form is now
   used or stops with an error:
@@ -28,9 +28,9 @@
     without. It is named by the variable when given by its bare name
     (`covariates = age`), as with `data` before, and `covariate`
     otherwise. A one-dimensional array without a class, such as
-    `tapply(age, cluster, mean)[cluster]` gives, is taken as a vector.
-    One with a class, such as a table, stops with the advice to give
-    `c(covariates)`.
+    `tapply(age, cluster, mean)[as.character(cluster)]` gives, is taken
+    as a vector. One with a class, such as a table, stops with the advice
+    to give `c(covariates)`.
   - A numeric or logical matrix is one covariate per column, named by its
     column names, with `covariate1`, `covariate2`, ... by position for
     columns without one. With `data`, a matrix column given by its bare

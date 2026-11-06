@@ -1001,7 +1001,8 @@ stouffer_solomon <- function(p) {
 #'   - a numeric, logical, or factor vector, one covariate, named by the
 #'     variable when given by its bare name (`covariates = age`), and
 #'     `covariate` otherwise. A one-dimensional array without a class, such
-#'     as `tapply(age, cluster, mean)[cluster]` gives, is taken as a vector;
+#'     as `tapply(age, cluster, mean)[as.character(cluster)]` gives, is taken
+#'     as a vector;
 #'   - a numeric or logical matrix, one covariate per column, named by its
 #'     column names, with `covariate1`, `covariate2`, ... for columns
 #'     without one. `cbind()` turns a factor into its integer codes, and
