@@ -6,9 +6,13 @@
 # (study$files, whose SHA-256 the plan and every task record), and therefore
 # every random number a task draws. The harness
 # (.github/workflows/simulation-run.yaml and the other scripts in tools/sim,
-# which come from the workflow's own commit) passes no seed and draws no
-# random number: it only says which tasks a process runs and where the files
-# go, and it checks and merges what comes back.
+# which come from the workflow's own commit) passes no seed to the script,
+# and its assignment of tasks to jobs draws no random number: it only says
+# which tasks a process runs and where the files go, and it checks and
+# merges what comes back. The only random numbers it draws itself are those
+# of the planning job's fingerprint (tools/sim/rng-fingerprint.R, which
+# run-local.R runs too), from set.seed(116) in a process of its own that
+# runs no task.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does
@@ -80,8 +84,10 @@
 # Faults. A fit that fails is a result. Any other error in a replication
 # stops the task: the task id, the replication, and the message are written
 # to failed-tasks/<task id>.csv in the output folder, the job's other tasks
-# are skipped, and the stage fails. A code fault means a new commit, a new
-# plan, and an amendment, never a rerun of the same plan.
+# are skipped, and the stage fails. The job is then run again once, on a
+# new machine. A fault that recurs is a code fault, which needs a new
+# commit, a new plan, and an amendment; a fault that does not recur is
+# reported, and the rerun's task files are used.
 #
 # Reference:
 # L'Ecuyer, P., Simard, R., Chen, E. J., & Kelton, W. D. (2002). An
@@ -816,7 +822,9 @@ sim_run <- function(study, plan_dir, ids, out_dir, workers) {
       } else conditionMessage(e)
       writeLines(session, file.path(out_dir, "session-info.txt"), useBytes = TRUE)
       stop("Run stopped by a fault in ", what, ". The other tasks of this job were skipped; ",
-           "see failed-tasks/. A code fault needs a new commit and a new plan.", call. = FALSE)
+           "see failed-tasks/. Run the job again once, on a new machine. A fault that recurs ",
+           "is a code fault, which needs a new commit, a new plan, and an amendment; a fault ",
+           "that does not recur is reported, and the rerun's task files are used.", call. = FALSE)
     })
   times <- do.call(rbind, times)
   times <- times[order(times$task_id), , drop = FALSE]

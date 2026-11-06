@@ -167,11 +167,23 @@ every such field).
   including that the rerun reads the first attempt's plan artifact; "Re-run
   all jobs" makes a new plan and recomputes every chunk, and has not been
   tested. GitHub allows at most 50 reruns of a run, within 30 days.
-- A fault in the code (an error in a replication that is not a failed fit)
-  fails the chunk at once: the chunk's diagnostic artifact holds
+- A fault (an error in a replication that is not a failed fit) fails the
+  chunk at once: the chunk's diagnostic artifact holds
   `failed-tasks/<task id>.csv` with the replication and the message, and
-  the job's remaining tasks are skipped. It fails the same way on a rerun.
-  The remedy is a new commit, a new plan, and an amendment, never a rerun.
+  the job's remaining tasks are skipped. Download that artifact, then run
+  the job again once, on a new machine (`gh run rerun <run id> --failed`;
+  every job gets a new virtual machine). A fault that recurs is a code
+  fault: it needs a new commit, a new plan, and an amendment. A fault that
+  does not recur is reported with the results, and the rerun's task files
+  are used.
+- The merge job is not run again after one of its checks failed: the
+  completeness, envelope, shape, or software checks of `merge-chunks.R`,
+  or the replay check of `check-replay.R`. The failure is reported, and an
+  amendment says how the study continues (a replayed task that differs is
+  not run again to choose between two results). A summary that stops on a
+  fault in the study's code stops the same way on a rerun, since it runs
+  the same code on the same task files. A fix needs a new commit, and the
+  merge refuses task files of another commit.
 - Before the results of a gate or a study run are used, check where the
   run came from: `gh run view <run id> --repo JUhalt/solomonR --json
   event,headBranch,headSha,workflowName` must show
