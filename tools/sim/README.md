@@ -97,6 +97,17 @@ merge commit of the pull request into master (`refs/pull/<number>/merge`,
 on no branch), while `package_sha` is the pull request's head; on a gate
 or study run, both are commits on master.
 
+The contract reads the package commit with git only where the package copy
+is the top level of its git repository (`git rev-parse --show-toplevel` is
+the copy's folder), with `GIT_DIR` and `GIT_WORK_TREE` unset, as the
+validation scripts do (#152, #162). A copy unpacked inside another
+repository would otherwise record that repository's commit. Elsewhere a
+test run records `unknown`, or the commit given in
+`SOLOMONR_SIM_PACKAGE_SHA` without a check, and a gate or study plan stops:
+it needs git to find the checkout clean, and there a given commit must
+equal `HEAD`. Every job of the workflow checks out the package commit at
+the top level of its own repository.
+
 ## Running in the cloud
 
 The workflow must be on master before `workflow_dispatch` can start it; the
@@ -247,7 +258,8 @@ After a reboot, sleep, or crash, `--resume` keeps the plan and the finished
 chunks, runs only the tasks whose files are missing or unreadable, records
 the resumption in the chunk's `resumes.csv` (and in `run-information.csv`),
 and merges afresh; it refuses to continue if `software.csv` has changed. A
-gate or study run needs a clean checkout of a commit.
+gate or study run needs a clean checkout of a commit, at the top level of
+its git repository.
 
 A new run is of the study `--study` names (smoke without it). `--resume`
 and `--rerun-chunk` take the study from the run's `plan/plan-info.csv`
@@ -292,7 +304,8 @@ required commits, and, with git, the step "Check the package commit" on a
 repository made there; the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and
 `sim_verify_plan()` on the synthetic study `tests/synthetic-study.R`, which
-loads no package there (with git, also the clean-checkout rule); the
+loads no package there (with git, also the clean-checkout rule, and a
+copy inside another repository, whose commit is not read); the
 replay list of `merge-chunks.R` and the items and refusals of
 `finalize-results.R` on files made up there; `run-local.R` on the
 synthetic study, as a second study beside smoke, in a package folder made

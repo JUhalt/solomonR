@@ -73,8 +73,14 @@
 #            names that rule;
 #            sim_verify_plan() after a sourced file changed; and, with git,
 #            the clean-checkout rule and the plan options
-#            of a gate or study run; and the gate's seconds per unit of
-#            cost (sim_gate_default() on timings made up here).
+#            of a gate or study run, and the commit read only where the
+#            package copy is the top level of its repository (#162): HEAD
+#            there, and a given commit checked against it; for a copy
+#            inside another repository, "unknown" (or a given commit,
+#            unchecked) in a test plan, never the outer HEAD, and its gate
+#            and study plans refused; and GIT_DIR ignored; and the gate's
+#            seconds per unit of cost (sim_gate_default() on timings made
+#            up here).
 #   replay   merge-chunks.R's replay list (rules a to d) on task files made
 #            up here: 6 tasks in 1, 2, and 3 chunks, with costs such that
 #            rules c and d must fall back to the lowest- and highest-
@@ -916,7 +922,10 @@ if ("contract" %in% groups) local({
     normalizePath(d, winslash = "/")
   }
   # The study script in a new R process, from the package folder, with only
-  # the given settings; git finds no repository unless `git` is TRUE.
+  # the given settings. Unless `git` is TRUE, the folder is not the top
+  # level of a git repository, so the contract does not use git there, and
+  # GIT_DIR names a missing folder (the contract unsets GIT_DIR while git
+  # runs; a case below checks that).
   run_study <- function(d, set, git = FALSE) {
     if (!git) set <- c(set, GIT_DIR = file.path(work, "no-repository-here"))
     run_from(d, file.path(d, "study.R"), set = set)
@@ -1229,6 +1238,68 @@ if ("contract" %in% groups) local({
   cat("# changed, not committed\n", file = file.path(g, "lib", "helper.R"), append = TRUE)
   r <- gate("changed")
   record("contract", "gate plan: the sourced file changed, not committed", "refuse", outcome(r), last_line(r$out))
+
+  # The commit is read with git only where the package copy is the top
+  # level of its repository (#162), the rule of validation_commit() in the
+  # validation scripts (#152). The copy p-git is: its clean gate plan
+  # recorded its HEAD, and a commit given in SOLOMONR_SIM_PACKAGE_SHA must
+  # be that HEAD.
+  git_at <- function(dir, ...) {
+    out <- suppressWarnings(system2(git, c("-C", shQuote(dir), ...), stdout = TRUE, stderr = TRUE))
+    if (!is.null(attr(out, "status")) && attr(out, "status") != 0L) h_fail("git failed: ", paste(out, collapse = " "))
+    as.vector(out)
+  }
+  g_head <- git_at(g, "rev-parse", "HEAD")
+  info <- read_info(file.path(root, "git-plans", "clean"))
+  record("contract", "gate plan: a clean checkout records its HEAD, not dirty", "yes",
+         yes(identical(item(info, "package_sha"), g_head) && identical(item(info, "package_dirty"), "FALSE")),
+         item(info, "package_sha"))
+  r <- run_study(g, c(plan_vars(file.path(root, "git-plans", "test-other-commit")),
+                      SOLOMONR_SIM_PACKAGE_SHA = strrep("a", 40)), git = TRUE)
+  record("contract", "test plan: a given commit that is not HEAD", "refuse",
+         refusal(r, "SOLOMONR_SIM_PACKAGE_SHA is "), last_line(r$out))
+  # A copy inside another repository and committed there, clean: git run
+  # from the copy finds the outer repository, whose HEAD and status are not
+  # the copy's. Its test plan records "unknown" and dirty NA, not the outer
+  # HEAD; its gate and study plans are refused, even with the outer HEAD
+  # given as the commit, which cannot be checked there.
+  inner <- pkg(file.path("outer", "p-inner"))
+  outer <- dirname(inner)
+  git_at(outer, "init", "-q")
+  git_at(outer, "add", ".")
+  git_at(outer, "-c", "user.name=harness-test", "-c", "user.email=harness-test", "commit", "-q", "-m",
+         shQuote("a package copy below the top level"))
+  outer_head <- git_at(outer, "rev-parse", "HEAD")
+  record("contract", "inner copy: git there reads the outer HEAD", "yes",
+         yes(identical(git_at(inner, "rev-parse", "HEAD"), outer_head) && !identical(outer_head, g_head)), outer_head)
+  plans <- file.path(root, "inner-plans")
+  r <- run_study(inner, plan_vars(file.path(plans, "test")), git = TRUE)
+  info <- read_info(file.path(plans, "test"))
+  record("contract", "inner copy, test plan: package_sha unknown, dirty NA", "yes",
+         yes(r$status == 0L && identical(item(info, "package_sha"), "unknown") &&
+               identical(item(info, "package_dirty"), "NA")),
+         paste(item(info, "package_sha"), item(info, "package_dirty")))
+  unclean <- "needs a clean checkout of the pinned commit, at the top level of its git repository"
+  r <- run_study(inner, plan_vars(file.path(plans, "gate"), purpose = "gate", design = "gate"), git = TRUE)
+  record("contract", "inner copy, gate plan", "refuse", refusal(r, unclean), last_line(r$out))
+  r <- run_study(inner, plan_vars(file.path(plans, "study"), purpose = "study", design = "run"), git = TRUE)
+  record("contract", "inner copy, study plan", "refuse", refusal(r, unclean), last_line(r$out))
+  r <- run_study(inner, c(plan_vars(file.path(plans, "gate-given"), purpose = "gate", design = "gate"),
+                          SOLOMONR_SIM_PACKAGE_SHA = outer_head), git = TRUE)
+  record("contract", "inner copy, gate plan, the outer HEAD given", "refuse", refusal(r, unclean), last_line(r$out))
+  # The limit the contract's comments state: where git cannot be used, a
+  # given commit is not checked, and a test plan records it as given.
+  r <- run_study(inner, c(plan_vars(file.path(plans, "test-given")), SOLOMONR_SIM_PACKAGE_SHA = strrep("a", 40)),
+                 git = TRUE)
+  v <- item(read_info(file.path(plans, "test-given")), "package_sha")
+  record("contract", "limit: inner copy, test plan, a given commit unchecked", "yes",
+         yes(identical(v, strrep("a", 40))), paste(v, last_line(r$out)))
+  # GIT_DIR does not reach git: the copy p-git records its own HEAD even
+  # with GIT_DIR set to the outer repository's.
+  r <- run_study(g, c(plan_vars(file.path(root, "git-plans", "test-git-dir")), GIT_DIR = file.path(outer, ".git")),
+                 git = TRUE)
+  v <- item(read_info(file.path(root, "git-plans", "test-git-dir")), "package_sha")
+  record("contract", "test plan, GIT_DIR naming another repository", "yes", yes(identical(v, g_head)), v)
 })
 
 # ---- replay: the replay list of merge-chunks.R ----------------------------------

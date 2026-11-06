@@ -60,8 +60,12 @@
 #                             tasks in this process.
 #   SOLOMONR_SIM_OUT          Output folder (run, summarize).
 #   SOLOMONR_SIM_IN           File listing the task files (summarize).
-#   SOLOMONR_SIM_PACKAGE_SHA  The package commit. When git is available, it
-#                             must equal `git rev-parse HEAD`.
+#   SOLOMONR_SIM_PACKAGE_SHA  The package commit. Where git can be used for
+#                             the package copy (the copy is the top level
+#                             of its repository), it must equal `git
+#                             rev-parse HEAD`; elsewhere it is taken
+#                             unchecked, and a gate or study plan stops
+#                             (sim_package_sha()).
 #
 # Seeds. Each scenario has its own L'Ecuyer-CMRG stream (L'Ecuyer et al.,
 # 2002) under RNGkind("L'Ecuyer-CMRG", "Inversion", "Rejection"): scenario 1
@@ -482,17 +486,51 @@ sim_files_sha256 <- function(study) {
   paste0(study$files, "=", vapply(paths, sim_sha256_text, ""), collapse = " ")
 }
 
-sim_git <- function(args) {
-  out <- tryCatch(suppressWarnings(system2("git", args, stdout = TRUE, stderr = FALSE)),
+# git, run in the folder `root`, with GIT_DIR and GIT_WORK_TREE unset while
+# it runs, so that git looks for the repository from that folder alone, as
+# validation_commit() does in the validation scripts (#152); its messages
+# are discarded. NULL if git is not on the PATH or fails.
+sim_git <- function(args, root) {
+  if (!nzchar(Sys.which("git"))) return(NULL)
+  saved <- Sys.getenv(c("GIT_DIR", "GIT_WORK_TREE"), unset = NA)
+  Sys.unsetenv(names(saved))
+  on.exit(if (any(!is.na(saved))) do.call(Sys.setenv, as.list(saved[!is.na(saved)])))
+  out <- tryCatch(suppressWarnings(system2("git", c("-C", shQuote(root), args), stdout = TRUE, stderr = FALSE)),
                   error = function(e) NULL)
   status <- attr(out, "status")
   if (is.null(out) || (!is.null(status) && status != 0L)) return(NULL)
   out
 }
 
-sim_package_sha <- function() {
+# The package copy's folder, normalized, where git can be used for it: git
+# is on the PATH, agrees to read the repository, and the copy is the
+# repository's top level (`git rev-parse --show-toplevel` is the copy's
+# folder; case is ignored on Windows). NA otherwise: a copy without git
+# metadata, and a copy unpacked inside another repository, whose HEAD and
+# status are not the copy's. This is the rule of validation_commit() in the
+# validation scripts (#152, #162).
+sim_git_root <- function(study) {
+  root <- normalizePath(sim_root(study), winslash = "/", mustWork = FALSE)
+  top <- sim_git(c("rev-parse", "--show-toplevel"), root)
+  if (length(top) != 1L || !nzchar(top)) return(NA_character_)
+  top <- normalizePath(top, winslash = "/", mustWork = FALSE)
+  same <- if (.Platform$OS.type == "windows") tolower(top) == tolower(root) else top == root
+  if (same) root else NA_character_
+}
+
+# The package commit. Where git can be used for the copy (sim_git_root()),
+# it is HEAD, and a commit given in SOLOMONR_SIM_PACKAGE_SHA must equal it.
+# Where git cannot be used, nothing is checked: a given commit is returned
+# as given, and without one the commit is "unknown". A test plan records
+# either. A gate or study plan stops there, because sim_write_plan() needs
+# sim_dirty() to be FALSE, which it is only where git can be used, so that
+# the commit such a plan records has been checked against HEAD. In the
+# workflow, every job's checkout is the top level of its repository, so a
+# given commit is checked in every stage.
+sim_package_sha <- function(study) {
   given <- Sys.getenv("SOLOMONR_SIM_PACKAGE_SHA")
-  head <- sim_git(c("rev-parse", "HEAD"))
+  root <- sim_git_root(study)
+  head <- if (is.na(root)) NULL else sim_git(c("rev-parse", "HEAD"), root)
   head <- if (length(head) == 1L && grepl("^[0-9a-f]{40}$", head)) head else NA_character_
   if (nzchar(given)) {
     if (!is.na(head) && !identical(head, given)) {
@@ -511,10 +549,15 @@ sim_package_id <- function(study) {
 
 # TRUE if a tracked file differs from the commit, or if the study script,
 # this file, or a file the script sources is not part of the commit
-# (untracked or changed); NA without git.
-sim_dirty <- function(paths) {
-  tracked <- sim_git(c("status", "--porcelain", "--untracked-files=no"))
-  own <- sim_git(c("status", "--porcelain", "--untracked-files=all", "--", shQuote(paths)))
+# (untracked or changed); NA where git cannot be used for the package copy
+# (sim_git_root()) or the repository has no commit. The paths are made
+# absolute here, since git runs in the copy's folder.
+sim_dirty <- function(study, paths) {
+  root <- sim_git_root(study)
+  if (is.na(root) || is.null(sim_git(c("rev-parse", "--verify", "--quiet", "HEAD"), root))) return(NA)
+  paths <- normalizePath(paths, winslash = "/", mustWork = FALSE)
+  tracked <- sim_git(c("status", "--porcelain", "--untracked-files=no"), root)
+  own <- sim_git(c("status", "--porcelain", "--untracked-files=all", "--", shQuote(paths)), root)
   if (is.null(tracked) || is.null(own)) NA else length(tracked) > 0L || length(own) > 0L
 }
 
@@ -533,12 +576,16 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
   tasks <- sim_plan(study, spec, subset)
   sc <- study$scenarios
   if (!is.null(subset)) sc <- sc[sc$scenario %in% subset, , drop = FALSE]
-  package_sha <- sim_package_sha()
-  dirty <- sim_dirty(c(sim_script_path(), sim_contract_path(study), sim_files_paths(study)))
+  package_sha <- sim_package_sha(study)
+  dirty <- sim_dirty(study, c(sim_script_path(), sim_contract_path(study), sim_files_paths(study)))
   # A gate and a study run use a commit as it is; only tests may run from a
-  # working tree with changes.
+  # working tree with changes. dirty is FALSE only where git can be used for
+  # the package copy, and there sim_package_sha() has checked a given
+  # commit against HEAD; elsewhere (no git, or a copy that is not the top
+  # level of its repository) a gate or study plan stops here.
   if (spec$purpose %in% c("study", "gate") && !identical(dirty, FALSE)) {
-    stop("A ", spec$purpose, " run needs a clean checkout of the pinned commit.", call. = FALSE)
+    stop("A ", spec$purpose, " run needs a clean checkout of the pinned commit, at the top level of its ",
+         "git repository.", call. = FALSE)
   }
   id <- sim_package_id(study)
   info <- c(
@@ -605,7 +652,7 @@ sim_verify_plan <- function(study, plan) {
     script = identical(info[["script_sha256"]], sim_sha256_text(sim_script_path())),
     contract_file = identical(info[["contract_sha256"]], sim_sha256_text(sim_contract_path(study))),
     sourced_files = identical(info[["files_sha256"]], sim_files_sha256(study)),
-    package = identical(info[["package_sha"]], sim_package_sha()),
+    package = identical(info[["package_sha"]], sim_package_sha(study)),
     package_version = identical(info[["package_version"]], sim_package_id(study)[["version"]]))
   if (!all(checks)) {
     stop("The plan does not match this checkout (", paste(names(checks)[!checks], collapse = ", "),
