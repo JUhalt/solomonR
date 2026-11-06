@@ -786,6 +786,32 @@ test_that("a logical or character matrix column of several columns stops by its 
                           control = "Control", covariates = cm2, data = m),
     bare_character_error, fixed = TRUE
   )
+  # So does one without column names or with some. Before this change,
+  # check_solomon_missing() showed such a column by the tables V1 and V2,
+  # or a and V2, and with `y_pre` took its gap from a fit with both
+  # columns, while fit_solomon_glm() left the column out.
+  d$cm2u <- unname(d$cm2)
+  d$cm2p <- cbind(a = d$site, ifelse(d$flag, "yes", "no"))
+  for (name in c("cm2u", "cm2p")) {
+    error <- sub("cm2", name, bare_character_error, fixed = TRUE)
+    expect_error(
+      eval(bquote(fit_solomon_glm(y_post, treat, pretested, y_pre,
+                                  covariates = .(as.name(name)), data = d))),
+      error, fixed = TRUE
+    )
+    expect_error(
+      eval(bquote(check_solomon_missing(y_post, treat, pretested, y_pre,
+                                        covariates = .(as.name(name)), data = d))),
+      error, fixed = TRUE
+    )
+    expect_error(
+      eval(bquote(check_solomon_missing(y_post, treat, pretested,
+                                        covariates = .(as.name(name)), data = d))),
+      error, fixed = TRUE
+    )
+  }
+  d$cm2u <- NULL
+  d$cm2p <- NULL
   without_pretest <- check_solomon_missing(y_post, treat, pretested, covariates = "lm2",
                                            data = d)
   expect_identical(names(without_pretest$covariates), "lm2")
