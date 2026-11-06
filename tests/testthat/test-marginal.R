@@ -432,7 +432,10 @@ test_that("clustered pretest effects with a pretest covariate add the standardiz
   g5 <- matrix(g, nrow = 7)[5, ]
   fit_cr <- stats::glm(stats::formula(fit$model), data = stats::model.frame(fit$model),
                        family = stats::binomial())
-  df_g <- as.data.frame(clubSandwich::linear_contrast(fit_cr, vcov = fit$vcov,
+  # With a pretest, the fit's `vcov` is a matrix (#137); the CR2 object of
+  # the model as given gives the degrees of freedom.
+  V_cr <- clubSandwich::vcovCR(fit_cr, cluster = cluster, type = "CR2")
+  df_g <- as.data.frame(clubSandwich::linear_contrast(fit_cr, vcov = V_cr,
                                                       contrasts = matrix(g5, 1),
                                                       test = "Satterthwaite"))$df
 

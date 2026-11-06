@@ -90,7 +90,11 @@
 #' The four-group mean-structure model is saturated, so its global fit
 #' indices are not diagnostic. Its contrasts are unadjusted posttest mean
 #' differences, whereas the ANCOVA mode adjusts for the pretest within the
-#' pretested groups.
+#' pretested groups. The ANCOVA mode centers the pretest at its mean among
+#' the pretested participants before the model is fitted, so the group
+#' intercepts `mu_P1` and `mu_P0` of the lavaan model are the posttest means
+#' adjusted to that pretest. The contrast does not depend on the center, and
+#' the fit stays accurate when the pretest lies far from zero (issue #137).
 #'
 #' The pretest effects are differences between the group means, pretested
 #' minus unpretested participants: among controls
@@ -224,7 +228,10 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     # ---- ANCOVA in pretested groups only (P1 vs P0) ----
     if (is.null(y_pre)) stop("ancova = TRUE requires y_pre to be supplied.")
     keep <- pretested == 1
-    df <- data.frame(y_post = y_post[keep], y_pre = y_pre[keep], treat = treat[keep])
+    # The pretest centered at its mean, which changes only the intercepts and
+    # the pretest's means (issue #137).
+    df <- data.frame(y_post = y_post[keep], y_pre = y_pre[keep] - mean(y_pre[keep], na.rm = TRUE),
+                     treat = treat[keep])
     df$grp2 <- factor(df$treat, levels = c(1, 0), labels = c("P1","P0"))  # treated vs control among pretested
 
     var_post <- if (isTRUE(equal_var)) 'y_post ~~ c(v, v)*y_post'

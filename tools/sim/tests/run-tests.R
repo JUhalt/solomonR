@@ -1,0 +1,1552 @@
+# Tests of the harness's own checks (issue #117). Usage:
+#
+#   Rscript tools/sim/tests/run-tests.R [--only GROUPS] [--work DIR] [--run DIR] [--bash PATH]
+#
+# Each case builds its input in the work folder (default: a new temporary
+# folder), runs one harness script in a new R process (or the workflow's
+# "Check the inputs" step in bash), and compares the outcome with the one
+# expected. The groups (--only takes a comma-separated list; default all):
+#
+#   results  check-results.R: the MCSE rule on performance.csv written by the
+#            contract's own sim_write_csv() (a missing note, written as NA,
+#            is no note), the basis of decisions.csv, the protocol flag and
+#            purpose, the file names a protocol's gate or test may hold, and,
+#            in any run, the refusal of every name the harness writes after
+#            the check (by its message), also in another case
+#            (Preflight.csv, LOGS/, timing/Jobs.csv, Timing/). Two cases
+#            record the limit of the name rule: it reads names only, so a
+#            measure under an allowed name passes (README, "Adding a study",
+#            item 4).
+#   scan     scan-addresses.R on folders built here around a placeholder
+#            address at example.org, which is assembled at run time and
+#            written only into the work folder. Every "f-" folder must fail,
+#            every "c-" folder pass, and no promise may be evaluated.
+#            Seventeen "f-" folders must fail by a named rule (a NUL byte, a
+#            gzip or zlib header, bytes that are not valid UTF-8), among
+#            them compressed text without a NUL byte, valid UTF-8 text
+#            that starts with a zlib header, a zlib stream of stored
+#            blocks under 78 01, a gzip header after a UTF-8 byte-order
+#            mark, and the 7 zlib headers outside the zlib rule that
+#            cannot start UTF-8 text (each of its 7 files by the UTF-8
+#            rule); the "c-" folders include UTF-8 text with
+#            the characters the package prints, a UTF-8 byte-order mark,
+#            empty files, text that starts with "x" but not with a zlib
+#            header, and text that starts with a zlib header that the scan
+#            does not refuse ("HK", "(S", "x "). One case records the limit
+#            that the README states: the same stored blocks under 48 4b
+#            ("HK") pass. Two cases read the text (phrases, not their
+#            truth): the README's "Safety" section and the scanner's header
+#            must say that the other zlib headers are "not in the zlib
+#            rule", and they and the scanner's row under the README's
+#            "Files" must say that the gzip and zlib rule applies after a
+#            UTF-8 byte-order mark too.
+#   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
+#            protocol flag; refused if absent, below 1, or not a number,
+#            or if given as a fifth argument), the 2- and 4-hour limits, a
+#            task cost of 0, seconds per cost that R reads as 0 or as
+#            infinite, and, by the script's own message, numbers of chunks
+#            or workers that are not whole numbers in digits (2.5, 1e2, 010,
+#            99999999999, " 2") and seconds per cost not in the workflow's
+#            form (0x10).
+#   inputs   the workflow's "Check the inputs" step, read from
+#            .github/workflows/simulation-run.yaml and run with bash (--bash,
+#            or bash on the PATH; skipped without one), among them numbers
+#            that bash's arithmetic would misread (beyond 64 bits, or with a
+#            leading zero). Its outputs go to files in the work folder, never
+#            to the job's own.
+#   contract contract.R through tests/synthetic-study.R, copied with the
+#            contract under test into a package folder of its own and run
+#            with Rscript: what the plan records (the SHA-256 of the files
+#            the study sources, the same with CRLF or LF line ends; task
+#            1's agreement cost; the gate's allowance; the scenarios of a
+#            subset, with the full table's streams; a test's task size),
+#            the refusals of whole numbers (a task size, the replications,
+#            a scenario number of a list, the workers, the smoke mode's
+#            replications, a plan's recorded reps and subset, and the
+#            study's seeds and task sizes) by the contract's own message,
+#            without an R warning, also beyond R's integers and with white
+#            space around the digits, and a leading zero by a message that
+#            names that rule;
+#            sim_verify_plan() after a sourced file changed; and, with git,
+#            the clean-checkout rule and the plan options
+#            of a gate or study run; and the gate's seconds per unit of
+#            cost (sim_gate_default() on timings made up here).
+#   replay   merge-chunks.R's replay list (rules a to d) on task files made
+#            up here: 6 tasks in 1, 2, and 3 chunks, with costs such that
+#            rules c and d must fall back to the lowest- and highest-
+#            numbered chunks once every chunk has been chosen, and ties
+#            broken by task id; and the plan's reps, which merge-chunks.R
+#            must read in digits (4.0, 04, 99999999999 refused by its
+#            message).
+#   finalize finalize-results.R on a run's folders made up here: the first
+#            task's start and the last task's finish (the earliest and the
+#            latest, not the first and last rows), NA without the task
+#            times, the sourced files' SHA-256 (NA for a plan of contract
+#            2), and the refusal (by its message) of a file the study wrote
+#            under a name the harness writes, also when the plan has none
+#            to copy, and of a logs/ folder, also in another case (by a
+#            message that names the file as the study wrote it).
+#   local    tools/sim/run-local.R in a package folder made here, with the
+#            harness under test and the synthetic study as a second study
+#            beside smoke (needs pkgload; skipped without it): a new run of
+#            the synthetic study; --resume and --rerun-chunk without
+#            --study, which take the run's study from its plan; a --study
+#            that names another study, refused before anything runs or
+#            changes, for a synthetic run and for a smoke run (a full copy of
+#            the synthetic run with its plan's study made smoke); a new run
+#            without --study, a smoke run; and --rerun-chunk's chunk number
+#            in at most four digits, with or without leading zeros (0002 is
+#            chunk 0002).
+#   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
+#            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
+#            or the merge job's workspace; skipped without it), and
+#            scan-addresses.R on the run's own plan/, chunks/, merged/,
+#            replay/, results/, and logs/ (those that exist), which must
+#            pass.
+#
+# Messages are printed without their "::error::" or "::warning::" prefix, so
+# that a workflow log shows no annotation for an expected refusal; the scan
+# cases print no message at all. The exit status is 1 if any case ends
+# otherwise than expected. One R process computes at a time: the script
+# under test, while this one waits (and, in the local group, run-local.R
+# between them).
+
+local({
+  file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+  assign("harness", normalizePath(file.path(dirname(file), ".."), winslash = "/"), envir = globalenv())
+})
+source(file.path(harness, "harness-lib.R"))
+
+all_groups <- c("results", "scan", "sizing", "inputs", "contract", "replay", "finalize", "local", "merge")
+opts <- list(only = paste(all_groups, collapse = ","), work = "", run = "", bash = "")
+args <- commandArgs(trailingOnly = TRUE)
+i <- 1L
+while (i <= length(args)) {
+  name <- sub("^--", "", args[[i]])
+  if (!name %in% names(opts) || i == length(args)) h_fail("Unknown option, or no value: ", args[[i]], ".")
+  opts[[name]] <- args[[i + 1L]]
+  i <- i + 2L
+}
+groups <- strsplit(opts$only, ",", fixed = TRUE)[[1]]
+if (length(setdiff(groups, all_groups))) h_fail("Unknown group: ", paste(setdiff(groups, all_groups), collapse = ", "), ".")
+work <- if (nzchar(opts$work)) opts$work else tempfile("sim-tests-")
+if (dir.exists(work) && length(list.files(work, all.files = TRUE, no.. = TRUE))) {
+  h_fail("The work folder ", work, " must be empty or absent.")
+}
+dir.create(work, recursive = TRUE, showWarnings = FALSE)
+work <- normalizePath(work, winslash = "/")
+rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
+cat("Harness tests: ", paste(groups, collapse = ", "), "; work folder ", work, ".\n", sep = "")
+
+run_r <- function(script, args) {
+  out <- suppressWarnings(system2(rscript, shQuote(c(file.path(harness, script), args)), stdout = TRUE, stderr = TRUE))
+  list(status = if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status")), out = out)
+}
+last_line <- function(out) {
+  out <- out[nzchar(trimws(out)) & out != "Execution halted"]
+  if (length(out)) out[[length(out)]] else ""
+}
+with_env <- function(vars, code) {
+  old <- Sys.getenv(names(vars), unset = NA, names = TRUE)
+  do.call(Sys.setenv, as.list(vars))
+  on.exit(for (n in names(old)) {
+    if (is.na(old[[n]])) Sys.unsetenv(n) else do.call(Sys.setenv, stats::setNames(list(old[[n]]), n))
+  })
+  code
+}
+# "refuse" only when the script's own check stops it, with its message
+# `msg` and no R warning before it; an R error further on is not a refusal
+# by the check.
+refusal <- function(r, msg) {
+  if (r$status == 0L) return("accept")
+  if (!any(grepl(msg, r$out, fixed = TRUE))) return("R error")
+  if (any(grepl("Warning message", r$out, fixed = TRUE))) "R warning" else "refuse"
+}
+# A script in a new R process, run from the folder `dir`, with none of the
+# contract's settings (and none of the synthetic study's) but those `set`
+# gives.
+sim_vars <- c("SOLOMONR_SMOKE_DIR", "SOLOMONR_SMOKE_REPS", "SOLOMONR_SIM_ROLE", "SOLOMONR_SIM_SCRIPT",
+              "SOLOMONR_SIM_STAGE", "SOLOMONR_SIM_PURPOSE", "SOLOMONR_SIM_DESIGN", "SOLOMONR_SIM_REPS",
+              "SOLOMONR_SIM_PLAN", "SOLOMONR_SIM_SUBSET", "SOLOMONR_SIM_TASK_SIZE", "SOLOMONR_SIM_PACKAGE_SHA",
+              "SOLOMONR_SIM_TASKS", "SOLOMONR_SIM_OUT", "SOLOMONR_SIM_IN", "SOLOMONR_SIM_WORKERS",
+              "HARNESS_TEST_VARIANT", "HARNESS_TEST_VERIFY", "GIT_DIR")
+run_from <- function(dir, script, args = character(), set = character()) {
+  vars <- union(sim_vars, names(set))
+  old_env <- Sys.getenv(vars, unset = NA, names = TRUE)
+  old_wd <- setwd(dir)
+  on.exit({
+    setwd(old_wd)
+    for (v in vars) if (is.na(old_env[[v]])) Sys.unsetenv(v) else do.call(Sys.setenv, stats::setNames(list(old_env[[v]]), v))
+  })
+  Sys.unsetenv(vars)
+  if (length(set)) do.call(Sys.setenv, as.list(set))
+  out <- suppressWarnings(system2(rscript, shQuote(c(script, args)), stdout = TRUE, stderr = TRUE))
+  list(status = if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status")), out = out)
+}
+outcomes <- list()
+record <- function(group, label, expected, got, note = "") {
+  ok <- identical(expected, got)
+  outcomes[[length(outcomes) + 1L]] <<- data.frame(group = group, case = label, expected = expected, got = got,
+                                                   ok = ok, stringsAsFactors = FALSE)
+  note <- gsub("::(error|warning)::", "\\1: ", note)
+  cat(sprintf("%-8s %-58s %-9s %s%s\n", group, label, got,
+              if (ok) "ok" else paste0("NOT AS EXPECTED (", expected, ")"),
+              if (nzchar(note)) paste0("  ", substr(note, 1, 160)) else ""))
+}
+skip <- function(group, why) cat(sprintf("%-8s skipped: %s\n", group, why))
+
+# ---- results: check-results.R ------------------------------------------------
+
+if ("results" %in% groups) local({
+  contract <- new.env()
+  sys.source(file.path(harness, "contract.R"), envir = contract)
+  n <- 0L
+  # A plan folder (plan-info.csv) and a results folder with agreement.csv
+  # and the given files: data frames written by sim_write_csv(), .rds files
+  # by saveRDS(), anything else as text.
+  make <- function(protocol, purpose, design = "run", files = list(), agreement = TRUE) {
+    n <<- n + 1L
+    d <- file.path(work, "results", sprintf("r%02d", n))
+    h_write_kv(c(contract = "2", protocol = protocol, purpose = purpose, design = design),
+               file.path(d, "plan", "plan-info.csv"))
+    res <- file.path(d, "results")
+    dir.create(res, recursive = TRUE, showWarnings = FALSE)
+    if (agreement) contract$sim_write_csv(data.frame(check = "a1", passed = TRUE), file.path(res, "agreement.csv"))
+    for (nm in names(files)) {
+      f <- file.path(res, nm)
+      dir.create(dirname(f), showWarnings = FALSE, recursive = TRUE)
+      x <- files[[nm]]
+      if (is.data.frame(x)) contract$sim_write_csv(x, f) else if (grepl("[.]rds$", nm)) saveRDS(x, f) else writeLines(x, f)
+    }
+    d
+  }
+  # With `msg`, "refuse" only by that message (refusal()).
+  check <- function(label, d, purpose, flag, expected, msg = NULL) {
+    r <- run_r("check-results.R", c(file.path(d, "results"), purpose, flag, file.path(d, "plan")))
+    got <- if (is.null(msg)) { if (r$status == 0L) "accept" else "refuse" } else refusal(r, msg)
+    record("results", label, expected, got, last_line(r$out))
+  }
+  perf <- function(mcse, note) {
+    data.frame(scenario = 1L, method = "T0", contrast = "x", measure = "bias", estimate = 0.1,
+               mcse = mcse, mcse_note = note, n_success = 20L, stringsAsFactors = FALSE)
+  }
+  mcse_cases <- list(
+    list("MCSE NA, note NA (missing)", perf(NA_real_, NA_character_), "refuse"),
+    list("MCSE 0, note NA", perf(0, NA_character_), "refuse"),
+    list("MCSE NA, note empty", perf(NA_real_, ""), "refuse"),
+    list("MCSE NA, note blanks", perf(NA_real_, "   "), "refuse"),
+    list("MCSE NaN, note NA", perf(NaN, NA_character_), "refuse"),
+    list("MCSE Inf, note NA", perf(Inf, NA_character_), "refuse"),
+    list("MCSE -0.1, note NA", perf(-0.1, NA_character_), "refuse"),
+    list("MCSE NA, note tab, NA, newline", perf(NA_real_, "\tNA\n"), "refuse"),
+    list("MCSE NA, note as a factor NA", transform(perf(NA_real_, NA_character_), mcse_note = factor(NA_character_)), "refuse"),
+    list("15 rows with an MCSE, 1 with neither", rbind(perf(0.01, "")[rep(1L, 15L), ], perf(NA_real_, NA_character_)), "refuse"),
+    list("MCSE NA, note given", perf(NA_real_, "no replication succeeded"), "accept"),
+    list("MCSE 0.01, note NA", perf(0.01, NA_character_), "accept"),
+    list("performance.csv without mcse_note", perf(0.01, "x")[, -7], "refuse"))
+  for (cs in mcse_cases) {
+    check(cs[[1]], make("FALSE", "test", files = list(performance.csv = cs[[2]])), "test", "FALSE", cs[[3]])
+  }
+  dec <- function(...) data.frame(rule = "r1", verdict = "pass", ..., stringsAsFactors = FALSE)
+  check("decisions.csv without mcse, threshold, or p_value",
+        make("FALSE", "test", files = list(decisions.csv = dec())), "test", "FALSE", "refuse")
+  check("decisions.csv with a row that gives no number",
+        make("FALSE", "test", files = list(decisions.csv = rbind(dec(threshold = 0.1), dec(threshold = NA)))),
+        "test", "FALSE", "refuse")
+  check("decisions.csv with a basis in every row",
+        make("FALSE", "test", files = list(decisions.csv = rbind(dec(threshold = 0.1, p_value = NA),
+                                                                 dec(threshold = NA, p_value = 0.03)))),
+        "test", "FALSE", "accept")
+  check("no agreement.csv", make("FALSE", "test", agreement = FALSE), "test", "FALSE", "refuse")
+  check("registry flag TRUE, plan flag FALSE", make("FALSE", "test"), "test", "TRUE", "refuse")
+  check("registry flag \"yes\"", make("TRUE", "test"), "test", "yes", "refuse")
+  check("purpose test, plan purpose gate", make("FALSE", "gate", "gate"), "test", "FALSE", "refuse")
+
+  # A protocol's test or gate run: file names.
+  allowed <-list(`run-information.csv` = data.frame(item = "permutations", value = "999"),
+                  summary.rds = list(agreement = data.frame(check = "a1")),
+                  `timing/task-times.csv` = data.frame(task_id = "s0001-t0001", elapsed = 1))
+  extra <- function(...) c(allowed, list(...))
+  check("protocol test: agreement, run information, timing", make("TRUE", "test", files = allowed), "test", "TRUE", "accept")
+  # The names finalize-results.R and the workflow write after this check
+  # (finding 2 of review 3): in the results at check time, only the study
+  # can have written them, in any run.
+  later <- list(manifest.csv = data.frame(task_id = "s0001-t0001"), completeness.csv = data.frame(x = 1),
+                software.csv = data.frame(kind = "r", name = "version", value = "4.6.1"),
+                replay.csv = data.frame(x = 1), preflight.csv = data.frame(check = "c", passed = TRUE),
+                `logs/plan-log.txt` = "log", `logs/coverage.txt` = c("scenario,method,coverage", "1,T0,0.947"),
+                `timing/jobs.csv` = data.frame(chunk = "0001"),
+                `timing/plan-job.csv` = data.frame(item = "chunk", value = "plan"),
+                `timing/merge-job.csv` = data.frame(item = "chunk", value = "merge"),
+                `timing/rng-fingerprint.txt` = "fingerprint", `timing/sessionInfo-0001.txt` = "session")
+  taken <- "under names that the harness writes after this check"
+  for (nm in names(later)) {
+    check(paste0("protocol test: ", nm, ", a harness name"), make("TRUE", "test", files = c(allowed, later[nm])),
+          "test", "TRUE", "refuse", taken)
+  }
+  d <- make("TRUE", "test", files = allowed)
+  dir.create(file.path(d, "results", "logs"))
+  check("protocol test: an empty logs/ folder", d, "test", "TRUE", "refuse", taken)
+  check("test run, not a protocol: preflight.csv", make("FALSE", "test", files = later["preflight.csv"]),
+        "test", "FALSE", "refuse", taken)
+  coverage <- c("scenario,method,coverage", "1,T0,0.947")
+  check("review 3's case: preflight.csv and logs/coverage.txt of the study",
+        make("TRUE", "test", files = extra(preflight.csv = coverage, `logs/coverage.txt` = coverage)),
+        "test", "TRUE", "refuse", taken)
+  check("protocol test: coverage.csv", make("TRUE", "test", files = extra(coverage.csv = data.frame(coverage = 0.9))),
+        "test", "TRUE", "refuse")
+  check("protocol test: performance.csv", make("TRUE", "test", files = extra(performance.csv = perf(0.01, ""))),
+        "test", "TRUE", "refuse")
+  check("protocol test: failures.csv", make("TRUE", "test", files = extra(failures.csv = data.frame(n = 1))),
+        "test", "TRUE", "refuse")
+  check("protocol test: timing/sub/x.csv", make("TRUE", "test", files = extra(`timing/sub/x.csv` = data.frame(x = 1))),
+        "test", "TRUE", "refuse")
+  check("protocol test: logs/rates.csv", make("TRUE", "test", files = extra(`logs/rates.csv` = data.frame(x = 1))),
+        "test", "TRUE", "refuse")
+  check("protocol gate with timing/gate-projection.csv",
+        make("TRUE", "gate", "gate", files = extra(`timing/gate-projection.csv` = data.frame(reps = 100))),
+        "gate", "TRUE", "accept")
+  check("protocol gate without timing/gate-projection.csv", make("TRUE", "gate", "gate", files = allowed),
+        "gate", "TRUE", "refuse")
+  # The limit: names only (finding [10] of fix2, README item 4).
+  check("limit, names only: timing/coverage.csv passes",
+        make("TRUE", "test", files = extra(`timing/coverage.csv` = data.frame(coverage = 0.9))), "test", "TRUE", "accept")
+  check("limit, names only: an agreement column coverage passes",
+        make("TRUE", "test", files = extra(agreement.csv = data.frame(check = "a1", coverage_s1 = 0.9))),
+        "test", "TRUE", "accept")
+  # A protocol's study run.
+  study_files <- list(performance.csv = perf(0.01, ""), decisions.csv = dec(threshold = 0.1),
+                      `run-information.csv` = data.frame(item = "permutations", value = "999"))
+  check("protocol study run: performance, decisions, run information",
+        make("TRUE", "study", files = study_files), "study", "TRUE", "accept")
+  check("protocol study run without decisions.csv",
+        make("TRUE", "study", files = study_files[-2]), "study", "TRUE", "refuse")
+  check("protocol study run: preflight.csv of the study",
+        make("TRUE", "study", files = c(study_files, later["preflight.csv"])), "study", "TRUE", "refuse", taken)
+  check("protocol study run: logs/coverage.txt of the study",
+        make("TRUE", "study", files = c(study_files, later["logs/coverage.txt"])), "study", "TRUE", "refuse", taken)
+  # The same names in another case (review round 1): a file system that
+  # ignores case makes them the harness's files, and on one that does not
+  # the results would hold both. Timing/ is timing/ spelled otherwise.
+  variants <- c("Preflight.csv", "PREFLIGHT.CSV", "Manifest.csv", "replay.CSV", "LOGS/coverage.txt",
+                "Logs/plan-log.txt", "timing/Jobs.csv", "timing/sessioninfo-0001.txt", "timing/sessionInfo-0001.TXT",
+                "timing/RNG-fingerprint.txt", "Timing/coverage.csv")
+  for (nm in variants) {
+    check(paste0("protocol study run: ", nm, ", another case"),
+          make("TRUE", "study", files = c(study_files, stats::setNames(list(coverage), nm))), "study", "TRUE", "refuse",
+          taken)
+  }
+  check("protocol test: timing/Jobs.csv, another case",
+        make("TRUE", "test", files = extra(`timing/Jobs.csv` = data.frame(chunk = "0001"))), "test", "TRUE", "refuse", taken)
+  for (nm in c("Preflight.csv", "LOGS/coverage.txt")) {
+    check(paste0("test run, not a protocol: ", nm, ", another case"),
+          make("FALSE", "test", files = stats::setNames(list(coverage), nm)), "test", "FALSE", "refuse", taken)
+  }
+})
+
+# ---- scan: scan-addresses.R --------------------------------------------------
+
+# The cases are built at the top level, not in local(): a closure, formula,
+# or environment made in a function would carry that function's frame,
+# which holds the placeholder address, so that the clean cases would fail.
+# The global environment is saved by reference, and the scan stops there.
+if ("scan" %in% groups) {
+  root <- file.path(work, "scan")
+  dir.create(root, recursive = TRUE)
+  marker <- file.path(work, "scan-promise-evaluated.txt")
+  A <- paste0("someone", "@", "example", ".org")
+  P <- paste0("someone", "%40", "example", ".org")
+  case <- function(name) { d <- file.path(root, name); dir.create(d, recursive = TRUE); d }
+  put <- function(d, f, txt) writeLines(txt, file.path(d, f), useBytes = TRUE)
+  utf16 <- function(x, to) iconv(x, "UTF-8", to, toRaw = TRUE)[[1]]
+
+  # Each of these must fail.
+  put(case("f-01-text"), "a.txt", c("clean", paste("contact", A)))
+  saveRDS(list(x = c("clean", A)), file.path(case("f-02-rds-value"), "a.rds"))
+  put(case("f-03-file-name"), paste0("name-", A, ".txt"), "clean")
+  d <- case("f-04-folder-name"); dir.create(file.path(d, paste0("dir-", A))); put(file.path(d, paste0("dir-", A)), "a.txt", "clean")
+  con <- gzfile(file.path(case("f-05-gz"), "a.csv.gz"), "w"); writeLines(c("x", A), con); close(con)
+  x <- A; save(x, file = file.path(case("f-06-rda"), "a.rda"))
+  saveRDS(local({ secret <- A; function() 1 }), file.path(case("f-07-closure-environment"), "a.rds"))
+  v <- c(1, 2); names(v) <- c("a", A)
+  saveRDS(list(n = structure(1:2, extra = v)), file.path(case("f-08-numeric-attribute-names"), "a.rds"))
+  writeBin(c(as.raw(c(0xff, 0xfe)), utf16(paste("contact", A), "UTF-16LE")), file.path(case("f-09-utf16le-bom"), "a.txt"))
+  writeBin(utf16(A, "UTF-16LE"), file.path(case("f-10-utf16le-no-bom"), "a.txt"))
+  writeBin(c(as.raw(c(0xfe, 0xff)), utf16("clean", "UTF-16BE")), file.path(case("f-11-utf16be-bom"), "a.txt"))
+  put(case("f-12-percent-encoded"), "a.txt", paste("contact", P))
+  put(case("f-13-percent-encoded-upper"), "a.txt", paste0("someone", "%40", "EXAMPLE", ".ORG"))
+  put(case("f-14-percent-in-file-name"), paste0(P, ".txt"), "clean")
+  writeBin(c(charToRaw("clean"), as.raw(0L), charToRaw("text")), file.path(case("f-15-nul-byte"), "a.txt"))
+  saveRDS(list(model = local({ secret <- A; y ~ x })), file.path(case("f-16-formula-environment"), "a.rds"))
+  outer_env <- new.env(parent = globalenv()); assign("secret", A, outer_env)
+  g <- function() 1; environment(g) <- new.env(parent = outer_env)
+  saveRDS(g, file.path(case("f-17-parent-environment"), "a.rds"))
+  h <- function(x) function() x
+  saveRDS(eval(bquote(h({ writeLines("evaluated", .(marker)); .(A) }))), file.path(case("f-18-argument-promise"), "a.rds"))
+  e <- new.env(); eval(bquote(delayedAssign("p", .(A), assign.env = e)))
+  g <- function() 1; environment(g) <- e; saveRDS(g, file.path(case("f-19-delayed-promise"), "a.rds"))
+  e <- new.env(parent = globalenv()); makeActiveBinding("ab", eval(bquote(function() .(A))), e)
+  saveRDS(list(e = e), file.path(case("f-20-active-binding"), "a.rds"))
+  saveRDS(list(r = charToRaw(paste("x", A))), file.path(case("f-21-raw-vector"), "a.rds"))
+  saveRDS(structure(1, info = list(list(note = A))), file.path(case("f-22-list-attribute"), "a.rds"))
+  df <- data.frame(a = 1); names(df) <- A; saveRDS(df, file.path(case("f-23-column-name"), "a.rds"))
+  saveRDS(factor(c("a", A)), file.path(case("f-24-factor-level"), "a.rds"))
+  dots <- function(...) function() list(...)
+  saveRDS(eval(bquote(dots(.(A)))), file.path(case("f-25-dots-promise"), "a.rds"))
+  put(case("f-26-no-extension"), "README", "clean")
+  writeLines("tmp", file.path(case("f-27-tmp-file"), "s0001-t0001.rds.tmp"))
+  saveRDS(list(A), file.path(case("f-28-xz-rds"), "a.rds"), compress = "xz")
+  saveRDS(list(A), file.path(case("f-29-bzip2-rds"), "a.rds"), compress = "bzip2")
+  methods::setClass("SimTestHolder", methods::representation(s = "character"), where = globalenv())
+  saveRDS(methods::new("SimTestHolder", s = A), file.path(case("f-30-s4-slot"), "a.rds"))
+  deep <- A; for (k in 1:3000) deep <- list(deep); saveRDS(deep, file.path(case("f-31-deep-nesting"), "a.rds"))
+  ex <- new.env(); eval(parse(text = paste0("f <- function() {\n  # ", A, "\n  1\n}"), keep.source = TRUE), envir = ex)
+  saveRDS(ex$f, file.path(case("f-32-source-comment"), "a.rds"))
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf)), charToRaw(A)), file.path(case("f-33-utf8-bom"), "a.txt"))
+  saveRDS(data.frame(v = 1, row.names = A), file.path(case("f-34-row-names"), "a.rds"))
+  saveRDS(stats::setNames(list(1), A), file.path(case("f-35-list-names"), "a.rds"))
+  saveRDS(list(as.name(A)), file.path(case("f-36-symbol"), "a.rds"))
+  saveRDS(as.expression(list(as.name("x"), A)), file.path(case("f-37-expression"), "a.rds"))
+  # A short zlib stream (memCompress(type = "gzip")) that holds a NUL byte,
+  # which fails it before the header rule.
+  writeBin(memCompress(charToRaw(paste(rep(A, 3), collapse = " ")), "gzip"), file.path(case("f-38-nul-byte-in-zlib-text"), "a.txt"))
+  put(case("f-39-hidden-file"), ".hidden.txt", A)
+  put(case("f-40-upper-case-extension"), "A.TXT", A)
+  writeBin(c(charToRaw("caf"), as.raw(0xe9), charToRaw(paste0(" ", A))), file.path(case("f-41-latin1-byte"), "a.txt"))
+  e <- new.env(); assign(A, 1, envir = e); g <- function() 1; environment(g) <- e
+  saveRDS(g, file.path(case("f-42-binding-name"), "a.rds"))
+  g <- function(x) x; formals(g) <- list(x = A); environment(g) <- new.env()
+  saveRDS(g, file.path(case("f-43-default-argument"), "a.rds"))
+  k <- function(...) environment(); e <- eval(bquote(k(.(A))))
+  g <- function() 1; environment(g) <- e; saveRDS(g, file.path(case("f-44-dots-environment"), "a.rds"))
+  saveRDS(structure(list(1), comment = A), file.path(case("f-45-comment-attribute"), "a.rds"))
+  saveRDS(list(z = 1i, env = list2env(list(k = list(deeper = A)))), file.path(case("f-46-environment-in-list"), "a.rds"))
+  file.create(file.path(case("f-47-empty-rds"), "a.rds"))
+  # Compressed text without a NUL byte (finding 3 of review 3): the first of
+  # these zlib streams that holds no NUL byte and no UTF-16 byte-order mark
+  # (k = 79 on R 4.6.1 for Windows: 367 bytes, 78 9c).
+  set.seed(1)
+  for (k in 1:300) {
+    z <- memCompress(charToRaw(paste0(paste(sample(c(letters, " ", 0:9), 400 + k, TRUE), collapse = ""), " contact ", A)), "gzip")
+    if (!any(z == as.raw(0L)) && !any(vapply(list(c(0xff, 0xfe), c(0xfe, 0xff)), function(b) identical(z[1:2], as.raw(b)), TRUE))) break
+  }
+  writeBin(z, file.path(case("f-48-zlib-text-without-nul"), "a.txt"))
+  writeBin(c(as.raw(c(0x1f, 0x8b)), charToRaw("clean text")), file.path(case("f-49-gzip-header"), "a.txt"))
+  # A real gzip file: its header holds NUL bytes (bytes 4 to 9), so the NUL
+  # rule, which runs first, refuses it; f-49 tests the gzip-header rule.
+  con <- gzfile(file.path(case("f-50-gzip-file-nul-in-header"), "a.txt"), "w"); writeLines(c("x", A), con); close(con)
+  writeBin(c(as.raw(c(0x78, 0x01)), charToRaw("clean")), file.path(case("f-51-zlib-header-78-01"), "a.txt"))
+  put(case("f-52-zlib-header-78-5e-text-x-caret"), "a.txt", "x^2 is the square of x")
+  writeBin(c(as.raw(c(0x78, 0xda, 0x80)), charToRaw("clean")), file.path(case("f-53-zlib-header-78-da-valid-utf8"), "a.csv"))
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf, 0x78, 0x5e)), charToRaw("clean")), file.path(case("f-54-utf8-bom-then-zlib-header"), "a.json"))
+  writeBin(c(charToRaw("caf"), as.raw(0xe9), charToRaw(" au lait")), file.path(case("f-55-not-utf8-latin1"), "a.txt"))
+  writeBin(c(charToRaw("a,b\n1,"), as.raw(c(0xed, 0xa0, 0x80)), charToRaw("\n")), file.path(case("f-56-not-utf8-surrogate"), "a.csv"))
+  writeBin(c(charToRaw("{\"a\": \""), as.raw(c(0xc0, 0xaf)), charToRaw("\"}")), file.path(case("f-57-not-utf8-overlong"), "a.json"))
+  # The ends of the valid UTF-8 text that the zlib header 78 da refuses
+  # (review round 2): "x" and U+06BF, and a UTF-8 byte-order mark, "x", and
+  # U+0680. c-10 holds the characters next to them, which pass.
+  writeBin(c(as.raw(c(0x78, 0xda, 0xbf)), charToRaw(" clean text\n")), file.path(case("f-58-zlib-header-78-da-x-u06bf"), "a.txt"))
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf, 0x78, 0xda, 0x80)), charToRaw(" clean text\n")),
+           file.path(case("f-59-utf8-bom-then-x-u0680"), "a.csv"))
+  # A zlib stream of two stored deflate blocks that split the address at
+  # its "@" (review round 2): LEN 30 41 and NLEN cf be are valid UTF-8,
+  # and k is the first number that makes every byte of the Adler-32 one of
+  # 01 to 7f, so the stream is valid UTF-8 without a NUL byte. Under the
+  # header 78 01 (f-60) the zlib rule must refuse it; under 48 4b ("HK", a
+  # 4 KB window) it passes, the limit that the README's Safety section
+  # states (the "limit:" case below).
+  stored <- function(hdr) {
+    n <- 0x4130
+    at <- regexpr("@", A, fixed = TRUE)
+    for (k in 0:5000) {
+      p1 <- paste("note", k, "contact", substr(A, 1L, at - 1L))
+      d1 <- charToRaw(paste0(strrep(" ", n - nchar(p1)), p1))
+      p2 <- paste(substr(A, at, nchar(A)), "end")
+      d2 <- charToRaw(paste0(p2, strrep(" ", n - nchar(p2))))
+      v <- as.numeric(c(d1, d2))
+      a1 <- (1 + sum(v)) %% 65521
+      a2 <- (length(v) + sum(rev(seq_along(v)) * v)) %% 65521
+      ad <- c(a2 %/% 256, a2 %% 256, a1 %/% 256, a1 %% 256)
+      if (all(ad >= 1 & ad <= 127)) break
+    }
+    blk <- as.raw(c(0x30, 0x41, 0xcf, 0xbe))
+    c(as.raw(hdr), as.raw(0x20), blk, d1, as.raw(0x21), blk, d2, as.raw(ad))
+  }
+  zs <- list(`78 01` = stored(c(0x78, 0x01)), `48 4b` = stored(c(0x48, 0x4b)))
+  writeBin(zs[["78 01"]], file.path(case("f-60-stored-zlib-blocks-78-01"), "a.txt"))
+  # The valid zlib headers without a preset dictionary (RFC 1950: CM 8,
+  # CINFO 0 to 7, FDICT clear, CMF * 256 + FLG a multiple of 31) that the
+  # zlib rule leaves out and whose second byte is a UTF-8 continuation byte
+  # (80 to bf; review round 3). No valid UTF-8 text starts with one, so the
+  # UTF-8 rule must refuse each of the 7 files (the README's count, under
+  # "Safety").
+  zl <- expand.grid(cmf = as.integer(0x08 + 16 * (0:7)), flg = 0:255)
+  zl <- zl[bitwAnd(zl$flg, 0x20L) == 0L & (zl$cmf * 256L + zl$flg) %% 31L == 0L, ]
+  zl <- zl[!(zl$cmf == 0x78 & zl$flg %in% c(0x01, 0x5e, 0x9c, 0xda)) & zl$flg >= 0x80 & zl$flg <= 0xbf, ]
+  d <- case("f-61-zlib-headers-outside-the-rule-not-utf8")
+  for (k in seq_len(nrow(zl))) {
+    writeBin(c(as.raw(c(zl$cmf[[k]], zl$flg[[k]])), charToRaw(" clean text\n")),
+             file.path(d, sprintf("z%02x%02x.txt", zl$cmf[[k]], zl$flg[[k]])))
+  }
+  # A UTF-8 byte-order mark, then a gzip header (review round 3): the
+  # header rule reads past the mark, as f-54 and f-59 show for zlib
+  # headers. These bytes are not valid UTF-8 either (8b is a continuation
+  # byte), so only the message tells the two rules apart.
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf, 0x1f, 0x8b)), charToRaw("clean text\n")),
+           file.path(case("f-62-utf8-bom-then-gzip-header"), "a.txt"))
+  # The rule each of these must fail by (a part of its message); the other
+  # "f-" folders need only fail.
+  scan_rule <- c(`f-15-nul-byte` = "holds a NUL byte", `f-38-nul-byte-in-zlib-text` = "holds a NUL byte",
+                 `f-50-gzip-file-nul-in-header` = "holds a NUL byte",
+                 `f-48-zlib-text-without-nul` = "starts with a zlib header (78 9c)",
+                 `f-49-gzip-header` = "starts with a gzip header (1f 8b)",
+                 `f-51-zlib-header-78-01` = "starts with a zlib header (78 01)",
+                 `f-52-zlib-header-78-5e-text-x-caret` = "starts with a zlib header (78 5e)",
+                 `f-53-zlib-header-78-da-valid-utf8` = "starts with a zlib header (78 da)",
+                 `f-54-utf8-bom-then-zlib-header` = "starts with a zlib header (78 5e)",
+                 `f-55-not-utf8-latin1` = "is not valid UTF-8", `f-56-not-utf8-surrogate` = "is not valid UTF-8",
+                 `f-57-not-utf8-overlong` = "is not valid UTF-8",
+                 `f-58-zlib-header-78-da-x-u06bf` = "starts with a zlib header (78 da)",
+                 `f-59-utf8-bom-then-x-u0680` = "starts with a zlib header (78 da)",
+                 `f-60-stored-zlib-blocks-78-01` = "starts with a zlib header (78 01)",
+                 `f-61-zlib-headers-outside-the-rule-not-utf8` = "is not valid UTF-8",
+                 `f-62-utf8-bom-then-gzip-header` = "starts with a gzip header (1f 8b)")
+
+  # Each of these must pass.
+  put(case("c-01-plain"), "a.txt", c("pkgload@1.5.3", "cran::MASS@7.3-66", "x86_64-pc-linux-gnu",
+                                     "JUhalt/solomonR/.github/workflows/simulation-run.yaml@refs/heads/master",
+                                     "JUhalt/solomonR/.github/workflows/simulation-run.yaml@refs/pull/149/merge",
+                                     "a@b", "an at sign @ alone", "1.5e-05"))
+  e <- new.env(); eval(bquote(delayedAssign("q", writeLines("evaluated", .(marker)), assign.env = e)))
+  g <- function() 1; environment(g) <- e; saveRDS(g, file.path(case("c-02-promise-not-evaluated"), "a.rds"))
+  saveRDS(local({ dd <- data.frame(x = 1:20, y = (1:20)^1.1); stats::lm(y ~ x, data = dd) }),
+          file.path(case("c-03-lm-fit"), "a.rds"))
+  saveRDS(list(f = function(x) x + 1), file.path(case("c-04-closure-of-global"), "a.rds"))
+  d <- case("c-05-mixed")
+  saveRDS(list(f = function(x) x + 1, fo = y ~ x, df = data.frame(a = 1:3, b = letters[1:3]),
+               e = local({ z <- 1; environment() })), file.path(d, "b.rds"))
+  writeLines('["0001"]', file.path(d, "chunks.json"))
+  utils::write.csv(data.frame(a = 1), file.path(d, "c.csv"), row.names = FALSE)
+  # UTF-8 text with the characters the package prints (chi squared, Delta,
+  # the en dash, the double dagger, accented letters) and a 4-byte character.
+  d <- case("c-06-utf8-text")
+  put(d, "a.txt", c("\u03c7\u00b2(1) = 3.84, p = .05", "\u0394 = 0.2 \u2013 0.5, \u03b7\u00b2 = .01",
+                    "Note\u2021 caf\u00e9 \u00f8 \u017e \u0107", "\U0001F600 four bytes"))
+  put(d, "b.csv", c("\"label\",\"value\"", "\"\u03c7\u00b2\",3.84", "\"\u0394\u2013\",0.2"))
+  put(d, "c.json", "{\"label\": \"\u0394 \u2013 \u03b7\u00b2\"}")
+  d <- case("c-07-utf8-bom")
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf)), charToRaw("clean \u03c7\u00b2\n")), file.path(d, "a.txt"))
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf)), charToRaw("\"a\",\"b\"\n1,2\n")), file.path(d, "b.csv"))
+  d <- case("c-08-empty-files")
+  file.create(file.path(d, c("a.txt", "b.csv", "c.json")))
+  # Text that starts with "x", but not with a zlib header.
+  d <- case("c-09-text-starting-with-x")
+  put(d, "a.csv", c("x,y", "1,2"))
+  writeBin(charToRaw("x"), file.path(d, "b.txt"))
+  put(d, "c.json", "x")
+  # Valid UTF-8 text next to the starts that the zlib headers 78 01, 78 5e,
+  # and 78 da refuse (review round 2): "x" and U+0002, "x]", "x_", "x" and
+  # U+067F, and "x" and U+06C0. None of them is a zlib header.
+  d <- case("c-10-text-next-to-the-zlib-headers")
+  nxt <- list(a.txt = c(0x78, 0x02), b.txt = c(0x78, 0x5d), c.csv = c(0x78, 0x5f), d.txt = c(0x78, 0xd9, 0xbf),
+              e.json = c(0x78, 0xdb, 0x80))
+  for (fn in names(nxt)) writeBin(c(as.raw(nxt[[fn]]), charToRaw(" clean text\n")), file.path(d, fn))
+  # Text that starts with a valid zlib header that the scan does not refuse
+  # (review round 2): another window ("HK", "(S", "X" and a tab, "H" and a
+  # carriage return, "(" and chi), or a preset dictionary ("x "). The
+  # README states this limit and the reason.
+  d <- case("c-11-text-starting-with-other-zlib-headers")
+  put(d, "a.txt", c("HK clean text", "line 2"))
+  put(d, "b.txt", "(S clean text)")
+  put(d, "c.txt", c("X\tY", "1\t2"))
+  writeBin(charToRaw("H\r\n1\r\n"), file.path(d, "d.csv"))
+  put(d, "e.txt", "(\u03c7\u00b2 = 3.84)")
+  put(d, "f.json", "x y")
+
+  scan_out <- list()
+  for (d in sort(list.dirs(root, recursive = FALSE))) {
+    r <- run_r("scan-addresses.R", d)
+    got <- if (r$status == 0L) "pass" else "fail"
+    name <- basename(d)
+    scan_out[[name]] <- r$out
+    if (name %in% names(scan_rule) && got == "fail" && !any(grepl(scan_rule[[name]], r$out, fixed = TRUE))) {
+      got <- "fail, another rule"
+    }
+    record("scan", name, if (startsWith(name, "c-")) "pass" else "fail", got)
+  }
+  # f-61's folder fails if one file does; each of its 7 must.
+  record("scan", "f-61: each of the 7 files not valid UTF-8", "7 of 7",
+         sprintf("%d of %d", sum(grepl("is not valid UTF-8", scan_out[["f-61-zlib-headers-outside-the-rule-not-utf8"]],
+                                       fixed = TRUE)), nrow(zl)))
+  r <- run_r("scan-addresses.R", file.path(root, "no-such-folder"))
+  record("scan", "a missing path", "fail", if (r$status == 0L) "pass" else "fail")
+  r <- run_r("scan-addresses.R", c(file.path(root, "c-01-plain"), file.path(root, "no-such-file.txt")))
+  record("scan", "a clean folder and a missing file", "fail", if (r$status == 0L) "pass" else "fail")
+  record("scan", "no promise evaluated by any scan", "no", if (file.exists(marker)) "yes" else "no")
+  # The stored-block streams are what they are meant to be: valid UTF-8,
+  # no NUL byte, and memDecompress() gives text with the address.
+  built <- vapply(zs, function(b) {
+    txt <- tryCatch(rawToChar(memDecompress(b, type = "gzip")), error = function(e) "")
+    validUTF8(rawToChar(b)) && !any(b == as.raw(0L)) && grepl(A, txt, fixed = TRUE)
+  }, TRUE)
+  record("scan", "stored zlib blocks: valid UTF-8, no NUL, inflated address", "yes", if (all(built)) "yes" else "no")
+  # The limit (README, Safety): under 48 4b the scan does not refuse the
+  # stream. If it starts to, this case fails, and the README and the
+  # scanner's header must say so.
+  d <- file.path(work, "scan-limit", "zlib-48-4b")
+  dir.create(d, recursive = TRUE)
+  writeBin(zs[["48 4b"]], file.path(d, "a.txt"))
+  r <- run_r("scan-addresses.R", d)
+  record("scan", "limit: stored zlib blocks under 48 4b pass", "pass", if (r$status == 0L) "pass" else "fail")
+  # The text (review round 3): what the README and the scanner's header say
+  # of the scan's rules. These cases read phrases, not their truth; the
+  # cases above test the code. The "Safety" section and the header must
+  # say that the other zlib headers are "not in the zlib rule", and
+  # neither that they are "not refused": the UTF-8 rule refuses 7 of them
+  # (f-61). The gzip and zlib rule reads past a UTF-8 byte-order mark (f-54,
+  # f-59, f-62), and the scanner's row under "Files", the "Safety" section,
+  # and the header must say so where they name the rule.
+  local({
+    lines_of <- function(f) if (file.exists(f)) readLines(f, warn = FALSE) else character()
+    flat <- function(x) gsub("\\s+", " ", paste(x, collapse = " "))
+    readme <- lines_of(file.path(harness, "README.md"))
+    from <- match("## Safety", readme)
+    to <- if (is.na(from)) NA else from + match(TRUE, startsWith(readme[-seq_len(from)], "## "))
+    safety <- if (is.na(from)) "" else flat(readme[from:(if (is.na(to)) length(readme) else to - 1L)])
+    scanner <- lines_of(file.path(harness, "scan-addresses.R"))
+    header <- flat(sub("^#", "", scanner[seq_len(match(FALSE, startsWith(scanner, "#"), nomatch = length(scanner) + 1L) - 1L)]))
+    other <- function(x) grepl("zlib headers [^.]*are not in the zlib rule", x) && !grepl("zlib headers [^.]*are not refused", x)
+    record("scan", "text: other zlib headers \"not in the zlib rule\"", "yes",
+           if (other(safety) && other(header)) "yes" else "no")
+    bom <- "(after a UTF-8 byte-order mark, if it has one)"
+    row <- flat(readme[startsWith(readme, "| `scan-addresses.R` |")])
+    said <- c(grepl(paste("at its start", bom), row, fixed = TRUE),
+              grepl(paste("starts", bom, "with a gzip header"), safety, fixed = TRUE),
+              grepl(paste("starts", bom, "with `x^`"), safety, fixed = TRUE),
+              grepl(paste("starts", bom, "with a gzip header"), header, fixed = TRUE),
+              grepl(paste0("starts ", bom, " with \"x^\""), header, fixed = TRUE))
+    record("scan", "text: the gzip and zlib rule after a byte-order mark", "yes", if (all(said)) "yes" else "no")
+  })
+  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule, nxt, fn, stored, zs, built, zl, scan_out)
+}
+
+# ---- sizing: assign-chunks.R -------------------------------------------------
+
+if ("sizing" %in% groups) local({
+  n <- 0L
+  # A plan of one task; plan-info.csv as the contract writes it, with the
+  # study's allowance (NA leaves the item out, as in a plan of contract 2).
+  plan <- function(protocol, purpose, allowance, cost = "1") {
+    n <<- n + 1L
+    d <- file.path(work, "sizing", sprintf("p%02d", n))
+    h_write_csv(data.frame(task_id = "s0001-t0001", kind = "replications", scenario = "1", task = "1", rep_from = "1",
+                           rep_to = "1", seed = "1 2 3 4 5 6 7", rows_per_rep = "1", cost = cost),
+                file.path(d, "tasks.csv"))
+    info <- c(contract = "3", protocol = protocol, purpose = purpose)
+    if (!is.na(allowance)) info <- c(info, allowance = allowance)
+    h_write_kv(info, file.path(d, "plan-info.csv"))
+    d
+  }
+  # One task of cost 1 on 4 workers: the hours without the allowance are
+  # seconds per cost / 4 / 3600 (50400 is 3.5 hours, 25920 is 1.8, 21600 is 1.5).
+  cases <- list(
+    list("test run, allowance 1, 3.5 h", "FALSE", "test", "1", c("1", "50400", "4"), "warn"),
+    list("test run, allowance 1, 1.8 h", "FALSE", "test", "1", c("1", "25920", "4"), "pass"),
+    list("protocol study, allowance 1.3: 3.5 h x 1.3 = 4.55 h", "TRUE", "study", "1.3", c("1", "50400", "4"), "refuse"),
+    list("protocol study, allowance 1.3: 1.8 h x 1.3 = 2.34 h", "TRUE", "study", "1.3", c("1", "25920", "4"), "warn"),
+    list("protocol study, allowance 1.3: 1.5 h x 1.3 = 1.95 h", "TRUE", "study", "1.3", c("1", "21600", "4"), "pass"),
+    list("protocol study whose gate's allowance is 1, 3.5 h", "TRUE", "study", "1", c("1", "50400", "4"), "warn"),
+    list("test run, the plan's allowance 1.3, 3.5 h", "FALSE", "test", "1.3", c("1", "50400", "4"), "refuse"),
+    list("the plan's allowance 1.25, 3.5 h x 1.25 = 4.375 h", "FALSE", "test", "1.25", c("1", "50400", "4"), "refuse"),
+    list("the plan's allowance 0.9", "FALSE", "test", "0.9", c("1", "100", "4"), "refuse"),
+    list("the plan's allowance not a number", "FALSE", "test", "x", c("1", "100", "4"), "refuse"),
+    list("no allowance in plan-info.csv (contract 2)", "TRUE", "study", NA, c("1", "100", "4"), "refuse"),
+    list("no allowance in plan-info.csv, no seconds per cost", "FALSE", "test", NA, "1", "refuse"),
+    list("a fifth argument (the allowance is the plan's)", "FALSE", "test", "1", c("1", "100", "4", "1"), "refuse"),
+    list("protocol study, seconds per cost 1.2e-05", "TRUE", "study", "1.3", c("1", "1.2e-05", "4"), "pass"),
+    list("study, seconds per cost 0", "TRUE", "study", "1.3", c("1", "0", "4"), "refuse"),
+    list("study, seconds per cost 1e-400 (R reads 0)", "TRUE", "study", "1.3", c("1", "1e-400", "4"), "refuse"),
+    list("study, seconds per cost 1e400 (R reads Inf)", "TRUE", "study", "1.3", c("1", "1e400", "4"), "refuse"),
+    list("test run, seconds per cost 1e400", "FALSE", "test", "1", c("1", "1e400", "4"), "refuse"),
+    list("test run, seconds per cost 0", "FALSE", "test", "1", c("1", "0", "4"), "unchecked"),
+    list("gate, seconds per cost 0", "TRUE", "gate", "1.3", c("1", "0", "4"), "unchecked"),
+    list("study, no seconds per cost (as run-local.R)", "TRUE", "study", "1.3", "1", "unchecked"),
+    list("0 chunks", "FALSE", "test", "1", "0", "refuse"),
+    list("257 chunks", "FALSE", "test", "1", "257", "refuse"))
+  for (cs in cases) {
+    r <- run_r("assign-chunks.R", c(plan(cs[[2]], cs[[3]], cs[[4]]), cs[[5]]))
+    got <- if (r$status != 0L) "refuse" else if (any(grepl("::warning::", r$out))) "warn" else
+      if (any(grepl("not checked", r$out))) "unchecked" else "pass"
+    record("sizing", cs[[1]], cs[[6]], got, last_line(r$out))
+  }
+  r <- run_r("assign-chunks.R", c(plan("FALSE", "test", "1", cost = "0"), "1"))
+  record("sizing", "a task cost of 0", "refuse", if (r$status != 0L) "refuse" else "pass", last_line(r$out))
+  # Whole numbers in digits, and seconds per cost in the workflow's form
+  # (follow-up 4), by the script's own message and without an R warning.
+  chunks_msg <- "The number of chunks must be a whole number from 1 to 256"
+  workers_msg <- "The workers per chunk must be a whole number"
+  number_cases <- list(
+    list("2.5 chunks, which as.integer() reads as 2", "2.5", chunks_msg),
+    list("1e2 chunks, which as.integer() reads as 100", "1e2", chunks_msg),
+    list("010 chunks, a leading zero", "010", paste0(chunks_msg, ", in digits without a leading zero")),
+    list("99999999999 chunks, beyond R's integers", "99999999999", chunks_msg),
+    list("workers 2.5", c("1", "100", "2.5"), workers_msg),
+    list("workers 0", c("1", "100", "0"), workers_msg),
+    list("workers 04, a leading zero", c("1", "100", "04"), "in digits without a leading zero"),
+    list("workers 99999999999", c("1", "100", "99999999999"), workers_msg),
+    # White space around the digits (review round 1).
+    list("\" 2\" chunks, a space before the digits", " 2", chunks_msg),
+    list("workers \"4 \", a space after the digits", c("1", "100", "4 "), workers_msg),
+    list("seconds per cost 0x10, which as.numeric() reads as 16", c("1", "0x10", "4"),
+         "The seconds per cost must be a number in digits"))
+  for (cs in number_cases) {
+    r <- run_r("assign-chunks.R", c(plan("FALSE", "test", "1"), cs[[2]]))
+    record("sizing", cs[[1]], "refuse", refusal(r, cs[[3]]), last_line(r$out))
+  }
+  # chunk-loads.csv: the hours without and with the plan's allowance.
+  d <- plan("TRUE", "study", "1.3")
+  r <- run_r("assign-chunks.R", c(d, "1", "21600", "4"))
+  loads <- if (file.exists(file.path(d, "chunk-loads.csv"))) h_read_csv(file.path(d, "chunk-loads.csv")) else NULL
+  ok <- !is.null(loads) && all(c("expected_hours", "allowance", "with_allowance") %in% names(loads)) &&
+    identical(loads$allowance, "1.3") && abs(as.numeric(loads$with_allowance) - 1.95) < 1e-9 &&
+    abs(as.numeric(loads$expected_hours) - 1.5) < 1e-9
+  record("sizing", "chunk-loads.csv: 1.5 h, allowance 1.3, 1.95 h", "yes", if (ok) "yes" else "no", last_line(r$out))
+})
+
+# ---- inputs: the workflow's "Check the inputs" step --------------------------
+
+if ("inputs" %in% groups) local({
+  bash <- if (nzchar(opts$bash)) opts$bash else unname(Sys.which("bash"))
+  # On Windows, System32's bash.exe starts WSL, not a bash of this machine.
+  if (!nzchar(bash) || grepl("system32", bash, ignore.case = TRUE)) return(skip("inputs", "no bash (give --bash PATH)"))
+  wf <- file.path(dirname(dirname(harness)), ".github", "workflows", "simulation-run.yaml")
+  if (!file.exists(wf)) return(skip("inputs", paste("no workflow file at", wf)))
+  y <- sub("\r$", "", readLines(wf, warn = FALSE))
+  indent <- function(x) nchar(sub("^( *).*$", "\\1", x))
+  start <- grep("^ *- name: Check the inputs *$", y)
+  if (length(start) != 1L) h_fail("The workflow has no single step \"Check the inputs\".")
+  at <- start + which(grepl("^ *run: [|] *$", y[-seq_len(start)]))[[1]]
+  body <- character()
+  for (k in seq(at + 1L, length(y))) {
+    if (nzchar(trimws(y[[k]])) && indent(y[[k]]) <= indent(y[[at]])) break
+    body <- c(body, y[[k]])
+  }
+  body <- substring(body, min(indent(body[nzchar(trimws(body))])) + 1L)
+  dir.create(file.path(work, "inputs"), recursive = TRUE)
+  step <- file.path(work, "inputs", "check-the-inputs.sh")
+  con <- file(step, open = "wb"); writeLines(body, con, sep = "\n"); close(con)
+  base <- c(SIM_STUDY = "smoke", SIM_PACKAGE_SHA = "e13e8bbd9bbcb9408afd267bd633fb4ab4a09fe5", SIM_CHUNKS = "3",
+            SIM_REPS = "20", SIM_SMOKE = "true", SIM_STAGE = "run", SIM_COST_SECONDS = "0", SIM_FAIL_ONCE = "false",
+            SIM_SCENARIOS = "all", SIM_TASK_SIZE = "", GITHUB_REF = "refs/heads/master",
+            GITHUB_OUTPUT = file.path(work, "inputs", "output.txt"), GITHUB_ENV = file.path(work, "inputs", "env.txt"))
+  study <- c(SIM_SMOKE = "false", SIM_STAGE = "run")
+  cases <- list(
+    list("smoke, the defaults", c(), "accept"),
+    list("smoke, reps 2", c(SIM_REPS = "2"), "accept"),
+    list("smoke, reps 0", c(SIM_REPS = "0"), "refuse"),
+    list("smoke, reps 21", c(SIM_REPS = "21"), "refuse"),
+    list("chunks 1", c(SIM_CHUNKS = "1"), "accept"),
+    list("chunks 0", c(SIM_CHUNKS = "0"), "refuse"),
+    list("chunks 257", c(SIM_CHUNKS = "257"), "refuse"),
+    list("chunks 2.5", c(SIM_CHUNKS = "2.5"), "refuse"),
+    list("study key with a capital letter", c(SIM_STUDY = "Smoke"), "refuse"),
+    list("package_sha of 7 characters", c(SIM_PACKAGE_SHA = "e13e8bb"), "refuse"),
+    list("study, cost_seconds 0.00001234567891", c(study, SIM_COST_SECONDS = "0.00001234567891"), "accept"),
+    list("study, cost_seconds 1.2e-05", c(study, SIM_COST_SECONDS = "1.2e-05"), "accept"),
+    list("study, cost_seconds 1E5", c(study, SIM_COST_SECONDS = "1E5"), "accept"),
+    list("study, cost_seconds 1e-400 (assign-chunks.R refuses it)", c(study, SIM_COST_SECONDS = "1e-400"), "accept"),
+    list("study, cost_seconds 0e5", c(study, SIM_COST_SECONDS = "0e5"), "refuse"),
+    list("study, cost_seconds 0", c(study, SIM_COST_SECONDS = "0"), "refuse"),
+    list("study, cost_seconds 0.0", c(study, SIM_COST_SECONDS = "0.0"), "refuse"),
+    list("study, cost_seconds abc", c(study, SIM_COST_SECONDS = "abc"), "refuse"),
+    list("study, cost_seconds 1e", c(study, SIM_COST_SECONDS = "1e"), "refuse"),
+    list("study from a branch", c(study, SIM_COST_SECONDS = "1", GITHUB_REF = "refs/heads/feature"), "refuse"),
+    list("gate, cost_seconds 0", c(SIM_SMOKE = "false", SIM_STAGE = "gate"), "accept"),
+    list("fail_once in a gate run", c(SIM_SMOKE = "false", SIM_STAGE = "gate", SIM_FAIL_ONCE = "true"), "refuse"),
+    # The plan options (scenarios, task_size).
+    list("smoke, scenarios fallback", c(SIM_SCENARIOS = "fallback"), "accept"),
+    list("study, scenarios fallback", c(study, SIM_COST_SECONDS = "1", SIM_SCENARIOS = "fallback"), "accept"),
+    list("gate, scenarios fallback", c(SIM_SMOKE = "false", SIM_STAGE = "gate", SIM_SCENARIOS = "fallback"), "refuse"),
+    list("smoke gate, scenarios fallback", c(SIM_STAGE = "gate", SIM_SCENARIOS = "fallback"), "refuse"),
+    list("scenarios uniform (not all or fallback)", c(SIM_SCENARIOS = "uniform"), "refuse"),
+    list("scenarios \"1 3\" (a list is for run-local.R)", c(SIM_SCENARIOS = "1 3"), "refuse"),
+    list("smoke, task_size 5", c(SIM_TASK_SIZE = "5"), "accept"),
+    list("smoke, task_size 5 and scenarios fallback", c(SIM_TASK_SIZE = "5", SIM_SCENARIOS = "fallback"), "accept"),
+    list("study, task_size 5", c(study, SIM_COST_SECONDS = "1", SIM_TASK_SIZE = "5"), "refuse"),
+    list("gate, task_size 5", c(SIM_SMOKE = "false", SIM_STAGE = "gate", SIM_TASK_SIZE = "5"), "refuse"),
+    list("smoke gate, task_size 5", c(SIM_STAGE = "gate", SIM_TASK_SIZE = "5"), "refuse"),
+    list("smoke, task_size 0", c(SIM_TASK_SIZE = "0"), "refuse"),
+    list("smoke, task_size 2.5", c(SIM_TASK_SIZE = "2.5"), "refuse"),
+    list("smoke, task_size abc", c(SIM_TASK_SIZE = "abc"), "refuse"),
+    list("smoke, task_size 99999999999 (the contract refuses it)", c(SIM_TASK_SIZE = "99999999999"), "accept"),
+    list("smoke, task_size 05, a leading zero", c(SIM_TASK_SIZE = "05"), "refuse",
+         "task_size must be a whole number of at least 1, without a leading zero"),
+    # Numbers bash's arithmetic would misread (follow-up 4), refused by the
+    # step's own message: it wraps beyond 64 bits and reads a leading 0 as
+    # octal.
+    list("chunks 18446744073709551619 (2^64 + 3, bash reads 3)", c(SIM_CHUNKS = "18446744073709551619"), "refuse",
+         "chunks must be a whole number from 1 to 256"),
+    list("chunks 010 (bash reads 8)", c(SIM_CHUNKS = "010"), "refuse",
+         "chunks must be a whole number from 1 to 256, without a leading zero"),
+    list("chunks 256", c(SIM_CHUNKS = "256"), "accept"),
+    list("smoke, reps 18446744073709551626 (2^64 + 10, bash reads 10)", c(SIM_REPS = "18446744073709551626"), "refuse",
+         "A smoke run has 2 to 20 replications"),
+    list("smoke, reps 020 (bash reads 16)", c(SIM_REPS = "020"), "refuse", "reps must be a whole number"),
+    list("smoke, reps 09 (not octal to bash)", c(SIM_REPS = "09"), "refuse", "reps must be a whole number"),
+    list("study, reps 0", c(study, SIM_COST_SECONDS = "1", SIM_REPS = "0"), "refuse", "reps must be a whole number"),
+    list("study, reps 99999999999 (the contract refuses it)", c(study, SIM_COST_SECONDS = "1", SIM_REPS = "99999999999"),
+         "accept"))
+  for (cs in cases) {
+    vars <- base
+    vars[names(cs[[2]])] <- cs[[2]]
+    out <- with_env(vars, suppressWarnings(system2(bash, shQuote(step), stdout = TRUE, stderr = TRUE)))
+    status <- if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status"))
+    # With a fourth element, "refuse" only by that message.
+    got <- if (length(cs) >= 4L) refusal(list(status = status, out = out), cs[[4]]) else if (status == 0L) "accept" else "refuse"
+    record("inputs", cs[[1]], cs[[3]], got, last_line(out))
+  }
+})
+
+# ---- contract: contract.R on a synthetic study --------------------------------
+
+if ("contract" %in% groups) local({
+  root <- file.path(work, "contract")
+  dir.create(root, recursive = TRUE)
+  # A package folder: DESCRIPTION (name and version only), the contract
+  # under test, the synthetic study, and the file it sources.
+  pkg <- function(name, crlf = FALSE) {
+    d <- file.path(root, name)
+    dir.create(file.path(d, "tools", "sim"), recursive = TRUE)
+    dir.create(file.path(d, "lib"))
+    h_write_lines(c("Package: harnesstest", "Version: 1.0"), file.path(d, "DESCRIPTION"))
+    file.copy(file.path(harness, "contract.R"), file.path(d, "tools", "sim", "contract.R"))
+    file.copy(file.path(harness, "tests", "synthetic-study.R"), file.path(d, "study.R"))
+    con <- file(file.path(d, "lib", "helper.R"), open = "wb")
+    writeLines(c("# Sourced by the synthetic study.", "helper_value <- function() 1"), con,
+               sep = if (crlf) "\r\n" else "\n")
+    close(con)
+    normalizePath(d, winslash = "/")
+  }
+  # The study script in a new R process, from the package folder, with only
+  # the given settings; git finds no repository unless `git` is TRUE.
+  run_study <- function(d, set, git = FALSE) {
+    if (!git) set <- c(set, GIT_DIR = file.path(work, "no-repository-here"))
+    run_from(d, file.path(d, "study.R"), set = set)
+  }
+  plan_vars <- function(plan_dir, purpose = "test", design = "run", reps = "4", ...) {
+    c(SOLOMONR_SIM_STAGE = "plan", SOLOMONR_SIM_PURPOSE = purpose, SOLOMONR_SIM_DESIGN = design,
+      SOLOMONR_SIM_REPS = reps, SOLOMONR_SIM_PLAN = plan_dir, ...)
+  }
+  verify_vars <- function(plan_dir) c(SOLOMONR_SIM_PLAN = plan_dir, HARNESS_TEST_VERIFY = "1")
+  outcome <- function(r) if (r$status == 0L) "accept" else "refuse"
+  item <- function(kv, name) if (name %in% names(kv)) kv[[name]] else NA_character_
+  read_info <- function(plan_dir) {
+    f <- file.path(plan_dir, "plan-info.csv")
+    if (file.exists(f)) h_read_kv(f) else character()
+  }
+  yes <- function(ok) if (isTRUE(ok)) "yes" else "no"
+
+  # The SHA-256 of the files the study sources (study$files), in the plan.
+  p <- pkg("p")
+  helper <- file.path(p, "lib", "helper.R")
+  want <- paste0("lib/helper.R=", unname(tools::sha256sum(helper)))
+  r <- run_study(p, plan_vars(file.path(p, "plan")))
+  record("contract", "plan: files_sha256 is lib/helper.R=<its SHA-256>", "yes",
+         yes(identical(item(read_info(file.path(p, "plan")), "files_sha256"), want)), last_line(r$out))
+  q <- pkg("p-crlf", crlf = TRUE)
+  r <- run_study(q, plan_vars(file.path(q, "plan")))
+  record("contract", "plan: the same SHA-256 with CRLF line ends", "yes",
+         yes(identical(item(read_info(file.path(q, "plan")), "files_sha256"), want)), last_line(r$out))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-missing")), HARNESS_TEST_VARIANT = "missing-file"))
+  record("contract", "plan: study$files names a file that does not exist", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-repeated")), HARNESS_TEST_VARIANT = "repeated-file"))
+  record("contract", "plan: study$files lists a path twice", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(p, verify_vars(file.path(p, "plan")))
+  record("contract", "verify: the plan, nothing changed", "accept", outcome(r), last_line(r$out))
+  # A sourced file that differs from the plan's, as on a chunk or merge
+  # machine whose checkout is not the plan's.
+  kept <- readBin(helper, "raw", file.size(helper))
+  cat("# changed after the plan\n", file = helper, append = TRUE)
+  r <- run_study(p, verify_vars(file.path(p, "plan")))
+  record("contract", "verify: the sourced file changed after the plan", "refuse", outcome(r), last_line(r$out))
+  writeBin(kept, helper)
+
+  # Job sizes: task 1 of a scenario carries the cost of its agreement checks
+  # (study$agreement_cost(s) = 3 n, with cost(s, reps) = reps n, tasks of 2),
+  # and the plan records the allowance of the study's gate.
+  tasks <- if (file.exists(file.path(p, "plan", "tasks.csv"))) h_read_csv(file.path(p, "plan", "tasks.csv")) else NULL
+  got <- if (is.null(tasks)) NA else tasks$cost[match(c("s0001-t0001", "s0001-t0002", "s0002-t0001", "s0002-t0002"),
+                                                    tasks$task_id)]
+  record("contract", "plan: task 1 costs 2n + 3n, task 2 costs 2n", "yes",
+         yes(identical(got, c("50", "20", "100", "40"))), paste(got, collapse = " "))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-negative")), HARNESS_TEST_VARIANT = "negative-agreement-cost"))
+  record("contract", "plan: study$agreement_cost() gives -1", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-not-function")), HARNESS_TEST_VARIANT = "agreement-cost-not-a-function"))
+  record("contract", "plan: study$agreement_cost is not a function", "refuse", outcome(r), last_line(r$out))
+  record("contract", "plan: allowance is the gate's, 1.25", "yes",
+         yes(identical(item(read_info(file.path(p, "plan")), "allowance"), "1.25")), "")
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-no-gate")), HARNESS_TEST_VARIANT = "no-gate"))
+  record("contract", "plan: allowance 1 for a study without a gate", "yes",
+         yes(identical(item(read_info(file.path(p, "plan-no-gate")), "allowance"), "1")), last_line(r$out))
+
+  # The gate's seconds per unit of cost, on timings made up here: tasks of
+  # 2 replications at 1e-5 s per unit of replication cost, and agreement
+  # checks in task 1 at 0.2 s per unit of agreement cost.
+  k <- new.env()
+  sys.source(file.path(harness, "contract.R"), envir = k)
+  sc <- data.frame(scenario = 1:2, n = c(10L, 20L))
+  t0 <- as.POSIXct("2026-11-01 00:00:00", tz = "UTC")
+  times <- data.frame(task_id = c("s0001-t0001", "s0001-t0002", "s0002-t0001", "s0002-t0002"),
+                      scenario = c(1L, 1L, 2L, 2L), reps = 2L, started = k$sim_utc(t0 + 0:3),
+                      finished = k$sim_utc(t0 + 1:4), job_started = k$sim_utc(t0),
+                      replication_seconds = c(2, 2, 4, 4) * 1e-4, agreement_seconds = c(6, 0, 12, 0),
+                      cost = c(20 + 30, 20, 40 + 60, 40), stringsAsFactors = FALSE)
+  times$elapsed <- times$replication_seconds + times$agreement_seconds
+  times$cpu <- times$elapsed
+  gate <- list(reps = 4L, task_size = 2L, ladder = c(8L, 4L), divisor = 1, cap_hours = 1, allowance = 1.25,
+               warmup_minutes = 0)
+  # An item of gate-summary.csv as text ("NA" for a missing value, "absent"
+  # without the item).
+  value <- function(study, tm, name) {
+    s <- tryCatch(k$sim_gate_default(study, tm, sc, c(purpose = "test"))$`gate-summary`, error = function(e) NULL)
+    if (is.null(s) || !name %in% s$item) return("absent")
+    x <- s$value[s$item == name]
+    if (is.na(x)) "NA" else x
+  }
+  v <- value(list(gate = gate, agreement_cost = function(s) 3 * s$n), times, "seconds_per_cost")
+  num <- function(x) suppressWarnings(as.numeric(x))
+  record("contract", "gate: seconds per cost from replications alone", "yes",
+         yes(!grepl("e", v, ignore.case = TRUE) && isTRUE(abs(num(v) - 1e-5) < 1e-15)), v)
+  v <- value(list(gate = gate, agreement_cost = function(s) 3 * s$n), times, "agreement_seconds_per_cost")
+  record("contract", "gate: agreement seconds per agreement cost, 0.2", "yes",
+         yes(isTRUE(abs(num(v) - 0.2) < 1e-12)), v)
+  # Without agreement_cost, the cost has no agreement part: worker seconds
+  # over cost, (18 + 12e-4) / 120, and no agreement_seconds_per_cost.
+  plain <- times
+  plain$cost <- c(20, 20, 40, 40)
+  v <- value(list(gate = gate), plain, "seconds_per_cost")
+  w <- value(list(gate = gate), plain, "agreement_seconds_per_cost")
+  record("contract", "gate without agreement_cost: worker seconds per cost", "yes",
+         yes(isTRUE(abs(num(v) - (18 + 12e-4) / 120) < 1e-12) && identical(w, "NA")), paste(v, w))
+
+  # Scenario subsets (SOLOMONR_SIM_SUBSET). The study's fallback keeps the
+  # odd scenarios; a subset keeps the full table's streams.
+  plan_tasks <- function(plan_dir) {
+    f <- file.path(plan_dir, "tasks.csv")
+    if (file.exists(f)) h_read_csv(f) else NULL
+  }
+  full <- plan_tasks(file.path(p, "plan"))
+  subset_plan <- function(name, value, purpose = "test", design = "run", ...) {
+    run_study(p, c(plan_vars(file.path(p, name), purpose = purpose, design = design, ...), SOLOMONR_SIM_SUBSET = value))
+  }
+  r <- subset_plan("plan-fallback", "fallback")
+  fb <- plan_tasks(file.path(p, "plan-fallback"))
+  info <- read_info(file.path(p, "plan-fallback"))
+  record("contract", "plan: subset fallback keeps scenarios 1, 3, 5", "yes",
+         yes(!is.null(fb) && identical(sort(unique(fb$scenario)), c("1", "3", "5")) &&
+               identical(item(info, "subset"), "1 3 5") && identical(item(info, "n_scenarios"), "3")),
+         last_line(r$out))
+  ref <- if (is.null(full)) NULL else full[full$scenario %in% c("1", "3", "5"), , drop = FALSE]
+  if (!is.null(ref)) rownames(ref) <- NULL
+  record("contract", "plan: the fallback's tasks are the full table's rows", "yes",
+         yes(!is.null(fb) && nrow(fb) == 6L && identical(fb, ref)), "")
+  r <- subset_plan("plan-all", "all")
+  record("contract", "plan: subset all", "yes", yes(identical(nrow(plan_tasks(file.path(p, "plan-all"))), 12L)),
+         last_line(r$out))
+  r <- subset_plan("plan-uniform", "uniform")
+  record("contract", "plan: a subset name other than fallback (uniform)", "refuse", outcome(r), last_line(r$out))
+  r <- subset_plan("plan-gate-design", "fallback", design = "gate")
+  record("contract", "plan: fallback in a test of the gate's design", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(p, c(plan_vars(file.path(p, "plan-no-fallback")), SOLOMONR_SIM_SUBSET = "fallback",
+                      HARNESS_TEST_VARIANT = "no-gate"))
+  record("contract", "plan: fallback of a study without one", "refuse", outcome(r), last_line(r$out))
+  r <- subset_plan("plan-list", "2, 4")
+  lt <- plan_tasks(file.path(p, "plan-list"))
+  record("contract", "plan: a test's list \"2, 4\"", "yes",
+         yes(!is.null(lt) && identical(sort(unique(lt$scenario)), c("2", "4"))), last_line(r$out))
+  r <- subset_plan("plan-list-9", "2 9")
+  record("contract", "plan: a list with a scenario not in the table", "refuse", outcome(r), last_line(r$out))
+  r <- subset_plan("plan-list-frac", "2.5")
+  record("contract", "plan: a list with 2.5", "refuse", outcome(r), last_line(r$out))
+  r <- subset_plan("plan-list-twice", "2 2")
+  record("contract", "plan: a list with a scenario twice", "refuse", outcome(r), last_line(r$out))
+  # A number of digits beyond R's integers: NA to as.integer().
+  r <- subset_plan("plan-list-huge", "2 99999999999")
+  record("contract", "plan: a list with 99999999999, beyond R's integers", "refuse",
+         refusal(r, "SOLOMONR_SIM_SUBSET must be"), last_line(r$out))
+
+  # A test's own task size (SOLOMONR_SIM_TASK_SIZE).
+  size_plan <- function(name, value, purpose = "test", design = "run") {
+    run_study(p, c(plan_vars(file.path(p, name), purpose = purpose, design = design), SOLOMONR_SIM_TASK_SIZE = value))
+  }
+  r <- size_plan("plan-size-1", "1")
+  st <- plan_tasks(file.path(p, "plan-size-1"))
+  info <- read_info(file.path(p, "plan-size-1"))
+  record("contract", "plan: a test's task size 1, 4 tasks per scenario", "yes",
+         yes(!is.null(st) && nrow(st) == 24L && identical(item(info, "task_size"), "1") &&
+               identical(st$seed[st$task_id == "s0003-t0002"], full$seed[full$task_id == "s0003-t0002"])),
+         last_line(r$out))
+  r <- run_study(p, verify_vars(file.path(p, "plan-size-1")))
+  record("contract", "verify: a plan with its own task size", "accept", outcome(r), last_line(r$out))
+  r <- run_study(p, verify_vars(file.path(p, "plan-fallback")))
+  record("contract", "verify: a plan of the fallback", "accept", outcome(r), last_line(r$out))
+  # 2147483648 and 99999999999 fit the pattern of digits but not R's
+  # integers: as.integer() alone gives NA, and the plan would stop with an
+  # R error further on. 2147483647 is the largest task size (one task per
+  # scenario).
+  for (cs in list(list("0", "plan: task size 0"), list("2.5", "plan: task size 2.5"), list("x", "plan: task size x"),
+                  list("2147483648", "plan: task size 2147483648, one above R's integers"),
+                  list("99999999999", "plan: task size 99999999999, beyond R's integers"))) {
+    r <- size_plan(paste0("plan-size-", cs[[1]]), cs[[1]])
+    record("contract", cs[[2]], "refuse", refusal(r, "The task size must be a whole number"), last_line(r$out))
+  }
+  r <- size_plan("plan-size-max", "2147483647")
+  st <- plan_tasks(file.path(p, "plan-size-max"))
+  record("contract", "plan: task size 2147483647, 1 task per scenario", "yes",
+         yes(!is.null(st) && nrow(st) == 6L && all(st$rep_to == "4") &&
+               identical(item(read_info(file.path(p, "plan-size-max")), "task_size"), "2147483647")),
+         last_line(r$out))
+  r <- size_plan("plan-size-gate-design", "1", design = "gate")
+  record("contract", "plan: a task size in a test of the gate's design", "refuse", outcome(r), last_line(r$out))
+
+  # The other whole numbers the contract reads (follow-up 4), by its own
+  # message and without an R warning: the replications, the workers, the
+  # smoke mode's replications, a plan's recorded reps and subset, and the
+  # study's seeds and sizes.
+  for (cs in list(list("0", "plan: reps 0"), list("2.5", "plan: reps 2.5, which as.integer() reads as 2"),
+                  list("1e1", "plan: reps 1e1, which as.integer() reads as 10"), list("x", "plan: reps x"),
+                  list("2147483648", "plan: reps 2147483648, one above R's integers"),
+                  list("99999999999", "plan: reps 99999999999, beyond R's integers"))) {
+    r <- run_study(p, plan_vars(file.path(p, paste0("plan-reps-", cs[[1]])), reps = cs[[1]]))
+    record("contract", cs[[2]], "refuse", refusal(r, "The number of replications must be a whole number"), last_line(r$out))
+  }
+  # White space around the digits (review round 1): the pattern alone
+  # decides, as the contract's header says.
+  for (cs in list(list("space-before", " 4", "plan: reps \" 4\", a space before the digits"),
+                  list("space-after", "4 ", "plan: reps \"4 \", a space after the digits"))) {
+    r <- run_study(p, plan_vars(file.path(p, paste0("plan-reps-", cs[[1]])), reps = cs[[2]]))
+    record("contract", cs[[3]], "refuse", refusal(r, "The number of replications must be a whole number"), last_line(r$out))
+  }
+  r <- size_plan("plan-size-space-before", " 2")
+  record("contract", "plan: task size \" 2\", a space before the digits", "refuse",
+         refusal(r, "The task size must be a whole number"), last_line(r$out))
+  tamper <- function(name, from, item, value) {
+    d <- file.path(p, name)
+    dir.create(d)
+    file.copy(list.files(file.path(p, from), full.names = TRUE), d)
+    kv <- h_read_kv(file.path(d, "plan-info.csv"))
+    kv[[item]] <- value
+    h_write_kv(kv, file.path(d, "plan-info.csv"))
+    d
+  }
+  r <- run_study(p, verify_vars(tamper("plan-tampered-reps", "plan", "reps", "99999999999")))
+  record("contract", "verify: a plan whose reps is 99999999999", "refuse",
+         refusal(r, "The number of replications must be a whole number"), last_line(r$out))
+  r <- run_study(p, verify_vars(tamper("plan-tampered-subset", "plan-fallback", "subset", "1 3 99999999999")))
+  record("contract", "verify: a plan whose subset holds 99999999999", "refuse",
+         refusal(r, "The plan's subset must be scenario numbers"), last_line(r$out))
+  # A leading zero (review round 1): the message says what is wrong with a
+  # value that is within the range, by the whole message.
+  lead0 <- "in digits without a leading zero"
+  r <- run_study(p, plan_vars(file.path(p, "plan-reps-leading-zero"), reps = "020"))
+  record("contract", "plan: reps 020, a leading zero", "refuse",
+         refusal(r, paste0("The number of replications must be a whole number from 1 to 2147483647, ", lead0, ".")),
+         last_line(r$out))
+  r <- size_plan("plan-size-leading-zero", "02")
+  record("contract", "plan: task size 02, a leading zero", "refuse",
+         refusal(r, paste0("The task size must be a whole number from 1 to 2147483647, ", lead0, ".")), last_line(r$out))
+  r <- subset_plan("plan-list-leading-zero", "2 04")
+  record("contract", "plan: a list with 04, a leading zero", "refuse",
+         refusal(r, paste0("distinct scenario numbers of the table, ", lead0, ".")), last_line(r$out))
+  r <- run_study(p, verify_vars(tamper("plan-tampered-subset-zero", "plan-fallback", "subset", "1 03 5")))
+  record("contract", "verify: a plan whose subset holds 03", "refuse",
+         refusal(r, paste0("The plan's subset must be scenario numbers from 1 to 2147483647, ", lead0, ", separated by spaces.")),
+         last_line(r$out))
+  # The run stage with no task to run: the workers are read first, and no
+  # package is loaded and no worker started.
+  no_tasks <- file.path(root, "no-tasks.txt")
+  file.create(no_tasks)
+  run_vars <- function(workers) {
+    c(SOLOMONR_SIM_STAGE = "run", SOLOMONR_SIM_PLAN = file.path(p, "plan"), SOLOMONR_SIM_TASKS = no_tasks,
+      SOLOMONR_SIM_OUT = file.path(root, paste0("run-workers-", workers)), SOLOMONR_SIM_WORKERS = workers)
+  }
+  r <- run_study(p, run_vars("0"))
+  record("contract", "run: workers 0, no tasks", "accept", outcome(r), last_line(r$out))
+  for (w in c("2.5", "-1", "x", "99999999999")) {
+    r <- run_study(p, run_vars(w))
+    record("contract", paste("run: workers", w), "refuse", refusal(r, "SOLOMONR_SIM_WORKERS must be a whole number"),
+           last_line(r$out))
+  }
+  r <- run_study(p, run_vars("01"))
+  record("contract", "run: workers 01, a leading zero", "refuse",
+         refusal(r, paste0("SOLOMONR_SIM_WORKERS must be a whole number from 0 to 2147483647, ", lead0, ".")),
+         last_line(r$out))
+  for (v in c("2.5", "99999999999")) {
+    r <- run_study(p, c(SOLOMONR_SMOKE_DIR = file.path(root, paste0("smoke-", v)), SOLOMONR_SMOKE_REPS = v))
+    record("contract", paste("smoke mode: SOLOMONR_SMOKE_REPS", v), "refuse",
+           refusal(r, "The number of replications must be a whole number"), last_line(r$out))
+  }
+  seeds_msg <- "The base seeds of study, gate, and test must be whole numbers"
+  for (cs in list(list("seed-beyond-integers", "study: a test seed of 3e9, beyond R's integers", seeds_msg),
+                  list("seed-fraction", "study: a test seed of 13.5", seeds_msg),
+                  list("gate-seed-at-max", "study: a gate seed of 2147483647 (the gate orders with seed + 1)", seeds_msg),
+                  list("task-size-fraction", "study: task_size 2.5", "`study$task_size` must be a whole number"),
+                  list("gate-reps-beyond", "study: gate reps 3e9",
+                       "`study$gate$reps` and `study$gate$task_size` must be whole numbers"))) {
+    r <- run_study(p, c(plan_vars(file.path(p, paste0("plan-", cs[[1]]))), HARNESS_TEST_VARIANT = cs[[1]]))
+    record("contract", cs[[2]], "refuse", refusal(r, cs[[3]]), last_line(r$out))
+  }
+
+  # A gate needs a clean checkout, the sourced files included.
+  git <- unname(Sys.which("git"))
+  if (!nzchar(git)) return(skip("contract", "no git on the PATH: the clean-checkout cases"))
+  g <- pkg("p-git")
+  git_c <- function(...) {
+    out <- suppressWarnings(system2(git, c("-C", shQuote(g), ...), stdout = TRUE, stderr = TRUE))
+    if (!is.null(attr(out, "status")) && attr(out, "status") != 0L) h_fail("git failed: ", paste(out, collapse = " "))
+  }
+  commit <- function(msg) {
+    git_c("-c", "user.name=harness-test", "-c", "user.email=harness-test", "commit", "-q", "-m", shQuote(msg))
+  }
+  gate <- function(name) {
+    run_study(g, plan_vars(file.path(root, "git-plans", name), purpose = "gate", design = "gate"), git = TRUE)
+  }
+  git_c("init", "-q")
+  git_c("add", "DESCRIPTION", "study.R", "tools")
+  commit("the study without its sourced file")
+  r <- gate("untracked")
+  record("contract", "gate plan: the sourced file untracked", "refuse", outcome(r), last_line(r$out))
+  git_c("add", "lib")
+  commit("the sourced file")
+  r <- gate("clean")
+  record("contract", "gate plan: a clean checkout", "accept", outcome(r), last_line(r$out))
+  # The plan options outside a test, from the same clean checkout.
+  study_plan <- function(name, ...) {
+    run_study(g, c(plan_vars(file.path(root, "git-plans", name), purpose = "study", design = "run"), ...), git = TRUE)
+  }
+  r <- run_study(g, c(plan_vars(file.path(root, "git-plans", "gate-fallback"), purpose = "gate", design = "gate"),
+                      SOLOMONR_SIM_SUBSET = "fallback"), git = TRUE)
+  record("contract", "gate plan: subset fallback", "refuse", outcome(r), last_line(r$out))
+  r <- study_plan("study-fallback", SOLOMONR_SIM_SUBSET = "fallback")
+  info <- read_info(file.path(root, "git-plans", "study-fallback"))
+  record("contract", "study plan: subset fallback, scenarios 1, 3, 5", "yes",
+         yes(identical(item(info, "subset"), "1 3 5") && identical(item(info, "purpose"), "study")), last_line(r$out))
+  r <- study_plan("study-list", SOLOMONR_SIM_SUBSET = "1 3")
+  record("contract", "study plan: a list of scenarios", "refuse", outcome(r), last_line(r$out))
+  r <- study_plan("study-task-size", SOLOMONR_SIM_TASK_SIZE = "1")
+  record("contract", "study plan: a task size", "refuse", outcome(r), last_line(r$out))
+  r <- run_study(g, c(plan_vars(file.path(root, "git-plans", "gate-task-size"), purpose = "gate", design = "gate"),
+                      SOLOMONR_SIM_TASK_SIZE = "1"), git = TRUE)
+  record("contract", "gate plan: a task size", "refuse", outcome(r), last_line(r$out))
+  cat("# changed, not committed\n", file = file.path(g, "lib", "helper.R"), append = TRUE)
+  r <- gate("changed")
+  record("contract", "gate plan: the sourced file changed, not committed", "refuse", outcome(r), last_line(r$out))
+})
+
+# ---- replay: the replay list of merge-chunks.R ----------------------------------
+
+if ("replay" %in% groups) local({
+  root <- file.path(work, "replay")
+  version <- h_contracts[[length(h_contracts)]]
+  software <- data.frame(kind = "r", name = "version", value = "4.6.1", stringsAsFactors = FALSE)
+  base <- list(contract = version, study = "synthetic", purpose = "test", design = "run",
+               package_sha = strrep("0", 40), script_sha256 = "s", contract_sha256 = "c", files_sha256 = "")
+  # Scenarios 1 to 3, two tasks of 2 replications each; task 1 of each
+  # scenario costs 50, 40, and 30, the others 10, 5, and 5.
+  tasks <- data.frame(
+    task_id = c("s0001-t0001", "s0001-t0002", "s0002-t0001", "s0002-t0002", "s0003-t0001", "s0003-t0002"),
+    kind = "replications", scenario = c("1", "1", "2", "2", "3", "3"), task = c("1", "2"),
+    rep_from = c("1", "3"), rep_to = c("2", "4"), seed = "1 2 3 4 5 6 7", rows_per_rep = "1",
+    cost = c("50", "10", "40", "5", "30", "5"), stringsAsFactors = FALSE)
+  # A plan with these tasks in the given chunks, and their task files.
+  make <- function(name, chunk, reps = "4") {
+    d <- file.path(root, name)
+    h_write_csv(tasks, file.path(d, "plan", "tasks.csv"))
+    h_write_kv(c(unlist(base), reps = reps), file.path(d, "plan", "plan-info.csv"))
+    h_write_csv(data.frame(task_id = tasks$task_id, chunk = chunk, stringsAsFactors = FALSE),
+                file.path(d, "plan", "assignment.csv"))
+    h_write_csv(software, file.path(d, "plan", "software.csv"))
+    for (ch in unique(chunk)) {
+      dir.create(file.path(d, "chunks", paste0("chunk-", ch), "tasks"), recursive = TRUE)
+      h_write_csv(software, file.path(d, "chunks", paste0("chunk-", ch), "software.csv"))
+    }
+    for (i in seq_len(nrow(tasks))) {
+      row <- tasks[i, , drop = FALSE]
+      reps <- seq.int(as.integer(row$rep_from), as.integer(row$rep_to))
+      saveRDS(list(envelope = c(base, list(task = h_task_row(row))),
+                   results = data.frame(rep = reps, x = as.numeric(reps)), agreement = NULL, failures = NULL,
+                   timing = list()),
+              file.path(d, "chunks", paste0("chunk-", chunk[[i]]), "tasks", paste0(row$task_id, ".rds")))
+    }
+    d
+  }
+  cases <- list(
+    # 1 chunk: c and d both from chunk 0001, the two tasks of cost 5 in
+    # task-id order.
+    list("1 chunk", rep("0001", 6), "a=s0001-t0001 b=s0002-t0001 c=s0002-t0002 d=s0003-t0002"),
+    # 2 chunks, both chosen by a and b: c from chunk 0001 (its cheapest,
+    # cost 10, though chunk 0002 has tasks of cost 5) and d from chunk 0002
+    # (two of cost 5: the lower task id).
+    list("2 chunks: c and d from chunks 0001 and 0002", c("0001", "0001", "0002", "0002", "0001", "0002"),
+         "a=s0001-t0001 b=s0002-t0001 c=s0001-t0002 d=s0002-t0002"),
+    # 3 chunks: c from 0003, the one not yet chosen; d then from 0003, the
+    # highest-numbered (cost 30), not the cheapest task of the plan (cost 5,
+    # in chunk 0001).
+    list("3 chunks: d from chunk 0003 once all are chosen", c("0001", "0002", "0002", "0003", "0003", "0001"),
+         "a=s0001-t0001 b=s0002-t0001 c=s0002-t0002 d=s0003-t0001"))
+  for (k in seq_along(cases)) {
+    cs <- cases[[k]]
+    d <- make(sprintf("r%02d", k), cs[[2]])
+    r <- run_r("merge-chunks.R", c(file.path(d, "plan"), file.path(d, "chunks"), file.path(d, "merged")))
+    f <- file.path(d, "merged", "replay-source.csv")
+    got <- if (r$status == 0L && file.exists(f)) {
+      x <- h_read_csv(f)
+      paste0(x$rule, "=", x$task_id, collapse = " ")
+    } else "merge refused"
+    record("replay", cs[[1]], "yes", if (identical(got, cs[[3]])) "yes" else "no", got)
+  }
+  # The plan's reps, read in digits (review round 1): as.integer() alone
+  # reads "4.0" and "04" as 4, and a number beyond R's integers stops the
+  # merge with an R error. Refused by merge-chunks.R's own message.
+  for (v in c("4.0", "04", "99999999999")) {
+    d <- make(paste0("reps-", v), rep("0001", 6), reps = v)
+    r <- run_r("merge-chunks.R", c(file.path(d, "plan"), file.path(d, "chunks"), file.path(d, "merged")))
+    record("replay", paste("merge: the plan's reps", v), "refuse",
+           refusal(r, "The plan's reps must be a whole number from 1 to 2147483647, in digits without a leading zero."),
+           last_line(r$out))
+  }
+})
+
+# ---- finalize: finalize-results.R ----------------------------------------------
+
+if ("finalize" %in% groups) local({
+  root <- file.path(work, "finalize")
+  # The folders of a finished run as finalize-results.R reads them: three
+  # tasks, whose earliest start and latest finish are in neither the first
+  # nor the last row of timing/task-times.csv.
+  make <- function(name, times = TRUE, files_item = TRUE, preflight = FALSE) {
+    d <- file.path(root, name)
+    info <- c(contract = "3", study = "synthetic", issue = "117", protocol = "FALSE", purpose = "test",
+              design = "run", base_seed = "13", rng_kind = "L'Ecuyer-CMRG", normal_kind = "Inversion",
+              sample_kind = "Rejection", r_version = "4.6.1", reps = "4", task_size = "2", n_scenarios = "2",
+              n_tasks = "3", subset = "", script_sha256 = "s", contract_sha256 = "c",
+              files_sha256 = "lib/helper.R=abc", package = "harnesstest", package_version = "1.0",
+              package_sha = strrep("0", 40), package_dirty = "NA", created_utc = "2026-11-01T00:00:00.000Z")
+    if (!files_item) info <- info[names(info) != "files_sha256"]
+    h_write_kv(info, file.path(d, "plan", "plan-info.csv"))
+    if (preflight) h_write_csv(data.frame(check = "c1", passed = TRUE), file.path(d, "plan", "preflight.csv"))
+    dir.create(file.path(d, "chunks", "chunk-0001"), recursive = TRUE)
+    m <- file.path(d, "merged")
+    h_write_csv(data.frame(task_id = "s0001-t0001", content_sha256 = "x"), file.path(m, "manifest.csv"))
+    h_write_csv(data.frame(scenario = 1L), file.path(m, "completeness.csv"))
+    h_write_csv(data.frame(kind = "r", name = "version", value = "4.6.1"), file.path(m, "software.csv"))
+    h_write_csv(data.frame(task_id = "s0001-t0001", identical = TRUE, other_cpu = FALSE), file.path(m, "replay.csv"))
+    h_write_csv(data.frame(chunk = "0001", workers = "0", image_os = "local", image_version = "local"),
+                file.path(m, "jobs.csv"))
+    dir.create(file.path(d, "results", "timing"), recursive = TRUE)
+    if (times) {
+      h_write_csv(data.frame(task_id = c("s0001-t0001", "s0001-t0002", "s0002-t0001"),
+                             started = c("2026-11-01T00:00:05.000Z", "2026-11-01T00:00:01.500Z",
+                                         "2026-11-01T00:00:03.000Z"),
+                             finished = c("2026-11-01T00:00:09.000Z", "2026-11-01T00:00:04.000Z",
+                                          "2026-11-01T00:00:12.250Z"),
+                             elapsed = c(4, 2.5, 9.25), agreement_seconds = c(1, 0, 1)),
+                  file.path(d, "results", "timing", "task-times.csv"))
+    }
+    d
+  }
+  finalize <- function(d) {
+    r <- run_r("finalize-results.R", file.path(d, c("plan", "chunks", "merged", "results")))
+    f <- file.path(d, "results", "run-information.csv")
+    list(r = r, kv = if (r$status == 0L && file.exists(f)) h_read_kv(f) else character())
+  }
+  item <- function(kv, name) if (name %in% names(kv)) kv[[name]] else "absent"
+  x <- finalize(make("f01"))
+  v <- item(x$kv, "first_task_started_utc")
+  record("finalize", "first_task_started_utc: the earliest start", "yes",
+         if (identical(v, "2026-11-01T00:00:01.500Z")) "yes" else "no", v)
+  v <- item(x$kv, "last_task_finished_utc")
+  record("finalize", "last_task_finished_utc: the latest finish", "yes",
+         if (identical(v, "2026-11-01T00:00:12.250Z")) "yes" else "no", v)
+  v <- item(x$kv, "sourced_files_sha256")
+  record("finalize", "sourced_files_sha256: the plan's files_sha256", "yes",
+         if (identical(v, "lib/helper.R=abc")) "yes" else "no", v)
+  x <- finalize(make("f02", times = FALSE))
+  v <- paste(item(x$kv, "first_task_started_utc"), item(x$kv, "last_task_finished_utc"))
+  record("finalize", "no timing/task-times.csv: both NA", "yes", if (identical(v, "NA NA")) "yes" else "no", v)
+  x <- finalize(make("f03", files_item = FALSE))
+  v <- item(x$kv, "sourced_files_sha256")
+  record("finalize", "a plan without files_sha256 (contract 2): NA", "yes", if (identical(v, "NA")) "yes" else "no",
+         paste(v, last_line(x$r$out)))
+  # Files the study wrote under names the harness writes (finding 2 of
+  # review 3), refused even when the harness has nothing to put there: this
+  # plan has no preflight.csv, rng-fingerprint.txt, or job-info.csv.
+  coverage <- c("scenario,method,coverage", "1,T0,0.947")
+  study_wrote <- list(
+    list("the study wrote preflight.csv, the plan has none", "f04", "preflight.csv", FALSE, "a name that the harness writes"),
+    list("the study wrote preflight.csv, the plan has one", "f05", "preflight.csv", TRUE, "a name that the harness writes"),
+    list("the study wrote timing/rng-fingerprint.txt, the plan has none", "f06", file.path("timing", "rng-fingerprint.txt"),
+         FALSE, "a name that the harness writes"),
+    list("the study wrote timing/plan-job.csv, the plan has no job-info.csv", "f07", file.path("timing", "plan-job.csv"),
+         FALSE, "a name that the harness writes"),
+    list("the study wrote logs/coverage.txt", "f08", file.path("logs", "coverage.txt"), FALSE,
+         "a folder that the harness writes"))
+  for (cs in study_wrote) {
+    d <- make(cs[[2]], preflight = cs[[4]])
+    f <- file.path(d, "results", cs[[3]])
+    dir.create(dirname(f), showWarnings = FALSE, recursive = TRUE)
+    writeLines(coverage, f)
+    x <- finalize(d)
+    record("finalize", cs[[1]], "refuse", refusal(x$r, cs[[5]]), last_line(x$r$out))
+  }
+  d <- make("f09")
+  dir.create(file.path(d, "results", "logs"))
+  x <- finalize(d)
+  record("finalize", "the study wrote an empty logs/ folder", "refuse", refusal(x$r, "a folder that the harness writes"),
+         last_line(x$r$out))
+  x <- finalize(make("f10", preflight = TRUE))
+  record("finalize", "the plan's preflight.csv is copied", "yes",
+         if (x$r$status == 0L && file.exists(file.path(root, "f10", "results", "preflight.csv"))) "yes" else "no",
+         last_line(x$r$out))
+  # The same names in another case (review round 1), refused by a message
+  # that names the file as the study wrote it.
+  in_case <- list(
+    list("the study wrote Preflight.csv, the plan has one", "f11", "Preflight.csv", TRUE,
+         "/results/Preflight.csv, a name that the harness writes"),
+    list("the study wrote timing/Jobs.csv", "f12", file.path("timing", "Jobs.csv"), FALSE,
+         "/results/timing/Jobs.csv, a name that the harness writes"),
+    list("the study wrote LOGS/coverage.txt", "f13", file.path("LOGS", "coverage.txt"), FALSE,
+         "/results/LOGS, a folder that the harness writes"))
+  for (cs in in_case) {
+    d <- make(cs[[2]], preflight = cs[[4]])
+    f <- file.path(d, "results", cs[[3]])
+    dir.create(dirname(f), showWarnings = FALSE, recursive = TRUE)
+    writeLines(coverage, f)
+    x <- finalize(d)
+    record("finalize", cs[[1]], "refuse", refusal(x$r, cs[[5]]), last_line(x$r$out))
+  }
+})
+
+# ---- local: run-local.R's choice of the study ------------------------------------
+
+if ("local" %in% groups) local({
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    return(skip("local", "no pkgload (the synthetic study's tasks load their package folder with it)"))
+  }
+  root <- file.path(work, "local")
+  # A package folder for run-local.R, which runs only where DESCRIPTION names
+  # solomonR (this one holds no code): the harness under test in
+  # tools/sim, with a registry row and pins for the synthetic study
+  # (tests/synthetic-study.R), and the file that study sources.
+  pkg <- file.path(root, "pkg")
+  sim <- file.path(pkg, "tools", "sim")
+  dir.create(sim, recursive = TRUE)
+  dir.create(file.path(pkg, "lib"))
+  h_write_lines(c("Package: solomonR", "Version: 0.0.0"), file.path(pkg, "DESCRIPTION"))
+  h_write_lines(c("# Sourced by the synthetic study.", "helper_value <- function() 1"), file.path(pkg, "lib", "helper.R"))
+  file.copy(list.files(harness, full.names = TRUE), sim, recursive = TRUE)
+  cat("synthetic,117,tools/sim/tests/synthetic-study.R,tools/sim/tests/synthetic-pins.csv,FALSE,\n",
+      file = file.path(sim, "studies.csv"), append = TRUE)
+  h_write_csv(data.frame(kind = c("r", "libraries", "repos"), name = c("version", "blas", "snapshot"),
+                         value = c(paste(R.version$major, R.version$minor, sep = "."), "any", "none")),
+              file.path(sim, "tests", "synthetic-pins.csv"))
+  # run-local.R from the package folder; git finds no repository there.
+  run_local <- function(...) {
+    run_from(pkg, file.path(sim, "run-local.R"), c(...), set = c(GIT_DIR = file.path(work, "no-repository-here")))
+  }
+  said <- function(r, txt) any(grepl(txt, r$out, fixed = TRUE))
+  yes <- function(ok) if (isTRUE(ok)) "yes" else "no"
+  # The entries of a folder and the MD5 of each file, to show that a refused
+  # command changed nothing.
+  listing <- function(d) {
+    f <- sort(list.files(d, recursive = TRUE, all.files = TRUE, include.dirs = TRUE, no.. = TRUE))
+    paste(f, ifelse(dir.exists(file.path(d, f)), "folder", unname(tools::md5sum(file.path(d, f)))))
+  }
+  mismatch <- "is a run of study"
+
+  # A run of the synthetic study, a second study beside smoke.
+  run <- file.path(root, "run")
+  r <- run_local("--study", "synthetic", "--reps", "4", "--chunks", "2", "--out", run)
+  info <- file.path(run, "results", "run-information.csv")
+  ok <- r$status == 0L && file.exists(info) && identical(h_read_kv(info)[["study"]], "synthetic")
+  record("local", "new run, --study synthetic: every stage passes", "yes", yes(ok), last_line(r$out))
+  if (!ok) return(invisible())
+  # A --study that names another study is refused before anything runs.
+  before <- listing(run)
+  r <- run_local("--out", run, "--resume", "--study", "smoke")
+  record("local", "--resume --study smoke, a synthetic run: refused", "refuse", refusal(r, mismatch), last_line(r$out))
+  r <- run_local("--out", run, "--rerun-chunk", "1", "--study", "smoke")
+  record("local", "--rerun-chunk 1 --study smoke, a synthetic run: refused", "refuse", refusal(r, mismatch),
+         last_line(r$out))
+  record("local", "both refusals left the run's folder as it was", "yes", yes(identical(listing(run), before)), "")
+  # Without --study, the run's own study: a chunk again, then a resume after
+  # a task file was lost.
+  r <- run_local("--out", run, "--rerun-chunk", "1")
+  ok <- r$status == 0L && said(r, "== Study synthetic (tools/sim/tests/synthetic-study.R), from ") &&
+    length(list.files(file.path(run, "rerun", "chunk-0001", "tasks"), pattern = "[.]rds$")) > 0L
+  record("local", "--rerun-chunk 1 without --study: the plan's study, identical tasks", "yes", yes(ok), last_line(r$out))
+  lost <- sort(list.files(file.path(run, "chunks", "chunk-0002", "tasks"), pattern = "[.]rds$", full.names = TRUE))[[1]]
+  want <- h_content_sha256(readRDS(lost))
+  unlink(lost)
+  r <- run_local("--out", run, "--resume")
+  resumes <- file.path(run, "chunks", "chunk-0002", "resumes.csv")
+  ok <- r$status == 0L && said(r, "== Study synthetic (tools/sim/tests/synthetic-study.R), from ") &&
+    file.exists(lost) && identical(h_content_sha256(readRDS(lost)), want) &&
+    file.exists(resumes) && nrow(h_read_csv(resumes)) == 1L && file.exists(info)
+  record("local", "--resume without --study: the plan's study, the lost task again identical", "yes", yes(ok),
+         last_line(r$out))
+  r <- run_local("--out", run, "--resume", "--study", "synthetic")
+  record("local", "--resume --study synthetic, the plan's own study", "accept", if (r$status == 0L) "accept" else "refuse",
+         last_line(r$out))
+  # The chunk number as the folders name it (review round 1): 0002 is chunk
+  # 0002; a number outside 1 to 256, or of more than four digits, or with
+  # white space, is refused by the script's message.
+  r <- run_local("--out", run, "--rerun-chunk", "0002")
+  ok <- r$status == 0L && said(r, "== Chunk 0002 again") &&
+    length(list.files(file.path(run, "rerun", "chunk-0002", "tasks"), pattern = "[.]rds$")) > 0L
+  record("local", "--rerun-chunk 0002: chunk 0002 again, identical tasks", "yes", yes(ok), last_line(r$out))
+  for (v in c("1.5", "99999999999", "0", "257", "00002", " 1")) {
+    r <- run_local("--out", run, "--rerun-chunk", v)
+    record("local", paste0("--rerun-chunk \"", v, "\""), "refuse",
+           refusal(r, "--rerun-chunk takes a chunk number from 1 to 256, in at most four digits"), last_line(r$out))
+  }
+  # A smoke run (review round 1): a copy of every file of the synthetic
+  # run, its plan's study item made smoke. Its software.csv and chunks are
+  # there, so a --study synthetic that were not refused would resume or
+  # rerun it and write into the folder.
+  smoke <- file.path(root, "smoke-run")
+  dir.create(smoke)
+  file.copy(list.files(run, full.names = TRUE, all.files = TRUE, no.. = TRUE), smoke, recursive = TRUE)
+  kv <- h_read_kv(file.path(smoke, "plan", "plan-info.csv"))
+  kv[["study"]] <- "smoke"
+  h_write_kv(kv, file.path(smoke, "plan", "plan-info.csv"))
+  before <- listing(smoke)
+  record("local", "the smoke run's copy holds software.csv and both chunks", "yes",
+         yes(file.exists(file.path(smoke, "software.csv")) &&
+               all(dir.exists(file.path(smoke, "chunks", c("chunk-0001", "chunk-0002"))))), "")
+  r <- run_local("--out", smoke, "--resume", "--study", "synthetic")
+  record("local", "--resume --study synthetic, a smoke run: refused", "refuse", refusal(r, mismatch), last_line(r$out))
+  r <- run_local("--out", smoke, "--rerun-chunk", "1", "--study", "synthetic")
+  record("local", "--rerun-chunk 1 --study synthetic, a smoke run: refused", "refuse", refusal(r, mismatch),
+         last_line(r$out))
+  record("local", "both refusals left the smoke run's folder as it was", "yes", yes(identical(listing(smoke), before)), "")
+  # Without --study, the plan's study, smoke: its software check (the smoke
+  # pins, which add a tool row) differs from this run's software.csv (the
+  # synthetic pins'), or fails where the smoke study's packages differ
+  # from its pins, so the resume stops there, before any chunk.
+  r <- run_local("--out", smoke, "--resume")
+  ok <- r$status != 0L && said(r, "== Study smoke (tools/sim/studies/smoke/smoke-simulation.R), from ") &&
+    (said(r, "The software changed since the run started") || said(r, "Software failed")) && !said(r, "== Chunk")
+  record("local", "--resume without --study, a smoke run: the smoke study, stopped by its software", "yes", yes(ok),
+         last_line(r$out))
+  # A new run without --study is a smoke run, as before (stopped here by its
+  # folder, which is not empty).
+  r <- run_local("--out", run)
+  ok <- said(r, "== Study smoke (tools/sim/studies/smoke/smoke-simulation.R)") && !said(r, "smoke-simulation.R), from") &&
+    said(r, "must be empty or absent")
+  record("local", "a new run without --study: the smoke study", "yes", yes(ok), last_line(r$out))
+  r <- run_local("--out", file.path(root, "nothing-here"), "--resume")
+  record("local", "--resume of a folder without a plan", "refuse", refusal(r, "Nothing to resume"), last_line(r$out))
+})
+
+# ---- merge: merge-chunks.R on tampered copies ----------------------------------
+
+if ("merge" %in% groups) {
+  if (!nzchar(opts$run)) {
+    skip("merge", "no --run folder (plan/ and chunks/ of a finished run)")
+  } else local({
+    run <- normalizePath(opts$run, winslash = "/", mustWork = TRUE)
+    for (f in c("plan/tasks.csv", "plan/software.csv", "chunks")) {
+      if (!file.exists(file.path(run, f))) h_fail("The --run folder lacks ", f, ".")
+    }
+    ids <- sort(h_read_csv(file.path(run, "plan", "tasks.csv"))$task_id)
+    chunks <- sort(grep("^chunk-[0-9]{4}$", list.dirs(file.path(run, "chunks"), recursive = FALSE, full.names = FALSE),
+                        value = TRUE))
+    if (length(ids) < 9L || length(chunks) < 2L) h_fail("The --run folder needs at least 9 tasks in at least 2 chunks.")
+    pick <- function(k) ids[[k]]
+    # Another SHA-256 for each file of study$files (or for a file of none).
+    other_hash <- function(x) {
+      if (length(x) && nzchar(x)) gsub("=[0-9a-f]{64}", paste0("=", strrep("0", 64)), x)
+      else paste0("lib/helper.R=", strrep("0", 64))
+    }
+    edit_info <- function(d, name, fun) {
+      f <- file.path(d, "plan", "plan-info.csv")
+      kv <- h_read_kv(f)
+      kv[[name]] <- fun(if (name %in% names(kv)) kv[[name]] else "")
+      h_write_kv(kv, f)
+    }
+    task_path <- function(d, id) {
+      f <- list.files(file.path(d, "chunks"), pattern = paste0("^", id, "[.]rds$"), recursive = TRUE, full.names = TRUE)
+      if (length(f) != 1L) h_fail("Task ", id, " is not once in the copy.")
+      f
+    }
+    edit_task <- function(d, id, fun) { f <- task_path(d, id); saveRDS(fun(readRDS(f)), f, compress = "xz") }
+    cases <- list(
+      "the untampered copy" = function(d) NULL,
+      "a results row with rep NA" = function(d) edit_task(d, pick(1), function(t) { t$results$rep[1] <- NA; t }),
+      "an extra column in one task" = function(d) edit_task(d, pick(2), function(t) { t$results$extra <- 1; t }),
+      "a results row dropped" = function(d) edit_task(d, pick(3), function(t) { t$results <- t$results[-1, , drop = FALSE]; t }),
+      "a seed integer changed" = function(d) edit_task(d, pick(4), function(t) {
+        t$envelope$task$seed[3] <- t$envelope$task$seed[3] + 1L; t }),
+      "the package commit changed" = function(d) edit_task(d, pick(5), function(t) {
+        t$envelope$package_sha <- strrep("0", 40); t }),
+      "a task file missing" = function(d) unlink(task_path(d, pick(6))),
+      "a task in two chunks" = function(d) {
+        f <- task_path(d, pick(7))
+        other <- setdiff(file.path(d, "chunks", chunks), dirname(dirname(f)))[[1]]
+        file.copy(f, file.path(other, "tasks"))
+      },
+      "a stray file among the tasks" = function(d) writeLines("x", file.path(d, "chunks", chunks[[1]], "tasks", "notes.txt")),
+      "another package version in one chunk's software.csv" = function(d) {
+        f <- file.path(d, "chunks", chunks[[1]], "software.csv")
+        s <- h_read_csv(f)
+        row <- which(s$kind == "package")[[1]]
+        s$value[row] <- paste0(s$value[row], ".9")
+        h_write_csv(s, f)
+      },
+      "no plan/software.csv" = function(d) unlink(file.path(d, "plan", "software.csv")),
+      "one chunk's files directly in chunks/" = function(d) {
+        unlink(file.path(d, "chunks", chunks[-1]), recursive = TRUE)
+        src <- file.path(d, "chunks", chunks[[1]])
+        file.copy(list.files(src, full.names = TRUE), file.path(d, "chunks"), recursive = TRUE)
+        unlink(src, recursive = TRUE)
+      },
+      # The sourced files' SHA-256 (study$files, contract 3).
+      "an envelope without files_sha256" = function(d) edit_task(d, pick(8), function(t) {
+        t$envelope$files_sha256 <- NULL; t }),
+      "an envelope with another files_sha256" = function(d) edit_task(d, pick(9), function(t) {
+        t$envelope$files_sha256 <- other_hash(t$envelope$files_sha256); t }),
+      "plan-info's files_sha256 changed after the chunks ran" = function(d) edit_info(d, "files_sha256", other_hash),
+      "a plan of contract 2" = function(d) edit_info(d, "contract", function(x) "2"),
+      # The plan's reps, which merge-chunks.R reads in digits (review round 1).
+      "plan-info's reps with \".0\" appended" = function(d) edit_info(d, "reps", function(x) paste0(x, ".0")))
+    for (k in seq_along(cases)) {
+      d <- file.path(work, "merge", sprintf("m%02d", k))
+      dir.create(d, recursive = TRUE)
+      file.copy(file.path(run, c("plan", "chunks")), d, recursive = TRUE)
+      cases[[k]](d)
+      r <- run_r("merge-chunks.R", c(file.path(d, "plan"), file.path(d, "chunks"), file.path(d, "merged")))
+      record("merge", names(cases)[[k]], if (k == 1L) "accept" else "refuse", if (r$status == 0L) "accept" else "refuse",
+             last_line(r$out))
+    }
+    # The address scan on the run's own folders, as they are: the harness's
+    # files of a real run, its logs among them, must pass its rules.
+    own <- file.path(run, c("plan", "chunks", "merged", "replay", "results", "logs"))
+    r <- run_r("scan-addresses.R", own[dir.exists(own)])
+    record("merge", paste("the address scan of the run's", paste(basename(own[dir.exists(own)]), collapse = ", ")),
+           "pass", if (r$status == 0L) "pass" else "fail", last_line(r$out))
+  })
+}
+
+# ---- Summary -------------------------------------------------------------------
+
+res <- do.call(rbind, outcomes)
+if (is.null(res)) {
+  cat("No case ran.\n")
+  quit(save = "no", status = 1L)
+}
+cat(sprintf("\n%d cases: %d as expected, %d not.\n", nrow(res), sum(res$ok), sum(!res$ok)))
+if (!all(res$ok)) {
+  for (k in which(!res$ok)) cat(sprintf("  %s: %s gave %s, not %s.\n", res$group[k], res$case[k], res$got[k], res$expected[k]))
+  quit(save = "no", status = 1L)
+}
