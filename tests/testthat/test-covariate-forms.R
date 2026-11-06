@@ -683,7 +683,8 @@ test_that("a logical or character matrix column of several columns stops by its 
   # matrix one factor of all its values, so it stopped with "replacement
   # has 240 rows, data has 120". The fit now stops before it with an error
   # that says what to give. By its bare name, a logical matrix column of
-  # `data` is one covariate per column.
+  # `data` is one covariate per column, and a character one stops with the
+  # same advice; before this change, it was left out.
   d <- forms_data()
   d$lm2 <- cbind(a = d$z < 0, b = d$age > 40)
   d$cm2 <- cbind(a = d$site, b = ifelse(d$flag, "yes", "no"))
@@ -696,6 +697,10 @@ test_that("a logical or character matrix column of several columns stops by its 
     "Column cm2 of `covariates` is a character matrix of 2 columns, which glm() cannot fit. ",
     "Give its columns as columns of a data frame."
   )
+  bare_character_error <- paste0(
+    "Column cm2 of `data` is a character matrix of 2 columns, which glm() cannot fit. ",
+    "Give its columns as columns of a data frame."
+  )
   expect_error(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "lm2", data = d),
                logical_error, fixed = TRUE)
   expect_error(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "lm2", data = d),
@@ -705,6 +710,8 @@ test_that("a logical or character matrix column of several columns stops by its 
   expect_error(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "cm2", data = d),
                character_error, fixed = TRUE)
   expect_error(fit4(d, d["cm2"]), character_error, fixed = TRUE)
+  expect_error(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = cm2, data = d),
+               bare_character_error, fixed = TRUE)
   d$`two flags` <- d$lm2
   expect_error(
     fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "two flags", data = d),
@@ -738,6 +745,12 @@ test_that("a logical or character matrix column of several columns stops by its 
                     control = "Control",
                     covariates = data.frame(lm2a = m$z < 0, lm2b = m$w > 0))
   )
+  m$cm2 <- cbind(a = ifelse(m$z < 0, "low", "high"), b = ifelse(m$w > 0, "yes", "no"))
+  expect_error(
+    fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
+                    covariates = cm2, data = m),
+    bare_character_error, fixed = TRUE
+  )
 
   # check_solomon_missing() left out the gap and the delta line without a
   # word, since the fit behind them stopped. With numeric `y_pre`, it now
@@ -760,6 +773,19 @@ test_that("a logical or character matrix column of several columns stops by its 
                           control = "Control", covariates = "lm2", data = m),
     logical_error, fixed = TRUE
   )
+  # By its bare name, the character matrix column stops before any fit, so
+  # with `y_pre` and without it.
+  expect_error(
+    check_solomon_missing(y_post, treat, pretested, y_pre, covariates = cm2, data = d),
+    bare_character_error, fixed = TRUE
+  )
+  expect_error(check_solomon_missing(y_post, treat, pretested, covariates = cm2, data = d),
+               bare_character_error, fixed = TRUE)
+  expect_error(
+    check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
+                          control = "Control", covariates = cm2, data = m),
+    bare_character_error, fixed = TRUE
+  )
   without_pretest <- check_solomon_missing(y_post, treat, pretested, covariates = "lm2",
                                            data = d)
   expect_identical(names(without_pretest$covariates), "lm2")
@@ -776,6 +802,88 @@ test_that("a logical or character matrix column of several columns stops by its 
   )
   expect_false(is.null(by_bare_name$gap))
   expect_false(is.null(by_bare_name$unpretested))
+})
+
+
+test_that("a character matrix column of one column is one covariate, by its bare name too", {
+
+  # By its name, glm() makes one factor of the values of a character matrix
+  # column, which is one categorical covariate when the matrix has one
+  # column. By its bare name, such a column was left out before this
+  # change, and then stopped with the error for a character matrix, whose
+  # advice is about cbind(). It is now the same covariate, named by the
+  # column. The model data hold the matrix by its name and its column by
+  # its bare name; every other element and the print are identical.
+  same_but_data <- function(bare, by_name, ...) {
+    keep <- setdiff(names(by_name), c("call", "model", "family", "data"))
+    expect_identical(names(bare), names(by_name), ...)
+    expect_identical(unclass(bare)[keep], unclass(by_name)[keep], ...)
+    expect_identical(stats::coef(bare$model), stats::coef(by_name$model), ...)
+    expect_identical(utils::capture.output(print(bare)),
+                     utils::capture.output(print(by_name)), ...)
+  }
+  d <- forms_data()
+  d$cm1 <- cbind(ifelse(d$z > 0, "high", "low"))
+  d$group <- cbind(site = d$site)
+  for (name in c("cm1", "group")) {
+    bare <- eval(bquote(fit_solomon_glm(y_post, treat, pretested, y_pre,
+                                        covariates = .(as.name(name)), data = d)))
+    by_name <- fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = name, data = d)
+    expect_same_fit(bare, fit4(d, stats::setNames(data.frame(d[[name]][, 1]), name)))
+    same_but_data(bare, by_name, info = name)
+    expect_identical(tidy(bare), tidy(by_name), info = name)
+    expect_identical(report_solomon(bare), report_solomon(by_name), info = name)
+  }
+  expect_true("cm1low" %in% fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = cm1,
+                                            data = d)$coefficients$term)
+  expect_true(all(c("groupnorth", "groupsouth") %in%
+                    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = group,
+                                    data = d)$coefficients$term))
+
+  # Outside `data`, such a matrix stops, with the advice to give it as a
+  # column of a data frame, which gives the same fit.
+  cm1 <- d$cm1
+  expect_error(fit4(d, cm1),
+               "not a matrix of type \"character\". Give it as a column of a data frame.",
+               fixed = TRUE)
+  expect_same_fit(fit4(d, data.frame(cm1 = cm1)),
+                  fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = cm1, data = d))
+
+  # check_solomon_missing(), with `y_pre` and without it.
+  d$y_post[c(3, 8, 70, 95)] <- NA
+  missing_bare <- check_solomon_missing(y_post, treat, pretested, y_pre, covariates = cm1,
+                                        data = d)
+  expect_identical(names(missing_bare$covariates), "cm1")
+  expect_false(is.null(missing_bare$gap))
+  expect_identical(
+    missing_bare,
+    check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "cm1", data = d)
+  )
+  expect_identical(
+    missing_bare,
+    check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
+                          covariates = data.frame(cm1 = d$cm1[, 1]))
+  )
+  expect_identical(
+    check_solomon_missing(y_post, treat, pretested, covariates = cm1, data = d),
+    check_solomon_missing(y_post, treat, pretested, covariates = "cm1", data = d)
+  )
+
+  # A design with several treatments.
+  m <- forms_six()
+  m$cm1 <- cbind(ifelse(m$z > 0, "high", "low"))
+  expect_same_fit(
+    fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
+                    covariates = cm1, data = m),
+    fit_solomon_glm(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                    control = "Control", covariates = data.frame(cm1 = m$cm1[, 1]))
+  )
+  same_but_data(
+    fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
+                    covariates = cm1, data = m),
+    fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
+                    covariates = "cm1", data = m)
+  )
 })
 
 

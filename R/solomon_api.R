@@ -96,6 +96,10 @@
 #     atomic type, or a date-time of class POSIXlt, is one covariate named
 #     by the column, as a data frame would hold it. A numeric or logical
 #     matrix column, such as scale(age) gives, is taken as a matrix below.
+#     A character matrix column is taken as by its name: glm() makes one
+#     factor of all its values, which is one covariate, named by the
+#     column, when the matrix has one column, and an error when it has
+#     several (.solomon_check_covariates()), so that case stops here.
 #   - With `data`, a character vector of names of its columns, each named
 #     once: those columns, as before.
 #   - A numeric, logical, or factor vector: one covariate, named by `expr`
@@ -225,7 +229,18 @@
          "frame or a matrix, one column per covariate.", call. = FALSE)
   }
 
-  if (length(dims) == 2L && (is.numeric(x) || is.logical(x))) {
+  # A character matrix column of `data` given by its bare name: one
+  # covariate when it has one column, and an error, as by its name, when it
+  # has several.
+  character_column <- column && length(dims) == 2L && is.character(x)
+  if (character_column && ncol(x) > 1L) {
+    stop("Column ", as.character(expr), " of `data` is a character matrix of ", ncol(x),
+         " columns, which glm() cannot fit. Give its columns as columns of a data frame.",
+         call. = FALSE)
+  }
+
+  if (length(dims) == 2L &&
+      (is.numeric(x) || is.logical(x) || (character_column && ncol(x) == 1L))) {
     labels <- colnames(x)
     if (column) {
       # A matrix column of `data` is named as glm() names the columns of
@@ -281,12 +296,15 @@
   # A date or another classed vector goes in as a column of a data frame,
   # as glm() takes it there. A one-dimensional object with a class, such
   # as table(cluster)[cluster] gives, becomes a vector with c(), which
-  # keeps a factor a factor. A character matrix most often comes from
-  # cbind() of a numeric and a character vector, such as cbind(age, site).
+  # keeps a factor a factor. A character matrix of several columns most
+  # often comes from cbind() of a numeric and a character vector, such as
+  # cbind(age, site); one of one column is a categorical covariate.
   advice <- if (classed && (is.atomic(x) || date_time) && is.null(dims)) {
     " Give it as a column of a data frame."
   } else if (classed && length(dims) == 1L) {
     " Give it as a vector, such as `c(covariates)`."
+  } else if (!classed && length(dims) == 2L && is.character(x) && ncol(x) == 1L) {
+    " Give it as a column of a data frame."
   } else if (!classed && length(dims) == 2L && is.character(x)) {
     paste0(" A matrix has one type, and cbind() makes every column character when ",
            "one is. Give such covariates in a data frame, such as `data.frame(age, site)`.")

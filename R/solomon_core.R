@@ -1018,23 +1018,27 @@ stouffer_solomon <- function(p) {
 #'     column's name, or by its position when it has no column names
 #'     (`two1`, `two2`). A logical matrix column of several columns is
 #'     taken only by its bare name; by its name, it stops (see below). A
-#'     matrix from outside `data` is named by its column names, as above,
-#'     also when given by its bare name.
+#'     character matrix column of one column, given by its bare name or by
+#'     its name, is one categorical covariate, named by the column; one of
+#'     several columns stops (see below). A matrix from outside `data` is
+#'     named by its column names, as above, also when given by its bare
+#'     name.
 #'
 #'   A data frame or a matrix stops with an error when two of its columns
 #'   have the same name, and a data frame when a column has no name. So
 #'   does a logical or character matrix column of several columns, such as
 #'   `d$lm2 <- cbind(d$age > 40, d$z > 0)` makes, given by its name or in a
-#'   data frame, as [stats::glm()] cannot fit it. A value of the wrong
-#'   length stops too, and so does a covariate named as a column of the
-#'   model: `y`, `pretested`, `log_exposure`, `pre_obs` when `y_pre` is
-#'   given, and `treat` or, with several treatments, `condition` and
-#'   `treat_` followed by each treatment's name. Any other form stops
-#'   with an error, so that no covariate is left out unnoticed, for
-#'   example: a character vector without `data` (give the data frame as
-#'   `data`, or a categorical covariate as a factor); a list that is not a
-#'   data frame; an array of more than two dimensions; and a vector of
-#'   another type, such as a date (give it as a column of a data frame).
+#'   data frame, as [stats::glm()] cannot fit it, and a character one also
+#'   by its bare name. A value of the wrong length stops too, and so does
+#'   a covariate named as a column of the model: `y`, `pretested`,
+#'   `log_exposure`, `pre_obs` when `y_pre` is given, and `treat` or, with
+#'   several treatments, `condition` and `treat_` followed by each
+#'   treatment's name. Any other form stops with an error, so that no
+#'   covariate is left out unnoticed, for example: a character vector
+#'   without `data` (give the data frame as `data`, or a categorical
+#'   covariate as a factor); a list that is not a data frame; an array of
+#'   more than two dimensions; and a vector of another type, such as a
+#'   date (give it as a column of a data frame).
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
 #'   participant. CR2 fits refuse designs in which a Solomon cell contains a

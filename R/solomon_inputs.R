@@ -138,7 +138,8 @@
 #     character variable, and of such a matrix one factor of all its
 #     values, so it stops with "replacement has 240 rows, data has 120".
 #     Given by its bare name, a logical matrix column of `data` is taken
-#     one covariate per column (.solomon_covariates()).
+#     one covariate per column, and a character one stops before the fit
+#     (.solomon_covariates()).
 # The error has the class `solomonR_covariate_error`, so that
 # check_solomon_missing() passes it on rather than leave out the fit behind
 # its gap.
