@@ -129,7 +129,10 @@ which returns the table, are the stable interface of the result; see
     The analysis contains the Pretest x Treatment interaction of two
     fully observed indicators, and imputing separately in the groups
     they define is the simplest approach to such interactions (Carpenter
-    et al., 2023, section 6.3.5, p. 149).
+    et al., 2023, section 6.3.5, p. 149). The pretest is centered at its
+    mean among the group's observed posttests, which leaves the model
+    unchanged and makes the imputations of a seed the same wherever the
+    pretest lies (issue \#137).
 
 2.  **Proper imputation.** For each imputation the residual variance and
     the coefficients are drawn from their posterior distribution, and
@@ -262,12 +265,12 @@ fit_solomon_mi(y_post, treat, pretested, y_pre, m = 20, seed = 1, data = d)
 #> Pooling: Rubin's rules; Barnard-Rubin degrees of freedom; HC3 standard errors
 #> 
 #>  Contrast                Estimate SE    df   t     p     95% CI          FMI 
-#>  ATE (avg over pretest)   2.729   1.670 95.3  1.63 0.105 [-0.586, 6.044] 0.12
-#>  Pretest x Treatment     -2.572   3.403 88.5 -0.76 0.452 [-9.335, 4.191] 0.16
-#>  Treatment | pretested    1.443   2.421 93.7  0.60 0.553 [-3.365, 6.251] 0.13
+#>  ATE (avg over pretest)   2.876   1.693 89.9  1.70 0.093 [-0.487, 6.240] 0.15
+#>  Pretest x Treatment     -2.278   3.421 86.2 -0.67 0.507 [-9.079, 4.523] 0.17
+#>  Treatment | pretested    1.737   2.466 86.3  0.70 0.483 [-3.164, 6.639] 0.17
 #>  Treatment | unpretested  4.015   2.346 89.8  1.71 0.090 [-0.646, 8.676] 0.15
 #> 
-#> Largest Monte Carlo SE from the finite m: 0.28
+#> Largest Monte Carlo SE from the finite m: 0.29
 
 # Missing posttests in the treatment groups 3 points lower than MAR predicts.
 fit_solomon_mi(y_post, treat, pretested, y_pre, delta = c(-3, 0, -3, 0),
@@ -283,10 +286,10 @@ fit_solomon_mi(y_post, treat, pretested, y_pre, delta = c(-3, 0, -3, 0),
 #> Pooling: Rubin's rules; Barnard-Rubin degrees of freedom; HC3 standard errors
 #> 
 #>  Contrast                Estimate SE    df   t     p     95% CI          FMI 
-#>  ATE (avg over pretest)   2.330   1.671 95.4  1.39 0.166 [-0.988, 5.647] 0.12
-#>  Pretest x Treatment     -2.571   3.406 88.5 -0.75 0.452 [-9.339, 4.198] 0.16
-#>  Treatment | pretested    1.044   2.419 93.7  0.43 0.667 [-3.759, 5.848] 0.13
+#>  ATE (avg over pretest)   2.477   1.694 89.9  1.46 0.147 [-0.888, 5.842] 0.15
+#>  Pretest x Treatment     -2.276   3.423 86.2 -0.67 0.508 [-9.080, 4.528] 0.17
+#>  Treatment | pretested    1.339   2.462 86.3  0.54 0.588 [-3.556, 6.233] 0.17
 #>  Treatment | unpretested  3.615   2.352 90.0  1.54 0.128 [-1.058, 8.288] 0.15
 #> 
-#> Largest Monte Carlo SE from the finite m: 0.28
+#> Largest Monte Carlo SE from the finite m: 0.29
 ```

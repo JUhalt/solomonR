@@ -394,7 +394,8 @@ with a fixed seed so the results can be reproduced. With this much
 missing information, 100 imputations leave noticeable Monte Carlo error.
 With 100 imputations, the tipping point for sensitization found below
 ranged from 0.1 to 0.5 standard deviations across 40 seeds; with 2,000,
-it was 0.3 standard deviations for each of the 30 seeds tried.
+it was 0.3 standard deviations for 27 of the 30 seeds tried, and 0.2 or
+0.4 for the other three.
 
 ``` r
 
@@ -408,9 +409,9 @@ mar
 #> Pooling: Rubin's rules; Barnard-Rubin degrees of freedom; HC3 standard errors
 #> 
 #>  Contrast                Estimate SE    df   t     p     95% CI          FMI 
-#>  ATE (avg over pretest)  -0.032   0.079 91.6 -0.41 0.686 [-0.190, 0.126] 0.37
-#>  Pretest x Treatment     -0.282   0.158 92.6 -1.79 0.077 [-0.596, 0.032] 0.37
-#>  Treatment | pretested   -0.173   0.110 87.5 -1.58 0.117 [-0.391, 0.044] 0.40
+#>  ATE (avg over pretest)  -0.033   0.080 91.4 -0.41 0.683 [-0.191, 0.125] 0.37
+#>  Pretest x Treatment     -0.283   0.158 92.9 -1.79 0.076 [-0.597, 0.030] 0.36
+#>  Treatment | pretested   -0.174   0.109 87.8 -1.59 0.115 [-0.392, 0.043] 0.40
 #>  Treatment | unpretested  0.109   0.115 96.2  0.95 0.344 [-0.118, 0.336] 0.34
 #> 
 #> Largest Monte Carlo SE from the finite m: 0.0021
@@ -422,7 +423,7 @@ the same as the analysis model (Carpenter et al., 2023, pp. 255–256).
 Here the imputation model lets the pretest slope differ between the two
 pretested groups, so the agreement also suggests that the model’s common
 slope does no harm: the largest difference between the estimates is
-0.124 scale points. The fraction of missing information (`fmi`) of 0.34
+0.125 scale points. The fraction of missing information (`fmi`) of 0.34
 to 0.40 shows how much the missing posttests weigh on each contrast.
 
 ### The treatment effect
@@ -474,7 +475,7 @@ relapse-prevention group goes from minus to plus one pooled within-group
 standard
 deviation.](worked-example_files/figure-html/tipping-sens-1.png)
 
-Assuming missing at random, the contrast is not significant (p = .077).
+Assuming missing at random, the contrast is not significant (p = .076).
 It would be significant at the .05 level if the missing posttests of the
 pretested relapse-prevention group were about 0.3 standard deviations
 lower on the scale than the imputation model predicts. No higher offset
@@ -521,9 +522,9 @@ report_solomon(tp_sens)
 #> 
 #> Assuming the posttests were missing at random, the Pretest x Treatment
 #> interaction (pretest sensitization) was -0.28, 95% CI [-0.60, 0.03], p =
-#> .077.
+#> .076.
 #> Its statistical significance at alpha = .05 changed at an offset of -0.11
-#> (-0.30 SD), where the estimate was -0.32, p = .047.
+#> (-0.30 SD), where the estimate was -0.32, p = .046.
 #> Its statistical significance at alpha = .05 did not change for any positive
 #> offset tried.
 #> 

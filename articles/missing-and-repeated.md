@@ -131,9 +131,9 @@ al., 2023, p. 256):
 mar <- fit_solomon_mi(y_post, treat, pretested, y_pre, seed = 1, data = d)
 mar$effects[, c("contrast", "estimate", "std.error", "fmi")]
 #>                  contrast estimate std.error       fmi
-#> 1  ATE (avg over pretest) 6.494264  1.649496 0.2907155
-#> 2     Pretest x Treatment 3.082780  3.299247 0.2908277
-#> 3   Treatment | pretested 8.035654  2.010851 0.2789115
+#> 1  ATE (avg over pretest) 6.484136  1.653753 0.2939734
+#> 2     Pretest x Treatment 3.062524  3.304346 0.2925927
+#> 3   Treatment | pretested 8.015399  2.022001 0.2857567
 #> 4 Treatment | unpretested 4.952874  2.615466 0.2977825
 ```
 
@@ -365,9 +365,9 @@ report_solomon(tp)
 #> standard deviations of the observed posttests).
 #> 
 #> Assuming the posttests were missing at random, the average treatment effect
-#> across pretest conditions was 6.49, 95% CI [3.23, 9.76], p < .001.
+#> across pretest conditions was 6.48, 95% CI [3.21, 9.76], p < .001.
 #> Its statistical significance at alpha = .05 changed at an offset of -12.50
-#> (-1.20 SD), where the estimate was 3.08, p = .079.
+#> (-1.20 SD), where the estimate was 3.07, p = .081.
 #> Its statistical significance at alpha = .05 did not change for any positive
 #> offset tried.
 #> 

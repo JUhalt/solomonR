@@ -482,7 +482,8 @@ results can be reproduced. With this much missing information, 100
 imputations leave noticeable Monte Carlo error. With 100 imputations,
 the tipping point for sensitization found below ranged from 0.1 to 0.5
 standard deviations across 40 seeds; with 2,000, it was 0.3 standard
-deviations for each of the 30 seeds tried.</p>
+deviations for 27 of the 30 seeds tried, and 0.2 or 0.4 for the other
+three.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mar</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">rp</span>, <span class="fu"><a href="../reference/fit_solomon_mi.html">fit_solomon_mi</a></span><span class="op">(</span><span class="va">post_behavior</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">pre_behavior</span>,</span>
 <span>                               m <span class="op">=</span> <span class="fl">2000</span>, seed <span class="op">=</span> <span class="fl">82</span><span class="op">)</span><span class="op">)</span></span>
@@ -494,9 +495,9 @@ deviations for each of the 30 seeds tried.</p>
 <span><span class="co">#&gt; Pooling: Rubin's rules; Barnard-Rubin degrees of freedom; HC3 standard errors</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;  Contrast                Estimate SE    df   t     p     95% CI          FMI </span></span>
-<span><span class="co">#&gt;  ATE (avg over pretest)  -0.032   0.079 91.6 -0.41 0.686 [-0.190, 0.126] 0.37</span></span>
-<span><span class="co">#&gt;  Pretest x Treatment     -0.282   0.158 92.6 -1.79 0.077 [-0.596, 0.032] 0.37</span></span>
-<span><span class="co">#&gt;  Treatment | pretested   -0.173   0.110 87.5 -1.58 0.117 [-0.391, 0.044] 0.40</span></span>
+<span><span class="co">#&gt;  ATE (avg over pretest)  -0.033   0.080 91.4 -0.41 0.683 [-0.191, 0.125] 0.37</span></span>
+<span><span class="co">#&gt;  Pretest x Treatment     -0.283   0.158 92.9 -1.79 0.076 [-0.597, 0.030] 0.36</span></span>
+<span><span class="co">#&gt;  Treatment | pretested   -0.174   0.109 87.8 -1.59 0.115 [-0.392, 0.043] 0.40</span></span>
 <span><span class="co">#&gt;  Treatment | unpretested  0.109   0.115 96.2  0.95 0.344 [-0.118, 0.336] 0.34</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Largest Monte Carlo SE from the finite m: 0.0021</span></span></code></pre></div>
@@ -506,7 +507,7 @@ the same as the analysis model (Carpenter et al., 2023, pp. 255–256).
 Here the imputation model lets the pretest slope differ between the two
 pretested groups, so the agreement also suggests that the model’s common
 slope does no harm: the largest difference between the estimates is
-0.124 scale points. The fraction of missing information
+0.125 scale points. The fraction of missing information
 (<code>fmi</code>) of 0.34 to 0.40 shows how much the missing posttests
 weigh on each contrast.</p>
 </div>
@@ -549,7 +550,7 @@ the offsets go to the pretested relapse-prevention group alone
 <span><span class="fu"><a href="../reference/plot_tipping_point.html">plot_tipping_point</a></span><span class="op">(</span><span class="va">tp_sens</span><span class="op">)</span></span></code></pre></div>
 <p><img src="worked-example_files/figure-html/tipping-sens-1.png" class="r-plt" alt="Pooled Pretest x Treatment contrast with its confidence band as the offset added to the imputed posttests of the pretested relapse-prevention group goes from minus to plus one pooled within-group standard deviation." width="672"></p>
 <p>Assuming missing at random, the contrast is not significant (p =
-.077). It would be significant at the .05 level if the missing posttests
+.076). It would be significant at the .05 level if the missing posttests
 of the pretested relapse-prevention group were about 0.3 standard
 deviations lower on the scale than the imputation model predicts. No
 higher offset in the range changes the conclusion. The same analysis for
@@ -589,9 +590,9 @@ explored, and the tipping points, with their references:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Assuming the posttests were missing at random, the Pretest x Treatment</span></span>
 <span><span class="co">#&gt; interaction (pretest sensitization) was -0.28, 95% CI [-0.60, 0.03], p =</span></span>
-<span><span class="co">#&gt; .077.</span></span>
+<span><span class="co">#&gt; .076.</span></span>
 <span><span class="co">#&gt; Its statistical significance at alpha = .05 changed at an offset of -0.11</span></span>
-<span><span class="co">#&gt; (-0.30 SD), where the estimate was -0.32, p = .047.</span></span>
+<span><span class="co">#&gt; (-0.30 SD), where the estimate was -0.32, p = .046.</span></span>
 <span><span class="co">#&gt; Its statistical significance at alpha = .05 did not change for any positive</span></span>
 <span><span class="co">#&gt; offset tried.</span></span>
 <span><span class="co">#&gt; </span></span>

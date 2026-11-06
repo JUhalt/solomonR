@@ -154,7 +154,18 @@ An object of class `solomon_glm`, a list with:
 - `model`: the fitted model, a `glm` object.
 
 - `vcov`: the covariance matrix of the coefficients, as `robust` sets
-  it.
+  it. With CR2 it is the clubSandwich object, or, with a pretest or a
+  numeric covariate, a matrix (see "Covariates").
+
+- `covariate_scaling`: with a pretest or numeric covariates, the
+  parameterization in which the inference was computed (see
+  "Covariates"): the `means` and `scales` of the pretest, `pre_obs` (a
+  mean of 0 and the power of two it was divided by), and of the numeric
+  covariates (their means and standard deviations over the participants
+  in the model), and the `coefficients` and the covariance `vcov` of the
+  model with them standardized; otherwise `NULL`. Outside the stable
+  interface (see
+  [solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md)).
 
 - `dispersion`: the Pearson dispersion statistic for binomial, Poisson,
   and negative-binomial fits, and `NA` for the others.
@@ -596,6 +607,155 @@ case neither center is free of assumptions.
   would be analyzed in either pretest condition. It equals the effect in
   the randomized population only when the pretest effect does not vary
   with what drives the loss.
+
+## Covariates
+
+`covariates` enter the model as main effects, beside the pretest. The
+inference is computed with each numeric covariate standardized, centered
+at its mean and divided by its standard deviation over the participants
+in the model, and with the pretest, centered already, divided by the
+power of two nearest its standard deviation over the pretested
+participants in the model (issue \#137). That is a reparameterization of
+the same model, so it changes no contrast, standard error, degrees of
+freedom, or test, and keeps them accurate when a covariate, such as a
+calendar year, lies far from zero relative to its spread, or when a
+covariate or the pretest is on a scale far from 1, where the covariances
+of the model as given lose accuracy or cannot be computed. `model`,
+`coefficients`, and `vcov` are those of the covariates and the pretest
+as given, the intercept included. With a pretest or a numeric covariate,
+a CR2 `vcov` is therefore a matrix rather than the clubSandwich object,
+whose small-sample adjustments belong to the standardized model; that
+model's coefficients and covariance are in `covariate_scaling`. The
+warnings, such as one that a negative-binomial theta did not converge,
+come from the standardized model too, as do `theta` and `dispersion`,
+which do not depend on the parameterization. Far from zero, a fit to a
+covariate as given can warn where the same model standardized does not.
+
+Covariates collinear with the other terms stop the fit wherever they
+lie. Far from zero, the rounding error of the stored values can make
+[`stats::glm()`](https://rdrr.io/r/stats/glm.html) take collinear terms
+for distinct ones, such as `z + 1e6` and `2 * z + 3`, or a time of
+testing that is the time of enrollment plus a delay, with the times as
+dates, so the standardized model is checked too. Each term is regressed
+on the terms before it, the covariates after the treatment and pretest
+terms, weighted as [`stats::glm()`](https://rdrr.io/r/stats/glm.html)
+weighs them. It is taken to be collinear with them when its residual is
+within 4 times the rounding error that the regression carries into it,
+or within 1e-11 of its norm, the tolerance of
+[`stats::glm()`](https://rdrr.io/r/stats/glm.html). That rounding error
+is the term's own plus each other term's times the magnitude of its
+coefficient, relative to the term's standard deviation, with the error
+of each value taken to be `.Machine$double.eps` times its magnitude as
+given (the pretest's before it is centered), and that of standardizing,
+centering, and weighting it. The residual is computed from the stored
+values, accumulated in twice the working precision, rather than taken
+from the QR decomposition, whose own rounding the coefficients would
+multiply too.
+
+The check guarantees two things.
+
+- An exact relation among the terms (the covariates, the pretest, the
+  treatment and pretest indicators, their interaction, and the
+  indicators of factors) stops the fit, however far from zero its terms
+  lie, however their spreads differ, and in any order of the covariates,
+  as long as its values carry no more rounding error than the check
+  allows for. Values stored from exact data, or computed from one
+  another in a few operations, do not exceed it. The message names a
+  term of the relation.
+  [`stats::glm()`](https://rdrr.io/r/stats/glm.html) fits the model as
+  given first and takes a column to be collinear with the columns before
+  it, in the order of the model matrix, when its residual on them falls
+  below 1e-11 of its norm. That is so for the relation's last column in
+  that order whenever the relation's rounding error stays below that
+  tolerance, as it does near zero, and for a column whose spread falls
+  below about 1e-11 of its distance from zero; in that order the
+  interaction `treat:pretested` comes after the covariates. The message
+  then names that column. Otherwise it names the relation's last term in
+  the order of the check: the treatment and pretest terms first, then
+  the covariates in their order.
+
+- A term that is not exactly collinear stops the fit only when its
+  residual is within that bound or below the tolerance of
+  [`stats::glm()`](https://rdrr.io/r/stats/glm.html). Near zero the
+  bound grows with the coefficients: it is about 2.7 \* 10^-15 of the
+  term's norm times 1 plus the sum of the magnitudes of its
+  coefficients, each times the norm of its term over the term's own. A
+  covariate that nearly repeats another, or a combination of others with
+  coefficients of order 1, such as a covariate and its copy in single
+  precision, or covariates 10^-9 standard deviations apart, has a bound
+  of about 5 \* 10^-15, far below that tolerance, which then decides as
+  it does for the model as given; such covariates are fitted as
+  [`stats::glm()`](https://rdrr.io/r/stats/glm.html) fits them, whatever
+  other covariates lie far from zero. The bound exceeds that tolerance
+  once the sum exceeds about 4,000, as in nested near-collinearity. With
+  `z2 = z1 + 1e-6 * e1` and `z3 = e1 + delta * e2`, all near zero, the
+  sum is about 2 \* 10^6 and the bound about 5 \* 10^-9 of the norm of
+  `z3`, so that the fit goes ahead at `delta = 1e-8` and stops at
+  `delta = 3e-9` and below, where
+  [`stats::glm()`](https://rdrr.io/r/stats/glm.html) still fits the
+  model: a residual within the bound cannot be told from that of an
+  exact relation between rounded values.
+
+Its limits:
+
+- A relation computed with more rounding error, such as one among values
+  rounded to fewer digits, is not exact in double precision, and its
+  terms are fitted as nearly collinear ones.
+
+- Nearly collinear covariates far enough from zero that their difference
+  falls below about 1e-11 of their distance from zero, such as
+  covariates 10^-6 standard deviations apart at 10^6 standard deviations
+  from zero, are taken to be collinear by
+  [`stats::glm()`](https://rdrr.io/r/stats/glm.html) as given, which
+  stops the fit too.
+
+- The check runs once the model as given is fitted. When that fit fails
+  itself, as
+  [`MASS::glm.nb()`](https://rdrr.io/pkg/MASS/man/glm.nb.html) did with
+  "NA/NaN/Inf in 'x'" for an exact relation with a covariate 3 \* 10^10
+  standard deviations from zero, the fit stops with that error, as in
+  earlier versions, before the check can name a term.
+
+Nearly collinear covariates that are fitted keep accurate standard
+errors under every covariance, as far as the design allows: the
+coefficients and their covariance are accurate to about
+`.Machine$double.eps` times the condition number of the standardized
+design, which for two covariates near zero is about the inverse of their
+difference in standard deviations. With a numeric covariate the HC3 and
+CR2 covariances are therefore computed from the QR decomposition of the
+standardized model, as the model-based one is: HC3 from the
+participants' influences, and CR2 by clubSandwich in an orthonormal
+basis of the same columns, which gives the same covariance, degrees of
+freedom, and tests. Formed from the inverse of `X'WX`, as
+[`sandwich::vcovHC()`](https://zeileis.codeberg.page/sandwich/reference/vcovHC.html)
+and
+[`clubSandwich::vcovCR()`](http://jepusto.github.io/clubSandwich/reference/vcovCR.md)
+form them, whose condition number is the square of the design's, they
+lost accuracy with covariates 10^-7 standard deviations apart or closer,
+and earlier versions stopped with "system is computationally singular"
+from about 10^-8 near zero. With covariates 10^-8 standard deviations
+apart near zero, the standard errors and degrees of freedom of the
+contrasts and the coefficients, the statistics of the omnibus tests of
+several treatments, and the delta-method standard errors of
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+agreed with those of the exact reparameterization, the second covariate
+replaced by the difference, to about 2 \* 10^-8 of their value under
+every covariance in one check, and their p-values to about 10^-6; at
+10^-9, to about 2 \* 10^-7 and 3 \* 10^-6. Closer still, the standard
+errors of the contrasts agreed to about 10^-6 under HC3 and CR2 at
+10^-10, and to 3 \* 10^-5 in one logistic fit under model-based
+covariance. The cells of
+[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+are at the covariates' means, which far from zero are stored with an
+error that the large coefficients of nearly collinear covariates
+multiply; their standard errors agreed to about 10^-7 at 10^-8 near
+zero.
+
+A numeric covariate is standardized whatever its class, such as that of
+a variable with value labels read from an SPSS file, or of one wrapped
+in [`I()`](https://rdrr.io/r/base/AsIs.html), and so are dates and
+times, as the numbers they enter the model as; factors, logical columns,
+and character columns enter as given.
 
 ## Designs with several treatments
 

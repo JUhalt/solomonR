@@ -240,9 +240,9 @@ al., 2023, p. 256):</p>
 <code class="sourceCode R"><span><span class="va">mar</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_solomon_mi.html">fit_solomon_mi</a></span><span class="op">(</span><span class="va">y_post</span>, <span class="va">treat</span>, <span class="va">pretested</span>, <span class="va">y_pre</span>, seed <span class="op">=</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="va">mar</span><span class="op">$</span><span class="va">effects</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"contrast"</span>, <span class="st">"estimate"</span>, <span class="st">"std.error"</span>, <span class="st">"fmi"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                  contrast estimate std.error       fmi</span></span>
-<span><span class="co">#&gt; 1  ATE (avg over pretest) 6.494264  1.649496 0.2907155</span></span>
-<span><span class="co">#&gt; 2     Pretest x Treatment 3.082780  3.299247 0.2908277</span></span>
-<span><span class="co">#&gt; 3   Treatment | pretested 8.035654  2.010851 0.2789115</span></span>
+<span><span class="co">#&gt; 1  ATE (avg over pretest) 6.484136  1.653753 0.2939734</span></span>
+<span><span class="co">#&gt; 2     Pretest x Treatment 3.062524  3.304346 0.2925927</span></span>
+<span><span class="co">#&gt; 3   Treatment | pretested 8.015399  2.022001 0.2857567</span></span>
 <span><span class="co">#&gt; 4 Treatment | unpretested 4.952874  2.615466 0.2977825</span></span></code></pre></div>
 <p>The <code>fmi</code> column is the fraction of missing information
 for each contrast.</p>
@@ -444,9 +444,9 @@ explored, and the tipping points, with their references:</p>
 <span><span class="co">#&gt; standard deviations of the observed posttests).</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Assuming the posttests were missing at random, the average treatment effect</span></span>
-<span><span class="co">#&gt; across pretest conditions was 6.49, 95% CI [3.23, 9.76], p &lt; .001.</span></span>
+<span><span class="co">#&gt; across pretest conditions was 6.48, 95% CI [3.21, 9.76], p &lt; .001.</span></span>
 <span><span class="co">#&gt; Its statistical significance at alpha = .05 changed at an offset of -12.50</span></span>
-<span><span class="co">#&gt; (-1.20 SD), where the estimate was 3.08, p = .079.</span></span>
+<span><span class="co">#&gt; (-1.20 SD), where the estimate was 3.07, p = .081.</span></span>
 <span><span class="co">#&gt; Its statistical significance at alpha = .05 did not change for any positive</span></span>
 <span><span class="co">#&gt; offset tried.</span></span>
 <span><span class="co">#&gt; </span></span>
