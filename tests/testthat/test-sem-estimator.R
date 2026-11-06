@@ -488,6 +488,33 @@ test_that("a fit with any other estimator is refused by the report, not describe
   expect_error(report_solomon(inv), refusal("GLS"), fixed = TRUE)
   expect_error(report_solomon(sem), refusal("ULS"), fixed = TRUE)
 
+  # Latent results that an earlier version fitted with GLS, WLS, ULS, or
+  # DLS, made here by passing the name to lavaan unchecked, as that version
+  # did. Each model has a test with a scaling factor, so the report of that
+  # version called its chi-square scaled and its CFI and RMSEA those of the
+  # unscaled maximum likelihood chi-square. The report now refuses them,
+  # with the stored name and without it.
+  for (k in c("three", "four")) {
+    dk <- sem_estimator_data()[[k]]
+    items_k <- grep("^y", names(dk), value = TRUE)
+    for (e in c("GLS", "WLS", "ULS", "DLS")) {
+      info <- paste(k, "indicators,", e)
+      old <- with_mocked_bindings(
+        suppressWarnings(fit_solomon_sem_latent(dk, items_k, dk$treat, dk$pretested,
+                                                estimator = e)),
+        .check_sem_estimator = function(estimator) estimator
+      )
+      expect_identical(lavaan::lavInspect(old$fit, "options")$estimator, e, info = info)
+      expect_true(.sem_scaled(old$fit), info = info)
+      expect_error(report_solomon(old), refusal(e), fixed = TRUE, info = info)
+      expect_error(report_solomon(old$invariance), refusal(e), fixed = TRUE, info = info)
+      old$settings$estimator <- NULL
+      old$invariance$estimator <- NULL
+      expect_error(report_solomon(old), refusal(NULL), fixed = TRUE, info = info)
+      expect_error(report_solomon(old$invariance), refusal(NULL), fixed = TRUE, info = info)
+    }
+  }
+
   # A name that the fitted model contradicts: an ML fit called MLR.
   ml <- fit_solomon_sem(y_post, treat, pretested, estimator = "ML", data = solomon_example)
   ml$estimator <- "MLR"
