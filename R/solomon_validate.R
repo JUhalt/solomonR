@@ -296,13 +296,16 @@
 #'   frame, is shown as one table, `two`. That table pools the columns, so
 #'   each participant is counted once per column. Given by its bare name,
 #'   such a column is shown by one table per column, named as in the fit
-#'   (`two1`, `two2`). With numeric `y_pre`, the covariates enter the fit
-#'   behind the gap and the delta line, so a covariate that the fit refuses
-#'   stops with the error that [fit_solomon_glm()] gives: one named as a
-#'   column of that model, such as `y`, or a logical or character matrix
-#'   column of several columns given by its name or in a data frame. Loss
-#'   is shown by each of them (see "Missing posttests and the pretest
-#'   effects").
+#'   (`two1`, `two2`). Loss is shown by each covariate (see "Missing
+#'   posttests and the pretest effects"). With numeric `y_pre`, the
+#'   covariates also enter the fit behind the gap and the delta line. A
+#'   covariate that this fit refuses for its name or its form stops with
+#'   the error that [fit_solomon_glm()] gives: one named as a column of that
+#'   model, such as `y`, or a logical or character matrix column of several
+#'   columns given by its name or in a data frame. When the fit fails on a
+#'   covariate's values, for example on a factor with one level among the
+#'   participants analyzed, the gap and the delta line are left out without
+#'   a message.
 #' @return An object of class `solomon_missing`, a list with:
 #'   - `by_cell`: the counts in each Solomon cell, in the columns `group`,
 #'     `cell`, `pretested`, `treat`, `n`, `posttest_missing`,

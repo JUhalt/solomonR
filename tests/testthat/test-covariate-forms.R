@@ -641,6 +641,42 @@ test_that("check_solomon_missing() stops on a name the model uses, as fit_solomo
 })
 
 
+test_that("check_solomon_missing() leaves out the gap when the fit fails on a covariate's values", {
+
+  # Only a covariate that the fit refuses for its name or its form stops
+  # check_solomon_missing(). When the fit fails on a covariate's values,
+  # as on a factor with one level among the participants analyzed, the gap
+  # and the delta line are left out without a message, as before this
+  # change, and as its help says. The other diagnostics do not use that
+  # fit.
+  d <- forms_data()
+  d$y_post[c(3, 8, 70, 95)] <- NA
+  d$one <- factor(rep("a", nrow(d)), levels = c("a", "b"))
+  d$const <- "a"
+  without <- check_solomon_missing(y_post, treat, pretested, y_pre, data = d)
+  expect_false(is.null(without$gap))
+  expect_false(is.null(without$unpretested))
+  kept <- setdiff(names(without), c("gap", "unpretested", "covariates"))
+  lines <- "^  (Gap between the centers|Unpretested groups, the share)"
+  expect_length(grep(lines, utils::capture.output(print(without))), 2L)
+  for (name in c("one", "const")) {
+    expect_error(
+      fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = name, data = d),
+      "contrasts can be applied only to factors with 2 or more levels", fixed = TRUE,
+      info = name
+    )
+    checked <- expect_silent(
+      check_solomon_missing(y_post, treat, pretested, y_pre, covariates = name, data = d)
+    )
+    expect_null(checked$gap, info = name)
+    expect_null(checked$unpretested, info = name)
+    expect_identical(names(checked$covariates), name, info = name)
+    expect_identical(unclass(checked)[kept], unclass(without)[kept], info = name)
+    expect_length(grep(lines, utils::capture.output(print(checked))), 0L)
+  }
+})
+
+
 test_that("a logical or character matrix column of several columns stops by its name", {
 
   # glm() makes a factor of a logical or character variable, and of such a
