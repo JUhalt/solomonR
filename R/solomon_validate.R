@@ -294,18 +294,19 @@
 #'   exception. A matrix column of several columns, such as
 #'   `d$two <- cbind(d$age, d$z)` makes, given by its name or in a data
 #'   frame, is shown as one table, `two`. That table pools the columns, so
-#'   each participant is counted once per column. Given by its bare name,
-#'   such a column is shown by one table per column, named as in the fit
-#'   (`two1`, `two2`). Loss is shown by each covariate (see "Missing
-#'   posttests and the pretest effects"). With numeric `y_pre`, the
-#'   covariates also enter the fit behind the gap and the delta line. A
-#'   covariate that this fit refuses for its name or its form stops with
-#'   the error that [fit_solomon_glm()] gives: one named as a column of that
-#'   model, such as `y`, or a logical or character matrix column of several
-#'   columns given by its name or in a data frame. When the fit fails on a
-#'   covariate's values, for example on a factor with one level among the
-#'   participants analyzed, the gap and the delta line are left out without
-#'   a message.
+#'   each participant is counted once per column. Given by its bare name, a
+#'   numeric or logical one is shown by one table per column, named as in
+#'   the fit (`two1`, `two2`), and a character one stops, as in
+#'   [fit_solomon_glm()], with `y_pre` or without it. Loss is shown by each
+#'   covariate (see "Missing posttests and the pretest effects"). With
+#'   numeric `y_pre`, the covariates also enter the fit behind the gap and
+#'   the delta line. A covariate that this fit refuses for its name or its
+#'   form stops with the error that [fit_solomon_glm()] gives: one named as
+#'   a column of that model, such as `y`, or a logical or character matrix
+#'   column of several columns given by its name or in a data frame. When
+#'   the fit fails on a covariate's values, for example on a factor with one
+#'   level among the participants analyzed, the gap and the delta line are
+#'   left out without a message.
 #' @return An object of class `solomon_missing`, a list with:
 #'   - `by_cell`: the counts in each Solomon cell, in the columns `group`,
 #'     `cell`, `pretested`, `treat`, `n`, `posttest_missing`,

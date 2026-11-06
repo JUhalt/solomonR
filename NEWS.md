@@ -43,9 +43,10 @@
     bare name, so with several columns the printed formulas differ.
     `check_solomon_missing()` still shows a matrix column of several
     columns, given by its name, as one table that pools its columns, as
-    before (see its help); by its bare name, it shows one table per
-    column. A character matrix column of one column is one categorical
-    covariate, named by the column, by its bare name as by its name.
+    before (see its help). By its bare name, a numeric or logical one is
+    shown by one table per column, and a character one stops (see below).
+    A character matrix column of one column is one categorical covariate,
+    named by the column, by its bare name as by its name.
     `cbind()` turns a factor into its integer codes, and with a character
     vector makes every column character, which stops, so such covariates
     go in a data frame, such as `data.frame(age, region)`.
@@ -113,8 +114,12 @@
   the gap and the delta line without a word; it now stops with the
   fit's error. Without `y_pre`, such a column is shown as one table, as
   before. Given by its bare name, a character one now stops too, in both
-  functions and with or without `y_pre`; before, `fit_solomon_glm()` left
-  it out.
+  functions and with or without `y_pre`. Before, `fit_solomon_glm()` left
+  it out, and `check_solomon_missing()` did not stop: it showed one table
+  per column, named by the matrix's column names (`V1`, `V2`, ... by
+  position for columns without one), and with numeric `y_pre` took the
+  gap and the delta line from a fit that included those columns, unlike
+  `fit_solomon_glm()`.
 * `check_solomon_missing()` converted other forms with `as.data.frame()`:
   a vector was named `covariates`, the columns of a matrix without names
   `V1`, `V2`, ..., and a list or a character vector was accepted. They are
