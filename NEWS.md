@@ -223,9 +223,10 @@ reasons are set out in the decision record posted on #135.
   the commit and a description of the changes, as the stored runs of the
   ML and power studies did. Without it, these three scripts recorded `NA`
   for such a run, and now record the commit checked out. The Validation
-  Evidence page states the rule, says how to record the commit of a
-  downloaded copy, and says under "Adding a study" how a new study's
-  script takes up the rule. The stored results do not change.
+  Evidence page states the rule, says where the commit of a downloaded
+  copy is stored and how to record it, and says under "Adding a study" how
+  a new study's script takes up the rule. The stored results do not
+  change.
 * The several-treatment script, rerun where the old script stopped
   outside any git repository, resumes from the checkpoints that it left,
   whose commit is empty, and records `NA` as the commit of their
@@ -237,9 +238,10 @@ reasons are set out in the decision record posted on #135.
   unrelated repository; in a repository without commits; in a clone that
   git refuses to read; and with `GIT_DIR` or `GIT_WORK_TREE` pointing at
   another repository. It also checks that the messages that git prints are
-  discarded, and that every study whose script has the definition,
-  including one added later, has an article, named after its folder, that
-  links the rule.
+  discarded, that a ZIP or tar file made by `git archive` stores its
+  commit where the page says, and that every study whose script has the
+  definition, including one added later, has an article, named after its
+  folder, that links the rule.
 
 ## Validation scripts that run against the current package (#140)
 

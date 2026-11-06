@@ -592,6 +592,13 @@ check. In such a run, set `SOLOMONR_COMMIT` to record the commit.
 
 To record the commit that a downloaded copy came from, set
 `SOLOMONR_COMMIT` to it when running the script from the root of the copy.
+The unpacked files do not contain the commit, so note it when downloading.
+A ZIP or tar file that `git archive` makes from a commit stores the commit:
+`unzip -z <file>.zip` prints it as the comment of the ZIP file,
+`git get-tar-commit-id < <file>.tar` prints it from a tar file, and
+`gzip -dc <file>.tar.gz | git get-tar-commit-id` prints it from a
+compressed one. On Windows, these commands run in Git Bash.
+
 In a Unix shell:
 
 ```sh

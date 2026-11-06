@@ -368,6 +368,71 @@ test_that("validation_commit() records NA, without a warning, for a clone that g
   expect_true(grepl("`safe.directory`", section, fixed = TRUE))
 })
 
+test_that("a ZIP or tar file made by git archive stores its commit where the page says", {
+  skip_without_articles()
+  skip_without_git()
+  # The Validation Evidence page tells the reader of a downloaded copy where
+  # to find the commit to set in SOLOMONR_COMMIT.
+  section <- rerunning_section()
+  for (command in c("unzip -z <file>.zip", "git get-tar-commit-id < <file>.tar",
+                    "gzip -dc <file>.tar.gz | git get-tar-commit-id")) {
+    expect_true(grepl(paste0("`", command, "`"), section, fixed = TRUE), info = command)
+  }
+  parent <- git_sandbox()
+  clone <- make_copy(file.path(parent, "clone"))
+  make_repository(clone)
+  expect_true(succeeded(run_git(clone, "add", "DESCRIPTION")))
+  made <- run_git(clone, "-c", "user.name=solomonR-test", "-c", "user.email=test@example.invalid",
+                  "commit", "-q", "-m", "description")
+  skip_if_not(succeeded(made), "git could not make a commit")
+  head <- as.vector(run_git(clone, "rev-parse", "HEAD"))
+  archive <- function(format) {
+    file <- file.path(parent, paste0("copy.", format))
+    made <- run_git(clone, "archive", paste0("--format=", format), "-o", shQuote(file), "HEAD")
+    expect_true(succeeded(made) && file.exists(file), info = format)
+    file
+  }
+  # The comment of a ZIP file, which `unzip -z` prints, is the commit. The
+  # end-of-central-directory record, the last record of the file, begins
+  # with the bytes 50 4b 05 06, gives the length of the comment in its
+  # bytes 21 and 22 (little-endian), and ends with the comment.
+  zip <- archive("zip")
+  bytes <- readBin(zip, "raw", file.size(zip))
+  signature <- as.raw(c(0x50, 0x4b, 0x05, 0x06))
+  at <- Filter(function(i) identical(bytes[i + 0:3], signature), rev(seq_len(length(bytes) - 21L)))
+  expect_gte(length(at), 1L)
+  at <- at[[1]]
+  n <- as.integer(bytes[at + 20L]) + 256L * as.integer(bytes[at + 21L])
+  expect_identical(at + 21L + n, length(bytes))
+  expect_identical(rawToChar(bytes[at + 21L + seq_len(n)]), head)
+  # `git get-tar-commit-id` reads the commit from a tar file, but not from a
+  # compressed one, which must be decompressed first, as `gzip -dc` does.
+  tar_commit <- function(file) {
+    out <- suppressWarnings(system2("git", "get-tar-commit-id", stdin = file,
+                                    stdout = TRUE, stderr = FALSE))
+    if (succeeded(out) && length(out) == 1L) as.vector(out) else NA_character_
+  }
+  expect_identical(tar_commit(archive("tar")), head)
+  compressed <- archive("tar.gz")
+  expect_identical(tar_commit(compressed), NA_character_)
+  con <- gzfile(compressed, "rb")
+  decompressed <- readBin(con, "raw", 1e7)
+  close(con)
+  tar <- file.path(parent, "decompressed.tar")
+  writeBin(decompressed, tar)
+  expect_identical(tar_commit(tar), head)
+  # The unpacked files do not contain the commit, so a run from them records
+  # NA unless SOLOMONR_COMMIT gives it.
+  unpacked <- make_folder(file.path(parent, "unpacked"))
+  utils::unzip(zip, exdir = unpacked)
+  files <- list.files(unpacked, recursive = TRUE, all.files = TRUE, full.names = TRUE)
+  expect_identical(basename(files), "DESCRIPTION")
+  for (f in files) expect_false(any(grepl(head, readLines(f, warn = FALSE), fixed = TRUE)))
+  expect_identical(load_validation_commit()(unpacked), NA_character_)
+  withr::local_envvar(SOLOMONR_COMMIT = head)
+  expect_identical(load_validation_commit()(unpacked), head)
+})
+
 test_that("validation_commit() finds the repository from the copy, whatever GIT_DIR says", {
   skip_without_articles()
   skip_without_git()
