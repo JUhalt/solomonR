@@ -566,8 +566,9 @@ treatments, `ngroup-summarize.R` records the commits that
 
 - the environment variable `SOLOMONR_COMMIT`, when it is set and not empty;
 - otherwise, when git is on the PATH, the copy is the top level of a git
-  repository, as a clone is, and its `DESCRIPTION` names solomonR, the
-  commit checked out there (`git rev-parse HEAD`);
+  repository, as a clone is, git agrees to read that repository, and its
+  `DESCRIPTION` names solomonR, the commit checked out there
+  (`git rev-parse HEAD`);
 - otherwise `NA`.
 
 The copy is the package that the script loads: the nearest folder, at or
@@ -582,9 +583,16 @@ another one, are ignored.
 A copy downloaded with GitHub's "Download ZIP", or made with `git archive`,
 contains no git repository, so a run from it records `NA`. So does a run
 from a copy unpacked inside another git repository, whose commit is not
-that of the copy, and a run from a clone when git is not on the PATH. To
-record the commit that a downloaded copy came from, set `SOLOMONR_COMMIT`
-to it when running the script from the root of the copy. In a Unix shell:
+that of the copy, a run from a clone when git is not on the PATH, and a run
+from a clone that git refuses to read. By default, git refuses a repository
+owned by another user, for example a clone mounted into a container that
+runs as another user, unless git's `safe.directory` setting lists the
+repository. The scripts do not change that setting, which is a security
+check. In such a run, set `SOLOMONR_COMMIT` to record the commit.
+
+To record the commit that a downloaded copy came from, set
+`SOLOMONR_COMMIT` to it when running the script from the root of the copy.
+In a Unix shell:
 
 ```sh
 SOLOMONR_COMMIT=<commit> Rscript vignettes/articles/binary-validation/binary-simulation.R

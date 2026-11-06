@@ -153,6 +153,17 @@ scripts_with_block <- function(scripts = validation_scripts()) {
 # vignettes/articles, also for a script in a subfolder.
 study_folder <- function(script) sub("/.*$", "", script)
 
+# The section "Rerunning a study" of the Validation Evidence page, as one
+# string, with every run of spaces and line breaks as one space.
+rerunning_section <- function() {
+  lines <- readLines(file.path(articles, "validation-evidence.Rmd"), warn = FALSE)
+  begin <- which(lines == "## Rerunning a study")
+  testthat::expect_length(begin, 1L)
+  after <- which(startsWith(lines, "## ") & seq_along(lines) > begin[1])
+  end <- if (length(after)) after[1] - 1L else length(lines)
+  gsub("[[:space:]]+", " ", paste(lines[begin[1]:end], collapse = " "))
+}
+
 test_that("every validation script that records a commit has the same validation_commit()", {
   skip_without_articles()
   scripts <- validation_scripts()
@@ -328,6 +339,33 @@ test_that("validation_commit() records NA in a repository without commits", {
   # exit status, not only the output, decides.
   expect_false(succeeded(run_git(empty, "rev-parse", "HEAD")))
   expect_identical(load_validation_commit()(empty), NA_character_)
+})
+
+test_that("validation_commit() records NA, without a warning, for a clone that git refuses to read", {
+  skip_without_articles()
+  skip_without_git()
+  parent <- git_sandbox()
+  clone <- make_copy(file.path(parent, "clone"))
+  clone_head <- make_repository(clone)
+  # By default git refuses a repository owned by another user, unless
+  # safe.directory in the user's or the system's configuration lists it.
+  # GIT_TEST_ASSUME_DIFFERENT_OWNER, a switch for git's own tests, makes git
+  # treat every repository as owned by another user.
+  withr::local_envvar(GIT_TEST_ASSUME_DIFFERENT_OWNER = "1")
+  skip_if(succeeded(run_git(clone, "rev-parse", "HEAD")),
+          "this git does not check the owner of a repository")
+  expect_silent(value <- load_validation_commit()(clone))
+  expect_identical(value, NA_character_)
+  # Listed in safe.directory, the clone records its commit again. The block
+  # does not list it: the NA above shows that it leaves the setting as it is.
+  writeLines(c("[safe]", paste0("\tdirectory = ", clone)), Sys.getenv("GIT_CONFIG_GLOBAL"))
+  expect_identical(load_validation_commit()(clone), clone_head)
+  # The Validation Evidence page gives the condition and lists the case
+  # among the runs that record NA.
+  section <- rerunning_section()
+  expect_true(grepl("git agrees to read that repository", section, fixed = TRUE))
+  expect_true(grepl("a run from a clone that git refuses to read", section, fixed = TRUE))
+  expect_true(grepl("`safe.directory`", section, fixed = TRUE))
 })
 
 test_that("validation_commit() finds the repository from the copy, whatever GIT_DIR says", {

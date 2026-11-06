@@ -67,16 +67,19 @@ check_one <- function(j) {
 # The commit recorded with the results. It is the environment variable
 # SOLOMONR_COMMIT when that is set and not empty. Otherwise it is the HEAD
 # commit of the git repository that holds the copy of solomonR that the
-# script runs, when that copy is the repository's top level and git is on
-# the PATH. The copy is the nearest folder at or above `root` whose
-# DESCRIPTION names a package, as pkgload::load_all() finds it, and that
-# DESCRIPTION must name solomonR. Otherwise the commit is NA: a copy without
-# git metadata, such as a download from GitHub, records NA, and so does a
-# copy unpacked inside another repository, whose commit is not the copy's.
-# git looks for the repository from the copy alone (GIT_DIR and
-# GIT_WORK_TREE are unset while it runs), and its messages are discarded.
-# tests/testthat/test-validation-commit.R checks the rule and that every
-# copy of this block is identical.
+# script runs, when that copy is the repository's top level, git is on the
+# PATH, and git agrees to read the repository. The copy is the nearest
+# folder at or above `root` whose DESCRIPTION names a package, as
+# pkgload::load_all() finds it, and that DESCRIPTION must name solomonR.
+# Otherwise the commit is NA: a copy without git metadata, such as a
+# download from GitHub, records NA, and so does a copy unpacked inside
+# another repository, whose commit is not the copy's, and a clone that git
+# refuses to read, as by default it refuses one owned by another user
+# unless git's safe.directory setting lists it. This block leaves that
+# setting as it is. git looks for the repository from the copy alone
+# (GIT_DIR and GIT_WORK_TREE are unset while it runs), and its messages are
+# discarded. tests/testthat/test-validation-commit.R checks the rule and
+# that every copy of this block is identical.
 validation_commit <- function(root = ".") {
   given <- Sys.getenv("SOLOMONR_COMMIT")
   if (nzchar(given)) return(given)
