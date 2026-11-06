@@ -811,6 +811,14 @@ Permutations tied with the observed statistic counted exactly in
 ties with a covariate in iterated models, and degenerate labelings —
 [\#134](https://github.com/JUhalt/solomonR/issues/134)
 
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md):
+a logistic bootstrap that can lose every resample on an ill-conditioned
+design, and blames sparse cells; and, in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+the convergence warning that can come with the error for exactly
+collinear covariates, and which fit `model$converged` describes —
+[\#154](https://github.com/JUhalt/solomonR/issues/154)
+
 Robustness study of the recommended inference, under a protocol posted
 before any run — [\#116](https://github.com/JUhalt/solomonR/issues/116)
 
@@ -839,6 +847,14 @@ The validation scripts run from a downloaded copy of the repository,
 outside a git clone —
 [\#152](https://github.com/JUhalt/solomonR/issues/152); merged in [PR
 \#156](https://github.com/JUhalt/solomonR/pull/156)
+
+Follow-ups to [\#152](https://github.com/JUhalt/solomonR/issues/152): in
+the simulation harness, the validation scripts’ check that the package
+copy is the top level of a git repository, due before the robustness
+study’s timing run; on the Validation Evidence page, a note on studies
+run through the harness, and one on GitHub’s ZIP files if they keep the
+commit; and a CI run of one script from a downloaded copy —
+[\#162](https://github.com/JUhalt/solomonR/issues/162)
 
 # Later / exploratory
 
