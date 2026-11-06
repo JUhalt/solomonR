@@ -115,7 +115,12 @@
 #'   parameters the scalar model holds equal. A loading is freed on the
 #'   factor its indicator measures (`POST` or `PRE`) whatever factor name is
 #'   written before `=~`. See [invariance_solomon()].
-#' @param estimator lavaan estimator, default "MLR" (robust)
+#' @param estimator The lavaan estimator, `"MLR"` (the default) or `"ML"`,
+#'   in upper or lower case. Any other value stops with an error: these two
+#'   are the estimators under which the validation of the latent contrasts
+#'   is planned (the amendment of October 9, 2026, on issue #55). Other
+#'   estimators can be fitted with lavaan directly. The invariance check
+#'   uses the same estimator; see [invariance_solomon()].
 #' @param std_lv logical; if TRUE (default), lavaan's `std.lv = TRUE`: the
 #'   latent variance is fixed at 1 in the first group, the pretested
 #'   treatment group (P1), so latent contrasts are in that group's latent SD
@@ -146,8 +151,9 @@
 #'     \item `invariance`: the [invariance_solomon()] result, or `NULL` when
 #'       the check was not run, and `invariance_status`, a one-line summary
 #'     \item `conf_level`: the confidence level of the intervals
-#'     \item `settings`: the options used, including the estimator and any
-#'       freed parameters, which [report_solomon()] reports
+#'     \item `settings`: the options used, including the estimator
+#'       (`"MLR"` or `"ML"`) and any freed parameters, which
+#'       [report_solomon()] reports
 #'   }
 #'
 #'   Before solomonR 1.0.0, `fit` and `effects` were named `fit_post` and
@@ -226,6 +232,7 @@ fit_solomon_sem_latent <- function(
   invariance_post <- match.arg(invariance_post)
   invariance_pre  <- match.arg(invariance_pre)
   .check_conf_level(conf_level)
+  estimator <- .check_sem_estimator(estimator)
 
   if (!identical(invariance_post, "scalar")) {
     stop(

@@ -30,7 +30,11 @@ treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm(
 
 \item{ancova}{logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)}
 
-\item{estimator}{lavaan estimator (default "MLR")}
+\item{estimator}{The lavaan estimator, \code{"MLR"} (the default) or \code{"ML"},
+in upper or lower case. Any other value stops with an error: these two
+are the estimators whose validation is planned for this function (the
+protocol posted on issue #117). Other estimators can be fitted with
+lavaan directly.}
 
 \item{conf_level}{confidence level for intervals (default 0.95)}
 
@@ -54,6 +58,8 @@ for the normal reference distribution), \code{p.value}, \code{conf.low}, and
 mode gives \code{Treatment | pretested}
 \item \code{fitmeasures}: named vector (CFI, RMSEA, SRMR, df)
 \item \code{conf_level}: the confidence level of the intervals
+\item \code{estimator}: \code{"MLR"} or \code{"ML"}, which \code{\link[=report_solomon]{report_solomon()}}
+reports
 }
 
 The \code{effects} table, \code{conf_level}, and \code{\link[=solomon_output]{tidy()}},
@@ -74,8 +80,10 @@ in U1/U0 and matches Huck & Sandler.
 }
 }
 \details{
-The four-group mean-structure model is saturated, so its global fit
-indices are not diagnostic. Its contrasts are unadjusted posttest mean
+With the default \code{equal_var = FALSE}, the four-group mean-structure model
+is saturated, so its global fit indices are not diagnostic; with
+\code{equal_var = TRUE} it has 3 degrees of freedom. Its contrasts are
+unadjusted posttest mean
 differences, whereas the ANCOVA mode adjusts for the pretest within the
 pretested groups. The ANCOVA mode centers the pretest at its mean among
 the pretested participants before the model is fitted, so the group
@@ -96,7 +104,7 @@ results, which use a large-sample normal reference distribution.
 }
 \section{Lifecycle}{
 
-Experimental. Its tests rest on large-sample (MLR) theory, and no
+Experimental. Its tests rest on large-sample theory (MLR or ML), and no
 simulation study in the package has yet checked their error rates at
 Solomon sample sizes. \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} is the validated analysis of an
 observed outcome. The defaults may change after such a study.

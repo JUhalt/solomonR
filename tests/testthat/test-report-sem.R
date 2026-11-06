@@ -499,6 +499,7 @@ test_that("a second test without a scaling factor is not reported as a scaled te
 
   ml <- cfa4(estimator = "ML", test = c("standard", "browne.residual.nt.model"))
   expect_gt(length(lavaan::lavInspect(ml, "test")), 1L)
+  expect_false(.sem_scaled(ml))
   est <- .sem_estimator("ML", ml)
   expect_false(est$scaled)
   expect_identical(est$text, "maximum likelihood (ML)")
@@ -509,11 +510,12 @@ test_that("a second test without a scaling factor is not reported as a scaled te
                fixed = TRUE)
   expect_false(grepl("scaled", sentence, fixed = TRUE))
 
-  # A scaled test is found wherever it stands in the list of tests.
+  # A scaled test is found wherever it stands in the list of tests. The SEM
+  # functions make no ML fit with a scaled test, since they pass lavaan no
+  # option but the estimator (#133), so the report refuses to describe one.
   both <- cfa4(estimator = "ML", test = c("browne.residual.nt.model", "satorra.bentler"))
-  est <- .sem_estimator("ML", both)
-  expect_true(est$scaled)
-  expect_match(est$text, "with a scaled test statistic (satorra-bentler correction)", fixed = TRUE)
-  expect_identical(.sem_fit_sentence("The model", both, est$scaled, 2, FALSE),
+  expect_true(.sem_scaled(both))
+  expect_error(.sem_estimator("ML", both), "This fit (estimator = \"ML\") is neither", fixed = TRUE)
+  expect_identical(.sem_fit_sentence("The model", both, TRUE, 2, FALSE),
                    expected_fit(both, "The model"))
 })

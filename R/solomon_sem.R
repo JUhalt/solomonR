@@ -10,6 +10,52 @@
   if (inherits(fm, "try-error")) c(cfi = NA, rmsea = NA, srmr = NA, df = df) else fm
 }
 
+# The estimators that fit_solomon_sem(), fit_solomon_sem_latent(), and
+# invariance_solomon() accept (issue #133): MLR and ML, the estimators of
+# the validation protocols. The protocol posted on issue #117 restricts
+# fit_solomon_sem() to them. The amendment of October 9, 2026, on issue #55
+# studies the latent contrasts of fit_solomon_sem_latent() under both. In
+# the invariance check it plans to validate, the test does not depend on
+# `estimator`: the scaled difference (Satorra & Bentler, 2001) is always
+# computed from MLR fits, and among the tests compared is the unscaled
+# difference from the same fits, which equals the difference of ML fits.
+# invariance_solomon() accepts the estimators of fit_solomon_sem_latent(),
+# which runs it. Of the other lavaan estimators, MLM and MLMV cannot be
+# fitted with missing = "fiml", lavaan failed to estimate the package's
+# models with RBM (#117, #55), and those that can be fitted would be
+# fitted, labeled, and reported without validation. As in lavaan, the name
+# is matched without regard to case; it is returned in upper case and
+# without names, as the fits store and print it, since report_solomon()
+# compares the stored name with "MLR".
+.sem_estimators <- c("MLR", "ML")
+
+.check_sem_estimator <- function(estimator) {
+  one <- is.character(estimator) && length(estimator) == 1L && !is.na(estimator)
+  if (!one || !toupper(estimator) %in% .sem_estimators) {
+    stop(sprintf(paste0(
+      "`estimator` must be \"MLR\" or \"ML\" (in upper or lower case), %s. These are the ",
+      "estimators of the validation protocols posted on issues #117 and #55; other ",
+      "estimators can be fitted with lavaan directly."
+    ), if (one) {
+      # Quoted and escaped, so that spaces and control characters show.
+      paste("not", encodeString(unname(estimator), quote = "\""))
+    } else {
+      "given as a single, non-missing character string"
+    }), call. = FALSE)
+  }
+  unname(toupper(estimator))
+}
+
+# Whether a lavaan fit has a scaled test statistic: a test with a scaling
+# factor (issue #130). A second test in the list is not enough: since lavaan
+# 0.7-3 a maximum likelihood fit also carries Browne's residual test, which
+# scales nothing. A saturated MLR model has a scaling factor of NA, and its
+# test is still the scaled one.
+.sem_scaled <- function(fit) {
+  tests <- lavaan::lavInspect(fit, "test")
+  any(vapply(tests, function(x) !is.null(x$scaling.factor), logical(1)))
+}
+
 # The Solomon contrasts as lavaan defined parameters (":=") of the group
 # means mu_P1, mu_P0, mu_U1, and mu_U0 (issue #110). Inside the model syntax
 # they have the short names below; the effects tables that the SEM functions
@@ -87,8 +133,10 @@
 #'    (`Treatment | pretested`). This avoids structural missingness of y_pre
 #'    in U1/U0 and matches Huck & Sandler.
 #'
-#' The four-group mean-structure model is saturated, so its global fit
-#' indices are not diagnostic. Its contrasts are unadjusted posttest mean
+#' With the default `equal_var = FALSE`, the four-group mean-structure model
+#' is saturated, so its global fit indices are not diagnostic; with
+#' `equal_var = TRUE` it has 3 degrees of freedom. Its contrasts are
+#' unadjusted posttest mean
 #' differences, whereas the ANCOVA mode adjusts for the pretest within the
 #' pretested groups. The ANCOVA mode centers the pretest at its mean among
 #' the pretested participants before the model is fitted, so the group
@@ -108,7 +156,7 @@
 #' results, which use a large-sample normal reference distribution.
 #'
 #' @section Lifecycle:
-#' Experimental. Its tests rest on large-sample (MLR) theory, and no
+#' Experimental. Its tests rest on large-sample theory (MLR or ML), and no
 #' simulation study in the package has yet checked their error rates at
 #' Solomon sample sizes. [fit_solomon_glm()] is the validated analysis of an
 #' observed outcome. The defaults may change after such a study.
@@ -120,7 +168,11 @@
 #' @param y_pre optional pretest score (required if ancova = TRUE)
 #' @param equal_var logical; if TRUE, constrain posttest variances equal across groups
 #' @param ancova logical; if TRUE, fit ANCOVA in pretested groups only (P1 vs P0)
-#' @param estimator lavaan estimator (default "MLR")
+#' @param estimator The lavaan estimator, `"MLR"` (the default) or `"ML"`,
+#'   in upper or lower case. Any other value stops with an error: these two
+#'   are the estimators whose validation is planned for this function (the
+#'   protocol posted on issue #117). Other estimators can be fitted with
+#'   lavaan directly.
 #' @param conf_level confidence level for intervals (default 0.95)
 #' @param data Optional data frame. When supplied, the other data arguments
 #'   are looked up in it first, as bare column names (`y_post = post`) or as
@@ -148,6 +200,8 @@
 #'       mode gives `Treatment | pretested`
 #'     \item `fitmeasures`: named vector (CFI, RMSEA, SRMR, df)
 #'     \item `conf_level`: the confidence level of the intervals
+#'     \item `estimator`: `"MLR"` or `"ML"`, which [report_solomon()]
+#'       reports
 #'   }
 #'
 #'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
@@ -176,6 +230,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     y_pre = y_pre
   )
   .check_conf_level(conf_level)
+  estimator <- .check_sem_estimator(estimator)
 
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     stop("Package 'lavaan' is required for SEM; please install.packages('lavaan').")
@@ -221,7 +276,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     fm <- .sem_fit_measures(fit)
 
     structure(list(mode = "mean", fit = fit, effects = eff, fitmeasures = fm,
-                   conf_level = conf_level),
+                   conf_level = conf_level, estimator = estimator),
               class = "solomon_sem")
 
   } else {
@@ -269,7 +324,7 @@ fit_solomon_sem <- function(y_post, treat, pretested, y_pre = NULL,
     fm2 <- .sem_fit_measures(fit2)
 
     structure(list(mode = "ancova_pretested", fit = fit2, effects = eff2, fitmeasures = fm2,
-                   conf_level = conf_level),
+                   conf_level = conf_level, estimator = estimator),
               class = "solomon_sem")
   }
 }

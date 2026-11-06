@@ -1,5 +1,69 @@
 # solomonR (development version)
 
+## Only MLR and ML in the SEM functions (#133)
+
+* **A change in behavior.** `fit_solomon_sem()`, `fit_solomon_sem_latent()`,
+  and `invariance_solomon()` now accept only `estimator = "MLR"`, the
+  default, and `"ML"`, in upper or lower case, and store the name in upper
+  case, as `invariance_solomon()` prints it. Any other value, such as
+  `"MLM"`, `"MLMV"`, `"WLS"`, `"GLS"`, `"ULS"`, `"DLS"`, or `"RBM"`, now
+  stops with an error that names the two and says that other estimators
+  can be fitted with lavaan directly. Before, the functions passed any
+  value to lavaan. MLR and ML are the estimators of the posted validation
+  protocols. The protocol for `fit_solomon_sem()` on #117 restricts
+  `estimator` to them. The amendment of October 9, 2026, on #55 studies
+  the latent contrasts of `fit_solomon_sem_latent()` under both. In the
+  invariance check it plans to validate, the test does not depend on
+  `estimator`: the scaled difference (Satorra & Bentler, 2001) is always
+  computed from MLR fits, and among the tests compared is the unscaled
+  difference from the same fits, which equals the difference that
+  `invariance_solomon()` gives under ML. `invariance_solomon()` accepts the
+  estimators of `fit_solomon_sem_latent()`, which runs it. The functions
+  fit with full-information maximum likelihood (`missing = "fiml"`), with
+  which lavaan refuses MLM and MLMV, so neither could be fitted, although
+  `?invariance_solomon` named both.
+* **The difference test is labeled by the fitted models.**
+  `invariance_solomon()` decided from the estimator's name whether its
+  chi-square difference test was scaled. With `estimator = "mlr"`, lavaan
+  computed the scaled test (Satorra & Bentler, 2001), and the printout and
+  the report called it the unscaled one. The scaled test is now computed,
+  and `scaled` is `TRUE`, when every model has a test with a scaling
+  factor, the rule of #130; otherwise the unscaled test is computed. The
+  printout and the report take the label from the fitted models too, not
+  from the stored `scaled`, so a result saved before this change with
+  `"mlr"`, which stored `scaled = FALSE`, is now labeled scaled. The
+  printout uses the stored `scaled` only when it cannot read the fitted
+  models: when lavaan is not installed, or when the result no longer holds
+  the three of them.
+* **Reports.** `report_solomon()` describes MLR and ML fits only. With
+  three indicators under GLS, WLS, ULS, or DLS, the method statement of an
+  invariance report had lost its sentence on the software and the
+  estimator. Under all four, the reports of `fit_solomon_sem_latent()` and
+  `invariance_solomon()` said that the CFI and RMSEA came from the
+  unscaled maximum likelihood chi-square. With these estimators refused,
+  neither can happen. A fit saved by an earlier version with another
+  estimator is refused, with a message to fit it again. The report of
+  `fit_solomon_sem()` now names the lavaan version and the estimator, and
+  cites Yuan and Bentler (2000) under MLR, as the latent reports do;
+  before, it gave an ML fit the same words as an MLR fit.
+  `fit_solomon_sem()` stores the name in `estimator`; for a fit saved
+  before, the report reads the estimator from lavaan's options. The report
+  needs the lavaan model in `fit`, from which it reads the version and the
+  degrees of freedom and checks the estimator, so a result without it now
+  stops with a message; the print and `tidy()` do not need it. With
+  `equal_var = TRUE`, its method statement said that the four-group model
+  is saturated, which it is not, since the constraint gives it 3 degrees of
+  freedom; it now says that the posttest variances were constrained to be
+  equal, and `?fit_solomon_sem` says when the model is saturated.
+* **Results are unchanged** under `"MLR"` and `"ML"`. With three and with
+  four indicators, every number, table, print, and report sentence of
+  `fit_solomon_sem_latent()` and `invariance_solomon()`, and every number,
+  print, and result sentence of `fit_solomon_sem()`, equals that of the
+  development version before this change under lavaan 0.7-3, as a test
+  against stored results shows.
+* No validation script or article calls these functions with another
+  estimator.
+
 ## Covariates given as a vector or a matrix (bug fix, #146)
 
 * `fit_solomon_glm()`, with one treatment or several, left some forms of
