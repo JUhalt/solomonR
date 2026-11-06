@@ -35,9 +35,26 @@ are looked up in it first, as bare column names (\code{y_post = post}) or as
 strings (\code{y_post = "post"}).}
 
 \item{covariates}{Optional covariates recorded in all groups, such as
-gender: a data frame, or, with \code{data}, the names of its columns. They
-enter the fit behind the gap and the delta line, and loss is shown by
-each of them (see "Missing posttests and the pretest effects").}
+gender, in the forms that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} takes: a data frame; a
+numeric, logical, or factor vector; a numeric or logical matrix; or,
+with \code{data}, the names of its columns or one column by its bare name.
+They are named, and other forms stop with an error, as there, with one
+exception. A matrix column of several columns, such as
+\code{d$two <- cbind(d$age, d$z)} makes, given by its name or in a data
+frame, is shown as one table, \code{two}. That table pools the columns, so
+each participant is counted once per column. Given by its bare name, a
+numeric or logical one is shown by one table per column, named as in
+the fit (\code{two1}, \code{two2}), and a character one stops, as in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, with \code{y_pre} or without it. Loss is shown by each
+covariate (see "Missing posttests and the pretest effects"). With
+numeric \code{y_pre}, the covariates also enter the fit behind the gap and
+the delta line. A covariate that this fit refuses for its name or its
+form stops with the error that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} gives: one named as
+a column of that model, such as \code{y}, or a logical or character matrix
+column of several columns given by its name or in a data frame. When
+the fit fails on a covariate's values, for example on a factor with one
+level among the participants analyzed, the gap and the delta line are
+left out without a message.}
 }
 \value{
 An object of class \code{solomon_missing}, a list with:

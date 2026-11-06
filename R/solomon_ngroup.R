@@ -507,17 +507,7 @@
   }
 
   if (!is.null(covariates)) {
-    # `log_exposure` is reserved with or without `exposure`: report_solomon()
-    # and the clustered permutation test read a column of that name in the
-    # fit's data as the exposure offset.
-    clash <- intersect(names(covariates), c(names(df), "log_exposure"))
-    if (length(clash)) {
-      stop(
-        "Rename these covariates, whose names the model uses: ",
-        paste(clash, collapse = ", "), ".",
-        call. = FALSE
-      )
-    }
+    .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
   }
 

@@ -36,8 +36,51 @@ conditions, with the control named by \code{control}}
 \item{y_pre}{numeric pretest vector: the pretest score for pretested
 participants and \code{NA} for the others}
 
-\item{covariates}{optional data frame of additional covariates, or, with
-\code{data}, the names of its columns to use}
+\item{covariates}{optional covariates, one value or row per participant:
+\itemize{
+\item a data frame, one covariate per column;
+\item a numeric, logical, or factor vector, one covariate, named by the
+variable when given by its bare name (\code{covariates = age}), and
+\code{covariate} otherwise. A one-dimensional array without a class, such
+as \code{tapply(age, cluster, mean)[as.character(cluster)]} gives, is taken
+as a vector;
+\item a numeric or logical matrix, one covariate per column, named by its
+column names, with \code{covariate1}, \code{covariate2}, ... for columns
+without one. \code{cbind()} turns a factor into its integer codes, and
+with a character vector makes every column character, which stops,
+so give such covariates in a data frame, such as
+\code{data.frame(age, region)}, or by name with \code{data};
+\item with \code{data}, the names of its columns (\code{covariates = c("age", "z")}),
+each of which must be a column and be given once, or one column by
+its bare name. A numeric or logical matrix column, such as
+\code{d$age_z <- scale(d$age)} makes, given by its bare name or by its
+name, is named as \code{\link[stats:glm]{stats::glm()}} names it: \code{age_z} when it has one
+column, and otherwise the name of the column followed by each
+column's name, or by its position when it has no column names
+(\code{two1}, \code{two2}). A logical matrix column of several columns is
+taken only by its bare name; by its name, it stops (see below). A
+character matrix column of one column, given by its bare name or by
+its name, is one categorical covariate, named by the column; one of
+several columns stops (see below). A matrix from outside \code{data} is
+named by its column names, as above, also when given by its bare
+name.
+}
+
+A data frame or a matrix stops with an error when two of its columns
+have the same name, and a data frame when a column has no name. So
+does a logical or character matrix column of several columns, such as
+\code{d$lm2 <- cbind(d$age > 40, d$z > 0)} makes, given by its name or in a
+data frame, as \code{\link[stats:glm]{stats::glm()}} cannot fit it, and a character one also
+by its bare name. A value of the wrong length stops too, and so does
+a covariate named as a column of the model: \code{y}, \code{pretested},
+\code{log_exposure}, \code{pre_obs} when \code{y_pre} is given, and \code{treat} or, with
+several treatments, \code{condition} and \code{treat_} followed by each
+treatment's name. Any other form stops with an error, so that no
+covariate is left out unnoticed, for example: a character vector
+without \code{data} (give the data frame as \code{data}, or a categorical
+covariate as a factor); a list that is not a data frame; an array of
+more than two dimensions; and a vector of another type, such as a
+date (give it as a column of a data frame).}
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 

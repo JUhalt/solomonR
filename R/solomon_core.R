@@ -1168,8 +1168,49 @@ stouffer_solomon <- function(p) {
 #' @param pretested 0/1 (or logical) pretest indicator (1 = group received pretest)
 #' @param y_pre numeric pretest vector: the pretest score for pretested
 #'   participants and `NA` for the others
-#' @param covariates optional data frame of additional covariates, or, with
-#'   `data`, the names of its columns to use
+#' @param covariates optional covariates, one value or row per participant:
+#'   - a data frame, one covariate per column;
+#'   - a numeric, logical, or factor vector, one covariate, named by the
+#'     variable when given by its bare name (`covariates = age`), and
+#'     `covariate` otherwise. A one-dimensional array without a class, such
+#'     as `tapply(age, cluster, mean)[as.character(cluster)]` gives, is taken
+#'     as a vector;
+#'   - a numeric or logical matrix, one covariate per column, named by its
+#'     column names, with `covariate1`, `covariate2`, ... for columns
+#'     without one. `cbind()` turns a factor into its integer codes, and
+#'     with a character vector makes every column character, which stops,
+#'     so give such covariates in a data frame, such as
+#'     `data.frame(age, region)`, or by name with `data`;
+#'   - with `data`, the names of its columns (`covariates = c("age", "z")`),
+#'     each of which must be a column and be given once, or one column by
+#'     its bare name. A numeric or logical matrix column, such as
+#'     `d$age_z <- scale(d$age)` makes, given by its bare name or by its
+#'     name, is named as [stats::glm()] names it: `age_z` when it has one
+#'     column, and otherwise the name of the column followed by each
+#'     column's name, or by its position when it has no column names
+#'     (`two1`, `two2`). A logical matrix column of several columns is
+#'     taken only by its bare name; by its name, it stops (see below). A
+#'     character matrix column of one column, given by its bare name or by
+#'     its name, is one categorical covariate, named by the column; one of
+#'     several columns stops (see below). A matrix from outside `data` is
+#'     named by its column names, as above, also when given by its bare
+#'     name.
+#'
+#'   A data frame or a matrix stops with an error when two of its columns
+#'   have the same name, and a data frame when a column has no name. So
+#'   does a logical or character matrix column of several columns, such as
+#'   `d$lm2 <- cbind(d$age > 40, d$z > 0)` makes, given by its name or in a
+#'   data frame, as [stats::glm()] cannot fit it, and a character one also
+#'   by its bare name. A value of the wrong length stops too, and so does
+#'   a covariate named as a column of the model: `y`, `pretested`,
+#'   `log_exposure`, `pre_obs` when `y_pre` is given, and `treat` or, with
+#'   several treatments, `condition` and `treat_` followed by each
+#'   treatment's name. Any other form stops with an error, so that no
+#'   covariate is left out unnoticed, for example: a character vector
+#'   without `data` (give the data frame as `data`, or a categorical
+#'   covariate as a factor); a list that is not a data frame; an array of
+#'   more than two dimensions; and a vector of another type, such as a
+#'   date (give it as a column of a data frame).
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
 #'   participant. CR2 fits refuse designs in which a Solomon cell contains a
@@ -1536,17 +1577,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
 
   if (!is.null(covariates)) {
-    # `log_exposure` is reserved with or without `exposure`: report_solomon()
-    # and the clustered permutation test read a column of that name in the
-    # fit's data as the exposure offset.
-    clash <- intersect(names(covariates), c(names(df), "log_exposure"))
-    if (length(clash)) {
-      stop(
-        "Rename these covariates, whose names the model uses: ",
-        paste(clash, collapse = ", "), ".",
-        call. = FALSE
-      )
-    }
+    .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
   }
 
