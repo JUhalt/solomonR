@@ -154,8 +154,47 @@ participants and <code>NA</code> for the others</p></dd>
 
 
 <dt id="arg-covariates">covariates<a class="anchor" aria-label="anchor" href="#arg-covariates"></a></dt>
-<dd><p>optional data frame of additional covariates, or, with
-<code>data</code>, the names of its columns to use</p></dd>
+<dd><p>optional covariates, one value or row per participant:</p><ul><li><p>a data frame, one covariate per column;</p></li>
+<li><p>a numeric, logical, or factor vector, one covariate, named by the
+variable when given by its bare name (<code>covariates = age</code>), and
+<code>covariate</code> otherwise. A one-dimensional array without a class, such
+as <code>tapply(age, cluster, mean)[as.character(cluster)]</code> gives, is taken
+as a vector;</p></li>
+<li><p>a numeric or logical matrix, one covariate per column, named by its
+column names, with <code>covariate1</code>, <code>covariate2</code>, ... for columns
+without one. <code><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind()</a></code> turns a factor into its integer codes, and
+with a character vector makes every column character, which stops,
+so give such covariates in a data frame, such as
+<code>data.frame(age, region)</code>, or by name with <code>data</code>;</p></li>
+<li><p>with <code>data</code>, the names of its columns (<code>covariates = c("age", "z")</code>),
+each of which must be a column and be given once, or one column by
+its bare name. A numeric or logical matrix column, such as
+<code>d$age_z &lt;- scale(d$age)</code> makes, given by its bare name or by its
+name, is named as <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code> names it: <code>age_z</code> when it has one
+column, and otherwise the name of the column followed by each
+column's name, or by its position when it has no column names
+(<code>two1</code>, <code>two2</code>). A logical matrix column of several columns is
+taken only by its bare name; by its name, it stops (see below). A
+character matrix column of one column, given by its bare name or by
+its name, is one categorical covariate, named by the column; one of
+several columns stops (see below). A matrix from outside <code>data</code> is
+named by its column names, as above, also when given by its bare
+name.</p></li>
+</ul><p>A data frame or a matrix stops with an error when two of its columns
+have the same name, and a data frame when a column has no name. So
+does a logical or character matrix column of several columns, such as
+<code>d$lm2 &lt;- cbind(d$age &gt; 40, d$z &gt; 0)</code> makes, given by its name or in a
+data frame, as <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code> cannot fit it, and a character one also
+by its bare name. A value of the wrong length stops too, and so does
+a covariate named as a column of the model: <code>y</code>, <code>pretested</code>,
+<code>log_exposure</code>, <code>pre_obs</code> when <code>y_pre</code> is given, and <code>treat</code> or, with
+several treatments, <code>condition</code> and <code>treat_</code> followed by each
+treatment's name. Any other form stops with an error, so that no
+covariate is left out unnoticed, for example: a character vector
+without <code>data</code> (give the data frame as <code>data</code>, or a categorical
+covariate as a factor); a list that is not a data frame; an array of
+more than two dimensions; and a vector of another type, such as a
+date (give it as a column of a data frame).</p></dd>
 
 
 <dt id="arg-robust">robust<a class="anchor" aria-label="anchor" href="#arg-robust"></a></dt>

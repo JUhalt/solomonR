@@ -618,8 +618,8 @@ CRAN pre-submission readiness —
 - Nothing is submitted without the maintainer’s sign-off.
 
 The validation studies run on GitHub-hosted runners, under each
-protocol’s platform amendment posted before its run — harness in [PR
-\#149](https://github.com/JUhalt/solomonR/pull/149)
+protocol’s platform amendment posted before its run — harness merged in
+[PR \#149](https://github.com/JUhalt/solomonR/pull/149)
 ([\#116](https://github.com/JUhalt/solomonR/issues/116),
 [\#117](https://github.com/JUhalt/solomonR/issues/117))
 
@@ -765,7 +765,8 @@ with a covariate far from zero, or on a scale far from 1 —
 
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
 drops, without saying so, a covariate given as a vector or a matrix —
-[\#146](https://github.com/JUhalt/solomonR/issues/146)
+[\#146](https://github.com/JUhalt/solomonR/issues/146); merged in [PR
+\#155](https://github.com/JUhalt/solomonR/pull/155)
 
 **Figures and reports**
 
@@ -835,7 +836,8 @@ smoke mode that a GitHub Actions workflow runs —
 
 The validation scripts run from a downloaded copy of the repository,
 outside a git clone —
-[\#152](https://github.com/JUhalt/solomonR/issues/152)
+[\#152](https://github.com/JUhalt/solomonR/issues/152); merged in [PR
+\#156](https://github.com/JUhalt/solomonR/pull/156)
 
 # Later / exploratory
 

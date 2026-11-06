@@ -396,14 +396,97 @@ found at least one significant interaction in 0.111 to 0.217 of
 replications when no treatment was sensitized. See the [full
 article](https://juhalt.github.io/solomonR/articles/ngroup-validation.html).
 
+## Rerunning a study
+
+The scripts of the studies on this page record a commit with their
+results ([issue \#152](https://github.com/JUhalt/solomonR/issues/152)),
+except two: the post hoc investigation of Test I in the study of the
+historical Tests A-I (`test-i-investigation.R`) and the agreement table
+of the study of missing posttests (`mi-agreement.R`). In the study of
+designs with several treatments, `ngroup-summarize.R` records the
+commits that `ngroup-simulation.R` passes to it. The commit is:
+
+- the environment variable `SOLOMONR_COMMIT`, when it is set and not
+  empty;
+- otherwise, when git is on the PATH, the copy is the top level of a git
+  repository, as a clone is, git agrees to read that repository, and its
+  `DESCRIPTION` names solomonR, the commit checked out there
+  (`git rev-parse HEAD`);
+- otherwise `NA`.
+
+The copy is the package that the script loads: the nearest folder, at or
+above the working directory, whose `DESCRIPTION` names a package, as
+[`pkgload::load_all()`](https://pkgload.r-lib.org/reference/load_all.html)
+finds it. The scripts of the maximum-likelihood, power, and sample-size
+planning studies search from the folder given as their first argument,
+the working directory by default, so they record the commit of the copy
+given there. Only the copy decides which repository is used: the
+variables `GIT_DIR` and `GIT_WORK_TREE`, which can point git at another
+one, are ignored.
+
+A copy downloaded with GitHub’s “Download ZIP”, or made with
+`git archive`, contains no git repository, so a run from it records
+`NA`. So does a run from a copy unpacked inside another git repository,
+whose commit is not that of the copy, a run from a clone when git is not
+on the PATH, and a run from a clone that git refuses to read. By
+default, git refuses a repository owned by another user, for example a
+clone mounted into a container that runs as another user, unless git’s
+`safe.directory` setting lists the repository. The scripts do not change
+that setting, which is a security check. In such a run, set
+`SOLOMONR_COMMIT` to record the commit.
+
+To record the commit that a downloaded copy came from, set
+`SOLOMONR_COMMIT` to it when running the script from the root of the
+copy. The unpacked files do not contain the commit, so note it when
+downloading. A ZIP or tar file that `git archive` makes from a commit
+stores the commit: `unzip -z <file>.zip` prints it as the comment of the
+ZIP file, `git get-tar-commit-id < <file>.tar` prints it from a tar
+file, and `gzip -dc <file>.tar.gz | git get-tar-commit-id` prints it
+from a compressed one. On Windows, these commands run in Git Bash.
+
+In a Unix shell:
+
+``` sh
+SOLOMONR_COMMIT=<commit> Rscript vignettes/articles/binary-validation/binary-simulation.R
+```
+
+In PowerShell:
+
+``` powershell
+$env:SOLOMONR_COMMIT = "<commit>"; Rscript vignettes/articles/binary-validation/binary-simulation.R
+```
+
+Each command runs the full binary study. In PowerShell, the variable
+stays set for the rest of the session, so a later run there records the
+same commit until the variable is removed with
+`Remove-Item Env:SOLOMONR_COMMIT`.
+
+The rule does not detect uncommitted changes. A run from a clone with
+changes records the commit checked out, which does not contain them.
+Such a run should set `SOLOMONR_COMMIT` to the commit and a description
+of the changes, as the stored runs of the maximum-likelihood and power
+studies did; the first recorded
+`4e1d820 plus #22 draft (solomon_ml.R md5 b5adb4c9c901)`.
+
 ## Adding a study
 
 A new study joins this page by:
 
 1.  posting its protocol to a GitHub issue before running;
 2.  committing its script, `performance.csv`, and `run-information.csv`
-    in a folder under `vignettes/articles/`;
-3.  adding a section for it to `validation-evidence/build-benchmarks.R`.
+    in a folder under `vignettes/articles/` whose name ends in
+    `-validation`;
+3.  adding a section for it to `validation-evidence/build-benchmarks.R`;
+4.  if its script records a commit, copying the `validation_commit()`
+    block of an existing study’s script into it unchanged, calling it
+    with the folder that the script passes to
+    [`pkgload::load_all()`](https://pkgload.r-lib.org/reference/load_all.html),
+    and linking [Rerunning a study](#rerunning-a-study) from the study’s
+    article, named after its folder (`binary-validation.Rmd` for
+    `binary-validation/`).
+
+`tests/testthat/test-validation-commit.R` checks step 4 for every script
+with the block in a folder whose name ends in `-validation`.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

@@ -1375,7 +1375,13 @@ was at that commit and the adapted script give identical results, the
 saved replications included. With the current package the replications
 are the same, since they do not call the package; in those two
 replications, the agreement differences of M1 change by at most 2e-14,
-because the pretest has been centered since <a href="https://github.com/JUhalt/solomonR/issues/104" class="external-link">issue #104</a>.</p>
+because the pretest has been centered since <a href="https://github.com/JUhalt/solomonR/issues/104" class="external-link">issue #104</a>. The
+script also records its commits by the rule under <a href="validation-evidence.html#rerunning-a-study">Rerunning a study</a>
+(<a href="https://github.com/JUhalt/solomonR/issues/152" class="external-link">issue
+#152</a>). A run resumed from checkpoints that hold no commit, as the
+script before that change left them when it stopped outside any git
+repository, records <code>NA</code> as the commit of their replications
+(<code>simulation_commit</code>).</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

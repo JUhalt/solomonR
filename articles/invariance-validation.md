@@ -309,7 +309,10 @@ run that checks it against the package ([issue
 \#140](https://github.com/JUhalt/solomonR/issues/140)). On two
 replications of scenario 1, the original script with the package at
 commit 27bf616 and the adapted script with the current package give
-identical results.
+identical results. The script also records its commit by the rule under
+[Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152)).
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

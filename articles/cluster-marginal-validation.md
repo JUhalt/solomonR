@@ -193,7 +193,10 @@ also covers the pretest effects, which this study does not report. The
 adaptation does not change what the script computes: on two replications
 of scenarios 1, 2, and 25, the original script with the package at
 commit c2e00dc and the adapted script, with the package at that commit
-and with the current package, give identical results.
+and with the current package, give identical results. The script also
+records its commit by the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152)).
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

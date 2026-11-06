@@ -277,7 +277,10 @@ results. With the current package, the results of the pretest-adjusted
 analyses differ from these, with relative differences below 1e-9,
 because the pretest has been centered since [issue
 \#104](https://github.com/JUhalt/solomonR/issues/104); those of the
-unadjusted analysis are identical.
+unadjusted analysis are identical. The script also records its commit by
+the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152)).
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

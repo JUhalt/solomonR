@@ -208,9 +208,12 @@ repository. It was run at 2a944c8 plus \#18 rebuild (solomon_power.R md5
 180d6330d91d) with R 4.6.1, base seed 20260916, and the replication
 counts above. Its smoke mode, a short run of three scenarios, has since
 been extended to check it against the current package ([issue
-\#140](https://github.com/JUhalt/solomonR/issues/140)); the rest of the
-script is unchanged except for the label of Test I, which now names
-Walton Braver. The version of
+\#140](https://github.com/JUhalt/solomonR/issues/140)), and the script
+records its commit by the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152)); the rest
+of the script is unchanged except for the label of Test I, which now
+names Walton Braver. The version of
 [`power_solomon()`](https://juhalt.github.io/solomonR/reference/power_solomon.md)
 used in the run was not committed, so the run cannot be repeated
 exactly. On the three smoke scenarios with 20 simulations each, the

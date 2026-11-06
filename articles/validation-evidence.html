@@ -1101,6 +1101,72 @@ to 0.217 of replications when no treatment was sensitized. See the <a href="http
 article</a>.</p>
 </div>
 <div class="section level2">
+<h2 id="rerunning-a-study">Rerunning a study<a class="anchor" aria-label="anchor" href="#rerunning-a-study"></a>
+</h2>
+<p>The scripts of the studies on this page record a commit with their
+results (<a href="https://github.com/JUhalt/solomonR/issues/152" class="external-link">issue
+#152</a>), except two: the post hoc investigation of Test I in the study
+of the historical Tests A-I (<code>test-i-investigation.R</code>) and
+the agreement table of the study of missing posttests
+(<code>mi-agreement.R</code>). In the study of designs with several
+treatments, <code>ngroup-summarize.R</code> records the commits that
+<code>ngroup-simulation.R</code> passes to it. The commit is:</p>
+<ul>
+<li>the environment variable <code>SOLOMONR_COMMIT</code>, when it is
+set and not empty;</li>
+<li>otherwise, when git is on the PATH, the copy is the top level of a
+git repository, as a clone is, git agrees to read that repository, and
+its <code>DESCRIPTION</code> names solomonR, the commit checked out
+there (<code>git rev-parse HEAD</code>);</li>
+<li>otherwise <code>NA</code>.</li>
+</ul>
+<p>The copy is the package that the script loads: the nearest folder, at
+or above the working directory, whose <code>DESCRIPTION</code> names a
+package, as <code><a href="https://pkgload.r-lib.org/reference/load_all.html" class="external-link">pkgload::load_all()</a></code> finds it. The scripts of
+the maximum-likelihood, power, and sample-size planning studies search
+from the folder given as their first argument, the working directory by
+default, so they record the commit of the copy given there. Only the
+copy decides which repository is used: the variables
+<code>GIT_DIR</code> and <code>GIT_WORK_TREE</code>, which can point git
+at another one, are ignored.</p>
+<p>A copy downloaded with GitHub’s “Download ZIP”, or made with
+<code>git archive</code>, contains no git repository, so a run from it
+records <code>NA</code>. So does a run from a copy unpacked inside
+another git repository, whose commit is not that of the copy, a run from
+a clone when git is not on the PATH, and a run from a clone that git
+refuses to read. By default, git refuses a repository owned by another
+user, for example a clone mounted into a container that runs as another
+user, unless git’s <code>safe.directory</code> setting lists the
+repository. The scripts do not change that setting, which is a security
+check. In such a run, set <code>SOLOMONR_COMMIT</code> to record the
+commit.</p>
+<p>To record the commit that a downloaded copy came from, set
+<code>SOLOMONR_COMMIT</code> to it when running the script from the root
+of the copy. The unpacked files do not contain the commit, so note it
+when downloading. A ZIP or tar file that <code>git archive</code> makes
+from a commit stores the commit: <code>unzip -z &lt;file&gt;.zip</code>
+prints it as the comment of the ZIP file,
+<code>git get-tar-commit-id &lt; &lt;file&gt;.tar</code> prints it from
+a tar file, and
+<code>gzip -dc &lt;file&gt;.tar.gz | git get-tar-commit-id</code> prints
+it from a compressed one. On Windows, these commands run in Git
+Bash.</p>
+<p>In a Unix shell:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="va">SOLOMONR_COMMIT</span><span class="op">=&lt;</span>commit<span class="op">&gt;</span> Rscript <span class="ex">vignettes/articles/binary-validation/binary-simulation.R</span></span></code></pre></div>
+<p>In PowerShell:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">SOLOMONR_COMMIT</span> <span class="op">=</span> <span class="st">"&lt;commit&gt;"</span><span class="op">;</span> Rscript vignettes<span class="op">/</span>articles<span class="op">/</span>binary-validation<span class="op">/</span>binary-simulation<span class="op">.</span><span class="fu">R</span></span></code></pre></div>
+<p>Each command runs the full binary study. In PowerShell, the variable
+stays set for the rest of the session, so a later run there records the
+same commit until the variable is removed with
+<code>Remove-Item Env:SOLOMONR_COMMIT</code>.</p>
+<p>The rule does not detect uncommitted changes. A run from a clone with
+changes records the commit checked out, which does not contain them.
+Such a run should set <code>SOLOMONR_COMMIT</code> to the commit and a
+description of the changes, as the stored runs of the maximum-likelihood
+and power studies did; the first recorded
+<code>4e1d820 plus #22 draft (solomon_ml.R md5 b5adb4c9c901)</code>.</p>
+</div>
+<div class="section level2">
 <h2 id="adding-a-study">Adding a study<a class="anchor" aria-label="anchor" href="#adding-a-study"></a>
 </h2>
 <p>A new study joins this page by:</p>
@@ -1108,10 +1174,20 @@ article</a>.</p>
 <li>posting its protocol to a GitHub issue before running;</li>
 <li>committing its script, <code>performance.csv</code>, and
 <code>run-information.csv</code> in a folder under
-<code>vignettes/articles/</code>;</li>
+<code>vignettes/articles/</code> whose name ends in
+<code>-validation</code>;</li>
 <li>adding a section for it to
-<code>validation-evidence/build-benchmarks.R</code>.</li>
+<code>validation-evidence/build-benchmarks.R</code>;</li>
+<li>if its script records a commit, copying the
+<code>validation_commit()</code> block of an existing study’s script
+into it unchanged, calling it with the folder that the script passes to
+<code><a href="https://pkgload.r-lib.org/reference/load_all.html" class="external-link">pkgload::load_all()</a></code>, and linking <a href="#rerunning-a-study">Rerunning a study</a> from the study’s
+article, named after its folder (<code>binary-validation.Rmd</code> for
+<code>binary-validation/</code>).</li>
 </ol>
+<p><code>tests/testthat/test-validation-commit.R</code> checks step 4
+for every script with the block in a folder whose name ends in
+<code>-validation</code>.</p>
 <p>All works cited in solomonR are listed, with notes on how the package
 uses them, on the <a href="references.html">References</a> page.</p>
 </div>

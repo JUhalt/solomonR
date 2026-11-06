@@ -124,11 +124,14 @@ seed 20260925. The results also feed the shared tables on the
 Evidence](https://juhalt.github.io/solomonR/articles/validation-evidence.md)
 page. The script has since gained a smoke mode, a short run that checks
 it against the current package ([issue
-\#140](https://github.com/JUhalt/solomonR/issues/140)); the rest of the
-script is unchanged. For the first design, with two simulated datasets
-per plan, the script as first committed (commit `6b69e1c`) and the
-script now give identical results, with the package at commit `e2ac4f0`,
-where the check was run, and with the current package.
+\#140](https://github.com/JUhalt/solomonR/issues/140)), and it records
+its commit by the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152)); the rest
+of the script is unchanged. For the first design, with two simulated
+datasets per plan, the script as first committed (commit `6b69e1c`) and
+the script now give identical results, with the package at commit
+`e2ac4f0`, where the check was run, and with the current package.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

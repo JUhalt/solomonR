@@ -534,8 +534,12 @@ met.</li>
 <p>From the package root,
 <code>Rscript vignettes/articles/mmrm-validation/mmrm-simulation.R</code>
 writes <code>performance.csv</code> and
-<code>run-information.csv</code>. The run used R 4.6.1, mmrm 0.3.18, and
-11 workers, from 2026-09-28 21:58:27 UTC to 2026-09-28 23:09:29 UTC. The
+<code>run-information.csv</code>. The script records its commit by the
+rule under <a href="validation-evidence.html#rerunning-a-study">Rerunning a study</a>
+on the Validation Evidence page. To record the commit when running it
+from a downloaded copy, set <code>SOLOMONR_COMMIT</code> to the commit
+that the copy came from. The run used R 4.6.1, mmrm 0.3.18, and 11
+workers, from 2026-09-28 21:58:27 UTC to 2026-09-28 23:09:29 UTC. The
 script has since been adapted to the current output of the package (<a href="https://github.com/JUhalt/solomonR/issues/140" class="external-link">issue #140</a>): it
 selects the rows it studies by occasion and label, as the help page
 <code><a href="../reference/solomon_output.html">?solomon_output</a></code> describes, and it has a smoke mode, a short

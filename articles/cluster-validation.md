@@ -292,11 +292,14 @@ per task. Two scenarios that had finished before the restart, at commit
 each scenario sets its own seed, so the results do not depend on the
 scheduling. The script has since gained a smoke mode, a short run that
 checks it against the current package ([issue
-\#140](https://github.com/JUhalt/solomonR/issues/140)); the rest of the
-script is unchanged. On two replications of scenarios 1, 2, 49, and 50,
-the script as run and the script now give identical results, with the
-package at commit 393bd58 and with the current package. The full study
-has not been rerun. Since the run,
+\#140](https://github.com/JUhalt/solomonR/issues/140)), and it records
+its commit by the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152)); the rest
+of the script is unchanged. On two replications of scenarios 1, 2, 49,
+and 50, the script as run and the script now give identical results,
+with the package at commit 393bd58 and with the current package. The
+full study has not been rerun. Since the run,
 [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
 counts permutation statistics that tie with the observed one by a new
 rule ([issue \#131](https://github.com/JUhalt/solomonR/issues/131)), so

@@ -241,6 +241,11 @@ now uses. On two replications of conditions 1 and 28, the original
 script with the package at commit 0d970c4 and the adapted script with
 the current package give identical results, and so do the two versions
 of `test-i-investigation.R`, which does not use the package.
+`classic-simulation.R` also records its commit by the rule under
+[Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152));
+`test-i-investigation.R` records none.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

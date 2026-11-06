@@ -210,12 +210,16 @@ From the package root,
 `Rscript vignettes/articles/mi-validation/mi-simulation.R` writes
 `performance.csv` and `run-information.csv`, and
 `Rscript vignettes/articles/mi-validation/mi-agreement.R` then writes
-`agreement.csv` from the saved replications. The run used R 4.6.1 and 11
-workers and took from 2026-09-28 20:38:16 UTC to 2026-09-28 21:04:53
-UTC. The simulation script has since been adapted to the current output
-of the package ([issue
-\#140](https://github.com/JUhalt/solomonR/issues/140)): it selects the
-rows it studies by their labels, as the help page
+`agreement.csv` from the saved replications. The simulation script
+records its commit by the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+on the Validation Evidence page. To record the commit when running it
+from a downloaded copy, set `SOLOMONR_COMMIT` to the commit that the
+copy came from. The run used R 4.6.1 and 11 workers and took from
+2026-09-28 20:38:16 UTC to 2026-09-28 21:04:53 UTC. The simulation
+script has since been adapted to the current output of the package
+([issue \#140](https://github.com/JUhalt/solomonR/issues/140)): it
+selects the rows it studies by their labels, as the help page
 [`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)
 describes, and both scripts have a smoke mode, a short run that checks
 them against the current package. The adaptation does not change what

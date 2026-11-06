@@ -191,10 +191,14 @@ does, is necessary.
 
 From the package root,
 `Rscript vignettes/articles/mmrm-validation/mmrm-simulation.R` writes
-`performance.csv` and `run-information.csv`. The run used R 4.6.1, mmrm
-0.3.18, and 11 workers, from 2026-09-28 21:58:27 UTC to 2026-09-28
-23:09:29 UTC. The script has since been adapted to the current output of
-the package ([issue
+`performance.csv` and `run-information.csv`. The script records its
+commit by the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+on the Validation Evidence page. To record the commit when running it
+from a downloaded copy, set `SOLOMONR_COMMIT` to the commit that the
+copy came from. The run used R 4.6.1, mmrm 0.3.18, and 11 workers, from
+2026-09-28 21:58:27 UTC to 2026-09-28 23:09:29 UTC. The script has since
+been adapted to the current output of the package ([issue
 \#140](https://github.com/JUhalt/solomonR/issues/140)): it selects the
 rows it studies by occasion and label, as the help page
 [`?solomon_output`](https://juhalt.github.io/solomonR/reference/solomon_output.md)

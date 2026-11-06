@@ -405,7 +405,13 @@ With the current package the replications are the same, since they do
 not call the package; in those two replications, the agreement
 differences of M1 change by at most 2e-14, because the pretest has been
 centered since [issue
-\#104](https://github.com/JUhalt/solomonR/issues/104).
+\#104](https://github.com/JUhalt/solomonR/issues/104). The script also
+records its commits by the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152)). A run
+resumed from checkpoints that hold no commit, as the script before that
+change left them when it stopped outside any git repository, records
+`NA` as the commit of their replications (`simulation_commit`).
 
 ## References
 

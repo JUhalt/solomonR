@@ -241,7 +241,10 @@ negative-binomial study), with the package at the commit of each run,
 c9e8da8 and e8e374b, the original and the adapted scripts give identical
 results. With the current package, the results differ from these, with
 relative differences below 1e-7, because the pretest has been centered
-since [issue \#104](https://github.com/JUhalt/solomonR/issues/104).
+since [issue \#104](https://github.com/JUhalt/solomonR/issues/104). Both
+scripts also record their commit by the rule under [Rerunning a
+study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
+([issue \#152](https://github.com/JUhalt/solomonR/issues/152)).
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the
