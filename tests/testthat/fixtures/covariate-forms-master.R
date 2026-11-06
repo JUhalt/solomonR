@@ -24,9 +24,11 @@
 # Each result has two parts. `exact` holds what must be identical: the data
 # each model was fitted to, its formula and coefficient names, the class of
 # the result, and the covariate tables and counts of
-# check_solomon_missing(). `numbers` holds the effects and coefficients,
-# and the gap of check_solomon_missing(), which the test compares to 1e-8
-# of their value, since the inference of #137 changes them by rounding.
+# check_solomon_missing() (the test compares the doubles of those tables to
+# 1e-12 of their value, since their last bits depend on the platform).
+# `numbers` holds the effects and coefficients, and the gap of
+# check_solomon_missing(), which the test compares to 1e-8 of their value,
+# since the inference of #137 changes them by rounding.
 #
 # As in fixtures/pretest-center-master.R, the data sets are stored with the
 # results, and the test sources this file for covariate_forms_results(), so
