@@ -250,16 +250,20 @@ Rscript tools/sim/tests/run-tests.R --only merge --run <folder of a finished run
 Each case builds its input in a temporary folder (`--work` names another)
 and runs one check in a new R process: the MCSE, decision, and file-name
 rules of `check-results.R`, including the names the harness writes after
-it, in any case; 60 folders that `scan-addresses.R` must refuse, built around a
-placeholder address at example.org that is assembled at run time (15 of
+it, in any case; 61 folders that `scan-addresses.R` must refuse, built around a
+placeholder address at example.org that is assembled at run time (16 of
 them by a named rule: a NUL byte, a gzip or zlib header, or bytes that are
-not valid UTF-8, among them compressed text without a NUL byte and a zlib
-stream of stored blocks under 78 01), 11 it must pass (among them UTF-8
+not valid UTF-8, among them compressed text without a NUL byte, a zlib
+stream of stored blocks under 78 01, and the 7 zlib headers outside the
+zlib rule that cannot start UTF-8 text, each refused by the UTF-8 rule),
+11 it must pass (among them UTF-8
 text with the characters the package prints, a UTF-8 byte-order mark,
 empty files, text that starts with `x` but not with a zlib header, and
-text that starts with a zlib header the scan does not refuse), and one
+text that starts with a zlib header the scan does not refuse), one
 case of the limit stated under "Safety" (the same stored blocks under
-48 4b, `HK`, pass); the job sizes and the number
+48 4b, `HK`, pass), and one check of the text, in the tests' own process
+(the "Safety" section and the scanner's header must say that the other
+zlib headers are "not in the zlib rule"); the job sizes and the number
 formats of `assign-chunks.R`; the workflow's "Check the inputs" step, run
 with bash (`--bash <path>` if bash is not on the PATH); the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and
@@ -400,10 +404,12 @@ In the study's own pull request, before its run (the order rule of #117):
   another way (base64, for one) are not detected when their bytes stay
   valid UTF-8 and hold no NUL byte, as a stream of stored deflate blocks
   can, with an address split between two blocks. The other zlib headers
-  are not refused because many of them can start ordinary text: of the 28
-  others without a preset dictionary, 21 can start valid UTF-8 text, 14
-  of them as two ASCII characters (such as `HK`, `(S`, or `X` and a tab);
-  the UTF-8 rule refuses the other 7. Raw deflate has no header at all.
+  are not in the zlib rule because many of them can start ordinary text:
+  of the 28 others without a preset dictionary, 21 can start valid UTF-8
+  text, 14 of them as two ASCII characters (such as `HK`, `(S`, or `X` and
+  a tab). The other 7 cannot (their second byte is a UTF-8 continuation
+  byte), so the UTF-8 rule refuses a file that starts with one of them.
+  Raw deflate has no header at all.
   In an `.rds` the strings and raw vectors are scanned as they are
   stored, so compressed bytes there, in a raw vector or in a string, are
   not detected either. A chunk job first stops every R process left from

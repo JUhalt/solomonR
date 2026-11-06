@@ -21,17 +21,21 @@
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
 #            every "c-" folder pass, and no promise may be evaluated.
-#            Fifteen "f-" folders must fail by a named rule (a NUL byte, a
+#            Sixteen "f-" folders must fail by a named rule (a NUL byte, a
 #            gzip or zlib header, bytes that are not valid UTF-8), among
 #            them compressed text without a NUL byte, valid UTF-8 text
-#            that starts with a zlib header, and a zlib stream of stored
-#            blocks under 78 01; the "c-" folders include UTF-8 text with
+#            that starts with a zlib header, a zlib stream of stored
+#            blocks under 78 01, and the 7 zlib headers outside the zlib
+#            rule that cannot start UTF-8 text (each of its 7 files by the
+#            UTF-8 rule); the "c-" folders include UTF-8 text with
 #            the characters the package prints, a UTF-8 byte-order mark,
 #            empty files, text that starts with "x" but not with a zlib
 #            header, and text that starts with a zlib header that the scan
 #            does not refuse ("HK", "(S", "x "). One case records the limit
 #            that the README states: the same stored blocks under 48 4b
-#            ("HK") pass.
+#            ("HK") pass. One case reads the text: the README's "Safety"
+#            section and the scanner's header must say that the other zlib
+#            headers are "not in the zlib rule" (a phrase, not its truth).
 #   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
 #            protocol flag; refused if absent, below 1, or not a number,
 #            or if given as a fifth argument), the 2- and 4-hour limits, a
@@ -466,6 +470,20 @@ if ("scan" %in% groups) {
   }
   zs <- list(`78 01` = stored(c(0x78, 0x01)), `48 4b` = stored(c(0x48, 0x4b)))
   writeBin(zs[["78 01"]], file.path(case("f-60-stored-zlib-blocks-78-01"), "a.txt"))
+  # The valid zlib headers without a preset dictionary (RFC 1950: CM 8,
+  # CINFO 0 to 7, FDICT clear, CMF * 256 + FLG a multiple of 31) that the
+  # zlib rule leaves out and whose second byte is a UTF-8 continuation byte
+  # (80 to bf; review round 3). No valid UTF-8 text starts with one, so the
+  # UTF-8 rule must refuse each of the 7 files (the README's count, under
+  # "Safety").
+  zl <- expand.grid(cmf = as.integer(0x08 + 16 * (0:7)), flg = 0:255)
+  zl <- zl[bitwAnd(zl$flg, 0x20L) == 0L & (zl$cmf * 256L + zl$flg) %% 31L == 0L, ]
+  zl <- zl[!(zl$cmf == 0x78 & zl$flg %in% c(0x01, 0x5e, 0x9c, 0xda)) & zl$flg >= 0x80 & zl$flg <= 0xbf, ]
+  d <- case("f-61-zlib-headers-outside-the-rule-not-utf8")
+  for (k in seq_len(nrow(zl))) {
+    writeBin(c(as.raw(c(zl$cmf[[k]], zl$flg[[k]])), charToRaw(" clean text\n")),
+             file.path(d, sprintf("z%02x%02x.txt", zl$cmf[[k]], zl$flg[[k]])))
+  }
   # The rule each of these must fail by (a part of its message); the other
   # "f-" folders need only fail.
   scan_rule <- c(`f-15-nul-byte` = "holds a NUL byte", `f-38-nul-byte-in-zlib-text` = "holds a NUL byte",
@@ -480,7 +498,8 @@ if ("scan" %in% groups) {
                  `f-57-not-utf8-overlong` = "is not valid UTF-8",
                  `f-58-zlib-header-78-da-x-u06bf` = "starts with a zlib header (78 da)",
                  `f-59-utf8-bom-then-x-u0680` = "starts with a zlib header (78 da)",
-                 `f-60-stored-zlib-blocks-78-01` = "starts with a zlib header (78 01)")
+                 `f-60-stored-zlib-blocks-78-01` = "starts with a zlib header (78 01)",
+                 `f-61-zlib-headers-outside-the-rule-not-utf8` = "is not valid UTF-8")
 
   # Each of these must pass.
   put(case("c-01-plain"), "a.txt", c("pkgload@1.5.3", "cran::MASS@7.3-66", "x86_64-pc-linux-gnu",
@@ -533,15 +552,21 @@ if ("scan" %in% groups) {
   put(d, "e.txt", "(\u03c7\u00b2 = 3.84)")
   put(d, "f.json", "x y")
 
+  scan_out <- list()
   for (d in sort(list.dirs(root, recursive = FALSE))) {
     r <- run_r("scan-addresses.R", d)
     got <- if (r$status == 0L) "pass" else "fail"
     name <- basename(d)
+    scan_out[[name]] <- r$out
     if (name %in% names(scan_rule) && got == "fail" && !any(grepl(scan_rule[[name]], r$out, fixed = TRUE))) {
       got <- "fail, another rule"
     }
     record("scan", name, if (startsWith(name, "c-")) "pass" else "fail", got)
   }
+  # f-61's folder fails if one file does; each of its 7 must.
+  record("scan", "f-61: each of the 7 files not valid UTF-8", "7 of 7",
+         sprintf("%d of %d", sum(grepl("is not valid UTF-8", scan_out[["f-61-zlib-headers-outside-the-rule-not-utf8"]],
+                                       fixed = TRUE)), nrow(zl)))
   r <- run_r("scan-addresses.R", file.path(root, "no-such-folder"))
   record("scan", "a missing path", "fail", if (r$status == 0L) "pass" else "fail")
   r <- run_r("scan-addresses.R", c(file.path(root, "c-01-plain"), file.path(root, "no-such-file.txt")))
@@ -562,7 +587,25 @@ if ("scan" %in% groups) {
   writeBin(zs[["48 4b"]], file.path(d, "a.txt"))
   r <- run_r("scan-addresses.R", d)
   record("scan", "limit: stored zlib blocks under 48 4b pass", "pass", if (r$status == 0L) "pass" else "fail")
-  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule, nxt, fn, stored, zs, built)
+  # The text (review round 3): what the README's "Safety" section and the
+  # scanner's header say of the scan's rules. These cases read phrases, not
+  # their truth; the cases above test the code. Both texts must say that
+  # the other zlib headers are "not in the zlib rule", and neither that
+  # they are "not refused": the UTF-8 rule refuses 7 of them (f-61).
+  local({
+    lines_of <- function(f) if (file.exists(f)) readLines(f, warn = FALSE) else character()
+    flat <- function(x) gsub("\\s+", " ", paste(x, collapse = " "))
+    readme <- lines_of(file.path(harness, "README.md"))
+    from <- match("## Safety", readme)
+    to <- if (is.na(from)) NA else from + match(TRUE, startsWith(readme[-seq_len(from)], "## "))
+    safety <- if (is.na(from)) "" else flat(readme[from:(if (is.na(to)) length(readme) else to - 1L)])
+    scanner <- lines_of(file.path(harness, "scan-addresses.R"))
+    header <- flat(sub("^#", "", scanner[seq_len(match(FALSE, startsWith(scanner, "#"), nomatch = length(scanner) + 1L) - 1L)]))
+    other <- function(x) grepl("zlib headers [^.]*are not in the zlib rule", x) && !grepl("zlib headers [^.]*are not refused", x)
+    record("scan", "text: other zlib headers \"not in the zlib rule\"", "yes",
+           if (other(safety) && other(header)) "yes" else "no")
+  })
+  rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule, nxt, fn, stored, zs, built, zl, scan_out)
 }
 
 # ---- sizing: assign-chunks.R -------------------------------------------------
