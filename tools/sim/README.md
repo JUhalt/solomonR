@@ -24,7 +24,7 @@ package or of the validation-scripts check.
 | `check-replay.R` | Compares the tasks run again on the merge machine with the chunks' |
 | `check-results.R` | Required files; an MCSE above 0 or a note in every performance row; a basis in every decision row; in every run, no file under a name the harness writes after it, in any case; in a protocol's gate or test, only agreement, run information, `summary.rds`, and timing (by name; contents are not inspected) |
 | `finalize-results.R` | `run-information.csv` (the study's items, then the harness's) and the audit files of the results folder; refuses a file under one of their names, and a `logs/` folder, that is already there, in any case |
-| `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path; a format other than .csv, .txt, .json, and .rds; a text file with a NUL byte, a UTF-16 byte-order mark, a gzip header or one of the four zlib headers of a 32 KB window without a preset dictionary (78 01, 78 5e, 78 9c, 78 da) at its start, or bytes that are not valid UTF-8; an object it cannot walk); decodes nothing but `%40` (base64 text, a zlib stream with another header, raw deflate, and compressed bytes in an .rds are scanned as stored) |
+| `scan-addresses.R` | Fails on any text shaped like an e-mail address, in a file or in its path, before an upload or before a log is shown; fails closed (a missing path; a format other than .csv, .txt, .json, and .rds; a text file with a NUL byte, a UTF-16 byte-order mark at its start, a gzip header or one of the four zlib headers of a 32 KB window without a preset dictionary (78 01, 78 5e, 78 9c, 78 da) at its start (after a UTF-8 byte-order mark, if it has one), or bytes that are not valid UTF-8; an object it cannot walk); decodes nothing but `%40` (base64 text, a zlib stream with another header, raw deflate, and compressed bytes in an .rds are scanned as stored) |
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
@@ -250,20 +250,22 @@ Rscript tools/sim/tests/run-tests.R --only merge --run <folder of a finished run
 Each case builds its input in a temporary folder (`--work` names another)
 and runs one check in a new R process: the MCSE, decision, and file-name
 rules of `check-results.R`, including the names the harness writes after
-it, in any case; 61 folders that `scan-addresses.R` must refuse, built around a
-placeholder address at example.org that is assembled at run time (16 of
+it, in any case; 62 folders that `scan-addresses.R` must refuse, built around a
+placeholder address at example.org that is assembled at run time (17 of
 them by a named rule: a NUL byte, a gzip or zlib header, or bytes that are
 not valid UTF-8, among them compressed text without a NUL byte, a zlib
-stream of stored blocks under 78 01, and the 7 zlib headers outside the
-zlib rule that cannot start UTF-8 text, each refused by the UTF-8 rule),
-11 it must pass (among them UTF-8
-text with the characters the package prints, a UTF-8 byte-order mark,
-empty files, text that starts with `x` but not with a zlib header, and
-text that starts with a zlib header the scan does not refuse), one
-case of the limit stated under "Safety" (the same stored blocks under
-48 4b, `HK`, pass), and one check of the text, in the tests' own process
-(the "Safety" section and the scanner's header must say that the other
-zlib headers are "not in the zlib rule"); the job sizes and the number
+stream of stored blocks under 78 01, a gzip header after a UTF-8
+byte-order mark, and the 7 zlib headers outside the zlib rule that cannot
+start UTF-8 text, each refused by the UTF-8 rule), 11 it must pass (among
+them UTF-8 text with the characters the package prints, a UTF-8
+byte-order mark, empty files, text that starts with `x` but not with a
+zlib header, and text that starts with a zlib header the scan does not
+refuse), one case of the limit stated under "Safety" (the same stored
+blocks under 48 4b, `HK`, pass), and two checks of the text, in the
+tests' own process: the "Safety" section and the scanner's header must
+say that the other zlib headers are "not in the zlib rule", and they and
+the scanner's row under "Files" must say that the gzip and zlib rule
+applies after a UTF-8 byte-order mark too; the job sizes and the number
 formats of `assign-chunks.R`; the workflow's "Check the inputs" step, run
 with bash (`--bash <path>` if bash is not on the PATH); the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and
@@ -391,14 +393,16 @@ In the study's own pull request, before its run (the order rule of #117):
   an `.rds` object (attributes, functions and their environments, promises
   as code, never evaluated), and fails on a path that does not exist, on
   any file it cannot read completely, and on a text file (.csv, .txt,
-  .json) that holds a NUL byte, starts with a UTF-16 byte-order mark, with
-  a gzip header, or with one of the four zlib headers of a 32 KB window
-  without a preset dictionary (78 01, 78 5e, 78 9c, 78 da; zlib's default
-  window), or is not valid UTF-8 (valid UTF-8 text that starts with `x^`,
-  with `x` and U+0001, or with `x` and a character from U+0680 to U+06BF
-  is refused as a zlib header too). These rules catch, in a text file, a
-  gzip stream or a zlib stream with one of those four headers at its
-  start, and bytes that are not UTF-8. Beyond `%40`, the scan decodes
+  .json) that holds a NUL byte, starts with a UTF-16 byte-order mark,
+  starts (after a UTF-8 byte-order mark, if it has one) with a gzip header
+  or with one of the four zlib headers of a 32 KB window without a preset
+  dictionary (78 01, 78 5e, 78 9c, 78 da; zlib's default window), or is
+  not valid UTF-8. Valid UTF-8 text that starts (after a UTF-8 byte-order
+  mark, if it has one) with `x^`, with `x` and U+0001, or with `x` and a
+  character from U+0680 to U+06BF is refused as a zlib header too. These
+  rules catch, in a text file, a gzip stream or a zlib stream with one of
+  those four headers at its start or after a UTF-8 byte-order mark, and
+  bytes that are not UTF-8. Beyond `%40`, the scan decodes
   nothing: a zlib stream with another header (a smaller window, or a
   preset dictionary), raw deflate, and text compressed or encoded in
   another way (base64, for one) are not detected when their bytes stay

@@ -21,21 +21,25 @@
 #            address at example.org, which is assembled at run time and
 #            written only into the work folder. Every "f-" folder must fail,
 #            every "c-" folder pass, and no promise may be evaluated.
-#            Sixteen "f-" folders must fail by a named rule (a NUL byte, a
+#            Seventeen "f-" folders must fail by a named rule (a NUL byte, a
 #            gzip or zlib header, bytes that are not valid UTF-8), among
 #            them compressed text without a NUL byte, valid UTF-8 text
 #            that starts with a zlib header, a zlib stream of stored
-#            blocks under 78 01, and the 7 zlib headers outside the zlib
-#            rule that cannot start UTF-8 text (each of its 7 files by the
-#            UTF-8 rule); the "c-" folders include UTF-8 text with
+#            blocks under 78 01, a gzip header after a UTF-8 byte-order
+#            mark, and the 7 zlib headers outside the zlib rule that
+#            cannot start UTF-8 text (each of its 7 files by the UTF-8
+#            rule); the "c-" folders include UTF-8 text with
 #            the characters the package prints, a UTF-8 byte-order mark,
 #            empty files, text that starts with "x" but not with a zlib
 #            header, and text that starts with a zlib header that the scan
 #            does not refuse ("HK", "(S", "x "). One case records the limit
 #            that the README states: the same stored blocks under 48 4b
-#            ("HK") pass. One case reads the text: the README's "Safety"
-#            section and the scanner's header must say that the other zlib
-#            headers are "not in the zlib rule" (a phrase, not its truth).
+#            ("HK") pass. Two cases read the text (phrases, not their
+#            truth): the README's "Safety" section and the scanner's header
+#            must say that the other zlib headers are "not in the zlib
+#            rule", and they and the scanner's row under the README's
+#            "Files" must say that the gzip and zlib rule applies after a
+#            UTF-8 byte-order mark too.
 #   sizing   assign-chunks.R: the allowance (plan-info.csv's, whatever the
 #            protocol flag; refused if absent, below 1, or not a number,
 #            or if given as a fifth argument), the 2- and 4-hour limits, a
@@ -484,6 +488,12 @@ if ("scan" %in% groups) {
     writeBin(c(as.raw(c(zl$cmf[[k]], zl$flg[[k]])), charToRaw(" clean text\n")),
              file.path(d, sprintf("z%02x%02x.txt", zl$cmf[[k]], zl$flg[[k]])))
   }
+  # A UTF-8 byte-order mark, then a gzip header (review round 3): the
+  # header rule reads past the mark, as f-54 and f-59 show for zlib
+  # headers. These bytes are not valid UTF-8 either (8b is a continuation
+  # byte), so only the message tells the two rules apart.
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf, 0x1f, 0x8b)), charToRaw("clean text\n")),
+           file.path(case("f-62-utf8-bom-then-gzip-header"), "a.txt"))
   # The rule each of these must fail by (a part of its message); the other
   # "f-" folders need only fail.
   scan_rule <- c(`f-15-nul-byte` = "holds a NUL byte", `f-38-nul-byte-in-zlib-text` = "holds a NUL byte",
@@ -499,7 +509,8 @@ if ("scan" %in% groups) {
                  `f-58-zlib-header-78-da-x-u06bf` = "starts with a zlib header (78 da)",
                  `f-59-utf8-bom-then-x-u0680` = "starts with a zlib header (78 da)",
                  `f-60-stored-zlib-blocks-78-01` = "starts with a zlib header (78 01)",
-                 `f-61-zlib-headers-outside-the-rule-not-utf8` = "is not valid UTF-8")
+                 `f-61-zlib-headers-outside-the-rule-not-utf8` = "is not valid UTF-8",
+                 `f-62-utf8-bom-then-gzip-header` = "starts with a gzip header (1f 8b)")
 
   # Each of these must pass.
   put(case("c-01-plain"), "a.txt", c("pkgload@1.5.3", "cran::MASS@7.3-66", "x86_64-pc-linux-gnu",
@@ -587,11 +598,14 @@ if ("scan" %in% groups) {
   writeBin(zs[["48 4b"]], file.path(d, "a.txt"))
   r <- run_r("scan-addresses.R", d)
   record("scan", "limit: stored zlib blocks under 48 4b pass", "pass", if (r$status == 0L) "pass" else "fail")
-  # The text (review round 3): what the README's "Safety" section and the
-  # scanner's header say of the scan's rules. These cases read phrases, not
-  # their truth; the cases above test the code. Both texts must say that
-  # the other zlib headers are "not in the zlib rule", and neither that
-  # they are "not refused": the UTF-8 rule refuses 7 of them (f-61).
+  # The text (review round 3): what the README and the scanner's header say
+  # of the scan's rules. These cases read phrases, not their truth; the
+  # cases above test the code. The "Safety" section and the header must
+  # say that the other zlib headers are "not in the zlib rule", and
+  # neither that they are "not refused": the UTF-8 rule refuses 7 of them
+  # (f-61). The gzip and zlib rule reads past a UTF-8 byte-order mark (f-54,
+  # f-59, f-62), and the scanner's row under "Files", the "Safety" section,
+  # and the header must say so where they name the rule.
   local({
     lines_of <- function(f) if (file.exists(f)) readLines(f, warn = FALSE) else character()
     flat <- function(x) gsub("\\s+", " ", paste(x, collapse = " "))
@@ -604,6 +618,14 @@ if ("scan" %in% groups) {
     other <- function(x) grepl("zlib headers [^.]*are not in the zlib rule", x) && !grepl("zlib headers [^.]*are not refused", x)
     record("scan", "text: other zlib headers \"not in the zlib rule\"", "yes",
            if (other(safety) && other(header)) "yes" else "no")
+    bom <- "(after a UTF-8 byte-order mark, if it has one)"
+    row <- flat(readme[startsWith(readme, "| `scan-addresses.R` |")])
+    said <- c(grepl(paste("at its start", bom), row, fixed = TRUE),
+              grepl(paste("starts", bom, "with a gzip header"), safety, fixed = TRUE),
+              grepl(paste("starts", bom, "with `x^`"), safety, fixed = TRUE),
+              grepl(paste("starts", bom, "with a gzip header"), header, fixed = TRUE),
+              grepl(paste0("starts ", bom, " with \"x^\""), header, fixed = TRUE))
+    record("scan", "text: the gzip and zlib rule after a byte-order mark", "yes", if (all(said)) "yes" else "no")
   })
   rm(A, P, deep, x, v, df, ex, outer_env, e, g, h, k, dots, z, con, scan_rule, nxt, fn, stored, zs, built, zl, scan_out)
 }
