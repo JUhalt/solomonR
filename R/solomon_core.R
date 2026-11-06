@@ -1016,15 +1016,20 @@ stouffer_solomon <- function(p) {
 #'     name, is named as [stats::glm()] names it: `age_z` when it has one
 #'     column, and otherwise the name of the column followed by each
 #'     column's name, or by its position when it has no column names
-#'     (`two1`, `two2`). A matrix from outside `data` is named by its
-#'     column names, as above, also when given by its bare name.
+#'     (`two1`, `two2`). A logical matrix column of several columns is
+#'     taken only by its bare name; by its name, it stops (see below). A
+#'     matrix from outside `data` is named by its column names, as above,
+#'     also when given by its bare name.
 #'
 #'   A data frame or a matrix stops with an error when two of its columns
-#'   have the same name, and a data frame when a column has no name. A value
-#'   of the wrong length stops too, and so does a covariate named as a
-#'   column of the model: `y`, `pretested`, `log_exposure`, `pre_obs` when
-#'   `y_pre` is given, and `treat` or, with several treatments, `condition`
-#'   and `treat_` followed by each treatment's name. Any other form stops
+#'   have the same name, and a data frame when a column has no name. So
+#'   does a logical or character matrix column of several columns, such as
+#'   `d$lm2 <- cbind(d$age > 40, d$z > 0)` makes, given by its name or in a
+#'   data frame, as [stats::glm()] cannot fit it. A value of the wrong
+#'   length stops too, and so does a covariate named as a column of the
+#'   model: `y`, `pretested`, `log_exposure`, `pre_obs` when `y_pre` is
+#'   given, and `treat` or, with several treatments, `condition` and
+#'   `treat_` followed by each treatment's name. Any other form stops
 #'   with an error, so that no covariate is left out unnoticed, for
 #'   example: a character vector without `data` (give the data frame as
 #'   `data`, or a categorical covariate as a factor); a list that is not a
@@ -1387,7 +1392,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
 
   if (!is.null(covariates)) {
-    .solomon_check_clash(covariates, names(df))
+    .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
   }
 

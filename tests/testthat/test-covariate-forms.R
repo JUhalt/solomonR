@@ -641,6 +641,108 @@ test_that("check_solomon_missing() stops on a name the model uses, as fit_solomo
 })
 
 
+test_that("a logical or character matrix column of several columns stops by its name", {
+
+  # glm() makes a factor of a logical or character variable, and of such a
+  # matrix one factor of all its values, so it stopped with "replacement
+  # has 240 rows, data has 120". The fit now stops before it with an error
+  # that says what to give. By its bare name, a logical matrix column of
+  # `data` is one covariate per column.
+  d <- forms_data()
+  d$lm2 <- cbind(a = d$z < 0, b = d$age > 40)
+  d$cm2 <- cbind(a = d$site, b = ifelse(d$flag, "yes", "no"))
+  logical_error <- paste0(
+    "Column lm2 of `covariates` is a logical matrix of 2 columns, which glm() cannot fit. ",
+    "Give its columns as columns of a data frame, or, when lm2 is a column of `data`, give ",
+    "it by its bare name (`covariates = lm2`)."
+  )
+  character_error <- paste0(
+    "Column cm2 of `covariates` is a character matrix of 2 columns, which glm() cannot fit. ",
+    "Give its columns as columns of a data frame."
+  )
+  expect_error(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "lm2", data = d),
+               logical_error, fixed = TRUE)
+  expect_error(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "lm2", data = d),
+               class = "solomonR_covariate_error")
+  expect_error(fit4(d, d["lm2"]), logical_error, fixed = TRUE)
+  expect_error(fit4(d, d[c("age", "lm2")]), logical_error, fixed = TRUE)
+  expect_error(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "cm2", data = d),
+               character_error, fixed = TRUE)
+  expect_error(fit4(d, d["cm2"]), character_error, fixed = TRUE)
+  d$`two flags` <- d$lm2
+  expect_error(
+    fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "two flags", data = d),
+    "give it by its bare name (`covariates = `two flags``).", fixed = TRUE
+  )
+  d$`two flags` <- NULL
+
+  # By its bare name, the logical matrix column is its two columns.
+  bare <- fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = lm2, data = d)
+  expect_same_fit(bare, fit4(d, data.frame(lm2a = d$z < 0, lm2b = d$age > 40)))
+  expect_true(all(c("lm2aTRUE", "lm2bTRUE") %in% names(stats::coef(bare$model))))
+  # A logical matrix of one column is fitted by its name, as a numeric
+  # matrix is (see the test of matrix columns above).
+  d$lm1 <- cbind(d$z < 0)
+  expect_true("lm1TRUE" %in%
+                names(stats::coef(fit_solomon_glm(y_post, treat, pretested, y_pre,
+                                                  covariates = "lm1", data = d)$model)))
+
+  # A design with several treatments.
+  m <- forms_six()
+  m$lm2 <- cbind(a = m$z < 0, b = m$w > 0)
+  expect_error(
+    fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
+                    covariates = "lm2", data = m),
+    logical_error, fixed = TRUE
+  )
+  expect_same_fit(
+    fit_solomon_glm(post_behavior, condition, pretested, pre_behavior, control = "Control",
+                    covariates = lm2, data = m),
+    fit_solomon_glm(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                    control = "Control",
+                    covariates = data.frame(lm2a = m$z < 0, lm2b = m$w > 0))
+  )
+
+  # check_solomon_missing() left out the gap and the delta line without a
+  # word, since the fit behind them stopped. With numeric `y_pre`, it now
+  # stops with the fit's error. Without `y_pre` there is no such fit, and
+  # the column is one table, as before (see its help).
+  d$y_post[c(3, 8, 70, 95)] <- NA
+  expect_error(
+    check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "lm2", data = d),
+    logical_error, fixed = TRUE
+  )
+  expect_error(check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
+                                     covariates = d["lm2"]),
+               logical_error, fixed = TRUE)
+  expect_error(
+    check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "cm2", data = d),
+    character_error, fixed = TRUE
+  )
+  expect_error(
+    check_solomon_missing(post_behavior, condition, pretested, pre_behavior,
+                          control = "Control", covariates = "lm2", data = m),
+    logical_error, fixed = TRUE
+  )
+  without_pretest <- check_solomon_missing(y_post, treat, pretested, covariates = "lm2",
+                                           data = d)
+  expect_identical(names(without_pretest$covariates), "lm2")
+  expect_identical(
+    without_pretest,
+    check_solomon_missing(d$y_post, d$treat, d$pretested, covariates = d["lm2"])
+  )
+  by_bare_name <- check_solomon_missing(y_post, treat, pretested, y_pre, covariates = lm2,
+                                        data = d)
+  expect_identical(
+    by_bare_name,
+    check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
+                          covariates = data.frame(lm2a = d$z < 0, lm2b = d$age > 40))
+  )
+  expect_false(is.null(by_bare_name$gap))
+  expect_false(is.null(by_bare_name$unpretested))
+})
+
+
 test_that("functions that use a fit give the same results for every form", {
 
   d <- forms_data()

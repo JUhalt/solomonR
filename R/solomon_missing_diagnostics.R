@@ -22,20 +22,23 @@
 # Items 4 and 5 come from an identity-link fit_solomon_glm() of the data, and
 # items 3 and 7 from one without the pretest. Each fit is wrapped so that
 # check_solomon_missing() never fails because the data do not support a
-# model. A covariate with a name that the model uses is not a matter of the
-# data: it stops check_solomon_missing() with the error of fit_solomon_glm(),
-# rather than leave out items 4 and 5 unnoticed (issue #146).
+# model. A covariate that the model cannot take, one with a name that the
+# model uses or a logical or character matrix column of several columns, is
+# not a matter of the data: it stops check_solomon_missing() with the error
+# of fit_solomon_glm(), rather than leave out items 4 and 5 unnoticed (issue
+# #146).
 # validate_solomon(), which uses only its classification of the missing
 # values, skips these diagnostics and their fits.
 
 # A fit for the diagnostics, or NULL when the data do not support one. The
-# error on a name is kept and signaled again outside tryCatch(), whose
-# handler of other errors would catch it in its handler.
+# error on a covariate (.solomon_check_covariates()) is kept and signaled
+# again outside tryCatch(), whose handler of other errors would catch it in
+# its handler.
 .diagnostic_fit <- function(...) {
   fit <- tryCatch(suppressWarnings(fit_solomon_glm(...)),
-                  solomonR_covariate_name_clash = function(e) e,
+                  solomonR_covariate_error = function(e) e,
                   error = function(e) NULL)
-  if (inherits(fit, "solomonR_covariate_name_clash")) stop(fit)
+  if (inherits(fit, "solomonR_covariate_error")) stop(fit)
   fit
 }
 

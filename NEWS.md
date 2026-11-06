@@ -101,6 +101,17 @@
   takes its bare name, so `covariates = y` stops too; before, it was named
   `covariates`. Without `y_pre` there is no such fit, and a covariate of
   any name is shown by its loss.
+* **A logical or character matrix column of several columns now stops**
+  when given by its name or in a data frame, such as `covariates = "lm2"`
+  with `d$lm2 <- cbind(d$age > 40, d$z > 0)`, with an error that says to
+  give its columns as columns of a data frame or, for a logical one, the
+  column by its bare name, which takes one covariate per column. Before,
+  `fit_solomon_glm()` stopped in `glm()` with an unclear error
+  ("replacement has 240 rows, data has 120", for 120 participants and two
+  columns), and `check_solomon_missing()` with numeric `y_pre` left out
+  the gap and the delta line without a word; it now stops with the
+  fit's error. Without `y_pre`, such a column is shown as one table, as
+  before.
 * `check_solomon_missing()` converted other forms with `as.data.frame()`:
   a vector was named `covariates`, the columns of a matrix without names
   `V1`, `V2`, ..., and a list or a character vector was accepted. They are

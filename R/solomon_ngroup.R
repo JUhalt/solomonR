@@ -282,7 +282,7 @@
   }
 
   if (!is.null(covariates)) {
-    .solomon_check_clash(covariates, names(df))
+    .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
   }
 
