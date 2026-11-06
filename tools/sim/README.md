@@ -29,7 +29,7 @@ package or of the validation-scripts check.
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
 | `harness-lib.R` | Helpers of the harness scripts |
-| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's check of the inputs, the contract's plan stage on a synthetic study, `finalize-results.R`, `run-local.R` on the synthetic study, and `merge-chunks.R` on tampered copies of a run |
+| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's checks of the inputs and of the package commit, the contract's plan stage on a synthetic study, `finalize-results.R`, `run-local.R` on the synthetic study, and `merge-chunks.R` on tampered copies of a run |
 | `studies/smoke/` | The harness's smoke study (its script, and `smoke-summarize.R`, which the script sources); not a protocol, and it computes no measure for the package's methods |
 
 The workflow is `.github/workflows/simulation-run.yaml`, with the composite
@@ -287,7 +287,9 @@ say that the other zlib headers are "not in the zlib rule", and they and
 the scanner's row under "Files" must say that the gzip and zlib rule
 applies after a UTF-8 byte-order mark too; the job sizes and the number
 formats of `assign-chunks.R`; the workflow's "Check the inputs" step, run
-with bash (`--bash <path>` if bash is not on the PATH); the contract's plan
+with bash (`--bash <path>` if bash is not on the PATH), the registry's
+required commits, and, with git, the step "Check the package commit" on a
+repository made there; the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and
 `sim_verify_plan()` on the synthetic study `tests/synthetic-study.R`, which
 loads no package there (with git, also the clean-checkout rule); the
@@ -400,6 +402,12 @@ In the study's own pull request, before its run (the order rule of #117):
    `70c4de5e29eef6269aec5e1841477c07e84839812aaca3b2f240941bfd223953`.
    Elsewhere (Windows) the library's checksum is recorded, not compared.
 6. A row in `studies.csv`, and the key in the workflow's `study` options.
+   The row's `required_ancestors` are the commits that the package commit
+   of a gate or study run must include, as full SHAs separated by spaces;
+   the Plan job checks them, and that the commit is on master, before
+   anything is installed (a smoke run checks neither). The smoke study's
+   row requires #132's merge (b4ade64), which master holds, so that a run
+   of the smoke study with `smoke=false` takes that check too.
 7. Code-testing runs (`smoke=true`) before the gate; the gate's amendment
    and the run's amendment are posted on the issue before each.
 

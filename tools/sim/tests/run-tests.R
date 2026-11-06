@@ -53,7 +53,11 @@
 #            or bash on the PATH; skipped without one), among them numbers
 #            that bash's arithmetic would misread (beyond 64 bits, or with a
 #            leading zero). Its outputs go to files in the work folder, never
-#            to the job's own.
+#            to the job's own. The registry's required commits (full SHAs
+#            separated by spaces; the smoke study requires one), and, with
+#            git, the step "Check the package commit" on a repository made
+#            here: a gate or study run needs a commit on master that includes
+#            its row's required commits, and a smoke run checks neither.
 #   contract contract.R through tests/synthetic-study.R, copied with the
 #            contract under test into a package folder of its own and run
 #            with Rscript: what the plan records (the SHA-256 of the files
@@ -723,18 +727,24 @@ if ("inputs" %in% groups) local({
   if (!file.exists(wf)) return(skip("inputs", paste("no workflow file at", wf)))
   y <- sub("\r$", "", readLines(wf, warn = FALSE))
   indent <- function(x) nchar(sub("^( *).*$", "\\1", x))
-  start <- grep("^ *- name: Check the inputs *$", y)
-  if (length(start) != 1L) h_fail("The workflow has no single step \"Check the inputs\".")
-  at <- start + which(grepl("^ *run: [|] *$", y[-seq_len(start)]))[[1]]
-  body <- character()
-  for (k in seq(at + 1L, length(y))) {
-    if (nzchar(trimws(y[[k]])) && indent(y[[k]]) <= indent(y[[at]])) break
-    body <- c(body, y[[k]])
-  }
-  body <- substring(body, min(indent(body[nzchar(trimws(body))])) + 1L)
   dir.create(file.path(work, "inputs"), recursive = TRUE)
-  step <- file.path(work, "inputs", "check-the-inputs.sh")
-  con <- file(step, open = "wb"); writeLines(body, con, sep = "\n"); close(con)
+  # The `run: |` block of the workflow's step `name`, written to `file` in
+  # the work folder.
+  step_file <- function(name, file) {
+    start <- grep(paste0("^ *- name: ", name, " *$"), y)
+    if (length(start) != 1L) h_fail("The workflow has no single step \"", name, "\".")
+    at <- start + which(grepl("^ *run: [|] *$", y[-seq_len(start)]))[[1]]
+    body <- character()
+    for (k in seq(at + 1L, length(y))) {
+      if (nzchar(trimws(y[[k]])) && indent(y[[k]]) <= indent(y[[at]])) break
+      body <- c(body, y[[k]])
+    }
+    body <- substring(body, min(indent(body[nzchar(trimws(body))])) + 1L)
+    path <- file.path(work, "inputs", file)
+    con <- file(path, open = "wb"); writeLines(body, con, sep = "\n"); close(con)
+    path
+  }
+  step <- step_file("Check the inputs", "check-the-inputs.sh")
   base <- c(SIM_STUDY = "smoke", SIM_PACKAGE_SHA = "e13e8bbd9bbcb9408afd267bd633fb4ab4a09fe5", SIM_CHUNKS = "3",
             SIM_REPS = "20", SIM_SMOKE = "true", SIM_STAGE = "run", SIM_COST_SECONDS = "0", SIM_FAIL_ONCE = "false",
             SIM_SCENARIOS = "all", SIM_TASK_SIZE = "", GITHUB_REF = "refs/heads/master",
@@ -804,6 +814,84 @@ if ("inputs" %in% groups) local({
     # With a fourth element, "refuse" only by that message.
     got <- if (length(cs) >= 4L) refusal(list(status = status, out = out), cs[[4]]) else if (status == 0L) "accept" else "refuse"
     record("inputs", cs[[1]], cs[[3]], got, last_line(out))
+  }
+
+  # The registry's required commits, as the step "Check the package commit"
+  # reads them: full SHAs separated by spaces, or none. The smoke study's
+  # row requires one (#132's merge), so that a run of the smoke study with
+  # smoke false takes the loop over them before a study's gate does.
+  yes <- function(ok) if (isTRUE(ok)) "yes" else "no"
+  registry <- h_read_csv(file.path(harness, "studies.csv"))
+  shas <- "^([0-9a-f]{40}( [0-9a-f]{40})*)?$"
+  record("inputs", "registry: required commits are full SHAs and spaces", "yes",
+         yes("required_ancestors" %in% names(registry) && all(grepl(shas, registry$required_ancestors))),
+         paste(registry$key, registry$required_ancestors, collapse = "; "))
+  smoke_required <- strsplit(registry$required_ancestors[registry$key == "smoke"], " ", fixed = TRUE)
+  smoke_required <- if (length(smoke_required) == 1L) smoke_required[[1]] else character()
+  record("inputs", "registry: the smoke study requires a commit", "yes", yes(length(smoke_required) > 0L),
+         paste(smoke_required, collapse = " "))
+
+  # The step "Check the package commit" (Plan job), run with bash in a
+  # folder made here: harness/tools/sim/studies.csv is the harness's
+  # registry with two rows added, written with CRLF line ends as a checkout
+  # on Windows has them (the step drops the CRs), and pkg/ is a git
+  # repository whose master is refs/remotes/origin/master. A gate or study
+  # run (smoke false) needs a commit on master that includes its row's
+  # required commits; a smoke run, as every pull request's is, checks
+  # neither. #132's merge, which the smoke study's row requires, is not in
+  # this repository, so the loop must stop on it.
+  git <- unname(Sys.which("git"))
+  if (!nzchar(git)) return(skip("inputs", "no git on the PATH: the step \"Check the package commit\""))
+  commit_step <- step_file("Check the package commit", "check-the-package-commit.sh")
+  place <- file.path(work, "inputs", "commit")
+  repo <- file.path(place, "pkg")
+  dir.create(file.path(place, "harness", "tools", "sim"), recursive = TRUE)
+  dir.create(repo)
+  git_r <- function(...) {
+    out <- suppressWarnings(system2(git, c("-C", shQuote(repo), ...), stdout = TRUE, stderr = TRUE))
+    if (!is.null(attr(out, "status")) && attr(out, "status") != 0L) h_fail("git failed: ", paste(out, collapse = " "))
+    as.vector(out)
+  }
+  made <- function(msg) {
+    git_r("-c", "user.name=harness-test", "-c", "user.email=harness-test", "commit", "-q", "--allow-empty",
+          "-m", shQuote(msg))
+    git_r("rev-parse", "HEAD")
+  }
+  git_r("init", "-q")
+  a <- made("a")
+  b <- made("b")
+  m <- made("master")
+  git_r("update-ref", "refs/remotes/origin/master", m)
+  git_r("checkout", "-q", "--detach", a)
+  side <- made("off master")
+  con <- file(file.path(place, "harness", "tools", "sim", "studies.csv"), open = "wb")
+  writeLines(c(readLines(file.path(harness, "studies.csv"), warn = FALSE),
+               paste0("two-required,117,s.R,p.csv,FALSE,", a, " ", b), "none-required,117,s.R,p.csv,FALSE,"),
+             con, sep = "\r\n")
+  close(con)
+  run_commit <- function(study, sha, smoke) {
+    git_r("checkout", "-q", "--detach", sha)
+    old <- setwd(place)
+    on.exit(setwd(old))
+    out <- with_env(c(SIM_STUDY = study, SIM_PACKAGE_SHA = sha, SIM_SMOKE = smoke),
+                    suppressWarnings(system2(bash, shQuote(commit_step), stdout = TRUE, stderr = TRUE)))
+    list(status = if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status")), out = out)
+  }
+  not_included <- "The commit does not include "
+  cases <- list(
+    list("commit: smoke study, a smoke run off master", "smoke", side, "true", "accept"),
+    list("commit: smoke study, smoke false, its required commit", "smoke", m, "false", "refuse",
+         paste0(not_included, smoke_required[1])),
+    list("commit: two required commits, both included", "two-required", m, "false", "accept"),
+    list("commit: two required commits, the second not included", "two-required", a, "false", "refuse",
+         paste0(not_included, b)),
+    list("commit: no required commit, a commit on master", "none-required", a, "false", "accept"),
+    list("commit: a commit off master", "none-required", side, "false", "refuse", "is not on master"),
+    list("commit: a study not in the registry", "absent", m, "false", "refuse", "is not in tools/sim/studies.csv"))
+  for (cs in cases) {
+    r <- run_commit(cs[[2]], cs[[3]], cs[[4]])
+    got <- if (length(cs) >= 6L) refusal(r, cs[[6]]) else if (r$status == 0L) "accept" else "refuse"
+    record("inputs", cs[[1]], cs[[5]], got, last_line(r$out))
   }
 })
 
