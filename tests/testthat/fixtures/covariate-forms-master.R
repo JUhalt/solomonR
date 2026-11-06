@@ -21,12 +21,14 @@
 # CR2, binary and count outcomes with an exposure, and
 # check_solomon_missing().
 #
-# Each result has two parts. `exact` holds what must be identical: the data
-# each model was fitted to, its formula and coefficient names, the class of
-# the result, and the covariate tables and counts of
-# check_solomon_missing() (the test compares the doubles of those tables to
-# 1e-12 of their value, since their last bits depend on the platform).
-# `numbers` holds the effects and coefficients, and the gap of
+# Each result has two parts. `exact` holds what must be identical but for
+# the last bits of its doubles: the data each model was fitted to, its
+# formula and coefficient names, the class of the result, and the
+# covariate tables and counts of check_solomon_missing(). The test
+# compares those doubles to 1e-12 of their value, since the last bits of
+# the centered pretest, of the log of the exposure, and of the means and
+# proportions of those tables depend on the platform. `numbers` holds the
+# effects and coefficients, and the gap and the deltas of
 # check_solomon_missing(), which the test compares to 1e-8 of their value,
 # since the inference of #137 changes them by rounding.
 #

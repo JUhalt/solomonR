@@ -129,8 +129,10 @@
   `perm_solomon()`, `marginal_solomon()`, `plot_sensitization()`, and
   `equivalence_solomon()` of them; and `check_solomon_missing()` and
   `validate_solomon()`. A test stores 18 such results from that version,
-  14 fits and 4 `check_solomon_missing()` results. It compares the model
-  data, formulas, coefficient names, classes, and tables exactly, and the
+  14 fits and 4 `check_solomon_missing()` results. It compares the
+  formulas, coefficient names, and classes exactly; the model data and
+  the tables exactly but for their doubles, which it compares to 1e-12 of
+  their value, as their last bits depend on the platform; and the
   effects, coefficients, gaps, and deltas to 1e-8.
 * `perm_solomon()`, `marginal_solomon()`, and `plot_sensitization()`
   work from the data stored in the fit, and `report_solomon()`,

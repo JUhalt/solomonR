@@ -1122,18 +1122,24 @@ test_that("the forms master used give master's model data, formulas, and results
   # fixtures/covariate-forms-master.R made it and defines the calls. The
   # data each model was fitted to, its formula, the names and classes of
   # the result, and the tables of check_solomon_missing() must be
-  # identical. The numbers are compared to 1e-8 of their value: this change
-  # leaves them identical to master's, but the inference of #137, computed
-  # with the covariates standardized, changes them by rounding.
+  # identical, but for the last bits of their doubles (below). The effects,
+  # coefficients, gaps, and deltas are compared to 1e-8 of their value:
+  # this change leaves them identical to master's, but the inference of
+  # #137, computed with the covariates standardized, changes them by
+  # rounding.
   #
-  # The tables of check_solomon_missing() hold means and proportions, which
-  # master computed on Windows. Their last bits depend on the platform's
-  # arithmetic: mean() and sum() accumulate in long double, which is double
-  # on macOS arm64, where two of them differed from master's in the last
-  # place. So in those tables everything but the doubles must be identical
-  # (names, classes, row names, factors, counts, and where values are
-  # missing), and the doubles are compared to 1e-12 of their value. The
-  # model data and formulas hold no computed numbers and stay identical.
+  # The model data hold computed numbers: the pretest centered at a mean of
+  # the pretests (pre_obs) and, with an exposure, its log (log_exposure).
+  # The tables of check_solomon_missing() hold means and proportions.
+  # Master computed them on Windows, and their last bits depend on the
+  # platform's arithmetic: mean() and sum() accumulate in long double,
+  # which is double on macOS arm64, where two of the tables differed from
+  # master's in the last place, and log() comes from the platform's math
+  # library. So in the model data and the tables everything but the doubles
+  # must be identical (names, classes, row names, factors, integers, and
+  # where values are missing), and the doubles are compared to 1e-12 of
+  # their value. The formulas, coefficient names, and classes hold no
+  # doubles, so they must be identical.
   skeleton <- function(x) rapply(x, function(v) if (is.double(v)) is.na(v) else v,
                                  how = "replace")
   source(test_path("fixtures", "covariate-forms-master.R"), local = TRUE)
@@ -1142,14 +1148,10 @@ test_that("the forms master used give master's model data, formulas, and results
 
   expect_identical(names(now), names(stored$results))
   for (name in names(stored$results)) {
-    if (startsWith(name, "missing_")) {
-      expect_identical(skeleton(now[[name]]$exact), skeleton(stored$results[[name]]$exact),
-                       info = name)
-      expect_equal(now[[name]]$exact, stored$results[[name]]$exact, tolerance = 1e-12,
-                   info = name)
-    } else {
-      expect_identical(now[[name]]$exact, stored$results[[name]]$exact, info = name)
-    }
+    expect_identical(skeleton(now[[name]]$exact), skeleton(stored$results[[name]]$exact),
+                     info = name)
+    expect_equal(now[[name]]$exact, stored$results[[name]]$exact, tolerance = 1e-12,
+                 info = name)
     expect_equal(now[[name]]$numbers, stored$results[[name]]$numbers, tolerance = 1e-8,
                  info = name)
   }
