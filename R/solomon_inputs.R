@@ -97,7 +97,8 @@
 
 
 # Stop when named inputs (vectors or data frames) differ in length.
-# NULL inputs are ignored.
+# NULL inputs are ignored. When `covariates` alone differs from the others,
+# the message says what it takes (issue #146).
 .solomon_check_lengths <- function(...) {
 
   args <- list(...)
@@ -106,15 +107,69 @@
   n <- vapply(args, NROW, numeric(1))
 
   if (length(unique(n)) > 1L) {
+    others <- n[names(n) != "covariates"]
+    advice <- if ("covariates" %in% names(n) && length(unique(others)) == 1L) {
+      paste0(" Give `covariates` one value or one row per participant, ",
+             as.integer(others[[1]]), " here: a matrix or a data frame has one row ",
+             "per participant and one column per covariate.")
+    } else {
+      ""
+    }
     stop(
       "Inputs must have the same length: ",
       paste(sprintf("%s = %d", names(args), as.integer(n)), collapse = ", "),
-      ".",
+      ".", advice,
       call. = FALSE
     )
   }
 
   invisible(n[[1]])
+}
+
+
+# Stop when a covariate, a column of the data frame `covariates`, cannot
+# enter the model (issue #146):
+#   - a name that the model's data use: `used`, the names of the columns of
+#     the model data, and `log_exposure`, which is reserved with or without
+#     `exposure`, as report_solomon() and the clustered permutation test
+#     read a column of that name in the fit's data as the exposure offset;
+#   - a logical or character matrix of several columns, such as a column of
+#     `data` given by its name. glm() makes a factor of a logical or
+#     character variable, and of such a matrix one factor of all its
+#     values, so it stops with "replacement has 240 rows, data has 120".
+#     Given by its bare name, a logical matrix column of `data` is taken
+#     one covariate per column, and a character one stops before the fit
+#     (.solomon_covariates()).
+# The error has the class `solomonR_covariate_error`, so that
+# check_solomon_missing() passes it on rather than leave out the fit behind
+# its gap.
+.solomon_check_covariates <- function(covariates, used) {
+  refuse <- function(message) {
+    stop(structure(class = c("solomonR_covariate_error", "error", "condition"),
+                   list(message = message, call = NULL)))
+  }
+  clash <- intersect(names(covariates), c(used, "log_exposure"))
+  if (length(clash)) {
+    refuse(paste0("Rename these covariates, whose names the model uses: ",
+                  paste(clash, collapse = ", "), "."))
+  }
+  wide <- vapply(covariates, function(v) {
+    is.matrix(v) && ncol(v) > 1L && (is.logical(v) || is.character(v))
+  }, logical(1))
+  if (any(wide)) {
+    name <- names(covariates)[which(wide)[1]]
+    v <- covariates[[name]]
+    refuse(paste0(
+      "Column ", name, " of `covariates` is a ", typeof(v), " matrix of ", ncol(v),
+      " columns, which glm() cannot fit. Give its columns as columns of a data frame",
+      if (is.logical(v)) {
+        paste0(", or, when ", name, " is a column of `data`, give it by its bare name ",
+               "(`covariates = ", .formula_names(name), "`)")
+      },
+      "."
+    ))
+  }
+  invisible(NULL)
 }
 
 

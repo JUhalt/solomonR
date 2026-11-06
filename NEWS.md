@@ -64,6 +64,154 @@
 * No validation script or article calls these functions with another
   estimator.
 
+## Covariates given as a vector or a matrix (bug fix, #146)
+
+* `fit_solomon_glm()`, with one treatment or several, left some forms of
+  `covariates` out of the model without an error or a warning, so its
+  results were those of a fit without them. The help named two forms, a
+  data frame and, with `data`, the names of its columns. Before this
+  change:
+
+  - Without `data`, a vector, a matrix, or an array was left out.
+  - With `data`, a vector given by its bare name (`covariates = w`) was
+    used, whether or not it was a column of `data`, but a date-time of
+    class `POSIXlt` and an array given by their bare names were left out.
+  - With `data`, a matrix, such as `cbind(age, w)`, and a vector given as
+    an expression, such as `age / 10` or `d$age`, were left out.
+  - A vector or a one-dimensional array with names, such as participant
+    ids or the clusters that name the values of
+    `tapply(age, cluster, mean)[as.character(cluster)]`, stopped instead
+    with an unclear error, such as "object 'id1' not found", because its
+    names entered the model formula. With `data`, a vector with names
+    given by its bare name was used.
+  - A value of the wrong length stopped, as it still does.
+* In `fit_solomon_glm()` and `check_solomon_missing()`, every form is now
+  used or stops with an error:
+
+  - A numeric, logical, or factor vector is one covariate, with names or
+    without. It is named by the variable when given by its bare name
+    (`covariates = age`), as with `data` before, and `covariate`
+    otherwise. A one-dimensional array without a class, such as
+    `tapply(age, cluster, mean)[as.character(cluster)]` gives, is taken
+    as a vector. One with a class, such as a table, stops with the advice
+    to give `c(covariates)`.
+  - A numeric or logical matrix is one covariate per column, named by its
+    column names, with `covariate1`, `covariate2`, ... by position for
+    columns without one. With `data`, a matrix column given by its bare
+    name, such as `d$age_z <- scale(d$age)` makes, is named as `glm()`
+    names it when it is given by its name: `age_z` when it has one column,
+    and otherwise the name of the column followed by each column's name,
+    or by its position when it has no column names (`two1`, `two2`). The
+    two calls give the same coefficients. The model data hold the matrix
+    when it is given by its name, and its columns when it is given by its
+    bare name, so with several columns the printed formulas differ.
+    `check_solomon_missing()` still shows a matrix column of several
+    columns, given by its name, as one table that pools its columns, as
+    before (see its help). By its bare name, a numeric or logical one is
+    shown by one table per column, and a character one stops (see below).
+    A character matrix column of one column is one categorical covariate,
+    named by the column, by its bare name as by its name.
+    `cbind()` turns a factor into its integer codes, and with a character
+    vector makes every column character, which stops, so such covariates
+    go in a data frame, such as `data.frame(age, region)`.
+  - A data frame or a matrix with two columns of the same name stops, and
+    so does a data frame with a column without a name.
+  - Any other form stops with an error that says what to give instead.
+    Examples are a character vector without `data` (names of columns need
+    `data`, and a categorical covariate goes in as a factor), a list that
+    is not a data frame, an array of more than two dimensions, and a
+    vector of another type, such as a date (it goes in as a column of a
+    data frame).
+  - When `covariates` alone has the wrong length, the error now says that
+    it takes one value or one row per participant.
+* With `data`, names in `covariates` that are not columns of `data` stop
+  with an error that lists them. Before, such names stopped with "Inputs
+  must have the same length", which did not say why. A character vector
+  with one value per participant, given as an expression, such as
+  `ifelse(age > 40, "old", "young")`, was left out instead; it now stops
+  with that error, which says that a categorical covariate goes in as a
+  factor. A name given twice stops too; before, `fit_solomon_glm()`
+  stopped because the two copies were collinear, and
+  `check_solomon_missing()` gave no gap.
+* **Forms that gave a fit before and now stop.** With `data`, a vector
+  from outside `data` given by its bare name is now used only when it is
+  numeric, logical, or a factor, as without `data`. Before, it entered
+  the model as it was, whatever its type, but for a `POSIXlt` date-time,
+  which was left out. A character vector, which was a categorical
+  covariate, is now read as names of columns, so it stops with the error
+  above. A date (`Date`), a date-time (`POSIXct`), or a time difference
+  (`difftime`) stops too. Give any of them as a column of a data frame,
+  or of `data`: a vector column of `data` given by its bare name is used
+  whatever its atomic type, as before. A one-dimensional array without a
+  class, a numeric or logical matrix, and a `POSIXlt` date-time, which
+  were left out, are now used too.
+* **Data frames whose columns lack names of their own now stop.** Before:
+
+  - with two columns of the same name, `fit_solomon_glm()` used only the
+    first, and `check_solomon_missing()` showed the first twice and left
+    the second out of its fit;
+  - a data frame without names was left out of both;
+  - a column named `""` stopped `fit_solomon_glm()` with "attempt to use
+    zero-length variable name", and `check_solomon_missing()` gave it an
+    empty table and gave no gap;
+  - a column named `NA` was used by `fit_solomon_glm()`, but
+    `check_solomon_missing()` gave it an empty table.
+* **A covariate named as a column of the model now stops
+  `check_solomon_missing()`** when `y_pre` is numeric, with the error that
+  `fit_solomon_glm()` gives ("Rename these covariates, whose names the
+  model uses: y."). The names are `y`, `pretested`, `pre_obs`,
+  `log_exposure`, and `treat` or, with several treatments, `condition` and
+  `treat_` followed by each treatment's name. Before, a data frame with
+  such a column stopped the fit behind the gap and the delta line, and
+  `check_solomon_missing()` left both out without a word. A vector now
+  takes its bare name, so `covariates = y` stops too; before, it was named
+  `covariates`. Without `y_pre` there is no such fit, and a covariate of
+  any name is shown by its loss.
+* **A logical or character matrix column of several columns now stops**
+  when given by its name or in a data frame, such as `covariates = "lm2"`
+  with `d$lm2 <- cbind(d$age > 40, d$z > 0)`, with an error that says to
+  give its columns as columns of a data frame or, for a logical one, the
+  column by its bare name, which takes one covariate per column. Before,
+  `fit_solomon_glm()` stopped in `glm()` with an unclear error
+  ("replacement has 240 rows, data has 120", for 120 participants and two
+  columns), and `check_solomon_missing()` with numeric `y_pre` left out
+  the gap and the delta line without a word; it now stops with the
+  fit's error. Without `y_pre`, such a column is shown as one table, as
+  before. Given by its bare name, a character one now stops too, in both
+  functions and with or without `y_pre`. Before, `fit_solomon_glm()` left
+  it out, and `check_solomon_missing()` did not stop: it showed one table
+  per column, named by the matrix's column names (`V1`, `V2`, ... by
+  position for columns without one), and with numeric `y_pre` took the
+  gap and the delta line from a fit that included those columns, unlike
+  `fit_solomon_glm()`.
+* `check_solomon_missing()` converted other forms with `as.data.frame()`:
+  a vector was named `covariates`, the columns of a matrix without names
+  `V1`, `V2`, ..., and a list or a character vector was accepted. They are
+  now named, or refused, as in `fit_solomon_glm()`.
+* **Results are unchanged** for every other form that the help named, and
+  for a numeric, logical, or factor vector given by its bare name with
+  `data`. In a comparison of 88 results made for this change, the values,
+  names, classes, attributes, and printed output are identical to those
+  of the development version before it: fits with one and with several
+  treatments, with covariates given as data frames, tibbles, data frames
+  with row names, names of columns, bare column names, and vectors
+  outside `data` by their bare names, with model-based, HC3, and CR2
+  covariances, binary and count outcomes, both pretest centers, and
+  missing posttests; their prints, summaries, `tidy()`, and reports;
+  `perm_solomon()`, `marginal_solomon()`, `plot_sensitization()`, and
+  `equivalence_solomon()` of them; and `check_solomon_missing()` and
+  `validate_solomon()`. A test stores 18 such results from that version,
+  14 fits and 4 `check_solomon_missing()` results. It compares the
+  formulas, coefficient names, and classes exactly; the model data and
+  the tables exactly but for their doubles, which it compares to 1e-12 of
+  their value, as their last bits depend on the platform; and the
+  effects, coefficients, gaps, and deltas to 1e-8.
+* `perm_solomon()`, `marginal_solomon()`, and `plot_sensitization()`
+  work from the data stored in the fit, and `report_solomon()`,
+  `equivalence_solomon()`, `tidy()`, and `glance()` from its results, so a
+  vector or a matrix gives them the same results as the equivalent data
+  frame. Tests check this for each.
+
 ## Covariates far from zero (bug fix, #137)
 
 * `fit_solomon_glm()` stopped with "system is computationally singular"
@@ -452,6 +600,62 @@ reasons are set out in the decision record posted on #135.
   (#143). `check_solomon_missing()` reports both cases.
 * `tools/pretest-center-check.R` reruns the record's checks with both
   centers, from one build of the package.
+
+## Validation scripts outside a git clone (bug fix, #152)
+
+* Ten validation scripts stopped at the end of a run, before writing
+  their run-information file, when they ran outside any git repository,
+  as in a copy downloaded with GitHub's "Download ZIP" and unpacked
+  outside one: the scripts of the binary, historical-test,
+  cluster-marginal, cluster, count, negative-binomial, invariance,
+  multiple-imputation, repeated-measures, and several-treatment studies.
+  The file is `run-information.csv`, or `nb-run-information.csv` for the
+  negative-binomial study. The scripts took the commit from
+  `git rev-parse HEAD`. Outside a repository, git fails, and R's
+  `system()` returns an empty character vector, `character(0)`, with a
+  warning that the scripts' `tryCatch()` did not catch, so there was no
+  commit to record, not even `NA`. In such a copy,
+  `tools/check-validation-scripts.R` failed these ten and the two scripts
+  that depend on them, 12 of the 16. In a copy unpacked inside another
+  git repository, git finds that repository, and the ten recorded its
+  commit.
+* Every validation script that records a commit now takes it by one rule:
+  the environment variable `SOLOMONR_COMMIT` when it is set and not empty;
+  otherwise the commit checked out, when git is on the PATH, the copy is
+  the top level of a git repository, git agrees to read that repository,
+  and its `DESCRIPTION` names solomonR; otherwise `NA`. A run from a clone
+  that git refuses to read, as by default it refuses one owned by another
+  user unless git's `safe.directory` setting lists it, records `NA`; the
+  scripts leave that setting as it is. The copy is the package that the
+  script loads, found as `pkgload::load_all()` finds it, and git looks for
+  the repository from the copy alone, whatever `GIT_DIR` and
+  `GIT_WORK_TREE` say. The scripts of the ML, power, and plan
+  re-simulation studies, which read only `SOLOMONR_COMMIT`, now also
+  record the commit of a clone. The rule does not detect uncommitted
+  changes: a run from a clone with changes records the commit checked out,
+  which does not contain them. Such a run should set `SOLOMONR_COMMIT` to
+  the commit and a description of the changes, as the stored runs of the
+  ML and power studies did. Without it, these three scripts recorded `NA`
+  for such a run, and now record the commit checked out. The Validation
+  Evidence page states the rule, says where the commit of a downloaded
+  copy is stored and how to record it, and says under "Adding a study" how
+  a new study's script takes up the rule. The stored results do not
+  change.
+* The several-treatment script, rerun where the old script stopped
+  outside any git repository, resumes from the checkpoints that it left,
+  whose commit is empty, and records `NA` as the commit of their
+  replications.
+* A new test checks that the scripts share one definition of the rule and
+  pass it the folder of the package that they load. It checks the rule
+  with `SOLOMONR_COMMIT` set; in a clone, also from a folder below its
+  root and with uncommitted changes; outside any repository; inside an
+  unrelated repository; in a repository without commits; in a clone that
+  git refuses to read; and with `GIT_DIR` or `GIT_WORK_TREE` pointing at
+  another repository. It also checks that the messages that git prints are
+  discarded, that a ZIP or tar file made by `git archive` stores its
+  commit where the page says, and that every study whose script has the
+  definition, including one added later, has an article, named after its
+  folder, that links the rule.
 
 ## Validation scripts that run against the current package (#140)
 

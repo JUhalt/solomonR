@@ -386,7 +386,7 @@ milestone.
     ([PR #153](https://github.com/JUhalt/solomonR/pull/153)).
   - Nothing is submitted without the maintainer's sign-off.
 - [ ] The validation studies run on GitHub-hosted runners, under each
-  protocol's platform amendment posted before its run — harness in
+  protocol's platform amendment posted before its run — harness merged in
   [PR #149](https://github.com/JUhalt/solomonR/pull/149) ([#116](https://github.com/JUhalt/solomonR/issues/116), [#117](https://github.com/JUhalt/solomonR/issues/117))
 - Complete reproducible simulations, and manuscript tables and figures.
 - A public preprint when appropriate.
@@ -470,8 +470,8 @@ the audit:
     arms — [#143](https://github.com/JUhalt/solomonR/issues/143)
   - [x] `fit_solomon_glm()` with a covariate far from zero, or on a scale
     far from 1 — [#137](https://github.com/JUhalt/solomonR/issues/137); merged in [PR #151](https://github.com/JUhalt/solomonR/pull/151)
-  - [ ] `fit_solomon_glm()` drops, without saying so, a covariate given as
-    a vector or a matrix — [#146](https://github.com/JUhalt/solomonR/issues/146)
+  - [x] `fit_solomon_glm()` drops, without saying so, a covariate given as
+    a vector or a matrix — [#146](https://github.com/JUhalt/solomonR/issues/146); merged in [PR #155](https://github.com/JUhalt/solomonR/pull/155)
 - **Figures and reports**
   - [x] The interval of the equivalence test drawn in the forest plot — [#107](https://github.com/JUhalt/solomonR/issues/107); merged in [PR #121](https://github.com/JUhalt/solomonR/pull/121)
   - [x] Figure text that fits the figure — [#108](https://github.com/JUhalt/solomonR/issues/108); merged in [PR #123](https://github.com/JUhalt/solomonR/pull/123)
@@ -498,8 +498,8 @@ the audit:
 - **Reproducibility**
   - [x] The validation scripts rerun against the current package, each
     with a smoke mode that a GitHub Actions workflow runs — [#140](https://github.com/JUhalt/solomonR/issues/140); merged in [PR #144](https://github.com/JUhalt/solomonR/pull/144)
-  - [ ] The validation scripts run from a downloaded copy of the
-    repository, outside a git clone — [#152](https://github.com/JUhalt/solomonR/issues/152)
+  - [x] The validation scripts run from a downloaded copy of the
+    repository, outside a git clone — [#152](https://github.com/JUhalt/solomonR/issues/152); merged in [PR #156](https://github.com/JUhalt/solomonR/pull/156)
 
 # Later / exploratory
 
