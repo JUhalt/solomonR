@@ -144,11 +144,20 @@ make_repository <- function(dir) {
   as.vector(head)
 }
 
+# The scripts that have the block, as paths below vignettes/articles.
+scripts_with_block <- function(scripts = validation_scripts()) {
+  scripts[!vapply(scripts, function(s) is.null(commit_block(s)), logical(1))]
+}
+
+# The study folder of a script: the first folder of its path below
+# vignettes/articles, also for a script in a subfolder.
+study_folder <- function(script) sub("/.*$", "", script)
+
 test_that("every validation script that records a commit has the same validation_commit()", {
   skip_without_articles()
   scripts <- validation_scripts()
   blocks <- lapply(stats::setNames(scripts, scripts), commit_block)
-  with_block <- names(Filter(Negate(is.null), blocks))
+  with_block <- scripts_with_block(scripts)
   expect_true(all(records_commit %in% with_block),
               info = paste(setdiff(records_commit, with_block), collapse = ", "))
   # Every copy is the same, line by line, comments included.
@@ -181,15 +190,20 @@ test_that("every validation script that records a commit has the same validation
   }
 })
 
-test_that("the article of every script that records a commit points to the rule", {
+test_that("the article of every study whose script has the block links the rule", {
   skip_without_articles()
   # Each study's article is named after its folder. It says how its script
   # records the commit by linking the rule on the Validation Evidence page.
   evidence <- readLines(file.path(articles, "validation-evidence.Rmd"), warn = FALSE)
   expect_true("## Rerunning a study" %in% evidence)
-  for (folder in unique(dirname(records_commit))) {
+  # The folders are those of the scripts found with the block, so that a
+  # study added later is checked too, not only those listed above.
+  folders <- unique(study_folder(scripts_with_block()))
+  expect_true(all(study_folder(records_commit) %in% folders))
+  for (folder in folders) {
     article <- file.path(articles, paste0(folder, ".Rmd"))
     expect_true(file.exists(article), info = folder)
+    if (!file.exists(article)) next
     text <- paste(readLines(article, warn = FALSE), collapse = "\n")
     expect_true(grepl("validation-evidence.html#rerunning-a-study", text, fixed = TRUE), info = folder)
   }

@@ -232,8 +232,9 @@ reasons are set out in the decision record posted on #135.
   root and with uncommitted changes; outside any repository; inside an
   unrelated repository; in a repository without commits; and with
   `GIT_DIR` or `GIT_WORK_TREE` pointing at another repository. It also
-  checks that the messages that git prints are discarded, and that the
-  article of each study whose script records a commit links the rule.
+  checks that the messages that git prints are discarded, and that every
+  study whose script has the definition, including one added later, has
+  an article, named after its folder, that links the rule.
 
 ## Validation scripts that run against the current package (#140)
 
