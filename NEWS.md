@@ -70,12 +70,12 @@
   the model as it was, whatever its type, but for a `POSIXlt` date-time,
   which was left out. A character vector, which was a categorical
   covariate, is now read as names of columns, so it stops with the error
-  above. A date (`Date`) or a time difference (`difftime`) stops too.
-  Give either as a column of a data frame, or of `data`: a vector column
-  of `data` given by its bare name is used whatever its atomic type, as
-  before. A one-dimensional array without a class, a numeric or logical
-  matrix, and a `POSIXlt` date-time, which were left out, are now used
-  too.
+  above. A date (`Date`), a date-time (`POSIXct`), or a time difference
+  (`difftime`) stops too. Give any of them as a column of a data frame,
+  or of `data`: a vector column of `data` given by its bare name is used
+  whatever its atomic type, as before. A one-dimensional array without a
+  class, a numeric or logical matrix, and a `POSIXlt` date-time, which
+  were left out, are now used too.
 * **Data frames whose columns lack names of their own now stop.** Before:
 
   - with two columns of the same name, `fit_solomon_glm()` used only the
