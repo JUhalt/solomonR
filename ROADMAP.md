@@ -487,6 +487,8 @@ the audit:
     `perm_solomon()` — [#131](https://github.com/JUhalt/solomonR/issues/131); merged in [PR #132](https://github.com/JUhalt/solomonR/pull/132), released in 0.8.2
   - [ ] `perm_solomon()`: ties with a covariate in iterated models, and
     degenerate labelings — [#134](https://github.com/JUhalt/solomonR/issues/134)
+  - [ ] `marginal_solomon()`: a logistic bootstrap that loses every
+    resample on an ill-conditioned design, and blames sparse cells — [#154](https://github.com/JUhalt/solomonR/issues/154)
   - [ ] Robustness study of the recommended inference, under a protocol
     posted before any run — [#116](https://github.com/JUhalt/solomonR/issues/116)
 - **Interface**
@@ -500,6 +502,8 @@ the audit:
     with a smoke mode that a GitHub Actions workflow runs — [#140](https://github.com/JUhalt/solomonR/issues/140); merged in [PR #144](https://github.com/JUhalt/solomonR/pull/144)
   - [x] The validation scripts run from a downloaded copy of the
     repository, outside a git clone — [#152](https://github.com/JUhalt/solomonR/issues/152); merged in [PR #156](https://github.com/JUhalt/solomonR/pull/156)
+  - [ ] The simulation harness records the package commit by the same
+    rule, before the robustness study's gate — [#162](https://github.com/JUhalt/solomonR/issues/162)
 
 # Later / exploratory
 
