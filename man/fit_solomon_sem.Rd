@@ -77,7 +77,11 @@ in U1/U0 and matches Huck & Sandler.
 The four-group mean-structure model is saturated, so its global fit
 indices are not diagnostic. Its contrasts are unadjusted posttest mean
 differences, whereas the ANCOVA mode adjusts for the pretest within the
-pretested groups.
+pretested groups. The ANCOVA mode centers the pretest at its mean among
+the pretested participants before the model is fitted, so the group
+intercepts \code{mu_P1} and \code{mu_P0} of the lavaan model are the posttest means
+adjusted to that pretest. The contrast does not depend on the center, and
+the fit stays accurate when the pretest lies far from zero (issue #137).
 
 The pretest effects are differences between the group means, pretested
 minus unpretested participants: among controls

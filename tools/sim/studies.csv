@@ -1,0 +1,2 @@
+key,issue,script,pins,protocol,required_ancestors
+smoke,117,tools/sim/studies/smoke/smoke-simulation.R,tools/sim/studies/smoke/run-pins.csv,FALSE,
