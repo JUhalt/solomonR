@@ -102,7 +102,10 @@
 #     when it is a bare name, and "covariate" otherwise. A one-dimensional
 #     array without a class, such as
 #     tapply(age, cluster, mean)[as.character(cluster)] gives, is taken as a
-#     vector, here and above; data.frame() drops its dimension.
+#     vector, here and above; data.frame() drops its dimension. Names that
+#     include NA, as a lookup by id gives when an id is absent, are
+#     dropped: data.frame() takes names without duplicates as row names, and
+#     stops when one of them is NA.
 #   - A numeric or logical matrix: one covariate per column, named by the
 #     column names, with covariate1, covariate2, ... by position for
 #     columns without one. Duplicated names stop. A matrix column of `data`
@@ -154,6 +157,7 @@
   dims <- dim(x)
   flat <- is.null(dims) || (length(dims) == 1L && is.null(oldClass(x)) && !isS4(x))
   one <- function(value) {
+    if (anyNA(names(value))) names(value) <- NULL
     stats::setNames(data.frame(value), if (is.symbol(expr)) as.character(expr) else "covariate")
   }
 

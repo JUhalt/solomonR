@@ -198,6 +198,75 @@ test_that("a one-dimensional array, as tapply() gives, is taken as a vector", {
 })
 
 
+test_that("a vector whose names include NA is one covariate, as without names", {
+
+  # A lookup by id gives the name NA for an id that is absent. data.frame()
+  # takes names without duplicates as row names and stops when one of them
+  # is NA ("row names contain missing values"), so such names are dropped.
+  d <- forms_data()
+  ids <- paste0("id", seq_len(nrow(d)))
+  with_na <- function(x) {
+    names(x) <- ids
+    names(x)[3] <- NA
+    x
+  }
+  zna <- with_na(d$z)
+  flagna <- with_na(d$flag)
+  regionna <- with_na(d$region)
+  ref <- fit4(d, data.frame(zna = d$z))
+  expect_same_fit(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = zna),
+                  ref)
+  expect_same_fit(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = zna, data = d),
+                  ref)
+  expect_same_fit(
+    fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = with_na(d$z)),
+    fit4(d, data.frame(covariate = d$z))
+  )
+  expect_same_fit(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = flagna),
+                  fit4(d, data.frame(flagna = d$flag)))
+  expect_same_fit(
+    fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = regionna),
+    fit4(d, data.frame(regionna = d$region))
+  )
+  # A one-dimensional array named the same way.
+  zarray <- array(d$z, dim = nrow(d), dimnames = list(names(zna)))
+  expect_same_fit(fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = zarray),
+                  fit4(d, data.frame(zarray = d$z)))
+  # The lookup, with one id absent: its value and its name are NA.
+  baseline <- stats::setNames(d$z, ids)
+  looked_up <- baseline[replace(ids, 3, "id999")]
+  expect_identical(sum(is.na(names(looked_up))), 1L)
+  expect_same_fit(
+    fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre, covariates = looked_up),
+    fit4(d, data.frame(looked_up = unname(looked_up)))
+  )
+
+  # A design with several treatments.
+  m <- forms_six()
+  mna <- stats::setNames(m$z, paste0("id", seq_len(nrow(m))))
+  names(mna)[3] <- NA
+  expect_same_fit(
+    fit_solomon_glm(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                    control = "Control", covariates = mna),
+    fit_solomon_glm(m$post_behavior, m$condition, m$pretested, m$pre_behavior,
+                    control = "Control", covariates = data.frame(mna = m$z))
+  )
+
+  # check_solomon_missing(), without `data` and with it.
+  d$y_post[c(3, 8, 70, 95)] <- NA
+  expected <- check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre,
+                                    covariates = data.frame(zna = d$z))
+  expect_identical(
+    check_solomon_missing(d$y_post, d$treat, d$pretested, d$y_pre, covariates = zna),
+    expected
+  )
+  expect_identical(
+    check_solomon_missing(y_post, treat, pretested, y_pre, covariates = zna, data = d),
+    expected
+  )
+})
+
+
 test_that("a matrix is one covariate per column, named by its column names", {
 
   d <- forms_data()
