@@ -19,7 +19,9 @@
 #
 # The files it copies come from <plan dir> (preflight.csv,
 # rng-fingerprint.txt, job-info.csv), <merged dir> (manifest.csv,
-# completeness.csv, software.csv, replay.csv, jobs.csv), and each chunk
+# completeness.csv, software.csv, replay.csv, jobs.csv, and job-info.csv,
+# which job-info.R writes there before the replay, so that a merge job that
+# fails keeps it too), and each chunk
 # (session-info.txt), and most of the harness's items below are read from
 # them and from plan-info.csv (replay and reps among them), as the study's
 # summary left them: it runs before this script, on the same machine, and
@@ -28,7 +30,7 @@
 # scripts. No check here can tell
 # whether it did; that it writes only into SOLOMONR_SIM_OUT rests on the
 # study's code, which its pull request shows (README, "Adding a study",
-# item 4). merged/job-info.csv is written after the summary (job-info.R).
+# item 4).
 #
 # run-information.csv (item, value) keeps the items the study's summary
 # wrote, in their order, and adds the harness's items after them; an item

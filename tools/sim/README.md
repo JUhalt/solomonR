@@ -184,6 +184,14 @@ every such field).
   fault in the study's code stops the same way on a rerun, since it runs
   the same code on the same task files. A fix needs a new commit, and the
   merge refuses task files of another commit.
+- A merge job that fails uploads `failed-merge-attempt-<attempt>`, kept
+  for 14 days, if its files pass the address scan: those of
+  `merged/replay.csv`, `merged/job-info.csv` (the merging machine, recorded
+  before the replay), and the logs of the replay and the summary that
+  exist. After a replay that differs, `replay.csv` gives each replayed
+  task's largest difference in the results, the columns that differ, and
+  the processor models of its chunk and of the merging machine. Download
+  it when the run ends.
 - Before the results of a gate or a study run are used, check where the
   run came from: `gh run view <run id> --repo JUhalt/solomonR --json
   event,headBranch,headSha,workflowName` must show
@@ -365,8 +373,9 @@ In the study's own pull request, before its run (the order rule of #117):
    `timing/` with a name the harness does not write, would pass them. They
    also look at the results folder only. `finalize-results.R` copies its
    audit files from the folders the summary read (`manifest.csv`,
-   `completeness.csv`, `software.csv`, `replay.csv`, and `jobs.csv` from
-   `merged/`; `preflight.csv`, `rng-fingerprint.txt`, and the plan job's
+   `completeness.csv`, `software.csv`, `replay.csv`, `jobs.csv`, and the
+   merge job's `job-info.csv`, written before the replay, from `merged/`;
+   `preflight.csv`, `rng-fingerprint.txt`, and the plan job's
    `job-info.csv` from `plan/`; `session-info.txt` from each chunk), and
    it reads most items of `run-information.csv` from them and from
    `plan/plan-info.csv` (`replay` and `reps` among them), as the summary

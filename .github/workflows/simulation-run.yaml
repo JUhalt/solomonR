@@ -443,6 +443,15 @@ jobs:
         shell: bash
         run: Rscript harness/tools/sim/merge-chunks.R plan chunks merged
 
+      # Before the replay, so that a replay that differs, or software that
+      # differs from the chunks', still leaves the merging machine's
+      # processor model and image (merged/job-info.csv, uploaded on failure
+      # below). finalize-results.R copies this file into the results as
+      # timing/merge-job.csv.
+      - name: Record the merging machine
+        shell: bash
+        run: Rscript harness/tools/sim/job-info.R merged merge
+
       - name: Run up to four tasks again on this machine
         shell: bash
         working-directory: pkg
@@ -504,7 +513,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          Rscript harness/tools/sim/job-info.R merged merge
           Rscript harness/tools/sim/finalize-results.R plan chunks merged results
           mkdir -p results/logs
           cp plan/log.txt results/logs/plan-log.txt
@@ -533,6 +541,38 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: bash
         run: Rscript harness/tools/sim/tests/run-tests.R --only merge,local --run . --work "$RUNNER_TEMP/sim-tests"
+
+      # Only when the job fails: the replay's record (merged/replay.csv, with
+      # the processor models of the replayed tasks' chunks and of this
+      # machine), this machine's job-info.csv, and the logs of the replay and
+      # the summary, those that exist. They are uploaded only if they pass
+      # the address scan, as the chunk job's failed files are. A run that
+      # passes uploads none of them apart from the results.
+      - name: Gather the failed merge's files
+        id: gather
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p failed-merge
+          for f in merged/replay.csv merged/job-info.csv merged/replay-log.txt merged/summarize-log.txt; do
+            if [[ -f "$f" ]]; then cp "$f" failed-merge/; fi
+          done
+
+      - name: Scan the failed merge's files for e-mail addresses
+        id: failed_scan
+        if: failure() && steps.gather.outcome == 'success'
+        shell: bash
+        run: Rscript harness/tools/sim/scan-addresses.R failed-merge
+
+      - name: Upload the failed merge's files for diagnosis
+        if: failure() && steps.gather.outcome == 'success' && steps.failed_scan.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: failed-merge-attempt-${{ github.run_attempt }}
+          path: failed-merge
+          if-no-files-found: ignore
+          retention-days: 14
 
   # The harness's own tests (tools/sim/tests/run-tests.R), in its pull
   # requests only: check-results.R, scan-addresses.R, assign-chunks.R, the
