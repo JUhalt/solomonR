@@ -28,7 +28,11 @@
 #' unpretested control group (U0) is fixed at 0 and the other latent means are
 #' estimated relative to it. In the pretested ANCOVA model, the pretested
 #' control group (P0) is the reference. The Solomon contrasts are differences
-#' between latent means, so they do not depend on the reference choice.
+#' between latent means, so they do not depend on the reference choice. The
+#' PRE indicators of the ANCOVA model are centered at their means among the
+#' pretested participants before it is fitted, which changes only their
+#' intercepts and keeps the fit accurate when the pretest lies far from zero
+#' (issue #137).
 #'
 #' The unit of the contrasts is set by `std_lv`. With `std_lv = TRUE`,
 #' lavaan fixes the variance of the latent POST at 1 in the pretested
@@ -352,6 +356,13 @@ fit_solomon_sem_latent <- function(
     data2 <- data[keep, , drop = FALSE]
     g2 <- factor(ifelse(treat[keep] == 1L, "P1", "P0"), levels = c("P1","P0"))
     data2$grp2 <- g2                                    # <- ADD COLUMN
+    # The numeric PRE indicators centered at their means, which changes only
+    # their intercepts (issue #137).
+    for (item in pre_items) {
+      if (is.numeric(data2[[item]])) {
+        data2[[item]] <- data2[[item]] - mean(data2[[item]], na.rm = TRUE)
+      }
+    }
 
     pre_meas   <- paste0("PRE  =~ ", paste(pre_items,  collapse = " + "))
     post_meas2 <- paste0("POST =~ ", paste(post_items, collapse = " + "))

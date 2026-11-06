@@ -265,16 +265,53 @@ NULL
 # residual, so that the sum of the cross-products is the HC0 covariance; and
 # the hat values h_i, by which HC3 divides each influence by 1 - h_i
 # (MacKinnon & White, 1985). One row per row the model used.
-.glm_influence <- function(model) {
-  X <- stats::model.matrix(model)
-  X <- X[, !is.na(stats::coef(model)), drop = FALSE]
+#
+# Both come from the QR decomposition W^(1/2) X = QR that the fit computed:
+# the influence is R^{-1} q_i w_i^(1/2) e_i and the hat value is ||q_i||^2,
+# with q_i the ith row of Q. Forming X'WX instead squares the condition
+# number of the design, so that a covariate far from zero relative to its
+# spread made it numerically singular (issue #137). The decomposition holds
+# the rows whose working weight is positive: a row of weight zero, which
+# glm.fit() leaves out, has no influence and a hat value of zero. Should the
+# fit hold no decomposition of exactly those rows, the weighted design is
+# decomposed again, with the fit's tolerance.
+#
+# With `map`, a matrix whose columns are the coefficients, the influence is
+# that on the combinations map %*% b, one column for each row of `map`:
+# q_i' R^{-T} map' w_i^(1/2) e_i, with R^{-T} map' from backsolve(). That
+# keeps a combination accurate whose terms are large and cancel, such as the
+# intercept of covariates as given computed from their standardized
+# coefficients (.given_vcov()), where the influences on the terms, combined
+# afterwards, would carry their rounding error into it.
+#
+# The columns of the decomposition are the coefficients q$pivot, taken by
+# position: two coefficients can share a name (.scaled_columns()).
+.glm_influence <- function(model, map = NULL) {
+  cf <- stats::coef(model)
   w <- model$weights
   e <- model$residuals
-  bread <- solve(crossprod(X, w * X))
-  list(
-    influence = (X * (w * e)) %*% bread,
-    hat = rowSums((X %*% bread) * X) * w
-  )
+  good <- w > 0
+  q <- model$qr
+  if (is.null(q) || nrow(q$qr) != sum(good)) {
+    X <- stats::model.matrix(model)[good, , drop = FALSE]
+    q <- qr(sqrt(w[good]) * X, tol = if (is.null(q$tol)) 1e-11 else q$tol)
+  }
+  rank <- seq_len(q$rank)
+  Q <- qr.Q(q)[, rank, drop = FALSE]
+  hat <- numeric(length(w))
+  hat[good] <- rowSums(Q^2)
+  pivot <- q$pivot[rank]
+  if (!is.null(map)) {
+    B <- backsolve(qr.R(q)[rank, rank, drop = FALSE], t(map[, pivot, drop = FALSE]),
+                   transpose = TRUE)
+    influence <- matrix(0, length(w), nrow(map), dimnames = list(NULL, rownames(map)))
+    influence[good, ] <- (Q * (sqrt(w[good]) * e[good])) %*% B
+    return(list(influence = influence, hat = hat))
+  }
+  influence <- matrix(0, length(w), length(cf), dimnames = list(NULL, names(cf)))
+  influence[good, pivot] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE],
+                                        t(Q * (sqrt(w[good]) * e[good]))))
+  list(influence = influence[, !is.na(cf), drop = FALSE], hat = hat)
 }
 
 # The variance that estimated sample means add to a contrast evaluated at
@@ -509,7 +546,10 @@ NULL
   variance <- as.numeric(t(L) %*% V %*% L)
   k <- if (is.null(center) || !"pretested" %in% names(L)) 0 else L[["pretested"]] * cf[["pre_obs"]]
   if (!is.finite(k) || k == 0) return(list(variance = variance, added = 0, df = df_contrast))
-  v_contrast <- variance + 2 * k * sum(L[names(center$cross)] * center$cross)
+  # `cross` runs over the coefficients in their order, as `L` does; by
+  # position, since two coefficients can share a name (.scaled_columns()).
+  weights <- if (length(center$cross) == length(L)) L else L[names(center$cross)]
+  v_contrast <- variance + 2 * k * sum(weights * center$cross)
   v_center <- k^2 * center$v
   df <- if (robust == "CR2") {
     .welch_df(c(v_contrast, v_center), c(df_contrast, center$df))
@@ -920,6 +960,138 @@ stouffer_solomon <- function(p) {
 #'   the randomized population only when the pretest effect does not vary
 #'   with what drives the loss.
 #'
+#' @section Covariates:
+#' `covariates` enter the model as main effects, beside the pretest. The
+#' inference is computed with each numeric covariate standardized, centered
+#' at its mean and divided by its standard deviation over the participants
+#' in the model, and with the pretest, centered already, divided by the
+#' power of two nearest its standard deviation over the pretested
+#' participants in the model (issue #137). That is a reparameterization of
+#' the same model, so it changes no contrast, standard error, degrees of
+#' freedom, or test, and keeps them accurate when a covariate, such as a
+#' calendar year, lies far from zero relative to its spread, or when a
+#' covariate or the pretest is on a scale far from 1, where the covariances
+#' of the model as given lose accuracy or cannot be computed. `model`,
+#' `coefficients`, and `vcov` are those of the covariates and the pretest as
+#' given, the intercept included. With a pretest or a numeric covariate, a
+#' CR2 `vcov` is therefore a matrix rather than the clubSandwich object,
+#' whose small-sample adjustments belong to the standardized model; that
+#' model's coefficients and covariance are in `covariate_scaling`. The
+#' warnings, such as one that a negative-binomial theta did not converge,
+#' come from the standardized model too, as do `theta` and `dispersion`,
+#' which do not depend on the parameterization. Far from zero, a fit to a
+#' covariate as given can warn where the same model standardized does not.
+#'
+#' Covariates collinear with the other terms stop the fit wherever they
+#' lie. Far from zero, the rounding error of the stored values can make
+#' [stats::glm()] take collinear terms for distinct ones, such as `z + 1e6`
+#' and `2 * z + 3`, or a time of testing that is the time of enrollment plus
+#' a delay, with the times as dates, so the standardized model is checked
+#' too. Each term is regressed on the terms before it, the covariates after
+#' the treatment and pretest terms, weighted as [stats::glm()] weighs them.
+#' It is taken to be collinear with them when its residual is within 4
+#' times the rounding error that the regression carries into it, or within
+#' 1e-11 of its norm, the tolerance of [stats::glm()]. That rounding error
+#' is the term's own plus each other term's times the magnitude of its
+#' coefficient, relative to the term's standard deviation, with the error
+#' of each value taken to be `.Machine$double.eps` times its magnitude as
+#' given (the pretest's before it is centered), and that of standardizing,
+#' centering, and weighting it. The residual is computed from the stored
+#' values, accumulated in twice the working precision, rather than taken
+#' from the QR decomposition, whose own rounding the coefficients would
+#' multiply too.
+#'
+#' The check guarantees two things.
+#'
+#' - An exact relation among the terms (the covariates, the pretest, the
+#'   treatment and pretest indicators, their interaction, and the
+#'   indicators of factors) stops the fit, however far from zero its terms
+#'   lie, however their spreads differ, and in any order of the covariates,
+#'   as long as its values carry no more rounding error than the check
+#'   allows for. Values stored from exact data, or computed from one another
+#'   in a few operations, do not exceed it. The message names a term of the
+#'   relation. [stats::glm()] fits the model as given first and takes a
+#'   column to be collinear with the columns before it, in the order of the
+#'   model matrix, when its residual on them falls below 1e-11 of its norm.
+#'   That is so for the relation's last column in that order whenever the
+#'   relation's rounding error stays below that tolerance, as it does near
+#'   zero, and for a column whose spread falls below about 1e-11 of its
+#'   distance from zero; in that order the interaction `treat:pretested`
+#'   comes after the covariates. The message then names that column.
+#'   Otherwise it names the relation's last term in the order of the check:
+#'   the treatment and pretest terms first, then the covariates in their
+#'   order.
+#' - A term that is not exactly collinear stops the fit only when its
+#'   residual is within that bound or below the tolerance of
+#'   [stats::glm()]. Near zero the bound grows with the coefficients: it is
+#'   about 2.7 * 10^-15 of the term's norm times 1 plus the sum of the
+#'   magnitudes of its coefficients, each times the norm of its term over
+#'   the term's own. A covariate that nearly repeats another, or a
+#'   combination of others with coefficients of order 1, such as a
+#'   covariate and its copy in single precision, or covariates 10^-9
+#'   standard deviations apart, has a bound of about 5 * 10^-15, far below
+#'   that tolerance, which then decides as it does for the model as given;
+#'   such covariates are fitted as [stats::glm()] fits them, whatever other
+#'   covariates lie far from zero. The bound exceeds that tolerance once the
+#'   sum exceeds about 4,000, as in nested near-collinearity. With
+#'   `z2 = z1 + 1e-6 * e1` and `z3 = e1 + delta * e2`, all near zero, the
+#'   sum is about 2 * 10^6 and the bound about 5 * 10^-9 of the norm of
+#'   `z3`, so that the fit goes ahead at `delta = 1e-8` and stops at
+#'   `delta = 3e-9` and below, where [stats::glm()] still fits the model: a
+#'   residual within the bound cannot be told from that of an exact
+#'   relation between rounded values.
+#'
+#' Its limits:
+#'
+#' - A relation computed with more rounding error, such as one among values
+#'   rounded to fewer digits, is not exact in double precision, and its
+#'   terms are fitted as nearly collinear ones.
+#' - Nearly collinear covariates far enough from zero that their difference
+#'   falls below about 1e-11 of their distance from zero, such as
+#'   covariates 10^-6 standard deviations apart at 10^6 standard deviations
+#'   from zero, are taken to be collinear by [stats::glm()] as given, which
+#'   stops the fit too.
+#' - The check runs once the model as given is fitted. When that fit fails
+#'   itself, as [MASS::glm.nb()] did with "NA/NaN/Inf in 'x'" for an exact
+#'   relation with a covariate 3 * 10^10 standard deviations from zero, the
+#'   fit stops with that error, as in earlier versions, before the check
+#'   can name a term.
+#'
+#' Nearly collinear covariates that are fitted keep accurate standard
+#' errors under every covariance, as far as the design allows: the
+#' coefficients and their covariance are accurate to about
+#' `.Machine$double.eps` times the condition number of the standardized
+#' design, which for two covariates near zero is about the inverse of their
+#' difference in standard deviations. With a numeric covariate the HC3 and
+#' CR2 covariances are therefore computed from the QR decomposition of the
+#' standardized model, as the model-based one is: HC3 from the
+#' participants' influences, and CR2 by clubSandwich in an orthonormal
+#' basis of the same columns, which gives the same covariance, degrees of
+#' freedom, and tests. Formed from the inverse of `X'WX`, as
+#' [sandwich::vcovHC()] and [clubSandwich::vcovCR()] form them, whose
+#' condition number is the square of the design's, they lost accuracy with
+#' covariates 10^-7 standard deviations apart or closer, and earlier
+#' versions stopped with "system is computationally singular" from about
+#' 10^-8 near zero. With covariates 10^-8 standard deviations apart near
+#' zero, the standard errors and degrees of freedom of the contrasts and
+#' the coefficients, the statistics of the omnibus tests of several
+#' treatments, and the delta-method standard errors of
+#' [marginal_solomon()] agreed with those of the exact reparameterization,
+#' the second covariate replaced by the difference, to about 2 * 10^-8 of
+#' their value under every covariance in one check, and their p-values to
+#' about 10^-6; at 10^-9, to about 2 * 10^-7 and 3 * 10^-6. Closer still,
+#' the standard errors of the contrasts agreed to about 10^-6 under HC3 and
+#' CR2 at 10^-10, and to 3 * 10^-5 in one logistic fit under model-based
+#' covariance. The cells of [plot_sensitization()] are at the covariates'
+#' means, which far from zero are stored with an error that the large
+#' coefficients of nearly collinear covariates multiply; their standard
+#' errors agreed to about 10^-7 at 10^-8 near zero.
+#'
+#' A numeric covariate is standardized whatever its class, such as that of a
+#' variable with value labels read from an SPSS file, or of one wrapped in
+#' `I()`, and so are dates and times, as the numbers they enter the model
+#' as; factors, logical columns, and character columns enter as given.
+#'
 #' @section Designs with several treatments:
 #' A Solomon N-group design crosses k treatments and a control with
 #' pretesting, giving 2(k + 1) groups: six for two treatments and eight for
@@ -1055,7 +1227,16 @@ stouffer_solomon <- function(p) {
 #'     through `conf.high`, with `term` for `contrast`.
 #'   - `model`: the fitted model, a `glm` object.
 #'   - `vcov`: the covariance matrix of the coefficients, as `robust` sets
-#'     it.
+#'     it. With CR2 it is the clubSandwich object, or, with a pretest or a
+#'     numeric covariate, a matrix (see "Covariates").
+#'   - `covariate_scaling`: with a pretest or numeric covariates, the
+#'     parameterization in which the inference was computed (see
+#'     "Covariates"): the `means` and `scales` of the pretest, `pre_obs`
+#'     (a mean of 0 and the power of two it was divided by), and of the
+#'     numeric covariates (their means and standard deviations over the
+#'     participants in the model), and the `coefficients` and the covariance
+#'     `vcov` of the model with them standardized; otherwise `NULL`. Outside
+#'     the stable interface (see [solomon_output]).
 #'   - `dispersion`: the Pearson dispersion statistic for binomial, Poisson,
 #'     and negative-binomial fits, and `NA` for the others.
 #'   - `theta`: for negative-binomial fits, its estimate, standard error,
@@ -1398,20 +1579,31 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
   }
 
-  if (negbin) {
-    fit <- .fit_negbin(fml, df)
-    family <- stats::family(fit)
-  } else {
-    fit <- stats::glm(fml, data = df, family = family, na.action = stats::na.exclude)
-  }
-
-  # An empty group, or a term collinear with the others, leaves a
-  # coefficient inestimable: stop as the several-treatment path does. The
-  # groups are named by the conditions when `control` named them. With
-  # `pretest_center = "observed"` the center exists even when a pretested
-  # group has no posttest, so the model's own check is needed.
+  # The model as given, which the result returns as `model`. With a pretest
+  # or a numeric covariate the inference comes from the model refitted with
+  # the covariates standardized and the pretest scaled, which is accurate
+  # however far a covariate lies from zero, and whatever the scale of a
+  # covariate or the pretest (issue #137; .covariate_scaling()). That fit
+  # gives the warnings, and this one is fitted silently: far from zero, a
+  # covariate can make the fit as given warn, for instance that theta did
+  # not converge, where the same model standardized does not.
+  standardize <- .standardizes(df, names(covariates))
+  fit <- .fit_model(fml, df, family, negbin, quiet = standardize)
   in_model <- rep(TRUE, nrow(df))
   if (!is.null(fit$na.action)) in_model[fit$na.action] <- FALSE
+  fit_given <- fit
+  scaling <- .covariate_scaling(df, names(covariates), in_model)
+  if (standardize) fit <- .fit_model(fml, scaling$data, family, negbin)
+  if (negbin) family <- stats::family(fit)
+
+  # An empty group, or a term collinear with the others, leaves a
+  # coefficient inestimable, in the model as given or standardized: stop as
+  # the several-treatment path does. The groups are named by the conditions
+  # when `control` named them. With `pretest_center = "observed"` the center
+  # exists even when a pretested group has no posttest, so the model's own
+  # check is needed. The standardized model is checked as well, for terms
+  # collinear but for the rounding error of the values given, which glm()
+  # can take for distinct ones far from zero (.collinear_terms()).
   arms <- if (is.null(conditions$control)) {
     c("treatment", "control")
   } else {
@@ -1421,7 +1613,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     factor(df$treat[in_model], levels = c(1L, 0L), labels = arms),
     factor(df$pretested[in_model], levels = c(1L, 0L))
   )
-  .stop_inestimable(fit, .group_names(group_counts, group_counts == 0))
+  .stop_inestimable(fit_given, .group_names(group_counts, group_counts == 0))
+  .stop_inestimable(fit, .group_names(group_counts, group_counts == 0),
+                    noise = .representation_error(fit, fit_given, scaling, pretest_mean),
+                    covariates = .formula_names(names(covariates)))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2, so its standard errors
@@ -1440,11 +1635,16 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     .warn_noncollapsible(stats::family(fit)$link)
   }
 
-  # Robust VCOV
+  # Robust VCOV. With a numeric covariate, the HC3 and CR2 covariances
+  # are computed from the standardized model's QR decomposition, which
+  # stays accurate when covariates are nearly collinear (.hc3_vcov(),
+  # .cr2_basis()); without one, by sandwich and clubSandwich, as before.
   fit_cr <- fit
   n_clusters <- NULL
+  cr2_basis <- NULL
+  numeric_covariates <- .numeric_covariates(scaling)
   if (robust == "HC3") {
-    vcovM <- sandwich::vcovHC(fit, type = "HC3")
+    vcovM <- if (numeric_covariates) .hc3_vcov(fit) else sandwich::vcovHC(fit, type = "HC3")
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
@@ -1467,9 +1667,14 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
     # clubSandwich cannot use the NA-padded residuals of an na.exclude fit,
     # so CR2 quantities come from a complete-case refit of the same rows
-    # (identical coefficients).
-    fit_cr <- stats::glm(fml, data = df[used, , drop = FALSE], family = family)
-    vcovM <- clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
+    # (identical coefficients), with the covariates standardized as `fit`.
+    fit_cr <- stats::glm(fml, data = scaling$data[used, , drop = FALSE], family = family)
+    if (numeric_covariates) cr2_basis <- .cr2_basis(fit_cr, cluster_fit)
+    vcovM <- if (is.null(cr2_basis)) {
+      clubSandwich::vcovCR(fit_cr, cluster = cluster_fit, type = "CR2")
+    } else {
+      .cr2_standardized_vcov(cr2_basis, names(stats::coef(fit_cr)))
+    }
   } else {
     vcovM <- stats::vcov(fit)
   }
@@ -1479,7 +1684,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # For the "observed" center the variance is taken over every pretested
   # participant with a pretest, and the covariance over those of them in the
   # model (issue #135). The other center's terms are computed too when the
-  # two centers differ, for `pretest_sensitivity`.
+  # two centers differ, for `pretest_sensitivity`. They are in the units of
+  # the scaled pretest of `fit` (`scaling$data`), as are its coefficients.
   center <- NULL
   center_other <- NULL
   center_note <- NULL
@@ -1488,8 +1694,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   if (!is.null(y_pre)) {
     rows <- rep(TRUE, nrow(df))
     if (!is.null(fit$na.action)) rows[fit$na.action] <- FALSE
-    both <- .center_terms_both(df, y_pre, rows, if (robust == "CR2") fit_cr else fit, robust,
-                               cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    both <- .center_terms_both(scaling$data, y_pre, rows, if (robust == "CR2") fit_cr else fit,
+                               robust, cluster, if (robust == "CR2") cluster_fit, pretest_center)
     center <- both$center
     center_other <- both$other
     center_note <- both$note
@@ -1505,22 +1711,9 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   dispersion_fixed <- .fixed_dispersion(stats::family(fit))
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
-  # --- tidy coefficients with chosen vcov ---
-  tidy <- .tidy_coefficients(fit)
-  se_vec <- sqrt(diag(vcovM))
-  tidy$std.error <- unname(se_vec[match(tidy$term, names(se_vec))])
-  tidy$statistic <- tidy$estimate / tidy$std.error
-  if (robust == "CR2") {
-    ct <- clubSandwich::coef_test(fit_cr, vcov = vcovM, test = "Satterthwaite")
-    tidy$df <- ct$df_Satt[match(tidy$term, ct$Coef)]
-  } else {
-    tidy$df <- df_model
-  }
-  tidy$p.value <- 2 * stats::pt(-abs(tidy$statistic), df = tidy$df)
-  coef_ci <- .wald_ci(tidy$estimate, tidy$std.error, tidy$df, conf_level)
-  tidy$conf.low <- unname(coef_ci[, "conf.low"])
-  tidy$conf.high <- unname(coef_ci[, "conf.high"])
-  tidy <- tidy[, .solomon_coefficient_columns]
+  # --- tidy coefficients with chosen vcov, for the covariates as given ---
+  coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
+                                     cr2_basis)
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -1534,18 +1727,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
-    dfc <- if (robust == "CR2") {
-      as.data.frame(
-        clubSandwich::linear_contrast(
-          fit_cr,
-          vcov = vcovM,
-          contrasts = Lm,
-          test = "Satterthwaite"
-        )
-      )$df
-    } else {
-      df_model
-    }
+    dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
     adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
@@ -1642,7 +1824,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # the HC3, CR2, and model-based covariances, and the Satterthwaite degrees
   # of freedom of a linear function of the estimates do not depend on where
   # the pretest is centered. When the two centers are the same number, the
-  # rows are copied.
+  # rows are copied. The shift between the centers is in the units of the
+  # scaled pretest, and the slope in those of the pretest as given.
   sensitivity <- NULL
   if (!is.null(y_pre)) {
     used_rows <- effects[effects$contrast %in% .solomon_pretest_order,
@@ -1651,12 +1834,12 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     if (differ) {
       other_rows <- .other_center_rows(
         Ls[.solomon_pretest_order], .solomon_pretest_order,
-        centers[[.other_center(pretest_center)]] - pretest_mean,
+        (centers[[.other_center(pretest_center)]] - pretest_mean) / .pretest_scale(scaling),
         function(L) lin_contrast(L, center_other), no_se = !is.null(center_note)
       )
     }
     identity <- identical(stats::family(fit)$link, "identity")
-    slope <- cf[["pre_obs"]]
+    slope <- cf[["pre_obs"]] / .pretest_scale(scaling)
     sensitivity <- .pretest_sensitivity(
       used_rows, other_rows, pretest_center, character(), parts, centers, slope, identity,
       .pretest_attrition(ifelse(df$treat == 1L, arms[1], arms[2]), rev(arms), df$pretested,
@@ -1665,6 +1848,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     )
   }
 
+  # The dispersion and theta do not depend on the parameterization; they
+  # come from the fit the inference came from.
   dispersion <- if (.fixed_dispersion(stats::family(fit))) {
     sum(stats::residuals(fit, type = "pearson")^2, na.rm = TRUE) / stats::df.residual(fit)
   } else {
@@ -1672,12 +1857,13 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
 
   out <- list(
-    model = fit,
-    coefficients = tidy,
+    model = fit_given,
+    coefficients = coefficients$table,
     effects = effects,
     dispersion = dispersion,
     theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
-    vcov = vcovM,
+    vcov = coefficients$vcov,
+    covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
     data = df,
     pretest_mean = pretest_mean,
     pretest_center = pretest_center,
@@ -1969,7 +2155,13 @@ perm_solomon <- function(
     return(.perm_solomon_cluster(fit, contrast, reps, return_dist, statistic))
   }
 
+  # The model is refitted with the numeric covariates standardized and the
+  # pretest scaled as the fit's inference was (issue #137;
+  # .covariate_scaling()). The statistic is the same, and accurate however
+  # far a covariate lies from zero.
   df <- fit$data
+  if (!is.null(fit$covariate_scaling)) df <- .standardized_frame(df, fit$covariate_scaling)
+  numeric_covariates <- .numeric_covariates(fit$covariate_scaling)
   form <- stats::formula(fit$model)
   fam <- stats::family(fit$model)
 
@@ -2050,17 +2242,25 @@ perm_solomon <- function(
       return(estimate)
     }
 
-    V <- sandwich::vcovHC(
-      fit,
-      type = "HC3"
-    )
+    # With a numeric covariate, the HC3 variance comes from the QR
+    # decomposition, as the fit's does (.hc3_vcov()), so that nearly
+    # collinear covariates leave the statistic accurate.
+    variance <- if (numeric_covariates) {
+      infl <- .glm_influence(fit, map = Lm)
+      sum((infl$influence / (1 - infl$hat))^2)
+    } else {
+      V <- sandwich::vcovHC(
+        fit,
+        type = "HC3"
+      )
 
-    # Force coefficient and covariance-matrix order to match.
-    V <- V[names(b), names(b), drop = FALSE]
+      # Force coefficient and covariance-matrix order to match.
+      V <- V[names(b), names(b), drop = FALSE]
 
-    variance <- as.numeric(
-      Lm %*% V %*% t(Lm)
-    )
+      as.numeric(
+        Lm %*% V %*% t(Lm)
+      )
+    }
 
     if (!is.finite(variance) || variance <= 0) {
       return(NA_real_)
