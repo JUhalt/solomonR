@@ -468,7 +468,8 @@ the audit:
     pretest drops — [#142](https://github.com/JUhalt/solomonR/issues/142)
   - [ ] Pretest × Treatment when attrition differs between the treatment
     arms — [#143](https://github.com/JUhalt/solomonR/issues/143)
-  - [ ] `fit_solomon_glm()` with a covariate far from zero — [#137](https://github.com/JUhalt/solomonR/issues/137)
+  - [x] `fit_solomon_glm()` with a covariate far from zero, or on a scale
+    far from 1 — [#137](https://github.com/JUhalt/solomonR/issues/137); merged in [PR #151](https://github.com/JUhalt/solomonR/pull/151)
   - [ ] `fit_solomon_glm()` drops, without saying so, a covariate given as
     a vector or a matrix — [#146](https://github.com/JUhalt/solomonR/issues/146)
 - **Figures and reports**
@@ -497,6 +498,8 @@ the audit:
 - **Reproducibility**
   - [x] The validation scripts rerun against the current package, each
     with a smoke mode that a GitHub Actions workflow runs — [#140](https://github.com/JUhalt/solomonR/issues/140); merged in [PR #144](https://github.com/JUhalt/solomonR/pull/144)
+  - [ ] The validation scripts run from a downloaded copy of the
+    repository, outside a git clone — [#152](https://github.com/JUhalt/solomonR/issues/152)
 
 # Later / exploratory
 

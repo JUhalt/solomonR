@@ -405,13 +405,15 @@ test_that("the CR2 label counts the clusters in the model", {
   expect_match(plot_sensitization(fit)$labels$caption,
                "CR2 cluster-robust (23 clusters)", fixed = TRUE)
 
-  # The covariance is that of the 23 clusters.
+  # The covariance is that of the 23 clusters. With a pretest it is a
+  # matrix, computed with the pretest scaled (#137).
   used <- !is.na(d$y_post)
   reference <- clubSandwich::vcovCR(
     stats::glm(stats::formula(fit$model), data = fit$data[used, ]),
     cluster = d$site[used], type = "CR2"
   )
-  expect_equal(unclass(fit$vcov), unclass(reference), ignore_attr = TRUE, tolerance = 1e-10)
+  plain <- function(V) matrix(as.numeric(V), nrow(V), dimnames = dimnames(V))
+  expect_equal(plain(fit$vcov), plain(reference), tolerance = 1e-10)
 
   # A fit saved before `n_clusters` was stored is labelled from `cluster`.
   fit$n_clusters <- NULL
