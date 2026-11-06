@@ -664,10 +664,13 @@ collinear_pair_fit <- function(d, design, covariates, robust = "HC3", y = NULL, 
 # the rounding error of X b then moves the deviance by about 1e-6 between
 # iterations, more than glm()'s 1e-8 criterion, and the last bits of a
 # platform decide whether it settles within 25 iterations. Its estimates
-# are as accurate either way. Every other warning is kept.
+# are as accurate either way. The message is matched in English and in the
+# session's translation of it. Every other warning is kept.
 quiet_irls <- function(expr) {
+  target <- "glm.fit: algorithm did not converge"
+  messages <- c(target, gettext(target, domain = "R-stats"))
   withCallingHandlers(expr, warning = function(w) {
-    if (identical(conditionMessage(w), "glm.fit: algorithm did not converge")) {
+    if (conditionMessage(w) %in% messages) {
       invokeRestart("muffleWarning")
     }
   })
@@ -706,10 +709,11 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
   # Every family, with the fit as given far from zero.
   covariates <- data.frame(z = d$z + 1e6 * stats::sd(d$z), z2 = 2 * d$z + 3)
   counts <- pmax(0, round(2 + d$y4))
-  expect_error(collinear_pair_fit(d, "four", covariates, y = as.integer(d$y4 > 0.2),
-                                  family = stats::binomial()), collinear)
-  expect_error(collinear_pair_fit(d, "four", covariates, y = counts,
-                                  family = stats::poisson()), collinear)
+  expect_error(quiet_irls(collinear_pair_fit(d, "four", covariates,
+                                             y = as.integer(d$y4 > 0.2),
+                                             family = stats::binomial())), collinear)
+  expect_error(quiet_irls(collinear_pair_fit(d, "four", covariates, y = counts,
+                                             family = stats::poisson())), collinear)
   expect_error(suppressWarnings(collinear_pair_fit(d, "six", covariates, y = counts,
                                                    family = "negative_binomial")), collinear)
 })
@@ -904,7 +908,7 @@ test_that("the message names the column glm() takes to be collinear, or the chec
   d <- collinear_set()
   w <- withr::with_seed(5, stats::rnorm(nrow(d)))
   names_term <- function(covariates, term) {
-    expect_error(collinear_pair_fit(d, "four", covariates, "none"),
+    expect_error(quiet_irls(collinear_pair_fit(d, "four", covariates, "none")),
                  paste0("collinear with other terms of the model: ", term, "[.]"),
                  info = paste(names(covariates), collapse = ","))
   }
@@ -1011,8 +1015,8 @@ test_that("nested near-collinearity near zero is fitted as glm() and master fit 
   for (case in list(c(1e-6, 1e-8), c(1e-5, 1e-9), c(1e-4, 3e-10))) {
     covariates <- nested(case[1], case[2])
     info <- paste(case, collapse = " ")
-    model <- stats::glm(y ~ treat * pretested + z1 + z2 + z3,
-                        data = data.frame(y, treat, pretested, covariates))
+    model <- quiet_irls(stats::glm(y ~ treat * pretested + z1 + z2 + z3,
+                                   data = data.frame(y, treat, pretested, covariates)))
     expect_identical(model$rank, 7L, info = info)
     fit <- quiet_irls(fit_solomon_glm(y, treat, pretested, pre, covariates = covariates,
                                       robust = "none"))
@@ -1022,8 +1026,8 @@ test_that("nested near-collinearity near zero is fitted as glm() and master fit 
     ref <- fit_solomon_glm(y, treat, pretested, pre, covariates = reference, robust = "none")
     expect_equal(fit$effects, ref$effects, tolerance = 1e-2, info = info)
   }
-  expect_error(fit_solomon_glm(y, treat, pretested, pre, covariates = nested(1e-6, 1e-9),
-                               robust = "none"),
+  expect_error(quiet_irls(fit_solomon_glm(y, treat, pretested, pre,
+                                          covariates = nested(1e-6, 1e-9), robust = "none")),
                "collinear with other terms of the model: z3[.]")
 })
 

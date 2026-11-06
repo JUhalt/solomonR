@@ -118,14 +118,18 @@ test_that("with the default center, results equal those of master (a6c771a)", {
   # rounding_differences() accepts a difference only where a cell of a
   # stored data frame lies within the tolerance of the boundary, master's
   # value of the cell prints as master's number, and its current value as
-  # the new one; each cell accepts one difference. Digits that are part of
-  # a word (d1, HC3) or follow a hyphen (1.2e-05, 0.31-0.43) are compared as
-  # text. With missing posttests every line that master printed, and every
-  # paragraph of its report, appears unchanged and in the same order; the
-  # new output may add lines and paragraphs for the other center and the
-  # attrition, and the report of a design with several treatments adds its
-  # sentences at the end of its last paragraph, which must then begin with
-  # master's.
+  # the new one, in the same form (0.44, not .44); each cell accepts one
+  # difference. The cell is matched by its printed value, not its place: on
+  # a line where master printed the crossing value twice, an exchange of
+  # the two would pass on the platform where it crosses, as it passes on
+  # every other, where the two print alike. Digits that are part of a word
+  # (d1, HC3, chi-squared in any script) or follow a hyphen or plus sign
+  # (1.2e-05, 1.2e+05, 0.31-0.43) are compared as text. With missing
+  # posttests every line that master printed, and every paragraph of its
+  # report, appears unchanged and in the same order; the new output may add
+  # lines and paragraphs for the other center and the attrition, and the
+  # report of a design with several treatments adds its sentences at the
+  # end of its last paragraph, which must then begin with master's.
   rounding_differences <- function(got, ref, stored, current, tol) {
     if (length(got) != length(ref)) return("the number of lines differs")
     cells <- do.call(rbind, lapply(names(Filter(is.data.frame, stored)), function(n) {
@@ -140,7 +144,7 @@ test_that("with the default center, results equal those of master (a6c771a)", {
     if (is.null(cells)) cells <- data.frame(master = numeric(), now = numeric())
     cells <- cells[is.finite(cells$master) & is.finite(cells$now), , drop = FALSE]
     used <- rep(FALSE, nrow(cells))
-    number <- "(?<![[:alnum:]_.-])-?[0-9]*[.]?[0-9]+"
+    number <- "(*UCP)(?<![[:alnum:]_.+-])-?[0-9]*[.]?[0-9]+"
     decimals <- function(x) nchar(sub("^[^.]*[.]?", "", x))
     prints_as <- function(v, d, z) {
       abs(as.numeric(formatC(v, format = "f", digits = d)) - z) < 10^-d / 100
@@ -159,7 +163,8 @@ test_that("with the default center, results equal those of master (a6c771a)", {
         x <- as.numeric(a[k])
         y <- as.numeric(b[k])
         cell <- integer()
-        if (decimals(a[k]) == d && abs(abs(x - y) - 10^-d) <= 10^-d / 100) {
+        if (decimals(a[k]) == d && grepl("^-?[.]", a[k]) == grepl("^-?[.]", b[k]) &&
+            abs(abs(x - y) - 10^-d) <= 10^-d / 100) {
           cell <- which(!used & abs(cells$master - (x + y) / 2) <= tol * pmax(1, abs(cells$master)) &
                           prints_as(cells$master, d, y) & prints_as(cells$now, d, x))
         }
