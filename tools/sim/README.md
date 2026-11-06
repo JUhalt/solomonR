@@ -369,7 +369,9 @@ In the study's own pull request, before its run (the order rule of #117):
    `gate-times`, `gate-projection`, and `gate-summary`).
 5. Its `run-pins.csv` gives R, the dated snapshot, `libraries,blas,reference`,
    the extra packages, every package version the protocol records, and
-   `tool,pak`. A protocol study (registry flag `TRUE`) must also give
+   `tool,pak`. Every pinned package must be installed, from the `Imports`
+   of the package commit or the extra packages, or every job stops; a
+   package that leaves `Imports` leaves the pins too. A protocol study (registry flag `TRUE`) must also give
    `r,libR_sha256`, the SHA-256 of `libR.so` of the r-builds package that
    setup-r installs; every job on the runners stops if it differs. For
    `r-4.6.1 1`, the build that test T2 checked (run 41255391619), it is
