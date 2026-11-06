@@ -58,7 +58,11 @@ fit_solomon_sem(
 
 - estimator:
 
-  lavaan estimator (default "MLR")
+  The lavaan estimator, `"MLR"` (the default) or `"ML"`, in upper or
+  lower case. Any other value stops with an error: these two are the
+  estimators whose validation is planned for this function (the protocol
+  posted on issue \#117). Other estimators can be fitted with lavaan
+  directly.
 
 - conf_level:
 
@@ -92,6 +96,10 @@ An object of class `solomon_sem` with:
 
 - `conf_level`: the confidence level of the intervals
 
+- `estimator`: `"MLR"` or `"ML"`, which
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  reports
+
 The `effects` table, `conf_level`, and
 [`tidy()`](https://juhalt.github.io/solomonR/reference/solomon_output.md),
 which returns the table, are the stable interface of the result. The
@@ -100,15 +108,16 @@ lavaan object in `fit` is not; see
 
 ## Details
 
-The four-group mean-structure model is saturated, so its global fit
-indices are not diagnostic. Its contrasts are unadjusted posttest mean
-differences, whereas the ANCOVA mode adjusts for the pretest within the
-pretested groups. The ANCOVA mode centers the pretest at its mean among
-the pretested participants before the model is fitted, so the group
-intercepts `mu_P1` and `mu_P0` of the lavaan model are the posttest
-means adjusted to that pretest. The contrast does not depend on the
-center, and the fit stays accurate when the pretest lies far from zero
-(issue \#137).
+With the default `equal_var = FALSE`, the four-group mean-structure
+model is saturated, so its global fit indices are not diagnostic; with
+`equal_var = TRUE` it has 3 degrees of freedom. Its contrasts are
+unadjusted posttest mean differences, whereas the ANCOVA mode adjusts
+for the pretest within the pretested groups. The ANCOVA mode centers the
+pretest at its mean among the pretested participants before the model is
+fitted, so the group intercepts `mu_P1` and `mu_P0` of the lavaan model
+are the posttest means adjusted to that pretest. The contrast does not
+depend on the center, and the fit stays accurate when the pretest lies
+far from zero (issue \#137).
 
 The pretest effects are differences between the group means, pretested
 minus unpretested participants: among controls
@@ -124,7 +133,7 @@ results, which use a large-sample normal reference distribution.
 
 ## Lifecycle
 
-Experimental. Its tests rest on large-sample (MLR) theory, and no
+Experimental. Its tests rest on large-sample theory (MLR or ML), and no
 simulation study in the package has yet checked their error rates at
 Solomon sample sizes.
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)

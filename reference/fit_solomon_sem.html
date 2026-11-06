@@ -161,7 +161,11 @@ treatments are not supported; see <code><a href="fit_solomon_glm.html">fit_solom
 
 
 <dt id="arg-estimator">estimator<a class="anchor" aria-label="anchor" href="#arg-estimator"></a></dt>
-<dd><p>lavaan estimator (default "MLR")</p></dd>
+<dd><p>The lavaan estimator, <code>"MLR"</code> (the default) or <code>"ML"</code>,
+in upper or lower case. Any other value stops with an error: these two
+are the estimators whose validation is planned for this function (the
+protocol posted on issue #117). Other estimators can be fitted with
+lavaan directly.</p></dd>
 
 
 <dt id="arg-conf-level">conf_level<a class="anchor" aria-label="anchor" href="#arg-conf-level"></a></dt>
@@ -189,14 +193,18 @@ for the normal reference distribution), <code>p.value</code>, <code>conf.low</co
 mode gives <code>Treatment | pretested</code></p></li>
 <li><p><code>fitmeasures</code>: named vector (CFI, RMSEA, SRMR, df)</p></li>
 <li><p><code>conf_level</code>: the confidence level of the intervals</p></li>
+<li><p><code>estimator</code>: <code>"MLR"</code> or <code>"ML"</code>, which <code><a href="report_solomon.html">report_solomon()</a></code>
+reports</p></li>
 </ul><p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
 which returns the table, are the stable interface of the result. The
 lavaan object in <code>fit</code> is not; see <a href="solomon_output.html">solomon_output</a>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The four-group mean-structure model is saturated, so its global fit
-indices are not diagnostic. Its contrasts are unadjusted posttest mean
+    <p>With the default <code>equal_var = FALSE</code>, the four-group mean-structure model
+is saturated, so its global fit indices are not diagnostic; with
+<code>equal_var = TRUE</code> it has 3 degrees of freedom. Its contrasts are
+unadjusted posttest mean
 differences, whereas the ANCOVA mode adjusts for the pretest within the
 pretested groups. The ANCOVA mode centers the pretest at its mean among
 the pretested participants before the model is fitted, so the group
@@ -217,7 +225,7 @@ results, which use a large-sample normal reference distribution.</p>
     <h2 id="lifecycle">Lifecycle<a class="anchor" aria-label="anchor" href="#lifecycle"></a></h2>
 
 
-<p>Experimental. Its tests rest on large-sample (MLR) theory, and no
+<p>Experimental. Its tests rest on large-sample theory (MLR or ML), and no
 simulation study in the package has yet checked their error rates at
 Solomon sample sizes. <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> is the validated analysis of an
 observed outcome. The defaults may change after such a study.</p>

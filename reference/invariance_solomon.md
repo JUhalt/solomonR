@@ -39,7 +39,16 @@ invariance_solomon(
 
 - estimator:
 
-  lavaan estimator, default `"MLR"`.
+  The lavaan estimator, `"MLR"` (the default) or `"ML"`, in upper or
+  lower case: the estimators of
+  [`fit_solomon_sem_latent()`](https://juhalt.github.io/solomonR/reference/fit_solomon_sem_latent.md),
+  which runs this check. Any other value stops with an error. Under ML
+  the difference test is unscaled. In the check that the amendment of
+  October 9, 2026, on issue \#55 plans to validate, the test does not
+  depend on `estimator`: the scaled difference (Satorra & Bentler, 2001)
+  is always computed from MLR fits, and among the tests compared is the
+  unscaled difference from the same fits, which equals the difference
+  under ML. Other estimators can be fitted with lavaan directly.
 
 - partial:
 
@@ -74,9 +83,12 @@ An object of class `solomon_invariance`, a list with:
 
 - `sizes`: the four group sizes.
 
-- `partial`, `alpha`, `items`, and `estimator`: the settings used.
+- `partial`, `alpha`, `items`, and `estimator`: the settings used, with
+  `estimator` in upper case.
 
-- `scaled`: whether the chi-square difference was scaled.
+- `scaled`: whether the chi-square difference was scaled, read from the
+  fitted models: `TRUE` when every model has a scaled test statistic, as
+  under MLR.
 
 The tables compare models and estimate no Solomon contrast, so the
 result has no effects table, and the lavaan objects are not part of the
@@ -89,10 +101,11 @@ Each step compares the more constrained model with the one before it in
 two ways, and the output gives the decision under each.
 
 - **Chi-square difference test** (`noninvariant_chisq`): noninvariance
-  when the difference test rejects at `alpha`. For the robust estimators
-  MLR, MLM, and MLMV the difference is scaled (Satorra & Bentler, 2001).
-  Vandenberg and Lance (2000, p. 46) recommend this test as the primary
-  criterion, with the change in CFI as a supplement.
+  when the difference test rejects at `alpha`. Under MLR, the default,
+  the difference is scaled (Satorra & Bentler, 2001); under ML it is the
+  unscaled difference of the maximum likelihood chi-squares. Vandenberg
+  and Lance (2000, p. 46) recommend this test as the primary criterion,
+  with the change in CFI as a supplement.
 
 - **Change in fit** (`noninvariant_chen`): noninvariance when CFI drops
   by at least .005 and, in addition, RMSEA rises by at least .010 or

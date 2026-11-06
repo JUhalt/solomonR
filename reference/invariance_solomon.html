@@ -138,7 +138,15 @@ several treatments are not supported; see <code><a href="fit_solomon_glm.html">f
 
 
 <dt id="arg-estimator">estimator<a class="anchor" aria-label="anchor" href="#arg-estimator"></a></dt>
-<dd><p>lavaan estimator, default <code>"MLR"</code>.</p></dd>
+<dd><p>The lavaan estimator, <code>"MLR"</code> (the default) or <code>"ML"</code>,
+in upper or lower case: the estimators of <code><a href="fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code>,
+which runs this check. Any other value stops with an error. Under ML
+the difference test is unscaled. In the check that the amendment of
+October 9, 2026, on issue #55 plans to validate, the test does not
+depend on <code>estimator</code>: the scaled difference (Satorra &amp; Bentler, 2001)
+is always computed from MLR fits, and among the tests compared is the
+unscaled difference from the same fits, which equals the difference
+under ML. Other estimators can be fitted with lavaan directly.</p></dd>
 
 
 <dt id="arg-partial">partial<a class="anchor" aria-label="anchor" href="#arg-partial"></a></dt>
@@ -167,8 +175,11 @@ criterion, <code>chisq</code> and <code>chen2007</code>: <code>"configural"</cod
 <li><p><code>cutoffs</code>: the cutoffs of the change-in-fit criterion that were
 applied.</p></li>
 <li><p><code>sizes</code>: the four group sizes.</p></li>
-<li><p><code>partial</code>, <code>alpha</code>, <code>items</code>, and <code>estimator</code>: the settings used.</p></li>
-<li><p><code>scaled</code>: whether the chi-square difference was scaled.</p></li>
+<li><p><code>partial</code>, <code>alpha</code>, <code>items</code>, and <code>estimator</code>: the settings used, with
+<code>estimator</code> in upper case.</p></li>
+<li><p><code>scaled</code>: whether the chi-square difference was scaled, read from
+the fitted models: <code>TRUE</code> when every model has a scaled test
+statistic, as under MLR.</p></li>
 </ul><p>The tables compare models and estimate no Solomon contrast, so the
 result has no effects table, and the lavaan objects are not part of
 the stable interface; see <a href="solomon_output.html">solomon_output</a>.</p>
@@ -179,10 +190,11 @@ the stable interface; see <a href="solomon_output.html">solomon_output</a>.</p>
 
 <p>Each step compares the more constrained model with the one before it in
 two ways, and the output gives the decision under each.</p><ul><li><p><strong>Chi-square difference test</strong> (<code>noninvariant_chisq</code>): noninvariance
-when the difference test rejects at <code>alpha</code>. For the robust estimators
-MLR, MLM, and MLMV the difference is scaled (Satorra &amp; Bentler, 2001).
-Vandenberg and Lance (2000, p. 46) recommend this test as the primary
-criterion, with the change in CFI as a supplement.</p></li>
+when the difference test rejects at <code>alpha</code>. Under MLR, the default,
+the difference is scaled (Satorra &amp; Bentler, 2001); under ML it is the
+unscaled difference of the maximum likelihood chi-squares. Vandenberg
+and Lance (2000, p. 46) recommend this test as the primary criterion,
+with the change in CFI as a supplement.</p></li>
 <li><p><strong>Change in fit</strong> (<code>noninvariant_chen</code>): noninvariance when CFI drops by
 at least .005 and, in addition, RMSEA rises by at least .010 or SRMR by
 at least .025 (loadings) or .005 (intercepts), the cutoffs Chen (2007,

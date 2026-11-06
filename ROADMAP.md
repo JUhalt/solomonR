@@ -821,7 +821,8 @@ One output vocabulary across the fitted objects —
 \#141](https://github.com/JUhalt/solomonR/pull/141)
 
 The SEM functions accept only the estimators they can fit and describe —
-[\#133](https://github.com/JUhalt/solomonR/issues/133)
+[\#133](https://github.com/JUhalt/solomonR/issues/133); merged in [PR
+\#157](https://github.com/JUhalt/solomonR/pull/157)
 
 No experimental functions: each one implemented to its literature and
 held to a validation rule posted in advance —

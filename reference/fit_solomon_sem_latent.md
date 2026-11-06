@@ -70,7 +70,13 @@ fit_solomon_sem_latent(
 
 - estimator:
 
-  lavaan estimator, default "MLR" (robust)
+  The lavaan estimator, `"MLR"` (the default) or `"ML"`, in upper or
+  lower case. Any other value stops with an error: these two are the
+  estimators under which the validation of the latent contrasts is
+  planned (the amendment of October 9, 2026, on issue \#55). Other
+  estimators can be fitted with lavaan directly. The invariance check
+  uses the same estimator; see
+  [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md).
 
 - std_lv:
 
@@ -134,8 +140,8 @@ An object of class `solomon_sem_latent` with:
 
 - `conf_level`: the confidence level of the intervals
 
-- `settings`: the options used, including the estimator and any freed
-  parameters, which
+- `settings`: the options used, including the estimator (`"MLR"` or
+  `"ML"`) and any freed parameters, which
   [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
   reports
 

@@ -178,7 +178,12 @@ Designs with several treatments are not supported; see
 
 
 <dt id="arg-estimator">estimator<a class="anchor" aria-label="anchor" href="#arg-estimator"></a></dt>
-<dd><p>lavaan estimator, default "MLR" (robust)</p></dd>
+<dd><p>The lavaan estimator, <code>"MLR"</code> (the default) or <code>"ML"</code>,
+in upper or lower case. Any other value stops with an error: these two
+are the estimators under which the validation of the latent contrasts
+is planned (the amendment of October 9, 2026, on issue #55). Other
+estimators can be fitted with lavaan directly. The invariance check
+uses the same estimator; see <code><a href="invariance_solomon.html">invariance_solomon()</a></code>.</p></dd>
 
 
 <dt id="arg-std-lv">std_lv<a class="anchor" aria-label="anchor" href="#arg-std-lv"></a></dt>
@@ -229,8 +234,9 @@ on latent POST, adjusted for the latent pretest, in the columns of
 <li><p><code>invariance</code>: the <code><a href="invariance_solomon.html">invariance_solomon()</a></code> result, or <code>NULL</code> when
 the check was not run, and <code>invariance_status</code>, a one-line summary</p></li>
 <li><p><code>conf_level</code>: the confidence level of the intervals</p></li>
-<li><p><code>settings</code>: the options used, including the estimator and any
-freed parameters, which <code><a href="report_solomon.html">report_solomon()</a></code> reports</p></li>
+<li><p><code>settings</code>: the options used, including the estimator
+(<code>"MLR"</code> or <code>"ML"</code>) and any freed parameters, which
+<code><a href="report_solomon.html">report_solomon()</a></code> reports</p></li>
 </ul><p>Before solomonR 1.0.0, <code>fit</code> and <code>effects</code> were named <code>fit_post</code> and
 <code>effects_post</code>. The old names still work with <code>$</code>, with a deprecation
 warning, but not with <code>[[</code>.</p>
