@@ -491,8 +491,8 @@ the audit:
     posted before any run — [#116](https://github.com/JUhalt/solomonR/issues/116)
 - **Interface**
   - [x] One output vocabulary across the fitted objects — [#110](https://github.com/JUhalt/solomonR/issues/110); merged in [PR #141](https://github.com/JUhalt/solomonR/pull/141)
-  - [ ] The SEM functions accept only the estimators they can fit and
-    describe — [#133](https://github.com/JUhalt/solomonR/issues/133)
+  - [x] The SEM functions accept only the estimators they can fit and
+    describe — [#133](https://github.com/JUhalt/solomonR/issues/133); merged in [PR #157](https://github.com/JUhalt/solomonR/pull/157)
   - [ ] No experimental functions: each one implemented to its literature
     and held to a validation rule posted in advance — [#117](https://github.com/JUhalt/solomonR/issues/117)
 - **Reproducibility**
