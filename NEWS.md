@@ -14,7 +14,9 @@
   `saveRDS()`, and analyzed in a new session, or the reverse. An ordered
   factor was affected when the second element of the option differed. A
   fit analyzed under the option it was made under was not affected, nor
-  was a factor with contrasts of its own, set with `contrasts()`.
+  was a factor with contrasts of its own, set with `contrasts()`, unless
+  one of its levels had no participants in the model: R then drops the
+  factor's own contrasts and codes it by the option.
 * In `marginal_solomon()`, for a binary, Poisson, or negative-binomial
   fit with a pretest or a numeric covariate:
 
@@ -26,9 +28,16 @@
     participant with a pretest (`pretest_center = "observed"`) were
     right.
   - The delta-method standard errors were wrong under either center (in
-    the example, 0.0764 instead of 0.0648). The bootstrap standard errors
-    and limits were right, so with the default center they did not go
-    with the estimates.
+    the example, 0.0764 instead of 0.0648).
+  - With the default center, the bootstrap refitted each resample on the
+    design of the refitted model, starting from the fit's coefficients,
+    which belong to the fit's coding. When those refits converged, the
+    bootstrap standard errors and limits were right, though they did not
+    go with the wrong estimates. But often more than 10% of the refits
+    failed; the function then warned that the logistic fit had failed in
+    that many resamples and reported no intervals, and the standard
+    errors were wrong or missing. The bootstrap standard errors and
+    limits with `pretest_center = "observed"` were right.
   - With `robust = "CR2"`, the Satterthwaite degrees of freedom were
     wrong too.
 * In `marginal_solomon()`, for a CR2 fit with no pretest and no numeric
@@ -38,13 +47,13 @@
 * In `plot_sensitization()`, for a CR2 fit with one treatment or several,
   the Satterthwaite degrees of freedom of the cell means, and so their
   intervals, were wrong. The means and their standard errors were right.
-* The refits now code each factor as the fit did: they pass the fit's
-  contrasts (`fit$model$contrasts`) to `glm()` and, for a
-  negative-binomial fit, to `MASS::glm.nb()`. A fit analyzed under the
-  option it was made under gives the same results as before. Tests fit
-  under `contr.sum` and analyze under the default option, and the
-  reverse, and check that the results equal those of a fit made and
-  analyzed under the default.
+* The refits now pass the fit's contrasts (`fit$model$contrasts`) to
+  `glm()` and, for a negative-binomial fit, to `MASS::glm.nb()`, so the
+  contrasts option in force when they run no longer changes how they
+  code a covariate. A fit analyzed under the option it was made under
+  gives the same results as before. Tests fit under `contr.sum` and
+  analyze under the default option, and the reverse, and check that the
+  results equal those of a fit made and analyzed under the default.
 * `perm_solomon()` also refits the model under the option in force. Its
   statistic uses only the treatment coefficients, which do not depend on
   how a covariate is coded, so its results were right; it is unchanged.

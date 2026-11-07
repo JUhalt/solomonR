@@ -131,6 +131,15 @@ test_that("CR2 marginal effects and their degrees of freedom do not depend on th
   expect_refit_invariant(refit_fit(d, refit_sum, robust = "CR2"),
                          refit_fit(d, robust = "CR2"), analyze)
 
+  # Standardized over every pretested participant with a pretest, on data
+  # in which some of them have no posttest.
+  expect_refit_invariant(refit_fit(d, refit_sum, y = d$y_missing, robust = "CR2"),
+                         refit_fit(d, y = d$y_missing, robust = "CR2"),
+                         function(fit, option) {
+                           refit_marginal(fit, option, method = "delta",
+                                          pretest_center = "observed")
+                         })
+
   # With nothing standardized (no pretest, and a factor the only
   # covariate), the CR2 refit was the only one.
   factor_only <- function(option) {
@@ -186,6 +195,24 @@ test_that("an ordered factor and a factor's own contrasts are coded as in the fi
   expect_equal(analyze(own_fit, refit_default), reference, tolerance = 1e-6)
   expect_equal(analyze(own_fit, list(contrasts = c("contr.helmert", "contr.helmert"))),
                reference, tolerance = 1e-6)
+
+  # Unless one of its levels has no participants in the model: R then drops
+  # the factor's own contrasts and codes it by the option, here contr.sum.
+  # Level "d" is given to three unpretested participants with no posttest.
+  outside <- which(d$pretested == 0)[1:3]
+  y <- d$y
+  y[outside] <- NA
+  f <- factor(as.character(d$f), levels = c("a", "b", "c", "d"))
+  f[outside] <- "d"
+  plain_fit <- refit_fit(d, y = y, covariates = data.frame(z = d$z, f = f))
+  stats::contrasts(f) <- stats::contr.sum(4)
+  expect_warning(
+    dropped_fit <- refit_fit(d, refit_sum, y = y, covariates = data.frame(z = d$z, f = f)),
+    "contrasts dropped"
+  )
+  expect_identical(dropped_fit$model$contrasts, list(f = "contr.sum"))
+  expect_equal(analyze(dropped_fit, refit_default), analyze(plain_fit, refit_default),
+               tolerance = 1e-6)
 })
 
 

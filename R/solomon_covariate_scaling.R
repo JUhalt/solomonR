@@ -322,11 +322,15 @@
 # The model of fit_solomon_glm() fitted to `data`, a negative-binomial one
 # when `negbin` is TRUE. With `quiet`, without its warnings. `contrasts`, a
 # list as glm() takes it, codes the factors; NULL codes them by
-# options("contrasts") or by a factor's own contrasts.
+# options("contrasts") or by a factor's own contrasts. It is passed only
+# when given, so that the call stored in the model of a fit, which gives
+# none, does not name it.
 .fit_model <- function(fml, data, family, negbin, quiet = FALSE, contrasts = NULL) {
   fit <- function() {
     if (negbin) {
       .fit_negbin(fml, data, contrasts = contrasts)
+    } else if (is.null(contrasts)) {
+      stats::glm(fml, data = data, family = family, na.action = stats::na.exclude)
     } else {
       stats::glm(fml, data = data, family = family, na.action = stats::na.exclude,
                  contrasts = contrasts)
