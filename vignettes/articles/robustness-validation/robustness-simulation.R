@@ -902,8 +902,9 @@ cost_robustness <- function(s, reps) {
 # holds replications 1 to 20, as the study's tasks of 500 and the gate's of
 # 25 do. A test with a task size below 20 (the workflow's task_size) also
 # runs checks 3 and 4 in later tasks of an E0 scenario, and below 3 check 1
-# too; task 1 is priced for all of them, the later tasks for none. Only
-# that test's job sizes change; no result does.
+# too; task 1 is priced for all of them, the later tasks for none. What
+# the costs steer in that test changes (the jobs' balance and sizes, the
+# order of the tasks, the replay's choice); no result does.
 agreement_cost_robustness <- function(s) {
   n <- s$n1 + s$n2 + s$n3 + s$n4
   check1_reps * (9000 + 9 * n) + if (identical(s$pattern, "E0")) check34_reps * (2000 + n) else 0
