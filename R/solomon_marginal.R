@@ -819,6 +819,8 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # and the refits of the bootstrap are accurate however far a covariate
   # lies from zero, and whatever the scale of a covariate or the pretest.
   # The risks and the contrasts are the same. `V` is the covariance of `b`.
+  # The refitted model codes each factor as the fit did, so that its design
+  # rows go with the fit's coefficients (issue #168; .standardized_model()).
   scaling <- fit$covariate_scaling
   model <- fit$model
   b <- stats::coef(model)
@@ -910,9 +912,10 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     colnames(grad) <- names(b)
     basis <- NULL
     if (cr2) {
-      # The complete-case refit that the CR2 covariance was computed on.
+      # The complete-case refit that the CR2 covariance was computed on,
+      # with each factor coded as in the fit (issue #168).
       fit_cr <- stats::glm(stats::formula(model), data = stats::model.frame(model),
-                           family = fit$family)
+                           family = fit$family, contrasts = fit$model$contrasts)
       if (.numeric_covariates(scaling)) {
         basis <- .cr2_basis(fit_cr, fit$cluster[.glm_rows_used(fit)])
       }

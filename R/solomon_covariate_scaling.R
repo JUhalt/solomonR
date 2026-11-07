@@ -320,13 +320,16 @@
 }
 
 # The model of fit_solomon_glm() fitted to `data`, a negative-binomial one
-# when `negbin` is TRUE. With `quiet`, without its warnings.
-.fit_model <- function(fml, data, family, negbin, quiet = FALSE) {
+# when `negbin` is TRUE. With `quiet`, without its warnings. `contrasts`, a
+# list as glm() takes it, codes the factors; NULL codes them by
+# options("contrasts") or by a factor's own contrasts.
+.fit_model <- function(fml, data, family, negbin, quiet = FALSE, contrasts = NULL) {
   fit <- function() {
     if (negbin) {
-      .fit_negbin(fml, data)
+      .fit_negbin(fml, data, contrasts = contrasts)
     } else {
-      stats::glm(fml, data = data, family = family, na.action = stats::na.exclude)
+      stats::glm(fml, data = data, family = family, na.action = stats::na.exclude,
+                 contrasts = contrasts)
     }
   }
   if (quiet) suppressWarnings(fit()) else fit()
@@ -334,10 +337,13 @@
 
 # The standardized model of a fit_solomon_glm() fit with `covariate_scaling`,
 # refitted. The fit gave its warnings when it was made, so this one gives
-# none.
+# none. Each factor is coded as in the fit, whatever options("contrasts")
+# holds now (issue #168): the coefficients this model's design is used
+# with are the fit's.
 .standardized_model <- function(fit) {
   .fit_model(stats::formula(fit$model), .standardized_frame(fit$data, fit$covariate_scaling),
-             fit$family, .is_negbin(fit$family), quiet = TRUE)
+             fit$family, .is_negbin(fit$family), quiet = TRUE,
+             contrasts = fit$model$contrasts)
 }
 
 # The coefficient table of fit_solomon_glm(), in the columns of

@@ -1,5 +1,55 @@
 # solomonR (development version)
 
+## Refits under the fit's contrasts (bug fix, #168)
+
+* `marginal_solomon()` and `plot_sensitization()` refit the model of a
+  `fit_solomon_glm()` fit, and the refit coded a factor covariate by the
+  contrasts option (`options("contrasts")`) in force when they ran, not
+  as the fit had coded it. They combined the refitted model with the
+  fit's coefficients, so when the two codings differed, their results
+  were wrong, without an error or a warning. This happened to a fit with
+  a factor, logical, or character covariate made under one option and
+  analyzed under another: for instance, a fit made in a session that had
+  set `options(contrasts = c("contr.sum", "contr.poly"))`, saved with
+  `saveRDS()`, and analyzed in a new session, or the reverse. An ordered
+  factor was affected when the second element of the option differed. A
+  fit analyzed under the option it was made under was not affected, nor
+  was a factor with contrasts of its own, set with `contrasts()`.
+* In `marginal_solomon()`, for a binary, Poisson, or negative-binomial
+  fit with a pretest or a numeric covariate:
+
+  - The estimates standardized over the pretested participants in the
+    model (`pretest_center = "analyzed"`, the default) were wrong, as the
+    main results and in `pretest_sensitivity`. In the issue's example,
+    the average treatment effect was a risk difference of 0.0475 instead
+    of 0.0414. The estimates standardized over every pretested
+    participant with a pretest (`pretest_center = "observed"`) were
+    right.
+  - The delta-method standard errors were wrong under either center (in
+    the example, 0.0764 instead of 0.0648). The bootstrap standard errors
+    and limits were right, so with the default center they did not go
+    with the estimates.
+  - With `robust = "CR2"`, the Satterthwaite degrees of freedom were
+    wrong too.
+* In `marginal_solomon()`, for a CR2 fit with no pretest and no numeric
+  covariate, the degrees of freedom of every contrast and the standard
+  errors of the pretest effects were wrong; the estimates were right.
+  Without CR2, such a fit was not affected.
+* In `plot_sensitization()`, for a CR2 fit with one treatment or several,
+  the Satterthwaite degrees of freedom of the cell means, and so their
+  intervals, were wrong. The means and their standard errors were right.
+* The refits now code each factor as the fit did: they pass the fit's
+  contrasts (`fit$model$contrasts`) to `glm()` and, for a
+  negative-binomial fit, to `MASS::glm.nb()`. A fit analyzed under the
+  option it was made under gives the same results as before. Tests fit
+  under `contr.sum` and analyze under the default option, and the
+  reverse, and check that the results equal those of a fit made and
+  analyzed under the default.
+* `perm_solomon()` also refits the model under the option in force. Its
+  statistic uses only the treatment coefficients, which do not depend on
+  how a covariate is coded, so its results were right; it is unchanged.
+  The refits inside `fit_solomon_glm()` run under the option of the fit.
+
 ## Only MLR and ML in the SEM functions (#133)
 
 * **A change in behavior.** `fit_solomon_sem()`, `fit_solomon_sem_latent()`,
