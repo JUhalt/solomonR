@@ -335,23 +335,38 @@
 # The value of `expr` and the warnings it signalled, which are held back
 # (muffled), so that fit_solomon_glm() gives the warnings of its fit only
 # once the fit is known to go ahead (.signal_warnings()), not with an error
-# that a group is empty or a term is inestimable (issue #154). When `expr`
-# itself stops, as glm() does when it finds no valid coefficients, the
-# warnings are signalled before its error, as they were before #154: they
-# may be the only clue to why the fit failed.
+# that a group is empty or a term is inestimable (issue #154). A warning
+# that cannot be muffled, as one raised with signalCondition() has no
+# muffleWarning restart, is left to pass, as before #154.
+# When `expr` itself stops, as glm() does when it finds no valid
+# coefficients, or is interrupted, the warnings are signalled from a
+# calling handler, before the error or the interrupt is handled, as they
+# were before #154: they may be the only clue to why the fit failed. The
+# error is not caught, so the stack is not unwound before it is handled,
+# and traceback() and recover() still reach the frame that failed. When
+# `expr` exits otherwise, as by a caller's exiting handler for a message,
+# the warnings are signalled on the way out, so that none is lost.
 .record_warnings <- function(expr) {
   warnings <- list()
-  value <- tryCatch(
-    withCallingHandlers(expr, warning = function(w) {
+  release <- function(condition = NULL) {
+    held <- warnings
+    warnings <<- list()
+    .signal_warnings(held)
+  }
+  on.exit(release())
+  value <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      if (is.null(findRestart("muffleWarning"))) return()
       warnings[[length(warnings) + 1L]] <<- w
       invokeRestart("muffleWarning")
-    }),
-    error = function(e) {
-      .signal_warnings(warnings)
-      stop(e)
-    }
+    },
+    error = release,
+    interrupt = release
   )
-  list(value = value, warnings = warnings)
+  held <- list(value = value, warnings = warnings)
+  warnings <- list()
+  held
 }
 
 # Signals again, in order, the warnings held back by .record_warnings(),

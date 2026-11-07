@@ -585,7 +585,10 @@
     )
   }
 
+  # `held` is removed once its warnings are given, as in the four-group
+  # model, so that serialize() does not save the model fit twice.
   .signal_warnings(held$warnings)
+  rm(held)
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link, ngroup = TRUE)
   }

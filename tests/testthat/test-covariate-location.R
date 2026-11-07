@@ -770,6 +770,118 @@ test_that("a fit that stops gives the error without the model fit's warnings (#1
   expect_identical(classes, c(rep("simpleWarning", k - 1L), "solomonR_noncollapsible_warning"))
 })
 
+# Designs whose model fit warns: a covariate that separates a binary
+# outcome, so that glm.fit() warns that fitted probabilities reached 0 or 1,
+# with one treatment (four groups of 15) or two (six groups of 15, with a
+# pretest). `stop` empties the unpretested control (four groups) or the
+# unpretested second treatment (six groups), or leaves it one participant.
+separated_fit <- function(design, stop = c("none", "empty", "single"), robust = "none") {
+  stop <- match.arg(stop)
+  four <- design == "four"
+  k <- if (four) 4L else 6L
+  n <- 15L
+  x <- rep(seq(-1.4, 1.4, length.out = n), k) + rep(seq(0, by = 0.05, length.out = k), each = n)
+  y <- as.integer(x > 0)
+  if (four) {
+    treat <- rep(c(1, 0, 1, 0), each = n)
+    pretested <- rep(c(1, 1, 0, 0), each = n)
+    last <- which(treat == 0 & pretested == 0)
+  } else {
+    treat <- rep(rep(c("Ctl", "A", "B"), each = n), 2)
+    pretested <- rep(c(1, 0), each = 3L * n)
+    last <- which(treat == "B" & pretested == 0)
+  }
+  if (stop == "empty") y[last] <- NA
+  if (stop == "single") y[last[-1]] <- NA
+  y_pre <- if (!four) ifelse(pretested == 1, rep(seq(-1, 1, length.out = n), k), NA)
+  fit_solomon_glm(y, treat, pretested, y_pre, covariates = data.frame(x = x),
+                  family = stats::binomial(), robust = robust, control = if (!four) "Ctl")
+}
+
+# The warnings `expr` signals, muffled, and its value or error.
+signalled <- function(expr) {
+  warnings <- list()
+  value <- tryCatch(withCallingHandlers(expr, warning = function(w) {
+    warnings[[length(warnings) + 1L]] <<- w
+    invokeRestart("muffleWarning")
+  }), error = function(e) e)
+  list(value = value, warnings = warnings)
+}
+
+test_that("a fit that stops at an empty group or a single participant under HC3 gives the error alone (#154)", {
+  # On master, with R 4.6.1 on Windows, each of these designs warned that
+  # glm.fit() did not converge and that fitted probabilities reached 0 or 1,
+  # and, with several treatments and a pretest, gave the noncollapsible
+  # warning, before the error. Under options(warn = 2) master raised the
+  # first of those warnings as an error; the check's error now comes.
+  empty <- "groups have no analyzable participants: Unpretested"
+  single <- "HC3 standard errors are undefined because these groups have a single"
+  for (design in c("four", "six")) {
+    stops <- list(list("empty", "none", empty), list("single", "HC3", single))
+    for (case in stops) {
+      info <- paste(design, case[[1]])
+      out <- signalled(separated_fit(design, case[[1]], robust = case[[2]]))
+      expect_s3_class(out$value, "error")
+      expect_match(conditionMessage(out$value), case[[3]], info = info)
+      expect_identical(out$warnings, list(), info = info)
+      withr::with_options(list(warn = 2), {
+        expect_error(separated_fit(design, case[[1]], robust = case[[2]]), case[[3]], info = info)
+      })
+    }
+  }
+})
+
+test_that("a fit that goes ahead gives each warning of the model fit as the fit signalled it (#154)", {
+  # The warnings, held back until the checks pass, are the conditions the
+  # model fit signalled: the same class vector, message, and call, in the
+  # same order. Without holding them back (.record_warnings() mocked to let
+  # them pass), the fit signals them as master did. A non-integer binomial
+  # outcome gives a warning with a call, from the family's initialization.
+  fits <- list(
+    four = function() separated_fit("four"),
+    six = function() separated_fit("six"),
+    call = function() {
+      fit_solomon_glm(rep(c(0.2, 0.5, 0.75, 0.4, 0.9), 12), rep(c(1, 0, 1, 0), each = 15),
+                      rep(c(1, 1, 0, 0), each = 15),
+                      covariates = data.frame(x = rep(seq(-1, 1, length.out = 15), 4)),
+                      family = stats::binomial(), robust = "none")
+    }
+  )
+  held <- lapply(fits, function(f) signalled(f()))
+  for (name in names(fits)) {
+    expect_s3_class(held[[name]]$value, c("solomon_glm", "solomon_ngroup"))
+    expect_gt(length(held[[name]]$warnings), 0L)
+  }
+  expect_false(is.null(conditionCall(held$call$warnings[[1]])))
+  expect_identical(class(held$six$warnings[[length(held$six$warnings)]]),
+                   c("solomonR_noncollapsible_warning", "warning", "condition"))
+
+  # The frame that the returned model's formula keeps holds no second
+  # reference to the model fit and no held warnings, which serialize()
+  # would save with the fit.
+  for (name in c("four", "six")) {
+    frame <- environment(stats::formula(held[[name]]$value$model))
+    wraps <- vapply(mget(ls(frame), envir = frame), function(x) {
+      is.list(x) && !is.object(x) && length(x) > 0L &&
+        any(vapply(x, function(e) inherits(e, c("glm", "condition")) ||
+                     (is.list(e) && length(e) > 0L && all(vapply(e, inherits, NA, "condition"))), NA))
+    }, NA)
+    expect_identical(names(wraps)[wraps], character(), info = name)
+  }
+
+  # Under options(warn = 2), the first warning is raised as an error once
+  # the checks pass.
+  withr::with_options(list(warn = 2), {
+    expect_error(separated_fit("four"), "converted from warning")
+  })
+
+  local_mocked_bindings(.record_warnings = function(expr) list(value = expr, warnings = list()))
+  for (name in names(fits)) {
+    direct <- signalled(fits[[name]]())
+    expect_identical(held[[name]]$warnings, direct$warnings, info = name)
+  }
+})
+
 test_that("a model fit that itself stops gives its warnings before the error (#154)", {
   # The checks hold back the model fit's warnings, but an error inside
   # glm() or glm.nb(), such as glm.fit()'s "no valid set of coefficients
@@ -782,6 +894,77 @@ test_that("a model fit that itself stops gives its warnings before the error (#1
   })
   expect_identical(held$value, 1)
   expect_identical(vapply(held$warnings, conditionMessage, ""), c("first", "second"))
+
+  # The warnings come before an error, which is not caught on the way: the
+  # frame that failed is still on the stack when the error is handled, as
+  # traceback() and recover() need. Under options(warn = 2), the first
+  # warning is raised as an error, as master raised it.
+  failing_step <- function() stop("inner failure")
+  seen <- character()
+  frames <- character()
+  expect_error(withCallingHandlers(
+    .record_warnings({
+      warning("first")
+      failing_step()
+    }),
+    warning = function(w) {
+      seen <<- c(seen, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    },
+    error = function(e) {
+      frames <<- vapply(sys.calls(), function(call) deparse(call[[1]])[1], "")
+    }
+  ), "inner failure")
+  expect_identical(seen, "first")
+  expect_true("failing_step" %in% frames)
+  withr::with_options(list(warn = 2), {
+    expect_error(.record_warnings({
+      warning("first")
+      stop("inner failure")
+    }), "converted from warning")
+  })
+
+  # A warning without a muffleWarning restart, raised with signalCondition(),
+  # passes on and is not held. Warnings held before an interrupt, or before
+  # a caller's exiting handler for a message, are signalled before it, as
+  # master signalled them.
+  # (options(warn = -1) keeps testthat from reporting the warning that
+  # passes; the calling handler below still sees it.)
+  seen <- character()
+  passed <- withr::with_options(list(warn = -1), tryCatch(
+    withCallingHandlers(
+      .record_warnings({
+        signalCondition(simpleWarning("signalled", call = NULL))
+        1
+      }),
+      warning = function(w) seen <<- c(seen, conditionMessage(w))
+    ),
+    error = function(e) e
+  ))
+  expect_identical(passed, list(value = 1, warnings = list()))
+  expect_identical(seen, "signalled")
+  interrupt <- structure(class = c("interrupt", "condition"), list(message = "", call = NULL))
+  held_then <- function(exit) {
+    withCallingHandlers(
+      .record_warnings({
+        warning("first")
+        exit()
+        1
+      }),
+      warning = function(w) {
+        seen <<- c(seen, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    )
+  }
+  seen <- character()
+  tryCatch(held_then(function() signalCondition(interrupt)),
+           interrupt = function(i) seen <<- c(seen, "INTERRUPT"))
+  expect_identical(seen, c("first", "INTERRUPT"))
+  seen <- character()
+  tryCatch(held_then(function() message("note")),
+           message = function(m) seen <<- c(seen, "MESSAGE"))
+  expect_identical(seen, c("first", "MESSAGE"))
 
   # Through fit_solomon_glm(), with one treatment and with several. The fit
   # that gives the warnings is the fit as given, the first, when nothing is

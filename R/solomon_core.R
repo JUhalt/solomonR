@@ -1678,7 +1678,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     )
   }
 
+  # `held` refers to the model fit a second time; it is removed once its
+  # warnings are given, so that serialize() does not save that fit twice
+  # with the frame that the returned model's formula keeps.
   .signal_warnings(held$warnings)
+  rm(held)
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link)
   }
