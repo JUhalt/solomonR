@@ -45,3 +45,29 @@ jobs:
         env:
           SOLOMONR_SMOKE_TIMEOUT: 900
         run: Rscript tools/check-validation-scripts.R
+
+      # A copy made with `git archive`, as GitHub's "Download ZIP" is, holds
+      # no git repository, so a validation script run from it records the
+      # commit as NA (issue #152). This runs one short script in smoke mode
+      # from such a copy, outside the checkout and any other repository, and
+      # fails unless the run recorded NA (issue #162).
+      - name: Run a validation script from a copy made with git archive
+        shell: bash
+        env:
+          SOLOMONR_SMOKE_TIMEOUT: 900
+        run: |
+          unset SOLOMONR_COMMIT GIT_DIR GIT_WORK_TREE
+          copy="$RUNNER_TEMP/solomonR-archive"
+          out="$RUNNER_TEMP/solomonR-archive-smoke"
+          mkdir "$copy"
+          git archive HEAD | tar -x -C "$copy"
+          cd "$copy"
+          if git rev-parse --git-dir > /dev/null 2>&1; then
+            echo "The copy is inside a git repository, so this step would not test a copy without one." >&2
+            exit 1
+          fi
+          SOLOMONR_SMOKE_DIR="$out" Rscript tools/check-validation-scripts.R plan-resimulation
+          SMOKE_OUT="$out" Rscript \
+            -e 'x <- readRDS(file.path(Sys.getenv("SMOKE_OUT"), "plan-validation", "plan-resimulation.rds"))' \
+            -e 'if (!identical(x$git_commit, NA_character_)) stop("The run from the copy made with git archive recorded ", format(x$git_commit), ", not NA.", call. = FALSE)' \
+            -e 'writeLines("The run from the copy made with git archive recorded NA as its commit.")'
