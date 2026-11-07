@@ -49,11 +49,12 @@ jobs:
           SOLOMONR_SMOKE_TIMEOUT: 900
         run: Rscript tools/check-validation-scripts.R
 
-      # The tests of the commit rule that read the scripts and the
-      # Validation Evidence page need vignettes/articles/, which R CMD check
-      # and the coverage workflow do not have, so they skip there. Here they
-      # run from the package source (issue #162). Like the next step, this
-      # runs even when the smoke step failed, but not when setup failed.
+      # Every test of the commit rule reads vignettes/articles/ (it loads
+      # validation_commit() from a script, and some also check the
+      # Validation Evidence page), which R CMD check and the coverage
+      # workflow do not have, so the whole file skips there. Here it runs
+      # from the package source (issue #162). Like the next step, this runs
+      # even when the smoke step failed, but not when setup failed.
       - name: Run the tests of the commit rule from the package source
         if: ${{ !cancelled() && steps.smoke.outcome != 'skipped' }}
         run: |

@@ -662,10 +662,11 @@ reasons are set out in the decision record posted on #135.
   of a script, not only the rule itself, is now tested on every pull
   request to master and every push to it (#162).
 * The same workflow now runs `tests/testthat/test-validation-commit.R`
-  from the package source. Its tests of the scripts and of the Validation
-  Evidence page read `vignettes/articles/`, which R CMD check and the
-  coverage workflow do not have, so until now they were skipped on every
-  CI run and ran only locally (#162).
+  from the package source. All its tests read `vignettes/articles/`: they
+  load `validation_commit()` from a script, and some also check the
+  Validation Evidence page. R CMD check and the coverage workflow do not
+  have that folder, so until now the whole file was skipped on every CI
+  run and ran only locally (#162).
 * GitHub makes the "Download ZIP" file, and its other source archives of a
   branch, tag, or commit, with `git archive` (GitHub, n.d.). GitHub's page
   does not say whether these files keep the commit. On November 7, 2026,
