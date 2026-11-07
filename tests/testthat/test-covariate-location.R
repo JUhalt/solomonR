@@ -1080,6 +1080,79 @@ test_that("nested near-collinearity near zero is fitted as glm() and master fit 
                "collinear with other terms of the model: z3[.]")
 })
 
+test_that("the bootstrap converges with nested near-collinearity, and names why refits fail (#154)", {
+  # The nested covariates of the test above, with a binary outcome. The
+  # standardized design has a condition number near 1e14: the rounding
+  # error of X b moved the deviance by about 1e-6 between iterations, more
+  # than glm.fit()'s 1e-8 rule allows, and 199, 197, and 195 of 199
+  # resamples failed to converge; the warning blamed sparse cells. A refit
+  # that does not converge is now fitted again in an orthonormal basis of
+  # the same columns (.bootstrap_basis()), with a condition number of about
+  # 17, and the bootstrap agrees with that of the exact reparameterization
+  # on the same resamples: standard errors within 0.08% and interval limits
+  # within 0.05 standard errors on Windows. The tolerances allow for the
+  # rounding of other platforms, which the condition number amplifies.
+  withr::local_seed(11)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  e1 <- stats::rnorm(n)
+  e2 <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- 0.3 * treat + 0.2 * pretested + ifelse(is.na(pre), 0, 0.4 * pre) + 0.3 * z1 +
+    stats::rnorm(n)
+  passed <- as.integer(y > 0)
+  fit_with <- function(covariates) {
+    quiet_irls(suppressWarnings(
+      fit_solomon_glm(passed, treat, pretested, pre, covariates = covariates,
+                      family = stats::binomial()),
+      classes = "solomonR_noncollapsible_warning"
+    ))
+  }
+  for (case in list(c(1e-6, 1e-8), c(1e-5, 1e-9), c(1e-4, 3e-10))) {
+    info <- paste(case, collapse = " ")
+    covariates <- data.frame(z1 = z1, z2 = z1 + case[1] * e1, z3 = e1 + case[2] * e2)
+    r1 <- (covariates$z2 - covariates$z1) / case[1]
+    reference <- data.frame(z1 = z1, r1 = r1, r2 = (covariates$z3 - r1) / case[2])
+    fit <- fit_with(covariates)
+    centers <- if (case[1] == 1e-6) c("analyzed", "observed") else "analyzed"
+    for (center in centers) {
+      expect_no_warning(boot <- marginal_solomon(fit, R = 199, seed = 1, pretest_center = center),
+                        class = "solomonR_bootstrap_warning")
+      ref <- marginal_solomon(fit_with(reference), R = 199, seed = 1, pretest_center = center)
+      expect_identical(boot$failures, 0L, info = info)
+      expect_identical(ref$failures, 0L, info = info)
+      se <- ref$effects$std.error
+      expect_equal(boot$effects$std.error, se, tolerance = 1e-2, info = info)
+      expect_lt(max(abs(boot$effects$conf.low - ref$effects$conf.low) / se), 0.2)
+      expect_lt(max(abs(boot$effects$conf.high - ref$effects$conf.high) / se), 0.2)
+    }
+  }
+
+  # A covariate nearly collinear with the treatment indicator, nested in the
+  # same way. The basis keeps the treatment terms, whose coefficients give
+  # the contrasts, so the refits keep a condition number near 1e15 and do
+  # not converge. The warning says so and gives it; it does not name sparse
+  # cells.
+  fit_t <- fit_with(data.frame(z1 = treat + 1e-6 * e1, z2 = e1 + 1e-8 * e2))
+  w <- NULL
+  m <- withCallingHandlers(marginal_solomon(fit_t, R = 199, seed = 1),
+                           solomonR_bootstrap_warning = function(c) {
+                             w <<- conditionMessage(c)
+                             invokeRestart("muffleWarning")
+                           })
+  expect_match(w, "failed in [0-9]+ of 199 bootstrap resamples")
+  expect_match(w, "[0-9]+ did not converge in 25 iterations[.]")
+  expect_match(w, paste0("Rounding error grows with the condition number of the weighted ",
+                         "design; in the refits that did not converge it reached ",
+                         "[0-9.]+e[+]1[45][.]"))
+  expect_no_match(w, "sparse", fixed = TRUE)
+  expect_true(all(is.na(m$effects$conf.low)))
+  expect_gt(m$failures, 19L)
+})
+
 test_that("nearly collinear covariates are fitted as master fitted them", {
   # fixtures/collinear-master.rds holds results computed on master d446577,
   # before the collinearity check; fixtures/collinear-master.R made it and
