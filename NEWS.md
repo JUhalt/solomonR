@@ -5,12 +5,12 @@
 * `marginal_solomon()` and `plot_sensitization()` refit the model of a
   `fit_solomon_glm()` fit, and the refit coded a factor covariate by the
   contrasts option (`options("contrasts")`) in force when they ran, not
-  as the fit had coded it. They combined the refitted model with the
-  fit's coefficients, so when the two codings differed, their results
-  were wrong, without an error or a warning. This happened to a fit with
-  a factor, logical, or character covariate made under one option and
-  analyzed under another: for instance, a fit made in a session that had
-  set `options(contrasts = c("contr.sum", "contr.poly"))`, saved with
+  as the fit had coded it. They combined the refit with the fit's
+  coefficients and covariance, so when the two codings differed, their
+  results were wrong, without an error or a warning. This happened to a
+  fit with a factor, logical, or character covariate made under one
+  option and analyzed under another: for instance, a fit made after
+  `options(contrasts = c("contr.sum", "contr.poly"))`, saved with
   `saveRDS()`, and analyzed in a new session, or the reverse. An ordered
   factor was affected when the second element of the option differed. A
   fit analyzed under the option it was made under was not affected, nor
@@ -31,13 +31,16 @@
     the example, 0.0764 instead of 0.0648).
   - With the default center, the bootstrap refitted each resample on the
     design of the refitted model, starting from the fit's coefficients,
-    which belong to the fit's coding. When those refits converged, the
-    bootstrap standard errors and limits were right, though they did not
-    go with the wrong estimates. But often more than 10% of the refits
-    failed; the function then warned that the logistic fit had failed in
-    that many resamples and reported no intervals, and the standard
-    errors were wrong or missing. The bootstrap standard errors and
-    limits with `pretest_center = "observed"` were right.
+    which belong to the fit's coding. Whether a refit converged then
+    depended on that start, so some resamples failed that would have
+    been used, or the reverse. Often more than 10% of them failed; the
+    function then warned that the logistic fit had failed in that many
+    resamples and reported no intervals, and the standard errors were
+    wrong or missing. When fewer failed, it reported intervals without a
+    warning, but its standard errors and limits were right only when the
+    same resamples failed as under the fit's coding, and even then they
+    did not go with the wrong estimates. The bootstrap standard errors
+    and limits with `pretest_center = "observed"` were right.
   - With `robust = "CR2"`, the Satterthwaite degrees of freedom were
     wrong too.
 * In `marginal_solomon()`, for a CR2 fit with no pretest and no numeric
