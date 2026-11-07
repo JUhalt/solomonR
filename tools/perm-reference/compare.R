@@ -16,7 +16,10 @@
 # the package's negative binomial theta against theta* and the band over
 # which the reference certified its decisions, and the classed warnings of
 # the fit; and every draw that the package classifies differently from the
-# reference is listed (misclassified-draws.csv beside the output).
+# reference is listed (misclassified-draws.csv beside the output), in every
+# case with a class table whether or not its counts agree, including the
+# draws the package drops (a statistic that is not finite) and those it uses
+# where the reference leaves the labeling out.
 
 args <- commandArgs(TRUE)
 ref_file <- args[1]
@@ -104,21 +107,45 @@ ref_count <- function(st, cls, s) {
        err_h1inf = any(code == "NE") || any(code == "H1" & !hinf), cnt = cnt, keep = keep)
 }
 
+# The package returns only its finite permutation statistics. To list the
+# draws it drops, the full vector is read from perm_solomon()'s frame when it
+# calls .perm_at_least(), which is mocked by a wrapper that returns what the
+# package's own function returns (no change to R/).
+ZCAP <- new.env()
+capture_pal <- function(z, z0, unit = 1, tol = 1e-10) {
+  pf <- parent.frame()
+  if (exists("z_perm", envir = pf, inherits = FALSE)) assign("z_full", get("z_perm", envir = pf), envir = ZCAP)
+  ZCAP$orig(z, z0, unit, tol)
+}
+run_captured <- function(expr_fun) {
+  ZCAP$z_full <- NULL
+  ZCAP$orig <- get(".perm_at_least", envir = asNamespace("solomonR"))
+  expr_fun()
+}
+
 # Draws that the package classifies differently from the reference (design
-# Section 8): index, class, reference code and |T|, package z, and whether
-# each counts the draw as at least as extreme.
+# Section 8): index, class, reference code and |T|, package z, whether each
+# keeps the draw (the package drops a statistic that is not finite; the
+# reference leaves out ALIAS labelings), and whether each counts it as at
+# least as extreme. Listed for every case, whether or not the counts agree.
 MISCLASS <- list()
-misclassified <- function(case_id, cls, st, v, family_obj, statistic) {
-  if (length(v$z_perm) != length(cls)) return(NULL)
+misclassified <- function(case_id, cls, st, z_full, z_obs, family_obj, statistic) {
+  if (is.null(z_full) || length(z_full) != length(cls)) return(NULL)
   rc <- ref_count(st, cls, statistic)
-  unit <- solomonR:::.perm_unit(v$z_perm, statistic)
-  pk <- solomonR:::.perm_at_least(v$z_perm, v$z_obs, unit, solomonR:::.perm_tie_tolerance(family_obj))
-  rf <- rc$cnt == 1 & rc$keep
-  bad <- which(pk != rf)
+  pkg_kept <- is.finite(z_full)
+  pk <- rep(NA, length(z_full))
+  if (any(pkg_kept)) {
+    zf <- z_full[pkg_kept]
+    pk[pkg_kept] <- ZCAP$orig(zf, z_obs, solomonR:::.perm_unit(zf, statistic),
+                              solomonR:::.perm_tie_tolerance(family_obj))
+  }
+  ref_kept <- rc$keep
+  rf <- rc$cnt == 1 & ref_kept
+  bad <- which(pkg_kept != ref_kept | (pkg_kept & ref_kept & pk != rf))
   if (!length(bad)) return(NULL)
   data.frame(case_id = case_id, draw = bad, class = cls[bad], ref_code = st$code[cls[bad]],
-             ref_T = st$approx[cls[bad]], pkg_z = v$z_perm[bad], pkg_z_obs = v$z_obs, ref_counted = rf[bad],
-             pkg_counted = pk[bad], stringsAsFactors = FALSE)
+             ref_T = st$approx[cls[bad]], pkg_z = z_full[bad], pkg_z_obs = z_obs, ref_kept = ref_kept[bad],
+             pkg_kept = pkg_kept[bad], ref_counted = rf[bad], pkg_counted = pk[bad], stringsAsFactors = FALSE)
 }
 
 safe_bind <- function(rows) {
@@ -243,7 +270,10 @@ compare_world <- function(r, replay_seed) {
       if (inherits(fit, "error")) {
         rows[[length(rows) + 1]] <- cbind(base, pkg_outcome = paste("fit error:", conditionMessage(fit)), pkg_b = NA,
                                           pkg_valid = NA, pkg_p = NA, pkg_p_same = NA,
-                                          agree = if (grepl("^(no-reference|excluded)", cr$outcome)) NA else FALSE,
+                                          # a reference error is met by a classed solomonR error,
+                                          # whether perm_solomon() or the fit raises it
+                                          agree = if (grepl("^(no-reference|excluded)", cr$outcome)) NA else
+                                            grepl("^error", cr$outcome) && any(grepl("^solomonR_", class(fit))),
                                           z_maxrel = NA, plot_with_p = NA, plot_without_p = NA, warnings = "")
         next
       }
@@ -255,12 +285,14 @@ compare_world <- function(r, replay_seed) {
           env$k <- env$k + 1L
           labs[, env$k]
         }
-        res <- run_pkg(testthat::with_mocked_bindings(
+        res <- run_captured(function() run_pkg(testthat::with_mocked_bindings(
           solomonR::perm_solomon(fit, cr$contrast, reps = M_all, statistic = cr$statistic, return_dist = TRUE),
-          .perm_treat = feeder, .package = "solomonR"))
+          .perm_treat = feeder, .perm_at_least = capture_pal, .package = "solomonR")))
       } else {
-        res <- run_pkg(solomonR::perm_solomon(fit, cr$contrast, reps = length(cls), seed = replay_seed,
-                                              statistic = cr$statistic, return_dist = TRUE))
+        res <- run_captured(function() run_pkg(testthat::with_mocked_bindings(
+          solomonR::perm_solomon(fit, cr$contrast, reps = length(cls), seed = replay_seed,
+                                 statistic = cr$statistic, return_dist = TRUE),
+          .perm_at_least = capture_pal, .package = "solomonR")))
       }
       v <- res$val
       if (inherits(v, "pkg_error")) {
@@ -282,8 +314,8 @@ compare_world <- function(r, replay_seed) {
         target <- (rc$b + 1) / (rc$m + 1)
         same <- is.null(rc$error) && !isTRUE(rc$undecided) && v$valid_reps == rc$m && bp == rc$b
         ok <- grepl("^p", cr$outcome) && same
-        if (!ok && !is.null(st) && !is.null(cls)) {
-          mc <- misclassified(cr$case_id, cls, st, v, stats::family(fit$model), cr$statistic)
+        if (!is.null(st) && !is.null(cls)) {
+          mc <- misclassified(cr$case_id, cls, st, ZCAP$z_full, v$z_obs, stats::family(fit$model), cr$statistic)
           if (!is.null(mc)) MISCLASS[[length(MISCLASS) + 1]] <<- mc
         }
         out <- cbind(base, pkg_outcome = "p", pkg_b = bp, pkg_valid = v$valid_reps, pkg_p = v$p_perm,
@@ -391,7 +423,7 @@ if (workers > 1) {
   cl <- parallel::makeCluster(workers)
   parallel::clusterExport(cl, c("ROOT", "refs", "seeds", "fam_arg", "fit_world", "class_of", "ref_count", "run_pkg", "safe_bind",
                                 "subtitle_p", "plot_ok", "compare_world", "work", "ref_rows", "pkg_rows", "theta_cols",
-                                "misclassified", "MISCLASS"))
+                                "misclassified", "MISCLASS", "ZCAP", "capture_pal", "run_captured"))
   invisible(parallel::clusterEvalQ(cl, suppressMessages(pkgload::load_all(ROOT, quiet = TRUE))))
   ord <- names(refs)[order(-vapply(refs, function(r) suppressWarnings(max(as.numeric(r$cases$M), na.rm = TRUE)), 0))]
   res <- parallel::parLapplyLB(cl, ord, work)
