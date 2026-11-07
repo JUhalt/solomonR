@@ -6,9 +6,20 @@
 # (study$files, whose SHA-256 the plan and every task record), and therefore
 # every random number a task draws. The harness
 # (.github/workflows/simulation-run.yaml and the other scripts in tools/sim,
-# which come from the workflow's own commit) passes no seed and draws no
-# random number: it only says which tasks a process runs and where the files
-# go, and it checks and merges what comes back.
+# which come from the workflow's own commit) passes no seed to the script,
+# and its assignment of tasks to jobs draws no random number: it only says
+# which tasks a process runs and where the files go, and it checks and
+# merges what comes back. No random number that the harness draws reaches
+# a task: sim_run_task() assigns each task's stream just before the task
+# runs, which overwrites any earlier draw. Apart from the study's base
+# seed, from which this file makes the tasks' streams (set.seed(base) in
+# sim_streams()), the harness sets set.seed(116) for the RNG fingerprint
+# (tools/sim/rng-fingerprint.R, run by the planning job, or by
+# run-local.R), in a process of its own that runs no task, and this file
+# sets, in a gate, the base seed + 1 for the order of its tasks (sim_run()).
+# A study's own code may set others inside its tasks, such as the seeds of
+# its agreement checks. The harness's own tests (tools/sim/tests/run-tests.R),
+# which run in its pull requests only, draw their own.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does
@@ -56,8 +67,13 @@
 #                             tasks in this process.
 #   SOLOMONR_SIM_OUT          Output folder (run, summarize).
 #   SOLOMONR_SIM_IN           File listing the task files (summarize).
-#   SOLOMONR_SIM_PACKAGE_SHA  The package commit. When git is available, it
-#                             must equal `git rev-parse HEAD`.
+#   SOLOMONR_SIM_PACKAGE_SHA  The package commit. Where git can be used for
+#                             the package copy (the copy is the top level
+#                             of its repository, and HEAD is a commit of
+#                             40 hex digits), it must equal `git rev-parse
+#                             HEAD`. Elsewhere a test run takes it
+#                             unchecked, and a gate or study run stops in
+#                             every stage that reads it (sim_git_head()).
 #
 # Seeds. Each scenario has its own L'Ecuyer-CMRG stream (L'Ecuyer et al.,
 # 2002) under RNGkind("L'Ecuyer-CMRG", "Inversion", "Rejection"): scenario 1
@@ -80,8 +96,12 @@
 # Faults. A fit that fails is a result. Any other error in a replication
 # stops the task: the task id, the replication, and the message are written
 # to failed-tasks/<task id>.csv in the output folder, the job's other tasks
-# are skipped, and the stage fails. A code fault means a new commit, a new
-# plan, and an amendment, never a rerun of the same plan.
+# are skipped, and the stage fails. The job is then run again once, on a
+# new machine. A fault that recurs is a code fault, which needs a new
+# commit, a new plan, and an amendment; a fault that does not recur is
+# reported, and the rerun's output takes the place of the job's: a chunk's
+# task files, or the merge job's replay, which is only compared with the
+# chunks' (tools/sim/README.md, "Running in the cloud").
 #
 # Reference:
 # L'Ecuyer, P., Simard, R., Chen, E. J., & Kelton, W. D. (2002). An
@@ -476,18 +496,61 @@ sim_files_sha256 <- function(study) {
   paste0(study$files, "=", vapply(paths, sim_sha256_text, ""), collapse = " ")
 }
 
-sim_git <- function(args) {
-  out <- tryCatch(suppressWarnings(system2("git", args, stdout = TRUE, stderr = FALSE)),
+# git, run in the folder `root`, with GIT_DIR and GIT_WORK_TREE unset while
+# it runs, so that git looks for the repository from that folder alone, as
+# validation_commit() does in the validation scripts (#152); its messages
+# are discarded. NULL if git is not on the PATH or fails.
+sim_git <- function(args, root) {
+  if (!nzchar(Sys.which("git"))) return(NULL)
+  saved <- Sys.getenv(c("GIT_DIR", "GIT_WORK_TREE"), unset = NA)
+  Sys.unsetenv(names(saved))
+  on.exit(if (any(!is.na(saved))) do.call(Sys.setenv, as.list(saved[!is.na(saved)])))
+  out <- tryCatch(suppressWarnings(system2("git", c("-C", shQuote(root), args), stdout = TRUE, stderr = FALSE)),
                   error = function(e) NULL)
   status <- attr(out, "status")
   if (is.null(out) || (!is.null(status) && status != 0L)) return(NULL)
   out
 }
 
-sim_package_sha <- function() {
+# The package copy's folder, normalized, where the copy is the top level of
+# its git repository: git is on the PATH, agrees to read the repository,
+# and `git rev-parse --show-toplevel` is the copy's folder (case is ignored
+# on Windows). NA otherwise: a copy without git metadata, and a copy
+# unpacked inside another repository, whose HEAD and status are not the
+# copy's. This is the rule of validation_commit() in the validation scripts
+# (#152, #162).
+sim_git_root <- function(study) {
+  root <- normalizePath(sim_root(study), winslash = "/", mustWork = FALSE)
+  top <- sim_git(c("rev-parse", "--show-toplevel"), root)
+  if (length(top) != 1L || !nzchar(top)) return(NA_character_)
+  top <- normalizePath(top, winslash = "/", mustWork = FALSE)
+  same <- if (.Platform$OS.type == "windows") tolower(top) == tolower(root) else top == root
+  if (same) root else NA_character_
+}
+
+# HEAD of the package copy where git can be used for it: the copy is the
+# top level of its repository (sim_git_root()), and HEAD is a commit named
+# by 40 hex digits, as in a repository on GitHub. NA otherwise, and so also
+# in a repository with no commit, and in one that names its objects by
+# SHA-256 (64 hex digits).
+sim_git_head <- function(study, root = sim_git_root(study)) {
+  head <- if (is.na(root)) NULL else sim_git(c("rev-parse", "--verify", "--quiet", "HEAD"), root)
+  if (length(head) == 1L && grepl("^[0-9a-f]{40}$", head)) head else NA_character_
+}
+
+# The package commit. Where git can be used for the copy (sim_git_head() is
+# not NA), it is HEAD, and a commit given in SOLOMONR_SIM_PACKAGE_SHA must
+# equal it. Where git cannot be used, nothing is checked: a given commit is
+# returned as given, and without one the commit is "unknown". A test run
+# takes either. A gate or study run stops there in both stages that read
+# the commit: the plan, in sim_write_plan(), which needs sim_dirty() to be
+# FALSE, as it is only where git can be used; and the run, in
+# sim_verify_plan(), which needs sim_git_head(). So every commit that a gate
+# or study run records or compares has been checked against HEAD. In the
+# workflow, every job's checkout is the top level of its repository.
+sim_package_sha <- function(study) {
   given <- Sys.getenv("SOLOMONR_SIM_PACKAGE_SHA")
-  head <- sim_git(c("rev-parse", "HEAD"))
-  head <- if (length(head) == 1L && grepl("^[0-9a-f]{40}$", head)) head else NA_character_
+  head <- sim_git_head(study)
   if (nzchar(given)) {
     if (!is.na(head) && !identical(head, given)) {
       stop("SOLOMONR_SIM_PACKAGE_SHA is ", given, " but the checkout is at ", head, ".", call. = FALSE)
@@ -505,10 +568,15 @@ sim_package_id <- function(study) {
 
 # TRUE if a tracked file differs from the commit, or if the study script,
 # this file, or a file the script sources is not part of the commit
-# (untracked or changed); NA without git.
-sim_dirty <- function(paths) {
-  tracked <- sim_git(c("status", "--porcelain", "--untracked-files=no"))
-  own <- sim_git(c("status", "--porcelain", "--untracked-files=all", "--", shQuote(paths)))
+# (untracked or changed); NA where git cannot be used for the package copy
+# (sim_git_head()). The paths are made absolute here, since git runs in the
+# copy's folder.
+sim_dirty <- function(study, paths) {
+  root <- sim_git_root(study)
+  if (is.na(sim_git_head(study, root))) return(NA)
+  paths <- normalizePath(paths, winslash = "/", mustWork = FALSE)
+  tracked <- sim_git(c("status", "--porcelain", "--untracked-files=no"), root)
+  own <- sim_git(c("status", "--porcelain", "--untracked-files=all", "--", shQuote(paths)), root)
   if (is.null(tracked) || is.null(own)) NA else length(tracked) > 0L || length(own) > 0L
 }
 
@@ -527,12 +595,17 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
   tasks <- sim_plan(study, spec, subset)
   sc <- study$scenarios
   if (!is.null(subset)) sc <- sc[sc$scenario %in% subset, , drop = FALSE]
-  package_sha <- sim_package_sha()
-  dirty <- sim_dirty(c(sim_script_path(), sim_contract_path(study), sim_files_paths(study)))
+  package_sha <- sim_package_sha(study)
+  dirty <- sim_dirty(study, c(sim_script_path(), sim_contract_path(study), sim_files_paths(study)))
   # A gate and a study run use a commit as it is; only tests may run from a
-  # working tree with changes.
+  # working tree with changes. dirty is FALSE only where git can be used for
+  # the package copy (sim_git_head()), and there sim_package_sha() has
+  # checked a given commit against HEAD; elsewhere (no git, a copy that is
+  # not the top level of its repository, a repository with no commit or
+  # with SHA-256 names) a gate or study plan stops here.
   if (spec$purpose %in% c("study", "gate") && !identical(dirty, FALSE)) {
-    stop("A ", spec$purpose, " run needs a clean checkout of the pinned commit.", call. = FALSE)
+    stop("A ", spec$purpose, " run needs a clean checkout of the pinned commit at the top level of its ",
+         "git repository, with a commit named by 40 hex digits.", call. = FALSE)
   }
   id <- sim_package_id(study)
   info <- c(
@@ -592,6 +665,14 @@ sim_verify_plan <- function(study, plan) {
   own_size <- identical(info[["purpose"]], "test") && identical(info[["design"]], "run")
   spec <- sim_plan_spec(study, info[["purpose"]], info[["design"]], info[["reps"]],
                         task_size = if (own_size) info[["task_size"]] else "")
+  # A gate or study plan's commit was checked against HEAD when the plan was
+  # made (sim_write_plan()). Here it is checked again, which needs git for
+  # the package copy too: elsewhere sim_package_sha() would return a given
+  # commit unchecked, and the plan's commit would pass as this checkout's.
+  if (spec$purpose %in% c("study", "gate") && is.na(sim_git_head(study))) {
+    stop("A ", spec$purpose, " run needs a checkout of the pinned commit at the top level of its git ",
+         "repository, with a commit named by 40 hex digits.", call. = FALSE)
+  }
   fresh <- sim_plan(study, spec, sim_recorded_subset(info))
   checks <- c(
     study = identical(info[["study"]], study$key),
@@ -599,7 +680,7 @@ sim_verify_plan <- function(study, plan) {
     script = identical(info[["script_sha256"]], sim_sha256_text(sim_script_path())),
     contract_file = identical(info[["contract_sha256"]], sim_sha256_text(sim_contract_path(study))),
     sourced_files = identical(info[["files_sha256"]], sim_files_sha256(study)),
-    package = identical(info[["package_sha"]], sim_package_sha()),
+    package = identical(info[["package_sha"]], sim_package_sha(study)),
     package_version = identical(info[["package_version"]], sim_package_id(study)[["version"]]))
   if (!all(checks)) {
     stop("The plan does not match this checkout (", paste(names(checks)[!checks], collapse = ", "),
@@ -816,7 +897,10 @@ sim_run <- function(study, plan_dir, ids, out_dir, workers) {
       } else conditionMessage(e)
       writeLines(session, file.path(out_dir, "session-info.txt"), useBytes = TRUE)
       stop("Run stopped by a fault in ", what, ". The other tasks of this job were skipped; ",
-           "see failed-tasks/. A code fault needs a new commit and a new plan.", call. = FALSE)
+           "see failed-tasks/. Run the job again once (on the runners, on a new machine). A fault ",
+           "that recurs is a code fault, which needs a new commit, a new plan, and an amendment; a ",
+           "fault that does not recur is reported, and the rerun's output takes the place of this ",
+           "job's (tools/sim/README.md).", call. = FALSE)
     })
   times <- do.call(rbind, times)
   times <- times[order(times$task_id), , drop = FALSE]

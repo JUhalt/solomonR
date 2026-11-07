@@ -4,8 +4,18 @@ This folder runs the simulation studies of the v1.0 validation protocols
 (#116, and the items of #117) either on GitHub-hosted runners or on one
 machine, with the same scripts and the same checks. It splits a study's
 tasks among jobs, checks and merges what the jobs return, and computes the
-summary only after every check has passed. It never chooses a seed: the
-study script does, from its protocol.
+summary only after every check has passed. It never chooses a task's
+seed: the study script does, from its protocol, and `contract.R` makes
+the tasks' streams from the study's base seed (`set.seed(base)` in
+`sim_streams()`). No random number that the harness draws reaches a task:
+each task's stream is assigned just before the task runs
+(`sim_run_task()`), which overwrites any earlier draw. Apart from the base
+seed, the harness sets `set.seed(116)` for the RNG fingerprint
+(`rng-fingerprint.R`), in a process of its own that runs no task, and, in
+a gate, the base seed + 1 for the order of its tasks (`sim_run()`). A
+study's own code may set others inside its tasks, such as the seeds of its
+agreement checks. The harness's tests draw their own, in its pull requests
+only.
 
 `tools/` is in `.Rbuildignore`, and `tools/check-validation-scripts.R` looks
 only at `vignettes/articles/*-validation/`, so nothing here is part of the
@@ -29,7 +39,7 @@ package or of the validation-scripts check.
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
 | `harness-lib.R` | Helpers of the harness scripts |
-| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's check of the inputs, the contract's plan stage on a synthetic study, `finalize-results.R`, `run-local.R` on the synthetic study, and `merge-chunks.R` on tampered copies of a run |
+| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's checks of the inputs and of the package commit, the contract's plan stage on a synthetic study, `finalize-results.R`, `run-local.R` on the synthetic study, and `merge-chunks.R` on tampered copies of a run |
 | `studies/smoke/` | The harness's smoke study (its script, and `smoke-summarize.R`, which the script sources); not a protocol, and it computes no measure for the package's methods |
 
 The workflow is `.github/workflows/simulation-run.yaml`, with the composite
@@ -96,6 +106,20 @@ jobs and checks. On a `pull_request` run, that commit is GitHub's temporary
 merge commit of the pull request into master (`refs/pull/<number>/merge`,
 on no branch), while `package_sha` is the pull request's head; on a gate
 or study run, both are commits on master.
+
+The contract reads the package commit with git only where the package copy
+is the top level of its git repository (`git rev-parse --show-toplevel` is
+the copy's folder), with `GIT_DIR` and `GIT_WORK_TREE` unset, as the
+validation scripts do (#152, #162), and where `HEAD` is a commit of 40 hex
+digits (a repository with no commit, or one with SHA-256 names, has none).
+A copy unpacked inside another repository would otherwise record that
+repository's commit. Where git is used, a commit given in
+`SOLOMONR_SIM_PACKAGE_SHA` must equal `HEAD`. Elsewhere a test run records
+`unknown`, or the given commit without a check, and a gate or study run
+stops: its plan needs git to find the checkout clean, and its run stage
+needs git to check the plan's commit against `HEAD` again. Every job of
+the workflow checks out the package commit at the top level of its own
+repository.
 
 ## Running in the cloud
 
@@ -167,11 +191,44 @@ every such field).
   including that the rerun reads the first attempt's plan artifact; "Re-run
   all jobs" makes a new plan and recomputes every chunk, and has not been
   tested. GitHub allows at most 50 reruns of a run, within 30 days.
-- A fault in the code (an error in a replication that is not a failed fit)
-  fails the chunk at once: the chunk's diagnostic artifact holds
+- A fault (an error in a replication that is not a failed fit) fails the
+  chunk at once: the chunk's diagnostic artifact holds
   `failed-tasks/<task id>.csv` with the replication and the message, and
-  the job's remaining tasks are skipped. It fails the same way on a rerun.
-  The remedy is a new commit, a new plan, and an amendment, never a rerun.
+  the job's remaining tasks are skipped. Download that artifact, then run
+  the job again once, on a new machine (`gh run rerun <run id> --failed`;
+  every job gets a new virtual machine). A fault that recurs is a code
+  fault: it needs a new commit, a new plan, and an amendment. A fault that
+  does not recur is reported with the results, and the rerun's task files
+  are used.
+- The merge job is not run again after one of its checks failed: the
+  completeness, envelope, shape, or software checks of `merge-chunks.R`,
+  or the software or replay checks of `check-replay.R`. The failure is
+  reported. After a software difference, the whole run is repeated on one
+  software set. After any other failed check, an amendment says how the
+  study continues (a replayed task that differs is not run again to
+  choose between two results).
+- A fault in a task that the merge job replays stops the replay before
+  any check of it, so no check has failed. The merge job is run again
+  once, on a new machine, as a chunk job is. A fault that recurs there is
+  a code fault too; after one that does not recur, the rerun's replay is
+  compared with the chunks'. Replayed task files are only compared, never
+  used.
+- A summary that stops on a fault in the study's code stops the same way
+  on a rerun, since it runs the same code on the same task files. A fix
+  needs a new commit, and the merge refuses task files of another commit.
+- A merge job that fails (not one that is cancelled or times out)
+  uploads `failed-merge-attempt-<attempt>`, kept for 14 days, if its
+  files pass the address scan: those of `merged/replay.csv` and
+  `merged/job-info.csv` (the merging machine, recorded before the
+  replay) that exist, and the logs of the replay and the summary that
+  exist and pass the scan on their own, so that a log cannot hold back
+  the two records. After a replay that differs,
+  `replay.csv` gives each replayed task's largest difference in the
+  results, the columns that differ, and the processor models of its chunk
+  and of the merging machine. Download it when the run ends. The merging
+  machine's processor model is also in the merge job's log, from the step
+  "Record the merging machine", whenever that step has run (it runs after
+  the checks of `merge-chunks.R` pass, before the replay).
 - Before the results of a gate or a study run are used, check where the
   run came from: `gh run view <run id> --repo JUhalt/solomonR --json
   event,headBranch,headSha,workflowName` must show
@@ -227,7 +284,8 @@ After a reboot, sleep, or crash, `--resume` keeps the plan and the finished
 chunks, runs only the tasks whose files are missing or unreadable, records
 the resumption in the chunk's `resumes.csv` (and in `run-information.csv`),
 and merges afresh; it refuses to continue if `software.csv` has changed. A
-gate or study run needs a clean checkout of a commit.
+gate or study run needs a clean checkout, at the top level of its git
+repository, of a commit named by 40 hex digits.
 
 A new run is of the study `--study` names (smoke without it). `--resume`
 and `--rerun-chunk` take the study from the run's `plan/plan-info.csv`
@@ -267,10 +325,15 @@ say that the other zlib headers are "not in the zlib rule", and they and
 the scanner's row under "Files" must say that the gzip and zlib rule
 applies after a UTF-8 byte-order mark too; the job sizes and the number
 formats of `assign-chunks.R`; the workflow's "Check the inputs" step, run
-with bash (`--bash <path>` if bash is not on the PATH); the contract's plan
+with bash (`--bash <path>` if bash is not on the PATH), the registry's
+required commits, and, with git, the step "Check the package commit" on a
+repository made there; the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and
 `sim_verify_plan()` on the synthetic study `tests/synthetic-study.R`, which
-loads no package there (with git, also the clean-checkout rule); the
+loads no package there (with git, also the clean-checkout rule; a copy
+inside another repository, whose commit is not read, whose gate and study
+plans are refused, and where the run stage refuses a gate plan made at a
+top level; and repositories with no commit or with SHA-256 names); the
 replay list of `merge-chunks.R` and the items and refusals of
 `finalize-results.R` on files made up there; `run-local.R` on the
 synthetic study, as a second study beside smoke, in a package folder made
@@ -353,8 +416,9 @@ In the study's own pull request, before its run (the order rule of #117):
    `timing/` with a name the harness does not write, would pass them. They
    also look at the results folder only. `finalize-results.R` copies its
    audit files from the folders the summary read (`manifest.csv`,
-   `completeness.csv`, `software.csv`, `replay.csv`, and `jobs.csv` from
-   `merged/`; `preflight.csv`, `rng-fingerprint.txt`, and the plan job's
+   `completeness.csv`, `software.csv`, `replay.csv`, `jobs.csv`, and the
+   merge job's `job-info.csv`, written before the replay, from `merged/`;
+   `preflight.csv`, `rng-fingerprint.txt`, and the plan job's
    `job-info.csv` from `plan/`; `session-info.txt` from each chunk), and
    it reads most items of `run-information.csv` from them and from
    `plan/plan-info.csv` (`replay` and `reps` among them), as the summary
@@ -379,6 +443,12 @@ In the study's own pull request, before its run (the order rule of #117):
    `70c4de5e29eef6269aec5e1841477c07e84839812aaca3b2f240941bfd223953`.
    Elsewhere (Windows) the library's checksum is recorded, not compared.
 6. A row in `studies.csv`, and the key in the workflow's `study` options.
+   The row's `required_ancestors` are the commits that the package commit
+   of a gate or study run must include, as full SHAs separated by spaces;
+   the Plan job checks them, and that the commit is on master, before
+   anything is installed (a smoke run checks neither). The smoke study's
+   row requires #132's merge (b4ade64), which master holds, so that a run
+   of the smoke study with `smoke=false` takes that check too.
 7. Code-testing runs (`smoke=true`) before the gate; the gate's amendment
    and the run's amendment are posted on the issue before each.
 
