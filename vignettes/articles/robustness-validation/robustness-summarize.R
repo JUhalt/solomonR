@@ -705,8 +705,9 @@ scenario_columns <- function(scenario, sc) {
 # <= .075 also has p < .05/C; Bradley's, 1978, liberal criterion) and the
 # defects. A rate whose fits all failed counts as failed (protocol); so does
 # a bias that cannot be computed. Such a rate, having no estimate, is
-# classed as a documented limitation (a defect under the sharp null, or
-# under rule 3), never as material, as Amendment 2 of #116 (item 11) says.
+# classed as a documented limitation (a defect under rule 3, and under
+# rule 1 of M3 and M4 at the sharp null), never as material, as Amendment 2
+# of #116 (item 11) says.
 judge_rates <- function(perf, sc, C) {
   level <- 0.05 / C
   j <- judged_rates(sc)
@@ -980,8 +981,8 @@ failures_table <- function(failed_fits, failures, ranges, sc) {
 # BLAS and LAPACK, the RNG kinds, the base seed, R, the workers, and the
 # times; sessionInfo() is saved for each job in timing/sessionInfo-<job>.txt.
 # Package versions come from the Version field only; broom, which left the
-# Imports in #153, is "not installed", as Amendment 2 of #116 (item 5)
-# says.
+# Imports in #153, is "not installed" on the runners, as Amendment 2 of
+# #116 (item 5) says; elsewhere its installed version, if any, is recorded.
 version_of <- function(pkg) {
   v <- suppressWarnings(utils::packageDescription(pkg, fields = "Version"))
   if (is.null(v) || length(v) != 1L || is.na(v)) "not installed" else as.character(v)

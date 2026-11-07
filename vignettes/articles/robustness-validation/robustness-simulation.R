@@ -30,8 +30,9 @@
 # only, and reports no performance measure, no decision, and no count of
 # failed fits, as Amendment 2 of #116 (item 9) says. To decide whether the
 # agreement checks passed, its summary counts in memory the comparisons
-# each check made and finds check 5's largest difference, and writes
-# neither (robustness-summarize.R).
+# each check made, finds check 5's largest difference, and sums the
+# warnings muffled in checks 1, 3, and 4, and writes none of these
+# (robustness-summarize.R).
 #
 # Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the contract plans,
 # runs, and summarizes the scenarios in `smoke_scenarios` in that folder, in
@@ -897,7 +898,12 @@ cost_robustness <- function(s, reps) {
 # took about 2.5 + 0.0024 n seconds per replication (with n participants;
 # ET, which also fits M1 for it), and checks 3 and 4 together about
 # 0.55 + 0.0003 n more in E0, at about 0.00028 s per unit of cost: about
-# 9,000 + 9 n and 2,000 + n units per replication.
+# 9,000 + 9 n and 2,000 + n units per replication. This assumes that task 1
+# holds replications 1 to 20, as the study's tasks of 500 and the gate's of
+# 25 do. A test with a task size below 20 (the workflow's task_size) also
+# runs checks 3 and 4 in later tasks of an E0 scenario, and below 3 check 1
+# too; task 1 is priced for all of them, the later tasks for none. Only
+# that test's job sizes change; no result does.
 agreement_cost_robustness <- function(s) {
   n <- s$n1 + s$n2 + s$n3 + s$n4
   check1_reps * (9000 + 9 * n) + if (identical(s$pattern, "E0")) check34_reps * (2000 + n) else 0
