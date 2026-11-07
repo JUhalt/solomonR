@@ -23,6 +23,20 @@
   replace, as the model's own fit is (Higham, 2002), and under near
   separation a resample can be counted as failed, or not, differently
   than in an exact reparameterization. The convergence rule is unchanged.
+* **Refits whose design rounding error leaves short of full rank are
+  fitted again too.** Nearly collinear covariates can be collinear to
+  within the tolerance of `qr()`, 1e-11, on a resample though not in the
+  sample. Such a refit is now fitted again in the same new columns, which
+  have the same rank as the design on each resample in exact arithmetic.
+  With `z2 = z1 + 1.2e-11 * e1`, 87 of 199 resamples failed before, 24 of
+  them as designs not of full rank. None fails now, and the interval
+  limits are within 3e-4 standard errors of those of an exact
+  reparameterization of the covariates. A resample that lacks a level of a
+  factor still fails as a design not of full rank, unless a covariate
+  nearly repeats the indicator of that level, when rounding error can make
+  it fail for another reason or, rarely, converge. The new columns are
+  formed whenever `fit_solomon_glm()` fitted the model, which it does only
+  when no term is collinear with the others.
 * **Results are unchanged where every refit converges.** A refit that
   converges is computed as before, so on well-conditioned data the
   estimates, standard errors, intervals, p-values, and failure counts are
@@ -37,15 +51,14 @@
   Anderson, 1984) or near separation, extreme covariate values, or a
   refit that diverged, since each refit takes full steps, without the
   step halving of `glm.fit()` (Marschner, 2011). A refit whose weighted
-  design loses rank because
-  fitted risks within 1e-8 of 0 or 1 make their weights vanish counts as
-  a fitted risk near 0 or 1, not as a design short of full rank. For
-  the refits that did not converge, the warning gives the largest
-  condition number of their weighted design, with which rounding error
-  grows (Higham, 2002). It no longer says that the failures are usually
-  due to sparse cells. A covariate nearly collinear with a treatment term
-  can still keep refits from converging, because the treatment terms,
-  whose coefficients give the contrasts, are kept.
+  design loses rank because fitted risks within 1e-8 of 0 or 1 make their
+  weights vanish counts as a fitted risk near 0 or 1, not as a design
+  short of full rank. For the refits that did not converge, the warning
+  gives the largest condition number of their weighted design, with which
+  rounding error grows (Higham, 2002). It no longer says that the
+  failures are usually due to sparse cells. A covariate nearly collinear
+  with a treatment term can still keep refits from converging, because
+  the treatment terms, whose coefficients give the contrasts, are kept.
 * **A fit that stops at the checks for an empty group, a collinear term,
   or a single participant under HC3 no longer gives the model fit's
   warnings.** `fit_solomon_glm()`, with one treatment or several, now

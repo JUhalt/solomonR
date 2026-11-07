@@ -395,9 +395,16 @@ test_that("the bootstrap's basis spans the same columns and keeps the treatment 
                    tolerance = 1e-10)
     }
   })
-  # Columns other than the treatment terms that are not of full rank give
-  # no basis.
-  expect_null(.bootstrap_basis(cbind(X, copy = X[, "pretested"]), c(b, copy = 0)))
+  # Where qr() at its tolerance of 1e-11 keeps every column, the basis is
+  # the same, bit for bit, as at that tolerance. The basis makes no rank
+  # decision of its own (fit_solomon_glm() stops at a collinear term): only
+  # a column whose residual is exactly zero, as a column of zeros, gives no
+  # basis.
+  q <- qr(X[, others], tol = 1e-11)
+  expect_identical(q$rank, sum(others))
+  expect_identical(unname(basis$X[, others]), unname(qr.Q(q)))
+  expect_identical(unname(basis$start[others]), unname(drop(qr.R(q) %*% b[others])))
+  expect_null(.bootstrap_basis(cbind(X, zero = 0), c(b, zero = 0)))
 })
 
 

@@ -1387,6 +1387,203 @@ test_that("the bootstrap converges with nested near-collinearity, and names why 
   expect_gt(m$failures, 19L)
 })
 
+test_that("a bootstrap refit whose design rounding leaves short of full rank is fitted again (#154)", {
+  # z2 = z1 + g e1, nearly collinear, with g just above where the fit stops.
+  # The design's condition number, about 2e11, makes the two columns
+  # collinear to within qr()'s tolerance, 1e-11, on some resamples, whose
+  # refits on the model's design fail as "rank". Refitted again only when
+  # they did not converge, 3 and 24 of 199 resamples failed at these g.
+  # They are now refitted in the basis too (.bootstrap_basis()), and the
+  # bootstrap agrees with that of the exact reparameterization (z1,
+  # (z2 - z1) / g) on the same resamples: no failures, and limits within
+  # 3e-4 standard errors on Windows. The tolerances allow for the rounding
+  # of other platforms.
+  withr::local_seed(5151)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  e1 <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- 0.3 * treat + 0.2 * pretested + ifelse(is.na(pre), 0, 0.4 * pre) + 0.3 * z1 +
+    stats::rnorm(n)
+  passed <- as.integer(y > 0)
+  fit_with <- function(covariates, outcome = passed) {
+    quiet_irls(suppressWarnings(
+      fit_solomon_glm(outcome, treat, pretested, pre, covariates = covariates,
+                      family = stats::binomial()),
+      classes = "solomonR_noncollapsible_warning"
+    ))
+  }
+  agrees <- function(boot, ref, info) {
+    expect_identical(boot$failures, 0L, info = info)
+    expect_identical(ref$failures, 0L, info = info)
+    se <- ref$effects$std.error
+    expect_equal(boot$effects$std.error, se, tolerance = 1e-3, info = info)
+    expect_lt(max(abs(boot$effects$conf.low - ref$effects$conf.low) / se), 0.05)
+    expect_lt(max(abs(boot$effects$conf.high - ref$effects$conf.high) / se), 0.05)
+  }
+  irls <- .logistic_irls
+  b <- NULL
+  first_rank <- 0L
+  local_mocked_bindings(.logistic_irls = function(X, y, start, ...) {
+    out <- irls(X, y, start, ...)
+    if (identical(start, b) && identical(out$reason, "rank")) first_rank <<- first_rank + 1L
+    out
+  })
+  for (g in c(1.3e-11, 1.2e-11)) {
+    fit <- fit_with(data.frame(z1 = z1, z2 = z1 + g * e1))
+    b <- fit$covariate_scaling$coefficients
+    expect_no_warning(boot <- marginal_solomon(fit, R = 199, seed = 2024),
+                      class = "solomonR_bootstrap_warning")
+    ref <- marginal_solomon(fit_with(data.frame(z1 = z1, r = ((z1 + g * e1) - z1) / g)),
+                            R = 199, seed = 2024)
+    agrees(boot, ref, paste(g))
+  }
+  # Refits on the model's design did fail as "rank".
+  expect_gt(first_rank, 0L)
+
+  # glm() decides rank in the weights of its fit, and the columns that the
+  # basis replaces, X_N, can fall short of full rank at 1e-11 without them
+  # though the model was fitted. Here twelve participants lie at z1 = +-12,
+  # where fitted risks are near 0 or 1 and the weights small, and e1 is 0
+  # for them, so they add to the norms of z1 and z2 but not to their
+  # difference. At g = 1.2e-11, X_N has rank 4 of 5 at that tolerance. A
+  # basis formed at it did not exist, and resamples whose refits failed on
+  # the model's design were lost. It is now formed from every column, and
+  # the bootstrap agrees with that of the exact reparameterization.
+  withr::local_seed(6262)
+  n <- 240
+  g4 <- rep(1:4, each = 60)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  e1 <- stats::rnorm(n)
+  far <- c(1:3, 61:63, 121:123, 181:183)
+  z1[far] <- 12 * c(1, -1, 1)
+  e1[far] <- 0
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  eta <- 0.3 * treat + 0.2 * pretested + ifelse(is.na(pre), 0, 0.4 * pre) + 0.6 * z1
+  outcome <- stats::rbinom(n, 1, stats::plogis(eta))
+  g <- 1.2e-11
+  fit <- fit_with(data.frame(z1 = z1, z2 = z1 + g * e1), outcome)
+  b <- fit$covariate_scaling$coefficients
+  X <- stats::model.matrix(.standardized_model(fit))
+  others <- !colnames(X) %in% c("treat", "treat:pretested")
+  expect_lt(qr(X[, others], tol = 1e-11)$rank, sum(others))
+  expect_false(is.null(.bootstrap_basis(X, b)))
+  expect_no_warning(boot <- marginal_solomon(fit, R = 199, seed = 2024),
+                    class = "solomonR_bootstrap_warning")
+  ref <- marginal_solomon(fit_with(data.frame(z1 = z1, r = ((z1 + g * e1) - z1) / g), outcome),
+                          R = 199, seed = 2024)
+  agrees(boot, ref, "weights")
+})
+
+test_that("a resample that lacks a level of a factor, or a Solomon cell, still fails as not of full rank (#154)", {
+  # On the rows of a resample, the basis has the same rank as the model's
+  # design in exact arithmetic, so a resample that lacks a level fails
+  # again in the basis, whatever the scale of the other covariates. The
+  # data of the test above at g = 1.2e-11, with a covariate near 1e9 and a
+  # factor whose level "c" has two participants, one with the event and
+  # one without, in the first cell.
+  withr::local_seed(5151)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  e1 <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- 0.3 * treat + 0.2 * pretested + ifelse(is.na(pre), 0, 0.4 * pre) + 0.3 * z1 +
+    stats::rnorm(n)
+  passed <- as.integer(y > 0)
+  withr::local_seed(5152)
+  big <- 1e9 + 1e3 * stats::rnorm(n)
+  f <- factor(sample(c("a", "b"), n, replace = TRUE), levels = c("a", "b", "c"))
+  rare <- c(which(passed[1:50] == 1)[1], which(passed[1:50] == 0)[1])
+  f[rare] <- "c"
+  covariates <- data.frame(z1 = z1, z2 = z1 + 1.2e-11 * e1, big = big, f = f)
+  fit_with <- function(covariates) {
+    quiet_irls(suppressWarnings(
+      fit_solomon_glm(passed, treat, pretested, pre, covariates = covariates,
+                      family = stats::binomial()),
+      classes = "solomonR_noncollapsible_warning"
+    ))
+  }
+  fit <- fit_with(covariates)
+
+  # Through marginal_solomon(): each resample without level "c" (a column
+  # of zeros) fails as "rank" on the model's design, is fitted again in the
+  # basis, fails as "rank" there too, and is counted so. The resamples that
+  # rounding alone left short of full rank are not.
+  b <- fit$covariate_scaling$coefficients
+  irls <- .logistic_irls
+  calls <- list()
+  w <- NULL
+  with_mocked_bindings(
+    withCallingHandlers(marginal_solomon(fit, R = 199, seed = 2024),
+                        solomonR_bootstrap_warning = function(c) {
+                          w <<- conditionMessage(c)
+                          invokeRestart("muffleWarning")
+                        }),
+    .logistic_irls = function(X, y, start, ...) {
+      out <- irls(X, y, start, ...)
+      calls[[length(calls) + 1L]] <<- list(
+        basis = !identical(start, b), lacking = all(X[, "fc"] == 0),
+        reason = if (isTRUE(out$converged)) "ok" else out$reason
+      )
+      out
+    }
+  )
+  in_basis <- vapply(calls, `[[`, TRUE, "basis")
+  lacking <- which(!in_basis & vapply(calls, `[[`, TRUE, "lacking"))
+  reason <- vapply(calls, `[[`, "", "reason")
+  expect_gt(length(lacking), 0L)
+  expect_true(all(reason[lacking] == "rank"))
+  expect_true(all(in_basis[lacking + 1L]))
+  expect_true(all(reason[lacking + 1L] == "rank"))
+  expect_match(w, paste0(" ", length(lacking), " had a design not of full rank, as when a ",
+                         "resample lacks a level of a factor"), fixed = TRUE)
+
+  # Directly, on a resample drawn within the cells from the participants
+  # without level "c", and on resamples without a Solomon cell, which
+  # marginal_solomon() counts as separated before any refit: on the
+  # standardized design, on the design as given (with the covariate near
+  # 1e9 unstandardized), and with sum-to-zero contrasts, under which a
+  # missing level leaves no column of zeros.
+  reasons <- function(X, b, rows) {
+    basis <- .bootstrap_basis(X, b)
+    expect_false(is.null(basis))
+    c(.logistic_irls(X[rows, ], passed[rows], start = b)$reason,
+      .logistic_irls(basis$X[rows, ], passed[rows], start = basis$start)$reason)
+  }
+  cells <- split(seq_len(n), interaction(treat, pretested))
+  without_c <- unlist(lapply(cells, function(rows) {
+    rows <- setdiff(rows, rare)
+    rows[sample.int(length(rows), length(rows) + 2L, replace = TRUE)]
+  }), use.names = FALSE)
+  without_cell <- list(which(!(treat == 1 & pretested == 1)), which(!(treat == 0 & pretested == 0)))
+  designs <- list(
+    standardized = list(X = stats::model.matrix(.standardized_model(fit)), b = b),
+    given = list(X = stats::model.matrix(fit$model), b = stats::coef(fit$model))
+  )
+  designs$sum <- withr::with_options(list(contrasts = c("contr.sum", "contr.poly")), {
+    fit_sum <- fit_with(covariates)
+    list(X = stats::model.matrix(.standardized_model(fit_sum)),
+         b = fit_sum$covariate_scaling$coefficients)
+  })
+  expect_identical(names(designs$sum$b), colnames(designs$sum$X))
+  expect_false(any(colSums(designs$sum$X[without_c, ] != 0) == 0))
+  for (name in names(designs)) {
+    design <- designs[[name]]
+    expect_identical(reasons(design$X, design$b, without_c), c("rank", "rank"), info = name)
+    for (rows in without_cell) {
+      expect_identical(reasons(design$X, design$b, rows), c("rank", "rank"), info = name)
+    }
+  }
+})
+
 test_that("nearly collinear covariates are fitted as master fitted them", {
   # fixtures/collinear-master.rds holds results computed on master d446577,
   # before the collinearity check; fixtures/collinear-master.R made it and
