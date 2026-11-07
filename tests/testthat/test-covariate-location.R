@@ -721,7 +721,10 @@ test_that("a fit that stops gives the error without the model fit's warnings (#1
   # The standardized fit gave its warnings before the checks for collinear
   # terms, so a warning that glm.fit() or theta did not converge, or the
   # noncollapsible warning of the several-treatment path, came with the
-  # collinearity error. They are now held back until the checks pass.
+  # collinearity error. They are now held back until the checks pass. On
+  # master, with R 4.6.1 on Windows, the first three cases warned; the
+  # four-group binomial case gave the error alone there too, and is kept
+  # for platforms on which its fit warns.
   d <- collinear_set()
   covariates <- data.frame(z = d$z + 1e6 * stats::sd(d$z), z2 = 2 * d$z + 3)
   counts <- pmax(0, round(2 + d$y4))
@@ -765,6 +768,53 @@ test_that("a fit that stops gives the error without the model fit's warnings (#1
   k <- length(classes)
   expect_gt(k, 1L)
   expect_identical(classes, c(rep("simpleWarning", k - 1L), "solomonR_noncollapsible_warning"))
+})
+
+test_that("a model fit that itself stops gives its warnings before the error (#154)", {
+  # The checks hold back the model fit's warnings, but an error inside
+  # glm() or glm.nb(), such as glm.fit()'s "no valid set of coefficients
+  # has been found", still comes after the warnings the fit gave before it,
+  # as glm() signals them.
+  held <- .record_warnings({
+    warning("first")
+    warning("second")
+    1
+  })
+  expect_identical(held$value, 1)
+  expect_identical(vapply(held$warnings, conditionMessage, ""), c("first", "second"))
+
+  # Through fit_solomon_glm(), with one treatment and with several. The fit
+  # that gives the warnings is the fit as given, the first, when nothing is
+  # standardized, and the standardized fit, the second, with a pretest.
+  d <- collinear_set()
+  fit_model <- .fit_model
+  calls <- 0L
+  fails_at <- 1L
+  local_mocked_bindings(.fit_model = function(...) {
+    calls <<- calls + 1L
+    if (calls < fails_at) return(fit_model(...))
+    warning("NaNs produced", call. = FALSE)
+    stop("no valid set of coefficients has been found", call. = FALSE)
+  })
+  for (design in c("four", "six")) {
+    for (pretest in c(FALSE, TRUE)) {
+      info <- paste(design, pretest)
+      four <- design == "four"
+      calls <- 0L
+      fails_at <- if (pretest) 2L else 1L
+      warned <- character()
+      expect_error(withCallingHandlers(
+        fit_solomon_glm(if (four) d$y4 else d$y6, if (four) d$treat else d$cond, d$pretested,
+                        if (pretest) d$pre, control = if (!four) "Ctl"),
+        warning = function(w) {
+          warned <<- c(warned, conditionMessage(w))
+          invokeRestart("muffleWarning")
+        }
+      ), "no valid set of coefficients", info = info)
+      expect_identical(warned, "NaNs produced", info = info)
+      expect_identical(calls, fails_at, info = info)
+    }
+  }
 })
 
 test_that("near zero, nearly collinear covariates are fitted as glm() fits them", {
