@@ -704,10 +704,11 @@ scenario_columns <- function(scenario, sc) {
 # material tier (a failing rate whose one-sided exact binomial test of rate
 # <= .075 also has p < .05/C; Bradley's, 1978, liberal criterion) and the
 # defects. A rate whose fits all failed counts as failed (protocol); so does
-# a bias that cannot be computed. Such a rate, having no estimate, is
-# classed as a documented limitation (a defect under rule 3, and under
-# rule 1 of M3 and M4 at the sharp null), never as material, as Amendment 2
-# of #116 (item 11) says.
+# a bias whose test cannot be computed (no successful fit, a single one, or
+# an MCSE of 0; bias_p() is then NA). Such a rate or bias is classed as a
+# documented limitation (a defect under rule 3, and under rule 1 of M3 and
+# M4 at the sharp null), never as material, as Amendment 2 of #116
+# (item 11) says.
 judge_rates <- function(perf, sc, C) {
   level <- 0.05 / C
   j <- judged_rates(sc)
