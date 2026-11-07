@@ -209,6 +209,10 @@ rebuild_times <- function(dir) {
 }
 finish <- function() {
   step("Merge", c(file.path(harness, "merge-chunks.R"), plan_dir, chunks_dir, merged_dir))
+  # Before the replay, as in the workflow's merge job, so that a replay that
+  # fails leaves the machine's record in merged/.
+  step("Merge job information", c(file.path(harness, "job-info.R"), merged_dir, "merge"),
+       env = c(SOLOMONR_SIM_WORKERS = opts$workers))
   step("Replay", script, log = file.path(merged_dir, "replay-log.txt"),
        env = c(plan_env(), SOLOMONR_SIM_STAGE = "run", SOLOMONR_SIM_TASKS = file.path(merged_dir, "replay-ids.txt"),
                SOLOMONR_SIM_OUT = replay_dir, SOLOMONR_SIM_WORKERS = opts$workers))
@@ -218,8 +222,6 @@ finish <- function() {
                SOLOMONR_SIM_OUT = results_dir))
   purpose <- h_read_kv(file.path(plan_dir, "plan-info.csv"))[["purpose"]]
   step("Check the results", c(file.path(harness, "check-results.R"), results_dir, purpose, entry$protocol, plan_dir))
-  step("Merge job information", c(file.path(harness, "job-info.R"), merged_dir, "merge"),
-       env = c(SOLOMONR_SIM_WORKERS = opts$workers))
   step("Run information", c(file.path(harness, "finalize-results.R"), plan_dir, chunks_dir, merged_dir, results_dir),
        env = c(SIM_HARNESS_SHA = harness_sha))
   step("Address scan", c(file.path(harness, "scan-addresses.R"), plan_dir, chunks_dir, results_dir))
