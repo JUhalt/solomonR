@@ -1283,7 +1283,7 @@ if ("contract" %in% groups) local({
          yes(r$status == 0L && identical(item(info, "package_sha"), "unknown") &&
                identical(item(info, "package_dirty"), "NA")),
          paste(item(info, "package_sha"), item(info, "package_dirty")))
-  unclean <- "needs a clean checkout of the pinned commit, at the top level of its git repository"
+  unclean <- "needs a clean checkout of the pinned commit at the top level of its git repository"
   r <- run_study(inner, plan_vars(file.path(plans, "gate"), purpose = "gate", design = "gate"), git = TRUE)
   record("contract", "inner copy, gate plan", "refuse", refusal(r, unclean), last_line(r$out))
   r <- run_study(inner, plan_vars(file.path(plans, "study"), purpose = "study", design = "run"), git = TRUE)

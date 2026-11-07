@@ -9,12 +9,15 @@
 # which come from the workflow's own commit) passes no seed to the script,
 # and its assignment of tasks to jobs draws no random number: it only says
 # which tasks a process runs and where the files go, and it checks and
-# merges what comes back. In a gate or study run, the only random numbers
-# it draws itself are those of the RNG fingerprint
-# (tools/sim/rng-fingerprint.R, run by the planning job, or by run-local.R),
-# from set.seed(116) in a process of its own that runs no task. The
-# harness's own tests (tools/sim/tests/run-tests.R), which run in its pull
-# requests only, draw their own.
+# merges what comes back. No random number that the harness draws reaches
+# a task. In a gate or study run, the only seed it sets itself is
+# set.seed(116) for the RNG fingerprint (tools/sim/rng-fingerprint.R, run by
+# the planning job, or by run-local.R), in a process of its own that runs no
+# task. This file sets one more in a gate, for the gate's random task order
+# (sim_run()), and loading R's parallel package draws one number for a port
+# and then puts the generator's state back. The harness's own tests
+# (tools/sim/tests/run-tests.R), which run in its pull requests only, draw
+# their own.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does
@@ -599,8 +602,8 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
   # not the top level of its repository, a repository with no commit or
   # with SHA-256 names) a gate or study plan stops here.
   if (spec$purpose %in% c("study", "gate") && !identical(dirty, FALSE)) {
-    stop("A ", spec$purpose, " run needs a clean checkout of the pinned commit, at the top level of its ",
-         "git repository.", call. = FALSE)
+    stop("A ", spec$purpose, " run needs a clean checkout of the pinned commit at the top level of its ",
+         "git repository, with a commit named by 40 hex digits.", call. = FALSE)
   }
   id <- sim_package_id(study)
   info <- c(
@@ -666,7 +669,7 @@ sim_verify_plan <- function(study, plan) {
   # commit unchecked, and the plan's commit would pass as this checkout's.
   if (spec$purpose %in% c("study", "gate") && is.na(sim_git_head(study))) {
     stop("A ", spec$purpose, " run needs a checkout of the pinned commit at the top level of its git ",
-         "repository.", call. = FALSE)
+         "repository, with a commit named by 40 hex digits.", call. = FALSE)
   }
   fresh <- sim_plan(study, spec, sim_recorded_subset(info))
   checks <- c(

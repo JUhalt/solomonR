@@ -5,10 +5,15 @@ This folder runs the simulation studies of the v1.0 validation protocols
 machine, with the same scripts and the same checks. It splits a study's
 tasks among jobs, checks and merges what the jobs return, and computes the
 summary only after every check has passed. It never chooses a task's
-seed: the study script does, from its protocol. In a gate or study run,
-its only random numbers are those of the RNG fingerprint
-(`rng-fingerprint.R`), from `set.seed(116)` in a process of its own that
-runs no task. Its own tests draw their own, in its pull requests only.
+seed: the study script does, from its protocol, and each task starts from
+its own stream. No random number that the harness draws reaches a task. In
+a gate or study run it sets two seeds: `set.seed(116)` for the RNG
+fingerprint (`rng-fingerprint.R`), in a process of its own that runs no
+task, and, in a gate, the seed of the gate's random task order (`sim_run()`
+in `contract.R`, which comes from the package commit). Loading R's
+`parallel` package draws one number for a port and then puts the
+generator's state back. Its own tests draw their own, in its pull requests
+only.
 
 `tools/` is in `.Rbuildignore`, and `tools/check-validation-scripts.R` looks
 only at `vignettes/articles/*-validation/`, so nothing here is part of the
@@ -209,12 +214,13 @@ every such field).
 - A summary that stops on a fault in the study's code stops the same way
   on a rerun, since it runs the same code on the same task files. A fix
   needs a new commit, and the merge refuses task files of another commit.
-- A merge job that fails uploads `failed-merge-attempt-<attempt>`, kept
-  for 14 days, if its files pass the address scan: those of
-  `merged/replay.csv` and `merged/job-info.csv` (the merging machine,
-  recorded before the replay) that exist, and the logs of the replay and
-  the summary that exist and pass the scan on their own, so that a log
-  cannot hold back the two records. After a replay that differs,
+- A merge job that fails (not one that is cancelled or times out)
+  uploads `failed-merge-attempt-<attempt>`, kept for 14 days, if its
+  files pass the address scan: those of `merged/replay.csv` and
+  `merged/job-info.csv` (the merging machine, recorded before the
+  replay) that exist, and the logs of the replay and the summary that
+  exist and pass the scan on their own, so that a log cannot hold back
+  the two records. After a replay that differs,
   `replay.csv` gives each replayed task's largest difference in the
   results, the columns that differ, and the processor models of its chunk
   and of the merging machine. Download it when the run ends. The merging
