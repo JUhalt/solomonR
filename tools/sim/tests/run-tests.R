@@ -77,10 +77,14 @@
 #            package copy is the top level of its repository (#162): HEAD
 #            there, and a given commit checked against it; for a copy
 #            inside another repository, "unknown" (or a given commit,
-#            unchecked) in a test plan, never the outer HEAD, and its gate
-#            and study plans refused; and GIT_DIR ignored; and the gate's
-#            seconds per unit of cost (sim_gate_default() on timings made
-#            up here).
+#            unchecked) in a test plan, never the outer HEAD, its gate and
+#            study plans refused, and a gate plan made at a top level
+#            refused there in the run stage (sim_verify_plan()); a gate
+#            plan refused in a repository with no commit, and both
+#            refusals in one with SHA-256 names (where git can make one);
+#            and GIT_DIR ignored; and
+#            the gate's seconds per unit of cost (sim_gate_default() on
+#            timings made up here).
 #   replay   merge-chunks.R's replay list (rules a to d) on task files made
 #            up here: 6 tasks in 1, 2, and 3 chunks, with costs such that
 #            rules c and d must fall back to the lowest- and highest-
@@ -1300,6 +1304,42 @@ if ("contract" %in% groups) local({
                  git = TRUE)
   v <- item(read_info(file.path(root, "git-plans", "test-git-dir")), "package_sha")
   record("contract", "test plan, GIT_DIR naming another repository", "yes", yes(identical(v, g_head)), v)
+  # The run stage checks a gate or study plan's commit again
+  # (sim_verify_plan()). The clean gate plan of p-git, its commit given,
+  # passes at p-git, once the change to its sourced file is undone. The copy
+  # inside another repository holds the same files, but git cannot check the
+  # given commit there, so the plan is refused, not taken as its own.
+  git_at(g, "checkout", "-q", "--", "lib/helper.R")
+  clean_gate <- file.path(root, "git-plans", "clean")
+  r <- run_study(g, c(verify_vars(clean_gate), SOLOMONR_SIM_PACKAGE_SHA = g_head), git = TRUE)
+  record("contract", "verify: a gate plan at the top level, its commit given", "accept", outcome(r), last_line(r$out))
+  outside <- "needs a checkout of the pinned commit at the top level of its git repository"
+  r <- run_study(inner, c(verify_vars(clean_gate), SOLOMONR_SIM_PACKAGE_SHA = g_head), git = TRUE)
+  record("contract", "verify: inner copy, a gate plan, its commit given", "refuse", refusal(r, outside),
+         last_line(r$out))
+  # A top-level repository with no commit, and one that names its objects
+  # by SHA-256: neither has a HEAD of 40 hex digits, so git is not used for
+  # the copy there. A gate plan stops, whatever commit is given, and the
+  # run stage refuses a gate plan made elsewhere.
+  unborn <- pkg("p-unborn")
+  git_at(unborn, "init", "-q")
+  r <- run_study(unborn, c(plan_vars(file.path(root, "unborn-plans", "gate"), purpose = "gate", design = "gate"),
+                           SOLOMONR_SIM_PACKAGE_SHA = g_head), git = TRUE)
+  record("contract", "no commit yet, gate plan, a commit given", "refuse", refusal(r, unclean), last_line(r$out))
+  s256 <- pkg("p-sha256")
+  made <- suppressWarnings(system2(git, c("-C", shQuote(s256), "init", "-q", "--object-format=sha256"),
+                                   stdout = TRUE, stderr = TRUE))
+  if (!is.null(attr(made, "status"))) return(skip("contract", "this git makes no SHA-256 repository: its cases"))
+  git_at(s256, "add", ".")
+  git_at(s256, "-c", "user.name=harness-test", "-c", "user.email=harness-test", "commit", "-q", "-m",
+         shQuote("a repository with SHA-256 names"))
+  r <- run_study(s256, c(plan_vars(file.path(root, "sha256-plans", "gate"), purpose = "gate", design = "gate"),
+                         SOLOMONR_SIM_PACKAGE_SHA = strrep("a", 40)), git = TRUE)
+  record("contract", "SHA-256 repository, gate plan, any commit given", "refuse", refusal(r, unclean),
+         last_line(r$out))
+  r <- run_study(s256, c(verify_vars(clean_gate), SOLOMONR_SIM_PACKAGE_SHA = g_head), git = TRUE)
+  record("contract", "verify: SHA-256 repository, a gate plan, its commit given", "refuse", refusal(r, outside),
+         last_line(r$out))
 })
 
 # ---- replay: the replay list of merge-chunks.R ----------------------------------

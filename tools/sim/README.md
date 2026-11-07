@@ -100,13 +100,16 @@ or study run, both are commits on master.
 The contract reads the package commit with git only where the package copy
 is the top level of its git repository (`git rev-parse --show-toplevel` is
 the copy's folder), with `GIT_DIR` and `GIT_WORK_TREE` unset, as the
-validation scripts do (#152, #162). A copy unpacked inside another
-repository would otherwise record that repository's commit. Elsewhere a
-test run records `unknown`, or the commit given in
-`SOLOMONR_SIM_PACKAGE_SHA` without a check, and a gate or study plan stops:
-it needs git to find the checkout clean, and there a given commit must
-equal `HEAD`. Every job of the workflow checks out the package commit at
-the top level of its own repository.
+validation scripts do (#152, #162), and where `HEAD` is a commit of 40 hex
+digits (a repository with no commit, or one with SHA-256 names, has none).
+A copy unpacked inside another repository would otherwise record that
+repository's commit. Where git is used, a commit given in
+`SOLOMONR_SIM_PACKAGE_SHA` must equal `HEAD`. Elsewhere a test run records
+`unknown`, or the given commit without a check, and a gate or study run
+stops: its plan needs git to find the checkout clean, and its run stage
+needs git to check the plan's commit against `HEAD` again. Every job of
+the workflow checks out the package commit at the top level of its own
+repository.
 
 ## Running in the cloud
 
@@ -304,8 +307,10 @@ required commits, and, with git, the step "Check the package commit" on a
 repository made there; the contract's plan
 stage, its refusals of numbers it cannot read as whole numbers, and
 `sim_verify_plan()` on the synthetic study `tests/synthetic-study.R`, which
-loads no package there (with git, also the clean-checkout rule, and a
-copy inside another repository, whose commit is not read); the
+loads no package there (with git, also the clean-checkout rule; a copy
+inside another repository, whose commit is not read, whose gate and study
+plans are refused, and where the run stage refuses a gate plan made at a
+top level; and repositories with no commit or with SHA-256 names); the
 replay list of `merge-chunks.R` and the items and refusals of
 `finalize-results.R` on files made up there; `run-local.R` on the
 synthetic study, as a second study beside smoke, in a package folder made
