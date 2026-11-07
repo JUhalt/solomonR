@@ -1,5 +1,54 @@
 # solomonR (development version)
 
+## Bootstrap refits on ill-conditioned designs (#154)
+
+* **Refits that rounding error kept from converging are fitted again.**
+  `marginal_solomon()` refits each bootstrap resample by iteratively
+  reweighted least squares, which stops when the deviance changes by less
+  than 1e-8 of itself within 25 iterations, the rule of `glm.fit()`. With
+  nearly collinear covariates, the condition number of the design can
+  reach 1e14. Rounding error then moves the deviance by more than the rule
+  allows at every iteration. On the nested covariates of #154, with a
+  binary outcome and `R = 199`, 199, 197, and 195 resamples failed, the
+  intervals were not reported, and the warning blamed sparse cells. A
+  refit that does not converge is now fitted again with the intercept, the
+  pretesting indicator, the pretest, and the covariates replaced by the
+  orthonormal columns of their QR decomposition (Golub, 1965). These span
+  the same space, and the treatment terms are kept, so in exact arithmetic
+  it is the same fit (Green, 1984). On those data no resample fails, and
+  the standard errors are within 0.1% of those of an exact
+  reparameterization. The convergence rule is unchanged.
+* **Results are unchanged where every refit converges.** A refit that
+  converges is computed as before, so on well-conditioned data the
+  estimates, standard errors, intervals, p-values, and failure counts are
+  identical. A test checks that such a bootstrap refits each resample
+  once, on the model's design.
+* **The bootstrap warning gives the failures by reason.** When more than
+  10% of the resamples fail, the warning counts those with a Solomon cell
+  of only events or only non-events, a fitted risk within 1e-8 of 0 or 1,
+  a design not of full rank, and no convergence in 25 iterations. It says
+  that the first two come from sparse cells or separation (Albert &
+  Anderson, 1984) only when they occur. For the refits that did not
+  converge, it gives the largest condition number of their design, since
+  rounding error grows with it (Higham, 2002). It no longer says that the
+  failures are usually due to sparse cells. A covariate nearly collinear
+  with a treatment term can still keep refits from converging, because the
+  treatment terms, whose coefficients give the contrasts, are kept.
+* **A fit that stops gives the error alone.** `fit_solomon_glm()`, with one
+  treatment or several, now holds back the warnings of its model fit until
+  the checks for an empty group, a collinear term, and, under HC3, a group
+  with a single participant have passed. Before, a negative-binomial fit
+  with exactly collinear covariates warned that `glm.fit()` and theta did
+  not converge, and then stopped with the error that a covariate is
+  collinear.
+  A fit that goes ahead gives the same warnings, in the same order, and the
+  same results. With several treatments, the noncollapsibility warning
+  also waits for the checks.
+* **`model$converged` describes the fit as given.** `?fit_solomon_glm` now
+  says that `model$converged` and `model$iter` describe the fit to the
+  covariates and the pretest as given, not the standardized fit that gives
+  the warnings.
+
 ## Only MLR and ML in the SEM functions (#133)
 
 * **A change in behavior.** `fit_solomon_sem()`, `fit_solomon_sem_latent()`,
