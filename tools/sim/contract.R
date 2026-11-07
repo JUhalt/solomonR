@@ -11,14 +11,15 @@
 # which tasks a process runs and where the files go, and it checks and
 # merges what comes back. No random number that the harness draws reaches
 # a task: sim_run_task() assigns each task's stream just before the task
-# runs, which overwrites any earlier draw. Besides the study's base seed,
-# from which this file makes the tasks' streams (set.seed(base) in
-# sim_streams()), a gate or study run sets set.seed(116) for the RNG
-# fingerprint (tools/sim/rng-fingerprint.R, run by the planning job, or by
-# run-local.R), in a process of its own that runs no task, and a gate also
-# sets the base seed + 1 for the order of its tasks (sim_run()). The
-# harness's own tests (tools/sim/tests/run-tests.R), which run in its pull
-# requests only, draw their own.
+# runs, which overwrites any earlier draw. Apart from the study's base
+# seed, from which this file makes the tasks' streams (set.seed(base) in
+# sim_streams()), the harness sets set.seed(116) for the RNG fingerprint
+# (tools/sim/rng-fingerprint.R, run by the planning job, or by
+# run-local.R), in a process of its own that runs no task, and this file
+# sets, in a gate, the base seed + 1 for the order of its tasks (sim_run()).
+# A study's own code may set others inside its tasks, such as the seeds of
+# its agreement checks. The harness's own tests (tools/sim/tests/run-tests.R),
+# which run in its pull requests only, draw their own.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does

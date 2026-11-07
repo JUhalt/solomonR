@@ -9,11 +9,13 @@ seed: the study script does, from its protocol, and `contract.R` makes
 the tasks' streams from the study's base seed (`set.seed(base)` in
 `sim_streams()`). No random number that the harness draws reaches a task:
 each task's stream is assigned just before the task runs
-(`sim_run_task()`), which overwrites any earlier draw. Besides the base
-seed, a gate or study run sets `set.seed(116)` for the RNG fingerprint
-(`rng-fingerprint.R`), in a process of its own that runs no task, and a
-gate also sets the base seed + 1 for the order of its tasks (`sim_run()`).
-Its own tests draw their own, in its pull requests only.
+(`sim_run_task()`), which overwrites any earlier draw. Apart from the base
+seed, the harness sets `set.seed(116)` for the RNG fingerprint
+(`rng-fingerprint.R`), in a process of its own that runs no task, and, in
+a gate, the base seed + 1 for the order of its tasks (`sim_run()`). A
+study's own code may set others inside its tasks, such as the seeds of its
+agreement checks. The harness's tests draw their own, in its pull requests
+only.
 
 `tools/` is in `.Rbuildignore`, and `tools/check-validation-scripts.R` looks
 only at `vignettes/articles/*-validation/`, so nothing here is part of the
@@ -282,8 +284,8 @@ After a reboot, sleep, or crash, `--resume` keeps the plan and the finished
 chunks, runs only the tasks whose files are missing or unreadable, records
 the resumption in the chunk's `resumes.csv` (and in `run-information.csv`),
 and merges afresh; it refuses to continue if `software.csv` has changed. A
-gate or study run needs a clean checkout of a commit at the top level of
-its git repository, with a commit named by 40 hex digits.
+gate or study run needs a clean checkout, at the top level of its git
+repository, of a commit named by 40 hex digits.
 
 A new run is of the study `--study` names (smoke without it). `--resume`
 and `--rerun-chunk` take the study from the run's `plan/plan-info.csv`

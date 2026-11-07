@@ -15,8 +15,9 @@ name: simulation-run
 # job's set.seed(116) for the RNG fingerprint (tools/sim/rng-fingerprint.R),
 # in a process of its own that runs no task; the study's base seed and the
 # gate's task order are set by contract.R, from the package commit. The
-# harness's tests, which run in its pull requests only, draw their own. It never writes to the repository: the results are
-# downloaded and committed through a pull request. See tools/sim/README.md.
+# harness's tests, which run in its pull requests only, draw their own. It
+# never writes to the repository: the results are downloaded and committed
+# through a pull request. See tools/sim/README.md.
 
 on:
   workflow_dispatch:
