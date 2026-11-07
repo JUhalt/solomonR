@@ -23,20 +23,20 @@
   replace, as the model's own fit is (Higham, 2002), and under near
   separation a resample can be counted as failed, or not, differently
   than in an exact reparameterization. The convergence rule is unchanged.
-* **Refits whose design rounding error leaves short of full rank are
-  fitted again too.** Nearly collinear covariates can be collinear to
-  within the tolerance of `qr()`, 1e-11, on a resample though not in the
-  sample. Such a refit is now fitted again in the same new columns, which
-  have the same rank as the design on each resample in exact arithmetic.
-  With `z2 = z1 + 1.2e-11 * e1`, 87 of 199 resamples failed before, 24 of
-  them as designs not of full rank. None fails now, and the interval
-  limits are within 3e-4 standard errors of those of an exact
-  reparameterization of the covariates. A resample that lacks a level of a
-  factor still fails as a design not of full rank, unless a covariate
-  nearly repeats the indicator of that level, when rounding error can make
-  it fail for another reason or, rarely, converge. The new columns are
-  formed whenever `fit_solomon_glm()` fitted the model, which it does only
-  when no term is collinear with the others.
+* **A refit whose design is not of full rank is not fitted again.** It
+  still counts as failed, as when a resample lacks a level of a factor or
+  makes nearly collinear covariates collinear. In the new columns, a
+  direction that a resample makes collinear is carried only by rounding
+  error, and a refit could converge on it. Just inside the collinearity
+  check of `fit_solomon_glm()`, rounding error can make nearly collinear
+  covariates collinear to within the tolerance of `qr()`, 1e-11, on some
+  resamples, and these fail too. With `z2 = z1 + 1.2e-11 * e1`, 87 of 199
+  resamples failed before. The 63 that did not converge now converge in
+  the new columns, and the 24 whose design fell short of full rank still
+  fail, where an exact reparameterization of the covariates has no
+  failures. The new columns are formed whenever `fit_solomon_glm()`
+  fitted the model, which it does only when no term is collinear with the
+  others.
 * **Results are unchanged where every refit converges.** A refit that
   converges is computed as before, so on well-conditioned data the
   estimates, standard errors, intervals, p-values, and failure counts are

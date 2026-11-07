@@ -181,9 +181,10 @@ risk differences, log risk ratios, or log odds ratios.
 Bootstrap resamples in which the logistic fit fails are excluded and
 counted: those with a Solomon cell of only events or only non-events, a
 fitted probability within 1e-8 of 0 or 1, a design not of full rank (as
-when a resample lacks a level of a factor), or no convergence in 25
-iterations by the rule of \code{\link[stats:glm.control]{stats::glm.control()}}. When more than 10\% fail,
-intervals are not reported, and the warning gives the failures by reason.
+when a resample lacks a level of a factor or makes nearly collinear
+covariates collinear), or no convergence in 25 iterations by the rule of
+\code{\link[stats:glm.control]{stats::glm.control()}}. When more than 10\% fail, intervals are not
+reported, and the warning gives the failures by reason.
 Each resample is refitted by iteratively reweighted least squares from
 the model's coefficients, with full steps. Where a step takes fitted
 probabilities to 0 or 1, the refit stops and the resample fails;
@@ -192,32 +193,34 @@ infinite (Marschner, 2011). So a fitted probability near 0 or 1 comes
 from complete or quasicomplete separation (Albert & Anderson, 1984) or
 near separation, from an extreme covariate value, or from a refit that
 diverged.
-A refit that does not converge, or whose design is not of full rank at
-the tolerance of \code{\link[=qr]{qr()}} (1e-11), is fitted again with the intercept, the
+A refit that does not converge is fitted again with the intercept, the
 pretesting indicator, the pretest, and the covariates replaced by the
 orthonormal columns of their QR decomposition (Golub, 1965). These span
 the same space, and the treatment terms are kept, so in exact arithmetic
-it is the same fit (Green, 1984), on a design of the same rank. With
-nearly collinear covariates, rounding error can keep a refit from
-converging, or make its design fall short of full rank at that
-tolerance, and the new columns let it converge. A resample that lacks a
-level of a factor still fails as a design not of full rank, unless a
-covariate nearly repeats the indicator of that level: rounding error can
-then make it fail for another reason or, rarely, converge. The new
-columns are formed whenever \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} fitted the model, since
-it stops at a term collinear with the others. They cannot help with a
-treatment term nearly collinear with the other terms, because the
-contrasts are read from the treatment coefficients. The new columns are
-computed in floating point, so they span the old ones only to within
-about the unit roundoff times the condition number of the columns they
-replace (Higham, 2002, Theorem 19.4 and Chapter 20). A refit in them is
-accurate to about that, as the model's own fit is, and a resample with a
-fitted probability near the 1e-8 limit can be counted as failed, or
-not, differently than in exact arithmetic. For the refits that still do
-not converge, the warning gives the largest condition number of their
-weighted design: the rounding error of each step grows with it (Higham,
-2002, Chapter 20). A bootstrap whose refits all converge is computed as
-before.
+it is the same fit (Green, 1984). With nearly collinear covariates,
+rounding error can keep a refit from converging, and the new columns
+let it converge. The new columns are formed whenever \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}
+fitted the model, since it stops at a term collinear with the others.
+A refit whose design is not of full rank at the tolerance of \code{\link[=qr]{qr()}}
+(1e-11) is not fitted again, and the resample counts as failed. In the
+new columns, a direction that a resample makes collinear is carried
+only by rounding error, and a refit could converge on it. Just inside
+the collinearity check of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, rounding error can also
+make nearly collinear covariates collinear to within that tolerance on
+some resamples, and those resamples fail too, though an exact
+reparameterization of the covariates would fit them. The new columns
+cannot help with a treatment term nearly collinear with the other
+terms, because the contrasts are read from the treatment coefficients.
+They are computed in floating point, so they span the old ones only to
+within about the unit roundoff times the condition number of the
+columns they replace (Higham, 2002, Theorem 19.4 and Chapter 20). A
+refit in them is accurate to about that, as the model's own fit is, and
+a resample with a fitted probability near the 1e-8 limit can be counted
+as failed, or not, differently than in exact arithmetic. For the refits
+that still do not converge, the warning gives the largest condition
+number of their weighted design: the rounding error of each step grows
+with it (Higham, 2002, Chapter 20). A bootstrap whose refits all
+converge is computed as before.
 
 For the pretest effects, the pretested and the unpretested risks are
 standardized over different participants, so the sampling variance of
