@@ -712,6 +712,37 @@ reasons are set out in the decision record posted on #135.
   commit where the page says, and that every study whose script has the
   definition, including one added later, has an article, named after its
   folder, that links the rule.
+* The validation-scripts workflow now also runs the plan re-simulation
+  script in smoke mode from a copy made with `git archive`, outside any git
+  repository, and fails unless the run records `NA` as its commit. A run
+  of a script, not only the rule itself, is now tested on every pull
+  request to master and every push to it (#162).
+* The same workflow now runs `tests/testthat/test-validation-commit.R`
+  from the package source. All its tests read `vignettes/articles/`: they
+  load `validation_commit()` from a script, and some also check the
+  Validation Evidence page. R CMD check and the coverage workflow do not
+  have that folder, so until now the whole file was skipped on every CI
+  run and ran only locally (#162).
+* GitHub makes the "Download ZIP" file, and its other source archives of a
+  branch, tag, or commit, with `git archive` (GitHub, n.d.). GitHub's page
+  does not say whether these files keep the commit. On November 7, 2026,
+  they did: `unzip -z` printed the commit from GitHub's ZIP file of master
+  and from its ZIP file of the tag v0.4.0, and `git get-tar-commit-id`
+  printed it from its `.tar.gz` file of master. The Validation Evidence
+  page now says so, citing Git's documentation (Git Project, n.d.) for
+  where `git archive` stores the commit. Both are added to the references
+  (#162).
+
+## References without a date (#162)
+
+* `tools/check-references.R` now also checks references without a date
+  ("n.d."), which it skipped before: the first two, GitHub (n.d.) and Git
+  Project (n.d.), came with #162. It also orders names as APA 7 does,
+  letter by letter, with the end of a surname or of a set of initials
+  before any letter, so "Brown, J." precedes "Browning, A."; before, the
+  check would have accepted the reverse. Accented letters count as their
+  base letters, so "Éthier" sorts under E. No list in the package changes
+  its verdict.
 
 ## Validation scripts that run against the current package (#140)
 

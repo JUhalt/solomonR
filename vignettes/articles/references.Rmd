@@ -649,6 +649,13 @@ Gelman, A., & Stern, H. (2006). The difference between "significant" and
 "not significant" is not itself statistically significant. *The American
 Statistician, 60*(4), 328–331. https://doi.org/10.1198/000313006X152649
 
+GitHub. (n.d.). *Downloading source code archives*. GitHub Docs. Retrieved
+November 7, 2026, from
+https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives
+
+Git Project. (n.d.). *git-archive*. Git documentation. Retrieved November
+7, 2026, from https://git-scm.com/docs/git-archive
+
 Golub, G. (1965). Numerical methods for solving linear least squares
 problems. *Numerische Mathematik, 7*(3), 206–216.
 https://doi.org/10.1007/BF01436075
