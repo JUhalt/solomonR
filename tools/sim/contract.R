@@ -9,10 +9,12 @@
 # which come from the workflow's own commit) passes no seed to the script,
 # and its assignment of tasks to jobs draws no random number: it only says
 # which tasks a process runs and where the files go, and it checks and
-# merges what comes back. The only random numbers it draws itself are those
-# of the planning job's fingerprint (tools/sim/rng-fingerprint.R, which
-# run-local.R runs too), from set.seed(116) in a process of its own that
-# runs no task.
+# merges what comes back. In a gate or study run, the only random numbers
+# it draws itself are those of the RNG fingerprint
+# (tools/sim/rng-fingerprint.R, run by the planning job, or by run-local.R),
+# from set.seed(116) in a process of its own that runs no task. The
+# harness's own tests (tools/sim/tests/run-tests.R), which run in its pull
+# requests only, draw their own.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does

@@ -9,11 +9,12 @@ name: simulation-run
 # to the study's script, and its assignment of tasks to jobs draws no
 # random number; it only splits the planned tasks among jobs, checks and
 # merges what the jobs return, and runs up to four tasks again on the
-# merging machine. The only random numbers its own scripts draw are those
-# of the planning job's RNG fingerprint (tools/sim/rng-fingerprint.R), from
-# set.seed(116) in a process of its own that runs no task. It never writes
-# to the repository: the results are downloaded and committed through a
-# pull request. See tools/sim/README.md.
+# merging machine. In a gate or study run, the only random numbers its own
+# scripts draw are those of the planning job's RNG fingerprint
+# (tools/sim/rng-fingerprint.R), from set.seed(116) in a process of its own
+# that runs no task; the harness's tests, which run in its pull requests
+# only, draw their own. It never writes to the repository: the results are
+# downloaded and committed through a pull request. See tools/sim/README.md.
 
 on:
   workflow_dispatch:

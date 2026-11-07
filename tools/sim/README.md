@@ -4,8 +4,11 @@ This folder runs the simulation studies of the v1.0 validation protocols
 (#116, and the items of #117) either on GitHub-hosted runners or on one
 machine, with the same scripts and the same checks. It splits a study's
 tasks among jobs, checks and merges what the jobs return, and computes the
-summary only after every check has passed. It never chooses a seed: the
-study script does, from its protocol.
+summary only after every check has passed. It never chooses a task's
+seed: the study script does, from its protocol. In a gate or study run,
+its only random numbers are those of the RNG fingerprint
+(`rng-fingerprint.R`), from `set.seed(116)` in a process of its own that
+runs no task. Its own tests draw their own, in its pull requests only.
 
 `tools/` is in `.Rbuildignore`, and `tools/check-validation-scripts.R` looks
 only at `vignettes/articles/*-validation/`, so nothing here is part of the
