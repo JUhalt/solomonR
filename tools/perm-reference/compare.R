@@ -11,7 +11,12 @@
 #   cluster every allocation (reps >= the number of allocations), so the
 #           package enumerates.
 # The integer count b is compared, not p (design Section 8). The plot_perm()
-# subtitle is checked against the reference p for every object.
+# subtitle is checked against the reference p for every object. Also per
+# case (design Section 8): the rows in the model against the reference's,
+# the package's negative binomial theta against theta* and the band over
+# which the reference certified its decisions, and the classed warnings of
+# the fit; and every draw that the package classifies differently from the
+# reference is listed (misclassified-draws.csv beside the output).
 
 args <- commandArgs(TRUE)
 ref_file <- args[1]
@@ -36,7 +41,33 @@ fit_world <- function(wd, treat, cluster = FALSE) {
     args$cluster <- d$cl
     args$robust <- if (wd$family == "negbin") "HC3" else "CR2"
   }
-  suppressWarnings(do.call(solomonR::fit_solomon_glm, args))
+  # the classed warnings of the fit are kept (theta at the boundary, ...)
+  warns <- character(0)
+  fit <- withCallingHandlers(do.call(solomonR::fit_solomon_glm, args), warning = function(w) {
+    cl <- setdiff(class(w), c("warning", "condition", "simpleWarning"))
+    warns <<- c(warns, if (length(cl)) paste(cl, collapse = "/") else "warning")
+    invokeRestart("muffleWarning")
+  })
+  attr(fit, "fit_warnings") <- paste(unique(warns), collapse = ";")
+  fit
+}
+
+# Rows in the model, by the reference (row types not "OUT") and by the package.
+ref_rows <- function(r) sum(vapply(r$types, function(ty) sum(!is.na(ty$row_type)), 0))
+pkg_rows <- function(fit) tryCatch(as.numeric(stats::nobs(fit$model)), error = function(e) NA_real_)
+
+# The package's theta (that of the model it refits) against theta* and the
+# certified band (design Section 8: reported as a theta mismatch, not a p
+# mismatch).
+theta_cols <- function(fit, cr) {
+  if (is.null(cr$theta) || !is.finite(cr$theta)) {
+    return(data.frame(theta_ref = NA, theta_pkg = NA, theta_rel_diff = NA, theta_band = NA, theta_ok = NA))
+  }
+  tp <- tryCatch(fit$model$theta, error = function(e) NULL)
+  if (is.null(tp)) tp <- NA_real_
+  rd <- tp / cr$theta - 1
+  data.frame(theta_ref = cr$theta, theta_pkg = tp, theta_rel_diff = rd, theta_band = cr$theta_band,
+             theta_ok = is.finite(rd) && abs(rd) <= cr$theta_band)
 }
 
 class_of <- function(r, treat) {
@@ -55,15 +86,39 @@ class_of <- function(r, treat) {
 ref_count <- function(st, cls, s) {
   code <- st$code[cls]
   rel <- st$rel[cls]
+  under <- if (is.null(st$under)) code else st$under[cls]
   cnt <- as.numeric(!is.na(rel) & rel >= 0)
-  cnt[code == "SEP-L"] <- 1
+  cnt[code %in% c("SEP-L", "SEP-I")] <- 1
   keep <- code != "ALIAS"  # left out (see reference.R, case_counts())
   err <- if (any(code == "NE")) "NE" else if (any(code == "H1" & s == "studentized")) "H1" else NULL
-  und <- any(code == "UNDECIDED") || any(is.na(rel) & !(code %in% c("NE", "H1", "SEP-L", "ALIAS")))
+  und <- any(code == "UNDECIDED") || any(is.na(rel) & !(code %in% c("NE", "H1", "SEP-L", "SEP-I", "ALIAS")))
   # the alternative that leaves out labelings without a defined statistic
-  kd <- keep & !(code %in% c("NE", "H1", "ZZ")) & !(code == "SEP-L" & s == "studentized")
+  kd <- keep & !(code %in% c("NE", "H1", "ZZ", "SEP-I")) & !(code == "SEP-L" & s == "studentized")
+  # the alternative that gives a leverage-1 labeling its infinite value
+  hinf <- code == "H1" & under %in% c("INF-E", "INF-X", "INF-C", "SEP-L", "SEP-I")
+  kh <- keep & !(code == "NE") & !(code == "H1" & !hinf)
+  cnt_h <- cnt
+  cnt_h[hinf] <- 1
   list(b = sum(cnt[keep]), m = sum(keep), error = err, undecided = und,
-       b_drop = sum(cnt[kd]), m_drop = sum(kd))
+       b_drop = sum(cnt[kd]), m_drop = sum(kd), b_h1inf = sum(cnt_h[kh]), m_h1inf = sum(kh),
+       err_h1inf = any(code == "NE") || any(code == "H1" & !hinf), cnt = cnt, keep = keep)
+}
+
+# Draws that the package classifies differently from the reference (design
+# Section 8): index, class, reference code and |T|, package z, and whether
+# each counts the draw as at least as extreme.
+MISCLASS <- list()
+misclassified <- function(case_id, cls, st, v, family_obj, statistic) {
+  if (length(v$z_perm) != length(cls)) return(NULL)
+  rc <- ref_count(st, cls, statistic)
+  unit <- solomonR:::.perm_unit(v$z_perm, statistic)
+  pk <- solomonR:::.perm_at_least(v$z_perm, v$z_obs, unit, solomonR:::.perm_tie_tolerance(family_obj))
+  rf <- rc$cnt == 1 & rc$keep
+  bad <- which(pk != rf)
+  if (!length(bad)) return(NULL)
+  data.frame(case_id = case_id, draw = bad, class = cls[bad], ref_code = st$code[cls[bad]],
+             ref_T = st$approx[cls[bad]], pkg_z = v$z_perm[bad], pkg_z_obs = v$z_obs, ref_counted = rf[bad],
+             pkg_counted = pk[bad], stringsAsFactors = FALSE)
 }
 
 safe_bind <- function(rows) {
@@ -121,14 +176,17 @@ compare_world <- function(r, replay_seed) {
       if (inherits(v, "pkg_error")) {
         out <- cbind(out, pkg_outcome = paste("error:", v$msg), pkg_b = NA, pkg_valid = NA, pkg_p = NA,
                      pkg_p_same = NA, agree = grepl("^error", cr$outcome) && any(grepl("^solomonR_", v$class)),
+                     agree_alt = if (is.na(cr$alt_outcome)) NA else FALSE,
                      z_maxrel = NA, plot_with_p = NA, plot_without_p = NA)
       } else {
         bp <- round(v$p_perm * v$valid_reps)
         q <- v
         q$p_perm <- NULL
+        same <- isTRUE(v$exact) && v$valid_reps == cr$M && isTRUE(bp == cr$b)
         out <- cbind(out, pkg_outcome = "p", pkg_b = bp, pkg_valid = v$valid_reps, pkg_p = v$p_perm,
                      pkg_p_same = bp / v$valid_reps,
-                     agree = grepl("^p", cr$outcome) && isTRUE(v$exact) && v$valid_reps == cr$M && bp == cr$b,
+                     agree = grepl("^p", cr$outcome) && same,
+                     agree_alt = if (is.na(cr$alt_outcome)) NA else same,
                      z_maxrel = NA, plot_with_p = plot_ok(subtitle_p(v), cr$p),
                      plot_without_p = plot_ok(subtitle_p(q), cr$p))
       }
@@ -160,6 +218,8 @@ compare_world <- function(r, replay_seed) {
   }
   for (o in names(wd$obs)) {
     fit <- tryCatch(fit_world(wd, wd$obs[[o]]), error = function(e) e)
+    fit_warn <- if (inherits(fit, "error")) "" else attr(fit, "fit_warnings")
+    rows_ok <- if (inherits(fit, "error")) NA else isTRUE(pkg_rows(fit) == ref_rows(r))
     if (use_A) {
       cls <- apply(labs, 2, function(t) class_of(r, t))
     } else {
@@ -178,12 +238,16 @@ compare_world <- function(r, replay_seed) {
       rc <- if (!is.null(st) && !is.null(cls)) ref_count(st, cls, cr$statistic) else list(b = NA, m = NA)
       base$ref_b_same <- rc$b
       base$ref_m_same <- rc$m
+      base$fit_warnings <- fit_warn
+      base$rows_ok <- rows_ok
       if (inherits(fit, "error")) {
         rows[[length(rows) + 1]] <- cbind(base, pkg_outcome = paste("fit error:", conditionMessage(fit)), pkg_b = NA,
-                                          pkg_valid = NA, pkg_p = NA, pkg_p_same = NA, agree = FALSE, z_maxrel = NA,
-                                          plot_with_p = NA, plot_without_p = NA, warnings = "")
+                                          pkg_valid = NA, pkg_p = NA, pkg_p_same = NA,
+                                          agree = if (grepl("^(no-reference|excluded)", cr$outcome)) NA else FALSE,
+                                          z_maxrel = NA, plot_with_p = NA, plot_without_p = NA, warnings = "")
         next
       }
+      base <- cbind(base, theta_cols(fit, cr))
       if (use_A) {
         env <- new.env()
         env$k <- 0L
@@ -202,6 +266,8 @@ compare_world <- function(r, replay_seed) {
       if (inherits(v, "pkg_error")) {
         out <- cbind(base, pkg_outcome = paste("error:", v$msg), pkg_b = NA, pkg_valid = NA, pkg_p = NA,
                      pkg_p_same = NA, agree = grepl("^error", cr$outcome) && any(grepl("^solomonR_", v$class)),
+                     agree_alt = if (is.na(cr$alt_outcome)) NA else FALSE,
+                     agree_h1inf = if (identical(cr$outcome_h1inf, "p") && !(cr$n_h1_inf %in% c("0", 0))) FALSE else NA,
                      z_maxrel = NA, plot_with_p = NA, plot_without_p = NA)
       } else {
         bp <- round(v$p_perm * (v$valid_reps + 1)) - 1
@@ -214,10 +280,18 @@ compare_world <- function(r, replay_seed) {
         q <- v
         q$p_perm <- NULL
         target <- (rc$b + 1) / (rc$m + 1)
-        ok <- grepl("^p", cr$outcome) && is.null(rc$error) && !isTRUE(rc$undecided) &&
-          v$valid_reps == rc$m && bp == rc$b
+        same <- is.null(rc$error) && !isTRUE(rc$undecided) && v$valid_reps == rc$m && bp == rc$b
+        ok <- grepl("^p", cr$outcome) && same
+        if (!ok && !is.null(st) && !is.null(cls)) {
+          mc <- misclassified(cr$case_id, cls, st, v, stats::family(fit$model), cr$statistic)
+          if (!is.null(mc)) MISCLASS[[length(MISCLASS) + 1]] <<- mc
+        }
         out <- cbind(base, pkg_outcome = "p", pkg_b = bp, pkg_valid = v$valid_reps, pkg_p = v$p_perm,
                      pkg_p_same = bp / v$valid_reps, agree = ok,
+                     agree_alt = if (is.na(cr$alt_outcome)) NA else same,
+                     agree_h1inf = if (identical(cr$outcome_h1inf, "p") && cr$n_h1_inf %in% c("0", 0)) NA else
+                       if (identical(cr$outcome_h1inf, "p")) !isTRUE(rc$undecided) && !isTRUE(rc$err_h1inf) &&
+                         v$valid_reps == rc$m_h1inf && bp == rc$b_h1inf else NA,
                      agree_drop = !is.null(rc$b_drop) && !isTRUE(rc$undecided) && v$valid_reps == rc$m_drop &&
                        bp == rc$b_drop,
                      z_maxrel = zr,
@@ -230,7 +304,9 @@ compare_world <- function(r, replay_seed) {
       rows[[length(rows) + 1]] <- out
     }
   }
-  safe_bind(rows)
+  out <- safe_bind(rows)
+  attr(out, "misclassified") <- if (length(MISCLASS)) do.call(rbind, MISCLASS)
+  out
 }
 
 # Scope block S: refused spellings must be refused by perm_solomon() with a
@@ -301,6 +377,7 @@ if (nzchar(only)) {
 }
 work <- function(nm) {
   t1 <- proc.time()[["elapsed"]]
+  MISCLASS <<- list()
   out <- tryCatch(compare_world(refs[[nm]], seeds[[nm]]), error = function(e) {
     data.frame(case_id = paste0(nm, "|harness error"), mode = NA, seed = NA, reps = NA, ref_outcome = NA, ref_b = NA,
                ref_M = NA, ref_p = NA, ref_b_same = NA, ref_m_same = NA, pkg_outcome = conditionMessage(e), pkg_b = NA,
@@ -313,7 +390,8 @@ work <- function(nm) {
 if (workers > 1) {
   cl <- parallel::makeCluster(workers)
   parallel::clusterExport(cl, c("ROOT", "refs", "seeds", "fam_arg", "fit_world", "class_of", "ref_count", "run_pkg", "safe_bind",
-                                "subtitle_p", "plot_ok", "compare_world", "work"))
+                                "subtitle_p", "plot_ok", "compare_world", "work", "ref_rows", "pkg_rows", "theta_cols",
+                                "misclassified", "MISCLASS"))
   invisible(parallel::clusterEvalQ(cl, suppressMessages(pkgload::load_all(ROOT, quiet = TRUE))))
   ord <- names(refs)[order(-vapply(refs, function(r) suppressWarnings(max(as.numeric(r$cases$M), na.rm = TRUE)), 0))]
   res <- parallel::parLapplyLB(cl, ord, work)
@@ -327,11 +405,13 @@ if (workers > 1) {
 }
 suppressMessages(pkgload::load_all(ROOT, quiet = TRUE))
 secs <- vapply(res, function(x) attr(x, "secs"), 0)
+mis <- do.call(rbind, lapply(res, function(x) attr(x, "misclassified")))
 cmp <- safe_bind(c(unname(res), if (!nzchar(only)) list(scope_block())))
 key <- ref$cases[, c("case_id", "world", "block", "items", "family", "obs", "contrast", "statistic", "space")]
 cmp <- merge(key, cmp, by = "case_id", all.y = TRUE, sort = FALSE)
 utils::write.csv(cmp, out_csv, row.names = FALSE)
-saveRDS(list(cmp = cmp, secs = secs, total = proc.time()[["elapsed"]] - t0, seeds = seeds),
+if (!is.null(mis)) utils::write.csv(mis, file.path(dirname(out_csv), "misclassified-draws.csv"), row.names = FALSE)
+saveRDS(list(cmp = cmp, secs = secs, total = proc.time()[["elapsed"]] - t0, seeds = seeds, misclassified = mis),
         sub("\\.csv$", ".rds", out_csv))
 cat(sprintf("cases compared %d; agree %d; disagree %d; NA %d; total %.0f s\n", nrow(cmp), sum(cmp$agree %in% TRUE),
             sum(cmp$agree %in% FALSE), sum(is.na(cmp$agree)), proc.time()[["elapsed"]] - t0))
