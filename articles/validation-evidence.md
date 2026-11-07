@@ -426,23 +426,35 @@ one, are ignored.
 
 A copy downloaded with GitHub’s “Download ZIP”, or made with
 `git archive`, contains no git repository, so a run from it records
-`NA`. So does a run from a copy unpacked inside another git repository,
-whose commit is not that of the copy, a run from a clone when git is not
-on the PATH, and a run from a clone that git refuses to read. By
-default, git refuses a repository owned by another user, for example a
-clone mounted into a container that runs as another user, unless git’s
+`NA`. The validation-scripts workflow checks this case on every pull
+request to master and every push to it: it runs the smoke mode of the
+plan re-simulation script from a copy made with `git archive` outside
+any repository, and fails unless the run records `NA` ([issue
+\#162](https://github.com/JUhalt/solomonR/issues/162)). A run from a
+copy unpacked inside another git repository, whose commit is not that of
+the copy, also records `NA`, as do a run from a clone when git is not on
+the PATH and a run from a clone that git refuses to read. By default,
+git refuses a repository owned by another user, for example a clone
+mounted into a container that runs as another user, unless git’s
 `safe.directory` setting lists the repository. The scripts do not change
 that setting, which is a security check. In such a run, set
 `SOLOMONR_COMMIT` to record the commit.
 
 To record the commit that a downloaded copy came from, set
 `SOLOMONR_COMMIT` to it when running the script from the root of the
-copy. The unpacked files do not contain the commit, so note it when
-downloading. A ZIP or tar file that `git archive` makes from a commit
-stores the commit: `unzip -z <file>.zip` prints it as the comment of the
-ZIP file, `git get-tar-commit-id < <file>.tar` prints it from a tar
-file, and `gzip -dc <file>.tar.gz | git get-tar-commit-id` prints it
-from a compressed one. On Windows, these commands run in Git Bash.
+copy. The unpacked files do not contain the commit, so keep the
+downloaded file or note the commit. A ZIP or tar file that `git archive`
+makes from a commit stores the commit (Git Project, n.d.):
+`unzip -z <file>.zip` prints it as the comment of the ZIP file,
+`git get-tar-commit-id < <file>.tar` prints it from a tar file, and
+`gzip -dc <file>.tar.gz | git get-tar-commit-id` prints it from a
+compressed one. GitHub makes the “Download ZIP” file, and its other
+source archives of a branch, tag, or commit, with `git archive` (GitHub,
+n.d.). GitHub’s page does not say whether these files keep the commit.
+On November 7, 2026, they did: `unzip -z` printed the commit from
+GitHub’s ZIP file of master and from its ZIP file of the tag v0.4.0, and
+`git get-tar-commit-id` printed it from its `.tar.gz` file of master. On
+Windows, these commands run in Git Bash.
 
 In a Unix shell:
 
@@ -509,6 +521,13 @@ Gail, M. H., Mark, S. D., Carroll, R. J., Green, S. B., & Pee, D.
 community intervention trials. *Statistics in Medicine, 15*(11),
 1069–1092.
 <https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q>
+
+GitHub. (n.d.). *Downloading source code archives*. GitHub Docs.
+Retrieved November 7, 2026, from
+<https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives>
+
+Git Project. (n.d.). *git-archive*. Git documentation. Retrieved
+November 7, 2026, from <https://git-scm.com/docs/git-archive>
 
 Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J.
 P. (2008). Recommendations for the primary analysis of continuous

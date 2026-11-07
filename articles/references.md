@@ -710,6 +710,13 @@ Gelman, A., & Stern, H. (2006). The difference between “significant” and
 Statistician, 60*(4), 328–331.
 <https://doi.org/10.1198/000313006X152649>
 
+GitHub. (n.d.). *Downloading source code archives*. GitHub Docs.
+Retrieved November 7, 2026, from
+<https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives>
+
+Git Project. (n.d.). *git-archive*. Git documentation. Retrieved
+November 7, 2026, from <https://git-scm.com/docs/git-archive>
+
 Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E.
 (2006). Planned missing data designs in psychological research.
 *Psychological Methods, 11*(4), 323–343.

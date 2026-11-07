@@ -1131,9 +1131,14 @@ copy decides which repository is used: the variables
 at another one, are ignored.</p>
 <p>A copy downloaded with GitHub’s “Download ZIP”, or made with
 <code>git archive</code>, contains no git repository, so a run from it
-records <code>NA</code>. So does a run from a copy unpacked inside
-another git repository, whose commit is not that of the copy, a run from
-a clone when git is not on the PATH, and a run from a clone that git
+records <code>NA</code>. The validation-scripts workflow checks this
+case on every pull request to master and every push to it: it runs the
+smoke mode of the plan re-simulation script from a copy made with
+<code>git archive</code> outside any repository, and fails unless the
+run records <code>NA</code> (<a href="https://github.com/JUhalt/solomonR/issues/162" class="external-link">issue #162</a>). A
+run from a copy unpacked inside another git repository, whose commit is
+not that of the copy, also records <code>NA</code>, as do a run from a
+clone when git is not on the PATH and a run from a clone that git
 refuses to read. By default, git refuses a repository owned by another
 user, for example a clone mounted into a container that runs as another
 user, unless git’s <code>safe.directory</code> setting lists the
@@ -1142,15 +1147,23 @@ check. In such a run, set <code>SOLOMONR_COMMIT</code> to record the
 commit.</p>
 <p>To record the commit that a downloaded copy came from, set
 <code>SOLOMONR_COMMIT</code> to it when running the script from the root
-of the copy. The unpacked files do not contain the commit, so note it
-when downloading. A ZIP or tar file that <code>git archive</code> makes
-from a commit stores the commit: <code>unzip -z &lt;file&gt;.zip</code>
-prints it as the comment of the ZIP file,
+of the copy. The unpacked files do not contain the commit, so keep the
+downloaded file or note the commit. A ZIP or tar file that
+<code>git archive</code> makes from a commit stores the commit (Git
+Project, n.d.): <code>unzip -z &lt;file&gt;.zip</code> prints it as the
+comment of the ZIP file,
 <code>git get-tar-commit-id &lt; &lt;file&gt;.tar</code> prints it from
 a tar file, and
 <code>gzip -dc &lt;file&gt;.tar.gz | git get-tar-commit-id</code> prints
-it from a compressed one. On Windows, these commands run in Git
-Bash.</p>
+it from a compressed one. GitHub makes the “Download ZIP” file, and its
+other source archives of a branch, tag, or commit, with
+<code>git archive</code> (GitHub, n.d.). GitHub’s page does not say
+whether these files keep the commit. On November 7, 2026, they did:
+<code>unzip -z</code> printed the commit from GitHub’s ZIP file of
+master and from its ZIP file of the tag v0.4.0, and
+<code>git get-tar-commit-id</code> printed it from its
+<code>.tar.gz</code> file of master. On Windows, these commands run in
+Git Bash.</p>
 <p>In a Unix shell:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="va">SOLOMONR_COMMIT</span><span class="op">=&lt;</span>commit<span class="op">&gt;</span> Rscript <span class="ex">vignettes/articles/binary-validation/binary-simulation.R</span></span></code></pre></div>
 <p>In PowerShell:</p>
@@ -1204,6 +1217,10 @@ Multidisciplinary Journal, 14</em>(3), 464–504. <a href="https://doi.org/10.10
 (1996). On design considerations and randomization-based inference for
 community intervention trials. <em>Statistics in Medicine, 15</em>(11),
 1069–1092. <a href="https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q" class="external-link uri">https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q</a></p>
+<p>GitHub. (n.d.). <em>Downloading source code archives</em>. GitHub
+Docs. Retrieved November 7, 2026, from <a href="https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives" class="external-link uri">https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives</a></p>
+<p>Git Project. (n.d.). <em>git-archive</em>. Git documentation.
+Retrieved November 7, 2026, from <a href="https://git-scm.com/docs/git-archive" class="external-link uri">https://git-scm.com/docs/git-archive</a></p>
 <p>Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., &amp;
 Mancuso, J. P. (2008). Recommendations for the primary analysis of
 continuous endpoints in longitudinal clinical trials. <em>Drug
