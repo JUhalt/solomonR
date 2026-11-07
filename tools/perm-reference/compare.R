@@ -138,9 +138,11 @@ compare_world <- function(r, replay_seed) {
     return(safe_bind(rows))
   }
   cs <- cs[cs$space == "all", ]
-  M_all <- suppressWarnings(as.numeric(cs$M[1]))
-  use_A <- identical(mode, "A") && is.finite(M_all) && M_all <= 4900
   d <- wd$data
+  # every labeling of the space over all rows (the reference's M can be
+  # smaller, when a convention leaves labelings out)
+  M_all <- prod(vapply(0:1, function(p) choose(sum(d$pretested == p), sum(wd$obs$gen[d$pretested == p])), 0))
+  use_A <- identical(mode, "A") && is.finite(M_all) && M_all <= 4900
   if (use_A) {
     combos <- lapply(c(U = 0, P = 1), function(p) {
       idx <- which(d$pretested == p)
@@ -290,6 +292,13 @@ scope_block <- function() {
 t0 <- proc.time()[["elapsed"]]
 refs <- ref$refs
 seeds <- stats::setNames(REPLAY_SEED0 + seq_along(refs) - 1L, names(refs))
+# CMP_ONLY (a regular expression) runs some worlds only, without the scope
+# block; their seeds stay those of the full grid
+only <- Sys.getenv("CMP_ONLY")
+if (nzchar(only)) {
+  refs <- refs[grepl(only, names(refs))]
+  seeds <- seeds[names(refs)]
+}
 work <- function(nm) {
   t1 <- proc.time()[["elapsed"]]
   out <- tryCatch(compare_world(refs[[nm]], seeds[[nm]]), error = function(e) {
@@ -318,7 +327,7 @@ if (workers > 1) {
 }
 suppressMessages(pkgload::load_all(ROOT, quiet = TRUE))
 secs <- vapply(res, function(x) attr(x, "secs"), 0)
-cmp <- safe_bind(c(unname(res), list(scope_block())))
+cmp <- safe_bind(c(unname(res), if (!nzchar(only)) list(scope_block())))
 key <- ref$cases[, c("case_id", "world", "block", "items", "family", "obs", "contrast", "statistic", "space")]
 cmp <- merge(key, cmp, by = "case_id", all.y = TRUE, sort = FALSE)
 utils::write.csv(cmp, out_csv, row.names = FALSE)
