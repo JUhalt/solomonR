@@ -389,44 +389,50 @@
 
 # Logistic regression by iteratively reweighted least squares, with the
 # convergence rule of stats::glm.fit() (relative change in deviance below
-# `epsilon`). A lean version for bootstrap refits, warm-started at `start`.
-# Each step solves its weighted least-squares problem by QR, with the
-# tolerance of glm.fit(); solving the normal equations, which square the
-# design's condition number, failed in every resample with nearly collinear
-# covariates, such as a covariate and its copy in single precision (issue
-# #137). A resample whose design is not of full rank fails.
-# Fitted risks that reach 0 or 1 in floating point (near separation) make the
-# working response or the deviance non-finite; the fit is then reported as
-# not converged, which the bootstrap counts as a failed resample.
+# `epsilon` within `maxit` iterations; ?glm.control). A lean version for
+# bootstrap refits, warm-started at `start`. Each step solves its weighted
+# least-squares problem by QR, with the tolerance of glm.fit(); solving the
+# normal equations, which square the design's condition number, failed in
+# every resample with nearly collinear covariates, such as a covariate and
+# its copy in single precision (issue #137).
+# A fit that fails gives its `reason` (issue #154): "risk" when fitted
+# risks reach 0 or 1 in floating point (near separation), which makes the
+# deviance, the working response, or the coefficients non-finite; "rank"
+# when the weighted design is not of full rank; or "maxit" when the rule is
+# not met in `maxit` iterations, with `kappa`, the 2-norm condition number
+# of the last weighted design (?kappa, exact = TRUE). The arithmetic is that
+# of the version before #154, so a fit that converged then converges now
+# with the same coefficients.
 .logistic_irls <- function(X, y, start, epsilon = 1e-8, maxit = 25L) {
-  failed <- list(converged = FALSE)
+  failed <- function(reason) list(converged = FALSE, reason = reason)
   events <- y == 1
   deviance <- function(mu) -2 * (sum(log(mu[events])) + sum(log1p(-mu[!events])))
   b <- start
   eta <- drop(X %*% b)
   mu <- stats::plogis(eta)
   dev <- deviance(mu)
-  if (!is.finite(dev)) return(failed)
+  if (!is.finite(dev)) return(failed("risk"))
   for (iter in seq_len(maxit)) {
     w <- mu * (1 - mu)
     z <- eta + (y - mu) / w
-    if (!all(is.finite(z))) return(failed)
-    b <- tryCatch({
-      root <- sqrt(w)
-      q <- qr(root * X, tol = 1e-11)
-      if (q$rank < ncol(X)) NULL else qr.coef(q, root * z)
-    }, error = function(e) NULL)
-    if (is.null(b) || !all(is.finite(b))) return(failed)
+    if (!all(is.finite(z))) return(failed("risk"))
+    root <- sqrt(w)
+    q <- tryCatch(qr(root * X, tol = 1e-11), error = function(e) NULL)
+    if (is.null(q)) return(failed("risk"))
+    if (q$rank < ncol(X)) return(failed("rank"))
+    b <- tryCatch(qr.coef(q, root * z), error = function(e) NULL)
+    if (is.null(b) || !all(is.finite(b))) return(failed("risk"))
     eta <- drop(X %*% b)
     mu <- stats::plogis(eta)
     dev_new <- deviance(mu)
-    if (!is.finite(dev_new)) return(failed)
+    if (!is.finite(dev_new)) return(failed("risk"))
     if (abs(dev_new - dev) / (abs(dev_new) + 0.1) < epsilon) {
-      return(list(coefficients = b, fitted.values = mu, converged = TRUE))
+      return(list(coefficients = b, fitted.values = mu, converged = TRUE, iter = iter))
     }
     dev <- dev_new
   }
-  list(coefficients = b, fitted.values = mu, converged = FALSE)
+  list(coefficients = b, fitted.values = mu, converged = FALSE, reason = "maxit",
+       kappa = kappa(q, exact = TRUE))
 }
 
 # A Solomon cell whose outcomes are all 0 or all 1 has no maximum-likelihood

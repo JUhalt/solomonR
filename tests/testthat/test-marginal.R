@@ -338,6 +338,26 @@ test_that("the IRLS refit reports near separation as a failure, not an error", {
 })
 
 
+test_that("the IRLS refit gives the reason it failed (#154)", {
+
+  withr::with_seed(1, {
+    x <- c(stats::rnorm(20, -3), stats::rnorm(20, 3))
+  })
+  X <- cbind("(Intercept)" = 1, x = x)
+  y <- c(rep(0, 19), 1, rep(1, 19), 0)
+  # Fitted risks of 0 or 1 in floating point, under near and complete
+  # separation; a design not of full rank; and too few iterations, with the
+  # condition number of the last weighted design, whose weights are all 1/4
+  # at the start (0, 0).
+  expect_identical(.logistic_irls(X, y, start = c(0, 10))$reason, "risk")
+  expect_identical(.logistic_irls(X, as.numeric(x > 0), start = c(0, 1))$reason, "risk")
+  expect_identical(.logistic_irls(cbind(X, zero = 0), y, start = c(0, 0, 0))$reason, "rank")
+  slow <- .logistic_irls(X, y, start = c(0, 0), maxit = 1L)
+  expect_identical(slow$reason, "maxit")
+  expect_equal(slow$kappa, kappa(sqrt(0.25) * X, exact = TRUE), tolerance = 1e-12)
+})
+
+
 test_that("noncollapsible links with a pretest covariate warn; collapsible links do not", {
 
   d <- binary_example()
