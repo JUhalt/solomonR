@@ -195,12 +195,20 @@ every such field).
   are used.
 - The merge job is not run again after one of its checks failed: the
   completeness, envelope, shape, or software checks of `merge-chunks.R`,
-  or the replay check of `check-replay.R`. The failure is reported, and an
-  amendment says how the study continues (a replayed task that differs is
-  not run again to choose between two results). A summary that stops on a
-  fault in the study's code stops the same way on a rerun, since it runs
-  the same code on the same task files. A fix needs a new commit, and the
-  merge refuses task files of another commit.
+  or the software or replay checks of `check-replay.R`. The failure is
+  reported. After a software difference, the whole run is repeated on one
+  software set. After any other failed check, an amendment says how the
+  study continues (a replayed task that differs is not run again to
+  choose between two results).
+- A fault in a task that the merge job replays stops the replay before
+  any check of it, so no check has failed. The merge job is run again
+  once, on a new machine, as a chunk job is. A fault that recurs there is
+  a code fault too; after one that does not recur, the rerun's replay is
+  compared with the chunks'. Replayed task files are only compared, never
+  used.
+- A summary that stops on a fault in the study's code stops the same way
+  on a rerun, since it runs the same code on the same task files. A fix
+  needs a new commit, and the merge refuses task files of another commit.
 - A merge job that fails uploads `failed-merge-attempt-<attempt>`, kept
   for 14 days, if its files pass the address scan: those of
   `merged/replay.csv`, `merged/job-info.csv` (the merging machine, recorded

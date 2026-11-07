@@ -94,7 +94,9 @@
 # are skipped, and the stage fails. The job is then run again once, on a
 # new machine. A fault that recurs is a code fault, which needs a new
 # commit, a new plan, and an amendment; a fault that does not recur is
-# reported, and the rerun's task files are used.
+# reported, and the rerun's output takes the place of the job's: a chunk's
+# task files, or the merge job's replay, which is only compared with the
+# chunks' (tools/sim/README.md, "Running in the cloud").
 #
 # Reference:
 # L'Ecuyer, P., Simard, R., Chen, E. J., & Kelton, W. D. (2002). An
@@ -890,9 +892,10 @@ sim_run <- function(study, plan_dir, ids, out_dir, workers) {
       } else conditionMessage(e)
       writeLines(session, file.path(out_dir, "session-info.txt"), useBytes = TRUE)
       stop("Run stopped by a fault in ", what, ". The other tasks of this job were skipped; ",
-           "see failed-tasks/. Run the job again once, on a new machine. A fault that recurs ",
-           "is a code fault, which needs a new commit, a new plan, and an amendment; a fault ",
-           "that does not recur is reported, and the rerun's task files are used.", call. = FALSE)
+           "see failed-tasks/. Run the job again once (on the runners, on a new machine). A fault ",
+           "that recurs is a code fault, which needs a new commit, a new plan, and an amendment; a ",
+           "fault that does not recur is reported, and the rerun's output takes the place of this ",
+           "job's (tools/sim/README.md).", call. = FALSE)
     })
   times <- do.call(rbind, times)
   times <- times[order(times$task_id), , drop = FALSE]
