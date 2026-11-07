@@ -395,14 +395,22 @@
 # normal equations, which square the design's condition number, failed in
 # every resample with nearly collinear covariates, such as a covariate and
 # its copy in single precision (issue #137).
-# A fit that fails gives its `reason` (issue #154): "risk" when fitted
-# risks reach 0 or 1 in floating point (near separation), which makes the
-# deviance, the working response, or the coefficients non-finite; "rank"
-# when the weighted design is not of full rank; or "maxit" when the rule is
-# not met in `maxit` iterations, with `kappa`, the 2-norm condition number
-# of the last weighted design (?kappa, exact = TRUE). The arithmetic is that
-# of the version before #154, so a fit that converged then converges now
-# with the same coefficients.
+# Each step is a full step: glm.fit() halves a step that makes the deviance
+# infinite (Marschner, 2011), while this refit stops. So it can diverge
+# from `start` on a resample whose maximum-likelihood estimate exists.
+# A fit that fails gives its `reason` (issue #154). "risk": fitted risks
+# reach 0 or 1 in floating point, which makes the deviance, the working
+# response, or the coefficients non-finite; or the weighted design loses
+# rank while `X` has full rank and a fitted risk is within 1e-8 of 0 or 1,
+# because the weights mu (1 - mu) of those rows vanish. That happens under
+# separation and when the refit diverges. "rank": `X` itself is not of
+# full rank, as when a resample lacks a level of a factor, or the weighted
+# design loses rank with no fitted risk that close to 0 or 1. `X` is
+# checked only once the weighted design has lost rank. "maxit": the rule
+# is not met in `maxit` iterations; `kappa` is the 2-norm condition number
+# of the last weighted design (?kappa, exact = TRUE). The arithmetic is
+# that of the version before #154, so a fit that converged then converges
+# now with the same coefficients, and a fit that failed then fails now.
 .logistic_irls <- function(X, y, start, epsilon = 1e-8, maxit = 25L) {
   failed <- function(reason) list(converged = FALSE, reason = reason)
   events <- y == 1
@@ -419,7 +427,10 @@
     root <- sqrt(w)
     q <- tryCatch(qr(root * X, tol = 1e-11), error = function(e) NULL)
     if (is.null(q)) return(failed("risk"))
-    if (q$rank < ncol(X)) return(failed("rank"))
+    if (q$rank < ncol(X)) {
+      vanished <- .degenerate_risk(mu) && qr(X, tol = 1e-11)$rank == ncol(X)
+      return(failed(if (vanished) "risk" else "rank"))
+    }
     b <- tryCatch(qr.coef(q, root * z), error = function(e) NULL)
     if (is.null(b) || !all(is.finite(b))) return(failed("risk"))
     eta <- drop(X %*% b)
@@ -470,7 +481,12 @@
 # failed, with the failures by reason (issue #154): `reasons` holds one
 # of "separated", "risk", "rank", or "maxit" per failed resample, and
 # `kappa` the condition numbers of those that did not converge (NA for
-# the others). No threshold is applied to the condition number.
+# the others). Each cause is named only for the reasons that occurred.
+# The condition number is reported, not judged: no threshold is applied,
+# and the sentence does not say that rounding caused the failures. In
+# double precision a least-squares step carries a relative error of about
+# the unit roundoff (1.1e-16) times the condition number (Higham, 2002,
+# chap. 20), about 1% near 1e14, where the refits of #154 did not converge.
 .bootstrap_failure_message <- function(reasons, R, kappa) {
   n <- vapply(c("separated", "risk", "rank", "maxit"), function(r) sum(reasons == r), integer(1))
   parts <- c(
@@ -484,26 +500,34 @@
     parts[length(parts)] <- paste("and", parts[length(parts)])
   }
   reasons_text <- paste0(paste(parts, collapse = if (length(parts) > 2L) ", " else " "), ".")
-  sparse_text <- if (n[["separated"]] + n[["risk"]] > 0) {
-    paste0(" Cells with only events or only non-events, and risks near 0 or 1, ",
-           "come from sparse cells or separation.")
+  sparse_text <- if (n[["separated"]] > 0) {
+    " Cells with only events or only non-events come from sparse cells."
+  } else {
+    ""
+  }
+  risk_text <- if (n[["risk"]] > 0) {
+    paste0(" Fitted risks near 0 or 1 come from separation or near separation, from ",
+           "extreme covariate values, or from a refit that diverged: each refit takes ",
+           "full steps from the model's coefficients, without step halving.")
   } else {
     ""
   }
   maxit_text <- if (n[["maxit"]] > 0) {
-    sprintf(paste0(" Rounding error grows with the condition number of the weighted design; ",
-                   "in the refits that did not converge it reached %.2g."),
+    sprintf(paste0(" For the refits that did not converge, the largest condition number ",
+                   "of the weighted design was %.2g. Rounding error in each step grows ",
+                   "with it, and near 1e14, as with nearly collinear covariates, it can ",
+                   "keep a refit from converging."),
             max(kappa, na.rm = TRUE))
   } else {
     ""
   }
   sprintf(
     paste0("The logistic fit failed in %d of %d bootstrap resamples (more than 10%%), ",
-           "so intervals are not reported. Of these, %s%s%s method = \"delta\" does not ",
+           "so intervals are not reported. Of these, %s%s%s%s method = \"delta\" does not ",
            "resample; in the package's simulation study (issue #43), its ",
            "risk-difference intervals met the registered tolerances in most designs ",
            "in which the bootstrap failed this often."),
-    length(reasons), R, reasons_text, sparse_text, maxit_text
+    length(reasons), R, reasons_text, sparse_text, risk_text, maxit_text
   )
 }
 
@@ -601,10 +625,17 @@
 #'
 #' Bootstrap resamples in which the logistic fit fails are excluded and
 #' counted: those with a Solomon cell of only events or only non-events, a
-#' fitted probability within 1e-8 of 0 or 1 (as under separation; Albert &
-#' Anderson, 1984), a design not of full rank, or no convergence in 25
+#' fitted probability within 1e-8 of 0 or 1, a design not of full rank (as
+#' when a resample lacks a level of a factor), or no convergence in 25
 #' iterations by the rule of [stats::glm.control()]. When more than 10% fail,
 #' intervals are not reported, and the warning gives the failures by reason.
+#' Each resample is refitted by iteratively reweighted least squares from
+#' the model's coefficients, with full steps. Where a step takes fitted
+#' probabilities to 0 or 1, the refit stops and the resample fails;
+#' [stats::glm.fit()] would instead halve a step that makes the deviance
+#' infinite (Marschner, 2011). So a fitted probability near 0 or 1 comes
+#' from separation or near separation (Albert & Anderson, 1984), from an
+#' extreme covariate value, or from a refit that diverged.
 #' A refit that does not converge is fitted again with the intercept, the
 #' pretesting indicator, the pretest, and the covariates replaced by the
 #' orthonormal columns of their QR decomposition (Golub, 1965). These span
@@ -806,6 +837,10 @@
 #' confidence intervals were easily computed indirectly from multivariable
 #' logistic regression. *Journal of Clinical Epidemiology, 60*(9), 874–882.
 #' https://doi.org/10.1016/j.jclinepi.2006.12.001
+#'
+#' Marschner, I. C. (2011). glm2: Fitting generalized linear models with
+#' convergence problems. *The R Journal, 3*(2), 12–15.
+#' https://doi.org/10.32614/RJ-2011-012
 #'
 #' Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 #' cluster-robust variance estimation and hypothesis testing in fixed effects

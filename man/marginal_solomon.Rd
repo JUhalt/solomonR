@@ -180,10 +180,17 @@ risk differences, log risk ratios, or log odds ratios.
 
 Bootstrap resamples in which the logistic fit fails are excluded and
 counted: those with a Solomon cell of only events or only non-events, a
-fitted probability within 1e-8 of 0 or 1 (as under separation; Albert &
-Anderson, 1984), a design not of full rank, or no convergence in 25
+fitted probability within 1e-8 of 0 or 1, a design not of full rank (as
+when a resample lacks a level of a factor), or no convergence in 25
 iterations by the rule of \code{\link[stats:glm.control]{stats::glm.control()}}. When more than 10\% fail,
 intervals are not reported, and the warning gives the failures by reason.
+Each resample is refitted by iteratively reweighted least squares from
+the model's coefficients, with full steps. Where a step takes fitted
+probabilities to 0 or 1, the refit stops and the resample fails;
+\code{\link[stats:glm.fit]{stats::glm.fit()}} would instead halve a step that makes the deviance
+infinite (Marschner, 2011). So a fitted probability near 0 or 1 comes
+from separation or near separation (Albert & Anderson, 1984), from an
+extreme covariate value, or from a refit that diverged.
 A refit that does not converge is fitted again with the intercept, the
 pretesting indicator, the pretest, and the covariates replaced by the
 orthonormal columns of their QR decomposition (Golub, 1965). These span
@@ -329,6 +336,10 @@ Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and
 confidence intervals were easily computed indirectly from multivariable
 logistic regression. \emph{Journal of Clinical Epidemiology, 60}(9), 874–882.
 https://doi.org/10.1016/j.jclinepi.2006.12.001
+
+Marschner, I. C. (2011). glm2: Fitting generalized linear models with
+convergence problems. \emph{The R Journal, 3}(2), 12–15.
+https://doi.org/10.32614/RJ-2011-012
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects

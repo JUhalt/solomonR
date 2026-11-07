@@ -26,14 +26,20 @@
 * **The bootstrap warning gives the failures by reason.** When more than
   10% of the resamples fail, the warning counts those with a Solomon cell
   of only events or only non-events, a fitted risk within 1e-8 of 0 or 1,
-  a design not of full rank, and no convergence in 25 iterations. It says
-  that the first two come from sparse cells or separation (Albert &
-  Anderson, 1984) only when they occur. For the refits that did not
-  converge, it gives the largest condition number of their design, since
-  rounding error grows with it (Higham, 2002). It no longer says that the
-  failures are usually due to sparse cells. A covariate nearly collinear
-  with a treatment term can still keep refits from converging, because the
-  treatment terms, whose coefficients give the contrasts, are kept.
+  a design not of full rank, and no convergence in 25 iterations. It names
+  the causes only of the reasons that occurred: sparse cells for the
+  first; for the second, separation or near separation (Albert & Anderson,
+  1984), extreme covariate values, or a refit that diverged, since each
+  refit takes full steps, without the step halving of `glm.fit()`
+  (Marschner, 2011). A refit whose weighted design loses rank because
+  fitted risks within 1e-8 of 0 or 1 make their weights vanish counts as
+  a fitted risk near 0 or 1, not as a design short of full rank. For
+  the refits that did not converge, the warning gives the largest
+  condition number of their weighted design, with which rounding error
+  grows (Higham, 2002). It no longer says that the failures are usually
+  due to sparse cells. A covariate nearly collinear with a treatment term
+  can still keep refits from converging, because the treatment terms,
+  whose coefficients give the contrasts, are kept.
 * **A fit that stops at the estimability checks gives the error alone.**
   `fit_solomon_glm()`, with one treatment or several, now holds back the
   warnings of its model fit until the checks for an empty group, a

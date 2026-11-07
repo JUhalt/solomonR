@@ -783,6 +783,10 @@ Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
 longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
 https://doi.org/10.1177/009286150804200402
 
+Marschner, I. C. (2011). glm2: Fitting generalized linear models with
+convergence problems. *The R Journal, 3*(2), 12–15.
+https://doi.org/10.32614/RJ-2011-012
+
 Mavridis, D., White, I. R., Higgins, J. P. T., Cipriani, A., & Salanti, G.
 (2015). Allowing for uncertainty due to missing continuous outcome data in
 pairwise and network meta-analysis. *Statistics in Medicine, 34*(5),

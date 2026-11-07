@@ -1195,9 +1195,9 @@ test_that("the bootstrap converges with nested near-collinearity, and names why 
                            })
   expect_match(w, "failed in [0-9]+ of 199 bootstrap resamples")
   expect_match(w, "[0-9]+ did not converge in 25 iterations[.]")
-  expect_match(w, paste0("Rounding error grows with the condition number of the weighted ",
-                         "design; in the refits that did not converge it reached ",
-                         "[0-9.]+e[+]1[45][.]"))
+  expect_match(w, paste0("For the refits that did not converge, the largest condition number ",
+                         "of the weighted design was [0-9.]+e[+]1[45][.] Rounding error in ",
+                         "each step grows with it"))
   expect_no_match(w, "sparse", fixed = TRUE)
   expect_true(all(is.na(m$effects$conf.low)))
   expect_gt(m$failures, 19L)

@@ -355,6 +355,15 @@ test_that("the IRLS refit gives the reason it failed (#154)", {
   slow <- .logistic_irls(X, y, start = c(0, 0), maxit = 1L)
   expect_identical(slow$reason, "maxit")
   expect_equal(slow$kappa, kappa(sqrt(0.25) * X, exact = TRUE), tolerance = 1e-12)
+  # A design of full rank whose weighted design loses rank: from this
+  # start the rows at x = 3 have fitted risks near 1e-87, so their weights
+  # vanish, and the rows at x = 1 alone do not span the columns. That is a
+  # fitted risk near 0, as when a refit diverges, not a design short of a
+  # level. The same design with a column of zeros is not of full rank.
+  X2 <- cbind("(Intercept)" = 1, x = rep(c(1, 3), each = 5))
+  expect_identical(.logistic_irls(X2, rep(0:1, 5), start = c(100, -100))$reason, "risk")
+  expect_identical(.logistic_irls(cbind(X2, zero = 0), rep(0:1, 5), start = c(100, -100, 0))$reason,
+                   "rank")
 })
 
 
@@ -426,20 +435,36 @@ test_that("the bootstrap warning counts the failed resamples by reason (#154)", 
                            "non-events, 4 had a fitted risk within 1e-8 of 0 or 1, 1 had a ",
                            "design not of full rank, as when a resample lacks a level of a ",
                            "factor, and 2 did not converge in 25 iterations. Cells with only ",
-                           "events or only non-events, and risks near 0 or 1, come from sparse ",
-                           "cells or separation. Rounding error grows with the condition ",
-                           "number of the weighted design; in the refits that did not converge ",
-                           "it reached 5e+14."), fixed = TRUE)
+                           "events or only non-events come from sparse cells. Fitted risks ",
+                           "near 0 or 1 come from separation or near separation, from extreme ",
+                           "covariate values, or from a refit that diverged: each refit takes ",
+                           "full steps from the model's coefficients, without step halving. ",
+                           "For the refits that did not converge, the largest condition number ",
+                           "of the weighted design was 5e+14. Rounding error in each step grows ",
+                           "with it, and near 1e14, as with nearly collinear covariates, it can ",
+                           "keep a refit from converging. method"), fixed = TRUE)
   msg <- .bootstrap_failure_message(c(rep("separated", 15), rep("risk", 7)), 199, rep(NA, 22))
   expect_match(msg, paste0("Of these, 15 had a Solomon cell with only events or only ",
                            "non-events and 7 had a fitted risk within 1e-8 of 0 or 1."),
                fixed = TRUE)
   expect_no_match(msg, "condition number", fixed = TRUE)
+  # Each cause is named only for the reasons that occurred.
+  msg <- .bootstrap_failure_message(rep("separated", 22), 199, rep(NA, 22))
+  expect_match(msg, paste0("Of these, 22 had a Solomon cell with only events or only ",
+                           "non-events. Cells with only events or only non-events come from ",
+                           "sparse cells. method"), fixed = TRUE)
   msg <- .bootstrap_failure_message(rep("risk", 22), 199, rep(NA, 22))
-  expect_match(msg, "Of these, 22 had a fitted risk within 1e-8 of 0 or 1. Cells", fixed = TRUE)
-  msg <- .bootstrap_failure_message(rep("maxit", 30), 199, rep(40, 30))
-  expect_match(msg, "Of these, 30 did not converge in 25 iterations. Rounding error", fixed = TRUE)
+  expect_match(msg, "Of these, 22 had a fitted risk within 1e-8 of 0 or 1. Fitted risks",
+               fixed = TRUE)
   expect_no_match(msg, "sparse", fixed = TRUE)
+  # The condition number is reported, whatever it is, without saying that
+  # rounding caused the failures.
+  msg <- .bootstrap_failure_message(rep("maxit", 30), 199, rep(40, 30))
+  expect_match(msg, paste0("Of these, 30 did not converge in 25 iterations. For the refits that ",
+                           "did not converge, the largest condition number of the weighted ",
+                           "design was 40. Rounding"), fixed = TRUE)
+  expect_no_match(msg, "sparse", fixed = TRUE)
+  expect_no_match(msg, "Fitted risks", fixed = TRUE)
 
   # Sparse cells, through marginal_solomon(): one event in 15 in a cell.
   sp <- withr::with_seed(21, {
@@ -459,7 +484,8 @@ test_that("the bootstrap warning counts the failed resamples by reason (#154)", 
                         invokeRestart("muffleWarning")
                       })
   expect_match(w, "[0-9]+ had a Solomon cell with only events or only non-events")
-  expect_match(w, "come from sparse cells or separation", fixed = TRUE)
+  expect_match(w, "Cells with only events or only non-events come from sparse cells.",
+               fixed = TRUE)
   expect_no_match(w, "usually because of sparse cells", fixed = TRUE)
 })
 
