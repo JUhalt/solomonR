@@ -10,14 +10,15 @@
 # and its assignment of tasks to jobs draws no random number: it only says
 # which tasks a process runs and where the files go, and it checks and
 # merges what comes back. No random number that the harness draws reaches
-# a task. In a gate or study run, the only seed it sets itself is
-# set.seed(116) for the RNG fingerprint (tools/sim/rng-fingerprint.R, run by
-# the planning job, or by run-local.R), in a process of its own that runs no
-# task. This file sets one more in a gate, for the gate's random task order
-# (sim_run()), and loading R's parallel package draws one number for a port
-# and then puts the generator's state back. The harness's own tests
-# (tools/sim/tests/run-tests.R), which run in its pull requests only, draw
-# their own.
+# a task: sim_run_task() assigns each task's stream just before the task
+# runs, which overwrites any earlier draw. Besides the study's base seed,
+# from which this file makes the tasks' streams (set.seed(base) in
+# sim_streams()), a gate or study run sets set.seed(116) for the RNG
+# fingerprint (tools/sim/rng-fingerprint.R, run by the planning job, or by
+# run-local.R), in a process of its own that runs no task, and a gate also
+# sets the base seed + 1 for the order of its tasks (sim_run()). The
+# harness's own tests (tools/sim/tests/run-tests.R), which run in its pull
+# requests only, draw their own.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does

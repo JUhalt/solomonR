@@ -5,15 +5,15 @@ This folder runs the simulation studies of the v1.0 validation protocols
 machine, with the same scripts and the same checks. It splits a study's
 tasks among jobs, checks and merges what the jobs return, and computes the
 summary only after every check has passed. It never chooses a task's
-seed: the study script does, from its protocol, and each task starts from
-its own stream. No random number that the harness draws reaches a task. In
-a gate or study run it sets two seeds: `set.seed(116)` for the RNG
-fingerprint (`rng-fingerprint.R`), in a process of its own that runs no
-task, and, in a gate, the seed of the gate's random task order (`sim_run()`
-in `contract.R`, which comes from the package commit). Loading R's
-`parallel` package draws one number for a port and then puts the
-generator's state back. Its own tests draw their own, in its pull requests
-only.
+seed: the study script does, from its protocol, and `contract.R` makes
+the tasks' streams from the study's base seed (`set.seed(base)` in
+`sim_streams()`). No random number that the harness draws reaches a task:
+each task's stream is assigned just before the task runs
+(`sim_run_task()`), which overwrites any earlier draw. Besides the base
+seed, a gate or study run sets `set.seed(116)` for the RNG fingerprint
+(`rng-fingerprint.R`), in a process of its own that runs no task, and a
+gate also sets the base seed + 1 for the order of its tasks (`sim_run()`).
+Its own tests draw their own, in its pull requests only.
 
 `tools/` is in `.Rbuildignore`, and `tools/check-validation-scripts.R` looks
 only at `vignettes/articles/*-validation/`, so nothing here is part of the
@@ -282,8 +282,8 @@ After a reboot, sleep, or crash, `--resume` keeps the plan and the finished
 chunks, runs only the tasks whose files are missing or unreadable, records
 the resumption in the chunk's `resumes.csv` (and in `run-information.csv`),
 and merges afresh; it refuses to continue if `software.csv` has changed. A
-gate or study run needs a clean checkout of a commit, at the top level of
-its git repository.
+gate or study run needs a clean checkout of a commit at the top level of
+its git repository, with a commit named by 40 hex digits.
 
 A new run is of the study `--study` names (smoke without it). `--resume`
 and `--rerun-chunk` take the study from the run's `plan/plan-info.csv`

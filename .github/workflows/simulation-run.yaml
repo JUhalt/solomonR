@@ -10,13 +10,12 @@ name: simulation-run
 # random number; it only splits the planned tasks among jobs, checks and
 # merges what the jobs return, and runs up to four tasks again on the
 # merging machine. No random number that its own scripts draw reaches a
-# task. In a gate or study run, the only seed they set is the planning
+# task, since contract.R assigns each task's stream just before the task
+# runs. In a gate or study run, the only seed they set is the planning
 # job's set.seed(116) for the RNG fingerprint (tools/sim/rng-fingerprint.R),
-# in a process of its own that runs no task; the gate's random task order
-# is drawn by contract.R, from the package commit, and loading R's parallel
-# package draws one number for a port and then puts the generator's state
-# back. The harness's tests, which run in its pull requests only, draw
-# their own. It never writes to the repository: the results are
+# in a process of its own that runs no task; the study's base seed and the
+# gate's task order are set by contract.R, from the package commit. The
+# harness's tests, which run in its pull requests only, draw their own. It never writes to the repository: the results are
 # downloaded and committed through a pull request. See tools/sim/README.md.
 
 on:
