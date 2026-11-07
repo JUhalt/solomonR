@@ -4,11 +4,43 @@
 # checkout instead), so the two copies of the CSV helpers are deliberate.
 # Base R only; ASCII.
 
-h_contracts <- "3"   # contract versions this harness can check and merge
+# Contract versions this harness can check and merge. Version 3 added the
+# SHA-256 of the files a study script sources to the plan and to every
+# task's envelope, which the merge compares, so a plan of version 2 is
+# refused rather than merged without that check.
+h_contracts <- "3"
 
 h_fail <- function(...) {
   cat("::error::", paste0(...), "\n", sep = "")
   quit(save = "no", status = 1L)
+}
+
+# A whole number of at least `lowest`, written in digits without a leading
+# zero and within R's integers; NA otherwise (as sim_whole() in contract.R).
+# as.integer() alone reads "2.5" as 2 and "1e2" as 100, and turns a longer
+# number into NA with a warning. The pattern alone decides: " 5" (white
+# space around the digits) is NA too.
+h_whole <- function(x, lowest = 1L) {
+  if (length(x) != 1L || is.na(x)) return(NA_integer_)
+  x <- as.character(x)
+  v <- if (grepl("^(0|[1-9][0-9]*)$", x)) suppressWarnings(as.integer(x)) else NA_integer_
+  if (is.na(v) || v < lowest) NA_integer_ else v
+}
+
+# The names that finalize-results.R writes into a results folder after the
+# study's summary (and timing/sessionInfo-NNNN.txt, one for each chunk), and
+# logs/, which the workflow fills after it. h_taken() gives the entries of a
+# results folder (paths relative to it, as list.files() gives them) that
+# take one of these names in any case, that lie under logs/ in any case, or
+# that lie under timing/ spelled in another case: a file system that ignores
+# case (Windows', macOS') makes Preflight.csv the harness's preflight.csv,
+# and on one that does not, the results would hold both.
+h_later_names <- c("manifest.csv", "completeness.csv", "software.csv", "replay.csv", "preflight.csv",
+                   "timing/jobs.csv", "timing/plan-job.csv", "timing/merge-job.csv", "timing/rng-fingerprint.txt")
+h_taken <- function(entries) {
+  low <- tolower(entries)
+  entries[low %in% h_later_names | grepl("^timing/sessioninfo-[0-9]{4}[.]txt$", low) | grepl("^logs(/|$)", low) |
+            (grepl("^timing(/|$)", low) & !grepl("^timing(/|$)", entries))]
 }
 
 h_args <- function(n, usage) {

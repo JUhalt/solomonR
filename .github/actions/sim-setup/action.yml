@@ -33,6 +33,9 @@ runs:
         if [[ ! -f "pkg/$script" || ! -f "pkg/$pins" ]]; then
           echo "::error::The package commit lacks $script or $pins"; exit 1
         fi
+        if [[ "$protocol" != TRUE && "$protocol" != FALSE ]]; then
+          echo "::error::The protocol flag of $STUDY in $registry must be TRUE or FALSE"; exit 1
+        fi
         val() { tr -d '\r' < "pkg/$pins" | awk -F, -v k="$1" -v n="$2" 'NR > 1 && $1 == k && $2 == n { print $3 }'; }
         r_version=$(val r version)
         snapshot=$(val repos snapshot)
@@ -42,10 +45,20 @@ runs:
           echo "::error::The snapshot in $pins must be a dated noble snapshot"; exit 1
         fi
         # setup-r-dependencies pastes these into R code, so only plain
-        # package references are allowed.
+        # package references are allowed, and only CRAN packages (from the
+        # snapshot): name, any::name, or cran::name, optionally @version.
         plain='^[A-Za-z0-9:.@ _-]*$'
         if [[ ! "$extra" =~ $plain ]]; then echo "::error::Bad extra packages in $pins"; exit 1; fi
+        ref='^((any|cran)::)?[A-Za-z][A-Za-z0-9.]*(@[0-9][0-9.-]*)?$'
+        for p in $extra; do
+          if [[ ! "$p" =~ $ref ]]; then
+            echo "::error::Extra package $p in $pins: only CRAN packages are allowed (bioc:: and other sources are refused)."; exit 1
+          fi
+        done
         {
+          # pak would otherwise add the Bioconductor repositories, which are
+          # not dated, to every dependency resolution.
+          echo "PKG_USE_BIOCONDUCTOR=false"
           echo "RSPM=$snapshot"
           echo "CRAN=$snapshot"
           echo "SIM_SCRIPT=$script"
@@ -56,7 +69,6 @@ runs:
         {
           echo "r_version=$r_version"
           echo "extra=$extra"
-          echo "snapshot_date=${snapshot##*/}"
         } >> "$GITHUB_OUTPUT"
         echo "Study $STUDY: R $r_version, snapshot $snapshot, script $script."
 
@@ -90,7 +102,11 @@ runs:
     # pak itself comes from the snapshot ("repo"), not from pak's own
     # release channel, so the installer is pinned too; upgrade: TRUE
     # installs the snapshot's version of every dependency even where R ships
-    # an older copy (MASS 7.3-65 with R 4.6.1, pinned 7.3-66).
+    # an older copy (MASS 7.3-65 with R 4.6.1, pinned 7.3-66). No cache: an
+    # Actions cache can be written by any workflow on the branch, and pak
+    # adds to a restored library but removes nothing, so every job installs
+    # its library afresh from the snapshot (about 2 minutes). No pandoc or
+    # Quarto: no simulation uses them (rmarkdown is only among Suggests).
     - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
       with:
         working-directory: pkg
@@ -98,8 +114,15 @@ runs:
         extra-packages: ${{ steps.pins.outputs.extra }}
         pak-version: repo
         upgrade: 'TRUE'
-        cache-version: sim-${{ steps.pins.outputs.snapshot_date }}
+        cache: 'false'
+        install-pandoc: 'false'
+        install-quarto: 'false'
 
+    # A protocol study must pin R's shared library (r,libR_sha256).
     - name: Check R, the packages, and the libraries
       shell: bash
-      run: Rscript harness/tools/sim/check-software.R "pkg/$SIM_PINS" software.csv
+      run: |
+        set -euo pipefail
+        flags=()
+        if [[ "$SIM_PROTOCOL" == TRUE ]]; then flags+=(--protocol); fi
+        Rscript harness/tools/sim/check-software.R "pkg/$SIM_PINS" software.csv ${flags[@]+"${flags[@]}"}

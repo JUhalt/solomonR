@@ -363,6 +363,14 @@ final, and drafting of the companion manuscript begins.
 
 **Status:** Active development — [v0.9.0 milestone](https://github.com/JUhalt/solomonR/milestone/8).
 
+0.9.0 is the release candidate. It is released on R-universe only, after
+every open item under "Audit before the release" below, the robustness
+study ([#116](https://github.com/JUhalt/solomonR/issues/116)), the
+validation runs of [#117](https://github.com/JUhalt/solomonR/issues/117),
+and [#84](https://github.com/JUhalt/solomonR/issues/84), so that v1.0.0
+changes no default and no result. Those issues are on the v0.9.0
+milestone.
+
 - [x] Stable public API: consistent argument names and lifecycle labels — [#83](https://github.com/JUhalt/solomonR/issues/83); merged in [PR #91](https://github.com/JUhalt/solomonR/pull/91)
   - `y_post` and `y_pre` everywhere, `fit` for fitted models, one order
     for the planning arguments, an optional `data` argument, one posttest
@@ -374,7 +382,12 @@ final, and drafting of the companion manuscript begins.
     package's references were released in 0.8.0
     ([PR #90](https://github.com/JUhalt/solomonR/pull/90),
     [PR #98](https://github.com/JUhalt/solomonR/pull/98)).
+  - broom and dplyr leave Imports, with every result unchanged
+    ([PR #153](https://github.com/JUhalt/solomonR/pull/153)).
   - Nothing is submitted without the maintainer's sign-off.
+- [ ] The validation studies run on GitHub-hosted runners, under each
+  protocol's platform amendment posted before its run — harness merged in
+  [PR #149](https://github.com/JUhalt/solomonR/pull/149) ([#116](https://github.com/JUhalt/solomonR/issues/116), [#117](https://github.com/JUhalt/solomonR/issues/117))
 - Complete reproducible simulations, and manuscript tables and figures.
 - A public preprint when appropriate.
 
@@ -435,7 +448,9 @@ Publication acceptance is not required before the v1.0 release.
 On October 3, 2026, the package was audited against the aim above. The
 maintainer decided to fix every gap the audit found, to leave no function
 experimental at 1.0, and to run a robustness study before the release is
-tagged. The items, with their status, and those found since the audit:
+tagged. The open items are on the v0.9.0 milestone, so that 0.9.0 is the
+release candidate. The items, with their status, and those found since
+the audit:
 
 - **Estimates and their sources**
   - [x] The pretest (testing) effect as named contrasts, with the pretest
@@ -453,7 +468,10 @@ tagged. The items, with their status, and those found since the audit:
     pretest drops — [#142](https://github.com/JUhalt/solomonR/issues/142)
   - [ ] Pretest × Treatment when attrition differs between the treatment
     arms — [#143](https://github.com/JUhalt/solomonR/issues/143)
-  - [ ] `fit_solomon_glm()` with a covariate far from zero — [#137](https://github.com/JUhalt/solomonR/issues/137)
+  - [x] `fit_solomon_glm()` with a covariate far from zero, or on a scale
+    far from 1 — [#137](https://github.com/JUhalt/solomonR/issues/137); merged in [PR #151](https://github.com/JUhalt/solomonR/pull/151)
+  - [x] `fit_solomon_glm()` drops, without saying so, a covariate given as
+    a vector or a matrix — [#146](https://github.com/JUhalt/solomonR/issues/146); merged in [PR #155](https://github.com/JUhalt/solomonR/pull/155)
 - **Figures and reports**
   - [x] The interval of the equivalence test drawn in the forest plot — [#107](https://github.com/JUhalt/solomonR/issues/107); merged in [PR #121](https://github.com/JUhalt/solomonR/pull/121)
   - [x] Figure text that fits the figure — [#108](https://github.com/JUhalt/solomonR/issues/108); merged in [PR #123](https://github.com/JUhalt/solomonR/pull/123)
@@ -469,17 +487,30 @@ tagged. The items, with their status, and those found since the audit:
     `perm_solomon()` — [#131](https://github.com/JUhalt/solomonR/issues/131); merged in [PR #132](https://github.com/JUhalt/solomonR/pull/132), released in 0.8.2
   - [ ] `perm_solomon()`: ties with a covariate in iterated models, and
     degenerate labelings — [#134](https://github.com/JUhalt/solomonR/issues/134)
+  - [ ] `marginal_solomon()`: a logistic bootstrap that can lose every
+    resample on an ill-conditioned design, and blames sparse cells; and,
+    in `fit_solomon_glm()`, the convergence warning that can come with
+    the error for exactly collinear covariates, and which fit
+    `model$converged` describes — [#154](https://github.com/JUhalt/solomonR/issues/154)
   - [ ] Robustness study of the recommended inference, under a protocol
     posted before any run — [#116](https://github.com/JUhalt/solomonR/issues/116)
 - **Interface**
   - [x] One output vocabulary across the fitted objects — [#110](https://github.com/JUhalt/solomonR/issues/110); merged in [PR #141](https://github.com/JUhalt/solomonR/pull/141)
-  - [ ] The SEM functions accept only the estimators they can fit and
-    describe — [#133](https://github.com/JUhalt/solomonR/issues/133)
+  - [x] The SEM functions accept only the estimators they can fit and
+    describe — [#133](https://github.com/JUhalt/solomonR/issues/133); merged in [PR #157](https://github.com/JUhalt/solomonR/pull/157)
   - [ ] No experimental functions: each one implemented to its literature
     and held to a validation rule posted in advance — [#117](https://github.com/JUhalt/solomonR/issues/117)
 - **Reproducibility**
   - [x] The validation scripts rerun against the current package, each
     with a smoke mode that a GitHub Actions workflow runs — [#140](https://github.com/JUhalt/solomonR/issues/140); merged in [PR #144](https://github.com/JUhalt/solomonR/pull/144)
+  - [x] The validation scripts run from a downloaded copy of the
+    repository, outside a git clone — [#152](https://github.com/JUhalt/solomonR/issues/152); merged in [PR #156](https://github.com/JUhalt/solomonR/pull/156)
+  - [ ] Follow-ups to [#152](https://github.com/JUhalt/solomonR/issues/152): in the simulation harness, the
+    validation scripts' check that the package copy is the top level of
+    a git repository, due before the robustness study's timing run; on
+    the Validation Evidence page, a note on studies run through the
+    harness, and one on GitHub's ZIP files if they keep the commit; and
+    a CI run of one script from a downloaded copy — [#162](https://github.com/JUhalt/solomonR/issues/162)
 
 # Later / exploratory
 
@@ -488,6 +519,9 @@ release commitments only when their scope and acceptance criteria are agreed
 in a linked issue and assigned to a milestone.
 
 - Bayesian Solomon modeling — [#118](https://github.com/JUhalt/solomonR/issues/118), on the
+  [Post-1.0 milestone](https://github.com/JUhalt/solomonR/milestone/9)
+- Precision planning by the a priori procedure (APP), to be built with the
+  Bayesian extension — [#147](https://github.com/JUhalt/solomonR/issues/147), on the
   [Post-1.0 milestone](https://github.com/JUhalt/solomonR/milestone/9)
 - Rank-based / nonparametric unified methods: aligned-rank or permutation
   approaches only, since rank-transform tests are unsuitable for

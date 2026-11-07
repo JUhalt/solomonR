@@ -940,6 +940,31 @@ Tipton, E. (2015). Small sample adjustments for robust variance estimation
 with meta-regression. *Psychological Methods, 20*(3), 375–393.
 https://doi.org/10.1037/met0000011
 
+Trafimow, D. (2017). Using the coefficient of confidence to make the
+philosophical switch from a posteriori to a priori inferential statistics.
+*Educational and Psychological Measurement, 77*(5), 831–854.
+https://doi.org/10.1177/0013164416667977
+
+> The first a priori procedure (APP), as Trafimow et al. (2020, p. 186)
+> describe it: before the data, the sample size that puts a sample mean
+> within a chosen fraction *f* of a standard deviation of the population
+> mean with probability *c* (worked examples, p. 839). *In solomonR:*
+> described in "Planning a Solomon Study" and not implemented; the proposal
+> is [#147](https://github.com/JUhalt/solomonR/issues/147).
+
+Trafimow, D., & MacDonald, J. A. (2017). Performing inferential statistics
+prior to data collection. *Educational and Psychological Measurement,
+77*(2), 204–219. https://doi.org/10.1177/0013164416659745
+
+Trafimow, D., Tong, T., Wang, T., Choy, S. T. B., Hu, L., Chen, X., Wang,
+C., & Wang, Z. (2024). Improving inferential analyses predata and postdata.
+*Psychological Methods*. Advance online publication.
+https://doi.org/10.1037/met0000697
+
+Trafimow, D., Wang, C., & Wang, T. (2020). Making the a priori procedure
+work for differences between means. *Educational and Psychological
+Measurement, 80*(1), 186–198. https://doi.org/10.1177/0013164419847509
+
 Van Breukelen, G. J. P. (2006). ANCOVA versus change from baseline had more
 power in randomized studies and more bias in nonrandomized studies. *Journal
 of Clinical Epidemiology, 59*(9), 920–925.

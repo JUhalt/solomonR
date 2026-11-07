@@ -913,9 +913,9 @@ fit_solomon_classic <- function(
 
   # Legacy objects retained for existing user code; not part of the stable
   # interface.
-  ancova_legacy <- broom::tidy(fit_e)
+  ancova_legacy <- .tidy_coefficients(fit_e)
 
-  t_legacy <- broom::tidy(
+  t_legacy <- .tidy_t_test(
     stats::t.test(
       y_post ~ factor(treat),
       data = un_df,

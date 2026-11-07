@@ -98,6 +98,19 @@
   if (flags[2]) "metric" else if (is.null(partial)) "scalar" else "partial scalar"
 }
 
+# Whether the chi-square differences of the three models are scaled, read
+# from the fitted models (issue #133): every model has a scaled test, by the
+# rule of .sem_scaled(), as under MLR. The Satorra-Bentler difference needs
+# the scaling of both models. The report and the print of a result read this
+# too, not the stored `scaled`: before #133 that flag followed the
+# estimator's name, so a result fitted with estimator = "mlr" stored FALSE,
+# although lavTestLRT() had computed the scaled differences, its default for
+# fits with a scaled test. The print uses the stored flag only when it
+# cannot read the fits; see print.solomon_invariance().
+.invariance_scaled <- function(fits) {
+  length(fits) > 0L && all(vapply(fits, .sem_scaled, logical(1)))
+}
+
 # Configural, metric, and scalar models across the levels of `group`, with
 # the change in fit and the chi-square difference test at each step.
 .invariance_steps <- function(data, items, group, estimator, partial, alpha = 0.05) {
@@ -128,7 +141,10 @@
 
   sizes <- as.vector(table(group))
   cut <- .chen2007_cutoffs(sizes)
-  robust <- estimator %in% c("MLR", "MLM", "MLMV")
+  # Whether the difference test is scaled is read from the fitted models,
+  # not from the estimator's name (issue #133): scaled under MLR, unscaled
+  # under ML.
+  scaled <- .invariance_scaled(fits)
   step <- function(less, more, srmr_cut) {
     # The scaled difference test can fail inside lavaan when its scaling
     # correction is undefined, as in one replication of the #55 simulation
@@ -136,7 +152,7 @@
     lrt <- tryCatch(
       suppressWarnings(lavaan::lavTestLRT(
         fits[[less]], fits[[more]],
-        method = if (robust) "satorra.bentler.2001" else "default"
+        method = if (scaled) "satorra.bentler.2001" else "standard"
       )),
       error = function(e) NULL
     )
@@ -165,7 +181,7 @@
     supported = c(chisq = .invariance_level(tests$noninvariant_chisq, partial),
                   chen2007 = .invariance_level(tests$noninvariant_chen, partial)),
     cutoffs = cut, sizes = sizes, partial = partial, alpha = alpha,
-    scaled = robust
+    scaled = scaled
   )
 }
 
@@ -184,10 +200,11 @@
 #' two ways, and the output gives the decision under each.
 #'
 #' - **Chi-square difference test** (`noninvariant_chisq`): noninvariance
-#'   when the difference test rejects at `alpha`. For the robust estimators
-#'   MLR, MLM, and MLMV the difference is scaled (Satorra & Bentler, 2001).
-#'   Vandenberg and Lance (2000, p. 46) recommend this test as the primary
-#'   criterion, with the change in CFI as a supplement.
+#'   when the difference test rejects at `alpha`. Under MLR, the default,
+#'   the difference is scaled (Satorra & Bentler, 2001); under ML it is the
+#'   unscaled difference of the maximum likelihood chi-squares. Vandenberg
+#'   and Lance (2000, p. 46) recommend this test as the primary criterion,
+#'   with the change in CFI as a supplement.
 #' - **Change in fit** (`noninvariant_chen`): noninvariance when CFI drops by
 #'   at least .005 and, in addition, RMSEA rises by at least .010 or SRMR by
 #'   at least .025 (loadings) or .005 (intercepts), the cutoffs Chen (2007,
@@ -239,7 +256,15 @@
 #' @param items Names of at least three indicators.
 #' @param treat,pretested Treatment and pretest indicators (0/1). Designs with
 #'   several treatments are not supported; see [fit_solomon_glm()].
-#' @param estimator lavaan estimator, default `"MLR"`.
+#' @param estimator The lavaan estimator, `"MLR"` (the default) or `"ML"`,
+#'   in upper or lower case: the estimators of [fit_solomon_sem_latent()],
+#'   which runs this check. Any other value stops with an error. Under ML
+#'   the difference test is unscaled. In the check that the amendment of
+#'   October 9, 2026, on issue #55 plans to validate, the test does not
+#'   depend on `estimator`: the scaled difference (Satorra & Bentler, 2001)
+#'   is always computed from MLR fits, and among the tests compared is the
+#'   unscaled difference from the same fits, which equals the difference
+#'   under ML. Other estimators can be fitted with lavaan directly.
 #' @param partial Optional character vector of freed parameters (see Partial
 #'   invariance).
 #' @param alpha Significance level of the chi-square difference test.
@@ -260,8 +285,11 @@
 #'   - `cutoffs`: the cutoffs of the change-in-fit criterion that were
 #'     applied.
 #'   - `sizes`: the four group sizes.
-#'   - `partial`, `alpha`, `items`, and `estimator`: the settings used.
-#'   - `scaled`: whether the chi-square difference was scaled.
+#'   - `partial`, `alpha`, `items`, and `estimator`: the settings used, with
+#'     `estimator` in upper case.
+#'   - `scaled`: whether the chi-square difference was scaled, read from
+#'     the fitted models: `TRUE` when every model has a scaled test
+#'     statistic, as under MLR.
 #'
 #'   The tables compare models and estimate no Solomon contrast, so the
 #'   result has no effects table, and the lavaan objects are not part of
@@ -327,6 +355,7 @@ invariance_solomon <- function(data, items, treat, pretested, estimator = "MLR",
   pretested <- .solomon_indicator(pretested, "pretested")
   .solomon_check_lengths(data = data, treat = treat, pretested = pretested)
   .check_partial(partial, items)
+  estimator <- .check_sem_estimator(estimator)
   group <- factor(interaction(pretested, treat, drop = TRUE),
                   levels = c("1.1", "1.0", "0.1", "0.0"), labels = c("P1", "P0", "U1", "U0"))
   out <- .invariance_steps(data, items, group, estimator, partial, alpha)
@@ -338,8 +367,11 @@ invariance_solomon <- function(data, items, treat, pretested, estimator = "MLR",
 #' @export
 print.solomon_invariance <- function(x, digits = 3, ...) {
   cat("Measurement invariance across the four Solomon groups\n")
+  # The estimator in upper case, as it is stored since issue #133; a result
+  # saved before may hold "mlr".
   cat(sprintf("Indicators: %s; estimator: %s; group sizes (P1, P0, U1, U0): %s\n",
-              paste(x$items, collapse = ", "), x$estimator, paste(x$sizes, collapse = ", ")))
+              paste(x$items, collapse = ", "), toupper(x$estimator),
+              paste(x$sizes, collapse = ", ")))
   if (!is.null(x$partial)) {
     cat("Freed parameters (partial invariance):", paste(x$partial, collapse = "; "), "\n")
   }
@@ -359,9 +391,17 @@ print.solomon_invariance <- function(x, digits = 3, ...) {
     if (level == "undetermined") "could not be determined (a statistic was unavailable)" else
       paste(level, "supported")
   }
+  # Whether the differences are scaled is read from the fitted models, not
+  # from the stored flag (issue #133). The flag is used when the models
+  # cannot be read: when lavaan, which reads them, is not installed, or when
+  # the result no longer holds the three fits, for example because they were
+  # removed to make it smaller. The flag was computed from the same fits.
+  has_fits <- requireNamespace("lavaan", quietly = TRUE) &&
+    length(x$fits) == 3L && all(vapply(x$fits, inherits, logical(1), "lavaan"))
+  scaled <- if (has_fits) .invariance_scaled(x$fits) else isTRUE(x$scaled)
   cat(sprintf(
     "\nChi-square difference test%s at alpha = %s (Vandenberg & Lance, 2000, p. 46): %s.\n",
-    if (isTRUE(x$scaled)) " (scaled; Satorra & Bentler, 2001)" else "", x$alpha,
+    if (scaled) " (scaled; Satorra & Bentler, 2001)" else "", x$alpha,
     verdict(x$supported[["chisq"]])
   ))
   cat(sprintf(

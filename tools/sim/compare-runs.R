@@ -51,7 +51,10 @@ if (identical(mode, "tasks")) {
       if (!is.na(d$max_abs)) worst <- max(worst, d$max_abs)
     }
     if (!identical(x$envelope, y$envelope)) {
-      fields <- names(x$envelope)[!mapply(identical, x$envelope, y$envelope[names(x$envelope)])]
+      # Every field of either envelope, so that a field only one run has
+      # (as files_sha256 against a run of contract 2) is named too.
+      fields <- union(names(x$envelope), names(y$envelope))
+      fields <- fields[!vapply(fields, function(f) identical(x$envelope[[f]], y$envelope[[f]]), TRUE)]
       where <- c(where, paste0("envelope:", fields))
     }
   }

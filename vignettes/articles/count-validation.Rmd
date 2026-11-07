@@ -304,6 +304,9 @@ and `r substr(nb_run$commit, 1, 7)`, the original and the adapted scripts
 give identical results. With the current package, the results differ from
 these, with relative differences below 1e-7, because the pretest has been
 centered since [issue #104](https://github.com/JUhalt/solomonR/issues/104).
+Both scripts also record their commit by the rule under
+[Rerunning a study](validation-evidence.html#rerunning-a-study)
+([issue #152](https://github.com/JUhalt/solomonR/issues/152)).
 
 All works cited in solomonR are listed, with notes on how the package uses
 them, on the [References](references.html) page.

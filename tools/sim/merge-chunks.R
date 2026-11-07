@@ -5,8 +5,10 @@
 #
 # <chunks dir> holds one folder per chunk, chunk-NNNN, as the chunk jobs
 # uploaded them (tasks/*.rds, software.csv, job-info.csv, run-times.csv,
-# run-info.csv, session-info.txt, log.txt). The merge stops, and nothing is
-# summarized, unless:
+# run-info.csv, session-info.txt, log.txt); each chunk's artifact holds its
+# folder chunk-NNNN/, and the workflow downloads them with merge-multiple,
+# so the layout is the same for 1 chunk and for 256. The merge stops, and
+# nothing is summarized, unless:
 #
 #   1. every task of the plan appears in exactly one chunk, the chunk the
 #      assignment named, and no other task file exists;
@@ -14,7 +16,7 @@
 #      replications, all 7 seed integers, rows per replication), and the
 #      plan's contract, study, purpose, design, package commit, script
 #      SHA-256, contract SHA-256, and the SHA-256 of the files the script
-#      sources (study$files);
+#      sources (study$files; an envelope without them is refused);
 #   3. each task's results have no missing replication number, exactly
 #      (rep_to - rep_from + 1) x rows_per_rep rows, rows_per_rep rows for
 #      each replication from rep_from to rep_to, and no other replication;
@@ -41,9 +43,9 @@
 #   d. the cheapest task of the last chunk not yet chosen, or of the
 #      highest-numbered chunk once every chunk has been chosen;
 #
-# ties broken by task id; a task is never chosen twice. tools/sim/check-replay.R
-# compares them after the study script has run them again on the merge
-# machine.
+# ties broken by task id; a task is never chosen twice.
+# tools/sim/check-replay.R compares them after the study script has run them
+# again on the merge machine.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
@@ -60,6 +62,13 @@ info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
 assignment <- h_read_csv(file.path(plan_dir, "assignment.csv"))
 if (!info[["contract"]] %in% h_contracts) h_fail("This harness cannot merge contract version ", info[["contract"]], ".")
 if (!identical(sort(assignment$task_id), sort(plan$task_id))) h_fail("The assignment does not list the plan's tasks.")
+# The plan's replications per scenario (step 4), in digits (h_whole()):
+# as.integer() alone reads "20.9" or "2e1" as 20, and turns a number
+# beyond R's integers into NA.
+R <- h_whole(info[["reps"]], 1L)
+if (is.na(R)) {
+  h_fail("The plan's reps must be a whole number from 1 to ", .Machine$integer.max, ", in digits without a leading zero.")
+}
 
 # ---- 1. Every task once, in its chunk -------------------------------------------
 
@@ -67,6 +76,10 @@ expected <- sort(unique(assignment$chunk))
 dirs <- list.dirs(chunks_dir, recursive = FALSE, full.names = FALSE)
 dirs <- sort(dirs[grepl("^chunk-[0-9]{4}$", dirs)])
 found <- sub("^chunk-", "", dirs)
+if (!length(found) && dir.exists(file.path(chunks_dir, "tasks"))) {
+  h_fail("The chunks folder holds a chunk's files directly, not in chunk-NNNN/ (expected: ",
+         paste(expected, collapse = " "), ").")
+}
 if (!identical(found, expected)) {
   h_fail("Chunks expected: ", paste(expected, collapse = " "), "; found: ", paste(found, collapse = " "), ".")
 }
@@ -93,10 +106,11 @@ files <- files[order(files$task_id), ]
 
 # ---- 2 and 3. Each task against its plan row ---------------------------------------
 
-base <- list(contract = info[["contract"]], study = info[["study"]], purpose = info[["purpose"]],
-             design = info[["design"]], package_sha = info[["package_sha"]],
-             script_sha256 = info[["script_sha256"]], contract_sha256 = info[["contract_sha256"]],
-             files_sha256 = info[["files_sha256"]])
+fields <- c("contract", "study", "purpose", "design", "package_sha", "script_sha256", "contract_sha256",
+            "files_sha256")
+absent <- setdiff(fields, names(info))
+if (length(absent)) h_fail("plan-info.csv lacks ", paste(absent, collapse = ", "), ".")
+base <- as.list(info[fields])
 job_info <- lapply(stats::setNames(found, found), function(ch) {
   f <- file.path(chunks_dir, paste0("chunk-", ch), "job-info.csv")
   if (file.exists(f)) h_read_kv(f) else NULL
@@ -117,6 +131,7 @@ for (i in seq_len(nrow(files))) {
   env <- task$envelope
   if (!identical(env$task, want)) h_fail("Task ", id, ": the envelope's task row differs from the plan.")
   for (nm in names(base)) {
+    if (!nm %in% names(env)) h_fail("Task ", id, ": the envelope has no field ", nm, ".")
     if (!identical(env[[nm]], base[[nm]])) h_fail("Task ", id, ": envelope field ", nm, " differs from the plan.")
   }
   res <- task$results
@@ -153,7 +168,6 @@ manifest <- do.call(rbind, manifest)
 
 # ---- 4. Every scenario, replications 1 to R once ------------------------------------
 
-R <- as.integer(info[["reps"]])
 scenarios <- sort(unique(as.integer(plan$scenario[plan$kind == "replications"])))
 completeness <- do.call(rbind, lapply(scenarios, function(s) {
   r <- covered[[as.character(s)]]
@@ -169,8 +183,7 @@ completeness <- do.call(rbind, lapply(scenarios, function(s) {
 sources <- c(plan = file.path(plan_dir, "software.csv"),
              stats::setNames(file.path(chunks_dir, paste0("chunk-", found), "software.csv"), paste0("chunk-", found)))
 present <- file.exists(sources)
-if (!all(present[-1])) h_fail("software.csv is missing from: ", paste(names(sources)[-1][!present[-1]], collapse = ", "), ".")
-sources <- sources[present]
+if (!all(present)) h_fail("software.csv is missing from: ", paste(names(sources)[!present], collapse = ", "), ".")
 software <- lapply(sources, h_read_csv)
 ref <- software[[length(software)]]
 differ <- names(software)[!vapply(software, identical, TRUE, ref)]
@@ -207,6 +220,8 @@ choose <- function(cands, decreasing) {
   o <- order(if (decreasing) -cands$cost_num else cands$cost_num, cands$task_id)
   cands$task_id[o[[1]]]
 }
+# The tasks of the first (or last) chunk not yet chosen; once every chunk
+# has been chosen, of the lowest- (or highest-) numbered chunk.
 chunk_tasks <- function(which) {
   free <- setdiff(found, used_chunks())
   pool <- if (length(free)) free else found

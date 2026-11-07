@@ -22,7 +22,15 @@ invariance_solomon(
 \item{treat, pretested}{Treatment and pretest indicators (0/1). Designs with
 several treatments are not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
 
-\item{estimator}{lavaan estimator, default \code{"MLR"}.}
+\item{estimator}{The lavaan estimator, \code{"MLR"} (the default) or \code{"ML"},
+in upper or lower case: the estimators of \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}},
+which runs this check. Any other value stops with an error. Under ML
+the difference test is unscaled. In the check that the amendment of
+October 9, 2026, on issue #55 plans to validate, the test does not
+depend on \code{estimator}: the scaled difference (Satorra & Bentler, 2001)
+is always computed from MLR fits, and among the tests compared is the
+unscaled difference from the same fits, which equals the difference
+under ML. Other estimators can be fitted with lavaan directly.}
 
 \item{partial}{Optional character vector of freed parameters (see Partial
 invariance).}
@@ -47,8 +55,11 @@ criterion, \code{chisq} and \code{chen2007}: \code{"configural"}, \code{"metric"
 \item \code{cutoffs}: the cutoffs of the change-in-fit criterion that were
 applied.
 \item \code{sizes}: the four group sizes.
-\item \code{partial}, \code{alpha}, \code{items}, and \code{estimator}: the settings used.
-\item \code{scaled}: whether the chi-square difference was scaled.
+\item \code{partial}, \code{alpha}, \code{items}, and \code{estimator}: the settings used, with
+\code{estimator} in upper case.
+\item \code{scaled}: whether the chi-square difference was scaled, read from
+the fitted models: \code{TRUE} when every model has a scaled test
+statistic, as under MLR.
 }
 
 The tables compare models and estimate no Solomon contrast, so the
@@ -70,10 +81,11 @@ Each step compares the more constrained model with the one before it in
 two ways, and the output gives the decision under each.
 \itemize{
 \item \strong{Chi-square difference test} (\code{noninvariant_chisq}): noninvariance
-when the difference test rejects at \code{alpha}. For the robust estimators
-MLR, MLM, and MLMV the difference is scaled (Satorra & Bentler, 2001).
-Vandenberg and Lance (2000, p. 46) recommend this test as the primary
-criterion, with the change in CFI as a supplement.
+when the difference test rejects at \code{alpha}. Under MLR, the default,
+the difference is scaled (Satorra & Bentler, 2001); under ML it is the
+unscaled difference of the maximum likelihood chi-squares. Vandenberg
+and Lance (2000, p. 46) recommend this test as the primary criterion,
+with the change in CFI as a supplement.
 \item \strong{Change in fit} (\code{noninvariant_chen}): noninvariance when CFI drops by
 at least .005 and, in addition, RMSEA rises by at least .010 or SRMR by
 at least .025 (loadings) or .005 (intercepts), the cutoffs Chen (2007,

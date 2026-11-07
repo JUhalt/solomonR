@@ -2,11 +2,13 @@
 # (issue #117; see tools/sim/README.md).
 #
 # A study script sources this file from the package checkout, so the package
-# commit fixes the script, this file, and therefore every random number a
-# task draws. The harness (.github/workflows/simulation-run.yaml and the other
-# scripts in tools/sim, which come from the workflow's own commit) passes no
-# seed and draws no random number: it only says which tasks a process runs
-# and where the files go, and it checks and merges what comes back.
+# commit fixes the script, this file, the files the script sources
+# (study$files, whose SHA-256 the plan and every task record), and therefore
+# every random number a task draws. The harness
+# (.github/workflows/simulation-run.yaml and the other scripts in tools/sim,
+# which come from the workflow's own commit) passes no seed and draws no
+# random number: it only says which tasks a process runs and where the files
+# go, and it checks and merges what comes back.
 #
 # The script defines a list `study` (its fields are listed in
 # sim_check_study() below), then calls sim_main(study). What sim_main() does
@@ -28,18 +30,30 @@
 #                             its task size, and its timing projection.
 #   SOLOMONR_SIM_REPS         Replications per scenario (a gate's size is
 #                             fixed by the study; a test is at most 20).
+#                             Read with sim_whole(), as are the task size,
+#                             the workers, SOLOMONR_SMOKE_REPS, the scenario
+#                             numbers of a subset, and plan-info.csv's reps,
+#                             task_size, and subset: a whole number in
+#                             digits without a leading zero or white space
+#                             around them, within R's integers; anything
+#                             else stops with the contract's message, which
+#                             names the range and says "in digits without a
+#                             leading zero". (A blank task size is the
+#                             study's own.)
 #   SOLOMONR_SIM_SUBSET       Plan stage: empty or "all" (every scenario),
 #                             "fallback" (the scenarios study$gate$fallback()
-#                             keeps; not in a gate), or, in a test only,
-#                             scenario numbers separated by spaces or commas.
-#                             A subset keeps the full table's streams.
+#                             keeps: a study run after a gate that chose
+#                             them, or a test of that plan; never a gate's
+#                             design), or, in a test only, scenario numbers
+#                             separated by spaces or commas. A subset keeps
+#                             the full table's streams.
 #   SOLOMONR_SIM_TASK_SIZE    Plan stage, test runs of design run only:
 #                             replications per task instead of the study's,
 #                             so that a test has several tasks per scenario.
 #   SOLOMONR_SIM_PLAN         Folder of the plan files (written by plan).
 #   SOLOMONR_SIM_TASKS        File with the ids of the tasks to run (run).
-#   SOLOMONR_SIM_WORKERS      PSOCK workers (run); 0 runs the tasks in this
-#                             process.
+#   SOLOMONR_SIM_WORKERS      PSOCK workers (run), 0 or more; 0 runs the
+#                             tasks in this process.
 #   SOLOMONR_SIM_OUT          Output folder (run, summarize).
 #   SOLOMONR_SIM_IN           File listing the task files (summarize).
 #   SOLOMONR_SIM_PACKAGE_SHA  The package commit. When git is available, it
@@ -57,10 +71,11 @@
 # scenario and replication number.
 #
 # Timing. A task records its start, its finish, its job's start (when the
-# job's process began handing out tasks), and its worker seconds, split into
-# agreement checks (the code the study wraps in sim_time_agreement()) and
-# replications (the rest). Timing is the one part of a task file that may
-# differ between two runs of the task; it is never hashed or summarized.
+# job's process began handing out tasks; it tells the tasks of one job from
+# another's), and its worker seconds, split into agreement checks (the code
+# the study wraps in sim_time_agreement()) and replications (the rest).
+# Timing is the one part of a task file that may differ between two runs of
+# the task; it is never hashed or summarized.
 #
 # Faults. A fit that fails is a result. Any other error in a replication
 # stops the task: the task id, the replication, and the message are written
@@ -92,6 +107,24 @@ sim_need <- function(name) {
 }
 
 sim_is_worker <- function() identical(Sys.getenv("SOLOMONR_SIM_ROLE"), "worker")
+
+# A whole number of at least `lowest`, written in digits without a leading
+# zero and within R's integers (to 2147483647), from a setting or a plan
+# file; NA otherwise. as.integer() alone reads "2.5" as 2 and "1e2" as 100,
+# and turns a longer number into NA with a warning. The pattern alone
+# decides: " 5" (white space around the digits) is NA too.
+sim_whole <- function(x, lowest = 1L) {
+  if (length(x) != 1L || is.na(x)) return(NA_integer_)
+  x <- as.character(x)
+  v <- if (grepl("^(0|[1-9][0-9]*)$", x)) suppressWarnings(as.integer(x)) else NA_integer_
+  if (is.na(v) || v < lowest) NA_integer_ else v
+}
+
+# TRUE if `x`, a value the study's script gives, is one whole number from
+# `lowest` to `highest` (R's integers by default).
+sim_is_whole <- function(x, lowest = 1, highest = .Machine$integer.max) {
+  is.numeric(x) && length(x) == 1L && is.finite(x) && x == trunc(x) && x >= lowest && x <= highest
+}
 
 # CSV files with LF line ends on every platform, so that their bytes do not
 # depend on where they were written.
@@ -151,9 +184,13 @@ sim_time_agreement <- function(expr) {
 # Required fields of `study`:
 #   key              short name, as in tools/sim/studies.csv
 #   issue            the issue that holds the protocol
-#   protocol         TRUE for a validation protocol: then only purpose
-#                    "study" may compute performance measures, decisions,
-#                    or failure counts (in smoke mode too)
+#   protocol         TRUE for a validation protocol: then the summary of
+#                    any purpose but "study" (smoke mode included) may hold
+#                    only elements named agreement, run-information, and
+#                    timing/<name>. Only the names are checked, not what
+#                    the elements hold: that such a summary computes no
+#                    performance measure, decision, or failure count rests
+#                    on the study's summarize()
 #   seeds            named integers: study, gate, test (base seeds)
 #   scenarios        data frame; column `scenario` is 1, 2, ... in the order
 #                    of the protocol's scenario table
@@ -163,8 +200,8 @@ sim_time_agreement <- function(expr) {
 #   cost             function(s, reps): relative expected time of a task's
 #                    replications, greater than 0 (used only to balance the
 #                    jobs and to size them from the gate's seconds per unit
-#                    of cost); task 1 adds agreement_cost(s) if the study
-#                    gives one
+#                    of cost); task 1 of a scenario adds agreement_cost(s)
+#                    if the study gives one
 #   replicate        function(s, rep): one replication; draws only from the
 #                    current RNG state and returns list(results = data frame
 #                    of rows_per_rep(s) rows, agreement = data frame or NULL),
@@ -186,19 +223,21 @@ sim_time_agreement <- function(expr) {
 #   gate             list(reps, task_size, ladder, divisor, cap_hours,
 #                    allowance, warmup_minutes, group, fallback,
 #                    fallback_label, project): the timing gate; see
-#                    sim_gate_default()
+#                    sim_gate_default(). The plan records its allowance
+#                    (1 without one), and assign-chunks.R sizes a run's
+#                    jobs with it, the allowance with which the gate chose R
 #   preflight        function(): data frame (check, passed, detail) of the
 #                    protocol's stops before any task
 #   smoke_scenarios  scenario numbers that the smoke mode runs
 #   agreement_cost   function(s): the cost, in the units of cost(), of the
-#                    agreement checks that task 1 of scenario row s
-#                    carries (0 or more); it is added to that task's cost,
-#                    and the gate's seconds per unit of cost then come from
+#                    agreement checks that task 1 of scenario row s carries
+#                    (0 or more); it is added to that task's cost, and the
+#                    gate's seconds per unit of cost then come from
 #                    replication time alone
 #   files            paths, relative to the package root, of the files the
 #                    script sources besides this one; their SHA-256 is part
 #                    of the plan and of every task's envelope, like the
-#                    script's
+#                    script's, and a gate or study run needs them committed
 #   package_root     folder of the package (default ".")
 sim_check_study <- function(study) {
   need <- c("key", "issue", "protocol", "seeds", "scenarios", "task_size",
@@ -214,24 +253,60 @@ sim_check_study <- function(study) {
   if (length(unique(study$seeds[c("study", "gate", "test")])) != 3L) {
     stop("The base seeds of study, gate, and test must differ.", call. = FALSE)
   }
+  # set.seed() takes an integer, and a run of the gate's design orders its
+  # tasks with set.seed(seed + 1).
+  if (!all(vapply(c("study", "gate", "test"), function(p) sim_is_whole(study$seeds[[p]], -.Machine$integer.max,
+                                                                      .Machine$integer.max - 1), TRUE))) {
+    stop("The base seeds of study, gate, and test must be whole numbers from ", -.Machine$integer.max, " to ",
+         .Machine$integer.max - 1L, ".", call. = FALSE)
+  }
+  if (!sim_is_whole(study$task_size)) {
+    stop("`study$task_size` must be a whole number from 1 to ", .Machine$integer.max, ".", call. = FALSE)
+  }
+  if (!is.null(study$gate) && !(sim_is_whole(study$gate$reps) && sim_is_whole(study$gate$task_size))) {
+    stop("`study$gate$reps` and `study$gate$task_size` must be whole numbers from 1 to ", .Machine$integer.max, ".",
+         call. = FALSE)
+  }
   sc <- study$scenarios
   if (!is.data.frame(sc) || !identical(sc$scenario, seq_len(nrow(sc)))) {
     stop("`study$scenarios$scenario` must be 1, 2, ... in table order.", call. = FALSE)
   }
+  f <- study$files
+  if (!is.null(f) && (!is.character(f) || anyNA(f) || any(!nzchar(f)) || anyDuplicated(f))) {
+    stop("`study$files` must be distinct paths.", call. = FALSE)
+  }
   if (!is.null(study$agreement_cost) && !is.function(study$agreement_cost)) {
     stop("`study$agreement_cost` must be a function.", call. = FALSE)
   }
-  if (!is.null(study$files) && (!is.character(study$files) || anyNA(study$files) || anyDuplicated(study$files))) {
-    stop("`study$files` must be distinct paths.", call. = FALSE)
-  }
   invisible(study)
+}
+
+# The allowance of the study's timing gate (1 without one): the factor on
+# the gate's projection and, through plan-info.csv, on a run's job sizes.
+sim_allowance <- function(study) if (is.null(study$gate$allowance)) 1 else as.numeric(study$gate$allowance)
+
+# The cost of the agreement checks that task 1 of scenario row `s` carries
+# (study$agreement_cost(), 0 without one).
+sim_agreement_cost <- function(study, s) {
+  if (!is.function(study$agreement_cost)) return(0)
+  a <- as.numeric(study$agreement_cost(s))
+  if (length(a) != 1L || !is.finite(a) || a < 0) {
+    stop("study$agreement_cost() must give a number of 0 or more (scenario ", s$scenario, ").", call. = FALSE)
+  }
+  a
 }
 
 # Files the harness writes into the results folder; a study's summary may not
 # use these names.
 sim_reserved_names <- c("manifest", "completeness", "software", "replay", "preflight", "summary",
-                        "timing/task-times", "timing/jobs", "timing/gate-times",
-                        "timing/gate-projection", "timing/gate-summary", "timing/rng-fingerprint")
+                        "timing/task-times", "timing/jobs", "timing/plan-job", "timing/merge-job",
+                        "timing/gate-times", "timing/gate-projection", "timing/gate-summary",
+                        "timing/rng-fingerprint")
+# The files of the timing gate's projection (sim_gate_default() or the
+# study's gate$project), written under timing/.
+sim_gate_names <- c("gate-times", "gate-projection", "gate-summary")
+# What a protocol's smoke, test, or gate summary may hold, besides timing/.
+sim_test_summary_names <- c("agreement", "run-information")
 
 # ---- Streams and the plan ------------------------------------------------------
 
@@ -253,29 +328,42 @@ sim_streams <- function(base_seed, n_scenarios, n_tasks) {
   out
 }
 
-# The size and seed of a plan, from its purpose and design. `task_size`
-# (text, empty for the study's own) is for test runs of design run only.
+# The size and seed of a plan, from its purpose and design. `reps` is text
+# (a setting, or the plan's item); `task_size` (text; empty for the study's
+# own) is for test runs of design run only.
 sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
   if (!purpose %in% c("test", "gate", "study")) stop("Unknown purpose: ", purpose, call. = FALSE)
   if (!design %in% c("run", "gate")) stop("Unknown design: ", design, call. = FALSE)
   if (purpose == "gate" && design != "gate") stop("Purpose gate needs design gate.", call. = FALSE)
   if (purpose == "study" && design != "run") stop("Purpose study needs design run.", call. = FALSE)
   if (design == "gate" && is.null(study$gate)) stop("This study has no timing gate.", call. = FALSE)
-  reps <- as.integer(reps)
+  reps <- sim_whole(reps, 1L)
+  # Refused for every purpose, though a gate then takes its own.
+  if (is.na(reps)) {
+    stop("The number of replications must be a whole number from 1 to ", .Machine$integer.max,
+         ", in digits without a leading zero.", call. = FALSE)
+  }
   if (design == "gate") {
     size <- as.integer(study$gate$task_size)
     reps <- if (purpose == "test") min(as.integer(study$gate$reps), reps) else as.integer(study$gate$reps)
   } else {
     size <- as.integer(study$task_size)
   }
-  if (!is.null(task_size) && nzchar(task_size)) {
+  task_size <- if (is.null(task_size)) "" else as.character(task_size)
+  if (length(task_size) != 1L || is.na(task_size)) stop("The task size must be one value.", call. = FALSE)
+  # Empty or blank: the study's own. Otherwise digits only, with no white
+  # space around them, and within R's integers: a longer number fits the
+  # pattern but is NA to as.integer().
+  if (nzchar(trimws(task_size))) {
     if (purpose != "test" || design != "run") {
       stop("Only a test run of design run may set its own task size.", call. = FALSE)
     }
-    size <- suppressWarnings(as.integer(task_size))
-    if (is.na(size) || size < 1L) stop("The task size must be a whole number of at least 1.", call. = FALSE)
+    size <- sim_whole(task_size, 1L)
+    if (is.na(size)) {
+      stop("The task size must be a whole number from 1 to ", .Machine$integer.max,
+           ", in digits without a leading zero.", call. = FALSE)
+    }
   }
-  if (is.na(reps) || reps < 1L) stop("The number of replications must be positive.", call. = FALSE)
   # The protocols allow code-testing runs of at most 20 replications per
   # scenario, with seeds the study and the gate do not use.
   if (purpose == "test" && reps > 20L) stop("A test run has at most 20 replications.", call. = FALSE)
@@ -287,21 +375,11 @@ sim_plan_spec <- function(study, purpose, design, reps, task_size = "") {
        base_seed = as.integer(study$seeds[[purpose]]))
 }
 
-# The cost of the agreement checks that task 1 of scenario row `s` carries
-# (study$agreement_cost(), 0 without one).
-sim_agreement_cost <- function(study, s) {
-  if (!is.function(study$agreement_cost)) return(0)
-  a <- as.numeric(study$agreement_cost(s))
-  if (length(a) != 1L || !is.finite(a) || a < 0) {
-    stop("study$agreement_cost() must give a number of 0 or more (scenario ", s$scenario, ").", call. = FALSE)
-  }
-  a
-}
-
 # The scenarios a plan covers (SOLOMONR_SIM_SUBSET): NULL for all of them;
 # "fallback" for those study$gate$fallback() keeps (the protocol's smaller
 # design, for a study run after a gate that chose it, or a test of that
-# plan; never a gate); or, in a test only, a list of scenario numbers.
+# plan; never a plan of the gate's design); or, in a test only, a list of
+# scenario numbers. sim_plan() keeps the full table's streams for them.
 sim_plan_subset <- function(study, spec, value) {
   value <- trimws(value)
   if (!nzchar(value) || identical(value, "all")) return(NULL)
@@ -318,9 +396,12 @@ sim_plan_subset <- function(study, spec, value) {
     return(sc$scenario[keep])
   }
   if (spec$purpose != "test") stop("Only a test run may plan a list of scenarios.", call. = FALSE)
-  s <- suppressWarnings(as.integer(strsplit(value, "[ ,]+")[[1]]))
+  tokens <- strsplit(value, "[ ,]+")[[1]]
+  # A number beyond R's integers is NA, and refused below.
+  s <- vapply(tokens, sim_whole, 0L, lowest = 1L, USE.NAMES = FALSE)
   if (!length(s) || anyNA(s) || anyDuplicated(s) || !all(s %in% sc$scenario)) {
-    stop("SOLOMONR_SIM_SUBSET must be \"all\", \"fallback\", or distinct scenario numbers of the table.",
+    stop("SOLOMONR_SIM_SUBSET must be \"all\", \"fallback\", or distinct scenario numbers of the table, ",
+         "in digits without a leading zero.",
          call. = FALSE)
   }
   sort(s)
@@ -388,9 +469,10 @@ sim_files_paths <- function(study) {
   if (is.null(study$files)) character() else file.path(sim_root(study), study$files)
 }
 sim_files_sha256 <- function(study) {
-  if (is.null(study$files) || !length(study$files)) return("")
+  if (!length(study$files)) return("")
   paths <- sim_files_paths(study)
-  if (!all(file.exists(paths))) stop("A file in study$files does not exist.", call. = FALSE)
+  absent <- study$files[!file.exists(paths)]
+  if (length(absent)) stop("study$files names files that do not exist: ", paste(absent, collapse = ", "), call. = FALSE)
   paste0(study$files, "=", vapply(paths, sim_sha256_text, ""), collapse = " ")
 }
 
@@ -421,8 +503,9 @@ sim_package_id <- function(study) {
   c(name = unname(d[1, "Package"]), version = unname(d[1, "Version"]))
 }
 
-# TRUE if a tracked file differs from the commit, or if the study script or
-# this file is not part of the commit (untracked or changed); NA without git.
+# TRUE if a tracked file differs from the commit, or if the study script,
+# this file, or a file the script sources is not part of the commit
+# (untracked or changed); NA without git.
 sim_dirty <- function(paths) {
   tracked <- sim_git(c("status", "--porcelain", "--untracked-files=no"))
   own <- sim_git(c("status", "--porcelain", "--untracked-files=all", "--", shQuote(paths)))
@@ -463,7 +546,7 @@ sim_write_plan <- function(study, spec, plan_dir, subset = NULL) {
     script_sha256 = sim_sha256_text(sim_script_path()),
     contract_sha256 = sim_sha256_text(sim_contract_path(study)),
     files_sha256 = sim_files_sha256(study),
-    allowance = if (is.null(study$gate$allowance)) 1 else as.numeric(study$gate$allowance),
+    allowance = sim_allowance(study),
     package = id[["name"]], package_version = id[["version"]],
     package_sha = package_sha, package_dirty = as.character(dirty),
     created_utc = sim_utc())
@@ -481,19 +564,35 @@ sim_read_plan <- function(plan_dir) {
        info = sim_read_kv(file.path(plan_dir, "plan-info.csv")))
 }
 
-# The plan must be the one that this script, this contract, and this commit
-# make; otherwise the tasks would run with seeds the code does not imply.
+# The scenarios of a plan's item subset (numbers separated by spaces, as
+# sim_write_plan() writes them), or NULL for every scenario.
+sim_recorded_subset <- function(info) {
+  value <- info[["subset"]]
+  if (!nzchar(value)) return(NULL)
+  s <- vapply(strsplit(value, " ", fixed = TRUE)[[1]], sim_whole, 0L, lowest = 1L, USE.NAMES = FALSE)
+  if (!length(s) || anyNA(s)) {
+    stop("The plan's subset must be scenario numbers from 1 to ", .Machine$integer.max,
+         ", in digits without a leading zero, separated by spaces.",
+         call. = FALSE)
+  }
+  s
+}
+
+# The plan must be the one that this script, the files it sources, this
+# contract, and this commit make; otherwise the tasks would run with seeds,
+# or code, that the plan does not record.
 sim_verify_plan <- function(study, plan) {
   info <- plan$info
   if (!identical(info[["contract"]], sim_contract_version)) {
     stop("The plan was made by contract ", info[["contract"]], ", this is contract ",
          sim_contract_version, ". Make the plan again from the same commit.", call. = FALSE)
   }
+  # A test run of design run may have its own task size, which the plan
+  # records; any other plan has the study's.
   own_size <- identical(info[["purpose"]], "test") && identical(info[["design"]], "run")
   spec <- sim_plan_spec(study, info[["purpose"]], info[["design"]], info[["reps"]],
                         task_size = if (own_size) info[["task_size"]] else "")
-  subset <- if (nzchar(info[["subset"]])) as.integer(strsplit(info[["subset"]], " ")[[1]]) else NULL
-  fresh <- sim_plan(study, spec, subset)
+  fresh <- sim_plan(study, spec, sim_recorded_subset(info))
   checks <- c(
     study = identical(info[["study"]], study$key),
     tasks = identical(fresh[setdiff(names(fresh), "cost")], plan$tasks[setdiff(names(fresh), "cost")]),
@@ -817,7 +916,8 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
   rownames(times) <- NULL
   times$cost <- as.numeric(plan$tasks$cost[match(times$task_id, plan$tasks$task_id)])
   sc <- study$scenarios
-  if (nzchar(info[["subset"]])) sc <- sc[sc$scenario %in% as.integer(strsplit(info[["subset"]], " ")[[1]]), , drop = FALSE]
+  subset <- sim_recorded_subset(info)
+  if (!is.null(subset)) sc <- sc[sc$scenario %in% subset, , drop = FALSE]
   results <- sim_bind_part(parts$results[o], scen[o], "results")
   parts$results <- NULL
   agreement <- sim_bind_part(parts$agreement[o], scen[o], "agreement")
@@ -845,10 +945,11 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
                           names(summary) %in% sim_reserved_names]
   if (length(bad)) stop("Summary names not allowed: ", paste(bad, collapse = ", "), ".", call. = FALSE)
   if (isTRUE(study$protocol) && !identical(info[["purpose"]], "study")) {
-    banned <- intersect(names(summary), c("performance", "decisions", "failures"))
-    if (length(banned)) {
-      stop("A protocol's ", info[["purpose"]], " run may not compute ", paste(banned, collapse = ", "),
-           ".", call. = FALSE)
+    other <- names(summary)[!names(summary) %in% sim_test_summary_names & !grepl("^timing/", names(summary))]
+    if (length(other)) {
+      stop("A protocol's ", info[["purpose"]], " run may return only ",
+           paste(sim_test_summary_names, collapse = ", "), ", and timing/ elements, not ",
+           paste(other, collapse = ", "), ".", call. = FALSE)
     }
   }
   for (name in names(summary)) sim_write_csv(summary[[name]], file.path(out_dir, paste0(name, ".csv")))
@@ -858,10 +959,17 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
     g <- study$gate
     gate <- if (is.function(g$project)) g$project(times = times, scenarios = sc, info = info)
             else sim_gate_default(study, times, sc, info)
-    if (!is.list(gate) || !"gate-projection" %in% names(gate)) {
+    if (!is.list(gate) || is.null(names(gate)) || !"gate-projection" %in% names(gate)) {
       stop("The gate's projection must return a list with gate-projection.", call. = FALSE)
     }
-    for (name in names(gate)) sim_write_csv(gate[[name]], file.path(out_dir, "timing", paste0(name, ".csv")))
+    # Written as timing/<name>.csv: the summary's name rule, no file the
+    # harness writes other than the gate's own, and none the summary wrote.
+    gn <- names(gate)
+    bad <- gn[!grepl("^[a-z0-9][a-z0-9_-]*$", gn) | duplicated(gn) |
+                (paste0("timing/", gn) %in% sim_reserved_names & !gn %in% sim_gate_names) |
+                paste0("timing/", gn) %in% names(summary)]
+    if (length(bad)) stop("Gate projection names not allowed: ", paste(unique(bad), collapse = ", "), ".", call. = FALSE)
+    for (name in gn) sim_write_csv(gate[[name]], file.path(out_dir, "timing", paste0(name, ".csv")))
   }
   message("Summarize: ", n, " tasks, ", if (is.null(results)) 0L else nrow(results),
           " rows; wrote ", paste0(names(summary), ".csv", collapse = ", "), ".")
@@ -872,9 +980,10 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
 
 # The gate's projection, as #116 posted it and amendment 2 restates it for
 # the runners, with the study's constants:
-#   - tasks that start at least `warmup_minutes` after their job's start (the
-#     moment its process began handing out tasks) are used; a group with no
-#     such task uses all of its tasks, and says so;
+#   - tasks that start at least `warmup_minutes` after the first task of
+#     their job started (the earliest start among the tasks with the same
+#     job start) are used; a group with no such task uses all of its tasks,
+#     and says so;
 #   - replication seconds are averaged per replication within each group of
 #     scenarios that `group(scenarios)` defines (default: each scenario);
 #   - the projection for R sums R times each scenario's group average over
@@ -883,19 +992,27 @@ sim_summarize <- function(study, plan_dir, files, out_dir) {
 #     `allowance` is at most `cap_hours`;
 #   - if none is, and `fallback(scenarios)` gives the scenarios to keep, the
 #     same is done for those (labelled `fallback_label`); if that fails too,
-#     the decision is "stop".
+#     the decision is "stop";
+#   - gate-summary.csv also gives seconds_per_cost, the price of a unit of
+#     cost with which a run's jobs are sized: replication seconds over the
+#     replications' cost when the study gives agreement_cost(), worker
+#     seconds over cost otherwise (tasks after the warm-up), and
+#     agreement_seconds_per_cost.
 # Every row is labelled with the purpose, so a test gate is never taken for
 # a gate. A study whose rule differs gives `gate$project`, a function(times,
-# scenarios, info) returning the same files (it may call this one).
+# scenarios, info) returning the same files (it may call this one); the names
+# it returns follow the summary's rule and may not be those of a file the
+# harness or the summary writes, except gate-times, gate-projection, and
+# gate-summary.
 sim_gate_default <- function(study, times, scenarios, info) {
   g <- study$gate
   warm <- if (is.null(g$warmup_minutes)) 0 else as.numeric(g$warmup_minutes)
-  allowance <- if (is.null(g$allowance)) 1 else as.numeric(g$allowance)
+  allowance <- sim_allowance(study)
   grp <- if (is.function(g$group)) as.character(g$group(scenarios)) else as.character(scenarios$scenario)
   if (length(grp) != nrow(scenarios) || anyNA(grp)) stop("gate$group() must label every scenario.", call. = FALSE)
   times$group <- grp[match(times$scenario, scenarios$scenario)]
-  times$offset_seconds <- as.numeric(difftime(sim_parse_utc(times$started), sim_parse_utc(times$job_started),
-                                              units = "secs"))
+  started <- as.numeric(sim_parse_utc(times$started))
+  times$offset_seconds <- started - stats::ave(started, times$job_started, FUN = min)
   times$after_warmup <- times$offset_seconds >= warm * 60
   groups <- unique(grp)
   per <- do.call(rbind, lapply(groups, function(k) {
@@ -933,13 +1050,14 @@ sim_gate_default <- function(study, times, scenarios, info) {
   }
   used <- times$after_warmup
   if (!any(used)) used <- rep(TRUE, nrow(times))
-  # Seconds per unit of cost, which size a run's jobs. When the study prices
-  # its agreement checks apart (study$agreement_cost(), part of the cost of
-  # each scenario's task 1), they come from replication seconds and the
-  # replications' cost alone, so that the gate's agreement checks, run on
-  # 25 replications per task, do not inflate the price of a replication;
-  # agreement_seconds_per_cost shows how well the agreement cost was priced.
-  # Otherwise they are worker seconds over cost.
+  # Seconds per unit of cost, which size a run's jobs (assign-chunks.R, with
+  # the allowance). When the study prices its agreement checks apart
+  # (study$agreement_cost(), part of the cost of each scenario's task 1),
+  # they come from replication seconds over the replications' cost alone,
+  # so that the gate's agreement checks, run in tasks of the gate's size, do
+  # not inflate the price of a replication; agreement_seconds_per_cost (all
+  # tasks) shows how well the agreement checks were priced. Otherwise they
+  # are worker seconds over cost.
   if (is.function(study$agreement_cost)) {
     task_no <- as.integer(sub("^.*-t", "", times$task_id))
     rows <- match(times$scenario, scenarios$scenario)
@@ -952,15 +1070,16 @@ sim_gate_default <- function(study, times, scenarios, info) {
     spc <- sum(times$elapsed[used]) / sum(times$cost[used])
     agree_spc <- NA_real_
   }
+  # Fixed notation: the workflow's cost_seconds input takes the value as written.
+  fixed <- function(x) if (is.na(x)) NA else format(x, scientific = FALSE, digits = 10)
   summary <- c(purpose = info[["purpose"]], tasks = nrow(times), warmup_minutes = warm,
                tasks_after_warmup = sum(times$after_warmup),
-               agreement_seconds = format(sum(times$agreement_seconds), digits = 10),
+               agreement_seconds = format(sum(times$agreement_seconds), scientific = FALSE, digits = 10),
                divisor = g$divisor, allowance = allowance, cap_hours = g$cap_hours,
                decision = decision,
                chosen_R = if (any(proj$chosen)) proj$R[proj$chosen] else NA,
                chosen_set = if (any(proj$chosen)) proj$set[proj$chosen] else NA,
-               seconds_per_cost = format(spc, digits = 10),
-               agreement_seconds_per_cost = if (is.na(agree_spc)) NA else format(agree_spc, digits = 10))
+               seconds_per_cost = fixed(spc), agreement_seconds_per_cost = fixed(agree_spc))
   list(`gate-times` = per, `gate-projection` = proj,
        `gate-summary` = data.frame(item = names(summary), value = unname(as.character(summary)),
                                    stringsAsFactors = FALSE))
@@ -969,9 +1088,8 @@ sim_gate_default <- function(study, times, scenarios, info) {
 # ---- Smoke mode and dispatch ---------------------------------------------------
 
 sim_smoke <- function(study, dir) {
-  reps <- as.integer(sim_setting("SOLOMONR_SMOKE_REPS", "2"))
   root <- file.path(dir, paste0("sim-", study$key))
-  spec <- sim_plan_spec(study, "test", "run", reps)
+  spec <- sim_plan_spec(study, "test", "run", sim_setting("SOLOMONR_SMOKE_REPS", "2"))
   plan_dir <- file.path(root, "plan")
   plan <- sim_write_plan(study, spec, plan_dir, subset = study$smoke_scenarios)
   sim_preflight(study, plan_dir)
@@ -1000,8 +1118,11 @@ sim_main <- function(study) {
     run = {
       ids <- readLines(sim_need("SOLOMONR_SIM_TASKS"), warn = FALSE)
       ids <- ids[nzchar(ids)]
-      workers <- as.integer(sim_setting("SOLOMONR_SIM_WORKERS", "0"))
-      if (is.na(workers) || workers < 0L) stop("SOLOMONR_SIM_WORKERS must be 0 or more.", call. = FALSE)
+      workers <- sim_whole(sim_setting("SOLOMONR_SIM_WORKERS", "0"), 0L)
+      if (is.na(workers)) {
+        stop("SOLOMONR_SIM_WORKERS must be a whole number from 0 to ", .Machine$integer.max,
+             ", in digits without a leading zero.", call. = FALSE)
+      }
       sim_run(study, plan_dir(), ids, sim_need("SOLOMONR_SIM_OUT"), workers)
     },
     summarize = {

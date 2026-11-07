@@ -40,7 +40,12 @@ Designs with several treatments are not supported; see
 
 \item{invariance_pre}{measurement invariance for the pretested branch; must be "scalar"}
 
-\item{estimator}{lavaan estimator, default "MLR" (robust)}
+\item{estimator}{The lavaan estimator, \code{"MLR"} (the default) or \code{"ML"},
+in upper or lower case. Any other value stops with an error: these two
+are the estimators under which the validation of the latent contrasts
+is planned (the amendment of October 9, 2026, on issue #55). Other
+estimators can be fitted with lavaan directly. The invariance check
+uses the same estimator; see \code{\link[=invariance_solomon]{invariance_solomon()}}.}
 
 \item{std_lv}{logical; if TRUE (default), lavaan's \code{std.lv = TRUE}: the
 latent variance is fixed at 1 in the first group, the pretested
@@ -83,8 +88,9 @@ on latent POST, adjusted for the latent pretest, in the columns of
 \item \code{invariance}: the \code{\link[=invariance_solomon]{invariance_solomon()}} result, or \code{NULL} when
 the check was not run, and \code{invariance_status}, a one-line summary
 \item \code{conf_level}: the confidence level of the intervals
-\item \code{settings}: the options used, including the estimator and any
-freed parameters, which \code{\link[=report_solomon]{report_solomon()}} reports
+\item \code{settings}: the options used, including the estimator
+(\code{"MLR"} or \code{"ML"}) and any freed parameters, which
+\code{\link[=report_solomon]{report_solomon()}} reports
 }
 
 Before solomonR 1.0.0, \code{fit} and \code{effects} were named \code{fit_post} and
@@ -125,7 +131,11 @@ Identification: with scalar invariance, the latent POST mean of the
 unpretested control group (U0) is fixed at 0 and the other latent means are
 estimated relative to it. In the pretested ANCOVA model, the pretested
 control group (P0) is the reference. The Solomon contrasts are differences
-between latent means, so they do not depend on the reference choice.
+between latent means, so they do not depend on the reference choice. The
+PRE indicators of the ANCOVA model are centered at their means among the
+pretested participants before it is fitted, which changes only their
+intercepts and keeps the fit accurate when the pretest lies far from zero
+(issue #137).
 
 The unit of the contrasts is set by \code{std_lv}. With \code{std_lv = TRUE},
 lavaan fixes the variance of the latent POST at 1 in the pretested

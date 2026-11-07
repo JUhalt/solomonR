@@ -1152,7 +1152,13 @@ test_that("a classic fit stored by an earlier version does not pass `aov` off as
   before <- unclass(fit)
   before$effects <- NULL
   before$anova <- NULL
-  before$aov <- broom::tidy(stats::aov(y_post ~ factor(treat) * factor(pretested), data = d))
+  # The table that broom::tidy() made of the aov() fit.
+  before$aov <- tibble::as_tibble(
+    summary(stats::aov(y_post ~ factor(treat) * factor(pretested), data = d))[[1]],
+    rownames = "term"
+  )
+  before$aov$term <- trimws(before$aov$term)
+  names(before$aov) <- c("term", "df", "sumsq", "meansq", "statistic", "p.value")
   class(before) <- "solomon_classic"
 
   expect_no_warning(expect_null(before$anova))

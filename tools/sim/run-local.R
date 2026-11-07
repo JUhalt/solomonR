@@ -8,14 +8,20 @@
 #   Rscript tools/sim/run-local.R --out DIR --resume [--workers 0]
 #   Rscript tools/sim/run-local.R --out DIR --rerun-chunk 2 [--workers 1]
 #
+# A new run is of the study --study names (smoke without it). --resume and
+# --rerun-chunk take the study of the run in DIR from its
+# plan/plan-info.csv (item study), and its script and pins from
+# tools/sim/studies.csv; they refuse a --study that names another study,
+# before any step. Each run first prints the study it runs.
+#
 # --subset plans only some scenarios, with the full table's streams: a list
 # of scenario numbers (a test only), or "fallback", the study's fallback
 # (gate$fallback(); a study run after a gate that chose it, or a test of
 # that plan). --task-size sets a test run's replications per task, so that
 # a test of at most 20 replications can have several tasks per scenario.
 # Both reach the plan stage only (SOLOMONR_SIM_SUBSET and
-# SOLOMONR_SIM_TASK_SIZE); the plan records them, and the contract checks
-# them there.
+# SOLOMONR_SIM_TASK_SIZE); the plan records them, the contract checks them
+# there, and --resume and --rerun-chunk keep the plan's.
 #
 # It runs the stages of the workflow simulation-run one after another, each
 # in a new R process, with the same scripts: check the software against the
@@ -41,6 +47,8 @@
 #
 # --rerun-chunk runs one chunk of an earlier run in DIR again, into
 # DIR/rerun/chunk-NNNN, and compares its task files with the first run's.
+# It takes the chunk's number from 1 to 256 in at most four digits, with or
+# without leading zeros (2 and 0002 are chunk 0002).
 #
 # A study runs entirely on one platform: the merge refuses chunks whose
 # software differs, and a protocol names its platform (see the README).
@@ -57,7 +65,7 @@ local({
 harness <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1]),
                                  winslash = "/"))
 
-opts <- list(study = "smoke", purpose = "test", design = "run", reps = "20", chunks = "3",
+opts <- list(study = "", purpose = "test", design = "run", reps = "20", chunks = "3",
              workers = "0", out = "", rerun_chunk = "", resume = FALSE, subset = "", task_size = "")
 flags <- "resume"
 args <- commandArgs(trailingOnly = TRUE)
@@ -80,13 +88,35 @@ if (!file.exists("DESCRIPTION") ||
   h_fail("Run this from the root of the solomonR package.")
 }
 root <- normalizePath(".", winslash = "/")
-registry <- h_read_csv(file.path(harness, "studies.csv"))
-entry <- registry[registry$key == opts$study, , drop = FALSE]
-if (nrow(entry) != 1L) h_fail("Study ", opts$study, " is not in tools/sim/studies.csv.")
-script <- entry$script
-pins <- file.path(root, entry$pins)
 out <- normalizePath(opts$out, winslash = "/", mustWork = FALSE)
 plan_dir <- file.path(out, "plan")
+# The study: a new run's from --study; that of the run in DIR, from its
+# plan, for --resume and --rerun-chunk, which refuse another --study before
+# anything is run or changed.
+continuing <- isTRUE(opts$resume) || nzchar(opts$rerun_chunk)
+if (continuing) {
+  plan_info <- file.path(plan_dir, "plan-info.csv")
+  what <- if (nzchar(opts$rerun_chunk)) "run again" else "resume"
+  if (!file.exists(plan_info)) h_fail("Nothing to ", what, " in ", out, ": ", plan_info, " is missing.")
+  planned <- h_read_kv(plan_info)
+  study_key <- if ("study" %in% names(planned)) planned[["study"]] else ""
+  if (!nzchar(study_key)) h_fail(plan_info, " names no study.")
+  if (nzchar(opts$study) && !identical(opts$study, study_key)) {
+    h_fail("--study ", opts$study, " was given, but the run in ", out, " is a run of study ", study_key,
+           " (", plan_info, "). Leave out --study, or give --study ", study_key, ".")
+  }
+} else {
+  study_key <- if (nzchar(opts$study)) opts$study else "smoke"
+}
+registry <- h_read_csv(file.path(harness, "studies.csv"))
+entry <- registry[registry$key == study_key, , drop = FALSE]
+if (nrow(entry) != 1L) h_fail("Study ", study_key, " is not in tools/sim/studies.csv.")
+if (!entry$protocol %in% c("TRUE", "FALSE")) h_fail("The protocol flag of ", study_key, " in tools/sim/studies.csv must be TRUE or FALSE.")
+# A protocol study must pin R's shared library (check-software.R --protocol).
+software_flags <- c("--local", if (identical(entry$protocol, "TRUE")) "--protocol")
+script <- entry$script
+pins <- file.path(root, entry$pins)
+cat("== Study ", study_key, " (", script, ")", if (continuing) paste0(", from ", plan_info), "\n", sep = "")
 chunks_dir <- file.path(out, "chunks")
 merged_dir <- file.path(out, "merged")
 replay_dir <- file.path(out, "replay")
@@ -188,6 +218,8 @@ finish <- function() {
                SOLOMONR_SIM_OUT = results_dir))
   purpose <- h_read_kv(file.path(plan_dir, "plan-info.csv"))[["purpose"]]
   step("Check the results", c(file.path(harness, "check-results.R"), results_dir, purpose, entry$protocol, plan_dir))
+  step("Merge job information", c(file.path(harness, "job-info.R"), merged_dir, "merge"),
+       env = c(SOLOMONR_SIM_WORKERS = opts$workers))
   step("Run information", c(file.path(harness, "finalize-results.R"), plan_dir, chunks_dir, merged_dir, results_dir),
        env = c(SIM_HARNESS_SHA = harness_sha))
   step("Address scan", c(file.path(harness, "scan-addresses.R"), plan_dir, chunks_dir, results_dir))
@@ -195,6 +227,12 @@ finish <- function() {
 started <- Sys.time()
 
 if (nzchar(opts$rerun_chunk)) {
+  # A chunk number in one to four digits, with or without leading zeros, as
+  # the chunk folders are named (2 and 0002 are chunk 0002); "1.5" is
+  # refused, not read as 1.
+  if (!grepl("^[0-9]{1,4}$", opts$rerun_chunk) || !(as.integer(opts$rerun_chunk) %in% 1:256)) {
+    h_fail("--rerun-chunk takes a chunk number from 1 to 256, in at most four digits (2 or 0002).")
+  }
   ch <- sprintf("%04d", as.integer(opts$rerun_chunk))
   first <- file.path(chunks_dir, paste0("chunk-", ch))
   if (!dir.exists(first)) h_fail("No chunk ", ch, " in ", chunks_dir, ".")
@@ -210,7 +248,7 @@ if (isTRUE(opts$resume)) {
   for (f in c(file.path(plan_dir, "plan-info.csv"), file.path(plan_dir, "chunks.json"), file.path(out, "software.csv"))) {
     if (!file.exists(f)) h_fail("Nothing to resume in ", out, ": ", f, " is missing.")
   }
-  step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software-resume.csv"), "--local"))
+  step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software-resume.csv"), software_flags))
   if (!identical(h_read_csv(file.path(out, "software.csv")), h_read_csv(file.path(out, "software-resume.csv")))) {
     h_fail("The software changed since the run started (compare software.csv and software-resume.csv). ",
            "A run never mixes software: start it again in a new folder.")
@@ -252,12 +290,13 @@ if (dir.exists(out) && length(list.files(out, all.files = TRUE, no.. = TRUE))) {
   h_fail("The folder ", out, " must be empty or absent (or use --resume).")
 }
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
-step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software.csv"), "--local"))
+step("Software", c(file.path(harness, "check-software.R"), pins, file.path(out, "software.csv"), software_flags))
 step("Plan", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "plan", SOLOMONR_SIM_SUBSET = opts$subset,
                              SOLOMONR_SIM_TASK_SIZE = opts$task_size))
 step("Preflight", script, env = c(plan_env(), SOLOMONR_SIM_STAGE = "preflight"))
-invisible(file.copy(file.path(out, "software.csv"), file.path(plan_dir, "software.csv")))
+if (!file.copy(file.path(out, "software.csv"), file.path(plan_dir, "software.csv"))) h_fail("Could not copy software.csv into the plan.")
 step("Assign the tasks", c(file.path(harness, "assign-chunks.R"), plan_dir, opts$chunks))
+step("Plan job information", c(file.path(harness, "job-info.R"), plan_dir, "plan"))
 step("RNG fingerprint", file.path(harness, "rng-fingerprint.R"), log = file.path(plan_dir, "rng-fingerprint.txt"))
 for (ch in chunk_ids()) run_chunk(ch, file.path(chunks_dir, paste0("chunk-", ch)), paste("Chunk", ch))
 finish()

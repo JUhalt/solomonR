@@ -13,34 +13,70 @@
 # chunks.json (the chunk ids, for the workflow's matrix) into the plan
 # folder.
 #
-# With <seconds per cost> (worker seconds per unit of cost, from a timing
-# gate's timing/gate-summary.csv) greater than 0, each chunk's expected hours
-# are its cost x seconds per cost x allowance / workers / 3600, where the
-# allowance is the study's (plan-info.csv, item allowance: its timing gate's,
-# 1.3 for #116; 1 if the plan gives none), the same allowance with which the
-# gate chose R. Above 2 hours it warns (the jobs are sized at about 2
-# hours); above 4 hours it stops, the limit of the rule that chose R, and
-# because a job that reaches GitHub's 6-hour limit fails the same way on
-# every rerun.
+# With <seconds per cost> (seconds per unit of cost, from a timing gate's
+# timing/gate-summary.csv) greater than 0, each chunk's expected hours are
+# its cost x seconds per cost x allowance / workers / 3600. This is the one
+# estimator of a job's time: a task's cost includes, for task 1 of a
+# scenario, the study's cost of its agreement checks (agreement_cost), and
+# the allowance is the study's, which the contract writes into
+# plan-info.csv (item allowance: its timing gate's, 1.3 for #116; 1 for a
+# study without one), the allowance with which the gate chose R. With the
+# allowance, above 2 hours it warns (the jobs are sized at about 2 hours);
+# above 4 hours it stops, the limit of the rule that chose R, and because a
+# job that reaches GitHub's 6-hour limit fails the same way on every rerun
+# (4 hours with an allowance of 1.3 is 3.1 hours expected, against the 5.5
+# hours the tasks get). A plan without the item (made before contract 3) is
+# refused. When <seconds per cost> is given
+# for a study run (plan-info.csv purpose "study", as on the runners), it must
+# be a finite number greater than 0 as R reads it, so that a value such as
+# 1e-400, which the workflow's pattern accepts and R reads as 0, cannot skip
+# the check. run-local.R passes none: a local job has no time limit. The
+# number of chunks and the workers must be whole numbers in digits without
+# a leading zero or white space around them (h_whole()), and the seconds
+# per cost must have the workflow's form (digits, an optional decimal part
+# and exponent), so that as.numeric() and as.integer() cannot read "2.5",
+# "1e2", or "0x10" as something else.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
   source(file.path(dirname(file), "harness-lib.R"))
 })
-args <- h_args(2L, "assign-chunks.R <plan dir> <number of chunks> [<seconds per cost> <workers>]")
+usage <- "assign-chunks.R <plan dir> <number of chunks> [<seconds per cost> <workers>]"
+args <- h_args(2L, usage)
+if (length(args) > 4L) h_fail("Usage: ", usage, " (the allowance comes from the plan).")
 plan_dir <- args[[1]]
-requested <- suppressWarnings(as.integer(args[[2]]))
-if (is.na(requested) || requested < 1L || requested > 256L) h_fail("The number of chunks must be 1 to 256.")
+# Whole numbers in digits (h_whole()): "2.5" or "1e2" chunks are refused,
+# not read as 2 or 100.
+requested <- h_whole(args[[2]], 1L)
+if (is.na(requested) || requested > 256L) {
+  h_fail("The number of chunks must be a whole number from 1 to 256, in digits without a leading zero.")
+}
+# The seconds per cost in the workflow's form (digits, a decimal part, an
+# exponent): as.numeric() alone would also read "0x10" as 16.
+if (length(args) >= 3L && !grepl("^[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$", args[[3]])) {
+  h_fail("The seconds per cost must be a number in digits, such as 0.000123 or 1.2e-05.")
+}
 spc <- if (length(args) >= 3L) suppressWarnings(as.numeric(args[[3]])) else 0
-workers <- if (length(args) >= 4L) suppressWarnings(as.integer(args[[4]])) else 1L
-if (is.na(spc) || spc < 0) h_fail("The seconds per cost must be 0 or more.")
-if (is.na(workers) || workers < 1L) h_fail("The workers per chunk must be 1 or more.")
+workers <- if (length(args) >= 4L) h_whole(args[[4]], 1L) else 1L
+if (is.na(spc) || !is.finite(spc) || spc < 0) h_fail("The seconds per cost must be a finite number, 0 or more.")
+if (is.na(workers)) {
+  h_fail("The workers per chunk must be a whole number from 1 to ", .Machine$integer.max,
+         ", in digits without a leading zero.")
+}
+info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
+if (length(args) >= 3L && identical(info[["purpose"]], "study") && !(spc > 0)) {
+  h_fail("A study run needs seconds per cost greater than 0; \"", args[[3]], "\" is read as ", format(spc), ".")
+}
+if (!"allowance" %in% names(info)) {
+  h_fail("plan-info.csv gives no allowance: the plan was made before contract 3, which writes the study's.")
+}
+allowance <- suppressWarnings(as.numeric(info[["allowance"]]))
+if (length(allowance) != 1L || is.na(allowance) || !is.finite(allowance) || allowance < 1) {
+  h_fail("The plan's allowance must be a number of at least 1, not \"", info[["allowance"]], "\".")
+}
 
 tasks <- h_read_csv(file.path(plan_dir, "tasks.csv"))
 if (!nrow(tasks)) h_fail("The plan has no tasks.")
-plan_info <- h_read_kv(file.path(plan_dir, "plan-info.csv"))
-allowance <- if ("allowance" %in% names(plan_info)) suppressWarnings(as.numeric(plan_info[["allowance"]])) else 1
-if (is.na(allowance) || allowance < 1) h_fail("The plan's allowance must be a number of at least 1.")
 n <- min(requested, nrow(tasks))
 cost <- as.numeric(tasks$cost)
 if (anyNA(cost) || any(!is.finite(cost)) || any(cost <= 0)) h_fail("Every task needs a cost greater than 0.")
@@ -62,20 +98,23 @@ for (j in seq_len(n)) {
   h_write_lines(sort(tasks$task_id[chunk == j]), file.path(plan_dir, "chunks", paste0("chunk-", ids[j], ".txt")))
 }
 h_write_lines(paste0("[", paste0("\"", ids, "\"", collapse = ","), "]"), file.path(plan_dir, "chunks.json"))
-hours <- if (spc > 0) load * spc * allowance / workers / 3600 else rep(NA_real_, n)
+raw_hours <- if (spc > 0) load * spc / workers / 3600 else rep(NA_real_, n)
+hours <- raw_hours * allowance
 h_write_csv(data.frame(chunk = ids, tasks = counts, cost = format(load, digits = 15),
-                       expected_hours = if (spc > 0) format(hours, digits = 4) else NA,
+                       expected_hours = if (spc > 0) format(raw_hours, digits = 4) else NA,
+                       allowance = allowance,
+                       with_allowance = if (spc > 0) format(hours, digits = 4) else NA,
                        stringsAsFactors = FALSE),
             file.path(plan_dir, "chunk-loads.csv"))
 cat(sprintf("Chunks: %d (requested %d). Tasks per chunk: %d to %d. Cost per chunk: %s to %s.\n",
             n, requested, min(counts), max(counts), format(min(load)), format(max(load))))
 if (spc > 0) {
-  cat(sprintf("Expected hours per chunk on %d workers, with the allowance of %s: %.2f to %.2f (%s seconds per unit of cost).\n",
-              workers, format(allowance), min(hours), max(hours), format(spc)))
+  cat(sprintf("Expected hours per chunk on %d workers, with the allowance %s: %.2f to %.2f (%.2f to %.2f without; %s seconds per unit of cost).\n",
+              workers, format(allowance), min(hours), max(hours), min(raw_hours), max(raw_hours), format(spc)))
   if (max(hours) > 4) h_fail("The largest chunk is expected to take ", format(max(hours), digits = 3),
-                             " hours, above the 4-hour limit; use more chunks.")
+                             " hours with the allowance ", format(allowance), ", above the 4-hour limit; use more chunks.")
   if (max(hours) > 2) cat("::warning::The largest chunk is expected to take ", format(max(hours), digits = 3),
-                          " hours, above the 2 hours the jobs are sized for.\n", sep = "")
+                          " hours with the allowance ", format(allowance), ", above the 2 hours the jobs are sized for.\n", sep = "")
 } else {
   cat("Job sizes not checked: no seconds per unit of cost were given.\n")
 }

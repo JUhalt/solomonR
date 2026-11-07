@@ -189,6 +189,53 @@ summarise_performance <- function(reps, nsim_planned) {
 
 # ---- Run -----------------------------------------------------------------------
 
+# ---- validation_commit(): the same in every validation script (#152) ----
+# The commit recorded with the results. It is the environment variable
+# SOLOMONR_COMMIT when that is set and not empty. Otherwise it is the HEAD
+# commit of the git repository that holds the copy of solomonR that the
+# script runs, when that copy is the repository's top level, git is on the
+# PATH, and git agrees to read the repository. The copy is the nearest
+# folder at or above `root` whose DESCRIPTION names a package, as
+# pkgload::load_all() finds it, and that DESCRIPTION must name solomonR.
+# Otherwise the commit is NA: a copy without git metadata, such as a
+# download from GitHub, records NA, and so does a copy unpacked inside
+# another repository, whose commit is not the copy's, and a clone that git
+# refuses to read, as by default it refuses one owned by another user
+# unless git's safe.directory setting lists it. This block leaves that
+# setting as it is. git looks for the repository from the copy alone
+# (GIT_DIR and GIT_WORK_TREE are unset while it runs), and its messages are
+# discarded. tests/testthat/test-validation-commit.R checks the rule and
+# that every copy of this block is identical.
+validation_commit <- function(root = ".") {
+  given <- Sys.getenv("SOLOMONR_COMMIT")
+  if (nzchar(given)) return(given)
+  package_of <- function(dir) {
+    description <- file.path(dir, "DESCRIPTION")
+    if (!file.exists(description)) return(NA_character_)
+    tryCatch(unname(read.dcf(description, fields = "Package")[1, 1]),
+             error = function(e) NA_character_)
+  }
+  root <- normalizePath(root, winslash = "/", mustWork = FALSE)
+  while (is.na(package_of(root)) && dirname(root) != root) root <- dirname(root)
+  if (!identical(package_of(root), "solomonR") || !nzchar(Sys.which("git"))) return(NA_character_)
+  saved <- Sys.getenv(c("GIT_DIR", "GIT_WORK_TREE"), unset = NA)
+  Sys.unsetenv(names(saved))
+  on.exit(if (any(!is.na(saved))) do.call(Sys.setenv, as.list(saved[!is.na(saved)])))
+  git <- function(...) {
+    out <- tryCatch(suppressWarnings(system2("git", c("-C", shQuote(root), ...),
+                                             stdout = TRUE, stderr = FALSE)),
+                    error = function(e) character())
+    if (length(out) == 1L && is.null(attr(out, "status")) && nzchar(out)) out else NA_character_
+  }
+  top <- git("rev-parse", "--show-toplevel")
+  if (is.na(top)) return(NA_character_)
+  top <- normalizePath(top, winslash = "/", mustWork = FALSE)
+  # Paths on Windows do not differ by case.
+  same <- if (.Platform$OS.type == "windows") tolower(top) == tolower(root) else top == root
+  if (same) git("rev-parse", "HEAD") else NA_character_
+}
+# ---- end of validation_commit() ----
+
 started <- Sys.time()
 
 cl <- parallel::makeCluster(workers)
@@ -219,7 +266,7 @@ saveRDS(
     settings = list(nsim = nsim, base_seed = base_seed, alpha = alpha,
                     tau_unpretested = tau_unpretested, workers = workers),
     session = utils::sessionInfo(),
-    git_commit = Sys.getenv("SOLOMONR_COMMIT", NA_character_),
+    git_commit = validation_commit(repo),
     started = started,
     finished = Sys.time()
   ),

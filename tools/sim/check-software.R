@@ -1,36 +1,40 @@
 # Checks R, the packages, and the numerical libraries against a study's
 # pins, and writes what it found (issue #117). Usage:
 #
-#   Rscript tools/sim/check-software.R <run-pins.csv> <software.csv> [--local]
+#   Rscript tools/sim/check-software.R <run-pins.csv> <software.csv> [--local] [--protocol]
 #
-# Stops if R is not the pinned version (or, when the pins give one, if the
-# SHA-256 of R's shared library differs), if a pinned package has another
+# Stops if R is not the pinned version, if the SHA-256 of R's shared library
+# on Linux (libR.so of the r-builds package that setup-r installs) differs
+# from the pins' r,libR_sha256, if --protocol (a study whose registry flag is
+# TRUE) and the pins lack r,libR_sha256, if a pinned package has another
 # version, if R does not use a reference BLAS and LAPACK, if the default RNG
 # kinds were changed, or, unless --local, if a tool (pak) has another version
-# than pinned or a repository other than the pinned snapshot is set. On
-# Linux, the reference libraries are Ubuntu's libblas3 and liblapack3, and the
-# processor must have AVX2 and FMA, so that the C library picks the same
-# variants of exp(), log(), and pow() in every job; R reporting no BLAS
-# library at all is a failure. On Windows, R reports no library path; there
-# the libraries must be R's own Rblas.dll and Rlapack.dll, which must not
-# contain the names of an optimized library, and their SHA-256 must equal the
-# pins when the pins give them.
+# than pinned or a repository other than the pinned snapshot is set, in R or
+# in pak (pak::repo_get(); PKG_USE_BIOCONDUCTOR must be false, so that pak
+# adds no Bioconductor repository). On Linux, the reference libraries are
+# Ubuntu's libblas3 and liblapack3, and the processor must have AVX2 and FMA,
+# so that the C library picks the same variants of exp(), log(), and pow() in
+# every job; R reporting no BLAS library at all is a failure. On Windows, R
+# reports no library path; there the libraries must be R's own Rblas.dll and
+# Rlapack.dll, which must not contain the names of an optimized library, and
+# their SHA-256 must equal the pins when the pins give them.
 #
 # software.csv lists R and its build, the platform, the libraries with their
-# versions and checksums, the processor flags, the repositories, pak, and
-# every installed package with its version (except this package, which the
-# study loads from its checkout); the merge requires it to be identical in
-# every job of a run. Package versions are read from the Version field only;
-# nothing else of any DESCRIPTION is read.
+# versions and checksums, the processor flags, the repositories (R's, and
+# unless --local pak's), pak, and every installed package with its version
+# (except this package, which the study loads from its checkout); the merge
+# requires it to be identical in every job of a run. Package versions are
+# read from the Version field only; nothing else of any DESCRIPTION is read.
 
 local({
   file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
   source(file.path(dirname(file), "harness-lib.R"))
 })
-args <- h_args(2L, "check-software.R <run-pins.csv> <software.csv> [--local]")
+args <- h_args(2L, "check-software.R <run-pins.csv> <software.csv> [--local] [--protocol]")
 pins <- h_read_csv(args[[1]])
 out_file <- args[[2]]
 local_run <- "--local" %in% args
+protocol <- "--protocol" %in% args
 
 pin <- function(kind, name, optional = FALSE) {
   v <- pins$value[pins$kind == kind & pins$name == name]
@@ -63,8 +67,13 @@ if (!identical(r_version, pin("r", "version"))) problem("R is ", r_version, ", p
 libR <- if (windows) file.path(R.home("bin"), "R.dll") else file.path(R.home("lib"), "libR.so")
 libR_sha <- sha(libR)
 add("r", "libR_sha256", libR_sha)
+# The pin ties a protocol's runs to the R build that harness test T2 checked;
+# it names the Linux build, so elsewhere the checksum is recorded only.
 want_libR <- pin("r", "libR_sha256", optional = TRUE)
-if (!is.na(want_libR) && !identical(libR_sha, want_libR)) problem("R's shared library has SHA-256 ", libR_sha, ", pinned ", want_libR, ".")
+if (protocol && is.na(want_libR)) problem("A protocol study must pin r,libR_sha256 (R's shared library on the runners).")
+if (linux && !is.na(want_libR) && !identical(libR_sha, want_libR)) {
+  problem("R's shared library has SHA-256 ", libR_sha, ", pinned ", want_libR, ".")
+}
 if (linux) {
   # The r-builds package that setup-r installs, with its build revision.
   add("r", "build", run("dpkg-query", c("-W", shQuote("-f=${Package} ${Version}"), paste0("r-", r_version))))
@@ -135,6 +144,20 @@ for (nm in names(repos)) add("repos", nm, repos[[nm]])
 if (!local_run) {
   off <- names(repos)[sub("/+$", "", unname(repos)) != snapshot]
   if (length(off)) problem("Repositories other than the snapshot are set: ", paste(off, collapse = ", "), ".")
+  # The repositories pak resolves the dependencies from: getOption("repos")
+  # and, unless PKG_USE_BIOCONDUCTOR is false (set by sim-setup), the
+  # Bioconductor repositories, which are not dated.
+  if (!identical(tolower(Sys.getenv("PKG_USE_BIOCONDUCTOR")), "false")) {
+    problem("PKG_USE_BIOCONDUCTOR is not false, so pak would also resolve from Bioconductor.")
+  }
+  pak_repos <- tryCatch(as.data.frame(pak::repo_get()), error = function(e) NULL)
+  if (is.null(pak_repos) || !nrow(pak_repos) || !all(c("name", "url") %in% names(pak_repos))) {
+    problem("pak's repositories could not be read (pak::repo_get()).")
+  } else {
+    for (i in seq_len(nrow(pak_repos))) add("pak_repos", pak_repos$name[i], pak_repos$url[i])
+    off <- pak_repos$name[sub("/+$", "", pak_repos$url) != snapshot]
+    if (length(off)) problem("pak resolves from repositories other than the snapshot: ", paste(off, collapse = ", "), ".")
+  }
 }
 
 # Packages: the pinned ones first, then every installed package as R finds it.
