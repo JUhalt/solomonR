@@ -720,7 +720,7 @@ def cluster(inp):
             elif var is not None:
                 var += st["w"] ** 2 * (vt / nt + vc / nc)
         alloc_out.append(tsets)
-        if all(sorted(st["ids"][i] for i in range(len(st["t"])) if st["t"][i] == 1) == ts
+        if all(set(st["ids"][i] for i in range(len(st["t"])) if st["t"][i] == 1) == set(ts)
                for st, ts in zip(strata, tsets)):
             obs_index = len(alloc_out) - 1
         if est == 0:

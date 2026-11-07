@@ -220,6 +220,9 @@ ref_shifted <- function(w, base_ref, base_w) {
   r$cases$how <- paste0("invariance: reference of ", base_w$id, " (exact shift by ", format(w$shift$c, digits = 17),
                         " of ", wh, ")")
   r$shift_check <- list(exact = ok, dyadic_below_2_53 = grid)
+  r$band_rows <- NULL
+  r$band_fail <- NULL
+  r$checks <- NULL
   r
 }
 
@@ -279,7 +282,8 @@ ref_cluster <- function(w) {
         b = b, M = M, p = b / M, b_tied = sum(rank == rank[o], na.rm = TRUE),
         b_strict = sum(rank > rank[o], na.rm = TRUE), b_drop = NA, M_drop = NA, p_drop = NA, b_inf = NA,
         M_inf = NA, p_inf = NA, n_inf = sum(code == "INF-C"), n_sepl = 0, n_h1 = 0, n_ne = 0,
-        n_zz = sum(code == "ZZ"), n_lim = 0, band_n = 0, how = "exact rationals (Stage 1 and allocations)",
+        n_zz = sum(code == "ZZ"), n_lim = 0, n_alias = 0, band_n = 0,
+        how = "exact rationals (Stage 1 and allocations)",
         theta_stable = NA, stringsAsFactors = FALSE)
     }
   }
@@ -297,9 +301,22 @@ if (nzchar(Sys.getenv("REF_ONLY"))) W <- W[grepl(Sys.getenv("REF_ONLY"), names(W
 logf("perm-reference generator, tier %s, %d worlds; R %s; Python %s", tier, length(W), getRversion(),
      paste(system2(REF_PYTHON, "--version", stdout = TRUE), collapse = ""))
 REFS <- list()
+# Optional checkpoints (REF_CKPT, a folder): a participant world's result is
+# reused only when the computing code and the world are byte-for-byte those
+# that produced it, so a resumed run gives what a fresh run gives.
+CKPT <- Sys.getenv("REF_CKPT")
+code_hash <- digest::digest(list(
+  lapply(c("lib.R", "reference.R", "exact.py"), function(f) readLines(file.path(REF_DIR, f))),
+  deparse(ref_participant), deparse(self_check), CASE_COLS), algo = "sha1")
 for (w in W) {
+  nb0 <- length(BAND_LOG$rows)
+  nf0 <- length(BAND_LOG$fail)
+  ck <- if (nzchar(CKPT) && is.null(w$base) && !identical(w$mode, "cluster"))
+    file.path(CKPT, paste0(w$id, "-", digest::digest(list(code_hash, w), algo = "sha1"), ".rds")) else ""
   r <- tryCatch({
-    if (identical(w$mode, "cluster")) {
+    if (nzchar(ck) && file.exists(ck)) {
+      readRDS(ck)
+    } else if (identical(w$mode, "cluster")) {
       if (!is.null(w$base)) ref_shifted(w, REFS[[w$base]], W[[w$base]]) else ref_cluster(w)
     } else if (!is.null(w$base)) {
       ref_shifted(w, REFS[[w$base]], W[[w$base]])
@@ -311,19 +328,29 @@ for (w in W) {
     NULL
   })
   if (is.null(r)) next
+  if (is.null(r$band_rows)) {
+    r$band_rows <- if (length(BAND_LOG$rows) > nb0) do.call(rbind, BAND_LOG$rows[(nb0 + 1):length(BAND_LOG$rows)])
+    r$band_fail <- if (length(BAND_LOG$fail) > nf0) do.call(rbind, BAND_LOG$fail[(nf0 + 1):length(BAND_LOG$fail)])
+    if (!is.null(r$band_rows)) r$band_rows$world <- w$id
+  }
+  if (nzchar(ck) && !file.exists(ck)) saveRDS(r, ck)
   REFS[[w$id]] <- r
   cs <- r$cases
   logf("%-32s %6.1f s  cases %3d  p-cases %3d  errors %2d  excluded %2d  band %d", w$id, r$secs, nrow(cs),
        sum(cs$outcome == "p" | grepl("^p ", cs$outcome)), sum(grepl("^error", cs$outcome)),
        sum(grepl("^excluded", cs$outcome)), sum(cs$band_n, na.rm = TRUE))
 }
-cases <- do.call(rbind, lapply(REFS, `[[`, "cases"))
+cases <- do.call(rbind, lapply(REFS, function(r) {
+  z <- r$cases
+  for (nm in setdiff(CASE_COLS, names(z))) z[[nm]] <- NA
+  z[CASE_COLS]
+}))
 rownames(cases) <- NULL
 cases$case_id <- sprintf("%s|%s|%s|%s|%s", cases$world, cases$obs, CSHORT[cases$contrast], cases$statistic, cases$space)
 checks <- do.call(rbind, lapply(REFS, `[[`, "checks"))
 seeds <- do.call(rbind, SEED_LOG$rows)
-band <- if (length(BAND_LOG$rows)) do.call(rbind, BAND_LOG$rows) else NULL
-band_fail <- if (length(BAND_LOG$fail)) do.call(rbind, BAND_LOG$fail) else NULL
+band <- do.call(rbind, lapply(REFS, `[[`, "band_rows"))
+band_fail <- do.call(rbind, lapply(REFS, `[[`, "band_fail"))
 if (!is.null(band_fail)) logf("70-digit fits that failed (their classes stay undecided): %d", nrow(band_fail))
 if (!is.null(band)) logf("band: %d comparisons at 50 digits; %d unexplained (gap below 1e-35); %d failed the eps check",
                          nrow(band), sum(band$rel_gap50 < 1e-35), sum(!band$eps_check))
@@ -346,7 +373,11 @@ compact <- lapply(REFS, function(r) {
   M <- suppressWarnings(max(as.numeric(r$cases$M), na.rm = TRUE))
   keep <- r$world$block %in% c("D", "L", "G") || (is.finite(M) && M <= 400)
   if (!keep) return(NULL)
-  r[c("world", "types", "keys", "store", "cases", "weights", "thetas")]
+  out <- r[c("world", "types", "keys", "store", "cases", "weights", "thetas")]
+  # worlds with more than 5,000 classes keep their cases but not the
+  # per-class tables (in the full file), to keep the fixture small
+  if (length(r$keys$U) * length(r$keys$P) > 5000) out$store <- NULL
+  out
 })
 compact <- compact[!vapply(compact, is.null, logical(1))]
 fx <- file.path(ROOT, "tests", "testthat", "fixtures")

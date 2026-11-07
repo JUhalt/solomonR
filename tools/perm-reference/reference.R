@@ -166,11 +166,13 @@ part_eval <- function(w, k, comps, theta, saturated) {
       parts[[i]]$h1 <- isTRUE(cc$h1)
       parts[[i]]$band <- list(item = num_items[[j]], keep = ev[[j]]$keep, piv = cc$piv, b = cc$b, skip = cc$skip)
       if (identical(ev[[j]]$status, "limit")) {
+        # the statistic of a limiting model is that of the fit to the rows
+        # kept, so equal kept rows give equal statistics, whatever was removed
         rk <- num_items[[j]]$rows[ev[[j]]$keep]
-        parts[[i]]$key_o <- paste0("LIM:", suff_key(rk, fam, "studentized"))
-        parts[[i]]$key_s <- paste0("LIM:", suff_key(rk, fam, "studentized", perm = c(1L, 0L)))
-        parts[[i]]$dkey_o <- paste0("LIM:", suff_key(rk, fam, "difference"))
-        parts[[i]]$dkey_s <- paste0("LIM:", suff_key(rk, fam, "difference", perm = c(1L, 0L)))
+        parts[[i]]$key_o <- suff_key(rk, fam, "studentized")
+        parts[[i]]$key_s <- suff_key(rk, fam, "studentized", perm = c(1L, 0L))
+        parts[[i]]$dkey_o <- suff_key(rk, fam, "difference")
+        parts[[i]]$dkey_s <- suff_key(rk, fam, "difference", perm = c(1L, 0L))
       }
       # exactly zero when the part's keys are invariant under the arm swap
       parts[[i]]$zero <- identical(parts[[i]]$dkey_o, parts[[i]]$dkey_s)
@@ -556,6 +558,10 @@ ref_iter_full <- function(w, nc, theta, obs_idx) {
   items <- vector("list", n)
   info <- vector("list", n)
   k <- ncol(w$prep$Z)
+  # separable in the data: every covariate column is zero in one condition
+  Zin <- w$prep$Z[w$prep$inmod, , drop = FALSE]
+  pin <- w$data$pretested[w$prep$inmod]
+  sep_data <- k == 0 || all(apply(Zin, 2, function(z) all(z[pin == 0] == 0) || all(z[pin == 1] == 0)))
   for (iU in seq_len(nU)) for (iP in seq_len(nP)) {
     i <- (iU - 1) * nP + iP
     cU <- nc$U$comps[iU, ]
@@ -622,10 +628,16 @@ ref_iter_full <- function(w, nc, theta, obs_idx) {
       }
       lim <- identical(ev[[i]]$status, "limit")
       # in a limiting model the statistic is that of the rows kept (the rows
-      # removed are fitted exactly and add nothing), so the key is theirs
+      # removed are fitted exactly and add nothing), so the key is theirs;
+      # when no covariate is shared by the two conditions in the data
+      # (design E3), a contrast on one condition depends on its rows only
       rk <- if (lim) info[[i]]$rows[ev[[i]]$keep] else info[[i]]$rows
+      if (sep_data && length(used) == 1) {
+        cells_k <- if (used == "U") 0:1 else 2:3
+        rk <- rk[vapply(rk, function(r) r$cell %in% cells_k, logical(1))]
+      }
       sws <- SWAPS[[cn]]
-      if (length(used) == 2 && !stud) {
+      if (length(used) == 2 && (!stud || sep_data)) {
         # design E3a: when one condition's contrast is exactly 0, the swap of
         # the other condition alone keeps |T| of the difference statistic
         kd0 <- suff_key(rk, fam, "difference")
@@ -633,7 +645,7 @@ ref_iter_full <- function(w, nc, theta, obs_idx) {
             identical(suff_key(rk, fam, "difference", PERMS$sU), kd0)) sws <- names(PERMS)
       }
       kv <- vapply(sws, function(sw) suff_key(rk, fam, s, PERMS[[sw]]), "")
-      key[i] <- paste0(if (lim) "LIM:", min(kv))
+      key[i] <- min(kv)
       # exactly zero when a sign-reversing swap leaves the exact key unchanged
       kd <- suff_key(rk, fam, "difference")
       zero <- any(vapply(REVERSE[[cn]], function(sw) identical(suff_key(rk, fam, "difference", PERMS[[sw]]), kd),
