@@ -2,7 +2,7 @@
 
 These scripts build the exact p-values that `perm_solomon()` and `plot_perm()`
 should give, and compare the package with them. The reference is fixed before
-any remedy for #134 is chosen (the design posted on the issue). This folder is
+any remedy for #134 is chosen (the reference-set comment on the issue). This folder is
 in `.Rbuildignore`.
 
 ## Files
@@ -14,7 +14,7 @@ in `.Rbuildignore`.
 | `lib.R` | Labelings as compositions of row types, labeling spaces, fits at the exact estimate (damped Newton), HC3 at the estimate, the negative binomial's theta, recession directions, the bridge to `exact.py`. |
 | `reference.R` | Codes, exact keys, relations of every class to the observed one, the 50-digit band, and the counts. |
 | `exact.py` | Exact arithmetic in Python's standard library (`fractions`, `decimal`): rational least squares and HC3, rank and leverage-1 certificates, existence certificates, the sign of a contrast along the directions of recession (an exact simplex), exact log-linear fits, closed forms for saturated cells with exact equality, Newton's method at 70 digits, and exact cluster references. Run with `python -I`. |
-| `compare.R` | The harness: loads the package with `pkgload::load_all()` and runs it on exactly the labelings the reference counts; also checks the rows in the model, the negative binomial's theta against the certified band, and lists every draw classified differently (`misclassified-draws.csv`). |
+| `compare.R` | The harness: loads the package with `pkgload::load_all()` and runs it on exactly the labelings the reference counts; also checks the rows in the model, the negative binomial's theta against the certified band, and lists every draw classified differently (`misclassified-draws.csv`), in every case whether or not its counts agree, including the draws the package drops. |
 
 ## Running
 
@@ -44,9 +44,10 @@ testthat, withr, and ggplot2.
   the highest local maximum of the profile likelihood, accepted only when it
   exceeds the Poisson limit. A data set on which `MASS::glm.nb()`, fitted as
   the package fits it, warns that theta did not converge has no reference
-  (`no-reference:NB-BND`, decision D14); otherwise every decision is checked
-  over theta*(1 +/- band), the band at least `1e-6` and twice glm.nb's
-  distance from theta*.
+  (`no-reference:NB-BND`, decision D14); otherwise every decision is computed
+  at theta*(1 - band), theta*, and theta*(1 + band), the band at least `1e-6`
+  and twice glm.nb's distance from theta*. These are three points, not the
+  whole interval, and the stability check compares the counts b only.
 - **Equal statistics** are found only by exact certificates: equal
   compositions; swaps of the arms; equal sufficient statistics (for the
   difference statistic in the logit and Poisson models the estimate depends
@@ -56,8 +57,10 @@ testthat, withr, and ggplot2.
   theorem (Baker, 1975). No tolerance decides a tie.
 - **Order.** Where no exact form exists (models fitted by iteration with a
   covariate in the contrast's cells), the order is taken from doubles when
-  the relative gap is at least `1e-7` and `1e4` times the measured error;
-  otherwise both values are recomputed at 50 digits. The measured error is
+  the relative gap is at least `1e-7` and `1e4` times the measured error and
+  neither fit is ill-conditioned; otherwise both values are recomputed at 50
+  digits. This is a margin rule, not a proof: the measured error is an
+  estimate, not a bound. The measured error is
   the larger of the change on a restart with the rows reversed and the spread
   among classes tied by an exact key, each fitted separately (the largest
   relative spread in a table applies to all its classes). A gap below `1e-35`
@@ -68,8 +71,11 @@ testthat, withr, and ggplot2.
 - **Degenerate labelings** are decided from counts and exact rank or
   existence certificates before any fit: emptied arms (Albert & Anderson,
   1984), separation by a covariate (limiting model; Geyer, 2009), leverage 1,
-  constant arms, no variation in a condition. Each gets a code; codes whose
-  value is a decision for the lead are stored under every candidate value.
+  constant arms, no variation in a condition. Each gets a code. Where the
+  value is a decision for the maintainer, the counts are stored under the
+  proposal and the alternatives `_drop`, `_inf`, and `_h1inf`, and the test
+  tier keeps each class's code, so other rules (such as leaving out
+  infinity minus infinity, or every collinear labeling) can be recounted.
 
 | Code | Meaning | Value used for `p` (alternatives in `_drop`, `_inf`, `_h1inf`) |
 |---|---|---|
@@ -79,8 +85,8 @@ testthat, withr, and ggplot2.
 | SEP-L | separation by a covariate, the contrast diverging along every direction of recession | +Inf (difference: fixed; studentized: proposal D10) |
 | SEP-I | the contrast has no limit along the directions of recession (it takes both signs on them), or two parts diverge to opposite signs through a covariate | +Inf (proposal D10, extended to the difference statistic); left out in `_drop` |
 | LIM | a degenerate cell the contrast does not use; value of the limiting model | finite |
-| H1, NE | leverage 1 (studentized), no rows in an arm | error (proposal D3); in `_h1inf` a leverage-1 labeling whose contrast is infinite or has no limit is +Inf |
-| ALIAS | a covariate collinear with the cells under the labeling | left out, before any infinite code (not in the design; D16) |
+| H1, NE | H1 (studentized): a row with leverage exactly 1 whose HC3 term enters the contrast's variance, that is, the contrast is not estimable without that row (with a covariate shared by the conditions, this can be a row in the other condition); NE: no rows in an arm | error (proposal D3); in `_h1inf` a leverage-1 labeling whose contrast is infinite or has no limit is +Inf. A leverage-1 row whose term does not enter the variance adds 0 to the HC3 sum |
+| ALIAS | a covariate collinear with the cells under the labeling, so that the contrast is not estimable | left out, before any infinite code (not in the design; D16). A collinear labeling under which the contrast stays estimable is kept, with the value of the model without the aliased column |
 | ZZ, ZERO | 0/0, an exact zero | 0 |
 | ERR | no variation in a condition the contrast uses, statistic 0 or undefined for every labeling | error |
 | ERR-S (data rule) | no variation in a condition the contrast uses, but the statistic varies | error (literal criterion); the p of D5's proposal in `alt_outcome` |
@@ -91,13 +97,22 @@ projection on the null space of the rows kept is a nonnegative combination of
 the projected rows that diverge (with their signs), which an exact simplex
 decides; otherwise it takes both signs on the cone of recession (SEP-I).
 
+INF-X and the SEP-I of two parts with opposite signs are both infinity minus
+infinity. The proposal counts both as +Inf, but `_drop` keeps INF-X and leaves
+SEP-I out; whether both follow one rule is part of decisions D4 and D10.
+
 ## Rules the generator keeps
 
 It does not load the package and does not name the package's tie rule
 (`generate.R`, `lib.R`, `reference.R`, `worlds.R`); it fits no reference
 statistic with `glm()` (only the self-checks use `glm()` and `sandwich`, and
 `MASS::glm.nb()` is used only to screen the negative binomial's theta and set
-the band); it decides no equality with a tolerance; every seed is recorded
+the band); it decides no equality with a tolerance (three other steps do
+use one: the margin rule for order above; the judgment that an observed value
+is more than `1e4` measured errors from 0, on which placing exact zeros below
+it rests; and the screen, residuals below `1e-6` in doubles, that sends a
+Poisson or NB fit to the exact test of an exact fit, a test that also ignores
+an exposure offset); every seed is recorded
 (`seeds` in the full file): data 1347001-1347999, near-tie constructions
 1348001-1348499, harness replay 1348501-1348799, scope block 1349501-1349502.
 Self-checks that stop the generator when they fail: classes tied by an exact
