@@ -605,7 +605,10 @@ With a pretest or a numeric covariate, \code{model$converged} and
 silently, not the standardized fit that gave the warnings. The model
 fit's warnings are given once the checks for an empty group, a collinear
 term, and, under HC3, a group with a single participant have passed, so
-a fit that stops at one of these checks gives the error alone. An error
+a fit that stops at one of these checks gives the error without the
+model fit's warnings. The warnings about the data given, raised before
+the fit (pretested participants with a missing pretest, \code{y_pre} given
+for unpretested participants), still come before that error. An error
 inside the fit itself still comes after the warnings the fit gave.
 
 Covariates collinear with the other terms stop the fit wherever they

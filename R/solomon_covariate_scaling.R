@@ -334,10 +334,11 @@
 
 # The value of `expr` and the warnings it signalled, which are held back
 # (muffled), so that fit_solomon_glm() gives the warnings of its fit only
-# once the fit is known to go ahead (.signal_warnings()), not with an error
-# that a group is empty or a term is inestimable (issue #154). A warning
-# that cannot be muffled, as one raised with signalCondition() has no
-# muffleWarning restart, is left to pass, as before #154.
+# once the fit is known to go ahead (.signal_warnings()), not with the
+# error of one of its checks: an empty group, a collinear term, or a
+# single participant under HC3 (issue #154). A warning that cannot be
+# muffled, as one raised with signalCondition(), which has no muffleWarning
+# restart, is left to pass, as before #154.
 # When `expr` itself stops, as glm() does when it finds no valid
 # coefficients, or is interrupted, the warnings are signalled from a
 # calling handler, before the error or the interrupt is handled, as they

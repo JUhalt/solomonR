@@ -17,7 +17,12 @@
   the same space, and the treatment terms are kept, so in exact arithmetic
   it is the same fit (Green, 1984). On those data no resample fails, and
   the standard errors are within 0.1% of those of an exact
-  reparameterization. The convergence rule is unchanged.
+  reparameterization. That agreement is for those data. The new columns
+  are computed in floating point, so a refit in them is accurate to about
+  the unit roundoff times the condition number of the columns they
+  replace, as the model's own fit is (Higham, 2002), and under near
+  separation a resample can be counted as failed, or not, differently
+  than in an exact reparameterization. The convergence rule is unchanged.
 * **Results are unchanged where every refit converges.** A refit that
   converges is computed as before, so on well-conditioned data the
   estimates, standard errors, intervals, p-values, and failure counts are
@@ -28,10 +33,11 @@
   of only events or only non-events, a fitted risk within 1e-8 of 0 or 1,
   a design not of full rank, and no convergence in 25 iterations. It names
   the causes only of the reasons that occurred: sparse cells for the
-  first; for the second, separation or near separation (Albert & Anderson,
-  1984), extreme covariate values, or a refit that diverged, since each
-  refit takes full steps, without the step halving of `glm.fit()`
-  (Marschner, 2011). A refit whose weighted design loses rank because
+  first; for the second, complete or quasicomplete separation (Albert &
+  Anderson, 1984) or near separation, extreme covariate values, or a
+  refit that diverged, since each refit takes full steps, without the
+  step halving of `glm.fit()` (Marschner, 2011). A refit whose weighted
+  design loses rank because
   fitted risks within 1e-8 of 0 or 1 make their weights vanish counts as
   a fitted risk near 0 or 1, not as a design short of full rank. For
   the refits that did not converge, the warning gives the largest
@@ -40,17 +46,19 @@
   due to sparse cells. A covariate nearly collinear with a treatment term
   can still keep refits from converging, because the treatment terms,
   whose coefficients give the contrasts, are kept.
-* **A fit that stops at the estimability checks gives the error alone.**
-  `fit_solomon_glm()`, with one treatment or several, now holds back the
-  warnings of its model fit until the checks for an empty group, a
-  collinear term, and, under HC3, a group with a single participant have
+* **A fit that stops at the checks for an empty group, a collinear term,
+  or a single participant under HC3 no longer gives the model fit's
+  warnings.** `fit_solomon_glm()`, with one treatment or several, now
+  holds back the warnings of its model fit until those checks have
   passed. Before, a negative-binomial fit with exactly collinear
   covariates warned that `glm.fit()` and theta did not converge, and then
-  stopped with the error that a covariate is collinear. A fit that goes
-  ahead gives the same warnings, in the same order, and the same results.
-  A fit that stops inside `glm()` itself still gives its warnings before
-  its error, as before. With several treatments, the noncollapsibility
-  warning also waits for the checks.
+  stopped with the error that a covariate is collinear. The warnings about
+  the data given, raised before the fit, such as those about missing
+  pretests, still come before the error. A fit that goes ahead gives the
+  same warnings, in the same order, and the same results. A fit that
+  stops inside `glm()` itself still gives its warnings before its error,
+  as before. With several treatments, the noncollapsibility warning also
+  waits for the checks.
 * **`model$converged` describes the fit as given.** `?fit_solomon_glm` now
   says that, with a pretest or a numeric covariate, `model$converged` and
   `model$iter` describe the fit to the covariates and the pretest as

@@ -1316,9 +1316,10 @@ test_that("nested near-collinearity near zero is fitted as glm() and master fit 
 test_that("the bootstrap converges with nested near-collinearity, and names why refits fail (#154)", {
   # The nested covariates of the test above, with a binary outcome. The
   # standardized design has a condition number near 1e14: the rounding
-  # error of X b moved the deviance by about 1e-6 between iterations, more
-  # than glm.fit()'s 1e-8 rule allows, and 199, 197, and 195 of 199
-  # resamples failed to converge; the warning blamed sparse cells. A refit
+  # error of each step moved the deviance by 4e-7 to 7e-4 of itself between
+  # iterations 5 and 25, far more than glm.fit()'s 1e-8 rule allows, and
+  # 199, 197, and 195 of 199 resamples failed to converge; the warning
+  # blamed sparse cells. A refit
   # that does not converge is now fitted again in an orthonormal basis of
   # the same columns (.bootstrap_basis()), with a condition number of about
   # 17, and the bootstrap agrees with that of the exact reparameterization

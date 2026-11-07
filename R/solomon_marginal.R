@@ -457,12 +457,21 @@
 # risk, and contrast is the same in either basis, from the start `b`
 # mapped to it (R b_N). In floating point the fitted values of a
 # least-squares step move by about the unit roundoff times the design's
-# condition number (Higham, 2002, chap. 20); with nearly collinear
-# covariates (a condition number near 1e14) they moved by 0.01 to 0.05
-# between iterations, and almost no resample met the convergence rule.
-# Q is orthonormal and the QR is backward stable (Higham, 2002,
-# Theorem 19.4), so the condition number left is that of the treatment
-# terms against the other columns. Returns the design `X` and the start
+# condition number (Higham, 2002, Chapter 20). With nearly collinear
+# covariates (a condition number near 1e14), between iterations 5 and 25
+# the deviance changed by 4e-7 to 7e-4 of itself, against the 1e-8 that
+# the rule allows, and the fitted risks by up to 0.06, so almost no
+# resample met the rule. Q is orthonormal and the QR is backward stable
+# (Higham, 2002, Theorem 19.4), so the condition number left for the IRLS
+# steps is that of the treatment terms against the other columns, and
+# the refits converge. That is a statement about convergence, not
+# accuracy: Q is computed from X_N in floating point, so its columns span
+# those of X_N only to within about the unit roundoff times the condition
+# number of X_N (Higham, 2002, Theorem 19.4 and Chapter 20), an angle of
+# 0.02 to 0.08 radians on the data of #154. A refit in the basis is
+# accurate to about that, as the model's own fit is, and a resample whose
+# fitted risks come near the 1e-8 limit can be counted differently than
+# under an exact reparameterization. Returns the design `X` and the start
 # `start` in that basis, or NULL when X_N is not finite or not of full
 # rank.
 .bootstrap_basis <- function(X, b) {
@@ -486,7 +495,8 @@
 # and the sentence does not say that rounding caused the failures. In
 # double precision a least-squares step carries a relative error of about
 # the unit roundoff (1.1e-16) times the condition number (Higham, 2002,
-# chap. 20), about 1% near 1e14, where the refits of #154 did not converge.
+# Chapter 20), about 1% near 1e14, where the refits of #154 did not
+# converge.
 .bootstrap_failure_message <- function(reasons, R, kappa) {
   n <- vapply(c("separated", "risk", "rank", "maxit"), function(r) sum(reasons == r), integer(1))
   parts <- c(
@@ -634,19 +644,26 @@
 #' probabilities to 0 or 1, the refit stops and the resample fails;
 #' [stats::glm.fit()] would instead halve a step that makes the deviance
 #' infinite (Marschner, 2011). So a fitted probability near 0 or 1 comes
-#' from separation or near separation (Albert & Anderson, 1984), from an
-#' extreme covariate value, or from a refit that diverged.
+#' from complete or quasicomplete separation (Albert & Anderson, 1984) or
+#' near separation, from an extreme covariate value, or from a refit that
+#' diverged.
 #' A refit that does not converge is fitted again with the intercept, the
 #' pretesting indicator, the pretest, and the covariates replaced by the
 #' orthonormal columns of their QR decomposition (Golub, 1965). These span
 #' the same space, and the treatment terms are kept, so in exact arithmetic
 #' it is the same fit (Green, 1984). With nearly collinear covariates,
 #' rounding error can keep a refit from converging, and the new columns
-#' remove that. They cannot remove a treatment term nearly collinear with
-#' the other terms, because the contrasts are read from the treatment
-#' coefficients. For the refits that still do not converge, the warning
+#' let it converge. They cannot help with a treatment term nearly
+#' collinear with the other terms, because the contrasts are read from the
+#' treatment coefficients. The new columns are computed in floating point,
+#' so they span the old ones only to within about the unit roundoff times
+#' the condition number of the columns they replace (Higham, 2002, Theorem
+#' 19.4 and Chapter 20). A refit in them is accurate to about that, as the
+#' model's own fit is, and a resample with a fitted probability near the
+#' 1e-8 limit can be counted as failed, or not, differently than in exact
+#' arithmetic. For the refits that still do not converge, the warning
 #' gives the largest condition number of their weighted design: the
-#' rounding error of each step grows with it (Higham, 2002, chap. 20). A
+#' rounding error of each step grows with it (Higham, 2002, Chapter 20). A
 #' bootstrap whose refits all converge is computed as before.
 #'
 #' For the pretest effects, the pretested and the unpretested risks are

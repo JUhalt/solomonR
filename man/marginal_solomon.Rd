@@ -189,19 +189,26 @@ the model's coefficients, with full steps. Where a step takes fitted
 probabilities to 0 or 1, the refit stops and the resample fails;
 \code{\link[stats:glm.fit]{stats::glm.fit()}} would instead halve a step that makes the deviance
 infinite (Marschner, 2011). So a fitted probability near 0 or 1 comes
-from separation or near separation (Albert & Anderson, 1984), from an
-extreme covariate value, or from a refit that diverged.
+from complete or quasicomplete separation (Albert & Anderson, 1984) or
+near separation, from an extreme covariate value, or from a refit that
+diverged.
 A refit that does not converge is fitted again with the intercept, the
 pretesting indicator, the pretest, and the covariates replaced by the
 orthonormal columns of their QR decomposition (Golub, 1965). These span
 the same space, and the treatment terms are kept, so in exact arithmetic
 it is the same fit (Green, 1984). With nearly collinear covariates,
 rounding error can keep a refit from converging, and the new columns
-remove that. They cannot remove a treatment term nearly collinear with
-the other terms, because the contrasts are read from the treatment
-coefficients. For the refits that still do not converge, the warning
+let it converge. They cannot help with a treatment term nearly
+collinear with the other terms, because the contrasts are read from the
+treatment coefficients. The new columns are computed in floating point,
+so they span the old ones only to within about the unit roundoff times
+the condition number of the columns they replace (Higham, 2002, Theorem
+19.4 and Chapter 20). A refit in them is accurate to about that, as the
+model's own fit is, and a resample with a fitted probability near the
+1e-8 limit can be counted as failed, or not, differently than in exact
+arithmetic. For the refits that still do not converge, the warning
 gives the largest condition number of their weighted design: the
-rounding error of each step grows with it (Higham, 2002, chap. 20). A
+rounding error of each step grows with it (Higham, 2002, Chapter 20). A
 bootstrap whose refits all converge is computed as before.
 
 For the pretest effects, the pretested and the unpretested risks are
