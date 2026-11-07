@@ -581,33 +581,35 @@ used: the variables `GIT_DIR` and `GIT_WORK_TREE`, which can point git at
 another one, are ignored.
 
 A copy downloaded with GitHub's "Download ZIP", or made with `git archive`,
-contains no git repository, so a run from it records `NA`. So does a run
-from a copy unpacked inside another git repository, whose commit is not
-that of the copy, a run from a clone when git is not on the PATH, and a run
-from a clone that git refuses to read. By default, git refuses a repository
-owned by another user, for example a clone mounted into a container that
-runs as another user, unless git's `safe.directory` setting lists the
-repository. The scripts do not change that setting, which is a security
-check. In such a run, set `SOLOMONR_COMMIT` to record the commit. The
-validation-scripts workflow checks the rule for such a copy on every
-change: it runs the smoke mode of the plan re-simulation script from a copy
-made with `git archive` outside any repository, and fails unless the run
-records `NA`
-([issue #162](https://github.com/JUhalt/solomonR/issues/162)).
+contains no git repository, so a run from it records `NA`. The
+validation-scripts workflow checks this case on every pull request to
+master and every push to it: it runs the smoke mode of the plan
+re-simulation script from a copy made with `git archive` outside any
+repository, and fails unless the run records `NA`
+([issue #162](https://github.com/JUhalt/solomonR/issues/162)). A run also
+records `NA` from a copy unpacked inside another git repository, whose
+commit is not that of the copy, from a clone when git is not on the PATH,
+and from a clone that git refuses to read. By default, git refuses a
+repository owned by another user, for example a clone mounted into a
+container that runs as another user, unless git's `safe.directory` setting
+lists the repository. The scripts do not change that setting, which is a
+security check. In such a run, set `SOLOMONR_COMMIT` to record the commit.
 
 To record the commit that a downloaded copy came from, set
 `SOLOMONR_COMMIT` to it when running the script from the root of the copy.
 The unpacked files do not contain the commit, so keep the downloaded file
 or note the commit. A ZIP or tar file that `git archive` makes from a
-commit stores the commit: `unzip -z <file>.zip` prints it as the comment of
-the ZIP file, `git get-tar-commit-id < <file>.tar` prints it from a tar
-file, and `gzip -dc <file>.tar.gz | git get-tar-commit-id` prints it from a
-compressed one. On Windows, these commands run in Git Bash. GitHub makes
-the files of "Download ZIP", and its other source archives of a branch,
-tag, or commit, with `git archive` (GitHub, n.d.), and they keep the
-commit: on November 7, 2026, `unzip -z` printed it from a ZIP of master
-and from one of the tag v0.4.0, and `git get-tar-commit-id` printed it from
-a `.tar.gz` of master.
+commit stores the commit (Git Project, n.d.): `unzip -z <file>.zip` prints
+it as the comment of the ZIP file, `git get-tar-commit-id < <file>.tar`
+prints it from a tar file, and
+`gzip -dc <file>.tar.gz | git get-tar-commit-id` prints it from a
+compressed one. GitHub makes the
+"Download ZIP" file, and its other source archives of a branch, tag, or
+commit, with `git archive` (GitHub, n.d.). GitHub's page does not say
+whether these files keep the commit. On November 7, 2026, they did:
+`unzip -z` printed the commit from GitHub's ZIP file of master and from its
+ZIP file of the tag v0.4.0, and `git get-tar-commit-id` printed it from its
+`.tar.gz` file of master. On Windows, these commands run in Git Bash.
 
 In a Unix shell:
 
@@ -670,6 +672,9 @@ intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
 GitHub. (n.d.). *Downloading source code archives*. GitHub Docs. Retrieved
 November 7, 2026, from
 https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives
+
+Git Project. (n.d.). *git-archive*. Git documentation. Retrieved November
+7, 2026, from https://git-scm.com/docs/git-archive
 
 Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
 (2008). Recommendations for the primary analysis of continuous endpoints in

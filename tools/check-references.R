@@ -13,8 +13,9 @@
 # the canonical list appears in the coverage article. Exits with status 1 if
 # any entry differs from the canonical list or lacks a coverage entry.
 
-# A reference starts with an author, not a blockquote marker or list bullet.
-ref_pattern <- "^[^()>*-][^()]*? \\(\\d{4}[a-z]?(, [^)]*)?\\)\\."
+# A reference starts with an author, not a blockquote marker or list bullet,
+# and gives a year or "n.d." (no date) in parentheses.
+ref_pattern <- "^[^()>*-][^()]*? \\((\\d{4}[a-z]?|n\\.d\\.)(, [^)]*)?\\)\\."
 
 paragraphs <- function(lines) {
   groups <- cumsum(!nzchar(trimws(lines)))
@@ -24,18 +25,24 @@ paragraphs <- function(lines) {
   unname(paras[nzchar(paras)])
 }
 
-# APA 7 orders entries by the first author's surname and initials, then by
-# the other authors and the year, so "Little, R. J." precedes "Little, R. J.
-# A."; the first author is therefore compared on its own.
+# APA 7 orders entries letter by letter by the first author's surname and
+# initials, then by the other authors and the year. Spaces and punctuation
+# within a name are ignored, but the end of a surname or of a set of
+# initials comes before any letter (nothing precedes something), so
+# "Brown, J." precedes "Browning, A.", and "Little, R. J." precedes
+# "Little, R. J. A.". Each name and set of initials is therefore a field of
+# its own, ended by a tab. A work with no date ("n.d.") precedes the same
+# authors' dated works. The keys are compared byte by byte (method =
+# "radix"), so the order does not depend on the locale.
 sort_key <- function(entry) {
-  authors <- sub(" \\(\\d{4}.*$", "", entry)
-  year <- sub("^[^()]+? \\((\\d{4}[a-z]?).*$", "\\1", entry)
+  authors <- sub(" \\((\\d{4}|n\\.d\\.).*$", "", entry)
+  year <- sub("^[^()]+? \\((\\d{4}[a-z]?|n\\.d\\.).*$", "\\1", entry)
+  if (identical(year, "n.d.")) year <- "0000"
   parts <- strsplit(authors, ", ", fixed = TRUE)[[1]]
-  first <- paste(parts[seq_len(min(2L, length(parts)))], collapse = " ")
-  rest <- paste(parts[-seq_len(min(2L, length(parts)))], collapse = " ")
   letters_only <- function(x) gsub("[^a-z]", "", tolower(gsub("&", "", x, fixed = TRUE)))
-  paste(letters_only(first), letters_only(rest), year)
+  paste(c(letters_only(parts), year), collapse = "\t")
 }
+in_order <- function(keys) identical(order(keys, method = "radix"), seq_along(keys))
 
 canonical_file <- file.path("vignettes", "articles", "references.Rmd")
 canonical <- paragraphs(readLines(canonical_file, encoding = "UTF-8"))
@@ -51,7 +58,7 @@ check_list <- function(entries, where) {
   }
   if (anyDuplicated(entries)) note(where, "duplicate entry")
   keys <- vapply(entries, sort_key, "")
-  if (is.unsorted(keys)) note(where, "entries are not in APA order")
+  if (!in_order(keys)) note(where, "entries are not in APA order")
   length(entries)
 }
 

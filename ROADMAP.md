@@ -510,7 +510,11 @@ the audit:
     a git repository, due before the robustness study's timing run; on
     the Validation Evidence page, a note on studies run through the
     harness, and one on GitHub's ZIP files if they keep the commit; and
-    a CI run of one script from a downloaded copy — [#162](https://github.com/JUhalt/solomonR/issues/162)
+    a CI run of one script from a downloaded copy — [#162](https://github.com/JUhalt/solomonR/issues/162).
+    The harness check merged in [PR #164](https://github.com/JUhalt/solomonR/pull/164); the note on
+    GitHub's ZIP files (they keep the commit) and the CI run merged in
+    [PR #167](https://github.com/JUhalt/solomonR/pull/167). Open: the note on studies run through the
+    harness, when the robustness study joins the page
 
 # Later / exploratory
 

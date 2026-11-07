@@ -659,13 +659,21 @@ reasons are set out in the decision record posted on #135.
 * The validation-scripts workflow now also runs the plan re-simulation
   script in smoke mode from a copy made with `git archive`, outside any git
   repository, and fails unless the run records `NA` as its commit. A run
-  of a script, not only the rule itself, is now tested on every change
+  of a script, not only the rule itself, is now tested on every pull
+  request to master and every push to it (#162).
+* GitHub makes the "Download ZIP" file, and its other source archives of a
+  branch, tag, or commit, with `git archive` (GitHub, n.d.). GitHub's page
+  does not say whether these files keep the commit. On November 7, 2026,
+  they did: `unzip -z` printed the commit from GitHub's ZIP file of master
+  and from its ZIP file of the tag v0.4.0, and `git get-tar-commit-id`
+  printed it from its `.tar.gz` file of master. The Validation Evidence
+  page now says so, citing Git's documentation (Git Project, n.d.) for
+  where `git archive` stores the commit. Both are added to the references
   (#162).
-* GitHub makes the files of "Download ZIP", and its other source archives,
-  with `git archive`, and they keep the commit: on November 7, 2026,
-  `unzip -z` printed it from a ZIP of master and from one of the tag
-  v0.4.0, and `git get-tar-commit-id` from a `.tar.gz` of master. The
-  Validation Evidence page now says so (#162).
+* `tools/check-references.R` now also checks references without a date
+  ("n.d."), which it skipped before, and orders names as APA 7 does,
+  letter by letter, with the end of a surname or of a set of initials
+  before any letter: "Brown, J." precedes "Browning, A." (#162).
 
 ## Validation scripts that run against the current package (#140)
 
