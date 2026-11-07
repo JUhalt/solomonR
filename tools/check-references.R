@@ -31,15 +31,49 @@ paragraphs <- function(lines) {
 # initials comes before any letter (nothing precedes something), so
 # "Brown, J." precedes "Browning, A.", and "Little, R. J." precedes
 # "Little, R. J. A.". Each name and set of initials is therefore a field of
-# its own, ended by a tab. A work with no date ("n.d.") precedes the same
-# authors' dated works. The keys are compared byte by byte (method =
-# "radix"), so the order does not depend on the locale.
+# its own, ended by a tab. Accented Latin letters count as their base
+# letters, so "Éthier" sorts under E, from a fixed table rather than the
+# platform's iconv. A work with no date ("n.d.") precedes the same authors'
+# dated works. The keys are compared byte by byte (method = "radix"), so
+# the order does not depend on the locale.
+accented <- paste0(
+  "àáâãäåāăą",        # a
+  "çćĉċč",                                # c
+  "ďđ",                                                  # d
+  "èéêëēĕėęě",        # e
+  "ĝğġģ",                                      # g
+  "ĥħ",                                                  # h
+  "ìíîïĩīĭįı",        # i
+  "ĵ",                                                        # j
+  "ķ",                                                        # k
+  "ĺļľŀł",                                # l
+  "ñńņň",                                      # n
+  "òóôõöøōŏő",        # o
+  "ŕŗř",                                            # r
+  "śŝşš",                                      # s
+  "ţťŧ",                                            # t
+  "ùúûüũūŭůűų",  # u
+  "ŵ",                                                        # w
+  "ýÿŷ",                                            # y
+  "źżž"                                             # z
+)
+unaccented <- paste(rep(c("a", "c", "d", "e", "g", "h", "i", "j", "k", "l", "n", "o",
+                          "r", "s", "t", "u", "w", "y", "z"),
+                        c(9, 5, 2, 9, 4, 2, 9, 1, 1, 5, 4, 9, 3, 4, 3, 10, 1, 3, 3)),
+                    collapse = "")
+stopifnot(nchar(accented) == nchar(unaccented))
+letters_only <- function(x) {
+  x <- tolower(gsub("&", "", x, fixed = TRUE))
+  for (pair in list(c("ß", "ss"), c("æ", "ae"), c("œ", "oe"), c("þ", "th"))) {
+    x <- gsub(pair[1], pair[2], x, fixed = TRUE)
+  }
+  gsub("[^a-z]", "", chartr(accented, unaccented, x))
+}
 sort_key <- function(entry) {
   authors <- sub(" \\((\\d{4}|n\\.d\\.).*$", "", entry)
   year <- sub("^[^()]+? \\((\\d{4}[a-z]?|n\\.d\\.).*$", "\\1", entry)
   if (identical(year, "n.d.")) year <- "0000"
   parts <- strsplit(authors, ", ", fixed = TRUE)[[1]]
-  letters_only <- function(x) gsub("[^a-z]", "", tolower(gsub("&", "", x, fixed = TRUE)))
   paste(c(letters_only(parts), year), collapse = "\t")
 }
 in_order <- function(keys) identical(order(keys, method = "radix"), seq_along(keys))

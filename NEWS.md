@@ -661,6 +661,11 @@ reasons are set out in the decision record posted on #135.
   repository, and fails unless the run records `NA` as its commit. A run
   of a script, not only the rule itself, is now tested on every pull
   request to master and every push to it (#162).
+* The same workflow now runs `tests/testthat/test-validation-commit.R`
+  from the package source. Its tests of the scripts and of the Validation
+  Evidence page read `vignettes/articles/`, which R CMD check and the
+  coverage workflow do not have, so until now they were skipped on every
+  CI run and ran only locally (#162).
 * GitHub makes the "Download ZIP" file, and its other source archives of a
   branch, tag, or commit, with `git archive` (GitHub, n.d.). GitHub's page
   does not say whether these files keep the commit. On November 7, 2026,
@@ -670,10 +675,17 @@ reasons are set out in the decision record posted on #135.
   page now says so, citing Git's documentation (Git Project, n.d.) for
   where `git archive` stores the commit. Both are added to the references
   (#162).
+
+## References without a date (#162)
+
 * `tools/check-references.R` now also checks references without a date
-  ("n.d."), which it skipped before, and orders names as APA 7 does,
+  ("n.d."), which it skipped before: the first two, GitHub (n.d.) and Git
+  Project (n.d.), came with #162. It also orders names as APA 7 does,
   letter by letter, with the end of a surname or of a set of initials
-  before any letter: "Brown, J." precedes "Browning, A." (#162).
+  before any letter, so "Brown, J." precedes "Browning, A."; before, the
+  check would have accepted the reverse. Accented letters count as their
+  base letters, so "Éthier" sorts under E. No list in the package changes
+  its verdict.
 
 ## Validation scripts that run against the current package (#140)
 

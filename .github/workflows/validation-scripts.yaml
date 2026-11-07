@@ -44,18 +44,28 @@ jobs:
       # a few scenarios in a temporary folder (issue #140). The check fails
       # if a script fails or if a file of the package changes.
       - name: Run the validation scripts in smoke mode
+        id: smoke
         env:
           SOLOMONR_SMOKE_TIMEOUT: 900
         run: Rscript tools/check-validation-scripts.R
+
+      # The tests of the commit rule that read the scripts and the
+      # Validation Evidence page need vignettes/articles/, which R CMD check
+      # and the coverage workflow do not have, so they skip there. Here they
+      # run from the package source (issue #162). Like the next step, this
+      # runs even when the smoke step failed, but not when setup failed.
+      - name: Run the tests of the commit rule from the package source
+        if: ${{ !cancelled() && steps.smoke.outcome != 'skipped' }}
+        run: |
+          Rscript -e 'testthat::test_dir("tests/testthat", filter = "validation-commit", load_package = "source", stop_on_failure = TRUE)'
 
       # A copy made with `git archive`, as GitHub's "Download ZIP" is, holds
       # no git repository, so a validation script run from it records the
       # commit as NA (issue #152). This runs one short script in smoke mode
       # from such a copy, outside the checkout and any other repository, and
-      # fails unless the run recorded NA (issue #162). It runs even when the
-      # step above failed, so that its own result is not hidden.
+      # fails unless the run recorded NA (issue #162).
       - name: Run a validation script from a copy made with git archive
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.smoke.outcome != 'skipped' }}
         shell: bash
         env:
           SOLOMONR_SMOKE_TIMEOUT: 900

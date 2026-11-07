@@ -586,14 +586,15 @@ validation-scripts workflow checks this case on every pull request to
 master and every push to it: it runs the smoke mode of the plan
 re-simulation script from a copy made with `git archive` outside any
 repository, and fails unless the run records `NA`
-([issue #162](https://github.com/JUhalt/solomonR/issues/162)). A run also
-records `NA` from a copy unpacked inside another git repository, whose
-commit is not that of the copy, from a clone when git is not on the PATH,
-and from a clone that git refuses to read. By default, git refuses a
-repository owned by another user, for example a clone mounted into a
-container that runs as another user, unless git's `safe.directory` setting
-lists the repository. The scripts do not change that setting, which is a
-security check. In such a run, set `SOLOMONR_COMMIT` to record the commit.
+([issue #162](https://github.com/JUhalt/solomonR/issues/162)). A run from
+a copy unpacked inside another git repository, whose commit is not that of
+the copy, also records `NA`, as do a run from a clone when git is not on
+the PATH and a run from a clone that git refuses to read. By default, git
+refuses a repository owned by another user, for example a clone mounted
+into a container that runs as another user, unless git's `safe.directory`
+setting lists the repository. The scripts do not change that setting, which
+is a security check. In such a run, set `SOLOMONR_COMMIT` to record the
+commit.
 
 To record the commit that a downloaded copy came from, set
 `SOLOMONR_COMMIT` to it when running the script from the root of the copy.
