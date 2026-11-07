@@ -204,13 +204,27 @@ fitted the model, since it stops at a term collinear with the others.
 A refit whose design is not of full rank at the tolerance of \code{\link[=qr]{qr()}}
 (1e-11) is not fitted again, and the resample counts as failed. In the
 new columns, a direction that a resample makes collinear is carried
-only by rounding error, and a refit could converge on it. Just inside
-the collinearity check of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, rounding error can also
-make nearly collinear covariates collinear to within that tolerance on
-some resamples, and those resamples fail too, though an exact
-reparameterization of the covariates would fit them. The new columns
-cannot help with a treatment term nearly collinear with the other
-terms, because the contrasts are read from the treatment coefficients.
+only by rounding error, and a refit could converge on it. Rounding
+error can also keep a design that is not of full rank above that
+tolerance, as when a covariate is computed from others, such as a time
+of testing that is the time of enrollment plus a delay, with the times
+in seconds. So before a refit that did not converge is fitted again,
+its resample is checked by the collinearity check of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see "Covariates" there), applied to the rows of the
+resample: a resample on whose rows a term is collinear with the others
+by that check counts as failed, as a design not of full rank, and is not
+fitted again. Just inside that check, rounding error can also make
+nearly collinear covariates collinear on some resamples, at the
+tolerance of \code{\link[=qr]{qr()}} or by the check, and those resamples fail too,
+though an exact reparameterization of the covariates would fit them. A
+resample can also fail as a design not of full rank when only one of its
+participants departs from a relation that holds among the covariates of
+all the others: the refit moves that participant's fitted probability
+toward the observed outcome, and the participant's weight in the refit
+vanishes before the probability comes within 1e-8 of 0 or 1. The new
+columns cannot help with a treatment term nearly collinear with the
+other terms, because the contrasts are read from the treatment
+coefficients.
 They are computed in floating point, so they span the old ones only to
 within about the unit roundoff times the condition number of the
 columns they replace (Higham, 2002, Theorem 19.4 and Chapter 20). A

@@ -27,16 +27,40 @@
   still counts as failed, as when a resample lacks a level of a factor or
   makes nearly collinear covariates collinear. In the new columns, a
   direction that a resample makes collinear is carried only by rounding
-  error, and a refit could converge on it. Just inside the collinearity
-  check of `fit_solomon_glm()`, rounding error can make nearly collinear
-  covariates collinear to within the tolerance of `qr()`, 1e-11, on some
-  resamples, and these fail too. With `z2 = z1 + 1.2e-11 * e1`, 87 of 199
-  resamples failed before. The 63 that did not converge now converge in
-  the new columns, and the 24 whose design fell short of full rank still
-  fail, where an exact reparameterization of the covariates has no
-  failures. The new columns are formed whenever `fit_solomon_glm()`
-  fitted the model, which it does only when no term is collinear with the
-  others.
+  error, and a refit could converge on it.
+* **A resample whose design is collinear by the check of
+  `fit_solomon_glm()` counts as failed.** Rounding error can keep a design
+  that is not of full rank above the tolerance of `qr()`, 1e-11, as when
+  a covariate is computed from others. With a time of testing that is the
+  time of enrollment plus a delay, in seconds since 1970, except for two
+  participants whose testing time was corrected, a resample without those
+  two has the relation on every row, and its refit did not converge.
+  Fitted again in the new columns, all 43 such resamples of 199
+  converged, with risk differences up to 0.088 from those of the same
+  refit without the delay, and the intervals were reported where an exact
+  reparameterization of the covariates withholds them. Before a refit
+  that did not converge is fitted again, its resample is now checked by
+  the collinearity check of `fit_solomon_glm()`, applied to the rows of
+  the resample. If a term is collinear with the others by that check, the
+  resample counts as failed, as a design not of full rank, and is not
+  fitted again. On those data, the bootstrap now fails in the same
+  resamples as the exact reparameterization.
+* **The cost is a band just inside the collinearity check of
+  `fit_solomon_glm()`.** There, rounding error can make nearly collinear
+  covariates collinear on some resamples, to within the tolerance of
+  `qr()` or by the check, and these resamples fail too. With
+  `z2 = z1 + 1.2e-11 * e1`, 87 of 199 resamples failed before. The 63
+  that did not converge now converge in the new columns, and the 24 whose
+  design fell short of full rank still fail, where an exact
+  reparameterization of the covariates has no failures. At
+  `z2 = z1 + 1.1e-11 * e1`, 3 of the 34 that did not converge are
+  collinear by the check and fail. A resample can also fail as a design
+  not of full rank, as before, when only one of its participants departs
+  from a relation that holds among the covariates of the others: the
+  refit moves that participant's fitted risk toward the outcome, and the
+  participant's weight vanishes. The new columns are formed whenever
+  `fit_solomon_glm()` fitted the model, which it does only when no term
+  is collinear with the others.
 * **Results are unchanged where every refit converges.** A refit that
   converges is computed as before, so on well-conditioned data the
   estimates, standard errors, intervals, p-values, and failure counts are

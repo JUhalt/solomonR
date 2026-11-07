@@ -357,19 +357,33 @@
 # pretest terms, so that a relation is found at its last term in that order
 # whatever the order of the covariates; a term found collinear is left out
 # and the rest are checked again. Returns the names of the collinear terms'
-# columns, in the order of the model, or an empty vector.
+# columns, in the order of the model, or an empty vector. The check itself
+# is .collinear_columns(), on the model matrix, the fit's weights, and the
+# position of the intercept, so that marginal_solomon() can apply it to
+# the rows of a bootstrap resample (issue #154).
 .collinear_terms <- function(fit, noise, covariates = character(), margin = 4, floor = 1e-11) {
   X <- stats::model.matrix(fit)
   w <- fit$weights
   if (is.null(w) || length(w) != nrow(X)) w <- rep(1, nrow(X))
   labels <- attr(stats::terms(fit), "term.labels")
   last <- attr(X, "assign") %in% match(covariates, labels)
+  intercept <- match(0L, attr(X, "assign"))
+  colnames(X)[.collinear_columns(X, w, noise, last, intercept, margin, floor)]
+}
+
+# The check of .collinear_terms() on a design matrix `X`: `w` holds the
+# weights of its rows, `noise` the rounding error of each entry
+# (.representation_error()), `last` flags the covariates' columns, which
+# are checked last, and `intercept` is the position of the intercept's
+# column. Rows with a weight of zero are left out. Returns the positions of
+# the collinear columns, in the order of `X`, or an empty vector.
+.collinear_columns <- function(X, w, noise, last, intercept, margin = 4, floor = 1e-11) {
   order <- c(which(!last), which(last))
   keep <- w > 0
   A <- X[keep, order, drop = FALSE]
   E <- noise[keep, order, drop = FALSE]
   w <- w[keep]
-  j <- order != match(0L, attr(X, "assign"))
+  j <- order != intercept
   A[, j] <- sweep(A[, j, drop = FALSE], 2L, colSums(w * A[, j, drop = FALSE]) / sum(w))
   A <- sqrt(w) * A
   E <- sqrt(w) * E + .Machine$double.eps * abs(A)
@@ -413,7 +427,7 @@
     found <- c(found, active[k])
     active <- active[-k]
   }
-  colnames(X)[sort(order[found])]
+  sort(order[found])
 }
 
 # a - A b for a vector `a`, a matrix `A`, and coefficients `b`, accumulated
