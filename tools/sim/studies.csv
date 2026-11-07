@@ -1,3 +1,3 @@
 key,issue,script,pins,protocol,required_ancestors
 smoke,117,tools/sim/studies/smoke/smoke-simulation.R,tools/sim/studies/smoke/run-pins.csv,FALSE,
-robustness,116,vignettes/articles/robustness-validation/robustness-simulation.R,vignettes/articles/robustness-validation/run-pins.csv,TRUE,b4ade6401c7ab02fc75b7e34f4b3637d35f5bc34
+robustness,116,vignettes/articles/robustness-validation/robustness-simulation.R,vignettes/articles/robustness-validation/run-pins.csv,TRUE,b4ade6401c7ab02fc75b7e34f4b3637d35f5bc34 23ce059e48b76725c75024ff7af20154747567ba 2ddbc9f6a5d6a49e4d4db64cf87e548afc62ce02
