@@ -48,9 +48,9 @@
   covariates warned that `glm.fit()` and theta did not converge, and then
   stopped with the error that a covariate is collinear. A fit that goes
   ahead gives the same warnings, in the same order, and the same results.
-  So does a fit that stops inside `glm()` itself: its warnings still come
-  before its error. With several treatments, the noncollapsibility warning
-  also waits for the checks.
+  A fit that stops inside `glm()` itself still gives its warnings before
+  its error, as before. With several treatments, the noncollapsibility
+  warning also waits for the checks.
 * **`model$converged` describes the fit as given.** `?fit_solomon_glm` now
   says that, with a pretest or a numeric covariate, `model$converged` and
   `model$iter` describe the fit to the covariates and the pretest as
