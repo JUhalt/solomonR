@@ -176,11 +176,33 @@ Daniel et al. (2021) and Localio et al. (2007) found the bootstrap performed
 better than the delta method, which is available as \code{method = "delta"}
 (using the fit's covariance matrix, with covariates held fixed). p-values
 use the bootstrap or delta-method standard error on the analysis scale:
-risk differences, log risk ratios, or log odds ratios. Bootstrap resamples
-in which the logistic fit fails (no convergence, a Solomon cell with only
-events or only non-events, or a fitted probability within 1e-8 of 0 or 1)
-are excluded and counted; when more than 10\% fail, intervals are not
-reported.
+risk differences, log risk ratios, or log odds ratios.
+
+Bootstrap resamples in which the logistic fit fails are excluded and
+counted: those with a Solomon cell of only events or only non-events, a
+fitted probability within 1e-8 of 0 or 1, a design not of full rank (as
+when a resample lacks a level of a factor), or no convergence in 25
+iterations by the rule of \code{\link[stats:glm.control]{stats::glm.control()}}. When more than 10\% fail,
+intervals are not reported, and the warning gives the failures by reason.
+Each resample is refitted by iteratively reweighted least squares from
+the model's coefficients, with full steps. Where a step takes fitted
+probabilities to 0 or 1, the refit stops and the resample fails;
+\code{\link[stats:glm.fit]{stats::glm.fit()}} would instead halve a step that makes the deviance
+infinite (Marschner, 2011). So a fitted probability near 0 or 1 comes
+from separation or near separation (Albert & Anderson, 1984), from an
+extreme covariate value, or from a refit that diverged.
+A refit that does not converge is fitted again with the intercept, the
+pretesting indicator, the pretest, and the covariates replaced by the
+orthonormal columns of their QR decomposition (Golub, 1965). These span
+the same space, and the treatment terms are kept, so in exact arithmetic
+it is the same fit (Green, 1984). With nearly collinear covariates,
+rounding error can keep a refit from converging, and the new columns
+remove that. They cannot remove a treatment term nearly collinear with
+the other terms, because the contrasts are read from the treatment
+coefficients. For the refits that still do not converge, the warning
+gives the largest condition number of their weighted design: the
+rounding error of each step grows with it (Higham, 2002, chap. 20). A
+bootstrap whose refits all converge is computed as before.
 
 For the pretest effects, the pretested and the unpretested risks are
 standardized over different participants, so the sampling variance of
@@ -277,6 +299,10 @@ marginal_solomon(counts)
 
 }
 \references{
+Albert, A., & Anderson, J. A. (1984). On the existence of maximum
+likelihood estimates in logistic regression models. \emph{Biometrika, 71}(1),
+1–10. https://doi.org/10.1093/biomet/71.1.1
+
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 for linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
 169–181.
@@ -290,13 +316,30 @@ Comparing noncollapsible effect estimators and their standard errors after
 adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
 528–557. https://doi.org/10.1002/bimj.201900297
 
+Golub, G. (1965). Numerical methods for solving linear least squares
+problems. \emph{Numerische Mathematik, 7}(3), 206–216.
+https://doi.org/10.1007/BF01436075
+
+Green, P. J. (1984). Iteratively reweighted least squares for maximum
+likelihood estimation, and some robust and resistant alternatives.
+\emph{Journal of the Royal Statistical Society: Series B (Methodological),
+46}(2), 149–170. https://doi.org/10.1111/j.2517-6161.1984.tb01288.x
+
 Hayes, R. J., & Moulton, L. H. (2017). \emph{Cluster randomised trials} (2nd
 ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+
+Higham, N. J. (2002). \emph{Accuracy and stability of numerical algorithms} (2nd
+ed.). Society for Industrial and Applied Mathematics.
+https://doi.org/10.1137/1.9780898718027
 
 Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and
 confidence intervals were easily computed indirectly from multivariable
 logistic regression. \emph{Journal of Clinical Epidemiology, 60}(9), 874–882.
 https://doi.org/10.1016/j.jclinepi.2006.12.001
+
+Marschner, I. C. (2011). glm2: Fitting generalized linear models with
+convergence problems. \emph{The R Journal, 3}(2), 12–15.
+https://doi.org/10.32614/RJ-2011-012
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects

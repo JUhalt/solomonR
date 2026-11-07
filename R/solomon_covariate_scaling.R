@@ -332,6 +332,35 @@
   if (quiet) suppressWarnings(fit()) else fit()
 }
 
+# The value of `expr` and the warnings it signalled, which are held back
+# (muffled), so that fit_solomon_glm() gives the warnings of its fit only
+# once the fit is known to go ahead (.signal_warnings()), not with an error
+# that a group is empty or a term is inestimable (issue #154). When `expr`
+# itself stops, as glm() does when it finds no valid coefficients, the
+# warnings are signalled before its error, as they were before #154: they
+# may be the only clue to why the fit failed.
+.record_warnings <- function(expr) {
+  warnings <- list()
+  value <- tryCatch(
+    withCallingHandlers(expr, warning = function(w) {
+      warnings[[length(warnings) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }),
+    error = function(e) {
+      .signal_warnings(warnings)
+      stop(e)
+    }
+  )
+  list(value = value, warnings = warnings)
+}
+
+# Signals again, in order, the warnings held back by .record_warnings(),
+# each the same condition: its class, message, and call.
+.signal_warnings <- function(warnings) {
+  for (w in warnings) warning(w)
+  invisible(NULL)
+}
+
 # The standardized model of a fit_solomon_glm() fit with `covariate_scaling`,
 # refitted. The fit gave its warnings when it was made, so this one gives
 # none.
