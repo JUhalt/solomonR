@@ -8,10 +8,10 @@
 # https://github.com/JUhalt/solomonR/issues/116#issuecomment-6077966894
 # Note on the pinned version:
 # https://github.com/JUhalt/solomonR/issues/116#issuecomment-6083095621
-# Amendment 2 (the timing gate and the run on GitHub-hosted runners, R =
-# 5,000 unless the workflow's job limits force a lower value) is implemented
-# here as drafted on October 31, 2026; it is not posted yet, and where the
-# posted text differs, the posted text wins.
+# Amendment 2 of #116 (the timing gate and the run on GitHub-hosted
+# runners, R = 5,000 unless the workflow's job limits force a lower value;
+# cited below by item number, and its text wins where the script differs):
+# TODO(#116): link Amendment 2 once posted
 #
 # Run it through the simulation harness (tools/sim; issue #117), from the
 # root of a checkout of the pinned commit, for example a code-testing run:
@@ -27,8 +27,11 @@
 # agreement.csv, failures.csv, scenarios.csv, and the study's part of
 # run-information.csv; a code-testing run or the timing gate writes
 # agreement.csv (aggregated over the scenarios) and run-information.csv
-# only, and computes no performance measure, no decision, and no count of
-# failed fits.
+# only, and reports no performance measure, no decision, and no count of
+# failed fits, as Amendment 2 of #116 (item 9) says. To decide whether the
+# agreement checks passed, its summary counts in memory the comparisons
+# each check made and finds check 5's largest difference, and writes
+# neither (robustness-summarize.R).
 #
 # Smoke mode (issue #140): with SOLOMONR_SMOKE_DIR set, the contract plans,
 # runs, and summarizes the scenarios in `smoke_scenarios` in that folder, in
@@ -119,10 +122,11 @@ tol_check5 <- 1e-6
 # Agreement check 4 adds the group shifts of (delta, s, pi) = (0.5, 0.5,
 # 0.5); the estimates must shift by the contrasts' true values.
 check4_shift <- c(0.75, 0.5, 1.0, 0.5, 0.5, 1.0, 0.75)
-# [Left to the script] Agreement check 2's 20 fixed data sets (groups of 4,
-# 4, 3, and 3) come from the normal generator with rho = .5 and h = 1 under
-# L'Ecuyer-CMRG, data set d with set.seed(9118600 + d) and its permutations
-# with seed 9118700 + d (d = 1 to 20). These 40 seeds belong to check 2 in
+# Agreement check 2's 20 fixed data sets (groups of 4, 4, 3, and 3): under
+# L'Ecuyer-CMRG, data set d uses set.seed(9118600 + d) and its permutations
+# seed 9118700 + d (d = 1 to 20), as Amendment 2 of #116 (item 8) fixes
+# them. [Left to the script] The data sets come from the normal generator
+# with rho = .5 and h = 1. These 40 seeds belong to check 2 in
 # every run, the gate and the study included. They are not the study's base
 # seed (1160116), the gate's (9118000), or the code-testing base seed
 # (9118500); code-testing runs use other seeds of 9118501 to 9118999 for
@@ -150,8 +154,8 @@ allocations <- data.frame(
   n4 = c(10L, 20L, 60L, 30L, 60L, 10L, 20L, 10L, 30L),
   stringsAsFactors = FALSE)
 
-# [Left to the script; draft Amendment 2, item 8, makes it the order of
-# plan/scenarios.csv] The order of the scenario table, slowest factor first:
+# The order of the scenario table, which Amendment 2 of #116 (item 8) makes
+# the order of plan/scenarios.csv, is slowest factor first:
 # level (main grid, opposite skew, heterogeneous slopes); in the main grid,
 # the pattern (E0, then ET); then the distribution, the allocation, h, and
 # rho, each in the protocol's order. Scenarios 1-270 are the main grid in
@@ -367,9 +371,9 @@ at_least <- function(sb, s, u) abs(sb) >= abs(s) - tie_tol * max(abs(s), u)
 # extreme) / (1 + the number of finite ones) (Phipson & Smyth, 2010; as in
 # perm_solomon()). A test rejects when p < .05. [Left to the script] n_tied
 # counts the finite s_b with ||s_b| - |s|| <= 1e-10 max(|s|, u), the
-# permutations the tolerance treats as ties; an undefined observed
+# permutations the tolerance treats as ties. An undefined observed
 # statistic, or no finite permuted one (where perm_solomon() stops), is a
-# failed fit.
+# failed fit, as Amendment 2 of #116 (item 11) says.
 perm_test <- function(stat, statistic) {
   s <- stat[[1L]]
   sb <- stat[-1L]
@@ -399,10 +403,11 @@ fit_m2 <- function(d) fit_solomon_ml(y_post, treat, pretested, y_pre, data = d)
 try_fit <- function(f, d) tryCatch(f(d), error = function(e) e)
 
 # A fit's seven contrasts, selected by label. A failed fit is an error (M1,
-# M2) or convergence != 0 (M2) (protocol). [Left to the script] A contrast
-# whose estimate, standard error, or degrees of freedom is not finite, or
-# whose standard error is not positive, is an undefined statistic: this
-# extends the protocol's "undefined observed statistic" to M1 and M2.
+# M2) or convergence != 0 (M2) (protocol). A contrast whose estimate,
+# standard error, or degrees of freedom is not finite, or whose standard
+# error is not positive, is an undefined statistic, as
+# Amendment 2 of #116 (item 11) says: this extends the protocol's
+# "undefined observed statistic" to M1 and M2.
 fit_values <- function(method, fit) {
   if (inherits(fit, "error")) {
     return(list(status = rep("error", 7), estimate = rep(NA_real_, 7), std_error = rep(NA_real_, 7),
@@ -507,11 +512,11 @@ compare_perm <- function(check, fit, direct, k, statistic, B, seed) {
 
 # Agreement check 1: on the first 3 replications of every scenario, the
 # four treatment contrasts with both statistics, 99 permutations, seed s.
-# [Left to the script] s = 1000 * scenario + replication. perm_solomon()
-# sets it with withr::local_seed() under the task's RNG kind and restores
-# the task's stream on exit; the direct computation draws the same
-# permutations inside withr::with_seed(s), so neither call moves the
-# task's stream.
+# s = 1000 * scenario + replication, as Amendment 2 of #116 (item 8) fixes
+# it. perm_solomon() sets it with withr::local_seed() under the task's RNG
+# kind and restores the task's stream on exit; the direct computation draws
+# the same permutations inside withr::with_seed(s), so neither call moves
+# the task's stream.
 check1 <- function(s, rep, d, fit) {
   seed <- 1000L * as.integer(s$scenario) + as.integer(rep)
   perms <- withr::with_seed(seed, draw_permutations(d$treat, d$pretested, n_perm_check1))
@@ -688,7 +693,7 @@ replicate_robustness <- function(s, rep) {
   list(results = results, agreement = agreement)
 }
 
-# ---- The protocol's stops before any task (draft Amendment 2, item 10) -------------------------
+# ---- The protocol's stops before any task: Amendment 2 of #116 (item 10) -----------------------
 
 # A fixed data set without random numbers, 10 per group, for the first two
 # stops. [Left to the script] The default inference is checked on a fit made
@@ -812,7 +817,7 @@ preflight_robustness <- function() {
   out
 }
 
-# ---- The timing gate (protocol; draft Amendment 2, item 4) ----------------------------------------
+# ---- The timing gate: the protocol and Amendment 2 of #116 (item 4) -------------------------------
 
 # The gate's constants: 100 replications of every scenario in tasks of 25,
 # the first 5 minutes of each job left out, times averaged by allocation and
@@ -826,9 +831,9 @@ gate_constants <- list(
   fallback = study_fallback,
   fallback_label = "main grid without the uniform distribution")
 
-# The projection of draft Amendment 2, item 4, computed by
-# sim_gate_default() of the contract three times. [Left to the script: the
-# draft reads one rule in three ways.]
+# The projection of Amendment 2 of #116 (item 4), computed by
+# sim_gate_default() of the contract three times, once for each of the
+# item's three readings:
 #   1. "runner jobs" decides R: R = 5,000 unless the run would not fit in at
 #      most 256 jobs of 4 workers, each expected to take at most 4 hours
 #      with the 30% allowance; a perfectly balanced run then takes
@@ -872,10 +877,12 @@ gate_project <- function(times, scenarios, info) {
 # laptop (one R process, seed 9118503, normal errors), a replication took
 # about 0.00035 s per unit of this cost in every allocation and both
 # patterns (E0 0.107 to 0.174 s, ET 0.034 to 0.106 s for 40 to 240
-# participants); t (3 df) was slower in E0. Largest groups go first within a
-# pattern, and an E0 task with the most participants is the most costly, as
-# draft Amendment 2 (item 3a) assumes. The agreement checks of task 1 are
-# priced by agreement_cost_robustness() below.
+# participants); t (3 df) was slower in E0. In a run, a job starts its
+# tasks in order of expected cost, largest first, ties by task id, as
+# Amendment 2 of #116 (item 2) says. The agreement checks of task 1 are
+# priced by agreement_cost_robustness() below, so the costliest task is a
+# task 1 of an E0 scenario with the most participants, which the replay
+# runs again as its task (a), as Amendment 2 of #116 (item 3) says.
 cost_robustness <- function(s, reps) {
   reps * (s$n1 + s$n2 + s$n3 + s$n4 + 60 + if (identical(s$pattern, "E0")) 200 else 0)
 }

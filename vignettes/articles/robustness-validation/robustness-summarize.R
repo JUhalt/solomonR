@@ -8,13 +8,17 @@
 # uses; it defines functions only. It is base R, because the harness does
 # not load the package in its summary stage (tools/sim/contract.R).
 #
-# What may be computed depends on the run's purpose (protocol, "Disclosed
-# runs"; draft Amendment 2, item 9). In code-testing runs (purpose "test",
-# which includes the smoke mode of tools/check-validation-scripts.R) and in
-# the timing gate, summarize_robustness() computes the agreement checks and
-# the run information only: no performance measure, no decision, and no
-# count of failed fits. Before that it checks only that every status is one
-# that replicate() writes and that the preflight's checks are present,
+# What may be reported depends on the run's purpose: the protocol's
+# "Disclosed runs", and Amendment 2 of #116 (item 9). In code-testing runs
+# (purpose "test", which includes the smoke mode of
+# tools/check-validation-scripts.R) and in the timing gate,
+# summarize_robustness() reports the agreement checks and the run
+# information only: no performance measure, no decision, and no count of
+# failed fits. To decide whether agreement checks 1, 3, 4, and 5 passed, it
+# counts in memory the comparisons each check made, finds check 5's largest
+# difference, and sums the warnings muffled in checks 1, 3, and 4, and it
+# writes none of these. Before that it checks only that every status is
+# one that replicate() writes and that the preflight's checks are present,
 # which counts nothing. Outside the study run, agreement.csv is also kept
 # from standing in for a count of failed fits: a comparison is skipped when
 # a fit failed, so that run's rows are aggregated over the scenarios on a
@@ -318,7 +322,8 @@ group_summary <- function(rows, g, n_groups) {
 # difference, one of the protocol's descriptive measures, is not shown.
 # [Left to the script: the aggregation outside the study run, so that a
 # code-testing or gate summary cannot stand in for a count of failed fits,
-# which the protocol and draft Amendment 2, item 9, keep out of those runs.]
+# which the protocol and Amendment 2 of #116 (item 9) keep out of those
+# runs.]
 agreement_summary <- function(agreement, results, sc, preflight, study_run) {
   out <- list()
   num <- function(v) suppressWarnings(as.integer(v))
@@ -617,10 +622,10 @@ performance_table <- function(results, sc, check5) {
                                 reps_q = length(q), failed = any(!ok4))
     }
     # Failed fits per method: the replications in which the method failed,
-    # and, per status, the replications with a contrast in that status.
-    # [Left to the script: the protocol counts failures "per method and
-    # scenario"; a replication counts as a failed fit of a method when any
-    # one of its contrasts failed.]
+    # and, per status, the replications with a contrast in that status. The
+    # protocol counts failures "per method and scenario"; a replication
+    # counts as a failed fit of a method when any one of its contrasts
+    # failed, as Amendment 2 of #116 (item 11) says.
     fr <- list()
     for (m in unique(layout$method)) {
       st <- b$status[layout$method == m, , drop = FALSE]
@@ -651,9 +656,9 @@ performance_table <- function(results, sc, check5) {
 # Which function a failure belongs to (protocol, "Which function"): a rule 1
 # failure to the function that computes the test, a rule 2 failure to
 # equivalence_solomon() for fits of that method, and a fit failure to the
-# function that fits or tests. [Left to the script: rule 2's function is
-# kept apart by the fit's method, and M3 and M4 are one function,
-# perm_solomon(), as the protocol names it.]
+# function that fits or tests. Rule 2's function is kept apart by the fit's
+# method, and M3 and M4 are one function, perm_solomon(), as the protocol
+# names it; Amendment 2 of #116 (item 11) fixes both.
 method_function <- c(M1 = "fit_solomon_glm", M2 = "fit_solomon_ml", M3 = "perm_solomon", M4 = "perm_solomon")
 rule_function <- function(rule, method) {
   ifelse(startsWith(rule, "2"), paste0("equivalence_solomon (", method_function[method], " fits)"),
@@ -699,9 +704,9 @@ scenario_columns <- function(scenario, sc) {
 # material tier (a failing rate whose one-sided exact binomial test of rate
 # <= .075 also has p < .05/C; Bradley's, 1978, liberal criterion) and the
 # defects. A rate whose fits all failed counts as failed (protocol); so does
-# a bias that cannot be computed [left to the script]. [Left to the script:
-# such a rate, having no estimate, is classed as a documented limitation
-# (a defect under the sharp null, or under rule 3), never as material.]
+# a bias that cannot be computed. Such a rate, having no estimate, is
+# classed as a documented limitation (a defect under the sharp null, or
+# under rule 3), never as material, as Amendment 2 of #116 (item 11) says.
 judge_rates <- function(perf, sc, C) {
   level <- 0.05 / C
   j <- judged_rates(sc)
@@ -751,12 +756,12 @@ fit_failure_rows <- function(failed_fits, sc) {
 # remains at 60 per group). Each material failure outside the stress tests
 # counts toward the first feature that covers it: a small cell (n* of 20 or
 # 60, and a smallest cell below n*), unequal arms (1:3 or 3:1), or unequal
-# pretest conditions. [Left to the script: computed mechanically. The
+# pretest conditions. [Left to the script: computed mechanically.] The
 # protocol calls more than 5% failed fits "a material failure", and a
 # material failure leads to whichever of (a), (b), and (c) applies; the
 # script takes this literally, so the fit-failure rule's material failures
-# count toward n*, the features, (b), and (c) like those of rules 1 and 2.
-# Draft Amendment 2 is to confirm this reading before the gate.]
+# count toward n*, the features, (b), and (c) like those of rules 1 and 2,
+# as Amendment 2 of #116 (item 11) says.
 assign_features <- function(dec) {
   dec$feature[dec$class == "material failure" & dec$stress_test %in% TRUE] <-
     "stress test: documented, not counted toward (a), (b), or (c)"
@@ -778,17 +783,18 @@ assign_features <- function(dec) {
   list(decisions = dec, n_star = unlist(nstar), material = unlist(counts))
 }
 
-# The Romano check (protocol): over the 40 M4 scenarios of each pairing
-# (main grid, E0, h > 1), "two means are taken over the 160 M4 rates": the
-# mean of the 160 rejection rates (40 scenarios, 4 contrasts) should exceed
-# .05 by more than 2 MCSE where the treated arms are smaller and fall below
-# .05 by more than 2 MCSE where they are larger. The MCSE comes from each
-# replication's proportion q of rejected contrasts among those defined:
-# (1/40) sqrt(sum_s var_r(q) / R_s). [Left to the script: this formula; the
-# protocol says only that the MCSE "is computed from each replication's
-# proportion of rejected contrasts".] Where no M4 contrast failed in the
-# pairing, the mean of the rates equals (1/40) sum_s mean_r(q), and the
-# summary stops if it does not.
+# The Romano check (protocol): over the k M4 scenarios of each pairing
+# (main grid, E0, h > 1; k = 40, or 32 in the fallback), the mean of the 4k
+# M4 rejection rates (k scenarios, 4 contrasts; the protocol's "160 M4
+# rates" of the full design) should exceed .05 by more than 2 MCSE where
+# the treated arms are smaller and fall below .05 by more than 2 MCSE where
+# they are larger. The MCSE comes from each replication's proportion q of
+# rejected contrasts among those defined: (1/k) sqrt(sum_s var_r(q) / R_s),
+# with R_s the replications of scenario s with a contrast defined, as
+# Amendment 2 of #116 (item 11) fixes it; the protocol says only that the
+# MCSE "is computed from each replication's proportion of rejected
+# contrasts". Where no M4 contrast failed in the pairing, the mean of the
+# rates equals (1/k) sum_s mean_r(q), and the summary stops if it does not.
 romano_rows <- function(romano, perf, sc) {
   x <- sc[match(romano$scenario, sc$scenario), , drop = FALSE]
   pick <- x$level == "main" & !is.na(x$h) & x$h > 1
@@ -892,10 +898,11 @@ decisions_table <- function(perf, romano, failed_fits, agreement, sc, C) {
                 else if (n_star == 10L) "n* = 10: no small-cell warning"
                 else paste0("n* = ", n_star, ": warning when a cell has fewer than ", n_star))
   }
-  # [Left to the script] (b) counts the material failures of M1's own
-  # function, fit_solomon_glm() (rule 1 and fit failures); rule 2 failures
-  # of M1's intervals belong to equivalence_solomon() ("each function from
-  # its own failures") and are reported on the next row, not counted.
+  # (b) counts the material failures of M1's own function,
+  # fit_solomon_glm() (rule 1 and fit failures); rule 2 failures of M1's
+  # intervals belong to equivalence_solomon() ("each function from its own
+  # failures") and are reported on the next row, not counted, as
+  # Amendment 2 of #116 (item 11) says.
   m1 <- sum(dec$`function` == "fit_solomon_glm" & outside)
   more[[length(more) + 1L]] <- decision_row(
     rule = "(b) changed default", fun = "fit_solomon_glm", method = "M1",
@@ -969,8 +976,9 @@ failures_table <- function(failed_fits, failures, ranges, sc) {
 # adds, after these, the commit, the package and R versions, the platform,
 # BLAS and LAPACK, the RNG kinds, the base seed, R, the workers, and the
 # times; sessionInfo() is saved for each job in timing/sessionInfo-<job>.txt.
-# Package versions come from the Version field only; broom is "not
-# installed" once it has left the Imports (draft Amendment 2, item 5).
+# Package versions come from the Version field only; broom, which left the
+# Imports in #153, is "not installed", as Amendment 2 of #116 (item 5)
+# says.
 version_of <- function(pkg) {
   v <- suppressWarnings(utils::packageDescription(pkg, fields = "Version"))
   if (is.null(v) || length(v) != 1L || is.na(v)) "not installed" else as.character(v)
@@ -1006,8 +1014,9 @@ summarize_robustness <- function(results, agreement, failures, scenarios, info, 
   out <- list()
   out$agreement <- agreement_summary(agreement, results, sc, preflight, study_run)
   # Outside the study run, nothing else is computed: no performance measure,
-  # no decision, and no count of failed fits (protocol; draft Amendment 2,
-  # item 9). The family size reported is the protocol's.
+  # no decision, and no count of failed fits, as the protocol and
+  # Amendment 2 of #116 (item 9) say. The family size reported is the
+  # protocol's.
   if (!study_run) {
     out$`run-information` <- run_information(family_full)
     bad <- out$agreement[out$agreement$passed %in% FALSE, , drop = FALSE]
