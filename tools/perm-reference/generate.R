@@ -96,12 +96,22 @@ ref_participant <- function(w) {
       rows <- class_rows(w, labeling_comp(w, w$obs[[o]], "U"), labeling_comp(w, w$obs[[o]], "P"))
       ds <- design_of(rows)
       th <- nb_theta(ds$X, ds$y, ds$f, log(ds$e))
+      # design Section 6 and rule 2 (D14): glm.nb, fitted as the package fits
+      # it, must converge without the warnings that make the package raise
+      # solomonR_theta_boundary_warning; its theta (the one the package keeps
+      # for its refits) sets the band over which decisions are certified:
+      # theta*(1 +/- band), band at least 1e-6 and twice glm.nb's distance
+      gn <- glmnb_check(w$data, w$obs[[o]], w$pre, w$covs, w$exposure)
+      th$glmnb_theta <- gn$theta
+      th$glmnb_boundary <- gn$boundary
+      th$glmnb_error <- gn$error
+      th$band <- if (is.finite(gn$theta) && is.finite(th$theta)) max(1e-6, 2 * abs(gn$theta / th$theta - 1)) else 1e-6
       thetas[[o]] <- th
-      if (th$boundary || th$theta > 1e3) {
+      if (th$boundary || th$theta > 1e3 || isTRUE(gn$boundary)) {
         tabs[[o]] <- NULL
         next
       }
-      tabs[[o]] <- lapply(c(lo = 1 - 1e-6, mid = 1, hi = 1 + 1e-6), function(m)
+      tabs[[o]] <- lapply(c(lo = 1 - th$band, mid = 1, hi = 1 + th$band), function(m)
         ref_world_tables(w, nc, th$theta * m))
     }
   } else {
@@ -112,14 +122,20 @@ ref_participant <- function(w) {
   cases <- list()
   for (o in names(w$obs)) {
     th <- if (!is.null(thetas)) thetas[[o]]$theta else NA_real_
+    thg <- if (!is.null(thetas)) thetas[[o]]$glmnb_theta else NA_real_
+    thb <- if (!is.null(thetas)) thetas[[o]]$band else NA_real_
     for (cn in ALLC) for (s in STATS) {
       base <- data.frame(world = w$id, block = w$block, items = w$items, family = w$family,
                          path = if (w$prep$sep) "separable" else "shared covariate",
                          hc3_path = if (any(vapply(w$covs, function(v) is.numeric(w$data[[v]]), logical(1))))
                            ".glm_influence" else "sandwich",
-                         obs = o, contrast = cn, statistic = s, theta = th, stringsAsFactors = FALSE)
+                         obs = o, contrast = cn, statistic = s, theta = th, theta_glmnb = thg, theta_band = thb,
+                         stringsAsFactors = FALSE)
       if (is.null(tabs[[o]])) {
-        cases[[length(cases) + 1]] <- cbind(base, space = "all", outcome = "no-reference:NB-BND",
+        tt <- thetas[[o]]
+        why <- if (isTRUE(tt$boundary) || !is.finite(tt$theta) || tt$theta > 1e3) "theta* at the boundary (profile likelihood)" else
+          "glm.nb does not converge on these data (the package warns solomonR_theta_boundary_warning)"
+        cases[[length(cases) + 1]] <- cbind(base, space = "all", outcome = "no-reference:NB-BND", note = why,
                                             stringsAsFactors = FALSE)
         next
       }
@@ -133,20 +149,48 @@ ref_participant <- function(w) {
           list(tab = tab, rl = rl, oi = tt$obs_idx[[o]],
                cp = case_counts(tab, rl$rel, wU, wP, nP, s, "proposal"),
                cd = case_counts(tab, rl$rel, wU, wP, nP, s, "drop"),
-               ci = case_counts(tab, rl$rel, wU, wP, nP, s, "inf"))
+               ci = case_counts(tab, rl$rel, wU, wP, nP, s, "inf"),
+               ch = case_counts(tab, rl$rel, wU, wP, nP, s, "h1inf"))
         })
         m <- res$mid
         oc <- m$tab$code[m$oi]
         outcome <- "p"
+        note <- NA_character_
+        alt <- NA_character_
         if (rule == "ERR") outcome <- "error:no-variation"
         if (!is.null(m$rl$obs_undefined)) outcome <- paste0("error:observed-", m$rl$obs_undefined)
         else if (!is.null(m$cp$error) && outcome == "p") outcome <- paste0("error:", m$cp$error)
-        if (is.null(m$rl$obs_undefined) && (isTRUE(m$cp$undecided) || !is.null(m$rl$unexplained)))
-          outcome <- "excluded:undecided"
+        undec <- is.null(m$rl$obs_undefined) && (isTRUE(m$cp$undecided) || !is.null(m$rl$unexplained))
+        if (undec) {
+          why <- if (isTRUE(m$rl$obs_near_zero)) {
+            "observed statistic within 1e4 times its measured error of 0 and not certified 0"
+          } else {
+            sprintf("%s class(es) equal the observed statistic to 50 digits without a certificate",
+                    if (is.null(m$rl$unexplained)) "some" else m$rl$unexplained)
+          }
+          # an error that the proposal gives whatever the undecided classes
+          # are is kept as the outcome, with the exclusion as a note
+          if (outcome == "p") {
+            outcome <- "excluded:undecided"
+            note <- why
+          } else {
+            note <- paste("also undecided:", why)
+          }
+        }
+        # design 3.4, rule 4 (ERR-S): the literal criterion is an error; the
+        # computed p is stored, and is the outcome under D5's proposal
+        if (rule == "ERR-S" && outcome == "p") {
+          outcome <- "error:no-variation"
+          alt <- "p (D5 proposal: the statistic varies, so p as computed)"
+        }
+        oh <- if (!is.null(m$rl$obs_undefined)) NA_character_ else if (rule == "ERR") "error:no-variation" else
+          if (!is.null(m$ch$error)) paste0("error:", m$ch$error) else
+          if (isTRUE(m$ch$undecided) || !is.null(m$rl$unexplained)) "excluded:undecided" else "p"
         stable <- TRUE
         if (length(res) == 3) {
           stable <- identical(res$lo$cp$b, m$cp$b) && identical(res$hi$cp$b, m$cp$b) &&
-            identical(res$lo$cd$b, m$cd$b) && identical(res$hi$cd$b, m$cd$b)
+            identical(res$lo$cd$b, m$cd$b) && identical(res$hi$cd$b, m$cd$b) &&
+            identical(res$lo$ch$b, m$ch$b) && identical(res$hi$ch$b, m$ch$b)
           if (!stable) outcome <- "excluded:theta-unstable"
         }
         num <- function(x) if (is.null(x)) NA_real_ else as.numeric(x)
@@ -155,14 +199,16 @@ ref_participant <- function(w) {
           T_obs = m$tab$approx[m$oi], b = m$cp$b, M = m$cp$M,
           p = num(m$cp$b) / num(m$cp$M), b_tied = m$cp$b_tied, b_strict = m$cp$b_strict,
           b_drop = m$cd$b, M_drop = m$cd$M,
-          p_drop = if (oc %in% c("ZZ", "NE", "H1") || (oc == "SEP-L" && s == "studentized")) NA_real_ else
+          p_drop = if (oc %in% c("ZZ", "NE", "H1", "SEP-I") || (oc == "SEP-L" && s == "studentized")) NA_real_ else
             num(m$cd$b) / num(m$cd$M),
           b_inf = m$ci$b, M_inf = m$ci$M, p_inf = num(m$ci$b) / num(m$ci$M),
-          n_inf = m$cp$n_inf, n_sepl = m$cp$n_sepl, n_h1 = m$cp$n_h1, n_ne = m$cp$n_ne,
+          b_h1inf = m$ch$b, M_h1inf = m$ch$M, p_h1inf = num(m$ch$b) / num(m$ch$M), outcome_h1inf = oh,
+          n_inf = m$cp$n_inf, n_sepl = m$cp$n_sepl, n_sepi = m$cp$n_sepi, n_h1 = m$cp$n_h1,
+          n_h1_inf = m$cp$n_h1_inf, n_ne = m$cp$n_ne,
           n_zz = m$cp$n_zz, n_lim = m$cp$n_lim, n_alias = m$cp$n_alias,
           band_n = if (is.null(m$rl$band_n)) 0 else m$rl$band_n,
           how = if (is.null(m$rl$how)) NA_character_ else m$rl$how[1],
-          theta_stable = stable, stringsAsFactors = FALSE))
+          theta_stable = stable, alt_outcome = alt, note = note, stringsAsFactors = FALSE))
       }
     }
     if (!is.null(tabs[[o]])) checks <- rbind(checks, self_check(w, nc, tabs[[o]]$mid, th))
@@ -178,12 +224,13 @@ ref_participant <- function(w) {
     tt <- tabs[[o]]$mid
     lapply(stats::setNames(ALLC, ALLC), function(cn) lapply(stats::setNames(STATS, STATS), function(s) {
       tab <- tt$tables[[cn]][[s]]
-      list(code = tab$code, approx = tab$approx, rel = as.integer(tab$rel[[o]]$rel))
+      c(list(code = tab$code, approx = tab$approx, rel = as.integer(tab$rel[[o]]$rel)),
+        if (!is.null(tab$under) && any(tab$under != tab$code)) list(under = tab$under))
     }))
   })
   names(store) <- names(w$obs)
   list(world = w[c("id", "block", "items", "family", "data", "pre", "covs", "exposure", "obs", "seed", "mode",
-                   "reps", "base", "shift")],
+                   "reps", "base", "shift", "construction")],
        types = lapply(w$prep$cond, function(ck) list(idx = ck$idx, row_type = ck$row_type, m = ck$m,
                                                      n_out = ck$n_out)),
        keys = list(U = nc$U$keys, P = nc$P$keys),
@@ -193,9 +240,10 @@ ref_participant <- function(w) {
 }
 
 CASE_COLS <- c("world", "block", "items", "family", "path", "hc3_path", "obs", "contrast", "statistic", "theta",
-               "space", "outcome", "data_rule", "obs_code", "T_obs", "b", "M", "p", "b_tied", "b_strict",
-               "b_drop", "M_drop", "p_drop", "b_inf", "M_inf", "p_inf", "n_inf", "n_sepl", "n_h1", "n_ne",
-               "n_zz", "n_lim", "n_alias", "band_n", "how", "theta_stable")
+               "theta_glmnb", "theta_band", "space", "outcome", "alt_outcome", "data_rule", "obs_code", "T_obs",
+               "b", "M", "p", "b_tied", "b_strict", "b_drop", "M_drop", "p_drop", "b_inf", "M_inf", "p_inf",
+               "b_h1inf", "M_h1inf", "p_h1inf", "outcome_h1inf", "n_inf", "n_sepl", "n_sepi", "n_h1", "n_h1_inf",
+               "n_ne", "n_zz", "n_lim", "n_alias", "band_n", "how", "theta_stable", "note")
 
 # Location worlds: the reference is the base world's, after asserting that
 # the stored data are an exact shift of the base data (design Section 7).
@@ -211,6 +259,7 @@ ref_shifted <- function(w, base_ref, base_w) {
     abs(v * 2^k) < 2^53
   }, logical(1)))
   if (!ok || !grid) stop("shift is not exact: ", w$id)
+  t0 <- proc.time()[["elapsed"]]
   r <- base_ref
   r$world <- w[c("id", "block", "items", "family", "data", "pre", "covs", "exposure", "obs", "seed", "mode",
                  "reps", "base", "shift")]
@@ -220,9 +269,28 @@ ref_shifted <- function(w, base_ref, base_w) {
   r$cases$how <- paste0("invariance: reference of ", base_w$id, " (exact shift by ", format(w$shift$c, digits = 17),
                         " of ", wh, ")")
   r$shift_check <- list(exact = ok, dyadic_below_2_53 = grid)
+  # the negative binomial: glm.nb on the shifted data, as the package fits
+  # it (the reference itself is the base world's, by invariance)
+  if (identical(w$family, "negbin") && is.null(w$cluster)) {
+    for (o in names(w$obs)) {
+      gn <- glmnb_check(w$data, w$obs[[o]], w$pre, w$covs, w$exposure)
+      sel <- r$cases$obs == o
+      r$cases$theta_glmnb[sel] <- gn$theta
+      if (isTRUE(gn$boundary)) {
+        r$cases$outcome[sel] <- "no-reference:NB-BND"
+        r$cases$note[sel] <- "glm.nb does not converge on the shifted data (the package warns solomonR_theta_boundary_warning)"
+      } else if (!is.null(gn$error)) {
+        r$cases$note[sel] <- paste0("glm.nb fails on the shifted data as given (", gn$error, "); the reference is defined")
+      } else if (is.finite(r$cases$theta[sel][1]) && abs(gn$theta / r$cases$theta[sel][1] - 1) > r$cases$theta_band[sel][1]) {
+        r$cases$note[sel] <- "glm.nb's theta on the shifted data is outside the certified band"
+      }
+    }
+  }
   r$band_rows <- NULL
   r$band_fail <- NULL
   r$checks <- NULL
+  r$inherited <- base_w$id
+  r$secs <- proc.time()[["elapsed"]] - t0
   r
 }
 
@@ -262,22 +330,35 @@ ref_cluster <- function(w) {
     }
     r <- py_result("cluster", inp)
     o <- r$obs + 1
+    # no variation among the cluster scores of a stratum the contrast uses
+    # (design 3.4, rules 3 and 4, at the cluster level): every stratum used
+    # constant, an error (ERR); some, the literal error with p stored (ERR-S)
+    const <- unlist(r$const)
+    crule <- if (all(const)) "ERR" else if (any(const)) "ERR-S" else "ok"
     for (s in STATS) {
       rr <- r[[if (s == "studentized") "stud" else "diff"]]
       rank <- vapply(rr$rank, function(v) if (is.null(v)) NA_real_ else as.numeric(v), 0)
       code <- unlist(rr$code)
       M <- length(rank)
-      if (is.na(rank[o])) {
+      alt <- NA_character_
+      if (crule == "ERR") {
+        outcome <- "error:no-variation"
+        b <- if (is.na(rank[o])) NA else sum(rank >= rank[o], na.rm = TRUE)
+      } else if (is.na(rank[o])) {
         outcome <- "error:observed-undefined"
         b <- NA
       } else {
         b <- sum(rank >= rank[o], na.rm = TRUE)
         outcome <- if (code[o] == "INF-C") "p (observed +Inf)" else "p"
+        if (crule == "ERR-S") {
+          outcome <- "error:no-variation"
+          alt <- "p (D5 proposal: the statistic varies, so p as computed)"
+        }
       }
       cases[[length(cases) + 1]] <- data.frame(
         world = w$id, block = w$block, items = w$items, family = fam, path = paste("cluster, design", w$design),
         hc3_path = NA, obs = "gen", contrast = cn, statistic = s, theta = NA, space = "allocations",
-        outcome = outcome, data_rule = NA, obs_code = code[o],
+        outcome = outcome, alt_outcome = alt, data_rule = crule, obs_code = code[o],
         T_obs = vapply(rr$approx, function(v) if (is.null(v)) NA_real_ else as.numeric(v), 0)[o],
         b = b, M = M, p = b / M, b_tied = sum(rank == rank[o], na.rm = TRUE),
         b_strict = sum(rank > rank[o], na.rm = TRUE), b_drop = NA, M_drop = NA, p_drop = NA, b_inf = NA,
@@ -336,9 +417,10 @@ for (w in W) {
   if (nzchar(ck) && !file.exists(ck)) saveRDS(r, ck)
   REFS[[w$id]] <- r
   cs <- r$cases
-  logf("%-32s %6.1f s  cases %3d  p-cases %3d  errors %2d  excluded %2d  band %d", w$id, r$secs, nrow(cs),
-       sum(cs$outcome == "p" | grepl("^p ", cs$outcome)), sum(grepl("^error", cs$outcome)),
-       sum(grepl("^excluded", cs$outcome)), sum(cs$band_n, na.rm = TRUE))
+  logf("%-32s %s  cases %3d  p-cases %3d  errors %2d  excluded %2d  band %d", w$id,
+       if (is.null(r$inherited)) sprintf("%6.1f s", r$secs) else sprintf("%6.1f s (inherited from %s)", r$secs, r$inherited),
+       nrow(cs), sum(cs$outcome == "p" | grepl("^p ", cs$outcome)), sum(grepl("^error", cs$outcome)),
+       sum(grepl("^excluded", cs$outcome)), if (is.null(r$inherited)) sum(cs$band_n, na.rm = TRUE) else 0)
 }
 cases <- do.call(rbind, lapply(REFS, function(r) {
   z <- r$cases
@@ -351,6 +433,17 @@ checks <- do.call(rbind, lapply(REFS, `[[`, "checks"))
 seeds <- do.call(rbind, SEED_LOG$rows)
 band <- do.call(rbind, lapply(REFS, `[[`, "band_rows"))
 band_fail <- do.call(rbind, lapply(REFS, `[[`, "band_fail"))
+keycheck <- do.call(rbind, KEYCHECK$rows)
+valid <- do.call(rbind, BAND_LOG$valid)
+keyver <- do.call(rbind, KEYCHECK$verified)
+if (!is.null(keycheck)) logf(paste("key-tie self-check (design rule 3): %d tie groups in %d classes; %d groups spread beyond",
+                                   "1e3 restart errors, all %d recomputed equal at 50 digits; largest relative spread %.2g"),
+                             sum(keycheck$tie_groups), sum(keycheck$classes), sum(keycheck$suspect_groups),
+                             if (is.null(keyver)) 0L else sum(keyver$groups_equal_at_50_digits), max(keycheck$rel_spread))
+if (!is.null(valid)) logf(paste("50-digit check of classes certified from doubles: %d; order confirmed in all;",
+                                "largest |double - 50 digits| / eps = %.3g (class), %.3g (observed); %d above 1e4"),
+                          nrow(valid), max(valid$err_ratio), max(valid$err_ratio_obs),
+                          sum(valid$err_ratio > 1e4 | valid$err_ratio_obs > 1e4))
 if (!is.null(band_fail)) logf("70-digit fits that failed (their classes stay undecided): %d", nrow(band_fail))
 if (!is.null(band)) logf("band: %d comparisons at 50 digits; %d unexplained (gap below 1e-35); %d failed the eps check",
                          nrow(band), sum(band$rel_gap50 < 1e-35), sum(!band$eps_check))
@@ -364,14 +457,15 @@ if (!is.null(checks)) logf(paste("self-checks: %d classes; largest relative diff
 full <- list(created = format(Sys.time(), "%Y-%m-%d %H:%M:%S"), tier = tier, R = R.version.string,
              packages = vapply(c("MASS", "sandwich", "lpSolve", "jsonlite"), function(p) as.character(utils::packageVersion(p)), ""),
              python = system2(REF_PYTHON, "--version", stdout = TRUE), rng = RNGkind(),
-             refs = REFS, cases = cases, checks = checks, seeds = seeds, band = band, band_fail = band_fail)
+             refs = REFS, cases = cases, checks = checks, seeds = seeds, band = band, band_fail = band_fail,
+             keycheck = keycheck, keycheck_50 = keyver, band_validation = valid)
 saveRDS(full, file.path(REF_DIR, "perm-reference-full.rds"))
 
 # Compact fixture: the test tier (worlds with at most 400 labelings and the
 # blocks D, L, G), with per-class codes and relations, and the case table.
 compact <- lapply(REFS, function(r) {
   M <- suppressWarnings(max(as.numeric(r$cases$M), na.rm = TRUE))
-  keep <- r$world$block %in% c("D", "L", "G") || (is.finite(M) && M <= 400)
+  keep <- r$world$block %in% c("D", "L", "G", "E") || (is.finite(M) && M <= 400)
   if (!keep) return(NULL)
   out <- r[c("world", "types", "keys", "store", "cases", "weights", "thetas")]
   # worlds with more than 5,000 classes keep their cases but not the
@@ -390,4 +484,5 @@ if (!is.null(out_dir)) {
   utils::write.csv(cases, file.path(out_dir, "reference.csv"), row.names = FALSE)
   if (!is.null(seeds)) utils::write.csv(seeds, file.path(out_dir, "reference-seeds.csv"), row.names = FALSE)
   if (!is.null(band)) utils::write.csv(band, file.path(out_dir, "reference-band.csv"), row.names = FALSE)
+  if (!is.null(valid)) utils::write.csv(valid, file.path(out_dir, "reference-band-validation.csv"), row.names = FALSE)
 }

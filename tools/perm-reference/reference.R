@@ -27,7 +27,7 @@ ref_gauss <- function(w, nc) {
     code <- unlist(rr$code)
     rank <- vapply(rr$rank, function(v) if (is.null(v)) NA_real_ else as.numeric(v), 0)
     approx <- vapply(rr$approx, function(v) if (is.null(v)) NA_real_ else as.numeric(v), 0)
-    out[[cn]][[s]] <- list(code = code, approx = approx, rank = rank, how = "exact rationals")
+    out[[cn]][[s]] <- list(code = code, under = code, approx = approx, rank = rank, how = "exact rationals")
   }
   out
 }
@@ -119,7 +119,10 @@ part_eval <- function(w, k, comps, theta, saturated) {
         sat_in[[length(sat_in) + 1]] <- list(t = arm(v), c = arm(mc))
         sat_idx <- c(sat_idx, i)
       }
-    } else if (!p$ne && !p$emptied) {
+    } else if (!p$ne) {
+      # parts with an emptied arm are fitted too: whether their contrast
+      # diverges along every direction of recession depends on the
+      # covariate (exact.py conesign)
       rows <- list()
       for (j in seq_along(ck$m)) for (arm in c(1L, 0L)) {
         f <- if (arm == 1L) v[j] else mc[j]
@@ -143,11 +146,13 @@ part_eval <- function(w, k, comps, theta, saturated) {
     for (j in seq_along(sat_idx)) {
       i <- sat_idx[j]
       R <- sp[[j]]$R
-      V <- sp[[j]]$V
+      # an arm of one row has leverage 1 and no HC3 variance (V is null);
+      # such a part is coded H1 for the studentized statistic
+      V <- if (is.null(sp[[j]]$V)) "NA" else sp[[j]]$V
       parts[[i]]$R <- R
       parts[[i]]$V <- V
       parts[[i]]$e <- log(eval(parse(text = R)))
-      parts[[i]]$Vd <- eval(parse(text = V))
+      parts[[i]]$Vd <- if (V == "NA") NA_real_ else eval(parse(text = V))
       parts[[i]]$zero <- R == "1/1"
       parts[[i]]$Vzero <- V == "0/1"
       parts[[i]]$key_o <- paste0("R:", R, "|V:", V)
@@ -164,6 +169,15 @@ part_eval <- function(w, k, comps, theta, saturated) {
       parts[[i]]$num <- cc
       parts[[i]]$status <- ev[[j]]$status
       parts[[i]]$h1 <- isTRUE(cc$h1)
+      if (identical(cc$code, "DIV")) {
+        parts[[i]]$cone <- cc$cone
+        # an emptied arm's contrast diverges, when it does, to the sign the
+        # counts give (the arm's own direction lies in the closed cone)
+        if (isTRUE(parts[[i]]$emptied) && cc$cone != 0 && cc$cone != parts[[i]]$sigma)
+          stop(w$id, ": conesign and the emptied arm disagree on the sign")
+      }
+      parts[[i]]$exact <- isTRUE(cc$exact)
+      parts[[i]]$ezero <- isTRUE(cc$ezero)
       parts[[i]]$band <- list(item = num_items[[j]], keep = ev[[j]]$keep, piv = cc$piv, b = cc$b, skip = cc$skip)
       if (identical(ev[[j]]$status, "limit")) {
         # the statistic of a limiting model is that of the fit to the rows
@@ -184,6 +198,36 @@ part_eval <- function(w, k, comps, theta, saturated) {
 # ---------------------------------------------------------------------------
 # Combination of parts into class codes, values, and exact keys.
 
+# The infinite or undefined code of a combination of parts, or NULL when
+# every part the contrast uses is finite. Each part either diverges to a sign
+# (an emptied arm, or separation by the covariate along which its contrast
+# diverges on every direction of recession) or has no limit on them (cone 0).
+#   SEP-I  some part has no limit, or two parts diverge to opposite signs and
+#          at least one through the covariate (infinity minus infinity);
+#   INF-X  two emptied arms whose infinite parts have opposite signs (D4);
+#   INF-E  an emptied arm, otherwise;  SEP-L  separation, otherwise.
+inf_code_parts <- function(P, used, wt) {
+  st <- list()
+  undecided <- FALSE
+  for (k in used) {
+    p <- P[[k]]
+    if (isTRUE(p$emptied)) {
+      sg <- if (!p$sat && !is.null(p$cone)) p$cone else p$sigma
+      st[[k]] <- list(sign = sign(wt[[k]]) * sg, src = "E", ind = sg == 0)
+    } else if (!p$sat && identical(p$num$code, "DIV")) {
+      st[[k]] <- list(sign = sign(wt[[k]]) * p$cone, src = "S", ind = p$cone == 0)
+    } else if (!p$sat && identical(p$num$code, "UNDECIDED")) {
+      undecided <- TRUE
+    }
+  }
+  if (!length(st)) return(if (undecided) "UNDECIDED" else NULL)
+  if (any(vapply(st, `[[`, TRUE, "ind"))) return("SEP-I")
+  sg <- vapply(st, `[[`, 0, "sign")
+  src <- vapply(st, `[[`, "", "src")
+  if (length(sg) == 2 && sg[1] != sg[2]) return(if (all(src == "E")) "INF-X" else "SEP-I")
+  if (any(src == "E")) "INF-E" else "SEP-L"
+}
+
 combine_parts <- function(w, pU, pP, cn, s) {
   wt <- CW[[cn]]
   used <- names(wt)[wt != 0]
@@ -191,22 +235,12 @@ combine_parts <- function(w, pU, pP, cn, s) {
   stud <- s == "studentized"
   for (k in used) if (isTRUE(P[[k]]$ne)) return(list(code = "NE"))
   for (k in used) if (!P[[k]]$sat && identical(P[[k]]$num$code, "ALIAS")) return(list(code = "ALIAS"))
-  if (stud) for (k in used) if (isTRUE(P[[k]]$h1)) return(list(code = "H1"))
-  emp <- used[vapply(used, function(k) isTRUE(P[[k]]$emptied), logical(1))]
-  if (length(emp)) {
-    if (length(emp) == 2) {
-      sg <- sign(wt[emp]) * c(P$U$sigma, P$P$sigma)[match(emp, c("U", "P"))]
-      if (sg[1] != sg[2]) return(list(code = "INF-X"))
-    }
-    return(list(code = "INF-E"))
-  }
-  for (k in used) {
-    if (!P[[k]]$sat) {
-      cd <- P[[k]]$num$code
-      if (identical(cd, "DIV")) return(list(code = "SEP-L"))
-      if (identical(cd, "UNDECIDED")) return(list(code = "UNDECIDED"))
-    }
-  }
+  inf <- inf_code_parts(P, used, wt)
+  # leverage 1 comes before an infinite contrast (design 3.4, rule 6 before
+  # 8 and 9); `under` keeps the code the class has without that rule, for
+  # the alternative that puts the infinite value first
+  if (stud) for (k in used) if (isTRUE(P[[k]]$h1)) return(list(code = "H1", under = if (is.null(inf)) "H1" else inf))
+  if (!is.null(inf)) return(list(code = inf))
   num <- 0
   V <- 0
   num2 <- 0
@@ -229,8 +263,10 @@ combine_parts <- function(w, pU, pP, cn, s) {
       num2 <- num2 + wt[[k]] * p$num$est2
       V <- V + wt[[k]]^2 * p$num$V
       V2 <- V2 + wt[[k]]^2 * p$num$V2
-      exact_zero <- exact_zero && p$zero
-      vzero <- FALSE
+      # an exact fit (exact.py exactfit) has every residual 0, so its HC3
+      # variance is exactly 0, and its contrast is 0 exactly when ezero
+      exact_zero <- exact_zero && (isTRUE(p$zero) || (isTRUE(p$exact) && isTRUE(p$ezero)))
+      vzero <- vzero && isTRUE(p$exact)
       ill <- ill || isTRUE(p$num$ill)
       limit <- limit || identical(p$status, "limit")
     }
@@ -273,9 +309,10 @@ numeric_relations <- function(tab, o, s, band_fun) {
   rel <- rep(NA_real_, n)
   co <- tab$code[o]
   # SEP-L is +Inf for the difference statistic (fixed) and, as proposed, for
-  # the studentized statistic (D10); case_counts() also gives the counts with
-  # those labelings left out
-  isinf <- tab$code %in% c(INF_CODES, "SEP-L")
+  # the studentized statistic (D10); SEP-I (no limit along the directions of
+  # recession) is +Inf as proposed for both statistics (D10, extended);
+  # case_counts() also gives the counts with those labelings left out
+  isinf <- tab$code %in% c(INF_CODES, "SEP-L", "SEP-I")
   if (co %in% c("NE", "H1", "UNDECIDED", "ALIAS")) return(list(rel = rel, obs_undefined = co))
   fin <- tab$code %in% c("finite", "LIM", "ZERO", "ZZ")
   if (isinf[o]) {
@@ -285,23 +322,107 @@ numeric_relations <- function(tab, o, s, band_fun) {
   }
   rel[isinf] <- 1
   vo <- tab$val[o]
-  if (vo == 0) {
-    rel[fin] <- ifelse(tab$val[fin] == 0 & tab$code[fin] %in% c("ZERO", "ZZ"), 0, 1)
-    # a finite value that is not certified zero but tiny is decided below
-    unc <- which(fin & !(tab$code %in% c("ZERO", "ZZ")))
-    rel[unc] <- 1
+  if (co %in% c("ZERO", "ZZ")) {
+    # an observed statistic certified 0: every labeling is at least as extreme
+    rel[fin] <- ifelse(tab$code[fin] %in% c("ZERO", "ZZ"), 0, 1)
     return(list(rel = rel, band = integer(0)))
+  }
+  # An observed value not certified 0 that is within 1e4 times its measured
+  # error of 0 may be 0 in exact arithmetic (a zero without a swap symmetry):
+  # no class can be ordered against it, and the case is excluded
+  if (!is.finite(vo) || vo <= 1e4 * tab$eps[o]) {
+    return(list(rel = rel, band = integer(0), unexplained = sum(fin), obs_near_zero = TRUE))
   }
   same <- fin & tab$key == tab$key[o]
   rel[same] <- 0
   rest <- which(fin & !same)
   g <- abs(tab$val[rest] - vo) / vo
   epsm <- pmax(tab$eps[rest], tab$eps[o])
-  cert <- g >= 1e-9 & g * vo >= 1e4 * epsm & !tab$ill[rest] & !isTRUE(tab$ill[o])
+  # rule 1, with the floor raised from 1e-9 to 1e-7: in ill-conditioned fits
+  # the measured error was found to understate the error by up to 1.3e6
+  # times (a relative error up to 6.2e-9)
+  cert <- g >= 1e-7 & g * vo >= 1e4 * epsm & !tab$ill[rest] & !isTRUE(tab$ill[o])
+  # classes certified 0 are less extreme than an observed value that is
+  # distinguishable from 0 (checked above)
   cert[tab$code[rest] %in% c("ZERO", "ZZ")] <- TRUE
   rel[rest[cert]] <- sign(tab$val[rest[cert]] - vo)
   bandi <- rest[!cert]
-  list(rel = rel, band = bandi)
+  # one certified class nearest the observed value, recomputed at 50 digits
+  # to check the measured error where it was not checked by the band
+  cand <- rest[cert & !(tab$code[rest] %in% c("ZERO", "ZZ"))]
+  valid <- if (length(cand)) cand[which.min(abs(tab$val[cand] - vo))] else integer(0)
+  list(rel = rel, band = bandi, valid = valid)
+}
+
+# Design rule 3 and the measured error of design Section 5 (a). Classes
+# declared tied by an exact key are fitted separately (each class, or each
+# part, is its own composition). Their spread is a measured error: each
+# member's error is raised to its group's spread, and every finite class of
+# the table to c max(|T|, s0), where s0 is the median |T| of the table's
+# finite classes and c the largest spread / max(top of its group, s0) (so
+# that groups of values that are 0 in exact arithmetic, computed as noise,
+# do not inflate it). A group whose spread
+# exceeds 1e3 times the restart error is recomputed at 50 digits
+# (verify_suspects()): members that differ there are a bug in a key and stop
+# the generator; members equal there show that the restart error understated
+# the error, as it does in ill-conditioned fits.
+KEYCHECK <- new.env()
+KEYCHECK$rows <- list()
+KEYCHECK$verified <- list()
+key_tie_check <- function(w, cn, s, tab) {
+  none <- list(tab = tab, suspect = list())
+  sel <- which(tab$code %in% c("finite", "LIM") & nzchar(tab$key) & is.finite(tab$val))
+  if (length(sel) < 2) return(none)
+  grp <- split(sel, tab$key[sel])
+  grp <- grp[lengths(grp) > 1]
+  if (!length(grp)) return(none)
+  spread <- vapply(grp, function(g) max(tab$val[g]) - min(tab$val[g]), 0)
+  ratio <- spread / (1e3 * vapply(grp, function(g) max(tab$eps[g]), 0) + 1e-300)
+  top <- vapply(grp, function(g) max(tab$val[g]), 0)
+  fin <- which(tab$code %in% c("finite", "LIM") & is.finite(tab$val))
+  s0 <- stats::median(tab$val[fin])
+  if (!is.finite(s0) || s0 <= 0) s0 <- 1
+  relsp <- max(spread / pmax(top, s0))
+  for (j in seq_along(grp)) tab$eps[grp[[j]]] <- pmax(tab$eps[grp[[j]]], spread[j])
+  tab$eps[fin] <- pmax(tab$eps[fin], relsp * pmax(tab$val[fin], s0))
+  suspect <- unname(grp[ratio > 1])
+  KEYCHECK$rows[[length(KEYCHECK$rows) + 1]] <- data.frame(
+    world = w$id, contrast = cn, statistic = s, tie_groups = length(grp), classes = sum(lengths(grp)),
+    worst_ratio = max(ratio), rel_spread = relsp, suspect_groups = length(suspect), stringsAsFactors = FALSE)
+  list(tab = tab, suspect = suspect)
+}
+
+verify_suspects <- function(w, susp, theta, spec_of, unit_of, part_of, nP) {
+  needs <- list()
+  for (nm in names(susp)) {
+    cn <- strsplit(nm, "##", fixed = TRUE)[[1]][1]
+    for (g in susp[[nm]]) for (i in g) {
+      u <- as.character(unit_of(i))
+      needs[[u]][[part_of(i, cn)]] <- list(cn = cn, iU = (i - 1) %/% nP + 1, i = i)
+    }
+  }
+  if (!length(needs)) return(invisible())
+  units <- names(needs)
+  bv <- band_values(w, lapply(units, function(u) spec_of(as.integer(u), needs[[u]])), theta)
+  names(bv) <- units
+  n_groups <- 0
+  for (nm in names(susp)) {
+    pr <- strsplit(nm, "##", fixed = TRUE)[[1]]
+    for (g in susp[[nm]]) {
+      v <- vapply(g, function(i) {
+        x <- bv[[as.character(unit_of(i))]][[part_of(i, pr[1])]][[if (pr[2] == "studentized") "stud" else "diff"]]
+        if (is.null(x)) NA_character_ else x
+      }, "")
+      if (anyNA(v)) stop(w$id, ": a class tied by its key could not be recomputed at 50 digits")
+      gp <- py_result("decgap", list(pairs = lapply(v[-1], function(x) list(x, v[1]))))
+      if (any(vapply(gp, function(z) as.numeric(z$rel) >= 1e-35, logical(1))))
+        stop(w$id, ": classes with the same exact key differ at 50 digits (", pr[1], ", ", pr[2], ")")
+      n_groups <- n_groups + 1
+    }
+  }
+  KEYCHECK$verified[[length(KEYCHECK$verified) + 1]] <- data.frame(world = w$id, groups_equal_at_50_digits = n_groups,
+                                                                   stringsAsFactors = FALSE)
+  invisible()
 }
 
 # ---------------------------------------------------------------------------
@@ -359,6 +480,7 @@ ref_iter_sep <- function(w, nc, theta, obs_idx) {
   pU <- part_eval(w, "U", nc$U$comps, theta, TRUE)
   pP <- part_eval(w, "P", nc$P$comps, theta, satP)
   out <- list()
+  susp <- list()
   log <- character(0)
   for (cn in ALLC) for (s in STATS) {
     wt <- CW[[cn]]
@@ -366,6 +488,7 @@ ref_iter_sep <- function(w, nc, theta, obs_idx) {
     allsat <- all(c(U = TRUE, P = satP)[used])
     n <- nU * nP
     code <- character(n)
+    under <- character(n)
     val <- signed <- eps <- rep(NA_real_, n)
     key <- character(n)
     ill <- logical(n)
@@ -373,6 +496,7 @@ ref_iter_sep <- function(w, nc, theta, obs_idx) {
       i <- (iU - 1) * nP + iP
       cb <- combine_parts(w, pU[[iU]], pP[[iP]], cn, s)
       code[i] <- cb$code
+      under[i] <- if (is.null(cb$under)) cb$code else cb$under
       if (!is.null(cb$val)) {
         val[i] <- cb$val
         signed[i] <- cb$signed
@@ -381,7 +505,12 @@ ref_iter_sep <- function(w, nc, theta, obs_idx) {
         ill[i] <- isTRUE(cb$ill)
       }
     }
-    tab <- list(code = code, val = val, approx = signed, eps = eps, key = key, ill = ill)
+    tab <- list(code = code, val = val, approx = signed, eps = eps, key = key, ill = ill, under = under)
+    if (!allsat) {
+      kt <- key_tie_check(w, cn, s, tab)
+      tab <- kt$tab
+      susp[[paste(cn, s, sep = "##")]] <- kt$suspect
+    }
     rels <- list()
     if (allsat) {
       # exact relations from exact.py satcmp, for the classes that are finite
@@ -467,6 +596,8 @@ ref_iter_sep <- function(w, nc, theta, obs_idx) {
     list(X = bi$item$X, y = bi$item$y, f = bi$item$f, e = bi$item$e, keep = bi$keep, piv = bi$piv, b = bi$b,
          parts = parts, skip = bi$skip)
   }
+  verify_suspects(w, susp, theta, spec_of, unit_of = function(i) (i - 1) %% nP + 1,
+                  part_of = function(i, cn) paste(cn, (i - 1) %/% nP + 1, sep = "#"), nP = nP)
   out <- resolve_band(w, out, obs_idx, nP, theta, spec_of,
                       unit_of = function(i) (i - 1) %% nP + 1,
                       part_of = function(i, cn) paste(cn, (i - 1) %/% nP + 1, sep = "#"))
@@ -481,7 +612,7 @@ resolve_band <- function(w, out, obs_idx, nP, theta, spec_of, unit_of, part_of) 
   for (cn in ALLC) for (s in STATS) {
     rels <- out[[cn]][[s]]$rel
     for (j in seq_along(rels)) {
-      bi <- rels[[j]]$band
+      bi <- c(rels[[j]]$band, rels[[j]]$valid)
       if (!length(bi)) next
       for (i in c(bi, obs_idx[j])) {
         u <- as.character(unit_of(i))
@@ -505,9 +636,16 @@ resolve_band <- function(w, out, obs_idx, nP, theta, spec_of, unit_of, part_of) 
   for (cn in ALLC) for (s in STATS) {
     tab <- out[[cn]][[s]]
     for (j in seq_along(tab$rel)) {
+      o <- obs_idx[j]
+      vi <- tab$rel[[j]]$valid
+      if (length(vi)) {
+        sv <- val50(vi, cn, s)
+        so <- val50(o, cn, s)
+        if (!is.na(sv) && !is.na(so))
+          band_validate(w, cn, s, sv, so, tab$val[vi], tab$val[o], tab$eps[vi], tab$eps[o], tab$rel[[j]]$rel[vi])
+      }
       bi <- tab$rel[[j]]$band
       if (!length(bi)) next
-      o <- obs_idx[j]
       s50 <- vapply(bi, function(i) val50(i, cn, s), "")
       so <- val50(o, cn, s)
       if (is.na(so)) {
@@ -534,6 +672,20 @@ resolve_band <- function(w, out, obs_idx, nP, theta, spec_of, unit_of, part_of) 
 # with the 50-digit value within 1e4 eps, which checks the measured error.
 BAND_LOG <- new.env()
 BAND_LOG$rows <- list()
+BAND_LOG$valid <- list()
+# A class whose order was certified from doubles (rule 1), recomputed at 50
+# digits with the observed class: the 50-digit order must be the certified
+# one (otherwise the generator stops), and the double values must agree with
+# the 50-digit values within 1e4 times the measured error (logged).
+band_validate <- function(w, cn, s, s50, s50o, vd, vdo, eps, epso, rel) {
+  g <- py_result("decgap", list(pairs = list(list(s50, s50o))))[[1]]
+  sg <- as.numeric(g$sign)
+  if (as.numeric(g$rel) >= 1e-35 && sg != rel) stop(w$id, ": a relation certified from doubles is contradicted at 50 digits")
+  BAND_LOG$valid[[length(BAND_LOG$valid) + 1]] <- data.frame(
+    world = w$id, contrast = cn, statistic = s, double = vd, digits50 = s50, observed_double = vdo, observed50 = s50o,
+    eps = eps, eps_obs = epso, err_ratio = abs(vd - abs(as.numeric(s50))) / eps,
+    err_ratio_obs = abs(vdo - abs(as.numeric(s50o))) / epso, rel_doubles = rel, sign50 = sg, stringsAsFactors = FALSE)
+}
 band_decide <- function(s50, s50o, vd, vdo, eps) {
   g <- py_result("decgap", list(pairs = lapply(seq_along(s50), function(q) list(s50[[q]], s50o))))
   rel <- rep(NA_real_, length(s50))
@@ -579,11 +731,13 @@ ref_iter_full <- function(w, nc, theta, obs_idx) {
   }
   ev <- eval_iter_batch(items, fam, theta)
   out <- list()
+  susp <- list()
   for (cn in ALLC) for (s in STATS) {
     wt <- CW[[cn]]
     used <- names(wt)[wt != 0]
     stud <- s == "studentized"
     code <- character(n)
+    under <- character(n)
     val <- signed <- eps <- rep(NA_real_, n)
     key <- character(n)
     ill <- logical(n)
@@ -604,26 +758,36 @@ ref_iter_full <- function(w, nc, theta, obs_idx) {
         code[i] <- cc$code
         next
       }
-      if (stud && isTRUE(cc$h1)) {
-        code[i] <- "H1"
-        next
-      }
+      # infinite or undefined codes (see inf_code_parts()); the sign of the
+      # contrast along the directions of recession is cc$cone (exact.py
+      # conesign) whenever the limiting model does not estimate it
       sg <- vapply(used, emp_sig, 0)
       sg[is.na(sg)] <- 0
+      infc <- NULL
+      div <- identical(cc$code, "DIV")
       if (any(sg != 0)) {
-        if (length(used) == 2 && all(sg != 0) && sign(wt[used[1]]) * sg[1] != sign(wt[used[2]]) * sg[2]) {
-          code[i] <- "INF-X"
+        wsg <- sign(wt[used]) * sg
+        if (length(used) == 2 && all(sg != 0) && wsg[1] != wsg[2]) {
+          if (div && cc$cone != 0) stop(w$id, ": conesign finds a limit for infinity minus infinity")
+          infc <- "INF-X"
+        } else if (div && cc$cone == 0) {
+          infc <- "SEP-I"
         } else {
-          code[i] <- "INF-E"
+          if (div && cc$cone != unique(wsg[wsg != 0])) stop(w$id, ": conesign and the emptied arm disagree on the sign")
+          infc <- "INF-E"
         }
+      } else if (div) {
+        infc <- if (cc$cone == 0) "SEP-I" else "SEP-L"
+      } else if (identical(cc$code, "UNDECIDED")) {
+        infc <- "UNDECIDED"
+      }
+      if (stud && isTRUE(cc$h1)) {
+        code[i] <- "H1"
+        under[i] <- if (is.null(infc)) "H1" else infc
         next
       }
-      if (cc$code == "DIV") {
-        code[i] <- "SEP-L"
-        next
-      }
-      if (cc$code == "UNDECIDED") {
-        code[i] <- "UNDECIDED"
+      if (!is.null(infc)) {
+        code[i] <- infc
         next
       }
       lim <- identical(ev[[i]]$status, "limit")
@@ -650,6 +814,21 @@ ref_iter_full <- function(w, nc, theta, obs_idx) {
       kd <- suff_key(rk, fam, "difference")
       zero <- any(vapply(REVERSE[[cn]], function(sw) identical(suff_key(rk, fam, "difference", PERMS[[sw]]), kd),
                          logical(1)))
+      # an exact fit (every residual 0, exact.py exactfit): the HC3 variance
+      # is exactly 0, and the contrast is 0 exactly when ezero
+      if (isTRUE(cc$exact)) {
+        ez <- isTRUE(cc$ezero)
+        if (stud) {
+          code[i] <- if (ez) "ZZ" else "INF-C"
+          if (ez) {
+            val[i] <- 0
+            signed[i] <- 0
+            eps[i] <- 0
+          }
+          next
+        }
+        if (ez) zero <- TRUE
+      }
       if (zero) {
         code[i] <- "ZERO"
         val[i] <- 0
@@ -671,7 +850,11 @@ ref_iter_full <- function(w, nc, theta, obs_idx) {
       ill[i] <- isTRUE(cc$ill)
       code[i] <- if (lim) "LIM" else "finite"
     }
-    tab <- list(code = code, val = val, approx = signed, eps = eps, key = key, ill = ill)
+    under[under == ""] <- code[under == ""]
+    tab <- list(code = code, val = val, approx = signed, eps = eps, key = key, ill = ill, under = under)
+    kt <- key_tie_check(w, cn, s, tab)
+    tab <- kt$tab
+    susp[[paste(cn, s, sep = "##")]] <- kt$suspect
     rels <- list()
     for (j in seq_along(obs_idx)) {
       nr <- numeric_relations(tab, obs_idx[j], s)
@@ -692,6 +875,7 @@ ref_iter_full <- function(w, nc, theta, obs_idx) {
     list(X = it$X, y = it$y, f = it$f, e = it$e, keep = ev[[i]]$keep, piv = cc$piv, b = cc$b, parts = parts,
          skip = cc$skip)
   }
+  verify_suspects(w, susp, theta, spec_of, unit_of = function(i) i, part_of = function(i, cn) cn, nP = nP)
   out <- resolve_band(w, out, obs_idx, nP, theta, spec_of, unit_of = function(i) i, part_of = function(i, cn) cn)
   list(tables = out, obs_idx = obs_idx, nU = nU, nP = nP, status = vapply(ev, `[[`, "", "status"))
 }
@@ -709,28 +893,38 @@ exact_sum <- function(wU, inner) {
 
 case_counts <- function(tab, rel, wU, wP, nP, s, rule) {
   code <- tab$code
+  under <- if (is.null(tab$under)) code else tab$under
   n <- length(code)
   # value per class under the rule: count (1), not count (0), drop
   cnt <- ifelse(is.na(rel), NA_real_, as.numeric(rel >= 0))
   keep <- rep(TRUE, n)
-  conv <- code %in% c("NE", "H1") | (code == "SEP-L" & s == "studentized")
+  # labelings without a defined statistic: NE, H1, SEP-L (studentized), and
+  # SEP-I (no limit along the directions of recession, either statistic)
+  conv <- code %in% c("NE", "H1", "SEP-I") | (code == "SEP-L" & s == "studentized")
+  inf_under <- code == "H1" & under %in% c(INF_CODES, "SEP-L", "SEP-I")
   if (rule == "drop") {
-    # labelings without a defined statistic (H1, NE, SEP-L studentized) and
-    # 0/0 (ZZ) are left out of both counts
+    # labelings without a defined statistic and 0/0 (ZZ) are left out of
+    # both counts
     keep[conv] <- FALSE
     keep[code == "ZZ"] <- FALSE
   } else if (rule == "inf") {
-    # H1 and SEP-L counted as +Inf; NE left out
-    cnt[code == "H1" | (code == "SEP-L" & s == "studentized")] <- 1
+    # H1, SEP-L, and SEP-I counted as +Inf; NE left out
+    cnt[code %in% c("H1", "SEP-I") | (code == "SEP-L" & s == "studentized")] <- 1
     keep[code == "NE"] <- FALSE
+  } else if (rule == "h1inf") {
+    # the proposal, except that a leverage-1 labeling whose contrast is
+    # infinite or has no limit takes that value (+Inf) before rule 6; the
+    # other H1 and NE labelings remain errors
+    cnt[inf_under] <- 1
+    keep[code == "NE" | (code == "H1" & !inf_under)] <- FALSE
   } else {
-    # proposal: SEP-L counted as +Inf (relations already say so); H1 and NE
-    # are errors
+    # proposal: SEP-L and SEP-I counted as +Inf (relations already say so);
+    # H1 and NE are errors
     keep[code %in% c("NE", "H1")] <- FALSE
   }
   # ALIAS (a covariate collinear with the cells under the labeling; not in
-  # the design's table, a decision for the lead): left out under every rule
-  # here, and counted in n_alias so that the error alternative can be read
+  # the design's table, a decision for the lead, D16): left out under every
+  # rule here, before any infinite code, and counted in n_alias
   keep[code == "ALIAS"] <- FALSE
   mat_w <- function(sel) {
     m <- matrix(as.numeric(sel), ncol = nP, byrow = TRUE)
@@ -744,6 +938,10 @@ case_counts <- function(tab, rel, wU, wP, nP, s, rule) {
     if (any(code[wposv] == "H1")) err <- "H1"
     if (any(code[wposv] == "NE")) err <- "NE"
   }
+  if (rule == "h1inf") {
+    if (any(code[wposv] == "H1" & !inf_under[wposv])) err <- "H1"
+    if (any(code[wposv] == "NE")) err <- "NE"
+  }
   und <- any(code[wposv] == "UNDECIDED") || any(is.na(cnt[keep & wposv]))
   if (rule == "drop" && any(code[wposv] %in% c("NE", "H1"))) err <- NULL
   b <- mat_w(keep & !is.na(cnt) & cnt == 1)
@@ -751,7 +949,8 @@ case_counts <- function(tab, rel, wU, wP, nP, s, rule) {
   list(b = b, M = M, error = err, undecided = und,
        b_tied = mat_w(keep & !is.na(rel) & rel == 0), b_strict = mat_w(keep & !is.na(rel) & rel == 1),
        n_inf = mat_w(keep & code %in% INF_CODES), n_sepl = mat_w(code == "SEP-L"),
-       n_h1 = mat_w(code == "H1"), n_ne = mat_w(code == "NE"), n_zz = mat_w(code == "ZZ"),
-       n_alias = mat_w(code == "ALIAS"),
+       n_sepi = mat_w(code == "SEP-I"),
+       n_h1 = mat_w(code == "H1"), n_h1_inf = mat_w(inf_under), n_ne = mat_w(code == "NE"),
+       n_zz = mat_w(code == "ZZ"), n_alias = mat_w(code == "ALIAS"),
        n_lim = mat_w(code == "LIM"))
 }

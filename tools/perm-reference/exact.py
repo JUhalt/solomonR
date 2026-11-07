@@ -35,6 +35,15 @@
 #            statistics to 50 significant digits.
 #   cluster  Cluster-level references with exact Stage 1 scores (least
 #            squares, or condition means and rates) and every allocation.
+#   conesign Whether a contrast that is not estimable in the limiting model
+#            diverges along every direction of recession (and to which sign)
+#            or takes both signs on them (no limit): an exact Phase I simplex
+#            on the cone of recession (Farkas's lemma), complete.
+#   exactfit Whether a Poisson or negative binomial fit is exact (every
+#            fitted mean equals its count, so every residual and the HC3
+#            variance are 0): log y in the column space of X, decided by
+#            integer relations among the counts; and whether a contrast is
+#            then exactly 0.
 
 import sys
 import json
@@ -397,10 +406,16 @@ def arm_parts(fam, rows):
     if fam == "binomial":
         p = S / n
         odds = p / (1 - p)
+        if n == 1:
+            return odds, None
         V = 1 / (n * p * (1 - p) * (1 - F(1, n)) ** 2)
         return odds, V
     E = sum(e * f for e, f in zip(es, fs))
     rate = S / E
+    if n == 1:
+        # one row: leverage e_i/E = 1, so the HC3 variance is undefined (H1);
+        # the difference statistic needs only the rate
+        return rate, None
     # Poisson log, and the negative binomial log with theta fixed and no
     # exposure (theta cancels): bread 1/S, leverage e_i/E.
     V = F(0)
@@ -470,7 +485,7 @@ def satcmp(inp):
             continue
         rt, vt = arm_parts(fam, p["t"])
         rc, vc = arm_parts(fam, p["c"])
-        parts.append((rt / rc, vt + vc))
+        parts.append((rt / rc, None if vt is None or vc is None else vt + vc))
     res = {}
     obs = inp["obs"]
     for cname, signs in inp["contrasts"].items():
@@ -483,12 +498,14 @@ def satcmp(inp):
                     continue
                 pr = parts[cl[k]]
                 R = R * pr[0] if s > 0 else R / pr[0]
-                V += pr[1]
+                V = None if V is None or pr[1] is None else V + pr[1]
             vals.append((R, V))
         dcode = ["ZERO" if R == 1 else "finite" for R, V in vals]
         scode = []
         for R, V in vals:
-            if V == 0:
+            if V is None:
+                scode.append("H1")  # an arm of one row: leverage 1
+            elif V == 0:
                 scode.append("ZZ" if R == 1 else "INF-C")
             else:
                 scode.append("ZERO" if R == 1 else "finite")
@@ -507,6 +524,9 @@ def satcmp(inp):
                 # studentized
                 ci, co = scode[i], scode[o]
                 rank = {"ZERO": 0, "ZZ": 0, "INF-C": 2, "finite": 1}
+                if ci == "H1" or co == "H1":
+                    sr.append(None)  # not used: such classes are coded H1
+                    continue
                 if ci != "finite" or co != "finite":
                     a, b = rank[ci], rank[co]
                     sr.append((a > b) - (a < b))
@@ -520,9 +540,10 @@ def satcmp(inp):
         res[cname] = {"diff": {"code": dcode, "rel": drel,
                                "approx": [math.log(float(R)) for R, V in vals]},
                       "stud": {"code": scode, "rel": srel,
-                               "approx": [math.log(float(R)) / math.sqrt(float(V)) if V > 0 else None
-                                          for R, V in vals]},
-                      "R": [fstr(R) for R, V in vals], "V": [fstr(V) for R, V in vals]}
+                               "approx": [math.log(float(R)) / math.sqrt(float(V))
+                                          if V is not None and V > 0 else None for R, V in vals]},
+                      "R": [fstr(R) for R, V in vals],
+                      "V": [None if V is None else fstr(V) for R, V in vals]}
     return res
 
 
@@ -624,11 +645,15 @@ def band_one(it):
             V += f[i] * t * t
         num = wown * est
         var = wown * wown * V
+        var_ok = True
         for fx in spec.get("fixed", []):
             wk = dec(fr(fx["w"]))
             num += wk * dec(fr(fx["R"])).ln()
-            var += wk * wk * dec(fr(fx["V"]))
-        T = num / var.sqrt() if var > 0 else None
+            if fx.get("V") in (None, "NA"):
+                var_ok = False  # a saturated arm of one row: no HC3 variance
+            else:
+                var += wk * wk * dec(fr(fx["V"]))
+        T = num / var.sqrt() if var_ok and var > 0 else None
         out[name] = {"diff": format(+num, ".50e"),
                      "stud": format(+T, ".50e") if T is not None else None}
     return out
@@ -742,7 +767,9 @@ def cluster(inp):
             codes["stud"].append("finite"); keys["stud"].append(z2)
             approx["stud"].append(math.copysign(math.sqrt(float(z2)), float(est)))
     res = {"alloc": alloc_out, "obs": obs_index,
-           "scores": {str(k): fstr(v) for k, v in score.items()}}
+           "scores": {str(k): fstr(v) for k, v in score.items()},
+           # a stratum whose cluster scores are all equal: no variation
+           "const": [len(set(st["s"])) == 1 for st in strata]}
     for s in ("diff", "stud"):
         res[s] = {"code": codes[s], "approx": approx[s],
                   "rank": dense_ranks(len(alloc_out), list(enumerate(keys[s])), frac_cmp)}
@@ -758,7 +785,7 @@ def satparts(inp):
     for p in inp["parts"]:
         rt, vt = arm_parts(fam, p["t"])
         rc, vc = arm_parts(fam, p["c"])
-        out.append({"R": fstr(rt / rc), "V": fstr(vt + vc)})
+        out.append({"R": fstr(rt / rc), "V": None if vt is None or vc is None else fstr(vt + vc)})
     return out
 
 
@@ -770,8 +797,10 @@ def decgap(inp):
     for a, b in inp["pairs"]:
         x = abs(D(a))
         y = abs(D(b))
-        if x == y:
-            out.append({"sign": 0, "rel": 0.0})
+        if x == y or max(x, y) < D(10) ** -40:
+            # equal, or both 0 to 40 digits: not ordered (a value that is 0
+            # in exact arithmetic is computed as noise at this level)
+            out.append({"sign": 0, "rel": 0.0, "zero": bool(max(x, y) < D(10) ** -40)})
             continue
         rel = abs(x - y) / max(x, y)
         out.append({"sign": 1 if x > y else -1, "rel": float(rel)})
@@ -788,9 +817,171 @@ def bigsum(inp):
     return out
 
 
+
+# ---------------------------------------------------------------------------
+# conesign: the sign of a contrast along the directions of recession.
+#
+# The rows I0 have a linear predictor that diverges (binomial: to +Inf for a
+# success, -Inf for a failure; Poisson and NB: -Inf for a zero count); the
+# rows kept define the limiting model (Geyer, 2009). The directions of
+# recession form the cone C = {d : x_i'd = 0 on the rows kept, s_i x_i'd > 0
+# on I0}, which is not empty (dircert certified it). A contrast L that is not
+# estimable in the limiting model diverges to +Inf along every maximizing
+# sequence exactly when L'd > 0 on all of C, which by Farkas's lemma holds
+# exactly when the projection of L on the null space of the rows kept is a
+# nonnegative combination of the projected s_i x_i; to -Inf likewise for -L.
+# When neither holds, L'd takes both signs (and 0) on C: the contrast has no
+# limit. Both memberships are decided by an exact Phase I simplex (Bland's
+# rule), so the answer is exact and complete.
+
+def lp_feasible(A, b):
+    """Whether {lam >= 0 : A lam = b} is non-empty, exactly."""
+    rows = []
+    for Ai, bi in zip(A, b):
+        if all(v == 0 for v in Ai):
+            if bi != 0:
+                return False
+            continue
+        if bi < 0:
+            rows.append(([-v for v in Ai], -bi))
+        else:
+            rows.append((list(Ai), bi))
+    k = len(rows)
+    if k == 0:
+        return True
+    m = len(rows[0][0])
+    nv = m + k
+    T = [r[0] + [F(1) if j == i else F(0) for j in range(k)] + [r[1]] for i, r in enumerate(rows)]
+    basis = [m + i for i in range(k)]
+    obj = [F(0)] * m + [F(1)] * k + [F(0)]
+    for i in range(k):
+        obj = [o - t for o, t in zip(obj, T[i])]
+    for _ in range(10000):
+        enter = next((j for j in range(nv) if obj[j] < 0), None)
+        if enter is None:
+            break
+        best = None
+        for i in range(k):
+            if T[i][enter] > 0:
+                ratio = T[i][-1] / T[i][enter]
+                if best is None or ratio < best[0] or (ratio == best[0] and basis[i] < basis[best[1]]):
+                    best = (ratio, i)
+        if best is None:
+            raise ValueError("Phase I objective unbounded")
+        r = best[1]
+        pv = T[r][enter]
+        T[r] = [v / pv for v in T[r]]
+        for i in range(k):
+            if i != r and T[i][enter] != 0:
+                fct = T[i][enter]
+                T[i] = [a - fct * c for a, c in zip(T[i], T[r])]
+        fct = obj[enter]
+        obj = [a - fct * c for a, c in zip(obj, T[r])]
+        basis[r] = enter
+    else:
+        raise ValueError("Phase I simplex did not terminate")
+    return obj[-1] == 0
+
+
+def conesign_one(it):
+    fam = it["fam"]
+    X = [[fr(v) for v in row] for row in it["X"]]
+    y = [fr(v) for v in it["y"]]
+    keep = [int(i) for i in it["keep"]]
+    I0 = [int(i) for i in it["I0"]]
+    ncol = len(X[0])
+    kept = [X[i] for i in keep]
+    N = nullspace(kept, ncol) if kept else [[F(1) if j == c else F(0) for j in range(ncol)]
+                                            for c in range(ncol)]
+    sgn = []
+    for i in I0:
+        if fam == "binomial":
+            sgn.append(F(1) if y[i] == 1 else F(-1))
+        else:
+            if y[i] != 0:
+                raise ValueError("a row with a positive count cannot diverge")
+            sgn.append(F(-1))
+    A = [[s * dot(X[i], n) for i, s in zip(I0, sgn)] for n in N]
+    out = {}
+    for name, Ls in it["L"].items():
+        L = [fr(v) for v in Ls]
+        c = [dot(L, n) for n in N]
+        if all(v == 0 for v in c):
+            out[name] = "est"
+            continue
+        pos = lp_feasible(A, c)
+        neg = lp_feasible(A, [-v for v in c])
+        if pos and neg:
+            raise ValueError("the cone of recession contains a line")
+        out[name] = 1 if pos else (-1 if neg else 0)
+    return out
+
+
+def conesign(inp):
+    return [conesign_one(it) for it in inp["items"]]
+
+
+# ---------------------------------------------------------------------------
+# exactfit: a Poisson or NB fit with every residual 0.
+#
+# The fit is exact when every count is positive and log y lies in the
+# column space of X: for each vector a of an integer basis of the left null
+# space of X, prod y_i^a_i = 1, which is decided in integers. The estimate
+# is then b with X b = log y, and a contrast L = X'g (estimable) equals
+# sum g_i log y_i, which is 0 exactly when prod y_i^(D g_i) = 1 for the
+# common denominator D of g.
+
+def _int_vector(v):
+    den = 1
+    for x in v:
+        den = den * x.denominator // math.gcd(den, x.denominator)
+    return [int(x * den) for x in v]
+
+
+def _prod_pow_is_one(y, a):
+    num = F(1)
+    for yi, ai in zip(y, a):
+        if ai > 0:
+            num *= yi ** ai
+        elif ai < 0:
+            num /= yi ** (-ai)
+    return num == 1
+
+
+def exactfit_one(it):
+    X = [[fr(v) for v in row] for row in it["X"]]
+    y = [fr(v) for v in it["y"]]
+    if any(v <= 0 for v in y):
+        return {"exact": False}
+    n = len(X)
+    ncol = len(X[0])
+    Xt = [[X[i][j] for i in range(n)] for j in range(ncol)]
+    for a in nullspace(Xt, n):
+        if not _prod_pow_is_one(y, _int_vector(a)):
+            return {"exact": False}
+    zero = {}
+    for name, Ls in it["L"].items():
+        L = [fr(v) for v in Ls]
+        # solve X'g = L exactly (any solution)
+        aug = [Xt[j] + [L[j]] for j in range(ncol)]
+        basis, piv = rref(aug, n + 1)
+        if n in piv:
+            zero[name] = None  # not estimable (not expected here)
+            continue
+        g = [F(0)] * n
+        for row, pc in zip(basis, piv):
+            g[pc] = row[n]
+        zero[name] = _prod_pow_is_one(y, _int_vector(g)) if any(v != 0 for v in g) else True
+    return {"exact": True, "zero": zero}
+
+
+def exactfit(inp):
+    return [exactfit_one(it) for it in inp["items"]]
+
 MODES = {"gauss": gauss, "struct": struct, "mlecert": mlecert, "dircert": dircert,
          "satcmp": satcmp, "satparts": satparts, "band": band, "cluster": cluster,
-         "bigsum": bigsum, "decgap": decgap}
+         "bigsum": bigsum, "decgap": decgap,
+         "conesign": conesign, "exactfit": exactfit}
 
 
 def run_one(mode, fin, fout):

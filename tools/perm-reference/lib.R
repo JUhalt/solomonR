@@ -533,9 +533,55 @@ eval_iter_batch <- function(items, fam, theta = NULL) {
     }
   }
   status[status == "todo"] <- "undecided"
+  # A contrast that the limiting model does not estimate: does it diverge
+  # along every direction of recession, and to which sign, or does it take
+  # both signs on them (exact.py conesign)? Decided per contrast, exactly.
+  cone <- vector("list", nI)
+  cone_req <- list()
+  cone_idx <- integer(0)
+  for (i in which(status %in% c("limit", "limit_noest"))) {
+    it <- items[[i]]
+    Ls <- list()
+    for (cn in names(it$L)) {
+      if (!isTRUE(st_full[[i]]$c[[cn]]$est)) next
+      if (status[i] == "limit_noest" || !isTRUE(stt[[i]]$c[[cn]]$est)) Ls[[cn]] <- as.list(dyad(it$L[[cn]]))
+    }
+    if (!length(Ls)) next
+    r <- keep[[i]]
+    cone_req[[length(cone_req) + 1]] <- list(fam = fam, X = rows_json(it$X), y = as.list(dyad(it$y)),
+                                             keep = as.list(r - 1L),
+                                             I0 = as.list(setdiff(seq_len(nrow(it$X)), r) - 1L), L = Ls)
+    cone_idx <- c(cone_idx, i)
+  }
+  if (length(cone_req)) {
+    cr <- py_result("conesign", list(items = cone_req))
+    for (j in seq_along(cone_idx)) cone[[cone_idx[j]]] <- cr[[j]]
+  }
+  # Poisson and NB fits in which every count of the rows kept is fitted
+  # exactly (every residual 0, so the HC3 variance is exactly 0): screened
+  # in doubles, decided by exact.py exactfit with integer relations.
+  efit <- vector("list", nI)
+  if (fam %in% c("poisson", "negbin")) {
+    ef_req <- list()
+    ef_idx <- integer(0)
+    for (i in which(status %in% c("mle", "limit"))) {
+      it <- items[[i]]
+      r <- keep[[i]]
+      yk <- it$y[r]
+      fit <- fits[[i]]$fit
+      if (any(yk <= 0) || max(abs(yk - fit$mu) / pmax(1, yk)) > 1e-6) next
+      Ls <- lapply(it$L, function(l) as.list(dyad(l)))
+      ef_req[[length(ef_req) + 1]] <- list(X = rows_json(it$X[r, , drop = FALSE]), y = as.list(dyad(yk)), L = Ls)
+      ef_idx <- c(ef_idx, i)
+    }
+    if (length(ef_req)) {
+      er <- py_result("exactfit", list(items = ef_req))
+      for (j in seq_along(ef_idx)) efit[[ef_idx[j]]] <- er[[j]]
+    }
+  }
   for (i in seq_len(nI)) {
     it <- items[[i]]
-    out <- list(status = status[i], keep = keep[[i]], c = list())
+    out <- list(status = status[i], keep = keep[[i]], c = list(), exact = isTRUE(efit[[i]]$exact))
     for (cn in names(it$L)) {
       cf <- st_full[[i]]$c[[cn]]
       if (!isTRUE(cf$est)) {
@@ -550,7 +596,11 @@ eval_iter_batch <- function(items, fam, theta = NULL) {
       }
       cs <- stt[[i]]$c[[cn]]
       if (!isTRUE(cs$est) || status[i] == "limit_noest") {
-        out$c[[cn]] <- list(code = "DIV", h1 = isTRUE(cf$h1))
+        # cone: +1 or -1, the contrast diverges to that sign along every
+        # direction of recession; 0, it takes both signs on them (no limit)
+        cs_sign <- cone[[i]][[cn]]
+        if (is.null(cs_sign) || identical(cs_sign, "est")) stop("conesign gave no sign for a contrast not estimable in the limit")
+        out$c[[cn]] <- list(code = "DIV", h1 = isTRUE(cf$h1), cone = as.numeric(cs_sign))
         next
       }
       r <- keep[[i]]
@@ -566,7 +616,8 @@ eval_iter_batch <- function(items, fam, theta = NULL) {
                           h1 = isTRUE(cf$h1) || isTRUE(cs$h1),
                           est = hc$est, V = hc$V, est2 = hc2$est, V2 = hc2$V,
                           ill = !is.finite(hc$kappa) || hc$kappa > 1e10 || 1 - hc$hmax < 1e-6,
-                          piv = piv, b = fit$b, skip = lev1)
+                          piv = piv, b = fit$b, skip = lev1,
+                          exact = out$exact, ezero = if (out$exact) isTRUE(efit[[i]]$zero[[cn]]) else NA)
     }
     res[[i]] <- out
   }
@@ -577,6 +628,24 @@ eval_iter_batch <- function(items, fam, theta = NULL) {
 # Negative binomial: theta by maximum likelihood (profile score solved
 # tightly), on the observed data.
 
+# The profile log-likelihood of theta (constants in y dropped), and its limit
+# as theta grows without bound, the Poisson log-likelihood at the Poisson fit.
+nb_profile <- function(X, y, f, off, th) {
+  fit <- newton_fit(X, y, f, off, "negbin", th)
+  if (!fit$converged) return(NA_real_)
+  mu <- fit$mu
+  sum(f * (lgamma(y + th) - lgamma(th) + th * log(th) - (y + th) * log(th + mu) + ifelse(y > 0, y * log(mu), 0)))
+}
+nb_poisson_limit <- function(X, y, f, off) {
+  fit <- newton_fit(X, y, f, off, "poisson")
+  if (!fit$converged) return(NA_real_)
+  sum(f * (ifelse(y > 0, y * log(fit$mu), 0) - fit$mu))
+}
+
+# theta*: every local maximum of the profile on the grid (a sign change of
+# the score from + to -) is solved tightly, the highest is kept, and it is
+# accepted only when its profile log-likelihood exceeds the Poisson limit;
+# otherwise the maximum is at the boundary (theta -> Inf).
 nb_theta <- function(X, y, f, off) {
   score <- function(lt) {
     th <- exp(lt)
@@ -587,11 +656,124 @@ nb_theta <- function(X, y, f, off) {
   }
   grid <- log(c(1e-3, 1e-2, 0.1, 0.5, 1, 2, 5, 10, 30, 100, 300, 1e3))
   sv <- vapply(grid, score, 0)
-  j <- which(diff(sign(sv)) != 0)
-  if (!length(j) || anyNA(sv[c(j[1], j[1] + 1)])) return(list(theta = NA_real_, boundary = TRUE, sv = sv))
-  j <- j[1]
-  r <- stats::uniroot(score, c(grid[j], grid[j + 1]), tol = 1e-14, maxiter = 200)
-  list(theta = exp(r$root), boundary = FALSE, sv = sv)
+  js <- which(!is.na(sv[-length(sv)]) & !is.na(sv[-1]) & sv[-length(sv)] > 0 & sv[-1] < 0)
+  pois <- nb_poisson_limit(X, y, f, off)
+  if (!length(js)) return(list(theta = NA_real_, boundary = TRUE, sv = sv, poisson_limit = pois))
+  roots <- vapply(js, function(j) exp(stats::uniroot(score, c(grid[j], grid[j + 1]), tol = 1e-14, maxiter = 200)$root), 0)
+  pl <- vapply(roots, function(th) nb_profile(X, y, f, off, th), 0)
+  best <- which.max(pl)
+  boundary <- !length(best) || !is.finite(pl[best]) || (is.finite(pois) && pois >= pl[best])
+  list(theta = if (length(best)) roots[best] else NA_real_, boundary = boundary, sv = sv, roots = roots,
+       profile = pl, poisson_limit = pois)
+}
+
+# What MASS::glm.nb() does on the data, fitted as the package under test fits
+# a negative binomial model (design Section 6: "glm.nb converged without
+# warning"): the formula y ~ treat * pretested + pre_obs + covariates (+ the
+# exposure offset), the pretest centered at its mean among the pretested rows
+# in the model; with a pretest or a numeric covariate, the warnings come from
+# the refit with the pretest divided by the power of two nearest its SD and
+# each numeric covariate standardized, as the package's inference fit does.
+# The theta that the package keeps for its refits is that of the fit as
+# given. This screens the data and sets the band over which decisions are
+# certified; it computes no reference statistic.
+glmnb_check <- function(dat, treat, pre, covs, exposure) {
+  df <- data.frame(y = dat$y, treat = treat, pretested = dat$pretested)
+  rhs <- "treat*pretested"
+  inm <- !is.na(df$y)
+  if (isTRUE(pre)) {
+    df$pre_obs <- ifelse(dat$pretested == 1, dat$pre, 0)
+    rhs <- c(rhs, "pre_obs")
+    inm <- inm & (dat$pretested == 0 | !is.na(dat$pre))
+  }
+  for (v in covs) {
+    df[[v]] <- dat[[v]]
+    rhs <- c(rhs, v)
+    inm <- inm & !is.na(as.matrix(dat[[v]])[, 1])
+  }
+  if (!is.null(exposure)) {
+    df$log_exposure <- log(dat[[exposure]])
+    rhs <- c(rhs, "offset(log_exposure)")
+    inm <- inm & !is.na(df$log_exposure)
+  }
+  fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
+  if (isTRUE(pre)) {
+    ctr <- mean(df$pre_obs[inm & df$pretested == 1])
+    df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - ctr, 0)
+  }
+  fit_nb <- function(d) {
+    warn <- FALSE
+    fit <- withCallingHandlers(
+      tryCatch(MASS::glm.nb(fml, data = d, na.action = stats::na.exclude), error = function(e) e),
+      warning = function(w) {
+        if (grepl("iteration limit reached|alternation limit reached", conditionMessage(w))) warn <<- TRUE
+        invokeRestart("muffleWarning")
+      })
+    list(fit = fit, warn = warn)
+  }
+  given <- fit_nb(df)
+  if (inherits(given$fit, "error")) return(list(theta = NA_real_, boundary = NA, error = conditionMessage(given$fit)))
+  num_cov <- vapply(covs, function(v) is.numeric(dat[[v]]) && is.null(dim(dat[[v]])), logical(1))
+  std <- isTRUE(pre) || any(num_cov)
+  inf <- given
+  if (std) {
+    sdf <- df
+    if (isTRUE(pre)) {
+      s <- stats::sd(sdf$pre_obs[inm & sdf$pretested == 1])
+      s <- if (is.finite(s) && s > 0) 2^round(log2(s)) else 1
+      sdf$pre_obs <- sdf$pre_obs / s
+    }
+    for (v in covs[num_cov]) {
+      x <- sdf[[v]]
+      m <- mean(x[inm])
+      s <- stats::sd(x[inm])
+      if (!is.finite(s) || s == 0) s <- 1
+      sdf[[v]] <- (x - m) / s
+    }
+    inf <- fit_nb(sdf)
+    if (inherits(inf$fit, "error")) return(list(theta = NA_real_, boundary = NA, error = conditionMessage(inf$fit)))
+  }
+  list(theta = given$fit$theta, theta_inference = inf$fit$theta,
+       boundary = inf$warn || !is.null(inf$fit$th.warn), error = NULL)
+}
+
+# The cell-means design of a data set under a labeling (rows in the model).
+cell_design <- function(dat, treat, pre, covs, exposure) {
+  inm <- !is.na(dat$y)
+  if (isTRUE(pre)) inm <- inm & (dat$pretested == 0 | !is.na(dat$pre))
+  for (v in covs) inm <- inm & !is.na(as.matrix(dat[[v]])[, 1])
+  X <- cbind(dat$pretested == 0 & treat == 0, dat$pretested == 0 & treat == 1,
+             dat$pretested == 1 & treat == 0, dat$pretested == 1 & treat == 1) * 1
+  if (isTRUE(pre)) X <- cbind(X, ifelse(dat$pretested == 1, dat$pre, 0))
+  for (v in covs) {
+    x <- dat[[v]]
+    if (is.factor(x) || is.character(x)) {
+      lev <- levels(factor(x[inm]))
+      for (l in lev[-1]) X <- cbind(X, as.numeric(as.character(x) == l))
+    } else {
+      X <- cbind(X, as.numeric(as.matrix(x)[, 1]))
+    }
+  }
+  off <- if (is.null(exposure)) rep(0, nrow(dat)) else log(dat[[exposure]])
+  list(X = X[inm, , drop = FALSE], y = dat$y[inm], off = off[inm])
+}
+
+# Whether the maximum-likelihood estimate exists for the data under a
+# labeling (design T4: observed labelings of the main grid are screened to
+# have a finite statistic): a converged fit whose existence exact.py mlecert
+# certifies. The negative binomial has the directions of recession of the
+# Poisson model, so the Poisson fit is used for it.
+mle_exists <- function(dat, treat, fam, pre, covs, exposure) {
+  if (fam == "gaussian") return(TRUE)
+  cd <- cell_design(dat, treat, pre, covs, exposure)
+  q <- qr(cd$X)
+  X <- cd$X[, q$pivot[seq_len(q$rank)], drop = FALSE]
+  cfam <- if (fam == "negbin") "poisson" else fam
+  f <- rep(1, nrow(X))
+  fit <- newton_fit(X, cd$y, f, cd$off, cfam)
+  if (!fit$converged) return(FALSE)
+  isTRUE(unlist(py_result("mlecert", list(items = list(list(
+    fam = cfam, X = rows_json(X), y = as.list(dyad(cd$y)), f = as.list(f), mu = as.list(dyad(fit$mu))))))))
 }
 
 # ---------------------------------------------------------------------------

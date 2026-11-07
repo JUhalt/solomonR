@@ -1,114 +1,128 @@
-perm-reference generator, tier full, 109 worlds; R 4.6.1; Python Python 3.14.7
-M-S0-gaussian-a                     6.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S0-gaussian-b                     1.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-gaussian-a                     5.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-gaussian-b                     4.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S2-gaussian-a                     7.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S2-gaussian-b                     7.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S3-gaussian-a                     6.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S3-gaussian-b                     5.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-gaussian-n4                   34.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S0-binomial-a                     1.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S0-binomial-b                     0.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-binomial-a                     3.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-binomial-b                     0.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S2-binomial-a                     8.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S2-binomial-b                    17.3 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S3-binomial-a                     7.3 s  cases  16  p-cases   7  errors  7  excluded  2  band 8
-M-S3-binomial-b                    13.2 s  cases  16  p-cases   8  errors  8  excluded  0  band 0
-M-S1-binomial-n4                    2.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+perm-reference generator, tier full, 121 worlds; R 4.6.1; Python Python 3.14.7
+M-S0-gaussian-a                     3.2 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S0-gaussian-b                     1.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-gaussian-a                     5.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-gaussian-b                     3.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S2-gaussian-a                     6.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S2-gaussian-b                     8.3 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S3-gaussian-a                     7.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S3-gaussian-b                     6.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-gaussian-n4                   32.9 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S0-binomial-a                     1.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S0-binomial-b                     0.9 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-binomial-a                     2.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-binomial-b                     1.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S2-binomial-a                    27.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S2-binomial-b                    33.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S3-binomial-a                    11.3 s  cases  16  p-cases   7  errors  8  excluded  1  band 8
+M-S3-binomial-b                     8.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-binomial-n4                    2.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
 M-S0-poisson-a                      1.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S0-poisson-b                      1.2 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-poisson-a                      1.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-poisson-b                      0.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S2-poisson-a                     25.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 512
-M-S2-poisson-b                     34.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S3-poisson-a                     17.8 s  cases  16  p-cases   8  errors  8  excluded  0  band 0
-M-S3-poisson-b                      6.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-poisson-n4                     4.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S0-negbin-a                      10.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S0-negbin-b                       3.3 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-negbin-a                       3.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-negbin-b                       3.2 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S2-negbin-a                     186.2 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S2-negbin-b                     225.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S3-negbin-a                     181.7 s  cases  16  p-cases   8  errors  8  excluded  0  band 0
-M-S3-negbin-b                     190.2 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-S1-negbin-n4                     32.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-Cexp-poisson-a                    1.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-M-Cexp-negbin-a                   135.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-D1a-binomial                       22.0 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-D1b-binomial                        0.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-D2-binomial                         1.0 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-D3-poisson                          2.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+M-S0-poisson-b                      1.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-poisson-a                      1.9 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-poisson-b                      1.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S2-poisson-a                     38.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 512
+M-S2-poisson-b                     29.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S3-poisson-a                     21.6 s  cases  16  p-cases   8  errors  8  excluded  0  band 0
+M-S3-poisson-b                      7.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-poisson-n4                     4.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S0-negbin-a                       3.3 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S0-negbin-b                       4.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-negbin-a                       7.3 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-negbin-b                       6.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S2-negbin-a                     204.9 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S2-negbin-b                     208.9 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S3-negbin-a                     202.8 s  cases  16  p-cases   8  errors  8  excluded  0  band 0
+M-S3-negbin-b                     176.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-S1-negbin-n4                     36.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-Cexp-poisson-a                    1.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+M-Cexp-negbin-a                   153.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+D1a-binomial                       25.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+D1b-binomial                        0.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+D2-binomial                         0.4 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+D3-poisson                          1.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
 D4-gaussian                         0.4 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-D5-gaussian                         1.1 s  cases   8  p-cases   6  errors  2  excluded  0  band 0
-D131a-gaussian                      1.1 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+D5-gaussian                         1.0 s  cases   8  p-cases   2  errors  6  excluded  0  band 0
+D131a-gaussian                      1.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
 D131b-binomial                      0.8 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
 D131c-gaussian                      0.5 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-D8-poisson                          7.1 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-F-sep-binomial-n4                   1.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-F-rec-poisson                       0.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-F-lim-binomial                     17.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-F-infinf-binomial                   0.1 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+D8-poisson                          7.8 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+F-sep-binomial-n4                   2.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+F-rec-poisson                       1.2 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+F-lim-binomial                     23.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+F-infinf-binomial                   0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
 F-00-gaussian                       0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
 F-const-poisson                     0.3 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-F-lev1-gaussian                     3.6 s  cases   8  p-cases   5  errors  3  excluded  0  band 0
-F-miss-gaussian-none                7.3 s  cases  16  p-cases  10  errors  6  excluded  0  band 0
-F-miss-gaussian-num                10.9 s  cases  16  p-cases  10  errors  6  excluded  0  band 0
-F-unbal-gaussian                   14.1 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-F-obsinf-binomial                   0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-F-obszero-poisson                   0.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+F-lev1-gaussian                     4.7 s  cases   8  p-cases   5  errors  3  excluded  0  band 0
+F-miss-gaussian-none                8.8 s  cases  16  p-cases  10  errors  6  excluded  0  band 0
+F-miss-gaussian-num                14.6 s  cases  16  p-cases  10  errors  6  excluded  0  band 0
+F-unbal-gaussian                   20.1 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+F-obsinf-binomial                   0.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+F-obszero-poisson                   0.7 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
 F-thbound-negbin                    0.0 s  cases   8  p-cases   0  errors  0  excluded  0  band 0
-L-base-gaussian                     1.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-y1e9-gaussian                     1.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-y1e12-gaussian                    1.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base8-gaussian                    1.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-y1e12-gaussian-grid8              1.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-pre2e40-gaussian                  1.8 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-x-gaussian                   4.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x200-gaussian                     4.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x10000-gaussian                   4.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x1e+06-gaussian                   4.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-year-gaussian                4.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-year-gaussian                     4.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-x-binomial                  12.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x200-binomial                    12.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x10000-binomial                  12.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x1e+06-binomial                  12.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-year-binomial               12.9 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-year-binomial                    12.9 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-x-poisson                   35.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x200-poisson                     35.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x10000-poisson                   35.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x1e+06-poisson                   35.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-year-poisson                42.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-year-poisson                     42.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-x-negbin                   234.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x200-negbin                     234.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x10000-negbin                   234.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-x1e+06-negbin                   234.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-year-negbin                157.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-year-negbin                     157.7 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-base-year2-binomial-n6           49.1 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-L-year2-binomial-n6                49.1 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-L-base-year2-binomial-n10        1226.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-L-year2-binomial-n10             1226.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-L-base-xmat-gaussian                5.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-L-xmat2e20-gaussian                 5.5 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
-G-A-gaussian-k3                     0.4 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-A-gaussian-k4                     4.0 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-A-binomial-k3                     0.5 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-A-poisson-exp-k3                  0.3 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-A-N-negbin-k3                     0.5 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-10-base-gaussian                  0.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-10-x1e+06-gaussian                0.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-10-x1e+08-gaussian                0.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-zero-gaussian                     0.5 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-const-gaussian                    0.6 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-B-gaussian-k6                     0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-G-B-gaussian-k10                    0.8 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
-band: 520 comparisons at 50 digits; 8 unexplained (gap below 1e-35); 39 failed the eps check
-worlds 109, cases 1480; python calls 720 (330 s); total 3095 s
-self-checks: 1792 classes; largest relative difference from glm() + sandwich: Gaussian 6.00e-15; iterated 3.85e-04 at glm()'s default convergence, 3.11e-07 at epsilon 1e-14
-compact fixture: 100 worlds, 390 KB
+L-base-gaussian                     2.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-y1e9-gaussian                     0.0 s (inherited from L-base-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-y1e12-gaussian                    0.0 s (inherited from L-base-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base8-gaussian                    3.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-y1e12-gaussian-grid8              0.0 s (inherited from L-base8-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-pre2e40-gaussian                  0.0 s (inherited from L-base-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-x-gaussian                   7.1 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x200-gaussian                     0.0 s (inherited from L-base-x-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x10000-gaussian                   0.0 s (inherited from L-base-x-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x1e+06-gaussian                   0.0 s (inherited from L-base-x-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-year-gaussian                6.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-year-gaussian                     0.0 s (inherited from L-base-year-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-x-binomial                  20.3 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x200-binomial                     0.0 s (inherited from L-base-x-binomial)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x10000-binomial                   0.0 s (inherited from L-base-x-binomial)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x1e+06-binomial                   0.0 s (inherited from L-base-x-binomial)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-year-binomial               16.3 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-year-binomial                     0.0 s (inherited from L-base-year-binomial)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-x-poisson                   27.4 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x200-poisson                      0.0 s (inherited from L-base-x-poisson)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x10000-poisson                    0.0 s (inherited from L-base-x-poisson)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x1e+06-poisson                    0.0 s (inherited from L-base-x-poisson)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-year-poisson                31.3 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-year-poisson                      0.0 s (inherited from L-base-year-poisson)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-x-negbin                   195.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x200-negbin                       0.1 s (inherited from L-base-x-negbin)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x10000-negbin                     0.1 s (inherited from L-base-x-negbin)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-x1e+06-negbin                     0.1 s (inherited from L-base-x-negbin)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-year-negbin                187.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-year-negbin                       0.1 s (inherited from L-base-year-negbin)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-base-year2-binomial-n6           70.5 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+L-year2-binomial-n6                 0.0 s (inherited from L-base-year2-binomial-n6)  cases   8  p-cases   8  errors  0  excluded  0  band 0
+L-base-year2-binomial-n10         784.0 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+L-year2-binomial-n10                0.0 s (inherited from L-base-year2-binomial-n10)  cases   8  p-cases   8  errors  0  excluded  0  band 0
+L-base-xmat-gaussian                4.0 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+L-xmat2e20-gaussian                 0.0 s (inherited from L-base-xmat-gaussian)  cases  16  p-cases  16  errors  0  excluded  0  band 0
+G-A-gaussian-k3                     0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-A-gaussian-k4                     2.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-A-binomial-k3                     0.3 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-A-poisson-exp-k3                  0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-A-N-negbin-k3                     0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-10-base-gaussian                  0.3 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-10-x1e+06-gaussian                0.0 s (inherited from G-10-base-gaussian)  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-10-x1e+08-gaussian                0.0 s (inherited from G-10-base-gaussian)  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-zero-gaussian                     0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-const-gaussian                    0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-B-gaussian-k6                     0.1 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-B-gaussian-k10                    0.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+F-sepobs-binomial                   0.6 s  cases  16  p-cases  16  errors  0  excluded  0  band 0
+F-exactfit-poisson                  1.0 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+F-arm1-poisson                      0.3 s  cases   8  p-cases   5  errors  3  excluded  0  band 0
+F-miss-poisson-none                 1.5 s  cases  16  p-cases  10  errors  6  excluded  0  band 0
+F-const-negbin                      1.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+D3-negbin                          47.3 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+G-conststrat-gaussian               0.2 s  cases   8  p-cases   2  errors  6  excluded  0  band 0
+E-binomial-pair                     1.5 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+E-poisson-pair                      2.3 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+E-negbin-pair                      13.8 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+E-poisson-rel                       4.2 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+E-gaussian-pair                    24.8 s  cases   8  p-cases   8  errors  0  excluded  0  band 0
+key-tie self-check (design rule 3): 160735 tie groups in 590576 classes; 22 groups spread beyond 1e3 restart errors, all 22 recomputed equal at 50 digits; largest relative spread 3.8e-09
+50-digit check of classes certified from doubles: 1259; order confirmed in all; largest |double - 50 digits| / eps = 9.85 (class), 3.02 (observed); 0 above 1e4
+band: 520 comparisons at 50 digits; 8 unexplained (gap below 1e-35); 0 failed the eps check
+worlds 121, cases 1592; python calls 2508 (366 s); total 3068 s
+self-checks: 2064 classes; largest relative difference from glm() + sandwich: Gaussian 6.00e-15; iterated 3.85e-04 at glm()'s default convergence, 3.11e-07 at epsilon 1e-14
+compact fixture: 111 worlds, 514 KB

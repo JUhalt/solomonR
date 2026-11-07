@@ -2,3 +2,4 @@
 # kept outside version control; the compact set is in
 # tests/testthat/fixtures/perm-reference.rds.
 perm-reference-full.rds
+__pycache__/
