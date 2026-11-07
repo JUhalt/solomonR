@@ -545,10 +545,12 @@ jobs:
 
       # Only when the job fails: the replay's record (merged/replay.csv, with
       # the processor models of the replayed tasks' chunks and of this
-      # machine), this machine's job-info.csv, and the logs of the replay and
-      # the summary, those that exist. They are uploaded only if they pass
-      # the address scan, as the chunk job's failed files are. A run that
-      # passes uploads none of them apart from the results.
+      # machine) and this machine's job-info.csv, those that exist, and the
+      # logs of the replay and the summary that exist and pass the address
+      # scan on their own, so that a log cannot hold back the two records.
+      # The folder is scanned again before the upload, as the chunk job's
+      # failed files are. A run that passes uploads none of them apart from
+      # the results.
       - name: Gather the failed merge's files
         id: gather
         if: failure()
@@ -556,8 +558,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p failed-merge
-          for f in merged/replay.csv merged/job-info.csv merged/replay-log.txt merged/summarize-log.txt; do
+          for f in merged/replay.csv merged/job-info.csv; do
             if [[ -f "$f" ]]; then cp "$f" failed-merge/; fi
+          done
+          for f in merged/replay-log.txt merged/summarize-log.txt; do
+            if [[ -f "$f" ]]; then
+              if Rscript harness/tools/sim/scan-addresses.R "$f"; then cp "$f" failed-merge/; else echo "$f is left out."; fi
+            fi
           done
 
       - name: Scan the failed merge's files for e-mail addresses

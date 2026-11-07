@@ -211,12 +211,16 @@ every such field).
   needs a new commit, and the merge refuses task files of another commit.
 - A merge job that fails uploads `failed-merge-attempt-<attempt>`, kept
   for 14 days, if its files pass the address scan: those of
-  `merged/replay.csv`, `merged/job-info.csv` (the merging machine, recorded
-  before the replay), and the logs of the replay and the summary that
-  exist. After a replay that differs, `replay.csv` gives each replayed
-  task's largest difference in the results, the columns that differ, and
-  the processor models of its chunk and of the merging machine. Download
-  it when the run ends.
+  `merged/replay.csv` and `merged/job-info.csv` (the merging machine,
+  recorded before the replay) that exist, and the logs of the replay and
+  the summary that exist and pass the scan on their own, so that a log
+  cannot hold back the two records. After a replay that differs,
+  `replay.csv` gives each replayed task's largest difference in the
+  results, the columns that differ, and the processor models of its chunk
+  and of the merging machine. Download it when the run ends. The merging
+  machine's processor model is also in the merge job's log, from the step
+  "Record the merging machine", whenever that step has run (it runs after
+  the checks of `merge-chunks.R` pass, before the replay).
 - Before the results of a gate or a study run are used, check where the
   run came from: `gh run view <run id> --repo JUhalt/solomonR --json
   event,headBranch,headSha,workflowName` must show
