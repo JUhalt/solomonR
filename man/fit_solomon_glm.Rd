@@ -600,11 +600,13 @@ warnings, such as one that a negative-binomial theta did not converge,
 come from the standardized model too, as do \code{theta} and \code{dispersion},
 which do not depend on the parameterization. Far from zero, a fit to a
 covariate as given can warn where the same model standardized does not.
-\code{model$converged} and \code{model$iter} therefore describe the fit to the data
-as given, which is made silently, not the standardized fit that gave the
-warnings. The warnings are given once the checks for an empty group, a
-collinear term, and, under HC3, a group with a single participant have
-passed, so a fit that stops gives the error alone.
+With a pretest or a numeric covariate, \code{model$converged} and
+\code{model$iter} describe the fit to the data as given, which is made
+silently, not the standardized fit that gave the warnings. The model
+fit's warnings are given once the checks for an empty group, a collinear
+term, and, under HC3, a group with a single participant have passed, so
+a fit that stops at one of these checks gives the error alone. An error
+inside the fit itself still comes after the warnings the fit gave.
 
 Covariates collinear with the other terms stop the fit wherever they
 lie. Far from zero, the rounding error of the stored values can make

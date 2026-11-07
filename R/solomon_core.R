@@ -981,11 +981,13 @@ stouffer_solomon <- function(p) {
 #' come from the standardized model too, as do `theta` and `dispersion`,
 #' which do not depend on the parameterization. Far from zero, a fit to a
 #' covariate as given can warn where the same model standardized does not.
-#' `model$converged` and `model$iter` therefore describe the fit to the data
-#' as given, which is made silently, not the standardized fit that gave the
-#' warnings. The warnings are given once the checks for an empty group, a
-#' collinear term, and, under HC3, a group with a single participant have
-#' passed, so a fit that stops gives the error alone.
+#' With a pretest or a numeric covariate, `model$converged` and
+#' `model$iter` describe the fit to the data as given, which is made
+#' silently, not the standardized fit that gave the warnings. The model
+#' fit's warnings are given once the checks for an empty group, a collinear
+#' term, and, under HC3, a group with a single participant have passed, so
+#' a fit that stops at one of these checks gives the error alone. An error
+#' inside the fit itself still comes after the warnings the fit gave.
 #'
 #' Covariates collinear with the other terms stop the fit wherever they
 #' lie. Far from zero, the rounding error of the stored values can make
@@ -1626,7 +1628,8 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # covariate can make the fit as given warn, for instance that theta did
   # not converge, where the same model standardized does not. The warnings
   # of the fit that gives them are held back until the checks below have
-  # passed, so that a fit that stops gives the error alone (issue #154).
+  # passed, so that a fit that stops at one of them gives the error alone
+  # (issue #154).
   standardize <- .standardizes(df, names(covariates))
   held <- .record_warnings(.fit_model(fml, df, family, negbin, quiet = standardize))
   fit <- held$value

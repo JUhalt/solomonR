@@ -34,20 +34,21 @@
   failures are usually due to sparse cells. A covariate nearly collinear
   with a treatment term can still keep refits from converging, because the
   treatment terms, whose coefficients give the contrasts, are kept.
-* **A fit that stops gives the error alone.** `fit_solomon_glm()`, with one
-  treatment or several, now holds back the warnings of its model fit until
-  the checks for an empty group, a collinear term, and, under HC3, a group
-  with a single participant have passed. Before, a negative-binomial fit
-  with exactly collinear covariates warned that `glm.fit()` and theta did
-  not converge, and then stopped with the error that a covariate is
-  collinear.
-  A fit that goes ahead gives the same warnings, in the same order, and the
-  same results. With several treatments, the noncollapsibility warning
+* **A fit that stops at the estimability checks gives the error alone.**
+  `fit_solomon_glm()`, with one treatment or several, now holds back the
+  warnings of its model fit until the checks for an empty group, a
+  collinear term, and, under HC3, a group with a single participant have
+  passed. Before, a negative-binomial fit with exactly collinear
+  covariates warned that `glm.fit()` and theta did not converge, and then
+  stopped with the error that a covariate is collinear. A fit that goes
+  ahead gives the same warnings, in the same order, and the same results.
+  So does a fit that stops inside `glm()` itself: its warnings still come
+  before its error. With several treatments, the noncollapsibility warning
   also waits for the checks.
 * **`model$converged` describes the fit as given.** `?fit_solomon_glm` now
-  says that `model$converged` and `model$iter` describe the fit to the
-  covariates and the pretest as given, not the standardized fit that gives
-  the warnings.
+  says that, with a pretest or a numeric covariate, `model$converged` and
+  `model$iter` describe the fit to the covariates and the pretest as
+  given, not the standardized fit that gives the warnings.
 
 ## Only MLR and ML in the SEM functions (#133)
 
