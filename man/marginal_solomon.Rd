@@ -211,12 +211,14 @@ of testing that is the time of enrollment plus a delay, with the times
 in seconds. So before a refit that did not converge is fitted again,
 its resample is checked by the collinearity check of
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see "Covariates" there), applied to the rows of the
-resample: a resample on whose rows a term is collinear with the others
-by that check counts as failed, as a design not of full rank, and is not
-fitted again. Just inside that check, rounding error can also make
-nearly collinear covariates collinear on some resamples, at the
-tolerance of \code{\link[=qr]{qr()}} or by the check, and those resamples fail too,
-though an exact reparameterization of the covariates would fit them. A
+resample with the weights and rounding error of the model's own fit: a
+resample on whose rows a term is collinear with the others by that
+check counts as failed, as a design not of full rank, and is not fitted
+again. A refit that converged is not checked. Just inside that check,
+rounding error can also make nearly collinear covariates collinear on
+some resamples, at the tolerance of \code{\link[=qr]{qr()}} or by the check, and those
+resamples fail too, though an exact reparameterization of the
+covariates would fit them. A
 resample can also fail as a design not of full rank when only one of its
 participants departs from a relation that holds among the covariates of
 all the others: the refit moves that participant's fitted probability

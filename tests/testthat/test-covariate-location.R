@@ -1430,18 +1430,20 @@ test_that("a refit that does not converge is fitted again in the basis, and one 
   # ("maxit"), and makes the two columns collinear to within qr()'s
   # tolerance, 1e-11, on other resamples ("rank"). A refit that did not
   # converge is fitted again in the basis (.bootstrap_basis()) and
-  # converges there, unless the collinearity check of fit_solomon_glm()
-  # finds a term collinear on the rows of its resample
-  # (.resample_collinear()). A refit not of full rank is not fitted again,
-  # because in the basis the direction that the resample makes collinear
-  # would be carried only by rounding error. Its resample counts as failed,
-  # and the warning counts it as a design not of full rank. At g = 1.2e-11,
-  # on Windows, 63 refits did not converge and 24 were not of full rank, of
-  # 199, and the check found no term collinear on the resamples of the 63;
-  # the exact reparameterization (z1, (z2 - z1) / g) has no failures. The
-  # counts are taken from the refits, not pinned, since they depend on
-  # rounding. The data have no missing outcome, so the row names of a
-  # refit's design are the rows of the model it holds.
+  # converges there, unless the collinearity check of fit_solomon_glm(),
+  # in the model's working weights, finds a term collinear on the rows of
+  # its resample (.resample_collinear()). A refit not of full rank is not
+  # fitted again, because in the basis the direction that the resample
+  # makes collinear would be carried only by rounding error. Its resample
+  # counts as failed, and the warning counts it as a design not of full
+  # rank. At g = 1.2e-11, with seed = 2024 on Windows, 63 refits did not
+  # converge and 24 were not of full rank, of 199, and the check found no
+  # term collinear on the resamples of the 63 (with other seeds it finds
+  # one on a few, up to g = 1.3e-11); the exact reparameterization
+  # (z1, (z2 - z1) / g) has no failures. The counts are taken from the
+  # refits, not pinned, since they depend on rounding. The data have no
+  # missing outcome, so the row names of a refit's design are the rows of
+  # the model it holds.
   withr::local_seed(5151)
   n <- 200
   g4 <- rep(1:4, each = 50)
@@ -1721,14 +1723,19 @@ test_that("a refit that does not converge on rows where a difference score repea
   expect_collinear_resamples_fail(fit, reference, holds, seed = 31, info = "difference score")
 })
 
-test_that("the collinearity check of a resample is that of the fit on its rows (#154)", {
+test_that("the collinearity check of a resample is the fit's check, in the model's weights (#154)", {
   # .collinear_columns() is the check of .collinear_terms() on a design
   # matrix, the weights of its rows, the rounding error of its entries,
   # the covariates' columns, and the intercept's, so that marginal_solomon()
-  # can apply it to the rows of a resample. On fits it finds the columns
-  # .collinear_terms() finds: none, the pair's second column when the
-  # rounding error allowed for is large, or the last term of an exact
-  # relation, as in the tests above.
+  # can apply it to the rows of a resample. .collinear_terms() now calls
+  # .collinear_columns(), so comparing the two checks only what the
+  # wrapper passes: the model matrix, the weights, the covariates' columns,
+  # and the intercept's position. What would show a change in the check
+  # itself are the pinned results, none, the pair's second column when the
+  # rounding error allowed for is large, and the last term of an exact
+  # relation, which are those of .collinear_terms() before the split
+  # (4ab4761). That the split changed no result on the calls of the test
+  # suite was checked outside these tests, against 4ab4761's function.
   d <- collinear_set()
   e <- withr::with_seed(1, stats::rnorm(nrow(d)))
   model <- stats::glm(y4 ~ treat * pretested + z + z2,
