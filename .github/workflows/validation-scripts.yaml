@@ -14,7 +14,9 @@ jobs:
     name: Smoke runs of the validation scripts
     runs-on: ubuntu-latest
     # The scripts took 27 and 36 minutes in all in two runs on a laptop
-    # (issue #140); the job has not yet been timed on GitHub. A script that
+    # (issue #140). On GitHub's runners, in the run of pull request #167
+    # (November 7, 2026), they took about 70 seconds, and the whole job, with
+    # its setup, 2 minutes 18 seconds. A script that
     # hangs is stopped after SOLOMONR_SMOKE_TIMEOUT seconds, well within this
     # limit, so the check still prints its table and the end of the log.
     timeout-minutes: 120
@@ -42,6 +44,50 @@ jobs:
       # a few scenarios in a temporary folder (issue #140). The check fails
       # if a script fails or if a file of the package changes.
       - name: Run the validation scripts in smoke mode
+        id: smoke
         env:
           SOLOMONR_SMOKE_TIMEOUT: 900
         run: Rscript tools/check-validation-scripts.R
+
+      # Every test of the commit rule reads vignettes/articles/ (it loads
+      # validation_commit() from a script, and some also check the
+      # Validation Evidence page), which R CMD check and the coverage
+      # workflow do not have, so the whole file skips there. Here it runs
+      # from the package source (issue #162). Like the next step, this runs
+      # even when the smoke step failed, but not when setup failed.
+      - name: Run the tests of the commit rule from the package source
+        if: ${{ !cancelled() && steps.smoke.outcome != 'skipped' }}
+        run: |
+          Rscript -e 'testthat::test_dir("tests/testthat", filter = "validation-commit", load_package = "source", stop_on_failure = TRUE)'
+
+      # A copy made with `git archive`, as GitHub's "Download ZIP" is, holds
+      # no git repository, so a validation script run from it records the
+      # commit as NA (issue #152). This runs one short script in smoke mode
+      # from such a copy, outside the checkout and any other repository, and
+      # fails unless the run recorded NA (issue #162).
+      - name: Run a validation script from a copy made with git archive
+        if: ${{ !cancelled() && steps.smoke.outcome != 'skipped' }}
+        shell: bash
+        env:
+          SOLOMONR_SMOKE_TIMEOUT: 900
+        run: |
+          unset SOLOMONR_COMMIT GIT_DIR GIT_WORK_TREE
+          copy="$RUNNER_TEMP/solomonR-archive"
+          out="$RUNNER_TEMP/solomonR-archive-smoke"
+          mkdir "$copy"
+          git archive HEAD | tar -x -C "$copy"
+          cd "$copy"
+          # git must find no repository at all: one that it finds, or one
+          # that it refuses to read, would test another case.
+          if found=$(LC_ALL=C git rev-parse --git-dir 2>&1); then
+            echo "The copy is inside a git repository, so this step would not test a copy without one." >&2
+            exit 1
+          elif ! grep -q "not a git repository" <<< "$found"; then
+            echo "git did not say that the copy is outside any repository: $found" >&2
+            exit 1
+          fi
+          SOLOMONR_SMOKE_DIR="$out" Rscript tools/check-validation-scripts.R plan-resimulation
+          SMOKE_OUT="$out" Rscript \
+            -e 'x <- readRDS(file.path(Sys.getenv("SMOKE_OUT"), "plan-validation", "plan-resimulation.rds"))' \
+            -e 'if (!identical(x$git_commit, NA_character_)) stop("The run from the copy made with git archive recorded ", paste(deparse(x$git_commit), collapse = ""), ", not NA.", call. = FALSE)' \
+            -e 'writeLines("The run from the copy made with git archive recorded NA as its commit.")'
