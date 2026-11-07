@@ -694,7 +694,7 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
     for (robust in c("none", "HC3", "CR2")) {
       for (k in c(0, 1e4, 1e6, 1e8, 3e9, 1e10, 1e12)) {
         covariates <- data.frame(z = d$z + k * stats::sd(d$z), z2 = 2 * d$z + 3)
-        expect_error(quiet_irls(collinear_pair_fit(d, design, covariates, robust)), collinear,
+        expect_error(collinear_pair_fit(d, design, covariates, robust), collinear,
                      info = paste(design, robust, k))
       }
     }
@@ -709,13 +709,62 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
   # Every family, with the fit as given far from zero.
   covariates <- data.frame(z = d$z + 1e6 * stats::sd(d$z), z2 = 2 * d$z + 3)
   counts <- pmax(0, round(2 + d$y4))
-  expect_error(quiet_irls(collinear_pair_fit(d, "four", covariates,
-                                             y = as.integer(d$y4 > 0.2),
-                                             family = stats::binomial())), collinear)
-  expect_error(quiet_irls(collinear_pair_fit(d, "four", covariates, y = counts,
-                                             family = stats::poisson())), collinear)
-  expect_error(suppressWarnings(collinear_pair_fit(d, "six", covariates, y = counts,
-                                                   family = "negative_binomial")), collinear)
+  expect_error(collinear_pair_fit(d, "four", covariates, y = as.integer(d$y4 > 0.2),
+                                  family = stats::binomial()), collinear)
+  expect_error(collinear_pair_fit(d, "four", covariates, y = counts, family = stats::poisson()),
+               collinear)
+  expect_error(collinear_pair_fit(d, "six", covariates, y = counts, family = "negative_binomial"),
+               collinear)
+})
+
+test_that("a fit that stops gives the error without the model fit's warnings (#154)", {
+  # The standardized fit gave its warnings before the checks for collinear
+  # terms, so a warning that glm.fit() or theta did not converge, or the
+  # noncollapsible warning of the several-treatment path, came with the
+  # collinearity error. They are now held back until the checks pass.
+  d <- collinear_set()
+  covariates <- data.frame(z = d$z + 1e6 * stats::sd(d$z), z2 = 2 * d$z + 3)
+  counts <- pmax(0, round(2 + d$y4))
+  collinear <- "collinear with other terms of the model: z2?[.]"
+  cases <- list(
+    list("four", counts, "negative_binomial"), list("six", counts, "negative_binomial"),
+    list("six", as.integer(d$y6 > 0.2), stats::binomial()),
+    list("four", as.integer(d$y4 > 0.2), stats::binomial())
+  )
+  for (case in cases) {
+    warned <- character()
+    expect_error(withCallingHandlers(
+      collinear_pair_fit(d, case[[1]], covariates, y = case[[2]], family = case[[3]]),
+      warning = function(w) {
+        warned <<- c(warned, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    ), collinear, info = case[[1]])
+    expect_identical(warned, character(), info = case[[1]])
+  }
+
+  # A fit that goes ahead gives the model fit's warnings, in order, and
+  # then the noncollapsible warning: a covariate that separates the outcome.
+  ss <- withr::with_seed(31, {
+    ss <- data.frame(treat = rep(c(1, 0, 1, 0), each = 30),
+                     pretested = rep(c(1, 1, 0, 0), each = 30))
+    ss$y_pre <- ifelse(ss$pretested == 1, stats::rnorm(120), NA)
+    ss$x <- stats::rnorm(120)
+    ss
+  })
+  classes <- character()
+  fit <- withCallingHandlers(
+    fit_solomon_glm(as.integer(ss$x > 0), ss$treat, ss$pretested, ss$y_pre,
+                    covariates = data.frame(x = ss$x), family = stats::binomial()),
+    warning = function(w) {
+      classes <<- c(classes, class(w)[1])
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_s3_class(fit, "solomon_glm")
+  k <- length(classes)
+  expect_gt(k, 1L)
+  expect_identical(classes, c(rep("simpleWarning", k - 1L), "solomonR_noncollapsible_warning"))
 })
 
 test_that("near zero, nearly collinear covariates are fitted as glm() fits them", {
@@ -1026,8 +1075,8 @@ test_that("nested near-collinearity near zero is fitted as glm() and master fit 
     ref <- fit_solomon_glm(y, treat, pretested, pre, covariates = reference, robust = "none")
     expect_equal(fit$effects, ref$effects, tolerance = 1e-2, info = info)
   }
-  expect_error(quiet_irls(fit_solomon_glm(y, treat, pretested, pre,
-                                          covariates = nested(1e-6, 1e-9), robust = "none")),
+  expect_error(fit_solomon_glm(y, treat, pretested, pre, covariates = nested(1e-6, 1e-9),
+                               robust = "none"),
                "collinear with other terms of the model: z3[.]")
 })
 

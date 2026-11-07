@@ -543,18 +543,20 @@
   # The model as given, and the model refitted with the numeric covariates
   # standardized and the pretest scaled, which the inference comes from and
   # which gives the warnings, as in the four-group model (issue #137).
+  # Its warnings are given only once the checks below let the fit go ahead
+  # (issue #154).
   standardize <- .standardizes(df, names(covariates))
-  fit <- .fit_model(fml, df, family, negbin, quiet = standardize)
+  held <- .record_warnings(.fit_model(fml, df, family, negbin, quiet = standardize))
+  fit <- held$value
   used <- rep(TRUE, nrow(df))
   if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
   fit_given <- fit
   scaling <- .covariate_scaling(df, names(covariates), used)
-  if (standardize) fit <- .fit_model(fml, scaling$data, family, negbin)
-  if (negbin) family <- stats::family(fit)
-
-  if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
-    .warn_noncollapsible(stats::family(fit)$link, ngroup = TRUE)
+  if (standardize) {
+    held <- .record_warnings(.fit_model(fml, scaling$data, family, negbin))
+    fit <- held$value
   }
+  if (negbin) family <- stats::family(fit)
 
   # Analyzable participants (the rows the model kept) in each of the
   # 2(k + 1) groups.
@@ -581,6 +583,11 @@
       "Use `robust = \"none\"` or leave the condition out; see validate_solomon().",
       call. = FALSE
     )
+  }
+
+  .signal_warnings(held$warnings)
+  if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
+    .warn_noncollapsible(stats::family(fit)$link, ngroup = TRUE)
   }
 
   # Robust covariance, as in the four-group model: with a numeric covariate,

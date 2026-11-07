@@ -1617,14 +1617,20 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # covariate or the pretest (issue #137; .covariate_scaling()). That fit
   # gives the warnings, and this one is fitted silently: far from zero, a
   # covariate can make the fit as given warn, for instance that theta did
-  # not converge, where the same model standardized does not.
+  # not converge, where the same model standardized does not. The warnings
+  # of the fit that gives them are held back until the checks below have
+  # passed, so that a fit that stops gives the error alone (issue #154).
   standardize <- .standardizes(df, names(covariates))
-  fit <- .fit_model(fml, df, family, negbin, quiet = standardize)
+  held <- .record_warnings(.fit_model(fml, df, family, negbin, quiet = standardize))
+  fit <- held$value
   in_model <- rep(TRUE, nrow(df))
   if (!is.null(fit$na.action)) in_model[fit$na.action] <- FALSE
   fit_given <- fit
   scaling <- .covariate_scaling(df, names(covariates), in_model)
-  if (standardize) fit <- .fit_model(fml, scaling$data, family, negbin)
+  if (standardize) {
+    held <- .record_warnings(.fit_model(fml, scaling$data, family, negbin))
+    fit <- held$value
+  }
   if (negbin) family <- stats::family(fit)
 
   # An empty group, or a term collinear with the others, leaves a
@@ -1662,6 +1668,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     )
   }
 
+  .signal_warnings(held$warnings)
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link)
   }
