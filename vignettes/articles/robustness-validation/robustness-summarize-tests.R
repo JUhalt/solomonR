@@ -306,6 +306,19 @@ expect("the Romano mean is the mean of the 160 rates",
 romano$failed[1] <- FALSE
 expect("the Romano check stops if the two means disagree without a failed fit",
        fails_with(romano_rows(romano, rp, scenarios), "disagree"))
+# In the fallback (no uniform distribution in the main grid) a pairing has
+# 32 scenarios and 128 rates. The label names no count; `total` gives it.
+rom_fb <- rom_sc[study_fallback(scenarios[rom_sc, ])]
+romano_fb <- data.frame(scenario = rom_fb,
+                        mean_q = ifelse(scenarios$alloc_type[rom_fb] == "treated smaller", 0.06, 0.04),
+                        var_q = 0.01, reps_q = 5000L, failed = FALSE)
+rf <- romano_rows(romano_fb, rom_perf(romano_fb), scenarios)
+expect("the fallback's Romano check: 32 scenarios and 128 rates in each pairing, MCSE (1/32) sqrt(sum var/R)",
+       length(rom_fb) == 64L && identical(rf$total, c(128L, 128L)) &&
+         near(rf$mcse, rep(sqrt(32 * 0.01 / 5000) / 32, 2)) && near(rf$estimate, c(0.06, 0.04)))
+expect("the Romano rows' label names no count, in the full design and in the fallback alike",
+       length(unique(c(rr$measure, rf$measure))) == 1L &&
+         !grepl("[0-9]", gsub("M4", "", rr$measure[1], fixed = TRUE)))
 
 # ---- Synthetic inputs: results, agreement rows, and the preflight ---------------------------------
 

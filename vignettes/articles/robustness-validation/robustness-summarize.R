@@ -795,6 +795,9 @@ assign_features <- function(dec) {
 # MCSE "is computed from each replication's proportion of rejected
 # contrasts". Where no M4 contrast failed in the pairing, the mean of the
 # rates equals (1/k) sum_s mean_r(q), and the summary stops if it does not.
+# The row's label names no count (4k is 160, or 128 in the fallback); its
+# `total` gives the number of rates averaged (4k, less any rate whose fits
+# all failed).
 romano_rows <- function(romano, perf, sc) {
   x <- sc[match(romano$scenario, sc$scenario), , drop = FALSE]
   pick <- x$level == "main" & !is.na(x$h) & x$h > 1
@@ -814,7 +817,7 @@ romano_rows <- function(romano, perf, sc) {
       rule = paste0("Romano check (", pairing, " arms, h > 1)"),
       verdict = if (as_predicted) "as predicted" else "contradicted",
       class = if (as_predicted) "" else "defect", method = "M4",
-      measure = "mean rejection rate of the 160 M4 rates", estimate = mean_rate, mcse = mcse,
+      measure = "mean of the pairing's M4 rejection rates", estimate = mean_rate, mcse = mcse,
       threshold = nominal, total = as.integer(sum(!is.na(rates))), fun = "perm_solomon",
       contrast = "the four treatment contrasts")
   }
