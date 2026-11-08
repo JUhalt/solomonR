@@ -36,7 +36,9 @@
       frame <- fit$data[used, , drop = FALSE]
       if (!is.null(scaling)) frame <- .standardized_frame(frame, scaling)
     }
-    fit_cr <- stats::glm(stats::formula(model), data = frame, family = fit$family)
+    # Each factor is coded as in the fit, as `L` and `V` are (issue #168).
+    fit_cr <- stats::glm(stats::formula(model), data = frame, family = fit$family,
+                         contrasts = model$contrasts)
     basis <- if (.numeric_covariates(scaling)) .cr2_basis(fit_cr, fit$cluster[used])
     df <- if (is.null(basis)) {
       vapply(seq_len(nrow(L)), function(i) {
