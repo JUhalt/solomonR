@@ -475,6 +475,14 @@ the audit:
   - [x] `marginal_solomon()` and `plot_sensitization()` code a factor
     covariate by the contrasts option in force when they refit the
     model, not as the fit coded it — [#168](https://github.com/JUhalt/solomonR/issues/168); merged in [PR #169](https://github.com/JUhalt/solomonR/pull/169)
+  - [ ] `marginal_solomon()` and `plot_sensitization()` code a character
+    covariate by the collation in force when they run, not the fit's — [#170](https://github.com/JUhalt/solomonR/issues/170)
+  - [ ] `marginal_solomon()` stops when a covariate level occurs only
+    among pretested participants with a pretest who are outside the
+    model — [#171](https://github.com/JUhalt/solomonR/issues/171)
+  - [ ] `fit_solomon_mmrm()` with an ordered occasion factor — [#172](https://github.com/JUhalt/solomonR/issues/172)
+  - [ ] A covariate named `pre_obs` in a fit without a pretest, or named
+    `condition`, taken for the pretest or the condition — [#174](https://github.com/JUhalt/solomonR/issues/174)
 - **Figures and reports**
   - [x] The interval of the equivalence test drawn in the forest plot — [#107](https://github.com/JUhalt/solomonR/issues/107); merged in [PR #121](https://github.com/JUhalt/solomonR/pull/121)
   - [x] Figure text that fits the figure — [#108](https://github.com/JUhalt/solomonR/issues/108); merged in [PR #123](https://github.com/JUhalt/solomonR/pull/123)
@@ -495,6 +503,9 @@ the audit:
     in `fit_solomon_glm()`, the convergence warning that can come with
     the error for exactly collinear covariates, and which fit
     `model$converged` describes — [#154](https://github.com/JUhalt/solomonR/issues/154); merged in [PR #165](https://github.com/JUhalt/solomonR/pull/165)
+  - [ ] `fit_solomon_glm()` with HC3 when a participant has leverage 1:
+    an internal error, undefined or rounding-dependent standard errors,
+    and a refusal for a group of one without a class — [#173](https://github.com/JUhalt/solomonR/issues/173)
   - [ ] Robustness study of the recommended inference, under a protocol
     posted before any run — [#116](https://github.com/JUhalt/solomonR/issues/116)
 - **Interface**
