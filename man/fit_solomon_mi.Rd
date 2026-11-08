@@ -68,6 +68,10 @@ each imputation, one row for each imputation and one column for each
 contrast.
 \item \code{df_com}: the complete-data degrees of freedom of each contrast.
 \item \code{robust}: the covariance of each completed-data analysis.
+\item \code{hc3_leverage}: with \code{robust = "HC3"}, the row numbers of the
+participants whose leverage is 1, which leave the HC3 standard errors
+of the contrasts that depend on them undefined (see "Method"); empty
+when there are none. \code{NULL} with \code{robust = "none"}.
 \item \code{pretest} (whether pretest scores were supplied) and \code{data} (the
 design indicators), which solomonR's own functions use.
 }
@@ -125,6 +129,16 @@ With fixed offsets, multiple imputation with Rubin's variance is
 information-anchored: the sensitivity analysis neither adds nor removes
 information relative to the MAR analysis (Cro et al., 2019; Carpenter et
 al., 2023, p. 278).
+
+\strong{HC3 at leverage 1.} As in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see "HC3 at leverage
+1" there), a contrast that depends on a participant whose leverage is 1
+has no HC3 standard error: its standard error, test, and interval are
+\code{NA}, and the analysis gives the classed warning
+\code{solomonR_hc3_leverage_warning}, which names the participants by their
+row numbers in the data. Every completed data set has the same design, so
+the same contrasts are affected in each. Under HC3, a group with a single
+participant stops the analysis with an error of class
+\code{solomonR_hc3_singleton_error}.
 
 \strong{Structural and incidental missingness.} Pretests absent by design are
 never imputed. Pretested participants with a missing pretest are excluded

@@ -202,7 +202,7 @@ test_that("HC3 is refused when a group has one analyzable participant", {
 
   # With the pretest the hat value is exactly 1 and every standard error was
   # NaN; without it the hat value is within rounding of 1 and the standard
-  # errors were rounding noise.
+  # errors were rounding noise. The error has a class of its own (#173).
   expect_identical(
     error_message(fit_solomon_glm(y_post, condition, pretested, y_pre,
                                   control = "Control", data = single)),
@@ -214,10 +214,14 @@ test_that("HC3 is refused when a group has one analyzable participant", {
     expected
   )
   expect_error(
+    fit_solomon_glm(y_post, condition, pretested, y_pre, control = "Control", data = single),
+    class = "solomonR_hc3_singleton_error"
+  )
+  expect_error(
     fit_solomon_glm(visits, condition, pretested, family = stats::poisson(),
                     control = "Control", data = single),
     "single analyzable participant: Unpretested, B.",
-    fixed = TRUE
+    fixed = TRUE, class = "solomonR_hc3_singleton_error"
   )
 
   # The count is of the participants the model keeps: missing pretests leave
@@ -231,7 +235,7 @@ test_that("HC3 is refused when a group has one analyzable participant", {
                       data = missing_pre)
     ),
     "single analyzable participant: Pretested, B.",
-    fixed = TRUE
+    fixed = TRUE, class = "solomonR_hc3_singleton_error"
   )
 
   # Conventional covariance is defined, and two participants are enough.

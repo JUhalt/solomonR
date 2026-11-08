@@ -425,7 +425,9 @@
 # The participants each standardization of marginal_solomon() runs over, as
 # in "the 74 pretested participants analyzed" or "every pretested
 # participant with a pretest (118, 44 without an outcome)", from
-# `standardized` (`n`).
+# `standardized` (`n`). When the "observed" standardization leaves some of
+# them out (issue #171), it is "97 of the 100 pretested participants with
+# a pretest (7 without an outcome)".
 .marginal_set_phrase <- function(n, center) {
   if (center == "analyzed") {
     return(sprintf("the %d pretested participants analyzed", n[["analyzed"]]))
@@ -434,7 +436,19 @@
     c(analyzed = n[["analyzed"]], observed = n[["observed"]], no_posttest = n[["no_outcome"]]),
     "without an outcome"
   )
+  left_out <- .marginal_left_out_n(n)
+  if (left_out > 0L) {
+    return(sprintf("%d of the %d pretested participants with a pretest (%s)", n[["observed"]],
+                   n[["observed"]] + left_out, outside))
+  }
   sprintf("every pretested participant with a pretest (%d, %s)", n[["observed"]], outside)
+}
+
+# The number of pretested participants with a pretest whom the "observed"
+# standardization of marginal_solomon() leaves out (issue #171), from
+# `standardized` (`n`); 0 for results made before it was counted.
+.marginal_left_out_n <- function(n) {
+  sum(n[intersect(c("missing_covariate", "unseen_level"), names(n))])
 }
 
 # The rows of marginal_solomon() that move with the standardization: every

@@ -185,8 +185,10 @@
   if (robust == "none") {
     G <- sqrt(summary(fit)$dispersion) * U
   } else {
-    infl <- .glm_influence(fit, map = M)
-    G <- infl$influence / (1 - infl$hat)
+    # A participant at leverage 1 adds its limit, 0 (.hc3_influence()); the
+    # fit marks the entries that participant leaves undefined
+    # (.coefficient_table()).
+    G <- .hc3_influence(fit, map = M)$G
   }
   out <- crossprod(G)
   dimnames(out) <- dimnames(M)
@@ -223,9 +225,11 @@
 # from the fit's QR decomposition (.glm_influence()). It is the covariance
 # that sandwich::vcovHC() computes, to about 1e-13 on well-conditioned
 # designs, without forming the inverse of X'WX. Named by the coefficients.
+# A participant at leverage 1 adds its limit, 0, to every entry, where
+# sandwich::vcovHC() gives NaN; the entries that depend on that participant
+# are undefined, and the fit marks them (issue #173; .hc3_influence()).
 .hc3_vcov <- function(model) {
-  infl <- .glm_influence(model)
-  crossprod(infl$influence / (1 - infl$hat))
+  crossprod(.hc3_influence(model)$G)
 }
 
 # The variances of the combinations `L` (one per row) of the coefficients
@@ -234,11 +238,15 @@
 # squared influences on l'b, each divided by 1 - h_i (.glm_influence()).
 # The covariance of nearly collinear covariates has large entries, which
 # cancel in a combination that weights them nearly equally, as the
-# gradients of the delta method do; these do not form it.
+# gradients of the delta method do; these do not form it. Under HC3 the
+# variance of a combination that depends on a participant at leverage 1
+# is undefined and returned as NA (issue #173; .hc3_influence()).
 .combination_variance <- function(model, robust, L) {
   if (robust == "HC3") {
-    infl <- .glm_influence(model, map = L)
-    return(colSums((infl$influence / (1 - infl$hat))^2))
+    hc3 <- .hc3_influence(model, map = L)
+    variance <- colSums(hc3$G^2)
+    variance[hc3$undefined] <- NA_real_
+    return(variance)
   }
   q <- model$qr
   rank <- seq_len(q$rank)
@@ -410,8 +418,14 @@
 # of the table are the coefficients, in their order, and are matched to the
 # coefficients and the covariance by position, since two terms can share a
 # name (.scaled_columns()).
+#
+# Under HC3 with a participant at leverage 1, `hc3` (.hc3_leverage())
+# describes them, and the entries of the covariance of the coefficients as
+# given that depend on such a participant are NA, as are the standard
+# error, statistic, p-value, and interval of each coefficient that does
+# (issue #173). `V` holds their limits, which the participant adds 0 to.
 .coefficient_table <- function(fit, fit_cr, V, scaling, robust, df_model, conf_level,
-                               basis = NULL) {
+                               basis = NULL, hc3 = NULL) {
   tidy <- .tidy_coefficients(fit)
   standardized <- length(scaling$means) > 0L
   cf <- stats::coef(fit)
@@ -424,6 +438,10 @@
     estimate <- drop(M %*% cf)[rows]
     tidy$estimate <- if (is.null(names(tidy$estimate))) unname(estimate) else estimate
     V_given <- .given_vcov(fit, V, M, robust, if (robust == "CR2") basis)
+  }
+  if (!is.null(hc3)) {
+    weight <- if (standardized) .glm_influence(fit, map = M)$weight else hc3$weight
+    V_given[.hc3_undefined_entries(weight, hc3$leverage)] <- NA_real_
   }
   se_vec <- sqrt(diag(V_given))
   tidy$std.error <- unname(se_vec[rows])

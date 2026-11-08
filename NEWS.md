@@ -75,6 +75,121 @@
   `contr.treatment`, `contr.sum`, or `contr.helmert`. They are skipped
   where no such collation is available.
 
+## Covariate levels the model does not have (bug fix, #171)
+
+* `marginal_solomon()` stopped with R's error "factor site has new
+  levels D" when a level of a factor, character, or ordered covariate
+  occurred only among pretested participants who had a pretest but were
+  outside the model, for example because their posttest was missing. It
+  stopped at either `pretest_center`, including the default
+  `"analyzed"`, which does not use these participants, with the delta
+  method and with the bootstrap, for binary, Poisson, and
+  negative-binomial fits. The message named only the first such
+  covariate. `method = "cluster_summary"` was not affected. The error
+  came in with the `"observed"` standardization (#135), after the 0.8.2
+  release.
+* The model has no coefficient for such a level, so these participants'
+  risks cannot be predicted. They are now left out of the `"observed"`
+  standardization, as a participant who lacks a covariate already was.
+  Every factor, character, and ordered covariate is checked. The results
+  equal those of the data without these participants, at either center,
+  with the delta method and with the bootstrap.
+* `standardized` gains two counts of the pretested participants with a
+  pretest who are outside the model and left out of the `"observed"`
+  set: `missing_covariate`, for those who lack a covariate (whatever
+  their other covariates), and `unseen_level`, for the others, who have
+  a covariate level that no participant in the model has.
+* The print, `report_solomon()`, and `pretest_sensitivity$note` say how
+  many were left out and why. The note names the covariates they lack
+  and every level the model does not have, including the levels of
+  participants who also lack a covariate. It is given also when no
+  participant is left in the set beyond those of the model, so that the
+  two standardizations are of the same participants. On a CR2 fit it
+  follows the note on missing clusters.
+* When participants are left out, the print and the report give the
+  `"observed"` set as, for example, "97 of the 100 pretested
+  participants with a pretest" instead of "every pretested participant
+  with a pretest". They give it in the lines on both sets, when the two
+  sets differ, and the print also gives it in its first line at
+  `pretest_center = "observed"`. When no participant beyond the model is
+  left in the set, the two sets are the same: the report names neither
+  set, nor does the print at the default center, and only the note
+  gives the number left out. Before, the print and the report did not
+  say that participants who lack a covariate were left out, although
+  the `"observed"` set they gave was then smaller than the number of
+  pretested participants with a pretest.
+
+## HC3 standard errors at leverage 1 (bug fix, #173)
+
+* Under the default `robust = "HC3"`, `fit_solomon_glm()` failed when a
+  participant's leverage (hat value) was 1. This happens when the
+  pretest varies within the pretested groups only through one
+  participant, or when a covariate varies only through one participant,
+  such as a factor level that one participant alone holds. HC3 divides
+  each participant's squared residual by (1 - h)^2, so that
+  participant's term is 0/0, and the HC3 standard error of every
+  estimate that depends on the participant is undefined (MacKinnon &
+  White, 1985). A Gaussian fit with a pretest stopped with R's internal
+  error "missing value where TRUE/FALSE needed". Other families, and
+  Gaussian fits without a pretest, returned `NaN` for every standard
+  error, with only a warning from the sandwich package. With a numeric
+  covariate, the standard errors depended on rounding, without a
+  warning. `fit_solomon_mi()` gave `Inf`, `NaN`, or rounding-dependent
+  standard errors without a warning, and so did the delta method of
+  `marginal_solomon()`.
+* These fits now report each estimate that depends on such a
+  participant with `NA` for its standard error, statistic, p-value,
+  interval, and Wald R-squared. They give one warning of class
+  `solomonR_hc3_leverage_warning`, which names the participants by
+  their row numbers in the data, states the likely cause, and suggests
+  `robust = "none"`. A participant is taken to be at leverage 1 when
+  the hat value is above 1 - 10^-8. An estimate in which the
+  participant's weight is at most 10^-8 times the largest weight does
+  not depend on the participant; it keeps its HC3 standard error, with
+  the participant's term at its limit, 0. In the issue's example, the
+  treatment effect among unpretested participants keeps its HC3
+  standard error, 2.273. The HC3 covariance then comes from the model's
+  QR decomposition. The fit returns the row numbers as `hc3_leverage`,
+  and the entries of `vcov` and of `covariate_scaling$vcov` that depend
+  on the participant are `NA`.
+* The same rule applies to designs with several treatments and their
+  omnibus tests, to the pretest effects at both centers, to
+  `fit_solomon_mi()`, to the delta method of `marginal_solomon()`, and
+  to the cell means of `plot_sensitization()`. A delta-method result of
+  `marginal_solomon()` carries the fit's `hc3_leverage`.
+  `report_solomon()` gives the affected estimates without an interval
+  or test and, when it reports such an estimate, says why.
+  `plot_solomon_effects()` leaves them out and names them in its
+  caption, rather than as contrasts the model does not estimate.
+  `plot_sensitization()` names the cell means without an interval in
+  its caption, and its subtitle says when the Pretest x Treatment
+  estimate, or with several treatments the Pretest x Condition test,
+  has no interval or result. `equivalence_solomon()`, equivalence
+  bounds in the plots, and `tipping_point_solomon()` stop with an error
+  for such a contrast. `perm_solomon()` is not changed; issue #134
+  covers it.
+* With several treatments, a comparison without a p-value, as when its
+  HC3 standard error is undefined, counts in the adjustment of the
+  other comparisons of its contrast by Holm's (1979) or the Bonferroni
+  procedure, as if its p-value were the largest. The adjustment is then
+  across the number of comparisons that the print and the report state.
+  The same rule applies to the treatments' pretest effects, at both
+  centers.
+* `report_solomon()` gives an estimate that has no interval and no
+  p-value as the estimate followed by "(no interval or test is
+  available)", rather than with an interval and a p-value of `NA`. This
+  holds in the sentences that give the rows of a result's `effects`
+  table with their intervals, and for the pretest effects at the other
+  center. It holds in analyses without a participant at leverage 1 too,
+  such as a `marginal_solomon()` bootstrap that gives no interval, or a
+  CR2 fit that gives no standard errors at the other center.
+* The refusal of HC3 for a group with a single analyzable participant
+  now has the class `solomonR_hc3_singleton_error`, on the four-group
+  and the several-treatment paths, with the same message, so that a
+  script can catch it by its class. `fit_solomon_mi()` had no such
+  refusal and gave standard errors that depended on rounding; it now
+  stops with the same error.
+
 ## Refits under the fit's contrasts (bug fix, #168)
 
 * `marginal_solomon()` and `plot_sensitization()` refit the model of a

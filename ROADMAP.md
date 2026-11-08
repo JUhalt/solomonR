@@ -477,9 +477,9 @@ the audit:
     model, not as the fit coded it — [#168](https://github.com/JUhalt/solomonR/issues/168); merged in [PR #169](https://github.com/JUhalt/solomonR/pull/169)
   - [ ] `marginal_solomon()` and `plot_sensitization()` code a character
     covariate by the collation in force when they run, not the fit's — [#170](https://github.com/JUhalt/solomonR/issues/170)
-  - [ ] `marginal_solomon()` stops when a covariate level occurs only
+  - [x] `marginal_solomon()` stops when a covariate level occurs only
     among pretested participants with a pretest who are outside the
-    model — [#171](https://github.com/JUhalt/solomonR/issues/171)
+    model — [#171](https://github.com/JUhalt/solomonR/issues/171); merged in [PR #178](https://github.com/JUhalt/solomonR/pull/178)
   - [ ] `fit_solomon_mmrm()` with an ordered occasion factor — [#172](https://github.com/JUhalt/solomonR/issues/172)
   - [ ] A covariate named `pre_obs` in a fit without a pretest, or named
     `condition`, taken for the pretest or the condition — [#174](https://github.com/JUhalt/solomonR/issues/174)
@@ -503,9 +503,9 @@ the audit:
     in `fit_solomon_glm()`, the convergence warning that can come with
     the error for exactly collinear covariates, and which fit
     `model$converged` describes — [#154](https://github.com/JUhalt/solomonR/issues/154); merged in [PR #165](https://github.com/JUhalt/solomonR/pull/165)
-  - [ ] `fit_solomon_glm()` with HC3 when a participant has leverage 1:
+  - [x] `fit_solomon_glm()` with HC3 when a participant has leverage 1:
     an internal error, undefined or rounding-dependent standard errors,
-    and a refusal for a group of one without a class — [#173](https://github.com/JUhalt/solomonR/issues/173)
+    and a refusal for a group of one without a class — [#173](https://github.com/JUhalt/solomonR/issues/173); merged in [PR #176](https://github.com/JUhalt/solomonR/pull/176)
   - [ ] Robustness study of the recommended inference, under a protocol
     posted before any run — [#116](https://github.com/JUhalt/solomonR/issues/116)
 - **Interface**

@@ -216,6 +216,12 @@ test_that("a CR2 fit without the cluster of a participant outside the model note
   expect_match(out, "The standard errors at that center are not given.", fixed = TRUE)
   r <- report_solomon(fit)
   expect_true(any(grepl("standard errors at that center are not given", r$results, fixed = TRUE)))
+  # The estimates at that center are given as having no interval (#173).
+  expect_match(squash(paste(r$results, collapse = " ")), paste(
+    "the pretest effect was 2.35 among control participants (no interval or test is available),",
+    "and 2.04 among treated participants (no interval or test is available); their average,",
+    "the pretest main effect, was 2.19 (no interval or test is available)."
+  ), fixed = TRUE)
 })
 
 test_that("report_solomon() names the center, its assumption, the other center, and the gap", {
