@@ -589,14 +589,10 @@
                     covariates = .formula_names(names(covariates)))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
-  # HC3 divides the squared residual by (1 - h)^2.
+  # HC3 divides the squared residual by (1 - h)^2. The error has the class
+  # `solomonR_hc3_singleton_error` (issue #173).
   if (robust == "HC3" && any(counts == 1)) {
-    stop(
-      "HC3 standard errors are undefined because these groups have a single ",
-      "analyzable participant: ", paste(.group_names(counts, counts == 1), collapse = "; "), ". ",
-      "Use `robust = \"none\"` or leave the condition out; see validate_solomon().",
-      call. = FALSE
-    )
+    .stop_hc3_singleton(.group_names(counts, counts == 1), ngroup = TRUE)
   }
 
   # `held` is removed once its warnings are given, as in the four-group
@@ -609,13 +605,24 @@
 
   # Robust covariance, as in the four-group model: with a numeric covariate,
   # from the standardized model's QR decomposition (.hc3_vcov(),
-  # .cr2_basis()).
+  # .cr2_basis()). Under HC3, the estimates that depend on a participant at
+  # leverage 1 are reported with NA, with a classed warning, as in the
+  # four-group model (issue #173).
   fit_cr <- fit
   n_clusters <- NULL
   cr2_basis <- NULL
+  hc3 <- NULL
   numeric_covariates <- .numeric_covariates(scaling)
   if (robust == "HC3") {
-    vcovM <- if (numeric_covariates) .hc3_vcov(fit) else sandwich::vcovHC(fit, type = "HC3")
+    hc3 <- .hc3_leverage(fit, used)
+    vcovM <- if (numeric_covariates || !is.null(hc3)) {
+      .hc3_vcov(fit)
+    } else {
+      sandwich::vcovHC(fit, type = "HC3")
+    }
+    if (!is.null(hc3)) {
+      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates))
+    }
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
@@ -668,19 +675,22 @@
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
   coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
-                                     cr2_basis)
+                                     cr2_basis, hc3)
 
   cf <- stats::coef(fit)
   cn <- names(cf)
 
   # The pretest effects also carry the variance of the mean pretest at which
   # they are evaluated (.center_adjusted()); `terms` is that mean's
-  # .center_terms(), of the center used or of the other center.
+  # .center_terms(), of the center used or of the other center. A contrast
+  # that depends on a participant at leverage 1 has no HC3 standard error
+  # (issue #173).
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
     adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
+    if (.hc3_undefined(hc3, L)) adj[c("variance", "added")] <- list(NA_real_, NA_real_)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
     z   <- est / se
@@ -741,7 +751,11 @@
       effect_row(L_by_comparison[[r]][[type]], rownames(weights)[r], type)
     })
     block <- do.call(rbind, rows)
-    block$p.adjusted <- stats::p.adjust(block$p.value, method = adjust)
+    # A comparison without a p-value, as when its HC3 standard error is
+    # undefined (issue #173), still counts among the comparisons; the
+    # default n of p.adjust() would leave it out.
+    block$p.adjusted <- stats::p.adjust(block$p.value, method = adjust,
+                                        n = length(block$p.value))
     block
   }))
 
@@ -770,7 +784,7 @@
   treated <- pretest_block$contrast == .solomon_pretest_order[2]
   pretest_block$p.adjusted <- pretest_block$p.value
   pretest_block$p.adjusted[treated] <- stats::p.adjust(pretest_block$p.value[treated],
-                                                       method = adjust)
+                                                       method = adjust, n = sum(treated))
   effects <- rbind(effects, pretest_block)
   # The adjusted p-values follow the columns that every effects table has
   # (issue #110).
@@ -800,7 +814,8 @@
       other_treated <- other_rows$contrast == .solomon_pretest_order[2]
       other_rows$p.adjusted <- other_rows$p.value
       other_rows$p.adjusted[other_treated] <- stats::p.adjust(other_rows$p.value[other_treated],
-                                                              method = adjust)
+                                                              method = adjust,
+                                                              n = sum(other_treated))
       other_rows <- other_rows[, columns]
     }
     identity <- identical(stats::family(fit)$link, "identity")
@@ -840,7 +855,13 @@
   omnibus <- do.call(rbind, lapply(types, function(type) {
     L <- do.call(rbind, lapply(basis, `[[`, type))
     b <- as.numeric(L %*% cf)
-    W <- as.numeric(t(b) %*% solve(L %*% vcovM %*% t(L), b))
+    # Under HC3, the test is undefined when one of its contrasts depends on
+    # a participant at leverage 1 (issue #173).
+    W <- if (any(.hc3_undefined(hc3, L))) {
+      NA_real_
+    } else {
+      as.numeric(t(b) %*% solve(L %*% vcovM %*% t(L), b))
+    }
     if (robust == "CR2") {
       wt <- .cr2_wald(L, fit_cr, vcovM, cr2_basis)
       data.frame(test = omnibus_labels[[type]], statistic = wt$Fstat,
@@ -884,7 +905,7 @@
     dispersion = dispersion,
     theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = coefficients$vcov,
-    covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
+    covariate_scaling = .covariate_scaling_element(scaling, fit, .hc3_mark(vcovM, hc3)),
     data = df,
     pretest_mean = pretest_mean,
     pretest_center = pretest_center,
@@ -893,6 +914,7 @@
     pretest_n = parts$n,
     pretest_sensitivity = sensitivity,
     robust = robust,
+    hc3_leverage = if (robust == "HC3") if (is.null(hc3)) integer() else hc3$rows,
     family = family,
     cluster = cluster,
     n_clusters = n_clusters,
