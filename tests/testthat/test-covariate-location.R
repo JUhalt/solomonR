@@ -826,6 +826,10 @@ test_that("a fit that stops at an empty group or a single participant under HC3 
       info <- paste(design, case[[1]])
       out <- signalled(separated_fit(design, case[[1]], robust = case[[2]]))
       expect_s3_class(out$value, "error")
+      # The refusal of HC3 for a single participant has a class (#173).
+      if (case[[1]] == "single") {
+        expect_s3_class(out$value, "solomonR_hc3_singleton_error")
+      }
       expect_match(conditionMessage(out$value), case[[3]], info = info)
       expect_identical(out$warnings, list(), info = info)
       withr::with_options(list(warn = 2), {
@@ -2404,6 +2408,53 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
       ref <- stored$results[[name]][[part]]
       got <- now[[name]][[part]]
       info <- paste(name, part)
+      if (part == "text" && grepl("^marginal", name)) {
+        # Since #171 the print of marginal_solomon() also says that the
+        # "observed" standardization leaves out the pretested participant
+        # with a pretest who lacks an age and is outside the model, and
+        # gives that set as 59 of the 60 pretested participants with a
+        # pretest; master did not. Those lines are checked, and master's
+        # lines are put in their place (none for the note).
+        wrap <- function(text) strwrap(text, width = 80, indent = 2, exdent = 2)
+        swap <- function(got, now_lines, master_lines) {
+          at <- match(now_lines[1], got)
+          expect_false(is.na(at), info = info)
+          if (is.na(at)) return(NULL)
+          lines <- at + seq_along(now_lines) - 1L
+          expect_identical(got[lines], now_lines, info = info)
+          append(got[-lines], master_lines, after = at - 1L)
+        }
+        swaps <- list(list(wrap(sprintf(paste(
+          "The standardization over the pretested participants with a pretest leaves out 1 who",
+          "is outside the model, because their %s cannot be predicted: they lack a covariate",
+          "(age)."
+        ), if (grepl("poisson|negbin", name)) "rates" else "risks")), character(0)))
+        if (grepl("observed$", name)) {
+          # The first swap assumes a binary ("Risks") result; a count one would need "Rates".
+          swaps <- c(swaps, list(
+            list(paste("Risks standardized over the pretest among 59 of the 60 pretested",
+                       "participants with a pretest (pretest_center = \"observed\")."),
+                 paste("Risks standardized over the pretest among every pretested participant",
+                       "with a pretest (pretest_center = \"observed\").")),
+            list(wrap(paste("Pretested cells standardized over 59 of the 60 pretested participants",
+                            "with a pretest (5 without an outcome) (pretest_center =",
+                            "\"observed\").")),
+                 wrap(paste("Pretested cells standardized over every pretested participant with",
+                            "a pretest (59, 5 without an outcome) (pretest_center =",
+                            "\"observed\")."))
+            )
+          ))
+        } else {
+          swaps <- c(swaps, list(list(
+            wrap(paste("Over 59 of the 60 pretested participants with a pretest (5 without an",
+                       "outcome) instead, the contrasts below move.")),
+            wrap(paste("Over every pretested participant with a pretest (59, 5 without an",
+                       "outcome) instead, the contrasts below move."))
+          )))
+        }
+        for (s in swaps) if (!is.null(got)) got <- swap(got, s[[1]], s[[2]])
+        if (is.null(got)) next
+      }
       if (part %in% c("text", "sentences")) {
         # A difference between a contrast's estimates at the two pretest
         # centers that is zero but for rounding error, that of a rate ratio

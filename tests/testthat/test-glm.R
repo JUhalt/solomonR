@@ -276,7 +276,8 @@ test_that("an empty group or a collinear term of a four-group design is named", 
 test_that("HC3 refuses a four-group design with a group of one participant", {
   # Its hat value is 1, so HC3 is undefined. Before, the fit returned NaN
   # standard errors without a pretest and failed with "missing value where
-  # TRUE/FALSE needed" with one, at either center (#135).
+  # TRUE/FALSE needed" with one, at either center (#135). The error has a
+  # class of its own (#173).
   d <- solomon_example
   one <- d
   one$y_post[which(one$pretested == 1 & one$treat == 1)[-1]] <- NA
@@ -285,15 +286,17 @@ test_that("HC3 refuses a four-group design with a group of one participant", {
       fit_solomon_glm(y_post, treat, pretested, y_pre, data = one, pretest_center = center),
       paste("HC3 standard errors are undefined because these groups have a single analyzable",
             "participant: Pretested, treatment."),
-      fixed = TRUE
+      fixed = TRUE, class = "solomonR_hc3_singleton_error"
     )
   }
   expect_error(fit_solomon_glm(y_post, treat, pretested, data = one),
-               "single analyzable participant: Pretested, treatment.", fixed = TRUE)
+               "single analyzable participant: Pretested, treatment.", fixed = TRUE,
+               class = "solomonR_hc3_singleton_error")
   un <- d
   un$y_post[which(un$pretested == 0 & un$treat == 0)[-1]] <- NA
   expect_error(fit_solomon_glm(y_post, treat, pretested, y_pre, data = un),
-               "single analyzable participant: Unpretested, control.", fixed = TRUE)
+               "single analyzable participant: Unpretested, control.", fixed = TRUE,
+               class = "solomonR_hc3_singleton_error")
   # Model-based standard errors are defined.
   fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, robust = "none", data = one)
   expect_true(all(is.finite(fit$effects$std.error)))
