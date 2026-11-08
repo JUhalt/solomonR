@@ -25,7 +25,7 @@ on:
       study:
         description: Study key in tools/sim/studies.csv
         type: choice
-        options: [smoke]
+        options: [smoke, robustness]
         default: smoke
       package_sha:
         description: Full SHA of the package commit (on master unless smoke); empty for this workflow's commit

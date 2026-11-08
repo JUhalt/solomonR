@@ -53,7 +53,8 @@ if (!file.exists("DESCRIPTION") ||
 articles <- file.path("vignettes", "articles")
 # A script that another script sources rather than runs, and a script that
 # reads what another one writes, which therefore runs first.
-sourced_by <- c("ngroup-validation/ngroup-summarize.R" = "ngroup-validation/ngroup-simulation.R")
+sourced_by <- c("ngroup-validation/ngroup-summarize.R" = "ngroup-validation/ngroup-simulation.R",
+                "robustness-validation/robustness-summarize.R" = "robustness-validation/robustness-simulation.R")
 runs_after <- c("mi-validation/mi-agreement.R" = "mi-validation/mi-simulation.R")
 
 # Every .R file in a *-validation folder, at any depth, as a path relative to
