@@ -785,7 +785,8 @@ the fit’s — [\#170](https://github.com/JUhalt/solomonR/issues/170)
 [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
 stops when a covariate level occurs only among pretested participants
 with a pretest who are outside the model —
-[\#171](https://github.com/JUhalt/solomonR/issues/171)
+[\#171](https://github.com/JUhalt/solomonR/issues/171); merged in [PR
+\#178](https://github.com/JUhalt/solomonR/pull/178)
 
 [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
 with an ordered occasion factor —

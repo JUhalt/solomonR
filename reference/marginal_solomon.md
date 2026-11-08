@@ -63,9 +63,11 @@ marginal_solomon(
   pretested cells are standardized over (issue \#135): `"analyzed"`, the
   pretested participants in the model; or `"observed"`, every pretested
   participant with a pretest and the model's other covariates, with or
-  without an outcome or a recorded condition. Defaults to the fit's
-  `pretest_center` (`"analyzed"` for fits made before it existed). The
-  centering constant itself plays no role.
+  without an outcome or a recorded condition, except those with a
+  covariate level that no participant in the model has (see "Missing
+  outcomes" in Details). Defaults to the fit's `pretest_center`
+  (`"analyzed"` for fits made before it existed). The centering constant
+  itself plays no role.
 
 ## Value
 
@@ -114,8 +116,12 @@ An object of class `solomon_marginal`, a list with:
   `pretest_center` is ignored there.
 
 - `standardized`: the numbers of pretested participants each set holds
-  (`analyzed` and `observed`), and of those outside the model, how many
-  have no outcome (`no_outcome`). Absent with
+  (`analyzed` and `observed`); of those outside the model, how many have
+  no outcome (`no_outcome`); and how many pretested participants with a
+  pretest are outside the model and left out of the `observed` set
+  because they lack a covariate (`missing_covariate`, whatever their
+  other covariates) or else have a covariate level that no participant
+  in the model has (`unseen_level`). Absent with
   `method = "cluster_summary"`.
 
 - `attrition`: each Solomon group's `n`, outcomes missing
@@ -126,9 +132,12 @@ An object of class `solomon_marginal`, a list with:
   contrast under both sets, a list with `effects` (keyed by `scale` and
   `center`; the other set's standard errors and intervals are `NA` under
   the bootstrap), `difference` (the estimates under the `analyzed` and
-  `observed` sets and their `difference`), `differ`, and `note`; `NULL`
-  without a pretest covariate and with `method = "cluster_summary"`.
-  Outside the stable interface (see
+  `observed` sets and their `difference`), `differ`, and `note`, which
+  says when the standard errors of the other set are not given for want
+  of clusters (CR2 fits), and how many pretested participants were left
+  out of the `observed` set and why (`NULL` when neither applies);
+  `NULL` without a pretest covariate and with
+  `method = "cluster_summary"`. Outside the stable interface (see
   [solomon_output](https://juhalt.github.io/solomonR/reference/solomon_output.md)).
 
 - `design` and `clusters` (the number of clusters in each cell), with
@@ -197,20 +206,37 @@ of
 (see "The pretest effect when posttests are missing" there, for what
 each assumes): by default over the pretested participants in the model
 (`"analyzed"`), or over every pretested participant with a pretest and
-the model's covariates (`"observed"`; a participant without a covariate
-is in the observed center of
+the model's covariates (`"observed"`). The `"observed"` set leaves out a
+participant outside the model whose risks (or rates) cannot be
+predicted: one who lacks a covariate, which the model needs, or one
+whose factor, character, or ordered covariate has a level that no
+participant in the model has (issue \#171), for which the model has no
+coefficient. Such a participant is in the observed center of
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-but not in this set). On the risk or rate scale the choice moves
-Treatment \| pretested, the average treatment effect, and Pretest x
-Treatment as well as the pretest effects, because a marginal risk
-depends on the participants it is averaged over; only Treatment \|
-unpretested does not move. Whenever the two sets differ, the print gives
-the moved contrasts under both, with their difference, and
-`pretest_sensitivity` returns every contrast under both: with full
-inference for the other set under the delta method, and estimates only
-under the bootstrap, so that the resamples are those of the set used. No
-delta line is given on these scales, because no verified source gives
-one there.
+but not in this set. `standardized` counts them; one who lacks a
+covariate is counted as such, whatever their other covariates. The
+print,
+[`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+and `pretest_sensitivity$note` say how many were left out and why,
+naming the covariates they lack and every level the model does not have.
+Where the print and the report name the `"observed"` set, they then give
+it as, for example, "97 of the 100 pretested participants with a
+pretest": in the lines on both sets, which they give when the two sets
+differ, and in the first line of the print at
+`pretest_center = "observed"`. When no participant beyond the model is
+left in the `"observed"` set, the two sets are the same; the report then
+names neither set, nor does the print at the default center, so only the
+note gives the number left out. The default does not use these
+participants. On the risk or rate scale the choice moves Treatment \|
+pretested, the average treatment effect, and Pretest x Treatment as well
+as the pretest effects, because a marginal risk depends on the
+participants it is averaged over; only Treatment \| unpretested does not
+move. Whenever the two sets differ, the print gives the moved contrasts
+under both, with their difference, and `pretest_sensitivity` returns
+every contrast under both: with full inference for the other set under
+the delta method, and estimates only under the bootstrap, so that the
+resamples are those of the set used. No delta line is given on these
+scales, because no verified source gives one there.
 
 Sensitization depends on the scale: an effect can be modified on the
 risk-difference scale and not on the ratio scale, or the reverse. Report

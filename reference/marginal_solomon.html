@@ -154,9 +154,11 @@ state is restored afterwards.</p></dd>
 participants the pretested cells are standardized over (issue #135):
 <code>"analyzed"</code>, the pretested participants in the model; or <code>"observed"</code>,
 every pretested participant with a pretest and the model's other
-covariates, with or without an outcome or a recorded condition.
-Defaults to the fit's <code>pretest_center</code> (<code>"analyzed"</code> for fits made
-before it existed). The centering constant itself plays no role.</p></dd>
+covariates, with or without an outcome or a recorded condition, except
+those with a covariate level that no participant in the model has (see
+"Missing outcomes" in Details). Defaults to the fit's <code>pretest_center</code>
+(<code>"analyzed"</code> for fits made before it existed). The centering constant
+itself plays no role.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -193,8 +195,12 @@ resamples and the number that failed.</p></li>
 <code>"analyzed"</code> or <code>"observed"</code>. Absent with <code>method = "cluster_summary"</code>,
 which uses neither set, so that <code>pretest_center</code> is ignored there.</p></li>
 <li><p><code>standardized</code>: the numbers of pretested participants each set holds
-(<code>analyzed</code> and <code>observed</code>), and of those outside the model, how many
-have no outcome (<code>no_outcome</code>). Absent with
+(<code>analyzed</code> and <code>observed</code>); of those outside the model, how many
+have no outcome (<code>no_outcome</code>); and how many pretested participants
+with a pretest are outside the model and left out of the <code>observed</code>
+set because they lack a covariate (<code>missing_covariate</code>, whatever
+their other covariates) or else have a covariate level that no
+participant in the model has (<code>unseen_level</code>). Absent with
 <code>method = "cluster_summary"</code>.</p></li>
 <li><p><code>attrition</code>: each Solomon group's <code>n</code>, outcomes missing
 (<code>posttest_missing</code>), and <code>share</code>, from the fit, for the attrition
@@ -204,7 +210,10 @@ contrast under both sets, a list with <code>effects</code> (keyed by <code>scale
 <code>center</code>; the other set's standard errors and intervals are <code>NA</code>
 under the bootstrap), <code>difference</code> (the estimates under the
 <code>analyzed</code> and <code>observed</code> sets and their <code>difference</code>), <code>differ</code>, and
-<code>note</code>; <code>NULL</code> without a pretest covariate and with
+<code>note</code>, which says when the standard errors of the other set are not
+given for want of clusters (CR2 fits), and how many pretested
+participants were left out of the <code>observed</code> set and why (<code>NULL</code> when
+neither applies); <code>NULL</code> without a pretest covariate and with
 <code>method = "cluster_summary"</code>. Outside the stable interface (see
 <a href="solomon_output.html">solomon_output</a>).</p></li>
 <li><p><code>design</code> and <code>clusters</code> (the number of clusters in each cell), with
@@ -256,9 +265,25 @@ participants, which <code>pretest_center</code> chooses, as it chooses the cente
 <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> (see "The pretest effect when posttests are missing"
 there, for what each assumes): by default over the pretested participants
 in the model (<code>"analyzed"</code>), or over every pretested participant with a
-pretest and the model's covariates (<code>"observed"</code>; a participant without
-a covariate is in the observed center of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> but not in
-this set). On the risk or rate scale the choice moves
+pretest and the model's covariates (<code>"observed"</code>). The <code>"observed"</code> set
+leaves out a participant outside the model whose risks (or rates) cannot
+be predicted: one who lacks a covariate, which the model needs, or one
+whose factor, character, or ordered covariate has a level that no
+participant in the model has (issue #171), for which the model has no
+coefficient. Such a participant is in the observed center of
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> but not in this set. <code>standardized</code> counts them; one
+who lacks a covariate is counted as such, whatever their other
+covariates. The print, <code><a href="report_solomon.html">report_solomon()</a></code>, and <code>pretest_sensitivity$note</code>
+say how many were left out and why, naming the covariates they lack and
+every level the model does not have. Where the print and the report
+name the <code>"observed"</code> set, they then give it as, for example, "97 of the
+100 pretested participants with a pretest": in the lines on both sets,
+which they give when the two sets differ, and in the first line of the
+print at <code>pretest_center = "observed"</code>. When no participant beyond the
+model is left in the <code>"observed"</code> set, the two sets are the same; the
+report then names neither set, nor does the print at the default
+center, so only the note gives the number left out. The default does
+not use these participants. On the risk or rate scale the choice moves
 Treatment | pretested, the average treatment effect, and Pretest x
 Treatment as well as the pretest effects, because a marginal risk depends
 on the participants it is averaged over; only Treatment | unpretested does
