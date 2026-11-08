@@ -155,6 +155,12 @@ ranged from 0.1 to 0.5 standard deviations across seeds with 100
 imputations and was 0.3 with 2,000. Before reporting a tipping point,
 increase `m` or compare a few seeds.
 
+**HC3 at leverage 1.** Under HC3, a contrast that depends on a
+participant whose leverage is 1 has no standard error and no p-value
+(see
+[`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md)),
+so following it stops with an error.
+
 ## Lifecycle
 
 Experimental, with

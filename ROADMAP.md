@@ -850,7 +850,9 @@ collinear covariates, and which fit `model$converged` describes —
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
 with HC3 when a participant has leverage 1: an internal error, undefined
 or rounding-dependent standard errors, and a refusal for a group of one
-without a class — [\#173](https://github.com/JUhalt/solomonR/issues/173)
+without a class —
+[\#173](https://github.com/JUhalt/solomonR/issues/173); merged in [PR
+\#176](https://github.com/JUhalt/solomonR/pull/176)
 
 Robustness study of the recommended inference, under a protocol posted
 before any run — [\#116](https://github.com/JUhalt/solomonR/issues/116)

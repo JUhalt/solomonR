@@ -82,7 +82,10 @@ reference distribution:
   (`inference = "wald"`).
 
 The sensitization estimate and interval in the subtitle are taken
-unchanged from the fit.
+unchanged from the fit. Under HC3, a mean or a test that depends on a
+participant whose leverage is 1 has no interval or result, and the
+subtitle and the caption say so (see "HC3 at leverage 1" in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
 
 ## Designs with several treatments
 

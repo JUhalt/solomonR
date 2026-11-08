@@ -97,6 +97,10 @@ An object of class `solomon_marginal`, a list with:
 - `method`: the method of inference, and `vcov`, a description of the
   covariance the delta method used (`NA` for the other methods).
 
+- `hc3_leverage`: with `method = "delta"` and a fit whose `hc3_leverage`
+  names participants whose leverage is 1, their row numbers; absent
+  otherwise.
+
 - `R` and `failures`: with `method = "bootstrap"`, the number of
   resamples and the number that failed.
 
@@ -297,6 +301,11 @@ does for the mean pretest; for clustered fits, the degrees of freedom
 are combined by the Welch-Satterthwaite formula (Satterthwaite, 1946;
 Welch, 1947). The bootstrap resamples participants and so includes this
 variance.
+
+Under HC3, a delta-method contrast that depends on a participant whose
+leverage is 1 has an `NA` standard error, interval, and p-value, as in
+the fit (see "HC3 at leverage 1" in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
 
 Count outcomes: for a fit with `family = poisson()` or
 `family = "negative_binomial"`, rates per unit of exposure are

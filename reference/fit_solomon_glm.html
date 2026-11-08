@@ -291,7 +291,9 @@ and the pretest as given. Its <code>converged</code> and <code>iter</code> are t
 that fit, not of the standardized one (see "Covariates").</p></li>
 <li><p><code>vcov</code>: the covariance matrix of the coefficients, as <code>robust</code> sets
 it. With CR2 it is the clubSandwich object, or, with a pretest or a
-numeric covariate, a matrix (see "Covariates").</p></li>
+numeric covariate, a matrix (see "Covariates"). Under HC3, its entries
+that depend on a participant whose leverage is 1 are <code>NA</code> (see "HC3
+at leverage 1").</p></li>
 <li><p><code>covariate_scaling</code>: with a pretest or numeric covariates, the
 parameterization in which the inference was computed (see
 "Covariates"): the <code>means</code> and <code>scales</code> of the pretest, <code>pre_obs</code>
@@ -337,6 +339,10 @@ used. <code>NULL</code> without <code>y_pre</code>; outside the stable interface
 <li><p><code>robust</code>, <code>family</code>, <code>cluster</code> (the cluster of each participant), and
 <code>n_clusters</code>: the settings used. The last two are <code>NULL</code> without
 <code>cluster</code>.</p></li>
+<li><p><code>hc3_leverage</code>: with <code>robust = "HC3"</code>, the row numbers in the data of
+the participants whose leverage is 1 (see "HC3 at leverage 1"), and
+an empty vector when there are none; <code>NULL</code> with the other
+covariances.</p></li>
 <li><p><code>call</code>, and <code>data</code> (the data the model was fitted to), which
 solomonR's own functions use.</p></li>
 </ul><p>For a design with several treatments, an object of class
@@ -478,6 +484,51 @@ and 0.958 with 10, and the Pretest x Treatment test had a Type I error of
 <p>Confidence intervals for the Wald partial R-squared use the noncentral F
 method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="hc-at-leverage-">HC3 at leverage 1<a class="anchor" aria-label="anchor" href="#hc-at-leverage-"></a></h2>
+
+
+<p>HC3 divides each participant's squared residual by (1 - h)^2, where h is
+the participant's hat value, or leverage (MacKinnon &amp; White, 1985). The
+model fits a participant whose leverage is 1 exactly, so that term is
+0/0, and the HC3 standard error of every estimate that depends on the
+participant is undefined. This happens when the pretest varies within
+the pretested groups only through one participant, as when every pretest
+in one pretested group is the same and all but one in the other are, or
+when a covariate varies only through one participant, such as a factor
+level that one participant alone holds. <code><a href="validate_solomon.html">validate_solomon()</a></code> does not
+check for it.</p>
+<p>A participant is taken to be at leverage 1 when the hat value is above
+1 - 10^-8. The fit then gives a classed warning,
+<code>solomonR_hc3_leverage_warning</code>, that names these participants by their
+row numbers in the data and suggests <code>robust = "none"</code>, and returns the
+row numbers as <code>hc3_leverage</code>. For each contrast and each coefficient,
+the participant's weight in the estimate is computed from the model's
+QR decomposition. When that weight is at most 10^-8 times the largest
+weight in the estimate, the estimate does not depend on the participant,
+whose term takes its limit, 0, and the estimate keeps its HC3 standard
+error. Otherwise its standard error, statistic, p-value, interval, and
+Wald R-squared are <code>NA</code>, and so are the entries of <code>vcov</code> that depend on
+the participant. <code><a href="https://zeileis.codeberg.page/sandwich/reference/vcovHC.html" class="external-link">sandwich::vcovHC()</a></code> returns <code>NaN</code> throughout in that
+case, so the HC3 covariance is then computed from the QR decomposition.
+For example, in the data of issue #173, where the pretest varies in that
+way, the treatment effect among unpretested participants, which does not
+depend on the pretested participants, keeps its HC3 standard error, and
+the other three treatment contrasts and the three pretest effects are
+<code>NA</code>. With several treatments, an omnibus test is <code>NA</code> when one of its
+contrasts is. A comparison whose p-value is <code>NA</code> still counts in the
+Holm or Bonferroni adjustment of the other comparisons, as if its
+p-value were the largest, so their adjustment is conservative. The same
+rule gives <code>NA</code> in the delta method of
+<code><a href="marginal_solomon.html">marginal_solomon()</a></code>, in the cell means of <code><a href="plot_sensitization.html">plot_sensitization()</a></code>, and
+in <code><a href="fit_solomon_mi.html">fit_solomon_mi()</a></code>. Model-based standard errors (<code>robust = "none"</code>)
+are defined at leverage 1. The rule is not applied to CR2 fits.</p>
+<p>A group with a single analyzable participant also has leverage 1, and
+three of the four treatment contrasts depend on that participant. Under
+HC3 the fit then stops with an error of class
+<code>solomonR_hc3_singleton_error</code>. <code><a href="validate_solomon.html">validate_solomon()</a></code> reports such a group
+as an error.</p>
     </div>
     <div class="section level2">
     <h2 id="the-pretest-effect">The pretest effect<a class="anchor" aria-label="anchor" href="#the-pretest-effect"></a></h2>
@@ -825,8 +876,10 @@ Pretest x Condition test asks whether pretesting changes the effect of any
 treatment.</p>
 <p>The p-values of each contrast are adjusted across the comparisons, by
 Holm's (1979) procedure by default. It controls the familywise error rate
-"for any combination of true hypotheses" (p. 65). The confidence
-intervals are not adjusted. The result has class <code>solomon_ngroup</code>.</p>
+"for any combination of true hypotheses" (p. 65). A comparison without a
+p-value still counts among the comparisons (see "HC3 at leverage 1").
+The confidence intervals are not adjusted. The result has class
+<code>solomon_ngroup</code>.</p>
 <p>The effects table ends with the pretest effect in each condition (see
 "The pretest effect"), with <code>comparison</code> naming the condition:
 <code>Pretest effect | control</code> for the control and <code>Pretest effect | treated</code>

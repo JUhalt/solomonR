@@ -182,6 +182,9 @@ and <code>risk</code> or <code>rate</code>). The other of the two is <code>NULL<
 <li><p><code>outcome</code>: <code>"binary"</code> or <code>"count"</code>.</p></li>
 <li><p><code>method</code>: the method of inference, and <code>vcov</code>, a description of the
 covariance the delta method used (<code>NA</code> for the other methods).</p></li>
+<li><p><code>hc3_leverage</code>: with <code>method = "delta"</code> and a fit whose
+<code>hc3_leverage</code> names participants whose leverage is 1, their row
+numbers; absent otherwise.</p></li>
 <li><p><code>R</code> and <code>failures</code>: with <code>method = "bootstrap"</code>, the number of
 resamples and the number that failed.</p></li>
 <li><p><code>dispersion</code> and <code>theta</code>: as in the fit.</p></li>
@@ -345,6 +348,9 @@ the estimating equations of the standardized means with those of the model
 pretest; for clustered fits, the degrees of freedom are combined by the
 Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
 bootstrap resamples participants and so includes this variance.</p>
+<p>Under HC3, a delta-method contrast that depends on a participant whose
+leverage is 1 has an <code>NA</code> standard error, interval, and p-value, as in
+the fit (see "HC3 at leverage 1" in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>).</p>
 <p>Count outcomes: for a fit with <code>family = poisson()</code> or
 <code>family = "negative_binomial"</code>, rates per unit of
 exposure are standardized in the same way and compared as rate differences

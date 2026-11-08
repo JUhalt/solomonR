@@ -204,7 +204,9 @@ An object of class `solomon_glm`, a list with:
 
 - `vcov`: the covariance matrix of the coefficients, as `robust` sets
   it. With CR2 it is the clubSandwich object, or, with a pretest or a
-  numeric covariate, a matrix (see "Covariates").
+  numeric covariate, a matrix (see "Covariates"). Under HC3, its entries
+  that depend on a participant whose leverage is 1 are `NA` (see "HC3 at
+  leverage 1").
 
 - `covariate_scaling`: with a pretest or numeric covariates, the
   parameterization in which the inference was computed (see
@@ -260,6 +262,10 @@ An object of class `solomon_glm`, a list with:
 - `robust`, `family`, `cluster` (the cluster of each participant), and
   `n_clusters`: the settings used. The last two are `NULL` without
   `cluster`.
+
+- `hc3_leverage`: with `robust = "HC3"`, the row numbers in the data of
+  the participants whose leverage is 1 (see "HC3 at leverage 1"), and an
+  empty vector when there are none; `NULL` with the other covariances.
 
 - `call`, and `data` (the data the model was fitted to), which
   solomonR's own functions use.
@@ -425,6 +431,59 @@ more (mean coverage 0.951 to 0.954).
 Confidence intervals for the Wald partial R-squared use the noncentral F
 method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.
+
+## HC3 at leverage 1
+
+HC3 divides each participant's squared residual by (1 - h)^2, where h is
+the participant's hat value, or leverage (MacKinnon & White, 1985). The
+model fits a participant whose leverage is 1 exactly, so that term is
+0/0, and the HC3 standard error of every estimate that depends on the
+participant is undefined. This happens when the pretest varies within
+the pretested groups only through one participant, as when every pretest
+in one pretested group is the same and all but one in the other are, or
+when a covariate varies only through one participant, such as a factor
+level that one participant alone holds.
+[`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md)
+does not check for it.
+
+A participant is taken to be at leverage 1 when the hat value is above
+1 - 10^-8. The fit then gives a classed warning,
+`solomonR_hc3_leverage_warning`, that names these participants by their
+row numbers in the data and suggests `robust = "none"`, and returns the
+row numbers as `hc3_leverage`. For each contrast and each coefficient,
+the participant's weight in the estimate is computed from the model's QR
+decomposition. When that weight is at most 10^-8 times the largest
+weight in the estimate, the estimate does not depend on the participant,
+whose term takes its limit, 0, and the estimate keeps its HC3 standard
+error. Otherwise its standard error, statistic, p-value, interval, and
+Wald R-squared are `NA`, and so are the entries of `vcov` that depend on
+the participant.
+[`sandwich::vcovHC()`](https://zeileis.codeberg.page/sandwich/reference/vcovHC.html)
+returns `NaN` throughout in that case, so the HC3 covariance is then
+computed from the QR decomposition. For example, in the data of issue
+\#173, where the pretest varies in that way, the treatment effect among
+unpretested participants, which does not depend on the pretested
+participants, keeps its HC3 standard error, and the other three
+treatment contrasts and the three pretest effects are `NA`. With several
+treatments, an omnibus test is `NA` when one of its contrasts is. A
+comparison whose p-value is `NA` still counts in the Holm or Bonferroni
+adjustment of the other comparisons, as if its p-value were the largest,
+so their adjustment is conservative. The same rule gives `NA` in the
+delta method of
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+in the cell means of
+[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md),
+and in
+[`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md).
+Model-based standard errors (`robust = "none"`) are defined at
+leverage 1. The rule is not applied to CR2 fits.
+
+A group with a single analyzable participant also has leverage 1, and
+three of the four treatment contrasts depend on that participant. Under
+HC3 the fit then stops with an error of class
+`solomonR_hc3_singleton_error`.
+[`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md)
+reports such a group as an error.
 
 ## The pretest effect
 
@@ -841,8 +900,10 @@ of any treatment.
 
 The p-values of each contrast are adjusted across the comparisons, by
 Holm's (1979) procedure by default. It controls the familywise error
-rate "for any combination of true hypotheses" (p. 65). The confidence
-intervals are not adjusted. The result has class `solomon_ngroup`.
+rate "for any combination of true hypotheses" (p. 65). A comparison
+without a p-value still counts among the comparisons (see "HC3 at
+leverage 1"). The confidence intervals are not adjusted. The result has
+class `solomon_ngroup`.
 
 The effects table ends with the pretest effect in each condition (see
 "The pretest effect"), with `comparison` naming the condition:

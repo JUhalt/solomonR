@@ -199,6 +199,10 @@ each imputation, one row for each imputation and one column for each
 contrast.</p></li>
 <li><p><code>df_com</code>: the complete-data degrees of freedom of each contrast.</p></li>
 <li><p><code>robust</code>: the covariance of each completed-data analysis.</p></li>
+<li><p><code>hc3_leverage</code>: with <code>robust = "HC3"</code>, the row numbers of the
+participants whose leverage is 1, which leave the HC3 standard errors
+of the contrasts that depend on them undefined (see "Method"); empty
+when there are none. <code>NULL</code> with <code>robust = "none"</code>.</p></li>
 <li><p><code>pretest</code> (whether pretest scores were supplied) and <code>data</code> (the
 design indicators), which solomonR's own functions use.</p></li>
 </ul><p>The <code>effects</code> table, <code>conf_level</code>, and <code><a href="solomon_output.html">tidy()</a></code>,
@@ -243,6 +247,15 @@ as their starting point.</p></li>
 information-anchored: the sensitivity analysis neither adds nor removes
 information relative to the MAR analysis (Cro et al., 2019; Carpenter et
 al., 2023, p. 278).</p>
+<p><strong>HC3 at leverage 1.</strong> As in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> (see "HC3 at leverage
+1" there), a contrast that depends on a participant whose leverage is 1
+has no HC3 standard error: its standard error, test, and interval are
+<code>NA</code>, and the analysis gives the classed warning
+<code>solomonR_hc3_leverage_warning</code>, which names the participants by their
+row numbers in the data. Every completed data set has the same design, so
+the same contrasts are affected in each. Under HC3, a group with a single
+participant stops the analysis with an error of class
+<code>solomonR_hc3_singleton_error</code>.</p>
 <p><strong>Structural and incidental missingness.</strong> Pretests absent by design are
 never imputed. Pretested participants with a missing pretest are excluded
 with a warning, as in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>; <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code>
