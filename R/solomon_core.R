@@ -787,10 +787,11 @@ stouffer_solomon <- function(p) {
 #' model fits a participant whose leverage is 1 exactly, so that term is
 #' 0/0, and the HC3 standard error of every estimate that depends on the
 #' participant is undefined. This happens when the pretest varies within
-#' the pretested groups only through one participant, as when every other
-#' pretested participant has the same pretest score, or when a covariate
-#' varies only through one participant, such as a factor level that one
-#' participant alone holds. [validate_solomon()] does not check for it.
+#' the pretested groups only through one participant, as when every pretest
+#' in one pretested group is the same and all but one in the other are, or
+#' when a covariate varies only through one participant, such as a factor
+#' level that one participant alone holds. [validate_solomon()] does not
+#' check for it.
 #'
 #' A participant is taken to be at leverage 1 when the hat value is above
 #' 1 - 10^-8. The fit then gives a classed warning,
@@ -805,13 +806,15 @@ stouffer_solomon <- function(p) {
 #' Wald R-squared are `NA`, and so are the entries of `vcov` that depend on
 #' the participant. [sandwich::vcovHC()] returns `NaN` throughout in that
 #' case, so the HC3 covariance is then computed from the QR decomposition.
-#' For example, when every pretest in one pretested group is the same and
-#' all but one in the other pretested group are, the treatment effect among
-#' unpretested participants, which does not depend on the pretested
-#' participants, keeps its HC3 standard error; in the data of issue #173,
+#' For example, in the data of issue #173, where the pretest varies in that
+#' way, the treatment effect among unpretested participants, which does not
+#' depend on the pretested participants, keeps its HC3 standard error, and
 #' the other three treatment contrasts and the three pretest effects are
 #' `NA`. With several treatments, an omnibus test is `NA` when one of its
-#' contrasts is. The same rule gives `NA` in the delta method of
+#' contrasts is. A comparison whose p-value is `NA` still counts in the
+#' Holm or Bonferroni adjustment of the other comparisons, as if its
+#' p-value were the largest, so their adjustment is conservative. The same
+#' rule gives `NA` in the delta method of
 #' [marginal_solomon()], in the cell means of [plot_sensitization()], and
 #' in [fit_solomon_mi()]. Model-based standard errors (`robust = "none"`)
 #' are defined at leverage 1. The rule is not applied to CR2 fits.
@@ -1184,8 +1187,10 @@ stouffer_solomon <- function(p) {
 #'
 #' The p-values of each contrast are adjusted across the comparisons, by
 #' Holm's (1979) procedure by default. It controls the familywise error rate
-#' "for any combination of true hypotheses" (p. 65). The confidence
-#' intervals are not adjusted. The result has class `solomon_ngroup`.
+#' "for any combination of true hypotheses" (p. 65). A comparison without a
+#' p-value still counts among the comparisons (see "HC3 at leverage 1").
+#' The confidence intervals are not adjusted. The result has class
+#' `solomon_ngroup`.
 #'
 #' The effects table ends with the pretest effect in each condition (see
 #' "The pretest effect"), with `comparison` naming the condition:

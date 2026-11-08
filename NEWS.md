@@ -11,12 +11,13 @@
   participant's term is 0/0, and the HC3 standard error of every
   estimate that depends on the participant is undefined (MacKinnon &
   White, 1985). A Gaussian fit with a pretest stopped with R's internal
-  error "missing value where TRUE/FALSE needed". Other families
-  returned `NaN` for every standard error, with only a warning from the
-  sandwich package. With a numeric covariate, the standard errors
-  depended on rounding, without a warning. `fit_solomon_mi()` gave
-  `Inf`, `NaN`, or rounding-dependent standard errors without a
-  warning, and so did the delta method of `marginal_solomon()`.
+  error "missing value where TRUE/FALSE needed". Other families, and
+  Gaussian fits without a pretest, returned `NaN` for every standard
+  error, with only a warning from the sandwich package. With a numeric
+  covariate, the standard errors depended on rounding, without a
+  warning. `fit_solomon_mi()` gave `Inf`, `NaN`, or rounding-dependent
+  standard errors without a warning, and so did the delta method of
+  `marginal_solomon()`.
 * These fits now report each estimate that depends on such a
   participant with `NA` for its standard error, statistic, p-value,
   interval, and Wald R-squared. They give one warning of class
@@ -30,17 +31,38 @@
   treatment effect among unpretested participants keeps its HC3
   standard error, 2.273. The HC3 covariance then comes from the model's
   QR decomposition. The fit returns the row numbers as `hc3_leverage`,
-  and the entries of `vcov` that depend on the participant are `NA`.
+  and the entries of `vcov` and of `covariate_scaling$vcov` that depend
+  on the participant are `NA`.
 * The same rule applies to designs with several treatments and their
   omnibus tests, to the pretest effects at both centers, to
   `fit_solomon_mi()`, to the delta method of `marginal_solomon()`, and
-  to the cell means of `plot_sensitization()`. `report_solomon()` gives
-  the affected estimates without an interval or test and says why.
+  to the cell means of `plot_sensitization()`. A delta-method result of
+  `marginal_solomon()` carries the fit's `hc3_leverage`.
+  `report_solomon()` gives the affected estimates without an interval
+  or test and, when it reports such an estimate, says why.
   `plot_solomon_effects()` leaves them out and names them in its
   caption, rather than as contrasts the model does not estimate.
-  `equivalence_solomon()`, equivalence bounds in the plots, and
-  `tipping_point_solomon()` stop with an error for such a contrast.
-  `perm_solomon()` is not changed; issue #134 covers it.
+  `plot_sensitization()` names the cell means without an interval in
+  its caption, and its subtitle says when the Pretest x Treatment
+  estimate, or with several treatments the Pretest x Condition test,
+  has no interval or result. `equivalence_solomon()`, equivalence
+  bounds in the plots, and `tipping_point_solomon()` stop with an error
+  for such a contrast. `perm_solomon()` is not changed; issue #134
+  covers it.
+* With several treatments, a comparison whose p-value is `NA` now
+  counts in the Holm or Bonferroni adjustment of the other comparisons
+  of its contrast, as if its p-value were the largest, so that the
+  adjustment is across the number of comparisons that the print and the
+  report state. Before, `stats::p.adjust()` left it out, so the other
+  comparisons were adjusted across fewer comparisons than stated: with
+  two comparisons, the other comparison was not adjusted at all. The
+  same holds for the treatments' pretest effects.
+* `report_solomon()` now gives any estimate that has no interval and no
+  p-value as the estimate followed by "(no interval or test is
+  available)", in place of `95% CI [ NA, NA], p = NA`. This also changes
+  the report of such estimates in analyses without a participant at
+  leverage 1, such as a `marginal_solomon()` bootstrap that gives no
+  interval.
 * The refusal of HC3 for a group with a single analyzable participant
   now has the class `solomonR_hc3_singleton_error`, on the four-group
   and the several-treatment paths, with the same message, so that a

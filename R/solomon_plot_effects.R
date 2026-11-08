@@ -318,8 +318,8 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
   if (!isTRUE(undefined)) return(invisible(NULL))
   stop(
     "`bounds` apply to the Pretest x Treatment contrast, whose HC3 standard error is ",
-    "undefined in this fit: it depends on a participant whose leverage is 1 (row ",
-    paste(fit$hc3_leverage, collapse = ", "), " of the data). Refit with ",
+    "undefined in this fit: it depends on a participant whose leverage is 1 (",
+    .hc3_rows_phrase(fit$hc3_leverage), "). Refit with ",
     "`robust = \"none\"` to test it.",
     call. = FALSE
   )

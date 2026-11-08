@@ -999,6 +999,9 @@
 #'   - `outcome`: `"binary"` or `"count"`.
 #'   - `method`: the method of inference, and `vcov`, a description of the
 #'     covariance the delta method used (`NA` for the other methods).
+#'   - `hc3_leverage`: with `method = "delta"` and a fit whose
+#'     `hc3_leverage` names participants whose leverage is 1, their row
+#'     numbers; absent otherwise.
 #'   - `R` and `failures`: with `method = "bootstrap"`, the number of
 #'     resamples and the number that failed.
 #'   - `dispersion` and `theta`: as in the fit.
@@ -1566,7 +1569,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   )
   names(cells)[4] <- if (count) "rate" else "risk"
 
-  structure(
+  out <- structure(
     list(
       effects = effects,
       risks = if (!count) cells,
@@ -1587,6 +1590,11 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     ),
     class = "solomon_marginal"
   )
+  # The delta method's standard errors come from the fit's covariance, so
+  # the result carries the fit's participants at leverage 1 under HC3 (issue
+  # #173), which the report names.
+  if (method == "delta" && length(fit$hc3_leverage)) out$hc3_leverage <- fit$hc3_leverage
+  out
 }
 
 

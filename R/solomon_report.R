@@ -396,7 +396,8 @@
     covariance = covariance,
     scale = scale,
     pretest_caution = pretest_caution,
-    leverage = .hc3_leverage_sentence(fit$hc3_leverage),
+    leverage = .hc3_leverage_sentence(fit$hc3_leverage, fit$effects, fit$omnibus,
+                                      .reported_other_center(fit)),
     refs = refs
   )
 }
@@ -404,15 +405,36 @@
 # The method's sentence on participants whose leverage is 1 under HC3
 # (issue #173), from their row numbers `rows`: the estimates that depend on
 # them have no HC3 standard error and are reported alone. NULL when there
-# are none.
-.hc3_leverage_sentence <- function(rows) {
-  if (!length(rows)) return(NULL)
+# are none, or when none of the tables the report gives (`...`) has such an
+# estimate (.lacks_inference()), as when only a covariate's coefficient,
+# which the report does not give, depends on them.
+.hc3_leverage_sentence <- function(rows, ...) {
+  if (!length(rows) || !any(vapply(list(...), .lacks_inference, logical(1)))) return(NULL)
   sprintf(paste0(
     "HC3 standard errors are undefined for the estimates that depend on %s %s, ",
     "whose leverage is 1 (the model fits %s exactly), so those estimates are ",
     "reported without an interval or test."
   ), if (length(rows) == 1L) "participant" else "participants", .series_and(rows),
   if (length(rows) == 1L) "that participant" else "each of them")
+}
+
+# Whether the table `tab` that a report gives has an estimate without a
+# standard error, or, for a table of tests, a test without a statistic.
+.lacks_inference <- function(tab) {
+  if (!is.data.frame(tab) || !nrow(tab)) return(FALSE)
+  if (all(c("estimate", "std.error") %in% names(tab))) {
+    return(any(is.finite(tab$estimate) & is.na(tab$std.error)))
+  }
+  "statistic" %in% names(tab) && any(is.na(tab$statistic))
+}
+
+# The pretest effects at both centers that a report gives (issue #135):
+# NULL when the centers do not differ, or when a note says why the other
+# center has no standard errors.
+.reported_other_center <- function(fit) {
+  s <- fit$pretest_sensitivity
+  if (is.null(s) || !isTRUE(s$differ) || !is.null(s$note)) return(NULL)
+  s$effects
 }
 
 # The rows of a fit_solomon_glm() data frame that entered the model.
@@ -894,6 +916,9 @@
     if (count) "rates" else "risks", if (count) " from the count model (Cameron & Trivedi, 2013)" else "",
     intervals
   )
+  # The delta method under HC3 with participants at leverage 1 (issue #173).
+  method <- paste(c(method, .hc3_leverage_sentence(fit$hc3_leverage, fit$effects)),
+                  collapse = " ")
   results <- unlist(lapply(unique(fit$effects$scale), function(sc) {
     e <- fit$effects[fit$effects$scale == sc, ]
     # As above; for a ratio the statistic is on the log scale.
@@ -1863,7 +1888,8 @@
   })
   if (fit$robust == "HC3") refs <- c(refs, "mackinnon1985", "long2000")
   if (fit$pretest) refs <- c(refs, "lin2013", "newman1990")
-  method <- paste(c(method, .hc3_leverage_sentence(fit$hc3_leverage)), collapse = " ")
+  method <- paste(c(method, .hc3_leverage_sentence(fit$hc3_leverage, fit$effects)),
+                  collapse = " ")
   list(
     method = method,
     results = .contrast_sentences(fit$effects, fit$conf_level, digits, md),

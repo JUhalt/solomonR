@@ -69,6 +69,9 @@ and \code{risk} or \code{rate}). The other of the two is \code{NULL}.
 \item \code{outcome}: \code{"binary"} or \code{"count"}.
 \item \code{method}: the method of inference, and \code{vcov}, a description of the
 covariance the delta method used (\code{NA} for the other methods).
+\item \code{hc3_leverage}: with \code{method = "delta"} and a fit whose
+\code{hc3_leverage} names participants whose leverage is 1, their row
+numbers; absent otherwise.
 \item \code{R} and \code{failures}: with \code{method = "bootstrap"}, the number of
 resamples and the number that failed.
 \item \code{dispersion} and \code{theta}: as in the fit.

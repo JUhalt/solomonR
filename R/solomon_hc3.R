@@ -129,7 +129,8 @@
     list(message = paste0(
       "HC3 standard errors are undefined for the estimates that depend on ",
       if (one) "participant " else "participants ", paste(shown, collapse = ", "),
-      " (row numbers of the data), whose leverage (hat value) is 1: the model fits ",
+      if (one) " (row number of the data)" else " (row numbers of the data)",
+      ", whose leverage (hat value) is 1: the model fits ",
       if (one) "this participant" else "each of them", " exactly. ",
       if (length(causes)) paste0("Likely cause: ", paste(causes, collapse = ", or "), ". "),
       "Those estimates have NA standard errors, tests, and intervals; the others ",
@@ -137,6 +138,14 @@
       "are defined."
     ), call = NULL)
   ))
+}
+
+# "row 3 of the data", or "among rows 1, 25 of the data", from the row
+# numbers `rows` of the participants at leverage 1, for the messages on a
+# contrast that depends on one of them.
+.hc3_rows_phrase <- function(rows) {
+  paste0(if (length(rows) == 1L) "row " else "among rows ", paste(rows, collapse = ", "),
+         " of the data")
 }
 
 # The classed refusal of HC3 when a group has a single analyzable

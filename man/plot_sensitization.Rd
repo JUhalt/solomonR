@@ -61,7 +61,9 @@ distribution under van Engelenburg's (1999) large-sample Wald inference
 }
 
 The sensitization estimate and interval in the subtitle are taken unchanged
-from the fit.
+from the fit. Under HC3, a mean or a test that depends on a participant
+whose leverage is 1 has no interval or result, and the subtitle and the
+caption say so (see "HC3 at leverage 1" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
 }
 \section{Designs with several treatments}{
 

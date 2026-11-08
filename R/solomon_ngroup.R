@@ -751,7 +751,11 @@
       effect_row(L_by_comparison[[r]][[type]], rownames(weights)[r], type)
     })
     block <- do.call(rbind, rows)
-    block$p.adjusted <- stats::p.adjust(block$p.value, method = adjust)
+    # A comparison without a p-value, as when its HC3 standard error is
+    # undefined (issue #173), still counts among the comparisons; the
+    # default n of p.adjust() would leave it out.
+    block$p.adjusted <- stats::p.adjust(block$p.value, method = adjust,
+                                        n = length(block$p.value))
     block
   }))
 
@@ -780,7 +784,7 @@
   treated <- pretest_block$contrast == .solomon_pretest_order[2]
   pretest_block$p.adjusted <- pretest_block$p.value
   pretest_block$p.adjusted[treated] <- stats::p.adjust(pretest_block$p.value[treated],
-                                                       method = adjust)
+                                                       method = adjust, n = sum(treated))
   effects <- rbind(effects, pretest_block)
   # The adjusted p-values follow the columns that every effects table has
   # (issue #110).
@@ -810,7 +814,8 @@
       other_treated <- other_rows$contrast == .solomon_pretest_order[2]
       other_rows$p.adjusted <- other_rows$p.value
       other_rows$p.adjusted[other_treated] <- stats::p.adjust(other_rows$p.value[other_treated],
-                                                              method = adjust)
+                                                              method = adjust,
+                                                              n = sum(other_treated))
       other_rows <- other_rows[, columns]
     }
     identity <- identical(stats::family(fit)$link, "identity")

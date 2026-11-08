@@ -694,8 +694,8 @@ tipping_point_solomon <- function(y_post, treat, pretested, y_pre = NULL,
     if (length(leverage) && is.na(row$std.error)) {
       stop(
         "The HC3 standard error of ", contrast, " is undefined: the contrast depends on ",
-        "a participant whose leverage is 1 (row ", paste(leverage, collapse = ", "),
-        " of the data), so it has no p-value and no conclusion to follow. Use ",
+        "a participant whose leverage is 1 (", .hc3_rows_phrase(leverage),
+        "), so it has no p-value and no conclusion to follow. Use ",
         "`robust = \"none\"`, or follow another contrast.",
         call. = FALSE
       )

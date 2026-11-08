@@ -298,7 +298,7 @@ equivalence_solomon <- function(
       if (length(fit$hc3_leverage)) {
         paste0(
           "which is undefined under HC3: the contrast depends on a participant whose ",
-          "leverage is 1 (row ", paste(fit$hc3_leverage, collapse = ", "), " of the data). ",
+          "leverage is 1 (", .hc3_rows_phrase(fit$hc3_leverage), "). ",
           "Refit with `robust = \"none\"` to test it."
         )
       } else {

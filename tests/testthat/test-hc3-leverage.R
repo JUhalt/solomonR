@@ -83,7 +83,7 @@ test_that("leverage 1 from the pretest gives NA where HC3 is undefined, and 2.27
   expect_identical(length(out$warnings), 1L)
   expect_s3_class(out$warnings[[1]], "solomonR_hc3_leverage_warning")
   message <- conditionMessage(out$warnings[[1]])
-  expect_match(message, "participant 3 (row numbers of the data)", fixed = TRUE)
+  expect_match(message, "participant 3 (row number of the data)", fixed = TRUE)
   expect_match(message, "the pretest varies within the pretested groups only through",
                fixed = TRUE)
   expect_match(message, "robust = \"none\"", fixed = TRUE)
@@ -221,8 +221,8 @@ test_that("with a numeric covariate, leverage 1 gives results that do not depend
     expect_identical(n_leverage(out$warnings), 1L)
     expect_identical(fit$hc3_leverage, 3L)
     expect_identical(fit_rev$hc3_leverage, 10L)
-    expect_equal(fit_rev$effects, fit$effects, tolerance = 1e-10, info = scale)
-    expect_equal(fit_rev$coefficients, fit$coefficients, tolerance = 1e-10, info = scale)
+    expect_equal(fit_rev$effects, fit$effects, tolerance = 1e-10, info = paste("scale", scale))
+    expect_equal(fit_rev$coefficients, fit$coefficients, tolerance = 1e-10, info = paste("scale", scale))
     e <- fit$effects
     un <- e$contrast == "Treatment | unpretested"
     expect_true(all(is.finite(unlist(e[un, inference_columns]))))
@@ -434,4 +434,176 @@ test_that("print, summary, tidy, reports, and plots handle the NA rows (#173)", 
   expect_match(p$labels$caption, "No interval, as the HC3 standard error is undefined",
                fixed = TRUE)
   expect_s3_class(plot_sensitization(fit6), "ggplot")
+})
+
+test_that("the pretest effects' cross term takes its limit at a hat value of exactly 1 (#173)", {
+  # Rare-level data on which participant 1's hat value is 1 in floating
+  # point (on R 4.6.1, Windows), so that influence / (1 - h) is 0/0 in the
+  # covariance of the coefficients with the mean pretest (.center_terms()).
+  n <- 40
+  tr <- rep(c(1, 0, 1, 0), each = 10)
+  pt <- rep(c(1, 1, 0, 0), each = 10)
+  site <- factor(c("rare", rep(c("A", "B"), length.out = n - 1)))
+  withr::with_seed(50005, {
+    y <- stats::rnorm(n)
+    pre <- ifelse(pt == 1, round(stats::rnorm(n, 50, 10)), NA)
+  })
+  d <- data.frame(y = y, tr = tr, pt = pt, pre = pre, site = site)
+  out <- with_warnings(fit_solomon_glm(y, tr, pt, pre, covariates = "site", data = d))
+  fit <- out$value
+  expect_identical(n_leverage(out$warnings), 1L)
+  expect_identical(fit$hc3_leverage, 1L)
+  e <- fit$effects
+  expect_true(all(is.finite(e$std.error)))
+  fit_rev <- suppressWarnings(fit_solomon_glm(y, tr, pt, pre, covariates = "site",
+                                              data = d[n:1, ]))
+  expect_equal(fit_rev$effects, e, tolerance = 1e-10)
+
+  # The reference: the leave-one-out jackknife from lm() refits, the sum
+  # over participants of (L'(b - b_(-i)) + slope * u_i)^2, where u_i is
+  # participant i's change in the mean pretest, which only the pretest
+  # effects carry. For a linear model this is the HC3 variance.
+  center <- mean(pre[pt == 1])
+  frame <- data.frame(y = y, treat = tr, pretested = pt, site = site,
+                      pre_obs = ifelse(pt == 1, pre - center, 0))
+  formula <- y ~ treat * pretested + pre_obs + site
+  b <- stats::coef(stats::lm(formula, data = frame))
+  L <- rbind(
+    c(1, 0, 0.5), c(0, 0, 1), c(1, 0, 1), c(1, 0, 0),
+    c(0, 1, 0), c(0, 1, 1), c(0, 1, 0.5)
+  )
+  dimnames(L) <- list(c(.solomon_contrast_order, .solomon_pretest_order),
+                      c("treat", "pretested", "treat:pretested"))
+  jack <- vapply(seq_len(n), function(i) {
+    rest <- frame[-i, ]
+    rest$site <- droplevels(rest$site)
+    b_i <- stats::coef(stats::lm(formula, data = rest))
+    drop(L %*% (b[colnames(L)] - b_i[colnames(L)]))
+  }, numeric(nrow(L)))
+  u <- ifelse(pt == 1, (pre - center) / (sum(pt == 1) - 1), 0)
+  pretest_rows <- rownames(L) %in% .solomon_pretest_order
+  jack[pretest_rows, ] <- jack[pretest_rows, ] +
+    matrix(rep(b[["pre_obs"]] * u, each = sum(pretest_rows)), nrow = sum(pretest_rows))
+  reference <- sqrt(rowSums(jack^2))
+  expect_equal(e$std.error, unname(reference[e$contrast]), tolerance = 1e-8)
+})
+
+test_that("covariate_scaling$vcov is NA where it depends on a participant at leverage 1 (#173)", {
+  d <- lev_data()
+  fit <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d))
+  V <- fit$covariate_scaling$vcov
+  undefined <- c("pretested", "pre_obs", "treat:pretested")
+  expect_true(all(is.na(V[undefined, undefined])))
+  expect_false(anyNA(V[!rownames(V) %in% undefined, ]))
+  expect_false(any(is.nan(V)))
+
+  y3 <- c(3, 5, 2, 4, 1, 6, 2, 4, 3, 2, 7, 4, 5, 1, 3, 4, 6, 2)
+  c3 <- rep(c("A", "Control", "B", "A", "Control", "B"), each = 3)
+  p3 <- rep(c(1, 0), each = 9)
+  pre3 <- c(1, 1, 5, 2, 2, 2, 3, 3, 3, rep(NA, 9))
+  fit6 <- suppressWarnings(fit_solomon_glm(y3, c3, p3, pre3, control = "Control"))
+  V6 <- fit6$covariate_scaling$vcov
+  undefined6 <- c("pretested", "pre_obs", "treat_A:pretested", "treat_B:pretested")
+  expect_true(all(is.na(V6[undefined6, undefined6])))
+  expect_false(anyNA(V6[!rownames(V6) %in% undefined6, ]))
+  expect_false(any(is.nan(V6)))
+})
+
+test_that("with several treatments, a comparison without a p-value counts in the adjustment (#173)", {
+  # Participant 3 (A) is at leverage 1, so A's comparisons that depend on
+  # the pretested participants have no p-value; B's do.
+  y3 <- c(3, 5, 2, 4, 1, 6, 9, 10, 9.5, 2, 7, 4, 5, 1, 3, 4, 6, 2)
+  c3 <- rep(c("A", "Control", "B", "A", "Control", "B"), each = 3)
+  p3 <- rep(c(1, 0), each = 9)
+  pre3 <- c(1, 1, 5, 2, 2, 2, 2, 2, 2, rep(NA, 9))
+  for (adjust in c("holm", "bonferroni")) {
+    fit <- suppressWarnings(fit_solomon_glm(y3, c3, p3, pre3, control = "Control",
+                                            adjust = adjust))
+    e <- fit$effects
+    for (contrast in .solomon_contrast_order) {
+      rows <- e$contrast == contrast
+      expect_equal(e$p.adjusted[rows], stats::p.adjust(e$p.value[rows], adjust, n = 2),
+                   info = paste(adjust, contrast))
+    }
+    a <- e$comparison == "A vs Control" & e$contrast == "Treatment | pretested"
+    b <- e$comparison == "B vs Control" & e$contrast == "Treatment | pretested"
+    expect_true(is.na(e$p.value[a]))
+    expect_lt(e$p.value[b], 0.05)
+    expect_equal(e$p.adjusted[b], 2 * e$p.value[b], info = adjust)
+    expect_output(print(fit), "across the 2 comparisons", fixed = TRUE)
+  }
+})
+
+test_that("reports say why an estimate has no interval only when they give one, marginal reports too (#173)", {
+  report_text <- function(x) {
+    gsub("[[:space:]]+", " ", paste(capture.output(print(report_solomon(x))), collapse = " "))
+  }
+  why <- "HC3 standard errors are undefined for the estimates that depend on participant"
+
+  # Only the rare level's coefficient, which the report does not give,
+  # depends on participant 1: every reported estimate has its interval.
+  r <- rare_data()
+  fit <- suppressWarnings(fit_solomon_glm(y, tr, pt, pre, covariates = "site", data = r))
+  expect_identical(fit$hc3_leverage, 1L)
+  expect_true(all(is.finite(fit$effects$std.error)))
+  text <- report_text(fit)
+  expect_false(grepl(why, text, fixed = TRUE))
+  expect_false(grepl("no interval or test", text, fixed = TRUE))
+
+  # A delta-method marginal result carries the fit's participants and says
+  # why; a fit without them gives a result without the element.
+  d <- lev_data()
+  pois <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
+                                           family = stats::poisson()))
+  m <- marginal_solomon(pois)
+  expect_identical(m$hc3_leverage, 3L)
+  text <- report_text(m)
+  expect_match(text, paste(why, "3, whose leverage is 1"), fixed = TRUE)
+  expect_match(text, "(no interval or test is available)", fixed = TRUE)
+  expect_match(text, "participants was 1.33, 95% CI [-3.12, 5.79], p = .557.", fixed = TRUE)
+  plain <- fit_solomon_glm(y_post, treat, pretested, data = d, family = stats::poisson())
+  expect_false("hc3_leverage" %in% names(marginal_solomon(plain)))
+
+  # fit_solomon_mi() says why.
+  mi <- suppressWarnings(fit_solomon_mi(y_post, treat, pretested, y_pre, m = 5, seed = 7713,
+                                        data = d))
+  expect_match(report_text(mi), paste(why, "3, whose leverage is 1"), fixed = TRUE)
+})
+
+test_that("plot_sensitization() names the means and the test without an interval (#173)", {
+  d <- lev_data()
+  fit <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d))
+  p <- plot_sensitization(fit)
+  expect_identical(p$labels$subtitle,
+                   "Pretest x Treatment: -1.50 (no interval, as its HC3 standard error is undefined)")
+  expect_match(p$labels$caption, paste0(
+    "No interval, as the HC3 standard error is undefined (leverage 1 for participant 3): ",
+    "Pretested, control; Pretested, treatment."
+  ), fixed = TRUE)
+
+  y3 <- c(3, 5, 2, 4, 1, 6, 2, 4, 3, 2, 7, 4, 5, 1, 3, 4, 6, 2)
+  c3 <- rep(c("A", "Control", "B", "A", "Control", "B"), each = 3)
+  p3 <- rep(c(1, 0), each = 9)
+  pre3 <- c(1, 1, 5, 2, 2, 2, 3, 3, 3, rep(NA, 9))
+  fit6 <- suppressWarnings(fit_solomon_glm(y3, c3, p3, pre3, control = "Control"))
+  p6 <- plot_sensitization(fit6)
+  expect_identical(p6$labels$subtitle,
+                   "Pretest x Condition: no result, as a standard error it needs is undefined")
+  expect_match(p6$labels$caption, "(leverage 1 for participant 3): Pretested, Control; ",
+               fixed = TRUE)
+
+  # With model-based standard errors, the subtitle gives the interval.
+  none <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = d, robust = "none")
+  expect_match(plot_sensitization(none)$labels$subtitle, "(95% CI ", fixed = TRUE)
+})
+
+test_that("the leverage thresholds and the wording of row numbers are as documented (#173)", {
+  expect_identical(.hc3_leverage_limit, 1 - 1e-8)
+  expect_identical(.hc3_weight_tolerance, 1e-8)
+  expect_identical(.hc3_rows_phrase(3L), "row 3 of the data")
+  expect_identical(.hc3_rows_phrase(c(1L, 25L)), "among rows 1, 25 of the data")
+  w <- tryCatch(.warn_hc3_leverage(c(1L, 25L), pretest = FALSE, covariates = TRUE),
+                warning = identity)
+  expect_s3_class(w, "solomonR_hc3_leverage_warning")
+  expect_match(conditionMessage(w), "participants 1, 25 (row numbers of the data)", fixed = TRUE)
 })
