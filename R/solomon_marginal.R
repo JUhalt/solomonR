@@ -518,31 +518,31 @@
 # model's working weights and with the rounding error the fit computed
 # for their entries (.bootstrap_rank_check(), .resample_collinear()). If
 # a term is collinear with the others by that rule, the refit counts as
-# failed with the reason "rank" and is not fitted again. What is left of
-# that term on those rows after the others is then within the rounding
-# error the rule allows for (4 B_k of .collinear_terms()), or within
-# glm()'s tolerance, 1e-11 of its norm. In the first case, as on each of
-# the 43 timestamp resamples, a refit in the basis could converge on
-# rounding error. Near the edge of the fit's check, as in the next
-# paragraph, the rule stops refits by the 1e-11 tolerance alone; what is
-# left there is the data's own direction, and those resamples are the
-# cost described there. That is the fit's rule applied to the resample's
-# rows, not a fit to them: fit_solomon_glm() given those rows would
-# weight and standardize them anew. On the timestamp data it stops on
-# the rows of each of the 43 resamples, at the delay; near the edge of
-# its check it need not. With the data of the next paragraph at
-# g = 1.1e-11 to 1.3e-11, over bootstrap seeds 1 to 20, it went ahead on
-# 47 of the 136 resamples that the rule stopped, on all of which the
-# exact reparameterization's refit converged. On the timestamp data the
-# bootstrap fails in the same resamples as the exact reparameterization,
-# 43 of 199 under "analyzed" and 33 under "observed", and withholds the
-# intervals as it does. Only refits that did not converge are checked.
-# Applied to every resample, the check found no term collinear on the
-# resamples whose refit converged on those data, on the data of the next
-# paragraph at g = 1.2e-11 and above (seed = 2024), and on the nested
-# covariates of #154; at g = 1.1e-11 to 1.15e-11 it found one on 4 or 5
-# of the 62 to 87 resamples whose refit converged, which are accepted as
-# before.
+# failed with the reason "rank" and is not fitted again. The check is
+# the fit's rule applied to the resample's rows, not a fit to them:
+# fit_solomon_glm() given those rows would weight and standardize them
+# anew. What is left of that term on those rows after the others is then
+# within the rounding error the rule allows for (4 B_k of
+# .collinear_terms()), or within glm()'s tolerance, 1e-11 of its norm.
+# In the first case, as on each of the 43 timestamp resamples, a refit
+# in the basis could converge on rounding error. Near the edge of the
+# fit's check, as in the next paragraph, the rule stops refits by the
+# 1e-11 tolerance alone; what is left there is the data's own direction,
+# and those resamples are the cost described there. On the timestamp
+# data fit_solomon_glm() stops on the rows of each of the 43 resamples,
+# at the delay; near the edge of its check it need not. With the data of
+# the next paragraph at g = 1.1e-11 to 1.3e-11, over bootstrap seeds 1
+# to 20, it went ahead on 47 of the 136 resamples that the rule stopped,
+# on all of which the exact reparameterization's refit converged. On the
+# timestamp data the bootstrap fails in the same resamples as the exact
+# reparameterization, 43 of 199 under "analyzed" and 33 under
+# "observed", and withholds the intervals as it does. Only refits that
+# did not converge are checked. Applied to every resample, the check
+# found no term collinear on the resamples whose refit converged on
+# those data, on the data of the next paragraph at g = 1.2e-11 and above
+# (seed = 2024), and on the nested covariates of #154; at g = 1.1e-11 to
+# 1.15e-11 it found one on 4 or 5 of the 62 to 87 resamples whose refit
+# converged, which are accepted as before.
 #
 # The cost is a band just inside the collinearity check of
 # fit_solomon_glm(), where rounding error can make nearly collinear
