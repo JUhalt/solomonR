@@ -858,7 +858,9 @@
                  collapse = " "))
   }))
   # The two standardizations of the pretested cells, when they differ
-  # (issue #135), and the attrition whenever an outcome is missing.
+  # (issue #135); the note on the pretested participants left out of the
+  # "observed" standardization, whether or not they differ (issue #171);
+  # and the attrition whenever an outcome is missing.
   results <- c(results, .marginal_center_sentences(fit, digits),
                .attrition_sentences(fit$attrition, FALSE, "Outcomes were missing"))
   list(method = method, results = results, table = fit$effects, refs = refs, cells = NULL)

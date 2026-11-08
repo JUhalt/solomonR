@@ -242,9 +242,7 @@
   used <- x$pretest_center
   other <- .other_center(used)
   set <- function(center) {
-    phrase <- .marginal_set_phrase(n, center)
-    sub("^every pretested participant with a pretest", "every pretested participant with a pretest score",
-        phrase)
+    sub("with a pretest (", "with a pretest score (", .marginal_set_phrase(n, center), fixed = TRUE)
   }
   # Short names of the contrasts that move, in the order of the table.
   phrase <- c(

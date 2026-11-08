@@ -82,9 +82,10 @@ which uses neither set, so that \code{pretest_center} is ignored there.
 (\code{analyzed} and \code{observed}); of those outside the model, how many
 have no outcome (\code{no_outcome}); and how many pretested participants
 with a pretest are outside the model and left out of the \code{observed}
-set because they lack a covariate (\code{missing_covariate}) or have a
-covariate level that no participant in the model has
-(\code{unseen_level}). Absent with \code{method = "cluster_summary"}.
+set because they lack a covariate (\code{missing_covariate}, whatever
+their other covariates) or else have a covariate level that no
+participant in the model has (\code{unseen_level}). Absent with
+\code{method = "cluster_summary"}.
 \item \code{attrition}: each Solomon group's \code{n}, outcomes missing
 (\code{posttest_missing}), and \code{share}, from the fit, for the attrition
 line of the print and the report; \code{NULL} for fits made before 1.0.0.
@@ -162,15 +163,19 @@ participants, which \code{pretest_center} chooses, as it chooses the center of
 there, for what each assumes): by default over the pretested participants
 in the model (\code{"analyzed"}), or over every pretested participant with a
 pretest and the model's covariates (\code{"observed"}). The \code{"observed"} set
-leaves out a participant outside the model who lacks a covariate, or
+leaves out a participant outside the model whose risks (or rates) cannot
+be predicted: one who lacks a covariate, which the model needs, or one
 whose factor, character, or ordered covariate has a level that no
-participant in the model has (issue #171): the model has no coefficient
-for that level, so in either case the participant's risks (or rates)
-cannot be predicted. Such a participant is in the observed center of
-\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} but not in this set. \code{standardized} counts them, and
-the print, \code{\link[=report_solomon]{report_solomon()}}, and \code{pretest_sensitivity$note} say how
-many were left out and why, naming every such covariate and level. The
-default does not use them. On the risk or rate scale the choice moves
+participant in the model has (issue #171), for which the model has no
+coefficient. Such a participant is in the observed center of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} but not in this set. \code{standardized} counts them; one
+who lacks a covariate is counted as such, whatever their other
+covariates. The print, \code{\link[=report_solomon]{report_solomon()}}, and \code{pretest_sensitivity$note}
+say how many were left out and why, naming the covariates they lack and
+every level the model does not have, and the print and the report then
+give the \code{"observed"} set as, for example, "97 of the 100 pretested
+participants with a pretest". The default does not use these
+participants. On the risk or rate scale the choice moves
 Treatment | pretested, the average treatment effect, and Pretest x
 Treatment as well as the pretest effects, because a marginal risk depends
 on the participants it is averaged over; only Treatment | unpretested does

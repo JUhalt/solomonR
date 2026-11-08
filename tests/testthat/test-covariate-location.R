@@ -2390,20 +2390,48 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
       if (part == "text" && grepl("^marginal", name)) {
         # Since #171 the print of marginal_solomon() also says that the
         # "observed" standardization leaves out the pretested participant
-        # with a pretest who lacks an age and is outside the model; master
-        # did not. Those lines are checked and set aside.
-        note <- strwrap(sprintf(paste(
-          "The standardization over every pretested participant with a pretest leaves out 1 of",
-          "them, who is outside the model, because their %s cannot be predicted: they lack a",
-          "covariate."
-        ), if (grepl("poisson|negbin", name)) "rates" else "risks"),
-        width = 80, indent = 2, exdent = 2)
-        at <- match(note[1], got)
-        expect_false(is.na(at), info = info)
-        if (is.na(at)) next
-        lines <- at + seq_along(note) - 1L
-        expect_identical(got[lines], note, info = info)
-        got <- got[-lines]
+        # with a pretest who lacks an age and is outside the model, and
+        # gives that set as 59 of the 60 pretested participants with a
+        # pretest; master did not. Those lines are checked, and master's
+        # lines are put in their place (none for the note).
+        wrap <- function(text) strwrap(text, width = 80, indent = 2, exdent = 2)
+        swap <- function(got, now_lines, master_lines) {
+          at <- match(now_lines[1], got)
+          expect_false(is.na(at), info = info)
+          if (is.na(at)) return(NULL)
+          lines <- at + seq_along(now_lines) - 1L
+          expect_identical(got[lines], now_lines, info = info)
+          append(got[-lines], master_lines, after = at - 1L)
+        }
+        swaps <- list(list(wrap(sprintf(paste(
+          "The standardization over the pretested participants with a pretest leaves out 1 who",
+          "is outside the model, because their %s cannot be predicted: they lack a covariate",
+          "(age)."
+        ), if (grepl("poisson|negbin", name)) "rates" else "risks")), character(0)))
+        if (grepl("observed$", name)) {
+          swaps <- c(swaps, list(
+            list(paste("Risks standardized over the pretest among 59 of the 60 pretested",
+                       "participants with a pretest (pretest_center = \"observed\")."),
+                 paste("Risks standardized over the pretest among every pretested participant",
+                       "with a pretest (pretest_center = \"observed\").")),
+            list(wrap(paste("Pretested cells standardized over 59 of the 60 pretested participants",
+                            "with a pretest (5 without an outcome) (pretest_center =",
+                            "\"observed\").")),
+                 wrap(paste("Pretested cells standardized over every pretested participant with",
+                            "a pretest (59, 5 without an outcome) (pretest_center =",
+                            "\"observed\")."))
+            )
+          ))
+        } else {
+          swaps <- c(swaps, list(list(
+            wrap(paste("Over 59 of the 60 pretested participants with a pretest (5 without an",
+                       "outcome) instead, the contrasts below move.")),
+            wrap(paste("Over every pretested participant with a pretest (59, 5 without an",
+                       "outcome) instead, the contrasts below move."))
+          )))
+        }
+        for (s in swaps) if (!is.null(got)) got <- swap(got, s[[1]], s[[2]])
+        if (is.null(got)) next
       }
       if (part %in% c("text", "sentences")) {
         # A difference between a contrast's estimates at the two pretest

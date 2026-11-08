@@ -80,10 +80,14 @@ unseen_printed <- function(x) unseen_squash(utils::capture.output(print(x)))
 unseen_report <- function(x) unseen_squash(report_solomon(x)$results)
 
 unseen_note <- paste(
-  "The standardization over every pretested participant with a pretest leaves out 3 of them,",
-  "who are outside the model, because their risks cannot be predicted: they have a covariate",
-  "level that no participant in the model has (site: D)."
+  "The standardization over the pretested participants with a pretest leaves out 3 who are",
+  "outside the model, because their risks cannot be predicted: they have a covariate level",
+  "that no participant in the model has (site: D)."
 )
+
+# The "observed" set, which leaves out those three, as the print and the
+# report give it.
+unseen_set <- "97 of the 100 pretested participants with a pretest (7 without an outcome)"
 
 unseen_counts <- c(analyzed = 90L, observed = 97L, no_outcome = 7L, missing_covariate = 0L,
                    unseen_level = 3L)
@@ -103,18 +107,44 @@ test_that("a level only outside the model leaves those participants out (#171)",
       expect_identical(m$standardized, unseen_counts)
       expect_identical(m$pretest_sensitivity$note, unseen_note)
       expect_true(m$pretest_sensitivity$differ)
-      expect_true(grepl(unseen_note, unseen_printed(m), fixed = TRUE))
-      expect_true(grepl(unseen_note, unseen_report(m), fixed = TRUE))
+      out <- unseen_printed(m)
+      text <- unseen_report(m)
+      expect_true(grepl(unseen_note, out, fixed = TRUE))
+      expect_true(grepl(unseen_note, text, fixed = TRUE))
+      # The set is not given as every pretested participant with a pretest.
+      expect_no_match(out, "every pretested participant with a pretest", fixed = TRUE)
+      expect_no_match(text, "every pretested participant with a pretest", fixed = TRUE)
+      expect_true(grepl(sub("with a pretest (", "with a pretest score (", unseen_set,
+                            fixed = TRUE), text, fixed = TRUE))
+      if (center == "analyzed") {
+        expect_true(grepl(paste("Over", unseen_set, "instead, the contrasts below move."), out,
+                          fixed = TRUE))
+      } else {
+        expect_true(grepl(paste("Risks standardized over the pretest among 97 of the 100",
+                                "pretested participants with a pretest",
+                                "(pretest_center = \"observed\")."), out, fixed = TRUE))
+        expect_true(grepl(paste0("Pretested cells standardized over ", unseen_set,
+                                 " (pretest_center = \"observed\")."), out, fixed = TRUE))
+      }
       b <- expect_as_without(fit, fit_without, R = 99, seed = 171, pretest_center = center)
       expect_identical(b$pretest_sensitivity$note, unseen_note)
     }
   }
-  # The data without them have nothing to say.
-  m_without <- marginal_solomon(unseen_fit(unseen_without(d)), method = "delta")
+  # The data without them have nothing to say, and their set is every
+  # pretested participant with a pretest.
+  fit_without <- unseen_fit(unseen_without(d))
+  m_without <- marginal_solomon(fit_without, method = "delta")
   expect_identical(m_without$standardized,
                    c(analyzed = 90L, observed = 97L, no_outcome = 7L, missing_covariate = 0L,
                      unseen_level = 0L))
   expect_null(m_without$pretest_sensitivity$note)
+  expect_true(grepl("Over every pretested participant with a pretest (97, 7 without an outcome)",
+                    unseen_printed(m_without), fixed = TRUE))
+  expect_true(grepl(paste("Risks standardized over the pretest among every pretested participant",
+                          "with a pretest (pretest_center = \"observed\")."),
+                    unseen_printed(marginal_solomon(fit_without, method = "delta",
+                                                    pretest_center = "observed")),
+                    fixed = TRUE))
 
   # The issue's example, whose results without the three participants
   # from site D the issue gives.
@@ -200,10 +230,10 @@ test_that("the note appears when no participant outside the model is left in the
   fit <- unseen_fit(d)
   fit_without <- unseen_fit(unseen_without(d))
   note <- paste(
-    "The standardization over every pretested participant with a pretest leaves out 10 of",
-    "them, who are outside the model, because their risks cannot be predicted: they have a",
-    "covariate level that no participant in the model has (site: D). The two",
-    "standardizations of the pretested cells are then over the same participants."
+    "The standardization over the pretested participants with a pretest leaves out 10 who are",
+    "outside the model, because their risks cannot be predicted: they have a covariate level",
+    "that no participant in the model has (site: D). The two standardizations of the",
+    "pretested cells are then over the same participants."
   )
   for (center in c("analyzed", "observed")) {
     m <- expect_as_without(fit, fit_without, method = "delta", pretest_center = center)
@@ -213,6 +243,11 @@ test_that("the note appears when no participant outside the model is left in the
     expect_identical(m$pretest_sensitivity$note, note)
     out <- unseen_printed(m)
     expect_no_match(out, "standardization of the pretested cells", fixed = TRUE)
+    expect_no_match(out, "every pretested participant with a pretest", fixed = TRUE)
+    if (center == "observed") {
+      expect_true(grepl(paste("Risks standardized over the pretest among 90 of the 100 pretested",
+                              "participants with a pretest"), out, fixed = TRUE))
+    }
     expect_true(grepl(note, out, fixed = TRUE))
     expect_true(grepl(note, unseen_report(m), fixed = TRUE))
     expect_as_without(fit, fit_without, R = 99, seed = 172, pretest_center = center)
@@ -222,10 +257,10 @@ test_that("the note appears when no participant outside the model is left in the
 
 test_that("the note names every covariate and level, and a missing covariate (#171)", {
   # Two covariates with a level outside the model: site D among three
-  # participants and level w of s2 among two others, one of whom has no
-  # recorded condition and an outcome. A sixth lacks z, and a seventh lacks
-  # z and comes from site E: a participant without a covariate is counted
-  # as such, and their level is not named.
+  # participants, and level w of s2 among three others, one of whom has an
+  # outcome but no recorded condition. Two more lack z, and one of them
+  # also comes from site E: a participant without a covariate is counted
+  # as such, and their level is named in a sentence of its own.
   d <- unseen_data()
   lost <- which(d$lost)
   d$s2 <- withr::with_seed(173, sample(c("u", "v"), nrow(d), replace = TRUE))
@@ -242,20 +277,27 @@ test_that("the note names every covariate and level, and a missing covariate (#1
   fit_without <- unseen_fit(d[keep, ], covariates = covariates[keep, ])
 
   note <- paste(
-    "The standardization over every pretested participant with a pretest leaves out 8 of them,",
-    "who are outside the model, because their risks cannot be predicted: 2 lack a covariate,",
-    "and 6 have a covariate level that no participant in the model has (site: D; s2: w)."
+    "The standardization over the pretested participants with a pretest leaves out 8 who are",
+    "outside the model, because their risks cannot be predicted: 2 lack a covariate (z), and 6",
+    "have a covariate level that no participant in the model has (site: D; s2: w). Of those",
+    "who lack a covariate, 1 also has a covariate level that no participant in the model has",
+    "(site: E)."
   )
   for (center in c("analyzed", "observed")) {
     m <- expect_as_without(fit, fit_without, method = "delta", pretest_center = center)
     expect_identical(m$standardized, c(analyzed = 89L, observed = 92L, no_outcome = 3L,
                                        missing_covariate = 2L, unseen_level = 6L))
     expect_identical(m$pretest_sensitivity$note, note)
-    expect_true(grepl(note, unseen_printed(m), fixed = TRUE))
+    out <- unseen_printed(m)
+    expect_true(grepl(note, out, fixed = TRUE))
+    if (center == "analyzed") {
+      expect_true(grepl(paste("Over 92 of the 100 pretested participants with a pretest",
+                              "(3 without an outcome) instead"), out, fixed = TRUE))
+    }
     expect_as_without(fit, fit_without, R = 99, seed = 174, pretest_center = center)
   }
 
-  # Only a missing covariate.
+  # Only a missing covariate, for one participant.
   d2 <- unseen_data()
   d2$site[d2$lost] <- "A"
   d2$z[which(d2$lost)[1]] <- NA
@@ -263,7 +305,33 @@ test_that("the note names every covariate and level, and a missing covariate (#1
   expect_identical(m2$standardized[c("missing_covariate", "unseen_level")],
                    c(missing_covariate = 1L, unseen_level = 0L))
   expect_identical(m2$pretest_sensitivity$note, paste(
-    "The standardization over every pretested participant with a pretest leaves out 1 of them,",
-    "who is outside the model, because their risks cannot be predicted: they lack a covariate."
+    "The standardization over the pretested participants with a pretest leaves out 1 who is",
+    "outside the model, because their risks cannot be predicted: they lack a covariate (z)."
   ))
+
+  # Two covariates missing among three participants, one of whom also
+  # comes from site E; a missing site is not a level the model lacks.
+  lost2 <- which(d2$lost)
+  d2$z[lost2[2]] <- NA
+  d2$site[lost2[2]] <- "E"
+  d2$site[lost2[3]] <- NA
+  keep2 <- !seq_len(nrow(d2)) %in% lost2[1:3]
+  for (center in c("analyzed", "observed")) {
+    m3 <- expect_as_without(unseen_fit(d2), unseen_fit(d2[keep2, ]), method = "delta",
+                            pretest_center = center)
+    expect_identical(m3$standardized, c(analyzed = 90L, observed = 97L, no_outcome = 7L,
+                                        missing_covariate = 3L, unseen_level = 0L))
+    expect_identical(m3$pretest_sensitivity$note, paste(
+      "The standardization over the pretested participants with a pretest leaves out 3 who are",
+      "outside the model, because their risks cannot be predicted: they lack a covariate (z,",
+      "site). Of those who lack a covariate, 1 also has a covariate level that no participant",
+      "in the model has (site: E)."
+    ))
+  }
+
+  # A level that holds a separator of the list is quoted.
+  d4 <- unseen_data()
+  d4$site[which(d4$lost)[1:2]] <- c("D; E", "Z")
+  m4 <- marginal_solomon(unseen_fit(d4, "character"), method = "delta")
+  expect_match(m4$pretest_sensitivity$note, "(site: D, \"D; E\", Z).", fixed = TRUE)
 })

@@ -21,17 +21,23 @@
   with the delta method and with the bootstrap.
 * `standardized` gains two counts of the pretested participants with a
   pretest who are outside the model and left out of the `"observed"`
-  set: `missing_covariate`, for those who lack a covariate, and
-  `unseen_level`, for those with a covariate level that no participant
-  in the model has. The print, `report_solomon()`, and
-  `pretest_sensitivity$note` say how many were left out and why, naming
-  every such covariate and level, also when no participant is left in
-  the set beyond those of the model, so that the two standardizations
-  are of the same participants. On a CR2 fit the note follows the note
-  on missing clusters. Before, nothing said that participants who lack
-  a covariate were left out, although the count of the `"observed"` set
-  in the print was then smaller than the number of pretested
-  participants with a pretest.
+  set: `missing_covariate`, for those who lack a covariate (whatever
+  their other covariates), and `unseen_level`, for the others, who have
+  a covariate level that no participant in the model has.
+* The print, `report_solomon()`, and `pretest_sensitivity$note` say how
+  many were left out and why. The note names the covariates they lack
+  and every level the model does not have, including the levels of
+  participants who also lack a covariate. It is given also when no
+  participant is left in the set beyond those of the model, so that the
+  two standardizations are of the same participants. On a CR2 fit it
+  follows the note on missing clusters.
+* When participants are left out, the print and the report give the
+  `"observed"` set as, for example, "97 of the 100 pretested
+  participants with a pretest" instead of "every pretested participant
+  with a pretest". Before, the print and the report did not say that
+  participants who lack a covariate were left out, although the
+  `"observed"` set they gave was then smaller than the number of
+  pretested participants with a pretest.
 
 ## Refits under the fit's contrasts (bug fix, #168)
 
