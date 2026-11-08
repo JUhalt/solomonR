@@ -1259,7 +1259,8 @@ test_that("marginal_solomon() standardizes over the participants the center name
   expect_identical(default$pretest_center, "analyzed")
   expect_identical(res$pretest_center, "observed")
   standardized <- c(analyzed = sum(in_center & in_model), observed = sum(in_center),
-                    no_outcome = sum(in_center & !in_model))
+                    no_outcome = sum(in_center & !in_model), missing_covariate = 0L,
+                    unseen_level = 0L)
   expect_identical(res$standardized, standardized)
   expect_identical(default$standardized, standardized)
   # The fit's center decides by default, and the argument overrides it; the
@@ -1317,7 +1318,8 @@ test_that("marginal_solomon() standardizes over the participants the center name
   res2 <- marginal_solomon(fit2, method = "delta")
   expect_identical(res2$standardized,
                    c(analyzed = sum(in_center & in_model) - 1L, observed = sum(in_center),
-                     no_outcome = sum(in_center & !in_model)))
+                     no_outcome = sum(in_center & !in_model), missing_covariate = 0L,
+                     unseen_level = 0L))
   m2 <- stats::glm(passed ~ treat * pretested + xc, family = stats::binomial(),
                    data = d2[!is.na(d2$passed) & !is.na(d2$treat), ])
   expect_equal(res2$risks$risk[1:2], unname(direct_risks(m2, d2, center, over = in_center)$r[1:2]),
@@ -1333,6 +1335,7 @@ test_that("marginal_solomon() standardizes over the participants the center name
   )
   res3 <- marginal_solomon(fit3, method = "delta")
   expect_identical(res3$standardized[["observed"]], sum(in_center) - 2L)
+  expect_identical(res3$standardized[["missing_covariate"]], 2L)
   b3 <- stats::coef(fit3$model)
   over3 <- in_center & !is.na(d3$age)
   eta3 <- b3[["(Intercept)"]] + b3[["pretested"]] +
@@ -1544,7 +1547,8 @@ test_that("marginal_solomon() standardizes rates without an offset, and reads ol
   res <- marginal_solomon(fit_o)
   expect_identical(res$standardized,
                    c(analyzed = sum(in_center & in_model), observed = sum(in_center),
-                     no_outcome = sum(in_center & is.na(d$visits))))
+                     no_outcome = sum(in_center & is.na(d$visits)), missing_covariate = 0L,
+                     unseen_level = 0L))
   rates <- function(fit, over) {
     b <- stats::coef(fit$model)
     eta <- b[["(Intercept)"]] + b[["pretested"]] +

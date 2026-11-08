@@ -235,16 +235,19 @@
 # of the pretested cells differ (issue #135): the participants standardized
 # over and the assumption, and the moved contrasts under the other
 # standardization, scale by scale. No delta line is given on these scales.
+# The note on the pretested participants left out of the "observed"
+# standardization (issue #171) is given whether or not the two differ; it
+# says "pretest score", as the sets do here.
 .marginal_center_sentences <- function(x, digits) {
   s <- x$pretest_sensitivity
-  if (is.null(x$pretest_center) || is.null(s) || !isTRUE(s$differ)) return(character(0))
+  if (is.null(x$pretest_center) || is.null(s)) return(character(0))
+  note <- sub("with a pretest leaves out", "with a pretest score leaves out", s$note, fixed = TRUE)
+  if (!isTRUE(s$differ)) return(note)
   n <- x$standardized
   used <- x$pretest_center
   other <- .other_center(used)
   set <- function(center) {
-    phrase <- .marginal_set_phrase(n, center)
-    sub("^every pretested participant with a pretest", "every pretested participant with a pretest score",
-        phrase)
+    sub("with a pretest (", "with a pretest score (", .marginal_set_phrase(n, center), fixed = TRUE)
   }
   # Short names of the contrasts that move, in the order of the table.
   phrase <- c(
@@ -273,7 +276,7 @@
       .disagreement_report(sprintf("%s on the %s scale", phrase[r$contrast], tolower(sc)),
                            r$kind, x$conf_level, "standardization", r$null[1])
     })),
-    s$note
+    note
   )
 }
 

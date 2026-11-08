@@ -61,6 +61,50 @@
   the version check compares with the minimum DESCRIPTION suggests; and
   that the function stops with a message when the check fails.
 
+## Covariate levels the model does not have (bug fix, #171)
+
+* `marginal_solomon()` stopped with R's error "factor site has new
+  levels D" when a level of a factor, character, or ordered covariate
+  occurred only among pretested participants who had a pretest but were
+  outside the model, for example because their posttest was missing. It
+  stopped at either `pretest_center`, including the default
+  `"analyzed"`, which does not use these participants, with the delta
+  method and with the bootstrap, for binary, Poisson, and
+  negative-binomial fits. The message named only the first such
+  covariate. `method = "cluster_summary"` was not affected. The error
+  came in with the `"observed"` standardization (#135), after the 0.8.2
+  release.
+* The model has no coefficient for such a level, so these participants'
+  risks cannot be predicted. They are now left out of the `"observed"`
+  standardization, as a participant who lacks a covariate already was.
+  Every factor, character, and ordered covariate is checked. The results
+  equal those of the data without these participants, at either center,
+  with the delta method and with the bootstrap.
+* `standardized` gains two counts of the pretested participants with a
+  pretest who are outside the model and left out of the `"observed"`
+  set: `missing_covariate`, for those who lack a covariate (whatever
+  their other covariates), and `unseen_level`, for the others, who have
+  a covariate level that no participant in the model has.
+* The print, `report_solomon()`, and `pretest_sensitivity$note` say how
+  many were left out and why. The note names the covariates they lack
+  and every level the model does not have, including the levels of
+  participants who also lack a covariate. It is given also when no
+  participant is left in the set beyond those of the model, so that the
+  two standardizations are of the same participants. On a CR2 fit it
+  follows the note on missing clusters.
+* When participants are left out, the print and the report give the
+  `"observed"` set as, for example, "97 of the 100 pretested
+  participants with a pretest" instead of "every pretested participant
+  with a pretest". They give it in the lines on both sets, when the two
+  sets differ, and the print also gives it in its first line at
+  `pretest_center = "observed"`. When no participant beyond the model is
+  left in the set, the two sets are the same: the report names neither
+  set, nor does the print at the default center, and only the note
+  gives the number left out. Before, the print and the report did not
+  say that participants who lack a covariate were left out, although
+  the `"observed"` set they gave was then smaller than the number of
+  pretested participants with a pretest.
+
 ## HC3 standard errors at leverage 1 (bug fix, #173)
 
 * Under the default `robust = "HC3"`, `fit_solomon_glm()` failed when a
