@@ -21,14 +21,17 @@
   fit with a pretest or a numeric covariate:
 
   - The estimates standardized over the pretested participants in the
-    model (`pretest_center = "analyzed"`, the default) were wrong, as the
-    main results and in `pretest_sensitivity`. In the issue's example,
-    the average treatment effect was a risk difference of 0.0475 instead
-    of 0.0414. The estimates standardized over every pretested
-    participant with a pretest (`pretest_center = "observed"`) were
-    right.
+    model (`pretest_center = "analyzed"`, the default) were wrong, both
+    in the main results and in `pretest_sensitivity`. In the issue's
+    example, the average treatment effect was a risk difference of
+    0.0475 instead of 0.0414. The estimates standardized over every
+    pretested participant with a pretest (`pretest_center = "observed"`)
+    were right.
   - The delta-method standard errors were wrong under either center (in
-    the example, 0.0764 instead of 0.0648).
+    the example, 0.0764 instead of 0.0648), with one exception: for a
+    CR2 fit with a pretest but no numeric covariate, under
+    `pretest_center = "observed"`, only those of the pretest effects
+    were wrong.
   - With the default center, the bootstrap refitted each resample on the
     design of the refitted model, starting from the fit's coefficients,
     which belong to the fit's coding. Whether a refit converged then
@@ -39,10 +42,16 @@
     wrong or missing. When fewer failed, it reported intervals without a
     warning, but its standard errors and limits were right only when the
     same resamples failed as under the fit's coding, and even then they
-    did not go with the wrong estimates. The bootstrap standard errors
-    and limits with `pretest_center = "observed"` were right.
+    were the intervals of the right estimate, not of the reported one.
+    The bootstrap standard errors and limits with
+    `pretest_center = "observed"` were right.
   - With `robust = "CR2"`, the Satterthwaite degrees of freedom were
     wrong too.
+  - For a Poisson or negative-binomial fit, the rate ratios of Pretest x
+    Treatment, Treatment | pretested, and Treatment | unpretested, and
+    their standard errors, were right under either center: each depends
+    on the treatment coefficients alone. The other contrasts were wrong
+    as above.
 * In `marginal_solomon()`, for a CR2 fit with no pretest and no numeric
   covariate, the degrees of freedom of every contrast and the standard
   errors of the pretest effects were wrong; the estimates were right.
@@ -58,8 +67,9 @@
   analyze under the default option, and the reverse, and check that the
   results equal those of a fit made and analyzed under the default.
 * `perm_solomon()` also refits the model under the option in force. Its
-  statistic uses only the treatment coefficients, which do not depend on
-  how a covariate is coded, so its results were right; it is unchanged.
+  statistic uses only the treatment coefficients and their variance,
+  which do not depend on how a covariate is coded, so its results were
+  right; it is unchanged.
   The refits inside `fit_solomon_glm()` run under the option of the fit.
 
 ## Only MLR and ML in the SEM functions (#133)

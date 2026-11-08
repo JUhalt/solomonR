@@ -206,6 +206,8 @@ test_that("an ordered factor and a factor's own contrasts are coded as in the fi
   f[outside] <- "d"
   plain_fit <- refit_fit(d, y = y, covariates = data.frame(z = d$z, f = f))
   stats::contrasts(f) <- stats::contr.sum(4)
+  # R translates this warning, so it is matched in English.
+  withr::local_language("en")
   expect_warning(
     dropped_fit <- refit_fit(d, refit_sum, y = y, covariates = data.frame(z = d$z, f = f)),
     "contrasts dropped"
