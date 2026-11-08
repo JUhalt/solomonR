@@ -776,6 +776,25 @@ the model, not as the fit coded it —
 [\#168](https://github.com/JUhalt/solomonR/issues/168); merged in [PR
 \#169](https://github.com/JUhalt/solomonR/pull/169)
 
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+and
+[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+code a character covariate by the collation in force when they run, not
+the fit’s — [\#170](https://github.com/JUhalt/solomonR/issues/170)
+
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+stops when a covariate level occurs only among pretested participants
+with a pretest who are outside the model —
+[\#171](https://github.com/JUhalt/solomonR/issues/171)
+
+[`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
+with an ordered occasion factor —
+[\#172](https://github.com/JUhalt/solomonR/issues/172)
+
+A covariate named `pre_obs` in a fit without a pretest, or named
+`condition`, taken for the pretest or the condition —
+[\#174](https://github.com/JUhalt/solomonR/issues/174)
+
 **Figures and reports**
 
 The interval of the equivalence test drawn in the forest plot —
@@ -827,6 +846,11 @@ the convergence warning that can come with the error for exactly
 collinear covariates, and which fit `model$converged` describes —
 [\#154](https://github.com/JUhalt/solomonR/issues/154); merged in [PR
 \#165](https://github.com/JUhalt/solomonR/pull/165)
+
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+with HC3 when a participant has leverage 1: an internal error, undefined
+or rounding-dependent standard errors, and a refusal for a group of one
+without a class — [\#173](https://github.com/JUhalt/solomonR/issues/173)
 
 Robustness study of the recommended inference, under a protocol posted
 before any run — [\#116](https://github.com/JUhalt/solomonR/issues/116)
