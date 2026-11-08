@@ -251,6 +251,18 @@ test_that("an ordered occasion gives the same effects as an unordered one (#172)
   }
 })
 
+test_that("an ordered occasion with unused levels is used in its level order (#172)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  lev <- c("3", "1", "2", "4")
+  long$occ_u <- factor(long$occasion, levels = lev)
+  long$occ_o <- factor(long$occasion, levels = lev, ordered = TRUE)
+  u <- fit_solomon_mmrm(y_post, treat, pretested, id, occ_u, y_pre, data = long)
+  o <- fit_solomon_mmrm(y_post, treat, pretested, id, occ_o, y_pre, data = long)
+  expect_identical(unique(o$effects$occasion), c("3", "1", "2", "2 vs 3"))
+  expect_identical(o$effects, u$effects)
+})
+
 test_that("an ordered occasion gives the same effects at the observed center (#172)", {
   skip_if_not_installed("mmrm")
   long <- long_example(missing = 0.2)
@@ -278,7 +290,7 @@ test_that("an ordered occasion gives the right effects under another contrasts o
   # rows were matched to coefficients of the other coding without an error.
   withr::local_options(contrasts = c("contr.treatment", "contr.sum"))
   o <- fit_solomon_mmrm(y_post, treat, pretested, id, time_o, y_pre, data = long)
-  expect_equal(o$effects, right$effects)
+  expect_identical(o$effects, right$effects)
 })
 
 test_that("the contrasts are estimated from rows coded as the model is (#172)", {
@@ -297,4 +309,57 @@ test_that("the contrasts are estimated from rows coded as the model is (#172)", 
   o <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "kenward-roger", 0.95)
   expect_true(all(c("occ.L", "occ.Q") %in% names(mmrm::component(o$model, "beta_est"))))
   expect_equal(o$effects, u$effects)
+})
+
+test_that("an occasion with no observed posttest stops before the model is fitted (#172)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example()
+  long$occ_u <- factor(long$occasion)
+  long$occ_o <- factor(long$occasion, ordered = TRUE)
+  # The function stops before mmrm::mmrm() is called.
+  testthat::with_mocked_bindings(
+    for (empty in c(1, 3)) {
+      # Every posttest at this occasion is missing, as at a wave not yet
+      # collected. mmrm drops such an occasion from the model.
+      l <- long
+      l$y_post[l$occasion == empty] <- NA
+      msg <- paste0("no posttest is observed at these occasions: ", empty, ". Remove their rows")
+      for (v in c("occasion", "occ_u", "occ_o")) {
+        l$oc <- l[[v]]
+        expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, oc, y_pre, data = l), msg,
+                     fixed = TRUE)
+        expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, oc, data = l), msg,
+                     fixed = TRUE)
+      }
+    },
+    mmrm = function(...) stop("The model was fitted."),
+    .package = "mmrm"
+  )
+  # Without the rows of that occasion, the model is fitted at the others.
+  fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre,
+                          data = long[long$occasion != 3, ])
+  expect_identical(unique(fit$effects$occasion), c("1", "2", "2 vs 1"))
+})
+
+test_that("a group with no posttest at an occasion stops, naming the terms not estimable", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  # The treated unpretested participants have no posttest at occasion 3.
+  long$y_post[long$occasion == 3 & long$treat == 1 & long$pretested == 0] <- NA
+  long$occ_o <- factor(long$occasion, ordered = TRUE)
+  msg <- "these terms are not estimable: occ3:treat:pretested. Check that every group"
+  expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long), msg,
+               fixed = TRUE)
+  expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occ_o, y_pre, data = long), msg,
+               fixed = TRUE)
+})
+
+test_that("fit_solomon_mmrm() needs mmrm 0.3.19 or later (#172)", {
+  skip_if_not_installed("mmrm", "0.3.19")
+  expect_true(solomonR:::.mmrm_available())
+  expect_false(solomonR:::.mmrm_available("999.0"))
+  local_mocked_bindings(.mmrm_available = function(...) FALSE)
+  long <- long_example()
+  expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long),
+               "needs the mmrm package, version 0.3.19 or later", fixed = TRUE)
 })

@@ -195,7 +195,7 @@ them in Solomon designs.
 }
 
 The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
-which must be installed.
+version 0.3.19 or later, which must be installed.
 }
 
 \section{Validation}{

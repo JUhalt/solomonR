@@ -23,18 +23,29 @@
   default with treatment contrasts, not with polynomial contrasts.
 * The rows are now coded with the contrasts of the fitted model
   (`mmrm::component(fit, "contrasts")`), so each row is matched to
-  coefficients of the same coding, whatever that coding is. DESCRIPTION
-  now suggests mmrm 0.3.19 or later, the version this was checked with.
-  Results for a numeric occasion and for an unordered factor are
-  unchanged.
+  coefficients of the same coding, whatever that coding is.
+  `fit_solomon_mmrm()` now needs mmrm 0.3.19 or later, the version this
+  was checked with, and stops with a message saying so when an earlier
+  version is installed; DESCRIPTION suggests that version. Estimates for
+  a numeric occasion and for an unordered factor are unchanged.
+* When every posttest at an occasion is missing, for instance at a wave
+  not yet collected, `fit_solomon_mmrm()` now stops before fitting the
+  model, with a message that names the occasion and suggests removing
+  its rows. mmrm drops such an occasion, so the fitted model has no
+  coefficients for it. Before, the function stopped after fitting,
+  saying that some terms were not estimable, and the terms it named
+  were not always those of the empty occasion.
 * Tests check that an ordered occasion gives the same effects as an
   unordered one with Kenward-Roger and Satterthwaite degrees of
   freedom, with and without a pretest, with
-  `pretest_center = "observed"`, and under
-  `options(contrasts = c("contr.treatment", "contr.sum"))` with
-  occasions 0, 1, 2; and that rows coded with the model's contrasts give
-  the same effects when the model itself is fitted with an ordered
-  occasion.
+  `pretest_center = "observed"`, with unused levels in another order,
+  and under `options(contrasts = c("contr.treatment", "contr.sum"))`
+  with occasions 0, 1, 2; that rows coded with the model's contrasts
+  give the same effects when the model itself is fitted with an ordered
+  occasion; that an occasion with no observed posttest stops before the
+  model is fitted; that a group with no posttest at an occasion still
+  stops, naming the terms that are not estimable; and that an earlier
+  mmrm stops with a message.
 
 ## Refits under the fit's contrasts (bug fix, #168)
 
