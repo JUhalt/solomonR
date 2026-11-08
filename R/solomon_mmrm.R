@@ -71,10 +71,13 @@
 
   beta <- mmrm::component(fit, "beta_est")
   tt <- stats::delete.response(stats::terms(stats::as.formula(fixed)))
+  # The rows are coded with the contrasts of the fitted model, so that each
+  # is matched to coefficients of the same coding (issue #172).
+  contrasts <- mmrm::component(fit, "contrasts")
   point <- function(t, tr, pr, pre_obs = 0) {
     nd <- data.frame(occ = factor(occasions[t], levels = occasions), treat = tr, pretested = pr,
                      pre_obs = pre_obs)
-    stats::model.matrix(tt, nd)[1, ]
+    stats::model.matrix(tt, nd, contrasts.arg = contrasts)[1, ]
   }
   weights <- function(v) {
     missing_terms <- setdiff(names(v)[abs(v) > 0], names(beta))
@@ -284,7 +287,9 @@
 #'   every row of a participant.
 #' @param id Participant identifier.
 #' @param occasion Posttest occasion. A factor keeps its level order;
-#'   otherwise the sorted unique values are used.
+#'   otherwise the sorted unique values are used. An ordered factor is used
+#'   as unordered, in its level order; the contrasts at each occasion do not
+#'   depend on how `occasion` is coded.
 #' @param y_pre Optional pretest score, the same in every row of a
 #'   participant and missing by design for unpretested participants.
 #' @param df Degrees of freedom for tests and intervals: `"kenward-roger"`
@@ -423,8 +428,12 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
                          occasion = occasion, y_pre = y_pre)
   if (!is.numeric(y_post)) stop("`y_post` must be numeric.", call. = FALSE)
   if (anyNA(id) || anyNA(occasion)) stop("`id` and `occasion` must not be missing.", call. = FALSE)
-  occ <- if (is.factor(occasion)) droplevels(occasion) else
+  # An ordered factor is used as unordered, in its level order (issue #172).
+  occ <- if (is.factor(occasion)) {
+    factor(occasion, levels = levels(droplevels(occasion)), ordered = FALSE)
+  } else {
     factor(occasion, levels = sort(unique(occasion)))
+  }
   occasions <- levels(occ)
   if (length(occasions) < 2L) {
     stop("`occasion` must have at least two posttest occasions; for one, use fit_solomon_glm().",

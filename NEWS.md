@@ -1,5 +1,41 @@
 # solomonR (development version)
 
+## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
+
+* `fit_solomon_mmrm()` fitted the model with `occasion` as given, but
+  built the rows from which it estimates each contrast with occasion as
+  an unordered factor, and matched those rows to the model's
+  coefficients by name. R codes an ordered factor by the second element
+  of the contrasts option (`options("contrasts")`) and an unordered one
+  by the first, so with an ordered `occasion` the rows and the model
+  were coded differently. Under the default option, the names differed:
+  the function stopped after fitting, saying that some terms were not
+  estimable and that every group should be observed at every occasion,
+  advice that did not apply. Under some other options, both codings
+  named their columns the same way, and the estimates, standard errors,
+  and intervals were wrong, without an error or a warning: for
+  instance, with occasions labeled 0, 1, 2 under
+  `options(contrasts = c("contr.treatment", "contr.sum"))`. A numeric
+  occasion and an unordered factor were not affected.
+* An ordered `occasion` is now used as an unordered factor, in its level
+  order, so it gives the same results as an unordered factor with the
+  same levels. The returned `model` codes it as an unordered factor, by
+  default with treatment contrasts, not with polynomial contrasts.
+* The rows are now coded with the contrasts of the fitted model
+  (`mmrm::component(fit, "contrasts")`), so each row is matched to
+  coefficients of the same coding, whatever that coding is. DESCRIPTION
+  now suggests mmrm 0.3.19 or later, the version this was checked with.
+  Results for a numeric occasion and for an unordered factor are
+  unchanged.
+* Tests check that an ordered occasion gives the same effects as an
+  unordered one with Kenward-Roger and Satterthwaite degrees of
+  freedom, with and without a pretest, with
+  `pretest_center = "observed"`, and under
+  `options(contrasts = c("contr.treatment", "contr.sum"))` with
+  occasions 0, 1, 2; and that rows coded with the model's contrasts give
+  the same effects when the model itself is fitted with an ordered
+  occasion.
+
 ## Refits under the fit's contrasts (bug fix, #168)
 
 * `marginal_solomon()` and `plot_sensitization()` refit the model of a

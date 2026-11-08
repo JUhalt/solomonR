@@ -230,3 +230,71 @@ test_that("fit_solomon_mmrm() reproduces the per-occasion analyses of jordaan201
   # The change across occasions depends on the correlation.
   expect_gt(se_change[1], se_change[2])
 })
+
+# An ordered occasion (#172). R codes an ordered factor by the second
+# element of options("contrasts") and an unordered one by the first, so the
+# model and the rows its contrasts were estimated from were coded
+# differently.
+
+test_that("an ordered occasion gives the same effects as an unordered one (#172)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  long$occ_u <- factor(long$occasion)
+  long$occ_o <- factor(long$occasion, ordered = TRUE)
+  for (df in c("kenward-roger", "satterthwaite")) {
+    u <- fit_solomon_mmrm(y_post, treat, pretested, id, occ_u, y_pre, df = df, data = long)
+    o <- fit_solomon_mmrm(y_post, treat, pretested, id, occ_o, y_pre, df = df, data = long)
+    expect_identical(o$effects, u$effects)
+    u <- fit_solomon_mmrm(y_post, treat, pretested, id, occ_u, df = df, data = long)
+    o <- fit_solomon_mmrm(y_post, treat, pretested, id, occ_o, df = df, data = long)
+    expect_identical(o$effects, u$effects)
+  }
+})
+
+test_that("an ordered occasion gives the same effects at the observed center (#172)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  # Six pretested participants with no posttest at any occasion, so the two
+  # centers differ.
+  long$y_post[long$id %in% 1:6] <- NA
+  long$occ_u <- factor(long$occasion)
+  long$occ_o <- factor(long$occasion, ordered = TRUE)
+  u <- fit_solomon_mmrm(y_post, treat, pretested, id, occ_u, y_pre, data = long,
+                        pretest_center = "observed")
+  o <- fit_solomon_mmrm(y_post, treat, pretested, id, occ_o, y_pre, data = long,
+                        pretest_center = "observed")
+  expect_false(isTRUE(all.equal(u$pretest_mean_observed, u$pretest_mean_analyzed)))
+  expect_identical(o$effects, u$effects)
+  expect_identical(o$pretest_sensitivity, u$pretest_sensitivity)
+})
+
+test_that("an ordered occasion gives the right effects under another contrasts option (#172)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  long$time <- long$occasion - 1
+  long$time_o <- factor(long$time, ordered = TRUE)
+  right <- fit_solomon_mmrm(y_post, treat, pretested, id, time, y_pre, data = long)
+  # Under this option, both codings named their columns 1 and 2, so the
+  # rows were matched to coefficients of the other coding without an error.
+  withr::local_options(contrasts = c("contr.treatment", "contr.sum"))
+  o <- fit_solomon_mmrm(y_post, treat, pretested, id, time_o, y_pre, data = long)
+  expect_equal(o$effects, right$effects)
+})
+
+test_that("the contrasts are estimated from rows coded as the model is (#172)", {
+  skip_if_not_installed("mmrm")
+  long <- long_example(missing = 0.2)
+  center <- mean(long$y_pre[long$occasion == 1 & long$pretested == 1])
+  observed <- data.frame(y = long$y_post, treat = long$treat, pretested = long$pretested,
+                         occ = factor(long$occasion, levels = 1:3), id = factor(long$id),
+                         pre_obs = ifelse(long$pretested == 1, long$y_pre - center, 0))
+  observed$pgrp <- factor(ifelse(observed$pretested == 1, "pretested", "unpretested"))
+  observed <- observed[!is.na(observed$y), ]
+  occasions <- as.character(1:3)
+  u <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "kenward-roger", 0.95)
+  # A model fitted with an ordered occasion, coded occ.L and occ.Q.
+  observed$occ <- factor(observed$occ, ordered = TRUE)
+  o <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "kenward-roger", 0.95)
+  expect_true(all(c("occ.L", "occ.Q") %in% names(mmrm::component(o$model, "beta_est"))))
+  expect_equal(o$effects, u$effects)
+})

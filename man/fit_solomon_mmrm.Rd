@@ -31,7 +31,9 @@ every row of a participant.}
 \item{id}{Participant identifier.}
 
 \item{occasion}{Posttest occasion. A factor keeps its level order;
-otherwise the sorted unique values are used.}
+otherwise the sorted unique values are used. An ordered factor is used
+as unordered, in its level order; the contrasts at each occasion do not
+depend on how \code{occasion} is coded.}
 
 \item{y_pre}{Optional pretest score, the same in every row of a
 participant and missing by design for unpretested participants.}
