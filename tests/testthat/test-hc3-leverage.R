@@ -440,6 +440,9 @@ test_that("the pretest effects' cross term takes its limit at a hat value of exa
   # Rare-level data on which participant 1's hat value is 1 in floating
   # point (on R 4.6.1, Windows), so that influence / (1 - h) is 0/0 in the
   # covariance of the coefficients with the mean pretest (.center_terms()).
+  # The test catches a return to influence / (1 - h) only where the hat
+  # value rounds to exactly 1, as on that platform; where it comes out just
+  # below 1, the test still passes but no longer catches it.
   n <- 40
   tr <- rep(c(1, 0, 1, 0), each = 10)
   pt <- rep(c(1, 1, 0, 0), each = 10)
@@ -532,6 +535,36 @@ test_that("with several treatments, a comparison without a p-value counts in the
     expect_equal(e$p.adjusted[b], 2 * e$p.value[b], info = adjust)
     expect_output(print(fit), "across the 2 comparisons", fixed = TRUE)
   }
+
+  # The treatments' pretest effects are adjusted the same way. A's pretests
+  # are 1, 1, 4 (participant 3 at leverage 1), and Control's and B's are all
+  # 2, so the mean pretest is 2: B's pretest effect does not depend on the
+  # pretest slope and has a p-value, and A's has none.
+  pre_b <- c(1, 1, 4, 2, 2, 2, 2, 2, 2, rep(NA, 9))
+  treated <- function(e) e[e$contrast == "Pretest effect | treated", , drop = FALSE]
+  for (adjust in c("holm", "bonferroni")) {
+    fit <- suppressWarnings(fit_solomon_glm(y3, c3, p3, pre_b, control = "Control",
+                                            adjust = adjust))
+    e <- treated(fit$effects)
+    expect_identical(e$comparison, c("A", "B"))
+    expect_true(is.na(e$p.value[1]))
+    expect_lt(e$p.value[2], 0.05)
+    expect_equal(e$p.adjusted[2], 2 * e$p.value[2], info = adjust)
+    expect_output(print(fit), "across the 2 treatments", fixed = TRUE)
+  }
+
+  # And at the other center. A pretested B participant without a posttest,
+  # whose pretest is 8, makes the observed center (2.6) differ from the
+  # analyzed center (2). Under pretest_center = "observed", the analyzed
+  # center's pretest effects are the other center's.
+  fit <- suppressWarnings(fit_solomon_glm(c(y3, NA), c(c3, "B"), c(p3, 1), c(pre_b, 8),
+                                          control = "Control", pretest_center = "observed"))
+  s <- fit$pretest_sensitivity$effects
+  e <- treated(s[s$center == "analyzed", ])
+  expect_identical(e$comparison, c("A", "B"))
+  expect_true(is.na(e$p.value[1]))
+  expect_lt(e$p.value[2], 0.05)
+  expect_equal(e$p.adjusted[2], 2 * e$p.value[2])
 })
 
 test_that("reports say why an estimate has no interval only when they give one, marginal reports too (#173)", {
@@ -606,4 +639,51 @@ test_that("the leverage thresholds and the wording of row numbers are as documen
                 warning = identity)
   expect_s3_class(w, "solomonR_hc3_leverage_warning")
   expect_match(conditionMessage(w), "participants 1, 25 (row numbers of the data)", fixed = TRUE)
+})
+
+test_that("reports give a pretest effect at the other center without a standard error as such (#173)", {
+  report_text <- function(x, ...) {
+    gsub("[[:space:]]+", " ", paste(capture.output(print(report_solomon(x, ...))), collapse = " "))
+  }
+  # As in the adjustment test, plus a pretested B participant without a
+  # posttest (pretest 8), so that the observed center (2.6) differs from the
+  # analyzed center (2). A's pretest effect at the analyzed center depends
+  # on participant 3; Control's and B's do not.
+  y3 <- c(3, 5, 2, 4, 1, 6, 9, 10, 9.5, 2, 7, 4, 5, 1, 3, 4, 6, 2, NA)
+  c3 <- c(rep(c("A", "Control", "B", "A", "Control", "B"), each = 3), "B")
+  p3 <- c(rep(c(1, 0), each = 9), 1)
+  pre3 <- c(1, 1, 4, 2, 2, 2, 2, 2, 2, rep(NA, 9), 8)
+  fit <- suppressWarnings(fit_solomon_glm(y3, c3, p3, pre3, control = "Control",
+                                          pretest_center = "observed"))
+  expect_match(report_text(fit), paste0(
+    "which assumes that, within each treatment condition, the pretested and the unpretested ",
+    "groups lost the same kinds of participants, the pretest effect was 0.67 in the Control ",
+    "condition, 95% CI [-4.36, 5.69], t(11) = 0.29, p = .776; -1.00 in the A condition ",
+    "(no interval or test is available); and 5.50 in the B condition, 95% CI [2.26, 8.74], ",
+    "t(11) = 3.74, p = .007, Holm-adjusted; averaged over the conditions, the pretest main ",
+    "effect was 1.72 (no interval or test is available)."
+  ), fixed = TRUE)
+  expect_match(report_text(fit, format = "markdown"),
+               "-1.00 in the A condition (no interval or test is available); and 5.50", fixed = TRUE)
+
+  # At the default center every pretest effect at the observed center
+  # depends on participant 3.
+  fit <- suppressWarnings(fit_solomon_glm(y3, c3, p3, pre3, control = "Control"))
+  expect_match(report_text(fit), paste0(
+    "the pretest effect was 0.27 in the Control condition (no interval or test is available); ",
+    "-1.40 in the A condition (no interval or test is available); and 5.10 in the B condition ",
+    "(no interval or test is available); averaged over the conditions, the pretest main effect ",
+    "was 1.32 (no interval or test is available)."
+  ), fixed = TRUE)
+
+  # Four groups: the data of (a) plus a pretested treated participant
+  # without a posttest (pretest 9).
+  d <- lev_data()
+  fit <- suppressWarnings(fit_solomon_glm(c(d$y_post, NA), c(d$treat, 1), c(d$pretested, 1),
+                                          c(d$y_pre, 9), pretest_center = "observed"))
+  expect_match(report_text(fit), paste0(
+    "the pretest effect was 0.58 among control participants (no interval or test is ",
+    "available), and -0.92 among treated participants (no interval or test is available); ",
+    "their average, the pretest main effect, was -0.17 (no interval or test is available)."
+  ), fixed = TRUE)
 })

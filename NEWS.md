@@ -49,20 +49,21 @@
   bounds in the plots, and `tipping_point_solomon()` stop with an error
   for such a contrast. `perm_solomon()` is not changed; issue #134
   covers it.
-* With several treatments, a comparison whose p-value is `NA` now
-  counts in the Holm or Bonferroni adjustment of the other comparisons
-  of its contrast, as if its p-value were the largest, so that the
-  adjustment is across the number of comparisons that the print and the
-  report state. Before, `stats::p.adjust()` left it out, so the other
-  comparisons were adjusted across fewer comparisons than stated: with
-  two comparisons, the other comparison was not adjusted at all. The
-  same holds for the treatments' pretest effects.
-* `report_solomon()` now gives any estimate that has no interval and no
+* With several treatments, a comparison without a p-value, as when its
+  HC3 standard error is undefined, counts in the adjustment of the
+  other comparisons of its contrast by Holm's (1979) or the Bonferroni
+  procedure, as if its p-value were the largest. The adjustment is then
+  across the number of comparisons that the print and the report state.
+  The same rule applies to the treatments' pretest effects, at both
+  centers.
+* `report_solomon()` gives an estimate that has no interval and no
   p-value as the estimate followed by "(no interval or test is
-  available)", in place of `95% CI [ NA, NA], p = NA`. This also changes
-  the report of such estimates in analyses without a participant at
-  leverage 1, such as a `marginal_solomon()` bootstrap that gives no
-  interval.
+  available)", rather than with an interval and a p-value of `NA`. This
+  holds in the sentences that give the rows of a result's `effects`
+  table with their intervals, and for the pretest effects at the other
+  center. It holds in analyses without a participant at leverage 1 too,
+  such as a `marginal_solomon()` bootstrap that gives no interval, or a
+  CR2 fit that gives no standard errors at the other center.
 * The refusal of HC3 for a group with a single analyzable participant
   now has the class `solomonR_hc3_singleton_error`, on the four-group
   and the several-treatment paths, with the same message, so that a
