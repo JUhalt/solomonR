@@ -10,6 +10,10 @@
 # covariate lies from zero, and whatever the scale of a covariate or the
 # pretest. With a numeric covariate, the CR2 degrees of freedom come from the
 # orthonormal basis of the standardized model, as the fit's (.cr2_basis()).
+# Under HC3 with a participant at leverage 1 (`fit$hc3_leverage`), the
+# covariance has NA entries, and the standard errors are computed from the
+# model the inference came from, as the fit's are: NA for a combination
+# that depends on such a participant (issue #173; .combination_variance()).
 .glm_linear_combination <- function(fit, L) {
   model <- fit$model
   scaling <- fit$covariate_scaling
@@ -23,7 +27,12 @@
   }
 
   estimate <- as.numeric(L %*% cf)
-  std.error <- sqrt(rowSums((L %*% as.matrix(V)) * L))
+  std.error <- if (identical(fit$robust, "HC3") && length(fit$hc3_leverage)) {
+    inference <- if (is.null(scaling)) model else .standardized_model(fit)
+    unname(sqrt(.combination_variance(inference, "HC3", L)))
+  } else {
+    sqrt(rowSums((L %*% as.matrix(V)) * L))
+  }
 
   if (identical(fit$robust, "CR2")) {
     frame <- stats::model.frame(model)
@@ -209,6 +218,11 @@
 # The omnibus Pretest x Condition test of a solomon_ngroup fit, as text.
 .ngroup_omnibus_text <- function(fit, test = "Pretest x Condition") {
   row <- fit$omnibus[fit$omnibus$test == test, , drop = FALSE]
+  # Under HC3, a test of a contrast that depends on a participant whose
+  # leverage is 1 has no statistic (issue #173).
+  if (length(fit$hc3_leverage) && is.na(row$statistic)) {
+    return(sprintf("%s: no result, as a standard error it needs is undefined", test))
+  }
   statistic <- formatC(row$statistic, format = "f", digits = 2)
   stat <- if (identical(row$reference, "F")) {
     sprintf("F(%s, %s) = %s", .df_fmt(row$df1), .df_fmt(row$df2), statistic)
@@ -304,7 +318,9 @@
 #'   (`inference = "wald"`).
 #'
 #' The sensitization estimate and interval in the subtitle are taken unchanged
-#' from the fit.
+#' from the fit. Under HC3, a mean or a test that depends on a participant
+#' whose leverage is 1 has no interval or result, and the subtitle and the
+#' caption say so (see "HC3 at leverage 1" in [fit_solomon_glm()]).
 #'
 #' @section Designs with several treatments:
 #' For a fit from [fit_solomon_glm()] with several treatments and a control,
@@ -379,12 +395,18 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
 
   sens <- fit$effects[fit$effects$contrast == "Pretest x Treatment", ]
   level <- format(100 * fit$conf_level)
-  subtitle <- sprintf(
-    "Pretest x Treatment: %s (%s%% CI %s to %s)",
-    formatC(sens$estimate, format = "f", digits = 2), level,
-    formatC(sens$conf.low, format = "f", digits = 2),
-    formatC(sens$conf.high, format = "f", digits = 2)
-  )
+  subtitle <- if (.hc3_no_interval(fit, sens)) {
+    # Its HC3 standard error is undefined (issue #173).
+    sprintf("Pretest x Treatment: %s (no interval, as its HC3 standard error is undefined)",
+            formatC(sens$estimate, format = "f", digits = 2))
+  } else {
+    sprintf(
+      "Pretest x Treatment: %s (%s%% CI %s to %s)",
+      formatC(sens$estimate, format = "f", digits = 2), level,
+      formatC(sens$conf.low, format = "f", digits = 2),
+      formatC(sens$conf.high, format = "f", digits = 2)
+    )
+  }
 
   # The center of the pretested groups' means, and the other center when
   # the two differ (issue #135).
@@ -395,6 +417,12 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
     "%s.\n%s%% intervals; %s.\nInference: %s.",
     adjustment, level, .reference_label(adjusted$df), cells$inference
   )
+  # The cells whose HC3 standard error is undefined (issue #173).
+  no_interval <- .hc3_no_interval(fit, adjusted)
+  caption <- paste0(caption, .hc3_no_interval_caption(
+    fit$hc3_leverage,
+    paste0(adjusted$condition, ", ", tolower(adjusted$treatment))[no_interval], "; "
+  ))
 
   dodge <- ggplot2::position_dodge(width = 0.15)
   p <- ggplot2::ggplot(
@@ -469,6 +497,11 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
     "%s.\n%s%% intervals: %s; %s.\nSensitization: a treatment line not parallel to the %s line.",
     adjustment, level, cells$inference, .reference_label(adjusted$df), control
   )
+  # The cells whose HC3 standard error is undefined (issue #173).
+  no_interval <- .hc3_no_interval(fit, adjusted)
+  caption <- paste0(caption, .hc3_no_interval_caption(
+    fit$hc3_leverage, paste0(adjusted$condition, ", ", adjusted$treat)[no_interval], "; "
+  ))
 
   dodge <- ggplot2::position_dodge(width = 0.3)
   p <- ggplot2::ggplot(

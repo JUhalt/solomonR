@@ -822,6 +822,10 @@ test_that("a fit that stops at an empty group or a single participant under HC3 
       info <- paste(design, case[[1]])
       out <- signalled(separated_fit(design, case[[1]], robust = case[[2]]))
       expect_s3_class(out$value, "error")
+      # The refusal of HC3 for a single participant has a class (#173).
+      if (case[[1]] == "single") {
+        expect_s3_class(out$value, "solomonR_hc3_singleton_error")
+      }
       expect_match(conditionMessage(out$value), case[[3]], info = info)
       expect_identical(out$warnings, list(), info = info)
       withr::with_options(list(warn = 2), {

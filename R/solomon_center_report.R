@@ -32,11 +32,14 @@
 }
 
 # One row of a pretest-effects table as a clause: the estimate, with its
-# interval and test when it has a standard error (a CR2 fit may give none at
-# the other center).
+# interval and test when it has a standard error. Without one (a CR2 fit may
+# give none at the other center, and an HC3 standard error is undefined at
+# leverage 1, issue #173), the estimate is followed by .no_inference_phrase,
+# as in .effect_clause().
 .center_clause <- function(r, level, digits, md, where = NULL, p = "p.value", p_label = NULL) {
   if (!is.finite(r$std.error)) {
-    return(paste0(.apa_num(r$estimate, digits), if (!is.null(where)) paste0(" ", where)))
+    return(paste0(.apa_num(r$estimate, digits), if (!is.null(where)) paste0(" ", where),
+                  if (is.finite(r$estimate)) .no_inference_phrase))
   }
   .effect_clause(r, level, digits, md, p = p, p_label = p_label, where = where)
 }

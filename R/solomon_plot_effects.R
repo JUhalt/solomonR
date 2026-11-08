@@ -221,7 +221,11 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
 
   eff <- eff[eff$contrast %in% .solomon_contrast_order, , drop = FALSE]
   estimated <- is.finite(eff$estimate) & is.finite(eff$conf.low) & is.finite(eff$conf.high)
-  omitted <- setdiff(.solomon_contrast_order, eff$contrast[estimated])
+  # Under HC3, a contrast that depends on a participant whose leverage is 1
+  # has an estimate but no interval (issue #173); it is left out and named
+  # apart from the contrasts the model does not estimate.
+  undefined <- eff$contrast[.hc3_no_interval(fit, eff)]
+  omitted <- setdiff(.solomon_contrast_order, c(eff$contrast[estimated], undefined))
   eff <- eff[estimated, , drop = FALSE]
 
   if (nrow(eff) == 0L) {
@@ -243,6 +247,7 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
     caption <- paste0(caption, "\nNot estimated by this model: ",
                       paste(omitted, collapse = ", "), ".")
   }
+  caption <- paste0(caption, .hc3_no_interval_caption(fit$hc3_leverage, undefined))
 
   p <- ggplot2::ggplot(eff, ggplot2::aes(x = estimate, y = contrast))
   tost_layer <- NULL
@@ -250,6 +255,7 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
   if (!is.null(bounds)) {
     bounds <- .equivalence_bounds(bounds)
     if (!"Pretest x Treatment" %in% levels_present) {
+      .stop_hc3_no_interval(fit, "Pretest x Treatment" %in% undefined)
       stop("`bounds` apply to the Pretest x Treatment contrast, which this fit does not estimate.",
            call. = FALSE)
     }
@@ -285,6 +291,38 @@ plot_solomon_effects <- function(fit, bounds = NULL, alpha = 0.05) {
     ggplot2::geom_point(size = 3) +
     ggplot2::labs(x = x$scale, y = NULL, title = "Solomon contrasts", caption = caption) +
     ggplot2::theme_minimal(base_size = 12)
+}
+
+# The rows of the effects table `eff` of a fit_solomon_glm() fit that have
+# an estimate but no interval because their HC3 standard error is undefined:
+# they depend on a participant whose leverage is 1 (issue #173;
+# `fit$hc3_leverage`). FALSE for every row of any other fit.
+.hc3_no_interval <- function(fit, eff) {
+  if (!length(fit$hc3_leverage)) return(rep(FALSE, nrow(eff)))
+  is.finite(eff$estimate) & is.na(eff$std.error)
+}
+
+# The caption line naming the contrasts `labels` left out of a plot because
+# their HC3 standard error is undefined, given the participants `rows` at
+# leverage 1; "" when there are none.
+.hc3_no_interval_caption <- function(rows, labels, sep = ", ") {
+  if (!length(labels)) return("")
+  paste0("\nNo interval, as the HC3 standard error is undefined (leverage 1 for ",
+         if (length(rows) == 1L) "participant " else "participants ",
+         paste(rows, collapse = ", "), "): ", paste(labels, collapse = sep), ".")
+}
+
+# Stops when equivalence bounds are asked for a contrast without an
+# interval because its HC3 standard error is undefined (`undefined`).
+.stop_hc3_no_interval <- function(fit, undefined) {
+  if (!isTRUE(undefined)) return(invisible(NULL))
+  stop(
+    "`bounds` apply to the Pretest x Treatment contrast, whose HC3 standard error is ",
+    "undefined in this fit: it depends on a participant whose leverage is 1 (",
+    .hc3_rows_phrase(fit$hc3_leverage), "). Refit with ",
+    "`robust = \"none\"` to test it.",
+    call. = FALSE
+  )
 }
 
 # The two one-sided tests of the rows `eff` of an effects table (estimate,
@@ -335,11 +373,21 @@ utils::globalVariables("comparison")
   comparisons <- unique(eff$comparison)
 
   estimated <- is.finite(eff$estimate) & is.finite(eff$conf.low) & is.finite(eff$conf.high)
-  omitted <- if (any(!estimated)) {
-    paste0(eff$comparison[!estimated], ": ", eff$contrast[!estimated])
+  # Contrasts without an interval because their HC3 standard error is
+  # undefined (issue #173) are named apart.
+  undefined <- .hc3_no_interval(fit, eff)
+  missing_rows <- !estimated & !undefined
+  omitted <- if (any(missing_rows)) {
+    paste0(eff$comparison[missing_rows], ": ", eff$contrast[missing_rows])
   } else {
     character(0)
   }
+  no_interval <- if (any(undefined)) {
+    paste0(eff$comparison[undefined], ": ", eff$contrast[undefined])
+  } else {
+    character(0)
+  }
+  undefined_pt <- any(undefined & eff$contrast == "Pretest x Treatment")
   eff <- eff[estimated, , drop = FALSE]
 
   if (nrow(eff) == 0L) {
@@ -374,6 +422,7 @@ utils::globalVariables("comparison")
     caption <- paste0(caption, "\nNot estimated by this model: ",
                       paste(omitted, collapse = "; "), ".")
   }
+  caption <- paste0(caption, .hc3_no_interval_caption(fit$hc3_leverage, no_interval, "; "))
 
   p <- ggplot2::ggplot(eff, ggplot2::aes(x = estimate, y = comparison))
   tost_layer <- NULL
@@ -381,6 +430,7 @@ utils::globalVariables("comparison")
   if (!is.null(bounds)) {
     bounds <- .equivalence_bounds(bounds)
     if (!"Pretest x Treatment" %in% levels(eff$contrast)) {
+      .stop_hc3_no_interval(fit, undefined_pt)
       stop("`bounds` apply to the Pretest x Treatment contrast, which this fit does not estimate.",
            call. = FALSE)
     }

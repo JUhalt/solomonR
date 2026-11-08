@@ -117,6 +117,10 @@ the worked example on \code{mai2020}, the tipping point for sensitization
 ranged from 0.1 to 0.5 standard deviations across seeds with 100
 imputations and was 0.3 with 2,000. Before reporting a tipping point,
 increase \code{m} or compare a few seeds.
+
+\strong{HC3 at leverage 1.} Under HC3, a contrast that depends on a
+participant whose leverage is 1 has no standard error and no p-value
+(see \code{\link[=fit_solomon_mi]{fit_solomon_mi()}}), so following it stops with an error.
 }
 \section{Lifecycle}{
 
