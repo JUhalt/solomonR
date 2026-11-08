@@ -397,6 +397,33 @@ test_that("an occasion factor with values at an NA level stops as missing (#172)
   )
 })
 
+test_that("a missing occasion stops before the model is fitted, whatever its type (#172)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  long <- long_example(missing = 0.2)
+  msg <- "`id` and `occasion` must not be missing."
+  rows <- c(2, 50, 200)
+  numeric_na <- replace(as.numeric(long$occasion), rows, NA)
+  numeric_nan <- replace(as.numeric(long$occasion), rows, NaN)
+  character_na <- replace(as.character(long$occasion), rows, NA)
+  date_na <- replace(as.Date("2026-01-01") + 30 * long$occasion, rows, NA)
+  factor_na <- replace(factor(long$occasion), rows, NA)
+  testthat::with_mocked_bindings({
+    for (oc in list(numeric_na, numeric_nan, character_na, date_na, factor_na)) {
+      l <- long
+      l$oc <- oc
+      expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, oc, y_pre, data = l), msg,
+                   fixed = TRUE)
+    }
+    l <- long
+    l$id[rows] <- NA
+    expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = l), msg,
+                 fixed = TRUE)
+  },
+    mmrm = function(...) stop("The model was fitted."),
+    .package = "mmrm"
+  )
+})
+
 test_that("an unused NA level of an occasion factor changes nothing (#172)", {
   skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
@@ -422,6 +449,15 @@ test_that("fit_solomon_mmrm() needs mmrm 0.3.13 or later (#172)", {
   skip_if_not_installed("mmrm", "0.3.13")
   expect_true(solomonR:::.mmrm_available())
   expect_false(solomonR:::.mmrm_available("999.0"))
+  # The comparison: the installed version passes, a later one does not.
+  installed <- as.character(utils::packageVersion("mmrm"))
+  expect_true(solomonR:::.mmrm_available(installed))
+  expect_false(solomonR:::.mmrm_available(paste0(installed, ".1")))
+  # The default minimum is the one DESCRIPTION suggests.
+  suggests <- read.dcf(system.file("DESCRIPTION", package = "solomonR"), "Suggests")[[1]]
+  minimum <- sub(".*mmrm \\(>= ([0-9.]+)\\).*", "\\1", gsub("[[:space:]]+", " ", suggests))
+  expect_identical(formals(solomonR:::.mmrm_available)$minimum, minimum)
+  expect_identical(minimum, "0.3.13")
   local_mocked_bindings(.mmrm_available = function(...) FALSE)
   long <- long_example()
   expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long),

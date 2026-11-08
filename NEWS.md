@@ -37,8 +37,8 @@
   and suggests removing its rows. mmrm drops such an occasion, so the
   fitted model has no coefficients for it. Before, the function usually
   stopped after fitting, saying that some terms were not estimable, and
-  the terms it named were not always those of the empty occasion; with
-  two occasions, one of them empty, it said instead that the model did
+  the terms it named were not always those of the empty occasion; when
+  only one occasion had posttests, it said instead that the model did
   not converge.
 * An `occasion` factor with values at an `NA` level, as made by
   `addNA()`, now stops with the message that `id` and `occasion` must
@@ -56,8 +56,10 @@
   posttest stops before the model is fitted; that a group with no
   posttest at an occasion still stops, naming the terms that are not
   estimable; that an occasion factor with values at an `NA` level stops
-  as missing, and that an unused `NA` level gives the same results; and
-  that an earlier mmrm stops with a message.
+  as missing, and that an unused `NA` level gives the same results; that
+  a missing occasion of any type stops before the model is fitted; that
+  the version check compares with the minimum DESCRIPTION suggests; and
+  that the function stops with a message when the check fails.
 
 ## Refits under the fit's contrasts (bug fix, #168)
 
