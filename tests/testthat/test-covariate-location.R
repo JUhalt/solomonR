@@ -238,14 +238,17 @@ test_that("covariate fits return the model and the coefficients for the covariat
   expect_s3_class(fit$vcov, "clubSandwich")
 })
 
-test_that("without a pretest, a covariate named pre_obs is standardized as a covariate", {
+test_that("without a pretest, a covariate named like the pretest is standardized as a covariate", {
+  # A covariate cannot be named pre_obs, the model's name for the pretest
+  # (issue #174); one named y_pre, as the pretest is given, is a covariate
+  # like any other.
   d <- location_data()$four
   fit_with <- function(name) {
     covariates <- data.frame(10 * d$z + 1e6)
     names(covariates) <- name
     suppressWarnings(fit_solomon_glm(d$y_g, d$treat, d$pretested, covariates = covariates))
   }
-  fit <- fit_with("pre_obs")
+  fit <- fit_with("y_pre")
   ref <- fit_with("x")
   expect_equal(fit$effects, ref$effects, tolerance = 1e-10)
   expect_equal(unname(fit$covariate_scaling$scales), unname(ref$covariate_scaling$scales))
@@ -2288,10 +2291,11 @@ test_that("a covariate is standardized as itself when another column shares its 
   # With CR2 the fit stopped with "duplicate 'row.names' are not allowed",
   # as on master, which also gave the second column the standard error of
   # the first and left it out of the cells. The reference renames the
-  # covariate, which changes nothing else. A covariate named `pre_obs` in a
-  # fit without a pretest was taken for the pretest by plot_sensitization(),
-  # on master too; covariates whose names must be quoted in a formula, such
-  # as `(Intercept)`, are found as well.
+  # covariate, which changes nothing else. A model column named `pre_obs`
+  # in a fit without a pretest, which a covariate could have until #174 and
+  # the indicator of a factor's level still can, was taken for the pretest
+  # by plot_sensitization(), on master too; covariates whose names must be
+  # quoted in a formula, such as `(Intercept)`, are found as well.
   d <- location_data()
   numbers <- function(x) unname(as.matrix(x[vapply(x, is.numeric, logical(1))]))
   same <- function(fit, ref, info) {
@@ -2347,9 +2351,21 @@ test_that("a covariate is standardized as itself when another column shares its 
     expect_equal(marginal(data.frame(wave, wave2 = x$age)), marginal(data.frame(wave, w2 = x$age)),
                  tolerance = 1e-10, info = robust)
   }
-  # Without a pretest, a covariate named pre_obs; and names that must be
-  # quoted.
-  for (name in c("pre_obs", "(Intercept)", "my cov")) {
+  # Without a pretest, a model column named pre_obs: no covariate can be
+  # named so since #174, but the indicator of the level `_obs` of a factor
+  # `pre` is.
+  without_pretest <- function(covariates) {
+    suppressWarnings(fit_solomon_glm(x$y_g, x$treat, x$pretested, covariates = covariates,
+                                     robust = "HC3"))
+  }
+  high <- x$z > 0
+  fit <- without_pretest(data.frame(age = x$age, wave,
+                                    pre = factor(ifelse(high, "_obs", "a"), c("a", "_obs"))))
+  expect_true("pre_obs" %in% colnames(stats::model.matrix(fit$model)))
+  same(fit, without_pretest(data.frame(age = x$age, wave, p2 = factor(ifelse(high, "b", "a")))),
+       "pre_obs")
+  # Names that must be quoted.
+  for (name in c("(Intercept)", "my cov")) {
     covariates <- stats::setNames(data.frame(x$age, wave), c(name, "wave"))
     fit <- suppressWarnings(fit_solomon_glm(x$y_g, x$treat, x$pretested, covariates = covariates,
                                             robust = "HC3"))

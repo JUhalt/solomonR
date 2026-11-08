@@ -26,7 +26,9 @@
 # model uses or a logical or character matrix column of several columns, is
 # not a matter of the data: it stops check_solomon_missing() with the error
 # of fit_solomon_glm(), rather than leave out items 4 and 5 unnoticed (issue
-# #146).
+# #146). Without numeric pretests, where no fit is made, a covariate with
+# a name that every fit reserves, pre_obs or condition, stops all the same
+# (issue #174).
 # validate_solomon(), which uses only its classification of the missing
 # values, skips these diagnostics and their fits.
 
@@ -262,6 +264,13 @@
 # conditions, the control first.
 .missing_diagnostics <- function(y_post, treat, control, condition, levels, pretested, y_pre,
                                  covariates) {
+  # Without numeric pretests no fit is made, so the names that every fit
+  # reserves are checked here, and a covariate named pre_obs or condition
+  # stops with a pretest or without (issue #174). With them, the fit
+  # checks every name its model uses.
+  if (!is.numeric(y_pre)) {
+    .solomon_check_names(covariates, .solomon_reserved_names, "with or without a pretest")
+  }
   attrition <- .missing_attrition(y_post, condition, levels, pretested)
   out <- list(
     attrition = attrition,

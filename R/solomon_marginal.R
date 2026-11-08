@@ -25,7 +25,9 @@
 # center itself plays no part in the standardization.) Without a pretest
 # covariate, and
 # when every such participant is in the model, the rows are the model's,
-# the participants the default standardizes over.
+# the participants the default standardizes over. Whether the fit has a
+# pretest is asked of the fit (.has_pretest_column()): a fit made before
+# #174 without a pretest can have a covariate named pre_obs (issue #174).
 #
 # Returns `X`, one row per participant in the order of the fit's data;
 # `pretested` and `treat` (NA where the condition was not recorded);
@@ -40,7 +42,7 @@
   d <- fit$data
   used <- .glm_rows_used(fit)
   extra <- rep(FALSE, nrow(d))
-  if ("pre_obs" %in% colnames(X_model)) {
+  if (.has_pretest_column(fit, X_model)) {
     extra <- .in_pretest_center(d) & !used
     covariates <- setdiff(names(d), c("y", "treat", "pretested", "pre_obs", "log_exposure"))
     if (length(covariates)) {
@@ -307,10 +309,11 @@
 # log; Daniel et al., 2021), and the pretest effects (issue #104) on any
 # link but the identity, because a fitted mean at the mean pretest is not
 # the mean over the pretests. Used by equivalence_solomon(), perm_solomon(),
-# and plot_solomon_effects(bounds =).
+# and plot_solomon_effects(bounds =). Whether the fit has a pretest is asked
+# of the fit, not of its data alone (.has_pretest_column(); issue #174).
 .warn_link_scale <- function(fit, contrast) {
   if (!inherits(fit, c("solomon_glm", "solomon_ngroup")) ||
-      !"pre_obs" %in% names(fit$data)) {
+      !.has_pretest_column(fit, fit$data)) {
     return(invisible(NULL))
   }
   family <- stats::family(fit$model)
@@ -1511,7 +1514,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # that the resamples are those of the set used. When the two sets are the
   # same participants, the rows are copied.
   sensitivity <- NULL
-  pretest_adjusted <- "pre_obs" %in% colnames(X)
+  pretest_adjusted <- .has_pretest_column(fit, X)
   if (pretest_adjusted) {
     other_center <- .other_center(pretest_center)
     other_effects <- effects

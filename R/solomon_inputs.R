@@ -127,12 +127,48 @@
 }
 
 
+# The names of columns of the model that a covariate cannot take in any
+# fit, whether or not the fit has the column (issue #174): `pre_obs`, the
+# pretest, and `condition`, the condition in a design with several
+# treatments. Functions that take a fit decided by these names whether it
+# had a pretest or several treatments, so a covariate of either name in a
+# fit without that column was taken for the pretest or for the condition.
+# `treat` is not reserved in a design with several treatments, whose model
+# has no such column: in the checks of issue #174, a covariate of that
+# name gave the same results as when renamed.
+.solomon_reserved_names <- c("pre_obs", "condition")
+
+# Stop with an error of class `solomonR_covariate_error`, so that
+# check_solomon_missing() passes it on rather than leave out the fit behind
+# its gap.
+.solomon_covariate_error <- function(message) {
+  stop(structure(class = c("solomonR_covariate_error", "error", "condition"),
+                 list(message = message, call = NULL)))
+}
+
+# Stop when a covariate, a column of the data frame `covariates`, is named
+# as one of `reserved`. The message lists the reserved names, and `where`
+# says where they are reserved.
+.solomon_check_names <- function(covariates, reserved, where) {
+  clash <- intersect(names(covariates), reserved)
+  if (length(clash)) {
+    .solomon_covariate_error(paste0(
+      "Rename these covariates, whose names the model uses: ",
+      paste(clash, collapse = ", "), ". Names reserved ", where, ": ",
+      paste(reserved, collapse = ", "), "."
+    ))
+  }
+  invisible(NULL)
+}
+
 # Stop when a covariate, a column of the data frame `covariates`, cannot
 # enter the model (issue #146):
 #   - a name that the model's data use: `used`, the names of the columns of
-#     the model data, and `log_exposure`, which is reserved with or without
+#     the model data; `log_exposure`, which is reserved with or without
 #     `exposure`, as report_solomon() and the clustered permutation test
 #     read a column of that name in the fit's data as the exposure offset;
+#     and `pre_obs` and `condition`, which are reserved in every fit
+#     (.solomon_reserved_names);
 #   - a logical or character matrix of several columns, such as a column of
 #     `data` given by its name. glm() makes a factor of a logical or
 #     character variable, and of such a matrix one factor of all its
@@ -140,26 +176,18 @@
 #     Given by its bare name, a logical matrix column of `data` is taken
 #     one covariate per column, and a character one stops before the fit
 #     (.solomon_covariates()).
-# The error has the class `solomonR_covariate_error`, so that
-# check_solomon_missing() passes it on rather than leave out the fit behind
-# its gap.
+# The error has the class `solomonR_covariate_error`
+# (.solomon_covariate_error()).
 .solomon_check_covariates <- function(covariates, used) {
-  refuse <- function(message) {
-    stop(structure(class = c("solomonR_covariate_error", "error", "condition"),
-                   list(message = message, call = NULL)))
-  }
-  clash <- intersect(names(covariates), c(used, "log_exposure"))
-  if (length(clash)) {
-    refuse(paste0("Rename these covariates, whose names the model uses: ",
-                  paste(clash, collapse = ", "), "."))
-  }
+  .solomon_check_names(covariates, unique(c(used, .solomon_reserved_names, "log_exposure")),
+                       "in this design")
   wide <- vapply(covariates, function(v) {
     is.matrix(v) && ncol(v) > 1L && (is.logical(v) || is.character(v))
   }, logical(1))
   if (any(wide)) {
     name <- names(covariates)[which(wide)[1]]
     v <- covariates[[name]]
-    refuse(paste0(
+    .solomon_covariate_error(paste0(
       "Column ", name, " of `covariates` is a ", typeof(v), " matrix of ", ncol(v),
       " columns, which glm() cannot fit. Give its columns as columns of a data frame",
       if (is.logical(v)) {
