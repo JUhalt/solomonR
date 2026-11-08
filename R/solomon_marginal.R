@@ -21,41 +21,64 @@
 # predicted under treatment and under control. Their mean pretest is the
 # "observed" center of fit_solomon_glm() when every pretested participant
 # with a pretest has the model's covariates; one without a covariate is in
-# that center but not in this set, whose risks need the covariates. (The
-# center itself plays no part in the standardization.) Without a pretest
-# covariate, and
-# when every such participant is in the model, the rows are the model's,
-# the participants the default standardizes over.
+# that center but not in this set, whose risks need the covariates. So is
+# one whose factor, character, or ordered covariate has a level that no
+# participant in the model has (issue #171): the model has no coefficient
+# for that level, so their risks cannot be predicted either. A participant
+# without a covariate is counted as such, whatever their other covariates.
+# (The center itself plays no part in the standardization.) Without a
+# pretest covariate, and when every such participant is in the model, the
+# rows are the model's, the participants the default standardizes over.
 #
 # Returns `X`, one row per participant in the order of the fit's data;
 # `pretested` and `treat` (NA where the condition was not recorded);
 # `in_model`, which flags the rows the model used; `index`, their rows in
-# the fit's data; and `n`, the number of pretested participants the
-# default standardizes over (`analyzed`, those in the model), the number
-# this set standardizes over (`observed`), and the number of those outside
-# the model who have no outcome (`no_outcome`).
+# the fit's data; `n`, the number of pretested participants the default
+# standardizes over (`analyzed`, those in the model), the number this set
+# standardizes over (`observed`), the number of those outside the model
+# who have no outcome (`no_outcome`), and the numbers of pretested
+# participants with a pretest who are outside the model and left out of
+# this set for want of a covariate (`missing_covariate`) or for a level
+# the model does not have (`unseen_level`); and `unseen`, those levels,
+# a list named by covariate (empty when there are none).
 .marginal_rows <- function(fit) {
   model <- fit$model
   X_model <- stats::model.matrix(model)
   d <- fit$data
   used <- .glm_rows_used(fit)
   extra <- rep(FALSE, nrow(d))
+  no_covariate <- extra
+  new_level <- extra
+  unseen <- list()
   if ("pre_obs" %in% colnames(X_model)) {
-    extra <- .in_pretest_center(d) & !used
+    outside <- .in_pretest_center(d) & !used
     covariates <- setdiff(names(d), c("y", "treat", "pretested", "pre_obs", "log_exposure"))
     if (length(covariates)) {
-      extra <- extra & stats::complete.cases(d[, covariates, drop = FALSE])
+      no_covariate <- outside & !stats::complete.cases(d[, covariates, drop = FALSE])
     }
+    # Every factor, character, or ordered covariate is checked, so that all
+    # the levels the model does not have are named (issue #171).
+    for (v in intersect(names(model$xlevels), covariates)) {
+      value <- as.character(d[[v]])
+      new <- outside & !no_covariate & !(value %in% model$xlevels[[v]])
+      if (any(new)) {
+        new_level <- new_level | new
+        levels_v <- if (is.factor(d[[v]])) levels(d[[v]]) else sort(unique(value), method = "radix")
+        unseen[[v]] <- intersect(levels_v, value[new])
+      }
+    }
+    extra <- outside & !no_covariate & !new_level
   }
   analyzed <- sum(X_model[, "pretested"] == 1)
   n <- c(analyzed = analyzed, observed = analyzed + sum(extra),
-         no_outcome = sum(extra & is.na(d$y)))
+         no_outcome = sum(extra & is.na(d$y)), missing_covariate = sum(no_covariate),
+         unseen_level = sum(new_level))
   storage.mode(n) <- "integer"
   if (!any(extra)) {
     return(list(
       X = X_model, pretested = as.integer(X_model[, "pretested"]),
       treat = as.integer(X_model[, "treat"]), in_model = rep(TRUE, nrow(X_model)),
-      index = which(used), n = n
+      index = which(used), n = n, unseen = unseen
     ))
   }
 
@@ -80,7 +103,50 @@
     X_extra[, colnames(X_model), drop = FALSE]
   list(
     X = X, pretested = as.integer(d$pretested[rows]), treat = as.integer(d$treat[rows]),
-    in_model = in_model, index = which(rows), n = n
+    in_model = in_model, index = which(rows), n = n, unseen = unseen
+  )
+}
+
+# The note on the pretested participants with a pretest whom
+# .marginal_rows() leaves out of the "observed" standardization, and why
+# (issue #171): a missing covariate, or a level of a covariate that no
+# participant in the model has, named with every such covariate and level.
+# `n` and `unseen` come from .marginal_rows(); `count` words the note for
+# rates. When the two standardizations are of the same participants
+# (`differ` FALSE), the note says so, because no other line names the
+# second one. NULL when no participant is left out.
+.marginal_left_out_note <- function(n, unseen, count, differ) {
+  missing <- n[["missing_covariate"]]
+  new <- n[["unseen_level"]]
+  left_out <- missing + new
+  if (!left_out) return(NULL)
+  levels <- paste(vapply(names(unseen), function(v) {
+    paste0(v, ": ", paste(unseen[[v]], collapse = ", "))
+  }, ""), collapse = "; ")
+  # With one reason the clause speaks of them all ("they lack a
+  # covariate"); with both it gives the number of each.
+  both <- missing && new
+  who <- function(k, one, several) {
+    if (!both) paste("they", several) else sprintf("%d %s", k, if (k == 1L) one else several)
+  }
+  reasons <- c(
+    if (missing) paste(who(missing, "lacks", "lack"), "a covariate"),
+    if (new) {
+      sprintf("%s a covariate level that no participant in the model has (%s)",
+              who(new, "has", "have"), levels)
+    }
+  )
+  # The note does not begin with a number, because report_solomon() gives
+  # it as a sentence.
+  paste0(
+    sprintf(paste("The standardization over every pretested participant with a pretest leaves",
+                  "out %d of them, who %s outside the model, because their %s cannot be",
+                  "predicted: %s."),
+            left_out, if (left_out == 1L) "is" else "are", if (count) "rates" else "risks",
+            paste(reasons, collapse = ", and ")),
+    if (!differ) {
+      " The two standardizations of the pretested cells are then over the same participants."
+    }
   )
 }
 
@@ -789,9 +855,16 @@
 #' [fit_solomon_glm()] (see "The pretest effect when posttests are missing"
 #' there, for what each assumes): by default over the pretested participants
 #' in the model (`"analyzed"`), or over every pretested participant with a
-#' pretest and the model's covariates (`"observed"`; a participant without
-#' a covariate is in the observed center of [fit_solomon_glm()] but not in
-#' this set). On the risk or rate scale the choice moves
+#' pretest and the model's covariates (`"observed"`). The `"observed"` set
+#' leaves out a participant outside the model who lacks a covariate, or
+#' whose factor, character, or ordered covariate has a level that no
+#' participant in the model has (issue #171): the model has no coefficient
+#' for that level, so in either case the participant's risks (or rates)
+#' cannot be predicted. Such a participant is in the observed center of
+#' [fit_solomon_glm()] but not in this set. `standardized` counts them, and
+#' the print, [report_solomon()], and `pretest_sensitivity$note` say how
+#' many were left out and why, naming every such covariate and level. The
+#' default does not use them. On the risk or rate scale the choice moves
 #' Treatment | pretested, the average treatment effect, and Pretest x
 #' Treatment as well as the pretest effects, because a marginal risk depends
 #' on the participants it is averaged over; only Treatment | unpretested does
@@ -969,9 +1042,11 @@
 #'   participants the pretested cells are standardized over (issue #135):
 #'   `"analyzed"`, the pretested participants in the model; or `"observed"`,
 #'   every pretested participant with a pretest and the model's other
-#'   covariates, with or without an outcome or a recorded condition.
-#'   Defaults to the fit's `pretest_center` (`"analyzed"` for fits made
-#'   before it existed). The centering constant itself plays no role.
+#'   covariates, with or without an outcome or a recorded condition, except
+#'   those with a covariate level that no participant in the model has (see
+#'   "Missing outcomes" in Details). Defaults to the fit's `pretest_center`
+#'   (`"analyzed"` for fits made before it existed). The centering constant
+#'   itself plays no role.
 #'
 #' @return An object of class `solomon_marginal`, a list with:
 #'   - `effects`: one row for each scale and contrast, in the columns
@@ -1003,9 +1078,12 @@
 #'     `"analyzed"` or `"observed"`. Absent with `method = "cluster_summary"`,
 #'     which uses neither set, so that `pretest_center` is ignored there.
 #'   - `standardized`: the numbers of pretested participants each set holds
-#'     (`analyzed` and `observed`), and of those outside the model, how many
-#'     have no outcome (`no_outcome`). Absent with
-#'     `method = "cluster_summary"`.
+#'     (`analyzed` and `observed`); of those outside the model, how many
+#'     have no outcome (`no_outcome`); and how many pretested participants
+#'     with a pretest are outside the model and left out of the `observed`
+#'     set because they lack a covariate (`missing_covariate`) or have a
+#'     covariate level that no participant in the model has
+#'     (`unseen_level`). Absent with `method = "cluster_summary"`.
 #'   - `attrition`: each Solomon group's `n`, outcomes missing
 #'     (`posttest_missing`), and `share`, from the fit, for the attrition
 #'     line of the print and the report; `NULL` for fits made before 1.0.0.
@@ -1014,7 +1092,10 @@
 #'     `center`; the other set's standard errors and intervals are `NA`
 #'     under the bootstrap), `difference` (the estimates under the
 #'     `analyzed` and `observed` sets and their `difference`), `differ`, and
-#'     `note`; `NULL` without a pretest covariate and with
+#'     `note`, which says when the standard errors of the other set are not
+#'     given for want of clusters (CR2 fits), and how many pretested
+#'     participants were left out of the `observed` set and why (`NULL` when
+#'     neither applies); `NULL` without a pretest covariate and with
 #'     `method = "cluster_summary"`. Outside the stable interface (see
 #'     [solomon_output]).
 #'   - `design` and `clusters` (the number of clusters in each cell), with
@@ -1208,9 +1289,10 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # the model: the pretested cells are standardized over the pretested
   # participants the model used. With `pretest_center = "observed"`, the
   # pretested cells are standardized over every pretested participant with
-  # a pretest and the model's other covariates, with or without an outcome
-  # (.marginal_rows()). `X`, `pretested`, and `treat` run over them;
-  # `in_model` flags the rows the model used, to which `y` belongs.
+  # a pretest and the model's other covariates, with or without an outcome,
+  # whose covariate levels are all in the model (.marginal_rows(); issue
+  # #171). `X`, `pretested`, and `treat` run over them; `in_model` flags
+  # the rows the model used, to which `y` belongs.
   model_set <- function() {
     X <- stats::model.matrix(model)
     list(X = X, pretested = as.integer(X[, "pretested"]), treat = as.integer(X[, "treat"]),
@@ -1532,6 +1614,13 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       }
       other_effects <- table_at(other_estimate, inference$std.error, inference$df, inference$ci)
     }
+    # The pretested participants with a pretest left out of the "observed"
+    # standardization, and why, after the note on clusters (issue #171).
+    left_out <- .marginal_left_out_note(
+      standardized, observed_set$unseen, count,
+      standardized[["observed"]] > standardized[["analyzed"]]
+    )
+    if (!is.null(left_out)) note <- paste(c(note, left_out), collapse = " ")
     effects$center <- pretest_center
     other_effects$center <- other_center
     both <- if (pretest_center == "analyzed") rbind(effects, other_effects) else
@@ -1637,13 +1726,16 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
   }
   # The two standardizations of the pretested cells when outcomes are
   # missing, or else the attrition line whenever an outcome is missing
-  # (issue #135).
+  # (issue #135), with the note on the pretested participants left out of
+  # the "observed" standardization (issue #171), which the block gives too.
   block <- .marginal_block(x, digits)
   if (length(block)) {
     cat("\n", paste(block, collapse = "\n"), "\n", sep = "")
   } else {
-    line <- .attrition_line(x$attrition, "Outcomes missing")
-    if (length(line)) cat("\n", .wrap_lines(line), "\n", sep = "")
+    lines <- c(.attrition_line(x$attrition, "Outcomes missing"), x$pretest_sensitivity$note)
+    if (length(lines)) {
+      cat("\n", paste(vapply(lines, .wrap_lines, ""), collapse = "\n"), "\n", sep = "")
+    }
   }
   cat("\nSensitization depends on the scale; report the scale with every result.\n")
   invisible(x)

@@ -41,9 +41,11 @@ state is restored afterwards.}
 participants the pretested cells are standardized over (issue #135):
 \code{"analyzed"}, the pretested participants in the model; or \code{"observed"},
 every pretested participant with a pretest and the model's other
-covariates, with or without an outcome or a recorded condition.
-Defaults to the fit's \code{pretest_center} (\code{"analyzed"} for fits made
-before it existed). The centering constant itself plays no role.}
+covariates, with or without an outcome or a recorded condition, except
+those with a covariate level that no participant in the model has (see
+"Missing outcomes" in Details). Defaults to the fit's \code{pretest_center}
+(\code{"analyzed"} for fits made before it existed). The centering constant
+itself plays no role.}
 }
 \value{
 An object of class \code{solomon_marginal}, a list with:
@@ -77,9 +79,12 @@ resamples and the number that failed.
 \code{"analyzed"} or \code{"observed"}. Absent with \code{method = "cluster_summary"},
 which uses neither set, so that \code{pretest_center} is ignored there.
 \item \code{standardized}: the numbers of pretested participants each set holds
-(\code{analyzed} and \code{observed}), and of those outside the model, how many
-have no outcome (\code{no_outcome}). Absent with
-\code{method = "cluster_summary"}.
+(\code{analyzed} and \code{observed}); of those outside the model, how many
+have no outcome (\code{no_outcome}); and how many pretested participants
+with a pretest are outside the model and left out of the \code{observed}
+set because they lack a covariate (\code{missing_covariate}) or have a
+covariate level that no participant in the model has
+(\code{unseen_level}). Absent with \code{method = "cluster_summary"}.
 \item \code{attrition}: each Solomon group's \code{n}, outcomes missing
 (\code{posttest_missing}), and \code{share}, from the fit, for the attrition
 line of the print and the report; \code{NULL} for fits made before 1.0.0.
@@ -88,7 +93,10 @@ contrast under both sets, a list with \code{effects} (keyed by \code{scale} and
 \code{center}; the other set's standard errors and intervals are \code{NA}
 under the bootstrap), \code{difference} (the estimates under the
 \code{analyzed} and \code{observed} sets and their \code{difference}), \code{differ}, and
-\code{note}; \code{NULL} without a pretest covariate and with
+\code{note}, which says when the standard errors of the other set are not
+given for want of clusters (CR2 fits), and how many pretested
+participants were left out of the \code{observed} set and why (\code{NULL} when
+neither applies); \code{NULL} without a pretest covariate and with
 \code{method = "cluster_summary"}. Outside the stable interface (see
 \link{solomon_output}).
 \item \code{design} and \code{clusters} (the number of clusters in each cell), with
@@ -153,9 +161,16 @@ participants, which \code{pretest_center} chooses, as it chooses the center of
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see "The pretest effect when posttests are missing"
 there, for what each assumes): by default over the pretested participants
 in the model (\code{"analyzed"}), or over every pretested participant with a
-pretest and the model's covariates (\code{"observed"}; a participant without
-a covariate is in the observed center of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} but not in
-this set). On the risk or rate scale the choice moves
+pretest and the model's covariates (\code{"observed"}). The \code{"observed"} set
+leaves out a participant outside the model who lacks a covariate, or
+whose factor, character, or ordered covariate has a level that no
+participant in the model has (issue #171): the model has no coefficient
+for that level, so in either case the participant's risks (or rates)
+cannot be predicted. Such a participant is in the observed center of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} but not in this set. \code{standardized} counts them, and
+the print, \code{\link[=report_solomon]{report_solomon()}}, and \code{pretest_sensitivity$note} say how
+many were left out and why, naming every such covariate and level. The
+default does not use them. On the risk or rate scale the choice moves
 Treatment | pretested, the average treatment effect, and Pretest x
 Treatment as well as the pretest effects, because a marginal risk depends
 on the participants it is averaged over; only Treatment | unpretested does

@@ -2387,6 +2387,24 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
       ref <- stored$results[[name]][[part]]
       got <- now[[name]][[part]]
       info <- paste(name, part)
+      if (part == "text" && grepl("^marginal", name)) {
+        # Since #171 the print of marginal_solomon() also says that the
+        # "observed" standardization leaves out the pretested participant
+        # with a pretest who lacks an age and is outside the model; master
+        # did not. Those lines are checked and set aside.
+        note <- strwrap(sprintf(paste(
+          "The standardization over every pretested participant with a pretest leaves out 1 of",
+          "them, who is outside the model, because their %s cannot be predicted: they lack a",
+          "covariate."
+        ), if (grepl("poisson|negbin", name)) "rates" else "risks"),
+        width = 80, indent = 2, exdent = 2)
+        at <- match(note[1], got)
+        expect_false(is.na(at), info = info)
+        if (is.na(at)) next
+        lines <- at + seq_along(note) - 1L
+        expect_identical(got[lines], note, info = info)
+        got <- got[-lines]
+      }
       if (part %in% c("text", "sentences")) {
         # A difference between a contrast's estimates at the two pretest
         # centers that is zero but for rounding error, that of a rate ratio

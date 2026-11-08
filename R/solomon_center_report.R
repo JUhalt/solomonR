@@ -232,9 +232,12 @@
 # of the pretested cells differ (issue #135): the participants standardized
 # over and the assumption, and the moved contrasts under the other
 # standardization, scale by scale. No delta line is given on these scales.
+# The note on the pretested participants left out of the "observed"
+# standardization (issue #171) is given whether or not the two differ.
 .marginal_center_sentences <- function(x, digits) {
   s <- x$pretest_sensitivity
-  if (is.null(x$pretest_center) || is.null(s) || !isTRUE(s$differ)) return(character(0))
+  if (is.null(x$pretest_center) || is.null(s)) return(character(0))
+  if (!isTRUE(s$differ)) return(as.character(s$note))
   n <- x$standardized
   used <- x$pretest_center
   other <- .other_center(used)
