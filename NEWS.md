@@ -55,16 +55,16 @@
   with `z2 = z1 + 1.2e-11 * e1` and `seed = 2024`, 87 of 199 resamples
   failed before. The 63 that did not converge now converge in the new
   columns, and the 24 whose design fell short of full rank still fail,
-  where an exact reparameterization of the covariates has no failures. At
-  `z2 = z1 + 1.1e-11 * e1`, 3 of the 34 that did not converge are
-  collinear by the check and fail. With other seeds, the check also stops
-  a few such refits from `z2 = z1 + 1.15e-11 * e1` up to
-  `z2 = z1 + 1.3e-11 * e1`, about 20% above where `fit_solomon_glm()`
-  stops. A resample can also fail as a design not of full rank, as
-  before, when only one of its participants departs from a relation that
-  holds among the covariates of the others: the refit moves that
-  participant's fitted risk toward the outcome, and the participant's
-  weight vanishes. The new columns are formed whenever
+  where an exact reparameterization of the covariates has no failures.
+  At `z2 = z1 + 1.1e-11 * e1`, 3 of the 34 that did not converge are
+  collinear by the check and fail. With other seeds, the check also
+  stops a few such refits from `z2 = z1 + 1.15e-11 * e1` up to at least
+  `z2 = z1 + 1.4e-11 * e1`, about 30% above where `fit_solomon_glm()`
+  stops, though rarely that far. A resample can also fail as a design
+  not of full rank, as before, when only one of its participants departs
+  from a relation that holds among the covariates of the others: the
+  refit moves that participant's fitted risk toward the outcome, and the
+  participant's weight vanishes. The new columns are formed whenever
   `fit_solomon_glm()` fitted the model, which it does only when no term
   is collinear with the others.
 * **Results are unchanged where every refit converges.** A refit that

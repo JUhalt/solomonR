@@ -1439,11 +1439,11 @@ test_that("a refit that does not converge is fitted again in the basis, and one 
   # rank. At g = 1.2e-11, with seed = 2024 on Windows, 63 refits did not
   # converge and 24 were not of full rank, of 199, and the check found no
   # term collinear on the resamples of the 63 (with other seeds it finds
-  # one on a few, up to g = 1.3e-11); the exact reparameterization
-  # (z1, (z2 - z1) / g) has no failures. The counts are taken from the
-  # refits, not pinned, since they depend on rounding. The data have no
-  # missing outcome, so the row names of a refit's design are the rows of
-  # the model it holds.
+  # one on a few, up to at least g = 1.4e-11); the exact
+  # reparameterization (z1, (z2 - z1) / g) has no failures. The counts are
+  # taken from the refits, not pinned, since they depend on rounding. The
+  # data have no missing outcome, so the row names of a refit's design are
+  # the rows of the model it holds.
   withr::local_seed(5151)
   n <- 200
   g4 <- rep(1:4, each = 50)
