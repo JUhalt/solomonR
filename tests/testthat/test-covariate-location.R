@@ -694,7 +694,7 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
     for (robust in c("none", "HC3", "CR2")) {
       for (k in c(0, 1e4, 1e6, 1e8, 3e9, 1e10, 1e12)) {
         covariates <- data.frame(z = d$z + k * stats::sd(d$z), z2 = 2 * d$z + 3)
-        expect_error(quiet_irls(collinear_pair_fit(d, design, covariates, robust)), collinear,
+        expect_error(collinear_pair_fit(d, design, covariates, robust), collinear,
                      info = paste(design, robust, k))
       }
     }
@@ -709,13 +709,295 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
   # Every family, with the fit as given far from zero.
   covariates <- data.frame(z = d$z + 1e6 * stats::sd(d$z), z2 = 2 * d$z + 3)
   counts <- pmax(0, round(2 + d$y4))
-  expect_error(quiet_irls(collinear_pair_fit(d, "four", covariates,
-                                             y = as.integer(d$y4 > 0.2),
-                                             family = stats::binomial())), collinear)
-  expect_error(quiet_irls(collinear_pair_fit(d, "four", covariates, y = counts,
-                                             family = stats::poisson())), collinear)
-  expect_error(suppressWarnings(collinear_pair_fit(d, "six", covariates, y = counts,
-                                                   family = "negative_binomial")), collinear)
+  expect_error(collinear_pair_fit(d, "four", covariates, y = as.integer(d$y4 > 0.2),
+                                  family = stats::binomial()), collinear)
+  expect_error(collinear_pair_fit(d, "four", covariates, y = counts, family = stats::poisson()),
+               collinear)
+  expect_error(collinear_pair_fit(d, "six", covariates, y = counts, family = "negative_binomial"),
+               collinear)
+})
+
+test_that("a fit that stops gives the error without the model fit's warnings (#154)", {
+  # The standardized fit gave its warnings before the checks for collinear
+  # terms, so a warning that glm.fit() or theta did not converge, or the
+  # noncollapsible warning of the several-treatment path, came with the
+  # collinearity error. They are now held back until the checks pass. On
+  # master, with R 4.6.1 on Windows, the first three cases warned; the
+  # four-group binomial case gave the error alone there too, and is kept
+  # for platforms on which its fit warns.
+  d <- collinear_set()
+  covariates <- data.frame(z = d$z + 1e6 * stats::sd(d$z), z2 = 2 * d$z + 3)
+  counts <- pmax(0, round(2 + d$y4))
+  collinear <- "collinear with other terms of the model: z2?[.]"
+  cases <- list(
+    list("four", counts, "negative_binomial"), list("six", counts, "negative_binomial"),
+    list("six", as.integer(d$y6 > 0.2), stats::binomial()),
+    list("four", as.integer(d$y4 > 0.2), stats::binomial())
+  )
+  for (case in cases) {
+    warned <- character()
+    expect_error(withCallingHandlers(
+      collinear_pair_fit(d, case[[1]], covariates, y = case[[2]], family = case[[3]]),
+      warning = function(w) {
+        warned <<- c(warned, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    ), collinear, info = case[[1]])
+    expect_identical(warned, character(), info = case[[1]])
+  }
+
+  # A fit that goes ahead gives the model fit's warnings, in order, and
+  # then the noncollapsible warning: a covariate that separates the outcome.
+  ss <- withr::with_seed(31, {
+    ss <- data.frame(treat = rep(c(1, 0, 1, 0), each = 30),
+                     pretested = rep(c(1, 1, 0, 0), each = 30))
+    ss$y_pre <- ifelse(ss$pretested == 1, stats::rnorm(120), NA)
+    ss$x <- stats::rnorm(120)
+    ss
+  })
+  classes <- character()
+  fit <- withCallingHandlers(
+    fit_solomon_glm(as.integer(ss$x > 0), ss$treat, ss$pretested, ss$y_pre,
+                    covariates = data.frame(x = ss$x), family = stats::binomial()),
+    warning = function(w) {
+      classes <<- c(classes, class(w)[1])
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_s3_class(fit, "solomon_glm")
+  k <- length(classes)
+  expect_gt(k, 1L)
+  expect_identical(classes, c(rep("simpleWarning", k - 1L), "solomonR_noncollapsible_warning"))
+})
+
+# Designs whose model fit warns: a covariate that separates a binary
+# outcome, so that glm.fit() warns that fitted probabilities reached 0 or 1,
+# with one treatment (four groups of 15) or two (six groups of 15, with a
+# pretest). `stop` empties the unpretested control (four groups) or the
+# unpretested second treatment (six groups), or leaves it one participant.
+separated_fit <- function(design, stop = c("none", "empty", "single"), robust = "none") {
+  stop <- match.arg(stop)
+  four <- design == "four"
+  k <- if (four) 4L else 6L
+  n <- 15L
+  x <- rep(seq(-1.4, 1.4, length.out = n), k) + rep(seq(0, by = 0.05, length.out = k), each = n)
+  y <- as.integer(x > 0)
+  if (four) {
+    treat <- rep(c(1, 0, 1, 0), each = n)
+    pretested <- rep(c(1, 1, 0, 0), each = n)
+    last <- which(treat == 0 & pretested == 0)
+  } else {
+    treat <- rep(rep(c("Ctl", "A", "B"), each = n), 2)
+    pretested <- rep(c(1, 0), each = 3L * n)
+    last <- which(treat == "B" & pretested == 0)
+  }
+  if (stop == "empty") y[last] <- NA
+  if (stop == "single") y[last[-1]] <- NA
+  y_pre <- if (!four) ifelse(pretested == 1, rep(seq(-1, 1, length.out = n), k), NA)
+  fit_solomon_glm(y, treat, pretested, y_pre, covariates = data.frame(x = x),
+                  family = stats::binomial(), robust = robust, control = if (!four) "Ctl")
+}
+
+# The warnings `expr` signals, muffled, and its value or error.
+signalled <- function(expr) {
+  warnings <- list()
+  value <- tryCatch(withCallingHandlers(expr, warning = function(w) {
+    warnings[[length(warnings) + 1L]] <<- w
+    invokeRestart("muffleWarning")
+  }), error = function(e) e)
+  list(value = value, warnings = warnings)
+}
+
+test_that("a fit that stops at an empty group or a single participant under HC3 gives the error alone (#154)", {
+  # On master, with R 4.6.1 on Windows, each of these designs warned that
+  # glm.fit() did not converge and that fitted probabilities reached 0 or 1,
+  # and, with several treatments and a pretest, gave the noncollapsible
+  # warning, before the error. Under options(warn = 2) master raised the
+  # first of those warnings as an error; the check's error now comes.
+  empty <- "groups have no analyzable participants: Unpretested"
+  single <- "HC3 standard errors are undefined because these groups have a single"
+  for (design in c("four", "six")) {
+    stops <- list(list("empty", "none", empty), list("single", "HC3", single))
+    for (case in stops) {
+      info <- paste(design, case[[1]])
+      out <- signalled(separated_fit(design, case[[1]], robust = case[[2]]))
+      expect_s3_class(out$value, "error")
+      expect_match(conditionMessage(out$value), case[[3]], info = info)
+      expect_identical(out$warnings, list(), info = info)
+      withr::with_options(list(warn = 2), {
+        expect_error(separated_fit(design, case[[1]], robust = case[[2]]), case[[3]], info = info)
+      })
+    }
+  }
+})
+
+test_that("a fit that goes ahead gives each warning of the model fit as the fit signalled it (#154)", {
+  # The warnings, held back until the checks pass, are the conditions the
+  # model fit signalled: the same class vector, message, and call, in the
+  # same order. Without holding them back (.record_warnings() mocked to let
+  # them pass), the fit signals them as master did. A non-integer binomial
+  # outcome gives a warning with a call, from the family's initialization.
+  fits <- list(
+    four = function() separated_fit("four"),
+    six = function() separated_fit("six"),
+    call = function() {
+      fit_solomon_glm(rep(c(0.2, 0.5, 0.75, 0.4, 0.9), 12), rep(c(1, 0, 1, 0), each = 15),
+                      rep(c(1, 1, 0, 0), each = 15),
+                      covariates = data.frame(x = rep(seq(-1, 1, length.out = 15), 4)),
+                      family = stats::binomial(), robust = "none")
+    }
+  )
+  held <- lapply(fits, function(f) signalled(f()))
+  for (name in names(fits)) {
+    expect_s3_class(held[[name]]$value, c("solomon_glm", "solomon_ngroup"))
+    expect_gt(length(held[[name]]$warnings), 0L)
+  }
+  expect_false(is.null(conditionCall(held$call$warnings[[1]])))
+  expect_identical(class(held$six$warnings[[length(held$six$warnings)]]),
+                   c("solomonR_noncollapsible_warning", "warning", "condition"))
+
+  # The frame that the returned model's formula keeps holds no second
+  # reference to the model fit and no held warnings, which serialize()
+  # would save with the fit.
+  for (name in c("four", "six")) {
+    frame <- environment(stats::formula(held[[name]]$value$model))
+    wraps <- vapply(mget(ls(frame), envir = frame), function(x) {
+      is.list(x) && !is.object(x) && length(x) > 0L &&
+        any(vapply(x, function(e) inherits(e, c("glm", "condition")) ||
+                     (is.list(e) && length(e) > 0L && all(vapply(e, inherits, NA, "condition"))), NA))
+    }, NA)
+    expect_identical(names(wraps)[wraps], character(), info = name)
+  }
+
+  # Under options(warn = 2), the first warning is raised as an error once
+  # the checks pass.
+  withr::with_options(list(warn = 2), {
+    expect_error(separated_fit("four"), "converted from warning")
+  })
+
+  local_mocked_bindings(.record_warnings = function(expr) list(value = expr, warnings = list()))
+  for (name in names(fits)) {
+    direct <- signalled(fits[[name]]())
+    expect_identical(held[[name]]$warnings, direct$warnings, info = name)
+  }
+})
+
+test_that("a model fit that itself stops gives its warnings before the error (#154)", {
+  # The checks hold back the model fit's warnings, but an error inside
+  # glm() or glm.nb(), such as glm.fit()'s "no valid set of coefficients
+  # has been found", still comes after the warnings the fit gave before it,
+  # as glm() signals them.
+  held <- .record_warnings({
+    warning("first")
+    warning("second")
+    1
+  })
+  expect_identical(held$value, 1)
+  expect_identical(vapply(held$warnings, conditionMessage, ""), c("first", "second"))
+
+  # The warnings come before an error, which is not caught on the way: the
+  # frame that failed is still on the stack when the error is handled, as
+  # traceback() and recover() need. Under options(warn = 2), the first
+  # warning is raised as an error, as master raised it.
+  failing_step <- function() stop("inner failure")
+  seen <- character()
+  frames <- character()
+  expect_error(withCallingHandlers(
+    .record_warnings({
+      warning("first")
+      failing_step()
+    }),
+    warning = function(w) {
+      seen <<- c(seen, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    },
+    error = function(e) {
+      frames <<- vapply(sys.calls(), function(call) deparse(call[[1]])[1], "")
+    }
+  ), "inner failure")
+  expect_identical(seen, "first")
+  expect_true("failing_step" %in% frames)
+  withr::with_options(list(warn = 2), {
+    expect_error(.record_warnings({
+      warning("first")
+      stop("inner failure")
+    }), "converted from warning")
+  })
+
+  # A warning without a muffleWarning restart, raised with signalCondition(),
+  # passes on and is not held. Warnings held before an interrupt, or before
+  # a caller's exiting handler for a message, are signalled before it, as
+  # master signalled them.
+  # (options(warn = -1) keeps testthat from reporting the warning that
+  # passes; the calling handler below still sees it.)
+  seen <- character()
+  passed <- withr::with_options(list(warn = -1), tryCatch(
+    withCallingHandlers(
+      .record_warnings({
+        signalCondition(simpleWarning("signalled", call = NULL))
+        1
+      }),
+      warning = function(w) seen <<- c(seen, conditionMessage(w))
+    ),
+    error = function(e) e
+  ))
+  expect_identical(passed, list(value = 1, warnings = list()))
+  expect_identical(seen, "signalled")
+  interrupt <- structure(class = c("interrupt", "condition"), list(message = "", call = NULL))
+  held_then <- function(exit) {
+    withCallingHandlers(
+      .record_warnings({
+        warning("first")
+        exit()
+        1
+      }),
+      warning = function(w) {
+        seen <<- c(seen, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    )
+  }
+  seen <- character()
+  tryCatch(held_then(function() signalCondition(interrupt)),
+           interrupt = function(i) seen <<- c(seen, "INTERRUPT"))
+  expect_identical(seen, c("first", "INTERRUPT"))
+  seen <- character()
+  tryCatch(held_then(function() message("note")),
+           message = function(m) seen <<- c(seen, "MESSAGE"))
+  expect_identical(seen, c("first", "MESSAGE"))
+
+  # Through fit_solomon_glm(), with one treatment and with several. The fit
+  # that gives the warnings is the fit as given, the first, when nothing is
+  # standardized, and the standardized fit, the second, with a pretest.
+  d <- collinear_set()
+  fit_model <- .fit_model
+  calls <- 0L
+  fails_at <- 1L
+  local_mocked_bindings(.fit_model = function(...) {
+    calls <<- calls + 1L
+    if (calls < fails_at) return(fit_model(...))
+    warning("NaNs produced", call. = FALSE)
+    stop("no valid set of coefficients has been found", call. = FALSE)
+  })
+  for (design in c("four", "six")) {
+    for (pretest in c(FALSE, TRUE)) {
+      info <- paste(design, pretest)
+      four <- design == "four"
+      calls <- 0L
+      fails_at <- if (pretest) 2L else 1L
+      warned <- character()
+      expect_error(withCallingHandlers(
+        fit_solomon_glm(if (four) d$y4 else d$y6, if (four) d$treat else d$cond, d$pretested,
+                        if (pretest) d$pre, control = if (!four) "Ctl"),
+        warning = function(w) {
+          warned <<- c(warned, conditionMessage(w))
+          invokeRestart("muffleWarning")
+        }
+      ), "no valid set of coefficients", info = info)
+      expect_identical(warned, "NaNs produced", info = info)
+      expect_identical(calls, fails_at, info = info)
+    }
+  }
 })
 
 test_that("near zero, nearly collinear covariates are fitted as glm() fits them", {
@@ -1026,9 +1308,591 @@ test_that("nested near-collinearity near zero is fitted as glm() and master fit 
     ref <- fit_solomon_glm(y, treat, pretested, pre, covariates = reference, robust = "none")
     expect_equal(fit$effects, ref$effects, tolerance = 1e-2, info = info)
   }
-  expect_error(quiet_irls(fit_solomon_glm(y, treat, pretested, pre,
-                                          covariates = nested(1e-6, 1e-9), robust = "none")),
+  expect_error(fit_solomon_glm(y, treat, pretested, pre, covariates = nested(1e-6, 1e-9),
+                               robust = "none"),
                "collinear with other terms of the model: z3[.]")
+})
+
+test_that("the bootstrap converges with nested near-collinearity, and names why refits fail (#154)", {
+  # The nested covariates of the test above, with a binary outcome. The
+  # standardized design has a condition number near 1e14: the rounding
+  # error of each step moved the deviance by 4e-7 to 7e-4 of itself between
+  # iterations 5 and 25, far more than glm.fit()'s 1e-8 rule allows, and
+  # 199, 197, and 195 of 199 resamples failed to converge; the warning
+  # blamed sparse cells. A refit
+  # that does not converge is now fitted again in an orthonormal basis of
+  # the same columns (.bootstrap_basis()), with a condition number of about
+  # 17, and the bootstrap agrees with that of the exact reparameterization
+  # on the same resamples: standard errors within 0.08% and interval limits
+  # within 0.05 standard errors on Windows. The tolerances allow for the
+  # rounding of other platforms, which the condition number amplifies.
+  withr::local_seed(11)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  e1 <- stats::rnorm(n)
+  e2 <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- 0.3 * treat + 0.2 * pretested + ifelse(is.na(pre), 0, 0.4 * pre) + 0.3 * z1 +
+    stats::rnorm(n)
+  passed <- as.integer(y > 0)
+  fit_with <- function(covariates) {
+    quiet_irls(suppressWarnings(
+      fit_solomon_glm(passed, treat, pretested, pre, covariates = covariates,
+                      family = stats::binomial()),
+      classes = "solomonR_noncollapsible_warning"
+    ))
+  }
+  for (case in list(c(1e-6, 1e-8), c(1e-5, 1e-9), c(1e-4, 3e-10))) {
+    info <- paste(case, collapse = " ")
+    covariates <- data.frame(z1 = z1, z2 = z1 + case[1] * e1, z3 = e1 + case[2] * e2)
+    r1 <- (covariates$z2 - covariates$z1) / case[1]
+    reference <- data.frame(z1 = z1, r1 = r1, r2 = (covariates$z3 - r1) / case[2])
+    fit <- fit_with(covariates)
+    centers <- if (case[1] == 1e-6) c("analyzed", "observed") else "analyzed"
+    for (center in centers) {
+      expect_no_warning(boot <- marginal_solomon(fit, R = 199, seed = 1, pretest_center = center),
+                        class = "solomonR_bootstrap_warning")
+      ref <- marginal_solomon(fit_with(reference), R = 199, seed = 1, pretest_center = center)
+      expect_identical(boot$failures, 0L, info = info)
+      expect_identical(ref$failures, 0L, info = info)
+      se <- ref$effects$std.error
+      expect_equal(boot$effects$std.error, se, tolerance = 1e-2, info = info)
+      expect_lt(max(abs(boot$effects$conf.low - ref$effects$conf.low) / se), 0.2)
+      expect_lt(max(abs(boot$effects$conf.high - ref$effects$conf.high) / se), 0.2)
+    }
+  }
+
+  # A covariate nearly collinear with the treatment indicator, nested in the
+  # same way. The basis keeps the treatment terms, whose coefficients give
+  # the contrasts, so the refits keep a condition number near 1e15 and do
+  # not converge. The warning says so and gives it; it does not name sparse
+  # cells.
+  fit_t <- fit_with(data.frame(z1 = treat + 1e-6 * e1, z2 = e1 + 1e-8 * e2))
+  w <- NULL
+  m <- withCallingHandlers(marginal_solomon(fit_t, R = 199, seed = 1),
+                           solomonR_bootstrap_warning = function(c) {
+                             w <<- conditionMessage(c)
+                             invokeRestart("muffleWarning")
+                           })
+  expect_match(w, "failed in [0-9]+ of 199 bootstrap resamples")
+  expect_match(w, "[0-9]+ did not converge in 25 iterations[.]")
+  expect_match(w, paste0("For the refits that did not converge, the largest condition number ",
+                         "of the weighted design was [0-9.]+e[+]1[45][.] Rounding error in ",
+                         "each step grows with it"))
+  expect_no_match(w, "sparse", fixed = TRUE)
+  expect_true(all(is.na(m$effects$conf.low)))
+  expect_gt(m$failures, 19L)
+})
+
+# The refits of a bootstrap, traced through a mocked .logistic_irls(): for
+# the first refit of each resample (on the model's design, from the
+# model's coefficients `b`), how it ended (`first`), whether it was fitted
+# again in the basis (`again`), how that ended (`then`), and its design
+# (`X`); with the result `m` and the message `w` of the bootstrap warning
+# ("" if none).
+traced_bootstrap <- function(fit, b = fit$covariate_scaling$coefficients, seed = 2024) {
+  irls <- .logistic_irls
+  in_basis <- logical()
+  reason <- character()
+  designs <- list()
+  w <- ""
+  m <- with_mocked_bindings(
+    withCallingHandlers(marginal_solomon(fit, R = 199, seed = seed),
+                        solomonR_bootstrap_warning = function(c) {
+                          w <<- conditionMessage(c)
+                          invokeRestart("muffleWarning")
+                        }),
+    .logistic_irls = function(X, y, start, ...) {
+      out <- irls(X, y, start, ...)
+      in_basis <<- c(in_basis, !identical(start, b))
+      reason <<- c(reason, if (isTRUE(out$converged)) "ok" else out$reason)
+      designs[[length(designs) + 1L]] <<- X
+      out
+    }
+  )
+  first <- which(!in_basis)
+  list(m = m, w = w, first = reason[first], again = c(in_basis[-1], FALSE)[first],
+       then = c(reason[-1], NA)[first], X = designs[first])
+}
+
+rank_failure_text <- function(n) {
+  paste0(" ", n, " had a design not of full rank, as when a resample lacks a level of a ",
+         "factor or makes nearly collinear covariates collinear")
+}
+
+test_that("a refit that does not converge is fitted again in the basis, and one not of full rank is not (#154)", {
+  # z2 = z1 + g e1, nearly collinear, with g just above where the fit stops
+  # (1.09e-11 and below on Windows). The condition number of the design,
+  # about 2e11, keeps some refits on the model's design from converging
+  # ("maxit"), and makes the two columns collinear to within qr()'s
+  # tolerance, 1e-11, on other resamples ("rank"). A refit that did not
+  # converge is fitted again in the basis (.bootstrap_basis()) and
+  # converges there, unless the collinearity check of fit_solomon_glm(),
+  # in the model's working weights, finds a term collinear on the rows of
+  # its resample (.resample_collinear()). A refit not of full rank is not
+  # fitted again, because in the basis the direction that the resample
+  # makes collinear would be carried only by rounding error. Its resample
+  # counts as failed, and the warning counts it as a design not of full
+  # rank. At g = 1.2e-11, with seed = 2024 on Windows, 63 refits did not
+  # converge and 24 were not of full rank, of 199, and the check found no
+  # term collinear on the resamples of the 63 (with other seeds it finds
+  # one on a few, up to at least g = 1.4e-11); the exact
+  # reparameterization (z1, (z2 - z1) / g) has no failures. The counts are
+  # taken from the refits, not pinned, since they depend on rounding. The
+  # data have no missing outcome, so the row names of a refit's design are
+  # the rows of the model it holds.
+  withr::local_seed(5151)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  e1 <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- 0.3 * treat + 0.2 * pretested + ifelse(is.na(pre), 0, 0.4 * pre) + 0.3 * z1 +
+    stats::rnorm(n)
+  passed <- as.integer(y > 0)
+  fit_with <- function(g) {
+    quiet_irls(suppressWarnings(
+      fit_solomon_glm(passed, treat, pretested, pre,
+                      covariates = data.frame(z1 = z1, z2 = z1 + g * e1),
+                      family = stats::binomial()),
+      classes = "solomonR_noncollapsible_warning"
+    ))
+  }
+  check <- function(fit, info) {
+    refits <- traced_bootstrap(fit)
+    model <- .standardized_model(fit)
+    X <- stats::model.matrix(model)
+    rank_check <- .bootstrap_rank_check(fit, model, X, rep(TRUE, nrow(X)))
+    maxit <- refits$first == "maxit"
+    rank <- refits$first == "rank"
+    collinear <- vapply(seq_along(maxit), function(i) {
+      maxit[i] && .resample_collinear(rank_check, as.integer(rownames(refits$X[[i]])))
+    }, TRUE)
+    # No resample has a Solomon cell with only events or only non-events,
+    # and no first refit has a fitted risk near 0 or 1.
+    expect_length(refits$first, 199L)
+    expect_true(all(refits$first %in% c("ok", "maxit", "rank")), info = info)
+    expect_gt(sum(maxit), 0L)
+    expect_gt(sum(rank), 0L)
+    expect_identical(refits$again, maxit & !collinear, info = info)
+    expect_true(all(refits$then[refits$again] == "ok"), info = info)
+    expect_identical(refits$m$failures, sum(rank) + sum(collinear), info = info)
+    if (refits$m$failures > 0.1 * 199) {
+      expect_match(refits$w, paste0("Of these,", rank_failure_text(refits$m$failures), ". method"),
+                   fixed = TRUE, info = info)
+    } else {
+      expect_identical(refits$w, "")
+    }
+  }
+  check(fit_with(1.2e-11), "1.2e-11")
+
+  # glm() decides rank in the weights of its fit, and the columns that the
+  # basis replaces, X_N, can fall short of full rank at 1e-11 without them
+  # though the model was fitted. At g = 1.1e-11, X_N has rank 4 of 5 at that
+  # tolerance. A basis formed at it did not exist, so the 34 refits that did
+  # not converge failed along with the 103 not of full rank, on Windows. It
+  # is now formed from every column. Of the 34, the check finds a term
+  # collinear on the resamples of 3, on Windows, which fail; the 31 others
+  # converge in the basis.
+  fit <- tryCatch(fit_with(1.1e-11), error = function(e) e)
+  if (inherits(fit, "error")) {
+    expect_match(conditionMessage(fit), "collinear with other terms of the model")
+    skip("the fit stops at g = 1.1e-11 with the rounding of this platform")
+  }
+  X <- stats::model.matrix(.standardized_model(fit))
+  others <- !colnames(X) %in% c("treat", "treat:pretested")
+  expect_lt(qr(X[, others], tol = 1e-11)$rank, sum(others))
+  expect_false(is.null(.bootstrap_basis(X, fit$covariate_scaling$coefficients)))
+  check(fit, "1.1e-11")
+})
+
+test_that("a resample that makes two covariates collinear fails, and is not fitted again (#154)", {
+  # z2 equals z1 except in two participants with an outcome, in the first
+  # cell, and in one pretested participant without an outcome, by 1e-6 to
+  # 2e-6. A resample without the first two has z2 == z1 on the rows it is
+  # fitted to, so its design is not of full rank, and its refit fails as
+  # "rank". Fitted again in the basis, where that direction is carried only
+  # by rounding error, every such refit converged: risk differences were up
+  # to 0.03 from those of the refit without z2, the same model on those
+  # rows, and under pretest_center = "observed", where the participant
+  # without an outcome is standardized over, the contrasts depended on the
+  # coefficient of z2, which those rows do not identify. Such a resample
+  # now fails, as in the exact reparameterization (z1, (z2 - z1) / 1e-6),
+  # whose second column is 0 on those rows. The two bootstraps fail in the
+  # same resamples and otherwise agree. Under "observed", 31 of 199 fail on
+  # Windows, so intervals are not reported, as for the reparameterization.
+  withr::local_seed(4344)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- stats::rbinom(n, 1, stats::plogis(-0.2 + 0.4 * treat + 0.2 * pretested +
+                                           ifelse(is.na(pre), 0, 0.5 * pre) + 0.4 * z1))
+  y[c(3:5, 53:55)] <- NA
+  with_outcome <- which(!is.na(y[1:50]))
+  differ <- c(with_outcome[y[with_outcome] == 1][1], with_outcome[y[with_outcome] == 0][1], 3L)
+  z2 <- z1
+  z2[differ] <- z2[differ] + 1e-6 * c(1, 1.5, 2)
+  for (center in c("analyzed", "observed")) {
+    fit_with <- function(covariates) {
+      suppressWarnings(
+        fit_solomon_glm(y, treat, pretested, pre, covariates = covariates,
+                        family = stats::binomial(), pretest_center = center),
+        classes = "solomonR_noncollapsible_warning"
+      )
+    }
+    fit <- fit_with(data.frame(z1 = z1, z2 = z2))
+    refits <- traced_bootstrap(fit)
+    # The resamples whose rows have z2 == z1, on the scale of the data.
+    s <- fit$covariate_scaling
+    equal <- vapply(refits$X, function(X) {
+      raw <- function(name) X[, name] * s$scales[[name]] + s$means[[name]]
+      max(abs(raw("z2") - raw("z1"))) < 1e-7
+    }, TRUE)
+    expect_gt(sum(equal), 0L)
+    expect_true(all(refits$first[equal] == "rank"), info = center)
+    expect_false(any(refits$again[equal]), info = center)
+    expect_true(all(refits$first[!equal] == "ok"), info = center)
+    expect_identical(refits$m$failures, sum(equal), info = center)
+    ref <- suppressWarnings(
+      marginal_solomon(fit_with(data.frame(z1 = z1, r = (z2 - z1) / 1e-6)), R = 199, seed = 2024),
+      classes = "solomonR_bootstrap_warning"
+    )
+    expect_identical(ref$failures, refits$m$failures, info = center)
+    expect_equal(refits$m$effects$std.error, ref$effects$std.error, tolerance = 1e-6,
+                 info = center)
+    expect_equal(refits$m$effects$conf.low, ref$effects$conf.low, tolerance = 1e-6,
+                 info = center)
+    if (center == "observed") {
+      expect_gt(refits$m$failures, 0.1 * 199)
+      expect_true(all(is.na(refits$m$effects$conf.low)))
+      expect_match(refits$w, paste0("Of these,", rank_failure_text(sum(equal)), ". method"),
+                   fixed = TRUE)
+    }
+  }
+})
+
+# The traced bootstrap of a fit some of whose resamples, those whose
+# fitted rows satisfy `holds`, have a design that is not of full rank in
+# the data, though rounding error keeps it above qr()'s tolerance,
+# against that of `reference`, an exact reparameterization of the
+# covariates in which two columns are equal on those rows. Such a refit
+# does not converge on the model's design ("maxit"; on Windows every one,
+# though rounding could take one below the tolerance, as "rank", on
+# another platform), is not fitted again in the basis, and fails as a
+# design not of full rank; every other first refit converges; and the
+# bootstrap fails in the same resamples as the reparameterization's,
+# withholds the intervals as it does, and agrees with it.
+expect_collinear_resamples_fail <- function(fit, reference, holds, seed, info) {
+  refits <- traced_bootstrap(fit, seed = seed)
+  lacking <- vapply(refits$X, holds, TRUE)
+  expect_gt(sum(lacking), 0.1 * 199)
+  expect_true(all(refits$first[lacking] %in% c("maxit", "rank")), info = info)
+  expect_gt(sum(refits$first[lacking] == "maxit"), 0L)
+  expect_false(any(refits$again[lacking]), info = info)
+  expect_true(all(refits$first[!lacking] == "ok"), info = info)
+  expect_identical(refits$m$failures, sum(lacking), info = info)
+  expect_match(refits$w, paste0("Of these,", rank_failure_text(sum(lacking)), ". method"),
+               fixed = TRUE, info = info)
+  expect_true(all(is.na(refits$m$effects$conf.low)), info = info)
+  ref <- suppressWarnings(marginal_solomon(reference, R = 199, seed = seed),
+                          classes = "solomonR_bootstrap_warning")
+  expect_identical(ref$failures, refits$m$failures, info = info)
+  expect_true(all(is.na(ref$effects$conf.low)), info = info)
+  expect_equal(refits$m$effects$std.error, ref$effects$std.error, tolerance = 1e-6, info = info)
+}
+
+test_that("a refit that does not converge on rows collinear by the fit's check is not fitted again (#154)", {
+  # The example of .representation_error(): a time of testing that is the
+  # time of enrollment plus a delay of 7 days, with the times in seconds
+  # since 1970 over a year and the delay spread by 2 minutes. The testing
+  # times of two participants with an outcome, in the first cell, were
+  # corrected, and under "observed" that of a pretested participant
+  # without one, so that the relation fails only for them. A resample
+  # without the first two has tested - enrolled == delay on the rows it is
+  # fitted to. Rounding error, which the large coefficients of the
+  # relation multiply, keeps its design above qr()'s tolerance, so its
+  # refit passes the rank check at every iteration, with condition numbers
+  # of 1e15 to 1e16, and does not converge. Fitted again in the basis,
+  # every such refit converged, with risk differences up to 0.088 (0.18
+  # under "observed") from those of the refit without the delay, and the
+  # intervals were reported where the exact reparameterization
+  # (enrolled, tested - enrolled, delay) withholds them. The collinearity
+  # check of fit_solomon_glm() finds the delay collinear on the rows of
+  # such a resample (.resample_collinear()), so the resample now fails, as
+  # for the reparameterization: on Windows, 43 of 199 under "analyzed" and
+  # 33 under "observed". The check finds no term collinear on the model's
+  # own rows.
+  withr::local_seed(6101)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  enrolled <- round(1.7e9 + stats::runif(n, 0, 365 * 86400))
+  delay <- round(7 * 86400 + stats::rnorm(n, 0, 120))
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- stats::rbinom(n, 1, stats::plogis(-0.2 + 0.4 * treat + 0.2 * pretested +
+                                           ifelse(is.na(pre), 0, 0.5 * pre) +
+                                           0.5 * (enrolled - 1.7e9) / (365 * 86400) +
+                                           0.3 * (delay - 7 * 86400) / 120))
+  for (center in c("analyzed", "observed")) {
+    y_center <- y
+    if (center == "observed") y_center[c(3:5, 53:55)] <- NA
+    with_outcome <- which(!is.na(y_center[1:50]))
+    corrected <- c(with_outcome[y_center[with_outcome] == 1][1],
+                   with_outcome[y_center[with_outcome] == 0][1])
+    if (center == "observed") corrected <- c(corrected, 3L)
+    tested <- enrolled + delay
+    tested[corrected] <- tested[corrected] + c(60, 96, 120)[seq_along(corrected)]
+    fit_with <- function(covariates) {
+      suppressWarnings(
+        fit_solomon_glm(y_center, treat, pretested, pre, covariates = covariates,
+                        family = stats::binomial(), pretest_center = center),
+        classes = "solomonR_noncollapsible_warning"
+      )
+    }
+    fit <- fit_with(data.frame(enrolled = enrolled, tested = tested, delay = delay))
+    s <- fit$covariate_scaling
+    holds <- function(X) {
+      seconds <- function(name) X[, name] * s$scales[[name]] + s$means[[name]]
+      max(abs(seconds("tested") - seconds("enrolled") - seconds("delay"))) < 12
+    }
+    reference <- fit_with(data.frame(enrolled = enrolled, gap = tested - enrolled, delay = delay))
+    expect_collinear_resamples_fail(fit, reference, holds, seed = 31, info = center)
+    if (center == "analyzed") {
+      model <- .standardized_model(fit)
+      X <- stats::model.matrix(model)
+      rank_check <- .bootstrap_rank_check(fit, model, X, rep(TRUE, nrow(X)))
+      without <- unlist(lapply(split(seq_len(n), interaction(treat, pretested)), function(rows) {
+        rows <- setdiff(rows, corrected)
+        rows[sample.int(length(rows), length(rows) + 2L, replace = TRUE)]
+      }), use.names = FALSE)
+      expect_true(.resample_collinear(rank_check, without))
+      expect_false(.resample_collinear(rank_check, seq_len(n)))
+      expect_false(.resample_collinear(rank_check, c(seq_len(n), corrected)))
+    }
+  }
+})
+
+test_that("a refit that does not converge on rows where a difference score repeats its terms is not fitted again (#154)", {
+  # Two covariates, z1 near 50 and z2 = z1 + 1e-4 e, nearly collinear, and
+  # their difference, z3 = z2 - z1, a difference score, entered otherwise
+  # in two participants with an outcome, in the first cell. A resample
+  # without them has z3 == z2 - z1 exactly in the stored values on the rows
+  # it is fitted to, and its refit does not converge. Fitted again in the
+  # basis, every such refit converged, with risk differences up to 0.07
+  # from those of the refit without z3. They now fail, as for the exact
+  # reparameterization (z1, z2 - z1, z3): on Windows, 36 of 199.
+  withr::local_seed(5001)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n, 50, 10)
+  e <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- stats::rbinom(n, 1, stats::plogis(-0.2 + 0.4 * treat + 0.2 * pretested +
+                                           ifelse(is.na(pre), 0, 0.5 * pre) +
+                                           0.04 * (z1 - 50) + 0.3 * e))
+  with_outcome <- which(!is.na(y[1:50]))
+  entered <- c(with_outcome[y[with_outcome] == 1][1], with_outcome[y[with_outcome] == 0][1])
+  z2 <- z1 + 1e-4 * e
+  z3 <- z2 - z1
+  z3[entered] <- z3[entered] + 1e-4 * c(0.5, 0.75)
+  fit_with <- function(covariates) {
+    suppressWarnings(
+      fit_solomon_glm(y, treat, pretested, pre, covariates = covariates,
+                      family = stats::binomial()),
+      classes = "solomonR_noncollapsible_warning"
+    )
+  }
+  fit <- fit_with(data.frame(z1 = z1, z2 = z2, z3 = z3))
+  s <- fit$covariate_scaling
+  holds <- function(X) {
+    value <- function(name) X[, name] * s$scales[[name]] + s$means[[name]]
+    max(abs(value("z3") - (value("z2") - value("z1")))) < 1e-5
+  }
+  reference <- fit_with(data.frame(z1 = z1, difference = z2 - z1, z3 = z3))
+  expect_collinear_resamples_fail(fit, reference, holds, seed = 31, info = "difference score")
+})
+
+test_that("the collinearity check of a resample is the fit's check, in the model's weights (#154)", {
+  # .collinear_columns() is the check of .collinear_terms() on a design
+  # matrix, the weights of its rows, the rounding error of its entries,
+  # the covariates' columns, and the intercept's, so that marginal_solomon()
+  # can apply it to the rows of a resample. .collinear_terms() now calls
+  # .collinear_columns(), so comparing the two checks only what the
+  # wrapper passes: the model matrix, the weights, the covariates' columns,
+  # and the intercept's position. What would show a change in the check
+  # itself are the pinned results, none, the pair's second column when the
+  # rounding error allowed for is large, and the last term of an exact
+  # relation, which are those of .collinear_terms() before the split
+  # (4ab4761). That the split changed no result on the calls of the test
+  # suite was checked outside these tests, against 4ab4761's function.
+  d <- collinear_set()
+  e <- withr::with_seed(1, stats::rnorm(nrow(d)))
+  model <- stats::glm(y4 ~ treat * pretested + z + z2,
+                      data = cbind(d, z2 = d$z + 1e-8 * e), na.action = stats::na.exclude)
+  noise <- .representation_error(model, model, list(means = numeric(), scales = numeric()))
+  X <- stats::model.matrix(model)
+  intercept <- match(0L, attr(X, "assign"))
+  last <- colnames(X) %in% c("z", "z2")
+  columns <- function(noise, w = model$weights, rows = seq_len(nrow(X))) {
+    colnames(X)[.collinear_columns(X[rows, ], w[rows], noise[rows, ], last, intercept)]
+  }
+  expect_identical(columns(noise), .collinear_terms(model, noise, c("z", "z2")))
+  expect_identical(columns(noise), character())
+  expect_identical(columns(noise + 1e-8), .collinear_terms(model, noise + 1e-8, c("z", "z2")))
+  expect_identical(columns(noise + 1e-8), "z2")
+  # Rows with a weight of zero are left out, and a row given twice enters
+  # twice.
+  w <- model$weights
+  w[1:5] <- 0
+  expect_identical(columns(noise + 1e-8, w), columns(noise + 1e-8, w, rows = -(1:5)))
+  expect_identical(columns(noise, rows = rep(seq_len(nrow(X)), 2)), character())
+
+  # An exact relation among times far from zero, with each value's rounding
+  # error, in the standardized model of fit_solomon_glm(): through
+  # .collinear_terms(), the fit stops at the delay, the relation's last
+  # term; the check on the matrix finds the same column.
+  withr::local_seed(8)
+  start <- 1.77e9
+  offset <- 30 * 86400 * stats::runif(nrow(d))
+  delay <- 3600 + 600 * stats::rnorm(nrow(d))
+  times <- data.frame(enrol = start + offset, test = start + offset + delay, delay = delay)
+  expect_error(collinear_pair_fit(d, "four", times, "none"),
+               "collinear with other terms of the model: delay[.]")
+  df <- data.frame(y = d$y4, treat = d$treat, pretested = d$pretested, times)
+  rows <- !is.na(df$y)
+  scaling <- .covariate_scaling(df, names(times), rows)
+  fml <- y ~ treat * pretested + enrol + test + delay
+  given <- quiet_irls(stats::glm(fml, data = df, na.action = stats::na.exclude))
+  fit <- quiet_irls(stats::glm(fml, data = scaling$data, na.action = stats::na.exclude))
+  noise <- .representation_error(fit, given, scaling)
+  X <- stats::model.matrix(fit)
+  found <- .collinear_columns(X, fit$weights, noise, attr(X, "assign") %in% 3:5,
+                              match(0L, attr(X, "assign")))
+  expect_identical(colnames(X)[found], .collinear_terms(fit, noise, names(times)))
+  expect_identical(colnames(X)[found], "delay")
+
+  # .bootstrap_rank_check() carries the fit's own check to the rows of the
+  # bootstrap's design: under pretest_center = "observed", the rows of the
+  # model hold its working weights and the rounding error the fit computed
+  # for them, and the rows outside the model a weight of zero.
+  y <- d$y4
+  y[which(d$pretested == 1)[1:4]] <- NA
+  fit <- suppressWarnings(fit_solomon_glm(as.integer(y > stats::median(y, na.rm = TRUE)),
+                                          d$treat, d$pretested, d$pre,
+                                          covariates = data.frame(z = d$z), robust = "none",
+                                          family = stats::binomial(),
+                                          pretest_center = "observed"),
+                          classes = "solomonR_noncollapsible_warning")
+  model <- .standardized_model(fit)
+  set <- .marginal_rows(fit)
+  expect_true(any(!set$in_model))
+  X <- .standardized_columns(set$X, fit$covariate_scaling, fit$model)
+  rank_check <- .bootstrap_rank_check(fit, model, X, set$in_model)
+  expect_identical(rank_check$w[set$in_model], unname(model$weights))
+  expect_true(all(rank_check$w[!set$in_model] == 0))
+  expect_identical(dim(rank_check$noise), dim(X))
+  expect_identical(c(rank_check$noise[set$in_model, ]), c(
+    .representation_error(model, fit$model, fit$covariate_scaling, fit$pretest_mean)
+  ))
+  expect_identical(colnames(X)[rank_check$last], "z")
+  expect_identical(colnames(X)[rank_check$intercept], "(Intercept)")
+  expect_false(.resample_collinear(rank_check, seq_len(nrow(X))))
+  expect_identical(
+    colnames(X)[.collinear_columns(X[set$in_model, ], model$weights,
+                                   rank_check$noise[set$in_model, ], rank_check$last,
+                                   rank_check$intercept)],
+    .collinear_terms(model, rank_check$noise[set$in_model, ], "z")
+  )
+})
+
+test_that("a resample that lacks a level of a factor fails, and is not fitted again (#154)", {
+  # The seed 5151 data of the test before the last, with z1 alone, a
+  # covariate near 1e9, and a factor whose level "c" has two participants,
+  # one with the event and one without, in the first cell.
+  withr::local_seed(5151)
+  n <- 200
+  g4 <- rep(1:4, each = 50)
+  treat <- c(1, 0, 1, 0)[g4]
+  pretested <- c(1, 1, 0, 0)[g4]
+  z1 <- stats::rnorm(n)
+  e1 <- stats::rnorm(n)
+  pre <- ifelse(pretested == 1, stats::rnorm(n), NA)
+  y <- 0.3 * treat + 0.2 * pretested + ifelse(is.na(pre), 0, 0.4 * pre) + 0.3 * z1 +
+    stats::rnorm(n)
+  passed <- as.integer(y > 0)
+  withr::local_seed(5152)
+  big <- 1e9 + 1e3 * stats::rnorm(n)
+  f <- factor(sample(c("a", "b"), n, replace = TRUE), levels = c("a", "b", "c"))
+  rare <- c(which(passed[1:50] == 1)[1], which(passed[1:50] == 0)[1])
+  f[rare] <- "c"
+  covariates <- data.frame(z1 = z1, big = big, f = f)
+  fit_with <- function(covariates) {
+    quiet_irls(suppressWarnings(
+      fit_solomon_glm(passed, treat, pretested, pre, covariates = covariates,
+                      family = stats::binomial()),
+      classes = "solomonR_noncollapsible_warning"
+    ))
+  }
+  fit <- fit_with(covariates)
+
+  # Through marginal_solomon(): each resample without level "c" (a column
+  # of zeros) fails as "rank" on the model's design, is not fitted again,
+  # and is counted so. The other resamples converge. On Windows, 27 of 199
+  # lack the level, so intervals are not reported.
+  refits <- traced_bootstrap(fit)
+  lacking <- vapply(refits$X, function(X) all(X[, "fc"] == 0), TRUE)
+  expect_gt(sum(lacking), 0L)
+  expect_true(all(refits$first[lacking] == "rank"))
+  expect_false(any(refits$again[lacking]))
+  expect_true(all(refits$first[!lacking] == "ok"))
+  expect_identical(refits$m$failures, sum(lacking))
+  if (sum(lacking) > 0.1 * 199) {
+    expect_match(refits$w, paste0("Of these,", rank_failure_text(sum(lacking)), ". method"),
+                 fixed = TRUE)
+  }
+
+  # Directly, on a resample drawn within the cells from the participants
+  # without level "c", and on resamples without a Solomon cell, which
+  # marginal_solomon() counts as separated before any refit: the design is
+  # not of full rank on the standardized design, on the design as given
+  # (with the covariate near 1e9 unstandardized), and with sum-to-zero
+  # contrasts, under which a missing level leaves no column of zeros.
+  cells <- split(seq_len(n), interaction(treat, pretested))
+  without_c <- unlist(lapply(cells, function(rows) {
+    rows <- setdiff(rows, rare)
+    rows[sample.int(length(rows), length(rows) + 2L, replace = TRUE)]
+  }), use.names = FALSE)
+  without_cell <- list(which(!(treat == 1 & pretested == 1)), which(!(treat == 0 & pretested == 0)))
+  designs <- list(
+    standardized = list(X = stats::model.matrix(.standardized_model(fit)),
+                        b = fit$covariate_scaling$coefficients),
+    given = list(X = stats::model.matrix(fit$model), b = stats::coef(fit$model))
+  )
+  designs$sum <- withr::with_options(list(contrasts = c("contr.sum", "contr.poly")), {
+    fit_sum <- fit_with(covariates)
+    list(X = stats::model.matrix(.standardized_model(fit_sum)),
+         b = fit_sum$covariate_scaling$coefficients)
+  })
+  expect_identical(names(designs$sum$b), colnames(designs$sum$X))
+  expect_false(any(colSums(designs$sum$X[without_c, ] != 0) == 0))
+  for (name in names(designs)) {
+    design <- designs[[name]]
+    for (rows in c(list(without_c), without_cell)) {
+      expect_identical(.logistic_irls(design$X[rows, ], passed[rows], start = design$b)$reason,
+                       "rank", info = name)
+    }
+  }
 })
 
 test_that("nearly collinear covariates are fitted as master fitted them", {

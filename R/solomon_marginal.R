@@ -389,44 +389,337 @@
 
 # Logistic regression by iteratively reweighted least squares, with the
 # convergence rule of stats::glm.fit() (relative change in deviance below
-# `epsilon`). A lean version for bootstrap refits, warm-started at `start`.
-# Each step solves its weighted least-squares problem by QR, with the
-# tolerance of glm.fit(); solving the normal equations, which square the
-# design's condition number, failed in every resample with nearly collinear
-# covariates, such as a covariate and its copy in single precision (issue
-# #137). A resample whose design is not of full rank fails.
-# Fitted risks that reach 0 or 1 in floating point (near separation) make the
-# working response or the deviance non-finite; the fit is then reported as
-# not converged, which the bootstrap counts as a failed resample.
+# `epsilon` within `maxit` iterations; ?glm.control). A lean version for
+# bootstrap refits, warm-started at `start`. Each step solves its weighted
+# least-squares problem by QR, with the tolerance of glm.fit(); solving the
+# normal equations, which square the design's condition number, failed in
+# every resample with nearly collinear covariates, such as a covariate and
+# its copy in single precision (issue #137).
+# Each step is a full step: glm.fit() halves a step that makes the deviance
+# infinite (Marschner, 2011), while this refit stops. So it can diverge
+# from `start` on a resample whose maximum-likelihood estimate exists.
+# A fit that fails gives its `reason` (issue #154). "risk": fitted risks
+# reach 0 or 1 in floating point, which makes the deviance, the working
+# response, or the coefficients non-finite; or the weighted design loses
+# rank while `X` has full rank and a fitted risk is within 1e-8 of 0 or 1,
+# because the weights mu (1 - mu) of those rows vanish. That happens under
+# separation and when the refit diverges. "rank": `X` itself is not of
+# full rank at that tolerance, as when a resample lacks a level of a
+# factor or covariates are collinear to within it, or the weighted design
+# loses rank with no fitted risk that close to 0 or 1. `X` is checked
+# only once the weighted design has lost rank. "maxit": the rule
+# is not met in `maxit` iterations; `kappa` is the 2-norm condition number
+# of the last weighted design (?kappa, exact = TRUE). The arithmetic is
+# that of the version before #154, so a fit that converged then converges
+# now with the same coefficients, and a fit that failed then fails now.
 .logistic_irls <- function(X, y, start, epsilon = 1e-8, maxit = 25L) {
-  failed <- list(converged = FALSE)
+  failed <- function(reason) list(converged = FALSE, reason = reason)
   events <- y == 1
   deviance <- function(mu) -2 * (sum(log(mu[events])) + sum(log1p(-mu[!events])))
   b <- start
   eta <- drop(X %*% b)
   mu <- stats::plogis(eta)
   dev <- deviance(mu)
-  if (!is.finite(dev)) return(failed)
+  if (!is.finite(dev)) return(failed("risk"))
   for (iter in seq_len(maxit)) {
     w <- mu * (1 - mu)
     z <- eta + (y - mu) / w
-    if (!all(is.finite(z))) return(failed)
-    b <- tryCatch({
-      root <- sqrt(w)
-      q <- qr(root * X, tol = 1e-11)
-      if (q$rank < ncol(X)) NULL else qr.coef(q, root * z)
-    }, error = function(e) NULL)
-    if (is.null(b) || !all(is.finite(b))) return(failed)
+    if (!all(is.finite(z))) return(failed("risk"))
+    root <- sqrt(w)
+    q <- tryCatch(qr(root * X, tol = 1e-11), error = function(e) NULL)
+    if (is.null(q)) return(failed("risk"))
+    if (q$rank < ncol(X)) {
+      vanished <- .degenerate_risk(mu) && qr(X, tol = 1e-11)$rank == ncol(X)
+      return(failed(if (vanished) "risk" else "rank"))
+    }
+    b <- tryCatch(qr.coef(q, root * z), error = function(e) NULL)
+    if (is.null(b) || !all(is.finite(b))) return(failed("risk"))
     eta <- drop(X %*% b)
     mu <- stats::plogis(eta)
     dev_new <- deviance(mu)
-    if (!is.finite(dev_new)) return(failed)
+    if (!is.finite(dev_new)) return(failed("risk"))
     if (abs(dev_new - dev) / (abs(dev_new) + 0.1) < epsilon) {
-      return(list(coefficients = b, fitted.values = mu, converged = TRUE))
+      return(list(coefficients = b, fitted.values = mu, converged = TRUE, iter = iter))
     }
     dev <- dev_new
   }
-  list(coefficients = b, fitted.values = mu, converged = FALSE)
+  list(coefficients = b, fitted.values = mu, converged = FALSE, reason = "maxit",
+       kappa = kappa(q, exact = TRUE))
+}
+
+# The bootstrap's design in a well-conditioned basis (issue #154), for the
+# refits that do not converge on the model's design. The columns other
+# than the treatment terms, X_N, are replaced by the orthonormal columns Q
+# of their Householder QR decomposition, X_N = Q R (Golub, 1965), which
+# span the same space; the treatment columns, whose coefficients
+# .marginal_risks() reads, are kept. Each IRLS step is a weighted
+# least-squares fit, whose fitted values depend only on the space the
+# columns span (Green, 1984), so in exact arithmetic every iterate, fitted
+# risk, and contrast is the same in either basis, from the start `b`
+# mapped to it (R b_N). In floating point the fitted values of a
+# least-squares step move by about the unit roundoff times the design's
+# condition number (Higham, 2002, Chapter 20). With nearly collinear
+# covariates (a condition number near 1e14), between iterations 5 and 25
+# the deviance changed by 4e-7 to 7e-4 of itself, against the 1e-8 that
+# the rule allows, and the fitted risks by up to 0.06, so almost no
+# resample met the rule. Q is orthonormal and the QR is backward stable
+# (Higham, 2002, Theorem 19.4), so the condition number left for the IRLS
+# steps is that of the treatment terms against the other columns, and
+# the refits converge. That is a statement about convergence, not
+# accuracy: Q is computed from X_N in floating point, so its columns span
+# those of X_N only to within about the unit roundoff times the condition
+# number of X_N (Higham, 2002, Theorem 19.4 and Chapter 20), an angle of
+# 0.02 to 0.08 radians on the data of #154. A refit in the basis is
+# accurate to about that, as the model's own fit is, and a resample whose
+# fitted risks come near the 1e-8 limit can be counted differently than
+# under an exact reparameterization.
+#
+# Rank. A refit that fails as "rank" is not fitted again, and the
+# resample counts as failed: its design is not of full rank at qr()'s
+# tolerance, 1e-11, on the rows of the resample, as when the resample
+# lacks a level of a factor or makes nearly collinear covariates
+# collinear. In the basis, a direction that the resample makes collinear
+# is carried only by rounding error, which a rank check cannot tell from
+# a direction in the data, and a refit there can converge on it. In the
+# data of a test of this in test-covariate-location.R (seed 4344), z2
+# equals z1 except in two participants with an outcome, and in one
+# pretested participant without, by 1e-6 to 2e-6, so a resample without
+# the first two has z2 == z1 on the rows it is fitted to. Fitted again in
+# the basis, as an earlier version of this fix did, the 15 such resamples
+# of 199 converged, with risk differences up to 0.03 from those of the
+# refit without z2, which is the same model on those rows. Under
+# pretest_center = "observed", the 31 such resamples converged too,
+# though the participant without an outcome, who is standardized over,
+# makes their contrasts depend on the coefficient of z2, which they do
+# not identify. The exact reparameterization (z1, (z2 - z1) / 1e-6) fails
+# in the same resamples.
+#
+# A refit that fails as "maxit" passed that rank check at every
+# iteration, but that does not show that its resample identifies the
+# coefficients. When a covariate is a combination of others with large
+# coefficients, the rounding error of the stored and standardized values,
+# multiplied by those coefficients, can keep a design that is not of full
+# rank in the data above 1e-11 of its norm. In the example of
+# .representation_error(), a time of testing that is the time of
+# enrollment plus a delay, with the times in seconds since 1970, the
+# testing times of two participants were corrected, so that the relation
+# fails only for them (seed 6101 in test-covariate-location.R). On a
+# resample without the two, tested - enrolled == delay on every row. Its
+# refit on the model's design passed the rank check at every iteration,
+# with condition numbers of 1e15 to 1e16, and did not converge. Fitted
+# again in the basis, as an earlier version of this fix did, each of the
+# 43 such resamples of 199 converged, with risk differences up to 0.088
+# from those of the refit without the delay (0.18 under pretest_center =
+# "observed"), and the intervals were reported where the exact
+# reparameterization (enrolled, tested - enrolled, delay) withholds them.
+# Before a refit that failed as "maxit" is fitted again, its resample is
+# therefore checked by the rule that fit_solomon_glm() applies to the
+# model (.collinear_terms()), on the rows of the resample, in the
+# model's working weights and with the rounding error the fit computed
+# for their entries (.bootstrap_rank_check(), .resample_collinear()). If
+# a term is collinear with the others by that rule, the refit counts as
+# failed with the reason "rank" and is not fitted again. The check is
+# the fit's rule applied to the resample's rows, not a fit to them:
+# fit_solomon_glm() given those rows would weight and standardize them
+# anew. What is left of that term on those rows after the others is then
+# within the rounding error the rule allows for (4 B_k of
+# .collinear_terms()), or within glm()'s tolerance, 1e-11 of its norm.
+# In the first case, as on each of the 43 timestamp resamples, a refit
+# in the basis could converge on rounding error. Near the edge of the
+# fit's check, as in the next paragraph, the rule stops refits by the
+# 1e-11 tolerance alone; what is left there is the data's own direction,
+# and those resamples are the cost described there. On the timestamp
+# data fit_solomon_glm() stops on the rows of each of the 43 resamples,
+# at the delay; near the edge of its check it need not. With the data of
+# the next paragraph at g = 1.1e-11 to 1.3e-11, over bootstrap seeds 1
+# to 20, it went ahead on 47 of the 136 resamples that the rule stopped,
+# on all of which the exact reparameterization's refit converged. On the
+# timestamp data the bootstrap fails in the same resamples as the exact
+# reparameterization, 43 of 199 under "analyzed" and 33 under
+# "observed", and withholds the intervals as it does. Only refits that
+# did not converge are checked. Applied to every resample, the check
+# found no term collinear on the resamples whose refit converged on
+# those data, on the data of the next paragraph at g = 1.2e-11 and above
+# (seed = 2024), and on the nested covariates of #154; at g = 1.1e-11 to
+# 1.15e-11 it found one on 4 or 5 of the 62 to 87 resamples whose refit
+# converged, which are accepted as before.
+#
+# The cost is a band just inside the collinearity check of
+# fit_solomon_glm(), where rounding error can make nearly collinear
+# covariates collinear, to within qr()'s tolerance or by the fit's rule,
+# on a resample whose design has full rank in exact arithmetic. With
+# z2 = z1 + g e1 (seed 5151, as in another test there; the fit stops at
+# g = 1.09e-11 and below on Windows) and seed = 2024, 3, 24, 61, 86, and
+# 106 of 199 resamples failed so at g = 1.3e-11, 1.2e-11, 1.15e-11,
+# 1.12e-11, and 1.1e-11, where the exact reparameterization
+# (z1, (z2 - z1) / g) has no failures. At the last two, 3 of them did not
+# converge and were collinear by the fit's rule. With other seeds the
+# rule also stops a few refits that did not converge from g = 1.15e-11
+# up to at least 1.4e-11, about 30% above where the fit stops: over seeds
+# 1 to 20, 2, 19, and 25 in all at 1.3e-11, 1.2e-11, and 1.15e-11, and
+# over seeds 21 to 80, 2 at 1.4e-11 and none at 1.45e-11. That is at
+# most 1.25 per seed on average, small next to the resamples that fail
+# qr()'s rank check there, 3 and 24 with seed = 2024 at 1.3e-11 and
+# 1.2e-11. With z3 = z1 + z2 + g e1 (seed
+# 7501), whose fit stops at g = 1.75e-11 and goes ahead at 1.8e-11, the
+# rule stopped 1 refit at g = 2e-11 with seed = 2024, and 4 over seeds 1
+# to 20. A refit can also fail as "rank" far from the edge of the
+# fit's check, when one participant alone carries a direction of the
+# design: the refit moves that participant's fitted risk toward the
+# observed outcome, and the participant's weight in the weighted design
+# vanishes, as when separation drives a coefficient toward infinity
+# (Albert & Anderson, 1984), until the weighted design falls short of
+# full rank at 1e-11 while no fitted risk is yet within 1e-8 of 0 or 1.
+# In the seed 4343 data of that test, with z2 = z1 except in the two
+# participants, by delta and 1.5 delta, 30 to 105 of 199 resamples that
+# hold one of the two failed so at delta = 5e-8 to 1e-9, where the
+# reparameterization's refits converge, before this fix as well.
+#
+# Q is formed from every column of X_N, with no rank decision of its own:
+# at tol = 0, qr() moves no column to the end. (qr.Q() applies only as
+# many reflections as the rank, so a column moved to the end would be
+# replaced by a direction outside the span of X_N.) fit_solomon_glm()
+# stops when a term is collinear with the others, in the model as given
+# and standardized (.collinear_terms()), so X_N has full rank on the
+# model's rows as glm() and that check judge it, in the working weights
+# of the fit, and so on any set of rows that contains them. Without
+# those weights X_N can fall short of full rank at 1e-11: on the data
+# above at g = 1.1e-11, qr(X_N, tol = 1e-11) has rank 4 of 5. A basis
+# formed at that tolerance did not exist, so the 34 refits that did not
+# converge failed, with the 103 not of full rank; formed at tol = 0, it
+# lets the 31 of them that are not collinear by the fit's rule converge.
+# Where qr(X_N, tol = 1e-11) has full rank, it moves no column, and Q and
+# R are the same, bit for bit, at either tolerance. Returns the design
+# `X` and the start `start` in the basis, or NULL when X_N is not finite
+# or a column's residual is exactly zero, as for a column of zeros. An
+# exact relation computed in floating point leaves a residual of rounding
+# error, so this does not replace the check of fit_solomon_glm().
+.bootstrap_basis <- function(X, b) {
+  treatment <- match(c("treat", "treat:pretested"), colnames(X))
+  treatment <- treatment[!is.na(treatment)]
+  others <- setdiff(seq_len(ncol(X)), treatment)
+  if (!all(is.finite(X[, others]))) return(NULL)
+  q <- qr(X[, others, drop = FALSE], tol = 0)
+  R <- qr.R(q)
+  if (any(diag(R) == 0)) return(NULL)
+  X[, others] <- qr.Q(q)
+  b[others] <- drop(R %*% b[others])
+  list(X = X, start = b)
+}
+
+# The collinearity check of fit_solomon_glm() (.collinear_terms()),
+# prepared for the bootstrap resamples of marginal_solomon() whose refit
+# does not converge on the model's design (issue #154;
+# .resample_collinear()). `X` is the design that the bootstrap refits,
+# one row per participant it resamples; `model` is the model whose design
+# it is, standardized when the fit standardized anything; and `in_model`
+# flags the rows of `X` that `model` used, which are its rows, in its
+# order. Returns `X`; `noise`, the rounding error of each of its entries,
+# computed by .representation_error() from the model as given and the
+# model standardized, as fit_solomon_glm() computed it for its own check;
+# `w`, the weight of each row; `last`, which flags the covariates'
+# columns, checked last; and `intercept`, the position of the intercept's
+# column.
+#
+# The weights are the working weights of the model, those in which glm()
+# and the check of fit_solomon_glm() decided that its terms were not
+# collinear. A resample's row takes the weight of the participant it
+# draws, so a participant drawn twice enters twice with that weight, as
+# a row given twice to glm() would. A refit starts from the model's
+# coefficients, so its first step weights the rows nearly so. A relation
+# that holds exactly in the data holds row by row, and so in any positive
+# weights, and the bound it is compared with is computed in the same
+# weights. The weights of the refit's last step are not used: after 25
+# steps without converging, its coefficients can have moved along the
+# direction that the resample makes collinear, and the check would then
+# depend on how far they moved. The rows outside the model, under
+# `pretest_center = "observed"`, are never refitted; they get a weight of
+# zero, and rows with a weight of zero are left out of the check, as
+# .collinear_terms() leaves them out.
+.bootstrap_rank_check <- function(fit, model, X, in_model) {
+  noise <- matrix(0, nrow(X), ncol(X))
+  noise[in_model, ] <- .representation_error(model, fit$model, fit$covariate_scaling,
+                                             .null_na(fit$pretest_mean))
+  w <- numeric(nrow(X))
+  w[in_model] <- model$weights
+  pretest <- is.null(fit$pretest_mean) || is.finite(fit$pretest_mean)
+  covariates <- setdiff(names(fit$data), c("y", "treat", "pretested", "log_exposure",
+                                           if (pretest) "pre_obs"))
+  assign <- attr(stats::model.matrix(model), "assign")
+  labels <- attr(stats::terms(model), "term.labels")
+  list(X = X, noise = noise, w = w,
+       last = assign %in% match(.formula_names(covariates), labels),
+       intercept = match(0L, assign))
+}
+
+# Whether the rows `rows` of the bootstrap's design, with repeats, as a
+# resample draws them, make a term collinear with the others by the check
+# of fit_solomon_glm(), from `check` (.bootstrap_rank_check()): each term
+# is regressed on those before it, the covariates last, in the weights
+# of these rows and with each column but the intercept centered at its
+# weighted mean over them, and is taken to be collinear when its residual
+# is within 4 times the rounding error that its regression carries into
+# it, or within 1e-11 of its norm (.collinear_columns()).
+.resample_collinear <- function(check, rows) {
+  length(.collinear_columns(check$X[rows, , drop = FALSE], check$w[rows],
+                            check$noise[rows, , drop = FALSE], check$last,
+                            check$intercept)) > 0L
+}
+
+# The warning of a bootstrap in which more than 10% of the resamples
+# failed, with the failures by reason (issue #154): `reasons` holds one
+# of "separated", "risk", "rank", or "maxit" per failed resample, and
+# `kappa` the condition numbers of those that did not converge (NA for
+# the others). Each cause is named only for the reasons that occurred.
+# The condition number is reported, not judged: no threshold is applied,
+# and the sentence does not say that rounding caused the failures. In
+# double precision a least-squares step carries a relative error of about
+# the unit roundoff (1.1e-16) times the condition number (Higham, 2002,
+# Chapter 20), about 1% near 1e14, where the refits of #154 did not
+# converge.
+.bootstrap_failure_message <- function(reasons, R, kappa) {
+  n <- vapply(c("separated", "risk", "rank", "maxit"), function(r) sum(reasons == r), integer(1))
+  parts <- c(
+    separated = "%d had a Solomon cell with only events or only non-events",
+    risk = "%d had a fitted risk within 1e-8 of 0 or 1",
+    rank = paste("%d had a design not of full rank, as when a resample lacks a level of a factor",
+                 "or makes nearly collinear covariates collinear"),
+    maxit = "%d did not converge in 25 iterations"
+  )
+  parts <- sprintf(parts, n)[n > 0]
+  if (length(parts) > 1L) {
+    parts[length(parts)] <- paste("and", parts[length(parts)])
+  }
+  reasons_text <- paste0(paste(parts, collapse = if (length(parts) > 2L) ", " else " "), ".")
+  sparse_text <- if (n[["separated"]] > 0) {
+    " Cells with only events or only non-events come from sparse cells."
+  } else {
+    ""
+  }
+  risk_text <- if (n[["risk"]] > 0) {
+    paste0(" Fitted risks near 0 or 1 come from separation or near separation, from ",
+           "extreme covariate values, or from a refit that diverged: each refit takes ",
+           "full steps from the model's coefficients, without step halving.")
+  } else {
+    ""
+  }
+  maxit_text <- if (n[["maxit"]] > 0) {
+    sprintf(paste0(" For the refits that did not converge, the largest condition number ",
+                   "of the weighted design was %.2g. Rounding error in each step grows ",
+                   "with it, and near 1e14, as with nearly collinear covariates, it can ",
+                   "keep a refit from converging."),
+            max(kappa, na.rm = TRUE))
+  } else {
+    ""
+  }
+  sprintf(
+    paste0("The logistic fit failed in %d of %d bootstrap resamples (more than 10%%), ",
+           "so intervals are not reported. Of these, %s%s%s%s method = \"delta\" does not ",
+           "resample; in the package's simulation study (issue #43), its ",
+           "risk-difference intervals met the registered tolerances in most designs ",
+           "in which the bootstrap failed this often."),
+    length(reasons), R, reasons_text, sparse_text, risk_text, maxit_text
+  )
 }
 
 # A Solomon cell whose outcomes are all 0 or all 1 has no maximum-likelihood
@@ -519,11 +812,67 @@
 #' better than the delta method, which is available as `method = "delta"`
 #' (using the fit's covariance matrix, with covariates held fixed). p-values
 #' use the bootstrap or delta-method standard error on the analysis scale:
-#' risk differences, log risk ratios, or log odds ratios. Bootstrap resamples
-#' in which the logistic fit fails (no convergence, a Solomon cell with only
-#' events or only non-events, or a fitted probability within 1e-8 of 0 or 1)
-#' are excluded and counted; when more than 10% fail, intervals are not
-#' reported.
+#' risk differences, log risk ratios, or log odds ratios.
+#'
+#' Bootstrap resamples in which the logistic fit fails are excluded and
+#' counted: those with a Solomon cell of only events or only non-events, a
+#' fitted probability within 1e-8 of 0 or 1, a design not of full rank (as
+#' when a resample lacks a level of a factor or makes nearly collinear
+#' covariates collinear), or no convergence in 25 iterations by the rule of
+#' [stats::glm.control()]. When more than 10% fail, intervals are not
+#' reported, and the warning gives the failures by reason.
+#' Each resample is refitted by iteratively reweighted least squares from
+#' the model's coefficients, with full steps. Where a step takes fitted
+#' probabilities to 0 or 1, the refit stops and the resample fails;
+#' [stats::glm.fit()] would instead halve a step that makes the deviance
+#' infinite (Marschner, 2011). So a fitted probability near 0 or 1 comes
+#' from complete or quasicomplete separation (Albert & Anderson, 1984) or
+#' near separation, from an extreme covariate value, or from a refit that
+#' diverged.
+#' A refit that does not converge is fitted again with the intercept, the
+#' pretesting indicator, the pretest, and the covariates replaced by the
+#' orthonormal columns of their QR decomposition (Golub, 1965). These span
+#' the same space, and the treatment terms are kept, so in exact arithmetic
+#' it is the same fit (Green, 1984). With nearly collinear covariates,
+#' rounding error can keep a refit from converging, and the new columns
+#' let it converge. The new columns are formed whenever [fit_solomon_glm()]
+#' fitted the model, since it stops at a term collinear with the others.
+#' A refit whose design is not of full rank at the tolerance of [qr()]
+#' (1e-11) is not fitted again, and the resample counts as failed. In the
+#' new columns, a direction that a resample makes collinear is carried
+#' only by rounding error, and a refit could converge on it. Rounding
+#' error can also keep a design that is not of full rank above that
+#' tolerance, as when a covariate is computed from others, such as a time
+#' of testing that is the time of enrollment plus a delay, with the times
+#' in seconds. So before a refit that did not converge is fitted again,
+#' its resample is checked by the collinearity check of
+#' [fit_solomon_glm()] (see "Covariates" there), applied to the rows of the
+#' resample with the weights and rounding error of the model's own fit: a
+#' resample on whose rows a term is collinear with the others by that
+#' check counts as failed, as a design not of full rank, and is not fitted
+#' again. A refit that converged is not checked. Just inside that check,
+#' rounding error can also make nearly collinear covariates collinear on
+#' some resamples, at the tolerance of [qr()] or by the check, and those
+#' resamples fail too, though an exact reparameterization of the
+#' covariates would fit them. A
+#' resample can also fail as a design not of full rank when only one of its
+#' participants departs from a relation that holds among the covariates of
+#' all the others: the refit moves that participant's fitted probability
+#' toward the observed outcome, and the participant's weight in the refit
+#' vanishes before the probability comes within 1e-8 of 0 or 1. The new
+#' columns cannot help with a treatment term nearly collinear with the
+#' other terms, because the contrasts are read from the treatment
+#' coefficients.
+#' They are computed in floating point, so they span the old ones only to
+#' within about the unit roundoff times the condition number of the
+#' columns they replace (Higham, 2002, Theorem 19.4 and Chapter 20). A
+#' refit in them is accurate to about that, as the model's own fit is, and
+#' a resample with a fitted probability near the 1e-8 limit can be counted
+#' as failed, or not, differently than in exact arithmetic. For the refits
+#' that still do not converge, the warning gives the largest condition
+#' number of their weighted design: the rounding error of each step grows
+#' with it (Higham, 2002, Chapter 20). A bootstrap whose refits all
+#' converge is computed as before.
 #'
 #' For the pretest effects, the pretested and the unpretested risks are
 #' standardized over different participants, so the sampling variance of
@@ -676,6 +1025,10 @@
 #'   [solomon_output].
 #'
 #' @references
+#' Albert, A., & Anderson, J. A. (1984). On the existence of maximum
+#' likelihood estimates in logistic regression models. *Biometrika, 71*(1),
+#' 1–10. https://doi.org/10.1093/biomet/71.1.1
+#'
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 #' for linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 #' 169–181.
@@ -689,13 +1042,30 @@
 #' adjustment for different covariate sets. *Biometrical Journal, 63*(3),
 #' 528–557. https://doi.org/10.1002/bimj.201900297
 #'
+#' Golub, G. (1965). Numerical methods for solving linear least squares
+#' problems. *Numerische Mathematik, 7*(3), 206–216.
+#' https://doi.org/10.1007/BF01436075
+#'
+#' Green, P. J. (1984). Iteratively reweighted least squares for maximum
+#' likelihood estimation, and some robust and resistant alternatives.
+#' *Journal of the Royal Statistical Society: Series B (Methodological),
+#' 46*(2), 149–170. https://doi.org/10.1111/j.2517-6161.1984.tb01288.x
+#'
 #' Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd
 #' ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+#'
+#' Higham, N. J. (2002). *Accuracy and stability of numerical algorithms* (2nd
+#' ed.). Society for Industrial and Applied Mathematics.
+#' https://doi.org/10.1137/1.9780898718027
 #'
 #' Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and
 #' confidence intervals were easily computed indirectly from multivariable
 #' logistic regression. *Journal of Clinical Epidemiology, 60*(9), 874–882.
 #' https://doi.org/10.1016/j.jclinepi.2006.12.001
+#'
+#' Marschner, I. C. (2011). glm2: Fitting generalized linear models with
+#' convergence problems. *The R Journal, 3*(2), 12–15.
+#' https://doi.org/10.32614/RJ-2011-012
 #'
 #' Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 #' cluster-robust variance estimation and hypothesis testing in fixed effects
@@ -982,6 +1352,50 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     list(cluster = cluster, note = note)
   }
 
+  # Bootstrap refits (issue #154). Each resample is refitted on the
+  # model's design, from its coefficients, as before. A refit that does
+  # not converge in 25 iterations is fitted again on the same columns in
+  # an orthonormal basis (.bootstrap_basis()). In exact arithmetic that is
+  # the same fit, so it can succeed only where rounding error kept the
+  # first from converging; a bootstrap whose refits all converge is
+  # unchanged. A resample that fails again is counted by the reason of the
+  # refit in the basis. A refit whose design is not of full rank at the
+  # tolerance of qr() is not fitted again, and the resample counts as
+  # failed. Nor is a refit that did not converge on a resample whose rows
+  # make a term collinear by the check of fit_solomon_glm(), applied in
+  # the model's working weights (.resample_collinear(), prepared once by
+  # .bootstrap_rank_check()); it counts as failed with the reason "rank"
+  # (see .bootstrap_basis() for why). `status` records how each resample
+  # ended, "ok" or the reason it failed, and `condition_number` that of a
+  # refit that did not converge.
+  basis <- if (method == "bootstrap") .bootstrap_basis(X, b)
+  rank_check <- NULL
+  status <- character(if (method == "bootstrap") R else 0L)
+  condition_number <- rep(NA_real_, length(status))
+  refit_resample <- function(i, rows, keep, y_fit) {
+    Xi <- X[rows, , drop = FALSE]
+    refit <- .logistic_irls(Xi[keep, , drop = FALSE], y_fit, start = b)
+    if (identical(refit$reason, "maxit") && !is.null(basis)) {
+      if (is.null(rank_check)) rank_check <<- .bootstrap_rank_check(fit, model, X, in_model)
+      if (.resample_collinear(rank_check, rows[keep])) {
+        refit <- list(converged = FALSE, reason = "rank")
+      } else {
+        Xi <- basis$X[rows, , drop = FALSE]
+        refit <- .logistic_irls(Xi[keep, , drop = FALSE], y_fit, start = basis$start)
+      }
+    }
+    if (!is.null(refit$fitted.values) && .degenerate_risk(refit$fitted.values)) {
+      status[i] <<- "risk"
+    } else if (!isTRUE(refit$converged)) {
+      status[i] <<- refit$reason
+      if (!is.null(refit$kappa)) condition_number[i] <<- refit$kappa
+    } else {
+      status[i] <<- "ok"
+      return(.marginal_all(refit$coefficients, Xi, pretested[rows], scale))
+    }
+    rep(NA_real_, length(estimate))
+  }
+
   if (method == "bootstrap" && pretest_center == "analyzed") {
     cells <- split(seq_along(y), interaction(treat, pretested, drop = TRUE))
     sizes <- lengths(cells)
@@ -992,14 +1406,11 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
                       use.names = FALSE)
         # Resampling is within cells, so the cells occupy consecutive blocks.
         events <- diff(c(0, cumsum(y[idx])[ends]))
-        if (any(events == 0 | events == sizes)) return(rep(NA_real_, length(estimate)))
-        Xi <- X[idx, , drop = FALSE]
-        refit <- .logistic_irls(Xi, y[idx], start = b)
-        if (!isTRUE(refit$converged) ||
-            any(refit$fitted.values < 1e-8 | refit$fitted.values > 1 - 1e-8)) {
+        if (any(events == 0 | events == sizes)) {
+          status[i] <<- "separated"
           return(rep(NA_real_, length(estimate)))
         }
-        .marginal_all(refit$coefficients, Xi, pretested[idx], scale)
+        refit_resample(i, idx, TRUE, y[idx])
       }, numeric(length(estimate))))
     }
   } else if (method == "bootstrap") {
@@ -1025,21 +1436,20 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
         refitted <- in_model[idx]
         events <- diff(c(0, cumsum(y_all[idx])[ends]))[solomon_cells]
         outcomes <- diff(c(0, cumsum(refitted)[ends]))[solomon_cells]
-        if (any(events == 0 | events == outcomes)) return(rep(NA_real_, length(estimate)))
-        Xi <- X[idx, , drop = FALSE]
-        refit <- .logistic_irls(Xi[refitted, , drop = FALSE], y_all[idx][refitted], start = b)
-        if (!isTRUE(refit$converged) ||
-            any(refit$fitted.values < 1e-8 | refit$fitted.values > 1 - 1e-8)) {
+        if (any(events == 0 | events == outcomes)) {
+          status[i] <<- "separated"
           return(rep(NA_real_, length(estimate)))
         }
-        .marginal_all(refit$coefficients, Xi, pretested[idx], scale)
+        refit_resample(i, idx, refitted, y_all[idx][refitted])
       }, numeric(length(estimate))))
     }
   }
 
   if (method == "bootstrap") {
     boot <- if (is.null(seed)) run() else withr::with_seed(seed, run())
-    failed <- apply(boot, 1, function(row) all(is.na(row)))
+    # A refit whose every contrast is undefined counts as failed, as before.
+    status[status == "ok" & apply(boot, 1, function(row) all(is.na(row)))] <- "risk"
+    failed <- status != "ok"
     failures <- sum(failed)
     boot <- boot[!failed, , drop = FALSE]
     std.error <- apply(boot, 2, stats::sd, na.rm = TRUE)
@@ -1049,13 +1459,8 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       ci[] <- NA_real_
       warning(structure(
         class = c("solomonR_bootstrap_warning", "warning", "condition"),
-        list(message = sprintf(
-          paste0("The logistic fit failed in %d of %d bootstrap resamples (more ",
-                 "than 10%%), usually because of sparse cells; intervals are not ",
-                 "reported. method = \"delta\" does not resample; in the package's ",
-                 "simulation study (issue #43), its risk-difference intervals met ",
-                 "the registered tolerances in most designs in which the bootstrap ",
-                 "failed this often."), failures, R), call = NULL)
+        list(message = .bootstrap_failure_message(status[failed], R, condition_number[failed]),
+             call = NULL)
       ))
     }
   } else {

@@ -72,6 +72,113 @@
   right; it is unchanged.
   The refits inside `fit_solomon_glm()` run under the option of the fit.
 
+## Bootstrap refits on ill-conditioned designs (#154)
+
+* **Refits that rounding error kept from converging are fitted again.**
+  `marginal_solomon()` refits each bootstrap resample by iteratively
+  reweighted least squares, which stops when the deviance changes by less
+  than 1e-8 of itself within 25 iterations, the rule of `glm.fit()`. With
+  nearly collinear covariates, the condition number of the design can
+  reach 1e14. Rounding error then moves the deviance by more than the rule
+  allows at every iteration. On the nested covariates of #154, with a
+  binary outcome and `R = 199`, 199, 197, and 195 resamples failed, the
+  intervals were not reported, and the warning blamed sparse cells. A
+  refit that does not converge is now fitted again with the intercept, the
+  pretesting indicator, the pretest, and the covariates replaced by the
+  orthonormal columns of their QR decomposition (Golub, 1965). These span
+  the same space, and the treatment terms are kept, so in exact arithmetic
+  it is the same fit (Green, 1984). On those data no resample fails, and
+  the standard errors are within 0.1% of those of an exact
+  reparameterization. That agreement is for those data. The new columns
+  are computed in floating point, so a refit in them is accurate to about
+  the unit roundoff times the condition number of the columns they
+  replace, as the model's own fit is (Higham, 2002), and under near
+  separation a resample can be counted as failed, or not, differently
+  than in an exact reparameterization. The convergence rule is unchanged.
+* **A refit whose design is not of full rank is not fitted again.** It
+  still counts as failed, as when a resample lacks a level of a factor or
+  makes nearly collinear covariates collinear. In the new columns, a
+  direction that a resample makes collinear is carried only by rounding
+  error, and a refit could converge on it.
+* **A refit that did not converge is checked by the collinearity check
+  of `fit_solomon_glm()` before it is fitted again.** Rounding error can
+  keep a design that is not of full rank above the tolerance of `qr()`,
+  1e-11, as when a covariate is computed from others. Take a time of
+  testing that is the time of enrollment plus a delay, in seconds since
+  1970, except for two participants whose testing time was corrected. A
+  resample without those two has the relation on every row, and its
+  refit does not converge. Fitted again in the new columns, all 43 such
+  resamples of 199 would converge, with risk differences up to 0.088 from
+  those of the same refit without the delay, and the intervals would be
+  reported where an exact reparameterization of the covariates withholds
+  them. So the resample of a refit that did not converge is first checked
+  by the collinearity check of `fit_solomon_glm()`, applied to its rows
+  with the weights of the model's fit. If a term is collinear with the
+  others by that check, the resample counts as failed, as a design not of
+  full rank, and is not fitted again. On those data, the bootstrap fails
+  in the same resamples as the exact reparameterization and withholds the
+  intervals. Before this change, those resamples failed too, as refits
+  that did not converge, and the intervals were withheld. A refit that
+  converged is not checked.
+* **The cost is a band just inside the collinearity check of
+  `fit_solomon_glm()`.** There, rounding error can make nearly collinear
+  covariates collinear on some resamples, to within the tolerance of
+  `qr()` or by the check, and these resamples fail too. In one example,
+  with `z2 = z1 + 1.2e-11 * e1` and `seed = 2024`, 87 of 199 resamples
+  failed before. The 63 that did not converge now converge in the new
+  columns, and the 24 whose design fell short of full rank still fail,
+  where an exact reparameterization of the covariates has no failures.
+  At `z2 = z1 + 1.1e-11 * e1`, 3 of the 34 that did not converge are
+  collinear by the check and fail. With other seeds, the check also
+  stops a few such refits from `z2 = z1 + 1.15e-11 * e1` up to at least
+  `z2 = z1 + 1.4e-11 * e1`, about 30% above where `fit_solomon_glm()`
+  stops, though rarely that far. A resample can also fail as a design
+  not of full rank, as before, when only one of its participants departs
+  from a relation that holds among the covariates of the others: the
+  refit moves that participant's fitted risk toward the outcome, and the
+  participant's weight vanishes. The new columns are formed whenever
+  `fit_solomon_glm()` fitted the model, which it does only when no term
+  is collinear with the others.
+* **Results are unchanged where every refit converges.** A refit that
+  converges is computed as before, so on well-conditioned data the
+  estimates, standard errors, intervals, p-values, and failure counts are
+  identical. A test checks that such a bootstrap refits each resample
+  once, on the model's design.
+* **The bootstrap warning gives the failures by reason.** When more than
+  10% of the resamples fail, the warning counts those with a Solomon cell
+  of only events or only non-events, a fitted risk within 1e-8 of 0 or 1,
+  a design not of full rank, and no convergence in 25 iterations. It names
+  the causes only of the reasons that occurred: sparse cells for the
+  first; for the second, complete or quasicomplete separation (Albert &
+  Anderson, 1984) or near separation, extreme covariate values, or a
+  refit that diverged, since each refit takes full steps, without the
+  step halving of `glm.fit()` (Marschner, 2011). A refit whose weighted
+  design loses rank because fitted risks within 1e-8 of 0 or 1 make their
+  weights vanish counts as a fitted risk near 0 or 1, not as a design
+  short of full rank. For the refits that did not converge, the warning
+  gives the largest condition number of their weighted design, with which
+  rounding error grows (Higham, 2002). It no longer says that the
+  failures are usually due to sparse cells. A covariate nearly collinear
+  with a treatment term can still keep refits from converging, because
+  the treatment terms, whose coefficients give the contrasts, are kept.
+* **A fit that stops at the checks for an empty group, a collinear term,
+  or a single participant under HC3 no longer gives the model fit's
+  warnings.** `fit_solomon_glm()`, with one treatment or several, now
+  holds back the warnings of its model fit until those checks have
+  passed. Before, a negative-binomial fit with exactly collinear
+  covariates warned that `glm.fit()` and theta did not converge, and then
+  stopped with the error that a covariate is collinear. The warnings about
+  the data given, raised before the fit, such as those about missing
+  pretests, still come before the error. A fit that goes ahead gives the
+  same warnings, in the same order, and the same results. A fit that
+  stops inside `glm()` itself still gives its warnings before its error,
+  as before. With several treatments, the noncollapsibility warning also
+  waits for the checks.
+* **`model$converged` describes the fit as given.** `?fit_solomon_glm` now
+  says that, with a pretest or a numeric covariate, `model$converged` and
+  `model$iter` describe the fit to the covariates and the pretest as
+  given, not the standardized fit that gives the warnings.
+
 ## Only MLR and ML in the SEM functions (#133)
 
 * **A change in behavior.** `fit_solomon_sem()`, `fit_solomon_sem_latent()`,

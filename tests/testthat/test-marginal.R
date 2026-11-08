@@ -338,6 +338,166 @@ test_that("the IRLS refit reports near separation as a failure, not an error", {
 })
 
 
+test_that("the IRLS refit gives the reason it failed (#154)", {
+
+  withr::with_seed(1, {
+    x <- c(stats::rnorm(20, -3), stats::rnorm(20, 3))
+  })
+  X <- cbind("(Intercept)" = 1, x = x)
+  y <- c(rep(0, 19), 1, rep(1, 19), 0)
+  # Fitted risks of 0 or 1 in floating point, under near and complete
+  # separation; a design not of full rank; and too few iterations, with the
+  # condition number of the last weighted design, whose weights are all 1/4
+  # at the start (0, 0).
+  expect_identical(.logistic_irls(X, y, start = c(0, 10))$reason, "risk")
+  expect_identical(.logistic_irls(X, as.numeric(x > 0), start = c(0, 1))$reason, "risk")
+  expect_identical(.logistic_irls(cbind(X, zero = 0), y, start = c(0, 0, 0))$reason, "rank")
+  slow <- .logistic_irls(X, y, start = c(0, 0), maxit = 1L)
+  expect_identical(slow$reason, "maxit")
+  expect_equal(slow$kappa, kappa(sqrt(0.25) * X, exact = TRUE), tolerance = 1e-12)
+  # A design of full rank whose weighted design loses rank: from this
+  # start the rows at x = 3 have fitted risks near 1e-87, so their weights
+  # vanish, and the rows at x = 1 alone do not span the columns. That is a
+  # fitted risk near 0, as when a refit diverges, not a design short of a
+  # level. The same design with a column of zeros is not of full rank.
+  X2 <- cbind("(Intercept)" = 1, x = rep(c(1, 3), each = 5))
+  expect_identical(.logistic_irls(X2, rep(0:1, 5), start = c(100, -100))$reason, "risk")
+  expect_identical(.logistic_irls(cbind(X2, zero = 0), rep(0:1, 5), start = c(100, -100, 0))$reason,
+                   "rank")
+})
+
+
+test_that("the bootstrap's basis spans the same columns and keeps the treatment terms (#154)", {
+
+  d <- binary_example()
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre,
+                                           family = stats::binomial())))
+  model <- .standardized_model(fit)
+  X <- stats::model.matrix(model)
+  b <- fit$covariate_scaling$coefficients
+  basis <- .bootstrap_basis(X, b)
+  others <- !colnames(X) %in% c("treat", "treat:pretested")
+  expect_equal(unname(crossprod(basis$X[, others])), diag(sum(others)), tolerance = 1e-12)
+  expect_identical(basis$X[, !others], X[, !others])
+  expect_identical(basis$start[!others], b[!others])
+  expect_equal(drop(basis$X %*% basis$start), drop(X %*% b), tolerance = 1e-12)
+  # A refit in either basis gives the same contrasts, in as many iterations.
+  scales <- c("difference", "ratio", "odds_ratio")
+  withr::with_seed(7, {
+    for (k in 1:5) {
+      idx <- sample.int(nrow(X), replace = TRUE)
+      given <- .logistic_irls(X[idx, ], model$y[idx], start = b)
+      new <- .logistic_irls(basis$X[idx, ], model$y[idx], start = basis$start)
+      expect_true(new$converged)
+      expect_identical(new$iter, given$iter)
+      expect_equal(.marginal_all(new$coefficients, basis$X[idx, ], X[idx, "pretested"], scales),
+                   .marginal_all(given$coefficients, X[idx, ], X[idx, "pretested"], scales),
+                   tolerance = 1e-10)
+    }
+  })
+  # Where qr() at its tolerance of 1e-11 keeps every column, the basis is
+  # the same, bit for bit, as at that tolerance. The basis makes no rank
+  # decision of its own (fit_solomon_glm() stops at a collinear term): only
+  # a column whose residual is exactly zero, as a column of zeros, gives no
+  # basis.
+  q <- qr(X[, others], tol = 1e-11)
+  expect_identical(q$rank, sum(others))
+  expect_identical(unname(basis$X[, others]), unname(qr.Q(q)))
+  expect_identical(unname(basis$start[others]), unname(drop(qr.R(q) %*% b[others])))
+  expect_null(.bootstrap_basis(cbind(X, zero = 0), c(b, zero = 0)))
+})
+
+
+test_that("a bootstrap whose refits converge is computed as before (#154)", {
+
+  # The basis is used only for a refit that did not converge, so each
+  # resample is refitted once, on the model's design, from its coefficients.
+  d <- binary_example()
+  fit <- quiet_fit(with(d, fit_solomon_glm(passed, treat, pretested, y_pre,
+                                           family = stats::binomial())))
+  b <- fit$covariate_scaling$coefficients
+  X <- stats::model.matrix(.standardized_model(fit))
+  calls <- 0L
+  as_before <- TRUE
+  irls <- .logistic_irls
+  local_mocked_bindings(.logistic_irls = function(X_i, y, start, ...) {
+    calls <<- calls + 1L
+    as_before <<- as_before && identical(start, b) && identical(colnames(X_i), colnames(X)) &&
+      all(X_i[, "pretested"] %in% c(0, 1))
+    irls(X_i, y, start, ...)
+  })
+  m <- marginal_solomon(fit, R = 99, seed = 4)
+  expect_identical(m$failures, 0L)
+  expect_identical(calls, 99L)
+  expect_true(as_before)
+})
+
+
+test_that("the bootstrap warning counts the failed resamples by reason (#154)", {
+
+  msg <- .bootstrap_failure_message(c(rep("separated", 15), rep("risk", 4), "rank",
+                                      rep("maxit", 2)), 199, c(rep(NA, 20), 3e14, 5e14))
+  expect_match(msg, "failed in 22 of 199 bootstrap resamples (more than 10%)", fixed = TRUE)
+  expect_match(msg, paste0("Of these, 15 had a Solomon cell with only events or only ",
+                           "non-events, 4 had a fitted risk within 1e-8 of 0 or 1, 1 had a ",
+                           "design not of full rank, as when a resample lacks a level of a ",
+                           "factor or makes nearly collinear covariates collinear, and 2 did ",
+                           "not converge in 25 iterations. Cells with only ",
+                           "events or only non-events come from sparse cells. Fitted risks ",
+                           "near 0 or 1 come from separation or near separation, from extreme ",
+                           "covariate values, or from a refit that diverged: each refit takes ",
+                           "full steps from the model's coefficients, without step halving. ",
+                           "For the refits that did not converge, the largest condition number ",
+                           "of the weighted design was 5e+14. Rounding error in each step grows ",
+                           "with it, and near 1e14, as with nearly collinear covariates, it can ",
+                           "keep a refit from converging. method"), fixed = TRUE)
+  msg <- .bootstrap_failure_message(c(rep("separated", 15), rep("risk", 7)), 199, rep(NA, 22))
+  expect_match(msg, paste0("Of these, 15 had a Solomon cell with only events or only ",
+                           "non-events and 7 had a fitted risk within 1e-8 of 0 or 1."),
+               fixed = TRUE)
+  expect_no_match(msg, "condition number", fixed = TRUE)
+  # Each cause is named only for the reasons that occurred.
+  msg <- .bootstrap_failure_message(rep("separated", 22), 199, rep(NA, 22))
+  expect_match(msg, paste0("Of these, 22 had a Solomon cell with only events or only ",
+                           "non-events. Cells with only events or only non-events come from ",
+                           "sparse cells. method"), fixed = TRUE)
+  msg <- .bootstrap_failure_message(rep("risk", 22), 199, rep(NA, 22))
+  expect_match(msg, "Of these, 22 had a fitted risk within 1e-8 of 0 or 1. Fitted risks",
+               fixed = TRUE)
+  expect_no_match(msg, "sparse", fixed = TRUE)
+  # The condition number is reported, whatever it is, without saying that
+  # rounding caused the failures.
+  msg <- .bootstrap_failure_message(rep("maxit", 30), 199, rep(40, 30))
+  expect_match(msg, paste0("Of these, 30 did not converge in 25 iterations. For the refits that ",
+                           "did not converge, the largest condition number of the weighted ",
+                           "design was 40. Rounding"), fixed = TRUE)
+  expect_no_match(msg, "sparse", fixed = TRUE)
+  expect_no_match(msg, "Fitted risks", fixed = TRUE)
+
+  # Sparse cells, through marginal_solomon(): one event in 15 in a cell.
+  sp <- withr::with_seed(21, {
+    sp <- data.frame(treat = rep(c(1, 0, 1, 0), each = 15),
+                     pretested = rep(c(1, 1, 0, 0), each = 15))
+    sp$y_pre <- ifelse(sp$pretested == 1, stats::rnorm(60), NA)
+    sp$y <- stats::rbinom(60, 1, 0.5)
+    sp
+  })
+  sp$y[1:15] <- c(1, rep(0, 14))
+  fit <- quiet_fit(with(sp, fit_solomon_glm(y, treat, pretested, y_pre,
+                                            family = stats::binomial())))
+  w <- NULL
+  withCallingHandlers(marginal_solomon(fit, R = 199, seed = 3),
+                      solomonR_bootstrap_warning = function(c) {
+                        w <<- conditionMessage(c)
+                        invokeRestart("muffleWarning")
+                      })
+  expect_match(w, "[0-9]+ had a Solomon cell with only events or only non-events")
+  expect_match(w, "Cells with only events or only non-events come from sparse cells.",
+               fixed = TRUE)
+  expect_no_match(w, "usually because of sparse cells", fixed = TRUE)
+})
+
+
 test_that("noncollapsible links with a pretest covariate warn; collapsible links do not", {
 
   d <- binary_example()

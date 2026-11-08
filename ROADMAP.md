@@ -490,11 +490,11 @@ the audit:
     `perm_solomon()` — [#131](https://github.com/JUhalt/solomonR/issues/131); merged in [PR #132](https://github.com/JUhalt/solomonR/pull/132), released in 0.8.2
   - [ ] `perm_solomon()`: ties with a covariate in iterated models, and
     degenerate labelings — [#134](https://github.com/JUhalt/solomonR/issues/134)
-  - [ ] `marginal_solomon()`: a logistic bootstrap that can lose every
+  - [x] `marginal_solomon()`: a logistic bootstrap that can lose every
     resample on an ill-conditioned design, and blames sparse cells; and,
     in `fit_solomon_glm()`, the convergence warning that can come with
     the error for exactly collinear covariates, and which fit
-    `model$converged` describes — [#154](https://github.com/JUhalt/solomonR/issues/154)
+    `model$converged` describes — [#154](https://github.com/JUhalt/solomonR/issues/154); merged in [PR #165](https://github.com/JUhalt/solomonR/pull/165)
   - [ ] Robustness study of the recommended inference, under a protocol
     posted before any run — [#116](https://github.com/JUhalt/solomonR/issues/116)
 - **Interface**
