@@ -289,6 +289,25 @@ equivalence_solomon <- function(
   }
   df <- if ("df" %in% names(row)) row$df else Inf
 
+  # A contrast without a standard error cannot be tested. Under HC3 that is
+  # a contrast that depends on a participant whose leverage is 1 (issue
+  # #173).
+  if (!is.finite(row$std.error)) {
+    stop(
+      "The equivalence test needs the standard error of the ", contrast, " contrast, ",
+      if (length(fit$hc3_leverage)) {
+        paste0(
+          "which is undefined under HC3: the contrast depends on a participant whose ",
+          "leverage is 1 (row ", paste(fit$hc3_leverage, collapse = ", "), " of the data). ",
+          "Refit with `robust = \"none\"` to test it."
+        )
+      } else {
+        "which the fit does not give."
+      },
+      call. = FALSE
+    )
+  }
+
   .warn_link_scale(fit, contrast)
 
   result <- .tost(row$estimate, row$std.error, df, bounds, alpha)

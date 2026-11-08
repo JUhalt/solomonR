@@ -10,6 +10,10 @@
 # covariate lies from zero, and whatever the scale of a covariate or the
 # pretest. With a numeric covariate, the CR2 degrees of freedom come from the
 # orthonormal basis of the standardized model, as the fit's (.cr2_basis()).
+# Under HC3 with a participant at leverage 1 (`fit$hc3_leverage`), the
+# covariance has NA entries, and the standard errors are computed from the
+# model the inference came from, as the fit's are: NA for a combination
+# that depends on such a participant (issue #173; .combination_variance()).
 .glm_linear_combination <- function(fit, L) {
   model <- fit$model
   scaling <- fit$covariate_scaling
@@ -23,7 +27,12 @@
   }
 
   estimate <- as.numeric(L %*% cf)
-  std.error <- sqrt(rowSums((L %*% as.matrix(V)) * L))
+  std.error <- if (identical(fit$robust, "HC3") && length(fit$hc3_leverage)) {
+    inference <- if (is.null(scaling)) model else .standardized_model(fit)
+    unname(sqrt(.combination_variance(inference, "HC3", L)))
+  } else {
+    sqrt(rowSums((L %*% as.matrix(V)) * L))
+  }
 
   if (identical(fit$robust, "CR2")) {
     frame <- stats::model.frame(model)

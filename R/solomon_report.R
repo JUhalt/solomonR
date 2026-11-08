@@ -110,6 +110,18 @@
   sprintf("%s%% CI [%s, %s]", format(100 * level), .apa_num(lo, digits), .apa_num(hi, digits))
 }
 
+# Whether a row of an effects table has an estimate but no interval and no
+# p-value (column `p`), as when its HC3 standard error is undefined because
+# it depends on a participant whose leverage is 1 (issue #173). The report
+# then gives the estimate with .no_inference_phrase in place of "CI [NA,
+# NA], p = NA".
+.no_inference <- function(r, p = "p.value") {
+  values <- list(r$estimate, r$conf.low, r$conf.high, r[[p]])
+  if (any(lengths(values) != 1L)) return(FALSE)
+  is.finite(values[[1]]) && all(is.na(unlist(values[-1])))
+}
+.no_inference_phrase <- " (no interval or test is available)"
+
 .capitalize <- function(x) paste0(toupper(substr(x, 1, 1)), substring(x, 2))
 
 .contrast_phrase <- function(contrast) {
@@ -153,8 +165,14 @@
 
 # "estimate where, CI, test, p" for one row of an effects table; `where`
 # follows the estimate, as in "3.42 among control participants", `p` names
-# the p-value column, and `p_label` follows it, as in "Holm-adjusted".
+# the p-value column, and `p_label` follows it, as in "Holm-adjusted". A
+# row without an interval or a p-value gives the estimate alone
+# (.no_inference()).
 .effect_clause <- function(r, level, digits, md, p = "p.value", p_label = NULL, where = NULL) {
+  if (.no_inference(r, p)) {
+    return(paste0(.apa_num(r$estimate, digits), if (!is.null(where)) paste0(" ", where),
+                  .no_inference_phrase))
+  }
   test <- if (!is.null(r$statistic) && is.finite(r$statistic)) {
     df <- if (!is.null(r$df)) r$df else Inf
     paste0(.apa_stat(r$statistic, df, md, NULL, digits), ", ")
@@ -247,6 +265,10 @@
 .contrast_sentences <- function(eff, level, digits, md, stat_name = NULL, scale = "") {
   vapply(seq_len(nrow(eff)), function(i) {
     e <- eff[i, ]
+    if (.no_inference(e)) {
+      return(sprintf("%s was %s%s%s.", .capitalize(.contrast_phrase(e$contrast)),
+                     .apa_num(e$estimate, digits), scale, .no_inference_phrase))
+    }
     test <- if (!is.null(e$statistic) && is.finite(e$statistic)) {
       df <- if (!is.null(e$df)) e$df else Inf
       paste0(.apa_stat(e$statistic, df, md, stat_name, digits), ", ")
@@ -374,8 +396,23 @@
     covariance = covariance,
     scale = scale,
     pretest_caution = pretest_caution,
+    leverage = .hc3_leverage_sentence(fit$hc3_leverage),
     refs = refs
   )
+}
+
+# The method's sentence on participants whose leverage is 1 under HC3
+# (issue #173), from their row numbers `rows`: the estimates that depend on
+# them have no HC3 standard error and are reported alone. NULL when there
+# are none.
+.hc3_leverage_sentence <- function(rows) {
+  if (!length(rows)) return(NULL)
+  sprintf(paste0(
+    "HC3 standard errors are undefined for the estimates that depend on %s %s, ",
+    "whose leverage is 1 (the model fits %s exactly), so those estimates are ",
+    "reported without an interval or test."
+  ), if (length(rows) == 1L) "participant" else "participants", .series_and(rows),
+  if (length(rows) == 1L) "that participant" else "each of them")
 }
 
 # The rows of a fit_solomon_glm() data frame that entered the model.
@@ -392,6 +429,7 @@
     "Posttest outcomes were analyzed with %s containing treatment, pretesting, and their interaction%s%s, with %s.%s",
     p$model, p$adjust, p$exposure, p$covariance, p$scale
   )
+  method <- paste(c(method, p$leverage), collapse = " ")
 
   used <- .glm_rows_used(fit)
 
@@ -477,6 +515,10 @@
     w <- if (is.null(weights)) NULL else weights[cmp, ]
     sentences <- vapply(seq_len(nrow(rows)), function(i) {
       r <- rows[i, ]
+      if (.no_inference(r)) {
+        return(sprintf("%s was %s%s.", .capitalize(.ngroup_contrast_phrase(r$contrast, cmp, w)),
+                       .apa_num(r$estimate, digits), .no_inference_phrase))
+      }
       p_text <- if (adjusted) {
         paste0(.apa_p(r$p.adjusted, md), ", ", label)
       } else {
@@ -554,13 +596,17 @@
     ), omnibus),
     sprintf("%s, and the Solomon contrasts were estimated for %s.", compared,
             if (n_comp > 1L) "each comparison" else "this comparison"),
-    mult$text
+    mult$text,
+    p$leverage
   ), collapse = " ")
 
   # Results: the omnibus tests of the interaction and of the conditions
   # averaged over pretest conditions, then each comparison's contrasts.
   om_sentence <- function(test) {
     r <- om[om$test == test, , drop = FALSE]
+    # A test of a contrast whose HC3 standard error is undefined (issue
+    # #173) has no statistic.
+    if (is.na(r$statistic)) return("no result, as a standard error it needs is undefined")
     paste0(.apa_omnibus(r$statistic, r$df1, r$df2, r$reference, md, digits), ", ",
            .apa_p(r$p.value, md))
   }
@@ -1817,6 +1863,7 @@
   })
   if (fit$robust == "HC3") refs <- c(refs, "mackinnon1985", "long2000")
   if (fit$pretest) refs <- c(refs, "lin2013", "newman1990")
+  method <- paste(c(method, .hc3_leverage_sentence(fit$hc3_leverage)), collapse = " ")
   list(
     method = method,
     results = .contrast_sentences(fit$effects, fit$conf_level, digits, md),

@@ -250,6 +250,10 @@ pretest; for clustered fits, the degrees of freedom are combined by the
 Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
 bootstrap resamples participants and so includes this variance.
 
+Under HC3, a delta-method contrast that depends on a participant whose
+leverage is 1 has an \code{NA} standard error, interval, and p-value, as in
+the fit (see "HC3 at leverage 1" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
+
 Count outcomes: for a fit with \code{family = poisson()} or
 \code{family = "negative_binomial"}, rates per unit of
 exposure are standardized in the same way and compared as rate differences

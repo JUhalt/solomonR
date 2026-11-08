@@ -70,7 +70,9 @@ contrast_r2_ci <- function(
   variance <- as.numeric(
     t(L_full) %*% V %*% L_full
   ) + added_variance
-  if (added_variance != 0) conventional <- FALSE
+  # An added variance that is NA or NaN, as for a contrast whose HC3
+  # standard error is undefined (issue #173), leaves the R-squared NA below.
+  if (!isTRUE(added_variance == 0)) conventional <- FALSE
 
   if (!is.finite(variance) || variance <= 0) {
     return(unavailable("wald_partial"))

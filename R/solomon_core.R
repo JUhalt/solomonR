@@ -286,6 +286,12 @@ NULL
 #
 # The columns of the decomposition are the coefficients q$pivot, taken by
 # position: two coefficients can share a name (.scaled_columns()).
+#
+# When a row's hat value is 1 (above .hc3_leverage_limit), the result also
+# holds `weight`: each participant's weight in each coefficient, or in each
+# combination of `map`, q_i' R^{-T} map', the influence before it is
+# multiplied by w_i^(1/2) e_i (issue #173; .hc3_influence()). It is NULL
+# otherwise.
 .glm_influence <- function(model, map = NULL) {
   cf <- stats::coef(model)
   w <- model$weights
@@ -301,17 +307,29 @@ NULL
   hat <- numeric(length(w))
   hat[good] <- rowSums(Q^2)
   pivot <- q$pivot[rank]
+  leverage <- any(hat > .hc3_leverage_limit)
   if (!is.null(map)) {
     B <- backsolve(qr.R(q)[rank, rank, drop = FALSE], t(map[, pivot, drop = FALSE]),
                    transpose = TRUE)
     influence <- matrix(0, length(w), nrow(map), dimnames = list(NULL, rownames(map)))
     influence[good, ] <- (Q * (sqrt(w[good]) * e[good])) %*% B
-    return(list(influence = influence, hat = hat))
+    weight <- NULL
+    if (leverage) {
+      weight <- influence
+      weight[good, ] <- Q %*% B
+    }
+    return(list(influence = influence, hat = hat, weight = weight))
   }
   influence <- matrix(0, length(w), length(cf), dimnames = list(NULL, names(cf)))
   influence[good, pivot] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE],
                                         t(Q * (sqrt(w[good]) * e[good]))))
-  list(influence = influence[, !is.na(cf), drop = FALSE], hat = hat)
+  weight <- NULL
+  if (leverage) {
+    weight <- influence
+    weight[good, pivot] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE], t(Q)))
+    weight <- weight[, !is.na(cf), drop = FALSE]
+  }
+  list(influence = influence[, !is.na(cf), drop = FALSE], hat = hat, weight = weight)
 }
 
 # The variance that estimated sample means add to a contrast evaluated at
@@ -409,8 +427,10 @@ NULL
   if (robust == "HC3") {
     u <- numeric(length(a))
     u[in_set] <- dev[in_set] / pmax(n_s[in_set] - 1, 1)
-    infl <- .glm_influence(model)
-    cross[] <- colSums(infl$influence / (1 - infl$hat) * u[used])
+    # A participant at leverage 1 adds its limit, 0, to the covariance; a
+    # contrast that depends on that participant has no HC3 standard error,
+    # which the caller reports as NA (issue #173; .hc3_influence()).
+    cross[] <- colSums(.hc3_influence(model)$G * u[used])
   } else {
     u <- numeric(length(a))
     u[in_set] <- dev[in_set] / sqrt(n_s[in_set] * pmax(n_s[in_set] - 1, 1))
@@ -760,6 +780,47 @@ stouffer_solomon <- function(p) {
 #' Confidence intervals for the Wald partial R-squared use the noncentral F
 #' method (Steiger, 2004) and are reported only for conventional Gaussian
 #' fits; no corresponding interval is available with robust covariance.
+#'
+#' @section HC3 at leverage 1:
+#' HC3 divides each participant's squared residual by (1 - h)^2, where h is
+#' the participant's hat value, or leverage (MacKinnon & White, 1985). The
+#' model fits a participant whose leverage is 1 exactly, so that term is
+#' 0/0, and the HC3 standard error of every estimate that depends on the
+#' participant is undefined. This happens when the pretest varies within
+#' the pretested groups only through one participant, as when every other
+#' pretested participant has the same pretest score, or when a covariate
+#' varies only through one participant, such as a factor level that one
+#' participant alone holds. [validate_solomon()] does not check for it.
+#'
+#' A participant is taken to be at leverage 1 when the hat value is above
+#' 1 - 10^-8. The fit then gives a classed warning,
+#' `solomonR_hc3_leverage_warning`, that names these participants by their
+#' row numbers in the data and suggests `robust = "none"`, and returns the
+#' row numbers as `hc3_leverage`. For each contrast and each coefficient,
+#' the participant's weight in the estimate is computed from the model's
+#' QR decomposition. When that weight is at most 10^-8 times the largest
+#' weight in the estimate, the estimate does not depend on the participant,
+#' whose term takes its limit, 0, and the estimate keeps its HC3 standard
+#' error. Otherwise its standard error, statistic, p-value, interval, and
+#' Wald R-squared are `NA`, and so are the entries of `vcov` that depend on
+#' the participant. [sandwich::vcovHC()] returns `NaN` throughout in that
+#' case, so the HC3 covariance is then computed from the QR decomposition.
+#' For example, when every pretest in one pretested group is the same and
+#' all but one in the other pretested group are, the treatment effect among
+#' unpretested participants, which does not depend on the pretested
+#' participants, keeps its HC3 standard error; in the data of issue #173,
+#' the other three treatment contrasts and the three pretest effects are
+#' `NA`. With several treatments, an omnibus test is `NA` when one of its
+#' contrasts is. The same rule gives `NA` in the delta method of
+#' [marginal_solomon()], in the cell means of [plot_sensitization()], and
+#' in [fit_solomon_mi()]. Model-based standard errors (`robust = "none"`)
+#' are defined at leverage 1. The rule is not applied to CR2 fits.
+#'
+#' A group with a single analyzable participant also has leverage 1, and
+#' three of the four treatment contrasts depend on that participant. Under
+#' HC3 the fit then stops with an error of class
+#' `solomonR_hc3_singleton_error`. [validate_solomon()] reports such a group
+#' as an error.
 #'
 #' @section The pretest effect:
 #' Solomon (1949) added the unpretested groups to separate the effect of
@@ -1281,7 +1342,9 @@ stouffer_solomon <- function(p) {
 #'     that fit, not of the standardized one (see "Covariates").
 #'   - `vcov`: the covariance matrix of the coefficients, as `robust` sets
 #'     it. With CR2 it is the clubSandwich object, or, with a pretest or a
-#'     numeric covariate, a matrix (see "Covariates").
+#'     numeric covariate, a matrix (see "Covariates"). Under HC3, its entries
+#'     that depend on a participant whose leverage is 1 are `NA` (see "HC3
+#'     at leverage 1").
 #'   - `covariate_scaling`: with a pretest or numeric covariates, the
 #'     parameterization in which the inference was computed (see
 #'     "Covariates"): the `means` and `scales` of the pretest, `pre_obs`
@@ -1327,6 +1390,10 @@ stouffer_solomon <- function(p) {
 #'   - `robust`, `family`, `cluster` (the cluster of each participant), and
 #'     `n_clusters`: the settings used. The last two are `NULL` without
 #'     `cluster`.
+#'   - `hc3_leverage`: with `robust = "HC3"`, the row numbers in the data of
+#'     the participants whose leverage is 1 (see "HC3 at leverage 1"), and
+#'     an empty vector when there are none; `NULL` with the other
+#'     covariances.
 #'   - `call`, and `data` (the data the model was fitted to), which
 #'     solomonR's own functions use.
 #'
@@ -1671,15 +1738,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2, so its standard errors
-  # are undefined. Stop as the several-treatment path does.
+  # are undefined. Stop as the several-treatment path does, with an error
+  # of class `solomonR_hc3_singleton_error` (issue #173).
   if (robust == "HC3" && any(group_counts == 1)) {
-    stop(
-      "HC3 standard errors are undefined because these groups have a single ",
-      "analyzable participant: ", paste(.group_names(group_counts, group_counts == 1),
-                                         collapse = "; "), ". ",
-      "Use `robust = \"none\"`; see validate_solomon().",
-      call. = FALSE
-    )
+    .stop_hc3_singleton(.group_names(group_counts, group_counts == 1))
   }
 
   # `held` refers to the model fit a second time; it is removed once its
@@ -1695,12 +1757,26 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # are computed from the standardized model's QR decomposition, which
   # stays accurate when covariates are nearly collinear (.hc3_vcov(),
   # .cr2_basis()); without one, by sandwich and clubSandwich, as before.
+  # Under HC3, a participant whose leverage is 1 leaves the HC3 standard
+  # error of each estimate that depends on that participant undefined; the
+  # covariance then comes from the QR decomposition, those estimates are
+  # reported with NA, and a classed warning names the participants (issue
+  # #173; .hc3_influence()). `hc3` describes them, and is NULL otherwise.
   fit_cr <- fit
   n_clusters <- NULL
   cr2_basis <- NULL
+  hc3 <- NULL
   numeric_covariates <- .numeric_covariates(scaling)
   if (robust == "HC3") {
-    vcovM <- if (numeric_covariates) .hc3_vcov(fit) else sandwich::vcovHC(fit, type = "HC3")
+    hc3 <- .hc3_leverage(fit, in_model)
+    vcovM <- if (numeric_covariates || !is.null(hc3)) {
+      .hc3_vcov(fit)
+    } else {
+      sandwich::vcovHC(fit, type = "HC3")
+    }
+    if (!is.null(hc3)) {
+      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates))
+    }
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
@@ -1769,7 +1845,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
   # --- tidy coefficients with chosen vcov, for the covariates as given ---
   coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
-                                     cr2_basis)
+                                     cr2_basis, hc3)
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -1779,12 +1855,16 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # The pretest effects also carry the variance of the mean pretest at which
   # they are evaluated (.center_adjusted()); `added` is that part, which the
   # Wald R-squared uses too. `terms` is that mean's .center_terms(): the
-  # center used, or the other center for `pretest_sensitivity`.
+  # center used, or the other center for `pretest_sensitivity`. A contrast
+  # that depends on a participant at leverage 1 has no HC3 standard error:
+  # its variance is NA, and so are its test, interval, and Wald R-squared
+  # (issue #173).
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
     adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
+    if (.hc3_undefined(hc3, L)) adj[c("variance", "added")] <- list(NA_real_, NA_real_)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
     z   <- est / se
@@ -1919,7 +1999,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     dispersion = dispersion,
     theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = coefficients$vcov,
-    covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
+    covariate_scaling = .covariate_scaling_element(scaling, fit, .hc3_mark(vcovM, hc3)),
     data = df,
     pretest_mean = pretest_mean,
     pretest_center = pretest_center,
@@ -1928,6 +2008,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     pretest_n = parts$n,
     pretest_sensitivity = sensitivity,
     robust = robust,
+    hc3_leverage = if (robust == "HC3") if (is.null(hc3)) integer() else hc3$rows,
     family = family,
     cluster = cluster,
     n_clusters = n_clusters,

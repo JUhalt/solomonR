@@ -155,7 +155,9 @@ and the pretest as given. Its \code{converged} and \code{iter} are those of
 that fit, not of the standardized one (see "Covariates").
 \item \code{vcov}: the covariance matrix of the coefficients, as \code{robust} sets
 it. With CR2 it is the clubSandwich object, or, with a pretest or a
-numeric covariate, a matrix (see "Covariates").
+numeric covariate, a matrix (see "Covariates"). Under HC3, its entries
+that depend on a participant whose leverage is 1 are \code{NA} (see "HC3
+at leverage 1").
 \item \code{covariate_scaling}: with a pretest or numeric covariates, the
 parameterization in which the inference was computed (see
 "Covariates"): the \code{means} and \code{scales} of the pretest, \code{pre_obs}
@@ -201,6 +203,10 @@ used. \code{NULL} without \code{y_pre}; outside the stable interface (see
 \item \code{robust}, \code{family}, \code{cluster} (the cluster of each participant), and
 \code{n_clusters}: the settings used. The last two are \code{NULL} without
 \code{cluster}.
+\item \code{hc3_leverage}: with \code{robust = "HC3"}, the row numbers in the data of
+the participants whose leverage is 1 (see "HC3 at leverage 1"), and
+an empty vector when there are none; \code{NULL} with the other
+covariances.
 \item \code{call}, and \code{data} (the data the model was fitted to), which
 solomonR's own functions use.
 }
@@ -363,6 +369,49 @@ and 0.958 with 10, and the Pretest x Treatment test had a Type I error of
 Confidence intervals for the Wald partial R-squared use the noncentral F
 method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.
+}
+
+\section{HC3 at leverage 1}{
+
+HC3 divides each participant's squared residual by (1 - h)^2, where h is
+the participant's hat value, or leverage (MacKinnon & White, 1985). The
+model fits a participant whose leverage is 1 exactly, so that term is
+0/0, and the HC3 standard error of every estimate that depends on the
+participant is undefined. This happens when the pretest varies within
+the pretested groups only through one participant, as when every other
+pretested participant has the same pretest score, or when a covariate
+varies only through one participant, such as a factor level that one
+participant alone holds. \code{\link[=validate_solomon]{validate_solomon()}} does not check for it.
+
+A participant is taken to be at leverage 1 when the hat value is above
+1 - 10^-8. The fit then gives a classed warning,
+\code{solomonR_hc3_leverage_warning}, that names these participants by their
+row numbers in the data and suggests \code{robust = "none"}, and returns the
+row numbers as \code{hc3_leverage}. For each contrast and each coefficient,
+the participant's weight in the estimate is computed from the model's
+QR decomposition. When that weight is at most 10^-8 times the largest
+weight in the estimate, the estimate does not depend on the participant,
+whose term takes its limit, 0, and the estimate keeps its HC3 standard
+error. Otherwise its standard error, statistic, p-value, interval, and
+Wald R-squared are \code{NA}, and so are the entries of \code{vcov} that depend on
+the participant. \code{\link[sandwich:vcovHC]{sandwich::vcovHC()}} returns \code{NaN} throughout in that
+case, so the HC3 covariance is then computed from the QR decomposition.
+For example, when every pretest in one pretested group is the same and
+all but one in the other pretested group are, the treatment effect among
+unpretested participants, which does not depend on the pretested
+participants, keeps its HC3 standard error; in the data of issue #173,
+the other three treatment contrasts and the three pretest effects are
+\code{NA}. With several treatments, an omnibus test is \code{NA} when one of its
+contrasts is. The same rule gives \code{NA} in the delta method of
+\code{\link[=marginal_solomon]{marginal_solomon()}}, in the cell means of \code{\link[=plot_sensitization]{plot_sensitization()}}, and
+in \code{\link[=fit_solomon_mi]{fit_solomon_mi()}}. Model-based standard errors (\code{robust = "none"})
+are defined at leverage 1. The rule is not applied to CR2 fits.
+
+A group with a single analyzable participant also has leverage 1, and
+three of the four treatment contrasts depend on that participant. Under
+HC3 the fit then stops with an error of class
+\code{solomonR_hc3_singleton_error}. \code{\link[=validate_solomon]{validate_solomon()}} reports such a group
+as an error.
 }
 
 \section{The pretest effect}{
