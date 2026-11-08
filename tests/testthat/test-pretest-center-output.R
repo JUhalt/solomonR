@@ -258,7 +258,7 @@ test_that("report_solomon() names the center, its assumption, the other center, 
 })
 
 test_that("the repeated-measures fit prints and reports both centers by occasion", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   withr::local_seed(2)
   n <- 40
   ids <- seq_len(4 * n)

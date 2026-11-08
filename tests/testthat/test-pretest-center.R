@@ -90,7 +90,7 @@ test_that("with the default center, results equal those of master (a6c771a)", {
   source(test_path("fixtures", "pretest-center-master.R"), local = TRUE)
   stored <- readRDS(test_path("fixtures", "pretest-center-master.rds"))
   now <- suppressWarnings(pretest_center_results(stored$data))
-  if (requireNamespace("mmrm", quietly = TRUE)) {
+  if (requireNamespace("mmrm", quietly = TRUE) && utils::packageVersion("mmrm") >= "0.3.13") {
     expect_setequal(names(now), names(stored$results))
   } else {
     expect_true(all(names(now) %in% names(stored$results)))
@@ -1002,7 +1002,7 @@ test_that("a pretested participant outside the model for want of a covariate mak
 # ---- the mixed model for repeated measures -------------------------------------------------
 
 test_that("fit_solomon_mmrm() offers both centers", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   stored <- readRDS(test_path("fixtures", "pretest-center-master.rds"))
   long <- stored$data$long_complete
   # Eight pretested participants with low pretests have no posttest at any
@@ -1100,7 +1100,7 @@ test_that("fit_solomon_mmrm() offers both centers", {
 })
 
 test_that("fit_solomon_mmrm() takes one pretest per participant", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   stored <- readRDS(test_path("fixtures", "pretest-center-master.rds"))
   long <- stored$data$long
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)

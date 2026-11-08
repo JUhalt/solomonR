@@ -20,7 +20,7 @@ long_example <- function(n = 30, missing = 0, seed = 57) {
 }
 
 test_that("with complete data, each occasion's contrasts equal the per-occasion GLM", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example()
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
   # Every occasion's equation has the same regressors, and the covariance
@@ -45,7 +45,7 @@ test_that("with complete data, each occasion's contrasts equal the per-occasion 
 })
 
 test_that("Kenward-Roger and Satterthwaite give the same estimates", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   kr <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
   sat <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, df = "satterthwaite",
@@ -60,7 +60,7 @@ test_that("Kenward-Roger and Satterthwaite give the same estimates", {
 })
 
 test_that("without a pretest, one covariance is shared", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example()
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, data = long)
   expect_false(fit$grouped)
@@ -71,7 +71,7 @@ test_that("without a pretest, one covariance is shared", {
 })
 
 test_that("centering the pretest leaves the treatment contrasts unchanged (#104)", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
 
@@ -97,7 +97,7 @@ test_that("centering the pretest leaves the treatment contrasts unchanged (#104)
 })
 
 test_that("the pretest effects include the variance of the mean pretest (#104)", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
 
@@ -129,7 +129,7 @@ test_that("the pretest effects include the variance of the mean pretest (#104)",
 })
 
 test_that("inputs are checked", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example()
   expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre,
                                 data = long[long$occasion == 1, ]),
@@ -151,7 +151,7 @@ test_that("inputs are checked", {
 })
 
 test_that("the fallback covariance is chosen by AIC when the unstructured model fails", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   real <- mmrm::mmrm
   testthat::local_mocked_bindings(
@@ -170,7 +170,7 @@ test_that("the fallback covariance is chosen by AIC when the unstructured model 
 })
 
 test_that("print and report describe the model", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
   expect_output(print(fit), "Covariance: unstructured, separately for pretested and unpretested")
@@ -189,7 +189,7 @@ test_that("print and report describe the model", {
 })
 
 test_that("fit_solomon_mmrm() reproduces the per-occasion analyses of jordaan2014", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   # Data with exactly the published means and SDs on every occasion and an
   # assumed correlation between occasions, as in the article "Worked Example:
   # Repeated Posttests".
@@ -237,7 +237,7 @@ test_that("fit_solomon_mmrm() reproduces the per-occasion analyses of jordaan201
 # differently.
 
 test_that("an ordered occasion gives the same effects as an unordered one (#172)", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   long$occ_u <- factor(long$occasion)
   long$occ_o <- factor(long$occasion, ordered = TRUE)
@@ -252,7 +252,7 @@ test_that("an ordered occasion gives the same effects as an unordered one (#172)
 })
 
 test_that("an ordered occasion with unused levels is used in its level order (#172)", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   lev <- c("3", "1", "2", "4")
   long$occ_u <- factor(long$occasion, levels = lev)
@@ -264,7 +264,7 @@ test_that("an ordered occasion with unused levels is used in its level order (#1
 })
 
 test_that("an ordered occasion gives the same effects at the observed center (#172)", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   # Six pretested participants with no posttest at any occasion, so the two
   # centers differ.
@@ -281,7 +281,7 @@ test_that("an ordered occasion gives the same effects at the observed center (#1
 })
 
 test_that("an ordered occasion gives the right effects under another contrasts option (#172)", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   long$time <- long$occasion - 1
   long$time_o <- factor(long$time, ordered = TRUE)
@@ -294,7 +294,7 @@ test_that("an ordered occasion gives the right effects under another contrasts o
 })
 
 test_that("the contrasts are estimated from rows coded as the model is (#172)", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   center <- mean(long$y_pre[long$occasion == 1 & long$pretested == 1])
   observed <- data.frame(y = long$y_post, treat = long$treat, pretested = long$pretested,
@@ -311,19 +311,20 @@ test_that("the contrasts are estimated from rows coded as the model is (#172)", 
   expect_equal(o$effects, u$effects)
 })
 
-test_that("an occasion with no observed posttest stops before the model is fitted (#172)", {
-  skip_if_not_installed("mmrm")
+test_that("an occasion where no analyzed participant has a posttest stops before the fit (#172)", {
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example()
   long$occ_u <- factor(long$occasion)
   long$occ_o <- factor(long$occasion, ordered = TRUE)
   # The function stops before mmrm::mmrm() is called.
-  testthat::with_mocked_bindings(
+  testthat::with_mocked_bindings({
     for (empty in c(1, 3)) {
       # Every posttest at this occasion is missing, as at a wave not yet
       # collected. mmrm drops such an occasion from the model.
       l <- long
       l$y_post[l$occasion == empty] <- NA
-      msg <- paste0("no posttest is observed at these occasions: ", empty, ". Remove their rows")
+      msg <- paste0("no analyzed participant has a posttest at these occasions: ", empty,
+                    ". Remove their rows")
       for (v in c("occasion", "occ_u", "occ_o")) {
         l$oc <- l[[v]]
         expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, oc, y_pre, data = l), msg,
@@ -331,7 +332,18 @@ test_that("an occasion with no observed posttest stops before the model is fitte
         expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, oc, data = l), msg,
                      fixed = TRUE)
       }
-    },
+    }
+    # The posttests at occasion 3 belong only to two pretested participants
+    # with no pretest, who are left out of the model.
+    l <- long
+    l$y_pre[l$id %in% 1:2] <- NA
+    l$y_post[l$occasion == 3 & !l$id %in% 1:2] <- NA
+    expect_error(
+      suppressWarnings(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = l)),
+      "no analyzed participant has a posttest at these occasions: 3. Remove their rows",
+      fixed = TRUE
+    )
+  },
     mmrm = function(...) stop("The model was fitted."),
     .package = "mmrm"
   )
@@ -342,7 +354,7 @@ test_that("an occasion with no observed posttest stops before the model is fitte
 })
 
 test_that("a group with no posttest at an occasion stops, naming the terms not estimable", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- long_example(missing = 0.2)
   # The treated unpretested participants have no posttest at occasion 3.
   long$y_post[long$occasion == 3 & long$treat == 1 & long$pretested == 0] <- NA
@@ -354,12 +366,64 @@ test_that("a group with no posttest at an occasion stops, naming the terms not e
                fixed = TRUE)
 })
 
-test_that("fit_solomon_mmrm() needs mmrm 0.3.19 or later (#172)", {
-  skip_if_not_installed("mmrm", "0.3.19")
+test_that("an occasion factor with values at an NA level stops as missing (#172)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  long <- long_example(missing = 0.2)
+  # Occasion 3 becomes the NA level of addNA(). Its values are not NA to
+  # anyNA(), but no contrast could be estimated there.
+  na3 <- factor(long$occasion)
+  na3[long$occasion == 3] <- NA
+  long$occ_u <- addNA(na3)
+  long$occ_o <- addNA(factor(na3, ordered = TRUE))
+  expect_true(is.ordered(long$occ_o))
+  expect_false(anyNA(long$occ_u) || anyNA(long$occ_o))
+  msg <- "`id` and `occasion` must not be missing."
+  testthat::with_mocked_bindings({
+    for (v in c("occ_u", "occ_o")) {
+      l <- long
+      l$oc <- l[[v]]
+      expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, oc, y_pre, data = l), msg,
+                   fixed = TRUE)
+      expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, oc, data = l), msg,
+                   fixed = TRUE)
+      # Also when every posttest at the NA level is missing.
+      l$y_post[l$occasion == 3] <- NA
+      expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, oc, y_pre, data = l), msg,
+                   fixed = TRUE)
+    }
+  },
+    mmrm = function(...) stop("The model was fitted."),
+    .package = "mmrm"
+  )
+})
+
+test_that("an unused NA level of an occasion factor changes nothing (#172)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  long <- long_example(missing = 0.2)
+  long$occ_u <- factor(long$occasion)
+  long$occ_o <- factor(long$occasion, ordered = TRUE)
+  long$occ_u_na <- addNA(long$occ_u)
+  long$occ_o_na <- addNA(long$occ_o)
+  expect_true(anyNA(levels(long$occ_u_na)) && anyNA(levels(long$occ_o_na)))
+  # Everything but the mmrm object, whose formulas carry environments.
+  results <- function(fit) fit[setdiff(names(fit), "model")]
+  for (v in c("occ_u", "occ_o")) {
+    long$oc <- long[[v]]
+    long$oc_na <- long[[paste0(v, "_na")]]
+    plain <- fit_solomon_mmrm(y_post, treat, pretested, id, oc, y_pre, data = long)
+    with_na <- fit_solomon_mmrm(y_post, treat, pretested, id, oc_na, y_pre, data = long)
+    expect_identical(results(with_na), results(plain))
+    expect_identical(mmrm::component(with_na$model, "beta_est"),
+                     mmrm::component(plain$model, "beta_est"))
+  }
+})
+
+test_that("fit_solomon_mmrm() needs mmrm 0.3.13 or later (#172)", {
+  skip_if_not_installed("mmrm", "0.3.13")
   expect_true(solomonR:::.mmrm_available())
   expect_false(solomonR:::.mmrm_available("999.0"))
   local_mocked_bindings(.mmrm_available = function(...) FALSE)
   long <- long_example()
   expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long),
-               "needs the mmrm package, version 0.3.19 or later", fixed = TRUE)
+               "needs the mmrm package, version 0.3.13 or later", fixed = TRUE)
 })

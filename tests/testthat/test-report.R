@@ -115,7 +115,9 @@ report_examples <- list(
                                seed = 1, data = d))
   },
   fit_solomon_mmrm = function() {
-    if (!requireNamespace("mmrm", quietly = TRUE)) return(list())
+    if (!(requireNamespace("mmrm", quietly = TRUE) && utils::packageVersion("mmrm") >= "0.3.13")) {
+      return(list())
+    }
     set.seed(57)
     n <- 20
     g <- rep(1:4, each = n)

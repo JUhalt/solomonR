@@ -42,7 +42,7 @@ Suggests:
     knitr,
     rmarkdown,
     lavaan,
-    mmrm (>= 0.3.19),
+    mmrm (>= 0.3.13),
     dplyr
 VignetteBuilder: knitr
 URL: https://github.com/JUhalt/solomonR,

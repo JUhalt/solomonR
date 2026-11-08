@@ -33,7 +33,8 @@ every row of a participant.}
 \item{occasion}{Posttest occasion. A factor keeps its level order;
 otherwise the sorted unique values are used. An ordered factor is used
 as unordered, in its level order; the contrasts at each occasion do not
-depend on how \code{occasion} is coded.}
+depend on how \code{occasion} is coded. It must not be missing; a value at
+an \code{NA} level of a factor, as made by \code{addNA()}, counts as missing.}
 
 \item{y_pre}{Optional pretest score, the same in every row of a
 participant and missing by design for unpretested participants.}
@@ -195,7 +196,7 @@ them in Solomon designs.
 }
 
 The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
-version 0.3.19 or later, which must be installed.
+version 0.3.13 or later, which must be installed.
 }
 
 \section{Validation}{
@@ -234,7 +235,7 @@ specify.
 
 \examples{
 \donttest{
-if (requireNamespace("mmrm", quietly = TRUE)) {
+if (requireNamespace("mmrm", quietly = TRUE) && utils::packageVersion("mmrm") >= "0.3.13") {
   # Three posttest occasions for the example participants, with dropout.
   set.seed(57)
   d <- solomon_example

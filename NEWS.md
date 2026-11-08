@@ -24,17 +24,27 @@
 * The rows are now coded with the contrasts of the fitted model
   (`mmrm::component(fit, "contrasts")`), so each row is matched to
   coefficients of the same coding, whatever that coding is.
-  `fit_solomon_mmrm()` now needs mmrm 0.3.19 or later, the version this
-  was checked with, and stops with a message saying so when an earlier
-  version is installed; DESCRIPTION suggests that version. Estimates for
-  a numeric occasion and for an unordered factor are unchanged.
-* When every posttest at an occasion is missing, for instance at a wave
-  not yet collected, `fit_solomon_mmrm()` now stops before fitting the
-  model, with a message that names the occasion and suggests removing
-  its rows. mmrm drops such an occasion, so the fitted model has no
-  coefficients for it. Before, the function stopped after fitting,
-  saying that some terms were not estimable, and the terms it named
-  were not always those of the empty occasion.
+  `fit_solomon_mmrm()` now needs mmrm 0.3.13 or later, the first version
+  whose `component()` returns the contrasts, and stops with a message
+  saying so when an earlier version is installed; DESCRIPTION suggests
+  that version. The tests, the example, and the articles that use mmrm
+  check its version too. Estimates for a numeric occasion and for an
+  unordered factor are unchanged.
+* When no analyzed participant has a posttest at an occasion, for
+  instance at a wave not yet collected, or when the only posttests there
+  belong to participants left out of the model, `fit_solomon_mmrm()` now
+  stops before fitting the model, with a message that names the occasion
+  and suggests removing its rows. mmrm drops such an occasion, so the
+  fitted model has no coefficients for it. Before, the function usually
+  stopped after fitting, saying that some terms were not estimable, and
+  the terms it named were not always those of the empty occasion; with
+  two occasions, one of them empty, it said instead that the model did
+  not converge.
+* An `occasion` factor with values at an `NA` level, as made by
+  `addNA()`, now stops with the message that `id` and `occasion` must
+  not be missing. No contrast can be estimated at such an occasion;
+  before, the function stopped later with a less clear error. An unused
+  `NA` level changes nothing.
 * Tests check that an ordered occasion gives the same effects as an
   unordered one with Kenward-Roger and Satterthwaite degrees of
   freedom, with and without a pretest, with
@@ -42,10 +52,12 @@
   and under `options(contrasts = c("contr.treatment", "contr.sum"))`
   with occasions 0, 1, 2; that rows coded with the model's contrasts
   give the same effects when the model itself is fitted with an ordered
-  occasion; that an occasion with no observed posttest stops before the
-  model is fitted; that a group with no posttest at an occasion still
-  stops, naming the terms that are not estimable; and that an earlier
-  mmrm stops with a message.
+  occasion; that an occasion where no analyzed participant has a
+  posttest stops before the model is fitted; that a group with no
+  posttest at an occasion still stops, naming the terms that are not
+  estimable; that an occasion factor with values at an `NA` level stops
+  as missing, and that an unused `NA` level gives the same results; and
+  that an earlier mmrm stops with a message.
 
 ## Refits under the fit's contrasts (bug fix, #168)
 
