@@ -7,8 +7,9 @@
 # without a pretest was taken for the pretest, and one named condition in a
 # four-group fit for the condition, with no error or warning. Both names
 # are now reserved in every fit, and those functions ask the fit itself,
-# so that a fit made by an earlier version with such a covariate is read
-# correctly too.
+# so that a fit made by a development version since #104 with such a
+# covariate is read correctly too. (A fit made before #104 has no
+# `pretest_mean` to ask; .has_pretest_column().)
 
 # A four-group design with a binary and a continuous outcome, posttests
 # missing in both pretest conditions, and a pretest.
@@ -66,41 +67,47 @@ warnings_of <- function(expr) {
   messages
 }
 
-# The error of class `solomonR_covariate_error` that `expr` gives, with a
-# message that names `name` and lists the reserved names as `reserved`
-# gives them, after "Names reserved".
-expect_reserved <- function(expr, name, reserved, info = NULL) {
+# The error of class `solomonR_covariate_error` that `expr` gives, with the
+# message that names `name` and then says, in the sentence `note`, which
+# names are reserved.
+expect_reserved <- function(expr, name, note, info = NULL) {
   err <- expect_error(expr, class = "solomonR_covariate_error", info = info)
   if (!inherits(err, "solomonR_covariate_error")) return(invisible(NULL))
-  expect_match(conditionMessage(err),
-               paste0("Rename these covariates, whose names the model uses: ", name, ". "),
-               fixed = TRUE, info = info)
-  expect_match(conditionMessage(err), paste0("Names reserved ", reserved, "."), fixed = TRUE,
-               info = info)
+  expect_identical(conditionMessage(err),
+                   paste0("Rename these covariates, whose names are reserved: ", name, ". ",
+                          note),
+                   info = info)
 }
+
+# The sentences that say which names are reserved: in a fit, by its design,
+# and in check_solomon_missing() without numeric pretests.
+reserved_four_note <- paste("Names reserved in this design: y, treat, pretested, pre_obs,",
+                            "condition, log_exposure.")
+reserved_six_note <- paste("Names reserved in this design: y, condition, pretested, treat_A,",
+                           "treat_B, pre_obs, log_exposure.")
+reserved_missing_note <- paste("fit_solomon_glm() reserves the names pre_obs and condition in",
+                               "every fit, with a pretest or without.")
 
 
 test_that("fit_solomon_glm() refuses a covariate named pre_obs or condition in every fit", {
   d <- reserved_four()
-  four <- "in this design: y, treat, pretested, pre_obs, condition, log_exposure"
   # Four groups, without a pretest.
   for (name in c("pre_obs", "condition")) {
     expect_reserved(fit_solomon_glm(d$yg, d$treat, d$pretested,
                                     covariates = stats::setNames(data.frame(d$x), name)),
-                    name, four, info = name)
+                    name, reserved_four_note, info = name)
   }
   # Four groups with a pretest: condition, which the model does not use.
   expect_reserved(fit_solomon_glm(d$yg, d$treat, d$pretested, d$pre,
                                   covariates = data.frame(condition = d$illness)),
-                  "condition", four)
+                  "condition", reserved_four_note)
 
   # Several treatments, without a pretest: pre_obs. `treat` stays free.
   s <- reserved_six()
   expect_reserved(fit_solomon_glm(s$y, s$condition, s$pretested, control = "Control",
                                   covariates = data.frame(pre_obs = s$x),
                                   family = stats::binomial()),
-                  "pre_obs",
-                  "in this design: y, condition, pretested, treat_A, treat_B, pre_obs, log_exposure")
+                  "pre_obs", reserved_six_note)
   fit <- fit_solomon_glm(s$y, s$condition, s$pretested, control = "Control",
                          covariates = data.frame(treat = s$x), family = stats::binomial())
   expect_s3_class(fit, "solomon_ngroup")
@@ -113,18 +120,17 @@ test_that("check_solomon_missing() refuses pre_obs and condition with a pretest 
     covariates <- stats::setNames(data.frame(d$x), name)
     # Without a pretest no fit is made, and the check is check_solomon_missing()'s.
     expect_reserved(check_solomon_missing(d$yg, d$treat, d$pretested, covariates = covariates),
-                    name, "with or without a pretest: pre_obs, condition", info = name)
+                    name, reserved_missing_note, info = name)
     # With a pretest the fit behind the gap refuses it.
     expect_reserved(check_solomon_missing(d$yg, d$treat, d$pretested, d$pre,
                                           covariates = covariates),
-                    name, "in this design: y, treat, pretested, pre_obs, condition, log_exposure",
-                    info = name)
+                    name, reserved_four_note, info = name)
   }
   s <- reserved_six()
   for (name in c("pre_obs", "condition")) {
     expect_reserved(check_solomon_missing(s$y, s$condition, s$pretested, control = "Control",
                                           covariates = stats::setNames(data.frame(s$x), name)),
-                    name, "with or without a pretest: pre_obs, condition", info = name)
+                    name, reserved_missing_note, info = name)
   }
   # Other names are kept without a pretest, as before.
   kept <- check_solomon_missing(d$yg, d$treat, d$pretested,
@@ -153,10 +159,15 @@ test_that("a fit made before #174 with a covariate named pre_obs and no pretest 
     expect_equal(mp$effects, mx$effects, tolerance = 1e-10, info = center)
     expect_identical(capture.output(print(mp)), capture.output(print(mx)), info = center)
   }
-  boot <- function(fit) {
-    marginal_solomon(fit, R = 99, seed = 5, pretest_center = "observed")$effects
+  # The bootstrap, at either center.
+  for (center in c("analyzed", "observed")) {
+    boot <- function(fit) {
+      marginal_solomon(fit, R = 99, seed = 5, pretest_center = center)
+    }
+    bp <- boot(fit_p)
+    expect_false(bp$pretest_adjusted, info = center)
+    expect_equal(bp$effects, boot(fit_x)$effects, tolerance = 1e-10, info = center)
   }
-  expect_equal(boot(fit_p), boot(fit_x), tolerance = 1e-10)
 
   # The report and the warnings say nothing of a pretest.
   expect_identical(capture.output(print(report_solomon(fit_p))),
@@ -171,16 +182,19 @@ test_that("a fit made before #174 with a covariate named pre_obs and no pretest 
     expect_false(any(grepl("pretest as a covariate", given, fixed = TRUE)))
   }
 
-  # A CR2 fit, through the delta method at the observed center.
+  # A CR2 fit, through the delta method at either center.
   cr2 <- function(fit_with, covariates) {
-    fit <- fit_with(d$y, d$treat, d$pretested, covariates = covariates,
-                    family = stats::binomial(), robust = "CR2", cluster = d$cluster)
-    marginal_solomon(fit, pretest_center = "observed")
+    fit_with(d$y, d$treat, d$pretested, covariates = covariates,
+             family = stats::binomial(), robust = "CR2", cluster = d$cluster)
   }
-  mp <- cr2(earlier_fit, data.frame(pre_obs = d$x, f = d$f))
-  mx <- cr2(fit_solomon_glm, data.frame(x = d$x, f = d$f))
-  expect_false(mp$pretest_adjusted)
-  expect_equal(mp$effects, mx$effects, tolerance = 1e-8)
+  cr2_p <- cr2(earlier_fit, data.frame(pre_obs = d$x, f = d$f))
+  cr2_x <- cr2(fit_solomon_glm, data.frame(x = d$x, f = d$f))
+  for (center in c("analyzed", "observed")) {
+    mp <- marginal_solomon(cr2_p, method = "delta", pretest_center = center)
+    mx <- marginal_solomon(cr2_x, method = "delta", pretest_center = center)
+    expect_false(mp$pretest_adjusted, info = center)
+    expect_equal(mp$effects, mx$effects, tolerance = 1e-8, info = center)
+  }
 
   # Several treatments: the report and the warnings.
   s <- reserved_six()
@@ -248,4 +262,30 @@ test_that("a factor whose indicator is named pre_obs is a covariate in a fit wit
     expect_equal(m$effects, m_ref$effects, tolerance = 1e-10, info = center)
     expect_identical(capture.output(print(m)), capture.output(print(m_ref)), info = center)
   }
+})
+
+
+test_that("a collinear factor indicator named pre_obs is not called the pretest without one", {
+  # The indicator of the level `_obs` of a factor `pre` that repeats the
+  # pretest indicator is collinear with it. In a fit without a pretest, the
+  # error called it "pre_obs (the pretest, `y_pre`)".
+  collinear <- paste0(
+    "The model cannot be estimated because these terms are collinear with other terms ",
+    "of the model: pre_obs. A covariate or pretest that is constant, or that repeats ",
+    "another term, causes this."
+  )
+  d <- reserved_four()
+  pre <- factor(ifelse(d$pretested == 1, "_obs", "a"), c("a", "_obs"))
+  expect_error(fit_solomon_glm(d$yg, d$treat, d$pretested, covariates = data.frame(pre = pre)),
+               collinear, fixed = TRUE)
+  s <- reserved_six()
+  pre <- factor(ifelse(s$pretested == 1L, "_obs", "a"), c("a", "_obs"))
+  expect_error(fit_solomon_glm(s$y, s$condition, s$pretested, control = "Control",
+                               covariates = data.frame(pre = pre), family = stats::binomial()),
+               collinear, fixed = TRUE)
+
+  # With a pretest, a constant pretest is still called the pretest.
+  constant <- ifelse(d$pretested == 1, 3, NA_real_)
+  expect_error(fit_solomon_glm(d$yg, d$treat, d$pretested, constant),
+               "of the model: pre_obs (the pretest, `y_pre`).", fixed = TRUE)
 })

@@ -147,15 +147,14 @@
 }
 
 # Stop when a covariate, a column of the data frame `covariates`, is named
-# as one of `reserved`. The message lists the reserved names, and `where`
-# says where they are reserved.
-.solomon_check_names <- function(covariates, reserved, where) {
+# as one of `reserved`. The message names those covariates, and `note`, a
+# sentence that follows, says which names are reserved and where.
+.solomon_check_names <- function(covariates, reserved, note) {
   clash <- intersect(names(covariates), reserved)
   if (length(clash)) {
     .solomon_covariate_error(paste0(
-      "Rename these covariates, whose names the model uses: ",
-      paste(clash, collapse = ", "), ". Names reserved ", where, ": ",
-      paste(reserved, collapse = ", "), "."
+      "Rename these covariates, whose names are reserved: ",
+      paste(clash, collapse = ", "), ". ", note
     ))
   }
   invisible(NULL)
@@ -179,8 +178,10 @@
 # The error has the class `solomonR_covariate_error`
 # (.solomon_covariate_error()).
 .solomon_check_covariates <- function(covariates, used) {
-  .solomon_check_names(covariates, unique(c(used, .solomon_reserved_names, "log_exposure")),
-                       "in this design")
+  reserved <- unique(c(used, .solomon_reserved_names, "log_exposure"))
+  .solomon_check_names(covariates, reserved, paste0(
+    "Names reserved in this design: ", paste(reserved, collapse = ", "), "."
+  ))
   wide <- vapply(covariates, function(v) {
     is.matrix(v) && ncol(v) > 1L && (is.logical(v) || is.character(v))
   }, logical(1))

@@ -569,7 +569,7 @@ test_that("check_solomon_missing() stops on a name the model uses, as fit_solomo
   # for a data frame with a column y; it now stops with the fit's error.
   d <- forms_data()
   d$y_post[c(3, 8, 70, 95)] <- NA
-  clash <- "Rename these covariates, whose names the model uses: "
+  clash <- "Rename these covariates, whose names are reserved: "
   for (name in c("y", "treat", "pretested", "pre_obs", "log_exposure")) {
     assign(name, d$z)
     message <- paste0(clash, name, ".")

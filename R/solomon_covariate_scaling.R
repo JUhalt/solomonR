@@ -213,10 +213,13 @@
 # A fit without a numeric covariate, whose design is well conditioned,
 # keeps the computations of sandwich and clubSandwich, and its results.
 # `scaling` comes from .covariate_scaling(). A fit made before #174 without
-# a pretest, whose only numeric covariate was named pre_obs, was taken for
-# a fit without one, and its stored covariance came from sandwich and
-# clubSandwich; refitting it gives the covariance of this path (issue
-# #174).
+# a pretest, whose only numeric covariate was named pre_obs, is taken for
+# a fit without one: its stored covariance came from sandwich and
+# clubSandwich, and the computations that call this function on its
+# scaling when they run (the CR2 delta method of marginal_solomon(), the
+# CR2 degrees of freedom of plot_sensitization(), and the studentized
+# statistic of perm_solomon()) still skip this path. Refitting it with
+# the covariate renamed gives the results of this path (issue #174).
 .numeric_covariates <- function(scaling) any(names(scaling$means) != "pre_obs")
 
 # A covariance as a plain matrix, without the attributes of a clubSandwich

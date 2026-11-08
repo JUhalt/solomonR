@@ -238,10 +238,11 @@ test_that("covariate fits return the model and the coefficients for the covariat
   expect_s3_class(fit$vcov, "clubSandwich")
 })
 
-test_that("without a pretest, a covariate named like the pretest is standardized as a covariate", {
+test_that("without a pretest, a covariate named y_pre is standardized like any other", {
   # A covariate cannot be named pre_obs, the model's name for the pretest
-  # (issue #174); one named y_pre, as the pretest is given, is a covariate
-  # like any other.
+  # (issue #174), so the code that told such a covariate from the pretest
+  # can no longer be reached by a new fit. One named y_pre, as the pretest
+  # argument is named, is standardized like any other covariate.
   d <- location_data()$four
   fit_with <- function(name) {
     covariates <- data.frame(10 * d$z + 1e6)

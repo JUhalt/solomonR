@@ -89,6 +89,10 @@
 # (.solomon_check_covariates()), but a fit made by an earlier version can
 # have one (issue #174), and the indicator of a factor's level can be
 # named so in the model matrix, as for a factor `pre` with a level `_obs`.
+# A fit made before #104, by solomonR 0.8.2 or earlier, has no
+# `pretest_mean`, so its column `pre_obs` is taken for the pretest even
+# when it was a covariate; such a fit has to be refitted with the
+# covariate renamed.
 .has_pretest_column <- function(fit, X) {
   "pre_obs" %in% colnames(X) && (is.null(fit$pretest_mean) || is.finite(fit$pretest_mean))
 }

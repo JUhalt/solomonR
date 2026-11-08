@@ -41,7 +41,7 @@ test_that("a covariate named like a model column is refused, log_exposure includ
     fit_solomon_glm(d$visits, d$condition, d$pretested,
                     covariates = data.frame(log_exposure = d$x1),
                     exposure = d$days, family = stats::poisson(), control = "Control"),
-    "Rename these covariates, whose names the model uses: log_exposure.",
+    "Rename these covariates, whose names are reserved: log_exposure.",
     fixed = TRUE
   )
   # Without `exposure`, report_solomon() would describe an offset that the
@@ -49,7 +49,7 @@ test_that("a covariate named like a model column is refused, log_exposure includ
   expect_error(
     fit_solomon_glm(d$y_post, d$condition, d$pretested,
                     covariates = data.frame(log_exposure = d$x1), control = "Control"),
-    "Rename these covariates, whose names the model uses: log_exposure.",
+    "Rename these covariates, whose names are reserved: log_exposure.",
     fixed = TRUE
   )
 
@@ -58,7 +58,7 @@ test_that("a covariate named like a model column is refused, log_exposure includ
       fit_solomon_glm(d$y_post, d$condition, d$pretested, d$y_pre,
                       covariates = stats::setNames(data.frame(d$x1), name),
                       control = "Control"),
-      paste0("whose names the model uses: ", name, "."),
+      paste0("whose names are reserved: ", name, "."),
       fixed = TRUE
     )
   }

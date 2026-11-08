@@ -206,8 +206,11 @@
 # rounding error of each entry of the model matrix (.representation_error()),
 # a term that is collinear with the others but for that error is collinear
 # too (.collinear_terms()); `covariates` names the covariates' terms, which
-# are checked last.
-.stop_inestimable <- function(fit, empty, noise = NULL, covariates = character()) {
+# are checked last. `pretest` says whether the model has a pretest. Only
+# then is a term `pre_obs` called the pretest: in a model without one, it
+# is the indicator of a factor's level, as of the level `_obs` of a factor
+# `pre` (issue #174).
+.stop_inestimable <- function(fit, empty, pretest, noise = NULL, covariates = character()) {
   aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
   if (!length(aliased) && !is.null(noise)) aliased <- .collinear_terms(fit, noise, covariates)
   if (!length(aliased)) return(invisible(NULL))
@@ -218,7 +221,7 @@
       call. = FALSE
     )
   }
-  aliased[aliased == "pre_obs"] <- "pre_obs (the pretest, `y_pre`)"
+  if (pretest) aliased[aliased == "pre_obs"] <- "pre_obs (the pretest, `y_pre`)"
   stop(
     "The model cannot be estimated because these terms are collinear with ",
     "other terms of the model: ", paste(aliased, collapse = ", "),
@@ -583,8 +586,8 @@
   # coefficient inestimable, in the model as given or standardized, the
   # latter checked as well for terms collinear but for the rounding error of
   # the values given, as in the four-group model (.collinear_terms()).
-  .stop_inestimable(fit_given, .group_names(counts, counts == 0))
-  .stop_inestimable(fit, .group_names(counts, counts == 0),
+  .stop_inestimable(fit_given, .group_names(counts, counts == 0), pretest = !is.null(y_pre))
+  .stop_inestimable(fit, .group_names(counts, counts == 0), pretest = !is.null(y_pre),
                     noise = .representation_error(fit, fit_given, scaling, pretest_mean),
                     covariates = .formula_names(names(covariates)))
 

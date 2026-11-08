@@ -311,7 +311,7 @@ test_that("a covariate named like a model column is refused", {
     expect_error(
       fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre,
                       covariates = stats::setNames(data.frame(x), name)),
-      paste0("Rename these covariates, whose names the model uses: ", name, "."),
+      paste0("Rename these covariates, whose names are reserved: ", name, "."),
       fixed = TRUE
     )
   }
@@ -323,7 +323,7 @@ test_that("a covariate named like a model column is refused", {
     expect_error(
       fit_solomon_glm(d$y_post, d$treat, d$pretested,
                       covariates = stats::setNames(data.frame(x), name)),
-      paste0("Rename these covariates, whose names the model uses: ", name, "."),
+      paste0("Rename these covariates, whose names are reserved: ", name, "."),
       fixed = TRUE
     )
   }

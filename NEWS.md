@@ -27,7 +27,9 @@
     pretest effects at the mean pretest, with their references.
   - `equivalence_solomon()`, `perm_solomon()`, and
     `plot_solomon_effects(bounds = )` warned about the pretest as a
-    covariate for the Pretest x Treatment contrast on a logit link.
+    covariate: for the pretest effects on any link but the identity, and
+    for the Pretest x Treatment contrast on any link but the identity
+    and the log.
   - When `pre_obs` was the only numeric covariate, the robust
     covariances skipped the accurate computation of #137. On nearly
     collinear designs the standard errors of the fit, of
@@ -41,33 +43,54 @@
 * `pre_obs` and `condition` are now reserved in every fit, on top of the
   names refused before: with or without `y_pre`, and with one treatment
   or several. A covariate of either name stops with the error of class
-  `solomonR_covariate_error`, whose message lists the names reserved in
-  the design. Rename that column. `condition` is now refused in a
-  four-group fit with a pretest as well, where it worked. `treat` stays
-  free with several treatments, where it works.
-  `check_solomon_missing()` without numeric `y_pre`, which fits no
-  model, refuses the two names too.
+  `solomonR_covariate_error`, whose message names the covariate and
+  lists the names reserved in the design. Rename that column.
+  `condition` is now refused in a four-group fit with a pretest as well,
+  where it worked. `treat` stays free with several treatments, where it
+  works. `check_solomon_missing()` without numeric `y_pre`, which fits
+  no model, refuses the two names too. For every reserved name, the
+  message now begins "Rename these covariates, whose names are
+  reserved:" instead of "whose names the model uses:".
 * A fit saved by an earlier version can still hold such a covariate.
   `marginal_solomon()`, `report_solomon()`, and the warnings of
   `equivalence_solomon()`, `perm_solomon()`, and
   `plot_solomon_effects()` now ask the fit whether it has a pretest
-  (`fit$pretest_mean`), as `plot_sensitization()` already did. The
+  (`fit$pretest_mean`), as `plot_sensitization()` already did, and the
   attrition line counts the conditions only in a fit with several
-  treatments. The covariance stored in such a fit is not recomputed, so
-  on nearly collinear designs its standard errors, and those computed
-  from it, can still be off: refit it with the covariate renamed.
-* `marginal_solomon()` also reported a fit without a pretest as adjusted
-  for the pretest when a factor's indicator was named `pre_obs` in the
-  model matrix, as for a factor `pre` with a level `_obs`; its estimates
-  and standard errors were right. It no longer does.
+  treatments. This reads correctly the fits made by development
+  versions since #104, which added `fit$pretest_mean`. Two cases
+  remain:
+
+  - A fit saved by solomonR 0.8.2 or earlier has no `fit$pretest_mean`,
+    so a covariate named `pre_obs` in it is still taken for the pretest.
+    Such a fit has no attrition line, which #135 added, so a covariate
+    named `condition` changes nothing there.
+  - In a fit without a pretest whose only numeric covariate is named
+    `pre_obs`, the stored covariance is not recomputed. The CR2 delta
+    method of `marginal_solomon()`, the CR2 degrees of freedom of
+    `plot_sensitization()`, and the studentized statistic of
+    `perm_solomon()` are computed when they run, but they still skip the
+    computation of #137 for such a fit. On nearly collinear designs, its
+    standard errors can still be off.
+
+  Refit such a fit with the covariate renamed.
+* In a fit without a pretest, the indicator of a factor's level can
+  still be named `pre_obs` in the model matrix, as for a factor `pre`
+  with a level `_obs`. `marginal_solomon()` reported such a fit as
+  adjusted for the pretest, though its estimates and standard errors
+  were right. When the indicator was collinear with other terms, the
+  error of `fit_solomon_glm()` called it "pre_obs (the pretest,
+  `y_pre`)". Neither happens now.
 * Tests check the refusals in four-group and six-group fits, from
   `fit_solomon_glm()` and `check_solomon_missing()`, with and without a
-  pretest. For a fit made as earlier versions made it, they check that
-  `marginal_solomon()` (the delta method under HC3 and CR2, and the
-  bootstrap, at both centers), `report_solomon()`, the warnings, and the
-  attrition line of `print()`, `summary()`, `report_solomon()`, and
-  `marginal_solomon()` equal those of the same fit with the covariate
-  renamed.
+  pretest. For a fit made as the development version made it before
+  this change, they check that `marginal_solomon()` (the delta method
+  under HC3 and CR2, and the bootstrap, each at both centers),
+  `report_solomon()`, the warnings, and the attrition line of `print()`,
+  `summary()`, `report_solomon()`, and `marginal_solomon()` equal those
+  of the same fit with the covariate renamed. They also check the
+  factor `pre` with a level `_obs` in `marginal_solomon()` and in the
+  collinearity error.
 
 ## Refits under the fit's contrasts (bug fix, #168)
 

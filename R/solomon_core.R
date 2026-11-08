@@ -1666,8 +1666,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     factor(df$treat[in_model], levels = c(1L, 0L), labels = arms),
     factor(df$pretested[in_model], levels = c(1L, 0L))
   )
-  .stop_inestimable(fit_given, .group_names(group_counts, group_counts == 0))
+  .stop_inestimable(fit_given, .group_names(group_counts, group_counts == 0),
+                    pretest = !is.null(y_pre))
   .stop_inestimable(fit, .group_names(group_counts, group_counts == 0),
+                    pretest = !is.null(y_pre),
                     noise = .representation_error(fit, fit_given, scaling, pretest_mean),
                     covariates = .formula_names(names(covariates)))
 
