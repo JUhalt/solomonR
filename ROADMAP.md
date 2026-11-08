@@ -768,6 +768,14 @@ drops, without saying so, a covariate given as a vector or a matrix —
 [\#146](https://github.com/JUhalt/solomonR/issues/146); merged in [PR
 \#155](https://github.com/JUhalt/solomonR/pull/155)
 
+[`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+and
+[`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+code a factor covariate by the contrasts option in force when they refit
+the model, not as the fit coded it —
+[\#168](https://github.com/JUhalt/solomonR/issues/168); merged in [PR
+\#169](https://github.com/JUhalt/solomonR/pull/169)
+
 **Figures and reports**
 
 The interval of the equivalence test drawn in the forest plot —
