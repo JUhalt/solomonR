@@ -150,7 +150,16 @@
       paste0(name(v), ": ", paste(name(unseen[[v]]), collapse = ", "))
     }, ""), collapse = "; ")
   }
-  level <- "a covariate level that no participant in the model has"
+  # The noun agrees with the list when one participant is counted: one who
+  # lacks two covariates "lacks covariates (z, site)", and one with two
+  # levels the model does not have "has covariate levels that ... (site: D;
+  # s2: w)". With several, it stays "lack a covariate (z, site)": each one
+  # lacks at least one of them.
+  level <- function(k, unseen) {
+    paste(if (k == 1L && length(unlist(unseen)) > 1L) "covariate levels" else
+      "a covariate level", "that no participant in the model has")
+  }
+  lacked <- if (missing == 1L && length(left_out$missing) > 1L) "covariates" else "a covariate"
   # With one reason the clause speaks of them all ("they lack a
   # covariate"); with both it gives the number of each.
   both <- missing && new
@@ -159,10 +168,13 @@
   }
   reasons <- c(
     if (missing) {
-      sprintf("%s a covariate (%s)", who(missing, "lacks", "lack"),
+      sprintf("%s %s (%s)", who(missing, "lacks", "lack"), lacked,
               paste(name(left_out$missing), collapse = ", "))
     },
-    if (new) sprintf("%s %s (%s)", who(new, "has", "have"), level, levels_of(left_out$unseen))
+    if (new) {
+      sprintf("%s %s (%s)", who(new, "has", "have"), level(new, left_out$unseen),
+              levels_of(left_out$unseen))
+    }
   )
   also <- left_out$also
   # No sentence of the note begins with a number, because report_solomon()
@@ -174,7 +186,8 @@
             paste(reasons, collapse = ", and ")),
     if (also) {
       sprintf(" Of those who lack a covariate, %d also %s %s (%s).", also,
-              if (also == 1L) "has" else "have", level, levels_of(left_out$also_unseen))
+              if (also == 1L) "has" else "have", level(also, left_out$also_unseen),
+              levels_of(left_out$also_unseen))
     },
     if (!differ) {
       " The two standardizations of the pretested cells are then over the same participants."
@@ -897,10 +910,15 @@
 #' who lacks a covariate is counted as such, whatever their other
 #' covariates. The print, [report_solomon()], and `pretest_sensitivity$note`
 #' say how many were left out and why, naming the covariates they lack and
-#' every level the model does not have, and the print and the report then
-#' give the `"observed"` set as, for example, "97 of the 100 pretested
-#' participants with a pretest". The default does not use these
-#' participants. On the risk or rate scale the choice moves
+#' every level the model does not have. Where the print and the report
+#' name the `"observed"` set, they then give it as, for example, "97 of the
+#' 100 pretested participants with a pretest": in the lines on both sets,
+#' which they give when the two sets differ, and in the first line of the
+#' print at `pretest_center = "observed"`. When no participant beyond the
+#' model is left in the `"observed"` set, the two sets are the same; the
+#' report then names neither set, nor does the print at the default
+#' center, so only the note gives the number left out. The default does
+#' not use these participants. On the risk or rate scale the choice moves
 #' Treatment | pretested, the average treatment effect, and Pretest x
 #' Treatment as well as the pretest effects, because a marginal risk depends
 #' on the participants it is averaged over; only Treatment | unpretested does

@@ -172,10 +172,15 @@ coefficient. Such a participant is in the observed center of
 who lacks a covariate is counted as such, whatever their other
 covariates. The print, \code{\link[=report_solomon]{report_solomon()}}, and \code{pretest_sensitivity$note}
 say how many were left out and why, naming the covariates they lack and
-every level the model does not have, and the print and the report then
-give the \code{"observed"} set as, for example, "97 of the 100 pretested
-participants with a pretest". The default does not use these
-participants. On the risk or rate scale the choice moves
+every level the model does not have. Where the print and the report
+name the \code{"observed"} set, they then give it as, for example, "97 of the
+100 pretested participants with a pretest": in the lines on both sets,
+which they give when the two sets differ, and in the first line of the
+print at \code{pretest_center = "observed"}. When no participant beyond the
+model is left in the \code{"observed"} set, the two sets are the same; the
+report then names neither set, nor does the print at the default
+center, so only the note gives the number left out. The default does
+not use these participants. On the risk or rate scale the choice moves
 Treatment | pretested, the average treatment effect, and Pretest x
 Treatment as well as the pretest effects, because a marginal risk depends
 on the participants it is averaged over; only Treatment | unpretested does

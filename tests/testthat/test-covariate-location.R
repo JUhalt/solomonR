@@ -2409,6 +2409,7 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
           "(age)."
         ), if (grepl("poisson|negbin", name)) "rates" else "risks")), character(0)))
         if (grepl("observed$", name)) {
+          # The first swap assumes a binary ("Risks") result; a count one would need "Rates".
           swaps <- c(swaps, list(
             list(paste("Risks standardized over the pretest among 59 of the 60 pretested",
                        "participants with a pretest (pretest_center = \"observed\")."),

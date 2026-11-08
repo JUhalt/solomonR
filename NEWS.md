@@ -34,9 +34,14 @@
 * When participants are left out, the print and the report give the
   `"observed"` set as, for example, "97 of the 100 pretested
   participants with a pretest" instead of "every pretested participant
-  with a pretest". Before, the print and the report did not say that
-  participants who lack a covariate were left out, although the
-  `"observed"` set they gave was then smaller than the number of
+  with a pretest". They give it in the lines on both sets, when the two
+  sets differ, and the print also gives it in its first line at
+  `pretest_center = "observed"`. When no participant beyond the model is
+  left in the set, the two sets are the same: the report names neither
+  set, nor does the print at the default center, and only the note
+  gives the number left out. Before, the print and the report did not
+  say that participants who lack a covariate were left out, although
+  the `"observed"` set they gave was then smaller than the number of
   pretested participants with a pretest.
 
 ## Refits under the fit's contrasts (bug fix, #168)
