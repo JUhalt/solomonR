@@ -19,7 +19,8 @@
   stats::setNames(rep_len(as.numeric(delta), 4L), .solomon_group_labels)
 }
 
-# Participants analyzed, their groups, and those excluded.
+# Participants analyzed, their groups, their row numbers in the data as
+# given (`rows`), and the number excluded.
 .mi_prepare <- function(y_post, treat, pretested, y_pre) {
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
@@ -48,6 +49,7 @@
     y_post = y_post[keep], treat = treat[keep], pretested = pretested[keep],
     y_pre = if (!is.null(y_pre)) y_pre[keep],
     group = .solomon_group(treat[keep], pretested[keep]),
+    rows = which(keep),
     excluded = sum(!keep)
   )
 }
@@ -120,6 +122,14 @@
 # (.covariate_scaling()). That changes none of the contrasts, and keeps X'X
 # well-conditioned however far the pretest lies from zero and whatever its
 # scale (issue #137); dividing by a power of two is exact.
+#
+# Under HC3, a participant whose leverage h is 1 (above
+# .hc3_leverage_limit) is fitted exactly, as in fit_solomon_glm() (issue
+# #173): the participant's term takes its limit, 0, in a contrast whose
+# weight A on the participant is at most 1e-8 times its largest, and a
+# contrast that weights the participant more has no HC3 standard error,
+# which is NA (.hc3_depends()). `leverage` flags those participants and
+# `undefined` those contrasts.
 .mi_design <- function(d, robust) {
   pre <- !is.null(d$y_pre)
   pretest <- NULL
@@ -138,19 +148,28 @@
   )
   xtx_inv <- solve(crossprod(X))
   B <- xtx_inv %*% t(X)
+  A <- L %*% B
+  h <- rowSums((X %*% xtx_inv) * X)
+  leverage <- robust == "HC3" & h > .hc3_leverage_limit
   list(
-    X = X, B = B, A = L %*% B,
-    h = rowSums((X %*% xtx_inv) * X),
+    X = X, B = B, A = A,
+    h = h,
     lxl = rowSums((L %*% xtx_inv) * L),
     df = nrow(X) - ncol(X),
-    robust = robust
+    robust = robust,
+    leverage = leverage,
+    undefined = if (any(leverage)) .hc3_depends(t(A), leverage) else rep(FALSE, nrow(L))
   )
 }
 
 .mi_analyze <- function(des, y) {
   e <- y - drop(des$X %*% (des$B %*% y))
   variance <- if (des$robust == "HC3") {
-    drop((des$A^2) %*% (e / (1 - des$h))^2)
+    w <- (e / (1 - des$h))^2
+    w[des$leverage] <- 0
+    v <- drop((des$A^2) %*% w)
+    v[des$undefined] <- NA_real_
+    v
   } else {
     des$lxl * sum(e^2) / des$df
   }
@@ -241,6 +260,16 @@
 #' information relative to the MAR analysis (Cro et al., 2019; Carpenter et
 #' al., 2023, p. 278).
 #'
+#' **HC3 at leverage 1.** As in [fit_solomon_glm()] (see "HC3 at leverage
+#' 1" there), a contrast that depends on a participant whose leverage is 1
+#' has no HC3 standard error: its standard error, test, and interval are
+#' `NA`, and the analysis gives the classed warning
+#' `solomonR_hc3_leverage_warning`, which names the participants by their
+#' row numbers in the data. Every completed data set has the same design, so
+#' the same contrasts are affected in each. Under HC3, a group with a single
+#' participant stops the analysis with an error of class
+#' `solomonR_hc3_singleton_error`.
+#'
 #' **Structural and incidental missingness.** Pretests absent by design are
 #' never imputed. Pretested participants with a missing pretest are excluded
 #' with a warning, as in [fit_solomon_glm()]; [check_solomon_missing()]
@@ -327,6 +356,10 @@
 #'     contrast.
 #'   - `df_com`: the complete-data degrees of freedom of each contrast.
 #'   - `robust`: the covariance of each completed-data analysis.
+#'   - `hc3_leverage`: with `robust = "HC3"`, the row numbers of the
+#'     participants whose leverage is 1, which leave the HC3 standard errors
+#'     of the contrasts that depend on them undefined (see "Method"); empty
+#'     when there are none. `NULL` with `robust = "none"`.
 #'   - `pretest` (whether pretest scores were supplied) and `data` (the
 #'     design indicators), which solomonR's own functions use.
 #'
@@ -392,11 +425,21 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
   if (!is.null(seed)) withr::local_seed(seed)
 
   models <- .mi_models(d)
+  # HC3 is refused for a group with a single participant, whose hat value
+  # is 1, as fit_solomon_glm() refuses it (issue #173).
+  if (robust == "HC3") {
+    counts <- table(factor(d$treat, levels = c(1L, 0L), labels = c("treatment", "control")),
+                    factor(d$pretested, levels = c(1L, 0L)))
+    if (any(counts == 1)) .stop_hc3_singleton(.group_names(counts, counts == 1))
+  }
   any_missing <- any(is.na(d$y_post))
   contrasts <- c("ATE (avg over pretest)", "Pretest x Treatment",
                  "Treatment | pretested", "Treatment | unpretested")
   est <- se <- matrix(NA_real_, m, 4L, dimnames = list(NULL, contrasts))
   des <- .mi_design(d, robust)
+  if (any(des$leverage)) {
+    .warn_hc3_leverage(d$rows[des$leverage], pretest = !is.null(d$y_pre), covariates = FALSE)
+  }
   df_com <- rep(des$df, 4L)
   for (k in seq_len(m)) {
     y_k <- d$y_post
@@ -422,6 +465,7 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
       std_errors = se,
       df_com = stats::setNames(df_com, contrasts),
       robust = robust,
+      hc3_leverage = if (robust == "HC3") d$rows[des$leverage],
       conf_level = conf_level,
       data = data.frame(treat = d$treat, pretested = d$pretested)
     ),
@@ -456,7 +500,9 @@ print.solomon_mi <- function(x, digits = 3, ...) {
     SE = round(eff$std.error, digits),
     df = round(eff$df, 1),
     t = round(eff$statistic, 2),
-    p = ifelse(eff$p.value < .001, "<.001", sprintf("%.3f", eff$p.value)),
+    # NA for a contrast whose HC3 standard error is undefined (issue #173).
+    p = ifelse(is.na(eff$p.value), "NA",
+               ifelse(eff$p.value < .001, "<.001", sprintf("%.3f", eff$p.value))),
     CI = sprintf("[%s, %s]", format(round(eff$conf.low, digits), nsmall = digits),
                  format(round(eff$conf.high, digits), nsmall = digits)),
     FMI = round(eff$fmi, 2),
@@ -510,6 +556,10 @@ print.solomon_mi <- function(x, digits = 3, ...) {
 #' ranged from 0.1 to 0.5 standard deviations across seeds with 100
 #' imputations and was 0.3 with 2,000. Before reporting a tipping point,
 #' increase `m` or compare a few seeds.
+#'
+#' **HC3 at leverage 1.** Under HC3, a contrast that depends on a
+#' participant whose leverage is 1 has no standard error and no p-value
+#' (see [fit_solomon_mi()]), so following it stops with an error.
 #'
 #' @section Lifecycle:
 #' Experimental, with [fit_solomon_mi()], whose validation study it shares.
@@ -623,10 +673,34 @@ tipping_point_solomon <- function(y_post, treat, pretested, y_pre = NULL,
   deltas <- sort(unique(c(0, deltas)))
   if (is.null(seed)) seed <- sample.int(.Machine$integer.max, 1L)
 
+  # Every offset has the same design. Under HC3, the warning about
+  # participants whose leverage is 1 (issue #173) is given once, with their
+  # row numbers in the data as given rather than among the participants
+  # kept; and a contrast that depends on them has no p-value, and so no
+  # conclusion to follow.
+  warned <- FALSE
   rows <- lapply(deltas, function(delta) {
-    fit <- fit_solomon_mi(d$y_post, d$treat, d$pretested, d$y_pre, delta = delta * pattern,
-                          m = m, robust = robust, conf_level = 1 - alpha, seed = seed)
-    fit$effects[fit$effects$contrast == contrast, ]
+    fit <- withCallingHandlers(
+      fit_solomon_mi(d$y_post, d$treat, d$pretested, d$y_pre, delta = delta * pattern,
+                     m = m, robust = robust, conf_level = 1 - alpha, seed = seed),
+      solomonR_hc3_leverage_warning = function(w) invokeRestart("muffleWarning")
+    )
+    leverage <- d$rows[fit$hc3_leverage]
+    if (length(leverage) && !warned) {
+      warned <<- TRUE
+      .warn_hc3_leverage(leverage, pretest = !is.null(d$y_pre), covariates = FALSE)
+    }
+    row <- fit$effects[fit$effects$contrast == contrast, ]
+    if (length(leverage) && is.na(row$std.error)) {
+      stop(
+        "The HC3 standard error of ", contrast, " is undefined: the contrast depends on ",
+        "a participant whose leverage is 1 (", .hc3_rows_phrase(leverage),
+        "), so it has no p-value and no conclusion to follow. Use ",
+        "`robust = \"none\"`, or follow another contrast.",
+        call. = FALSE
+      )
+    }
+    row
   })
   res <- do.call(rbind, rows)
   # The columns of an effects table (issue #110), indexed by the offset.

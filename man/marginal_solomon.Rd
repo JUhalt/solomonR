@@ -69,6 +69,9 @@ and \code{risk} or \code{rate}). The other of the two is \code{NULL}.
 \item \code{outcome}: \code{"binary"} or \code{"count"}.
 \item \code{method}: the method of inference, and \code{vcov}, a description of the
 covariance the delta method used (\code{NA} for the other methods).
+\item \code{hc3_leverage}: with \code{method = "delta"} and a fit whose
+\code{hc3_leverage} names participants whose leverage is 1, their row
+numbers; absent otherwise.
 \item \code{R} and \code{failures}: with \code{method = "bootstrap"}, the number of
 resamples and the number that failed.
 \item \code{dispersion} and \code{theta}: as in the fit.
@@ -249,6 +252,10 @@ the estimating equations of the standardized means with those of the model
 pretest; for clustered fits, the degrees of freedom are combined by the
 Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
 bootstrap resamples participants and so includes this variance.
+
+Under HC3, a delta-method contrast that depends on a participant whose
+leverage is 1 has an \code{NA} standard error, interval, and p-value, as in
+the fit (see "HC3 at leverage 1" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
 
 Count outcomes: for a fit with \code{family = poisson()} or
 \code{family = "negative_binomial"}, rates per unit of
