@@ -687,3 +687,14 @@ test_that("reports give a pretest effect at the other center without a standard 
     "their average, the pretest main effect, was -0.17 (no interval or test is available)."
   ), fixed = TRUE)
 })
+
+test_that(".center_clause() gives an estimate that is itself NA as a bare NA (#173)", {
+  # Defensive: an estimate at the other center is a linear combination of
+  # finite coefficients, so no data reach this case; the phrase is only for
+  # a finite estimate without a standard error.
+  row_na <- data.frame(estimate = NA_real_, std.error = NA_real_)
+  expect_identical(trimws(solomonR:::.center_clause(row_na, 0.95, 2, FALSE)), "NA")
+  row_finite <- data.frame(estimate = 1.5, std.error = NA_real_)
+  expect_identical(solomonR:::.center_clause(row_finite, 0.95, 2, FALSE),
+                   "1.50 (no interval or test is available)")
+})
