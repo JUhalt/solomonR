@@ -104,8 +104,11 @@
 # Coefficient vectors for the four model-adjusted cell means: pretested cells
 # at the mean pretest among pretested participants, unpretested cells at the
 # structural pre_obs = 0, and covariates at their model-matrix column means.
+# The rows are applied to the fit's coefficients by position, so a fit made
+# before issue #170 whose model matrix no longer has their columns stops
+# (.check_fit_collation()).
 .glm_cell_means_design <- function(fit) {
-  X <- stats::model.matrix(fit$model)
+  X <- .check_fit_collation(fit)
   cn <- colnames(X)
   cells <- data.frame(treat = c(0L, 1L, 0L, 1L), pretested = c(1L, 1L, 0L, 0L))
 
@@ -142,8 +145,10 @@
 # that treatment's Pretest x Treatment coefficient. Pretested cells are at
 # the mean pretest among pretested participants, unpretested cells at the
 # structural pre_obs = 0, and covariates at their model-matrix column means.
+# As for four groups, a fit made before issue #170 whose model matrix no
+# longer has the columns of its coefficients stops (.check_fit_collation()).
 .ngroup_cell_means_design <- function(fit) {
-  X <- stats::model.matrix(fit$model)
+  X <- .check_fit_collation(fit)
   cn <- colnames(X)
   conditions <- fit$conditions$condition
   is_treatment <- fit$conditions$role == "treatment"
@@ -318,7 +323,12 @@
 #' the effect of any treatment. `bounds` is not available for these fits; test
 #' equivalence one comparison at a time with [equivalence_solomon()].
 #'
-#' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()].
+#' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()]. A fit
+#'   from [fit_solomon_glm()] made by an earlier version of solomonR, which
+#'   stored a character covariate as character, stops with an error of class
+#'   `solomonR_collation_error` when the collation in force sorts that
+#'   covariate's values in a different order than the R session that made
+#'   the fit (issue #170). Refit it, or draw it under that collation.
 #' @param bounds Optional equivalence bounds for the sensitization contrast,
 #'   as one positive number or `c(lower, upper)`. When supplied, the caption
 #'   reports the outcome of [equivalence_solomon()] with these bounds, which

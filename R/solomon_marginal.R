@@ -33,10 +33,11 @@
 # the fit's data; and `n`, the number of pretested participants the
 # default standardizes over (`analyzed`, those in the model), the number
 # this set standardizes over (`observed`), and the number of those outside
-# the model who have no outcome (`no_outcome`).
-.marginal_rows <- function(fit) {
+# the model who have no outcome (`no_outcome`). `X_model` is the model
+# matrix of the fit's model, which marginal_solomon() has computed for
+# .check_fit_collation().
+.marginal_rows <- function(fit, X_model = stats::model.matrix(fit$model)) {
   model <- fit$model
-  X_model <- stats::model.matrix(model)
   d <- fit$data
   used <- .glm_rows_used(fit)
   extra <- rep(FALSE, nrow(d))
@@ -953,7 +954,13 @@
 #'   link), `family = poisson()` (log link), or
 #'   `family = "negative_binomial"`, with HC3 or model-based covariance, or,
 #'   for binary outcomes, CR2 covariance. Designs with several treatments are
-#'   not supported; see [fit_solomon_glm()].
+#'   not supported; see [fit_solomon_glm()]. A fit made by an earlier version
+#'   of solomonR, which stored a character covariate as character, stops
+#'   with an error of class `solomonR_collation_error` when the collation in
+#'   force sorts that covariate's values in a different order than the R
+#'   session that made the fit (issue #170). Refit it, or analyze it under
+#'   that collation. `method = "cluster_summary"` does not use the
+#'   covariates and does not stop.
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
 #'   outcomes, `"odds_ratio"`. For count outcomes the default is
 #'   `c("difference", "ratio")`.
@@ -1181,6 +1188,14 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stop("`R` must be a single number of at least 99.", call. = FALSE)
   }
 
+  # The design rows below are built from the fit's model and data and used
+  # with its coefficients and covariance. A fit made before issue #170 with
+  # a character covariate, analyzed under a collation that sorts its values
+  # in a different order than the session that made it, stops here rather
+  # than pair them wrongly (.check_fit_collation()). `X_fit` is the fit's
+  # model matrix.
+  X_fit <- .check_fit_collation(fit)
+
   # With a pretest or numeric covariates the fit's inference was computed
   # with the covariates standardized and the pretest scaled (issue #137;
   # .covariate_scaling()), and so is this: the model, its coefficients and
@@ -1212,11 +1227,11 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # (.marginal_rows()). `X`, `pretested`, and `treat` run over them;
   # `in_model` flags the rows the model used, to which `y` belongs.
   model_set <- function() {
-    X <- stats::model.matrix(model)
+    X <- if (is.null(scaling)) X_fit else stats::model.matrix(model)
     list(X = X, pretested = as.integer(X[, "pretested"]), treat = as.integer(X[, "treat"]),
          in_model = NULL, index = NULL)
   }
-  observed_set <- .marginal_rows(fit)
+  observed_set <- .marginal_rows(fit, X_fit)
   if (!is.null(scaling)) {
     observed_set$X <- .standardized_columns(observed_set$X, scaling, fit$model)
   }

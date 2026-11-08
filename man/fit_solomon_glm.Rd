@@ -202,7 +202,12 @@ used. \code{NULL} without \code{y_pre}; outside the stable interface (see
 \code{n_clusters}: the settings used. The last two are \code{NULL} without
 \code{cluster}.
 \item \code{call}, and \code{data} (the data the model was fitted to), which
-solomonR's own functions use.
+solomonR's own functions use. A character covariate is held in
+\code{data}, and in the model frame of \code{model}, as a factor whose levels
+are in the order the collation of the R session that made the fit
+sorts them, the order of its coefficients. \code{\link[=marginal_solomon]{marginal_solomon()}} and
+\code{\link[=plot_sensitization]{plot_sensitization()}} then code it as the fit did, whatever the
+collation when they run (issue #170).
 }
 
 For a design with several treatments, an object of class

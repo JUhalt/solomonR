@@ -19,7 +19,13 @@ marginal_solomon(
 link), \code{family = poisson()} (log link), or
 \code{family = "negative_binomial"}, with HC3 or model-based covariance, or,
 for binary outcomes, CR2 covariance. Designs with several treatments are
-not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
+not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. A fit made by an earlier version
+of solomonR, which stored a character covariate as character, stops
+with an error of class \code{solomonR_collation_error} when the collation in
+force sorts that covariate's values in a different order than the R
+session that made the fit (issue #170). Refit it, or analyze it under
+that collation. \code{method = "cluster_summary"} does not use the
+covariates and does not stop.}
 
 \item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
 outcomes, \code{"odds_ratio"}. For count outcomes the default is
