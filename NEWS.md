@@ -26,12 +26,16 @@
     example, the average treatment effect was a risk difference of
     0.0475 instead of 0.0414. The estimates standardized over every
     pretested participant with a pretest (`pretest_center = "observed"`)
-    were right.
+    were right. When no pretested participant was outside the model, the
+    two standardizations are of the same participants, and
+    `pretest_sensitivity` repeated the main results under both labels,
+    so its rows were right or wrong with them.
   - The delta-method standard errors were wrong under either center (in
     the example, 0.0764 instead of 0.0648), with one exception: for a
-    CR2 fit with a pretest but no numeric covariate, under
-    `pretest_center = "observed"`, only those of the pretest effects
-    were wrong.
+    CR2 fit with a pretest but no numeric, date, or time covariate,
+    under `pretest_center = "observed"`, only those of the pretest
+    effects were wrong (and the degrees of freedom of every contrast, as
+    below).
   - With the default center, the bootstrap refitted each resample on the
     design of the refitted model, starting from the fit's coefficients,
     which belong to the fit's coding. Whether a refit converged then
