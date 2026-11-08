@@ -23,9 +23,10 @@ not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. A fit made
 of solomonR, which stored a character covariate as character, stops
 with an error of class \code{solomonR_collation_error} when the collation in
 force sorts that covariate's values in a different order than the R
-session that made the fit (issue #170). Refit it, or analyze it under
-that collation. \code{method = "cluster_summary"} does not use the
-covariates and does not stop.}
+session that made the fit, whatever contrasts the fit was made under
+(issue #170). Refit it, or analyze it under that collation.
+\code{method = "cluster_summary"} does not use the covariates and does not
+stop.}
 
 \item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
 outcomes, \code{"odds_ratio"}. For count outcomes the default is

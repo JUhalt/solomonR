@@ -105,8 +105,8 @@
 # at the mean pretest among pretested participants, unpretested cells at the
 # structural pre_obs = 0, and covariates at their model-matrix column means.
 # The rows are applied to the fit's coefficients by position, so a fit made
-# before issue #170 whose model matrix no longer has their columns stops
-# (.check_fit_collation()).
+# before issue #170 whose model matrix no longer codes its covariates as the
+# fit did stops (.check_fit_collation()).
 .glm_cell_means_design <- function(fit) {
   X <- .check_fit_collation(fit)
   cn <- colnames(X)
@@ -146,7 +146,7 @@
 # the mean pretest among pretested participants, unpretested cells at the
 # structural pre_obs = 0, and covariates at their model-matrix column means.
 # As for four groups, a fit made before issue #170 whose model matrix no
-# longer has the columns of its coefficients stops (.check_fit_collation()).
+# longer codes its covariates as the fit did stops (.check_fit_collation()).
 .ngroup_cell_means_design <- function(fit) {
   X <- .check_fit_collation(fit)
   cn <- colnames(X)
@@ -328,7 +328,8 @@
 #'   stored a character covariate as character, stops with an error of class
 #'   `solomonR_collation_error` when the collation in force sorts that
 #'   covariate's values in a different order than the R session that made
-#'   the fit (issue #170). Refit it, or draw it under that collation.
+#'   the fit, whatever contrasts the fit was made under (issue #170). Refit
+#'   it, or draw it under that collation.
 #' @param bounds Optional equivalence bounds for the sensitization contrast,
 #'   as one positive number or `c(lower, upper)`. When supplied, the caption
 #'   reports the outcome of [equivalence_solomon()] with these bounds, which

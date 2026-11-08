@@ -958,9 +958,10 @@
 #'   of solomonR, which stored a character covariate as character, stops
 #'   with an error of class `solomonR_collation_error` when the collation in
 #'   force sorts that covariate's values in a different order than the R
-#'   session that made the fit (issue #170). Refit it, or analyze it under
-#'   that collation. `method = "cluster_summary"` does not use the
-#'   covariates and does not stop.
+#'   session that made the fit, whatever contrasts the fit was made under
+#'   (issue #170). Refit it, or analyze it under that collation.
+#'   `method = "cluster_summary"` does not use the covariates and does not
+#'   stop.
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
 #'   outcomes, `"odds_ratio"`. For count outcomes the default is
 #'   `c("difference", "ratio")`.

@@ -37,31 +37,43 @@
     fit had no numeric covariate. The difference of differences, and the
     Pretest x Treatment estimate in the subtitle, were right.
 * `fit_solomon_glm()` now stores each character covariate as a factor,
-  made with `factor()` when the fit is made, so its levels are those the
-  coefficients are named and ordered by. `fit$data` and the model frame
-  of `fit$model` hold a factor where they held character, and code of
-  your own that reads `fit$data` will see the change. The coefficients,
-  the effects, and every other result are as before. A character matrix
-  column of one column, which `glm()` takes as one categorical
-  covariate, is stored as a factor too.
+  made with `factor()` when the fit is made, so its levels are sorted by
+  the same collation as the levels its coefficients are named and
+  ordered by. `fit$data` and the model frame of `fit$model` hold a
+  factor where they held character, and code of your own that reads
+  `fit$data` will see the change. A level seen only in rows the model
+  does not use is a level of the factor in `fit$data` but has no
+  coefficient. The coefficients, the effects, and every other result
+  are as before. A character matrix column of one column, which
+  `glm()` takes as one categorical covariate, is stored as a factor too.
 * A fit saved by an earlier version still holds character. Under a
   collation that sorts the covariate's values in a different order than
   the session that made the fit, `marginal_solomon()` and
   `plot_sensitization()` now stop with an error of class
   `solomonR_collation_error` instead of giving wrong results: refit it
   with this version, or analyze it under the collation of the session
-  that made it. They check that the columns of the design rebuilt from
-  the fit are the names of its coefficients, in their order. Under the
-  fit's own collation such a fit gives the same results as before, and
+  that made it. They check two things: that the levels of each
+  character covariate, sorted by the collation in force, are the levels
+  stored with the fit (`fit$model$xlevels`), and that the columns of the
+  design rebuilt from the fit are the names of its coefficients, in
+  their order. The levels are needed for a fit made under contrasts such
+  as `contr.sum` or `contr.helmert`, whose columns are numbered
+  (`site1`, `site2`) whatever the order of the levels. The error names
+  the covariates whose levels change order. Under the fit's own
+  collation such a fit gives the same results as before, and
   `marginal_solomon(method = "cluster_summary")`, which does not use the
   covariates, does not stop.
 * `perm_solomon()` also refits the model under the collation in force.
   Its statistic uses only the treatment coefficients and their variance,
-  which do not depend on how a covariate is coded, so its results were
-  right; it is unchanged. Tests fit under the session's collation,
-  analyze under C, and compare with the same fit with the covariates
-  given as factors; they are skipped where the session sorts the test
-  values as C does.
+  which do not depend on how a covariate is coded, so the coding of a
+  character covariate did not change its results; it is unchanged.
+* Tests fit under the session's collation and analyze under another: C,
+  or, where the session already sorts the test values as C does, an
+  English collation. They compare the results with those of the same
+  fit with the covariates given as factors, and check that fits stored
+  as earlier versions stored them stop, whether made under
+  `contr.treatment`, `contr.sum`, or `contr.helmert`. They are skipped
+  where no such collation is available.
 
 ## Refits under the fit's contrasts (bug fix, #168)
 

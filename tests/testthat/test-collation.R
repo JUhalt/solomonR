@@ -9,21 +9,61 @@
 #
 # solomonR's tests run under testthat's second edition, where test_that()
 # leaves the collation as the session has it. These tests fit under the
-# session's collation and analyze inside withr::with_collate("C", ...). C
-# sorts capitals first: north, South, west become South, north, west, so
-# the reference level changes, and Alpha, beta, Gamma become Alpha, Gamma,
-# beta, so only the order of the other levels changes. A test is skipped
-# when the session already sorts its values as C does, because it then
-# cannot change the collation between the fit and the analysis.
+# session's collation and analyze under another one, chosen by
+# collate_analysis(): C, which sorts capitals first, or, where the session
+# already sorts the test values as C does (as under C.UTF-8, the locale of
+# many Linux machines), an English collation, which does not. Between the
+# two, north, South, west and South, north, west trade places, so the
+# reference level changes, and Alpha, beta, Gamma and Alpha, Gamma, beta
+# do, so only the order of the other levels changes. A test that changes
+# the collation is skipped when no such collation is available.
 
 collate_site <- c("north", "South", "west")
 collate_grp <- c("Alpha", "beta", "Gamma")
 
-skip_if_sorted_as_c <- function(values) {
-  if (identical(sort(values), withr::with_collate("C", sort(values)))) {
-    skip("The session's collation sorts the test values as C does.")
+# The collations the tests may analyze under, in order: C, then names of
+# English collations on Linux, macOS, and Windows.
+collate_candidates <- c("C", "en_US.UTF-8", "en_US.utf8", "en_GB.UTF-8",
+                        "English_United States.utf8", "English_United States.1252")
+
+# Whether the collation `locale` is available and sorts both sets of test
+# values in a different order than the session's collation does.
+collate_sorts_otherwise <- function(locale) {
+  session <- Sys.getlocale("LC_COLLATE")
+  on.exit(Sys.setlocale("LC_COLLATE", session), add = TRUE)
+  before <- list(sort(collate_site), sort(collate_grp))
+  if (!nzchar(suppressWarnings(Sys.setlocale("LC_COLLATE", locale)))) return(FALSE)
+  after <- list(sort(collate_site), sort(collate_grp))
+  !identical(before[[1]], after[[1]]) && !identical(before[[2]], after[[2]])
+}
+
+# The collation the tests analyze under: the first of `collate_candidates`
+# that sorts both sets of test values in a different order than the
+# session's collation, chosen once. NA when there is none.
+collate_analysis <- local({
+  chosen <- NULL
+  function() {
+    if (is.null(chosen)) {
+      chosen <<- NA_character_
+      for (locale in collate_candidates) {
+        if (collate_sorts_otherwise(locale)) {
+          chosen <<- locale
+          break
+        }
+      }
+    }
+    chosen
+  }
+})
+
+skip_without_analysis_collation <- function() {
+  if (is.na(collate_analysis())) {
+    skip("No available collation sorts the test values otherwise than the session's.")
   }
 }
+
+# `code` evaluated under the collation the tests analyze under.
+with_analysis_collation <- function(code) withr::with_collate(collate_analysis(), code)
 
 # The example of issue #170 (`y`, `site`, `pre`, and `y_missing`, with ten
 # pretested participants missing their posttest), drawn as the issue drew
@@ -115,22 +155,32 @@ collate_cells <- function(fit) {
 }
 
 # `analyze(fit)` gives the same numbers for the fit with character
-# covariates analyzed under the session's collation and under C, and for
-# the same fit with the covariates given as factors, analyzed under C.
+# covariates analyzed under the session's collation and under the other
+# one, and for the same fit with the covariates given as factors, analyzed
+# under the other one.
 expect_collation_invariant <- function(character_fit, factor_fit, analyze) {
   reference <- analyze(character_fit)
-  expect_equal(withr::with_collate("C", analyze(character_fit)), reference,
+  expect_equal(with_analysis_collation(analyze(character_fit)), reference,
                tolerance = 1e-10)
-  expect_equal(withr::with_collate("C", analyze(factor_fit)), reference, tolerance = 1e-10)
+  expect_equal(with_analysis_collation(analyze(factor_fit)), reference, tolerance = 1e-10)
 }
 
-# A fit as earlier versions stored it: the character covariates `names`
-# held as character in the fit's data and in the model frame.
-as_old_fit <- function(fit, names) {
-  for (name in names) {
+# A fit as earlier versions stored it: each of the character covariates
+# `covariates` held as character in the fit's data, in the data and the
+# model frame of its model, and in the classes of the data recorded with
+# the model's terms.
+as_old_fit <- function(fit, covariates) {
+  frame_terms <- attr(fit$model$model, "terms")
+  for (name in covariates) {
     fit$data[[name]] <- as.character(fit$data[[name]])
+    if (is.data.frame(fit$model$data)) {
+      fit$model$data[[name]] <- as.character(fit$model$data[[name]])
+    }
     fit$model$model[[name]] <- as.character(fit$model$model[[name]])
+    attr(fit$model$terms, "dataClasses")[[name]] <- "character"
+    attr(frame_terms, "dataClasses")[[name]] <- "character"
   }
+  attr(fit$model$model, "terms") <- frame_terms
   fit
 }
 
@@ -193,17 +243,19 @@ test_that("fit_solomon_glm() stores a character covariate as a factor (#170)", {
 
 
 test_that("marginal_solomon() does not depend on the collation at analysis (#170)", {
-  skip_if_sorted_as_c(collate_site)
+  skip_without_analysis_collation()
   d <- collate_data()
 
-  # The issue's example: under C, the design of the fit with `site` as
-  # character had the columns sitenorth and sitewest, the pretest effect
-  # among the treated was 0.0237 instead of 0.0922, and the pretest main
-  # effect -0.0245 instead of 0.0402.
+  # The issue's example, fitted under English and analyzed under C: the
+  # design of the fit with `site` as character had the columns sitenorth
+  # and sitewest, the pretest effect among the treated was 0.0237 instead
+  # of 0.0922, and the pretest main effect -0.0245 instead of 0.0402. The
+  # right values do not depend on which level is the reference, so they
+  # are the same whichever collation the fit is made under.
   fit <- collate_fit(d, data.frame(site = d$site), y = d$y)
-  expect_identical(withr::with_collate("C", colnames(stats::model.matrix(fit$model))),
+  expect_identical(with_analysis_collation(colnames(stats::model.matrix(fit$model))),
                    names(stats::coef(fit$model)))
-  m <- withr::with_collate("C", marginal_solomon(fit, method = "delta", scale = "difference"))
+  m <- with_analysis_collation(marginal_solomon(fit, method = "delta", scale = "difference"))
   effects <- stats::setNames(round(m$effects$estimate, 4), m$effects$contrast)
   expect_equal(effects[["Pretest effect | treated"]], 0.0922)
   expect_equal(effects[["Pretest main effect"]], 0.0402)
@@ -229,7 +281,7 @@ test_that("marginal_solomon() does not depend on the collation at analysis (#170
 
 
 test_that("marginal_solomon() with missing posttests does not depend on the collation (#170)", {
-  skip_if_sorted_as_c(collate_site)
+  skip_without_analysis_collation()
   d <- collate_data()
 
   # The issue's example with ten posttests missing among the pretested
@@ -259,7 +311,7 @@ test_that("marginal_solomon() with missing posttests does not depend on the coll
 
 
 test_that("CR2 marginal effects and their degrees of freedom do not depend on the collation (#170)", {
-  skip_if_sorted_as_c(collate_site)
+  skip_without_analysis_collation()
   d <- collate_data()
   analyze <- function(fit) collate_marginal(fit, method = "delta")
 
@@ -288,7 +340,7 @@ test_that("CR2 marginal effects and their degrees of freedom do not depend on th
 
 
 test_that("marginal effects of count fits do not depend on the collation (#170)", {
-  skip_if_sorted_as_c(collate_site)
+  skip_without_analysis_collation()
   d <- collate_data()
   analyze <- function(fit) collate_marginal(fit, method = "delta")
 
@@ -308,13 +360,13 @@ test_that("marginal effects of count fits do not depend on the collation (#170)"
 
 
 test_that("the cell means of plot_sensitization() do not depend on the collation (#170)", {
-  skip_if_sorted_as_c(collate_site)
+  skip_without_analysis_collation()
   d <- collate_data()
 
   # The issue's example: under C, every cell mean shifted by -0.350 on the
   # logit scale. The figure's data are those cells.
   fit <- collate_fit(d, data.frame(site = d$site), y = d$y)
-  expect_equal(withr::with_collate("C", plot_sensitization(fit)$data$estimate),
+  expect_equal(with_analysis_collation(plot_sensitization(fit)$data$estimate),
                plot_sensitization(fit)$data$estimate, tolerance = 1e-10)
 
   # Binary and Gaussian, under HC3 and CR2 (with nothing standardized for
@@ -350,13 +402,15 @@ test_that("the cell means of plot_sensitization() do not depend on the collation
 
 
 test_that("a covariate whose levels only change order is coded as in the fit (#170)", {
-  # Alpha, beta, Gamma keep their reference level under C, and the columns
-  # grpbeta and grpGamma come in the other order.
-  skip_if_sorted_as_c(collate_grp)
+  # Alpha, beta, Gamma keep their reference level, Alpha, under both
+  # collations, and the columns grpbeta and grpGamma come in the other
+  # order.
+  skip_without_analysis_collation()
   d <- collate_data()
   fit <- collate_fit(d, data.frame(grp = d$grp))
   factor_fit <- collate_fit(d, data.frame(grp = factor(d$grp)))
-  expect_identical(names(stats::coef(fit$model))[5:6], c("grpbeta", "grpGamma"))
+  expect_identical(with_analysis_collation(sort(collate_grp))[1], sort(collate_grp)[1])
+  expect_identical(names(stats::coef(fit$model))[5:6], paste0("grp", sort(collate_grp)[-1]))
   expect_collation_invariant(fit, factor_fit, function(fit) {
     collate_marginal(fit, method = "delta")
   })
@@ -365,7 +419,7 @@ test_that("a covariate whose levels only change order is coded as in the fit (#1
 
 
 test_that("a fit stored by an earlier version stops under another collation (#170)", {
-  skip_if_sorted_as_c(collate_site)
+  skip_without_analysis_collation()
   d <- collate_data()
 
   # The fits as earlier versions stored them: binary under HC3, with
@@ -380,13 +434,13 @@ test_that("a fit stored by an earlier version stops under another collation (#17
     old <- as_old_fit(fit, c("site", "grp"))
     expect_identical(class(old$data$site), "character")
 
-    # Under C, the design rebuilt from the fit does not match its
-    # coefficients, and the functions that would pair them stop.
-    expect_error(withr::with_collate("C", marginal_solomon(old, method = "delta")),
+    # Under the other collation, the design rebuilt from the fit does not
+    # match its coefficients, and the functions that would pair them stop.
+    expect_error(with_analysis_collation(marginal_solomon(old, method = "delta")),
                  class = "solomonR_collation_error", info = name)
-    expect_error(withr::with_collate("C", marginal_solomon(old, method = "delta")),
+    expect_error(with_analysis_collation(marginal_solomon(old, method = "delta")),
                  "character covariates site, grp by the collation", info = name)
-    expect_error(withr::with_collate("C", plot_sensitization(old)),
+    expect_error(with_analysis_collation(plot_sensitization(old)),
                  class = "solomonR_collation_error", info = name)
 
     # Under the collation of the session that made it, it gives the
@@ -398,30 +452,39 @@ test_that("a fit stored by an earlier version stops under another collation (#17
 
   # The bootstrap stops too, before any resample.
   old <- as_old_fit(fits$hc3, c("site", "grp"))
-  expect_error(withr::with_collate("C", marginal_solomon(old, R = 99, seed = 7)),
+  expect_error(with_analysis_collation(marginal_solomon(old, R = 99, seed = 7)),
                class = "solomonR_collation_error")
   # The cluster-level summaries use only the outcome, treatment, and
   # pretesting, so they do not stop.
   old_cr2 <- as_old_fit(fits$cr2, c("site", "grp"))
   expect_identical(
-    withr::with_collate("C", marginal_solomon(old_cr2, method = "cluster_summary"))$effects,
+    with_analysis_collation(marginal_solomon(old_cr2, method = "cluster_summary"))$effects,
     marginal_solomon(fits$cr2, method = "cluster_summary")$effects
   )
 
-  # One covariate, whose levels only change order under C.
-  if (!identical(sort(collate_grp), withr::with_collate("C", sort(collate_grp)))) {
-    old_grp <- as_old_fit(collate_fit(d, data.frame(grp = d$grp)), "grp")
-    expect_error(withr::with_collate("C", marginal_solomon(old_grp, method = "delta")),
-                 "the character covariate grp by the collation")
-  }
+  # One covariate, whose levels only change order.
+  old_grp <- as_old_fit(collate_fit(d, data.frame(grp = d$grp)), "grp")
+  expect_error(with_analysis_collation(marginal_solomon(old_grp, method = "delta")),
+               "the character covariate grp by the collation")
 
-  # A character covariate whose values C sorts as the session does runs.
+  # A character covariate whose values the other collation sorts as the
+  # session does runs, and the message names only the covariates whose
+  # levels change order.
   lower <- tolower(d$site)
-  same <- collate_fit(d, data.frame(site = lower))
-  if (identical(sort(unique(lower)), withr::with_collate("C", sort(unique(lower))))) {
+  lower_grp <- tolower(d$grp)
+  if (identical(sort(unique(c(lower, lower_grp))),
+                with_analysis_collation(sort(unique(c(lower, lower_grp)))))) {
+    same <- collate_fit(d, data.frame(site = lower))
     old_same <- as_old_fit(same, "site")
-    expect_equal(withr::with_collate("C", collate_marginal(old_same, method = "delta")),
+    expect_equal(with_analysis_collation(collate_marginal(old_same, method = "delta")),
                  collate_marginal(same, method = "delta"), tolerance = 1e-10)
+    expect_equal(with_analysis_collation(collate_cells(old_same)), collate_cells(same),
+                 tolerance = 1e-10)
+
+    mixed <- as_old_fit(collate_fit(d, data.frame(site = d$site, grp = lower_grp)),
+                        c("site", "grp"))
+    expect_error(with_analysis_collation(marginal_solomon(mixed, method = "delta")),
+                 "fit codes the character covariate site by the collation")
   }
 
   # A design with several treatments.
@@ -429,17 +492,79 @@ test_that("a fit stored by an earlier version stops under another collation (#17
   ngroup <- fit_solomon_glm(m$y, m$condition, m$pretested, m$pre, control = "Control",
                             covariates = collate_character(m))
   old_ngroup <- as_old_fit(ngroup, c("site", "grp"))
-  expect_error(withr::with_collate("C", plot_sensitization(old_ngroup)),
+  expect_error(with_analysis_collation(plot_sensitization(old_ngroup)),
                class = "solomonR_collation_error")
   expect_equal(collate_cells(old_ngroup), collate_cells(ngroup), tolerance = 1e-10)
 })
 
 
-test_that("the check of the collation passes aliased coefficients (#170)", {
+test_that("a fit stored by an earlier version under sum or Helmert contrasts stops (#170)", {
+  # Under contr.sum and contr.helmert the columns of a factor are numbered
+  # (site1, site2) whatever the order of its levels, so the design rebuilt
+  # under the other collation has the names of the coefficients, in their
+  # order, while it codes the levels in another order. The levels stored
+  # with the model show the change.
+  skip_without_analysis_collation()
+  d <- collate_data()
+  m <- collate_ngroup_data()
+  with_contrasts <- function(contrasts, code) {
+    withr::with_options(list(contrasts = c(contrasts, "contr.poly")), code)
+  }
+  fits <- list(
+    sum = with_contrasts("contr.sum", collate_fit(d, collate_character(d))),
+    sum_missing = with_contrasts("contr.sum", collate_fit(d, collate_character(d),
+                                                          y = d$y_both_missing)),
+    sum_no_pretest = with_contrasts("contr.sum", collate_fit(d, collate_character(d),
+                                                             y_pre = NULL)),
+    helmert_grp = with_contrasts("contr.helmert", collate_fit(d, data.frame(grp = d$grp))),
+    sum_ngroup = with_contrasts("contr.sum", fit_solomon_glm(
+      m$y, m$condition, m$pretested, m$pre, control = "Control",
+      covariates = collate_character(m)
+    ))
+  )
+  for (name in names(fits)) {
+    fit <- fits[[name]]
+    covariates <- intersect(c("site", "grp"), names(fit$model$xlevels))
+    old <- as_old_fit(fit, covariates)
+    expect_true(all(unlist(fit$model$contrasts[covariates]) %in%
+                      c("contr.sum", "contr.helmert")), info = name)
+
+    # The names of the columns alone do not show the change.
+    expect_identical(with_analysis_collation(colnames(stats::model.matrix(old$model))),
+                     names(stats::coef(old$model)), info = name)
+
+    if (!inherits(fit, "solomon_ngroup")) {
+      expect_error(with_analysis_collation(marginal_solomon(old, method = "delta")),
+                   class = "solomonR_collation_error", info = name)
+      expect_equal(collate_marginal(old, method = "delta"),
+                   collate_marginal(fit, method = "delta"), tolerance = 1e-10, info = name)
+      expect_equal(with_analysis_collation(collate_marginal(fit, method = "delta")),
+                   collate_marginal(fit, method = "delta"), tolerance = 1e-10, info = name)
+    }
+    expect_error(with_analysis_collation(plot_sensitization(old)),
+                 class = "solomonR_collation_error", info = name)
+    expect_equal(collate_cells(old), collate_cells(fit), tolerance = 1e-10, info = name)
+    expect_equal(with_analysis_collation(collate_cells(fit)), collate_cells(fit),
+                 tolerance = 1e-10, info = name)
+  }
+  expect_error(with_analysis_collation(marginal_solomon(as_old_fit(fits$sum, c("site", "grp")),
+                                                        method = "delta")),
+               "character covariates site, grp by the collation")
+})
+
+
+test_that("the check of the collation passes aliased coefficients and compares names (#170)", {
   # An aliased coefficient is NA but keeps its name and its column.
   d <- withr::with_seed(1703, data.frame(y = stats::rnorm(20), x = stats::rnorm(20)))
   d$x2 <- 2 * d$x
   model <- stats::glm(y ~ x + x2, data = d)
   expect_true(is.na(stats::coef(model)[["x2"]]))
   expect_identical(.check_fit_collation(list(model = model)), stats::model.matrix(model))
+
+  # With no character covariate whose levels change order, a model matrix
+  # whose columns are not the names of the coefficients still stops.
+  names(model$coefficients)[2:3] <- c("x2", "x")
+  expect_error(.check_fit_collation(list(model = model)),
+               "The fit codes a character covariate by the collation",
+               class = "solomonR_collation_error")
 })

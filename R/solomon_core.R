@@ -1329,11 +1329,14 @@ stouffer_solomon <- function(p) {
 #'     `cluster`.
 #'   - `call`, and `data` (the data the model was fitted to), which
 #'     solomonR's own functions use. A character covariate is held in
-#'     `data`, and in the model frame of `model`, as a factor whose levels
-#'     are in the order the collation of the R session that made the fit
-#'     sorts them, the order of its coefficients. [marginal_solomon()] and
-#'     [plot_sensitization()] then code it as the fit did, whatever the
-#'     collation when they run (issue #170).
+#'     `data`, and in the model frame of `model`, as a factor made with
+#'     [factor()] when the fit is made, so its levels are sorted by the
+#'     collation of that R session, as were the levels its coefficients are
+#'     named and ordered by. A level seen only in rows the model did not use
+#'     is a level of the factor in `data` but has no coefficient.
+#'     [marginal_solomon()] and [plot_sensitization()] then code the
+#'     covariate as the fit did, whatever the collation when they run
+#'     (issue #170).
 #'
 #'   For a design with several treatments, an object of class
 #'   `solomon_ngroup`, with the same elements and these changes:

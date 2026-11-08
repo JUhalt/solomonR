@@ -197,28 +197,43 @@
 }
 
 
-# Stop when the model matrix `X` of the model of a fit from
-# fit_solomon_glm() does not have the columns of its coefficients, in their
-# order (issue #170). Fits made before #170 store a character covariate as
-# character, and model.matrix() makes it a factor whose levels follow the
-# collation in force when it runs. Under a collation that sorts its values
-# otherwise than the session that made the fit, the columns of the design
-# differ from the coefficients in name, when the reference level changes,
-# or only in order, when it does not (Alpha, beta, Gamma in English; Alpha,
-# Gamma, beta in C), so the names are compared in order. The functions that
-# pair a design built from the stored model or data with the fit's
-# coefficients or covariance call this first, rather than give wrong
-# results. An aliased coefficient is NA but keeps its name and its column,
-# so it does not stop this. Returns `X`, invisibly, for the caller to use.
+# Stop when a fit from fit_solomon_glm() would be coded otherwise under the
+# collation in force than when it was made (issue #170). Fits made before
+# #170 store a character covariate as character, and model.matrix() makes
+# it a factor whose levels follow the collation in force when it runs. Two
+# things are checked. First, the levels of each character column of the
+# stored model frame, sorted now, must be the levels stored with the model
+# (`xlevels`), which were sorted when the fit was made. This catches a fit
+# made under contrasts such as contr.sum or contr.helmert, whose columns
+# are numbered (site1, site2) whatever the order of the levels, so that
+# their names stay the same when the order changes. Second, the columns of
+# the model matrix `X` must be the names of the coefficients, in their
+# order. Under treatment contrasts the names change when the reference
+# level changes, and only their order when it does not (Alpha, beta, Gamma
+# in English; Alpha, Gamma, beta in C). The functions that pair a design
+# built from the stored model or data with the fit's coefficients or
+# covariance call this first, rather than give wrong results. A covariate
+# stored as a factor, as fits now store it, keeps its levels and passes.
+# An aliased coefficient is NA but keeps its name and its column, so it
+# does not stop this. The message names the covariates whose levels change
+# order. Returns `X`, invisibly, for the caller to use; `X` is not built
+# when the levels have changed.
 .check_fit_collation <- function(fit, X = stats::model.matrix(fit$model)) {
-  if (identical(colnames(X), names(stats::coef(fit$model)))) return(invisible(X))
   frame <- fit$model$model
-  character <- names(frame)[vapply(frame, is.character, logical(1))]
-  covariates <- if (!length(character)) {
+  xlevels <- fit$model$xlevels
+  character <- intersect(names(frame)[vapply(frame, is.character, logical(1))],
+                         names(xlevels))
+  changed <- character[!vapply(character, function(name) {
+    identical(levels(factor(frame[[name]])), xlevels[[name]])
+  }, logical(1))]
+  if (!length(changed) && identical(colnames(X), names(stats::coef(fit$model)))) {
+    return(invisible(X))
+  }
+  covariates <- if (!length(changed)) {
     "a character covariate"
   } else {
-    paste0(if (length(character) == 1L) "the character covariate " else
-      "the character covariates ", paste(character, collapse = ", "))
+    paste0(if (length(changed) == 1L) "the character covariate " else
+      "the character covariates ", paste(changed, collapse = ", "))
   }
   stop(structure(
     class = c("solomonR_collation_error", "error", "condition"),
