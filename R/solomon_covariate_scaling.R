@@ -332,6 +332,51 @@
   if (quiet) suppressWarnings(fit()) else fit()
 }
 
+# The value of `expr` and the warnings it signalled, which are held back
+# (muffled), so that fit_solomon_glm() gives the warnings of its fit only
+# once the fit is known to go ahead (.signal_warnings()), not with the
+# error of one of its checks: an empty group, a collinear term, or a
+# single participant under HC3 (issue #154). A warning that cannot be
+# muffled, as one raised with signalCondition(), which has no muffleWarning
+# restart, is left to pass, as before #154.
+# When `expr` itself stops, as glm() does when it finds no valid
+# coefficients, or is interrupted, the warnings are signalled from a
+# calling handler, before the error or the interrupt is handled, as they
+# were before #154: they may be the only clue to why the fit failed. The
+# error is not caught, so the stack is not unwound before it is handled,
+# and traceback() and recover() still reach the frame that failed. When
+# `expr` exits otherwise, as by a caller's exiting handler for a message,
+# the warnings are signalled on the way out, so that none is lost.
+.record_warnings <- function(expr) {
+  warnings <- list()
+  release <- function(condition = NULL) {
+    held <- warnings
+    warnings <<- list()
+    .signal_warnings(held)
+  }
+  on.exit(release())
+  value <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      if (is.null(findRestart("muffleWarning"))) return()
+      warnings[[length(warnings) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    },
+    error = release,
+    interrupt = release
+  )
+  held <- list(value = value, warnings = warnings)
+  warnings <- list()
+  held
+}
+
+# Signals again, in order, the warnings held back by .record_warnings(),
+# each the same condition: its class, message, and call.
+.signal_warnings <- function(warnings) {
+  for (w in warnings) warning(w)
+  invisible(NULL)
+}
+
 # The standardized model of a fit_solomon_glm() fit with `covariate_scaling`,
 # refitted. The fit gave its warnings when it was made, so this one gives
 # none.
