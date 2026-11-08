@@ -198,7 +198,9 @@ An object of class `solomon_glm`, a list with:
 - `coefficients`: the coefficients of the model, in the same columns
   through `conf.high`, with `term` for `contrast`.
 
-- `model`: the fitted model, a `glm` object.
+- `model`: the fitted model, a `glm` object, fitted to the covariates
+  and the pretest as given. Its `converged` and `iter` are those of that
+  fit, not of the standardized one (see "Covariates").
 
 - `vcov`: the covariance matrix of the coefficients, as `robust` sets
   it. With CR2 it is the clubSandwich object, or, with a pretest or a
@@ -677,6 +679,16 @@ warnings, such as one that a negative-binomial theta did not converge,
 come from the standardized model too, as do `theta` and `dispersion`,
 which do not depend on the parameterization. Far from zero, a fit to a
 covariate as given can warn where the same model standardized does not.
+With a pretest or a numeric covariate, `model$converged` and
+`model$iter` describe the fit to the data as given, which is made
+silently, not the standardized fit that gave the warnings. The model
+fit's warnings are given once the checks for an empty group, a collinear
+term, and, under HC3, a group with a single participant have passed, so
+a fit that stops at one of these checks gives the error without the
+model fit's warnings. The warnings about the data given, raised before
+the fit (pretested participants with a missing pretest, `y_pre` given
+for unpretested participants), still come before that error. An error
+inside the fit itself still comes after the warnings the fit gave.
 
 Covariates collinear with the other terms stop the fit wherever they
 lie. Far from zero, the rounding error of the stored values can make

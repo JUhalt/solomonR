@@ -817,7 +817,8 @@ design, and blames sparse cells; and, in
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
 the convergence warning that can come with the error for exactly
 collinear covariates, and which fit `model$converged` describes —
-[\#154](https://github.com/JUhalt/solomonR/issues/154)
+[\#154](https://github.com/JUhalt/solomonR/issues/154); merged in [PR
+\#165](https://github.com/JUhalt/solomonR/pull/165)
 
 Robustness study of the recommended inference, under a protocol posted
 before any run — [\#116](https://github.com/JUhalt/solomonR/issues/116)
