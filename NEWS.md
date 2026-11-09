@@ -98,8 +98,9 @@
   `report_solomon()`, and `marginal_solomon()` equal those of the same
   fit with the covariate renamed. They also check the factor `pre` with
   a level `_obs` in `marginal_solomon()`, and in the collinearity error
-  with and without a pretest, for terms collinear in the data and for
-  terms collinear but for rounding, which the check of #137 finds.
+  with and without a pretest: for terms that `glm()` finds collinear,
+  and for terms collinear but for rounding, which only the check of #137
+  finds.
 
 ## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
 

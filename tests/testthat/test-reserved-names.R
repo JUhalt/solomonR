@@ -50,11 +50,14 @@ reserved_six <- function() {
   })
 }
 
-# Covariates of `n` participants that are collinear but for the rounding
-# error of their values: z1 near 1.7e9, z2 = z1 + 600 x + 0.5, and a factor
-# `pre` whose level `_obs` marks x = 1, so that its indicator is named
-# pre_obs in the model matrix. z1, z2, the indicator, and the intercept are
-# collinear.
+# Covariates of `n` participants that are collinear in their stored
+# values: z1 near 1.7e9, z2 = z1 + 600 x + 0.5 exactly, and a factor `pre`
+# whose level `_obs` marks x = 1, so that its indicator is named pre_obs in
+# the model matrix. z1, z2, the indicator, and the intercept are
+# collinear. glm() estimates every coefficient of the model as given,
+# whose values lie near 1.7e9, and leaves the indicator's coefficient
+# inestimable in the standardized model, so the check of #137 does not
+# run.
 near_collinear <- function(n) {
   withr::with_seed(5501, {
     x <- stats::rbinom(n, 1, 0.5)
@@ -62,6 +65,33 @@ near_collinear <- function(n) {
     data.frame(z1 = z1, z2 = z1 + 600 * x + 0.5,
                pre = factor(ifelse(x == 1, "_obs", "a"), c("a", "_obs")))
   })
+}
+
+# The covariates of near_collinear() with z2 moved off the relation by 0,
+# 1, or 2 units in its last place (2^-22), so that they are collinear but
+# for the rounding error of their values. glm() estimates every
+# coefficient of both models, and only the check of #137 on the
+# standardized model (.collinear_positions()) finds the relation.
+rounding_collinear <- function(n) {
+  covariates <- near_collinear(n)
+  covariates$z2 <- covariates$z2 + 2^-22 * (seq_len(n) %% 3)
+  covariates
+}
+
+# Whether the check of #137 on the standardized model
+# (.collinear_positions()) finds collinear terms while `expr` runs. It is
+# FALSE when glm() leaves a coefficient inestimable, as the check then
+# does not run.
+found_by_rounding_check <- function(expr) {
+  check <- .collinear_positions
+  found <- FALSE
+  local_mocked_bindings(.collinear_positions = function(...) {
+    positions <- check(...)
+    found <<- found || length(positions) > 0L
+    positions
+  })
+  try(expr, silent = TRUE)
+  found
 }
 
 # The error of fit_solomon_glm() for collinear terms, which it names as
@@ -133,6 +163,13 @@ test_that("fit_solomon_glm() refuses a covariate named pre_obs or condition in e
   fit <- fit_solomon_glm(s$y, s$condition, s$pretested, control = "Control",
                          covariates = data.frame(treat = s$x), family = stats::binomial())
   expect_s3_class(fit, "solomon_ngroup")
+  # Several treatments, with a pretest.
+  for (name in c("pre_obs", "condition")) {
+    expect_reserved(fit_solomon_glm(s$y, s$condition, s$pretested, s$pre, control = "Control",
+                                    covariates = stats::setNames(data.frame(s$x), name),
+                                    family = stats::binomial()),
+                    name, reserved_six_note, info = name)
+  }
 })
 
 
@@ -151,9 +188,13 @@ test_that("check_solomon_missing() refuses pre_obs, condition, and log_exposure,
   }
   s <- reserved_six()
   for (name in c("pre_obs", "condition", "log_exposure")) {
+    covariates <- stats::setNames(data.frame(s$x), name)
     expect_reserved(check_solomon_missing(s$y, s$condition, s$pretested, control = "Control",
-                                          covariates = stats::setNames(data.frame(s$x), name)),
+                                          covariates = covariates),
                     name, reserved_missing_note, info = name)
+    expect_reserved(check_solomon_missing(s$y, s$condition, s$pretested, s$pre,
+                                          control = "Control", covariates = covariates),
+                    name, reserved_six_note, info = name)
   }
   # Other names are kept without a pretest, as before.
   kept <- check_solomon_missing(d$yg, d$treat, d$pretested,
@@ -294,24 +335,33 @@ test_that("a collinear factor indicator named pre_obs is not called the pretest 
   # error called it "pre_obs (the pretest, `y_pre`)".
   collinear <- collinear_error("pre_obs")
   d <- reserved_four()
-  pre <- factor(ifelse(d$pretested == 1, "_obs", "a"), c("a", "_obs"))
-  expect_error(fit_solomon_glm(d$yg, d$treat, d$pretested, covariates = data.frame(pre = pre)),
-               collinear, fixed = TRUE)
   s <- reserved_six()
+  four <- function(covariates) {
+    fit_solomon_glm(d$yg, d$treat, d$pretested, covariates = covariates)
+  }
+  six <- function(covariates) {
+    fit_solomon_glm(s$y, s$condition, s$pretested, control = "Control",
+                    covariates = covariates, family = stats::binomial())
+  }
+  pre <- factor(ifelse(d$pretested == 1, "_obs", "a"), c("a", "_obs"))
+  expect_error(four(data.frame(pre = pre)), collinear, fixed = TRUE)
   pre <- factor(ifelse(s$pretested == 1L, "_obs", "a"), c("a", "_obs"))
-  expect_error(fit_solomon_glm(s$y, s$condition, s$pretested, control = "Control",
-                               covariates = data.frame(pre = pre), family = stats::binomial()),
-               collinear, fixed = TRUE)
+  expect_error(six(data.frame(pre = pre)), collinear, fixed = TRUE)
 
-  # Collinear but for rounding (near_collinear()): glm() fits the model as
-  # given, whose values lie near 1.7e9, and the check of the standardized
-  # model finds the relation (.collinear_terms()). Its error too called the
-  # indicator the pretest.
-  expect_error(fit_solomon_glm(d$yg, d$treat, d$pretested, covariates = near_collinear(200)),
-               collinear, fixed = TRUE)
-  expect_error(fit_solomon_glm(s$y, s$condition, s$pretested, control = "Control",
-                               covariates = near_collinear(240), family = stats::binomial()),
-               collinear, fixed = TRUE)
+  # Collinear in their stored values (near_collinear()): glm() leaves the
+  # indicator's coefficient inestimable in the standardized model. Its
+  # error too called the indicator the pretest.
+  expect_error(four(near_collinear(200)), collinear, fixed = TRUE)
+  expect_error(six(near_collinear(240)), collinear, fixed = TRUE)
+  expect_false(found_by_rounding_check(four(near_collinear(200))))
+  expect_false(found_by_rounding_check(six(near_collinear(240))))
+  # Collinear but for rounding (rounding_collinear()): glm() estimates
+  # every coefficient, and the check of #137 finds the indicator by its
+  # column's position (.collinear_positions()).
+  expect_error(four(rounding_collinear(200)), collinear, fixed = TRUE)
+  expect_error(six(rounding_collinear(240)), collinear, fixed = TRUE)
+  expect_true(found_by_rounding_check(four(rounding_collinear(200))))
+  expect_true(found_by_rounding_check(six(rounding_collinear(240))))
 
   # With a pretest, a constant pretest is still called the pretest.
   constant <- ifelse(d$pretested == 1, 3, NA_real_)
@@ -340,9 +390,21 @@ test_that("with a pretest, only the pretest's own column is called the pretest",
   # leaves its coefficient inestimable.
   expect_error(four(d$pre, data.frame(pre = pre4)), collinear_error("pre_obs"), fixed = TRUE)
   expect_error(six(s$pre, data.frame(pre = pre6)), collinear_error("pre_obs"), fixed = TRUE)
-  # Collinear but for rounding, found in the standardized model.
+  # Collinear in their stored values: glm() leaves the indicator's
+  # coefficient inestimable in the standardized model.
   expect_error(four(d$pre, near_collinear(200)), collinear_error("pre_obs"), fixed = TRUE)
   expect_error(six(s$pre, near_collinear(240)), collinear_error("pre_obs"), fixed = TRUE)
+  expect_false(found_by_rounding_check(four(d$pre, near_collinear(200))))
+  expect_false(found_by_rounding_check(six(s$pre, near_collinear(240))))
+  # Collinear but for rounding: the check of #137 finds the indicator by
+  # its column's position, though the pretest's column is named pre_obs
+  # too.
+  expect_error(four(d$pre, rounding_collinear(200)), collinear_error("pre_obs"),
+               fixed = TRUE)
+  expect_error(six(s$pre, rounding_collinear(240)), collinear_error("pre_obs"),
+               fixed = TRUE)
+  expect_true(found_by_rounding_check(four(d$pre, rounding_collinear(200))))
+  expect_true(found_by_rounding_check(six(s$pre, rounding_collinear(240))))
 
   # Controls. A constant pretest and the indicator, both collinear, are told
   # apart. A pretest that is constant but for rounding, 1.7e9 plus 0, 1, or
@@ -357,4 +419,6 @@ test_that("with a pretest, only the pretest's own column is called the pretest",
   }
   expect_error(four(near(d$pretested)), collinear_error(pretest), fixed = TRUE)
   expect_error(six(near(s$pretested)), collinear_error(pretest), fixed = TRUE)
+  expect_true(found_by_rounding_check(four(near(d$pretested))))
+  expect_true(found_by_rounding_check(six(near(s$pretested))))
 })

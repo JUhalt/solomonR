@@ -1728,7 +1728,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # exists even when a pretested group has no posttest, so the model's own
   # check is needed. The standardized model is checked as well, for terms
   # collinear but for the rounding error of the values given, which glm()
-  # can take for distinct ones far from zero (.collinear_terms()).
+  # can take for distinct ones far from zero (.collinear_positions()).
   arms <- if (is.null(conditions$control)) {
     c("treatment", "control")
   } else {
