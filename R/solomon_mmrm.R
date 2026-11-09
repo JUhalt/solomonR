@@ -4,6 +4,14 @@
 .mmrm_fallbacks <- c(toeph = "heterogeneous Toeplitz", ar1h = "heterogeneous AR(1)",
                      csh = "heterogeneous compound symmetry")
 
+# Whether mmrm is installed, at the version DESCRIPTION suggests or later.
+# The rows of the contrasts are coded with mmrm::component(fit, "contrasts")
+# (issue #172), which mmrm added in version 0.3.13 (its R/component.R).
+.mmrm_available <- function(minimum = "0.3.13") {
+  requireNamespace("mmrm", quietly = TRUE) &&
+    package_version(getNamespaceVersion("mmrm")) >= minimum
+}
+
 # Fit the MMRM to the observed rows and estimate the Solomon contrasts at
 # each occasion. `grouped` estimates the covariance separately for pretested
 # and unpretested participants. Used by fit_solomon_mmrm() and by the
@@ -30,6 +38,16 @@
 # occasion (NULL without a pretest).
 .mmrm_fit_contrasts <- function(observed, occasions, pre, grouped, df, conf_level,
                                 center = NULL, other = NULL) {
+  # mmrm drops an occasion at which no analyzed participant has a posttest,
+  # so the model has no coefficients for it, and the contrasts of the fitted
+  # model do not cover it (issue #172). Stop before fitting, naming the
+  # occasion.
+  empty <- setdiff(occasions, as.character(observed$occ))
+  if (length(empty)) {
+    stop("A Solomon contrast cannot be estimated because no analyzed participant has a ",
+         "posttest at these occasions: ", paste(empty, collapse = ", "), ". Remove their ",
+         "rows, or check that every group is observed at every occasion.", call. = FALSE)
+  }
   fixed <- if (pre) "y ~ occ * treat * pretested + occ:pre_obs" else "y ~ occ * treat * pretested"
   method <- if (df == "kenward-roger") "Kenward-Roger" else "Satterthwaite"
   fit_one <- function(type) {
@@ -71,10 +89,13 @@
 
   beta <- mmrm::component(fit, "beta_est")
   tt <- stats::delete.response(stats::terms(stats::as.formula(fixed)))
+  # The rows are coded with the contrasts of the fitted model, so that each
+  # is matched to coefficients of the same coding (issue #172).
+  contrasts <- mmrm::component(fit, "contrasts")
   point <- function(t, tr, pr, pre_obs = 0) {
     nd <- data.frame(occ = factor(occasions[t], levels = occasions), treat = tr, pretested = pr,
                      pre_obs = pre_obs)
-    stats::model.matrix(tt, nd)[1, ]
+    stats::model.matrix(tt, nd, contrasts.arg = contrasts)[1, ]
   }
   weights <- function(v) {
     missing_terms <- setdiff(names(v)[abs(v) > 0], names(beta))
@@ -245,7 +266,7 @@
 #'   them in Solomon designs.
 #'
 #' The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
-#' which must be installed.
+#' version 0.3.13 or later, which must be installed.
 #'
 #' @section Validation:
 #' A simulation study under a protocol posted on issue #57 before any run
@@ -284,7 +305,10 @@
 #'   every row of a participant.
 #' @param id Participant identifier.
 #' @param occasion Posttest occasion. A factor keeps its level order;
-#'   otherwise the sorted unique values are used.
+#'   otherwise the sorted unique values are used. An ordered factor is used
+#'   as unordered, in its level order; the contrasts at each occasion do not
+#'   depend on how `occasion` is coded. It must not be missing; a value at
+#'   an `NA` level of a factor, as made by `addNA()`, counts as missing.
 #' @param y_pre Optional pretest score, the same in every row of a
 #'   participant and missing by design for unpretested participants.
 #' @param df Degrees of freedom for tests and intervals: `"kenward-roger"`
@@ -386,7 +410,7 @@
 #'
 #' @examples
 #' \donttest{
-#' if (requireNamespace("mmrm", quietly = TRUE)) {
+#' if (requireNamespace("mmrm", quietly = TRUE) && utils::packageVersion("mmrm") >= "0.3.13") {
 #'   # Three posttest occasions for the example participants, with dropout.
 #'   set.seed(57)
 #'   d <- solomon_example
@@ -411,8 +435,9 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
     environment(), parent.frame()
   )
   .stop_ngroup_unsupported(treat, "fit_solomon_mmrm")
-  if (!requireNamespace("mmrm", quietly = TRUE)) {
-    stop("fit_solomon_mmrm() needs the mmrm package: install.packages(\"mmrm\").", call. = FALSE)
+  if (!.mmrm_available()) {
+    stop("fit_solomon_mmrm() needs the mmrm package, version 0.3.13 or later: ",
+         "install.packages(\"mmrm\").", call. = FALSE)
   }
   df <- match.arg(df)
   pretest_center <- match.arg(pretest_center)
@@ -422,9 +447,15 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
   .solomon_check_lengths(y_post = y_post, treat = treat, pretested = pretested, id = id,
                          occasion = occasion, y_pre = y_pre)
   if (!is.numeric(y_post)) stop("`y_post` must be numeric.", call. = FALSE)
-  if (anyNA(id) || anyNA(occasion)) stop("`id` and `occasion` must not be missing.", call. = FALSE)
+  # A factor value at an NA level, as made by addNA(), is missing too: such an
+  # occasion can never be estimated (issue #172).
+  if (anyNA(id) || anyNA(occasion) || (is.factor(occasion) && anyNA(as.character(occasion)))) {
+    stop("`id` and `occasion` must not be missing.", call. = FALSE)
+  }
   occ <- if (is.factor(occasion)) droplevels(occasion) else
     factor(occasion, levels = sort(unique(occasion)))
+  # An ordered factor is used as unordered, in its level order (issue #172).
+  if (is.ordered(occ)) occ <- factor(occ, levels = levels(occ), ordered = FALSE)
   occasions <- levels(occ)
   if (length(occasions) < 2L) {
     stop("`occasion` must have at least two posttest occasions; for one, use fit_solomon_glm().",

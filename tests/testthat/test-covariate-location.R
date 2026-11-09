@@ -522,7 +522,7 @@ test_that("fit_solomon_mi() does not depend on the pretest's scale", {
 test_that("a shift of the pretest changes no fit_solomon_mmrm() result", {
   # fit_solomon_mmrm() was already shift-invariant before #137, which
   # changed nothing in it; the issue asks for this test as a guard.
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   long <- withr::with_seed(137, {
     m <- 30
     g <- rep(1:4, each = m)

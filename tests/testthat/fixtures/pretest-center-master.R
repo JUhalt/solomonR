@@ -301,8 +301,8 @@ pretest_center_results <- function(data) {
   classic <- fit_solomon_classic(y_post, treat, pretested, y_pre, data = complete)
   results[["classic"]] <- list(text = printed(classic))
 
-  # fit_solomon_mmrm(), when mmrm is installed.
-  if (requireNamespace("mmrm", quietly = TRUE)) {
+  # fit_solomon_mmrm(), when mmrm 0.3.13 or later is installed.
+  if (requireNamespace("mmrm", quietly = TRUE) && utils::packageVersion("mmrm") >= "0.3.13") {
     for (df in c("kenward-roger", "satterthwaite")) {
       for (set in c("long", "long_complete")) {
         fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, df = df,

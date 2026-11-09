@@ -1,5 +1,66 @@
 # solomonR (development version)
 
+## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
+
+* `fit_solomon_mmrm()` fitted the model with `occasion` as given, but
+  built the rows from which it estimates each contrast with occasion as
+  an unordered factor, and matched those rows to the model's
+  coefficients by name. R codes an ordered factor by the second element
+  of the contrasts option (`options("contrasts")`) and an unordered one
+  by the first, so with an ordered `occasion` the rows and the model
+  were coded differently. Under the default option, the names differed:
+  the function stopped after fitting, saying that some terms were not
+  estimable and that every group should be observed at every occasion,
+  advice that did not apply. Under some other options, both codings
+  named their columns the same way, and the estimates, standard errors,
+  and intervals were wrong, without an error or a warning: for
+  instance, with occasions labeled 0, 1, 2 under
+  `options(contrasts = c("contr.treatment", "contr.sum"))`. A numeric
+  occasion and an unordered factor were not affected.
+* An ordered `occasion` is now used as an unordered factor, in its level
+  order, so it gives the same results as an unordered factor with the
+  same levels. The returned `model` codes it as an unordered factor, by
+  default with treatment contrasts, not with polynomial contrasts.
+* The rows are now coded with the contrasts of the fitted model
+  (`mmrm::component(fit, "contrasts")`), so each row is matched to
+  coefficients of the same coding, whatever that coding is.
+  `fit_solomon_mmrm()` now needs mmrm 0.3.13 or later, the first version
+  whose `component()` returns the contrasts, and stops with a message
+  saying so when an earlier version is installed; DESCRIPTION suggests
+  that version. The tests, the example, and the articles that use mmrm
+  check its version too. Estimates for a numeric occasion and for an
+  unordered factor are unchanged.
+* When no analyzed participant has a posttest at an occasion, for
+  instance at a wave not yet collected, or when the only posttests there
+  belong to participants left out of the model, `fit_solomon_mmrm()` now
+  stops before fitting the model, with a message that names the occasion
+  and suggests removing its rows. mmrm drops such an occasion, so the
+  fitted model has no coefficients for it. Before, the function usually
+  stopped after fitting, saying that some terms were not estimable, and
+  the terms it named were not always those of the empty occasion; when
+  only one occasion had posttests, it said instead that the model did
+  not converge.
+* An `occasion` factor with values at an `NA` level, as made by
+  `addNA()`, now stops with the message that `id` and `occasion` must
+  not be missing. No contrast can be estimated at such an occasion;
+  before, the function stopped later with a less clear error. An unused
+  `NA` level changes nothing.
+* Tests check that an ordered occasion gives the same effects as an
+  unordered one with Kenward-Roger and Satterthwaite degrees of
+  freedom, with and without a pretest, with
+  `pretest_center = "observed"`, with unused levels in another order,
+  and under `options(contrasts = c("contr.treatment", "contr.sum"))`
+  with occasions 0, 1, 2; that rows coded with the model's contrasts
+  give the same effects when the model itself is fitted with an ordered
+  occasion; that an occasion where no analyzed participant has a
+  posttest stops before the model is fitted; that a group with no
+  posttest at an occasion still stops, naming the terms that are not
+  estimable; that an occasion factor with values at an `NA` level stops
+  as missing, and that an unused `NA` level gives the same results; that
+  a missing occasion of any type stops before the model is fitted; that
+  the version check compares with the minimum DESCRIPTION suggests; and
+  that the function stops with a message when the check fails.
+
 ## Covariate levels the model does not have (bug fix, #171)
 
 * `marginal_solomon()` stopped with R's error "factor site has new
