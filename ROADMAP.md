@@ -790,7 +790,8 @@ with a pretest who are outside the model —
 
 [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
 with an ordered occasion factor —
-[\#172](https://github.com/JUhalt/solomonR/issues/172)
+[\#172](https://github.com/JUhalt/solomonR/issues/172); merged in [PR
+\#177](https://github.com/JUhalt/solomonR/pull/177)
 
 A covariate named `pre_obs` in a fit without a pretest, or named
 `condition`, taken for the pretest or the condition —

@@ -58,7 +58,11 @@ fit_solomon_mmrm(
 - occasion:
 
   Posttest occasion. A factor keeps its level order; otherwise the
-  sorted unique values are used.
+  sorted unique values are used. An ordered factor is used as unordered,
+  in its level order; the contrasts at each occasion do not depend on
+  how `occasion` is coded. It must not be missing; a value at an `NA`
+  level of a factor, as made by
+  [`addNA()`](https://rdrr.io/r/base/factor.html), counts as missing.
 
 - y_pre:
 
@@ -236,7 +240,7 @@ The specification follows the example of Mallinckrodt et al. (2008, p.
   Solomon designs.
 
 The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
-which must be installed.
+version 0.3.13 or later, which must be installed.
 
 ## Validation
 
@@ -322,7 +326,7 @@ study with three posttest occasions.
 
 ``` r
 # \donttest{
-if (requireNamespace("mmrm", quietly = TRUE)) {
+if (requireNamespace("mmrm", quietly = TRUE) && utils::packageVersion("mmrm") >= "0.3.13") {
   # Three posttest occasions for the example participants, with dropout.
   set.seed(57)
   d <- solomon_example

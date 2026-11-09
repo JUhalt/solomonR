@@ -612,14 +612,14 @@ sensitization from the first occasion to the last:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Posttests missing at occasion 12 months: pretested 20.8%, unpretested 23.3%</span></span>
 <span><span class="co">#&gt; (18% to 27% by group).</span></span></code></pre></div>
-<p>The model needs the mmrm package. It estimates the covariance of the
-posttests separately for pretested and unpretested participants, because
-the pretest adjustment makes their residual covariance differ, and it
-uses Kenward-Roger degrees of freedom. The table of observed posttests
-shows the dropout. Every participant has the first posttest, so the
-pretest effects have one center here; for data with participants who
-miss every posttest, see <code>pretest_center</code> in
-<code><a href="../reference/fit_solomon_mmrm.html">?fit_solomon_mmrm</a></code>.</p>
+<p>The model needs the mmrm package, version 0.3.13 or later. It
+estimates the covariance of the posttests separately for pretested and
+unpretested participants, because the pretest adjustment makes their
+residual covariance differ, and it uses Kenward-Roger degrees of
+freedom. The table of observed posttests shows the dropout. Every
+participant has the first posttest, so the pretest effects have one
+center here; for data with participants who miss every posttest, see
+<code>pretest_center</code> in <code><a href="../reference/fit_solomon_mmrm.html">?fit_solomon_mmrm</a></code>.</p>
 </div>
 <div class="section level3">
 <h3 id="why-not-analyze-each-occasion-separately">Why not analyze each occasion separately?<a class="anchor" aria-label="anchor" href="#why-not-analyze-each-occasion-separately"></a>

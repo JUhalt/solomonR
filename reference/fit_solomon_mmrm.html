@@ -173,7 +173,10 @@ every row of a participant.</p></dd>
 
 <dt id="arg-occasion">occasion<a class="anchor" aria-label="anchor" href="#arg-occasion"></a></dt>
 <dd><p>Posttest occasion. A factor keeps its level order;
-otherwise the sorted unique values are used.</p></dd>
+otherwise the sorted unique values are used. An ordered factor is used
+as unordered, in its level order; the contrasts at each occasion do not
+depend on how <code>occasion</code> is coded. It must not be missing; a value at
+an <code>NA</code> level of a factor, as made by <code><a href="https://rdrr.io/r/base/factor.html" class="external-link">addNA()</a></code>, counts as missing.</p></dd>
 
 
 <dt id="arg-y-pre">y_pre<a class="anchor" aria-label="anchor" href="#arg-y-pre"></a></dt>
@@ -324,7 +327,7 @@ of both approximations in longitudinal models "have not been
 extensively studied"; the simulation study posted on issue #57 compares
 them in Solomon designs.</p></li>
 </ul><p>The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
-which must be installed.</p>
+version 0.3.13 or later, which must be installed.</p>
     </div>
     <div class="section level2">
     <h2 id="validation">Validation<a class="anchor" aria-label="anchor" href="#validation"></a></h2>
@@ -397,7 +400,7 @@ study with three posttest occasions.</p></div>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"mmrm"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"mmrm"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/packageDescription.html" class="external-link">packageVersion</a></span><span class="op">(</span><span class="st">"mmrm"</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="st">"0.3.13"</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="co"># Three posttest occasions for the example participants, with dropout.</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">57</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">solomon_example</span></span></span>

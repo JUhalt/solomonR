@@ -539,13 +539,13 @@ mm
 #> (18% to 27% by group).
 ```
 
-The model needs the mmrm package. It estimates the covariance of the
-posttests separately for pretested and unpretested participants, because
-the pretest adjustment makes their residual covariance differ, and it
-uses Kenward-Roger degrees of freedom. The table of observed posttests
-shows the dropout. Every participant has the first posttest, so the
-pretest effects have one center here; for data with participants who
-miss every posttest, see `pretest_center` in
+The model needs the mmrm package, version 0.3.13 or later. It estimates
+the covariance of the posttests separately for pretested and unpretested
+participants, because the pretest adjustment makes their residual
+covariance differ, and it uses Kenward-Roger degrees of freedom. The
+table of observed posttests shows the dropout. Every participant has the
+first posttest, so the pretest effects have one center here; for data
+with participants who miss every posttest, see `pretest_center` in
 [`?fit_solomon_mmrm`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md).
 
 ### Why not analyze each occasion separately?
