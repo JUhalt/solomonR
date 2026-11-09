@@ -343,9 +343,10 @@
 #'   from [fit_solomon_glm()] made by an earlier version of solomonR, which
 #'   stored a character covariate as character, stops with an error of class
 #'   `solomonR_collation_error` when the collation in force sorts that
-#'   covariate's values in a different order than the R session that made
-#'   the fit, whatever contrasts the fit was made under (issue #170). Refit
-#'   it, or draw it under that collation.
+#'   covariate's values, among the participants the model used, in a
+#'   different order than the R session that made the fit, whatever
+#'   contrasts the fit was made under (issue #170). Refit it, or draw it
+#'   under that collation.
 #' @param bounds Optional equivalence bounds for the sensitization contrast,
 #'   as one positive number or `c(lower, upper)`. When supplied, the caption
 #'   reports the outcome of [equivalence_solomon()] with these bounds, which

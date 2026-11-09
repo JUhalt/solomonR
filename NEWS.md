@@ -47,14 +47,14 @@
   are as before. A character matrix column of one column, which
   `glm()` takes as one categorical covariate, is stored as a factor too.
 * A fit saved by an earlier version still holds character. Under a
-  collation that sorts the covariate's values in a different order than
-  the session that made the fit, `marginal_solomon()` and
-  `plot_sensitization()` now stop with an error of class
-  `solomonR_collation_error` instead of giving wrong results: refit it
-  with this version, or analyze it under the collation of the session
-  that made it. They check two things: that the levels of each
-  character covariate in the rows the model used, sorted by the
-  collation in force, are the levels stored with the fit
+  collation that sorts the covariate's values, among the participants
+  the model used, in a different order than the session that made the
+  fit, `marginal_solomon()` and `plot_sensitization()` now stop with
+  an error of class `solomonR_collation_error` instead of giving wrong
+  results: refit it with this version, or analyze it under the
+  collation of the session that made it. They check two things: that
+  the levels of each character covariate in the rows the model used,
+  sorted by the collation in force, are the levels stored with the fit
   (`fit$model$xlevels`), and that the columns of the design rebuilt
   from the fit are the names of its coefficients, in their order. The
   levels are needed for a fit made under contrasts such as `contr.sum`

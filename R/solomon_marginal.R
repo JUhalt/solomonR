@@ -1088,9 +1088,10 @@
 #'   not supported; see [fit_solomon_glm()]. A fit made by an earlier version
 #'   of solomonR, which stored a character covariate as character, stops
 #'   with an error of class `solomonR_collation_error` when the collation in
-#'   force sorts that covariate's values in a different order than the R
-#'   session that made the fit, whatever contrasts the fit was made under
-#'   (issue #170). Refit it, or analyze it under that collation.
+#'   force sorts that covariate's values, among the participants the model
+#'   used, in a different order than the R session that made the fit,
+#'   whatever contrasts the fit was made under (issue #170). Refit it, or
+#'   analyze it under that collation.
 #'   `method = "cluster_summary"` does not use the covariates and does not
 #'   stop.
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
@@ -1335,9 +1336,9 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # The design rows below are built from the fit's model and data and used
   # with its coefficients and covariance. A fit made before issue #170 with
   # a character covariate, analyzed under a collation that sorts its values
-  # in a different order than the session that made it, stops here rather
-  # than pair them wrongly (.check_fit_collation()). `X_fit` is the fit's
-  # model matrix.
+  # in the rows the model used in a different order than the session that
+  # made it, stops here rather than pair them wrongly
+  # (.check_fit_collation()). `X_fit` is the fit's model matrix.
   X_fit <- .check_fit_collation(fit)
 
   # With a pretest or numeric covariates the fit's inference was computed
