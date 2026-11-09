@@ -203,7 +203,9 @@
 # it a factor whose levels follow the collation in force when it runs. Two
 # things are checked. First, the levels of each character column of the
 # stored model frame, sorted now, must be the levels stored with the model
-# (`xlevels`), which were sorted when the fit was made. This catches a fit
+# (`xlevels`), which were sorted when the fit was made. Both come from the
+# rows the model used, so a level seen only in other rows, such as those
+# of participants without an outcome, is in neither. This catches a fit
 # made under contrasts such as contr.sum or contr.helmert, whose columns
 # are numbered (site1, site2) whatever the order of the levels, so that
 # their names stay the same when the order changes. Second, the columns of

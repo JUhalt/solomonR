@@ -53,16 +53,18 @@
   `solomonR_collation_error` instead of giving wrong results: refit it
   with this version, or analyze it under the collation of the session
   that made it. They check two things: that the levels of each
-  character covariate, sorted by the collation in force, are the levels
-  stored with the fit (`fit$model$xlevels`), and that the columns of the
-  design rebuilt from the fit are the names of its coefficients, in
-  their order. The levels are needed for a fit made under contrasts such
-  as `contr.sum` or `contr.helmert`, whose columns are numbered
-  (`site1`, `site2`) whatever the order of the levels. The error names
-  the covariates whose levels change order. Under the fit's own
-  collation such a fit gives the same results as before, and
+  character covariate in the rows the model used, sorted by the
+  collation in force, are the levels stored with the fit
+  (`fit$model$xlevels`), and that the columns of the design rebuilt
+  from the fit are the names of its coefficients, in their order. The
+  levels are needed for a fit made under contrasts such as `contr.sum`
+  or `contr.helmert`, whose columns are numbered (`site1`, `site2`)
+  whatever the order of the levels. The error names the covariates
+  whose levels change order. Under the fit's own collation such a fit
+  gives the results of the same fit made by this version, also when a
+  level occurs only in rows the model did not use.
   `marginal_solomon(method = "cluster_summary")`, which does not use the
-  covariates, does not stop.
+  covariates, does not stop under any collation.
 * `perm_solomon()` also refits the model under the collation in force.
   Its statistic uses only the treatment coefficients and their variance,
   which do not depend on how a covariate is coded, so the coding of a
@@ -72,8 +74,10 @@
   English collation. They compare the results with those of the same
   fit with the covariates given as factors, and check that fits stored
   as earlier versions stored them stop, whether made under
-  `contr.treatment`, `contr.sum`, or `contr.helmert`. They are skipped
-  where no such collation is available.
+  `contr.treatment`, `contr.sum`, or `contr.helmert`, and that such a
+  fit runs under its own collation when a level occurs only in rows the
+  model did not use. Those that need another collation are skipped
+  where none is available.
 
 ## Covariate levels the model does not have (bug fix, #171)
 

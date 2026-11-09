@@ -550,6 +550,63 @@ test_that("a fit stored by an earlier version under sum or Helmert contrasts sto
   expect_error(with_analysis_collation(marginal_solomon(as_old_fit(fits$sum, c("site", "grp")),
                                                         method = "delta")),
                "character covariates site, grp by the collation")
+
+  # A character covariate whose values both collations sort alike (site
+  # in lower case) comes before one whose values they sort otherwise
+  # (grp). Each covariate is compared, not only the first, so both
+  # functions stop, and the error names grp alone.
+  lower <- tolower(d$site)
+  expect_identical(with_analysis_collation(sort(unique(lower))), sort(unique(lower)))
+  old_mixed <- as_old_fit(
+    with_contrasts("contr.sum", collate_fit(d, data.frame(site = lower, grp = d$grp))),
+    c("site", "grp")
+  )
+  expect_identical(intersect(names(old_mixed$model$model), c("site", "grp")), c("site", "grp"))
+  expect_identical(with_analysis_collation(colnames(stats::model.matrix(old_mixed$model))),
+                   names(stats::coef(old_mixed$model)))
+  expect_error(with_analysis_collation(marginal_solomon(old_mixed, method = "delta")),
+               class = "solomonR_collation_error")
+  expect_error(with_analysis_collation(plot_sensitization(old_mixed)),
+               class = "solomonR_collation_error")
+  expect_error(with_analysis_collation(marginal_solomon(old_mixed, method = "delta")),
+               "fit codes the character covariate grp by the collation")
+  expect_error(with_analysis_collation(plot_sensitization(old_mixed)),
+               "fit codes the character covariate grp by the collation")
+})
+
+
+test_that("an earlier fit with a level only outside the model runs under its collation (#170)", {
+  # Two pretested participants with a pretest and no posttest, outside the
+  # model, are the only ones from site east, so east is not among the
+  # levels stored with the model. The check compares those levels with the
+  # levels of the model frame, the rows the model used, not with those of
+  # the fit's data. Under the collation of the session that made it, a fit
+  # stored as earlier versions stored it runs, and gives the results of
+  # the fit with the covariates given as factors, at both centers.
+  d <- collate_data()
+  lost <- which(is.na(d$y_both_missing))
+  site <- d$site
+  site[lost[1:2]] <- "east"
+  for (contrasts in c("contr.treatment", "contr.sum")) {
+    fit_with <- function(covariates) {
+      withr::with_options(list(contrasts = c(contrasts, "contr.poly")),
+                          collate_fit(d, covariates, y = d$y_both_missing))
+    }
+    old <- as_old_fit(fit_with(data.frame(site = site, grp = d$grp)), c("site", "grp"))
+    factor_fit <- fit_with(data.frame(site = factor(site), grp = factor(d$grp)))
+    expect_identical(class(old$data$site), "character")
+    expect_true("east" %in% old$data$site)
+    expect_false("east" %in% old$model$xlevels$site)
+    for (center in c("analyzed", "observed")) {
+      m <- marginal_solomon(old, method = "delta", pretest_center = center)
+      expect_identical(m, marginal_solomon(factor_fit, method = "delta", pretest_center = center),
+                       info = paste(contrasts, center))
+      expect_identical(m$standardized[["unseen_level"]], 2L, info = paste(contrasts, center))
+    }
+    expect_identical(collate_cells(old), collate_cells(factor_fit), info = contrasts)
+    expect_identical(plot_sensitization(old)$data, plot_sensitization(factor_fit)$data,
+                     info = contrasts)
+  }
 })
 
 
