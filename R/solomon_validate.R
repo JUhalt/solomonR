@@ -305,10 +305,10 @@
 #'   name that the model reserves, such as `y`, or a logical or character
 #'   matrix column of several columns given by its name or in a data frame.
 #'   Without numeric `y_pre` no fit is made, but a covariate named
-#'   `pre_obs` or `condition`, names reserved in every fit, stops all the
-#'   same. When the fit fails on a covariate's values, for example on a
-#'   factor with one level among the participants analyzed, the gap and the
-#'   delta line are left out without a message.
+#'   `pre_obs`, `condition`, or `log_exposure`, names reserved in every
+#'   fit, stops all the same. When the fit fails on a covariate's values,
+#'   for example on a factor with one level among the participants
+#'   analyzed, the gap and the delta line are left out without a message.
 #' @return An object of class `solomon_missing`, a list with:
 #'   - `by_cell`: the counts in each Solomon cell, in the columns `group`,
 #'     `cell`, `pretested`, `treat`, `n`, `posttest_missing`,

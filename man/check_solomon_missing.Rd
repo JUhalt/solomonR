@@ -53,10 +53,10 @@ form stops with the error that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}
 name that the model reserves, such as \code{y}, or a logical or character
 matrix column of several columns given by its name or in a data frame.
 Without numeric \code{y_pre} no fit is made, but a covariate named
-\code{pre_obs} or \code{condition}, names reserved in every fit, stops all the
-same. When the fit fails on a covariate's values, for example on a
-factor with one level among the participants analyzed, the gap and the
-delta line are left out without a message.}
+\code{pre_obs}, \code{condition}, or \code{log_exposure}, names reserved in every
+fit, stops all the same. When the fit fails on a covariate's values,
+for example on a factor with one level among the participants
+analyzed, the gap and the delta line are left out without a message.}
 }
 \value{
 An object of class \code{solomon_missing}, a list with:

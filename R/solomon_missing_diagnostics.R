@@ -27,8 +27,8 @@
 # columns, is not a matter of the data: it stops check_solomon_missing()
 # with the error of fit_solomon_glm(), rather than leave out items 4 and 5
 # unnoticed (issue #146). Without numeric pretests, where no fit is made,
-# a covariate named pre_obs or condition, names that every fit reserves,
-# stops all the same (issue #174).
+# a covariate named pre_obs, condition, or log_exposure, names that every
+# fit reserves, stops all the same (issue #174).
 # validate_solomon(), which uses only its classification of the missing
 # values, skips these diagnostics and their fits.
 
@@ -265,14 +265,16 @@
 .missing_diagnostics <- function(y_post, treat, control, condition, levels, pretested, y_pre,
                                  covariates) {
   # Without numeric pretests no fit is made, so pre_obs and condition, the
-  # names that issue #174 reserved in every fit, are checked here, and a
-  # covariate of either name stops with a pretest or without. Other names
-  # that a fit reserves, such as y, are kept here, as before. With numeric
-  # pretests, the fit checks every name it reserves.
+  # names that issue #174 reserved in every fit, and log_exposure, which
+  # every fit reserves with or without an exposure, are checked here: a
+  # covariate of any of these names stops with a pretest or without. The
+  # other names that a fit reserves, y, treat, and pretested, are kept
+  # here, as before. With numeric pretests, the fit checks every name it
+  # reserves.
   if (!is.numeric(y_pre)) {
-    .solomon_check_names(covariates, .solomon_reserved_names, paste0(
-      "fit_solomon_glm() reserves the names ",
-      paste(.solomon_reserved_names, collapse = " and "),
+    reserved <- c(.solomon_reserved_names, "log_exposure")
+    .solomon_check_names(covariates, reserved, paste0(
+      "fit_solomon_glm() reserves the names ", .series_and(reserved),
       " in every fit, with a pretest or without."
     ))
   }

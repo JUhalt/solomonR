@@ -561,7 +561,7 @@ test_that("check_solomon_missing() takes the same forms", {
 })
 
 
-test_that("check_solomon_missing() stops on a name the model uses, as fit_solomon_glm() does", {
+test_that("check_solomon_missing() stops on a reserved name, as fit_solomon_glm() does", {
 
   # A vector is named by its bare name, so a vector named y would stop the
   # fit behind the gap and the delta line. check_solomon_missing() left out

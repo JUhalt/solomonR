@@ -43,13 +43,17 @@
 * `pre_obs` and `condition` are now reserved in every fit, on top of the
   names refused before: with or without `y_pre`, and with one treatment
   or several. A covariate of either name stops with the error of class
-  `solomonR_covariate_error`, whose message names the covariate and
-  lists the names reserved in the design. Rename that column.
-  `condition` is now refused in a four-group fit with a pretest as well,
-  where it worked. `treat` stays free with several treatments, where it
-  works. `check_solomon_missing()` without numeric `y_pre`, which fits
-  no model, refuses the two names too. For every reserved name, the
-  message now begins "Rename these covariates, whose names are
+  `solomonR_covariate_error`. Rename that column. `condition` is now
+  refused in a four-group fit with a pretest as well, where it worked.
+  `treat` stays free with several treatments, where it works.
+  `check_solomon_missing()` without numeric `y_pre` fits no model, so it
+  now checks these two names itself, with the same error, and also
+  `log_exposure`, which every fit reserves too and which it accepted.
+  The message names the covariate and says which names are reserved: in
+  a fit, the names reserved in its design; in `check_solomon_missing()`
+  without numeric `y_pre`, that `fit_solomon_glm()` reserves `pre_obs`,
+  `condition`, and `log_exposure` in every fit. For every reserved name,
+  the message now begins "Rename these covariates, whose names are
   reserved:" instead of "whose names the model uses:".
 * A fit saved by an earlier version can still hold such a covariate.
   `marginal_solomon()`, `report_solomon()`, and the warnings of
@@ -74,23 +78,28 @@
     standard errors can still be off.
 
   Refit such a fit with the covariate renamed.
-* In a fit without a pretest, the indicator of a factor's level can
-  still be named `pre_obs` in the model matrix, as for a factor `pre`
-  with a level `_obs`. `marginal_solomon()` reported such a fit as
+* The indicator of a factor's level can still be named `pre_obs` in the
+  model matrix, as for a factor `pre` with a level `_obs`. In a fit
+  without a pretest, `marginal_solomon()` reported such a fit as
   adjusted for the pretest, though its estimates and standard errors
   were right. When the indicator was collinear with other terms, the
   error of `fit_solomon_glm()` called it "pre_obs (the pretest,
-  `y_pre`)". Neither happens now.
+  `y_pre`)", in a fit with a pretest or without, as the label went by
+  the column's name. Neither happens now: the error finds the pretest's
+  column by its position in the model, as the computation of #137 finds
+  the columns it rescales, and gives the label to that column alone.
 * Tests check the refusals in four-group and six-group fits, from
   `fit_solomon_glm()` and `check_solomon_missing()`, with and without a
-  pretest. For a fit made as the development version made it before
-  this change, they check that `marginal_solomon()` (the delta method
-  under HC3 and CR2, and the bootstrap, each at both centers),
-  `report_solomon()`, the warnings, and the attrition line of `print()`,
-  `summary()`, `report_solomon()`, and `marginal_solomon()` equal those
-  of the same fit with the covariate renamed. They also check the
-  factor `pre` with a level `_obs` in `marginal_solomon()` and in the
-  collinearity error.
+  pretest, and `log_exposure` in `check_solomon_missing()`. For a fit
+  made as the development version made it before this change, they
+  check that `marginal_solomon()` (the delta method under HC3 and CR2,
+  and the bootstrap, each at both centers), `report_solomon()`, the
+  warnings, and the attrition line of `print()`, `summary()`,
+  `report_solomon()`, and `marginal_solomon()` equal those of the same
+  fit with the covariate renamed. They also check the factor `pre` with
+  a level `_obs` in `marginal_solomon()`, and in the collinearity error
+  with and without a pretest, for terms collinear in the data and for
+  terms collinear but for rounding, which the check of #137 finds.
 
 ## Covariate levels the model does not have (bug fix, #171)
 

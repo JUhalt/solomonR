@@ -50,6 +50,28 @@ reserved_six <- function() {
   })
 }
 
+# Covariates of `n` participants that are collinear but for the rounding
+# error of their values: z1 near 1.7e9, z2 = z1 + 600 x + 0.5, and a factor
+# `pre` whose level `_obs` marks x = 1, so that its indicator is named
+# pre_obs in the model matrix. z1, z2, the indicator, and the intercept are
+# collinear.
+near_collinear <- function(n) {
+  withr::with_seed(5501, {
+    x <- stats::rbinom(n, 1, 0.5)
+    z1 <- 1.7e9 + round(stats::runif(n, 0, 3e7))
+    data.frame(z1 = z1, z2 = z1 + 600 * x + 0.5,
+               pre = factor(ifelse(x == 1, "_obs", "a"), c("a", "_obs")))
+  })
+}
+
+# The error of fit_solomon_glm() for collinear terms, which it names as
+# `terms`.
+collinear_error <- function(terms) {
+  paste0("The model cannot be estimated because these terms are collinear with other terms ",
+         "of the model: ", terms, ". A covariate or pretest that is constant, or that repeats ",
+         "another term, causes this.")
+}
+
 # A fit as the versions before #174 made it with a covariate named pre_obs
 # or condition: the same fit, with the check of the covariates left out.
 earlier_fit <- function(...) {
@@ -85,8 +107,8 @@ reserved_four_note <- paste("Names reserved in this design: y, treat, pretested,
                             "condition, log_exposure.")
 reserved_six_note <- paste("Names reserved in this design: y, condition, pretested, treat_A,",
                            "treat_B, pre_obs, log_exposure.")
-reserved_missing_note <- paste("fit_solomon_glm() reserves the names pre_obs and condition in",
-                               "every fit, with a pretest or without.")
+reserved_missing_note <- paste("fit_solomon_glm() reserves the names pre_obs, condition, and",
+                               "log_exposure in every fit, with a pretest or without.")
 
 
 test_that("fit_solomon_glm() refuses a covariate named pre_obs or condition in every fit", {
@@ -114,9 +136,10 @@ test_that("fit_solomon_glm() refuses a covariate named pre_obs or condition in e
 })
 
 
-test_that("check_solomon_missing() refuses pre_obs and condition with a pretest or without", {
+test_that("check_solomon_missing() refuses pre_obs, condition, and log_exposure, pretest or not", {
+  # log_exposure, which every fit reserves too, was kept without a pretest.
   d <- reserved_four()
-  for (name in c("pre_obs", "condition")) {
+  for (name in c("pre_obs", "condition", "log_exposure")) {
     covariates <- stats::setNames(data.frame(d$x), name)
     # Without a pretest no fit is made, and the check is check_solomon_missing()'s.
     expect_reserved(check_solomon_missing(d$yg, d$treat, d$pretested, covariates = covariates),
@@ -127,7 +150,7 @@ test_that("check_solomon_missing() refuses pre_obs and condition with a pretest 
                     name, reserved_four_note, info = name)
   }
   s <- reserved_six()
-  for (name in c("pre_obs", "condition")) {
+  for (name in c("pre_obs", "condition", "log_exposure")) {
     expect_reserved(check_solomon_missing(s$y, s$condition, s$pretested, control = "Control",
                                           covariates = stats::setNames(data.frame(s$x), name)),
                     name, reserved_missing_note, info = name)
@@ -269,11 +292,7 @@ test_that("a collinear factor indicator named pre_obs is not called the pretest 
   # The indicator of the level `_obs` of a factor `pre` that repeats the
   # pretest indicator is collinear with it. In a fit without a pretest, the
   # error called it "pre_obs (the pretest, `y_pre`)".
-  collinear <- paste0(
-    "The model cannot be estimated because these terms are collinear with other terms ",
-    "of the model: pre_obs. A covariate or pretest that is constant, or that repeats ",
-    "another term, causes this."
-  )
+  collinear <- collinear_error("pre_obs")
   d <- reserved_four()
   pre <- factor(ifelse(d$pretested == 1, "_obs", "a"), c("a", "_obs"))
   expect_error(fit_solomon_glm(d$yg, d$treat, d$pretested, covariates = data.frame(pre = pre)),
@@ -284,8 +303,58 @@ test_that("a collinear factor indicator named pre_obs is not called the pretest 
                                covariates = data.frame(pre = pre), family = stats::binomial()),
                collinear, fixed = TRUE)
 
+  # Collinear but for rounding (near_collinear()): glm() fits the model as
+  # given, whose values lie near 1.7e9, and the check of the standardized
+  # model finds the relation (.collinear_terms()). Its error too called the
+  # indicator the pretest.
+  expect_error(fit_solomon_glm(d$yg, d$treat, d$pretested, covariates = near_collinear(200)),
+               collinear, fixed = TRUE)
+  expect_error(fit_solomon_glm(s$y, s$condition, s$pretested, control = "Control",
+                               covariates = near_collinear(240), family = stats::binomial()),
+               collinear, fixed = TRUE)
+
   # With a pretest, a constant pretest is still called the pretest.
   constant <- ifelse(d$pretested == 1, 3, NA_real_)
   expect_error(fit_solomon_glm(d$yg, d$treat, d$pretested, constant),
                "of the model: pre_obs (the pretest, `y_pre`).", fixed = TRUE)
+})
+
+
+test_that("with a pretest, only the pretest's own column is called the pretest", {
+  # With a pretest, the indicator of the level `_obs` of a factor `pre` is a
+  # second column named pre_obs. The error went by the name, so it called
+  # that indicator the pretest when the indicator was collinear with other
+  # terms. It now finds the pretest's column by its position.
+  d <- reserved_four()
+  s <- reserved_six()
+  pre4 <- factor(ifelse(d$pretested == 1, "_obs", "a"), c("a", "_obs"))
+  pre6 <- factor(ifelse(s$pretested == 1L, "_obs", "a"), c("a", "_obs"))
+  four <- function(y_pre, covariates = NULL) {
+    fit_solomon_glm(d$yg, d$treat, d$pretested, y_pre, covariates = covariates)
+  }
+  six <- function(y_pre, covariates = NULL) {
+    fit_solomon_glm(s$y, s$condition, s$pretested, y_pre, control = "Control",
+                    covariates = covariates, family = stats::binomial())
+  }
+  # The indicator repeats the pretest indicator, and the model as given
+  # leaves its coefficient inestimable.
+  expect_error(four(d$pre, data.frame(pre = pre4)), collinear_error("pre_obs"), fixed = TRUE)
+  expect_error(six(s$pre, data.frame(pre = pre6)), collinear_error("pre_obs"), fixed = TRUE)
+  # Collinear but for rounding, found in the standardized model.
+  expect_error(four(d$pre, near_collinear(200)), collinear_error("pre_obs"), fixed = TRUE)
+  expect_error(six(s$pre, near_collinear(240)), collinear_error("pre_obs"), fixed = TRUE)
+
+  # Controls. A constant pretest and the indicator, both collinear, are told
+  # apart. A pretest that is constant but for rounding, 1.7e9 plus 0, 1, or
+  # 2 units in its last place (2^-22), is called the pretest by the check
+  # of the standardized model.
+  pretest <- "pre_obs (the pretest, `y_pre`)"
+  both <- collinear_error(paste0(pretest, ", pre_obs"))
+  expect_error(four(ifelse(d$pretested == 1, 3, NA), data.frame(pre = pre4)), both, fixed = TRUE)
+  expect_error(six(ifelse(s$pretested == 1L, 3, NA), data.frame(pre = pre6)), both, fixed = TRUE)
+  near <- function(pretested) {
+    ifelse(pretested == 1, 1.7e9 + 2^-22 * (seq_along(pretested) %% 3), NA)
+  }
+  expect_error(four(near(d$pretested)), collinear_error(pretest), fixed = TRUE)
+  expect_error(six(near(s$pretested)), collinear_error(pretest), fixed = TRUE)
 })
