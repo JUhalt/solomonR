@@ -739,8 +739,9 @@ judge_rates <- function(perf, sc, C) {
 # test of share <= .01 has p < .05/C, and a material failure when the same
 # test of share <= .05 does (the protocol posted "more than 1%" and "more
 # than 5%" of the observed share). C is the protocol's family size (14,576,
-# or 11,964 in the fallback), so every decision of the study uses one
-# level; the fit-failure tests are not added to C. `p_value` is the test
+# or 11,964 in the fallback), so the fit-failure tests use the level of
+# rules 1 to 3 and the material tier; they are not added to C, as the
+# material tier's tests are not. `p_value` is the test
 # against .01, `p_value_material` the test against .05, and `threshold` is
 # .05/C, as in the rows of judge_rates(). At R = 5,000 and C = 14,576, a
 # share is a documented limitation from 86 failed replications and material
@@ -1008,8 +1009,8 @@ run_information <- function(C) {
   data.frame(item = c(
     "permutations", "permutations_check1", "permutations_check2", "check1_seed",
     "check2_seeds", "tie_rule", "tost_bounds", "tost_alpha", "test_alpha", "family_size_C",
-    "family_level", "material_rate", "sandwich_version", "broom_version", "withr_version",
-    "summarize_sha256"),
+    "family_level", "material_rate", "fit_failure_limit", "fit_failure_material",
+    "sandwich_version", "broom_version", "withr_version", "summarize_sha256"),
     value = c(
       n_perm, n_perm_check1, n_perm_check2,
       "1000 * scenario + replication, through perm_solomon(seed =) under the task's RNG kind",
@@ -1018,8 +1019,8 @@ run_information <- function(C) {
              ", under L'Ecuyer-CMRG, Inversion, Rejection"),
       "|s_b| >= |s| - 1e-10 * max(|s|, u); u = 1 (studentized) or the largest finite |s_b| (difference)",
       paste(tost_deltas, collapse = " "), format(alpha), format(alpha), format(C),
-      format(0.05 / C, digits = 6), format(material_rate),
-      version_of("sandwich"), version_of("broom"), version_of("withr"),
+      format(0.05 / C, digits = 6), format(material_rate), format(fit_failure_limit),
+      format(fit_failure_material), version_of("sandwich"), version_of("broom"), version_of("withr"),
       sim_sha256_text(file.path(robustness_dir, "robustness-summarize.R"))),
     stringsAsFactors = FALSE)
 }

@@ -282,6 +282,22 @@ for (i in seq_len(nrow(ff_counts))) {
   expect(paste0("fit failures at R = ", R, ": pass at ", d - 1, ", documented at ", d, " and ", m - 1, ", material at ", m),
          identical(ft$class, c("", "documented limitation", "documented limitation", "material failure")))
 }
+# The same in the fallback (C = 11,964), at every R. Some counts differ from
+# the full table's: 294 of 4,500 is material here, but not with C = 14,576.
+ff_counts_fb <- data.frame(R = c(5000, 4500, 4000, 3500, 3000), limit = c(85, 79, 72, 65, 58),
+                           material = c(322, 294, 265, 236, 207))
+for (i in seq_len(nrow(ff_counts_fb))) {
+  R <- ff_counts_fb$R[i]
+  d <- ff_counts_fb$limit[i]
+  m <- ff_counts_fb$material[i]
+  ft <- fit_failure_rows(ff_rows(1L, "M1", c(d - 1, d, m - 1, m), R), scenarios, 11964L)
+  expect(paste0("fit failures in the fallback at R = ", R, ": pass at ", d - 1, ", documented at ", d, " and ", m - 1,
+                ", material at ", m),
+         identical(ft$class, c("", "documented limitation", "documented limitation", "material failure")))
+}
+expect("294 of 4,500 is material with the fallback's C, a documented limitation with the full C",
+       identical(fit_failure_rows(ff_rows(1L, "M1", 294, 4500), scenarios, 11964L)$class, "material failure") &&
+         identical(fit_failure_rows(ff_rows(1L, "M1", 294, 4500), scenarios, 14576L)$class, "documented limitation"))
 # C: the protocol's family size, 14,576, or 11,964 in the fallback (a level
 # of 4.18e-6), where 322 of 5,000 is material and 85 a documented
 # limitation. By default C comes from the scenario table, and a table that
@@ -548,6 +564,8 @@ ri <- run_information(14576L)
 expect("run information names no harness item",
        !any(ri$item %in% c("study", "issue", "purpose", "package", "package_version", "r_version", "base_seed",
                            "reps", "rng_kinds", "workers_per_chunk", "started_utc", "finished_utc")))
+expect("the fit-failure rule's two shares under test are recorded",
+       ri$value[ri$item == "fit_failure_limit"] == "0.01" && ri$value[ri$item == "fit_failure_material"] == "0.05")
 expect("broom is \"not installed\" when absent", identical(version_of("a.package.that.is.not.installed"), "not installed"))
 expect("the permutations are recorded", ri$value[ri$item == "permutations"] == "999")
 
