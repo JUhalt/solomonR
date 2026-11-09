@@ -9,7 +9,9 @@
 # (fixed numbers, or sin() and cos() of an index), so every expected value
 # is known before the code runs. Nothing is drawn at random and the package
 # is not loaded. The thresholds come from the protocol's table (exact
-# binomial counts at R = 5,000 to 3,000) and its counts of judged rates.
+# binomial counts at R = 5,000 to 3,000) and its counts of judged rates;
+# those of the test-based fit-failure rule (Amendment 2 of #116, item 11)
+# are exact binomial counts at the same R, computed apart with pbinom().
 #
 # tools/check-validation-scripts.R runs every .R file of this folder; this
 # one has nothing to scale down, so SOLOMONR_SMOKE_DIR and
@@ -230,23 +232,84 @@ sid <- function(level_, pattern_, dist_, alloc_, h_ = NA, rho_ = NA) {
 }
 s_bal20 <- sid("main", "E0", "normal", "20-20-20-20", 1, 0.5)
 s_t3 <- sid("main", "E0", "t3", "10-10-10-10", 1, 0.5)
-ffit <- data.frame(scenario = c(s_bal20, s_bal20, s_t3, 1L), type = "failed_fit", method = c("M1", "M2", "M1", "M1"),
-                   status = "any", count = c(6L, 2L, 30L, 1L), replications = 100L, stringsAsFactors = FALSE)
-fr <- fit_failure_rows(ffit, scenarios)
-expect("more than 5% failed fits is a material failure, more than 1% a documented limitation, 1% passes",
-       identical(fr$class, c("material failure", "documented limitation", "material failure", "")) &&
-         identical(fr$verdict, c("fail", "fail", "fail", "pass")))
+# The rule is test-based (Amendment 2 of #116, item 11): a documented
+# limitation when a one-sided exact binomial test of share <= .01 has
+# p < .05/C, a material failure when the test of share <= .05 does. At
+# R = 5,000 and C = 14,576: a documented limitation from 86 failed
+# replications, material from 323 (the count at which rule 1 fails, since
+# it is the same test).
+ff_rows <- function(scenario, method, count, replications = 5000L) {
+  data.frame(scenario = scenario, type = "failed_fit", method = method, status = "any", count = as.integer(count),
+             replications = as.integer(replications), stringsAsFactors = FALSE)
+}
+ffit <- ff_rows(c(s_bal20, s_bal20, s_t3, 1L, 1L, 1L, 1L, 1L, 1L, 1L),
+                c("M1", "M2", "M1", "M1", "M2", "M3", "M4", "M1", "M2", "M3"),
+                c(400, 200, 400, 250, 300, 322, 323, 85, 86, 0))
+fr <- fit_failure_rows(ffit, scenarios, 14576L)
+expect("fit failures: 400 of 5,000 is material, 200 a documented limitation, and so on",
+       identical(fr$class, c("material failure", "documented limitation", "material failure", "documented limitation",
+                             "documented limitation", "documented limitation", "material failure", "",
+                             "documented limitation", "")) &&
+         identical(fr$verdict, c(rep("fail", 7), "pass", "fail", "pass")))
+expect("250 of 5,000 (5%) is not material", fr$class[4] == "documented limitation")
+expect("300 of 5,000 (6%) is not material: share <= .05 is not rejected at .05/C",
+       fr$class[5] == "documented limitation" && fr$p_value_material[5] >= level)
+expect("322 of 5,000 is not material, 323 is", fr$class[6] == "documented limitation" && fr$class[7] == "material failure")
+expect("85 of 5,000 passes, 86 is a documented limitation", fr$verdict[8] == "pass" && fr$class[9] == "documented limitation")
+expect("no failed fit passes", fr$verdict[10] == "pass" && near(fr$p_value[10], 1) && near(fr$p_value_material[10], 1))
+expect("fit-failure p-values are the exact one-sided binomial tests against .01 and .05, at .05/C",
+       near(fr$p_value, stats::pbinom(ffit$count - 1, 5000, 0.01, lower.tail = FALSE)) &&
+         near(fr$p_value_material, stats::pbinom(ffit$count - 1, 5000, 0.05, lower.tail = FALSE)) &&
+         near(fr$p_value[8:9], vapply(c(85, 86), function(x) {
+           stats::binom.test(x, 5000, 0.01, alternative = "greater")$p.value
+         }, 0)) &&
+         all(fr$threshold == level))
 expect("fit-failure rows carry the scenario's factors and the counts",
        identical(fr$alloc_type[1], "balanced") && fr$min_cell[1] == 20L && identical(fr$dist[3], "t3") &&
-         identical(fr$stress_test, c(FALSE, FALSE, TRUE, FALSE)) && identical(fr$count, c(6L, 2L, 30L, 1L)) &&
-         all(fr$total == 100L) && all(is.na(fr$n_success)))
-expect("fit failures belong to the fitting function", identical(fr$`function`[1:2], c("fit_solomon_glm", "fit_solomon_ml")))
+         identical(fr$stress_test, c(FALSE, FALSE, TRUE, rep(FALSE, 7))) && identical(fr$count, ffit$count) &&
+         all(fr$total == 5000L) && near(fr$estimate, ffit$count / 5000) && all(is.na(fr$n_success)))
+expect("fit failures belong to the fitting function",
+       identical(fr$`function`[c(1:2, 6:7)], c("fit_solomon_glm", "fit_solomon_ml", "perm_solomon", "perm_solomon")))
+# The thresholds at every R the gate can choose, for both tiers.
+ff_counts <- data.frame(R = c(5000, 4500, 4000, 3500, 3000), limit = c(86, 79, 72, 65, 58),
+                        material = c(323, 295, 266, 237, 207))
+expect("the material counts of the fit-failure rule are rule 1's failing counts", identical(ff_counts$material, table_counts$fail))
+for (i in seq_len(nrow(ff_counts))) {
+  R <- ff_counts$R[i]
+  d <- ff_counts$limit[i]
+  m <- ff_counts$material[i]
+  ft <- fit_failure_rows(ff_rows(1L, "M1", c(d - 1, d, m - 1, m), R), scenarios, 14576L)
+  expect(paste0("fit failures at R = ", R, ": pass at ", d - 1, ", documented at ", d, " and ", m - 1, ", material at ", m),
+         identical(ft$class, c("", "documented limitation", "documented limitation", "material failure")))
+}
+# C: the protocol's family size, 14,576, or 11,964 in the fallback (a level
+# of 4.18e-6), where 322 of 5,000 is material and 85 a documented
+# limitation. By default C comes from the scenario table, and a table that
+# is neither cannot be judged.
+edge <- ff_rows(s_bal20, "M1", c(85, 322))
+expect("fit failures with the fallback's C: 85 of 5,000 is a documented limitation, 322 is material",
+       identical(fit_failure_rows(edge, scenarios, 11964L)$class, c("documented limitation", "material failure")) &&
+         identical(fit_failure_rows(edge, scenarios, 14576L)$class, c("", "documented limitation")) &&
+         all(fit_failure_rows(edge, scenarios, 11964L)$threshold == 0.05 / 11964))
+expect("by default C is that of the scenario table: 14,576 for the full table, 11,964 for the fallback",
+       identical(fit_failure_rows(edge, scenarios)$class, c("", "documented limitation")) &&
+         identical(fit_failure_rows(edge, scenarios[study_fallback(scenarios), ])$class,
+                   c("documented limitation", "material failure")) &&
+         all(fit_failure_rows(edge, scenarios)$threshold == level))
+expect("by default a partial scenario table cannot be judged",
+       inherits(tryCatch(fit_failure_rows(edge, scenarios[1:10, ]), error = function(e) e), "error"))
+expect("a failed-fit row without replications stops", fails_with(fit_failure_rows(ff_rows(1L, "M1", 0, 0), scenarios, 14576L),
+                                                                  "no replication"))
+expect("fit failures read only the rows of status \"any\"",
+       nrow(fit_failure_rows(rbind(edge, transform(edge, status = "error")), scenarios, 14576L)) == 2L)
 af_fit <- assign_features(rbind(dec, fr))
 expect("a material fit failure at 20 per group, balanced, sets n* = 60 (literal reading)",
        identical(af_fit$n_star[["fit_solomon_glm"]], 60L) &&
          identical(af_fit$decisions$feature[nrow(dec) + 1L], "small cell (n* = 60)"))
 expect("a material fit failure under t (3 df) is a stress test",
        startsWith(af_fit$decisions$feature[nrow(dec) + 3L], "stress test"))
+expect("a documented-limitation fit failure does not count toward n*",
+       identical(af_fit$n_star[["fit_solomon_ml"]], 10L) && af_fit$decisions$feature[nrow(dec) + 2L] == "")
 
 # ---- The material tier's consequences: n* and the warning features ---------------------------------
 
@@ -511,21 +574,35 @@ expect("check 5 is \"not compared\" where M2 failed in every replication, and co
 
 # ---- A whole study summary on synthetic results ---------------------------------------------------------
 
-full_res <- synthetic_results(scenarios, 4)
-# Injected failed fits: M1 in replication 1 of a balanced normal scenario
-# with 20 per group (25% of 4: material), and of a t (3 df) scenario (a
-# stress test); M4 in replication 2 of the first Romano scenario.
+full_res <- synthetic_results(scenarios, 5)
+# Injected failed fits, judged by the test-based rule at .05/14,576 with 5
+# replications: 5 of 5 is material (P(X >= 5) = 3.1e-7 under share .05),
+# 4 of 5 a documented limitation (P(X >= 4) = 5.0e-8 under .01, 3.0e-5
+# under .05), and 1 of 5 passes (P(X >= 1) = .049 under .01). M1 fails in
+# every replication of a balanced normal scenario with 20 per group
+# (material) and of a t (3 df) scenario (a stress test), and in replication
+# 1 of another (passes); M2 fails in 4 replications of the first
+# (documented); M4 fails in replication 2 of the first Romano scenario
+# (passes), and in every replication of an equal-arm and of an unequal-arm
+# scenario with h = 1 (material).
 inject <- function(res, s, r, m, status) {
-  i <- res$scenario == s & res$rep == r & res$method == m
+  i <- res$scenario == s & res$rep %in% r & res$method == m
   res$status[i] <- status
   if (m %in% c("M1", "M2")) res$estimate[i] <- res$std_error[i] <- res$df[i] <- NA_real_
   else res$p_value[i] <- res$statistic[i] <- NA_real_
   res
 }
-full_res <- inject(full_res, s_bal20, 1, "M1", "error")
-full_res <- inject(full_res, s_t3, 1, "M1", "error")
+s_one <- sid("main", "E0", "normal", "20-20-20-20", 1, 0.8)
+s_eq <- sid("main", "E0", "normal", "60-60-60-60", 1, 0.8)
+s_uneq <- sid("main", "E0", "normal", "10-30-10-30", 1, 0.5)
+full_res <- inject(full_res, s_bal20, 1:5, "M1", "error")
+full_res <- inject(full_res, s_t3, 1:5, "M1", "error")
+full_res <- inject(full_res, s_one, 1, "M1", "error")
+full_res <- inject(full_res, s_bal20, 1:4, "M2", "nonconverged")
 rom1 <- min(rom_sc[scenarios$alloc_type[rom_sc] == "treated smaller"])
 full_res <- inject(full_res, rom1, 2, "M4", "undefined")
+full_res <- inject(full_res, s_eq, 1:5, "M4", "undefined")
+full_res <- inject(full_res, s_uneq, 1:5, "M4", "no_valid_permutations")
 full_warn <- data.frame(scenario = c(1L, 1L), rep = c(2L, 3L), type = "warning", class = "simpleWarning",
                         message = c("first message", "second message"), count = c(3L, 1L), stringsAsFactors = FALSE)
 full <- summarize_robustness(full_res, synthetic_agreement(scenarios[scenarios$scenario %in% c(1, 271), ], 3),
@@ -546,34 +623,42 @@ expect("the run information gives C", full$`run-information`$value[full$`run-inf
 fw <- full$failures[full$failures$type == "warning", ]
 expect("warnings by class, with every distinct message",
        nrow(fw) == 1L && fw$count == 4 && fw$n_messages == 2L && fw$messages == "first message | second message" &&
-         near(fw$proportion, 2 / 4))
+         near(fw$proportion, 2 / 5))
 expect("every scenario and method has a failed-fit row",
        sum(full$failures$type == "failed_fit" & full$failures$status == "any") == 306L * 4L + 270L * 2L)
 expect("M2's largest difference from M1 is reported, with the replications compared",
        any(pf$measure == "max_abs_difference_from_M1") &&
-         all(pf$n_success[pf$measure == "max_abs_difference_from_M1" & pf$scenario == s_bal20] == 3L))
+         all(pf$n_success[pf$measure == "max_abs_difference_from_M1" & pf$scenario == s_one] == 4L))
 expect("judged and described rates are labelled", all(c("judged", "described", "descriptive") %in% pf$role))
 expect("M2 in the slopes level is described",
        all(pf$role[pf$method == "M2" & pf$measure == "rejection" &
                      pf$scenario %in% scenarios$scenario[scenarios$level == "slopes"]] == "described"))
-expect("the standardized bias carries an MCSE outside t (3 df)",
-       all(is.finite(pf$mcse[pf$measure == "standardized_bias" & !pf$scenario %in% scenarios$scenario[scenarios$dist == "t3"]])))
+expect("the standardized bias carries an MCSE outside t (3 df), given 3 successful fits",
+       all(is.finite(pf$mcse[pf$measure == "standardized_bias" & pf$n_success >= 3L &
+                               !pf$scenario %in% scenarios$scenario[scenarios$dist == "t3"]])))
 ffr <- dc[dc$rule == "fit failures", ]
+ffr_at <- function(s, m) ffr[ffr$scenario == s & ffr$method == m, ]
 expect("fit-failure rows: count and total, factors, and class",
        nrow(ffr) == 306L * 4L + 270L * 2L &&
-         ffr$count[ffr$scenario == s_bal20 & ffr$method == "M1"] == 1L &&
-         ffr$total[ffr$scenario == s_bal20 & ffr$method == "M1"] == 4L &&
-         ffr$class[ffr$scenario == s_bal20 & ffr$method == "M1"] == "material failure" &&
-         ffr$alloc_type[ffr$scenario == s_bal20 & ffr$method == "M1"] == "balanced" &&
-         isTRUE(ffr$stress_test[ffr$scenario == s_t3 & ffr$method == "M1"]))
+         ffr_at(s_bal20, "M1")$count == 5L && ffr_at(s_bal20, "M1")$total == 5L &&
+         ffr_at(s_bal20, "M1")$class == "material failure" && ffr_at(s_bal20, "M1")$alloc_type == "balanced" &&
+         isTRUE(ffr_at(s_t3, "M1")$stress_test) && ffr_at(s_t3, "M1")$class == "material failure")
+expect("fit-failure rows: 4 of 5 is a documented limitation, 1 of 5 passes, and so do the others",
+       ffr_at(s_bal20, "M2")$class == "documented limitation" && ffr_at(s_one, "M1")$verdict == "pass" &&
+         ffr_at(s_one, "M1")$count == 1L && ffr_at(rom1, "M4")$verdict == "pass" &&
+         sum(ffr$verdict == "fail") == 5L && all(ffr$threshold == level))
 nstar <- dc[dc$rule == "(a) small-cell warning: n*", ]
 expect("the material fit failure sets fit_solomon_glm's n* to 60; the stress test does not count",
        nstar$estimate[nstar$`function` == "fit_solomon_glm"] == 60 && nstar$count[nstar$`function` == "fit_solomon_glm"] == 1L)
+expect("a documented-limitation fit failure leaves fit_solomon_ml's n* at 10",
+       nstar$estimate[nstar$`function` == "fit_solomon_ml"] == 10 && nstar$count[nstar$`function` == "fit_solomon_ml"] == 0L)
 expect("(b) counts M1's material fit failure; rule 2 of M1 fits is reported on its own row",
        dc$estimate[dc$rule == "(b) changed default"] == 1 &&
          dc$verdict[dc$rule == "(b) changed default: rule 2 of fit_solomon_glm fits"] == "reported")
 expect("(c) counts M4's material fit failure only in equal-arm allocations",
-       dc$estimate[dc$rule == "(c) difference statistic"] == 0)
+       scenarios$equal_arms[s_eq] && !scenarios$equal_arms[s_uneq] &&
+         ffr_at(s_eq, "M4")$class == "material failure" && ffr_at(s_uneq, "M4")$class == "material failure" &&
+         dc$estimate[dc$rule == "(c) difference statistic"] == 1)
 rom_row <- dc[dc$rule == "Romano check (treated smaller arms, h > 1)", ]
 rates <- pf$estimate[pf$method == "M4" & pf$measure == "rejection" &
                        pf$scenario %in% rom_sc[scenarios$alloc_type[rom_sc] == "treated smaller"]]

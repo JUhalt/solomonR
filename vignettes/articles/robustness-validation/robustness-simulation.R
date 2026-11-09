@@ -107,6 +107,11 @@ perm_weights <- list(c(0.5, 0.5), c(1, -1), c(1, 0), c(0, 1))
 alpha <- 0.05                  # every test, and the TOST
 nominal <- 0.05                # rules 1 and 2: rate <= .05
 material_rate <- 0.075         # the material tier (Bradley, 1978)
+# The fit-failure rule, test-based (Amendment 2 of #116, item 11): a
+# documented limitation if share <= .01 is rejected, a material failure if
+# share <= .05 is, by a one-sided exact binomial test at .05/C.
+fit_failure_limit <- 0.01
+fit_failure_material <- 0.05
 tost_deltas <- c(0.2, 0.5, 0.8)
 power_effect <- 0.5
 stress_dists <- c("chisq1", "t3")

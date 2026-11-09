@@ -64,8 +64,8 @@ tost_p <- function(estimate, std_error, df, delta) {
 }
 
 # P(X >= x) for X ~ Binomial(n, p0): the p-value of the one-sided exact
-# binomial test of rate <= p0 (rules 1 and 2, and the material tier). NA
-# when no fit succeeded.
+# binomial test of rate <= p0 (rules 1 and 2, the material tier, and the
+# fit-failure rule). NA when n is 0 (no fit succeeded).
 binom_p_upper <- function(x, n, p0) {
   ifelse(n > 0, stats::pbinom(x - 1, n, p0, lower.tail = FALSE), NA_real_)
 }
@@ -733,22 +733,37 @@ judge_rates <- function(perf, sc, C) {
                                  `function` = rule_function(j$rule, j$method))))
 }
 
-# The fit-failure rule (protocol): a method with more than 1% failed fits in
-# a scenario has a documented limitation there, and more than 5% is a
-# material failure. It is not part of C. The rows carry the scenario's
+# The fit-failure rule (protocol), test-based as Amendment 2 of #116 (item
+# 11) fixes it: a method's share of replications with a failed fit in a
+# scenario is a documented limitation there when a one-sided exact binomial
+# test of share <= .01 has p < .05/C, and a material failure when the same
+# test of share <= .05 does (the protocol posted "more than 1%" and "more
+# than 5%" of the observed share). C is the protocol's family size (14,576,
+# or 11,964 in the fallback), so every decision of the study uses one
+# level; the fit-failure tests are not added to C. `p_value` is the test
+# against .01, `p_value_material` the test against .05, and `threshold` is
+# .05/C, as in the rows of judge_rates(). At R = 5,000 and C = 14,576, a
+# share is a documented limitation from 86 failed replications and material
+# from 323, the count at which rule 1 fails. The rows carry the scenario's
 # factors, so that a material one enters (a) to (c) below like a material
 # rate failure, and one under a stress-test distribution does not.
-fit_failure_rows <- function(failed_fits, sc) {
+fit_failure_rows <- function(failed_fits, sc, C = family_size(sc)) {
+  level <- 0.05 / C
   ff <- failed_fits[failed_fits$status == "any", , drop = FALSE]
+  if (any(!(ff$replications >= 1))) stop("A failed-fit row has no replication.", call. = FALSE)
   prop <- ff$count / ff$replications
+  p_limit <- binom_p_upper(ff$count, ff$replications, fit_failure_limit)
+  p_material <- binom_p_upper(ff$count, ff$replications, fit_failure_material)
+  fail <- p_limit < level
+  material <- fail & p_material < level
   do.call(decision_frame, c(list(nrow(ff)), scenario_columns(ff$scenario, sc),
                             list(rule = "fit failures", method = ff$method,
                                  measure = "proportion of replications with a failed fit",
                                  count = as.integer(ff$count), total = as.integer(ff$replications),
-                                 estimate = prop, threshold = 0.01,
-                                 verdict = ifelse(prop > 0.01, "fail", "pass"),
-                                 class = ifelse(prop > 0.05, "material failure",
-                                                ifelse(prop > 0.01, "documented limitation", "")),
+                                 estimate = prop, p_value = p_limit, p_value_material = p_material,
+                                 threshold = level, verdict = ifelse(fail, "fail", "pass"),
+                                 class = ifelse(material, "material failure",
+                                                ifelse(fail, "documented limitation", "")),
                                  `function` = unname(method_function[ff$method]))))
 }
 
@@ -759,11 +774,11 @@ fit_failure_rows <- function(failed_fits, sc) {
 # counts toward the first feature that covers it: a small cell (n* of 20 or
 # 60, and a smallest cell below n*), unequal arms (1:3 or 3:1), or unequal
 # pretest conditions. [Left to the script: computed mechanically.] The
-# protocol calls more than 5% failed fits "a material failure", and a
-# material failure leads to whichever of (a), (b), and (c) applies; the
+# protocol calls the fit-failure rule's upper tier "a material failure", and
+# a material failure leads to whichever of (a), (b), and (c) applies; the
 # script takes this literally, so the fit-failure rule's material failures
-# count toward n*, the features, (b), and (c) like those of rules 1 and 2,
-# as Amendment 2 of #116 (item 11) says.
+# (test-based, fit_failure_rows()) count toward n*, the features, (b), and
+# (c) like those of rules 1 and 2, as Amendment 2 of #116 (item 11) says.
 assign_features <- function(dec) {
   dec$feature[dec$class == "material failure" & dec$stress_test %in% TRUE] <-
     "stress test: documented, not counted toward (a), (b), or (c)"
@@ -886,7 +901,7 @@ agreement_decision_rows <- function(agreement) {
 }
 
 decisions_table <- function(perf, romano, failed_fits, agreement, sc, C) {
-  dec <- rbind(judge_rates(perf, sc, C), fit_failure_rows(failed_fits, sc))
+  dec <- rbind(judge_rates(perf, sc, C), fit_failure_rows(failed_fits, sc, C))
   feat <- assign_features(dec)
   dec <- feat$decisions
   level <- 0.05 / C
