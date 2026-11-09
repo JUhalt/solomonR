@@ -8,7 +8,8 @@ description: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(solomonR)
-has_mmrm <- requireNamespace("mmrm", quietly = TRUE)
+has_mmrm <- requireNamespace("mmrm", quietly = TRUE) &&
+  utils::packageVersion("mmrm") >= "0.3.13"
 ```
 
 Two situations call for more than one model fitted to complete data:
@@ -259,13 +260,14 @@ mm <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = lon
 mm
 ```
 
-The model needs the mmrm package. It estimates the covariance of the
-posttests separately for pretested and unpretested participants, because
-the pretest adjustment makes their residual covariance differ, and it uses
-Kenward-Roger degrees of freedom. The table of observed posttests shows the
-dropout. Every participant has the first posttest, so the pretest effects
-have one center here; for data with participants who miss every posttest,
-see `pretest_center` in `?fit_solomon_mmrm`.
+The model needs the mmrm package, version 0.3.13 or later. It estimates
+the covariance of the posttests separately for pretested and unpretested
+participants, because the pretest adjustment makes their residual
+covariance differ, and it uses Kenward-Roger degrees of freedom. The table
+of observed posttests shows the dropout. Every participant has the first
+posttest, so the pretest effects have one center here; for data with
+participants who miss every posttest, see `pretest_center` in
+`?fit_solomon_mmrm`.
 
 ### Why not analyze each occasion separately?
 

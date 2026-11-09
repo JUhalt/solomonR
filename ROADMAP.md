@@ -480,7 +480,7 @@ the audit:
   - [x] `marginal_solomon()` stops when a covariate level occurs only
     among pretested participants with a pretest who are outside the
     model — [#171](https://github.com/JUhalt/solomonR/issues/171); merged in [PR #178](https://github.com/JUhalt/solomonR/pull/178)
-  - [ ] `fit_solomon_mmrm()` with an ordered occasion factor — [#172](https://github.com/JUhalt/solomonR/issues/172)
+  - [x] `fit_solomon_mmrm()` with an ordered occasion factor — [#172](https://github.com/JUhalt/solomonR/issues/172); merged in [PR #177](https://github.com/JUhalt/solomonR/pull/177)
   - [ ] A covariate named `pre_obs` in a fit without a pretest, or named
     `condition`, taken for the pretest or the condition — [#174](https://github.com/JUhalt/solomonR/issues/174)
 - **Figures and reports**

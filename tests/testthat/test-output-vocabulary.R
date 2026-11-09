@@ -241,7 +241,7 @@ test_that("the SEM fits report `df = Inf` for their z tests", {
 })
 
 test_that("fit_solomon_mmrm() has `occasion` first and the shared columns", {
-  testthat::skip_if_not_installed("mmrm")
+  testthat::skip_if_not_installed("mmrm", "0.3.13")
   withr::local_seed(57)
   n <- 20
   g <- rep(1:4, each = n)
@@ -408,7 +408,7 @@ test_that("fit_solomon_mi() and tipping_point_solomon() follow the contract", {
 })
 
 test_that("fit_solomon_mmrm() follows the contract, with one label of its own", {
-  testthat::skip_if_not_installed("mmrm")
+  testthat::skip_if_not_installed("mmrm", "0.3.13")
   withr::local_seed(57)
   n <- 20
   g <- rep(1:4, each = n)
