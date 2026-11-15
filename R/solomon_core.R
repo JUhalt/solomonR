@@ -2155,7 +2155,12 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' @param reps Number of permutations. Default is 5000. In clustered designs
 #'   with at most `reps` possible allocations, every allocation is used.
 #' @param seed Optional random-number seed for reproducibility. The global
-#'   random-number state is restored when the function exits.
+#'   random-number state is restored when the function exits. In clustered
+#'   designs, the clusters are taken in the C locale's order of their IDs
+#'   (byte order, in which capital letters come before lower-case ones and
+#'   accented letters after both), whatever the session's collation; a
+#'   factor `cluster` is taken by its labels in that order, not by its level
+#'   order. So a seed gives the same allocations in every session.
 #' @param return_dist Logical. If \code{TRUE}, return the permutation
 #'   distribution in addition to the observed statistic and p-value.
 #' @param statistic `"studentized"` (the default, and recommended) divides

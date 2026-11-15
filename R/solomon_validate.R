@@ -346,7 +346,12 @@
 #'     and `test` (`"exact"` or `"simulated"`); or, for a numeric covariate
 #'     with more than two values, its mean
 #'     among those with (`mean_with`) and without (`mean_without`) a
-#'     posttest. `NULL` without `covariates`.
+#'     posttest. `NULL` without `covariates`. The levels are listed in the C
+#'     locale's order (byte order, in which capital letters come before
+#'     lower-case ones and accented letters after both), whatever the
+#'     session's collation, and a factor's levels in that order too, not in
+#'     its own level order. So the p-value simulated under the fixed seed is
+#'     the same in every session.
 #'   - `missing_pretest`: for each pretested condition, the participants
 #'     with a posttest and no pretest (`n_without_pretest`,
 #'     `mean_without_pretest`, their mean posttest) and those with both

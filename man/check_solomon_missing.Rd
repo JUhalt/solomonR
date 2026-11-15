@@ -99,7 +99,12 @@ level, \code{n}, \code{posttest_missing}, \code{share}, \code{analyzed_share}, \
 and \code{test} (\code{"exact"} or \code{"simulated"}); or, for a numeric covariate
 with more than two values, its mean
 among those with (\code{mean_with}) and without (\code{mean_without}) a
-posttest. \code{NULL} without \code{covariates}.
+posttest. \code{NULL} without \code{covariates}. The levels are listed in the C
+locale's order (byte order, in which capital letters come before
+lower-case ones and accented letters after both), whatever the
+session's collation, and a factor's levels in that order too, not in
+its own level order. So the p-value simulated under the fixed seed is
+the same in every session.
 \item \code{missing_pretest}: for each pretested condition, the participants
 with a posttest and no pretest (\code{n_without_pretest},
 \code{mean_without_pretest}, their mean posttest) and those with both

@@ -529,6 +529,9 @@ the audit:
     GitHub's ZIP files (on November 7, 2026, they kept the commit) and the
     CI run merged in [PR #167](https://github.com/JUhalt/solomonR/pull/167). Open: the note on studies
     run through the harness, when the robustness study joins the page.
+  - [ ] A seeded cluster permutation test in `perm_solomon()`, and the
+    simulated p-value of `check_solomon_missing()`, that change with the
+    session's collation — [#179](https://github.com/JUhalt/solomonR/issues/179)
 
 # Later / exploratory
 

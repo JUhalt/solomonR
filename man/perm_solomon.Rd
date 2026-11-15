@@ -35,7 +35,12 @@ see \code{\link[=marginal_solomon]{marginal_solomon()}}.}
 with at most \code{reps} possible allocations, every allocation is used.}
 
 \item{seed}{Optional random-number seed for reproducibility. The global
-random-number state is restored when the function exits.}
+random-number state is restored when the function exits. In clustered
+designs, the clusters are taken in the C locale's order of their IDs
+(byte order, in which capital letters come before lower-case ones and
+accented letters after both), whatever the session's collation; a
+factor \code{cluster} is taken by its labels in that order, not by its level
+order. So a seed gives the same allocations in every session.}
 
 \item{return_dist}{Logical. If \code{TRUE}, return the permutation
 distribution in addition to the observed statistic and p-value.}

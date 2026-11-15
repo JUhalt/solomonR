@@ -1,5 +1,70 @@
 # solomonR (development version)
 
+## Seeded results under another collation (bug fix, #179)
+
+* `perm_solomon()` with a clustered fit took the clusters in the order
+  in which the session's collation sorts their IDs. When there are more
+  possible allocations than `reps`, it draws the allocations at random,
+  and the same seed then drew them for other clusters under another
+  collation. So a seeded p-value differed from one session to another
+  by Monte Carlo error: for instance, between an English session and
+  one started with `LC_COLLATE=C`, or inside
+  `withr::with_collate("C", ...)`. Both p-values were valid, but the
+  result could not be reproduced exactly, and no message said why. The
+  print, `report_solomon()`, and `plot_perm()` carried the difference,
+  and so did `z_perm` with `return_dist = TRUE`. This happened in both
+  designs (clusters assigned to the four groups, and pretesting within
+  clusters), for IDs that the two collations sort differently: names
+  that start with capital and lower-case letters (`north01`,
+  `South02`), or that contain accented letters or, in some collations,
+  punctuation such as underscores. A factor cluster was sorted by its
+  labels in the same way. Within one session, a seed gave the same
+  result. The participant-level test, and a cluster test that uses
+  every allocation, gave the same p-value in every session.
+* `check_solomon_missing()` listed the levels of a character or factor
+  covariate in the order of the session's collation; a factor's own
+  level order was not used. With three or more levels, its Fisher test
+  of loss by level simulates the p-value from tables drawn under a
+  fixed seed, so that p-value, and the printed summary, changed with
+  the collation too.
+* The clusters, and the levels of such a covariate, are now taken in the
+  C locale's order (byte order, in which capital letters come before
+  lower-case ones and accented letters after both) in every session. A
+  factor is still taken by its labels, now in that order, not by its
+  level order. `?perm_solomon` (under `seed`) and
+  `?check_solomon_missing` say so.
+* What changes: outside a session whose collation is C, a seeded
+  cluster p-value with random allocations (`exact = FALSE`), for IDs
+  that the C locale and the session sort differently, is now the one
+  that a C session gave before. So is the simulated p-value of
+  `check_solomon_missing()` for such levels. A seeded p-value reported
+  from such a session will differ when the analysis is rerun. Two
+  orders change, but no value: that of `z_perm` when every allocation
+  is used, and that of the rows of a covariate's table in
+  `check_solomon_missing()` and of the levels in its printed summary,
+  with two levels too (where the exact test's p-value can differ only
+  by rounding error).
+* What does not change: any result in a session whose collation is C;
+  in every session, results for IDs and levels that both orders sort
+  the same: numeric IDs, names of letters and digits in one case
+  (`n01`, `N01`), and zero-padded names (`school01`); and the
+  participant-level test. The package's cluster simulation study
+  numbers its clusters, so its results stand.
+* Tests check, with mixed-case IDs and more allocations than `reps`, in
+  both designs and with `return_dist = TRUE`, that `perm_solomon()`
+  gives the same result under the session's collation (or an English
+  one, when the session sorts the IDs as C does) and under C; the same
+  result as with the IDs replaced by zero-padded labels in their C
+  order, and as with a factor cluster whose levels are in the order of
+  the data; and the same p-value, with statistics equal to rounding
+  error, when the rows are shuffled. They check that a test that uses
+  every allocation gives the same `z_perm`, in the same order, under
+  both collations; that seeded p-values for IDs `c1`, `c2`, ... are
+  those of the previous version, under both collations; and that
+  `check_solomon_missing()` gives the same table under both collations,
+  with the levels in the C order and the p-values that a C session gave
+  before, for a character and a factor covariate.
+
 ## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
 
 * `fit_solomon_mmrm()` fitted the model with `occasion` as given, but
