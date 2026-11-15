@@ -28,6 +28,12 @@ workers <- if (length(args) >= 3) as.integer(args[3]) else 1L
 ROOT <- normalizePath(file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))),
                                 "..", ".."), winslash = "/")
 REPLAY_SEED0 <- 1348501  # Mode C seeds 1348501-1348799, one per world, in grid order
+# CMP_SPACE=model feeds the package labelings over the rows in the model
+# only, as a package that permutes only those rows (decision D2 of #134)
+# receives them, and compares the cases stored over those rows (the
+# comment on #134 that posted it, Section 1, change 2). It is off by
+# default, and the package is then judged over all rows, as posted.
+SPACE_MODEL <- identical(Sys.getenv("CMP_SPACE"), "model")
 
 ref <- readRDS(ref_file)
 
@@ -129,15 +135,24 @@ run_captured <- function(expr_fun) {
 # reference leaves out ALIAS labelings), and whether each counts it as at
 # least as extreme. Listed for every case, whether or not the counts agree.
 MISCLASS <- list()
-misclassified <- function(case_id, cls, st, z_full, z_obs, family_obj, statistic) {
+misclassified <- function(case_id, cls, st, z_full, z_obs, family_obj, statistic, v = NULL) {
   if (is.null(z_full) || length(z_full) != length(cls)) return(NULL)
   rc <- ref_count(st, cls, statistic)
-  pkg_kept <- is.finite(z_full)
+  # A result that records its tie window (the #134 remedy) keeps +Inf and
+  # leaves out only NA; master drops every statistic that is not finite.
+  recorded <- !is.null(v$tie_tolerance)
+  pkg_kept <- if (recorded) !is.na(z_full) else is.finite(z_full)
   pk <- rep(NA, length(z_full))
   if (any(pkg_kept)) {
     zf <- z_full[pkg_kept]
-    pk[pkg_kept] <- ZCAP$orig(zf, z_obs, solomonR:::.perm_unit(zf, statistic),
-                              solomonR:::.perm_tie_tolerance(family_obj))
+    pk[pkg_kept] <- if (recorded) {
+      ZCAP$orig(zf, z_obs,
+                solomonR:::.perm_unit(zf, statistic, if (is.null(v$tie_scale)) 1 else v$tie_scale),
+                v$tie_tolerance)
+    } else {
+      ZCAP$orig(zf, z_obs, solomonR:::.perm_unit(zf, statistic),
+                solomonR:::.perm_tie_tolerance(family_obj))
+    }
   }
   ref_kept <- rc$keep
   rf <- rc$cnt == 1 & ref_kept
@@ -222,7 +237,10 @@ compare_world <- function(r, replay_seed) {
     }
     return(safe_bind(rows))
   }
-  cs <- cs[cs$space == "all", ]
+  # CMP_SPACE=model: in a world whose cases are stored over both sets of
+  # labelings (rows outside the model), the cases over the rows in the model
+  # are compared, not those over all rows
+  cs <- if (SPACE_MODEL && any(cs$space == "model")) cs[cs$space == "model", ] else cs[cs$space == "all", ]
   d <- wd$data
   # every labeling of the space over all rows (the reference's M can be
   # smaller, when a convention leaves labelings out)
@@ -247,8 +265,55 @@ compare_world <- function(r, replay_seed) {
     fit <- tryCatch(fit_world(wd, wd$obs[[o]]), error = function(e) e)
     fit_warn <- if (inherits(fit, "error")) "" else attr(fit, "fit_warnings")
     rows_ok <- if (inherits(fit, "error")) NA else isTRUE(pkg_rows(fit) == ref_rows(r))
+    if (SPACE_MODEL) {
+      # CMP_SPACE=model: the rows in the model are the rows of the fit to the
+      # observed labeling that are not in fit$model$na.action (without a fit,
+      # the reference's rows in the model). Elsewhere they are all the rows,
+      # and the labelings, the cases, and the draws are those of the posted
+      # harness.
+      used <- rep(TRUE, nrow(d))
+      if (!inherits(fit, "error")) {
+        if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
+      } else {
+        for (ty in r$types) used[ty$idx[is.na(ty$row_type)]] <- FALSE
+      }
+      # Mode A over the rows in the model: in each pretest condition, every
+      # choice of treated rows among that condition's rows in the model, with
+      # as many treated as the observed labeling has there. Each labeling is
+      # stored padded with 0 on the rows outside the model, for class_of();
+      # the feeder hands the package the rows in the model.
+      M_all <- prod(vapply(0:1, function(p) choose(sum(used & d$pretested == p),
+                                                   sum(wd$obs[[o]][used & d$pretested == p])), 0))
+      use_A <- identical(mode, "A") && is.finite(M_all) && M_all <= 4900
+      if (use_A) {
+        combos <- lapply(c(U = 0, P = 1), function(p) {
+          idx <- which(used & d$pretested == p)
+          cb <- utils::combn(length(idx), sum(wd$obs[[o]][idx]))
+          list(idx = idx, cb = cb)
+        })
+        grid <- expand.grid(u = seq_len(ncol(combos$U$cb)), p = seq_len(ncol(combos$P$cb)))
+        labs <- vapply(seq_len(nrow(grid)), function(j) {
+          t <- numeric(nrow(d))
+          t[combos$U$idx[combos$U$cb[, grid$u[j]]]] <- 1
+          t[combos$P$idx[combos$P$cb[, grid$p[j]]]] <- 1
+          t
+        }, numeric(nrow(d)))
+        if (ncol(labs) != M_all) stop("labelings do not match M for ", wd$id)
+      }
+    }
     if (use_A) {
       cls <- apply(labs, 2, function(t) class_of(r, t))
+    } else if (SPACE_MODEL) {
+      # Mode C: the draws replayed over the rows in the model, under the same
+      # recorded seed, and padded with 0 on the rows outside the model
+      reps <- if (is.null(wd$reps)) 999L else as.integer(wd$reps)
+      draws <- if (inherits(fit, "error")) NULL else
+        withr::with_seed(replay_seed, lapply(seq_len(reps), function(i) {
+          t <- numeric(nrow(d))
+          t[used] <- solomonR:::.perm_treat(fit$data$treat[used], fit$data$pretested[used])
+          t
+        }))
+      cls <- if (is.null(draws)) NULL else vapply(draws, function(t) class_of(r, t), 0)
     } else {
       reps <- if (is.null(wd$reps)) 999L else as.integer(wd$reps)
       draws <- if (inherits(fit, "error")) NULL else
@@ -283,7 +348,8 @@ compare_world <- function(r, replay_seed) {
         env$k <- 0L
         feeder <- function(treat, pretested) {
           env$k <- env$k + 1L
-          labs[, env$k]
+          # CMP_SPACE=model: the labeling over the rows in the model
+          if (SPACE_MODEL) labs[used, env$k] else labs[, env$k]
         }
         res <- run_captured(function() run_pkg(testthat::with_mocked_bindings(
           solomonR::perm_solomon(fit, cr$contrast, reps = M_all, statistic = cr$statistic, return_dist = TRUE),
@@ -315,7 +381,7 @@ compare_world <- function(r, replay_seed) {
         same <- is.null(rc$error) && !isTRUE(rc$undecided) && v$valid_reps == rc$m && bp == rc$b
         ok <- grepl("^p", cr$outcome) && same
         if (!is.null(st) && !is.null(cls)) {
-          mc <- misclassified(cr$case_id, cls, st, ZCAP$z_full, v$z_obs, stats::family(fit$model), cr$statistic)
+          mc <- misclassified(cr$case_id, cls, st, ZCAP$z_full, v$z_obs, stats::family(fit$model), cr$statistic, v)
           if (!is.null(mc)) MISCLASS[[length(MISCLASS) + 1]] <<- mc
         }
         out <- cbind(base, pkg_outcome = "p", pkg_b = bp, pkg_valid = v$valid_reps, pkg_p = v$p_perm,
@@ -423,7 +489,7 @@ if (workers > 1) {
   cl <- parallel::makeCluster(workers)
   parallel::clusterExport(cl, c("ROOT", "refs", "seeds", "fam_arg", "fit_world", "class_of", "ref_count", "run_pkg", "safe_bind",
                                 "subtitle_p", "plot_ok", "compare_world", "work", "ref_rows", "pkg_rows", "theta_cols",
-                                "misclassified", "MISCLASS", "ZCAP", "capture_pal", "run_captured"))
+                                "misclassified", "MISCLASS", "ZCAP", "capture_pal", "run_captured", "SPACE_MODEL"))
   invisible(parallel::clusterEvalQ(cl, suppressMessages(pkgload::load_all(ROOT, quiet = TRUE))))
   ord <- names(refs)[order(-vapply(refs, function(r) suppressWarnings(max(as.numeric(r$cases$M), na.rm = TRUE)), 0))]
   res <- parallel::parLapplyLB(cl, ord, work)
