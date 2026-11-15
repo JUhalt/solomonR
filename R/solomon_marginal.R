@@ -72,9 +72,9 @@
     # that is missing is not a level; a participant who lacks one covariate
     # can still have a level the model does not have in another.
     for (v in intersect(names(model$xlevels), covariates)) {
-      # In UTF-8, so that the C order of .sort_c() takes accented levels
-      # as read.csv() returns them too (issue #179).
-      value <- enc2utf8(as.character(d[[v]]))
+      # The values as the data have them, so that they match the model's
+      # levels; .sort_c() only orders them, in the C order (issue #179).
+      value <- as.character(d[[v]])
       new <- outside & !is.na(d[[v]]) & !(value %in% model$xlevels[[v]])
       levels_v <- if (is.factor(d[[v]])) levels(d[[v]]) else .sort_c(value)
       counted <- new & !no_covariate

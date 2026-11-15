@@ -30,10 +30,17 @@
 * The clusters, and the levels of such a covariate, are now taken in the
   C locale's order (the order of the characters' Unicode code points,
   in which capital letters come before lower-case ones and accented
-  letters after both) in every session, accented text as `read.csv()`
-  returns it included. A factor is still taken by its labels, now in
-  that order, not by its level order. `?perm_solomon` (under `seed`)
-  and `?check_solomon_missing` say so.
+  letters after both) in every session. A factor is still taken by its
+  labels, now in that order, not by its level order. The IDs and levels
+  themselves are not changed. Text as `read.csv()` returns it is
+  ordered by its bytes, which gives that order for a UTF-8 file in any
+  session, including one whose native encoding is not UTF-8, such as a
+  session started with `LC_ALL=C`. In a session whose native encoding
+  is a Windows code page (R 4.1 on Windows), text in that encoding is
+  ordered by its bytes too, as a C session there ordered it before;
+  that order can differ from the order of the same text in UTF-8, as it
+  does for the euro sign and curly quotes in Windows-1252.
+  `?perm_solomon` (under `seed`) and `?check_solomon_missing` say so.
 * `marginal_solomon()` stopped with "Character encoding must be UTF-8,
   Latin-1 or bytes" on a binary or count fit with a pretest and a
   character covariate with accented levels, as `read.csv()` returns
@@ -77,7 +84,14 @@
   In a UTF-8 session, they check that accented IDs and levels marked as
   `read.csv()` marks them give, in the C order, the results of the same
   text marked as UTF-8, in `perm_solomon()` (both designs),
-  `check_solomon_missing()`, and `marginal_solomon()`.
+  `check_solomon_missing()`, and `marginal_solomon()`, where a
+  participant outside the model from a site that the model has is
+  standardized over. They check that the IDs and levels come back with
+  their own bytes and encoding marks, for text marked as UTF-8, as
+  Latin-1, and as `read.csv()` marks it. In a session started with
+  `LC_ALL=C` (skipped on CRAN), they check that text as `read.csv()`
+  returns it there keeps its values and gives the results of a UTF-8
+  session in all three functions.
 
 ## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
 

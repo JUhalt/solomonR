@@ -205,11 +205,11 @@
         }, 1)
       ), identity)))
     }
-    v <- enc2utf8(as.character(v))
-    # The levels are listed in the C locale's order (byte order) in every
-    # session (.sort_c()), so that the tables the simulated p-value draws
-    # under its fixed seed do not depend on the collation in force (issue
-    # #179).
+    v <- as.character(v)
+    # The levels are listed in the C locale's order in every session
+    # (.sort_c()), as the data have them, so that the tables the simulated
+    # p-value draws under its fixed seed do not depend on the collation in
+    # force (issue #179).
     levels <- .sort_c(v)
     rows <- expand.grid(level = levels, pretested = c(1L, 0L), stringsAsFactors = FALSE)
     rows <- rows[, c("pretested", "level")]

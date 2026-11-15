@@ -11,6 +11,11 @@
 # (as under C.UTF-8, the locale of many Linux machines), an English
 # collation, chosen by collation_unlike_c(). A test that needs such a
 # collation is skipped when none is available.
+#
+# The tests of accented text check that the values come back as the data
+# have them. The last test runs such text in a session started with
+# LC_ALL=C, whose native encoding is not UTF-8; it is skipped on CRAN and
+# where such a session cannot be started.
 
 # The collations tried after the session's: names of English collations
 # on Linux, macOS, and Windows.
@@ -263,24 +268,60 @@ accented_ids <- function(k) {
 }
 
 # `x` marked as being in the native encoding, as read.csv() returns
-# accented text in a UTF-8 session.
+# accented text from a UTF-8 file.
 as_read_csv <- function(x) {
   Encoding(x) <- "unknown"
   x
 }
 
-test_that("the C order takes text in any encoding marking (#179)", {
-  utf8 <- c("\u00e9cole", "parc", NA, "Lac", "parc", "Zoo")
-  expected <- c("Lac", "Zoo", "parc", "\u00e9cole")
-  expect_identical(solomonR:::.sort_c(utf8), expected)
-  expect_identical(solomonR:::.sort_c(iconv(utf8, "UTF-8", "latin1")), expected)
-  expect_identical(solomonR:::.sort_c(factor(utf8, levels = rev(expected))), expected)
-  skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
-  # sort(method = "radix") alone stops on such text.
-  expect_identical(solomonR:::.sort_c(as_read_csv(utf8)), expected)
+# TRUE when `a` and `b` hold the same strings byte for byte, with the same
+# encoding marks. identical() and == take the same letter in two encodings
+# as equal, so they cannot show that a value was converted.
+same_strings <- function(a, b) {
+  identical(lapply(a, charToRaw), lapply(b, charToRaw)) && identical(Encoding(a), Encoding(b))
+}
+
+test_that("the C order takes text in any encoding marking and keeps it as it is (#179)", {
+  # école, parc, Lac, Zoo, and Àrles, whose C order is Lac, Zoo, parc,
+  # Àrles, école.
+  utf8 <- c("\u00e9cole", "parc", NA, "Lac", "parc", "Zoo", "\u00c0rles")
+  c_order <- c(4, 6, 2, 7, 1)
+  for (x in list(utf8, iconv(utf8, "UTF-8", "latin1"), as_read_csv(utf8))) {
+    s <- solomonR:::.sort_c(x)
+    # The values come back with the bytes and the marks they have in `x`.
+    expect_true(same_strings(s, x[c_order]))
+    expect_identical(as.integer(factor(x, levels = s)), c(5L, 3L, NA, 1L, 3L, 2L, 4L))
+  }
+  expect_true(same_strings(solomonR:::.sort_c(factor(utf8, levels = rev(utf8[c_order]))),
+                           utf8[c_order]))
+
+  # The same letter marked as Latin-1 and as UTF-8 is one value, as for ==,
+  # and comes back as it first appears.
+  e_utf8 <- "\u00e9"
+  e_latin1 <- iconv(e_utf8, "UTF-8", "latin1")
+  expect_true(same_strings(solomonR:::.sort_c(c(e_latin1, "z", e_utf8)), c("z", e_latin1)))
+  expect_true(same_strings(solomonR:::.sort_c(c(e_utf8, "z", e_latin1)), c("z", e_utf8)))
+  # The bytes of é in UTF-8 marked as Latin-1 are another text, Ã©, which
+  # comes first in the order of the code points.
+  a_latin1 <- e_utf8
+  Encoding(a_latin1) <- "latin1"
+  expect_true(same_strings(solomonR:::.sort_c(c(e_utf8, a_latin1)), c(a_latin1, e_utf8)))
+  expect_true(same_strings(solomonR:::.sort_c(c(a_latin1, e_utf8)), c(a_latin1, e_utf8)))
+  # The same bytes marked as native and as UTF-8 are one value where ==
+  # takes them as one (in a UTF-8 session), and two otherwise, the one
+  # marked UTF-8 first.
+  e_native <- as_read_csv(e_utf8)
+  for (x in list(c(e_native, e_utf8), c(e_utf8, e_native))) {
+    s <- solomonR:::.sort_c(x)
+    expect_true(same_strings(s, if (e_native == e_utf8) x[1] else c(e_utf8, e_native)))
+    expect_false(anyNA(factor(x, levels = s)))
+  }
 })
 
 test_that("accented cluster IDs as read.csv() returns them are taken in the C order (#179)", {
+  # The comparisons with the same text marked as UTF-8 hold where R takes
+  # the two as the same text, in a UTF-8 session. The last test runs such
+  # IDs in a session whose native encoding is not UTF-8.
   skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
   for (design in c("A", "B")) {
     d <- collation_data(design, ids = accented_ids(40))
@@ -298,49 +339,244 @@ test_that("accented cluster IDs as read.csv() returns them are taken in the C or
   }
 })
 
+# The sites école, Lac, and parc in place of north, South, and west in
+# collation_missing_data().
+accented_sites <- function(site) {
+  unname(c(north = "\u00e9cole", South = "Lac", west = "parc")[site])
+}
+
 test_that("accented levels as read.csv() returns them are listed in the C order (#179)", {
+  # As in the test of accented cluster IDs, a UTF-8 session is needed.
   skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
   d <- collation_missing_data()
-  # north, South, and west become école, Lac, and parc, whose C order is
-  # Lac, parc, école; the labels L1, L2, L3 sort that way in every
-  # collation.
-  accented <- unname(c(north = "\u00e9cole", South = "Lac", west = "parc")[d$site])
+  # école, Lac, and parc, whose C order is Lac, parc, école; the labels L1,
+  # L2, L3 sort that way in every collation.
+  accented <- accented_sites(d$site)
   plain <- unname(c(north = "L3", South = "L1", west = "L2")[d$site])
   loc <- collation_unlike_c(unique(accented))
   a <- missing_table(d, as_read_csv(accented), loc)
   expect_identical(a$level, rep(c("Lac", "parc", "\u00e9cole"), 2))
+  expect_true(same_strings(a$level, as_read_csv(rep(c("Lac", "parc", "\u00e9cole"), 2))))
   expect_identical(missing_table(d, as_read_csv(accented), "C"), a)
   expect_identical(missing_table(d, accented, loc), a)
   b <- missing_table(d, plain, loc)
   expect_identical(a[names(a) != "level"], b[names(b) != "level"])
 })
 
-test_that("marginal_solomon() takes accented levels as read.csv() returns them (#179)", {
-  skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
-  # A binary outcome with a pretest and a character covariate. Two
-  # pretested participants with a pretest and no outcome come from sites
-  # that no participant in the model comes from.
-  d <- withr::with_seed(1179, {
+# A binary outcome with a pretest and a character covariate, the site
+# (Montréal, Québec, or Laval). Three pretested participants with a
+# pretest have no outcome: two from sites that no participant in the model
+# comes from (Évry and Sept-Îles), and one from Montréal, which the model
+# has.
+marginal_sites_data <- function() {
+  withr::with_seed(1179, {
     g4 <- rep(1:4, each = 60)
     d <- data.frame(treat = c(1, 0, 1, 0)[g4], pretested = c(1, 1, 0, 0)[g4])
     d$site <- sample(c("Montr\u00e9al", "Qu\u00e9bec", "Laval"), 240, replace = TRUE)
     d$y_pre <- ifelse(d$pretested == 1, stats::rnorm(240), NA)
     d$y <- stats::rbinom(240, 1, stats::plogis(0.3 * d$treat + 0.5 * ifelse(d$pretested == 1, d$y_pre, 0)))
-    d$site[1:2] <- c("\u00c9vry", "Sept-\u00celes")
-    d$y[1:2] <- NA
+    d$site[1:3] <- c("\u00c9vry", "Sept-\u00celes", "Montr\u00e9al")
+    d$y[1:3] <- NA
     d
   })
-  fit_for <- function(site) {
-    suppressWarnings(
-      fit_solomon_glm(d$y, d$treat, d$pretested, d$y_pre, covariates = data.frame(site = site),
-                      family = stats::binomial()),
-      classes = "solomonR_noncollapsible_warning"
-    )
-  }
-  marginal <- function(fit) marginal_solomon(fit, method = "delta", pretest_center = "observed")
-  m <- marginal(fit_for(as_read_csv(d$site)))
-  expect_identical(m, marginal(fit_for(d$site)))
-  expect_identical(m$standardized[["unseen_level"]], 2L)
+}
+
+# marginal_solomon() at the "observed" center for the data `d` with the
+# covariate `site`.
+marginal_sites <- function(d, site) {
+  fit <- suppressWarnings(
+    fit_solomon_glm(d$y, d$treat, d$pretested, d$y_pre, covariates = data.frame(site = site),
+                    family = stats::binomial()),
+    classes = "solomonR_noncollapsible_warning"
+  )
+  marginal_solomon(fit, method = "delta", pretest_center = "observed")
+}
+
+# The counts of marginal_sites() for marginal_sites_data(): the participant
+# from Montréal outside the model is standardized over, and the two from
+# Évry and Sept-Îles are left out.
+marginal_sites_counts <- c(analyzed = 117L, observed = 118L, no_outcome = 1L,
+                           missing_covariate = 0L, unseen_level = 2L)
+
+test_that("marginal_solomon() takes accented levels as read.csv() returns them (#179)", {
+  # As in the test of accented cluster IDs, a UTF-8 session is needed.
+  skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
+  d <- marginal_sites_data()
+  m <- marginal_sites(d, as_read_csv(d$site))
+  expect_identical(m, marginal_sites(d, d$site))
+  expect_identical(m$standardized, marginal_sites_counts)
   # The levels the model does not have, in the C order.
+  expect_match(m$pretest_sensitivity$note, "leaves out 2 who", fixed = TRUE)
   expect_match(m$pretest_sensitivity$note, "(site: Sept-\u00celes, \u00c9vry)", fixed = TRUE)
+})
+
+# Cluster IDs that start with Zoo, parc, école, Lac, and Àrles, whose C
+# order is Lac, Zoo, parc, Àrles, école. Converted through a native
+# encoding that is not UTF-8, such IDs can lose their accented letters or
+# be cut short, so that distinct IDs merge.
+five_kinds_ids <- function(k) {
+  sprintf("%s%02d", c("Zoo", "parc", "\u00e9cole", "Lac", "\u00c0rles")[seq_len(k) %% 5 + 1],
+          seq_len(k))
+}
+
+# Each string as the hexadecimal digits of its bytes, which pass between
+# sessions with different native encodings unchanged.
+to_hex <- function(x) {
+  vapply(x, function(s) paste(as.character(charToRaw(s)), collapse = ""), character(1),
+         USE.NAMES = FALSE)
+}
+
+# The checks that the last test runs in a session started with LC_ALL=C,
+# whose native encoding is not UTF-8. The accented text reaches it as the
+# hexadecimal digits of its bytes in UTF-8, and is rebuilt there as those
+# bytes marked as native, which is how read.csv() returns a UTF-8 file's
+# text in such a session. It goes back in the same way, so that nothing is
+# converted between the two sessions.
+non_utf8_checks <- function(input) {
+  from_hex <- function(h) {
+    vapply(h, function(s) {
+      rawToChar(as.raw(strtoi(substring(s, seq(1, nchar(s), 2), seq(2, nchar(s), 2)), 16L)))
+    }, character(1), USE.NAMES = FALSE)
+  }
+  to_hex <- function(x) {
+    vapply(x, function(s) paste(as.character(charToRaw(s)), collapse = ""), character(1),
+           USE.NAMES = FALSE)
+  }
+  perm <- function(d, cluster) {
+    fit <- suppressWarnings(solomonR::fit_solomon_glm(
+      d$y, d$treat, d$pretested, d$y_pre, robust = "CR2", cluster = cluster
+    ))
+    solomonR::perm_solomon(fit, "ATE (avg over pretest)", reps = 199, seed = 4179,
+                           return_dist = TRUE)
+  }
+  out <- list()
+  s <- solomonR:::.sort_c(from_hex(input$ids))
+  out$sort_c <- list(hex = to_hex(s), marks = Encoding(s))
+  # The bytes of e acute in UTF-8, marked as native and as UTF-8.
+  native <- from_hex("c3a9")
+  utf8 <- native
+  Encoding(utf8) <- "UTF-8"
+  out$ties <- list(equal = native == utf8, sorted = lapply(
+    list(c(native, utf8), c(utf8, native)),
+    function(x) {
+      s <- solomonR:::.sort_c(x)
+      list(hex = to_hex(s), marks = Encoding(s))
+    }
+  ))
+  out$perm <- lapply(input$cluster_data, function(d) {
+    list(ids = perm(d, from_hex(d$cluster)), labels = perm(d, d$label))
+  })
+  m <- input$missing_data
+  tab <- solomonR::check_solomon_missing(
+    m$y_post, m$treat, m$pretested, m$y_pre, covariates = data.frame(site = from_hex(m$site))
+  )$covariates$site
+  out$missing <- list(level = to_hex(tab$level), marks = Encoding(tab$level),
+                      rest = tab[names(tab) != "level"])
+  g <- input$marginal_data
+  fit <- suppressWarnings(solomonR::fit_solomon_glm(
+    g$y, g$treat, g$pretested, g$y_pre, covariates = data.frame(site = from_hex(g$site)),
+    family = stats::binomial()
+  ))
+  mg <- solomonR::marginal_solomon(fit, method = "delta", pretest_center = "observed")
+  out$marginal <- list(
+    standardized = mg$standardized,
+    note = grepl(from_hex(input$note), mg$pretest_sensitivity$note, fixed = TRUE, useBytes = TRUE),
+    effects = Filter(is.numeric, mg$effects)
+  )
+  out
+}
+
+test_that("accented text keeps its values in a session whose encoding is not UTF-8 (#179)", {
+  # Such a session (one started with LC_ALL=C, for instance) gets text read
+  # from a UTF-8 file with read.csv() as UTF-8 bytes marked as native.
+  # Converting it to UTF-8 there would alter it. The results must be those
+  # of this session, which must be a UTF-8 one.
+  skip_on_cran()
+  skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
+  rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
+  skip_if_not(file.exists(rscript), "Rscript was not found.")
+
+  ids <- five_kinds_ids(40)
+  cluster_data <- lapply(c(A = "A", B = "B"), function(design) {
+    d <- collation_data(design, ids = ids)
+    d$label <- c_order_labels(d$cluster)
+    d
+  })
+  missing <- collation_missing_data()
+  missing$site <- accented_sites(missing$site)
+  marginal <- marginal_sites_data()
+  hexed <- function(d, column) {
+    d[[column]] <- to_hex(d[[column]])
+    d
+  }
+  # The package as this session has it: loaded from its source by
+  # devtools::test(), or installed, under R CMD check.
+  path <- getNamespaceInfo(asNamespace("solomonR"), "path")
+  input <- list(
+    ids = to_hex(unique(ids)), cluster_data = lapply(cluster_data, hexed, "cluster"),
+    missing_data = hexed(missing, "site"), marginal_data = hexed(marginal, "site"),
+    note = to_hex("(site: Sept-\u00celes, \u00c9vry)")
+  )
+  dir <- withr::local_tempdir()
+  files <- file.path(dir, c("input.rds", "started.rds", "result.rds", "checks.R"))
+  saveRDS(input, files[1])
+  load <- if (file.exists(file.path(path, "R", "solomon_inputs.R"))) {
+    sprintf("suppressMessages(pkgload::load_all(%s, quiet = TRUE, helpers = FALSE))", deparse(path))
+  } else {
+    sprintf("suppressPackageStartupMessages(library(solomonR, lib.loc = %s))", deparse(dirname(path)))
+  }
+  writeLines(c(
+    sprintf(".libPaths(%s)", paste(deparse(.libPaths()), collapse = " ")),
+    "files <- commandArgs(TRUE)",
+    load,
+    "saveRDS(list(utf8 = isTRUE(l10n_info()[['UTF-8']])), files[2])",
+    paste("checks <-", paste(deparse(non_utf8_checks), collapse = "\n")),
+    "saveRDS(checks(readRDS(files[1])), files[3])"
+  ), files[4])
+  output <- withr::with_envvar(c(LC_ALL = "C", R_TESTS = NA), suppressWarnings(system2(
+    rscript, c("--vanilla", shQuote(files[4]), shQuote(files[1:3])), stdout = TRUE, stderr = TRUE
+  )))
+  skip_if_not(file.exists(files[2]), "A session started with LC_ALL=C could not load solomonR.")
+  skip_if(readRDS(files[2])$utf8, "A session started with LC_ALL=C is a UTF-8 session here.")
+  if (!file.exists(files[3])) {
+    fail(paste(c("The session started with LC_ALL=C stopped:", output), collapse = "\n"))
+  } else {
+    res <- readRDS(files[3])
+    # .sort_c() returns the IDs with their own bytes and mark, in the C
+    # order.
+    expect_identical(res$sort_c$hex, to_hex(sort(enc2utf8(unique(ids)), method = "radix")))
+    expect_identical(res$sort_c$marks, rep("unknown", 40))
+    # The same bytes marked as native and as UTF-8 are two values where ==
+    # takes them as two, as it does in a C session, the one marked UTF-8
+    # first whichever comes first.
+    for (sorted in res$ties$sorted) {
+      if (res$ties$equal) {
+        expect_length(sorted$hex, 1L)
+      } else {
+        expect_identical(sorted, list(hex = c("c3a9", "c3a9"), marks = c("UTF-8", "unknown")))
+      }
+    }
+    # perm_solomon() gives the result of zero-padded labels in the C order
+    # of the IDs in that session, and the p-value of this session, with
+    # statistics equal to rounding error.
+    for (design in c("A", "B")) {
+      r <- res$perm[[design]]
+      expect_identical(r$ids, r$labels)
+      here <- collation_perm(collation_fit(cluster_data[[design]]))
+      expect_identical(r$ids$p_perm, here$p_perm)
+      expect_equal(r$ids, here, tolerance = 1e-10)
+    }
+    # check_solomon_missing() lists the data's own levels in the C order,
+    # with the table of this session.
+    expect_identical(res$missing$level, to_hex(rep(c("Lac", "parc", "\u00e9cole"), 2)))
+    expect_identical(res$missing$marks, rep("unknown", 6))
+    here <- missing_table(missing, missing$site, NULL)
+    expect_identical(res$missing$rest, here[names(here) != "level"])
+    # marginal_solomon() standardizes over the participant from Montréal
+    # and names the two levels the model does not have.
+    expect_identical(res$marginal$standardized, marginal_sites_counts)
+    expect_true(res$marginal$note)
+    expect_equal(res$marginal$effects, Filter(is.numeric, marginal_sites(marginal, marginal$site)$effects),
+                 tolerance = 1e-10)
+  }
 })

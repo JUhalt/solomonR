@@ -180,17 +180,41 @@
          character(1), USE.NAMES = FALSE)
 }
 
-# The distinct values of `x` other than NA, as character strings in UTF-8,
-# in the C locale's order whatever the session's collation (issue #179):
-# the byte order of their UTF-8 form, which is the order of their Unicode
-# code points. sort(method = "radix") gives that order, but it stops with
-# "Character encoding must be UTF-8, Latin-1 or bytes" on text that is
-# not ASCII and is marked as being in the native encoding, which is how
-# read.csv() returns accented text in a UTF-8 session. enc2utf8() marks
-# such text as UTF-8 first (and converts text from a native encoding that
-# is not UTF-8). Callers that match the values against `x` convert `x`
-# with enc2utf8() too.
+# The distinct values of `x` other than NA, as character strings, in the C
+# locale's order whatever the session's collation (issue #179). The values
+# are returned as they are in `x`, with the same bytes and the same
+# encoding mark; only their order is computed, from a key. The key is the
+# bytes of each value written as hexadecimal digits, which are ASCII and
+# sort the same way in every collation, so that comparing two keys
+# compares the bytes. Text marked as Latin-1 is keyed by its bytes in
+# UTF-8: R converts it in the same way, whatever the session, to compare
+# it with ==, so the same letter marked as Latin-1 or as UTF-8 has one
+# key. All other text is keyed by the bytes it is stored in, without any
+# conversion. That includes text marked as being in the native encoding,
+# which is how read.csv() returns it. Converting such text from the native
+# encoding would make the order depend on the session, and in a session
+# whose native encoding is not UTF-8, such as one started with LC_ALL=C,
+# it can garble UTF-8 text. For text in UTF-8, the byte order is the order
+# of the characters' Unicode code points, the order that sort() gives
+# under the C collation in a UTF-8 session. (sort(method = "radix") gives
+# it too, but stops on text that is not ASCII and is marked as native in a
+# UTF-8 session.)
+#
+# The distinct values are those that unique() finds, as R's == takes them,
+# so that factor(x, levels = .sort_c(x)) and match() take every value of
+# `x` to its level. In every session, the same letter marked as Latin-1
+# and as UTF-8 is one value. Text with the same bytes marked as native and
+# as UTF-8 is one value in a UTF-8 session; in a session whose native
+# encoding is not UTF-8, == takes them as two, and so does .sort_c(), with
+# the one marked UTF-8 first. Values whose keys tie are ordered by their
+# marks, so the order does not depend on the order of the data.
 .sort_c <- function(x) {
-  x <- enc2utf8(as.character(x))
-  sort(unique(x[!is.na(x)]), method = "radix")
+  x <- as.character(x)
+  u <- unique(x[!is.na(x)])
+  key <- u
+  latin1 <- Encoding(u) == "latin1"
+  key[latin1] <- enc2utf8(u[latin1])
+  key <- vapply(key, function(s) paste(as.character(charToRaw(s)), collapse = ""),
+                character(1), USE.NAMES = FALSE)
+  u[order(key, Encoding(u), method = "radix")]
 }

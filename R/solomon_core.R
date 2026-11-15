@@ -2160,8 +2160,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'   (the order of the characters' Unicode code points, in which capital
 #'   letters come before lower-case ones and accented letters after
 #'   both), whatever the session's collation; a factor `cluster` is taken
-#'   by its labels in that order, not by its level order. So a seed gives
-#'   the same allocations in every session.
+#'   by its labels in that order, not by its level order. The IDs are not
+#'   changed: text as `read.csv()` returns it is taken by its bytes, which
+#'   gives that order for a UTF-8 file in any session. So a seed gives the
+#'   same allocations in every session.
 #' @param return_dist Logical. If \code{TRUE}, return the permutation
 #'   distribution in addition to the observed statistic and p-value.
 #' @param statistic `"studentized"` (the default, and recommended) divides
