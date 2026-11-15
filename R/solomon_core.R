@@ -2255,6 +2255,10 @@ perm_solomon <- function(
 
   statistic <- match.arg(statistic)
 
+  # Supported models (issue #134, decision D1), before the participant and
+  # cluster paths split.
+  .perm_check_family(fit)
+
   valid_contrasts <- c(
     "ATE (avg over pretest)",
     "Pretest x Treatment",

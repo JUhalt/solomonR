@@ -419,3 +419,52 @@ test_that("the tie rule leaves the p-values of ordinary data as they were (#131)
     }
   }
 })
+
+# Supported models (issue #134, decision D1). perm_solomon() supports the
+# Gaussian (identity), binomial (logit), and Poisson (log) models and
+# family = "negative_binomial"; any other family or link stops with a
+# classed error, checked before the participant and cluster paths split.
+test_that("perm_solomon() refuses other families and links at both levels (#134, D1)", {
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  cluster <- rep(1:12, each = 2)
+  yb <- rep(c(1, 0, 1, 1, 0, 0), 4)
+  yc <- c(3, 5, 2, 4, 6, 1, 2, 4, 3, 1, 5, 2, 4, 2, 6, 3, 1, 5, 2, 3, 4, 1, 3, 2)
+  yg <- yc + 0.5
+  fit_at <- function(y, family, level) {
+    suppressWarnings(if (level == "cluster") {
+      fit_solomon_glm(y, treat, pretested, family = family, cluster = cluster, robust = "CR2")
+    } else {
+      fit_solomon_glm(y, treat, pretested, family = family)
+    })
+  }
+  refused <- list(
+    list(yc, stats::quasipoisson(), "quasipoisson with the log link.*Refit with family = poisson\\(\\)"),
+    list(yb, stats::quasibinomial(), "quasibinomial with the logit link.*Refit with family = binomial\\(\\)"),
+    list(yc, MASS::negative.binomial(2), "fit with family = \"negative_binomial\""),
+    list(yb, stats::binomial(link = "probit"), "binomial with the probit link"),
+    list(yc, stats::poisson(link = "identity"), "poisson with the identity link"),
+    list(yg, stats::gaussian(link = "log"), "gaussian with the log link")
+  )
+  for (r in refused) {
+    for (level in c("participant", "cluster")) {
+      fit <- fit_at(r[[1]], r[[2]], level)
+      expect_error(perm_solomon(fit, "Treatment | unpretested", reps = 9), r[[3]],
+                   class = "solomonR_perm_family_error")
+      expect_error(perm_solomon(fit, "Treatment | unpretested", reps = 9),
+                   class = "solomonR_perm_error")
+    }
+  }
+  accepted <- list(list(yg, stats::gaussian()), list(yb, stats::binomial()),
+                   list(yc, stats::poisson()), list(yc, "negative_binomial"))
+  for (a in accepted) {
+    for (level in c("participant", "cluster")) {
+      if (identical(a[[2]], "negative_binomial") && level == "cluster") next
+      expect_no_error(.perm_check_family(fit_at(a[[1]], a[[2]], level)))
+    }
+  }
+  nb <- suppressWarnings(fit_solomon_glm(yc, treat, pretested, family = "negative_binomial",
+                                         cluster = cluster, robust = "HC3"))
+  expect_no_error(.perm_check_family(nb))
+})
