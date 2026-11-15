@@ -475,8 +475,8 @@ the audit:
   - [x] `marginal_solomon()` and `plot_sensitization()` code a factor
     covariate by the contrasts option in force when they refit the
     model, not as the fit coded it — [#168](https://github.com/JUhalt/solomonR/issues/168); merged in [PR #169](https://github.com/JUhalt/solomonR/pull/169)
-  - [ ] `marginal_solomon()` and `plot_sensitization()` code a character
-    covariate by the collation in force when they run, not the fit's — [#170](https://github.com/JUhalt/solomonR/issues/170)
+  - [x] `marginal_solomon()` and `plot_sensitization()` code a character
+    covariate by the collation in force when they run, not the fit's — [#170](https://github.com/JUhalt/solomonR/issues/170); merged in [PR #181](https://github.com/JUhalt/solomonR/pull/181)
   - [x] `marginal_solomon()` stops when a covariate level occurs only
     among pretested participants with a pretest who are outside the
     model — [#171](https://github.com/JUhalt/solomonR/issues/171); merged in [PR #178](https://github.com/JUhalt/solomonR/pull/178)
