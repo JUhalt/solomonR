@@ -195,6 +195,14 @@ test_that("with the default center, results equal those of master (a6c771a)", {
     for (part in names(stored$results[[name]])) {
       ref <- stored$results[[name]][[part]]
       got <- now[[name]][[part]]
+      # perm_solomon() permutes the treatment labels among the participants
+      # in the model since #134 (decision D2), here 91 of the 120. Master's
+      # code, given those 91 rows alone, gives p = .04 and .32 under the same
+      # seed and draws, as perm_solomon() now does; the estimate, the
+      # observed statistic, and the number of permutations are unchanged.
+      if (startsWith(name, "perm ")) {
+        ref[["p_perm"]] <- c("perm ATE (avg over pretest)" = 0.04, "perm Pretest x Treatment" = 0.32)[[name]]
+      }
       info <- paste(name, part)
       if (part %in% c("text", "sentences")) {
         if (grepl("complete|classic", name)) {

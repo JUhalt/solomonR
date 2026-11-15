@@ -241,14 +241,19 @@ test_that("the tie rule counts ties and treats rounding noise as zero (#131)", {
   expect_identical(.perm_at_least(c(0, -3e-17, 0.4), 1e-17, unit = 0.8), c(TRUE, TRUE, TRUE))
   # A small observed statistic that is not zero is still exceeded or not.
   expect_identical(.perm_at_least(c(0.001, 0.003), 0.002, unit = 0.8), c(FALSE, TRUE))
-  # Fits by iteration agree to about 1e-7, so their tolerance is wider.
+  # A wider tolerance counts a closer neighbour as a tie.
   expect_identical(.perm_at_least(c(1 - 1e-7, 1 - 1e-5), 1, tol = 1e-6), c(TRUE, FALSE))
-  expect_identical(.perm_unit(c(-0.8, 0.4), "difference"), 0.8)
+  # A difference counts as zero against the larger of the largest permuted
+  # difference and the size of the data, 1 unless given (#134).
+  expect_identical(.perm_unit(c(-0.8, 0.4), "difference"), 1)
   expect_identical(.perm_unit(c(-0.8, 0.4), "studentized"), 1)
-  expect_identical(.perm_tie_tolerance(stats::gaussian()), 1e-10)
-  expect_identical(.perm_tie_tolerance(stats::gaussian("log")), 1e-6)
-  expect_identical(.perm_tie_tolerance(stats::poisson()), 1e-6)
-  expect_identical(.perm_tie_tolerance(stats::binomial()), 1e-6)
+  # Every refit is taken to the exact estimate (#134): until build step 7
+  # measures the window, it is fixed at 1e-12 for the Gaussian identity model
+  # and 1e-8 for models fitted by iteration.
+  expect_identical(.perm_tie_tolerance(stats::gaussian()), 1e-12)
+  expect_identical(.perm_tie_tolerance(stats::gaussian("log")), 1e-8)
+  expect_identical(.perm_tie_tolerance(stats::poisson()), 1e-8)
+  expect_identical(.perm_tie_tolerance(stats::binomial()), 1e-8)
 })
 
 test_that("permutations that repeat or swap the observed labels are counted (#131)", {
@@ -595,4 +600,84 @@ test_that("perm_solomon() stops or warns when a condition has no variation (#134
   yp <- c(cnt, rep(0, 12))
   stops(q(fit_solomon_glm(yp, treat, pretested, family = stats::poisson())), pxt, "undefined")
   stops(q(fit_solomon_glm(yp, treat, pretested, family = "negative_binomial")), ate, "undefined")
+})
+
+# The statistic routine of issue #134: labels are permuted among the
+# participants in the model (D2); an emptied arm gives an infinite statistic,
+# counted, also when it is the observed one; a labeling under which the
+# contrast is not estimable is left out (D16), and the test stops when every
+# one is; with the studentized statistic, leverage 1 in a cell the contrast
+# uses stops it (D3). The draws that are not fed come from seed 1342005.
+test_that("perm_solomon() permutes the rows in the model and counts infinite statistics (#134)", {
+  expect_identical(.perm_at_least(c(Inf, 1e300, 2), Inf), c(TRUE, FALSE, FALSE))
+  expect_identical(.perm_unit(c(Inf, -0.5, 0.25), "difference", scale = 0.2), 0.5)
+
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  y <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1,
+         0.4, 2.6, 1.9, 3.1, 0.8, 2.2, 1.3, 3.6, 2.4, 0.7, 1.6, 2.9)
+  tu <- "Treatment | unpretested"
+  feed <- function(labelings) {
+    k <- 0L
+    function(treat, pretested) {
+      k <<- k + 1L
+      labelings[[k]]
+    }
+  }
+
+  # D2: the sampler sees the 22 participants in the model, and a labeling
+  # that repeats the observed one ties with it exactly.
+  fm <- fit_solomon_glm(replace(y, c(2, 15), NA), treat, pretested)
+  seen <- integer(0)
+  p <- with_mocked_bindings(perm_solomon(fm, reps = 5), .perm_treat = function(treat, pretested) {
+    seen <<- c(seen, length(treat), length(pretested))
+    treat
+  })
+  expect_identical(unique(seen), 22L)
+  expect_identical(p$p_perm, 1)
+
+  # D16: a covariate equal to another labeling leaves the contrast not
+  # estimable under that labeling, which is left out.
+  other <- c(0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0)
+  fx <- fit_solomon_glm(y, treat, pretested, covariates = data.frame(x = other))
+  p <- with_mocked_bindings(perm_solomon(fx, tu, reps = 3, return_dist = TRUE),
+                            .perm_treat = feed(list(other, other, treat)))
+  expect_identical(p$n_left_out, 2L)
+  expect_identical(p$valid_reps, 1L)
+  expect_identical(p$z_perm, p$z_obs)
+  expect_identical(p$p_perm, 1)
+  for (s in c("studentized", "difference")) {
+    expect_error(with_mocked_bindings(perm_solomon(fx, tu, reps = 4, statistic = s),
+                                      .perm_treat = feed(rep(list(other), 4))),
+                 "under each of the 4 permutations", class = "solomonR_perm_estimable_error")
+  }
+
+  # D3: in the pretested treated arm one participant's pretest differs from
+  # the others', and in the control arm none does, so that participant has
+  # leverage 1 in every contrast on the pretested condition. The test stops
+  # at the observed labeling, before any draw.
+  pre <- c(1, 1, 1, 1, 1, 5, 2, 2, 2, 2, 2, 2, rep(NA, 12))
+  fl <- suppressWarnings(fit_solomon_glm(y, treat, pretested, pre))
+  for (k in c("ATE (avg over pretest)", "Pretest x Treatment", "Treatment | pretested")) {
+    expect_error(perm_solomon(fl, k, reps = 9, seed = 1342005L), "leverage 1",
+                 class = "solomonR_perm_leverage_error")
+  }
+  expect_s3_class(perm_solomon(fl, "Treatment | pretested", reps = 9, seed = 1342005L,
+                               statistic = "difference"), "solomon_perm")
+
+  # An emptied arm: 4 of 10 against 0 of 10 successes in the unpretested
+  # condition (the issue's item 2). The observed statistic is infinite, and
+  # it is equalled by the labelings that put all 4 successes in one arm.
+  b <- binary_data(10, c(6, 4, 4, 0))
+  fb <- suppressWarnings(fit_solomon_glm(b$y, b$treat, b$pretested, family = stats::binomial()))
+  emptied <- sum(unpretested_totals(fb, perm_labels(fb, 199, 1342005L))[1, ] %in% c(0, 4))
+  expect_gt(emptied, 0)
+  for (s in c("studentized", "difference")) {
+    p <- perm_solomon(fb, tu, reps = 199, seed = 1342005L, statistic = s)
+    expect_identical(p$z_obs, Inf)
+    expect_identical(p$valid_reps, 199L)
+    expect_identical(p$n_infinite, emptied)
+    expect_equal(p$p_perm, (emptied + 1) / 200, tolerance = 1e-12)
+  }
 })

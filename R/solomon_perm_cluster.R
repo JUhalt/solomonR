@@ -65,31 +65,38 @@
 # statistic is smaller than that, so that an observed statistic of zero is
 # tied with every other zero. `unit` is the size at which a statistic counts
 # as zero: 1 for a studentized statistic, and for a difference the largest
-# permuted difference (see .perm_unit()). `tol` is 1e-10 where statistics
-# are computed to rounding error, and larger where the model is fitted by
-# iteration (see .perm_tie_tolerance()).
+# finite permuted difference, with a floor (see .perm_unit()). `tol` is
+# 1e-10 on the cluster path, and the window of .perm_tie_tolerance() on the
+# participant path.
 .perm_at_least <- function(z, z0, unit = 1, tol = 1e-10) {
+  # An infinite observed statistic (an emptied or constant arm) is equalled
+  # only by other infinite statistics (issue #134).
+  if (is.infinite(z0)) return(is.infinite(z))
   abs(z) >= abs(z0) - tol * max(abs(z0), unit)
 }
 
-.perm_unit <- function(z_perm, statistic) {
-  if (identical(statistic, "difference")) max(abs(z_perm)) else 1
+# The size at which a statistic counts as zero: 1 for a studentized
+# statistic, and for a difference the largest finite permuted difference,
+# but not less than `scale`, the size of the data (the outcome's standard
+# deviation for an identity link, 1 on the logit and log scales). Without
+# that floor, when every finite difference is an exact zero computed as
+# rounding noise, the unit is noise too (issue #134).
+.perm_unit <- function(z_perm, statistic, scale = 1) {
+  if (!identical(statistic, "difference")) return(1)
+  max(abs(z_perm[is.finite(z_perm)]), scale)
 }
 
-# The tie tolerance for refitted models of a family. The Gaussian identity
-# model is solved in one step, and equal fits agree to rounding error. Any
-# other model is fitted by iteratively reweighted least squares, which stops
-# at a relative change in deviance of 1e-8. Fits that are equal in exact
-# arithmetic then differ by up to about 1e-7 where the model is saturated in
-# the cells the contrast uses. Where it is not (a covariate), they can differ
-# by more, up to 4e-4 seen with a non-canonical link, because glm() returns
-# the working weights of the iteration before the last; ties of that kind
-# can still be missed (issue #134). Tighter convergence is not the remedy on
-# its own: it drives the fitted values of a labeling with an empty arm to
-# the boundary and destroys its HC3 variance, so the most extreme labelings
-# are lost.
+# The tie tolerance for refitted models of a family (issue #134). Every
+# refit of perm_solomon() is taken to the exact estimate (.perm_newton()),
+# so statistics that are equal in exact arithmetic agree to rounding error:
+# within about 5e-14 for the Gaussian model and 4e-9 for the others on the
+# reference set, whose closest distinct statistics are a relative 4.3e-11
+# apart for the Gaussian model and 5e-7 (absolute, below 1) for the others.
+# This fixed window, 1e-12 for the Gaussian identity model (one QR
+# decomposition) and 1e-8 for models fitted by iteration, is temporary:
+# build step 7 of #134 replaces it with a window measured on each call.
 .perm_tie_tolerance <- function(family) {
-  if (identical(family$family, "gaussian") && identical(family$link, "identity")) 1e-10 else 1e-6
+  if (identical(family$family, "gaussian") && identical(family$link, "identity")) 1e-12 else 1e-8
 }
 
 # One permutation of the treatment labels within pretest conditions.

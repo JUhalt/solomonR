@@ -2303,15 +2303,25 @@ perm_solomon <- function(
 
   # The model is refitted with the numeric covariates standardized and the
   # pretest scaled as the fit's inference was (issue #137;
-  # .covariate_scaling()). The statistic is the same, and accurate however
-  # far a covariate lies from zero.
+  # .covariate_scaling()), and with the outcome of an identity-link fit and
+  # any matrix covariate moved by one of their own values (issue #134,
+  # items 6 and 9). The statistic is the same in exact arithmetic.
   df <- fit$data
   if (!is.null(fit$covariate_scaling)) df <- .standardized_frame(df, fit$covariate_scaling)
-  numeric_covariates <- .numeric_covariates(fit$covariate_scaling)
   form <- stats::formula(fit$model)
   fam <- stats::family(fit$model)
+  theta <- if (.is_negbin(fam)) fit$model$theta else NULL
   used <- rep(TRUE, nrow(df))
   if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
+  df <- .perm_center_frame(df, used, fam)
+
+  # The design of the refits is built once from the rows in the model
+  # (decision D2 of issue #134): a labeling changes only the treatment
+  # columns. The outcome is taken as glm() fits it (.perm_outcome()).
+  mf_used <- stats::model.frame(form, data = df[used, , drop = FALSE], na.action = stats::na.pass)
+  X0 <- stats::model.matrix(form, mf_used)
+  y0 <- .perm_outcome(stats::model.response(mf_used))
+  off0 <- stats::model.offset(mf_used)
 
   # No variation in a pretest condition the contrast uses, among the
   # participants in the model (issue #134, decision D5): an error when the
@@ -2321,150 +2331,54 @@ perm_solomon <- function(
   # binary factor meets the bounds.
   labels <- attr(stats::terms(form), "term.labels")
   shared <- setdiff(labels, c("treat", "pretested", "pre_obs", "treat:pretested"))
-  mf_used <- stats::model.frame(form, data = df[used, , drop = FALSE], na.action = stats::na.pass)
-  X0 <- stats::model.matrix(form, mf_used)
   .perm_check_variation(
-    .perm_outcome(stats::model.response(mf_used)), df$pretested[used], contrast, fam,
+    y0, df$pretested[used], contrast, fam,
     shared = X0[, attr(X0, "assign") %in% match(shared, labels), drop = FALSE],
-    offset = stats::model.offset(mf_used)
+    offset = off0
   )
 
-  # ------------------------------------------------------------
-  # Helper: construct the requested linear contrast
-  # ------------------------------------------------------------
-
-  make_contrast <- function(coef_names, contrast) {
-
-    L <- numeric(length(coef_names))
-    names(L) <- coef_names
-
-    if (!"treat" %in% coef_names) {
-      stop("The fitted model does not contain a treatment coefficient.")
-    }
-
-    has_interaction <- "treat:pretested" %in% coef_names
-
-    if (contrast == "ATE (avg over pretest)") {
-
-      # Equal-weighted average of the treatment effects across the
-      # pretested and unpretested conditions:
-      #
-      # beta_treat + 0.5 * beta_treat:pretested
-
-      L["treat"] <- 1
-
-      if (has_interaction) {
-        L["treat:pretested"] <- 0.5
-      }
-
-    } else if (contrast == "Pretest x Treatment") {
-
-      if (!has_interaction) {
-        stop("The fitted model does not contain a treatment-by-pretest interaction.")
-      }
-
-      L["treat:pretested"] <- 1
-
-    } else if (contrast == "Treatment | pretested") {
-
-      # beta_treat + beta_treat:pretested
-
-      L["treat"] <- 1
-
-      if (has_interaction) {
-        L["treat:pretested"] <- 1
-      }
-
-    } else if (contrast == "Treatment | unpretested") {
-
-      # beta_treat
-
-      L["treat"] <- 1
-    }
-
-    L
-  }
-
-  # ------------------------------------------------------------
-  # Helper: studentized statistic for a fitted model
-  # ------------------------------------------------------------
-
-  contrast_z <- function(fit, contrast) {
-
-    b <- stats::coef(fit)
-
-    L <- make_contrast(
-      coef_names = names(b),
-      contrast = contrast
-    )
-
-    Lm <- matrix(L, nrow = 1)
-
-    estimate <- as.numeric(Lm %*% b)
-
-    if (statistic == "difference") {
-      return(estimate)
-    }
-
-    # With a numeric covariate, the HC3 variance comes from the QR
-    # decomposition, as the fit's does (.hc3_vcov()), so that nearly
-    # collinear covariates leave the statistic accurate.
-    variance <- if (numeric_covariates) {
-      infl <- .glm_influence(fit, map = Lm)
-      sum((infl$influence / (1 - infl$hat))^2)
-    } else {
-      V <- sandwich::vcovHC(
-        fit,
-        type = "HC3"
-      )
-
-      # Force coefficient and covariance-matrix order to match.
-      V <- V[names(b), names(b), drop = FALSE]
-
-      as.numeric(
-        Lm %*% V %*% t(Lm)
-      )
-    }
-
-    if (!is.finite(variance) || variance <= 0) {
-      return(NA_real_)
-    }
-
-    estimate / sqrt(variance)
-  }
-
-  # ------------------------------------------------------------
-  # Observed statistic
-  # ------------------------------------------------------------
-
   estimate <- as.numeric(
-    make_contrast(names(stats::coef(fit$model)), contrast) %*%
-      stats::coef(fit$model)
+    .perm_contrast_vector(names(stats::coef(fit$model)), contrast) %*%
+      ifelse(is.na(stats::coef(fit$model)), 0, stats::coef(fit$model))
   )
 
   # One routine refits the model for the observed and for the permuted
-  # labels, so that labelings that give the same fit in exact arithmetic
-  # are computed the same way. Convergence stays at glm()'s default, and
-  # the tie tolerance allows for it (see .perm_tie_tolerance(); issue #131).
-  refit <- function(d) {
-    stats::glm(
-      form,
-      data = d,
-      family = fam,
-      na.action = stats::na.exclude,
-      control = stats::glm.control(maxit = 200)
+  # labels (#132), takes it to the exact estimate, and classifies the
+  # degenerate labelings (issue #134; .perm_statistic()).
+  if (is.null(off0)) off0 <- rep(0, nrow(X0))
+  pw0 <- rep(1, nrow(X0))
+  L0 <- .perm_contrast_vector(colnames(X0), contrast)
+  treat_used <- df$treat[used]
+  pretested_used <- df$pretested[used]
+  has_int <- "treat:pretested" %in% colnames(X0)
+  statistic_of <- function(tr) {
+    X <- X0
+    X[, "treat"] <- tr
+    if (has_int) X[, "treat:pretested"] <- tr * pretested_used
+    .perm_statistic(X, y0, off0, pw0, fam, theta, L0, statistic)
+  }
+
+  observed <- statistic_of(treat_used)
+  if (identical(observed$code, "H1")) {
+    .perm_stop(
+      "solomonR_perm_leverage_error",
+      "A participant has leverage 1 in a cell the contrast \"", contrast, "\" uses (an arm of one ",
+      "participant, or a covariate value no one else shares), so the HC3 standard error of the ",
+      "observed contrast is not defined. Use statistic = \"difference\"."
     )
   }
-  tie_tol <- .perm_tie_tolerance(fam)
-
-  z_obs <- contrast_z(
-    refit(df),
-    contrast
-  )
-
-  if (!is.finite(z_obs)) {
-    stop("Could not calculate the observed permutation-test statistic.")
+  if (observed$code %in% c("ALIAS", "FAIL")) {
+    .perm_stop(
+      "solomonR_perm_estimable_error",
+      "Could not calculate the observed permutation-test statistic: ",
+      if (identical(observed$code, "ALIAS")) {
+        paste0("the contrast \"", contrast, "\" is not estimable from the fitted model.")
+      } else {
+        "the model could not be refitted."
+      }
+    )
   }
+  z_obs <- observed$z
 
   # The difference statistic tests only the sharp null hypothesis; with
   # arms of unequal size in a pretest condition the contrast uses, it can
@@ -2483,43 +2397,52 @@ perm_solomon <- function(
   # ------------------------------------------------------------
   # Permutation distribution
   #
-  # Treatment assignment is shuffled WITHIN pretest strata.
-  # This preserves the Solomon design and the number assigned
-  # to treatment/control within each pretesting condition.
+  # Treatment labels are shuffled WITHIN pretest strata, among the
+  # participants in the model (decision D2 of issue #134). This keeps the
+  # number treated in each condition of the model, as randomized.
   # ------------------------------------------------------------
 
-  z_perm <- numeric(reps)
+  z_perm <- rep(NA_real_, reps)
+  codes <- character(reps)
 
   for (i in seq_len(reps)) {
+    s <- statistic_of(.perm_treat(treat_used, pretested_used))
+    if (identical(s$code, "H1")) {
+      .perm_stop(
+        "solomonR_perm_leverage_error",
+        "Permutation ", i, " gives a participant leverage 1 in a cell the contrast \"", contrast,
+        "\" uses (an arm of one participant, or a covariate value no one else in it shares), so ",
+        "its HC3 standard error is not defined and the studentized test cannot count it. Use ",
+        "statistic = \"difference\"."
+      )
+    }
+    z_perm[i] <- s$z
+    codes[i] <- s$code
+  }
 
-    df_perm <- df
-
-    df_perm$treat <- .perm_treat(df$treat, df$pretested)
-
-    z_perm[i] <- contrast_z(
-      refit(df_perm),
-      contrast
+  # A labeling under which a covariate collinear with the cells leaves the
+  # contrast not estimable, or whose model cannot be refitted, is left out
+  # (decision D16). Infinite statistics (emptied or constant arms,
+  # separation) are kept and counted.
+  keep <- !codes %in% c("ALIAS", "FAIL")
+  if (!any(keep)) {
+    .perm_stop(
+      "solomonR_perm_estimable_error",
+      "No permutation gave a statistic: under each of the ", reps, " permutations the contrast \"",
+      contrast, "\" is not estimable from the refitted model, or the model could not be refitted."
     )
   }
-
-  # In the unlikely event that a permuted model produces an undefined
-  # statistic, exclude that replicate explicitly rather than silently
-  # allowing NA propagation.
-
-  valid <- is.finite(z_perm)
-
-  if (!any(valid)) {
-    stop("No valid permutation statistics were obtained.")
-  }
-
-  z_perm_valid <- z_perm[valid]
+  z_perm_valid <- z_perm[keep]
 
   # Two-sided randomization p-value with the +1 finite-simulation
-  # correction. This prevents an estimated p-value of exactly zero.
-  # Ties with the observed statistic are counted (see .perm_at_least()).
-
+  # correction (Phipson & Smyth, 2010). Ties with the observed statistic
+  # are counted (see .perm_at_least() and .perm_tie_tolerance()); a
+  # difference counts as zero against the outcome's standard deviation for
+  # an identity link (.perm_unit()).
+  tie_scale <- if (identical(fam$link, "identity")) stats::sd(df$y[used]) else 1
   p_perm <- (
-    sum(.perm_at_least(z_perm_valid, z_obs, .perm_unit(z_perm_valid, statistic), tie_tol)) + 1
+    sum(.perm_at_least(z_perm_valid, z_obs, .perm_unit(z_perm_valid, statistic, tie_scale),
+                       .perm_tie_tolerance(fam))) + 1
   ) / (
     length(z_perm_valid) + 1
   )
@@ -2533,7 +2456,9 @@ perm_solomon <- function(
     p_perm = p_perm,
     reps = reps,
     valid_reps = length(z_perm_valid),
-    exact = FALSE
+    exact = FALSE,
+    n_infinite = sum(is.infinite(z_perm_valid)),
+    n_left_out = sum(!keep)
   )
 
   if (isTRUE(return_dist)) {
