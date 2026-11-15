@@ -76,11 +76,14 @@ check_solomon_missing(
   covariate that this fit refuses for its name or its form stops with
   the error that
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-  gives: one named as a column of that model, such as `y`, or a logical
-  or character matrix column of several columns given by its name or in
-  a data frame. When the fit fails on a covariate's values, for example
-  on a factor with one level among the participants analyzed, the gap
-  and the delta line are left out without a message.
+  gives: one with a name that the model reserves, such as `y`, or a
+  logical or character matrix column of several columns given by its
+  name or in a data frame. Without numeric `y_pre` no fit is made, but a
+  covariate named `pre_obs`, `condition`, or `log_exposure`, names
+  reserved in every fit, stops all the same. When the fit fails on a
+  covariate's values, for example on a factor with one level among the
+  participants analyzed, the gap and the delta line are left out without
+  a message.
 
 ## Value
 

@@ -795,7 +795,8 @@ with an ordered occasion factor —
 
 A covariate named `pre_obs` in a fit without a pretest, or named
 `condition`, taken for the pretest or the condition —
-[\#174](https://github.com/JUhalt/solomonR/issues/174)
+[\#174](https://github.com/JUhalt/solomonR/issues/174); merged in [PR
+\#180](https://github.com/JUhalt/solomonR/pull/180)
 
 **Figures and reports**
 

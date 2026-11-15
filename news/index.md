@@ -2,6 +2,159 @@
 
 ## solomonR (development version)
 
+### Covariates named pre_obs or condition (bug fix, [\#174](https://github.com/JUhalt/solomonR/issues/174))
+
+- The model of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  names the pretest `pre_obs` and, with several treatments, the
+  condition `condition`. A covariate of either name was refused only
+  when the model had that column: `pre_obs` when `y_pre` was given, and
+  `condition` with several treatments. Several functions that take a fit
+  decided by the column name whether it had a pretest or several
+  treatments. So a covariate named `pre_obs` in a fit without a pretest
+  was taken for the pretest, and one named `condition` in a four-group
+  fit for the condition, without an error or a warning. The fit’s
+  coefficients and effects were right. With a covariate named `pre_obs`
+  and no pretest:
+
+  - [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+    reported `pretest_adjusted = TRUE`, filled in `pretest_sensitivity`,
+    and printed that the risks were standardized over the pretest, with
+    a block comparing the two pretest centers. Under
+    `pretest_center = "observed"` its estimates and standard errors were
+    wrong: it standardized the pretested cells over every pretested
+    participant with the covariates recorded, those without an outcome
+    included. In the issue’s example, the average treatment effect was a
+    risk difference of 0.04678 instead of 0.04730. At the default center
+    the estimates and standard errors were right.
+  - [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+    wrote that the model adjusted for the pretest score and, on a link
+    other than the identity, added the note on the pretest effects at
+    the mean pretest, with their references.
+  - [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md),
+    [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+    and `plot_solomon_effects(bounds = )` warned about the pretest as a
+    covariate: for the pretest effects on any link but the identity, and
+    for the Pretest x Treatment contrast on any link but the identity
+    and the log.
+  - When `pre_obs` was the only numeric covariate, the robust
+    covariances skipped the accurate computation of
+    [\#137](https://github.com/JUhalt/solomonR/issues/137). On nearly
+    collinear designs the standard errors of the fit, of
+    [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md),
+    and of the CR2 delta method of
+    [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+    were off, or NaN.
+
+  With a covariate named `condition` in a four-group fit without a
+  pretest, the range “by group” of the attrition line in
+  [`print()`](https://rdrr.io/r/base/print.html),
+  [`summary()`](https://rdrr.io/r/base/summary.html),
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+  and
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  was counted over the covariate’s levels instead of the four Solomon
+  groups.
+
+- `pre_obs` and `condition` are now reserved in every fit, on top of the
+  names refused before: with or without `y_pre`, and with one treatment
+  or several. A covariate of either name stops with the error of class
+  `solomonR_covariate_error`. Rename that column. `condition` is now
+  refused in a four-group fit with a pretest as well, where it worked.
+  `treat` stays free with several treatments, where it works.
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  without numeric `y_pre` fits no model, so it now checks these two
+  names itself, with the same error, and also `log_exposure`, which
+  every fit reserves too and which it accepted. The message names the
+  covariate and says which names are reserved: in a fit, the names
+  reserved in its design; in
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  without numeric `y_pre`, that
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  reserves `pre_obs`, `condition`, and `log_exposure` in every fit. For
+  every reserved name, the message now begins “Rename these covariates,
+  whose names are reserved:” instead of “whose names the model uses:”.
+
+- A fit saved by an earlier version can still hold such a covariate.
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+  and the warnings of
+  [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md),
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+  and
+  [`plot_solomon_effects()`](https://juhalt.github.io/solomonR/reference/plot_solomon_effects.md)
+  now ask the fit whether it has a pretest (`fit$pretest_mean`), as
+  [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+  already did, and the attrition line counts the conditions only in a
+  fit with several treatments. This reads correctly the fits made by
+  development versions since
+  [\#104](https://github.com/JUhalt/solomonR/issues/104), which added
+  `fit$pretest_mean`. Two cases remain:
+
+  - A fit saved by solomonR 0.8.2 or earlier has no `fit$pretest_mean`,
+    so a covariate named `pre_obs` in it is still taken for the pretest.
+    Such a fit has no attrition line, which
+    [\#135](https://github.com/JUhalt/solomonR/issues/135) added, so a
+    covariate named `condition` changes nothing there.
+  - In a fit without a pretest whose only numeric covariate is named
+    `pre_obs`, the stored covariance is not recomputed. The CR2 delta
+    method of
+    [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+    the CR2 degrees of freedom of
+    [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md),
+    and the studentized statistic of
+    [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+    are computed when they run, but they still skip the computation of
+    [\#137](https://github.com/JUhalt/solomonR/issues/137) for such a
+    fit. On nearly collinear designs, its standard errors can still be
+    off.
+
+  Refit such a fit with the covariate renamed.
+
+- The indicator of a factor’s level can still be named `pre_obs` in the
+  model matrix, as for a factor `pre` with a level `_obs`. In a fit
+  without a pretest,
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  reported such a fit as adjusted for the pretest, though its estimates
+  and standard errors were right. When the indicator was collinear with
+  other terms, the error of
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  called it “pre_obs (the pretest, `y_pre`)”, in a fit with a pretest or
+  without, as the label went by the column’s name. Neither happens now:
+  the error finds the pretest’s column by its position in the model, as
+  the computation of
+  [\#137](https://github.com/JUhalt/solomonR/issues/137) finds the
+  columns it rescales, and gives the label to that column alone.
+
+- Tests check the refusals in four-group and six-group fits, from
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  and
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md),
+  with and without a pretest, and `log_exposure` in
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md).
+  They test the check that
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  makes itself both without `y_pre` and with a `y_pre` that is not
+  numeric. For a fit made as the development version made it before this
+  change, they check that
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  (the delta method under HC3 and CR2, and the bootstrap, each at both
+  centers),
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+  the warnings, and the attrition line of
+  [`print()`](https://rdrr.io/r/base/print.html),
+  [`summary()`](https://rdrr.io/r/base/summary.html),
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+  and
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  equal those of the same fit with the covariate renamed. They also
+  check the factor `pre` with a level `_obs` in
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  and in the collinearity error with and without a pretest: for terms
+  that [`glm()`](https://rdrr.io/r/stats/glm.html) finds collinear, and
+  for terms collinear but for rounding, which only the check of
+  [\#137](https://github.com/JUhalt/solomonR/issues/137) finds.
+
 ### Ordered occasions in fit_solomon_mmrm() (bug fix, [\#172](https://github.com/JUhalt/solomonR/issues/172))
 
 - [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
