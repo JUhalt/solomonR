@@ -28,22 +28,32 @@
   fixed seed, so that p-value, and the printed summary, changed with
   the collation too.
 * The clusters, and the levels of such a covariate, are now taken in the
-  C locale's order (byte order, in which capital letters come before
-  lower-case ones and accented letters after both) in every session. A
-  factor is still taken by its labels, now in that order, not by its
-  level order. `?perm_solomon` (under `seed`) and
-  `?check_solomon_missing` say so.
+  C locale's order (the order of the characters' Unicode code points,
+  in which capital letters come before lower-case ones and accented
+  letters after both) in every session, accented text as `read.csv()`
+  returns it included. A factor is still taken by its labels, now in
+  that order, not by its level order. `?perm_solomon` (under `seed`)
+  and `?check_solomon_missing` say so.
+* `marginal_solomon()` stopped with "Character encoding must be UTF-8,
+  Latin-1 or bytes" on a binary or count fit with a pretest and a
+  character covariate with accented levels, as `read.csv()` returns
+  them in a UTF-8 session (the default on macOS and Linux, and on
+  Windows since R 4.2). It came in after the 0.8.2 release, with the
+  check of the levels that the model does not have (#171). It no longer
+  stops, and its note still names those levels in the C order.
 * What changes: outside a session whose collation is C, a seeded
   cluster p-value with random allocations (`exact = FALSE`), for IDs
   that the C locale and the session sort differently, is now the one
   that a C session gave before. So is the simulated p-value of
-  `check_solomon_missing()` for such levels. A seeded p-value reported
-  from such a session will differ when the analysis is rerun. Two
-  orders change, but no value: that of `z_perm` when every allocation
-  is used, and that of the rows of a covariate's table in
-  `check_solomon_missing()` and of the levels in its printed summary,
-  with two levels too (where the exact test's p-value can differ only
-  by rounding error).
+  `check_solomon_missing()` for such levels (its `covariates` argument
+  came after the 0.8.2 release). A seeded p-value reported from such a
+  session will differ when the analysis is rerun. Other results change
+  in order, and in value only by rounding error: when every allocation
+  is used, `z_perm` comes in another order, its values can differ in
+  the last digits, and the p-value is the same; and the rows of a
+  covariate's table in `check_solomon_missing()`, and the levels in its
+  printed summary, come in another order with two levels too, where the
+  exact test's p-value can differ by rounding error.
 * What does not change: any result in a session whose collation is C;
   in every session, results for IDs and levels that both orders sort
   the same: numeric IDs, names of letters and digits in one case
@@ -63,7 +73,11 @@
   those of the previous version, under both collations; and that
   `check_solomon_missing()` gives the same table under both collations,
   with the levels in the C order and the p-values that a C session gave
-  before, for a character and a factor covariate.
+  before, for a character and a factor covariate, and with two levels.
+  In a UTF-8 session, they check that accented IDs and levels marked as
+  `read.csv()` marks them give, in the C order, the results of the same
+  text marked as UTF-8, in `perm_solomon()` (both designs),
+  `check_solomon_missing()`, and `marginal_solomon()`.
 
 ## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
 

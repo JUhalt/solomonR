@@ -179,3 +179,18 @@
   vapply(x, function(nm) deparse1(as.name(nm), backtick = TRUE),
          character(1), USE.NAMES = FALSE)
 }
+
+# The distinct values of `x` other than NA, as character strings in UTF-8,
+# in the C locale's order whatever the session's collation (issue #179):
+# the byte order of their UTF-8 form, which is the order of their Unicode
+# code points. sort(method = "radix") gives that order, but it stops with
+# "Character encoding must be UTF-8, Latin-1 or bytes" on text that is
+# not ASCII and is marked as being in the native encoding, which is how
+# read.csv() returns accented text in a UTF-8 session. enc2utf8() marks
+# such text as UTF-8 first (and converts text from a native encoding that
+# is not UTF-8). Callers that match the values against `x` convert `x`
+# with enc2utf8() too.
+.sort_c <- function(x) {
+  x <- enc2utf8(as.character(x))
+  sort(unique(x[!is.na(x)]), method = "radix")
+}

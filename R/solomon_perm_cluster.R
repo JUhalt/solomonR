@@ -198,13 +198,13 @@
   used <- rep(TRUE, nrow(object$data))
   if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
   d <- object$data[used, , drop = FALSE]
-  cluster <- as.character(object$cluster[used])
+  cluster <- enc2utf8(as.character(object$cluster[used]))
   # The clusters are held in the C locale's order (byte order) in every
-  # session. tapply() would otherwise sort them by the collation in force,
-  # and the same seed would then draw different allocations under
-  # different collations (issue #179). The order is that of the IDs as
-  # character strings, for a factor cluster too.
-  cluster <- factor(cluster, levels = sort(unique(cluster), method = "radix"))
+  # session (.sort_c()). tapply() would otherwise sort them by the
+  # collation in force, and the same seed would then draw different
+  # allocations under different collations (issue #179). The order is that
+  # of the IDs as character strings, for a factor cluster too.
+  cluster <- factor(cluster, levels = .sort_c(cluster))
 
   if (anyNA(cluster)) {
     stop("`cluster` is missing for participants included in the model.", call. = FALSE)

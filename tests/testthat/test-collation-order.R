@@ -231,3 +231,116 @@ test_that("check_solomon_missing() lists levels in the C order under any collati
   ))))
   expect_match(paste(out, collapse = " "), "South,\\s+\\S+\\s+north,\\s+and\\s+\\S+\\s+west")
 })
+
+# The covariate table of check_solomon_missing() for the covariate `site`
+# with the data `d`, under the collation `loc` (the session's when NULL).
+missing_table <- function(d, site, loc) {
+  in_collation(loc, check_solomon_missing(
+    d$y_post, d$treat, d$pretested, d$y_pre, covariates = data.frame(site = site)
+  ))$covariates$site
+}
+
+test_that("check_solomon_missing() lists two levels in the C order too (#179)", {
+  # With two levels, the p-value comes from the exact test, which draws no
+  # random numbers; the rows are listed in the C order all the same.
+  d <- collation_missing_data()
+  two <- ifelse(d$site == "west", "north", d$site)
+  loc <- collation_unlike_c(unique(two))
+  skip_if(is.null(loc), "No collation available sorts the levels differently from C.")
+  a <- missing_table(d, two, loc)
+  expect_identical(a$level, rep(c("South", "north"), 2))
+  expect_identical(a$test, rep("exact", 4))
+  expect_identical(missing_table(d, two, "C"), a)
+})
+
+# Names that start with an accented letter, a capital, and a lower-case
+# letter: école01, Lac02, parc03, école04, .... The C locale sorts the
+# capitals first, then the lower-case letters, then the accented ones
+# (Lac02, ..., parc03, ..., école01, ...); an English collation sorts
+# école01, ..., Lac02, ..., parc03, ....
+accented_ids <- function(k) {
+  sprintf("%s%02d", c("parc", "\u00e9cole", "Lac")[seq_len(k) %% 3 + 1], seq_len(k))
+}
+
+# `x` marked as being in the native encoding, as read.csv() returns
+# accented text in a UTF-8 session.
+as_read_csv <- function(x) {
+  Encoding(x) <- "unknown"
+  x
+}
+
+test_that("the C order takes text in any encoding marking (#179)", {
+  utf8 <- c("\u00e9cole", "parc", NA, "Lac", "parc", "Zoo")
+  expected <- c("Lac", "Zoo", "parc", "\u00e9cole")
+  expect_identical(solomonR:::.sort_c(utf8), expected)
+  expect_identical(solomonR:::.sort_c(iconv(utf8, "UTF-8", "latin1")), expected)
+  expect_identical(solomonR:::.sort_c(factor(utf8, levels = rev(expected))), expected)
+  skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
+  # sort(method = "radix") alone stops on such text.
+  expect_identical(solomonR:::.sort_c(as_read_csv(utf8)), expected)
+})
+
+test_that("accented cluster IDs as read.csv() returns them are taken in the C order (#179)", {
+  skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
+  for (design in c("A", "B")) {
+    d <- collation_data(design, ids = accented_ids(40))
+    native <- d
+    native$cluster <- as_read_csv(d$cluster)
+    labeled <- d
+    labeled$cluster <- c_order_labels(d$cluster)
+    loc <- collation_unlike_c(unique(d$cluster))
+    fit_native <- collation_fit(native)
+    a <- in_collation(loc, collation_perm(fit_native))
+    expect_false(a$exact)
+    expect_identical(withr::with_collate("C", collation_perm(fit_native)), a)
+    expect_identical(in_collation(loc, collation_perm(collation_fit(d))), a)
+    expect_identical(in_collation(loc, collation_perm(collation_fit(labeled))), a)
+  }
+})
+
+test_that("accented levels as read.csv() returns them are listed in the C order (#179)", {
+  skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
+  d <- collation_missing_data()
+  # north, South, and west become école, Lac, and parc, whose C order is
+  # Lac, parc, école; the labels L1, L2, L3 sort that way in every
+  # collation.
+  accented <- unname(c(north = "\u00e9cole", South = "Lac", west = "parc")[d$site])
+  plain <- unname(c(north = "L3", South = "L1", west = "L2")[d$site])
+  loc <- collation_unlike_c(unique(accented))
+  a <- missing_table(d, as_read_csv(accented), loc)
+  expect_identical(a$level, rep(c("Lac", "parc", "\u00e9cole"), 2))
+  expect_identical(missing_table(d, as_read_csv(accented), "C"), a)
+  expect_identical(missing_table(d, accented, loc), a)
+  b <- missing_table(d, plain, loc)
+  expect_identical(a[names(a) != "level"], b[names(b) != "level"])
+})
+
+test_that("marginal_solomon() takes accented levels as read.csv() returns them (#179)", {
+  skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
+  # A binary outcome with a pretest and a character covariate. Two
+  # pretested participants with a pretest and no outcome come from sites
+  # that no participant in the model comes from.
+  d <- withr::with_seed(1179, {
+    g4 <- rep(1:4, each = 60)
+    d <- data.frame(treat = c(1, 0, 1, 0)[g4], pretested = c(1, 1, 0, 0)[g4])
+    d$site <- sample(c("Montr\u00e9al", "Qu\u00e9bec", "Laval"), 240, replace = TRUE)
+    d$y_pre <- ifelse(d$pretested == 1, stats::rnorm(240), NA)
+    d$y <- stats::rbinom(240, 1, stats::plogis(0.3 * d$treat + 0.5 * ifelse(d$pretested == 1, d$y_pre, 0)))
+    d$site[1:2] <- c("\u00c9vry", "Sept-\u00celes")
+    d$y[1:2] <- NA
+    d
+  })
+  fit_for <- function(site) {
+    suppressWarnings(
+      fit_solomon_glm(d$y, d$treat, d$pretested, d$y_pre, covariates = data.frame(site = site),
+                      family = stats::binomial()),
+      classes = "solomonR_noncollapsible_warning"
+    )
+  }
+  marginal <- function(fit) marginal_solomon(fit, method = "delta", pretest_center = "observed")
+  m <- marginal(fit_for(as_read_csv(d$site)))
+  expect_identical(m, marginal(fit_for(d$site)))
+  expect_identical(m$standardized[["unseen_level"]], 2L)
+  # The levels the model does not have, in the C order.
+  expect_match(m$pretest_sensitivity$note, "(site: Sept-\u00celes, \u00c9vry)", fixed = TRUE)
+})
