@@ -741,7 +741,10 @@ judge_rates <- function(perf, sc, C) {
 # than 5%" of the observed share). C is the protocol's family size (14,576,
 # or 11,964 in the fallback), so the fit-failure tests use the level of
 # rules 1 to 3 and the material tier; they are not added to C, as the
-# material tier's tests are not. `p_value` is the test
+# material tier's tests are not. The comparison holds only in part: the
+# material tier only grades rates that have already failed, as the test
+# against .05 grades a share that the test against .01 has already failed,
+# but the test against .01 gives verdicts of its own. `p_value` is the test
 # against .01, `p_value_material` the test against .05, and `threshold` is
 # .05/C, as in the rows of judge_rates(). At R = 5,000 and C = 14,576, a
 # share is a documented limitation from 86 failed replications and material
