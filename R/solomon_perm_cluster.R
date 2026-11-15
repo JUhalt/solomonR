@@ -268,6 +268,28 @@
     .warn_unbalanced_clusters(statistic, strata, n_treated, n_control)
   }
 
+  # No variation among the cluster scores of the strata the contrast uses
+  # (issue #134, acceptance criterion and decision D5): every allocation
+  # gives the same statistic. One varying stratum is enough for a p-value.
+  spread <- vapply(strata, function(h) max(abs(h$s - stats::median(h$s))), numeric(1))
+  scale_s <- max(stats::sd(d$y), abs(unlist(lapply(strata, `[[`, "s"))), .Machine$double.xmin)
+  if (all(spread <= 1e-9 * scale_s)) {
+    .perm_stop(
+      "solomonR_perm_no_variation_error",
+      "The cluster scores do not vary in the strata the contrast \"", contrast, "\" uses, so ",
+      "every allocation gives the same statistic and the test has no information."
+    )
+  }
+  if (any(spread <= 1e-9 * scale_s)) {
+    # one stratum varies: a p-value (decision D5's proposal), with a warning
+    warning(structure(
+      class = c("solomonR_perm_no_variation_warning", "warning", "condition"),
+      list(message = paste0(
+        "The cluster scores do not vary in the ", paste(names(strata)[spread <= 1e-9 * scale_s], collapse = " and "),
+        " stratum; the contrast \"", contrast, "\" varies only through the other stratum."), call = NULL)
+    ))
+  }
+
   stat_for <- function(alloc) {
     parts <- Map(function(h, a) .arm_differences(h$s, a), strata, alloc)
     est <- Reduce(`+`, Map(function(p, w) w * p$difference, parts, weights))

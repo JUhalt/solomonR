@@ -2310,6 +2310,16 @@ perm_solomon <- function(
   numeric_covariates <- .numeric_covariates(fit$covariate_scaling)
   form <- stats::formula(fit$model)
   fam <- stats::family(fit$model)
+  used <- rep(TRUE, nrow(df))
+  if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
+
+  # No variation in a pretest condition the contrast uses, among the
+  # participants in the model (issue #134, decision D5): an error when every
+  # labeling gives the same statistic, and a warning when the statistic still
+  # varies, through the other condition or a covariate.
+  shared <- setdiff(attr(stats::terms(form), "term.labels"),
+                    c("treat", "pretested", "pre_obs", "treat:pretested"))
+  .perm_check_variation(df$y[used], df$pretested[used], contrast, fam, separable = !length(shared))
 
   # ------------------------------------------------------------
   # Helper: construct the requested linear contrast
@@ -2453,8 +2463,6 @@ perm_solomon <- function(
   # reject too often when only the average effect is zero (Romano, 1990;
   # issue #113). The counts are of the participants in the model.
   if (statistic == "difference") {
-    used <- rep(TRUE, nrow(df))
-    if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
     strata <- c(pretested = 1L, unpretested = 0L)[.perm_contrast_weights(contrast) != 0]
     arm_count <- function(arm) {
       vapply(strata, function(p) sum(df$treat[used] == arm & df$pretested[used] == p), numeric(1))

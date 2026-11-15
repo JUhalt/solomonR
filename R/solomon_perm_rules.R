@@ -39,3 +39,41 @@
     "(issue #134).", hint
   )
 }
+
+# No variation in a pretest condition the contrast uses (the acceptance
+# criterion of #134 and decision D5). An error when the statistic is 0, or
+# infinite, for every labeling: the outcome is constant at 0 (or 1 for a
+# binary outcome) in such a condition, or constant in the only condition a
+# contrast of a separable model uses. When the statistic still varies (the
+# ATE or Pretest x Treatment with the other condition varying, or a
+# covariate shared by the conditions), the p-value is computed (D5's
+# proposal).
+.perm_check_variation <- function(y, pretested, contrast, family, separable) {
+  w <- .perm_contrast_weights(contrast)
+  conds <- c(pretested = 1, unpretested = 0)[w != 0]
+  values <- lapply(conds, function(p) unique(y[pretested == p]))
+  constant <- vapply(values, function(v) length(v) == 1L, logical(1))
+  if (!any(constant)) return(invisible(NULL))
+  v <- unlist(values[constant])
+  boundary <- if (identical(family$family, "binomial")) any(v %in% c(0, 1)) else
+    if (identical(family$family, "gaussian")) FALSE else any(v == 0)
+  if (boundary || (separable && length(conds) == 1L)) {
+    .perm_stop(
+      "solomonR_perm_no_variation_error",
+      "The outcome does not vary in the ", paste(names(conds)[constant], collapse = " and "),
+      " condition", if (sum(constant) > 1) "s" else "", ", which the contrast \"", contrast,
+      "\" uses, so every permutation gives the same statistic and the test has no information. ",
+      "Choose a contrast on a condition whose outcome varies."
+    )
+  }
+  # The statistic still varies (decision D5's proposal): a p-value, with a
+  # classed warning so that the constant condition is seen.
+  warning(structure(
+    class = c("solomonR_perm_no_variation_warning", "warning", "condition"),
+    list(message = paste0(
+      "The outcome does not vary in the ", paste(names(conds)[constant], collapse = " and "),
+      " condition; the contrast \"", contrast, "\" varies only through the other condition",
+      if (!separable) " and the covariates" else "", "."), call = NULL)
+  ))
+  invisible(NULL)
+}
