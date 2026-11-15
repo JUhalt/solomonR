@@ -49,12 +49,14 @@ the fit (\code{two1}, \code{two2}), and a character one stops, as in
 covariate (see "Missing posttests and the pretest effects"). With
 numeric \code{y_pre}, the covariates also enter the fit behind the gap and
 the delta line. A covariate that this fit refuses for its name or its
-form stops with the error that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} gives: one named as
-a column of that model, such as \code{y}, or a logical or character matrix
-column of several columns given by its name or in a data frame. When
-the fit fails on a covariate's values, for example on a factor with one
-level among the participants analyzed, the gap and the delta line are
-left out without a message.}
+form stops with the error that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} gives: one with a
+name that the model reserves, such as \code{y}, or a logical or character
+matrix column of several columns given by its name or in a data frame.
+Without numeric \code{y_pre} no fit is made, but a covariate named
+\code{pre_obs}, \code{condition}, or \code{log_exposure}, names reserved in every
+fit, stops all the same. When the fit fails on a covariate's values,
+for example on a factor with one level among the participants
+analyzed, the gap and the delta line are left out without a message.}
 }
 \value{
 An object of class \code{solomon_missing}, a list with:

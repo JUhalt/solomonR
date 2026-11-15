@@ -238,14 +238,18 @@ test_that("covariate fits return the model and the coefficients for the covariat
   expect_s3_class(fit$vcov, "clubSandwich")
 })
 
-test_that("without a pretest, a covariate named pre_obs is standardized as a covariate", {
+test_that("without a pretest, a covariate named y_pre is standardized like any other", {
+  # A covariate cannot be named pre_obs, the model's name for the pretest
+  # (issue #174), so the code that told such a covariate from the pretest
+  # can no longer be reached by a new fit. One named y_pre, as the pretest
+  # argument is named, is standardized like any other covariate.
   d <- location_data()$four
   fit_with <- function(name) {
     covariates <- data.frame(10 * d$z + 1e6)
     names(covariates) <- name
     suppressWarnings(fit_solomon_glm(d$y_g, d$treat, d$pretested, covariates = covariates))
   }
-  fit <- fit_with("pre_obs")
+  fit <- fit_with("y_pre")
   ref <- fit_with("x")
   expect_equal(fit$effects, ref$effects, tolerance = 1e-10)
   expect_equal(unname(fit$covariate_scaling$scales), unname(ref$covariate_scaling$scales))
@@ -683,11 +687,11 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
   # and standard errors; master fitted them under model-based covariance
   # and stopped under HC3 and CR2 with "system is computationally
   # singular". The standardized model is checked for terms collinear but
-  # for the rounding error of the values given (.collinear_terms()); a fixed
-  # tolerance of 1e-7 missed them from about 2.5 * 10^9 standard deviations,
-  # and with 2z + treat + 3 the fit then gave the treatment effect a
-  # standard error a million times too large. From about 10^11, glm()
-  # catches them as given, and may name z.
+  # for the rounding error of the values given (.collinear_positions());
+  # a fixed tolerance of 1e-7 missed them from about 2.5 * 10^9 standard
+  # deviations, and with 2z + treat + 3 the fit then gave the treatment
+  # effect a standard error a million times too large. From about 10^11,
+  # glm() catches them as given, and may name z.
   d <- collinear_set()
   collinear <- "collinear with other terms of the model: z2?[.]"
   for (design in c("four", "six")) {
@@ -1219,7 +1223,7 @@ test_that("an exact relation whose terms nearly cancel stops, whatever the decom
   # alone, as 16f0d38 did, missed this relation in 126 of 300 data sets
   # like this one, and the fit stopped at the omnibus test with "system is
   # computationally singular", as on master. The residual is now computed
-  # from the stored values (.collinear_terms()).
+  # from the stored values (.collinear_positions()).
   withr::local_seed(53)
   n <- 306
   g <- rep(1:6, each = 51)
@@ -1728,13 +1732,14 @@ test_that("a refit that does not converge on rows where a difference score repea
 })
 
 test_that("the collinearity check of a resample is the fit's check, in the model's weights (#154)", {
-  # .collinear_columns() is the check of .collinear_terms() on a design
+  # .collinear_columns() is the check of .collinear_positions() on a design
   # matrix, the weights of its rows, the rounding error of its entries,
   # the covariates' columns, and the intercept's, so that marginal_solomon()
-  # can apply it to the rows of a resample. .collinear_terms() now calls
-  # .collinear_columns(), so comparing the two checks only what the
-  # wrapper passes: the model matrix, the weights, the covariates' columns,
-  # and the intercept's position. What would show a change in the check
+  # can apply it to the rows of a resample. .collinear_positions() now
+  # calls .collinear_columns(), and .collinear_terms() names the columns it
+  # finds, so comparing the two checks only what the wrappers pass: the
+  # model matrix, the weights, the covariates' columns, and the
+  # intercept's position. What would show a change in the check
   # itself are the pinned results, none, the pair's second column when the
   # rounding error allowed for is large, and the last term of an exact
   # relation, which are those of .collinear_terms() before the split
@@ -1764,7 +1769,7 @@ test_that("the collinearity check of a resample is the fit's check, in the model
 
   # An exact relation among times far from zero, with each value's rounding
   # error, in the standardized model of fit_solomon_glm(): through
-  # .collinear_terms(), the fit stops at the delay, the relation's last
+  # .collinear_positions(), the fit stops at the delay, the relation's last
   # term; the check on the matrix finds the same column.
   withr::local_seed(8)
   start <- 1.77e9
@@ -2292,10 +2297,11 @@ test_that("a covariate is standardized as itself when another column shares its 
   # With CR2 the fit stopped with "duplicate 'row.names' are not allowed",
   # as on master, which also gave the second column the standard error of
   # the first and left it out of the cells. The reference renames the
-  # covariate, which changes nothing else. A covariate named `pre_obs` in a
-  # fit without a pretest was taken for the pretest by plot_sensitization(),
-  # on master too; covariates whose names must be quoted in a formula, such
-  # as `(Intercept)`, are found as well.
+  # covariate, which changes nothing else. A model column named `pre_obs`
+  # in a fit without a pretest, which a covariate could have until #174 and
+  # the indicator of a factor's level still can, was taken for the pretest
+  # by plot_sensitization(), on master too; covariates whose names must be
+  # quoted in a formula, such as `(Intercept)`, are found as well.
   d <- location_data()
   numbers <- function(x) unname(as.matrix(x[vapply(x, is.numeric, logical(1))]))
   same <- function(fit, ref, info) {
@@ -2351,9 +2357,21 @@ test_that("a covariate is standardized as itself when another column shares its 
     expect_equal(marginal(data.frame(wave, wave2 = x$age)), marginal(data.frame(wave, w2 = x$age)),
                  tolerance = 1e-10, info = robust)
   }
-  # Without a pretest, a covariate named pre_obs; and names that must be
-  # quoted.
-  for (name in c("pre_obs", "(Intercept)", "my cov")) {
+  # Without a pretest, a model column named pre_obs: no covariate can be
+  # named so since #174, but the indicator of the level `_obs` of a factor
+  # `pre` is.
+  without_pretest <- function(covariates) {
+    suppressWarnings(fit_solomon_glm(x$y_g, x$treat, x$pretested, covariates = covariates,
+                                     robust = "HC3"))
+  }
+  high <- x$z > 0
+  fit <- without_pretest(data.frame(age = x$age, wave,
+                                    pre = factor(ifelse(high, "_obs", "a"), c("a", "_obs"))))
+  expect_true("pre_obs" %in% colnames(stats::model.matrix(fit$model)))
+  same(fit, without_pretest(data.frame(age = x$age, wave, p2 = factor(ifelse(high, "b", "a")))),
+       "pre_obs")
+  # Names that must be quoted.
+  for (name in c("(Intercept)", "my cov")) {
     covariates <- stats::setNames(data.frame(x$age, wave), c(name, "wave"))
     fit <- suppressWarnings(fit_solomon_glm(x$y_g, x$treat, x$pretested, covariates = covariates,
                                             robust = "HC3"))

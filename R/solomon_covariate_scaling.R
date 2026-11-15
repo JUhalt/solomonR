@@ -38,8 +38,9 @@
 # by a power of two is exact. Returns the data with them standardized,
 # `data`, and their `means` and `scales` (standard deviations, and that
 # power of two), named by covariate, the pretest first, with a mean of 0;
-# `means` is empty when there is neither. Without a pretest, a covariate may
-# be named `pre_obs`; it is standardized as a covariate.
+# `means` is empty when there is neither. No covariate can be named
+# `pre_obs`, with a pretest or without (issue #174;
+# .solomon_check_covariates()), so a column of that name is the pretest.
 .covariate_scaling <- function(df, covariates, in_model) {
   means <- numeric()
   scales <- numeric()
@@ -213,7 +214,14 @@
 # coefficients' standard errors and degrees of freedom off by percents.
 # A fit without a numeric covariate, whose design is well conditioned,
 # keeps the computations of sandwich and clubSandwich, and its results.
-# `scaling` comes from .covariate_scaling().
+# `scaling` comes from .covariate_scaling(). A fit made before #174 without
+# a pretest, whose only numeric covariate was named pre_obs, is taken for
+# a fit without one: its stored covariance came from sandwich and
+# clubSandwich, and the computations that call this function on its
+# scaling when they run (the CR2 delta method of marginal_solomon(), the
+# CR2 degrees of freedom of plot_sensitization(), and the studentized
+# statistic of perm_solomon()) still skip this path. Refitting it with
+# the covariate renamed gives the results of this path (issue #174).
 .numeric_covariates <- function(scaling) any(names(scaling$means) != "pre_obs")
 
 # A covariance as a plain matrix, without the attributes of a clubSandwich

@@ -205,11 +205,17 @@
 # and the several-treatment paths of fit_solomon_glm(). With `noise`, the
 # rounding error of each entry of the model matrix (.representation_error()),
 # a term that is collinear with the others but for that error is collinear
-# too (.collinear_terms()); `covariates` names the covariates' terms, which
-# are checked last.
+# too (.collinear_positions()); `covariates` names the covariates' terms,
+# which are checked last. The collinear columns are found and named by
+# position, and only the pretest's own column (.pretest_column()) is
+# called the pretest: the indicator of a factor's level can be named
+# `pre_obs` too, as that of the level `_obs` of a factor `pre` is, in a
+# model with a pretest or without one (issue #174).
 .stop_inestimable <- function(fit, empty, noise = NULL, covariates = character()) {
-  aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
-  if (!length(aliased) && !is.null(noise)) aliased <- .collinear_terms(fit, noise, covariates)
+  aliased <- which(is.na(stats::coef(fit)))
+  if (!length(aliased) && !is.null(noise)) {
+    aliased <- .collinear_positions(fit, noise, covariates)
+  }
   if (!length(aliased)) return(invisible(NULL))
   if (length(empty)) {
     stop(
@@ -218,19 +224,31 @@
       call. = FALSE
     )
   }
-  aliased[aliased == "pre_obs"] <- "pre_obs (the pretest, `y_pre`)"
+  terms <- names(stats::coef(fit))[aliased]
+  terms[aliased %in% .pretest_column(fit)] <- "pre_obs (the pretest, `y_pre`)"
   stop(
     "The model cannot be estimated because these terms are collinear with ",
-    "other terms of the model: ", paste(aliased, collapse = ", "),
+    "other terms of the model: ", paste(terms, collapse = ", "),
     ". A covariate or pretest that is constant, or that repeats another ",
     "term, causes this.",
     call. = FALSE
   )
 }
 
+# The position of the pretest's column among the coefficients of `model`,
+# a model of fit_solomon_glm(), or NA without a pretest. It is found from
+# the pretest's term, `pre_obs`, as .scaled_columns() finds a column, not
+# from the column's name, which the indicator of the level `_obs` of a
+# factor `pre` shares (issue #174). No covariate can be named pre_obs
+# (.solomon_reserved_names), so the term is the pretest's alone.
+.pretest_column <- function(model) {
+  term <- match("pre_obs", attr(stats::terms(model), "term.labels"))
+  match(term, attr(stats::model.matrix(model), "assign"))
+}
+
 # The rounding error that each entry of the model matrix of the
 # standardized model `fit` carries from the values the model was given, for
-# .collinear_terms() (issue #137). `given` is the model as given, `scaling`
+# .collinear_positions() (#137). `given` is the model as given, `scaling`
 # comes from .covariate_scaling(), and `center` is the mean the pretest was
 # centered at, NA without a pretest. A value x is stored with an error of up
 # to |x| eps / 2, with eps = .Machine$double.eps, and a covariate computed
@@ -356,22 +374,31 @@
 # the covariates (the terms named in `covariates`) after the treatment and
 # pretest terms, so that a relation is found at its last term in that order
 # whatever the order of the covariates; a term found collinear is left out
-# and the rest are checked again. Returns the names of the collinear terms'
-# columns, in the order of the model, or an empty vector. The check itself
-# is .collinear_columns(), on the model matrix, the fit's weights, and the
-# position of the intercept, so that marginal_solomon() can apply it to
-# the rows of a bootstrap resample (issue #154).
-.collinear_terms <- function(fit, noise, covariates = character(), margin = 4, floor = 1e-11) {
+# and the rest are checked again. Returns the positions of the collinear
+# terms' columns, in the order of the model, or an empty vector: two
+# columns can share a name, as the pretest and the indicator of the level
+# `_obs` of a factor `pre` do (.stop_inestimable(), issue #174). The check
+# itself is .collinear_columns(), on the model matrix, the fit's weights,
+# and the position of the intercept, so that marginal_solomon() can apply
+# it to the rows of a bootstrap resample (issue #154).
+.collinear_positions <- function(fit, noise, covariates = character(), margin = 4,
+                                 floor = 1e-11) {
   X <- stats::model.matrix(fit)
   w <- fit$weights
   if (is.null(w) || length(w) != nrow(X)) w <- rep(1, nrow(X))
   labels <- attr(stats::terms(fit), "term.labels")
   last <- attr(X, "assign") %in% match(covariates, labels)
   intercept <- match(0L, attr(X, "assign"))
-  colnames(X)[.collinear_columns(X, w, noise, last, intercept, margin, floor)]
+  .collinear_columns(X, w, noise, last, intercept, margin, floor)
 }
 
-# The check of .collinear_terms() on a design matrix `X`: `w` holds the
+# The names of the columns that .collinear_positions() finds, in the order
+# of the model, or an empty vector. Only the tests call it.
+.collinear_terms <- function(fit, noise, covariates = character(), margin = 4, floor = 1e-11) {
+  colnames(stats::model.matrix(fit))[.collinear_positions(fit, noise, covariates, margin, floor)]
+}
+
+# The check of .collinear_positions() on a design matrix `X`: `w` holds the
 # weights of its rows, `noise` the rounding error of each entry
 # (.representation_error()), `last` flags the covariates' columns, which
 # are checked last, and `intercept` is the position of the intercept's
@@ -436,7 +463,7 @@
 # each product is split exactly into its rounded value and its error
 # (Dekker's product, with Veltkamp's split by 2^27 + 1), each sum likewise
 # (Knuth's two-sum), and the errors are summed apart, as the algorithm Dot2
-# of Ogita, Rump, and Oishi (2005) does. Used by .collinear_terms().
+# of Ogita, Rump, and Oishi (2005) does. Used by .collinear_columns().
 .accurate_residual <- function(a, A, b) {
   split <- function(x) {
     y <- 134217729 * x
@@ -582,7 +609,7 @@
   # An empty group, or a term collinear with the others, leaves a
   # coefficient inestimable, in the model as given or standardized, the
   # latter checked as well for terms collinear but for the rounding error of
-  # the values given, as in the four-group model (.collinear_terms()).
+  # the values given, as in the four-group model (.collinear_positions()).
   .stop_inestimable(fit_given, .group_names(counts, counts == 0))
   .stop_inestimable(fit, .group_names(counts, counts == 0),
                     noise = .representation_error(fit, fit_given, scaling, pretest_mean),
