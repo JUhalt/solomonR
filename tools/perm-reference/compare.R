@@ -267,14 +267,19 @@ compare_world <- function(r, replay_seed) {
     rows_ok <- if (inherits(fit, "error")) NA else isTRUE(pkg_rows(fit) == ref_rows(r))
     if (SPACE_MODEL) {
       # CMP_SPACE=model: the rows in the model are the rows of the fit to the
-      # observed labeling that are not in fit$model$na.action (without a fit,
-      # the reference's rows in the model). Elsewhere they are all the rows,
-      # and the labelings, the cases, and the draws are those of the posted
-      # harness.
+      # observed labeling that are not in fit$model$na.action. In a world
+      # without rows outside the model they are all the rows, and the
+      # labelings, the cases, and the draws are those of the posted harness.
       used <- rep(TRUE, nrow(d))
       if (!inherits(fit, "error")) {
         if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
       } else {
+        # Without a fit (a rule the comment on #134 did not state): the
+        # reference's rows in the model, so that a fit-error row's mode, seed,
+        # and reps columns and its recount (ref_b_same, ref_m_same) describe
+        # the labelings of the cases compared (M = 420 in the F-miss worlds).
+        # No verdict depends on them: a fit-error row is judged by the class
+        # of the error alone, and no draws are listed for it.
         for (ty in r$types) used[ty$idx[is.na(ty$row_type)]] <- FALSE
       }
       # Mode A over the rows in the model: in each pretest condition, every
