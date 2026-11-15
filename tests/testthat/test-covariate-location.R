@@ -687,11 +687,11 @@ test_that("exactly collinear covariates stop the fit wherever they lie", {
   # and standard errors; master fitted them under model-based covariance
   # and stopped under HC3 and CR2 with "system is computationally
   # singular". The standardized model is checked for terms collinear but
-  # for the rounding error of the values given (.collinear_terms()); a fixed
-  # tolerance of 1e-7 missed them from about 2.5 * 10^9 standard deviations,
-  # and with 2z + treat + 3 the fit then gave the treatment effect a
-  # standard error a million times too large. From about 10^11, glm()
-  # catches them as given, and may name z.
+  # for the rounding error of the values given (.collinear_positions());
+  # a fixed tolerance of 1e-7 missed them from about 2.5 * 10^9 standard
+  # deviations, and with 2z + treat + 3 the fit then gave the treatment
+  # effect a standard error a million times too large. From about 10^11,
+  # glm() catches them as given, and may name z.
   d <- collinear_set()
   collinear <- "collinear with other terms of the model: z2?[.]"
   for (design in c("four", "six")) {
@@ -1223,7 +1223,7 @@ test_that("an exact relation whose terms nearly cancel stops, whatever the decom
   # alone, as 16f0d38 did, missed this relation in 126 of 300 data sets
   # like this one, and the fit stopped at the omnibus test with "system is
   # computationally singular", as on master. The residual is now computed
-  # from the stored values (.collinear_terms()).
+  # from the stored values (.collinear_positions()).
   withr::local_seed(53)
   n <- 306
   g <- rep(1:6, each = 51)
@@ -1732,13 +1732,14 @@ test_that("a refit that does not converge on rows where a difference score repea
 })
 
 test_that("the collinearity check of a resample is the fit's check, in the model's weights (#154)", {
-  # .collinear_columns() is the check of .collinear_terms() on a design
+  # .collinear_columns() is the check of .collinear_positions() on a design
   # matrix, the weights of its rows, the rounding error of its entries,
   # the covariates' columns, and the intercept's, so that marginal_solomon()
-  # can apply it to the rows of a resample. .collinear_terms() now calls
-  # .collinear_columns(), so comparing the two checks only what the
-  # wrapper passes: the model matrix, the weights, the covariates' columns,
-  # and the intercept's position. What would show a change in the check
+  # can apply it to the rows of a resample. .collinear_positions() now
+  # calls .collinear_columns(), and .collinear_terms() names the columns it
+  # finds, so comparing the two checks only what the wrappers pass: the
+  # model matrix, the weights, the covariates' columns, and the
+  # intercept's position. What would show a change in the check
   # itself are the pinned results, none, the pair's second column when the
   # rounding error allowed for is large, and the last term of an exact
   # relation, which are those of .collinear_terms() before the split
@@ -1768,7 +1769,7 @@ test_that("the collinearity check of a resample is the fit's check, in the model
 
   # An exact relation among times far from zero, with each value's rounding
   # error, in the standardized model of fit_solomon_glm(): through
-  # .collinear_terms(), the fit stops at the delay, the relation's last
+  # .collinear_positions(), the fit stops at the delay, the relation's last
   # term; the check on the matrix finds the same column.
   withr::local_seed(8)
   start <- 1.77e9

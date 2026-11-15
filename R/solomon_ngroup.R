@@ -393,7 +393,7 @@
 }
 
 # The names of the columns that .collinear_positions() finds, in the order
-# of the model, or an empty vector.
+# of the model, or an empty vector. Only the tests call it.
 .collinear_terms <- function(fit, noise, covariates = character(), margin = 4, floor = 1e-11) {
   colnames(stats::model.matrix(fit))[.collinear_positions(fit, noise, covariates, margin, floor)]
 }
