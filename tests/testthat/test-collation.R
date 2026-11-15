@@ -5,7 +5,7 @@
 # the fit did, whatever collation is in force when they run. A fit made by
 # an earlier version, which stored such a covariate as character, stops
 # with a classed error when it is analyzed under a collation that sorts its
-# values in a different order.
+# values, among the participants the model used, in a different order.
 #
 # solomonR's tests run under testthat's second edition, where test_that()
 # leaves the collation as the session has it. These tests fit under the
@@ -575,18 +575,28 @@ test_that("a fit stored by an earlier version under sum or Helmert contrasts sto
 })
 
 
-test_that("an earlier fit with a level only outside the model runs under its collation (#170)", {
+test_that("an earlier fit is checked on the levels the model used (#170)", {
   # Two pretested participants with a pretest and no posttest, outside the
   # model, are the only ones from site east, so east is not among the
   # levels stored with the model. The check compares those levels with the
   # levels of the model frame, the rows the model used, not with those of
   # the fit's data. Under the collation of the session that made it, a fit
   # stored as earlier versions stored it runs, and gives the results of
-  # the fit with the covariates given as factors, at both centers.
+  # the fit with the covariates given as factors, at both centers. Under a
+  # collation that sorts the levels the model used otherwise, it stops: a
+  # level outside the model does not exempt its covariate from the
+  # comparison. And a value held only outside the model may sort
+  # elsewhere under that collation without stopping the fit, as long as
+  # the levels the model used keep their order: the model never coded that
+  # value, so the results are still right.
   d <- collate_data()
   lost <- which(is.na(d$y_both_missing))
   site <- d$site
   site[lost[1:2]] <- "east"
+  # Lower-case sites, which both collations sort alike, and Zed for the two
+  # participants outside the model: C sorts it first, English last.
+  site_zed <- tolower(d$site)
+  site_zed[lost[1:2]] <- "Zed"
   for (contrasts in c("contr.treatment", "contr.sum")) {
     fit_with <- function(covariates) {
       withr::with_options(list(contrasts = c(contrasts, "contr.poly")),
@@ -606,6 +616,54 @@ test_that("an earlier fit with a level only outside the model runs under its col
     expect_identical(collate_cells(old), collate_cells(factor_fit), info = contrasts)
     expect_identical(plot_sensitization(old)$data, plot_sensitization(factor_fit)$data,
                      info = contrasts)
+
+    if (!is.na(collate_analysis())) {
+      # Under the other collation, north, South, west and Alpha, beta,
+      # Gamma change order among the participants the model used, so both
+      # functions stop, and the message names both covariates. With site
+      # alone, under sum contrasts the names of the columns would not show
+      # the change, and only the comparison of the levels stops the fit.
+      for (analyze in list(function(fit) marginal_solomon(fit, method = "delta"),
+                           plot_sensitization)) {
+        expect_error(with_analysis_collation(analyze(old)),
+                     "character covariates site, grp by the collation",
+                     class = "solomonR_collation_error", info = contrasts)
+      }
+      old_site <- as_old_fit(fit_with(data.frame(site = site)), "site")
+      expect_false("east" %in% old_site$model$xlevels$site)
+      expect_error(with_analysis_collation(marginal_solomon(old_site, method = "delta")),
+                   "the character covariate site by the collation",
+                   class = "solomonR_collation_error", info = contrasts)
+      expect_error(with_analysis_collation(plot_sensitization(old_site)),
+                   class = "solomonR_collation_error", info = contrasts)
+
+      # Zed, held only outside the model, sorts elsewhere under the other
+      # collation, while the sites the model used keep their order. The
+      # fit runs and gives the results of the fit with site given as a
+      # factor.
+      used <- unique(site_zed[-lost[1:2]])
+      expect_identical(with_analysis_collation(sort(used)), sort(used))
+      expect_false(identical(with_analysis_collation(sort(unique(site_zed))),
+                             sort(unique(site_zed))))
+      old_zed <- as_old_fit(fit_with(data.frame(site = site_zed)), "site")
+      factor_zed <- fit_with(data.frame(site = factor(site_zed)))
+      expect_true("Zed" %in% old_zed$data$site)
+      expect_false("Zed" %in% old_zed$model$xlevels$site)
+      for (center in c("analyzed", "observed")) {
+        m <- with_analysis_collation(
+          marginal_solomon(old_zed, method = "delta", pretest_center = center)
+        )
+        expect_identical(
+          m, marginal_solomon(factor_zed, method = "delta", pretest_center = center),
+          info = paste(contrasts, center)
+        )
+        expect_identical(m$standardized[["unseen_level"]], 2L, info = paste(contrasts, center))
+      }
+      expect_identical(with_analysis_collation(collate_cells(old_zed)),
+                       collate_cells(factor_zed), info = contrasts)
+      expect_identical(with_analysis_collation(plot_sensitization(old_zed)$data),
+                       plot_sensitization(factor_zed)$data, info = contrasts)
+    }
   }
 })
 
