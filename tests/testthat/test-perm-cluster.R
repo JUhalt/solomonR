@@ -314,3 +314,40 @@ test_that("cluster p-values keep the comparison made before the shared tie rule 
     expect_identical(res$p_perm, mean(before(res)))
   }
 })
+
+test_that("cluster scores without variation stop the test or give a warning (#134, D5)", {
+  # Fixed data; every call stops at the error or the warning, before any
+  # allocation is drawn or enumerated. The seed (1342004) would be used only
+  # if a call went past the check.
+  warns <- function(fit, contrast, pattern) {
+    w <- tryCatch(perm_solomon(fit, contrast, reps = 99, seed = 1342004L),
+                  solomonR_perm_no_variation_warning = function(w) w, error = function(e) e)
+    expect_s3_class(w, "solomonR_perm_no_variation_warning")
+    expect_match(if (inherits(w, "condition")) conditionMessage(w) else "", pattern)
+  }
+  # Design A: 12 clusters of 2, three per condition.
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  cluster <- rep(1:12, each = 2)
+  yvar <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1)
+  fit_a1 <- function(y) {
+    suppressWarnings(fit_solomon_glm(y, treat, pretested, cluster = cluster, robust = "CR2"))
+  }
+  one <- fit_a1(c(yvar, rep(0.3, 12)))
+  expect_error(perm_solomon(one, "Treatment | unpretested", reps = 99, seed = 1342004L),
+               "do not vary in the strata", class = "solomonR_perm_no_variation_error")
+  warns(one, "ATE (avg over pretest)", "unpretested stratum; .* only through the other stratum\\.$")
+  both <- fit_a1(c(rep(2, 12), rep(0.3, 12)))
+  expect_error(perm_solomon(both, "ATE (avg over pretest)", reps = 99, seed = 1342004L),
+               class = "solomonR_perm_no_variation_error")
+  # Design B: treatment by cluster (3 and 3), pretesting within clusters; the
+  # unpretested outcome is the same in every cluster, so its scores are 0.
+  k <- rep(1:6, each = 4)
+  b_treat <- as.numeric(k <= 3)
+  b_pre <- rep(c(1, 1, 0, 0), 6)
+  b_y <- ifelse(b_pre == 1, c(yvar, yvar)[seq_along(k)], 0.3)
+  fit_b <- suppressWarnings(fit_solomon_glm(b_y, b_treat, b_pre, cluster = k, robust = "CR2"))
+  expect_error(perm_solomon(fit_b, "Treatment | unpretested", reps = 99, seed = 1342004L),
+               "do not vary", class = "solomonR_perm_no_variation_error")
+})

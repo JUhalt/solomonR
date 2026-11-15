@@ -2314,12 +2314,20 @@ perm_solomon <- function(
   if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
 
   # No variation in a pretest condition the contrast uses, among the
-  # participants in the model (issue #134, decision D5): an error when every
-  # labeling gives the same statistic, and a warning when the statistic still
-  # varies, through the other condition or a covariate.
-  shared <- setdiff(attr(stats::terms(form), "term.labels"),
-                    c("treat", "pretested", "pre_obs", "treat:pretested"))
-  .perm_check_variation(df$y[used], df$pretested[used], contrast, fam, separable = !length(shared))
+  # participants in the model (issue #134, decision D5): an error when the
+  # contrast is 0 or undefined under every labeling, and a warning when it
+  # still varies, through the other condition, a covariate the conditions
+  # share, or the exposure. The outcome is taken as glm() fits it, so that a
+  # binary factor meets the bounds.
+  labels <- attr(stats::terms(form), "term.labels")
+  shared <- setdiff(labels, c("treat", "pretested", "pre_obs", "treat:pretested"))
+  mf_used <- stats::model.frame(form, data = df[used, , drop = FALSE], na.action = stats::na.pass)
+  X0 <- stats::model.matrix(form, mf_used)
+  .perm_check_variation(
+    .perm_outcome(stats::model.response(mf_used)), df$pretested[used], contrast, fam,
+    shared = X0[, attr(X0, "assign") %in% match(shared, labels), drop = FALSE],
+    offset = stats::model.offset(mf_used)
+  )
 
   # ------------------------------------------------------------
   # Helper: construct the requested linear contrast

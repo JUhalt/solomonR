@@ -468,3 +468,94 @@ test_that("perm_solomon() refuses other families and links at both levels (#134,
                                          cluster = cluster, robust = "HC3"))
   expect_no_error(.perm_check_family(nb))
 })
+
+# No variation in a pretest condition the contrast uses (issue #134,
+# decision D5): an error when the contrast is 0 or undefined under every
+# labeling, and a classed warning, with the p-value, when it still varies.
+# Every call stops at the error or the warning, before the sampler, so no
+# random number is drawn; the seed (1342004) would be used only if a call
+# went past the check.
+test_that("perm_solomon() stops or warns when a condition has no variation (#134, D5)", {
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  yvar <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1)
+  x <- c(0.3, -1.2, 0.8, 1.5, -0.4, 0.1, -0.9, 2.1, 0.6, -1.7, 1.1, -0.2,
+         0.4, -0.6, 1.9, -1.1, 0.2, 0.9, -0.3, 1.4, -2, 0.7, -0.8, 1.2)
+  cnt <- c(3, 1, 4, 2, 5, 0, 2, 6, 1, 3, 2, 4)
+  q <- function(expr) suppressWarnings(expr)
+  stops <- function(fit, contrast, pattern) {
+    expect_error(perm_solomon(fit, contrast, reps = 9, seed = 1342004L), pattern,
+                 class = "solomonR_perm_no_variation_error")
+  }
+  warns <- function(fit, contrast, pattern) {
+    w <- tryCatch(perm_solomon(fit, contrast, reps = 9, seed = 1342004L),
+                  solomonR_perm_no_variation_warning = function(w) w, error = function(e) e)
+    expect_s3_class(w, "solomonR_perm_no_variation_warning")
+    expect_match(if (inherits(w, "condition")) conditionMessage(w) else "", pattern)
+  }
+  ate <- "ATE (avg over pretest)"
+  pxt <- "Pretest x Treatment"
+  tu <- "Treatment | unpretested"
+  tp <- "Treatment | pretested"
+
+  # One condition constant, no covariate: the contrast on it alone is 0
+  # under every labeling; the ATE and PxT vary through the other condition.
+  y1 <- c(yvar, rep(0.3, 12))
+  f1 <- q(fit_solomon_glm(y1, treat, pretested))
+  stops(f1, tu, "unpretested condition, which .* is 0 under every labeling")
+  expect_error(perm_solomon(f1, tu, reps = 9, seed = 1342004L), class = "solomonR_perm_error")
+  warns(f1, ate, "unpretested condition; .* varies only through the other condition\\.$")
+  warns(f1, pxt, "varies only through the other condition\\.$")
+  # constant among the rows in the model only
+  f1m <- q(fit_solomon_glm(replace(y1, 16, NA), treat, pretested))
+  stops(f1m, tu, "unpretested condition")
+  # with the pretest, the pretested condition's own covariate
+  ypre <- c(1.2, 0.4, 2.2, 1.8, 0.9, 1.5, 2.6, 0.2, 1.1, 1.9, 0.7, 1.3, rep(NA, 12))
+  f1p <- q(fit_solomon_glm(c(rep(2, 12), yvar), treat, pretested, ypre))
+  stops(f1p, tp, "pretested condition, which .* is 0 under every labeling")
+  warns(f1p, ate, "pretested condition; .* the other condition\\.$")
+
+  # Both conditions constant: every contrast is 0 under every labeling, with
+  # or without a covariate.
+  y2 <- c(rep(2, 12), rep(0.3, 12))
+  f2 <- q(fit_solomon_glm(y2, treat, pretested))
+  for (k in c(ate, pxt, tu)) stops(f2, k, "either pretest condition")
+  f2x <- q(fit_solomon_glm(y2, treat, pretested, covariates = data.frame(x = x)))
+  for (k in c(tu, ate)) stops(f2x, k, "either pretest condition")
+
+  # One condition constant, a covariate the conditions share: the contrast
+  # varies through it, unless the covariate is constant within the condition.
+  f3 <- q(fit_solomon_glm(y1, treat, pretested, covariates = data.frame(x = x)))
+  warns(f3, tu, "varies only through the covariates the conditions share\\.$")
+  warns(f3, ate, "through the other condition and the covariates the conditions share\\.$")
+  site <- factor(ifelse(pretested == 0, "a", rep(c("a", "b", "c"), 8)))
+  f3s <- q(fit_solomon_glm(y1, treat, pretested, covariates = data.frame(site = site)))
+  stops(f3s, tu, "unpretested condition")
+
+  # Counts with an exposure: constant counts with exposures that differ give
+  # a contrast that varies; with one exposure in the condition it is 0.
+  expo <- c(rep(1, 12), 0.5, 1, 2, 4, 1.5, 3, 0.75, 2.5, 1.25, 3.5, 6, 0.6)
+  f4 <- q(fit_solomon_glm(c(cnt, rep(2, 12)), treat, pretested, family = stats::poisson(),
+                          exposure = expo))
+  warns(f4, tu, "varies only through the exposure\\.$")
+  f4c <- q(fit_solomon_glm(c(cnt, rep(2, 12)), treat, pretested, family = stats::poisson(),
+                           exposure = rep(c(1, 2.5), each = 12)))
+  stops(f4c, tu, "unpretested condition")
+
+  # A constant at a bound: the contrast is undefined, however the binary
+  # outcome is coded, and with a covariate.
+  yb <- c(rep(1, 12), 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1)
+  yf <- factor(ifelse(yb == 1, "yes", "no"), levels = c("no", "yes"))
+  for (y in list(yb, yb == 1, yf)) {
+    stops(q(fit_solomon_glm(y, treat, pretested, family = stats::binomial())), ate,
+          "pretested condition, which .* is undefined under every labeling")
+  }
+  stops(q(fit_solomon_glm(factor(yf, levels = c("yes", "no")), treat, pretested,
+                          family = stats::binomial())), ate, "undefined")
+  stops(q(fit_solomon_glm(yb, treat, pretested, family = stats::binomial(),
+                          covariates = data.frame(x = x))), tp, "undefined")
+  yp <- c(cnt, rep(0, 12))
+  stops(q(fit_solomon_glm(yp, treat, pretested, family = stats::poisson())), pxt, "undefined")
+  stops(q(fit_solomon_glm(yp, treat, pretested, family = "negative_binomial")), ate, "undefined")
+})

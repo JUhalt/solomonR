@@ -40,40 +40,86 @@
   )
 }
 
+# The outcome as glm() fits it: a factor counts its first level as 0 and the
+# others as 1, and a logical outcome is 0 or 1 (binomial()$initialize), so
+# that a binary outcome meets the same rules however it is coded.
+.perm_outcome <- function(y) {
+  if (is.factor(y)) return(as.numeric(y != levels(y)[1L]))
+  as.numeric(y)
+}
+
 # No variation in a pretest condition the contrast uses (the acceptance
-# criterion of #134 and decision D5). An error when the statistic is 0, or
-# infinite, for every labeling: the outcome is constant at 0 (or 1 for a
-# binary outcome) in such a condition, or constant in the only condition a
-# contrast of a separable model uses. When the statistic still varies (the
-# ATE or Pretest x Treatment with the other condition varying, or a
-# covariate shared by the conditions), the p-value is computed (D5's
-# proposal).
-.perm_check_variation <- function(y, pretested, contrast, family, separable) {
-  w <- .perm_contrast_weights(contrast)
-  conds <- c(pretested = 1, unpretested = 0)[w != 0]
-  values <- lapply(conds, function(p) unique(y[pretested == p]))
-  constant <- vapply(values, function(v) length(v) == 1L, logical(1))
-  if (!any(constant)) return(invisible(NULL))
-  v <- unlist(values[constant])
-  boundary <- if (identical(family$family, "binomial")) any(v %in% c(0, 1)) else
-    if (identical(family$family, "gaussian")) FALSE else any(v == 0)
-  if (boundary || (separable && length(conds) == 1L)) {
+# criterion of #134 and decision D5). `y` (as .perm_outcome() gives it),
+# `pretested`, `shared` (the model-matrix columns of the covariates the two
+# conditions share, NULL or none without them), and `offset` (NULL without
+# an exposure) are those of the rows in the model.
+#
+# D5: an error when the contrast is 0 or undefined under every labeling
+# (ERR). With the outcome constant in a condition the contrast uses, that
+# holds when
+# - the constant is at a bound (0 or 1 for a binary outcome, 0 for a count)
+#   in a condition the contrast uses: the contrast is undefined;
+# - every condition the contrast uses is fitted exactly whatever the labels,
+#   with a treatment effect of 0: its outcome and offset are constant, and no
+#   shared covariate links it to the other condition (there is none, or each
+#   is constant within the condition, where its own intercept absorbs it);
+# - the outcome and the offset are constant in both conditions: the model
+#   without treatment fits every row, so every treatment coefficient is 0.
+# Otherwise the contrast still varies, through the other condition, a shared
+# covariate, or the exposure (ERR-S): the p-value, with a classed warning
+# (D5's proposal).
+.perm_check_variation <- function(y, pretested, contrast, family, shared = NULL, offset = NULL) {
+  uses <- .perm_contrast_weights(contrast) != 0
+  rows <- list(pretested = pretested == 1, unpretested = pretested == 0)
+  one_value <- function(v) length(unique(v)) == 1L
+  constant <- vapply(rows, function(r) one_value(y[r]), logical(1))
+  if (!any(constant[uses])) return(invisible(NULL))
+  flat <- constant & vapply(rows, function(r) is.null(offset) || one_value(offset[r]), logical(1))
+  apart <- vapply(rows, function(r) {
+    is.null(shared) || ncol(shared) == 0L ||
+      all(vapply(seq_len(ncol(shared)), function(j) one_value(shared[r, j]), logical(1)))
+  }, logical(1))
+  at_bound <- constant & vapply(rows, function(r) {
+    v <- y[r][1L]
+    switch(family$family, gaussian = FALSE, binomial = v %in% c(0, 1), isTRUE(v == 0))
+  }, logical(1))
+  and_list <- function(x) {
+    if (length(x) <= 2L) return(paste(x, collapse = " and "))
+    paste0(paste(x[-length(x)], collapse = ", "), ", and ", x[length(x)])
+  }
+  named <- function(keep) {
+    x <- names(rows)[keep & uses]
+    paste0(and_list(x), " condition", if (length(x) > 1L) "s" else "")
+  }
+  undefined <- any(at_bound & uses)
+  if (undefined || all((flat & apart)[uses]) || all(flat)) {
     .perm_stop(
       "solomonR_perm_no_variation_error",
-      "The outcome does not vary in the ", paste(names(conds)[constant], collapse = " and "),
-      " condition", if (sum(constant) > 1) "s" else "", ", which the contrast \"", contrast,
-      "\" uses, so every permutation gives the same statistic and the test has no information. ",
-      "Choose a contrast on a condition whose outcome varies."
+      if (all(constant) && !undefined) {
+        paste0("The outcome does not vary in either pretest condition, so the contrast \"",
+               contrast, "\" is 0 under every labeling and the test has no information.")
+      } else {
+        paste0("The outcome does not vary in the ", named(if (undefined) at_bound else constant),
+               ", which the contrast \"", contrast, "\" uses, so the contrast is ",
+               if (undefined) "undefined" else "0",
+               " under every labeling and the test has no information.",
+               if (!all(constant)) " Choose a contrast on a condition whose outcome varies.")
+      }
     )
   }
-  # The statistic still varies (decision D5's proposal): a p-value, with a
-  # classed warning so that the constant condition is seen.
+  # The contrast still varies (decision D5's proposal): a p-value, with a
+  # classed warning that names the constant condition and what the contrast
+  # varies through.
+  through <- c(
+    if (any(!constant[uses])) "the other condition",
+    if (any((constant & !apart)[uses])) "the covariates the conditions share",
+    if (any((constant & !flat)[uses])) "the exposure"
+  )
   warning(structure(
     class = c("solomonR_perm_no_variation_warning", "warning", "condition"),
     list(message = paste0(
-      "The outcome does not vary in the ", paste(names(conds)[constant], collapse = " and "),
-      " condition; the contrast \"", contrast, "\" varies only through the other condition",
-      if (!separable) " and the covariates" else "", "."), call = NULL)
+      "The outcome does not vary in the ", named(constant), "; the contrast \"", contrast,
+      "\" varies only through ", and_list(through), "."), call = NULL)
   ))
   invisible(NULL)
 }
