@@ -469,6 +469,43 @@ test_that("perm_solomon() refuses other families and links at both levels (#134,
   expect_no_error(.perm_check_family(nb))
 })
 
+# The family check comes before the link-scale warning of the Pretest x
+# Treatment contrast (design, Section 2.1), so a refused fit stops without
+# it. A binomial fit of the same data gives the warning, so the check is not
+# vacuous. Every call stops before the sampler.
+test_that("a refused fit stops before the link-scale warning (#134, D1)", {
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  cluster <- rep(1:12, each = 2)
+  yb <- rep(c(1, 0, 1, 1, 0, 0), 4)
+  ypre <- c(1.2, 0.4, 2.2, 1.8, 0.9, 1.5, 2.6, 0.2, 1.1, 1.9, 0.7, 1.3, rep(NA, 12))
+  fit_at <- function(family, level) {
+    suppressWarnings(if (level == "cluster") {
+      fit_solomon_glm(yb, treat, pretested, ypre, family = family, cluster = cluster, robust = "CR2")
+    } else {
+      fit_solomon_glm(yb, treat, pretested, ypre, family = family)
+    })
+  }
+  for (level in c("participant", "cluster")) {
+    warned <- FALSE
+    expect_error(
+      withCallingHandlers(
+        perm_solomon(fit_at(stats::quasibinomial(), level), "Pretest x Treatment", reps = 9),
+        solomonR_link_scale_warning = function(w) {
+          warned <<- TRUE
+          invokeRestart("muffleWarning")
+        }
+      ),
+      class = "solomonR_perm_family_error"
+    )
+    expect_false(warned)
+    w <- tryCatch(perm_solomon(fit_at(stats::binomial(), level), "Pretest x Treatment", reps = 9),
+                  solomonR_link_scale_warning = function(w) w, error = function(e) e)
+    expect_s3_class(w, "solomonR_link_scale_warning")
+  }
+})
+
 # No variation in a pretest condition the contrast uses (issue #134,
 # decision D5): an error when the contrast is 0 or undefined under every
 # labeling, and a classed warning, with the p-value, when it still varies.
