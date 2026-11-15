@@ -184,37 +184,77 @@
 # locale's order whatever the session's collation (issue #179). The values
 # are returned as they are in `x`, with the same bytes and the same
 # encoding mark; only their order is computed, from a key. The key is the
-# bytes of each value written as hexadecimal digits, which are ASCII and
-# sort the same way in every collation, so that comparing two keys
-# compares the bytes. Text marked as Latin-1 is keyed by its bytes in
-# UTF-8: R converts it in the same way, whatever the session, to compare
-# it with ==, so the same letter marked as Latin-1 or as UTF-8 has one
-# key. All other text is keyed by the bytes it is stored in, without any
-# conversion. That includes text marked as being in the native encoding,
-# which is how read.csv() returns it. Converting such text from the native
-# encoding would make the order depend on the session, and in a session
-# whose native encoding is not UTF-8, such as one started with LC_ALL=C,
-# it can garble UTF-8 text. For text in UTF-8, the byte order is the order
-# of the characters' Unicode code points, the order that sort() gives
-# under the C collation in a UTF-8 session. (sort(method = "radix") gives
-# it too, but stops on text that is not ASCII and is marked as native in a
-# UTF-8 session.)
+# bytes of a string written as hexadecimal digits (.hex_bytes()), which
+# are ASCII and sort the same way in every collation, so that comparing
+# two keys compares the bytes. Text marked as Latin-1 is keyed by its
+# bytes in UTF-8: R converts it in the same way, whatever the session, to
+# compare it with ==, so the same letter marked as Latin-1 or as UTF-8 has
+# one key. All other text is keyed by the bytes it is stored in, without
+# any conversion. That includes text marked as being in the native
+# encoding, which is how read.csv() returns it. Converting such text from
+# the native encoding would make the order depend on the session, and in
+# a session whose native encoding is not UTF-8, such as one started with
+# LC_ALL=C, it can garble UTF-8 text. For text in UTF-8, the byte order is
+# the order of the characters' Unicode code points, the order that sort()
+# gives under the C collation in a UTF-8 session. (sort(method = "radix")
+# gives it too, but stops on text that is not ASCII and is marked as
+# native in a UTF-8 session.)
 #
 # The distinct values are those that unique() finds, as R's == takes them,
 # so that factor(x, levels = .sort_c(x)) and match() take every value of
-# `x` to its level. In every session, the same letter marked as Latin-1
-# and as UTF-8 is one value. Text with the same bytes marked as native and
-# as UTF-8 is one value in a UTF-8 session; in a session whose native
-# encoding is not UTF-8, == takes them as two, and so does .sort_c(), with
-# the one marked UTF-8 first. Values whose keys tie are ordered by their
-# marks, so the order does not depend on the order of the data.
+# `x` to its level. Each value comes back as it first appears in `x`. In
+# every session, the same letter marked as Latin-1 and as UTF-8 is one
+# value. Text with the same bytes marked as native and as UTF-8 is one
+# value in a UTF-8 session; in a session whose native encoding is not
+# UTF-8, == takes them as two. In a session whose native encoding is a
+# single-byte code page, such as Windows-1252 or Latin-1, == also takes a
+# letter in that code page and the same letter marked as UTF-8 or as
+# Latin-1 as one value, although their bytes, and so their keys, differ.
+# So every form in which a value appears in `x`, its bytes with its mark,
+# is keyed, and the value is placed by the smallest key among its forms,
+# and then by that form's mark. Which of its forms comes first in `x` does
+# not matter. Values whose keys tie, such as the same bytes marked as
+# native and as UTF-8 in a session whose native encoding is not UTF-8, are
+# ordered by those marks, the one marked UTF-8 first. So the order does
+# not depend on the order of the data. (In a UTF-8 session and in a C
+# session, the forms of a value have the same key.)
 .sort_c <- function(x) {
   x <- as.character(x)
-  u <- unique(x[!is.na(x)])
-  key <- u
-  latin1 <- Encoding(u) == "latin1"
-  key[latin1] <- enc2utf8(u[latin1])
-  key <- vapply(key, function(s) paste(as.character(charToRaw(s)), collapse = ""),
-                character(1), USE.NAMES = FALSE)
-  u[order(key, Encoding(u), method = "radix")]
+  x <- x[!is.na(x)]
+  u <- unique(x)
+  # The forms: within one mark, unique() keeps each string of bytes once.
+  marks <- Encoding(x)
+  forms <- unlist(lapply(unique(marks), function(m) unique(x[marks == m])), use.names = FALSE)
+  value <- match(forms, u)
+  # A value that match() takes no form to is keyed by itself, so that every
+  # value is returned.
+  lost <- setdiff(seq_along(u), value)
+  forms <- c(forms[!is.na(value)], u[lost])
+  value <- c(value[!is.na(value)], lost)
+  key <- forms
+  latin1 <- Encoding(forms) == "latin1"
+  key[latin1] <- enc2utf8(forms[latin1])
+  key <- .hex_bytes(key)
+  mark <- Encoding(forms)
+  # The form with the smallest key, then mark, of each value, in the order
+  # of `u`.
+  o <- order(value, key, mark, method = "radix")
+  first <- o[!duplicated(value[o])]
+  u[order(key[first], mark[first], method = "radix")]
+}
+
+# The bytes of each string in `s` as hexadecimal digits, two to a byte: the
+# keys of .sort_c(). The strings of one length are written together, one
+# byte at a time, so that a long vector takes no loop over its strings.
+.hex_bytes <- function(s) {
+  bytes <- lapply(s, charToRaw)
+  n <- lengths(bytes)
+  digits <- sprintf("%02x", 0:255)[as.integer(unlist(bytes, use.names = FALSE)) + 1L]
+  start <- cumsum(n) - n
+  key <- character(length(s))
+  for (len in unique(n[n > 0L])) {
+    i <- which(n == len)
+    key[i] <- do.call(paste0, lapply(seq_len(len), function(j) digits[start[i] + j]))
+  }
+  key
 }

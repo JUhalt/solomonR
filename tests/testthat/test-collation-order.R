@@ -13,9 +13,10 @@
 # collation is skipped when none is available.
 #
 # The tests of accented text check that the values come back as the data
-# have them. The last test runs such text in a session started with
-# LC_ALL=C, whose native encoding is not UTF-8; it is skipped on CRAN and
-# where such a session cannot be started.
+# have them. The last two tests run such text in a second R process: one
+# started with LC_ALL=C, whose native encoding is not UTF-8, and one whose
+# native encoding is a single-byte code page, such as Windows-1252. They
+# are skipped on CRAN and where such a session cannot be started.
 
 # The collations tried after the session's: names of English collations
 # on Linux, macOS, and Windows.
@@ -426,12 +427,75 @@ to_hex <- function(x) {
          USE.NAMES = FALSE)
 }
 
-# The checks that the last test runs in a session started with LC_ALL=C,
-# whose native encoding is not UTF-8. The accented text reaches it as the
-# hexadecimal digits of its bytes in UTF-8, and is rebuilt there as those
-# bytes marked as native, which is how read.csv() returns a UTF-8 file's
-# text in such a session. It goes back in the same way, so that nothing is
-# converted between the two sessions.
+# What kind of session a second R process is, found there before the
+# package is loaded: whether its native encoding is UTF-8 or takes several
+# bytes to a character, and whether R takes e acute in that encoding (the
+# byte e9 in Windows-1252 and in Latin-1) and in UTF-8 as the same text.
+session_facts <- function() {
+  e_utf8 <- rawToChar(as.raw(c(0xc3, 0xa9)))
+  Encoding(e_utf8) <- "UTF-8"
+  e_native <- rawToChar(as.raw(0xe9))
+  list(utf8 = isTRUE(l10n_info()[["UTF-8"]]), mbcs = isTRUE(l10n_info()[["MBCS"]]),
+       code_page = isTRUE(e_native == e_utf8))
+}
+
+# Runs `checks(input)` in a second R process started with the environment
+# variables `env`, with the package as this session has it: loaded from its
+# source by devtools::test(), or installed, under R CMD check. The process
+# saves session_facts() before it loads the package. Returns those facts
+# (NULL when the process did not start), whether it loaded the package,
+# the result of the checks (NULL when they did not finish), and what the
+# process printed.
+run_in_new_session <- function(env, checks, input) {
+  rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
+  path <- getNamespaceInfo(asNamespace("solomonR"), "path")
+  dir <- withr::local_tempdir()
+  files <- file.path(dir, c("input.rds", "facts.rds", "loaded.rds", "result.rds", "checks.R"))
+  saveRDS(input, files[1])
+  load <- if (file.exists(file.path(path, "R", "solomon_inputs.R"))) {
+    sprintf("suppressMessages(pkgload::load_all(%s, quiet = TRUE, helpers = FALSE))", deparse(path))
+  } else {
+    sprintf("suppressPackageStartupMessages(library(solomonR, lib.loc = %s))", deparse(dirname(path)))
+  }
+  writeLines(c(
+    sprintf(".libPaths(%s)", paste(deparse(.libPaths()), collapse = " ")),
+    "files <- commandArgs(TRUE)",
+    paste("facts <-", paste(deparse(session_facts), collapse = "\n")),
+    "saveRDS(facts(), files[2])",
+    load,
+    "saveRDS(TRUE, files[3])",
+    paste("checks <-", paste(deparse(checks), collapse = "\n")),
+    "saveRDS(checks(readRDS(files[1])), files[4])"
+  ), files[5])
+  output <- if (file.exists(rscript)) {
+    withr::with_envvar(c(env, R_TESTS = NA), suppressWarnings(system2(
+      rscript, c("--vanilla", shQuote(files[5]), shQuote(files[1:4])), stdout = TRUE, stderr = TRUE
+    )))
+  }
+  list(facts = if (file.exists(files[2])) readRDS(files[2]), loaded = file.exists(files[3]),
+       result = if (file.exists(files[4])) readRDS(files[4]), output = output)
+}
+
+# The result of the checks of run_in_new_session(), or NULL after a failure
+# that shows what the process printed, when it could not load the package
+# or stopped. `session` names the session, for the message.
+checks_result <- function(run, session) {
+  if (!run$loaded) {
+    fail(paste(c(paste0("A session started with ", session, " could not load solomonR:"),
+                 run$output), collapse = "\n"))
+  } else if (is.null(run$result)) {
+    fail(paste(c(paste0("The session started with ", session, " stopped:"), run$output),
+               collapse = "\n"))
+  }
+  run$result
+}
+
+# The checks that the test after them runs in a session started with
+# LC_ALL=C, whose native encoding is not UTF-8. The accented text reaches it
+# as the hexadecimal digits of its bytes in UTF-8, and is rebuilt there as
+# those bytes marked as native, which is how read.csv() returns a UTF-8
+# file's text in such a session. It goes back in the same way, so that
+# nothing is converted between the two sessions.
 non_utf8_checks <- function(input) {
   from_hex <- function(h) {
     vapply(h, function(s) {
@@ -442,6 +506,15 @@ non_utf8_checks <- function(input) {
     vapply(x, function(s) paste(as.character(charToRaw(s)), collapse = ""), character(1),
            USE.NAMES = FALSE)
   }
+  sorted <- function(x) {
+    s <- solomonR:::.sort_c(x)
+    list(hex = to_hex(s), marks = Encoding(s))
+  }
+  marked <- function(h, mark) {
+    x <- from_hex(h)
+    Encoding(x) <- mark
+    x
+  }
   perm <- function(d, cluster) {
     fit <- suppressWarnings(solomonR::fit_solomon_glm(
       d$y, d$treat, d$pretested, d$y_pre, robust = "CR2", cluster = cluster
@@ -450,18 +523,16 @@ non_utf8_checks <- function(input) {
                            return_dist = TRUE)
   }
   out <- list()
-  s <- solomonR:::.sort_c(from_hex(input$ids))
-  out$sort_c <- list(hex = to_hex(s), marks = Encoding(s))
+  out$sort_c <- sorted(from_hex(input$ids))
+  # The same IDs marked as UTF-8, as packages that read files as UTF-8
+  # mark their text, and, in their Latin-1 bytes, marked as Latin-1.
+  out$utf8 <- sorted(marked(input$ids, "UTF-8"))
+  out$latin1 <- sorted(marked(input$ids_latin1, "latin1"))
   # The bytes of e acute in UTF-8, marked as native and as UTF-8.
   native <- from_hex("c3a9")
-  utf8 <- native
-  Encoding(utf8) <- "UTF-8"
+  utf8 <- marked("c3a9", "UTF-8")
   out$ties <- list(equal = native == utf8, sorted = lapply(
-    list(c(native, utf8), c(utf8, native)),
-    function(x) {
-      s <- solomonR:::.sort_c(x)
-      list(hex = to_hex(s), marks = Encoding(s))
-    }
+    list(c(native, utf8), c(utf8, native)), sorted
   ))
   out$perm <- lapply(input$cluster_data, function(d) {
     list(ids = perm(d, from_hex(d$cluster)), labels = perm(d, d$label))
@@ -490,11 +561,11 @@ test_that("accented text keeps its values in a session whose encoding is not UTF
   # Such a session (one started with LC_ALL=C, for instance) gets text read
   # from a UTF-8 file with read.csv() as UTF-8 bytes marked as native.
   # Converting it to UTF-8 there would alter it. The results must be those
-  # of this session, which must be a UTF-8 one.
+  # of this session, which must be a UTF-8 one. Text marked as UTF-8 or as
+  # Latin-1 must come in the C order there too, with the accented letters
+  # after the others.
   skip_on_cran()
   skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
-  rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
-  skip_if_not(file.exists(rscript), "Rscript was not found.")
 
   ids <- five_kinds_ids(40)
   cluster_data <- lapply(c(A = "A", B = "B"), function(design) {
@@ -509,43 +580,25 @@ test_that("accented text keeps its values in a session whose encoding is not UTF
     d[[column]] <- to_hex(d[[column]])
     d
   }
-  # The package as this session has it: loaded from its source by
-  # devtools::test(), or installed, under R CMD check.
-  path <- getNamespaceInfo(asNamespace("solomonR"), "path")
   input <- list(
-    ids = to_hex(unique(ids)), cluster_data = lapply(cluster_data, hexed, "cluster"),
+    ids = to_hex(unique(ids)), ids_latin1 = to_hex(iconv(unique(ids), "UTF-8", "latin1")),
+    cluster_data = lapply(cluster_data, hexed, "cluster"),
     missing_data = hexed(missing, "site"), marginal_data = hexed(marginal, "site"),
     note = to_hex("(site: Sept-\u00celes, \u00c9vry)")
   )
-  dir <- withr::local_tempdir()
-  files <- file.path(dir, c("input.rds", "started.rds", "result.rds", "checks.R"))
-  saveRDS(input, files[1])
-  load <- if (file.exists(file.path(path, "R", "solomon_inputs.R"))) {
-    sprintf("suppressMessages(pkgload::load_all(%s, quiet = TRUE, helpers = FALSE))", deparse(path))
-  } else {
-    sprintf("suppressPackageStartupMessages(library(solomonR, lib.loc = %s))", deparse(dirname(path)))
-  }
-  writeLines(c(
-    sprintf(".libPaths(%s)", paste(deparse(.libPaths()), collapse = " ")),
-    "files <- commandArgs(TRUE)",
-    load,
-    "saveRDS(list(utf8 = isTRUE(l10n_info()[['UTF-8']])), files[2])",
-    paste("checks <-", paste(deparse(non_utf8_checks), collapse = "\n")),
-    "saveRDS(checks(readRDS(files[1])), files[3])"
-  ), files[4])
-  output <- withr::with_envvar(c(LC_ALL = "C", R_TESTS = NA), suppressWarnings(system2(
-    rscript, c("--vanilla", shQuote(files[4]), shQuote(files[1:3])), stdout = TRUE, stderr = TRUE
-  )))
-  skip_if_not(file.exists(files[2]), "A session started with LC_ALL=C could not load solomonR.")
-  skip_if(readRDS(files[2])$utf8, "A session started with LC_ALL=C is a UTF-8 session here.")
-  if (!file.exists(files[3])) {
-    fail(paste(c("The session started with LC_ALL=C stopped:", output), collapse = "\n"))
-  } else {
-    res <- readRDS(files[3])
+  run <- run_in_new_session(c(LC_ALL = "C"), non_utf8_checks, input)
+  skip_if(is.null(run$facts), "R could not be started with LC_ALL=C.")
+  skip_if(run$facts$utf8, "A session started with LC_ALL=C is a UTF-8 session here.")
+  res <- checks_result(run, "LC_ALL=C")
+  if (!is.null(res)) {
     # .sort_c() returns the IDs with their own bytes and mark, in the C
-    # order.
-    expect_identical(res$sort_c$hex, to_hex(sort(enc2utf8(unique(ids)), method = "radix")))
+    # order, as text marked as native, as UTF-8, and as Latin-1.
+    in_c_order <- sort(unique(ids), method = "radix")
+    expect_identical(res$sort_c$hex, to_hex(in_c_order))
     expect_identical(res$sort_c$marks, rep("unknown", 40))
+    expect_identical(res$utf8, list(hex = to_hex(in_c_order), marks = Encoding(in_c_order)))
+    latin1 <- iconv(in_c_order, "UTF-8", "latin1")
+    expect_identical(res$latin1, list(hex = to_hex(latin1), marks = Encoding(latin1)))
     # The same bytes marked as native and as UTF-8 are two values where ==
     # takes them as two, as it does in a C session, the one marked UTF-8
     # first whichever comes first.
@@ -578,5 +631,156 @@ test_that("accented text keeps its values in a session whose encoding is not UTF
     expect_true(res$marginal$note)
     expect_equal(res$marginal$effects, Filter(is.numeric, marginal_sites(marginal, marginal$site)$effects),
                  tolerance = 1e-10)
+  }
+})
+
+# Locales whose native encoding is a single-byte code page in which e acute
+# is the byte e9 and A umlaut the byte c4 (Windows-1252 and Latin-1), by
+# their names on Windows, macOS, and Linux.
+code_page_locales <- c("English_United States.1252", "en_US.ISO8859-1", "en_US.iso88591",
+                       "en_US.ISO-8859-1", "en_GB.ISO8859-1", "en_GB.iso88591",
+                       "fr_FR.ISO8859-1", "fr_FR.iso88591", "de_DE.ISO8859-1", "de_DE.iso88591")
+
+# TRUE when this session can take `loc` as its collation, a sign that the
+# locale is installed.
+locale_available <- function(loc) {
+  old <- Sys.getlocale("LC_COLLATE")
+  on.exit(Sys.setlocale("LC_COLLATE", old))
+  nzchar(suppressWarnings(Sys.setlocale("LC_COLLATE", loc)))
+}
+
+# The checks that the last test runs in a session whose native encoding is
+# such a code page. The data's text reaches it as the hexadecimal digits of
+# its bytes, in the code page and in UTF-8, and is rebuilt there with the
+# marks that the test gives it; the levels go back in UTF-8 in the same
+# way.
+code_page_checks <- function(input) {
+  from_hex <- function(h) {
+    vapply(h, function(s) {
+      rawToChar(as.raw(strtoi(substring(s, seq(1, nchar(s), 2), seq(2, nchar(s), 2)), 16L)))
+    }, character(1), USE.NAMES = FALSE)
+  }
+  to_hex <- function(x) {
+    vapply(x, function(s) paste(as.character(charToRaw(s)), collapse = ""), character(1),
+           USE.NAMES = FALSE)
+  }
+  marked <- function(h, mark) {
+    x <- from_hex(h)
+    Encoding(x) <- mark
+    x
+  }
+  sorted <- function(x) {
+    s <- solomonR:::.sort_c(x)
+    list(hex = to_hex(s), marks = Encoding(s))
+  }
+  perm <- function(d, cluster) {
+    fit <- suppressWarnings(solomonR::fit_solomon_glm(
+      d$y, d$treat, d$pretested, d$y_pre, robust = "CR2", cluster = cluster
+    ))
+    solomonR::perm_solomon(fit, "ATE (avg over pretest)", reps = 199, seed = 4179,
+                           return_dist = TRUE)
+  }
+  out <- list()
+  # e acute in the code page, in UTF-8, and in Latin-1, and A umlaut in the
+  # code page.
+  e_native <- marked("e9", "unknown")
+  e_utf8 <- marked("c3a9", "UTF-8")
+  e_latin1 <- marked("e9", "latin1")
+  a_native <- marked("c4", "unknown")
+  out$sort_c <- lapply(list(c(e_native, e_utf8, a_native), c(e_utf8, e_native, a_native),
+                            c(a_native, e_native, e_latin1), c(a_native, e_latin1, e_native)),
+                       sorted)
+  # The clusters, as the IDs' order in UTF-8, and perm_solomon(), with the
+  # rows as built and in reverse order, and with zero-padded labels.
+  out$perm <- lapply(input$cluster_data, function(d) {
+    cluster <- marked(d$cluster, "unknown")
+    cluster[d$first] <- marked(d$cluster_utf8[d$first], "UTF-8")
+    back <- rev(seq_len(nrow(d)))
+    list(
+      levels = lapply(list(cluster, cluster[back]), function(x) {
+        to_hex(enc2utf8(solomonR:::.sort_c(x)))
+      }),
+      as_built = perm(d, cluster), reversed = perm(d[back, ], cluster[back]),
+      labels = perm(d, d$label)
+    )
+  })
+  m <- input$missing_data
+  site <- marked(m$site, "unknown")
+  site[m$first] <- marked(m$site_utf8[m$first], "UTF-8")
+  out$missing <- lapply(list(as_built = seq_len(nrow(m)), reversed = rev(seq_len(nrow(m)))),
+                        function(rows) {
+    tab <- solomonR::check_solomon_missing(
+      m$y_post[rows], m$treat[rows], m$pretested[rows], m$y_pre[rows],
+      covariates = data.frame(site = site[rows])
+    )$covariates$site
+    list(level = to_hex(enc2utf8(tab$level)), rest = tab[names(tab) != "level"])
+  })
+  out
+}
+
+test_that("the order of the rows does not matter in a single-byte code page (#179)", {
+  # In a session whose native encoding is Windows-1252 (as under R 4.1 on
+  # Windows) or Latin-1, é is the byte e9 and Ä the byte c4 in that
+  # encoding, and R takes é in the code page and é marked as UTF-8 (c3 a9)
+  # or as Latin-1 as one value. A value is placed by the smallest key among
+  # the forms in which it appears, so école, which one row of each cluster
+  # or site has in UTF-8, comes before Ärles (c4) whichever of its forms
+  # comes first in the data. The test is skipped on CRAN and where no such
+  # session can be started.
+  skip_on_cran()
+  loc <- Find(locale_available, code_page_locales)
+  skip_if(is.null(loc), "No locale with such a code page is available.")
+
+  # Cluster IDs Ärles01, école02, Ärles03, ...; in each école cluster, the
+  # first row has the ID in UTF-8 and the others in the code page.
+  ids <- sprintf("%s%02d", c("\u00e9cole", "\u00c4rles")[seq_len(40) %% 2 + 1], seq_len(40))
+  in_order <- c(ids[startsWith(ids, "\u00e9")], ids[startsWith(ids, "\u00c4")])
+  cluster_data <- lapply(c(A = "A", B = "B"), function(design) {
+    d <- collation_data(design, ids = ids)
+    d$first <- !duplicated(d$cluster) & startsWith(d$cluster, "\u00e9")
+    d$label <- sprintf("id%02d", match(d$cluster, in_order))
+    d$cluster_utf8 <- to_hex(d$cluster)
+    d$cluster <- to_hex(iconv(d$cluster, "UTF-8", "latin1"))
+    d
+  })
+  # The sites école, Ärles, and Lac; the first row from école has it in
+  # UTF-8.
+  missing <- collation_missing_data()
+  site <- unname(c(north = "\u00e9cole", South = "\u00c4rles", west = "Lac")[missing$site])
+  missing$first <- seq_along(site) == match("\u00e9cole", site)
+  missing$site_utf8 <- to_hex(site)
+  missing$site <- to_hex(iconv(site, "UTF-8", "latin1"))
+
+  session <- paste0("LC_ALL=", loc)
+  run <- run_in_new_session(c(LC_ALL = loc), code_page_checks,
+                            list(cluster_data = cluster_data, missing_data = missing))
+  skip_if(is.null(run$facts), paste0("R could not be started with ", session, "."))
+  skip_if(run$facts$utf8 || run$facts$mbcs || !run$facts$code_page,
+          paste0("A session started with ", session, " does not have such a code page."))
+  res <- checks_result(run, session)
+  if (!is.null(res)) {
+    # é, then Ä, each as it first appears, whichever form of é comes first.
+    expect_identical(res$sort_c, list(
+      list(hex = c("e9", "c4"), marks = c("unknown", "unknown")),
+      list(hex = c("c3a9", "c4"), marks = c("UTF-8", "unknown")),
+      list(hex = c("e9", "c4"), marks = c("unknown", "unknown")),
+      list(hex = c("e9", "c4"), marks = c("latin1", "unknown"))
+    ))
+    # The clusters come in the order école02, ..., école40, Ärles01, ...,
+    # with the rows as built and reversed, and perm_solomon() gives the
+    # result of the labels, with the same p-value when the rows are
+    # reversed and statistics equal to rounding error.
+    for (design in c("A", "B")) {
+      r <- res$perm[[design]]
+      for (levels in r$levels) expect_identical(levels, to_hex(in_order))
+      expect_false(r$as_built$exact)
+      expect_identical(r$as_built, r$labels)
+      expect_identical(r$reversed$p_perm, r$as_built$p_perm)
+      expect_equal(r$reversed, r$as_built, tolerance = 1e-10)
+    }
+    # check_solomon_missing() lists Lac, école, Ärles, with the same table
+    # for the rows as built and reversed.
+    expect_identical(res$missing$as_built$level, to_hex(rep(c("Lac", "\u00e9cole", "\u00c4rles"), 2)))
+    expect_identical(res$missing$reversed, res$missing$as_built)
   }
 })

@@ -36,10 +36,15 @@
   ordered by its bytes, which gives that order for a UTF-8 file in any
   session, including one whose native encoding is not UTF-8, such as a
   session started with `LC_ALL=C`. In a session whose native encoding
-  is a Windows code page (R 4.1 on Windows), text in that encoding is
-  ordered by its bytes too, as a C session there ordered it before;
-  that order can differ from the order of the same text in UTF-8, as it
-  does for the euro sign and curly quotes in Windows-1252.
+  is a single-byte code page, such as Windows-1252 (R 4.1 on Windows)
+  or Latin-1, text in that encoding is ordered by its bytes too, as a C
+  session there ordered it before; that order can differ from the
+  order of the same text in UTF-8, as it does for the euro sign and
+  curly quotes in Windows-1252. There R takes such text and the same
+  letters marked as UTF-8 or as Latin-1 as one value, although their
+  bytes differ. A value that comes in more than one of these forms is
+  placed by the form whose bytes come first (Latin-1 text taken in
+  UTF-8), so the order of the rows does not move it.
   `?perm_solomon` (under `seed`) and `?check_solomon_missing` say so.
 * `marginal_solomon()` stopped with "Character encoding must be UTF-8,
   Latin-1 or bytes" on a binary or count fit with a pretest and a
@@ -60,8 +65,21 @@
   the last digits, and the p-value is the same; and the rows of a
   covariate's table in `check_solomon_missing()`, and the levels in its
   printed summary, come in another order with two levels too, where the
-  exact test's p-value can differ by rounding error.
-* What does not change: any result in a session whose collation is C;
+  exact test's p-value can differ by rounding error. In a session
+  whose native encoding is not UTF-8, text marked as UTF-8 or as
+  Latin-1 (as `Encoding()` shows; `read.csv()` marks text as native)
+  was converted to that encoding to be sorted, and is now ordered by
+  its bytes in UTF-8. Where that encoding lacks the accented letters,
+  as in a session started with `LC_ALL=C`, IDs and levels with such
+  letters were sorted as if each came before every unaccented letter,
+  and now come after them, as in a UTF-8 session. In a single-byte
+  code page, the order can change where such text is mixed with
+  accented text in the code page, or holds characters, such as the
+  euro sign, that the code page orders differently from UTF-8. So
+  seeded and simulated p-values for such IDs and levels can change
+  there too, under the C collation as well.
+* What does not change: any result in a session whose collation is C,
+  except for the text marked as UTF-8 or as Latin-1 just described;
   in every session, results for IDs and levels that both orders sort
   the same: numeric IDs, names of letters and digits in one case
   (`n01`, `N01`), and zero-padded names (`school01`); and the
@@ -91,7 +109,13 @@
   Latin-1, and as `read.csv()` marks it. In a session started with
   `LC_ALL=C` (skipped on CRAN), they check that text as `read.csv()`
   returns it there keeps its values and gives the results of a UTF-8
-  session in all three functions.
+  session in all three functions, and that IDs marked as UTF-8 or as
+  Latin-1 are put in the C order. In a session whose native encoding is
+  Windows-1252 or Latin-1 (skipped on CRAN and where no such locale is
+  available), with an ID or a level in UTF-8 in some rows and in the
+  code page in others, they check that reversing the rows changes
+  neither the order of the clusters and levels nor the results of
+  `perm_solomon()` (both designs) and `check_solomon_missing()`.
 
 ## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
 
