@@ -181,6 +181,10 @@ test_that("check_solomon_missing() refuses pre_obs, condition, and log_exposure,
     # Without a pretest no fit is made, and the check is check_solomon_missing()'s.
     expect_reserved(check_solomon_missing(d$yg, d$treat, d$pretested, covariates = covariates),
                     name, reserved_missing_note, info = name)
+    # Nor with pretests that are not numeric.
+    expect_reserved(check_solomon_missing(d$yg, d$treat, d$pretested, as.character(d$pre),
+                                          covariates = covariates),
+                    name, reserved_missing_note, info = name)
     # With a pretest the fit behind the gap refuses it.
     expect_reserved(check_solomon_missing(d$yg, d$treat, d$pretested, d$pre,
                                           covariates = covariates),
@@ -191,6 +195,10 @@ test_that("check_solomon_missing() refuses pre_obs, condition, and log_exposure,
     covariates <- stats::setNames(data.frame(s$x), name)
     expect_reserved(check_solomon_missing(s$y, s$condition, s$pretested, control = "Control",
                                           covariates = covariates),
+                    name, reserved_missing_note, info = name)
+    expect_reserved(check_solomon_missing(s$y, s$condition, s$pretested,
+                                          factor(s$pre > 0, c(FALSE, TRUE), c("low", "high")),
+                                          control = "Control", covariates = covariates),
                     name, reserved_missing_note, info = name)
     expect_reserved(check_solomon_missing(s$y, s$condition, s$pretested, s$pre,
                                           control = "Control", covariates = covariates),
@@ -396,9 +404,9 @@ test_that("with a pretest, only the pretest's own column is called the pretest",
   expect_error(six(s$pre, near_collinear(240)), collinear_error("pre_obs"), fixed = TRUE)
   expect_false(found_by_rounding_check(four(d$pre, near_collinear(200))))
   expect_false(found_by_rounding_check(six(s$pre, near_collinear(240))))
-  # Collinear but for rounding: the check of #137 finds the indicator by
-  # its column's position, though the pretest's column is named pre_obs
-  # too.
+  # Collinear but for rounding: glm() estimates every coefficient, and the
+  # positions come from the check of #137 (.collinear_positions()) rather
+  # than from inestimable coefficients.
   expect_error(four(d$pre, rounding_collinear(200)), collinear_error("pre_obs"),
                fixed = TRUE)
   expect_error(six(s$pre, rounding_collinear(240)), collinear_error("pre_obs"),

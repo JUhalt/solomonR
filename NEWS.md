@@ -90,16 +90,18 @@
   the columns it rescales, and gives the label to that column alone.
 * Tests check the refusals in four-group and six-group fits, from
   `fit_solomon_glm()` and `check_solomon_missing()`, with and without a
-  pretest, and `log_exposure` in `check_solomon_missing()`. For a fit
-  made as the development version made it before this change, they
-  check that `marginal_solomon()` (the delta method under HC3 and CR2,
-  and the bootstrap, each at both centers), `report_solomon()`, the
-  warnings, and the attrition line of `print()`, `summary()`,
-  `report_solomon()`, and `marginal_solomon()` equal those of the same
-  fit with the covariate renamed. They also check the factor `pre` with
-  a level `_obs` in `marginal_solomon()`, and in the collinearity error
-  with and without a pretest: for terms that `glm()` finds collinear,
-  and for terms collinear but for rounding, which only the check of #137
+  pretest, and `log_exposure` in `check_solomon_missing()`. They test
+  the check that `check_solomon_missing()` makes itself both without
+  `y_pre` and with a `y_pre` that is not numeric. For a fit made as
+  the development version made it before this change, they check that
+  `marginal_solomon()` (the delta method under HC3 and CR2, and the
+  bootstrap, each at both centers), `report_solomon()`, the warnings,
+  and the attrition line of `print()`, `summary()`, `report_solomon()`,
+  and `marginal_solomon()` equal those of the same fit with the
+  covariate renamed. They also check the factor `pre` with a level
+  `_obs` in `marginal_solomon()`, and in the collinearity error with
+  and without a pretest: for terms that `glm()` finds collinear, and
+  for terms collinear but for rounding, which only the check of #137
   finds.
 
 ## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
