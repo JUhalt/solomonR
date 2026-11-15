@@ -561,7 +561,7 @@ test_that("check_solomon_missing() takes the same forms", {
 })
 
 
-test_that("check_solomon_missing() stops on a name the model uses, as fit_solomon_glm() does", {
+test_that("check_solomon_missing() stops on a reserved name, as fit_solomon_glm() does", {
 
   # A vector is named by its bare name, so a vector named y would stop the
   # fit behind the gap and the delta line. check_solomon_missing() left out
@@ -569,7 +569,7 @@ test_that("check_solomon_missing() stops on a name the model uses, as fit_solomo
   # for a data frame with a column y; it now stops with the fit's error.
   d <- forms_data()
   d$y_post[c(3, 8, 70, 95)] <- NA
-  clash <- "Rename these covariates, whose names the model uses: "
+  clash <- "Rename these covariates, whose names are reserved: "
   for (name in c("y", "treat", "pretested", "pre_obs", "log_exposure")) {
     assign(name, d$z)
     message <- paste0(clash, name, ".")
@@ -602,7 +602,8 @@ test_that("check_solomon_missing() stops on a name the model uses, as fit_solomo
   expect_false(is.null(kept$gap))
   expect_false(is.null(kept$unpretested))
   # Without a pretest there is no fit behind a gap, and loss is shown by a
-  # covariate of any name.
+  # covariate of any name but pre_obs, condition, and log_exposure, which
+  # every fit reserves (issue #174; test-reserved-names.R).
   expect_identical(
     names(check_solomon_missing(d$y_post, d$treat, d$pretested, covariates = y)$covariates),
     "y"

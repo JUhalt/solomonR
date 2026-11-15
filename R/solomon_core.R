@@ -1278,15 +1278,17 @@ stouffer_solomon <- function(p) {
 #'   `d$lm2 <- cbind(d$age > 40, d$z > 0)` makes, given by its name or in a
 #'   data frame, as [stats::glm()] cannot fit it, and a character one also
 #'   by its bare name. A value of the wrong length stops too, and so does
-#'   a covariate named as a column of the model: `y`, `pretested`,
-#'   `log_exposure`, `pre_obs` when `y_pre` is given, and `treat` or, with
-#'   several treatments, `condition` and `treat_` followed by each
-#'   treatment's name. Any other form stops with an error, so that no
-#'   covariate is left out unnoticed, for example: a character vector
-#'   without `data` (give the data frame as `data`, or a categorical
-#'   covariate as a factor); a list that is not a data frame; an array of
-#'   more than two dimensions; and a vector of another type, such as a
-#'   date (give it as a column of a data frame).
+#'   a covariate with a name that the model reserves for its own columns:
+#'   in every design, `y`, `pretested`, `pre_obs` (the pretest),
+#'   `condition`, and `log_exposure`, with or without `y_pre` and
+#'   `exposure`; `treat` in a four-group design; and, with several
+#'   treatments, `treat_` followed by each treatment's name. The error
+#'   lists the reserved names; rename the covariate. Any other form stops
+#'   with an error, so that no covariate is left out unnoticed, for
+#'   example: a character vector without `data` (give the data frame as
+#'   `data`, or a categorical covariate as a factor); a list that is not a
+#'   data frame; an array of more than two dimensions; and a vector of
+#'   another type, such as a date (give it as a column of a data frame).
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
 #'   participant. CR2 fits refuse designs in which a Solomon cell contains a
@@ -1738,7 +1740,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # exists even when a pretested group has no posttest, so the model's own
   # check is needed. The standardized model is checked as well, for terms
   # collinear but for the rounding error of the values given, which glm()
-  # can take for distinct ones far from zero (.collinear_terms()).
+  # can take for distinct ones far from zero (.collinear_positions()).
   arms <- if (is.null(conditions$control)) {
     c("treatment", "control")
   } else {

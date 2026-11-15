@@ -31,6 +31,9 @@
 # itself plays no part in the standardization.) Without a
 # pretest covariate, and when every such participant is in the model, the
 # rows are the model's, the participants the default standardizes over.
+# Whether the fit has a pretest is asked of the fit (.has_pretest_column()):
+# a fit made before #174 without a pretest can have a covariate named
+# pre_obs (issue #174).
 #
 # Returns `X`, one row per participant in the order of the fit's data;
 # `pretested` and `treat` (NA where the condition was not recorded);
@@ -58,7 +61,7 @@
   new_level <- extra
   also_new <- extra
   left_out <- list(missing = character(0), unseen = list(), also = 0L, also_unseen = list())
-  if ("pre_obs" %in% colnames(X_model)) {
+  if (.has_pretest_column(fit, X_model)) {
     outside <- .in_pretest_center(d) & !used
     covariates <- setdiff(names(d), c("y", "treat", "pretested", "pre_obs", "log_exposure"))
     if (length(covariates)) {
@@ -419,10 +422,11 @@
 # log; Daniel et al., 2021), and the pretest effects (issue #104) on any
 # link but the identity, because a fitted mean at the mean pretest is not
 # the mean over the pretests. Used by equivalence_solomon(), perm_solomon(),
-# and plot_solomon_effects(bounds =).
+# and plot_solomon_effects(bounds =). Whether the fit has a pretest is asked
+# of the fit, not of its data alone (.has_pretest_column(); issue #174).
 .warn_link_scale <- function(fit, contrast) {
   if (!inherits(fit, c("solomon_glm", "solomon_ngroup")) ||
-      !"pre_obs" %in% names(fit$data)) {
+      !.has_pretest_column(fit, fit$data)) {
     return(invisible(NULL))
   }
   family <- stats::family(fit$model)
@@ -626,7 +630,7 @@
 # reparameterization (enrolled, tested - enrolled, delay) withholds them.
 # Before a refit that failed as "maxit" is fitted again, its resample is
 # therefore checked by the rule that fit_solomon_glm() applies to the
-# model (.collinear_terms()), on the rows of the resample, in the
+# model (.collinear_positions()), on the rows of the resample, in the
 # model's working weights and with the rounding error the fit computed
 # for their entries (.bootstrap_rank_check(), .resample_collinear()). If
 # a term is collinear with the others by that rule, the refit counts as
@@ -635,7 +639,7 @@
 # fit_solomon_glm() given those rows would weight and standardize them
 # anew. What is left of that term on those rows after the others is then
 # within the rounding error the rule allows for (4 B_k of
-# .collinear_terms()), or within glm()'s tolerance, 1e-11 of its norm.
+# .collinear_positions()), or within glm()'s tolerance, 1e-11 of its norm.
 # In the first case, as on each of the 43 timestamp resamples, a refit
 # in the basis could converge on rounding error. Near the edge of the
 # fit's check, as in the next paragraph, the rule stops refits by the
@@ -692,7 +696,7 @@
 # many reflections as the rank, so a column moved to the end would be
 # replaced by a direction outside the span of X_N.) fit_solomon_glm()
 # stops when a term is collinear with the others, in the model as given
-# and standardized (.collinear_terms()), so X_N has full rank on the
+# and standardized (.collinear_positions()), so X_N has full rank on the
 # model's rows as glm() and that check judge it, in the working weights
 # of the fit, and so on any set of rows that contains them. Without
 # those weights X_N can fall short of full rank at 1e-11: on the data
@@ -719,7 +723,7 @@
   list(X = X, start = b)
 }
 
-# The collinearity check of fit_solomon_glm() (.collinear_terms()),
+# The collinearity check of fit_solomon_glm() (.collinear_positions()),
 # prepared for the bootstrap resamples of marginal_solomon() whose refit
 # does not converge on the model's design (issue #154;
 # .resample_collinear()). `X` is the design that the bootstrap refits,
@@ -747,7 +751,7 @@
 # depend on how far they moved. The rows outside the model, under
 # `pretest_center = "observed"`, are never refitted; they get a weight of
 # zero, and rows with a weight of zero are left out of the check, as
-# .collinear_terms() leaves them out.
+# .collinear_positions() leaves them out.
 .bootstrap_rank_check <- function(fit, model, X, in_model) {
   noise <- matrix(0, nrow(X), ncol(X))
   noise[in_model, ] <- .representation_error(model, fit$model, fit$covariate_scaling,
@@ -1672,7 +1676,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # that the resamples are those of the set used. When the two sets are the
   # same participants, the rows are copied.
   sensitivity <- NULL
-  pretest_adjusted <- "pre_obs" %in% colnames(X)
+  pretest_adjusted <- .has_pretest_column(fit, X)
   if (pretest_adjusted) {
     other_center <- .other_center(pretest_center)
     other_effects <- effects

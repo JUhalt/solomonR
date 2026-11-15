@@ -83,16 +83,25 @@
 # effects are evaluated. Fits made by earlier versions are uncentered and
 # have no `pretest_mean`; for them it is the mean of `pre_obs` over the
 # pretested rows of the model. A fit without a pretest has a `pretest_mean`
-# of NA, and may have a covariate named `pre_obs` (.covariate_scaling()),
-# which is then a covariate like any other (.has_pretest_column()).
+# of NA. Its model can still have a column `pre_obs`, which is then a
+# covariate like any other (.has_pretest_column()).
 .cell_pretest <- function(fit, X) {
   if (!.has_pretest_column(fit, X)) return(NA_real_)
   if (is.finite(.null_na(fit$pretest_mean))) return(0)
   mean(X[X[, "pretested"] == 1, "pre_obs"])
 }
 
-# Whether the column `pre_obs` of the model matrix `X` of a fit is the
-# pretest: it is unless the fit, made since #104, has no pretest.
+# Whether the column `pre_obs` of `X`, the model matrix or the data of a
+# fit, is the pretest: it is unless the fit, made since #104, has no
+# pretest. A fit without a pretest can have a column of that name. No
+# covariate can be named `pre_obs` since #174
+# (.solomon_check_covariates()), but a fit made by an earlier version can
+# have one (issue #174), and the indicator of a factor's level can be
+# named so in the model matrix, as for a factor `pre` with a level `_obs`.
+# A fit made before #104, by solomonR 0.8.2 or earlier, has no
+# `pretest_mean`, so its column `pre_obs` is taken for the pretest even
+# when it was a covariate; such a fit has to be refitted with the
+# covariate renamed.
 .has_pretest_column <- function(fit, X) {
   "pre_obs" %in% colnames(X) && (is.null(fit$pretest_mean) || is.finite(fit$pretest_mean))
 }
@@ -103,8 +112,9 @@
 # covariates, but for the interactions, whose names no covariate's column
 # can have. A covariate's column can share the name of another, such as
 # the indicator `wave2` of a factor `wave` and a numeric covariate `wave2`,
-# so that a lookup by name set only one of them (issue #137); and `pre_obs`
-# is a covariate in a fit without a pretest (.has_pretest_column()).
+# so that a lookup by name set only one of them (issue #137); and a column
+# `pre_obs` is a covariate in a fit without a pretest
+# (.has_pretest_column()).
 .covariate_columns <- function(fit, X, design) {
   if (!.has_pretest_column(fit, X)) design <- setdiff(design, "pre_obs")
   setdiff(seq_len(ncol(X)), match(design, colnames(X)))

@@ -148,7 +148,7 @@ test_that("a covariate may not take the name of the exposure offset", {
     with(d, fit_solomon_glm(visits, treat, pretested,
                             covariates = data.frame(log_exposure = x),
                             family = stats::poisson(), exposure = days)),
-    "Rename these covariates, whose names the model uses: log_exposure.",
+    "Rename these covariates, whose names are reserved: log_exposure.",
     fixed = TRUE
   )
   # Without `exposure`, report_solomon() described an offset the model lacks.
@@ -156,7 +156,7 @@ test_that("a covariate may not take the name of the exposure offset", {
     with(d, fit_solomon_glm(visits, treat, pretested,
                             covariates = data.frame(log_exposure = x),
                             family = stats::poisson())),
-    "Rename these covariates, whose names the model uses: log_exposure.",
+    "Rename these covariates, whose names are reserved: log_exposure.",
     fixed = TRUE
   )
 
