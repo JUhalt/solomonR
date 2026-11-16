@@ -199,6 +199,12 @@
   if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
   d <- object$data[used, , drop = FALSE]
   cluster <- as.character(object$cluster[used])
+  # A missing or empty cluster ID stops, with an error of class
+  # `solomonR_cluster_error` (issue #183). A CR2 fit made by this version
+  # has neither, but a fit made by an earlier version could hold an empty
+  # ID, and a fit with another covariance is not checked for either. The
+  # clusters are looked up by name below, and no name matches "".
+  .check_cluster_ids(cluster)
   # The clusters are held in the C locale's order in every session
   # (.sort_c()), and the IDs themselves are not changed. tapply() would
   # otherwise sort them by the collation in force, and the same seed would
@@ -206,10 +212,6 @@
   # #179). The order is that of the IDs as character strings, for a factor
   # cluster too.
   cluster <- factor(cluster, levels = .sort_c(cluster))
-
-  if (anyNA(cluster)) {
-    stop("`cluster` is missing for participants included in the model.", call. = FALSE)
-  }
 
   structure_info <- .cluster_structure(d$treat, d$pretested, cluster)
 

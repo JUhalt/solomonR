@@ -1,5 +1,42 @@
 # solomonR (development version)
 
+## Empty cluster IDs (bug fix, #183)
+
+* `fit_solomon_glm()` with `robust = "CR2"` refused a missing cluster ID
+  (`NA`) for a participant included in the model, but accepted an empty
+  one (`""`) and fitted, with four groups and with several treatments.
+  `perm_solomon()` on such a four-group fit then stopped with R's
+  internal error "missing value where TRUE/FALSE needed", which did not
+  say what was wrong. So did `perm_solomon()` on a fit with a `cluster`
+  and HC3 or model-based covariance, which `fit_solomon_glm()` does not
+  check. On a binary CR2 fit with pretesting assigned within clusters,
+  `marginal_solomon(method = "cluster_summary")` gave `NA` for every
+  contrast, with no error or warning. An ID of white space only, such as
+  `"  "`, was taken as a label like any other.
+* A cluster ID that is `""` or only white space (spaces, tabs, or line
+  breaks, which `trimws()` removes) is now refused for a participant
+  included in the model, where a missing ID is refused: in the CR2 fits
+  of `fit_solomon_glm()`, with four groups and with several treatments;
+  and, for a fit that holds one (a fit made by an earlier version, or,
+  in `perm_solomon()`, one with a `cluster` and another covariance), in
+  `perm_solomon()` and `marginal_solomon(method = "cluster_summary")`.
+  The message is "`cluster` is empty ("") or only white space for
+  participants included in the model. Give every cluster a label." A
+  factor `cluster` is taken by its labels: a level `""` that a
+  participant in the model has is refused, and an unused level is not.
+  An empty ID of a participant outside the model, such as one without a
+  posttest, is not refused.
+* The error, and the error for a missing ID, now have the class
+  `solomonR_cluster_error`. The message for a missing ID is unchanged.
+* `validate_solomon()` now warns of assigned participants whose cluster
+  ID is empty (check `empty_cluster`), as it warns of those without one
+  (`missing_cluster`).
+* What changes: data with an empty or white-space cluster ID for a
+  participant in the model, which CR2 fits accepted, now stop; give
+  every cluster a label. Fits whose cluster IDs all have a label give
+  the same results as before. `?fit_solomon_glm` (under `cluster`),
+  `?perm_solomon`, `?marginal_solomon`, and `?validate_solomon` say so.
+
 ## Seeded results under another collation (bug fix, #179)
 
 * `perm_solomon()` with a clustered fit took the clusters in the order

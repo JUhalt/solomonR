@@ -134,6 +134,44 @@
   ))
 }
 
+# Which cluster IDs are empty: "" or only white space, taken as the
+# characters that trimws() removes by default (space, tab, carriage return,
+# and line feed), so that trimws(id) == "" (issue #183). They are matched
+# by their bytes, which are the same in every encoding R marks, so text of
+# any encoding, or not valid in any, is read without a warning and gives
+# the same answer in every session. A factor is taken by its labels, so
+# only the levels its values have count. NA is not empty.
+.empty_cluster_ids <- function(cluster) {
+  !is.na(cluster) & grepl("^[ \t\r\n]*$", as.character(cluster), useBytes = TRUE)
+}
+
+# Stop with an error of class `solomonR_cluster_error` when a cluster ID of
+# a participant included in the model is missing (NA) or empty
+# (.empty_cluster_ids()). `cluster` holds the clusters of those
+# participants. An empty ID is almost always a gap in data entry, as NA
+# is. Before issue #183 it was taken as a label: fit_solomon_glm() fitted,
+# and perm_solomon(), which looks clusters up by name, stopped with an
+# internal error, as no name matches "". The message for NA is the one it
+# had before; the class is new with #183. The CR2 fits of
+# fit_solomon_glm() call this, with four groups and with several
+# treatments, and so do perm_solomon() and marginal_solomon(method =
+# "cluster_summary"), for fits made by earlier versions, which could hold
+# an empty ID, and, in perm_solomon(), for fits that have a cluster without
+# CR2.
+.check_cluster_ids <- function(cluster) {
+  message <- if (anyNA(cluster)) {
+    "`cluster` is missing for participants included in the model."
+  } else if (any(.empty_cluster_ids(cluster))) {
+    paste0("`cluster` is empty (\"\") or only white space for participants included ",
+           "in the model. Give every cluster a label.")
+  }
+  if (!is.null(message)) {
+    stop(structure(class = c("solomonR_cluster_error", "error", "condition"),
+                   list(message = message, call = NULL)))
+  }
+  invisible(NULL)
+}
+
 
 #' Distinguish structural and incidental missingness in a Solomon design
 #'
@@ -693,7 +731,11 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
 #' Clustered designs: when participants belong to classes, schools, or sites,
 #' supply `cluster`. The number of clusters and the range of cluster sizes are
 #' then reported for each cell, together with whether treatment and pretesting
-#' were assigned to whole clusters or varied within them.
+#' were assigned to whole clusters or varied within them. An assigned
+#' participant without a cluster identifier (`NA`), or with an empty one
+#' (`""` or only white space), is a warning: [fit_solomon_glm()] with
+#' `robust = "CR2"` and [perm_solomon()] refuse both for a participant in
+#' the model.
 #'
 #' A cell that contains a single cluster is an error. Class and condition are
 #' then completely confounded, as when each Solomon condition is one intact
@@ -1002,6 +1044,24 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
         sprintf(
           "%d assigned participant(s) have no cluster identifier and cannot be included in cluster-robust analyses.",
           n_missing_cluster
+        )
+      )
+    }
+    # An empty cluster identifier, which CR2 fits and perm_solomon() refuse
+    # for participants in the model, as they refuse a missing one (issue
+    # #183).
+    n_empty_cluster <- sum(assigned & .empty_cluster_ids(cluster))
+    if (n_empty_cluster > 0) {
+      add_issue(
+        "warning", "empty_cluster",
+        sprintf(
+          paste0(
+            "%d assigned participant(s) have an empty cluster identifier (\"\" or only ",
+            "white space). Give every cluster a label: fit_solomon_glm() with ",
+            "robust = \"CR2\" and perm_solomon() refuse an empty identifier for a ",
+            "participant in the model."
+          ),
+          n_empty_cluster
         )
       )
     }

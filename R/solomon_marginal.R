@@ -1085,6 +1085,10 @@
 #' fits have not been validated and are refused; for them, the log rate-ratio
 #' contrasts of [fit_solomon_glm()] with CR2 covariance and [perm_solomon()]
 #' account for clustering.
+#' With `method = "cluster_summary"`, a fit made by an earlier version of
+#' solomonR whose clusters include an empty ID (`""` or only white space)
+#' for a participant in the model, which CR2 fits now refuse, stops with an
+#' error of class `solomonR_cluster_error`.
 #'
 #' The package's simulation validation of this function is described on
 #' issue #43 (binary outcomes), issue #44 (count outcomes), issue #62

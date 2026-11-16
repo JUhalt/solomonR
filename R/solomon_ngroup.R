@@ -657,9 +657,9 @@
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
     cluster_fit <- cluster[used]
-    if (anyNA(cluster_fit)) {
-      stop("`cluster` is missing for participants included in the model.", call. = FALSE)
-    }
+    # A missing or empty cluster ID stops, as in the four-group model
+    # (issue #183).
+    .check_cluster_ids(cluster_fit)
     # The clusters the CR2 covariance is computed from; `cluster` keeps one
     # value per input row.
     n_clusters <- length(unique(cluster_fit))
