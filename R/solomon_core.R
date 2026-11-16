@@ -2360,8 +2360,29 @@ perm_solomon <- function(
     if (has_int) X[, "treat:pretested"] <- tr * pretested_used
     .perm_statistic(X, y0, off0, pw0, fam, theta, L0, statistic)
   }
+  # Classes of labelings (issue #134; .perm_class_of()). The labelings that
+  # give each arm the same rows, as the model sees them, are one class: it is
+  # computed once, from a representative built from the class alone, and
+  # swapped classes share it with the sign kept, so that labelings tied by
+  # structure get the same double. The cache holds one entry per class met,
+  # at most reps + 1.
+  cc <- .perm_class_setup(X0, y0, off0, pretested_used, contrast, separable = !length(shared))
+  cache <- new.env(hash = TRUE, parent = emptyenv())
+  class_stat <- function(tr) {
+    cls <- .perm_class_of(cc, tr)
+    hit <- get0(cls$key, envir = cache, inherits = FALSE)
+    if (is.null(hit)) {
+      s <- statistic_of(.perm_rep_labeling(cc, cls$canon, treat_used))
+      # the swap maps the class to itself, so a finite contrast is exactly 0
+      if (cls$self && is.finite(s$z)) s$z <- 0
+      hit <- list(z = s$z, code = s$code, nonconv = isTRUE(s$nonconv))
+      assign(cls$key, hit, envir = cache)
+    }
+    list(z = if (is.finite(hit$z)) cls$sign * hit$z else hit$z, code = hit$code,
+         nonconv = hit$nonconv, key = cls$key)
+  }
 
-  observed <- statistic_of(treat_used)
+  observed <- class_stat(treat_used)
   if (identical(observed$code, "H1")) {
     .perm_stop(
       "solomonR_perm_leverage_error",
@@ -2409,7 +2430,7 @@ perm_solomon <- function(
   codes <- character(reps)
 
   for (i in seq_len(reps)) {
-    s <- statistic_of(.perm_treat(treat_used, pretested_used))
+    s <- class_stat(.perm_treat(treat_used, pretested_used))
     if (identical(s$code, "H1")) {
       .perm_stop(
         "solomonR_perm_leverage_error",

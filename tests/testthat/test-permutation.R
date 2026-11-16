@@ -775,3 +775,114 @@ test_that("the statistic routine's zero variance, separation cap, and units (#13
   expect_lt(p[1], 1)
   expect_identical(p[2], p[1])
 })
+
+# Classes of labelings (#134). Rows that the model sees as equal are one
+# type; a labeling's class is how many rows of each type each arm gets, and a
+# swap of a condition's arms is a reparameterization that reverses a
+# contrast on it. So two labelings of one class get the same double, a
+# labeling and its swap get exactly opposite statistics, and a class that is
+# its own swap gets exactly 0. In the data below every value in a condition
+# appears twice, with the same covariate value; the observed arms are not
+# their own swap. Every labeling is fed; nothing is drawn.
+test_that("labelings of one class, and swapped labelings, get the same statistic (#134)", {
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  # pretested rows 1-12 (treated 1-6), unpretested rows 13-24 (treated 13-18)
+  y <- c(2.6, 1.9, 1.9, 3.4, 0.8, 0.8, 2.6, 3.4, 4.7, 4.7, 1.2, 1.2,
+         1.3, 2.9, 2.9, 4.1, 3.6, 3.6, 1.3, 4.1, 0.7, 0.7, 0.4, 0.4)
+  x <- c(1, 2, 2, 3, 4, 4, 1, 3, 5, 5, 6, 6, 1, 2, 2, 3, 4, 4, 1, 3, 5, 5, 6, 6) / 4
+  feed <- function(labelings) {
+    k <- 0L
+    function(treat, pretested) {
+      k <<- k + 1L
+      labelings[[k]]
+    }
+  }
+  u <- pretested == 0
+  # a labeling of another class than the observed one; the same with two rows
+  # of one type exchanged between the arms in each condition (rows 2 and 3
+  # hold 1.9, rows 14 and 15 hold 2.9); its swap in the unpretested condition;
+  # its swap in both; and a labeling whose arms get one row of each pair, in
+  # both conditions
+  a <- replace(treat, c(2, 9, 14, 21), c(0, 1, 0, 1))
+  a_same <- replace(a, c(2, 3, 14, 15), c(1, 0, 1, 0))
+  swap_u <- ifelse(u, 1 - a, a)
+  swap_all <- 1 - a
+  self <- replace(numeric(24), c(1, 2, 4, 5, 9, 11, 13, 14, 16, 17, 21, 23), 1)
+  for (p in 0:1) {
+    expect_identical(sort(y[pretested == p & self == 1]), sort(y[pretested == p & self == 0]))
+  }
+  expect_false(identical(sort(y[u & treat == 1]), sort(y[u & treat == 0])))
+
+  # The keys: canonical under the swap of the contrast's condition (T|U), or of
+  # both conditions together (ATE); a self-swapped class is marked, with its
+  # sign 1; a key decodes to the class's canonical compositions; and the
+  # class's representative labeling is in the class.
+  X <- stats::model.matrix(~ treat * pretested + x)
+  for (sep in c(TRUE, FALSE)) {
+    cc <- .perm_class_setup(X, y, NULL, pretested, "Treatment | unpretested", separable = sep)
+    expect_identical(cc$conds, if (sep) "U" else c("U", "P"))
+    k <- lapply(list(a, a_same, swap_u, self), function(t) .perm_class_of(cc, t))
+    expect_identical(k[[2]]$key, k[[1]]$key)
+    expect_identical(k[[3]]$key, k[[1]]$key)
+    expect_identical(c(k[[1]]$sign, k[[2]]$sign, k[[3]]$sign), c(k[[1]]$sign, k[[1]]$sign, -k[[1]]$sign))
+    expect_identical(c(k[[1]]$self, k[[4]]$self, k[[4]]$sign), c(FALSE, TRUE, 1L))
+    expect_identical(.perm_key_canon(cc, k[[1]]$key)[cc$conds], k[[1]]$canon[cc$conds])
+    expect_identical(.perm_class_of(cc, .perm_rep_labeling(cc, k[[1]]$canon, treat))$key, k[[1]]$key)
+    # separable: a labeling that differs only in the pretested condition is in
+    # the same class for a contrast on the unpretested one
+    expect_identical(.perm_class_of(cc, ifelse(u, a, treat))$key == k[[1]]$key, sep)
+  }
+  cc <- .perm_class_setup(X, y, NULL, pretested, "ATE (avg over pretest)", separable = FALSE)
+  expect_identical(.perm_class_of(cc, swap_all)$key, .perm_class_of(cc, a)$key)
+  expect_identical(.perm_class_of(cc, swap_all)$sign, -.perm_class_of(cc, a)$sign)
+  expect_false(identical(.perm_class_of(cc, swap_u)$key, .perm_class_of(cc, a)$key))
+  expect_true(.perm_class_of(cc, self)$self)
+  # rows that differ only in the covariate are different types
+  cx <- .perm_class_setup(stats::model.matrix(~ treat * pretested + I(x * (1 + 1e-15 * seq_along(x)))),
+                          y, NULL, pretested, "ATE (avg over pretest)", separable = FALSE)
+  expect_true(all(cx$per$U$m == 1L) && all(cx$per$P$m == 1L))
+  expect_true(all(cc$per$U$m == 2L) && all(cc$per$P$m == 2L))
+
+  # Through perm_solomon(), with and without the shared covariate (which makes
+  # the model not separable), for both statistics.
+  fits <- list(fit_solomon_glm(y, treat, pretested),
+               fit_solomon_glm(y, treat, pretested, covariates = data.frame(x = x)))
+  for (fit in fits) for (s in c("studentized", "difference")) {
+    p <- with_mocked_bindings(
+      perm_solomon(fit, "Treatment | unpretested", reps = 4, statistic = s, return_dist = TRUE),
+      .perm_treat = feed(list(a, a_same, swap_u, self)))
+    expect_identical(p$z_perm[2], p$z_perm[1])
+    expect_identical(p$z_perm[3], -p$z_perm[1])
+    expect_identical(p$z_perm[4], 0)
+    expect_true(p$z_perm[1] != 0)
+    p <- with_mocked_bindings(
+      perm_solomon(fit, "ATE (avg over pretest)", reps = 4, statistic = s, return_dist = TRUE),
+      .perm_treat = feed(list(a, a_same, swap_all, self)))
+    expect_identical(p$z_perm[2], p$z_perm[1])
+    expect_identical(p$z_perm[3], -p$z_perm[1])
+    expect_identical(p$z_perm[4], 0)
+    # the observed labeling's swap ties with it exactly
+    p <- with_mocked_bindings(
+      perm_solomon(fit, "Pretest x Treatment", reps = 2, statistic = s, return_dist = TRUE),
+      .perm_treat = feed(list(1 - treat, treat)))
+    expect_identical(p$z_perm, c(-1, 1) * p$z_obs)
+  }
+
+  # A binary outcome given as a factor has the classes of its 0/1 coding.
+  b <- binary_data(6, c(4, 2, 5, 1))
+  f01 <- fit_solomon_glm(b$y, b$treat, b$pretested, family = stats::binomial())
+  ffac <- fit_solomon_glm(factor(b$y, labels = c("no", "yes")), b$treat, b$pretested,
+                          family = stats::binomial())
+  labs <- list(b$treat, 1 - b$treat, replace(b$treat, c(1, 11), c(0, 1)), replace(b$treat, c(13, 20), c(0, 1)))
+  for (s in c("studentized", "difference")) {
+    p01 <- with_mocked_bindings(perm_solomon(f01, reps = 4, statistic = s, return_dist = TRUE),
+                                .perm_treat = feed(labs))
+    pfac <- with_mocked_bindings(perm_solomon(ffac, reps = 4, statistic = s, return_dist = TRUE),
+                                 .perm_treat = feed(labs))
+    expect_identical(pfac$z_perm, p01$z_perm)
+    expect_identical(pfac$p_perm, p01$p_perm)
+    expect_identical(p01$z_perm[1:2], c(1, -1) * p01$z_obs)
+  }
+})
