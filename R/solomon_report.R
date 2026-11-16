@@ -876,6 +876,25 @@
   }
   results <- sprintf("For %s, the estimate was %s, randomization %s.",
                      .contrast_phrase(fit$contrast), .apa_num(fit$estimate, digits), .apa_p(fit$p_perm, md))
+  # An infinite observed statistic (issue #134): say why, and what the
+  # p-value then counts. At a bound or under separation the estimate is
+  # where the fit stopped.
+  if (isTRUE(is.infinite(fit$z_obs))) {
+    results <- paste(results, if (cluster) {
+      paste0(
+        "The observed statistic was infinite: the cluster scores were constant within each arm the ",
+        "contrast compares, and the contrast was not zero. Only allocations whose statistic was also ",
+        "infinite counted as at least as extreme."
+      )
+    } else {
+      paste0(
+        "The observed statistic was infinite: in an arm the contrast uses, the outcome was at its bound ",
+        "(no events, or only events) or constant, or a covariate separated it. Only allocations whose ",
+        "statistic was also infinite counted as at least as extreme; at a bound or under separation, the ",
+        "estimate reported is where the model fit stopped."
+      )
+    })
+  }
   list(method = method, results = results,
        table = data.frame(contrast = fit$contrast, estimate = fit$estimate, p.value = fit$p_perm),
        refs = refs, cells = NULL)

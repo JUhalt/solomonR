@@ -65,31 +65,54 @@
 # statistic is smaller than that, so that an observed statistic of zero is
 # tied with every other zero. `unit` is the size at which a statistic counts
 # as zero: 1 for a studentized statistic, and for a difference the largest
-# permuted difference (see .perm_unit()). `tol` is 1e-10 where statistics
-# are computed to rounding error, and larger where the model is fitted by
-# iteration (see .perm_tie_tolerance()).
+# finite permuted difference, with a floor on the participant path (see
+# .perm_unit()). `tol` is 1e-10 on the cluster path, and the window of
+# .perm_tie_window() on the participant path.
 .perm_at_least <- function(z, z0, unit = 1, tol = 1e-10) {
+  # An infinite observed statistic (an emptied or constant arm) is equalled
+  # only by other infinite statistics (issue #134).
+  if (is.infinite(z0)) return(is.infinite(z))
   abs(z) >= abs(z0) - tol * max(abs(z0), unit)
 }
 
-.perm_unit <- function(z_perm, statistic) {
-  if (identical(statistic, "difference")) max(abs(z_perm)) else 1
+# The size at which a statistic counts as zero: 1 for a studentized
+# statistic, and for a difference the largest finite permuted difference,
+# but not less than `scale`, the size of the data (the outcome's standard
+# deviation for an identity link, 1 on the logit and log scales). Without
+# that floor, when every finite difference is an exact zero computed as
+# rounding noise, the unit is noise too (issue #134). A floor that is not
+# the data's own makes the count depend on the outcome's units, so the
+# cluster path, which keeps master's rule, passes `scale = 0`: the largest
+# finite difference.
+.perm_unit <- function(z_perm, statistic, scale = 1) {
+  if (!identical(statistic, "difference")) return(1)
+  max(abs(z_perm[is.finite(z_perm)]), scale)
 }
 
-# The tie tolerance for refitted models of a family. The Gaussian identity
-# model is solved in one step, and equal fits agree to rounding error. Any
-# other model is fitted by iteratively reweighted least squares, which stops
-# at a relative change in deviance of 1e-8. Fits that are equal in exact
-# arithmetic then differ by up to about 1e-7 where the model is saturated in
-# the cells the contrast uses. Where it is not (a covariate), they can differ
-# by more, up to 4e-4 seen with a non-canonical link, because glm() returns
-# the working weights of the iteration before the last; ties of that kind
-# can still be missed (issue #134). Tighter convergence is not the remedy on
-# its own: it drives the fitted values of a labeling with an empty arm to
-# the boundary and destroys its HC3 variance, so the most extreme labelings
-# are lost.
-.perm_tie_tolerance <- function(family) {
-  if (identical(family$family, "gaussian") && identical(family$link, "identity")) 1e-10 else 1e-6
+# The floor of the participant path's tie window (issue #134), the same for
+# every model: a relative 2^-40. Every refit of perm_solomon() is taken to
+# the exact estimate (.perm_newton()), and labelings tied by structure get
+# the same double (.perm_class_of()), so the window is needed only for
+# distinct classes that are equal in exact arithmetic. It is set on each call
+# from their measured rounding error, never below this floor
+# (.perm_tie_window()), and recorded in the result as `tie_tolerance`.
+# `family` is not used; it is kept so that callers written for the fixed
+# tolerance of each family still work.
+.perm_tie_tolerance <- function(family = NULL) {
+  2^-40
+}
+
+# The p-value from permuted statistics `z` and the observed `z0`: b / M when
+# `z` holds every allocation (the observed one among them), otherwise
+# (b + 1) / (m + 1) (Phipson & Smyth, 2010). `tol` and `scale` are the tie
+# window and the unit floor the result records (`tie_tolerance`,
+# `tie_scale`), so plot_perm() recomputes the p-value of perm_solomon()
+# (issue #134). The participant path computes the same expression in
+# perm_solomon()'s own frame, which holds `z_perm`: the reference harness
+# (tools/perm-reference/) reads it there when .perm_at_least() is called.
+.perm_p_value <- function(z, z0, statistic, tol, exact = FALSE, scale = 1) {
+  b <- sum(.perm_at_least(z, z0, .perm_unit(z, statistic, scale), tol))
+  if (isTRUE(exact)) b / length(z) else (b + 1) / (length(z) + 1)
 }
 
 # One permutation of the treatment labels within pretest conditions.
@@ -206,6 +229,10 @@
   # are checked as they are stored, as in the fits, so a numeric NaN is
   # missing here too.
   .check_cluster_ids(object$cluster[used])
+  # Stage 1 is fitted to the covariates and pretest standardized as the fit's
+  # inference was (#151), so that covariates far from zero do not change p
+  # (issue #134, item 10). The outcome is not standardized.
+  if (!is.null(object$covariate_scaling)) d <- .standardized_frame(d, object$covariate_scaling)
   cluster <- as.character(object$cluster[used])
   # The clusters are held in the C locale's order in every session
   # (.sort_c()), and the IDs themselves are not changed. tapply() would
@@ -279,35 +306,86 @@
     .warn_unbalanced_clusters(statistic, strata, n_treated, n_control)
   }
 
+  # No variation among the cluster scores of the strata the contrast uses
+  # (issue #134, acceptance criterion and decision D5): every allocation
+  # gives the same statistic. One varying stratum is enough for a p-value.
+  spread <- vapply(strata, function(h) max(abs(h$s - stats::median(h$s))), numeric(1))
+  scale_s <- max(stats::sd(d$y), abs(unlist(lapply(strata, `[[`, "s"))), .Machine$double.xmin)
+  if (all(spread <= 1e-9 * scale_s)) {
+    .perm_stop(
+      "solomonR_perm_no_variation_error",
+      "The cluster scores do not vary in the strata the contrast \"", contrast, "\" uses, so ",
+      "every allocation gives the same statistic and the test has no information."
+    )
+  }
+  if (any(spread <= 1e-9 * scale_s)) {
+    # one stratum varies: a p-value (decision D5's proposal), with a warning
+    warning(structure(
+      class = c("solomonR_perm_no_variation_warning", "warning", "condition"),
+      list(message = paste0(
+        "The cluster scores do not vary in the ", paste(names(strata)[spread <= 1e-9 * scale_s], collapse = " and "),
+        " stratum; the contrast \"", contrast, "\" varies only through the other stratum."), call = NULL)
+    ))
+  }
+
+  # The variance the contrast would have if each arm's scores varied as their
+  # stratum's do, against which an allocation's variance is judged zero
+  # (issue #134): constant arms give an infinite studentized statistic,
+  # counted, or 0 when the contrast is 0 too (decision D11).
+  v_scale <- sum(vapply(seq_along(strata), function(k) {
+    h <- strata[[k]]
+    weights[[k]]^2 * stats::var(h$s) * (1 / sum(h$t) + 1 / sum(1 - h$t))
+  }, numeric(1)))
+
   stat_for <- function(alloc) {
     parts <- Map(function(h, a) .arm_differences(h$s, a), strata, alloc)
     est <- Reduce(`+`, Map(function(p, w) w * p$difference, parts, weights))
     if (statistic == "difference") return(list(estimate = est, stat = est))
     v <- Reduce(`+`, Map(function(p, w) w^2 * p$variance, parts, weights))
-    list(estimate = est, stat = ifelse(v > 0, est / sqrt(v), NA_real_))
+    zero <- !(v > 1e-10 * v_scale)
+    stat <- est / sqrt(ifelse(zero, 1, v))
+    stat[zero] <- ifelse(abs(est[zero]) <= 1e-8 * sqrt(v_scale), 0, Inf)
+    list(estimate = est, stat = stat)
   }
 
+  # An infinite observed statistic is allowed: it is equalled only by the
+  # allocations whose statistic is infinite too (.perm_at_least()). A
+  # statistic is missing only if the scores are not finite.
   observed <- stat_for(lapply(strata, function(h) matrix(h$t, ncol = 1)))
 
-  if (!is.finite(observed$stat)) {
-    stop("Could not calculate the observed permutation-test statistic.", call. = FALSE)
+  if (is.na(observed$stat)) {
+    .perm_stop(
+      "solomonR_perm_estimable_error",
+      "Could not calculate the observed permutation-test statistic: the Stage 1 cluster scores are ",
+      "not finite."
+    )
   }
 
   allocations <- .cluster_allocations(lapply(strata, `[[`, "t"), reps)
-  z_perm <- stat_for(allocations$alloc)$stat
-  valid <- is.finite(z_perm)
+  # One entry per allocation, in order; NA would mark one left out.
+  z_all <- stat_for(allocations$alloc)$stat
+  valid <- !is.na(z_all)
 
-  if (!any(valid)) stop("No valid permutation statistics were obtained.", call. = FALSE)
+  if (!any(valid)) {
+    .perm_stop(
+      "solomonR_perm_estimable_error",
+      "No allocation gave a statistic: the Stage 1 cluster scores are not finite."
+    )
+  }
 
-  z_perm <- z_perm[valid]
-  unit <- .perm_unit(z_perm, statistic)
+  z_perm <- z_all[valid]
+  # A difference counts as zero against the largest permuted difference, with
+  # no floor (`scale = 0`, recorded as `tie_scale`), so that the count does
+  # not depend on the scores' units; the tie window is 1e-10, recorded as
+  # `tie_tolerance`, so that plot_perm() recomputes the same p-value.
+  unit <- .perm_unit(z_perm, statistic, scale = 0)
 
   if (allocations$exact) {
     # The observed allocation is one of the enumerated allocations.
-    p_perm <- mean(.perm_at_least(z_perm, observed$stat, unit))
+    p_perm <- .perm_p_value(z_perm, observed$stat, statistic, 1e-10, exact = TRUE, scale = 0)
     min_p <- mean(.perm_at_least(z_perm, max(abs(z_perm)), unit))
   } else {
-    p_perm <- (sum(.perm_at_least(z_perm, observed$stat, unit)) + 1) / (length(z_perm) + 1)
+    p_perm <- .perm_p_value(z_perm, observed$stat, statistic, 1e-10, scale = 0)
     min_p <- NA_real_
   }
 
@@ -331,10 +409,14 @@
     exact = allocations$exact,
     n_allocations = allocations$n_allocations,
     min_p = min_p,
-    clusters = clusters
+    clusters = clusters,
+    n_infinite = sum(is.infinite(z_perm)),
+    n_left_out = sum(!valid),
+    tie_tolerance = 1e-10,
+    tie_scale = 0
   )
 
-  if (isTRUE(return_dist)) out$z_perm <- z_perm
+  if (isTRUE(return_dist)) out$z_perm <- z_all
 
   class(out) <- "solomon_perm"
   out

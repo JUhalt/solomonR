@@ -179,6 +179,13 @@ test_that("small designs are enumerated exactly", {
   expect_output(print(res), "exact")
   expect_output(print(res), "All 20 possible allocations")
   expect_s3_class(plot_perm(res), "ggplot")
+  # Without a p-value, plot_perm() recomputes b / M for an enumerated object,
+  # not (b + 1) / (M + 1) (issue #134).
+  q <- res
+  q$p_perm <- NULL
+  expect_identical(plot_perm(q)$labels$subtitle, plot_perm(res)$labels$subtitle)
+  expect_match(plot_perm(q)$labels$subtitle, sprintf("permutation p = %.3f (all 20 allocations)", res$p_perm),
+               fixed = TRUE)
 })
 
 test_that("large designs are sampled with the +1 correction", {
@@ -312,5 +319,190 @@ test_that("cluster p-values keep the comparison made before the shared tie rule 
                 return_dist = TRUE)
     expect_true(res$exact)
     expect_identical(res$p_perm, mean(before(res)))
+  }
+})
+
+test_that("the cluster difference test does not depend on the outcome's units (#134)", {
+  # A difference counts as zero against the largest permuted difference, with
+  # no floor, so scores a trillion times smaller give the same count. Fixed
+  # data; all 4,900 allocations are enumerated, so nothing is drawn.
+  cl <- rep(1:16, each = 3)
+  pretested <- rep(rep(c(1, 0), each = 8), each = 3)
+  treat <- rep(rep(c(1, 1, 1, 1, 0, 0, 0, 0), 2), each = 3)
+  base <- c(0.31, 0.12, 0.45, 0.27, 0.58, 0.19, 0.36, 0.41, 0.22, 0.50, 0.14, 0.33,
+            0.29, 0.47, 0.11, 0.38, 0.25, 0.52, 0.16, 0.44, 0.35, 0.21, 0.49, 0.13,
+            0.40, 0.18, 0.55, 0.26, 0.32, 0.48, 0.15, 0.43, 0.24, 0.51, 0.17, 0.39,
+            0.28, 0.46, 0.20, 0.37, 0.53, 0.23, 0.42, 0.30, 0.10, 0.34, 0.57, 0.09)
+  for (k in c("Treatment | unpretested", "ATE (avg over pretest)")) {
+    p <- vapply(c(1, 1e-12), function(u) {
+      fit <- suppressWarnings(fit_solomon_glm((base + 0.2 * treat) * u, treat, pretested,
+                                              cluster = cl, robust = "CR2"))
+      res <- perm_solomon(fit, k, reps = 5000, statistic = "difference", return_dist = TRUE)
+      expect_true(res$exact)
+      # The object records that unit floor (0) and its window, so plot_perm()
+      # recomputes the same p-value without p_perm (step 9).
+      expect_identical(c(res$tie_tolerance, res$tie_scale), c(1e-10, 0))
+      q <- res
+      q$p_perm <- NULL
+      expect_identical(plot_perm(q)$labels$subtitle, plot_perm(res)$labels$subtitle)
+      res$p_perm
+    }, numeric(1))
+    expect_lt(p[1], 0.05)
+    expect_identical(p[2], p[1])
+  }
+})
+
+test_that("cluster scores without variation stop the test or give a warning (#134, D5)", {
+  # Fixed data; every call stops at the error or the warning, before any
+  # allocation is drawn or enumerated. The seed (1342004) would be used only
+  # if a call went past the check.
+  warns <- function(fit, contrast, pattern) {
+    w <- tryCatch(perm_solomon(fit, contrast, reps = 99, seed = 1342004L),
+                  solomonR_perm_no_variation_warning = function(w) w, error = function(e) e)
+    expect_s3_class(w, "solomonR_perm_no_variation_warning")
+    expect_match(if (inherits(w, "condition")) conditionMessage(w) else "", pattern)
+  }
+  # Design A: 12 clusters of 2, three per condition.
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  cluster <- rep(1:12, each = 2)
+  yvar <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1)
+  fit_a1 <- function(y) {
+    suppressWarnings(fit_solomon_glm(y, treat, pretested, cluster = cluster, robust = "CR2"))
+  }
+  one <- fit_a1(c(yvar, rep(0.3, 12)))
+  expect_error(perm_solomon(one, "Treatment | unpretested", reps = 99, seed = 1342004L),
+               "do not vary in the strata", class = "solomonR_perm_no_variation_error")
+  warns(one, "ATE (avg over pretest)", "unpretested stratum; .* only through the other stratum\\.$")
+  both <- fit_a1(c(rep(2, 12), rep(0.3, 12)))
+  expect_error(perm_solomon(both, "ATE (avg over pretest)", reps = 99, seed = 1342004L),
+               class = "solomonR_perm_no_variation_error")
+  # Design B: treatment by cluster (3 and 3), pretesting within clusters; the
+  # unpretested outcome is the same in every cluster, so its scores are 0.
+  k <- rep(1:6, each = 4)
+  b_treat <- as.numeric(k <= 3)
+  b_pre <- rep(c(1, 1, 0, 0), 6)
+  b_y <- ifelse(b_pre == 1, c(yvar, yvar)[seq_along(k)], 0.3)
+  fit_b <- suppressWarnings(fit_solomon_glm(b_y, b_treat, b_pre, cluster = k, robust = "CR2"))
+  expect_error(perm_solomon(fit_b, "Treatment | unpretested", reps = 99, seed = 1342004L),
+               "do not vary", class = "solomonR_perm_no_variation_error")
+})
+
+test_that("a zero variance gives an infinite or zero cluster statistic, and Stage 1 is standardized (#134)", {
+  # An allocation whose arms are constant within each stratum has a zero
+  # variance: its studentized statistic is +Inf, counted, or 0 when the
+  # contrast is 0 too (D11), and an infinite observed statistic is allowed.
+  # Design A: 12 clusters of 2, three per condition. Fixed data; every
+  # allocation is enumerated, so nothing is drawn.
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  cluster <- rep(1:12, each = 2)
+  yvar <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1)
+  fit_a1 <- function(y, ...) {
+    suppressWarnings(fit_solomon_glm(y, treat, pretested, cluster = cluster, robust = "CR2", ...))
+  }
+  tu <- "Treatment | unpretested"
+
+  # Every unpretested treated participant scores 1 and every control 0: the
+  # observed allocation and its swap are infinite, 2 of the 20.
+  fit <- fit_a1(c(yvar, rep(1, 6), rep(0, 6)))
+  res <- perm_solomon(fit, tu, reps = 5000, return_dist = TRUE)
+  expect_true(res$exact)
+  expect_identical(res$z_obs, Inf)
+  expect_length(res$z_perm, 20)
+  expect_identical(c(res$n_infinite, res$n_left_out, res$valid_reps), c(2L, 0L, 20L))
+  expect_identical(sum(is.infinite(res$z_perm)), 2L)
+  expect_identical(res$p_perm, 0.1)
+  expect_identical(res$min_p, 0.1)
+  expect_identical(c(res$tie_tolerance, res$tie_scale), c(1e-10, 0))
+  expect_equal(res$estimate, 1)
+  q <- res
+  q$p_perm <- NULL
+  expect_identical(plot_perm(q)$labels$subtitle, plot_perm(res)$labels$subtitle)
+  expect_match(plot_perm(res)$labels$caption, "; the observed statistic is infinite.", fixed = TRUE)
+  expect_true("  The observed statistic is infinite: the cluster scores are constant within each" %in%
+                capture.output(print(res)))
+  expect_match(report_solomon(res)$results, paste0(
+    "randomization p = .100. The observed statistic was infinite: the cluster scores were constant ",
+    "within each arm the contrast compares, and the contrast was not zero. Only allocations whose ",
+    "statistic was also infinite counted as at least as extreme."), fixed = TRUE)
+  # The difference statistic is the estimate itself, and finite.
+  res <- perm_solomon(fit, tu, reps = 5000, statistic = "difference")
+  expect_equal(res$z_obs, 1)
+  expect_identical(c(res$p_perm, res$n_infinite), c(0.1, 0))
+
+  # Pretested treated 1 and control 0, unpretested treated 0 and control 1:
+  # the ATE is exactly 0 with a zero variance, so z = 0 and p = 1; the other
+  # contrasts are not 0, and infinite.
+  fit <- fit_a1(c(rep(1, 6), rep(0, 6), rep(0, 6), rep(1, 6)))
+  res <- perm_solomon(fit, "ATE (avg over pretest)", reps = 5000)
+  expect_identical(c(res$z_obs, res$p_perm, res$n_allocations), c(0, 1, 400))
+  res <- perm_solomon(fit, "Pretest x Treatment", reps = 5000)
+  expect_identical(c(res$z_obs, res$p_perm, res$n_infinite), c(Inf, 2 / 400, 2L))
+  res <- perm_solomon(fit, "Treatment | pretested", reps = 5000)
+  expect_identical(c(res$z_obs, res$p_perm), c(Inf, 0.1))
+
+  # Arms constant up to differences of 1e-7 have a variance that is not
+  # exactly 0 but is below 1e-10 of the stratum's, and count as constant; a
+  # contrast of 1e-10 on that scale counts as 0. (Judged against an exact
+  # zero instead, z would be about 1.4e7 for Treatment | unpretested, and
+  # about 0.001 for the ATE.)
+  eps <- c(0, 1, -1, 2, 0, -2) * 1e-7
+  res <- perm_solomon(fit_a1(c(yvar, 1 + eps, 0 + eps)), tu, reps = 5000)
+  expect_identical(c(res$z_obs, res$p_perm, res$n_infinite), c(Inf, 0.1, 2))
+  near <- fit_a1(c(1 + eps + 1e-10, 0 + eps, 0 + eps, 1 + eps))
+  res <- perm_solomon(near, "ATE (avg over pretest)", reps = 5000)
+  expect_identical(c(res$z_obs, res$p_perm), c(0, 1))
+  res <- perm_solomon(near, "Pretest x Treatment", reps = 5000)
+  expect_identical(c(res$z_obs, res$p_perm), c(Inf, 2 / 400))
+
+  # Each threshold from both sides, within a factor of 10. Arms that vary by
+  # 2e-5 have a variance 1e-9 of the stratum's: small, but above 1e-10, so
+  # the statistic stays finite, sqrt(2) / 2e-5. Arms that vary by 2e-6 have
+  # a variance 1e-11 of it, and count as constant. An ATE of 5e-8 with
+  # constant arms is 1.6e-7 of the standard error the contrast would have if
+  # its arms varied as their strata do: small, but above 1e-8, so it is
+  # infinite, not 0, as are the other 3 of the 400 allocations whose arms
+  # are all constant (the ATE of 5e-11 above, 1.6e-10 of it, counts as 0).
+  # Both rules are relative to the strata's variance, so the outcome's
+  # units, from 1e-6 to 1e6, change neither.
+  wide <- c(0, 1, -1, 2, 0, -2) * 2e-5
+  tight <- c(0, 1, -1, 2, 0, -2) * 2e-6
+  for (u in c(1e-6, 1, 1e6)) {
+    res <- perm_solomon(fit_a1(u * c(yvar, 1 + wide, 0 + wide)), tu, reps = 5000)
+    expect_equal(res$z_obs, sqrt(2) / 2e-5, tolerance = 1e-6)
+    expect_identical(c(res$p_perm, res$n_infinite), c(0.1, 0))
+    res <- perm_solomon(fit_a1(u * c(yvar, 1 + tight, 0 + tight)), tu, reps = 5000)
+    expect_identical(c(res$z_obs, res$p_perm, res$n_infinite), c(Inf, 0.1, 2))
+    shifted <- fit_a1(u * c(rep(1, 6), rep(0, 6), rep(1e-7, 6), rep(1, 6)))
+    res <- perm_solomon(shifted, "ATE (avg over pretest)", reps = 5000)
+    expect_identical(c(res$z_obs, res$p_perm, res$n_infinite), c(Inf, 4 / 400, 4))
+  }
+
+  # A statistic that cannot be computed stops with a classed error. (Scores
+  # that are not finite do not arise from a fit; .arm_differences() is
+  # replaced to reach the guard.)
+  expect_error(
+    with_mocked_bindings(perm_solomon(fit, tu, reps = 5000),
+                         .arm_differences = function(s, alloc) {
+                           list(difference = rep(NaN, ncol(alloc)), variance = rep(1, ncol(alloc)))
+                         }),
+    "Stage 1 cluster scores are not finite", class = "solomonR_perm_estimable_error"
+  )
+
+  # Stage 1 is fitted to the covariate standardized as the fit's inference
+  # was, so a covariate a hundred million from zero gives the statistic of the
+  # covariate as given. Fitted to the covariate as given, the shift moved it
+  # by a relative 3e-8.
+  x <- c(0.75, -0.125, -0.625, -1.125, 0, 0.125, -1.625, 1.125, -1.25, 1.375, -0.375, -0.25,
+         -2, 0.75, -1.25, -1.25, -0.5, 1.125, 1.125, -2.125, 1, -0.875, -0.125, -0.125)
+  y <- c(yvar, yvar[c(4, 7, 1, 10, 2, 12, 5, 9, 3, 11, 6, 8)]) + 0.6 * x
+  for (k in c(tu, "ATE (avg over pretest)")) {
+    z <- vapply(c(0, 1e8), function(shift) {
+      perm_solomon(fit_a1(y, covariates = data.frame(x = x + shift)), k, reps = 5000)$z_obs
+    }, numeric(1))
+    expect_equal(z[2], z[1], tolerance = 1e-12)
   }
 })

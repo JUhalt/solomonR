@@ -496,8 +496,8 @@ the audit:
   - [x] Satterthwaite inference by default in `fit_solomon_ml()` — [#115](https://github.com/JUhalt/solomonR/issues/115); merged in [PR #124](https://github.com/JUhalt/solomonR/pull/124)
   - [x] Permutations tied with the observed statistic counted exactly in
     `perm_solomon()` — [#131](https://github.com/JUhalt/solomonR/issues/131); merged in [PR #132](https://github.com/JUhalt/solomonR/pull/132), released in 0.8.2
-  - [ ] `perm_solomon()`: ties with a covariate in iterated models, and
-    degenerate labelings — [#134](https://github.com/JUhalt/solomonR/issues/134)
+  - [x] `perm_solomon()`: ties with a covariate in iterated models, and
+    degenerate labelings — [#134](https://github.com/JUhalt/solomonR/issues/134); merged in [PR #185](https://github.com/JUhalt/solomonR/pull/185)
   - [x] `marginal_solomon()`: a logistic bootstrap that can lose every
     resample on an ill-conditioned design, and blames sparse cells; and,
     in `fit_solomon_glm()`, the convergence warning that can come with

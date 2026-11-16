@@ -1,5 +1,138 @@
 # solomonR (development version)
 
+## Ties and degenerate labelings in perm_solomon() (bug fix, #134)
+
+* **A change in behavior: four supported models.** `perm_solomon()`
+  supports the models the package documents and validates: the Gaussian
+  (identity link), binomial (logit link), and Poisson (log link) models,
+  and `family = "negative_binomial"`. Any other family or link now stops
+  with an error of class `solomonR_perm_family_error`, at the participant
+  and the cluster level, although such fits ran before: quasi families,
+  other links (such as the probit, complementary log-log, cauchit, square
+  root, and identity links of the binomial and Poisson families, and the
+  log link of the Gaussian family), and a `MASS::negative.binomial(theta)`
+  family object. The review of #132 found p-values too small with other
+  links. A quasi-binomial or quasi-Poisson model gives the coefficients
+  and HC3 standard errors of its parent family, so refit it with
+  `binomial()` or `poisson()`; refit a `negative.binomial(theta)` model
+  with `family = "negative_binomial"`. A negative binomial fit with a
+  `cluster` and HC3 standard errors is still permuted at the cluster level.
+* **A change in results: missing values.** Treatment labels are now
+  permuted only among the participants in the model. A participant whose
+  posttest, covariate, or treatment is missing enters no refit and was
+  permuted before, which changed how many treated participants the model
+  saw and could empty an arm. For data with missing values, p-values
+  change, and a seed draws different permutations than before, so old
+  seeds do not reproduce old p-values there. Data without missing values
+  are permuted as before.
+* **Ties are found by structure.** Permutations that give every arm the
+  same participants as the model sees them (the same outcome, covariates,
+  and exposure) are computed once, and a permutation that swaps the arms of
+  a pretest condition gets the statistic of its swap, so their ties are
+  exact. Each refit is taken to the exact maximum-likelihood estimate, with
+  the HC3 variance computed there (MacKinnon & White, 1985); before, the
+  variance used the working weights of `glm()`'s next-to-last iteration,
+  which made ties in models fitted by iteration depend on rounding
+  (item 1). The tie window that remains is measured on each call from the
+  rounding error of the statistics closest to the observed one, never
+  below a relative 2^-40, in place of the fixed 1e-10 and 1e-6. The
+  outcome of a Gaussian fit and any matrix covariate are moved by one of
+  their own values before the refits, so scores and matrix covariates far
+  from zero give the same p-value (items 6 and 9). A classed warning,
+  `solomonR_perm_margin_warning`, says when a count rests on a numerical
+  margin. p-values change where ties were miscounted before (items 1, 6,
+  and 7, and item 9 with a matrix covariate; with a numeric covariate,
+  item 9 was fixed by #137, below): in the cases found, they were too
+  small, except for item 7's, which was too large.
+* **Degenerate permutations are counted, not dropped.** A permutation that
+  empties an arm (no events, or only events, in a cell the contrast uses),
+  separates the outcome by a covariate, or leaves both arms constant has an
+  infinite statistic, which now counts as at least as extreme as any other,
+  for both statistics. Before, such statistics were dropped, or rounding
+  decided whether they counted, and the p-value was too small (items 2, 3,
+  and 4). An observed infinite statistic, which stopped the test or gave a
+  large finite value before, now gives the share of permutations whose
+  statistic is also infinite: with successes 6, 4, 4, and 0 of 10, .088 for
+  both statistics, where the studentized statistic gave .006. A contrast
+  of exactly 0 with no spread counts as 0. A degenerate cell that the
+  contrast does not use takes the value of the limiting model. A classed
+  warning, `solomonR_perm_infinite_warning`, says when half or more of the
+  permutations used have an infinite statistic, since p cannot then be
+  small.
+* **Left out, or stopped.** A permutation under which a covariate collinear
+  with the cells leaves the contrast not estimable is left out, also when
+  it empties an arm, and so is a refit that fails; `n_left_out` counts
+  them. With the studentized statistic, a permutation that gives a
+  participant leverage 1 in a cell the contrast uses (an arm of one, or a
+  covariate value no one else in it shares) stops the test with
+  `solomonR_perm_leverage_error`, since its HC3 standard error is not
+  defined; the difference statistic is still available. A contrast that is
+  not estimable under the observed labels, or under every permutation,
+  stops with `solomonR_perm_estimable_error`. The unclassed errors "Could
+  not calculate the observed permutation-test statistic." and "No valid
+  permutation statistics were obtained." are gone. A classed warning,
+  `solomonR_perm_convergence_warning`, says when a refit failed or did not
+  converge.
+* **No variation.** An outcome that takes one value among the participants
+  in the model in a pretest condition the contrast uses now stops with
+  `solomonR_perm_no_variation_error` when the contrast is 0 or undefined
+  under every permutation (item 5: before, rounding noise divided by
+  rounding noise gave a p-value, or an unclassed error). When the contrast
+  still varies, through the other condition, a covariate the conditions
+  share, or the exposure, the test gives its p-value with a classed
+  warning, `solomonR_perm_no_variation_warning`, that names the condition.
+  The same holds for the cluster scores at the cluster level.
+* Every error of `perm_solomon()` above has the parent class
+  `solomonR_perm_error`.
+* **The cluster level.** The first stage is fitted to the covariates
+  standardized as the fit's inference was, so covariates far from zero no
+  longer move the statistics (item 10). Arms whose cluster scores are
+  constant give an infinite studentized statistic, counted, or 0 when the
+  contrast is 0 too, and an observed infinite statistic gives a p-value;
+  before, such allocations were dropped and an infinite observed statistic
+  stopped the test. Other cluster-level results are unchanged.
+* **The result.** `z_perm` (with `return_dist = TRUE`) now has one entry
+  per permutation, in the order drawn: `NA` for a permutation left out,
+  `Inf` for an infinite statistic. Before, it held the finite statistics
+  only, so its positions shifted. `valid_reps` counts the permutations
+  used, infinite ones included. `z_obs` can be `Inf`. New elements:
+  `n_infinite` and `n_left_out` at both levels; at the participant level,
+  `n_classes`, the number of classes computed; and `tie_tolerance` and
+  `tie_scale`, the tie window and the unit floor used to count ties.
+* **The print.** "Valid permutations" is now "Permutations used", since
+  infinite statistics count as used. New lines give the number of infinite
+  statistics, counted as at least as extreme, and of permutations left out;
+  under an infinite observed statistic, a note says why it is infinite and,
+  at a bound or under separation, that the estimate printed is where the
+  fit stopped. "Permutation distribution retained" counts the entries that
+  are not `NA`.
+* **`plot_perm()`** prints the p-value of `perm_solomon()` for every
+  supported model, also for an object without `p_perm`: it recomputes it
+  from the window and unit floor the object records, over the entries of
+  `z_perm` that are not `NA`, as b / M when every allocation was used.
+  Before, it used the tolerance of a linear model for every object without
+  a p-value (item 8), and (b + 1) / (M + 1) when every allocation was used.
+  An object saved by an earlier version records no window and is recounted
+  as `plot_perm()` recounted it then, except for that b / M. Infinite
+  statistics are counted, not drawn, and a caption says how many there are
+  and whether the observed one is infinite.
+* **`report_solomon()`** says, when the observed statistic is infinite,
+  why, and that only permutations whose statistic was also infinite
+  counted as at least as extreme.
+* **Speed.** The design of the refits is built once, the Gaussian model is
+  refitted by one QR decomposition, and each class is computed once. On
+  twelve realistic data sets, in alternating rounds on one machine, the
+  test took 42 seconds of CPU time in all, against 139 before. Only a
+  binary outcome with a continuous covariate, where every permutation is
+  its own class, took longer than before (1.08 times as long).
+* The reference set of #134 (`tools/perm-reference/` in the source
+  repository, and the fixture `tests/testthat/fixtures/perm-reference.rds`)
+  gives the exact count of every case, decided before the remedy was
+  chosen; `tests/testthat/test-perm-reference.R` checks the package
+  against it, every count exactly, and `SOLOMONR_PERM_REFERENCE=full` runs
+  every case of the fixture. The help page, `?perm_solomon`, states the
+  rules and the limits that remain.
+
 ## Empty cluster IDs (bug fix, #183)
 
 * `fit_solomon_glm()` with `robust = "CR2"` refused a missing cluster ID
