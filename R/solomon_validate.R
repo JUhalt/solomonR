@@ -65,9 +65,9 @@
 # Cluster structure of a Solomon design: clusters and cluster sizes in each
 # cell, the cells that contain a single cluster, and whether treatment and
 # pretesting vary within clusters. Rows with missing assignment or cluster
-# are ignored.
+# (.missing_cluster_ids()) are ignored.
 .cluster_structure <- function(treat, pretested, cluster, cells = .solomon_cells()) {
-  keep <- !is.na(treat) & !is.na(pretested) & !is.na(cluster)
+  keep <- !is.na(treat) & !is.na(pretested) & !.missing_cluster_ids(cluster)
   treat <- treat[keep]
   pretested <- pretested[keep]
   cluster <- as.character(cluster[keep])
@@ -145,6 +145,14 @@
   !is.na(cluster) & grepl("^[ \t\r\n]*$", as.character(cluster), useBytes = TRUE)
 }
 
+# Which cluster IDs are missing (NA). A factor is taken by its labels here
+# too, so a level NA, which addNA() or factor(x, exclude = NULL) makes, is
+# missing, although is.na() is FALSE for it. A numeric NaN is missing,
+# although as.character() turns it into "NaN".
+.missing_cluster_ids <- function(cluster) {
+  is.na(cluster) | is.na(as.character(cluster))
+}
+
 # Stop with an error of class `solomonR_cluster_error` when a cluster ID of
 # a participant included in the model is missing (NA) or empty
 # (.empty_cluster_ids()). `cluster` holds the clusters of those
@@ -157,11 +165,16 @@
 # treatments, and so do perm_solomon() and marginal_solomon(method =
 # "cluster_summary"), for fits made by earlier versions, which could hold
 # an empty ID, and, in perm_solomon(), for fits that have a cluster without
-# CR2.
+# CR2. All of them pass the IDs as they are, and the IDs are taken by their
+# labels here, as in .missing_cluster_ids(), so the places agree: a factor
+# level NA is missing on every path, where it once reached clubSandwich in
+# the fits and stopped with an internal error, and a numeric NaN is
+# missing in perm_solomon() too, which once took it as the label "NaN".
 .check_cluster_ids <- function(cluster) {
-  message <- if (anyNA(cluster)) {
+  ids <- as.character(cluster)
+  message <- if (anyNA(ids) || anyNA(cluster)) {
     "`cluster` is missing for participants included in the model."
-  } else if (any(.empty_cluster_ids(cluster))) {
+  } else if (any(.empty_cluster_ids(ids))) {
     paste0("`cluster` is empty (\"\") or only white space for participants included ",
            "in the model. Give every cluster a label.")
   }
@@ -1037,7 +1050,9 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
 
   if (!is.null(cluster)) {
     assigned <- !is.na(coded$treat) & !is.na(coded$pretested)
-    n_missing_cluster <- sum(assigned & is.na(cluster))
+    # A factor level NA is missing too (.missing_cluster_ids()), as in the
+    # fits and perm_solomon() (issue #183).
+    n_missing_cluster <- sum(assigned & .missing_cluster_ids(cluster))
     if (n_missing_cluster > 0) {
       add_issue(
         "warning", "missing_cluster",

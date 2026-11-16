@@ -1294,7 +1294,8 @@ stouffer_solomon <- function(p) {
 #'   participant. CR2 fits refuse a cluster ID that is missing (`NA`), empty
 #'   (`""`), or only white space (spaces, tabs, or line breaks, which
 #'   [trimws()] removes) for a participant included in the model, with an
-#'   error of class `solomonR_cluster_error`: give every cluster a label. A factor is taken by its labels, so a level `""` that such a
+#'   error of class `solomonR_cluster_error`: give every cluster a label. A
+#'   factor is taken by its labels, so a level `""` or `NA` that such a
 #'   participant has is refused, and an unused one is not. CR2 fits also
 #'   refuse designs in which a Solomon cell contains a single cluster,
 #'   because cluster and condition are then confounded; see

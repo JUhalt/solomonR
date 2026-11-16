@@ -5,9 +5,11 @@
 * `fit_solomon_glm()` with `robust = "CR2"` refused a missing cluster ID
   (`NA`) for a participant included in the model, but accepted an empty
   one (`""`) and fitted, with four groups and with several treatments.
-  `perm_solomon()` on such a four-group fit then stopped with R's
-  internal error "missing value where TRUE/FALSE needed", which did not
-  say what was wrong. So did `perm_solomon()` on a fit with a `cluster`
+  `perm_solomon()` on such a four-group fit then stopped with an internal
+  error that did not say what was wrong: "missing value where TRUE/FALSE
+  needed" when whole clusters were assigned to the four groups, and
+  "subscript out of bounds" when pretesting was assigned within
+  clusters. So did `perm_solomon()` on a fit with a `cluster`
   and HC3 or model-based covariance, which `fit_solomon_glm()` does not
   check. On a binary CR2 fit with pretesting assigned within clusters,
   `marginal_solomon(method = "cluster_summary")` gave `NA` for every
@@ -31,6 +33,20 @@
 * `validate_solomon()` now warns of assigned participants whose cluster
   ID is empty (check `empty_cluster`), as it warns of those without one
   (`missing_cluster`).
+* A factor `cluster` with the level `NA`, which `addNA()` or
+  `factor(x, exclude = NULL)` makes, is now taken as missing for a
+  participant who has that level, in every function. The CR2 fits had
+  stopped with an internal error from clubSandwich, "non-conformable
+  arguments"; they now give the error for a missing ID. On a CR2 fit
+  made by an earlier version, `marginal_solomon(method =
+  "cluster_summary")` with pretesting within clusters gave `NA` for every
+  contrast; it now gives that error too. `validate_solomon()` had counted
+  the level as a cluster and did not warn; it now counts those
+  participants under `missing_cluster`. An unused level `NA` is not
+  refused.
+* A numeric cluster ID `NaN`, which the CR2 fits refused as missing, is
+  now refused by `perm_solomon()` too, which had taken it as the label
+  "NaN".
 * What changes: data with an empty or white-space cluster ID for a
   participant in the model, which CR2 fits accepted, now stop; give
   every cluster a label. Fits whose cluster IDs all have a label give
