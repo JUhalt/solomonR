@@ -550,6 +550,9 @@
   if (!is.null(covariates)) {
     .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
+    # A character covariate is stored as a factor, as in the four-group
+    # model (issue #170; .character_covariates_as_factors()).
+    df <- .character_covariates_as_factors(df, names(covariates))
   }
 
   rhs <- c(

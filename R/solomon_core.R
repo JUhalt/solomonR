@@ -1402,7 +1402,15 @@ stouffer_solomon <- function(p) {
 #'     an empty vector when there are none; `NULL` with the other
 #'     covariances.
 #'   - `call`, and `data` (the data the model was fitted to), which
-#'     solomonR's own functions use.
+#'     solomonR's own functions use. A character covariate is held in
+#'     `data`, and in the model frame of `model`, as a factor made with
+#'     [factor()] when the fit is made, so its levels are sorted by the
+#'     collation of that R session, as were the levels its coefficients are
+#'     named and ordered by. A level seen only in rows the model did not use
+#'     is a level of the factor in `data` but has no coefficient.
+#'     [marginal_solomon()] and [plot_sensitization()] then code the
+#'     covariate as the fit did, whatever the collation when they run
+#'     (issue #170).
 #'
 #'   For a design with several treatments, an object of class
 #'   `solomon_ngroup`, with the same elements and these changes:
@@ -1665,6 +1673,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   if (!is.null(covariates)) {
     .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
+    # A character covariate is stored as a factor, with the levels of this
+    # session's collation, which the coefficients are named and ordered by
+    # (issue #170; .character_covariates_as_factors()).
+    df <- .character_covariates_as_factors(df, names(covariates))
   }
 
   # One model: treatment + pretest indicator + their interaction + (optional) pre_obs

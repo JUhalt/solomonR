@@ -57,8 +57,11 @@
   character covariate with accented levels, as `read.csv()` returns
   them in a UTF-8 session (the default on macOS and Linux, and on
   Windows since R 4.2). It came in after the 0.8.2 release, with the
-  check of the levels that the model does not have (#171). It no longer
-  stops, and its note still names those levels in the C order.
+  check of the levels that the model does not have (#171). A fit now
+  stores such a covariate as a factor (#170), and the note names those
+  levels in the order of the factor's levels. A fit that stores it as
+  character, as fits made before #170 did, no longer stops either, and
+  its note names those levels in the C order.
 * What changes: outside a session whose collation is C, a seeded
   cluster p-value with random allocations (`exact = FALSE`), for IDs
   that the C locale and the session sort differently, is now the one
@@ -110,18 +113,20 @@
   text marked as UTF-8, in `perm_solomon()` (both designs),
   `check_solomon_missing()`, and `marginal_solomon()`, where a
   participant outside the model from a site that the model has is
-  standardized over. They check that the IDs and levels come back with
-  their own bytes and encoding marks, for text marked as UTF-8, as
-  Latin-1, and as `read.csv()` marks it, and that a byte below 0x10,
-  such as a tab, takes its place in the C order. In a session started
-  with `LC_ALL=C` (skipped on CRAN), they check that text as
-  `read.csv()` returns it there keeps its values and gives the results
-  of a UTF-8 session in all three functions, and that IDs marked as
-  UTF-8 or as Latin-1 are put in the C order. In a session whose
-  native encoding is Windows-1252 or Latin-1 (skipped on CRAN and where
-  no such locale is available), with an ID or a level in UTF-8 in some
-  rows and in the code page in others, they check that reversing the
-  rows changes neither the order of the clusters and levels nor the
+  standardized over; and that a fit storing those sites as character,
+  as fits made before #170 did, gives the same results, with the levels
+  the model does not have named in the C order. They check that the IDs
+  and levels come back with their own bytes and encoding marks, for text
+  marked as UTF-8, as Latin-1, and as `read.csv()` marks it, and that a
+  byte below 0x10, such as a tab, takes its place in the C order. In a
+  session started with `LC_ALL=C` (skipped on CRAN), they check that
+  text as `read.csv()` returns it there keeps its values and gives the
+  results of a UTF-8 session in all three functions, and that IDs
+  marked as UTF-8 or as Latin-1 are put in the C order. In a session
+  whose native encoding is Windows-1252 or Latin-1 (skipped on CRAN and
+  where no such locale is available), with an ID or a level in UTF-8 in
+  some rows and in the code page in others, they check that reversing
+  the rows changes neither the order of the clusters and levels nor the
   results of `perm_solomon()` (both designs) and
   `check_solomon_missing()`. There they check that é and À, in the code
   page and in UTF-8 or Latin-1, are placed by the form whose bytes come
@@ -129,6 +134,85 @@
   appear; and that the same bytes marked as native and as UTF-8 come
   with the one marked UTF-8 first, under the collation of the code
   page's locale.
+
+## Character covariates and the collation (bug fix, #170)
+
+* `fit_solomon_glm()` kept a character covariate as character, in
+  `fit$data` and in the model frame of `fit$model`. R makes such a
+  covariate a factor each time it builds a design, with its levels
+  sorted by the collation in force at that moment
+  (`Sys.getlocale("LC_COLLATE")`), but the coefficients took their names
+  and order from the levels sorted when the fit was made. Under a
+  collation that sorted the values in a different order,
+  `marginal_solomon()` and `plot_sensitization()` paired a design coded
+  one way with coefficients coded the other, and their results were
+  wrong, without an error or a warning. This happened, for instance, to
+  a fit saved with `saveRDS()` and read in a session with another
+  collation, or analyzed after `Sys.setlocale("LC_COLLATE", "C")`. The C
+  collation sorts capitals first, so values that begin with capital and
+  lower-case letters, such as `north`, `South`, and `west`, sort
+  differently there, and so can values with accented letters. Factor,
+  logical, and numeric covariates were not affected, nor were character
+  values that sort the same in both collations.
+
+  - In `marginal_solomon()`, every method but `"cluster_summary"` was
+    affected, under either center, for binary, Poisson, and
+    negative-binomial fits, with HC3 or CR2 standard errors: the
+    estimates, the delta-method standard errors, and the CR2 degrees of
+    freedom were wrong. In the issue's example, the pretest main effect
+    was a risk difference of -0.0245 instead of 0.0402. The bootstrap
+    standard errors and limits were right, but they were not those of
+    the estimates reported with them. When pretested participants with
+    a pretest were outside the model, as when their posttest was
+    missing, it stopped with "subscript out of bounds" instead.
+  - In `plot_sensitization()`, for four-group fits and fits with
+    several treatments, the model-adjusted cell means and their standard
+    errors were wrong (in the example, every cell shifted by -0.350 on
+    the logit scale), and so were their CR2 degrees of freedom when the
+    fit had no numeric covariate. The difference of differences, and the
+    Pretest x Treatment estimate in the subtitle, were right.
+* `fit_solomon_glm()` now stores each character covariate as a factor,
+  made with `factor()` when the fit is made, so its levels are sorted by
+  the same collation as the levels its coefficients are named and
+  ordered by. `fit$data` and the model frame of `fit$model` hold a
+  factor where they held character, and code of your own that reads
+  `fit$data` will see the change. A level seen only in rows the model
+  does not use is a level of the factor in `fit$data` but has no
+  coefficient. The coefficients, the effects, and every other result
+  are as before. A character matrix column of one column, which
+  `glm()` takes as one categorical covariate, is stored as a factor too.
+* A fit saved by an earlier version still holds character. Under a
+  collation that sorts the covariate's values, among the participants
+  the model used, in a different order than the session that made the
+  fit, `marginal_solomon()` and `plot_sensitization()` now stop with
+  an error of class `solomonR_collation_error` instead of giving wrong
+  results: refit it with this version, or analyze it under the
+  collation of the session that made it. They check two things: that
+  the levels of each character covariate in the rows the model used,
+  sorted by the collation in force, are the levels stored with the fit
+  (`fit$model$xlevels`), and that the columns of the design rebuilt
+  from the fit are the names of its coefficients, in their order. The
+  levels are needed for a fit made under contrasts such as `contr.sum`
+  or `contr.helmert`, whose columns are numbered (`site1`, `site2`)
+  whatever the order of the levels. The error names the covariates
+  whose levels change order. Under the fit's own collation such a fit
+  gives the results of the same fit made by this version, also when a
+  level occurs only in rows the model did not use.
+  `marginal_solomon(method = "cluster_summary")`, which does not use the
+  covariates, does not stop under any collation.
+* `perm_solomon()` also refits the model under the collation in force.
+  Its statistic uses only the treatment coefficients and their variance,
+  which do not depend on how a covariate is coded, so the coding of a
+  character covariate did not change its results; it is unchanged.
+* Tests fit under the session's collation and analyze under another: C,
+  or, where the session already sorts the test values as C does, an
+  English collation. They compare the results with those of the same
+  fit with the covariates given as factors, and check that fits stored
+  as earlier versions stored them stop, whether made under
+  `contr.treatment`, `contr.sum`, or `contr.helmert`, and that such a
+  fit runs under its own collation when a level occurs only in rows the
+  model did not use. Those that need another collation are skipped
+  where none is available.
 
 ## Covariates named pre_obs or condition (bug fix, #174)
 

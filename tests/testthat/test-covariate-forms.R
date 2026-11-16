@@ -1311,18 +1311,32 @@ test_that("the forms master used give master's model data, formulas, and results
   # where values are missing), and the doubles are compared to 1e-12 of
   # their value. The formulas, coefficient names, and classes hold no
   # doubles, so they must be identical.
+  #
+  # Since issue #170 a character covariate is stored in the model data as a
+  # factor, with the levels factor() gives it in this session, where master
+  # stored it as character (the covariate site of the fits `names` and
+  # `bare_character`). The fixture stays master's: its model data are
+  # compared with each character column made a factor in the same way
+  # (as_stored()). The coefficient names, which come from those levels, are
+  # compared as master gave them.
   skeleton <- function(x) rapply(x, function(v) if (is.double(v)) is.na(v) else v,
                                  how = "replace")
+  as_stored <- function(exact) {
+    if (is.data.frame(exact$data)) {
+      character <- vapply(exact$data, is.character, logical(1))
+      exact$data[character] <- lapply(exact$data[character], factor)
+    }
+    exact
+  }
   source(test_path("fixtures", "covariate-forms-master.R"), local = TRUE)
   stored <- readRDS(test_path("fixtures", "covariate-forms-master.rds"))
   now <- covariate_forms_results(stored$data)
 
   expect_identical(names(now), names(stored$results))
   for (name in names(stored$results)) {
-    expect_identical(skeleton(now[[name]]$exact), skeleton(stored$results[[name]]$exact),
-                     info = name)
-    expect_equal(now[[name]]$exact, stored$results[[name]]$exact, tolerance = 1e-12,
-                 info = name)
+    expected <- as_stored(stored$results[[name]]$exact)
+    expect_identical(skeleton(now[[name]]$exact), skeleton(expected), info = name)
+    expect_equal(now[[name]]$exact, expected, tolerance = 1e-12, info = name)
     expect_equal(now[[name]]$numbers, stored$results[[name]]$numbers, tolerance = 1e-8,
                  info = name)
   }

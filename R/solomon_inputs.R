@@ -202,6 +202,84 @@
 }
 
 
+# The model data `df` with each character covariate, among the columns
+# named in `covariates`, made a factor (issue #170). glm() codes a
+# character variable by the factor that factor() makes of it, whose levels
+# are sorted by the collation in force (Sys.getlocale("LC_COLLATE")), and
+# the coefficients take their names and order from those levels when the
+# fit is made. Kept as character, the covariate was made a factor again
+# each time a design was built from the stored data or model frame, by
+# model.matrix() or by a refit, under the collation in force then. Under a
+# collation that sorts its values otherwise, such as C, which sorts
+# capitals first, the columns of that design no longer matched the
+# coefficients. Made a factor here, as glm() would make it, the covariate
+# keeps the levels of the session that fits it, and the coefficients have
+# the same names, order, and values as before. A character matrix of one
+# column, which glm() takes as one categorical covariate, becomes a factor
+# too. A logical covariate is left as it is: model.matrix() codes it
+# FALSE, TRUE under any collation.
+.character_covariates_as_factors <- function(df, covariates) {
+  for (name in covariates) {
+    if (is.character(df[[name]])) df[[name]] <- factor(df[[name]])
+  }
+  df
+}
+
+
+# Stop when a fit from fit_solomon_glm() would be coded otherwise under the
+# collation in force than when it was made (issue #170). Fits made before
+# #170 store a character covariate as character, and model.matrix() makes
+# it a factor whose levels follow the collation in force when it runs. Two
+# things are checked. First, the levels of each character column of the
+# stored model frame, sorted now, must be the levels stored with the model
+# (`xlevels`), which were sorted when the fit was made. Both come from the
+# rows the model used, so a level seen only in other rows, such as those
+# of participants without an outcome, is in neither. This catches a fit
+# made under contrasts such as contr.sum or contr.helmert, whose columns
+# are numbered (site1, site2) whatever the order of the levels, so that
+# their names stay the same when the order changes. Second, the columns of
+# the model matrix `X` must be the names of the coefficients, in their
+# order. Under treatment contrasts the names change when the reference
+# level changes, and only their order when it does not (Alpha, beta, Gamma
+# in English; Alpha, Gamma, beta in C). The functions that pair a design
+# built from the stored model or data with the fit's coefficients or
+# covariance call this first, rather than give wrong results. A covariate
+# stored as a factor, as fits now store it, keeps its levels and passes.
+# An aliased coefficient is NA but keeps its name and its column, so it
+# does not stop this. The message names the covariates whose levels change
+# order. Returns `X`, invisibly, for the caller to use; `X` is not built
+# when the levels have changed.
+.check_fit_collation <- function(fit, X = stats::model.matrix(fit$model)) {
+  frame <- fit$model$model
+  xlevels <- fit$model$xlevels
+  character <- intersect(names(frame)[vapply(frame, is.character, logical(1))],
+                         names(xlevels))
+  changed <- character[!vapply(character, function(name) {
+    identical(levels(factor(frame[[name]])), xlevels[[name]])
+  }, logical(1))]
+  if (!length(changed) && identical(colnames(X), names(stats::coef(fit$model)))) {
+    return(invisible(X))
+  }
+  covariates <- if (!length(changed)) {
+    "a character covariate"
+  } else {
+    paste0(if (length(changed) == 1L) "the character covariate " else
+      "the character covariates ", paste(changed, collapse = ", "))
+  }
+  stop(structure(
+    class = c("solomonR_collation_error", "error", "condition"),
+    list(message = paste0(
+      "The fit codes ", covariates, " by the collation (the sort order of text) of the ",
+      "R session that made it. The collation in force (", Sys.getlocale("LC_COLLATE"),
+      ") sorts those values in a different order, so the design rebuilt from the fit ",
+      "does not match its coefficients. Refit it with this version of solomonR, which ",
+      "stores a character covariate as a factor, or analyze it under the collation of ",
+      "the session that made it."
+    ), call = NULL)
+  ))
+}
+
+
 # Names as they must be written in a formula: a name that is not
 # syntactic (such as "my cov") is quoted with backticks.
 .formula_names <- function(x) {

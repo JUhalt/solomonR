@@ -49,10 +49,11 @@
 # counted under `missing_covariate` lack; `unseen`, the levels of those
 # counted under `unseen_level`, a list named by covariate; and `also` and
 # `also_unseen`, how many of those who lack a covariate also have a level
-# the model does not have, and those levels.
-.marginal_rows <- function(fit) {
+# the model does not have, and those levels. `X_model` is the model
+# matrix of the fit's model, which marginal_solomon() has computed for
+# .check_fit_collation().
+.marginal_rows <- function(fit, X_model = stats::model.matrix(fit$model)) {
   model <- fit$model
-  X_model <- stats::model.matrix(model)
   d <- fit$data
   used <- .glm_rows_used(fit)
   extra <- rep(FALSE, nrow(d))
@@ -76,7 +77,10 @@
     # can still have a level the model does not have in another.
     for (v in intersect(names(model$xlevels), covariates)) {
       # The values as the data have them, so that they match the model's
-      # levels; .sort_c() only orders them, in the C order (issue #179).
+      # levels. A factor, as fits store a character covariate since issue
+      # #170, gives its levels in their order. A covariate stored as
+      # character, as earlier fits stored it, is ordered by .sort_c(), in
+      # the C order, which leaves the values as they are (issue #179).
       value <- as.character(d[[v]])
       new <- outside & !is.na(d[[v]]) & !(value %in% model$xlevels[[v]])
       levels_v <- if (is.factor(d[[v]])) levels(d[[v]]) else .sort_c(value)
@@ -1090,7 +1094,15 @@
 #'   link), `family = poisson()` (log link), or
 #'   `family = "negative_binomial"`, with HC3 or model-based covariance, or,
 #'   for binary outcomes, CR2 covariance. Designs with several treatments are
-#'   not supported; see [fit_solomon_glm()].
+#'   not supported; see [fit_solomon_glm()]. A fit made by an earlier version
+#'   of solomonR, which stored a character covariate as character, stops
+#'   with an error of class `solomonR_collation_error` when the collation in
+#'   force sorts that covariate's values, among the participants the model
+#'   used, in a different order than the R session that made the fit,
+#'   whatever contrasts the fit was made under (issue #170). Refit it, or
+#'   analyze it under that collation.
+#'   `method = "cluster_summary"` does not use the covariates and does not
+#'   stop.
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
 #'   outcomes, `"odds_ratio"`. For count outcomes the default is
 #'   `c("difference", "ratio")`.
@@ -1330,6 +1342,14 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stop("`R` must be a single number of at least 99.", call. = FALSE)
   }
 
+  # The design rows below are built from the fit's model and data and used
+  # with its coefficients and covariance. A fit made before issue #170 with
+  # a character covariate, analyzed under a collation that sorts its values
+  # in the rows the model used in a different order than the session that
+  # made it, stops here rather than pair them wrongly
+  # (.check_fit_collation()). `X_fit` is the fit's model matrix.
+  X_fit <- .check_fit_collation(fit)
+
   # With a pretest or numeric covariates the fit's inference was computed
   # with the covariates standardized and the pretest scaled (issue #137;
   # .covariate_scaling()), and so is this: the model, its coefficients and
@@ -1362,11 +1382,11 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # #171). `X`, `pretested`, and `treat` run over them; `in_model` flags
   # the rows the model used, to which `y` belongs.
   model_set <- function() {
-    X <- stats::model.matrix(model)
+    X <- if (is.null(scaling)) X_fit else stats::model.matrix(model)
     list(X = X, pretested = as.integer(X[, "pretested"]), treat = as.integer(X[, "treat"]),
          in_model = NULL, index = NULL)
   }
-  observed_set <- .marginal_rows(fit)
+  observed_set <- .marginal_rows(fit, X_fit)
   if (!is.null(scaling)) {
     observed_set$X <- .standardized_columns(observed_set$X, scaling, fit$model)
   }

@@ -387,15 +387,35 @@ marginal_sites_data <- function() {
   })
 }
 
-# marginal_solomon() at the "observed" center for the data `d` with the
-# covariate `site`.
-marginal_sites <- function(d, site) {
-  fit <- suppressWarnings(
+# The fit of the data `d` with the covariate `site`.
+marginal_sites_fit <- function(d, site) {
+  suppressWarnings(
     fit_solomon_glm(d$y, d$treat, d$pretested, d$y_pre, covariates = data.frame(site = site),
                     family = stats::binomial()),
     classes = "solomonR_noncollapsible_warning"
   )
+}
+
+# marginal_solomon() at the "observed" center for the data `d` with the
+# covariate `site`, or for the fit `fit`.
+marginal_sites <- function(d, site, fit = marginal_sites_fit(d, site)) {
   marginal_solomon(fit, method = "delta", pretest_center = "observed")
+}
+
+# `fit` with its covariate `name` stored as character, in its data and in
+# its model frame, as fit_solomon_glm() stored a character covariate before
+# issue #170 (as as_old_fit() in test-collation.R does).
+stored_as_character <- function(fit, name) {
+  frame_terms <- attr(fit$model$model, "terms")
+  fit$data[[name]] <- as.character(fit$data[[name]])
+  if (is.data.frame(fit$model$data)) {
+    fit$model$data[[name]] <- as.character(fit$model$data[[name]])
+  }
+  fit$model$model[[name]] <- as.character(fit$model$model[[name]])
+  attr(fit$model$terms, "dataClasses")[[name]] <- "character"
+  attr(frame_terms, "dataClasses")[[name]] <- "character"
+  attr(fit$model$model, "terms") <- frame_terms
+  fit
 }
 
 # The counts of marginal_sites() for marginal_sites_data(): the participant
@@ -408,12 +428,27 @@ test_that("marginal_solomon() takes accented levels as read.csv() returns them (
   # As in the test of accented cluster IDs, a UTF-8 session is needed.
   skip_if_not(isTRUE(l10n_info()[["UTF-8"]]), "The session's locale is not UTF-8.")
   d <- marginal_sites_data()
-  m <- marginal_sites(d, as_read_csv(d$site))
+  fit <- marginal_sites_fit(d, as_read_csv(d$site))
+  m <- marginal_sites(fit = fit)
   expect_identical(m, marginal_sites(d, d$site))
   expect_identical(m$standardized, marginal_sites_counts)
-  # The levels the model does not have, in the C order.
+  # The fit stores the sites as a factor, with its levels in the order of
+  # this session's collation (#170), and the note names the two levels the
+  # model does not have in that order.
+  unseen <- intersect(levels(fit$data$site), c("\u00c9vry", "Sept-\u00celes"))
+  expect_length(unseen, 2L)
   expect_match(m$pretest_sensitivity$note, "leaves out 2 who", fixed = TRUE)
-  expect_match(m$pretest_sensitivity$note, "(site: Sept-\u00celes, \u00c9vry)", fixed = TRUE)
+  expect_match(m$pretest_sensitivity$note, paste0("(site: ", paste(unseen, collapse = ", "), ")"),
+               fixed = TRUE)
+  # A fit that stores the sites as character, as fits made before #170 did,
+  # takes them as the data have them too: it does not stop, it gives the
+  # same results, and its note names those levels in the C order.
+  old_fit <- stored_as_character(fit, "site")
+  expect_identical(class(old_fit$data$site), "character")
+  old <- marginal_sites(fit = old_fit)
+  expect_identical(old$standardized, marginal_sites_counts)
+  expect_equal(old$effects, m$effects, tolerance = 1e-12)
+  expect_match(old$pretest_sensitivity$note, "(site: Sept-\u00celes, \u00c9vry)", fixed = TRUE)
 })
 
 # Cluster IDs that start with Zoo, parc, école, Lac, and Àrles, whose C
