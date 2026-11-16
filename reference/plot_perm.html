@@ -118,6 +118,22 @@ or from sampled permutations.</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A ggplot object</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The p-value is the object's <code>p_perm</code>. An object without it is recounted
+from <code>z_perm</code> by the rule of <code><a href="perm_solomon.html">perm_solomon()</a></code>, with the tie window and the
+unit's floor that the object records (<code>tie_tolerance</code> and <code>tie_scale</code>),
+over the entries that are not <code>NA</code> (permutations left out): b / M when
+every allocation was used, and (b + 1) / (m + 1) otherwise. An object
+saved by solomonR 0.8.2 or earlier records neither and is recounted as
+<code>plot_perm()</code> recounted it then: with a window of a relative 1e-10 and,
+for the difference statistic, the largest permuted difference as the
+unit, with no floor.</p>
+<p>Infinite statistics (an emptied or constant arm, or separation; at the
+cluster level, constant arms) are counted in the p-value but cannot be
+drawn. A caption says how many there are, and whether the observed
+statistic is infinite, in which case no line marks it.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

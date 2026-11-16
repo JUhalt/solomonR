@@ -714,6 +714,17 @@ Gelman, A., & Stern, H. (2006). The difference between “significant” and
 Statistician, 60*(4), 328–331.
 <https://doi.org/10.1198/000313006X152649>
 
+Geyer, C. J. (2009). Likelihood inference in exponential families and
+directions of recession. *Electronic Journal of Statistics, 3*, 259–289.
+<https://doi.org/10.1214/08-EJS349>
+
+> Shows that when the maximum-likelihood estimate does not exist,
+> inference can use the limiting model along the directions of
+> recession. *In solomonR:* the value
+> [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+> gives a permutation with a degenerate cell that the contrast does not
+> use ([\#134](https://github.com/JUhalt/solomonR/issues/134)).
+
 GitHub. (n.d.). *Downloading source code archives*. GitHub Docs.
 Retrieved November 7, 2026, from
 <https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives>
@@ -1139,6 +1150,17 @@ mean and covariance structure analysis with nonnormal missing data.
 > [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
 > describes the MLR estimator and its scaled chi-square
 > ([\#112](https://github.com/JUhalt/solomonR/issues/112)).
+
+Zeileis, A. (2006). Object-oriented computation of sandwich estimators.
+*Journal of Statistical Software, 16*(9), 1–16.
+<https://doi.org/10.18637/jss.v016.i09>
+
+> How the sandwich package computes heteroscedasticity-consistent
+> covariances, for generalized linear models among others. *In
+> solomonR:* the HC3 variance that
+> [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+> computes for each permutation, at the exact estimate
+> ([\#134](https://github.com/JUhalt/solomonR/issues/134)).
 
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. *British Journal of Mathematical and Statistical Psychology,

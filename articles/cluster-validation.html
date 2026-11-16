@@ -875,7 +875,10 @@ current package. The full study has not been rerun. Since the run,
 <code><a href="../reference/perm_solomon.html">perm_solomon()</a></code> counts permutation statistics that tie with
 the observed one by a new rule (<a href="https://github.com/JUhalt/solomonR/issues/131" class="external-link">issue #131</a>), so
 a rerun could give other p-values where statistics tie, as they can with
-binary outcomes.</p>
+binary outcomes. Since <a href="https://github.com/JUhalt/solomonR/issues/134" class="external-link">issue #134</a>, it
+also fits the first stage to standardized covariates, which moves the
+statistics by rounding error only, and counts an allocation whose arms
+have constant scores as at least as extreme, where it was dropped.</p>
 <p>All works cited in solomonR are listed, with notes on how the package
 uses them, on the <a href="references.html">References</a> page.</p>
 </div>

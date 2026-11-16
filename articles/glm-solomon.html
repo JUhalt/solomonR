@@ -729,12 +729,12 @@ inferential approach.</p>
 <span><span class="co">## Estimate: 2.66</span></span>
 <span><span class="co">## Observed studentized statistic: z = 1.68</span></span>
 <span><span class="co">## Permutation p = .097</span></span>
-<span><span class="co">## Valid permutations: 1000 of 1000</span></span>
+<span><span class="co">## Permutations used: 1000 of 1000</span></span>
 <span><span class="co">## Permutation distribution retained (1000 draws); use plot_perm() to visualize it.</span></span></code></pre>
 <p><code><a href="../reference/perm_solomon.html">perm_solomon()</a></code> shuffles treatment labels <strong>within
-pretest strata</strong>. This preserves the number of treated and
-control participants within the pretested and unpretested portions of
-the design.</p>
+pretest strata</strong>, among the participants in the model. This
+preserves the number of treated and control participants within the
+pretested and unpretested portions of the design.</p>
 <p>The test uses an HC3-studentized statistic.</p>
 <p>Its Monte Carlo p-value uses a finite-simulation correction:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mfrac><mrow><msub><mi>B</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">e</mi></mrow></msub><mo>+</mo><mn>1</mn></mrow><mrow><msub><mi>B</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">d</mi></mrow></msub><mo>+</mo><mn>1</mn></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
@@ -742,7 +742,17 @@ p =
 \frac{B_{\mathrm{extreme}} + 1}
      {B_{\mathrm{valid}} + 1}.
 </annotation></semantics></math></p>
-<p>This prevents an estimated permutation p-value of exactly zero.</p>
+<p>This prevents an estimated permutation p-value of exactly zero.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>B</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">d</mi></mrow></msub><annotation encoding="application/x-tex">B_{\mathrm{valid}}</annotation></semantics></math>
+is the number of permutations used, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>B</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">e</mi></mrow></msub><annotation encoding="application/x-tex">B_{\mathrm{extreme}}</annotation></semantics></math>
+the number whose statistic is at least as extreme as the observed one,
+ties included. A permutation that empties an arm (no events, or only
+events, in a cell the contrast uses), separates the outcome, or leaves
+both arms constant has an infinite statistic: it is used, and it counts
+as at least as extreme as any other. The help page,
+<code><a href="../reference/perm_solomon.html">?perm_solomon</a></code>, gives the rules for ties and for such
+permutations.</p>
 <p>The null distribution can be visualized with:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_perm.html">plot_perm</a></span><span class="op">(</span><span class="va">perm</span><span class="op">)</span></span></code></pre></div>

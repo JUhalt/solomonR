@@ -304,7 +304,11 @@ full study has not been rerun. Since the run,
 counts permutation statistics that tie with the observed one by a new
 rule ([issue \#131](https://github.com/JUhalt/solomonR/issues/131)), so
 a rerun could give other p-values where statistics tie, as they can with
-binary outcomes.
+binary outcomes. Since [issue
+\#134](https://github.com/JUhalt/solomonR/issues/134), it also fits the
+first stage to standardized covariates, which moves the statistics by
+rounding error only, and counts an allocation whose arms have constant
+scores as at least as extreme, where it was dropped.
 
 All works cited in solomonR are listed, with notes on how the package
 uses them, on the

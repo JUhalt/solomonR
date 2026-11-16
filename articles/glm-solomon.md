@@ -527,13 +527,14 @@ perm
     ## Estimate: 2.66
     ## Observed studentized statistic: z = 1.68
     ## Permutation p = .097
-    ## Valid permutations: 1000 of 1000
+    ## Permutations used: 1000 of 1000
     ## Permutation distribution retained (1000 draws); use plot_perm() to visualize it.
 
 [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
-shuffles treatment labels **within pretest strata**. This preserves the
-number of treated and control participants within the pretested and
-unpretested portions of the design.
+shuffles treatment labels **within pretest strata**, among the
+participants in the model. This preserves the number of treated and
+control participants within the pretested and unpretested portions of
+the design.
 
 The test uses an HC3-studentized statistic.
 
@@ -546,6 +547,15 @@ p =
 ```
 
 This prevents an estimated permutation p-value of exactly zero.
+$`B_{\mathrm{valid}}`$ is the number of permutations used, and
+$`B_{\mathrm{extreme}}`$ the number whose statistic is at least as
+extreme as the observed one, ties included. A permutation that empties
+an arm (no events, or only events, in a cell the contrast uses),
+separates the outcome, or leaves both arms constant has an infinite
+statistic: it is used, and it counts as at least as extreme as any
+other. The help page,
+[`?perm_solomon`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+gives the rules for ties and for such permutations.
 
 The null distribution can be visualized with:
 

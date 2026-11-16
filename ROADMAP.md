@@ -840,7 +840,8 @@ Permutations tied with the observed statistic counted exactly in
 
 [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md):
 ties with a covariate in iterated models, and degenerate labelings —
-[\#134](https://github.com/JUhalt/solomonR/issues/134)
+[\#134](https://github.com/JUhalt/solomonR/issues/134); merged in [PR
+\#185](https://github.com/JUhalt/solomonR/pull/185)
 
 [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md):
 a logistic bootstrap that can lose every resample on an ill-conditioned
