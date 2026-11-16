@@ -783,7 +783,8 @@ test_that("the statistic routine's zero variance, separation cap, and units (#13
 # labeling and its swap get exactly opposite statistics, and a class that is
 # its own swap gets exactly 0. In the data below every value in a condition
 # appears twice, with the same covariate value; the observed arms are not
-# their own swap. Every labeling is fed; nothing is drawn.
+# their own swap. An exposure is part of a row's type. Every labeling is fed;
+# nothing is drawn.
 test_that("labelings of one class, and swapped labelings, get the same statistic (#134)", {
   g <- rep(1:4, each = 6)
   treat <- c(1, 0, 1, 0)[g]
@@ -885,6 +886,41 @@ test_that("labelings of one class, and swapped labelings, get the same statistic
     expect_identical(pfac$p_perm, p01$p_perm)
     expect_identical(p01$z_perm[1:2], c(1, -1) * p01$z_obs)
   }
+
+  # Counts with an exposure that differs between rows of one count: rows 14
+  # and 15 (count 29) have exposures 2 and 1, so exchanging them between the
+  # arms, as `a_same` does, gives another class, with the statistic of its
+  # own fit. With equal exposures in those rows it is the same class, and the
+  # same double.
+  yc <- round(10 * y)
+  ex <- rep(c(1, 2), 12)
+  Xc <- stats::model.matrix(~ treat * pretested)
+  types <- function(off) {
+    lengths(lapply(.perm_class_setup(Xc, yc, off, pretested, "Treatment | unpretested", separable = TRUE)$per,
+                   `[[`, "m"))
+  }
+  expect_identical(types(NULL), c(U = 6L, P = 6L))
+  expect_identical(types(log(ex)), c(U = 10L, P = 10L))
+  co <- .perm_class_setup(Xc, yc, log(ex), pretested, "Treatment | unpretested", separable = TRUE)
+  expect_false(identical(.perm_class_of(co, a_same)$key, .perm_class_of(co, a)$key))
+  fp <- fit_solomon_glm(yc, treat, pretested, exposure = ex, family = stats::poisson())
+  for (s in c("studentized", "difference")) {
+    p <- with_mocked_bindings(
+      perm_solomon(fp, "Treatment | unpretested", reps = 2, statistic = s, return_dist = TRUE),
+      .perm_treat = feed(list(a, a_same)))
+    expect_identical(p$n_classes, 3L)
+    expect_false(p$z_perm[2] == p$z_perm[1])
+  }
+  # the difference statistic of each labeling is the estimate of its own fit
+  for (k in 1:2) {
+    fk <- fit_solomon_glm(yc, list(a, a_same)[[k]], pretested, exposure = ex, family = stats::poisson())
+    expect_equal(p$z_perm[k], stats::coef(fk$model)[["treat"]], tolerance = 1e-8)
+  }
+  fp2 <- fit_solomon_glm(yc, treat, pretested, exposure = replace(ex, 15, ex[14]), family = stats::poisson())
+  p <- with_mocked_bindings(perm_solomon(fp2, "Treatment | unpretested", reps = 2, return_dist = TRUE),
+                            .perm_treat = feed(list(a, a_same)))
+  expect_identical(p$z_perm[2], p$z_perm[1])
+  expect_identical(p$n_classes, 2L)
 })
 
 # The tie window of #134 (.perm_tie_window()): one number per call, relative
