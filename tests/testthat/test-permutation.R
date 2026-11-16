@@ -1592,27 +1592,38 @@ test_that("no variation in a condition gives the classed error, or D5's warning 
   expect_equal(p$p_perm, 0.925, tolerance = 1e-12)
 })
 
-test_that("scores shifted by 10^12 give the p-values of the scores as given (#134, item 6)", {
+test_that("scores shifted by 10^12 give the p-values and tie window of the scores as given (#134, item 6)", {
   # #132's small-group data (tie_data(7)); shifted by 10^12, master gave .102
-  # where the 999 labelings give .117.
+  # where the 999 labelings give .117. These ties are found by structure, so
+  # p alone does not show that the outcome is moved before the refits:
+  # without the move p stays .117, but the refits' measured rounding error
+  # widens the window to a relative 0.017 and the margin warning fires. With
+  # the move the window stays at its floor, a relative 2^-40, as for the
+  # scores as given; the bound of 1e-10 leaves room for other platforms.
   d <- tie_data(7)
   shifted <- transform(d, y = y + 1e12)
   for (s in c("studentized", "difference")) {
     reps <- if (s == "studentized") 999L else 299L
-    p <- vapply(list(d, shifted), function(x) {
-      perm_solomon(fit_solomon_glm(y, treat, pretested, pre, data = x), "Treatment | unpretested",
-                   reps = reps, seed = 7, statistic = s)$p_perm
-    }, numeric(1))
-    expect_identical(p[2], p[1])
-    if (s == "studentized") expect_equal(p[1], 0.117, tolerance = 1e-12)
+    p <- lapply(list(d, shifted), function(x) {
+      fit <- fit_solomon_glm(y, treat, pretested, pre, data = x)
+      expect_no_warning(out <- perm_solomon(fit, "Treatment | unpretested", reps = reps, seed = 7, statistic = s))
+      out
+    })
+    expect_identical(p[[2]]$p_perm, p[[1]]$p_perm)
+    expect_lt(p[[2]]$tie_tolerance, 1e-10)
+    if (s == "studentized") expect_equal(p[[1]]$p_perm, 0.117, tolerance = 1e-12)
   }
 })
 
-test_that("a calendar-year covariate counts every tied labeling (#134, item 9)", {
+test_that("a calendar-year covariate counts every tied labeling, as given, centered, or as a matrix (#134, item 9)", {
   # The reproduction of October 9: groups of 3, a year from 2019 to 2024
   # shared by the conditions, so a labeling ties when it repeats or swaps the
-  # labels in each condition. Of the 999 drawn, 9 do; master counted 4 of
-  # them with the year as given (.039) and all 9 with it centered (.044).
+  # labels in each condition. Of the 999 drawn, 9 do. Master then (badf28e)
+  # counted 4 of them with the year as given (.039) and all 9 with it
+  # centered (.044). Standardizing numeric covariates (#137) fixed the year
+  # as given before #134, so master at 70022ef gives .044 for both. A matrix
+  # covariate is not standardized: with the year as a one-column matrix,
+  # 70022ef still counts 4 of the 9 (.039).
   g <- rep(1:4, each = 3)
   treat <- c(1, 0, 1, 0)[g]
   pretested <- c(1, 1, 0, 0)[g]
@@ -1622,7 +1633,8 @@ test_that("a calendar-year covariate counts every tied labeling (#134, item 9)",
   })
   d$year <- withr::with_seed(907, sample(2019:2024, 12, replace = TRUE))
   d$yc <- d$year - mean(d$year)
-  for (v in c("year", "yc")) {
+  d$ym <- I(matrix(d$year, ncol = 1))
+  for (v in c("year", "yc", "ym")) {
     fit <- fit_solomon_glm(y, treat, pretested, pre, covariates = d[v], data = d)
     labels <- perm_labels(fit, 999, 7)
     tied <- label_ties(fit, labels, 0) & label_ties(fit, labels, 1)
