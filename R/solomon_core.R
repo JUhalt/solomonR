@@ -1291,8 +1291,14 @@ stouffer_solomon <- function(p) {
 #'   another type, such as a date (give it as a column of a data frame).
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
-#'   participant. CR2 fits refuse designs in which a Solomon cell contains a
-#'   single cluster, because cluster and condition are then confounded; see
+#'   participant. CR2 fits refuse a cluster ID that is missing (`NA`), empty
+#'   (`""`), or only white space (spaces, tabs, or line breaks, which
+#'   [trimws()] removes) for a participant included in the model, with an
+#'   error of class `solomonR_cluster_error`: give every cluster a label. A
+#'   factor is taken by its labels, so a level `""` or `NA` that such a
+#'   participant has is refused, and an unused one is not. CR2 fits also
+#'   refuse designs in which a Solomon cell contains a single cluster,
+#'   because cluster and condition are then confounded; see
 #'   [validate_solomon()]. A classed warning (`solomonR_small_df_warning`)
 #'   flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 #'   4, where Tipton (2015) advises that p-values not be trusted.
@@ -1805,9 +1811,9 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
       used[fit$na.action] <- FALSE
     }
     cluster_fit <- cluster[used]
-    if (anyNA(cluster_fit)) {
-      stop("`cluster` is missing for participants included in the model.", call. = FALSE)
-    }
+    # A missing or empty cluster ID of a participant in the model stops,
+    # with an error of class `solomonR_cluster_error` (issue #183).
+    .check_cluster_ids(cluster_fit)
     # The clusters the CR2 covariance is computed from; `cluster` keeps one
     # value per input row.
     n_clusters <- length(unique(cluster_fit))
@@ -2101,6 +2107,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'
 #' Designs that assign treatment to participants within clusters are refused,
 #' and stratified or restricted randomization of clusters is not supported.
+#' A cluster ID that is missing (`NA`), empty (`""`), or only white space
+#' for a participant in the model is refused with an error of class
+#' `solomonR_cluster_error`. The CR2 fits of [fit_solomon_glm()] refuse such
+#' an ID too, but a fit with a `cluster` and another covariance can hold
+#' one, as can a fit made by an earlier version of solomonR.
 #'
 #' The statistic is built from cluster-level summaries (Gail et al., 1996;
 #' Hayes & Moulton, 2017, ch. 10). A Stage 1 model with every term of the fit

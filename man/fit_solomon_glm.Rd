@@ -87,8 +87,14 @@ another type, such as a date (give it as a column of a data frame).}
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
 \item{cluster}{optional clustering id (e.g., class/site), one value per
-participant. CR2 fits refuse designs in which a Solomon cell contains a
-single cluster, because cluster and condition are then confounded; see
+participant. CR2 fits refuse a cluster ID that is missing (\code{NA}), empty
+(\code{""}), or only white space (spaces, tabs, or line breaks, which
+\code{\link[=trimws]{trimws()}} removes) for a participant included in the model, with an
+error of class \code{solomonR_cluster_error}: give every cluster a label. A
+factor is taken by its labels, so a level \code{""} or \code{NA} that such a
+participant has is refused, and an unused one is not. CR2 fits also
+refuse designs in which a Solomon cell contains a single cluster,
+because cluster and condition are then confounded; see
 \code{\link[=validate_solomon]{validate_solomon()}}. A classed warning (\code{solomonR_small_df_warning})
 flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 4, where Tipton (2015) advises that p-values not be trusted.}

@@ -532,6 +532,9 @@ the audit:
   - [x] A seeded cluster permutation test in `perm_solomon()`, and the
     simulated p-value of `check_solomon_missing()`, that change with the
     session's collation — [#179](https://github.com/JUhalt/solomonR/issues/179); merged in [PR #182](https://github.com/JUhalt/solomonR/pull/182)
+  - [x] An empty cluster ID (`""`), which CR2 fits of `fit_solomon_glm()`
+    accepted and on which `perm_solomon()` then stopped with an internal
+    error — [#183](https://github.com/JUhalt/solomonR/issues/183); merged in [PR #184](https://github.com/JUhalt/solomonR/pull/184)
 
 # Later / exploratory
 
