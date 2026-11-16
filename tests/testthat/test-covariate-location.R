@@ -2391,6 +2391,14 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
       ref <- stored$results[[name]][[part]]
       got <- now[[name]][[part]]
       info <- paste(name, part)
+      # perm_solomon() permutes the treatment labels among the participants
+      # in the model since #134 (decision D2), here 113 of the 120: six
+      # posttests and one age are missing. Master's code, given those 113
+      # rows alone, gives p = .33 for the Pretest x Treatment contrast under
+      # the same seed and draws, as perm_solomon() now does. The estimate, the
+      # observed statistic, the number of permutations, and the ATE's p (.25)
+      # are unchanged.
+      if (name == "perm Pretest x Treatment") ref[["p_perm"]] <- 0.33
       if (part == "text" && grepl("^marginal", name)) {
         # Since #171 the print of marginal_solomon() also says that the
         # "observed" standardization leaves out the pretested participant

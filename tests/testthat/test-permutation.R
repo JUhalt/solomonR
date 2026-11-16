@@ -1469,3 +1469,167 @@ test_that("the report says why an observed statistic is infinite (#134)", {
   expect_true(is.finite(finite$z_obs))
   expect_no_match(report_solomon(finite)$results, "infinite", fixed = TRUE)
 })
+
+# Decision D2 of #134: labels are permuted among the participants in the
+# model, and rows outside it do not enter the refit. No world of the
+# reference set's fixture has rows outside the model, so this checks it
+# directly: with a posttest missing in two arms, every labeling of the 10
+# participants in the model is fed in (10 choices in each condition), and
+# the count is that of the same labelings refitted with lm() and HC3. Each
+# participant is its own row type, so only the observed labeling ties with
+# itself. Nothing is drawn.
+test_that("labels are permuted among the participants in the model, and counted as lm() counts them (#134, D2)", {
+  g <- rep(1:4, each = 3)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  y <- c(2.31, NA, 0.87, 1.45, 3.02, 1.96, 2.74, 0.52, 1.18, 3.37, NA, 2.05)
+  x <- c(0.4, -1.1, 1.3, 0.2, -0.6, 0.9, -1.4, 0.7, 1.8, -0.3, 0.5, -0.9)
+  fit <- fit_solomon_glm(y, treat, pretested, covariates = data.frame(x = x))
+  used <- !is.na(y)
+  labs <- list()
+  for (u in utils::combn(which(used & pretested == 0), 3, simplify = FALSE)) {
+    for (p in utils::combn(which(used & pretested == 1), 2, simplify = FALSE)) {
+      labs[[length(labs) + 1]] <- replace(numeric(12), c(u, p), 1)
+    }
+  }
+  expect_length(labs, 100)
+  expect_true(any(vapply(labs, function(l) identical(l[used], treat[used]), logical(1))))
+  # each labeling's contrast and HC3-studentized contrast, by lm() on the rows
+  # in the model
+  w <- rbind("Treatment | unpretested" = c(1, 0), "ATE (avg over pretest)" = c(1, 0.5))
+  on <- c("treat", "treat:pretested")
+  by_lm <- function(t) {
+    m <- stats::lm(y ~ treat * pretested + x, data = data.frame(y, treat = t, pretested, x)[used, ])
+    est <- drop(w %*% stats::coef(m)[on])
+    v <- w %*% sandwich::vcovHC(m, type = "HC3")[on, on] %*% t(w)
+    abs(cbind(studentized = est / sqrt(diag(v)), difference = est))
+  }
+  observed <- by_lm(treat)
+  permuted <- vapply(labs, by_lm, observed)
+  for (k in rownames(w)) for (s in colnames(observed)) {
+    z <- permuted[k, s, ]
+    # no labeling but the observed one within a relative 1e-6 of it, so the
+    # tolerance below decides nothing
+    near <- abs(z - observed[k, s]) <= 1e-6 * observed[k, s]
+    expect_identical(sum(near), 1L)
+    b <- sum(z >= observed[k, s] * (1 - 1e-9))
+    seen <- integer(0)
+    j <- 0L
+    run <- function() {
+      with_mocked_bindings(
+        perm_solomon(fit, k, reps = 100, statistic = s),
+        .perm_treat = function(treat, pretested) {
+          seen <<- c(seen, length(treat), length(pretested))
+          j <<- j + 1L
+          labs[[j]][used]
+        })
+    }
+    # the arms in the model are 2 and 3 in each condition
+    if (s == "difference") {
+      expect_warning(p <- run(), class = "solomonR_unbalanced_arms_warning")
+    } else {
+      p <- run()
+    }
+    expect_identical(unique(seen), 10L)
+    expect_identical(p$valid_reps, 100L)
+    expect_equal(p$p_perm, (b + 1) / 101, tolerance = 1e-12)
+  }
+})
+
+# The issue's own reproductions as regression tests (decision D6 of #134):
+# items 2, 3, 5, 6, and 9, with the issue's data and seeds (seed 1 for items
+# 2, 3, and 5; #132's tie_data(7) and seed 7 for item 6; seeds 6107, 907,
+# and 7 for item 9). Item 3's pretested counts and item 5's pretested scores,
+# which the issue does not give, are those the design drew with seeds
+# 1341903 and 1341904, written out.
+test_that("an observed labeling with an empty arm gives the share of labelings at infinity (#134, item 2)", {
+  # Successes 6, 4, 4, and 0 of 10; master gave .006 for the studentized
+  # statistic (z_obs 26.14) and .088 for the difference.
+  b <- binary_data(10, c(6, 4, 4, 0))
+  fit <- suppressWarnings(fit_solomon_glm(b$y, b$treat, b$pretested, family = stats::binomial()))
+  emptied <- sum(unpretested_totals(fit, perm_labels(fit, 999, 1))[1, ] %in% c(0, 4))
+  expect_identical(emptied, 87L)
+  for (s in c("studentized", "difference")) {
+    p <- perm_solomon(fit, "Treatment | unpretested", reps = 999, seed = 1, statistic = s)
+    expect_identical(p$z_obs, Inf)
+    expect_identical(c(p$valid_reps, p$n_infinite), c(999L, 87L))
+    expect_equal(p$p_perm, 0.088, tolerance = 1e-12)
+  }
+})
+
+test_that("labelings with a zero-total arm are counted, not dropped (#134, item 3)", {
+  # The issue's unpretested counts; master dropped some of the 93 labelings
+  # that give an arm a total of 0 (14 of 999 under this seed, p = .430).
+  yp <- c(1, 2, 2, 1, 3, 1, 1, 1, 1, 1, 1, 2, 0, 2, 1, 1, 0, 0, 1, 0)
+  y <- c(yp, 1, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0)
+  treat <- rep(c(1, 0, 1, 0), each = 10)
+  pretested <- rep(c(1, 0), each = 20)
+  fit <- suppressWarnings(fit_solomon_glm(y, treat, pretested, family = stats::poisson()))
+  totals <- unpretested_totals(fit, perm_labels(fit, 999, 1))
+  zero <- sum(totals[1, ] == 0 | totals[2, ] == 0)
+  expect_identical(zero, 93L)
+  p <- perm_solomon(fit, "Treatment | unpretested", reps = 999, seed = 1)
+  expect_identical(c(p$valid_reps, p$n_infinite), c(999L, 93L))
+  expect_equal(p$p_perm, 0.438, tolerance = 1e-12)
+})
+
+test_that("no variation in a condition gives the classed error, or D5's warning (#134, item 5)", {
+  # Every unpretested score 0.3: the contrast on that condition is exactly 0
+  # under every labeling (master: an unclassed error for the studentized
+  # statistic, p = .050 for the difference); the ATE still varies through the
+  # pretested condition.
+  g <- rep(1:4, each = 5)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  y <- c(0, 0.2, 1.3, -1.8, -0.3, 0.3, 0.7, -0.4, -0.4, -0.3, rep(0.3, 10))
+  fit <- fit_solomon_glm(y, treat, pretested)
+  for (s in c("studentized", "difference")) {
+    expect_error(perm_solomon(fit, "Treatment | unpretested", reps = 199, seed = 1, statistic = s),
+                 "does not vary in the unpretested condition", class = "solomonR_perm_no_variation_error")
+  }
+  expect_warning(p <- perm_solomon(fit, "ATE (avg over pretest)", reps = 199, seed = 1),
+                 "varies only through the other condition", class = "solomonR_perm_no_variation_warning")
+  expect_equal(p$p_perm, 0.925, tolerance = 1e-12)
+})
+
+test_that("scores shifted by 10^12 give the p-values of the scores as given (#134, item 6)", {
+  # #132's small-group data (tie_data(7)); shifted by 10^12, master gave .102
+  # where the 999 labelings give .117.
+  d <- tie_data(7)
+  shifted <- transform(d, y = y + 1e12)
+  for (s in c("studentized", "difference")) {
+    reps <- if (s == "studentized") 999L else 299L
+    p <- vapply(list(d, shifted), function(x) {
+      perm_solomon(fit_solomon_glm(y, treat, pretested, pre, data = x), "Treatment | unpretested",
+                   reps = reps, seed = 7, statistic = s)$p_perm
+    }, numeric(1))
+    expect_identical(p[2], p[1])
+    if (s == "studentized") expect_equal(p[1], 0.117, tolerance = 1e-12)
+  }
+})
+
+test_that("a calendar-year covariate counts every tied labeling (#134, item 9)", {
+  # The reproduction of October 9: groups of 3, a year from 2019 to 2024
+  # shared by the conditions, so a labeling ties when it repeats or swaps the
+  # labels in each condition. Of the 999 drawn, 9 do; master counted 4 of
+  # them with the year as given (.039) and all 9 with it centered (.044).
+  g <- rep(1:4, each = 3)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  d <- withr::with_seed(6107, {
+    pre <- ifelse(pretested == 1, stats::rnorm(12), NA)
+    data.frame(y = 0.8 * treat + ifelse(is.na(pre), 0, 0.5 * pre) + stats::rnorm(12), treat, pretested, pre)
+  })
+  d$year <- withr::with_seed(907, sample(2019:2024, 12, replace = TRUE))
+  d$yc <- d$year - mean(d$year)
+  for (v in c("year", "yc")) {
+    fit <- fit_solomon_glm(y, treat, pretested, pre, covariates = d[v], data = d)
+    labels <- perm_labels(fit, 999, 7)
+    tied <- label_ties(fit, labels, 0) & label_ties(fit, labels, 1)
+    expect_identical(sum(tied), 9L)
+    p <- perm_solomon(fit, "Treatment | unpretested", reps = 999, seed = 7, return_dist = TRUE)
+    more <- abs(p$z_perm) > abs(p$z_obs) & !tied
+    expect_equal(p$p_perm, (sum(more) + sum(tied) + 1) / 1000, tolerance = 1e-12)
+    expect_equal(p$p_perm, 0.044, tolerance = 1e-12)
+  }
+})
