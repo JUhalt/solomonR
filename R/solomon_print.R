@@ -452,9 +452,11 @@ print.solomon_perm <- function(x, digits = 2, ...) {
     )
   }
 
+  # On the cluster path only constant arms give an infinite statistic.
   if (isTRUE(x$n_infinite > 0)) {
     cat(sprintf(
-      "Infinite statistics (emptied or constant arms, separation): %d, counted as at least as extreme\n",
+      "Infinite statistics (%s): %d, counted as at least as extreme\n",
+      if (identical(x$level, "cluster")) "constant arms" else "emptied or constant arms, separation",
       x$n_infinite
     ))
   }

@@ -22,8 +22,11 @@ plot_perm <- function(perm) {
   # floor (recorded by perm_solomon() since issue #134) and its form of p are
   # used, through the function perm_solomon() uses: b / M when every
   # allocation was used, otherwise (b + 1) / (m + 1). An object saved before
-  # issue #134 records neither and gets the rule it was made with (1e-10,
-  # unit 1).
+  # issue #134 records neither and gets the rule this function used then: a
+  # window of 1e-10, and for a difference the largest permuted difference as
+  # the unit, with no floor (`scale = 0`). A floor of 1 would count every
+  # difference as tied with an observed one when the outcome's units make
+  # them all small.
   kept <- !is.na(perm$z_perm)
   z_kept <- perm$z_perm[kept]
   p_value <- if (!is.null(perm$p_perm)) {
@@ -32,7 +35,7 @@ plot_perm <- function(perm) {
     .perm_p_value(z_kept, perm$z_obs[1], perm$statistic,
                   tol = if (is.null(perm$tie_tolerance)) 1e-10 else perm$tie_tolerance,
                   exact = isTRUE(perm$exact),
-                  scale = if (is.null(perm$tie_scale)) 1 else perm$tie_scale)
+                  scale = if (is.null(perm$tie_scale)) 0 else perm$tie_scale)
   }
 
   title <- if (!is.null(perm$contrast)) {
@@ -48,15 +51,17 @@ plot_perm <- function(perm) {
     sprintf("%d permutations", length(z_kept))
   }
 
-  # Infinite statistics (an emptied or constant arm, or separation) are
-  # counted in the p-value but cannot be drawn; the caption says how many
-  # there are, and whether the observed one is infinite.
+  # Infinite statistics (an emptied or constant arm, or separation; on the
+  # cluster path only constant arms) are counted in the p-value but cannot be
+  # drawn; the caption says how many there are, and whether the observed one
+  # is infinite.
   finite <- is.finite(z_kept)
   n_inf <- sum(!finite)
+  why <- if (identical(perm$level, "cluster")) "constant arms" else "an emptied or constant arm, or separation"
   caption <- if (n_inf > 0 || !is.finite(perm$z_obs[1])) {
     paste0(
-      n_inf, " of ", length(z_kept), " permuted statistics are infinite (an emptied or ",
-      "constant arm, or separation) and are counted, not drawn",
+      n_inf, " of ", length(z_kept), " permuted statistics are infinite (", why, ") and are ",
+      "counted, not drawn",
       if (!is.finite(perm$z_obs[1])) "; the observed statistic is infinite" else "", "."
     )
   }

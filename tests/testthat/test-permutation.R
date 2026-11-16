@@ -1288,7 +1288,9 @@ test_that("the statistic routine marks decisions close to a threshold (#134)", {
 # order: NA for a labeling left out (D16), Inf kept. Without a p-value,
 # plot_perm() recomputes it from the tie window and unit floor the object
 # records, through .perm_p_value(); an object saved before #134 records
-# neither and gets the rule it was made with (1e-10, unit 1). Infinite
+# neither and gets the rule plot_perm() used then (1e-10, and for a
+# difference the largest permuted difference as the unit, with no floor; at
+# 70022ef, .perm_unit(c(-0.8, 0.4), "difference") was 0.8). Infinite
 # statistics are counted, not drawn. The print line "Valid permutations" is
 # now "Permutations used" (decision M7). The draws on the binary data come
 # from seed 1342009; the other labelings are fed.
@@ -1371,11 +1373,17 @@ test_that("z_perm has one entry per draw, and plot_perm() and print() read it (#
   # near value out.
   expect_match(subtitle(modifyList(obj, list(tie_tolerance = 1e-12))), "p = 0.500", fixed = TRUE)
   expect_match(subtitle(modifyList(obj, list(tie_scale = 0))), "p = 0.500", fixed = TRUE)
-  # An object saved before #134 records neither: 1e-10 and unit 1.
+  # An object saved before #134 records neither: 1e-10, and the largest
+  # permuted difference (here 0.1 - 5e-11) as the unit, so the near value is
+  # left out, as plot_perm() at 70022ef left it out. Differences of order
+  # 1e-12, none as large as the observed one, give 1 / 7 as they did then; a
+  # unit floor of 1 would have counted all six (p = 1).
   old <- obj[setdiff(names(obj), c("tie_tolerance", "tie_scale"))]
   class(old) <- "solomon_perm"
   old$z_perm <- c(0.1 - 5e-11, 0.05)
-  expect_match(subtitle(old), "permutation p = 0.667 (2 permutations)", fixed = TRUE)
+  expect_match(subtitle(old), "permutation p = 0.333 (2 permutations)", fixed = TRUE)
+  small <- modifyList(old, list(z_obs = 3e-12, z_perm = c(1, -2, 0.5, 2.5, -1, 0.2) * 1e-12))
+  expect_match(subtitle(small), "permutation p = 0.143 (6 permutations)", fixed = TRUE)
   # Every allocation used: b / M, the observed allocation among them.
   ex <- structure(list(contrast = tu, statistic = "studentized", level = "cluster", z_obs = 2,
                        exact = TRUE, z_perm = c(2, -2, 1, 0.5)), class = "solomon_perm")
@@ -1419,8 +1427,14 @@ test_that("z_perm has one entry per draw, and plot_perm() and print() read it (#
     "  arm the contrast compares, and the contrast is not zero.",
     "Permutation p = .100 (exact)",
     "All 20 possible allocations used; smallest attainable p = .100",
-    "Infinite statistics (emptied or constant arms, separation): 2, counted as at least as extreme"
+    "Infinite statistics (constant arms): 2, counted as at least as extreme"
   ))
+  # On the cluster path only constant arms give an infinite statistic, and
+  # the caption names only them.
+  cl$z_perm <- c(Inf, rep(0.5, 18), Inf)
+  expect_identical(plot_perm(cl)$labels$caption, paste0(
+    "2 of 20 permuted statistics are infinite (constant arms) and are counted, not drawn; the ",
+    "observed statistic is infinite."))
   # An object saved before #134 prints none of the new lines.
   old <- structure(list(contrast = tu, statistic = "difference", level = "participant", estimate = 0.25,
                         z_obs = 0.25, p_perm = 0.3, reps = 9L, valid_reps = 9L, exact = FALSE),
