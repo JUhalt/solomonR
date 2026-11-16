@@ -136,7 +136,16 @@ being `NULL` without a numeric `y_pre`:
   level, `n`, `posttest_missing`, `share`, `analyzed_share`, `p.value`,
   and `test` (`"exact"` or `"simulated"`); or, for a numeric covariate
   with more than two values, its mean among those with (`mean_with`) and
-  without (`mean_without`) a posttest. `NULL` without `covariates`.
+  without (`mean_without`) a posttest. `NULL` without `covariates`. The
+  levels are listed in the C locale's order (the order of the
+  characters' Unicode code points, in which capital letters come before
+  lower-case ones and accented letters after both), whatever the
+  session's collation, and a factor's levels in that order too, not in
+  its own level order. The levels are those of the data, unchanged: text
+  as [`read.csv()`](https://rdrr.io/r/utils/read.table.html) returns it
+  is taken by its bytes, which gives that order for a UTF-8 file in any
+  session. So the p-value simulated under the fixed seed is the same in
+  every session.
 
 - `missing_pretest`: for each pretested condition, the participants with
   a posttest and no pretest (`n_without_pretest`,
@@ -278,10 +287,13 @@ summarizes them:
     the same margins, under a fixed seed, when there are more, because
     the exact test of a larger table can exceed its workspace at
     ordinary sample sizes; that choice is the package's, and no source
-    fixes one. Dukes et al. (1995, p. 413) compared the course grades of
-    the students lost in this way. A covariate that predicts the
-    posttest belongs in the model; that it weakens both centers'
-    assumptions is the record's inference, not a checked result.
+    fixes one. The levels are taken in the C locale's order in every
+    session, so the simulated p-value does not depend on the session's
+    collation (see `covariates` under Value). Dukes et al.
+    (1995, p. 413) compared the course grades of the students lost in
+    this way. A covariate that predicts the posttest belongs in the
+    model; that it weakens both centers' assumptions is the record's
+    inference, not a checked result.
 
 7.  **Pretested participants with a posttest and no pretest**: their
     number and mean posttest beside those of the pretested participants

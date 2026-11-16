@@ -901,6 +901,14 @@ commit) and the CI run merged in [PR
 studies run through the harness, when the robustness study joins the
 page.
 
+A seeded cluster permutation test in
+[`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md),
+and the simulated p-value of
+[`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md),
+that change with the session’s collation —
+[\#179](https://github.com/JUhalt/solomonR/issues/179); merged in [PR
+\#182](https://github.com/JUhalt/solomonR/pull/182)
+
 # Later / exploratory
 
 These are intentionally outside the initial release path. Proposals

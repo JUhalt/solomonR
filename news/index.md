@@ -2,6 +2,166 @@
 
 ## solomonR (development version)
 
+### Seeded results under another collation (bug fix, [\#179](https://github.com/JUhalt/solomonR/issues/179))
+
+- [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+  with a clustered fit took the clusters in the order in which the
+  session’s collation sorts their IDs. When there are more possible
+  allocations than `reps`, it draws the allocations at random, and the
+  same seed then drew them for other clusters under another collation.
+  So a seeded p-value differed from one session to another by Monte
+  Carlo error: for instance, between an English session and one started
+  with `LC_COLLATE=C`, or inside `withr::with_collate("C", ...)`. Both
+  p-values were valid, but the result could not be reproduced exactly,
+  and no message said why. The print,
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md),
+  and
+  [`plot_perm()`](https://juhalt.github.io/solomonR/reference/plot_perm.md)
+  carried the difference, and so did `z_perm` with `return_dist = TRUE`.
+  This happened in both designs (clusters assigned to the four groups,
+  and pretesting within clusters), for IDs that the two collations sort
+  differently: names that start with capital and lower-case letters
+  (`north01`, `South02`), or that contain accented letters or, in some
+  collations, punctuation such as underscores. A factor cluster was
+  sorted by its labels in the same way. Within one session, a seed gave
+  the same result. The participant-level test, and a cluster test that
+  uses every allocation, gave the same p-value in every session.
+- [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  listed the levels of a character or factor covariate in the order of
+  the session’s collation; a factor’s own level order was not used. With
+  three or more levels, its Fisher test of loss by level simulates the
+  p-value from tables drawn under a fixed seed, so that p-value, and the
+  printed summary, changed with the collation too.
+- The clusters, and the levels of such a covariate, are now taken in the
+  C locale’s order (the order of the characters’ Unicode code points, in
+  which capital letters come before lower-case ones and accented letters
+  after both) in every session. A factor is still taken by its labels,
+  now in that order, not by its level order. The IDs and levels
+  themselves are not changed. Text as
+  [`read.csv()`](https://rdrr.io/r/utils/read.table.html) returns it is
+  ordered by its bytes, which gives that order for a UTF-8 file in any
+  session, including one whose native encoding is not UTF-8, such as a
+  session started with `LC_ALL=C`. In a session whose native encoding is
+  a single-byte code page, such as Windows-1252 (R 4.1 on Windows) or
+  Latin-1, text in that encoding is ordered by its bytes too, as a C
+  session there ordered it before; that order can differ from the order
+  of the same text in UTF-8, as it does for the euro sign and curly
+  quotes in Windows-1252. There R takes such text and the same letters
+  marked as UTF-8 or as Latin-1 as one value, although their bytes
+  differ. A value that comes in more than one of these forms is placed
+  by the form whose bytes come first, text marked as Latin-1 being taken
+  by its bytes in UTF-8, and keeps the form in which it first appears in
+  the data, so the order of the rows does not move it. For instance, `é`
+  that comes both in Windows-1252 (e9) and in UTF-8 (c3 a9) comes before
+  `Ä` (c4), and `À` that comes in both (c0 and c3 80) before `Á` (c1).
+  In a session whose native encoding is not UTF-8, R takes text with the
+  same bytes marked as native and as UTF-8 as two values; the one marked
+  UTF-8 comes first, whatever the collation.
+  [`?perm_solomon`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+  (under `seed`) and
+  [`?check_solomon_missing`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  say so.
+- [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  stopped with “Character encoding must be UTF-8, Latin-1 or bytes” on a
+  binary or count fit with a pretest and a character covariate with
+  accented levels, as
+  [`read.csv()`](https://rdrr.io/r/utils/read.table.html) returns them
+  in a UTF-8 session (the default on macOS and Linux, and on Windows
+  since R 4.2). It came in after the 0.8.2 release, with the check of
+  the levels that the model does not have
+  ([\#171](https://github.com/JUhalt/solomonR/issues/171)). A fit now
+  stores such a covariate as a factor
+  ([\#170](https://github.com/JUhalt/solomonR/issues/170)), and the note
+  names those levels in the order of the factor’s levels. A fit that
+  stores it as character, as fits made before
+  [\#170](https://github.com/JUhalt/solomonR/issues/170) did, no longer
+  stops either, and its note names those levels in the C order.
+- What changes: outside a session whose collation is C, a seeded cluster
+  p-value with random allocations (`exact = FALSE`), for IDs that the C
+  locale and the session sort differently, is now the one that a C
+  session gave before. So is the simulated p-value of
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  for such levels (its `covariates` argument came after the 0.8.2
+  release). A seeded p-value reported from such a session will differ
+  when the analysis is rerun. Other results change in order, and in
+  value only by rounding error: when every allocation is used, `z_perm`
+  comes in another order, its values can differ in the last digits, and
+  the p-value is the same; and the rows of a covariate’s table in
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md),
+  and the levels in its printed summary, come in another order with two
+  levels too, where the exact test’s p-value can differ by rounding
+  error. In a session whose native encoding is not UTF-8, text marked as
+  UTF-8 or as Latin-1 (as
+  [`Encoding()`](https://rdrr.io/r/base/Encoding.html) shows;
+  [`read.csv()`](https://rdrr.io/r/utils/read.table.html) marks text as
+  native) was converted to that encoding to be sorted, and is now
+  ordered by its bytes in UTF-8. Where that encoding lacks the accented
+  letters, as in a session started with `LC_ALL=C`, IDs and levels with
+  such letters were sorted as if each came before every unaccented
+  letter, and now come after them, as in a UTF-8 session. In a
+  single-byte code page, the order can change where such text is mixed
+  with accented text in the code page, or holds characters, such as the
+  euro sign, that the code page orders differently from UTF-8. So seeded
+  and simulated p-values for such IDs and levels can change there too,
+  under the C collation as well.
+- What does not change: any result in a session whose collation is C,
+  except for the text marked as UTF-8 or as Latin-1 just described; in
+  every session, results for IDs and levels that both orders sort the
+  same: numeric IDs, names of letters and digits in one case (`n01`,
+  `N01`), and zero-padded names (`school01`); and the participant-level
+  test. The package’s cluster simulation study numbers its clusters, so
+  its results stand.
+- Tests check, with mixed-case IDs and more allocations than `reps`, in
+  both designs and with `return_dist = TRUE`, that
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+  gives the same result under the session’s collation (or an English
+  one, when the session sorts the IDs as C does) and under C; the same
+  result as with the IDs replaced by zero-padded labels in their C
+  order, and as with a factor cluster whose levels are in the order of
+  the data; and the same p-value, with statistics equal to rounding
+  error, when the rows are shuffled. They check that a test that uses
+  every allocation gives the same `z_perm`, in the same order, under
+  both collations; that seeded p-values for IDs `c1`, `c2`, … are those
+  of the previous version, under both collations; and that
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
+  gives the same table under both collations, with the levels in the C
+  order and the p-values that a C session gave before, for a character
+  and a factor covariate, and with two levels. In a UTF-8 session, they
+  check that accented IDs and levels marked as
+  [`read.csv()`](https://rdrr.io/r/utils/read.table.html) marks them
+  give, in the C order, the results of the same text marked as UTF-8, in
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+  (both designs),
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md),
+  and
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md),
+  where a participant outside the model from a site that the model has
+  is standardized over; and that a fit storing those sites as character,
+  as fits made before
+  [\#170](https://github.com/JUhalt/solomonR/issues/170) did, gives the
+  same results, with the levels the model does not have named in the C
+  order. They check that the IDs and levels come back with their own
+  bytes and encoding marks, for text marked as UTF-8, as Latin-1, and as
+  [`read.csv()`](https://rdrr.io/r/utils/read.table.html) marks it, and
+  that a byte below 0x10, such as a tab, takes its place in the C order.
+  In a session started with `LC_ALL=C` (skipped on CRAN), they check
+  that text as [`read.csv()`](https://rdrr.io/r/utils/read.table.html)
+  returns it there keeps its values and gives the results of a UTF-8
+  session in all three functions, and that IDs marked as UTF-8 or as
+  Latin-1 are put in the C order. In a session whose native encoding is
+  Windows-1252 or Latin-1 (skipped on CRAN and where no such locale is
+  available), with an ID or a level in UTF-8 in some rows and in the
+  code page in others, they check that reversing the rows changes
+  neither the order of the clusters and levels nor the results of
+  [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+  (both designs) and
+  [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md).
+  There they check that `é` and `À`, in the code page and in UTF-8 or
+  Latin-1, are placed by the form whose bytes come first, whichever
+  comes first in the data, and come back as they first appear; and that
+  the same bytes marked as native and as UTF-8 come with the one marked
+  UTF-8 first, under the collation of the code page’s locale.
+
 ### Character covariates and the collation (bug fix, [\#170](https://github.com/JUhalt/solomonR/issues/170))
 
 - [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
