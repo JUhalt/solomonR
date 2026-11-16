@@ -438,7 +438,11 @@ covering more than 96% of the time with 4 clusters per cell or arm.
 <code><a href="perm_solomon.html">perm_solomon()</a></code> gives a cluster-level randomization test. Clustered count
 fits have not been validated and are refused; for them, the log rate-ratio
 contrasts of <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> with CR2 covariance and <code><a href="perm_solomon.html">perm_solomon()</a></code>
-account for clustering.</p>
+account for clustering.
+With <code>method = "cluster_summary"</code>, a fit made by an earlier version of
+solomonR whose clusters include an empty ID (<code>""</code> or only white space)
+for a participant in the model, which CR2 fits now refuse, stops with an
+error of class <code>solomonR_cluster_error</code>.</p>
 <p>The package's simulation validation of this function is described on
 issue #43 (binary outcomes), issue #44 (count outcomes), issue #62
 (negative-binomial fits), and issue #64 (clustered fits).</p>

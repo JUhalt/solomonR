@@ -115,8 +115,15 @@ fit_solomon_glm(
 - cluster:
 
   optional clustering id (e.g., class/site), one value per participant.
-  CR2 fits refuse designs in which a Solomon cell contains a single
-  cluster, because cluster and condition are then confounded; see
+  CR2 fits refuse a cluster ID that is missing (`NA`), empty (`""`), or
+  only white space (spaces, tabs, or line breaks, which
+  [`trimws()`](https://rdrr.io/r/base/trimws.html) removes) for a
+  participant included in the model, with an error of class
+  `solomonR_cluster_error`: give every cluster a label. A factor is
+  taken by its labels, so a level `""` or `NA` that such a participant
+  has is refused, and an unused one is not. CR2 fits also refuse designs
+  in which a Solomon cell contains a single cluster, because cluster and
+  condition are then confounded; see
   [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md).
   A classed warning (`solomonR_small_df_warning`) flags Solomon
   contrasts whose Satterthwaite degrees of freedom are below 4, where

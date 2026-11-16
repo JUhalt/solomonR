@@ -169,7 +169,12 @@ supported:
 
 Designs that assign treatment to participants within clusters are
 refused, and stratified or restricted randomization of clusters is not
-supported.
+supported. A cluster ID that is missing (`NA`), empty (`""`), or only
+white space for a participant in the model is refused with an error of
+class `solomonR_cluster_error`. The CR2 fits of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+refuse such an ID too, but a fit with a `cluster` and another covariance
+can hold one, as can a fit made by an earlier version of solomonR.
 
 The statistic is built from cluster-level summaries (Gail et al., 1996;
 Hayes & Moulton, 2017, ch. 10). A Stage 1 model with every term of the

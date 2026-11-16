@@ -135,7 +135,13 @@ single observation. Plan cell sizes with a power analysis.
 Clustered designs: when participants belong to classes, schools, or
 sites, supply `cluster`. The number of clusters and the range of cluster
 sizes are then reported for each cell, together with whether treatment
-and pretesting were assigned to whole clusters or varied within them.
+and pretesting were assigned to whole clusters or varied within them. An
+assigned participant without a cluster identifier (`NA`), or with an
+empty one (`""` or only white space), is a warning:
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+with `robust = "CR2"` and
+[`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
+refuse both for a participant in the model.
 
 A cell that contains a single cluster is an error. Class and condition
 are then completely confounded, as when each Solomon condition is one

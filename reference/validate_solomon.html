@@ -217,7 +217,11 @@ single observation. Plan cell sizes with a power analysis.</p>
 <p>Clustered designs: when participants belong to classes, schools, or sites,
 supply <code>cluster</code>. The number of clusters and the range of cluster sizes are
 then reported for each cell, together with whether treatment and pretesting
-were assigned to whole clusters or varied within them.</p>
+were assigned to whole clusters or varied within them. An assigned
+participant without a cluster identifier (<code>NA</code>), or with an empty one
+(<code>""</code> or only white space), is a warning: <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> with
+<code>robust = "CR2"</code> and <code><a href="perm_solomon.html">perm_solomon()</a></code> refuse both for a participant in
+the model.</p>
 <p>A cell that contains a single cluster is an error. Class and condition are
 then completely confounded, as when each Solomon condition is one intact
 class (El Karkri et al., 2025a): a difference between the classes cannot be
