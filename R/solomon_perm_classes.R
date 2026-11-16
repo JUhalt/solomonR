@@ -1,4 +1,4 @@
-# Classes of labelings of perm_solomon() (issue #134).
+# Classes of labelings and the tie window of perm_solomon() (issue #134).
 #
 # A class is the set of labelings that give each arm the same rows, where two
 # rows count as the same when everything the model sees in them is equal, bit
@@ -134,4 +134,38 @@
     tr[p$idx] <- as.numeric(p$rank <= canon[[k]][p$type])
   }
   tr
+}
+
+# The tie window of perm_solomon() (issue #134, items 1 and 7), one number
+# per call, relative to s0 = max(|z_obs|, unit) as .perm_at_least() takes it.
+# Statistics of one class, or of swapped classes, are the same double and
+# need no window. Distinct classes that are equal in exact arithmetic (equal
+# sufficient statistics, limiting models) differ by the rounding of two
+# separate fits; that rounding is measured as the change in a statistic when
+# its model is refitted with the rows in reverse order. The window is the
+# larger of the floor .perm_tie_tolerance() (2^-40) and 100 times the largest
+# measured error, of the observed statistic (`e_obs`) and of every distinct
+# class within a relative `band` (1e-6) of it (at most `max_refits` of them,
+# the closest first). `z` holds the statistics used and `keys` their classes;
+# `err_of_key(key)` returns the measured error of a class. Returns the
+# window, the error, and the margin check: the number of distinct classes
+# that lie below the window but within 100 windows of it (near), and whether
+# the window exceeds a relative 1e-7, the closest gap between distinct
+# statistics in the reference set outside its constructed near-ties (wide).
+.perm_tie_window <- function(z, keys, z_obs, unit, e_obs, err_of_key, band = 1e-6, max_refits = 200L) {
+  floor_rel <- .perm_tie_tolerance()
+  if (!is.finite(z_obs)) return(list(tol = floor_rel, err = 0, near = 0L, wide = FALSE))
+  s0 <- max(abs(z_obs), unit)
+  fin <- is.finite(z)
+  dist <- abs(abs(z) - abs(z_obs))
+  cand <- which(fin & dist > 0 & dist <= band * s0)
+  cand <- cand[!duplicated(keys[cand])]
+  cand <- cand[order(dist[cand])][seq_len(min(length(cand), max_refits))]
+  e <- e_obs
+  for (i in cand) e <- max(e, err_of_key(keys[i]))
+  tol <- max(floor_rel, 100 * e / s0)
+  win <- tol * s0
+  below <- fin & abs(z) < abs(z_obs) - win & abs(z) >= abs(z_obs) - 100 * win
+  list(tol = tol, err = e, near = length(unique(keys[below])),
+       wide = tol > 1e-7)
 }

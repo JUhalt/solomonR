@@ -247,13 +247,13 @@ test_that("the tie rule counts ties and treats rounding noise as zero (#131)", {
   # difference and the size of the data, 1 unless given (#134).
   expect_identical(.perm_unit(c(-0.8, 0.4), "difference"), 1)
   expect_identical(.perm_unit(c(-0.8, 0.4), "studentized"), 1)
-  # Every refit is taken to the exact estimate (#134): until build step 7
-  # measures the window, it is fixed at 1e-12 for the Gaussian identity model
-  # and 1e-8 for models fitted by iteration.
-  expect_identical(.perm_tie_tolerance(stats::gaussian()), 1e-12)
-  expect_identical(.perm_tie_tolerance(stats::gaussian("log")), 1e-8)
-  expect_identical(.perm_tie_tolerance(stats::poisson()), 1e-8)
-  expect_identical(.perm_tie_tolerance(stats::binomial()), 1e-8)
+  # Every refit is taken to the exact estimate, and labelings tied by
+  # structure get the same double (#134): the window is measured on each call
+  # (.perm_tie_window()), and its floor is 2^-40 for every model.
+  expect_identical(.perm_tie_tolerance(stats::gaussian()), 2^-40)
+  expect_identical(.perm_tie_tolerance(stats::gaussian("log")), 2^-40)
+  expect_identical(.perm_tie_tolerance(stats::poisson()), 2^-40)
+  expect_identical(.perm_tie_tolerance(stats::binomial()), 2^-40)
 })
 
 test_that("permutations that repeat or swap the observed labels are counted (#131)", {
@@ -738,9 +738,9 @@ test_that("perm_solomon() stops at leverage 1 on a draw and at an inestimable ob
 # count does not depend on the outcome's units. The draws come from seed
 # 1342006.
 test_that("the statistic routine's zero variance, separation cap, and units (#134)", {
-  expect_identical(.perm_finish(0, 0, 1), 0)
-  expect_identical(.perm_finish(0.5, 0, 1), Inf)
-  expect_identical(.perm_finish(0.5, 0.25, 1), 1)
+  expect_identical(as.vector(.perm_finish(0, 0, 1)), 0)
+  expect_identical(as.vector(.perm_finish(0.5, 0, 1)), Inf)
+  expect_identical(as.vector(.perm_finish(0.5, 0.25, 1)), 1)
 
   g <- rep(1:4, each = 6)
   treat <- c(1, 0, 1, 0)[g]
@@ -761,8 +761,8 @@ test_that("the statistic routine's zero variance, separation cap, and units (#13
   # Rounds 1 to 4 set aside the first four rows of outcome 0.
   kept <- -c(1, 2, 7, 8)
   lim <- stats::glm.fit(X[kept, ], yc[kept], family = stats::poisson())
-  expect_equal(s$z, .perm_glm_stat(X[kept, ], yc[kept], rep(0, 20), rep(1, 20), stats::poisson(),
-                                   lim$coefficients, L, "studentized"), tolerance = 1e-12)
+  expect_equal(s$z, as.vector(.perm_glm_stat(X[kept, ], yc[kept], rep(0, 20), rep(1, 20), stats::poisson(),
+                                             lim$coefficients, L, "studentized")), tolerance = 1e-12)
   expect_identical(s$code, "LIM")
   expect_true(s$nonconv)
 
@@ -885,4 +885,265 @@ test_that("labelings of one class, and swapped labelings, get the same statistic
     expect_identical(pfac$p_perm, p01$p_perm)
     expect_identical(p01$z_perm[1:2], c(1, -1) * p01$z_obs)
   }
+})
+
+# The tie window of #134 (.perm_tie_window()): one number per call, relative
+# to the larger of |z_obs| and the unit, never below 2^-40; 100 times the
+# measured rounding error of the observed statistic and of the distinct
+# classes within a relative 1e-6 of it, refitted closest first, each once.
+# The margin check counts the distinct classes that lie below the window but
+# within 100 windows of it, and marks a window wider than a relative 1e-7.
+test_that("the tie window is measured on each call, never below 2^-40 (#134)", {
+  no_refit <- function(key) stop("no class should be refitted")
+  tw <- .perm_tie_window(c(2, -0.5, 1), c("a", "b", "c"), 1.5, 1, 0, no_refit)
+  expect_identical(tw[c("tol", "near", "wide")], list(tol = 2^-40, near = 0L, wide = FALSE))
+  expect_identical(.perm_tie_window(c(Inf, 2), c("a", "b"), Inf, 1, 0, no_refit)$tol, 2^-40)
+
+  refitted <- character(0)
+  err <- function(key) {
+    refitted <<- c(refitted, key)
+    c(k1 = 1e-12, k2 = 3e-12, k3 = 1)[[key]]
+  }
+  z <- 1.5 * (1 + c(1e-7, -2e-7, 1e-7, -5e-7, 1e-5))
+  tw <- .perm_tie_window(z, c("k1", "k2", "k1", "k3", "k4"), 1.5, 1, 0, err, max_refits = 2L)
+  expect_identical(refitted, c("k1", "k2"))
+  expect_equal(tw$tol, 100 * 3e-12 / 1.5, tolerance = 1e-12)
+  expect_identical(tw$err, 3e-12)
+  # relative to the unit when |z_obs| is smaller
+  expect_equal(.perm_tie_window(0.2, "a", 1e-3, 1, 1e-12, no_refit)$tol, 1e-10, tolerance = 1e-12)
+  expect_true(.perm_tie_window(0.2, "a", 1, 1, 1e-8, no_refit)$wide)
+
+  # two draws of one class a relative 1e-11 below: outside the window, within
+  # 100 windows, one distinct class
+  tw <- .perm_tie_window(1.5 * (1 - c(1e-11, 1e-11, 1e-9)), c("n", "n", "m"), 1.5, 1, 0, function(key) 0)
+  expect_identical(tw$near, 1L)
+  expect_identical(.perm_tie_tolerance(), 2^-40)
+})
+
+# Near-ties beyond the reference set, from the reviews of #134. Every
+# labeling is fed, or the draws replay the reviews' seeds (1341702 for the
+# zero-contrast data, 1341721 for the zero-variance data).
+test_that("near-ties stay apart, and zero contrasts and zero variances give p = 1 (#134)", {
+  feed <- function(labelings) {
+    k <- 0L
+    function(treat, pretested) {
+      k <<- k + 1L
+      labelings[[k]]
+    }
+  }
+
+  # The correctness review's random world 22 (binary, pretest and a
+  # covariate). Its labelings 6 and 395, swaps of each other (one class), lie
+  # a relative 4.28e-8 below the observed ATE difference in exact arithmetic,
+  # so they are not counted. A window of 1e-7 would count them.
+  w22 <- data.frame(
+    y = c(0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0), treat = c(1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0),
+    pretested = rep(0:1, each = 6), pre = c(rep(NA, 6), 2, -2, 0, -2, 3, 2),
+    x = c(-0.8, 1.2, -1, -0.7, 2.3, -1.8, -0.5, 0.9, -0.1, 0.5, 0.3, 0.1)
+  )
+  fw <- suppressWarnings(fit_solomon_glm(w22$y, w22$treat, w22$pretested, w22$pre, covariates = w22["x"],
+                                         family = stats::binomial()))
+  near <- list(c(1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0), c(0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1))
+  for (s in c("difference", "studentized")) {
+    p <- expect_no_warning(with_mocked_bindings(
+      perm_solomon(fw, "ATE (avg over pretest)", reps = 2, statistic = s, return_dist = TRUE),
+      .perm_treat = feed(near)))
+    expect_identical(p$p_perm, 1 / 3)
+    expect_identical(p$z_perm[2], -p$z_perm[1])
+    expect_identical(p$n_classes, 2L)
+    expect_lt(p$tie_tolerance, 1e-9)
+    if (s == "difference") expect_equal(abs(p$z_perm[1]) / abs(p$z_obs) - 1, -4.28e-8, tolerance = 1e-3)
+  }
+
+  # The reference set's E-gaussian-pair: a labeling a relative 4.3e-11 below
+  # the observed Treatment | pretested statistic, which is not a tie. It is
+  # outside the window and within 100 windows of it, so the margin warning
+  # says so; the difference statistic is far from it and gives none.
+  ep <- data.frame(
+    y = c(0, 4, -3, -3, 3, -6, -4, 2, 1, 2, 0, -2, -2, 10, 3, 3),
+    treat = c(1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0),
+    pretested = rep(1:0, each = 8),
+    pre = c(-0.25, 1.5, -2.1520820380255827, 0.75, 1.0016869471801328, 1.75, -3, -2.25, rep(NA, 8))
+  )
+  fe <- fit_solomon_glm(ep$y, ep$treat, ep$pretested, ep$pre)
+  nb <- c(1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0)
+  expect_warning(p <- with_mocked_bindings(
+    perm_solomon(fe, "Treatment | pretested", reps = 2, return_dist = TRUE), .perm_treat = feed(list(nb, ep$treat))),
+    "1 distinct permuted statistic\\(s\\) lie within 100 tie windows below", class = "solomonR_perm_margin_warning")
+  expect_identical(p$p_perm, 2 / 3)
+  expect_equal(abs(p$z_perm[1]) / abs(p$z_obs) - 1, -4.3e-11, tolerance = 1e-2)
+  expect_identical(p$n_classes, 2L)
+  expect_identical(p$tie_tolerance, 2^-40)
+  expect_no_warning(with_mocked_bindings(
+    perm_solomon(fe, "Treatment | pretested", reps = 2, statistic = "difference"), .perm_treat = feed(list(nb, ep$treat))))
+
+  # The correctness review's T3: Gaussian scores on a 0.1 grid whose
+  # unpretested arms have equal sums, so the observed Treatment | unpretested
+  # contrast is 0 in exact arithmetic and every labeling is at least as
+  # extreme (its first three data sets).
+  t3 <- list(c(2.7, 1.1, 0.1, 1.2, 0.2, 0.5, 2, 2.4, 1.4, 1.4, 2.6, 0.9, 2.7, 1.4, 2.4, 0.4),
+             c(1.3, 2.5, 2.8, 1.3, 2.9, 2.3, 2.6, 0.1, 2.7, 2.6, 1.7, 1.8, 0.5, 2.3, 1.8, 0.9),
+             c(2.8, 0.6, 2.4, 2.1, 0.7, 2.2, 2.9, 2.1, 0.2, 1.8, 1.1, 2.5, 2.9, 2.3, 0.1, 2.3))
+  tr <- rep(c(1, 0, 1, 0), each = 4)
+  pr <- rep(c(0, 1), each = 8)
+  for (y in t3) for (s in c("difference", "studentized")) {
+    p <- perm_solomon(fit_solomon_glm(y, tr, pr), "Treatment | unpretested", reps = 199L, seed = 1341702L,
+                      statistic = s)
+    expect_identical(p$p_perm, 1)
+  }
+
+  # The correctness review's T5: the score equals a covariate the conditions
+  # share, so every labeling fits exactly, every contrast and HC3 variance is
+  # 0, and the statistic is 0 (D11) under every labeling (its first three data
+  # sets, drawn with seed 1341720).
+  t5 <- list(c(3, 2.5, 4, 3.7, 1, 3.7, 5.1, 4.1, 4.1, 3.5, 3.1, 3.7, 3.4, 2.5, 2.4, 1.3),
+             c(1.3, 1.4, 3.2, 3.3, 2.4, 2.9, 4, 3.7, 2.8, 4.4, 1, 2.2, 3.3, 4, 2.9, 3.2),
+             c(4.8, 2.1, 3.1, 4.2, 5, 3.2, 3.5, 3.4, 3.6, 2.7, 2.5, 2.7, 3.4, 3.5, 2.9, 0.3))
+  tr <- rep(c(1, 0, 1, 0), each = 4)
+  pr <- rep(c(0, 0, 1, 1), each = 4)
+  for (x in t5) {
+    fit <- fit_solomon_glm(x, tr, pr, covariates = data.frame(x = x))
+    for (k in c("Treatment | unpretested", "ATE (avg over pretest)")) for (s in c("difference", "studentized")) {
+      p <- perm_solomon(fit, k, reps = 199L, seed = 1341721L, statistic = s)
+      expect_identical(p$p_perm, 1)
+    }
+  }
+})
+
+# What perm_solomon() records of its window, and its three warnings of #134:
+# the margin check (none on typical data), half or more of the labelings
+# infinite, and a refit that failed or did not converge. The statistic
+# routine is replaced where a flag or a failed refit is needed; those calls
+# feed their labelings. The infinite case draws from seed 1342008.
+test_that("the window is recorded, and the margin, infinite, and convergence warnings (#134)", {
+  feed <- function(labelings) {
+    k <- 0L
+    function(treat, pretested) {
+      k <<- k + 1L
+      labelings[[k]]
+    }
+  }
+  # Typical data: the window at its floor, no margin warning.
+  fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
+  for (k in c("ATE (avg over pretest)", "Pretest x Treatment", "Treatment | pretested",
+              "Treatment | unpretested")) {
+    for (s in c("studentized", "difference")) {
+      p <- expect_no_warning(perm_solomon(fit, k, reps = 199, seed = 1, statistic = s))
+      expect_gte(p$tie_tolerance, 2^-40)
+      expect_lt(p$tie_tolerance, 1e-10)
+      expect_identical(p$n_classes, 200L)
+      expect_equal(p$tie_scale, stats::sd(solomon_example$y_post), tolerance = 1e-12)
+    }
+  }
+
+  # Every labeling has an infinite statistic: one success among the
+  # unpretested participants leaves one arm with none.
+  b <- binary_data(10, c(6, 4, 1, 0))
+  fb <- suppressWarnings(fit_solomon_glm(b$y, b$treat, b$pretested, family = stats::binomial()))
+  for (s in c("studentized", "difference")) {
+    expect_warning(p <- perm_solomon(fb, "Treatment | unpretested", reps = 19, seed = 1342008L, statistic = s),
+                   "19 of 19 permutations have an infinite statistic", class = "solomonR_perm_infinite_warning")
+    expect_identical(c(p$p_perm, p$n_infinite, p$tie_scale), c(1, 19, 1))
+  }
+  # Exactly half: three successes among the unpretested, all in one arm under
+  # the first labeling fed and split under the second.
+  b <- binary_data(10, c(6, 4, 2, 1))
+  fb <- suppressWarnings(fit_solomon_glm(b$y, b$treat, b$pretested, family = stats::binomial()))
+  split <- replace(b$treat, c(22, 32), c(0, 1))
+  all3 <- replace(b$treat, c(31, 23), c(1, 0))
+  expect_identical(sum(b$y[b$pretested == 0 & all3 == 0]), 0)
+  expect_warning(p <- with_mocked_bindings(perm_solomon(fb, "Treatment | unpretested", reps = 2),
+                                           .perm_treat = feed(list(all3, split))),
+                 "1 of 2 permutations have an infinite statistic", class = "solomonR_perm_infinite_warning")
+  expect_identical(p$n_infinite, 1L)
+
+  # A labeling classified close to a threshold, the observed one or a draw:
+  # the margin warning counts it. A refit that failed is left out, and one
+  # that did not converge is kept; the convergence warning counts both, and
+  # says when the observed refit did not converge.
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  y <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1,
+         0.4, 2.6, 1.9, 3.1, 0.8, 2.2, 1.3, 3.6, 2.4, 0.7, 1.6, 2.9)
+  f <- fit_solomon_glm(y, treat, pretested)
+  labs <- list(replace(treat, c(1, 7), c(0, 1)), replace(treat, c(2, 8), c(0, 1)), replace(treat, c(3, 9), c(0, 1)))
+  stand_in <- function(...) {
+    calls <<- calls + 1L
+    if (calls <= length(answers)) answers[[calls]] else list(z = 2, code = "ok", nonconv = FALSE, amb = FALSE)
+  }
+  ok <- function(z, nonconv = FALSE, amb = FALSE) list(z = z, code = "ok", nonconv = nonconv, amb = amb)
+  calls <- 0L
+  answers <- list(ok(2), ok(1, amb = TRUE), ok(0.5), ok(3))
+  expect_warning(p <- with_mocked_bindings(perm_solomon(f, reps = 3), .perm_treat = feed(labs), .perm_statistic = stand_in),
+                 "1 labeling\\(s\\) were classified .* close to a threshold", class = "solomonR_perm_margin_warning")
+  calls <- 0L
+  answers <- list(ok(2, amb = TRUE), ok(1), ok(0.5), ok(3))
+  expect_warning(with_mocked_bindings(perm_solomon(f, reps = 3), .perm_treat = feed(labs), .perm_statistic = stand_in),
+                 "1 labeling\\(s\\)", class = "solomonR_perm_margin_warning")
+  calls <- 0L
+  answers <- list(ok(2), list(z = NA_real_, code = "FAIL", nonconv = FALSE), ok(1, nonconv = TRUE), ok(3))
+  expect_warning(p <- with_mocked_bindings(perm_solomon(f, reps = 3), .perm_treat = feed(labs), .perm_statistic = stand_in),
+                 "^In 1 of 3 permutations the refitted model did not converge\\. 1 of 3 permutations could not be refitted",
+                 class = "solomonR_perm_convergence_warning")
+  expect_identical(c(p$valid_reps, p$n_left_out, p$n_classes), c(2L, 1L, 4L))
+  # The measured window counts a draw that the floor would not: the observed
+  # statistic, 2, changes by 1e-10 when refitted in reverse order, so the
+  # window is a relative 100 * 1e-10 / 2, and a draw 2e-9 below ties.
+  calls <- 0L
+  answers <- list(ok(2), ok(2 * (1 - 1e-9)), ok(2 + 1e-10), ok(2 * (1 - 1e-9)))
+  p <- with_mocked_bindings(perm_solomon(f, reps = 1), .perm_treat = feed(labs), .perm_statistic = stand_in)
+  expect_identical(calls, 4L)
+  expect_equal(p$tie_tolerance, 5e-9, tolerance = 1e-5)
+  expect_identical(p$p_perm, 1)
+  calls <- 0L
+  answers <- list(ok(2, nonconv = TRUE), ok(1), ok(0.5), ok(3))
+  expect_warning(with_mocked_bindings(perm_solomon(f, reps = 3), .perm_treat = feed(labs), .perm_statistic = stand_in),
+                 "^The refit of the observed labels did not converge\\. The p-value", class = "solomonR_perm_convergence_warning")
+})
+
+# The margin flags of the statistic routine (#134, decision M8): a decision
+# within three orders of magnitude of its threshold (six for a variance) is
+# marked, and one clear of it is not.
+test_that("the statistic routine marks decisions close to a threshold (#134)", {
+  flag <- function(x) isTRUE(attr(x, "amb"))
+  expect_true(flag(.perm_finish(1e-9, 0, 1)))
+  expect_false(flag(.perm_finish(1e-6, 0, 1)))
+  expect_false(flag(.perm_finish(1e-11, 0, 1)))
+  expect_true(flag(.perm_finish(1, 1e-15, 1)))
+  expect_false(flag(.perm_finish(1, 1e-13, 1)))
+
+  # the third column is the sum of the first two
+  q <- qr(cbind(a = c(1, 1, 0, 0), b = c(0, 0, 1, 1), c = 1), tol = 1e-7)
+  for (case in list(list(L = c(1, -1, 0), est = TRUE, amb = FALSE), list(L = c(1, -1, 1e-9), est = TRUE, amb = FALSE),
+                    list(L = c(1, -1, 2e-6), est = FALSE, amb = TRUE), list(L = c(1, -1, 0.5), est = FALSE, amb = FALSE))) {
+    e <- .perm_estimable(case$L, q)
+    expect_identical(as.vector(e), case$est)
+    expect_identical(flag(e), case$amb)
+  }
+
+  # Newton's method one step from a point 1e-4 away from the estimate: the
+  # linear predictor still moves by about 1e-4, neither converged nor running
+  # to the boundary; from that point to convergence, no flag.
+  X <- cbind(1, rep(0:1, each = 6))
+  yc <- c(2, 0, 3, 1, 2, 4, 5, 3, 6, 2, 4, 7)
+  b0 <- stats::glm.fit(X, yc, family = stats::poisson())$coefficients + 1e-4
+  expect_true(.perm_newton(X, yc, rep(0, 12), rep(1, 12), stats::poisson(), b0, NULL, steps = 1L)$amb)
+  expect_false(.perm_newton(X, yc, rep(0, 12), rep(1, 12), stats::poisson(), b0, NULL)$amb)
+
+  # A Gaussian design with a participant at leverage 1 - 1e-6 in a cell the
+  # contrast uses: kept, and marked, with the studentized statistic.
+  g <- rep(1:4, each = 6)
+  Xg <- cbind("(Intercept)" = 1, treat = c(1, 0, 1, 0)[g], pretested = c(1, 1, 0, 0)[g])
+  Xg <- cbind(Xg, "treat:pretested" = Xg[, "treat"] * Xg[, "pretested"], x = 0)
+  yg <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1,
+          0.4, 2.6, 1.9, 3.1, 0.8, 2.2, 1.3, 3.6, 2.4, 0.7, 1.6, 2.9)
+  Xg[13:18, "x"] <- c(1000, 0.5, -0.5, 0.5, -0.5, 0)
+  h <- rowSums(qr.Q(qr(Xg))^2)
+  expect_true(h[13] > 1 - 1e-5 && h[13] <= 1 - 1e-8)
+  L <- .perm_contrast_vector(colnames(Xg), "Treatment | unpretested")
+  s <- .perm_statistic(Xg, yg, rep(0, 24), rep(1, 24), stats::gaussian(), NULL, L, "studentized")
+  expect_identical(c(s$code, s$amb_src), c("ok", "leverage"))
+  expect_true(s$amb)
+  expect_false(.perm_statistic(Xg, yg, rep(0, 24), rep(1, 24), stats::gaussian(), NULL, L, "difference")$amb)
 })

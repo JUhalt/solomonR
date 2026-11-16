@@ -168,31 +168,41 @@
 }
 
 # Whether the contrast L is estimable from the rows of a design whose
-# pivoted QR decomposition is `q` (L orthogonal to the null space).
+# pivoted QR decomposition is `q` (L orthogonal to the null space). The
+# attribute `amb` marks a decision that rests on the margin (issue #134,
+# margin check): a component of L in the null space above the tolerance, so
+# that L is judged not estimable, but within three orders of magnitude of it.
 .perm_estimable <- function(L, q, tol = 1e-7) {
   p <- length(L)
   r <- q$rank
   if (r == p) return(TRUE)
-  if (r == 0) return(FALSE)
+  if (r == 0) return(structure(FALSE, amb = FALSE))
   piv1 <- q$pivot[seq_len(r)]
   piv2 <- q$pivot[-seq_len(r)]
   R <- qr.R(q)
   t1 <- backsolve(R[seq_len(r), seq_len(r), drop = FALSE], R[seq_len(r), r + seq_along(piv2), drop = FALSE])
   gap <- L[piv2] - drop(crossprod(t1, L[piv1]))
-  max(abs(gap)) / max(1, abs(L)) <= tol
+  g <- max(abs(gap)) / max(1, abs(L))
+  structure(g <= tol, amb = g > tol && g <= 1e3 * tol)
 }
 
 # The value of a statistic whose HC3 variance `v` may be zero in exact
 # arithmetic: constant arms or an exact count fit give an infinite statistic
 # when the contrast is not 0 (counted, the acceptance criterion), and 0 when
 # it is (0/0, decision D11). `scale` is the model-based variance of the
-# contrast, against which v is judged zero.
+# contrast, against which v is judged zero. The attribute `amb` marks a
+# decision that rests on the margin (issue #134, margin check): a zero
+# variance whose contrast, judged not 0, is within three orders of magnitude
+# of the cut (|est| / sqrt(scale) in (1e-10, 1e-7]), or a variance judged not
+# zero within six orders of magnitude of its cut (v in (1e-20, 1e-14] of
+# scale).
 .perm_finish <- function(est, v, scale) {
   if (!is.finite(scale) || scale <= 0) scale <- 1
   if (!is.finite(v) || v <= 1e-20 * scale) {
-    return(if (abs(est) / sqrt(scale) <= 1e-10) 0 else Inf)
+    a <- abs(est) / sqrt(scale)
+    return(structure(if (a <= 1e-10) 0 else Inf, amb = a > 1e-10 && a <= 1e-7))
   }
-  est / sqrt(v)
+  structure(est / sqrt(v), amb = v <= 1e-14 * scale)
 }
 
 # Newton's method for a model fitted by iteration, from glm()'s stopping
@@ -201,7 +211,10 @@
 # observed information, (y + theta) theta mu / (mu + theta)^2, so that it
 # converges quadratically too. Returns the coefficients and the change in
 # the linear predictor at the last step, which marks rows whose fitted value
-# runs to the boundary (they move by about 1 per step; others by rounding).
+# runs to the boundary (they move by about 1 per step; others by rounding),
+# and `amb`, which marks a row still moving by between 1e-6 and 1e-3 per
+# step: neither converged nor clearly running to the boundary, so that the
+# decision rests on the margin (issue #134, margin check).
 .perm_newton <- function(X, y, off, pw, fam, beta, theta, steps = 6L) {
   deta <- rep(0, nrow(X))
   for (s in seq_len(steps)) {
@@ -221,13 +234,15 @@
     # error; a second confirms it. Rows still moving run to the boundary.
     if (s >= 2L && max(abs(deta)) < 1e-6) break
   }
-  list(beta = beta, deta = deta)
+  list(beta = beta, deta = deta, amb = any(abs(deta) > 1e-6 & abs(deta) <= 1e-3))
 }
 
 # The statistic of a fit by iteration at coefficients `beta`: the contrast,
 # or the contrast divided by its HC3 standard error (MacKinnon & White,
 # 1985) with the Fisher working weights, as sandwich computes it for a glm
-# (Zeileis, 2006), here at the estimate itself.
+# (Zeileis, 2006), here at the estimate itself. A weighted hat value in
+# (1 - 1e-5, 1 - 1e-8] sets the attribute `amb` (issue #134, margin check):
+# the term of that row is kept, close to the cut at which it would be 0.
 .perm_glm_stat <- function(X, y, off, pw, fam, beta, L, statistic) {
   est <- sum(L * beta)
   if (statistic == "difference") return(est)
@@ -243,7 +258,9 @@
   B <- backsolve(qr.R(q)[r, r, drop = FALSE], L[q$pivot[r]], transpose = TRUE)
   infl <- drop(Q %*% B) * sqrt(w) * res
   term <- ifelse(hat > 1 - 1e-8, 0, (infl / (1 - hat))^2)
-  .perm_finish(est, sum(term), sum(B^2))
+  z <- .perm_finish(est, sum(term), sum(B^2))
+  if (any(hat > 1 - 1e-5 & hat <= 1 - 1e-8)) attr(z, "amb") <- TRUE
+  z
 }
 
 # One labeling's statistic, with its code. The codes follow the reference
@@ -256,8 +273,22 @@
 # "ok". `nonconv` marks a fit that did not converge. `X` is the design of
 # the refit (the model matrix with the labeling's treatment columns), `y` the
 # outcome, `off` the offset, `pw` the prior weights, `L` the contrast.
+#
+# `amb` marks a labeling whose classification rests on a threshold rather than
+# a clear gap (issue #134, margin check), and `amb_src` says which, for
+# diagnosis: estimability within three orders of magnitude of its tolerance;
+# a row with leverage in (1 - 1e-5, 1 - 1e-8] whose term enters the
+# contrast; a zero variance or a contrast judged not 0 near its cut
+# (.perm_finish()); a row set aside as separated while moving by less than
+# 0.1 per Newton step; or, in the final fit, a row still moving by between
+# 1e-6 and 1e-3 per step.
 .perm_statistic <- function(X, y, off, pw, fam, theta, L, statistic) {
-  out <- function(z, code, nonconv = FALSE) list(z = as.numeric(z), code = code, nonconv = nonconv)
+  amb <- character(0)
+  out <- function(z, code, nonconv = FALSE) {
+    if (isTRUE(attr(z, "amb"))) amb <- c(amb, "variance or leverage")
+    list(z = as.numeric(z), code = code, nonconv = nonconv, amb = length(amb) > 0L,
+         amb_src = paste(unique(amb), collapse = ","))
+  }
   gaussian <- identical(fam$family, "gaussian")
   # The models fitted by iteration go through glm.fit(), the fitter of glm(),
   # on the design built once; the linear model needs only the QR below.
@@ -271,16 +302,23 @@
     if (is.null(fit)) return(out(NA_real_, "FAIL"))
   }
   qx <- qr(X, tol = 1e-7)
-  if (qx$rank < ncol(X) && !.perm_estimable(L, qx)) return(out(NA_real_, "ALIAS"))
+  if (qx$rank < ncol(X)) {
+    est_ok <- .perm_estimable(L, qx)
+    if (isTRUE(attr(est_ok, "amb"))) amb <- c(amb, "estimability")
+    if (!est_ok) return(out(NA_real_, "ALIAS"))
+  }
   r <- seq_len(qx$rank)
   Q <- NULL
   if (statistic == "studentized") {
     Q <- qr.Q(qx)[, r, drop = FALSE]
     h <- rowSums(Q^2)
     lev1 <- which(h > 1 - 1e-8)
-    if (length(lev1)) {
+    near1 <- which(h > 1 - 1e-5 & h <= 1 - 1e-8)
+    if (length(lev1) || length(near1)) {
       a <- drop(Q %*% backsolve(qr.R(qx)[r, r, drop = FALSE], L[qx$pivot[r]], transpose = TRUE))
-      if (any(abs(a[lev1]) > 1e-8 * max(abs(a)))) return(out(NA_real_, "H1"))
+      enters <- abs(a) > 1e-8 * max(abs(a))
+      if (any(enters[near1])) amb <- c(amb, "leverage")
+      if (any(enters[lev1])) return(out(NA_real_, "H1"))
     }
   }
   if (gaussian) {
@@ -326,7 +364,9 @@
   for (round in 1:5) {
     if (!all(K)) {
       qK <- qr(X[K, , drop = FALSE], tol = 1e-7)
-      if (!.perm_estimable(L, qK)) return(out(Inf, "INF"))
+      est_k <- .perm_estimable(L, qK)
+      if (isTRUE(attr(est_k, "amb"))) amb <- c(amb, "estimability (limiting)")
+      if (!est_k) return(out(Inf, "INF"))
       cols <- sort(qK$pivot[seq_len(qK$rank)])
       lim <- tryCatch(suppressWarnings(stats::glm.fit(X[K, cols, drop = FALSE], y[K], weights = pw[K],
                                                       offset = off[K], family = fam,
@@ -344,8 +384,15 @@
     side <- if (identical(fam$family, "binomial")) (yK <= 0 & nt$deta < 0) | (yK >= 1 & nt$deta > 0) else
       (yK <= 0 & nt$deta < 0)
     if (!any(moving & side) || round == 5L) break
+    # a separated row moves by about its distance from the separating
+    # hyperplane per step (1 for the farthest); one moving by less than 0.1
+    # lies close to it, and the decision rests on the margin
+    if (min(abs(nt$deta[moving & side])) < 0.1) amb <- c(amb, "slow separation")
     K[which(K)[moving & side]] <- FALSE
   }
+  # the final fit: a row still moving by between 1e-6 and 1e-3 per step is
+  # neither converged nor clearly running to the boundary
+  if (isTRUE(nt$amb)) amb <- c(amb, "newton band")
   z <- .perm_glm_stat(XK, y[K], off[K], pw[K], fam, nt$beta, L[cols], statistic)
   code <- if (is.infinite(z)) "INF" else if (all(K)) "ok" else "LIM"
   out(z, code, nonconv = any(moving) || (all(K) && !fit$converged))

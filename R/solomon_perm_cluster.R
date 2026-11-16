@@ -67,7 +67,7 @@
 # as zero: 1 for a studentized statistic, and for a difference the largest
 # finite permuted difference, with a floor on the participant path (see
 # .perm_unit()). `tol` is 1e-10 on the cluster path, and the window of
-# .perm_tie_tolerance() on the participant path.
+# .perm_tie_window() on the participant path.
 .perm_at_least <- function(z, z0, unit = 1, tol = 1e-10) {
   # An infinite observed statistic (an emptied or constant arm) is equalled
   # only by other infinite statistics (issue #134).
@@ -89,17 +89,17 @@
   max(abs(z_perm[is.finite(z_perm)]), scale)
 }
 
-# The tie tolerance for refitted models of a family (issue #134). Every
-# refit of perm_solomon() is taken to the exact estimate (.perm_newton()),
-# so statistics that are equal in exact arithmetic agree to rounding error:
-# within about 5e-14 for the Gaussian model and 4e-9 for the others on the
-# reference set, whose closest distinct statistics are a relative 4.3e-11
-# apart for the Gaussian model and 5e-7 (absolute, below 1) for the others.
-# This fixed window, 1e-12 for the Gaussian identity model (one QR
-# decomposition) and 1e-8 for models fitted by iteration, is temporary:
-# build step 7 of #134 replaces it with a window measured on each call.
-.perm_tie_tolerance <- function(family) {
-  if (identical(family$family, "gaussian") && identical(family$link, "identity")) 1e-12 else 1e-8
+# The floor of the participant path's tie window (issue #134), the same for
+# every model: a relative 2^-40. Every refit of perm_solomon() is taken to
+# the exact estimate (.perm_newton()), and labelings tied by structure get
+# the same double (.perm_class_of()), so the window is needed only for
+# distinct classes that are equal in exact arithmetic. It is set on each call
+# from their measured rounding error, never below this floor
+# (.perm_tie_window()), and recorded in the result as `tie_tolerance`.
+# `family` is not used; it is kept so that callers written for the fixed
+# tolerance of each family still work.
+.perm_tie_tolerance <- function(family = NULL) {
+  2^-40
 }
 
 # One permutation of the treatment labels within pretest conditions.

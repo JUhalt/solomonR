@@ -2354,18 +2354,22 @@ perm_solomon <- function(
   treat_used <- df$treat[used]
   pretested_used <- df$pretested[used]
   has_int <- "treat:pretested" %in% colnames(X0)
-  statistic_of <- function(tr) {
+  # `reverse` refits with the rows in reverse order, which measures the
+  # rounding error of a statistic (.perm_tie_window()).
+  statistic_of <- function(tr, reverse = FALSE) {
     X <- X0
     X[, "treat"] <- tr
     if (has_int) X[, "treat:pretested"] <- tr * pretested_used
-    .perm_statistic(X, y0, off0, pw0, fam, theta, L0, statistic)
+    o <- if (reverse) rev(seq_len(nrow(X))) else seq_len(nrow(X))
+    .perm_statistic(X[o, , drop = FALSE], y0[o], off0[o], pw0[o], fam, theta, L0, statistic)
   }
   # Classes of labelings (issue #134; .perm_class_of()). The labelings that
   # give each arm the same rows, as the model sees them, are one class: it is
   # computed once, from a representative built from the class alone, and
   # swapped classes share it with the sign kept, so that labelings tied by
   # structure get the same double. The cache holds one entry per class met,
-  # at most reps + 1.
+  # at most reps + 1: its statistic (in the canonical orientation), its code,
+  # and its flags; the key itself holds the class (.perm_key_canon()).
   cc <- .perm_class_setup(X0, y0, off0, pretested_used, contrast, separable = !length(shared))
   cache <- new.env(hash = TRUE, parent = emptyenv())
   class_stat <- function(tr) {
@@ -2375,11 +2379,28 @@ perm_solomon <- function(
       s <- statistic_of(.perm_rep_labeling(cc, cls$canon, treat_used))
       # the swap maps the class to itself, so a finite contrast is exactly 0
       if (cls$self && is.finite(s$z)) s$z <- 0
-      hit <- list(z = s$z, code = s$code, nonconv = isTRUE(s$nonconv))
+      hit <- list(z = s$z, code = s$code, nonconv = isTRUE(s$nonconv), amb = isTRUE(s$amb),
+                  self = cls$self)
       assign(cls$key, hit, envir = cache)
     }
     list(z = if (is.finite(hit$z)) cls$sign * hit$z else hit$z, code = hit$code,
-         nonconv = hit$nonconv, key = cls$key)
+         nonconv = hit$nonconv, amb = hit$amb, key = cls$key)
+  }
+  # The measured error of a class: the change in its statistic when its model
+  # is refitted with the rows in reverse order (issue #134, item 7). A class
+  # that is its own swap is exactly 0 and needs none.
+  errs <- new.env(hash = TRUE, parent = emptyenv())
+  err_of_key <- function(key) {
+    e <- get0(key, envir = errs, inherits = FALSE)
+    if (!is.null(e)) return(e)
+    hit <- get(key, envir = cache, inherits = FALSE)
+    e <- 0
+    if (is.finite(hit$z) && !hit$self) {
+      z2 <- statistic_of(.perm_rep_labeling(cc, .perm_key_canon(cc, key), treat_used), reverse = TRUE)$z
+      if (is.finite(z2)) e <- abs(abs(hit$z) - abs(z2))
+    }
+    assign(key, e, envir = errs)
+    e
   }
 
   observed <- class_stat(treat_used)
@@ -2428,6 +2449,9 @@ perm_solomon <- function(
 
   z_perm <- rep(NA_real_, reps)
   codes <- character(reps)
+  keys <- character(reps)
+  nonconv <- 0L
+  n_amb <- 0L
 
   for (i in seq_len(reps)) {
     s <- class_stat(.perm_treat(treat_used, pretested_used))
@@ -2442,6 +2466,9 @@ perm_solomon <- function(
     }
     z_perm[i] <- s$z
     codes[i] <- s$code
+    keys[i] <- s$key
+    nonconv <- nonconv + isTRUE(s$nonconv)
+    n_amb <- n_amb + isTRUE(s$amb)
   }
 
   # A labeling under which a covariate collinear with the cells leaves the
@@ -2456,20 +2483,73 @@ perm_solomon <- function(
       contrast, "\" is not estimable from the refitted model, or the model could not be refitted."
     )
   }
+  # A refit that failed (left out) or did not converge, the observed one
+  # included (issue #134).
+  n_fail <- sum(codes == "FAIL")
+  if (n_fail > 0L || nonconv > 0L || isTRUE(observed$nonconv)) {
+    warning(structure(
+      class = c("solomonR_perm_convergence_warning", "warning", "condition"),
+      list(message = paste0(
+        if (isTRUE(observed$nonconv)) "The refit of the observed labels did not converge. " else "",
+        if (nonconv > 0L) sprintf("In %d of %d permutations the refitted model did not converge. ", nonconv, reps) else "",
+        if (n_fail > 0L) sprintf("%d of %d permutations could not be refitted and were left out. ", n_fail, reps) else "",
+        "The p-value rests on these fits; see ?perm_solomon, \"Limits\"."), call = NULL)
+    ))
+  }
   z_perm_valid <- z_perm[keep]
+  keys_valid <- keys[keep]
+
+  # The tie window (issue #134, items 1 and 7; .perm_tie_window()): the
+  # floor 2^-40, or 100 times the measured rounding error of the observed
+  # statistic and of the distinct classes closest to it, relative to the
+  # larger of |z_obs| and the unit. A difference counts as zero against the
+  # outcome's standard deviation for an identity link (.perm_unit()).
+  tie_scale <- if (identical(fam$link, "identity")) stats::sd(df$y[used]) else 1
+  unit <- .perm_unit(z_perm_valid, statistic, tie_scale)
+  e_obs <- if (is.finite(z_obs)) err_of_key(observed$key) else 0
+  tw <- .perm_tie_window(z_perm_valid, keys_valid, z_obs, unit, e_obs, err_of_key)
+  tie_tol <- tw$tol
+
+  # The margin check (issue #134, decision M8): a warning when a distinct
+  # statistic lies just below the window, when the window is wide, or when a
+  # labeling used (the observed one included) was classified close to a
+  # threshold.
+  n_amb <- n_amb + isTRUE(observed$amb)
+  if (tw$near > 0L || tw$wide || n_amb > 0L) {
+    warning(structure(
+      class = c("solomonR_perm_margin_warning", "warning", "condition"),
+      list(message = paste0(
+        "The count rests on a numerical margin: ",
+        if (tw$near > 0L) sprintf(paste0("%d distinct permuted statistic(s) lie within 100 tie windows ",
+                                         "below the observed one without tying; "), tw$near) else "",
+        if (tw$wide) "the tie window is wider than a relative 1e-7; " else "",
+        if (n_amb > 0L) sprintf(paste0("%d labeling(s) were classified (leverage 1, estimability, a zero ",
+                                       "variance, or separation) close to a threshold; "), n_amb) else "",
+        "see ?perm_solomon, \"Limits\"."), call = NULL)
+    ))
+  }
 
   # Two-sided randomization p-value with the +1 finite-simulation
   # correction (Phipson & Smyth, 2010). Ties with the observed statistic
-  # are counted (see .perm_at_least() and .perm_tie_tolerance()); a
-  # difference counts as zero against the outcome's standard deviation for
-  # an identity link (.perm_unit()).
-  tie_scale <- if (identical(fam$link, "identity")) stats::sd(df$y[used]) else 1
+  # are counted (see .perm_at_least() and .perm_tie_window()).
   p_perm <- (
-    sum(.perm_at_least(z_perm_valid, z_obs, .perm_unit(z_perm_valid, statistic, tie_scale),
-                       .perm_tie_tolerance(fam))) + 1
+    sum(.perm_at_least(z_perm_valid, z_obs, unit, tie_tol)) + 1
   ) / (
     length(z_perm_valid) + 1
   )
+
+  # Half or more of the labelings used infinite: p cannot fall below
+  # (k + 1) / (m + 1), so the test has little information (issue #134).
+  n_inf <- sum(is.infinite(z_perm_valid))
+  if (n_inf >= length(z_perm_valid) / 2) {
+    warning(structure(
+      class = c("solomonR_perm_infinite_warning", "warning", "condition"),
+      list(message = sprintf(paste0(
+        "%d of %d permutations have an infinite statistic (an emptied or constant arm, or ",
+        "separation), counted as at least as extreme, so p cannot be below %.3f."),
+        n_inf, length(z_perm_valid), (n_inf + 1) / (length(z_perm_valid) + 1)), call = NULL)
+    ))
+  }
 
   out <- list(
     contrast = contrast,
@@ -2481,8 +2561,11 @@ perm_solomon <- function(
     reps = reps,
     valid_reps = length(z_perm_valid),
     exact = FALSE,
-    n_infinite = sum(is.infinite(z_perm_valid)),
-    n_left_out = sum(!keep)
+    n_infinite = n_inf,
+    n_left_out = sum(!keep),
+    n_classes = length(ls(cache, all.names = TRUE)),
+    tie_tolerance = tie_tol,
+    tie_scale = tie_scale
   )
 
   if (isTRUE(return_dist)) {
