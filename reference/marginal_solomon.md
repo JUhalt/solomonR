@@ -30,6 +30,14 @@ marginal_solomon(
   covariance, or, for binary outcomes, CR2 covariance. Designs with
   several treatments are not supported; see
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
+  A fit made by an earlier version of solomonR, which stored a character
+  covariate as character, stops with an error of class
+  `solomonR_collation_error` when the collation in force sorts that
+  covariate's values, among the participants the model used, in a
+  different order than the R session that made the fit, whatever
+  contrasts the fit was made under (issue \#170). Refit it, or analyze
+  it under that collation. `method = "cluster_summary"` does not use the
+  covariates and does not stop.
 
 - scale:
 

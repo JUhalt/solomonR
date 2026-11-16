@@ -346,7 +346,15 @@ the participants whose leverage is 1 (see "HC3 at leverage 1"), and
 an empty vector when there are none; <code>NULL</code> with the other
 covariances.</p></li>
 <li><p><code>call</code>, and <code>data</code> (the data the model was fitted to), which
-solomonR's own functions use.</p></li>
+solomonR's own functions use. A character covariate is held in
+<code>data</code>, and in the model frame of <code>model</code>, as a factor made with
+<code><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor()</a></code> when the fit is made, so its levels are sorted by the
+collation of that R session, as were the levels its coefficients are
+named and ordered by. A level seen only in rows the model did not use
+is a level of the factor in <code>data</code> but has no coefficient.
+<code><a href="marginal_solomon.html">marginal_solomon()</a></code> and <code><a href="plot_sensitization.html">plot_sensitization()</a></code> then code the
+covariate as the fit did, whatever the collation when they run
+(issue #170).</p></li>
 </ul><p>For a design with several treatments, an object of class
 <code>solomon_ngroup</code>, with the same elements and these changes:</p><ul><li><p><code>effects</code> has a <code>comparison</code> column before <code>contrast</code> and the
 adjusted p-values <code>p.adjusted</code> after <code>conf.high</code>. It has the four

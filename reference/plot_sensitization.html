@@ -111,7 +111,14 @@ appears as lines that are not parallel.</p>
 
 
 <dl><dt id="arg-fit">fit<a class="anchor" aria-label="anchor" href="#arg-fit"></a></dt>
-<dd><p>A fit from <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> or <code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>.</p></dd>
+<dd><p>A fit from <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> or <code><a href="fit_solomon_ml.html">fit_solomon_ml()</a></code>. A fit
+from <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> made by an earlier version of solomonR, which
+stored a character covariate as character, stops with an error of class
+<code>solomonR_collation_error</code> when the collation in force sorts that
+covariate's values, among the participants the model used, in a
+different order than the R session that made the fit, whatever
+contrasts the fit was made under (issue #170). Refit it, or draw it
+under that collation.</p></dd>
 
 
 <dt id="arg-bounds">bounds<a class="anchor" aria-label="anchor" href="#arg-bounds"></a></dt>

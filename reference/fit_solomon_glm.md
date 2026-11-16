@@ -271,7 +271,18 @@ An object of class `solomon_glm`, a list with:
   empty vector when there are none; `NULL` with the other covariances.
 
 - `call`, and `data` (the data the model was fitted to), which
-  solomonR's own functions use.
+  solomonR's own functions use. A character covariate is held in `data`,
+  and in the model frame of `model`, as a factor made with
+  [`factor()`](https://rdrr.io/r/base/factor.html) when the fit is made,
+  so its levels are sorted by the collation of that R session, as were
+  the levels its coefficients are named and ordered by. A level seen
+  only in rows the model did not use is a level of the factor in `data`
+  but has no coefficient.
+  [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
+  and
+  [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
+  then code the covariate as the fit did, whatever the collation when
+  they run (issue \#170).
 
 For a design with several treatments, an object of class
 `solomon_ngroup`, with the same elements and these changes:

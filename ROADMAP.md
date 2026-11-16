@@ -780,7 +780,8 @@ the model, not as the fit coded it —
 and
 [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
 code a character covariate by the collation in force when they run, not
-the fit’s — [\#170](https://github.com/JUhalt/solomonR/issues/170)
+the fit’s — [\#170](https://github.com/JUhalt/solomonR/issues/170);
+merged in [PR \#181](https://github.com/JUhalt/solomonR/pull/181)
 
 [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
 stops when a covariate level occurs only among pretested participants

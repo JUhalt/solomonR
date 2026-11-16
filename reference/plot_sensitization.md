@@ -19,6 +19,15 @@ plot_sensitization(fit, bounds = NULL, alpha = 0.05, show_observed = TRUE)
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
   or
   [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md).
+  A fit from
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  made by an earlier version of solomonR, which stored a character
+  covariate as character, stops with an error of class
+  `solomonR_collation_error` when the collation in force sorts that
+  covariate's values, among the participants the model used, in a
+  different order than the R session that made the fit, whatever
+  contrasts the fit was made under (issue \#170). Refit it, or draw it
+  under that collation.
 
 - bounds:
 

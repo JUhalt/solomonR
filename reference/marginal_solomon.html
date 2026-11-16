@@ -120,7 +120,15 @@ rate ratios, comparing marginal risks or rates in every cell.</p>
 link), <code>family = poisson()</code> (log link), or
 <code>family = "negative_binomial"</code>, with HC3 or model-based covariance, or,
 for binary outcomes, CR2 covariance. Designs with several treatments are
-not supported; see <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>.</p></dd>
+not supported; see <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>. A fit made by an earlier version
+of solomonR, which stored a character covariate as character, stops
+with an error of class <code>solomonR_collation_error</code> when the collation in
+force sorts that covariate's values, among the participants the model
+used, in a different order than the R session that made the fit,
+whatever contrasts the fit was made under (issue #170). Refit it, or
+analyze it under that collation.
+<code>method = "cluster_summary"</code> does not use the covariates and does not
+stop.</p></dd>
 
 
 <dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
