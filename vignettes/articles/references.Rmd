@@ -555,6 +555,10 @@ Journal, 19*(2), 249–258. https://doi.org/10.3102/00028312019002249
 
 ## Methods references
 
+Albert, A., & Anderson, J. A. (1984). On the existence of maximum
+likelihood estimates in logistic regression models. *Biometrika, 71*(1),
+1–10. https://doi.org/10.1093/biomet/71.1.1
+
 Appelbaum, M., Cooper, H., Kline, R. B., Mayo-Wilson, E., Nezu, A. M., &
 Rao, S. M. (2018). Journal article reporting standards for quantitative
 research in psychology: The APA Publications and Communications Board task
@@ -645,9 +649,36 @@ Gelman, A., & Stern, H. (2006). The difference between "significant" and
 "not significant" is not itself statistically significant. *The American
 Statistician, 60*(4), 328–331. https://doi.org/10.1198/000313006X152649
 
+Geyer, C. J. (2009). Likelihood inference in exponential families and
+directions of recession. *Electronic Journal of Statistics, 3*, 259–289.
+https://doi.org/10.1214/08-EJS349
+
+> Shows that when the maximum-likelihood estimate does not exist,
+> inference can use the limiting model along the directions of recession.
+> *In solomonR:* the value
+> `perm_solomon()` gives a permutation with a degenerate cell that the
+> contrast does not use
+> ([#134](https://github.com/JUhalt/solomonR/issues/134)).
+
+GitHub. (n.d.). *Downloading source code archives*. GitHub Docs. Retrieved
+November 7, 2026, from
+https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives
+
+Git Project. (n.d.). *git-archive*. Git documentation. Retrieved November
+7, 2026, from https://git-scm.com/docs/git-archive
+
+Golub, G. (1965). Numerical methods for solving linear least squares
+problems. *Numerische Mathematik, 7*(3), 206–216.
+https://doi.org/10.1007/BF01436075
+
 Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 Planned missing data designs in psychological research. *Psychological
 Methods, 11*(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
+
+Green, P. J. (1984). Iteratively reweighted least squares for maximum
+likelihood estimation, and some robust and resistant alternatives.
+*Journal of the Royal Statistical Society: Series B (Methodological),
+46*(2), 149–170. https://doi.org/10.1111/j.2517-6161.1984.tb01288.x
 
 Groenwold, R. H. H., Moons, K. G. M., & Vandenbroucke, J. P. (2014).
 Randomized trials with missing outcome data: How to analyze and what to
@@ -680,6 +711,10 @@ size and related estimators. *Journal of Educational Statistics, 6*(2),
 Henry, L., & Wickham, H. (2026). *lifecycle: Manage the life cycle of
 your package functions* (Version 1.0.5) [R package].
 https://doi.org/10.32614/CRAN.package.lifecycle
+
+Higham, N. J. (2002). *Accuracy and stability of numerical algorithms* (2nd
+ed.). Society for Industrial and Applied Mathematics.
+https://doi.org/10.1137/1.9780898718027
 
 Holm, S. (1979). A simple sequentially rejective multiple test procedure.
 *Scandinavian Journal of Statistics, 6*(2), 65–70.
@@ -765,6 +800,10 @@ Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
 (2008). Recommendations for the primary analysis of continuous endpoints in
 longitudinal clinical trials. *Drug Information Journal, 42*(4), 303–319.
 https://doi.org/10.1177/009286150804200402
+
+Marschner, I. C. (2011). glm2: Fitting generalized linear models with
+convergence problems. *The R Journal, 3*(2), 12–15.
+https://doi.org/10.32614/RJ-2011-012
 
 Mavridis, D., White, I. R., Higgins, J. P. T., Cipriani, A., & Salanti, G.
 (2015). Allowing for uncertainty due to missing continuous outcome data in
@@ -1023,6 +1062,16 @@ https://doi.org/10.1111/0081-1750.00078
 > Yuan-Bentler statistic. *In solomonR:* how `report_solomon()` describes
 > the MLR estimator and its scaled chi-square
 > ([#112](https://github.com/JUhalt/solomonR/issues/112)).
+
+Zeileis, A. (2006). Object-oriented computation of sandwich estimators.
+*Journal of Statistical Software, 16*(9), 1–16.
+https://doi.org/10.18637/jss.v016.i09
+
+> How the sandwich package computes heteroscedasticity-consistent
+> covariances, for generalized linear models among others. *In solomonR:*
+> the HC3 variance that `perm_solomon()` computes for each permutation, at
+> the exact estimate
+> ([#134](https://github.com/JUhalt/solomonR/issues/134)).
 
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. *British Journal of Mathematical and Statistical Psychology,

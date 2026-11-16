@@ -49,12 +49,14 @@ the fit (\code{two1}, \code{two2}), and a character one stops, as in
 covariate (see "Missing posttests and the pretest effects"). With
 numeric \code{y_pre}, the covariates also enter the fit behind the gap and
 the delta line. A covariate that this fit refuses for its name or its
-form stops with the error that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} gives: one named as
-a column of that model, such as \code{y}, or a logical or character matrix
-column of several columns given by its name or in a data frame. When
-the fit fails on a covariate's values, for example on a factor with one
-level among the participants analyzed, the gap and the delta line are
-left out without a message.}
+form stops with the error that \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} gives: one with a
+name that the model reserves, such as \code{y}, or a logical or character
+matrix column of several columns given by its name or in a data frame.
+Without numeric \code{y_pre} no fit is made, but a covariate named
+\code{pre_obs}, \code{condition}, or \code{log_exposure}, names reserved in every
+fit, stops all the same. When the fit fails on a covariate's values,
+for example on a factor with one level among the participants
+analyzed, the gap and the delta line are left out without a message.}
 }
 \value{
 An object of class \code{solomon_missing}, a list with:
@@ -99,7 +101,15 @@ level, \code{n}, \code{posttest_missing}, \code{share}, \code{analyzed_share}, \
 and \code{test} (\code{"exact"} or \code{"simulated"}); or, for a numeric covariate
 with more than two values, its mean
 among those with (\code{mean_with}) and without (\code{mean_without}) a
-posttest. \code{NULL} without \code{covariates}.
+posttest. \code{NULL} without \code{covariates}. The levels are listed in the C
+locale's order (the order of the characters' Unicode code points, in
+which capital letters come before lower-case ones and accented
+letters after both), whatever the session's collation, and a
+factor's levels in that order too, not in its own level order. The
+levels are those of the data, unchanged: text as \code{read.csv()}
+returns it is taken by its bytes, which gives that order for a UTF-8
+file in any session. So the p-value simulated under the fixed seed
+is the same in every session.
 \item \code{missing_pretest}: for each pretested condition, the participants
 with a posttest and no pretest (\code{n_without_pretest},
 \code{mean_without_pretest}, their mean posttest) and those with both
@@ -234,7 +244,10 @@ tested with Fisher's exact test when there are two levels, and with a
 p-value simulated from 10,000 tables with the same margins, under a
 fixed seed, when there are more, because the exact test of a larger
 table can exceed its workspace at ordinary sample sizes; that choice
-is the package's, and no source fixes one. Dukes et al. (1995, p. 413)
+is the package's, and no source fixes one. The levels are taken in
+the C locale's order in every session, so the simulated p-value does
+not depend on the session's collation (see \code{covariates} under Value).
+Dukes et al. (1995, p. 413)
 compared the course grades of the students lost in this way. A
 covariate that predicts the posttest belongs in the model; that it
 weakens both centers' assumptions is the record's inference, not a

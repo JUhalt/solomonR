@@ -10,6 +10,10 @@
 # covariate lies from zero, and whatever the scale of a covariate or the
 # pretest. With a numeric covariate, the CR2 degrees of freedom come from the
 # orthonormal basis of the standardized model, as the fit's (.cr2_basis()).
+# Under HC3 with a participant at leverage 1 (`fit$hc3_leverage`), the
+# covariance has NA entries, and the standard errors are computed from the
+# model the inference came from, as the fit's are: NA for a combination
+# that depends on such a participant (issue #173; .combination_variance()).
 .glm_linear_combination <- function(fit, L) {
   model <- fit$model
   scaling <- fit$covariate_scaling
@@ -23,7 +27,12 @@
   }
 
   estimate <- as.numeric(L %*% cf)
-  std.error <- sqrt(rowSums((L %*% as.matrix(V)) * L))
+  std.error <- if (identical(fit$robust, "HC3") && length(fit$hc3_leverage)) {
+    inference <- if (is.null(scaling)) model else .standardized_model(fit)
+    unname(sqrt(.combination_variance(inference, "HC3", L)))
+  } else {
+    sqrt(rowSums((L %*% as.matrix(V)) * L))
+  }
 
   if (identical(fit$robust, "CR2")) {
     frame <- stats::model.frame(model)
@@ -36,7 +45,9 @@
       frame <- fit$data[used, , drop = FALSE]
       if (!is.null(scaling)) frame <- .standardized_frame(frame, scaling)
     }
-    fit_cr <- stats::glm(stats::formula(model), data = frame, family = fit$family)
+    # Each factor is coded as in the fit, as `L` and `V` are (issue #168).
+    fit_cr <- stats::glm(stats::formula(model), data = frame, family = fit$family,
+                         contrasts = model$contrasts)
     basis <- if (.numeric_covariates(scaling)) .cr2_basis(fit_cr, fit$cluster[used])
     df <- if (is.null(basis)) {
       vapply(seq_len(nrow(L)), function(i) {
@@ -72,16 +83,25 @@
 # effects are evaluated. Fits made by earlier versions are uncentered and
 # have no `pretest_mean`; for them it is the mean of `pre_obs` over the
 # pretested rows of the model. A fit without a pretest has a `pretest_mean`
-# of NA, and may have a covariate named `pre_obs` (.covariate_scaling()),
-# which is then a covariate like any other (.has_pretest_column()).
+# of NA. Its model can still have a column `pre_obs`, which is then a
+# covariate like any other (.has_pretest_column()).
 .cell_pretest <- function(fit, X) {
   if (!.has_pretest_column(fit, X)) return(NA_real_)
   if (is.finite(.null_na(fit$pretest_mean))) return(0)
   mean(X[X[, "pretested"] == 1, "pre_obs"])
 }
 
-# Whether the column `pre_obs` of the model matrix `X` of a fit is the
-# pretest: it is unless the fit, made since #104, has no pretest.
+# Whether the column `pre_obs` of `X`, the model matrix or the data of a
+# fit, is the pretest: it is unless the fit, made since #104, has no
+# pretest. A fit without a pretest can have a column of that name. No
+# covariate can be named `pre_obs` since #174
+# (.solomon_check_covariates()), but a fit made by an earlier version can
+# have one (issue #174), and the indicator of a factor's level can be
+# named so in the model matrix, as for a factor `pre` with a level `_obs`.
+# A fit made before #104, by solomonR 0.8.2 or earlier, has no
+# `pretest_mean`, so its column `pre_obs` is taken for the pretest even
+# when it was a covariate; such a fit has to be refitted with the
+# covariate renamed.
 .has_pretest_column <- function(fit, X) {
   "pre_obs" %in% colnames(X) && (is.null(fit$pretest_mean) || is.finite(fit$pretest_mean))
 }
@@ -92,8 +112,9 @@
 # covariates, but for the interactions, whose names no covariate's column
 # can have. A covariate's column can share the name of another, such as
 # the indicator `wave2` of a factor `wave` and a numeric covariate `wave2`,
-# so that a lookup by name set only one of them (issue #137); and `pre_obs`
-# is a covariate in a fit without a pretest (.has_pretest_column()).
+# so that a lookup by name set only one of them (issue #137); and a column
+# `pre_obs` is a covariate in a fit without a pretest
+# (.has_pretest_column()).
 .covariate_columns <- function(fit, X, design) {
   if (!.has_pretest_column(fit, X)) design <- setdiff(design, "pre_obs")
   setdiff(seq_len(ncol(X)), match(design, colnames(X)))
@@ -102,8 +123,11 @@
 # Coefficient vectors for the four model-adjusted cell means: pretested cells
 # at the mean pretest among pretested participants, unpretested cells at the
 # structural pre_obs = 0, and covariates at their model-matrix column means.
+# The rows are applied to the fit's coefficients by position, so a fit made
+# before issue #170 whose model matrix no longer codes its covariates as the
+# fit did stops (.check_fit_collation()).
 .glm_cell_means_design <- function(fit) {
-  X <- stats::model.matrix(fit$model)
+  X <- .check_fit_collation(fit)
   cn <- colnames(X)
   cells <- data.frame(treat = c(0L, 1L, 0L, 1L), pretested = c(1L, 1L, 0L, 0L))
 
@@ -140,8 +164,10 @@
 # that treatment's Pretest x Treatment coefficient. Pretested cells are at
 # the mean pretest among pretested participants, unpretested cells at the
 # structural pre_obs = 0, and covariates at their model-matrix column means.
+# As for four groups, a fit made before issue #170 whose model matrix no
+# longer codes its covariates as the fit did stops (.check_fit_collation()).
 .ngroup_cell_means_design <- function(fit) {
-  X <- stats::model.matrix(fit$model)
+  X <- .check_fit_collation(fit)
   cn <- colnames(X)
   conditions <- fit$conditions$condition
   is_treatment <- fit$conditions$role == "treatment"
@@ -207,6 +233,11 @@
 # The omnibus Pretest x Condition test of a solomon_ngroup fit, as text.
 .ngroup_omnibus_text <- function(fit, test = "Pretest x Condition") {
   row <- fit$omnibus[fit$omnibus$test == test, , drop = FALSE]
+  # Under HC3, a test of a contrast that depends on a participant whose
+  # leverage is 1 has no statistic (issue #173).
+  if (length(fit$hc3_leverage) && is.na(row$statistic)) {
+    return(sprintf("%s: no result, as a standard error it needs is undefined", test))
+  }
   statistic <- formatC(row$statistic, format = "f", digits = 2)
   stat <- if (identical(row$reference, "F")) {
     sprintf("F(%s, %s) = %s", .df_fmt(row$df1), .df_fmt(row$df2), statistic)
@@ -302,7 +333,9 @@
 #'   (`inference = "wald"`).
 #'
 #' The sensitization estimate and interval in the subtitle are taken unchanged
-#' from the fit.
+#' from the fit. Under HC3, a mean or a test that depends on a participant
+#' whose leverage is 1 has no interval or result, and the subtitle and the
+#' caption say so (see "HC3 at leverage 1" in [fit_solomon_glm()]).
 #'
 #' @section Designs with several treatments:
 #' For a fit from [fit_solomon_glm()] with several treatments and a control,
@@ -316,7 +349,14 @@
 #' the effect of any treatment. `bounds` is not available for these fits; test
 #' equivalence one comparison at a time with [equivalence_solomon()].
 #'
-#' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()].
+#' @param fit A fit from [fit_solomon_glm()] or [fit_solomon_ml()]. A fit
+#'   from [fit_solomon_glm()] made by an earlier version of solomonR, which
+#'   stored a character covariate as character, stops with an error of class
+#'   `solomonR_collation_error` when the collation in force sorts that
+#'   covariate's values, among the participants the model used, in a
+#'   different order than the R session that made the fit, whatever
+#'   contrasts the fit was made under (issue #170). Refit it, or draw it
+#'   under that collation.
 #' @param bounds Optional equivalence bounds for the sensitization contrast,
 #'   as one positive number or `c(lower, upper)`. When supplied, the caption
 #'   reports the outcome of [equivalence_solomon()] with these bounds, which
@@ -377,12 +417,18 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
 
   sens <- fit$effects[fit$effects$contrast == "Pretest x Treatment", ]
   level <- format(100 * fit$conf_level)
-  subtitle <- sprintf(
-    "Pretest x Treatment: %s (%s%% CI %s to %s)",
-    formatC(sens$estimate, format = "f", digits = 2), level,
-    formatC(sens$conf.low, format = "f", digits = 2),
-    formatC(sens$conf.high, format = "f", digits = 2)
-  )
+  subtitle <- if (.hc3_no_interval(fit, sens)) {
+    # Its HC3 standard error is undefined (issue #173).
+    sprintf("Pretest x Treatment: %s (no interval, as its HC3 standard error is undefined)",
+            formatC(sens$estimate, format = "f", digits = 2))
+  } else {
+    sprintf(
+      "Pretest x Treatment: %s (%s%% CI %s to %s)",
+      formatC(sens$estimate, format = "f", digits = 2), level,
+      formatC(sens$conf.low, format = "f", digits = 2),
+      formatC(sens$conf.high, format = "f", digits = 2)
+    )
+  }
 
   # The center of the pretested groups' means, and the other center when
   # the two differ (issue #135).
@@ -393,6 +439,12 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
     "%s.\n%s%% intervals; %s.\nInference: %s.",
     adjustment, level, .reference_label(adjusted$df), cells$inference
   )
+  # The cells whose HC3 standard error is undefined (issue #173).
+  no_interval <- .hc3_no_interval(fit, adjusted)
+  caption <- paste0(caption, .hc3_no_interval_caption(
+    fit$hc3_leverage,
+    paste0(adjusted$condition, ", ", tolower(adjusted$treatment))[no_interval], "; "
+  ))
 
   dodge <- ggplot2::position_dodge(width = 0.15)
   p <- ggplot2::ggplot(
@@ -467,6 +519,11 @@ plot_sensitization <- function(fit, bounds = NULL, alpha = 0.05, show_observed =
     "%s.\n%s%% intervals: %s; %s.\nSensitization: a treatment line not parallel to the %s line.",
     adjustment, level, cells$inference, .reference_label(adjusted$df), control
   )
+  # The cells whose HC3 standard error is undefined (issue #173).
+  no_interval <- .hc3_no_interval(fit, adjusted)
+  caption <- paste0(caption, .hc3_no_interval_caption(
+    fit$hc3_leverage, paste0(adjusted$condition, ", ", adjusted$treat)[no_interval], "; "
+  ))
 
   dodge <- ggplot2::position_dodge(width = 0.3)
   p <- ggplot2::ggplot(

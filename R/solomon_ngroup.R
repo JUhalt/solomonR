@@ -205,11 +205,17 @@
 # and the several-treatment paths of fit_solomon_glm(). With `noise`, the
 # rounding error of each entry of the model matrix (.representation_error()),
 # a term that is collinear with the others but for that error is collinear
-# too (.collinear_terms()); `covariates` names the covariates' terms, which
-# are checked last.
+# too (.collinear_positions()); `covariates` names the covariates' terms,
+# which are checked last. The collinear columns are found and named by
+# position, and only the pretest's own column (.pretest_column()) is
+# called the pretest: the indicator of a factor's level can be named
+# `pre_obs` too, as that of the level `_obs` of a factor `pre` is, in a
+# model with a pretest or without one (issue #174).
 .stop_inestimable <- function(fit, empty, noise = NULL, covariates = character()) {
-  aliased <- names(stats::coef(fit))[is.na(stats::coef(fit))]
-  if (!length(aliased) && !is.null(noise)) aliased <- .collinear_terms(fit, noise, covariates)
+  aliased <- which(is.na(stats::coef(fit)))
+  if (!length(aliased) && !is.null(noise)) {
+    aliased <- .collinear_positions(fit, noise, covariates)
+  }
   if (!length(aliased)) return(invisible(NULL))
   if (length(empty)) {
     stop(
@@ -218,19 +224,31 @@
       call. = FALSE
     )
   }
-  aliased[aliased == "pre_obs"] <- "pre_obs (the pretest, `y_pre`)"
+  terms <- names(stats::coef(fit))[aliased]
+  terms[aliased %in% .pretest_column(fit)] <- "pre_obs (the pretest, `y_pre`)"
   stop(
     "The model cannot be estimated because these terms are collinear with ",
-    "other terms of the model: ", paste(aliased, collapse = ", "),
+    "other terms of the model: ", paste(terms, collapse = ", "),
     ". A covariate or pretest that is constant, or that repeats another ",
     "term, causes this.",
     call. = FALSE
   )
 }
 
+# The position of the pretest's column among the coefficients of `model`,
+# a model of fit_solomon_glm(), or NA without a pretest. It is found from
+# the pretest's term, `pre_obs`, as .scaled_columns() finds a column, not
+# from the column's name, which the indicator of the level `_obs` of a
+# factor `pre` shares (issue #174). No covariate can be named pre_obs
+# (.solomon_reserved_names), so the term is the pretest's alone.
+.pretest_column <- function(model) {
+  term <- match("pre_obs", attr(stats::terms(model), "term.labels"))
+  match(term, attr(stats::model.matrix(model), "assign"))
+}
+
 # The rounding error that each entry of the model matrix of the
 # standardized model `fit` carries from the values the model was given, for
-# .collinear_terms() (issue #137). `given` is the model as given, `scaling`
+# .collinear_positions() (#137). `given` is the model as given, `scaling`
 # comes from .covariate_scaling(), and `center` is the mean the pretest was
 # centered at, NA without a pretest. A value x is stored with an error of up
 # to |x| eps / 2, with eps = .Machine$double.eps, and a covariate computed
@@ -356,20 +374,43 @@
 # the covariates (the terms named in `covariates`) after the treatment and
 # pretest terms, so that a relation is found at its last term in that order
 # whatever the order of the covariates; a term found collinear is left out
-# and the rest are checked again. Returns the names of the collinear terms'
-# columns, in the order of the model, or an empty vector.
-.collinear_terms <- function(fit, noise, covariates = character(), margin = 4, floor = 1e-11) {
+# and the rest are checked again. Returns the positions of the collinear
+# terms' columns, in the order of the model, or an empty vector: two
+# columns can share a name, as the pretest and the indicator of the level
+# `_obs` of a factor `pre` do (.stop_inestimable(), issue #174). The check
+# itself is .collinear_columns(), on the model matrix, the fit's weights,
+# and the position of the intercept, so that marginal_solomon() can apply
+# it to the rows of a bootstrap resample (issue #154).
+.collinear_positions <- function(fit, noise, covariates = character(), margin = 4,
+                                 floor = 1e-11) {
   X <- stats::model.matrix(fit)
   w <- fit$weights
   if (is.null(w) || length(w) != nrow(X)) w <- rep(1, nrow(X))
   labels <- attr(stats::terms(fit), "term.labels")
   last <- attr(X, "assign") %in% match(covariates, labels)
+  intercept <- match(0L, attr(X, "assign"))
+  .collinear_columns(X, w, noise, last, intercept, margin, floor)
+}
+
+# The names of the columns that .collinear_positions() finds, in the order
+# of the model, or an empty vector. Only the tests call it.
+.collinear_terms <- function(fit, noise, covariates = character(), margin = 4, floor = 1e-11) {
+  colnames(stats::model.matrix(fit))[.collinear_positions(fit, noise, covariates, margin, floor)]
+}
+
+# The check of .collinear_positions() on a design matrix `X`: `w` holds the
+# weights of its rows, `noise` the rounding error of each entry
+# (.representation_error()), `last` flags the covariates' columns, which
+# are checked last, and `intercept` is the position of the intercept's
+# column. Rows with a weight of zero are left out. Returns the positions of
+# the collinear columns, in the order of `X`, or an empty vector.
+.collinear_columns <- function(X, w, noise, last, intercept, margin = 4, floor = 1e-11) {
   order <- c(which(!last), which(last))
   keep <- w > 0
   A <- X[keep, order, drop = FALSE]
   E <- noise[keep, order, drop = FALSE]
   w <- w[keep]
-  j <- order != match(0L, attr(X, "assign"))
+  j <- order != intercept
   A[, j] <- sweep(A[, j, drop = FALSE], 2L, colSums(w * A[, j, drop = FALSE]) / sum(w))
   A <- sqrt(w) * A
   E <- sqrt(w) * E + .Machine$double.eps * abs(A)
@@ -413,7 +454,7 @@
     found <- c(found, active[k])
     active <- active[-k]
   }
-  colnames(X)[sort(order[found])]
+  sort(order[found])
 }
 
 # a - A b for a vector `a`, a matrix `A`, and coefficients `b`, accumulated
@@ -422,7 +463,7 @@
 # each product is split exactly into its rounded value and its error
 # (Dekker's product, with Veltkamp's split by 2^27 + 1), each sum likewise
 # (Knuth's two-sum), and the errors are summed apart, as the algorithm Dot2
-# of Ogita, Rump, and Oishi (2005) does. Used by .collinear_terms().
+# of Ogita, Rump, and Oishi (2005) does. Used by .collinear_columns().
 .accurate_residual <- function(a, A, b) {
   split <- function(x) {
     y <- 134217729 * x
@@ -509,6 +550,9 @@
   if (!is.null(covariates)) {
     .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
+    # A character covariate is stored as a factor, as in the four-group
+    # model (issue #170; .character_covariates_as_factors()).
+    df <- .character_covariates_as_factors(df, names(covariates))
   }
 
   rhs <- c(
@@ -543,18 +587,20 @@
   # The model as given, and the model refitted with the numeric covariates
   # standardized and the pretest scaled, which the inference comes from and
   # which gives the warnings, as in the four-group model (issue #137).
+  # Its warnings are given only once the checks below let the fit go ahead
+  # (issue #154).
   standardize <- .standardizes(df, names(covariates))
-  fit <- .fit_model(fml, df, family, negbin, quiet = standardize)
+  held <- .record_warnings(.fit_model(fml, df, family, negbin, quiet = standardize))
+  fit <- held$value
   used <- rep(TRUE, nrow(df))
   if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
   fit_given <- fit
   scaling <- .covariate_scaling(df, names(covariates), used)
-  if (standardize) fit <- .fit_model(fml, scaling$data, family, negbin)
-  if (negbin) family <- stats::family(fit)
-
-  if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
-    .warn_noncollapsible(stats::family(fit)$link, ngroup = TRUE)
+  if (standardize) {
+    held <- .record_warnings(.fit_model(fml, scaling$data, family, negbin))
+    fit <- held$value
   }
+  if (negbin) family <- stats::family(fit)
 
   # Analyzable participants (the rows the model kept) in each of the
   # 2(k + 1) groups.
@@ -566,39 +612,54 @@
   # An empty group, or a term collinear with the others, leaves a
   # coefficient inestimable, in the model as given or standardized, the
   # latter checked as well for terms collinear but for the rounding error of
-  # the values given, as in the four-group model (.collinear_terms()).
+  # the values given, as in the four-group model (.collinear_positions()).
   .stop_inestimable(fit_given, .group_names(counts, counts == 0))
   .stop_inestimable(fit, .group_names(counts, counts == 0),
                     noise = .representation_error(fit, fit_given, scaling, pretest_mean),
                     covariates = .formula_names(names(covariates)))
 
   # A group with one participant is fitted exactly: its hat value is 1, and
-  # HC3 divides the squared residual by (1 - h)^2.
+  # HC3 divides the squared residual by (1 - h)^2. The error has the class
+  # `solomonR_hc3_singleton_error` (issue #173).
   if (robust == "HC3" && any(counts == 1)) {
-    stop(
-      "HC3 standard errors are undefined because these groups have a single ",
-      "analyzable participant: ", paste(.group_names(counts, counts == 1), collapse = "; "), ". ",
-      "Use `robust = \"none\"` or leave the condition out; see validate_solomon().",
-      call. = FALSE
-    )
+    .stop_hc3_singleton(.group_names(counts, counts == 1), ngroup = TRUE)
+  }
+
+  # `held` is removed once its warnings are given, as in the four-group
+  # model, so that serialize() does not save the model fit twice.
+  .signal_warnings(held$warnings)
+  rm(held)
+  if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
+    .warn_noncollapsible(stats::family(fit)$link, ngroup = TRUE)
   }
 
   # Robust covariance, as in the four-group model: with a numeric covariate,
   # from the standardized model's QR decomposition (.hc3_vcov(),
-  # .cr2_basis()).
+  # .cr2_basis()). Under HC3, the estimates that depend on a participant at
+  # leverage 1 are reported with NA, with a classed warning, as in the
+  # four-group model (issue #173).
   fit_cr <- fit
   n_clusters <- NULL
   cr2_basis <- NULL
+  hc3 <- NULL
   numeric_covariates <- .numeric_covariates(scaling)
   if (robust == "HC3") {
-    vcovM <- if (numeric_covariates) .hc3_vcov(fit) else sandwich::vcovHC(fit, type = "HC3")
+    hc3 <- .hc3_leverage(fit, used)
+    vcovM <- if (numeric_covariates || !is.null(hc3)) {
+      .hc3_vcov(fit)
+    } else {
+      sandwich::vcovHC(fit, type = "HC3")
+    }
+    if (!is.null(hc3)) {
+      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates))
+    }
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
     cluster_fit <- cluster[used]
-    if (anyNA(cluster_fit)) {
-      stop("`cluster` is missing for participants included in the model.", call. = FALSE)
-    }
+    # A missing or empty cluster ID stops, as in the four-group model
+    # (issue #183).
+    .check_cluster_ids(cluster_fit)
     # The clusters the CR2 covariance is computed from; `cluster` keeps one
     # value per input row.
     n_clusters <- length(unique(cluster_fit))
@@ -644,19 +705,22 @@
   df_model <- if (dispersion_fixed) Inf else stats::df.residual(fit)
 
   coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
-                                     cr2_basis)
+                                     cr2_basis, hc3)
 
   cf <- stats::coef(fit)
   cn <- names(cf)
 
   # The pretest effects also carry the variance of the mean pretest at which
   # they are evaluated (.center_adjusted()); `terms` is that mean's
-  # .center_terms(), of the center used or of the other center.
+  # .center_terms(), of the center used or of the other center. A contrast
+  # that depends on a participant at leverage 1 has no HC3 standard error
+  # (issue #173).
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
     adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
+    if (.hc3_undefined(hc3, L)) adj[c("variance", "added")] <- list(NA_real_, NA_real_)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
     z   <- est / se
@@ -717,7 +781,11 @@
       effect_row(L_by_comparison[[r]][[type]], rownames(weights)[r], type)
     })
     block <- do.call(rbind, rows)
-    block$p.adjusted <- stats::p.adjust(block$p.value, method = adjust)
+    # A comparison without a p-value, as when its HC3 standard error is
+    # undefined (issue #173), still counts among the comparisons; the
+    # default n of p.adjust() would leave it out.
+    block$p.adjusted <- stats::p.adjust(block$p.value, method = adjust,
+                                        n = length(block$p.value))
     block
   }))
 
@@ -746,7 +814,7 @@
   treated <- pretest_block$contrast == .solomon_pretest_order[2]
   pretest_block$p.adjusted <- pretest_block$p.value
   pretest_block$p.adjusted[treated] <- stats::p.adjust(pretest_block$p.value[treated],
-                                                       method = adjust)
+                                                       method = adjust, n = sum(treated))
   effects <- rbind(effects, pretest_block)
   # The adjusted p-values follow the columns that every effects table has
   # (issue #110).
@@ -776,7 +844,8 @@
       other_treated <- other_rows$contrast == .solomon_pretest_order[2]
       other_rows$p.adjusted <- other_rows$p.value
       other_rows$p.adjusted[other_treated] <- stats::p.adjust(other_rows$p.value[other_treated],
-                                                              method = adjust)
+                                                              method = adjust,
+                                                              n = sum(other_treated))
       other_rows <- other_rows[, columns]
     }
     identity <- identical(stats::family(fit)$link, "identity")
@@ -816,7 +885,13 @@
   omnibus <- do.call(rbind, lapply(types, function(type) {
     L <- do.call(rbind, lapply(basis, `[[`, type))
     b <- as.numeric(L %*% cf)
-    W <- as.numeric(t(b) %*% solve(L %*% vcovM %*% t(L), b))
+    # Under HC3, the test is undefined when one of its contrasts depends on
+    # a participant at leverage 1 (issue #173).
+    W <- if (any(.hc3_undefined(hc3, L))) {
+      NA_real_
+    } else {
+      as.numeric(t(b) %*% solve(L %*% vcovM %*% t(L), b))
+    }
     if (robust == "CR2") {
       wt <- .cr2_wald(L, fit_cr, vcovM, cr2_basis)
       data.frame(test = omnibus_labels[[type]], statistic = wt$Fstat,
@@ -860,7 +935,7 @@
     dispersion = dispersion,
     theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = coefficients$vcov,
-    covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
+    covariate_scaling = .covariate_scaling_element(scaling, fit, .hc3_mark(vcovM, hc3)),
     data = df,
     pretest_mean = pretest_mean,
     pretest_center = pretest_center,
@@ -869,6 +944,7 @@
     pretest_n = parts$n,
     pretest_sensitivity = sensitivity,
     robust = robust,
+    hc3_leverage = if (robust == "HC3") if (is.null(hc3)) integer() else hc3$rows,
     family = family,
     cluster = cluster,
     n_clusters = n_clusters,

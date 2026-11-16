@@ -10,7 +10,8 @@ description: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(solomonR)
-has_mmrm <- requireNamespace("mmrm", quietly = TRUE)
+has_mmrm <- requireNamespace("mmrm", quietly = TRUE) &&
+  utils::packageVersion("mmrm") >= "0.3.13"
 ```
 
 When a Solomon study measures the outcome on several occasions, a new

@@ -286,6 +286,12 @@ NULL
 #
 # The columns of the decomposition are the coefficients q$pivot, taken by
 # position: two coefficients can share a name (.scaled_columns()).
+#
+# When a row's hat value is 1 (above .hc3_leverage_limit), the result also
+# holds `weight`: each participant's weight in each coefficient, or in each
+# combination of `map`, q_i' R^{-T} map', the influence before it is
+# multiplied by w_i^(1/2) e_i (issue #173; .hc3_influence()). It is NULL
+# otherwise.
 .glm_influence <- function(model, map = NULL) {
   cf <- stats::coef(model)
   w <- model$weights
@@ -301,17 +307,29 @@ NULL
   hat <- numeric(length(w))
   hat[good] <- rowSums(Q^2)
   pivot <- q$pivot[rank]
+  leverage <- any(hat > .hc3_leverage_limit)
   if (!is.null(map)) {
     B <- backsolve(qr.R(q)[rank, rank, drop = FALSE], t(map[, pivot, drop = FALSE]),
                    transpose = TRUE)
     influence <- matrix(0, length(w), nrow(map), dimnames = list(NULL, rownames(map)))
     influence[good, ] <- (Q * (sqrt(w[good]) * e[good])) %*% B
-    return(list(influence = influence, hat = hat))
+    weight <- NULL
+    if (leverage) {
+      weight <- influence
+      weight[good, ] <- Q %*% B
+    }
+    return(list(influence = influence, hat = hat, weight = weight))
   }
   influence <- matrix(0, length(w), length(cf), dimnames = list(NULL, names(cf)))
   influence[good, pivot] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE],
                                         t(Q * (sqrt(w[good]) * e[good]))))
-  list(influence = influence[, !is.na(cf), drop = FALSE], hat = hat)
+  weight <- NULL
+  if (leverage) {
+    weight <- influence
+    weight[good, pivot] <- t(backsolve(qr.R(q)[rank, rank, drop = FALSE], t(Q)))
+    weight <- weight[, !is.na(cf), drop = FALSE]
+  }
+  list(influence = influence[, !is.na(cf), drop = FALSE], hat = hat, weight = weight)
 }
 
 # The variance that estimated sample means add to a contrast evaluated at
@@ -409,8 +427,10 @@ NULL
   if (robust == "HC3") {
     u <- numeric(length(a))
     u[in_set] <- dev[in_set] / pmax(n_s[in_set] - 1, 1)
-    infl <- .glm_influence(model)
-    cross[] <- colSums(infl$influence / (1 - infl$hat) * u[used])
+    # A participant at leverage 1 adds its limit, 0, to the covariance; a
+    # contrast that depends on that participant has no HC3 standard error,
+    # which the caller reports as NA (issue #173; .hc3_influence()).
+    cross[] <- colSums(.hc3_influence(model)$G * u[used])
   } else {
     u <- numeric(length(a))
     u[in_set] <- dev[in_set] / sqrt(n_s[in_set] * pmax(n_s[in_set] - 1, 1))
@@ -761,6 +781,50 @@ stouffer_solomon <- function(p) {
 #' method (Steiger, 2004) and are reported only for conventional Gaussian
 #' fits; no corresponding interval is available with robust covariance.
 #'
+#' @section HC3 at leverage 1:
+#' HC3 divides each participant's squared residual by (1 - h)^2, where h is
+#' the participant's hat value, or leverage (MacKinnon & White, 1985). The
+#' model fits a participant whose leverage is 1 exactly, so that term is
+#' 0/0, and the HC3 standard error of every estimate that depends on the
+#' participant is undefined. This happens when the pretest varies within
+#' the pretested groups only through one participant, as when every pretest
+#' in one pretested group is the same and all but one in the other are, or
+#' when a covariate varies only through one participant, such as a factor
+#' level that one participant alone holds. [validate_solomon()] does not
+#' check for it.
+#'
+#' A participant is taken to be at leverage 1 when the hat value is above
+#' 1 - 10^-8. The fit then gives a classed warning,
+#' `solomonR_hc3_leverage_warning`, that names these participants by their
+#' row numbers in the data and suggests `robust = "none"`, and returns the
+#' row numbers as `hc3_leverage`. For each contrast and each coefficient,
+#' the participant's weight in the estimate is computed from the model's
+#' QR decomposition. When that weight is at most 10^-8 times the largest
+#' weight in the estimate, the estimate does not depend on the participant,
+#' whose term takes its limit, 0, and the estimate keeps its HC3 standard
+#' error. Otherwise its standard error, statistic, p-value, interval, and
+#' Wald R-squared are `NA`, and so are the entries of `vcov` that depend on
+#' the participant. [sandwich::vcovHC()] returns `NaN` throughout in that
+#' case, so the HC3 covariance is then computed from the QR decomposition.
+#' For example, in the data of issue #173, where the pretest varies in that
+#' way, the treatment effect among unpretested participants, which does not
+#' depend on the pretested participants, keeps its HC3 standard error, and
+#' the other three treatment contrasts and the three pretest effects are
+#' `NA`. With several treatments, an omnibus test is `NA` when one of its
+#' contrasts is. A comparison whose p-value is `NA` still counts in the
+#' Holm or Bonferroni adjustment of the other comparisons, as if its
+#' p-value were the largest, so their adjustment is conservative. The same
+#' rule gives `NA` in the delta method of
+#' [marginal_solomon()], in the cell means of [plot_sensitization()], and
+#' in [fit_solomon_mi()]. Model-based standard errors (`robust = "none"`)
+#' are defined at leverage 1. The rule is not applied to CR2 fits.
+#'
+#' A group with a single analyzable participant also has leverage 1, and
+#' three of the four treatment contrasts depend on that participant. Under
+#' HC3 the fit then stops with an error of class
+#' `solomonR_hc3_singleton_error`. [validate_solomon()] reports such a group
+#' as an error.
+#'
 #' @section The pretest effect:
 #' Solomon (1949) added the unpretested groups to separate the effect of
 #' taking the pretest from the effect of the treatment, and Campbell and
@@ -981,6 +1045,16 @@ stouffer_solomon <- function(p) {
 #' come from the standardized model too, as do `theta` and `dispersion`,
 #' which do not depend on the parameterization. Far from zero, a fit to a
 #' covariate as given can warn where the same model standardized does not.
+#' With a pretest or a numeric covariate, `model$converged` and
+#' `model$iter` describe the fit to the data as given, which is made
+#' silently, not the standardized fit that gave the warnings. The model
+#' fit's warnings are given once the checks for an empty group, a collinear
+#' term, and, under HC3, a group with a single participant have passed, so
+#' a fit that stops at one of these checks gives the error without the
+#' model fit's warnings. The warnings about the data given, raised before
+#' the fit (pretested participants with a missing pretest, `y_pre` given
+#' for unpretested participants), still come before that error. An error
+#' inside the fit itself still comes after the warnings the fit gave.
 #'
 #' Covariates collinear with the other terms stop the fit wherever they
 #' lie. Far from zero, the rounding error of the stored values can make
@@ -1113,8 +1187,10 @@ stouffer_solomon <- function(p) {
 #'
 #' The p-values of each contrast are adjusted across the comparisons, by
 #' Holm's (1979) procedure by default. It controls the familywise error rate
-#' "for any combination of true hypotheses" (p. 65). The confidence
-#' intervals are not adjusted. The result has class `solomon_ngroup`.
+#' "for any combination of true hypotheses" (p. 65). A comparison without a
+#' p-value still counts among the comparisons (see "HC3 at leverage 1").
+#' The confidence intervals are not adjusted. The result has class
+#' `solomon_ngroup`.
 #'
 #' The effects table ends with the pretest effect in each condition (see
 #' "The pretest effect"), with `comparison` naming the condition:
@@ -1202,19 +1278,27 @@ stouffer_solomon <- function(p) {
 #'   `d$lm2 <- cbind(d$age > 40, d$z > 0)` makes, given by its name or in a
 #'   data frame, as [stats::glm()] cannot fit it, and a character one also
 #'   by its bare name. A value of the wrong length stops too, and so does
-#'   a covariate named as a column of the model: `y`, `pretested`,
-#'   `log_exposure`, `pre_obs` when `y_pre` is given, and `treat` or, with
-#'   several treatments, `condition` and `treat_` followed by each
-#'   treatment's name. Any other form stops with an error, so that no
-#'   covariate is left out unnoticed, for example: a character vector
-#'   without `data` (give the data frame as `data`, or a categorical
-#'   covariate as a factor); a list that is not a data frame; an array of
-#'   more than two dimensions; and a vector of another type, such as a
-#'   date (give it as a column of a data frame).
+#'   a covariate with a name that the model reserves for its own columns:
+#'   in every design, `y`, `pretested`, `pre_obs` (the pretest),
+#'   `condition`, and `log_exposure`, with or without `y_pre` and
+#'   `exposure`; `treat` in a four-group design; and, with several
+#'   treatments, `treat_` followed by each treatment's name. The error
+#'   lists the reserved names; rename the covariate. Any other form stops
+#'   with an error, so that no covariate is left out unnoticed, for
+#'   example: a character vector without `data` (give the data frame as
+#'   `data`, or a categorical covariate as a factor); a list that is not a
+#'   data frame; an array of more than two dimensions; and a vector of
+#'   another type, such as a date (give it as a column of a data frame).
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
-#'   participant. CR2 fits refuse designs in which a Solomon cell contains a
-#'   single cluster, because cluster and condition are then confounded; see
+#'   participant. CR2 fits refuse a cluster ID that is missing (`NA`), empty
+#'   (`""`), or only white space (spaces, tabs, or line breaks, which
+#'   [trimws()] removes) for a participant included in the model, with an
+#'   error of class `solomonR_cluster_error`: give every cluster a label. A
+#'   factor is taken by its labels, so a level `""` or `NA` that such a
+#'   participant has is refused, and an unused one is not. CR2 fits also
+#'   refuse designs in which a Solomon cell contains a single cluster,
+#'   because cluster and condition are then confounded; see
 #'   [validate_solomon()]. A classed warning (`solomonR_small_df_warning`)
 #'   flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 #'   4, where Tipton (2015) advises that p-values not be trusted.
@@ -1266,10 +1350,14 @@ stouffer_solomon <- function(p) {
 #'   - `conf_level`: the confidence level of the intervals.
 #'   - `coefficients`: the coefficients of the model, in the same columns
 #'     through `conf.high`, with `term` for `contrast`.
-#'   - `model`: the fitted model, a `glm` object.
+#'   - `model`: the fitted model, a `glm` object, fitted to the covariates
+#'     and the pretest as given. Its `converged` and `iter` are those of
+#'     that fit, not of the standardized one (see "Covariates").
 #'   - `vcov`: the covariance matrix of the coefficients, as `robust` sets
 #'     it. With CR2 it is the clubSandwich object, or, with a pretest or a
-#'     numeric covariate, a matrix (see "Covariates").
+#'     numeric covariate, a matrix (see "Covariates"). Under HC3, its entries
+#'     that depend on a participant whose leverage is 1 are `NA` (see "HC3
+#'     at leverage 1").
 #'   - `covariate_scaling`: with a pretest or numeric covariates, the
 #'     parameterization in which the inference was computed (see
 #'     "Covariates"): the `means` and `scales` of the pretest, `pre_obs`
@@ -1315,8 +1403,20 @@ stouffer_solomon <- function(p) {
 #'   - `robust`, `family`, `cluster` (the cluster of each participant), and
 #'     `n_clusters`: the settings used. The last two are `NULL` without
 #'     `cluster`.
+#'   - `hc3_leverage`: with `robust = "HC3"`, the row numbers in the data of
+#'     the participants whose leverage is 1 (see "HC3 at leverage 1"), and
+#'     an empty vector when there are none; `NULL` with the other
+#'     covariances.
 #'   - `call`, and `data` (the data the model was fitted to), which
-#'     solomonR's own functions use.
+#'     solomonR's own functions use. A character covariate is held in
+#'     `data`, and in the model frame of `model`, as a factor made with
+#'     [factor()] when the fit is made, so its levels are sorted by the
+#'     collation of that R session, as were the levels its coefficients are
+#'     named and ordered by. A level seen only in rows the model did not use
+#'     is a level of the factor in `data` but has no coefficient.
+#'     [marginal_solomon()] and [plot_sensitization()] then code the
+#'     covariate as the fit did, whatever the collation when they run
+#'     (issue #170).
 #'
 #'   For a design with several treatments, an object of class
 #'   `solomon_ngroup`, with the same elements and these changes:
@@ -1579,6 +1679,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   if (!is.null(covariates)) {
     .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
+    # A character covariate is stored as a factor, with the levels of this
+    # session's collation, which the coefficients are named and ordered by
+    # (issue #170; .character_covariates_as_factors()).
+    df <- .character_covariates_as_factors(df, names(covariates))
   }
 
   # One model: treatment + pretest indicator + their interaction + (optional) pre_obs
@@ -1617,14 +1721,22 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # covariate or the pretest (issue #137; .covariate_scaling()). That fit
   # gives the warnings, and this one is fitted silently: far from zero, a
   # covariate can make the fit as given warn, for instance that theta did
-  # not converge, where the same model standardized does not.
+  # not converge, where the same model standardized does not. The warnings
+  # of the fit that gives them are held back until the checks below have
+  # passed, so that a fit that stops at one of them gives the error without
+  # them (issue #154); the warnings about the data given, above, come
+  # before any fit.
   standardize <- .standardizes(df, names(covariates))
-  fit <- .fit_model(fml, df, family, negbin, quiet = standardize)
+  held <- .record_warnings(.fit_model(fml, df, family, negbin, quiet = standardize))
+  fit <- held$value
   in_model <- rep(TRUE, nrow(df))
   if (!is.null(fit$na.action)) in_model[fit$na.action] <- FALSE
   fit_given <- fit
   scaling <- .covariate_scaling(df, names(covariates), in_model)
-  if (standardize) fit <- .fit_model(fml, scaling$data, family, negbin)
+  if (standardize) {
+    held <- .record_warnings(.fit_model(fml, scaling$data, family, negbin))
+    fit <- held$value
+  }
   if (negbin) family <- stats::family(fit)
 
   # An empty group, or a term collinear with the others, leaves a
@@ -1634,7 +1746,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # exists even when a pretested group has no posttest, so the model's own
   # check is needed. The standardized model is checked as well, for terms
   # collinear but for the rounding error of the values given, which glm()
-  # can take for distinct ones far from zero (.collinear_terms()).
+  # can take for distinct ones far from zero (.collinear_positions()).
   arms <- if (is.null(conditions$control)) {
     c("treatment", "control")
   } else {
@@ -1651,17 +1763,17 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
   # A group with one participant is fitted exactly: its hat value is 1, and
   # HC3 divides the squared residual by (1 - h)^2, so its standard errors
-  # are undefined. Stop as the several-treatment path does.
+  # are undefined. Stop as the several-treatment path does, with an error
+  # of class `solomonR_hc3_singleton_error` (issue #173).
   if (robust == "HC3" && any(group_counts == 1)) {
-    stop(
-      "HC3 standard errors are undefined because these groups have a single ",
-      "analyzable participant: ", paste(.group_names(group_counts, group_counts == 1),
-                                         collapse = "; "), ". ",
-      "Use `robust = \"none\"`; see validate_solomon().",
-      call. = FALSE
-    )
+    .stop_hc3_singleton(.group_names(group_counts, group_counts == 1))
   }
 
+  # `held` refers to the model fit a second time; it is removed once its
+  # warnings are given, so that serialize() does not save that fit twice
+  # with the frame that the returned model's formula keeps.
+  .signal_warnings(held$warnings)
+  rm(held)
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link)
   }
@@ -1670,12 +1782,26 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # are computed from the standardized model's QR decomposition, which
   # stays accurate when covariates are nearly collinear (.hc3_vcov(),
   # .cr2_basis()); without one, by sandwich and clubSandwich, as before.
+  # Under HC3, a participant whose leverage is 1 leaves the HC3 standard
+  # error of each estimate that depends on that participant undefined; the
+  # covariance then comes from the QR decomposition, those estimates are
+  # reported with NA, and a classed warning names the participants (issue
+  # #173; .hc3_influence()). `hc3` describes them, and is NULL otherwise.
   fit_cr <- fit
   n_clusters <- NULL
   cr2_basis <- NULL
+  hc3 <- NULL
   numeric_covariates <- .numeric_covariates(scaling)
   if (robust == "HC3") {
-    vcovM <- if (numeric_covariates) .hc3_vcov(fit) else sandwich::vcovHC(fit, type = "HC3")
+    hc3 <- .hc3_leverage(fit, in_model)
+    vcovM <- if (numeric_covariates || !is.null(hc3)) {
+      .hc3_vcov(fit)
+    } else {
+      sandwich::vcovHC(fit, type = "HC3")
+    }
+    if (!is.null(hc3)) {
+      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates))
+    }
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
 
@@ -1685,9 +1811,9 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
       used[fit$na.action] <- FALSE
     }
     cluster_fit <- cluster[used]
-    if (anyNA(cluster_fit)) {
-      stop("`cluster` is missing for participants included in the model.", call. = FALSE)
-    }
+    # A missing or empty cluster ID of a participant in the model stops,
+    # with an error of class `solomonR_cluster_error` (issue #183).
+    .check_cluster_ids(cluster_fit)
     # The clusters the CR2 covariance is computed from; `cluster` keeps one
     # value per input row.
     n_clusters <- length(unique(cluster_fit))
@@ -1744,7 +1870,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
   # --- tidy coefficients with chosen vcov, for the covariates as given ---
   coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
-                                     cr2_basis)
+                                     cr2_basis, hc3)
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -1754,12 +1880,16 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # The pretest effects also carry the variance of the mean pretest at which
   # they are evaluated (.center_adjusted()); `added` is that part, which the
   # Wald R-squared uses too. `terms` is that mean's .center_terms(): the
-  # center used, or the other center for `pretest_sensitivity`.
+  # center used, or the other center for `pretest_sensitivity`. A contrast
+  # that depends on a participant at leverage 1 has no HC3 standard error:
+  # its variance is NA, and so are its test, interval, and Wald R-squared
+  # (issue #173).
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
     adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
+    if (.hc3_undefined(hc3, L)) adj[c("variance", "added")] <- list(NA_real_, NA_real_)
     se  <- sqrt(adj$variance)
     dfc <- adj$df
     z   <- est / se
@@ -1894,7 +2024,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     dispersion = dispersion,
     theta = if (negbin) c(theta = fit$theta, std.error = fit$SE.theta, alpha = 1 / fit$theta),
     vcov = coefficients$vcov,
-    covariate_scaling = .covariate_scaling_element(scaling, fit, vcovM),
+    covariate_scaling = .covariate_scaling_element(scaling, fit, .hc3_mark(vcovM, hc3)),
     data = df,
     pretest_mean = pretest_mean,
     pretest_center = pretest_center,
@@ -1903,6 +2033,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     pretest_n = parts$n,
     pretest_sensitivity = sensitivity,
     robust = robust,
+    hc3_leverage = if (robust == "HC3") if (is.null(hc3)) integer() else hc3$rows,
     family = family,
     cluster = cluster,
     n_clusters = n_clusters,
@@ -1925,29 +2056,111 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' clustered ones.
 #'
 #' @details
+#' **Supported models.** `perm_solomon()` supports the four models the package
+#' documents and validates: the Gaussian (identity link), binomial (logit
+#' link), and Poisson (log link) models, and `family = "negative_binomial"`
+#' (`MASS::glm.nb()`; Venables & Ripley, 2002). Any other family or link stops
+#' with an error of class `solomonR_perm_family_error`, at the participant and
+#' the cluster level; the review of issue #132 found p-values too small with
+#' other links (issue #134). A quasi-binomial or quasi-Poisson model gives the
+#' coefficients and HC3 standard errors of its parent family, so refit it with
+#' `binomial()` or `poisson()`; refit a `MASS::negative.binomial(theta)` model
+#' with `family = "negative_binomial"`. Every error of `perm_solomon()` named
+#' below also has the class `solomonR_perm_error`.
+#'
 #' **Unclustered designs.** Treatment labels of participants are permuted
-#' within pretest strata and the model is refitted for each permutation. The
-#' default statistic is the HC3-studentized contrast. The permutation
+#' within pretest strata, among the participants in the model, and the model
+#' is refitted for each permutation. A participant outside the model (a
+#' missing posttest, covariate, or treatment) enters no refit and is not
+#' permuted, so each pretest condition of the model keeps its numbers of
+#' treated and control participants, as randomized. The default statistic is
+#' the HC3-studentized contrast (MacKinnon & White, 1985). The permutation
 #' p-value is a valid test of the sharp null hypothesis that treatment has no
 #' effect for any participant; the `+1` correction keeps the Monte Carlo
 #' p-value from being zero (Phipson & Smyth, 2010). That result is for the
-#' count of permuted statistics at least as extreme as the observed one, so
-#' a permutation whose statistic equals the observed one is counted. Such
-#' ties occur when a permutation repeats the observed assignment or swaps
-#' arms of equal size, and often when scores are tied, as with binary
-#' outcomes, counts, and ratings. So that rounding error does not decide,
-#' statistics that differ by less than a small relative tolerance are
-#' treated as equal: 1e-10 for a linear model and 1e-6 for models fitted by
-#' iteration. The tolerance is relative to the observed statistic or, when
-#' that is smaller, to 1 for the studentized statistic and to the largest
-#' permuted difference for the difference statistic. In a model fitted by
-#' iteration, equal fits usually agree to about 1e-7; with a covariate they
-#' can differ by more, most with a link other than the canonical one, and
-#' such a tie can still be missed (issue #134). Studentizing the
-#' statistic makes permutation tests asymptotically robust when only an
-#' average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
-#' Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness
-#' should be regarded as approximate.
+#' count of permuted statistics at least as extreme as the observed one, so a
+#' permutation whose statistic equals the observed one is counted.
+#' Studentizing the statistic makes permutation tests asymptotically robust
+#' when only an average effect is hypothesized to be zero (DiCiccio & Romano,
+#' 2017; Wu & Ding, 2021); for the Pretest x Treatment contrast that
+#' robustness should be regarded as approximate.
+#'
+#' **Ties.** A permutation ties with the observed one when it repeats the
+#' observed assignment or swaps arms of equal size, and often when scores are
+#' tied, as with binary outcomes, counts, and ratings. Ties are found by
+#' structure first. Permutations that give each arm the same participants as
+#' the model sees them (the same outcome, covariates, and exposure) form one
+#' class, whose statistic is computed once; a permutation that swaps the arms
+#' of a pretest condition gets the statistic of its swap with the sign
+#' reversed, and a class that is its own swap gets exactly 0. Each refit is
+#' taken to the exact maximum-likelihood estimate by Newton's method, with the
+#' HC3 variance computed from the weights at that estimate, as the sandwich
+#' package computes it for a generalized linear model (Zeileis, 2006). The
+#' outcome of a Gaussian fit and any matrix covariate are moved by one of
+#' their own values before the refits, a subtraction that is exact for values
+#' within a factor of two of it (Higham, 2002, Theorem 2.5); numeric
+#' covariates and the pretest are standardized as for the fit's inference. So
+#' scores and covariates far from zero give the same p-value.
+#'
+#' Statistics that structure does not tie, but that are equal in exact
+#' arithmetic, are counted as ties within a window measured on each call: 100
+#' times the largest rounding error of the observed statistic and of the
+#' distinct permuted statistics within a relative 1e-6 of it, each measured as
+#' the change when its model is refitted with the rows in reverse order. The
+#' window is relative to the larger of the observed statistic and a unit, and
+#' is never below 2^-40. The unit is 1 for the studentized statistic; for the
+#' difference statistic it is the largest permuted difference, but at least
+#' the outcome's standard deviation for a Gaussian fit and 1 for the logit and
+#' log links. The result records the window as `tie_tolerance` and the unit's
+#' floor as `tie_scale`. A classed warning (`solomonR_perm_margin_warning`)
+#' says when the count rests on a numerical margin: a distinct permuted
+#' statistic below the window but within 100 windows of it, a window wider
+#' than a relative 1e-7, or a permutation classified close to one of the
+#' thresholds given under "Limits".
+#'
+#' **Degenerate permutations.** Each permutation, the observed labels
+#' included, is classified in this order:
+#'
+#' - With the studentized statistic, a participant at leverage 1 whose HC3
+#'   term enters the contrast's variance (an arm of one participant, or a
+#'   covariate value that no one else in the cell shares) leaves the HC3
+#'   standard error undefined, so the test stops with
+#'   `solomonR_perm_leverage_error`, which names the permutation; use
+#'   `statistic = "difference"`. An arm of one has one participant under every
+#'   permutation, so the test then stops at the observed labels.
+#' - A permutation under which a covariate collinear with the cells leaves the
+#'   contrast not estimable is left out, even when it empties an arm, and so
+#'   is one whose model cannot be refitted; `n_left_out` counts both. A
+#'   collinear permutation under which the contrast stays estimable is kept,
+#'   with the aliased coefficient set to 0. When the observed contrast is not
+#'   estimable, or every permutation is left out, the test stops with
+#'   `solomonR_perm_estimable_error`.
+#' - An emptied arm (no events, or only events, in a cell the contrast uses,
+#'   so that the estimate does not exist; Albert & Anderson, 1984),
+#'   separation by a covariate, and constant arms (an HC3 variance of 0 with a
+#'   contrast that is not 0) give an infinite statistic, counted as at least as
+#'   extreme as any other, for both statistics. So do two emptied arms whose
+#'   infinite parts have opposite signs. An infinite observed statistic gives
+#'   the share of permutations whose statistic is also infinite.
+#' - A contrast of exactly 0 with no spread counts as 0.
+#' - A degenerate cell that the contrast does not use takes the value of the
+#'   limiting model (Geyer, 2009).
+#'
+#' A classed warning (`solomonR_perm_infinite_warning`) says when half or
+#' more of the permutations used have an infinite statistic, since p cannot
+#' then fall below (k + 1) / (m + 1), and another
+#' (`solomonR_perm_convergence_warning`) when a refit failed or did not
+#' converge.
+#'
+#' **No variation.** When the outcome, and any exposure, takes one value
+#' among the participants in the model in a pretest condition that the
+#' contrast uses, the test stops with `solomonR_perm_no_variation_error` if
+#' the contrast is 0 or undefined under every permutation: when the contrast
+#' is on that condition alone, or the outcome is at its bound (no events, or
+#' only events). Otherwise the contrast still varies, through the other
+#' condition, a covariate the conditions share, or the exposure, and the test
+#' gives its p-value with a classed warning
+#' (`solomonR_perm_no_variation_warning`) that names the condition.
 #'
 #' **The difference statistic.** `statistic = "difference"` tests only the
 #' sharp null hypothesis. A permutation test of a difference in means is
@@ -1976,6 +2189,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'
 #' Designs that assign treatment to participants within clusters are refused,
 #' and stratified or restricted randomization of clusters is not supported.
+#' A cluster ID that is missing (`NA`), empty (`""`), or only white space
+#' for a participant in the model is refused with an error of class
+#' `solomonR_cluster_error`. The CR2 fits of [fit_solomon_glm()] refuse such
+#' an ID too, but a fit with a `cluster` and another covariance can hold
+#' one, as can a fit made by an earlier version of solomonR.
 #'
 #' The statistic is built from cluster-level summaries (Gail et al., 1996;
 #' Hayes & Moulton, 2017, ch. 10). A Stage 1 model with every term of the fit
@@ -2000,6 +2218,24 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' Gail et al. (1996, p. 1079) showed that the unstudentized difference can
 #' exceed the nominal level under the weak null hypothesis when the arms have
 #' unequal numbers of clusters and unequal variances.
+#'
+#' Stage 1 is fitted to the covariates and pretest standardized as for the
+#' fit's inference, so covariates far from zero give the same p-value.
+#' Statistics that differ by less than a relative 1e-10 are counted as ties,
+#' relative to the larger of the observed statistic and, for the difference
+#' statistic, the largest permuted difference (1 for the studentized one); the
+#' result records `tie_tolerance = 1e-10` and `tie_scale = 0`. Arms whose
+#' variance is at most 1e-10 times the variance the contrast would have if
+#' each arm's scores varied as their stratum's do are constant: the
+#' studentized statistic is then infinite, counted as at least as extreme, or
+#' 0 when the contrast is within 1e-8 of 0 on that scale, and an infinite
+#' observed statistic gives the share of allocations whose statistic is also
+#' infinite. When the cluster scores do not vary in any stratum the contrast
+#' uses, the test stops with `solomonR_perm_no_variation_error`; when they do
+#' not vary in one of two, it gives the p-value with
+#' `solomonR_perm_no_variation_warning`. A negative binomial fit with HC3
+#' standard errors is permuted at the cluster level too, with Stage 1 at the
+#' fit's theta; the simulation below does not cover it.
 #'
 #' When the number of possible allocations is at most `reps`, all of them are
 #' enumerated and the p-value is exact; the smallest attainable p-value is
@@ -2027,6 +2263,52 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'   arm even under the sharp null, where this test is exact, so the
 #'   permutation test is preferred for designs with few clusters.
 #'
+#' **Limits.** The counts are checked exactly against a reference set of
+#' p-values fixed before these rules were chosen (issue #134). What remains:
+#'
+#' - The classification rests on thresholds, not certificates: leverage 1 at
+#'   a hat value above 1 - 1e-8; a contrast not estimable when its component
+#'   in the null space of the design exceeds 1e-7 (the tolerance of the
+#'   pivoted QR decomposition); a zero HC3 variance at 1e-20 of the
+#'   model-based variance of the contrast (times the outcome's variance for a
+#'   Gaussian fit), and a zero contrast at 1e-10 of its square root; and
+#'   separation when the linear predictor of a row still moves by more than
+#'   1e-3 per Newton step toward its bound. Only emptied arms are decided
+#'   exactly, from counts. The margin warning marks a decision near its
+#'   threshold, on the side the decision went to: a null-space component in
+#'   (1e-7, 1e-4], a leverage in (1 - 1e-5, 1 - 1e-8], a contrast in (1e-10,
+#'   1e-7] of its scale when the variance is 0, a variance in (1e-20, 1e-14]
+#'   of its scale, a Newton step in (1e-6, 1e-3], and a row set aside while
+#'   moving by less than 0.1 per step. It makes such a decision visible; it
+#'   does not make it right.
+#' - The tie window is a margin rule: the rounding error it rests on is an
+#'   estimate, not a bound. An ill-conditioned design widens it, and the
+#'   margin warning then says so. Two classes that are equal only in mirrored
+#'   data (factor levels exchanged and a binary outcome recoded) are tied only
+#'   within the window.
+#' - With the studentized statistic, leverage 1 that a covariate creates can
+#'   arise under some permutations and not others, so whether the test stops
+#'   can depend on the seed.
+#' - The negative binomial's theta is fixed at the fit's estimate in every
+#'   refit. When the fit warned that theta did not converge
+#'   (`solomonR_theta_boundary_warning`), the test proceeds at that
+#'   estimate; no reference p-value covers that case, at either level.
+#' - The reference set has gaps, listed on issue #134. It does not include
+#'   missing treatment values; three of the issue's own data sets (the
+#'   package's tests check two of them); a Poisson first stage far from
+#'   zero in the clustered test; a search for mirrored data; observed
+#'   statistics chosen to be exactly 0 or in the most extreme class (such
+#'   statistics occur in it, but were not targeted); or a negative binomial
+#'   near-tie whose gap exceeds the rounding error of solomonR 0.8.2's
+#'   statistic. Three of its own steps rest on tolerances rather than
+#'   proofs: ordering the classes whose statistics it computed in doubles,
+#'   placing exact zeros below the observed statistic, and taking a Poisson
+#'   or negative binomial fit as exact only when its residuals are below
+#'   1e-6.
+#' - solomonR 0.8.2 and earlier permuted the labels of participants outside
+#'   the model, so for data with missing values the p-values, and the
+#'   permutations a seed draws, differ from those releases.
+#'
 #' @param fit An object returned by \code{fit_solomon_glm()}. Designs with
 #'   several treatments are not supported; see [fit_solomon_glm()].
 #' @param contrast Character string identifying the contrast to test. One of
@@ -2044,7 +2326,15 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' @param reps Number of permutations. Default is 5000. In clustered designs
 #'   with at most `reps` possible allocations, every allocation is used.
 #' @param seed Optional random-number seed for reproducibility. The global
-#'   random-number state is restored when the function exits.
+#'   random-number state is restored when the function exits. In clustered
+#'   designs, the clusters are taken in the C locale's order of their IDs
+#'   (the order of the characters' Unicode code points, in which capital
+#'   letters come before lower-case ones and accented letters after
+#'   both), whatever the session's collation; a factor `cluster` is taken
+#'   by its labels in that order, not by its level order. The IDs are not
+#'   changed: text as `read.csv()` returns it is taken by its bytes, which
+#'   gives that order for a UTF-8 file in any session. So a seed gives the
+#'   same allocations in every session.
 #' @param return_dist Logical. If \code{TRUE}, return the permutation
 #'   distribution in addition to the observed statistic and p-value.
 #' @param statistic `"studentized"` (the default, and recommended) divides
@@ -2060,21 +2350,36 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'   - `level`: the level permuted, `"participant"` or `"cluster"`.
 #'   - `estimate`: the estimated contrast.
 #'   - `z_obs`: the observed statistic (the contrast itself when
-#'     `statistic = "difference"`).
+#'     `statistic = "difference"`); `Inf` when the observed labels give an
+#'     infinite statistic (see "Degenerate permutations").
 #'   - `p_perm`: the permutation p-value.
 #'   - `reps` and `valid_reps`: the number of permutations, and the number
-#'     that gave a usable statistic.
+#'     used, which counts infinite statistics and not the permutations left
+#'     out.
 #'   - `exact`: whether every possible allocation was used.
+#'   - `n_infinite` and `n_left_out`: the number of permutations used whose
+#'     statistic is infinite, and the number left out.
+#'   - `n_classes`: the number of classes of permutations whose statistic
+#'     was computed, for unclustered fits.
+#'   - `tie_tolerance` and `tie_scale`: the tie window and the unit's floor
+#'     with which ties were counted (see "Ties"); [plot_perm()] uses them.
 #'   - `design`, `n_allocations` (the number of possible allocations),
 #'     `min_p` (the smallest attainable p-value when exact), and `clusters`
 #'     (the numbers of treated and control clusters in each stratum), for
 #'     clustered fits.
-#'   - `z_perm`: the permutation distribution, with `return_dist = TRUE`.
+#'   - `z_perm`: with `return_dist = TRUE`, the permuted statistics, one per
+#'     permutation in the order drawn (one per allocation when every
+#'     allocation was used): `NA` for a permutation left out, `Inf` for an
+#'     infinite statistic.
 #'
 #'   The result tests one contrast and gives no interval, so it has no
 #'   effects table; see [solomon_output].
 #'
 #' @references
+#' Albert, A., & Anderson, J. A. (1984). On the existence of maximum
+#' likelihood estimates in logistic regression models. *Biometrika, 71*(1),
+#' 1–10. https://doi.org/10.1093/biomet/71.1.1
+#'
 #' Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
 #' analysis of incidence rates in cluster randomized trials. *International
 #' Journal of Epidemiology, 31*(4), 839–846.
@@ -2095,13 +2400,26 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
 #' https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q
 #'
+#' Geyer, C. J. (2009). Likelihood inference in exponential families and
+#' directions of recession. *Electronic Journal of Statistics, 3*, 259–289.
+#' https://doi.org/10.1214/08-EJS349
+#'
 #' Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd
 #' ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+#'
+#' Higham, N. J. (2002). *Accuracy and stability of numerical algorithms* (2nd
+#' ed.). Society for Industrial and Applied Mathematics.
+#' https://doi.org/10.1137/1.9780898718027
 #'
 #' Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig,
 #' L. S. (1996). The effect of sex education on adolescents' use of condoms:
 #' Applying the Solomon four-group design. *Health Education Quarterly,
 #' 23*(1), 34–47. https://doi.org/10.1177/109019819602300103
+#'
+#' MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+#' covariance matrix estimators with improved finite sample properties.
+#' *Journal of Econometrics, 29*(3), 305–325.
+#' https://doi.org/10.1016/0304-4076(85)90158-7
 #'
 #' Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 #' zero: Calculating exact p-values when permutations are randomly drawn.
@@ -2113,9 +2431,16 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' Association, 85*(411), 686–692.
 #' https://doi.org/10.1080/01621459.1990.10474928
 #'
+#' Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
+#' (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
+#'
 #' Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in
 #' randomized experiments. *Journal of the American Statistical Association,
 #' 116*(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415
+#'
+#' Zeileis, A. (2006). Object-oriented computation of sandwich estimators.
+#' *Journal of Statistical Software, 16*(9), 1–16.
+#' https://doi.org/10.18637/jss.v016.i09
 #'
 #' @examples
 #' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
@@ -2143,6 +2468,10 @@ perm_solomon <- function(
   }
 
   statistic <- match.arg(statistic)
+
+  # Supported models (issue #134, decision D1), before the participant and
+  # cluster paths split.
+  .perm_check_family(fit)
 
   valid_contrasts <- c(
     "ATE (avg over pretest)",
@@ -2188,158 +2517,133 @@ perm_solomon <- function(
 
   # The model is refitted with the numeric covariates standardized and the
   # pretest scaled as the fit's inference was (issue #137;
-  # .covariate_scaling()). The statistic is the same, and accurate however
-  # far a covariate lies from zero.
+  # .covariate_scaling()), and with the outcome of an identity-link fit and
+  # any matrix covariate moved by one of their own values (issue #134,
+  # items 6 and 9). The statistic is the same in exact arithmetic.
   df <- fit$data
   if (!is.null(fit$covariate_scaling)) df <- .standardized_frame(df, fit$covariate_scaling)
-  numeric_covariates <- .numeric_covariates(fit$covariate_scaling)
   form <- stats::formula(fit$model)
   fam <- stats::family(fit$model)
+  theta <- if (.is_negbin(fam)) fit$model$theta else NULL
+  used <- rep(TRUE, nrow(df))
+  if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
+  df <- .perm_center_frame(df, used, fam)
 
-  # ------------------------------------------------------------
-  # Helper: construct the requested linear contrast
-  # ------------------------------------------------------------
+  # The design of the refits is built once from the rows in the model
+  # (decision D2 of issue #134): a labeling changes only the treatment
+  # columns. The outcome is taken as glm() fits it (.perm_outcome()).
+  mf_used <- stats::model.frame(form, data = df[used, , drop = FALSE], na.action = stats::na.pass)
+  X0 <- stats::model.matrix(form, mf_used)
+  y0 <- .perm_outcome(stats::model.response(mf_used))
+  off0 <- stats::model.offset(mf_used)
 
-  make_contrast <- function(coef_names, contrast) {
-
-    L <- numeric(length(coef_names))
-    names(L) <- coef_names
-
-    if (!"treat" %in% coef_names) {
-      stop("The fitted model does not contain a treatment coefficient.")
-    }
-
-    has_interaction <- "treat:pretested" %in% coef_names
-
-    if (contrast == "ATE (avg over pretest)") {
-
-      # Equal-weighted average of the treatment effects across the
-      # pretested and unpretested conditions:
-      #
-      # beta_treat + 0.5 * beta_treat:pretested
-
-      L["treat"] <- 1
-
-      if (has_interaction) {
-        L["treat:pretested"] <- 0.5
-      }
-
-    } else if (contrast == "Pretest x Treatment") {
-
-      if (!has_interaction) {
-        stop("The fitted model does not contain a treatment-by-pretest interaction.")
-      }
-
-      L["treat:pretested"] <- 1
-
-    } else if (contrast == "Treatment | pretested") {
-
-      # beta_treat + beta_treat:pretested
-
-      L["treat"] <- 1
-
-      if (has_interaction) {
-        L["treat:pretested"] <- 1
-      }
-
-    } else if (contrast == "Treatment | unpretested") {
-
-      # beta_treat
-
-      L["treat"] <- 1
-    }
-
-    L
-  }
-
-  # ------------------------------------------------------------
-  # Helper: studentized statistic for a fitted model
-  # ------------------------------------------------------------
-
-  contrast_z <- function(fit, contrast) {
-
-    b <- stats::coef(fit)
-
-    L <- make_contrast(
-      coef_names = names(b),
-      contrast = contrast
-    )
-
-    Lm <- matrix(L, nrow = 1)
-
-    estimate <- as.numeric(Lm %*% b)
-
-    if (statistic == "difference") {
-      return(estimate)
-    }
-
-    # With a numeric covariate, the HC3 variance comes from the QR
-    # decomposition, as the fit's does (.hc3_vcov()), so that nearly
-    # collinear covariates leave the statistic accurate.
-    variance <- if (numeric_covariates) {
-      infl <- .glm_influence(fit, map = Lm)
-      sum((infl$influence / (1 - infl$hat))^2)
-    } else {
-      V <- sandwich::vcovHC(
-        fit,
-        type = "HC3"
-      )
-
-      # Force coefficient and covariance-matrix order to match.
-      V <- V[names(b), names(b), drop = FALSE]
-
-      as.numeric(
-        Lm %*% V %*% t(Lm)
-      )
-    }
-
-    if (!is.finite(variance) || variance <= 0) {
-      return(NA_real_)
-    }
-
-    estimate / sqrt(variance)
-  }
-
-  # ------------------------------------------------------------
-  # Observed statistic
-  # ------------------------------------------------------------
+  # No variation in a pretest condition the contrast uses, among the
+  # participants in the model (issue #134, decision D5): an error when the
+  # contrast is 0 or undefined under every labeling, and a warning when it
+  # still varies, through the other condition, a covariate the conditions
+  # share, or the exposure. The outcome is taken as glm() fits it, so that a
+  # binary factor meets the bounds.
+  labels <- attr(stats::terms(form), "term.labels")
+  shared <- setdiff(labels, c("treat", "pretested", "pre_obs", "treat:pretested"))
+  .perm_check_variation(
+    y0, df$pretested[used], contrast, fam,
+    shared = X0[, attr(X0, "assign") %in% match(shared, labels), drop = FALSE],
+    offset = off0
+  )
 
   estimate <- as.numeric(
-    make_contrast(names(stats::coef(fit$model)), contrast) %*%
-      stats::coef(fit$model)
+    .perm_contrast_vector(names(stats::coef(fit$model)), contrast) %*%
+      ifelse(is.na(stats::coef(fit$model)), 0, stats::coef(fit$model))
   )
 
   # One routine refits the model for the observed and for the permuted
-  # labels, so that labelings that give the same fit in exact arithmetic
-  # are computed the same way. Convergence stays at glm()'s default, and
-  # the tie tolerance allows for it (see .perm_tie_tolerance(); issue #131).
-  refit <- function(d) {
-    stats::glm(
-      form,
-      data = d,
-      family = fam,
-      na.action = stats::na.exclude,
-      control = stats::glm.control(maxit = 200)
+  # labels (#132), takes it to the exact estimate, and classifies the
+  # degenerate labelings (issue #134; .perm_statistic()).
+  if (is.null(off0)) off0 <- rep(0, nrow(X0))
+  # Prior weights are 1: fit_solomon_glm() takes no weights. (The Gaussian
+  # refit of .perm_statistic() is unweighted least squares, so a fit with
+  # prior weights would need them there too.)
+  pw0 <- rep(1, nrow(X0))
+  L0 <- .perm_contrast_vector(colnames(X0), contrast)
+  treat_used <- df$treat[used]
+  pretested_used <- df$pretested[used]
+  has_int <- "treat:pretested" %in% colnames(X0)
+  # `reverse` refits with the rows in reverse order, which measures the
+  # rounding error of a statistic (.perm_tie_window()).
+  statistic_of <- function(tr, reverse = FALSE) {
+    X <- X0
+    X[, "treat"] <- tr
+    if (has_int) X[, "treat:pretested"] <- tr * pretested_used
+    o <- if (reverse) rev(seq_len(nrow(X))) else seq_len(nrow(X))
+    .perm_statistic(X[o, , drop = FALSE], y0[o], off0[o], pw0[o], fam, theta, L0, statistic)
+  }
+  # Classes of labelings (issue #134; .perm_class_of()). The labelings that
+  # give each arm the same rows, as the model sees them, are one class: it is
+  # computed once, from a representative built from the class alone, and
+  # swapped classes share it with the sign kept, so that labelings tied by
+  # structure get the same double. The cache holds one entry per class met,
+  # at most reps + 1: its statistic (in the canonical orientation), its code,
+  # and its flags; the key itself holds the class (.perm_key_canon()).
+  cc <- .perm_class_setup(X0, y0, off0, pretested_used, contrast, separable = !length(shared))
+  cache <- new.env(hash = TRUE, parent = emptyenv())
+  class_stat <- function(tr) {
+    cls <- .perm_class_of(cc, tr)
+    hit <- get0(cls$key, envir = cache, inherits = FALSE)
+    if (is.null(hit)) {
+      s <- statistic_of(.perm_rep_labeling(cc, cls$canon, treat_used))
+      # the swap maps the class to itself, so a finite contrast is exactly 0
+      if (cls$self && is.finite(s$z)) s$z <- 0
+      hit <- list(z = s$z, code = s$code, nonconv = isTRUE(s$nonconv), amb = isTRUE(s$amb),
+                  self = cls$self)
+      assign(cls$key, hit, envir = cache)
+    }
+    list(z = if (is.finite(hit$z)) cls$sign * hit$z else hit$z, code = hit$code,
+         nonconv = hit$nonconv, amb = hit$amb, key = cls$key)
+  }
+  # The measured error of a class: the change in its statistic when its model
+  # is refitted with the rows in reverse order (issue #134, item 7). A class
+  # that is its own swap is exactly 0 and needs none.
+  errs <- new.env(hash = TRUE, parent = emptyenv())
+  err_of_key <- function(key) {
+    e <- get0(key, envir = errs, inherits = FALSE)
+    if (!is.null(e)) return(e)
+    hit <- get(key, envir = cache, inherits = FALSE)
+    e <- 0
+    if (is.finite(hit$z) && !hit$self) {
+      z2 <- statistic_of(.perm_rep_labeling(cc, .perm_key_canon(cc, key), treat_used), reverse = TRUE)$z
+      if (is.finite(z2)) e <- abs(abs(hit$z) - abs(z2))
+    }
+    assign(key, e, envir = errs)
+    e
+  }
+
+  observed <- class_stat(treat_used)
+  if (identical(observed$code, "H1")) {
+    .perm_stop(
+      "solomonR_perm_leverage_error",
+      "A participant has leverage 1 in a cell the contrast \"", contrast, "\" uses (an arm of one ",
+      "participant, or a covariate value no one else shares), so the HC3 standard error of the ",
+      "observed contrast is not defined. Use statistic = \"difference\"."
     )
   }
-  tie_tol <- .perm_tie_tolerance(fam)
-
-  z_obs <- contrast_z(
-    refit(df),
-    contrast
-  )
-
-  if (!is.finite(z_obs)) {
-    stop("Could not calculate the observed permutation-test statistic.")
+  if (observed$code %in% c("ALIAS", "FAIL")) {
+    .perm_stop(
+      "solomonR_perm_estimable_error",
+      "Could not calculate the observed permutation-test statistic: ",
+      if (identical(observed$code, "ALIAS")) {
+        paste0("the contrast \"", contrast, "\" is not estimable from the fitted model.")
+      } else {
+        "the model could not be refitted."
+      }
+    )
   }
+  z_obs <- observed$z
 
   # The difference statistic tests only the sharp null hypothesis; with
   # arms of unequal size in a pretest condition the contrast uses, it can
   # reject too often when only the average effect is zero (Romano, 1990;
   # issue #113). The counts are of the participants in the model.
   if (statistic == "difference") {
-    used <- rep(TRUE, nrow(df))
-    if (!is.null(fit$model$na.action)) used[fit$model$na.action] <- FALSE
     strata <- c(pretested = 1L, unpretested = 0L)[.perm_contrast_weights(contrast) != 0]
     arm_count <- function(arm) {
       vapply(strata, function(p) sum(df$treat[used] == arm & df$pretested[used] == p), numeric(1))
@@ -2352,46 +2656,114 @@ perm_solomon <- function(
   # ------------------------------------------------------------
   # Permutation distribution
   #
-  # Treatment assignment is shuffled WITHIN pretest strata.
-  # This preserves the Solomon design and the number assigned
-  # to treatment/control within each pretesting condition.
+  # Treatment labels are shuffled WITHIN pretest strata, among the
+  # participants in the model (decision D2 of issue #134). This keeps the
+  # number treated in each condition of the model, as randomized.
   # ------------------------------------------------------------
 
-  z_perm <- numeric(reps)
+  z_perm <- rep(NA_real_, reps)
+  codes <- character(reps)
+  keys <- character(reps)
+  nonconv <- 0L
+  n_amb <- 0L
 
   for (i in seq_len(reps)) {
+    s <- class_stat(.perm_treat(treat_used, pretested_used))
+    if (identical(s$code, "H1")) {
+      .perm_stop(
+        "solomonR_perm_leverage_error",
+        "Permutation ", i, " gives a participant leverage 1 in a cell the contrast \"", contrast,
+        "\" uses (an arm of one participant, or a covariate value no one else in it shares), so ",
+        "its HC3 standard error is not defined and the studentized test cannot count it. Use ",
+        "statistic = \"difference\"."
+      )
+    }
+    z_perm[i] <- s$z
+    codes[i] <- s$code
+    keys[i] <- s$key
+    nonconv <- nonconv + isTRUE(s$nonconv)
+    n_amb <- n_amb + isTRUE(s$amb)
+  }
 
-    df_perm <- df
-
-    df_perm$treat <- .perm_treat(df$treat, df$pretested)
-
-    z_perm[i] <- contrast_z(
-      refit(df_perm),
-      contrast
+  # A labeling under which a covariate collinear with the cells leaves the
+  # contrast not estimable, or whose model cannot be refitted, is left out
+  # (decision D16). Infinite statistics (emptied or constant arms,
+  # separation) are kept and counted.
+  keep <- !codes %in% c("ALIAS", "FAIL")
+  if (!any(keep)) {
+    .perm_stop(
+      "solomonR_perm_estimable_error",
+      "No permutation gave a statistic: under each of the ", reps, " permutations the contrast \"",
+      contrast, "\" is not estimable from the refitted model, or the model could not be refitted."
     )
   }
+  # A refit that failed (left out) or did not converge, the observed one
+  # included (issue #134).
+  n_fail <- sum(codes == "FAIL")
+  if (n_fail > 0L || nonconv > 0L || isTRUE(observed$nonconv)) {
+    warning(structure(
+      class = c("solomonR_perm_convergence_warning", "warning", "condition"),
+      list(message = paste0(
+        if (isTRUE(observed$nonconv)) "The refit of the observed labels did not converge. " else "",
+        if (nonconv > 0L) sprintf("In %d of %d permutations the refitted model did not converge. ", nonconv, reps) else "",
+        if (n_fail > 0L) sprintf("%d of %d permutations could not be refitted and were left out. ", n_fail, reps) else "",
+        "The p-value rests on these fits; see ?perm_solomon, \"Limits\"."), call = NULL)
+    ))
+  }
+  z_perm_valid <- z_perm[keep]
+  keys_valid <- keys[keep]
 
-  # In the unlikely event that a permuted model produces an undefined
-  # statistic, exclude that replicate explicitly rather than silently
-  # allowing NA propagation.
+  # The tie window (issue #134, items 1 and 7; .perm_tie_window()): the
+  # floor 2^-40, or 100 times the measured rounding error of the observed
+  # statistic and of the distinct classes closest to it, relative to the
+  # larger of |z_obs| and the unit. A difference counts as zero against the
+  # outcome's standard deviation for an identity link (.perm_unit()).
+  tie_scale <- if (identical(fam$link, "identity")) stats::sd(df$y[used]) else 1
+  unit <- .perm_unit(z_perm_valid, statistic, tie_scale)
+  e_obs <- if (is.finite(z_obs)) err_of_key(observed$key) else 0
+  tw <- .perm_tie_window(z_perm_valid, keys_valid, z_obs, unit, e_obs, err_of_key)
+  tie_tol <- tw$tol
 
-  valid <- is.finite(z_perm)
-
-  if (!any(valid)) {
-    stop("No valid permutation statistics were obtained.")
+  # The margin check (issue #134, decision M8): a warning when a distinct
+  # statistic lies just below the window, when the window is wide, or when a
+  # labeling used (the observed one included) was classified close to a
+  # threshold.
+  n_amb <- n_amb + isTRUE(observed$amb)
+  if (tw$near > 0L || tw$wide || n_amb > 0L) {
+    warning(structure(
+      class = c("solomonR_perm_margin_warning", "warning", "condition"),
+      list(message = paste0(
+        "The count rests on a numerical margin: ",
+        if (tw$near > 0L) sprintf(paste0("%d distinct permuted statistic(s) lie within 100 tie windows ",
+                                         "below the observed one without tying; "), tw$near) else "",
+        if (tw$wide) "the tie window is wider than a relative 1e-7; " else "",
+        if (n_amb > 0L) sprintf(paste0("%d labeling(s) were classified (leverage 1, estimability, a zero ",
+                                       "variance, or separation) close to a threshold; "), n_amb) else "",
+        "see ?perm_solomon, \"Limits\"."), call = NULL)
+    ))
   }
 
-  z_perm_valid <- z_perm[valid]
-
   # Two-sided randomization p-value with the +1 finite-simulation
-  # correction. This prevents an estimated p-value of exactly zero.
-  # Ties with the observed statistic are counted (see .perm_at_least()).
-
+  # correction (Phipson & Smyth, 2010). Ties with the observed statistic
+  # are counted (see .perm_at_least() and .perm_tie_window()).
   p_perm <- (
-    sum(.perm_at_least(z_perm_valid, z_obs, .perm_unit(z_perm_valid, statistic), tie_tol)) + 1
+    sum(.perm_at_least(z_perm_valid, z_obs, unit, tie_tol)) + 1
   ) / (
     length(z_perm_valid) + 1
   )
+
+  # Half or more of the labelings used infinite: p cannot fall below
+  # (k + 1) / (m + 1), so the test has little information (issue #134).
+  n_inf <- sum(is.infinite(z_perm_valid))
+  if (n_inf >= length(z_perm_valid) / 2) {
+    warning(structure(
+      class = c("solomonR_perm_infinite_warning", "warning", "condition"),
+      list(message = sprintf(paste0(
+        "%d of %d permutations have an infinite statistic (an emptied or constant arm, or ",
+        "separation), counted as at least as extreme, so p cannot be below %.3f."),
+        n_inf, length(z_perm_valid), (n_inf + 1) / (length(z_perm_valid) + 1)), call = NULL)
+    ))
+  }
 
   out <- list(
     contrast = contrast,
@@ -2402,11 +2774,19 @@ perm_solomon <- function(
     p_perm = p_perm,
     reps = reps,
     valid_reps = length(z_perm_valid),
-    exact = FALSE
+    exact = FALSE,
+    n_infinite = n_inf,
+    n_left_out = sum(!keep),
+    n_classes = length(ls(cache, all.names = TRUE)),
+    tie_tolerance = tie_tol,
+    tie_scale = tie_scale
   )
 
   if (isTRUE(return_dist)) {
-    out$z_perm <- z_perm_valid
+    # One entry per draw, in draw order (issue #134): NA for a labeling left
+    # out (decision D16), Inf kept. plot_perm() and print() use the entries
+    # that are not NA.
+    out$z_perm <- z_perm
   }
 
   class(out) <- "solomon_perm"

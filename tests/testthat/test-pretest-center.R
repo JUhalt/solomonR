@@ -90,7 +90,7 @@ test_that("with the default center, results equal those of master (a6c771a)", {
   source(test_path("fixtures", "pretest-center-master.R"), local = TRUE)
   stored <- readRDS(test_path("fixtures", "pretest-center-master.rds"))
   now <- suppressWarnings(pretest_center_results(stored$data))
-  if (requireNamespace("mmrm", quietly = TRUE)) {
+  if (requireNamespace("mmrm", quietly = TRUE) && utils::packageVersion("mmrm") >= "0.3.13") {
     expect_setequal(names(now), names(stored$results))
   } else {
     expect_true(all(names(now) %in% names(stored$results)))
@@ -195,6 +195,14 @@ test_that("with the default center, results equal those of master (a6c771a)", {
     for (part in names(stored$results[[name]])) {
       ref <- stored$results[[name]][[part]]
       got <- now[[name]][[part]]
+      # perm_solomon() permutes the treatment labels among the participants
+      # in the model since #134 (decision D2), here 91 of the 120. Master's
+      # code, given those 91 rows alone, gives p = .04 and .32 under the same
+      # seed and draws, as perm_solomon() now does; the estimate, the
+      # observed statistic, and the number of permutations are unchanged.
+      if (startsWith(name, "perm ")) {
+        ref[["p_perm"]] <- c("perm ATE (avg over pretest)" = 0.04, "perm Pretest x Treatment" = 0.32)[[name]]
+      }
       info <- paste(name, part)
       if (part %in% c("text", "sentences")) {
         if (grepl("complete|classic", name)) {
@@ -1002,7 +1010,7 @@ test_that("a pretested participant outside the model for want of a covariate mak
 # ---- the mixed model for repeated measures -------------------------------------------------
 
 test_that("fit_solomon_mmrm() offers both centers", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   stored <- readRDS(test_path("fixtures", "pretest-center-master.rds"))
   long <- stored$data$long_complete
   # Eight pretested participants with low pretests have no posttest at any
@@ -1100,7 +1108,7 @@ test_that("fit_solomon_mmrm() offers both centers", {
 })
 
 test_that("fit_solomon_mmrm() takes one pretest per participant", {
-  skip_if_not_installed("mmrm")
+  skip_if_not_installed("mmrm", "0.3.13")
   stored <- readRDS(test_path("fixtures", "pretest-center-master.rds"))
   long <- stored$data$long
   fit <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
@@ -1259,7 +1267,8 @@ test_that("marginal_solomon() standardizes over the participants the center name
   expect_identical(default$pretest_center, "analyzed")
   expect_identical(res$pretest_center, "observed")
   standardized <- c(analyzed = sum(in_center & in_model), observed = sum(in_center),
-                    no_outcome = sum(in_center & !in_model))
+                    no_outcome = sum(in_center & !in_model), missing_covariate = 0L,
+                    unseen_level = 0L)
   expect_identical(res$standardized, standardized)
   expect_identical(default$standardized, standardized)
   # The fit's center decides by default, and the argument overrides it; the
@@ -1317,7 +1326,8 @@ test_that("marginal_solomon() standardizes over the participants the center name
   res2 <- marginal_solomon(fit2, method = "delta")
   expect_identical(res2$standardized,
                    c(analyzed = sum(in_center & in_model) - 1L, observed = sum(in_center),
-                     no_outcome = sum(in_center & !in_model)))
+                     no_outcome = sum(in_center & !in_model), missing_covariate = 0L,
+                     unseen_level = 0L))
   m2 <- stats::glm(passed ~ treat * pretested + xc, family = stats::binomial(),
                    data = d2[!is.na(d2$passed) & !is.na(d2$treat), ])
   expect_equal(res2$risks$risk[1:2], unname(direct_risks(m2, d2, center, over = in_center)$r[1:2]),
@@ -1333,6 +1343,7 @@ test_that("marginal_solomon() standardizes over the participants the center name
   )
   res3 <- marginal_solomon(fit3, method = "delta")
   expect_identical(res3$standardized[["observed"]], sum(in_center) - 2L)
+  expect_identical(res3$standardized[["missing_covariate"]], 2L)
   b3 <- stats::coef(fit3$model)
   over3 <- in_center & !is.na(d3$age)
   eta3 <- b3[["(Intercept)"]] + b3[["pretested"]] +
@@ -1544,7 +1555,8 @@ test_that("marginal_solomon() standardizes rates without an offset, and reads ol
   res <- marginal_solomon(fit_o)
   expect_identical(res$standardized,
                    c(analyzed = sum(in_center & in_model), observed = sum(in_center),
-                     no_outcome = sum(in_center & is.na(d$visits))))
+                     no_outcome = sum(in_center & is.na(d$visits)), missing_covariate = 0L,
+                     unseen_level = 0L))
   rates <- function(fit, over) {
     b <- stats::coef(fit$model)
     eta <- b[["(Intercept)"]] + b[["pretested"]] +

@@ -13,8 +13,9 @@
 # the canonical list appears in the coverage article. Exits with status 1 if
 # any entry differs from the canonical list or lacks a coverage entry.
 
-# A reference starts with an author, not a blockquote marker or list bullet.
-ref_pattern <- "^[^()>*-][^()]*? \\(\\d{4}[a-z]?(, [^)]*)?\\)\\."
+# A reference starts with an author, not a blockquote marker or list bullet,
+# and gives a year or "n.d." (no date) in parentheses.
+ref_pattern <- "^[^()>*-][^()]*? \\((\\d{4}[a-z]?|n\\.d\\.)(, [^)]*)?\\)\\."
 
 paragraphs <- function(lines) {
   groups <- cumsum(!nzchar(trimws(lines)))
@@ -24,18 +25,60 @@ paragraphs <- function(lines) {
   unname(paras[nzchar(paras)])
 }
 
-# APA 7 orders entries by the first author's surname and initials, then by
-# the other authors and the year, so "Little, R. J." precedes "Little, R. J.
-# A."; the first author is therefore compared on its own.
-sort_key <- function(entry) {
-  authors <- sub(" \\(\\d{4}.*$", "", entry)
-  year <- sub("^[^()]+? \\((\\d{4}[a-z]?).*$", "\\1", entry)
-  parts <- strsplit(authors, ", ", fixed = TRUE)[[1]]
-  first <- paste(parts[seq_len(min(2L, length(parts)))], collapse = " ")
-  rest <- paste(parts[-seq_len(min(2L, length(parts)))], collapse = " ")
-  letters_only <- function(x) gsub("[^a-z]", "", tolower(gsub("&", "", x, fixed = TRUE)))
-  paste(letters_only(first), letters_only(rest), year)
+# APA 7 orders entries letter by letter by the first author's surname and
+# initials, then by the other authors and the year. Spaces and punctuation
+# within a name are ignored, but the end of a surname or of a set of
+# initials comes before any letter (nothing precedes something), so
+# "Brown, J." precedes "Browning, A.", and "Little, R. J." precedes
+# "Little, R. J. A.". Each name and set of initials is therefore a field of
+# its own, ended by a tab. Accented Latin letters count as their base
+# letters ("Ethier" with an acute accent sorts under E), from a fixed table
+# rather than the platform's iconv; the table is written in escapes, so the
+# file stays ASCII and reads the same in any locale. A work with no date
+# ("n.d.") precedes the same authors' dated works. The keys are compared
+# byte by byte (method = "radix"), so the order does not depend on the
+# locale.
+accented <- paste0(
+  "\u00e0\u00e1\u00e2\u00e3\u00e4\u00e5\u0101\u0103\u0105\u01ce",       # a
+  "\u00e7\u0107\u0109\u010b\u010d",                                     # c
+  "\u010f\u0111\u00f0",                                                 # d
+  "\u00e8\u00e9\u00ea\u00eb\u0113\u0115\u0117\u0119\u011b",             # e
+  "\u011d\u011f\u0121\u0123",                                           # g
+  "\u0125\u0127",                                                       # h
+  "\u00ec\u00ed\u00ee\u00ef\u0129\u012b\u012d\u012f\u0131\u01d0",       # i
+  "\u0135",                                                             # j
+  "\u0137",                                                             # k
+  "\u013a\u013c\u013e\u0140\u0142",                                     # l
+  "\u00f1\u0144\u0146\u0148",                                           # n
+  "\u00f2\u00f3\u00f4\u00f5\u00f6\u00f8\u014d\u014f\u0151\u01d2",       # o
+  "\u0155\u0157\u0159",                                                 # r
+  "\u015b\u015d\u015f\u0161\u0219",                                     # s
+  "\u0163\u0165\u0167\u021b",                                           # t
+  "\u00f9\u00fa\u00fb\u00fc\u0169\u016b\u016d\u016f\u0171\u0173\u01d4", # u
+  "\u0175",                                                             # w
+  "\u00fd\u00ff\u0177",                                                 # y
+  "\u017a\u017c\u017e"                                                  # z
+)
+unaccented <- paste(rep(c("a", "c", "d", "e", "g", "h", "i", "j", "k", "l", "n", "o",
+                          "r", "s", "t", "u", "w", "y", "z"),
+                        c(10, 5, 3, 9, 4, 2, 10, 1, 1, 5, 4, 10, 3, 5, 4, 11, 1, 3, 3)),
+                    collapse = "")
+stopifnot(nchar(accented) == nchar(unaccented))
+letters_only <- function(x) {
+  x <- tolower(gsub("&", "", x, fixed = TRUE))
+  for (pair in list(c("\u00df", "ss"), c("\u00e6", "ae"), c("\u0153", "oe"), c("\u00fe", "th"))) {
+    x <- gsub(pair[1], pair[2], x, fixed = TRUE)
+  }
+  gsub("[^a-z]", "", chartr(accented, unaccented, x))
 }
+sort_key <- function(entry) {
+  authors <- sub(" \\((\\d{4}|n\\.d\\.).*$", "", entry)
+  year <- sub("^[^()]+? \\((\\d{4}[a-z]?|n\\.d\\.).*$", "\\1", entry)
+  if (identical(year, "n.d.")) year <- "0000"
+  parts <- strsplit(authors, ", ", fixed = TRUE)[[1]]
+  paste(c(letters_only(parts), year), collapse = "\t")
+}
+in_order <- function(keys) identical(order(keys, method = "radix"), seq_along(keys))
 
 canonical_file <- file.path("vignettes", "articles", "references.Rmd")
 canonical <- paragraphs(readLines(canonical_file, encoding = "UTF-8"))
@@ -51,7 +94,7 @@ check_list <- function(entries, where) {
   }
   if (anyDuplicated(entries)) note(where, "duplicate entry")
   keys <- vapply(entries, sort_key, "")
-  if (is.unsorted(keys)) note(where, "entries are not in APA order")
+  if (!in_order(keys)) note(where, "entries are not in APA order")
   length(entries)
 }
 

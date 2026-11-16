@@ -29,6 +29,9 @@
 # pretest covariate, and is otherwise counted from the data the model was
 # fitted to. NULL for fits made before #135 and for fits whose data do not
 # hold the posttests (fit_solomon_mmrm(), which .mmrm_attrition() covers).
+# The groups are those of the conditions in a fit with several treatments
+# (class `solomon_ngroup`), and of `treat` otherwise: a four-group fit made
+# before #174 can have a covariate named condition (issue #174).
 .fit_attrition <- function(x) {
   if (is.null(x$pretest_center)) return(NULL)
   # A summary carries the table it was given.
@@ -36,7 +39,7 @@
   if (!is.null(x$pretest_sensitivity$attrition)) return(x$pretest_sensitivity$attrition)
   d <- x$data
   if (!is.data.frame(d) || !all(c("y", "pretested") %in% names(d))) return(NULL)
-  condition <- as.character(if ("condition" %in% names(d)) d$condition else d$treat)
+  condition <- as.character(if (inherits(x, "solomon_ngroup")) d$condition else d$treat)
   levels <- sort(unique(condition[!is.na(condition)]))
   .pretest_attrition(condition, levels, d$pretested, d$y, rep(TRUE, nrow(d)), 0,
                      c(analyzed = 0, observed = 0), identity = FALSE)$attrition
@@ -425,7 +428,9 @@
 # The participants each standardization of marginal_solomon() runs over, as
 # in "the 74 pretested participants analyzed" or "every pretested
 # participant with a pretest (118, 44 without an outcome)", from
-# `standardized` (`n`).
+# `standardized` (`n`). When the "observed" standardization leaves some of
+# them out (issue #171), it is "97 of the 100 pretested participants with
+# a pretest (7 without an outcome)".
 .marginal_set_phrase <- function(n, center) {
   if (center == "analyzed") {
     return(sprintf("the %d pretested participants analyzed", n[["analyzed"]]))
@@ -434,7 +439,19 @@
     c(analyzed = n[["analyzed"]], observed = n[["observed"]], no_posttest = n[["no_outcome"]]),
     "without an outcome"
   )
+  left_out <- .marginal_left_out_n(n)
+  if (left_out > 0L) {
+    return(sprintf("%d of the %d pretested participants with a pretest (%s)", n[["observed"]],
+                   n[["observed"]] + left_out, outside))
+  }
   sprintf("every pretested participant with a pretest (%d, %s)", n[["observed"]], outside)
+}
+
+# The number of pretested participants with a pretest whom the "observed"
+# standardization of marginal_solomon() leaves out (issue #171), from
+# `standardized` (`n`); 0 for results made before it was counted.
+.marginal_left_out_n <- function(n) {
+  sum(n[intersect(c("missing_covariate", "unseen_level"), names(n))])
 }
 
 # The rows of marginal_solomon() that move with the standardization: every

@@ -19,7 +19,15 @@ marginal_solomon(
 link), \code{family = poisson()} (log link), or
 \code{family = "negative_binomial"}, with HC3 or model-based covariance, or,
 for binary outcomes, CR2 covariance. Designs with several treatments are
-not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
+not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. A fit made by an earlier version
+of solomonR, which stored a character covariate as character, stops
+with an error of class \code{solomonR_collation_error} when the collation in
+force sorts that covariate's values, among the participants the model
+used, in a different order than the R session that made the fit,
+whatever contrasts the fit was made under (issue #170). Refit it, or
+analyze it under that collation.
+\code{method = "cluster_summary"} does not use the covariates and does not
+stop.}
 
 \item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
 outcomes, \code{"odds_ratio"}. For count outcomes the default is
@@ -41,9 +49,11 @@ state is restored afterwards.}
 participants the pretested cells are standardized over (issue #135):
 \code{"analyzed"}, the pretested participants in the model; or \code{"observed"},
 every pretested participant with a pretest and the model's other
-covariates, with or without an outcome or a recorded condition.
-Defaults to the fit's \code{pretest_center} (\code{"analyzed"} for fits made
-before it existed). The centering constant itself plays no role.}
+covariates, with or without an outcome or a recorded condition, except
+those with a covariate level that no participant in the model has (see
+"Missing outcomes" in Details). Defaults to the fit's \code{pretest_center}
+(\code{"analyzed"} for fits made before it existed). The centering constant
+itself plays no role.}
 }
 \value{
 An object of class \code{solomon_marginal}, a list with:
@@ -69,6 +79,9 @@ and \code{risk} or \code{rate}). The other of the two is \code{NULL}.
 \item \code{outcome}: \code{"binary"} or \code{"count"}.
 \item \code{method}: the method of inference, and \code{vcov}, a description of the
 covariance the delta method used (\code{NA} for the other methods).
+\item \code{hc3_leverage}: with \code{method = "delta"} and a fit whose
+\code{hc3_leverage} names participants whose leverage is 1, their row
+numbers; absent otherwise.
 \item \code{R} and \code{failures}: with \code{method = "bootstrap"}, the number of
 resamples and the number that failed.
 \item \code{dispersion} and \code{theta}: as in the fit.
@@ -77,8 +90,12 @@ resamples and the number that failed.
 \code{"analyzed"} or \code{"observed"}. Absent with \code{method = "cluster_summary"},
 which uses neither set, so that \code{pretest_center} is ignored there.
 \item \code{standardized}: the numbers of pretested participants each set holds
-(\code{analyzed} and \code{observed}), and of those outside the model, how many
-have no outcome (\code{no_outcome}). Absent with
+(\code{analyzed} and \code{observed}); of those outside the model, how many
+have no outcome (\code{no_outcome}); and how many pretested participants
+with a pretest are outside the model and left out of the \code{observed}
+set because they lack a covariate (\code{missing_covariate}, whatever
+their other covariates) or else have a covariate level that no
+participant in the model has (\code{unseen_level}). Absent with
 \code{method = "cluster_summary"}.
 \item \code{attrition}: each Solomon group's \code{n}, outcomes missing
 (\code{posttest_missing}), and \code{share}, from the fit, for the attrition
@@ -88,7 +105,10 @@ contrast under both sets, a list with \code{effects} (keyed by \code{scale} and
 \code{center}; the other set's standard errors and intervals are \code{NA}
 under the bootstrap), \code{difference} (the estimates under the
 \code{analyzed} and \code{observed} sets and their \code{difference}), \code{differ}, and
-\code{note}; \code{NULL} without a pretest covariate and with
+\code{note}, which says when the standard errors of the other set are not
+given for want of clusters (CR2 fits), and how many pretested
+participants were left out of the \code{observed} set and why (\code{NULL} when
+neither applies); \code{NULL} without a pretest covariate and with
 \code{method = "cluster_summary"}. Outside the stable interface (see
 \link{solomon_output}).
 \item \code{design} and \code{clusters} (the number of clusters in each cell), with
@@ -153,9 +173,25 @@ participants, which \code{pretest_center} chooses, as it chooses the center of
 \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see "The pretest effect when posttests are missing"
 there, for what each assumes): by default over the pretested participants
 in the model (\code{"analyzed"}), or over every pretested participant with a
-pretest and the model's covariates (\code{"observed"}; a participant without
-a covariate is in the observed center of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} but not in
-this set). On the risk or rate scale the choice moves
+pretest and the model's covariates (\code{"observed"}). The \code{"observed"} set
+leaves out a participant outside the model whose risks (or rates) cannot
+be predicted: one who lacks a covariate, which the model needs, or one
+whose factor, character, or ordered covariate has a level that no
+participant in the model has (issue #171), for which the model has no
+coefficient. Such a participant is in the observed center of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} but not in this set. \code{standardized} counts them; one
+who lacks a covariate is counted as such, whatever their other
+covariates. The print, \code{\link[=report_solomon]{report_solomon()}}, and \code{pretest_sensitivity$note}
+say how many were left out and why, naming the covariates they lack and
+every level the model does not have. Where the print and the report
+name the \code{"observed"} set, they then give it as, for example, "97 of the
+100 pretested participants with a pretest": in the lines on both sets,
+which they give when the two sets differ, and in the first line of the
+print at \code{pretest_center = "observed"}. When no participant beyond the
+model is left in the \code{"observed"} set, the two sets are the same; the
+report then names neither set, nor does the print at the default
+center, so only the note gives the number left out. The default does
+not use these participants. On the risk or rate scale the choice moves
 Treatment | pretested, the average treatment effect, and Pretest x
 Treatment as well as the pretest effects, because a marginal risk depends
 on the participants it is averaged over; only Treatment | unpretested does
@@ -176,11 +212,67 @@ Daniel et al. (2021) and Localio et al. (2007) found the bootstrap performed
 better than the delta method, which is available as \code{method = "delta"}
 (using the fit's covariance matrix, with covariates held fixed). p-values
 use the bootstrap or delta-method standard error on the analysis scale:
-risk differences, log risk ratios, or log odds ratios. Bootstrap resamples
-in which the logistic fit fails (no convergence, a Solomon cell with only
-events or only non-events, or a fitted probability within 1e-8 of 0 or 1)
-are excluded and counted; when more than 10\% fail, intervals are not
-reported.
+risk differences, log risk ratios, or log odds ratios.
+
+Bootstrap resamples in which the logistic fit fails are excluded and
+counted: those with a Solomon cell of only events or only non-events, a
+fitted probability within 1e-8 of 0 or 1, a design not of full rank (as
+when a resample lacks a level of a factor or makes nearly collinear
+covariates collinear), or no convergence in 25 iterations by the rule of
+\code{\link[stats:glm.control]{stats::glm.control()}}. When more than 10\% fail, intervals are not
+reported, and the warning gives the failures by reason.
+Each resample is refitted by iteratively reweighted least squares from
+the model's coefficients, with full steps. Where a step takes fitted
+probabilities to 0 or 1, the refit stops and the resample fails;
+\code{\link[stats:glm.fit]{stats::glm.fit()}} would instead halve a step that makes the deviance
+infinite (Marschner, 2011). So a fitted probability near 0 or 1 comes
+from complete or quasicomplete separation (Albert & Anderson, 1984) or
+near separation, from an extreme covariate value, or from a refit that
+diverged.
+A refit that does not converge is fitted again with the intercept, the
+pretesting indicator, the pretest, and the covariates replaced by the
+orthonormal columns of their QR decomposition (Golub, 1965). These span
+the same space, and the treatment terms are kept, so in exact arithmetic
+it is the same fit (Green, 1984). With nearly collinear covariates,
+rounding error can keep a refit from converging, and the new columns
+let it converge. The new columns are formed whenever \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}
+fitted the model, since it stops at a term collinear with the others.
+A refit whose design is not of full rank at the tolerance of \code{\link[=qr]{qr()}}
+(1e-11) is not fitted again, and the resample counts as failed. In the
+new columns, a direction that a resample makes collinear is carried
+only by rounding error, and a refit could converge on it. Rounding
+error can also keep a design that is not of full rank above that
+tolerance, as when a covariate is computed from others, such as a time
+of testing that is the time of enrollment plus a delay, with the times
+in seconds. So before a refit that did not converge is fitted again,
+its resample is checked by the collinearity check of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} (see "Covariates" there), applied to the rows of the
+resample with the weights and rounding error of the model's own fit: a
+resample on whose rows a term is collinear with the others by that
+check counts as failed, as a design not of full rank, and is not fitted
+again. A refit that converged is not checked. Just inside that check,
+rounding error can also make nearly collinear covariates collinear on
+some resamples, at the tolerance of \code{\link[=qr]{qr()}} or by the check, and those
+resamples fail too, though an exact reparameterization of the
+covariates would fit them. A
+resample can also fail as a design not of full rank when only one of its
+participants departs from a relation that holds among the covariates of
+all the others: the refit moves that participant's fitted probability
+toward the observed outcome, and the participant's weight in the refit
+vanishes before the probability comes within 1e-8 of 0 or 1. The new
+columns cannot help with a treatment term nearly collinear with the
+other terms, because the contrasts are read from the treatment
+coefficients.
+They are computed in floating point, so they span the old ones only to
+within about the unit roundoff times the condition number of the
+columns they replace (Higham, 2002, Theorem 19.4 and Chapter 20). A
+refit in them is accurate to about that, as the model's own fit is, and
+a resample with a fitted probability near the 1e-8 limit can be counted
+as failed, or not, differently than in exact arithmetic. For the refits
+that still do not converge, the warning gives the largest condition
+number of their weighted design: the rounding error of each step grows
+with it (Higham, 2002, Chapter 20). A bootstrap whose refits all
+converge is computed as before.
 
 For the pretest effects, the pretested and the unpretested risks are
 standardized over different participants, so the sampling variance of
@@ -193,6 +285,10 @@ the estimating equations of the standardized means with those of the model
 pretest; for clustered fits, the degrees of freedom are combined by the
 Welch-Satterthwaite formula (Satterthwaite, 1946; Welch, 1947). The
 bootstrap resamples participants and so includes this variance.
+
+Under HC3, a delta-method contrast that depends on a participant whose
+leverage is 1 has an \code{NA} standard error, interval, and p-value, as in
+the fit (see "HC3 at leverage 1" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
 
 Count outcomes: for a fit with \code{family = poisson()} or
 \code{family = "negative_binomial"}, rates per unit of
@@ -252,6 +348,10 @@ covering more than 96\% of the time with 4 clusters per cell or arm.
 fits have not been validated and are refused; for them, the log rate-ratio
 contrasts of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with CR2 covariance and \code{\link[=perm_solomon]{perm_solomon()}}
 account for clustering.
+With \code{method = "cluster_summary"}, a fit made by an earlier version of
+solomonR whose clusters include an empty ID (\code{""} or only white space)
+for a participant in the model, which CR2 fits now refuse, stops with an
+error of class \code{solomonR_cluster_error}.
 
 The package's simulation validation of this function is described on
 issue #43 (binary outcomes), issue #44 (count outcomes), issue #62
@@ -277,6 +377,10 @@ marginal_solomon(counts)
 
 }
 \references{
+Albert, A., & Anderson, J. A. (1984). On the existence of maximum
+likelihood estimates in logistic regression models. \emph{Biometrika, 71}(1),
+1–10. https://doi.org/10.1093/biomet/71.1.1
+
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 for linear regression with multi-stage samples. \emph{Survey Methodology, 28}(2),
 169–181.
@@ -290,13 +394,30 @@ Comparing noncollapsible effect estimators and their standard errors after
 adjustment for different covariate sets. \emph{Biometrical Journal, 63}(3),
 528–557. https://doi.org/10.1002/bimj.201900297
 
+Golub, G. (1965). Numerical methods for solving linear least squares
+problems. \emph{Numerische Mathematik, 7}(3), 206–216.
+https://doi.org/10.1007/BF01436075
+
+Green, P. J. (1984). Iteratively reweighted least squares for maximum
+likelihood estimation, and some robust and resistant alternatives.
+\emph{Journal of the Royal Statistical Society: Series B (Methodological),
+46}(2), 149–170. https://doi.org/10.1111/j.2517-6161.1984.tb01288.x
+
 Hayes, R. J., & Moulton, L. H. (2017). \emph{Cluster randomised trials} (2nd
 ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+
+Higham, N. J. (2002). \emph{Accuracy and stability of numerical algorithms} (2nd
+ed.). Society for Industrial and Applied Mathematics.
+https://doi.org/10.1137/1.9780898718027
 
 Localio, A. R., Margolis, D. J., & Berlin, J. A. (2007). Relative risks and
 confidence intervals were easily computed indirectly from multivariable
 logistic regression. \emph{Journal of Clinical Epidemiology, 60}(9), 874–882.
 https://doi.org/10.1016/j.jclinepi.2006.12.001
+
+Marschner, I. C. (2011). glm2: Fitting generalized linear models with
+convergence problems. \emph{The R Journal, 3}(2), 12–15.
+https://doi.org/10.32614/RJ-2011-012
 
 Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
 cluster-robust variance estimation and hypothesis testing in fixed effects

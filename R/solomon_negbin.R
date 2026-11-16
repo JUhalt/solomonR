@@ -16,10 +16,16 @@
 # NB2 maximum-likelihood fit. When the counts show little overdispersion, the
 # estimate of theta grows without bound and glm.nb() warns that its iteration
 # limit was reached; that is reported once, as a classed warning.
-.fit_negbin <- function(fml, df) {
+# `contrasts`, a list as glm.nb() takes it, codes the factors; it is passed
+# only when given, as in .fit_model().
+.fit_negbin <- function(fml, df, contrasts = NULL) {
   boundary <- FALSE
   fit <- withCallingHandlers(
-    MASS::glm.nb(fml, data = df, na.action = stats::na.exclude),
+    if (is.null(contrasts)) {
+      MASS::glm.nb(fml, data = df, na.action = stats::na.exclude)
+    } else {
+      MASS::glm.nb(fml, data = df, na.action = stats::na.exclude, contrasts = contrasts)
+    },
     warning = function(w) {
       if (grepl("iteration limit reached|alternation limit reached", conditionMessage(w))) {
         boundary <<- TRUE

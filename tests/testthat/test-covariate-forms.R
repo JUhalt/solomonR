@@ -561,7 +561,7 @@ test_that("check_solomon_missing() takes the same forms", {
 })
 
 
-test_that("check_solomon_missing() stops on a name the model uses, as fit_solomon_glm() does", {
+test_that("check_solomon_missing() stops on a reserved name, as fit_solomon_glm() does", {
 
   # A vector is named by its bare name, so a vector named y would stop the
   # fit behind the gap and the delta line. check_solomon_missing() left out
@@ -569,7 +569,7 @@ test_that("check_solomon_missing() stops on a name the model uses, as fit_solomo
   # for a data frame with a column y; it now stops with the fit's error.
   d <- forms_data()
   d$y_post[c(3, 8, 70, 95)] <- NA
-  clash <- "Rename these covariates, whose names the model uses: "
+  clash <- "Rename these covariates, whose names are reserved: "
   for (name in c("y", "treat", "pretested", "pre_obs", "log_exposure")) {
     assign(name, d$z)
     message <- paste0(clash, name, ".")
@@ -602,7 +602,8 @@ test_that("check_solomon_missing() stops on a name the model uses, as fit_solomo
   expect_false(is.null(kept$gap))
   expect_false(is.null(kept$unpretested))
   # Without a pretest there is no fit behind a gap, and loss is shown by a
-  # covariate of any name.
+  # covariate of any name but pre_obs, condition, and log_exposure, which
+  # every fit reserves (issue #174; test-reserved-names.R).
   expect_identical(
     names(check_solomon_missing(d$y_post, d$treat, d$pretested, covariates = y)$covariates),
     "y"
@@ -1310,18 +1311,32 @@ test_that("the forms master used give master's model data, formulas, and results
   # where values are missing), and the doubles are compared to 1e-12 of
   # their value. The formulas, coefficient names, and classes hold no
   # doubles, so they must be identical.
+  #
+  # Since issue #170 a character covariate is stored in the model data as a
+  # factor, with the levels factor() gives it in this session, where master
+  # stored it as character (the covariate site of the fits `names` and
+  # `bare_character`). The fixture stays master's: its model data are
+  # compared with each character column made a factor in the same way
+  # (as_stored()). The coefficient names, which come from those levels, are
+  # compared as master gave them.
   skeleton <- function(x) rapply(x, function(v) if (is.double(v)) is.na(v) else v,
                                  how = "replace")
+  as_stored <- function(exact) {
+    if (is.data.frame(exact$data)) {
+      character <- vapply(exact$data, is.character, logical(1))
+      exact$data[character] <- lapply(exact$data[character], factor)
+    }
+    exact
+  }
   source(test_path("fixtures", "covariate-forms-master.R"), local = TRUE)
   stored <- readRDS(test_path("fixtures", "covariate-forms-master.rds"))
   now <- covariate_forms_results(stored$data)
 
   expect_identical(names(now), names(stored$results))
   for (name in names(stored$results)) {
-    expect_identical(skeleton(now[[name]]$exact), skeleton(stored$results[[name]]$exact),
-                     info = name)
-    expect_equal(now[[name]]$exact, stored$results[[name]]$exact, tolerance = 1e-12,
-                 info = name)
+    expected <- as_stored(stored$results[[name]]$exact)
+    expect_identical(skeleton(now[[name]]$exact), skeleton(expected), info = name)
+    expect_equal(now[[name]]$exact, expected, tolerance = 1e-12, info = name)
     expect_equal(now[[name]]$numbers, stored$results[[name]]$numbers, tolerance = 1e-8,
                  info = name)
   }

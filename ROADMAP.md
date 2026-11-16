@@ -472,6 +472,17 @@ the audit:
     far from 1 — [#137](https://github.com/JUhalt/solomonR/issues/137); merged in [PR #151](https://github.com/JUhalt/solomonR/pull/151)
   - [x] `fit_solomon_glm()` drops, without saying so, a covariate given as
     a vector or a matrix — [#146](https://github.com/JUhalt/solomonR/issues/146); merged in [PR #155](https://github.com/JUhalt/solomonR/pull/155)
+  - [x] `marginal_solomon()` and `plot_sensitization()` code a factor
+    covariate by the contrasts option in force when they refit the
+    model, not as the fit coded it — [#168](https://github.com/JUhalt/solomonR/issues/168); merged in [PR #169](https://github.com/JUhalt/solomonR/pull/169)
+  - [x] `marginal_solomon()` and `plot_sensitization()` code a character
+    covariate by the collation in force when they run, not the fit's — [#170](https://github.com/JUhalt/solomonR/issues/170); merged in [PR #181](https://github.com/JUhalt/solomonR/pull/181)
+  - [x] `marginal_solomon()` stops when a covariate level occurs only
+    among pretested participants with a pretest who are outside the
+    model — [#171](https://github.com/JUhalt/solomonR/issues/171); merged in [PR #178](https://github.com/JUhalt/solomonR/pull/178)
+  - [x] `fit_solomon_mmrm()` with an ordered occasion factor — [#172](https://github.com/JUhalt/solomonR/issues/172); merged in [PR #177](https://github.com/JUhalt/solomonR/pull/177)
+  - [x] A covariate named `pre_obs` in a fit without a pretest, or named
+    `condition`, taken for the pretest or the condition — [#174](https://github.com/JUhalt/solomonR/issues/174); merged in [PR #180](https://github.com/JUhalt/solomonR/pull/180)
 - **Figures and reports**
   - [x] The interval of the equivalence test drawn in the forest plot — [#107](https://github.com/JUhalt/solomonR/issues/107); merged in [PR #121](https://github.com/JUhalt/solomonR/pull/121)
   - [x] Figure text that fits the figure — [#108](https://github.com/JUhalt/solomonR/issues/108); merged in [PR #123](https://github.com/JUhalt/solomonR/pull/123)
@@ -485,13 +496,16 @@ the audit:
   - [x] Satterthwaite inference by default in `fit_solomon_ml()` — [#115](https://github.com/JUhalt/solomonR/issues/115); merged in [PR #124](https://github.com/JUhalt/solomonR/pull/124)
   - [x] Permutations tied with the observed statistic counted exactly in
     `perm_solomon()` — [#131](https://github.com/JUhalt/solomonR/issues/131); merged in [PR #132](https://github.com/JUhalt/solomonR/pull/132), released in 0.8.2
-  - [ ] `perm_solomon()`: ties with a covariate in iterated models, and
-    degenerate labelings — [#134](https://github.com/JUhalt/solomonR/issues/134)
-  - [ ] `marginal_solomon()`: a logistic bootstrap that can lose every
+  - [x] `perm_solomon()`: ties with a covariate in iterated models, and
+    degenerate labelings — [#134](https://github.com/JUhalt/solomonR/issues/134); merged in [PR #185](https://github.com/JUhalt/solomonR/pull/185)
+  - [x] `marginal_solomon()`: a logistic bootstrap that can lose every
     resample on an ill-conditioned design, and blames sparse cells; and,
     in `fit_solomon_glm()`, the convergence warning that can come with
     the error for exactly collinear covariates, and which fit
-    `model$converged` describes — [#154](https://github.com/JUhalt/solomonR/issues/154)
+    `model$converged` describes — [#154](https://github.com/JUhalt/solomonR/issues/154); merged in [PR #165](https://github.com/JUhalt/solomonR/pull/165)
+  - [x] `fit_solomon_glm()` with HC3 when a participant has leverage 1:
+    an internal error, undefined or rounding-dependent standard errors,
+    and a refusal for a group of one without a class — [#173](https://github.com/JUhalt/solomonR/issues/173); merged in [PR #176](https://github.com/JUhalt/solomonR/pull/176)
   - [ ] Robustness study of the recommended inference, under a protocol
     posted before any run — [#116](https://github.com/JUhalt/solomonR/issues/116)
 - **Interface**
@@ -510,7 +524,17 @@ the audit:
     a git repository, due before the robustness study's timing run; on
     the Validation Evidence page, a note on studies run through the
     harness, and one on GitHub's ZIP files if they keep the commit; and
-    a CI run of one script from a downloaded copy — [#162](https://github.com/JUhalt/solomonR/issues/162)
+    a CI run of one script from a downloaded copy — [#162](https://github.com/JUhalt/solomonR/issues/162).
+    The harness check merged in [PR #164](https://github.com/JUhalt/solomonR/pull/164); the note on
+    GitHub's ZIP files (on November 7, 2026, they kept the commit) and the
+    CI run merged in [PR #167](https://github.com/JUhalt/solomonR/pull/167). Open: the note on studies
+    run through the harness, when the robustness study joins the page.
+  - [x] A seeded cluster permutation test in `perm_solomon()`, and the
+    simulated p-value of `check_solomon_missing()`, that change with the
+    session's collation — [#179](https://github.com/JUhalt/solomonR/issues/179); merged in [PR #182](https://github.com/JUhalt/solomonR/pull/182)
+  - [x] An empty cluster ID (`""`), which CR2 fits of `fit_solomon_glm()`
+    accepted and on which `perm_solomon()` then stopped with an internal
+    error — [#183](https://github.com/JUhalt/solomonR/issues/183); merged in [PR #184](https://github.com/JUhalt/solomonR/pull/184)
 
 # Later / exploratory
 

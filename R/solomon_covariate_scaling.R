@@ -38,8 +38,9 @@
 # by a power of two is exact. Returns the data with them standardized,
 # `data`, and their `means` and `scales` (standard deviations, and that
 # power of two), named by covariate, the pretest first, with a mean of 0;
-# `means` is empty when there is neither. Without a pretest, a covariate may
-# be named `pre_obs`; it is standardized as a covariate.
+# `means` is empty when there is neither. No covariate can be named
+# `pre_obs`, with a pretest or without (issue #174;
+# .solomon_check_covariates()), so a column of that name is the pretest.
 .covariate_scaling <- function(df, covariates, in_model) {
   means <- numeric()
   scales <- numeric()
@@ -185,8 +186,10 @@
   if (robust == "none") {
     G <- sqrt(summary(fit)$dispersion) * U
   } else {
-    infl <- .glm_influence(fit, map = M)
-    G <- infl$influence / (1 - infl$hat)
+    # A participant at leverage 1 adds its limit, 0 (.hc3_influence()); the
+    # fit marks the entries that participant leaves undefined
+    # (.coefficient_table()).
+    G <- .hc3_influence(fit, map = M)$G
   }
   out <- crossprod(G)
   dimnames(out) <- dimnames(M)
@@ -211,7 +214,14 @@
 # coefficients' standard errors and degrees of freedom off by percents.
 # A fit without a numeric covariate, whose design is well conditioned,
 # keeps the computations of sandwich and clubSandwich, and its results.
-# `scaling` comes from .covariate_scaling().
+# `scaling` comes from .covariate_scaling(). A fit made before #174 without
+# a pretest, whose only numeric covariate was named pre_obs, is taken for
+# a fit without one: its stored covariance came from sandwich and
+# clubSandwich, and the computations that call this function on its
+# scaling when they run (the CR2 delta method of marginal_solomon(), the
+# CR2 degrees of freedom of plot_sensitization(), and the studentized
+# statistic of perm_solomon()) still skip this path. Refitting it with
+# the covariate renamed gives the results of this path (issue #174).
 .numeric_covariates <- function(scaling) any(names(scaling$means) != "pre_obs")
 
 # A covariance as a plain matrix, without the attributes of a clubSandwich
@@ -223,9 +233,11 @@
 # from the fit's QR decomposition (.glm_influence()). It is the covariance
 # that sandwich::vcovHC() computes, to about 1e-13 on well-conditioned
 # designs, without forming the inverse of X'WX. Named by the coefficients.
+# A participant at leverage 1 adds its limit, 0, to every entry, where
+# sandwich::vcovHC() gives NaN; the entries that depend on that participant
+# are undefined, and the fit marks them (issue #173; .hc3_influence()).
 .hc3_vcov <- function(model) {
-  infl <- .glm_influence(model)
-  crossprod(infl$influence / (1 - infl$hat))
+  crossprod(.hc3_influence(model)$G)
 }
 
 # The variances of the combinations `L` (one per row) of the coefficients
@@ -234,11 +246,15 @@
 # squared influences on l'b, each divided by 1 - h_i (.glm_influence()).
 # The covariance of nearly collinear covariates has large entries, which
 # cancel in a combination that weights them nearly equally, as the
-# gradients of the delta method do; these do not form it.
+# gradients of the delta method do; these do not form it. Under HC3 the
+# variance of a combination that depends on a participant at leverage 1
+# is undefined and returned as NA (issue #173; .hc3_influence()).
 .combination_variance <- function(model, robust, L) {
   if (robust == "HC3") {
-    infl <- .glm_influence(model, map = L)
-    return(colSums((infl$influence / (1 - infl$hat))^2))
+    hc3 <- .hc3_influence(model, map = L)
+    variance <- colSums(hc3$G^2)
+    variance[hc3$undefined] <- NA_real_
+    return(variance)
   }
   q <- model$qr
   rank <- seq_len(q$rank)
@@ -320,24 +336,79 @@
 }
 
 # The model of fit_solomon_glm() fitted to `data`, a negative-binomial one
-# when `negbin` is TRUE. With `quiet`, without its warnings.
-.fit_model <- function(fml, data, family, negbin, quiet = FALSE) {
+# when `negbin` is TRUE. With `quiet`, without its warnings. `contrasts`, a
+# list as glm() takes it, codes the factors; NULL codes them by
+# options("contrasts") or by a factor's own contrasts. It is passed only
+# when given, so that the call stored in the model of a fit, which gives
+# none, does not name it.
+.fit_model <- function(fml, data, family, negbin, quiet = FALSE, contrasts = NULL) {
   fit <- function() {
     if (negbin) {
-      .fit_negbin(fml, data)
-    } else {
+      .fit_negbin(fml, data, contrasts = contrasts)
+    } else if (is.null(contrasts)) {
       stats::glm(fml, data = data, family = family, na.action = stats::na.exclude)
+    } else {
+      stats::glm(fml, data = data, family = family, na.action = stats::na.exclude,
+                 contrasts = contrasts)
     }
   }
   if (quiet) suppressWarnings(fit()) else fit()
 }
 
+# The value of `expr` and the warnings it signalled, which are held back
+# (muffled), so that fit_solomon_glm() gives the warnings of its fit only
+# once the fit is known to go ahead (.signal_warnings()), not with the
+# error of one of its checks: an empty group, a collinear term, or a
+# single participant under HC3 (issue #154). A warning that cannot be
+# muffled, as one raised with signalCondition(), which has no muffleWarning
+# restart, is left to pass, as before #154.
+# When `expr` itself stops, as glm() does when it finds no valid
+# coefficients, or is interrupted, the warnings are signalled from a
+# calling handler, before the error or the interrupt is handled, as they
+# were before #154: they may be the only clue to why the fit failed. The
+# error is not caught, so the stack is not unwound before it is handled,
+# and traceback() and recover() still reach the frame that failed. When
+# `expr` exits otherwise, as by a caller's exiting handler for a message,
+# the warnings are signalled on the way out, so that none is lost.
+.record_warnings <- function(expr) {
+  warnings <- list()
+  release <- function(condition = NULL) {
+    held <- warnings
+    warnings <<- list()
+    .signal_warnings(held)
+  }
+  on.exit(release())
+  value <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      if (is.null(findRestart("muffleWarning"))) return()
+      warnings[[length(warnings) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    },
+    error = release,
+    interrupt = release
+  )
+  held <- list(value = value, warnings = warnings)
+  warnings <- list()
+  held
+}
+
+# Signals again, in order, the warnings held back by .record_warnings(),
+# each the same condition: its class, message, and call.
+.signal_warnings <- function(warnings) {
+  for (w in warnings) warning(w)
+  invisible(NULL)
+}
+
 # The standardized model of a fit_solomon_glm() fit with `covariate_scaling`,
 # refitted. The fit gave its warnings when it was made, so this one gives
-# none.
+# none. Each factor is coded as in the fit, whatever options("contrasts")
+# holds now (issue #168): the coefficients this model's design is used
+# with are the fit's.
 .standardized_model <- function(fit) {
   .fit_model(stats::formula(fit$model), .standardized_frame(fit$data, fit$covariate_scaling),
-             fit$family, .is_negbin(fit$family), quiet = TRUE)
+             fit$family, .is_negbin(fit$family), quiet = TRUE,
+             contrasts = fit$model$contrasts)
 }
 
 # The coefficient table of fit_solomon_glm(), in the columns of
@@ -355,8 +426,14 @@
 # of the table are the coefficients, in their order, and are matched to the
 # coefficients and the covariance by position, since two terms can share a
 # name (.scaled_columns()).
+#
+# Under HC3 with a participant at leverage 1, `hc3` (.hc3_leverage())
+# describes them, and the entries of the covariance of the coefficients as
+# given that depend on such a participant are NA, as are the standard
+# error, statistic, p-value, and interval of each coefficient that does
+# (issue #173). `V` holds their limits, which the participant adds 0 to.
 .coefficient_table <- function(fit, fit_cr, V, scaling, robust, df_model, conf_level,
-                               basis = NULL) {
+                               basis = NULL, hc3 = NULL) {
   tidy <- .tidy_coefficients(fit)
   standardized <- length(scaling$means) > 0L
   cf <- stats::coef(fit)
@@ -369,6 +446,10 @@
     estimate <- drop(M %*% cf)[rows]
     tidy$estimate <- if (is.null(names(tidy$estimate))) unname(estimate) else estimate
     V_given <- .given_vcov(fit, V, M, robust, if (robust == "CR2") basis)
+  }
+  if (!is.null(hc3)) {
+    weight <- if (standardized) .glm_influence(fit, map = M)$weight else hc3$weight
+    V_given[.hc3_undefined_entries(weight, hc3$leverage)] <- NA_real_
   }
   se_vec <- sqrt(diag(V_given))
   tidy$std.error <- unname(se_vec[rows])

@@ -72,21 +72,29 @@ does a logical or character matrix column of several columns, such as
 \code{d$lm2 <- cbind(d$age > 40, d$z > 0)} makes, given by its name or in a
 data frame, as \code{\link[stats:glm]{stats::glm()}} cannot fit it, and a character one also
 by its bare name. A value of the wrong length stops too, and so does
-a covariate named as a column of the model: \code{y}, \code{pretested},
-\code{log_exposure}, \code{pre_obs} when \code{y_pre} is given, and \code{treat} or, with
-several treatments, \code{condition} and \code{treat_} followed by each
-treatment's name. Any other form stops with an error, so that no
-covariate is left out unnoticed, for example: a character vector
-without \code{data} (give the data frame as \code{data}, or a categorical
-covariate as a factor); a list that is not a data frame; an array of
-more than two dimensions; and a vector of another type, such as a
-date (give it as a column of a data frame).}
+a covariate with a name that the model reserves for its own columns:
+in every design, \code{y}, \code{pretested}, \code{pre_obs} (the pretest),
+\code{condition}, and \code{log_exposure}, with or without \code{y_pre} and
+\code{exposure}; \code{treat} in a four-group design; and, with several
+treatments, \code{treat_} followed by each treatment's name. The error
+lists the reserved names; rename the covariate. Any other form stops
+with an error, so that no covariate is left out unnoticed, for
+example: a character vector without \code{data} (give the data frame as
+\code{data}, or a categorical covariate as a factor); a list that is not a
+data frame; an array of more than two dimensions; and a vector of
+another type, such as a date (give it as a column of a data frame).}
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
 \item{cluster}{optional clustering id (e.g., class/site), one value per
-participant. CR2 fits refuse designs in which a Solomon cell contains a
-single cluster, because cluster and condition are then confounded; see
+participant. CR2 fits refuse a cluster ID that is missing (\code{NA}), empty
+(\code{""}), or only white space (spaces, tabs, or line breaks, which
+\code{\link[=trimws]{trimws()}} removes) for a participant included in the model, with an
+error of class \code{solomonR_cluster_error}: give every cluster a label. A
+factor is taken by its labels, so a level \code{""} or \code{NA} that such a
+participant has is refused, and an unused one is not. CR2 fits also
+refuse designs in which a Solomon cell contains a single cluster,
+because cluster and condition are then confounded; see
 \code{\link[=validate_solomon]{validate_solomon()}}. A classed warning (\code{solomonR_small_df_warning})
 flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 4, where Tipton (2015) advises that p-values not be trusted.}
@@ -150,10 +158,14 @@ the Wald partial R-squared and its interval (\code{r2}, \code{r2_lo}, and
 \item \code{conf_level}: the confidence level of the intervals.
 \item \code{coefficients}: the coefficients of the model, in the same columns
 through \code{conf.high}, with \code{term} for \code{contrast}.
-\item \code{model}: the fitted model, a \code{glm} object.
+\item \code{model}: the fitted model, a \code{glm} object, fitted to the covariates
+and the pretest as given. Its \code{converged} and \code{iter} are those of
+that fit, not of the standardized one (see "Covariates").
 \item \code{vcov}: the covariance matrix of the coefficients, as \code{robust} sets
 it. With CR2 it is the clubSandwich object, or, with a pretest or a
-numeric covariate, a matrix (see "Covariates").
+numeric covariate, a matrix (see "Covariates"). Under HC3, its entries
+that depend on a participant whose leverage is 1 are \code{NA} (see "HC3
+at leverage 1").
 \item \code{covariate_scaling}: with a pretest or numeric covariates, the
 parameterization in which the inference was computed (see
 "Covariates"): the \code{means} and \code{scales} of the pretest, \code{pre_obs}
@@ -199,8 +211,20 @@ used. \code{NULL} without \code{y_pre}; outside the stable interface (see
 \item \code{robust}, \code{family}, \code{cluster} (the cluster of each participant), and
 \code{n_clusters}: the settings used. The last two are \code{NULL} without
 \code{cluster}.
+\item \code{hc3_leverage}: with \code{robust = "HC3"}, the row numbers in the data of
+the participants whose leverage is 1 (see "HC3 at leverage 1"), and
+an empty vector when there are none; \code{NULL} with the other
+covariances.
 \item \code{call}, and \code{data} (the data the model was fitted to), which
-solomonR's own functions use.
+solomonR's own functions use. A character covariate is held in
+\code{data}, and in the model frame of \code{model}, as a factor made with
+\code{\link[=factor]{factor()}} when the fit is made, so its levels are sorted by the
+collation of that R session, as were the levels its coefficients are
+named and ordered by. A level seen only in rows the model did not use
+is a level of the factor in \code{data} but has no coefficient.
+\code{\link[=marginal_solomon]{marginal_solomon()}} and \code{\link[=plot_sensitization]{plot_sensitization()}} then code the
+covariate as the fit did, whatever the collation when they run
+(issue #170).
 }
 
 For a design with several treatments, an object of class
@@ -361,6 +385,52 @@ and 0.958 with 10, and the Pretest x Treatment test had a Type I error of
 Confidence intervals for the Wald partial R-squared use the noncentral F
 method (Steiger, 2004) and are reported only for conventional Gaussian
 fits; no corresponding interval is available with robust covariance.
+}
+
+\section{HC3 at leverage 1}{
+
+HC3 divides each participant's squared residual by (1 - h)^2, where h is
+the participant's hat value, or leverage (MacKinnon & White, 1985). The
+model fits a participant whose leverage is 1 exactly, so that term is
+0/0, and the HC3 standard error of every estimate that depends on the
+participant is undefined. This happens when the pretest varies within
+the pretested groups only through one participant, as when every pretest
+in one pretested group is the same and all but one in the other are, or
+when a covariate varies only through one participant, such as a factor
+level that one participant alone holds. \code{\link[=validate_solomon]{validate_solomon()}} does not
+check for it.
+
+A participant is taken to be at leverage 1 when the hat value is above
+1 - 10^-8. The fit then gives a classed warning,
+\code{solomonR_hc3_leverage_warning}, that names these participants by their
+row numbers in the data and suggests \code{robust = "none"}, and returns the
+row numbers as \code{hc3_leverage}. For each contrast and each coefficient,
+the participant's weight in the estimate is computed from the model's
+QR decomposition. When that weight is at most 10^-8 times the largest
+weight in the estimate, the estimate does not depend on the participant,
+whose term takes its limit, 0, and the estimate keeps its HC3 standard
+error. Otherwise its standard error, statistic, p-value, interval, and
+Wald R-squared are \code{NA}, and so are the entries of \code{vcov} that depend on
+the participant. \code{\link[sandwich:vcovHC]{sandwich::vcovHC()}} returns \code{NaN} throughout in that
+case, so the HC3 covariance is then computed from the QR decomposition.
+For example, in the data of issue #173, where the pretest varies in that
+way, the treatment effect among unpretested participants, which does not
+depend on the pretested participants, keeps its HC3 standard error, and
+the other three treatment contrasts and the three pretest effects are
+\code{NA}. With several treatments, an omnibus test is \code{NA} when one of its
+contrasts is. A comparison whose p-value is \code{NA} still counts in the
+Holm or Bonferroni adjustment of the other comparisons, as if its
+p-value were the largest, so their adjustment is conservative. The same
+rule gives \code{NA} in the delta method of
+\code{\link[=marginal_solomon]{marginal_solomon()}}, in the cell means of \code{\link[=plot_sensitization]{plot_sensitization()}}, and
+in \code{\link[=fit_solomon_mi]{fit_solomon_mi()}}. Model-based standard errors (\code{robust = "none"})
+are defined at leverage 1. The rule is not applied to CR2 fits.
+
+A group with a single analyzable participant also has leverage 1, and
+three of the four treatment contrasts depend on that participant. Under
+HC3 the fit then stops with an error of class
+\code{solomonR_hc3_singleton_error}. \code{\link[=validate_solomon]{validate_solomon()}} reports such a group
+as an error.
 }
 
 \section{The pretest effect}{
@@ -598,6 +668,16 @@ warnings, such as one that a negative-binomial theta did not converge,
 come from the standardized model too, as do \code{theta} and \code{dispersion},
 which do not depend on the parameterization. Far from zero, a fit to a
 covariate as given can warn where the same model standardized does not.
+With a pretest or a numeric covariate, \code{model$converged} and
+\code{model$iter} describe the fit to the data as given, which is made
+silently, not the standardized fit that gave the warnings. The model
+fit's warnings are given once the checks for an empty group, a collinear
+term, and, under HC3, a group with a single participant have passed, so
+a fit that stops at one of these checks gives the error without the
+model fit's warnings. The warnings about the data given, raised before
+the fit (pretested participants with a missing pretest, \code{y_pre} given
+for unpretested participants), still come before that error. An error
+inside the fit itself still comes after the warnings the fit gave.
 
 Covariates collinear with the other terms stop the fit wherever they
 lie. Far from zero, the rounding error of the stored values can make
@@ -735,8 +815,10 @@ treatment.
 
 The p-values of each contrast are adjusted across the comparisons, by
 Holm's (1979) procedure by default. It controls the familywise error rate
-"for any combination of true hypotheses" (p. 65). The confidence
-intervals are not adjusted. The result has class \code{solomon_ngroup}.
+"for any combination of true hypotheses" (p. 65). A comparison without a
+p-value still counts among the comparisons (see "HC3 at leverage 1").
+The confidence intervals are not adjusted. The result has class
+\code{solomon_ngroup}.
 
 The effects table ends with the pretest effect in each condition (see
 "The pretest effect"), with \code{comparison} naming the condition:
