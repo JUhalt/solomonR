@@ -43,8 +43,14 @@
   curly quotes in Windows-1252. There R takes such text and the same
   letters marked as UTF-8 or as Latin-1 as one value, although their
   bytes differ. A value that comes in more than one of these forms is
-  placed by the form whose bytes come first (Latin-1 text taken in
-  UTF-8), so the order of the rows does not move it.
+  placed by the form whose bytes come first, text marked as Latin-1
+  being taken by its bytes in UTF-8, and keeps the form in which it
+  first appears in the data, so the order of the rows does not move it.
+  For instance, é that comes both in Windows-1252 (e9) and in UTF-8
+  (c3 a9) comes before Ä (c4), and À that comes in both (c0 and c3 80)
+  before Á (c1). In a session whose native encoding is not UTF-8, R
+  takes text with the same bytes marked as native and as UTF-8 as two
+  values; the one marked UTF-8 comes first, whatever the collation.
   `?perm_solomon` (under `seed`) and `?check_solomon_missing` say so.
 * `marginal_solomon()` stopped with "Character encoding must be UTF-8,
   Latin-1 or bytes" on a binary or count fit with a pretest and a
@@ -106,16 +112,23 @@
   participant outside the model from a site that the model has is
   standardized over. They check that the IDs and levels come back with
   their own bytes and encoding marks, for text marked as UTF-8, as
-  Latin-1, and as `read.csv()` marks it. In a session started with
-  `LC_ALL=C` (skipped on CRAN), they check that text as `read.csv()`
-  returns it there keeps its values and gives the results of a UTF-8
-  session in all three functions, and that IDs marked as UTF-8 or as
-  Latin-1 are put in the C order. In a session whose native encoding is
-  Windows-1252 or Latin-1 (skipped on CRAN and where no such locale is
-  available), with an ID or a level in UTF-8 in some rows and in the
-  code page in others, they check that reversing the rows changes
-  neither the order of the clusters and levels nor the results of
-  `perm_solomon()` (both designs) and `check_solomon_missing()`.
+  Latin-1, and as `read.csv()` marks it, and that a byte below 0x10,
+  such as a tab, takes its place in the C order. In a session started
+  with `LC_ALL=C` (skipped on CRAN), they check that text as
+  `read.csv()` returns it there keeps its values and gives the results
+  of a UTF-8 session in all three functions, and that IDs marked as
+  UTF-8 or as Latin-1 are put in the C order. In a session whose
+  native encoding is Windows-1252 or Latin-1 (skipped on CRAN and where
+  no such locale is available), with an ID or a level in UTF-8 in some
+  rows and in the code page in others, they check that reversing the
+  rows changes neither the order of the clusters and levels nor the
+  results of `perm_solomon()` (both designs) and
+  `check_solomon_missing()`. There they check that é and À, in the code
+  page and in UTF-8 or Latin-1, are placed by the form whose bytes come
+  first, whichever comes first in the data, and come back as they first
+  appear; and that the same bytes marked as native and as UTF-8 come
+  with the one marked UTF-8 first, under the collation of the code
+  page's locale.
 
 ## Covariates named pre_obs or condition (bug fix, #174)
 

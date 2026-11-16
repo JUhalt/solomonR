@@ -317,6 +317,11 @@ test_that("the C order takes text in any encoding marking and keeps it as it is 
     expect_true(same_strings(s, if (e_native == e_utf8) x[1] else c(e_utf8, e_native)))
     expect_false(anyNA(factor(x, levels = s)))
   }
+  # Each byte is written as two digits, a byte below 0x10 too, so that a
+  # tab (09) comes before a space (20), as in the C order.
+  tab <- "a\tb"
+  expect_identical(solomonR:::.hex_bytes(c(tab, "", "a b")), c("610962", "", "612062"))
+  expect_identical(solomonR:::.sort_c(c("a b", tab)), c(tab, "a b"))
 })
 
 test_that("accented cluster IDs as read.csv() returns them are taken in the C order (#179)", {
@@ -690,6 +695,24 @@ code_page_checks <- function(input) {
   out$sort_c <- lapply(list(c(e_native, e_utf8, a_native), c(e_utf8, e_native, a_native),
                             c(a_native, e_native, e_latin1), c(a_native, e_latin1, e_native)),
                        sorted)
+  # A grave in the code page (c0), in UTF-8 (c3 80), and in Latin-1 (c0,
+  # which is c3 80 in UTF-8), and A acute in the code page (c1).
+  grave_native <- marked("c0", "unknown")
+  grave_utf8 <- marked("c380", "UTF-8")
+  grave_latin1 <- marked("c0", "latin1")
+  acute_native <- marked("c1", "unknown")
+  out$first_bytes <- lapply(list(c(grave_utf8, acute_native, grave_native),
+                                 c(grave_native, acute_native, grave_utf8),
+                                 c(grave_latin1, acute_native, grave_native)),
+                            sorted)
+  # The bytes of e acute in UTF-8 marked as native, which is other text in
+  # the code page, and marked as UTF-8, sorted under this session's
+  # collation, that of the code page's locale.
+  tie_native <- marked("c3a9", "unknown")
+  tie_utf8 <- marked("c3a9", "UTF-8")
+  out$ties <- list(equal = tie_native == tie_utf8, sorted = lapply(
+    list(c(tie_native, tie_utf8), c(tie_utf8, tie_native)), sorted
+  ))
   # The clusters, as the IDs' order in UTF-8, and perm_solomon(), with the
   # rows as built and in reverse order, and with zero-padded labels.
   out$perm <- lapply(input$cluster_data, function(d) {
@@ -725,8 +748,11 @@ test_that("the order of the rows does not matter in a single-byte code page (#17
   # or as Latin-1 as one value. A value is placed by the smallest key among
   # the forms in which it appears, so école, which one row of each cluster
   # or site has in UTF-8, comes before Ärles (c4) whichever of its forms
-  # comes first in the data. The test is skipped on CRAN and where no such
-  # session can be started.
+  # comes first in the data. À, whose form in the code page (c0) comes
+  # before its form in UTF-8 (c3 80), is placed by the former. The same
+  # bytes marked as native and as UTF-8 are two values there, which the
+  # marks order, not the session's collation. The test is skipped on CRAN
+  # and where no such session can be started.
   skip_on_cran()
   loc <- Find(locale_available, code_page_locales)
   skip_if(is.null(loc), "No locale with such a code page is available.")
@@ -766,6 +792,23 @@ test_that("the order of the rows does not matter in a single-byte code page (#17
       list(hex = c("e9", "c4"), marks = c("unknown", "unknown")),
       list(hex = c("e9", "c4"), marks = c("latin1", "unknown"))
     ))
+    # À, then Á (c1), each as it first appears: À is placed by its form in
+    # the code page (c0), whose bytes come before those of its form in
+    # UTF-8 (c3 80), whichever of its forms comes first and whatever its
+    # marks.
+    expect_identical(res$first_bytes, list(
+      list(hex = c("c380", "c1"), marks = c("UTF-8", "unknown")),
+      list(hex = c("c0", "c1"), marks = c("unknown", "unknown")),
+      list(hex = c("c0", "c1"), marks = c("latin1", "unknown"))
+    ))
+    # The same bytes marked as native and as UTF-8 are two values there, the
+    # one marked UTF-8 first whichever comes first. The collation of the
+    # code page's locale (unlike C, on Windows, for instance) does not
+    # decide it.
+    expect_false(res$ties$equal)
+    for (sorted in res$ties$sorted) {
+      expect_identical(sorted, list(hex = c("c3a9", "c3a9"), marks = c("UTF-8", "unknown")))
+    }
     # The clusters come in the order école02, ..., école40, Ärles01, ...,
     # with the rows as built and reversed, and perm_solomon() gives the
     # result of the labels, with the same p-value when the rows are
