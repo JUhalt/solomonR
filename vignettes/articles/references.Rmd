@@ -653,8 +653,9 @@ Geyer, C. J. (2009). Likelihood inference in exponential families and
 directions of recession. *Electronic Journal of Statistics, 3*, 259–289.
 https://doi.org/10.1214/08-EJS349
 
-> When the maximum-likelihood estimate does not exist, the limiting model
-> along the directions of recession. *In solomonR:* the value
+> Shows that when the maximum-likelihood estimate does not exist,
+> inference can use the limiting model along the directions of recession.
+> *In solomonR:* the value
 > `perm_solomon()` gives a permutation with a degenerate cell that the
 > contrast does not use
 > ([#134](https://github.com/JUhalt/solomonR/issues/134)).

@@ -2265,7 +2265,21 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'   arise under some permutations and not others, so whether the test stops
 #'   can depend on the seed.
 #' - The negative binomial's theta is fixed at the fit's estimate in every
-#'   refit.
+#'   refit. When the fit warned that theta did not converge
+#'   (`solomonR_theta_boundary_warning`), the test proceeds at that
+#'   estimate; no reference p-value covers that case, at either level.
+#' - The reference set has gaps, listed on issue #134. It does not include
+#'   missing treatment values; three of the issue's own data sets (the
+#'   package's tests check two of them); a Poisson first stage far from
+#'   zero in the clustered test; a search for mirrored data; observed
+#'   statistics chosen to be exactly 0 or in the most extreme class (such
+#'   statistics occur in it, but were not targeted); or a negative binomial
+#'   near-tie whose gap exceeds the rounding error of solomonR 0.8.2's
+#'   statistic. Three of its own steps rest on tolerances rather than
+#'   proofs: ordering the classes whose statistics it computed in doubles,
+#'   placing exact zeros below the observed statistic, and taking a Poisson
+#'   or negative binomial fit as exact only when its residuals are below
+#'   1e-6.
 #' - solomonR 0.8.2 and earlier permuted the labels of participants outside
 #'   the model, so for data with missing values the p-values, and the
 #'   permutations a seed draws, differ from those releases.

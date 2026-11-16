@@ -36,13 +36,14 @@
   (item 1). The tie window that remains is measured on each call from the
   rounding error of the statistics closest to the observed one, never
   below a relative 2^-40, in place of the fixed 1e-10 and 1e-6. The
-  outcome of a Gaussian fit and
-  any matrix covariate are moved by one of their own values before the
-  refits, so scores far from zero give the same p-value (item 6). A
-  classed warning, `solomonR_perm_margin_warning`, says when a count rests
-  on a numerical margin. p-values change where ties were miscounted before
-  (items 1, 6, 7, and 9): in the cases found, they were too small, except
-  for item 7's, which was too large.
+  outcome of a Gaussian fit and any matrix covariate are moved by one of
+  their own values before the refits, so scores and matrix covariates far
+  from zero give the same p-value (items 6 and 9). A classed warning,
+  `solomonR_perm_margin_warning`, says when a count rests on a numerical
+  margin. p-values change where ties were miscounted before (items 1, 6,
+  and 7, and item 9 with a matrix covariate; with a numeric covariate,
+  item 9 was fixed by #137, below): in the cases found, they were too
+  small, except for item 7's, which was too large.
 * **Degenerate permutations are counted, not dropped.** A permutation that
   empties an arm (no events, or only events, in a cell the contrast uses),
   separates the outcome by a covariate, or leaves both arms constant has an
