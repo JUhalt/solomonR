@@ -7,7 +7,14 @@
 plot_sensitization(fit, bounds = NULL, alpha = 0.05, show_observed = TRUE)
 }
 \arguments{
-\item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}.}
+\item{fit}{A fit from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} or \code{\link[=fit_solomon_ml]{fit_solomon_ml()}}. A fit
+from \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} made by an earlier version of solomonR, which
+stored a character covariate as character, stops with an error of class
+\code{solomonR_collation_error} when the collation in force sorts that
+covariate's values, among the participants the model used, in a
+different order than the R session that made the fit, whatever
+contrasts the fit was made under (issue #170). Refit it, or draw it
+under that collation.}
 
 \item{bounds}{Optional equivalence bounds for the sensitization contrast,
 as one positive number or \code{c(lower, upper)}. When supplied, the caption

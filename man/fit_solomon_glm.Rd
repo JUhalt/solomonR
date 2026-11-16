@@ -210,7 +210,15 @@ the participants whose leverage is 1 (see "HC3 at leverage 1"), and
 an empty vector when there are none; \code{NULL} with the other
 covariances.
 \item \code{call}, and \code{data} (the data the model was fitted to), which
-solomonR's own functions use.
+solomonR's own functions use. A character covariate is held in
+\code{data}, and in the model frame of \code{model}, as a factor made with
+\code{\link[=factor]{factor()}} when the fit is made, so its levels are sorted by the
+collation of that R session, as were the levels its coefficients are
+named and ordered by. A level seen only in rows the model did not use
+is a level of the factor in \code{data} but has no coefficient.
+\code{\link[=marginal_solomon]{marginal_solomon()}} and \code{\link[=plot_sensitization]{plot_sensitization()}} then code the
+covariate as the fit did, whatever the collation when they run
+(issue #170).
 }
 
 For a design with several treatments, an object of class
