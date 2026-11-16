@@ -1278,19 +1278,27 @@ stouffer_solomon <- function(p) {
 #'   `d$lm2 <- cbind(d$age > 40, d$z > 0)` makes, given by its name or in a
 #'   data frame, as [stats::glm()] cannot fit it, and a character one also
 #'   by its bare name. A value of the wrong length stops too, and so does
-#'   a covariate named as a column of the model: `y`, `pretested`,
-#'   `log_exposure`, `pre_obs` when `y_pre` is given, and `treat` or, with
-#'   several treatments, `condition` and `treat_` followed by each
-#'   treatment's name. Any other form stops with an error, so that no
-#'   covariate is left out unnoticed, for example: a character vector
-#'   without `data` (give the data frame as `data`, or a categorical
-#'   covariate as a factor); a list that is not a data frame; an array of
-#'   more than two dimensions; and a vector of another type, such as a
-#'   date (give it as a column of a data frame).
+#'   a covariate with a name that the model reserves for its own columns:
+#'   in every design, `y`, `pretested`, `pre_obs` (the pretest),
+#'   `condition`, and `log_exposure`, with or without `y_pre` and
+#'   `exposure`; `treat` in a four-group design; and, with several
+#'   treatments, `treat_` followed by each treatment's name. The error
+#'   lists the reserved names; rename the covariate. Any other form stops
+#'   with an error, so that no covariate is left out unnoticed, for
+#'   example: a character vector without `data` (give the data frame as
+#'   `data`, or a categorical covariate as a factor); a list that is not a
+#'   data frame; an array of more than two dimensions; and a vector of
+#'   another type, such as a date (give it as a column of a data frame).
 #' @param robust character: "HC3" (default), "none", or "CR2" (cluster-robust; requires `cluster`)
 #' @param cluster optional clustering id (e.g., class/site), one value per
-#'   participant. CR2 fits refuse designs in which a Solomon cell contains a
-#'   single cluster, because cluster and condition are then confounded; see
+#'   participant. CR2 fits refuse a cluster ID that is missing (`NA`), empty
+#'   (`""`), or only white space (spaces, tabs, or line breaks, which
+#'   [trimws()] removes) for a participant included in the model, with an
+#'   error of class `solomonR_cluster_error`: give every cluster a label. A
+#'   factor is taken by its labels, so a level `""` or `NA` that such a
+#'   participant has is refused, and an unused one is not. CR2 fits also
+#'   refuse designs in which a Solomon cell contains a single cluster,
+#'   because cluster and condition are then confounded; see
 #'   [validate_solomon()]. A classed warning (`solomonR_small_df_warning`)
 #'   flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 #'   4, where Tipton (2015) advises that p-values not be trusted.
@@ -1400,7 +1408,15 @@ stouffer_solomon <- function(p) {
 #'     an empty vector when there are none; `NULL` with the other
 #'     covariances.
 #'   - `call`, and `data` (the data the model was fitted to), which
-#'     solomonR's own functions use.
+#'     solomonR's own functions use. A character covariate is held in
+#'     `data`, and in the model frame of `model`, as a factor made with
+#'     [factor()] when the fit is made, so its levels are sorted by the
+#'     collation of that R session, as were the levels its coefficients are
+#'     named and ordered by. A level seen only in rows the model did not use
+#'     is a level of the factor in `data` but has no coefficient.
+#'     [marginal_solomon()] and [plot_sensitization()] then code the
+#'     covariate as the fit did, whatever the collation when they run
+#'     (issue #170).
 #'
 #'   For a design with several treatments, an object of class
 #'   `solomon_ngroup`, with the same elements and these changes:
@@ -1663,6 +1679,10 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   if (!is.null(covariates)) {
     .solomon_check_covariates(covariates, names(df))
     df <- cbind(df, covariates)
+    # A character covariate is stored as a factor, with the levels of this
+    # session's collation, which the coefficients are named and ordered by
+    # (issue #170; .character_covariates_as_factors()).
+    df <- .character_covariates_as_factors(df, names(covariates))
   }
 
   # One model: treatment + pretest indicator + their interaction + (optional) pre_obs
@@ -1726,7 +1746,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # exists even when a pretested group has no posttest, so the model's own
   # check is needed. The standardized model is checked as well, for terms
   # collinear but for the rounding error of the values given, which glm()
-  # can take for distinct ones far from zero (.collinear_terms()).
+  # can take for distinct ones far from zero (.collinear_positions()).
   arms <- if (is.null(conditions$control)) {
     c("treatment", "control")
   } else {
@@ -1791,9 +1811,9 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
       used[fit$na.action] <- FALSE
     }
     cluster_fit <- cluster[used]
-    if (anyNA(cluster_fit)) {
-      stop("`cluster` is missing for participants included in the model.", call. = FALSE)
-    }
+    # A missing or empty cluster ID of a participant in the model stops,
+    # with an error of class `solomonR_cluster_error` (issue #183).
+    .check_cluster_ids(cluster_fit)
     # The clusters the CR2 covariance is computed from; `cluster` keeps one
     # value per input row.
     n_clusters <- length(unique(cluster_fit))
@@ -2169,6 +2189,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'
 #' Designs that assign treatment to participants within clusters are refused,
 #' and stratified or restricted randomization of clusters is not supported.
+#' A cluster ID that is missing (`NA`), empty (`""`), or only white space
+#' for a participant in the model is refused with an error of class
+#' `solomonR_cluster_error`. The CR2 fits of [fit_solomon_glm()] refuse such
+#' an ID too, but a fit with a `cluster` and another covariance can hold
+#' one, as can a fit made by an earlier version of solomonR.
 #'
 #' The statistic is built from cluster-level summaries (Gail et al., 1996;
 #' Hayes & Moulton, 2017, ch. 10). A Stage 1 model with every term of the fit
@@ -2301,7 +2326,15 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' @param reps Number of permutations. Default is 5000. In clustered designs
 #'   with at most `reps` possible allocations, every allocation is used.
 #' @param seed Optional random-number seed for reproducibility. The global
-#'   random-number state is restored when the function exits.
+#'   random-number state is restored when the function exits. In clustered
+#'   designs, the clusters are taken in the C locale's order of their IDs
+#'   (the order of the characters' Unicode code points, in which capital
+#'   letters come before lower-case ones and accented letters after
+#'   both), whatever the session's collation; a factor `cluster` is taken
+#'   by its labels in that order, not by its level order. The IDs are not
+#'   changed: text as `read.csv()` returns it is taken by its bytes, which
+#'   gives that order for a UTF-8 file in any session. So a seed gives the
+#'   same allocations in every session.
 #' @param return_dist Logical. If \code{TRUE}, return the permutation
 #'   distribution in addition to the observed statistic and p-value.
 #' @param statistic `"studentized"` (the default, and recommended) divides

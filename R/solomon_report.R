@@ -326,11 +326,12 @@
 # The phrases that describe a fit_solomon_glm() model (the model, the
 # pretest adjustment, the offset, the covariance estimator, and the scale of
 # the contrasts) and the references they cite. Shared by the four-group and
-# the N-group reports.
+# the N-group reports. Whether the fit has a pretest is asked of the fit
+# (.has_pretest_column(); issue #174).
 .glm_method_phrases <- function(fit) {
   fam <- fit$family$family
   link <- fit$family$link
-  pre <- "pre_obs" %in% names(fit$data)
+  pre <- .has_pretest_column(fit, fit$data)
   exposure <- "log_exposure" %in% names(fit$data)
   refs <- character(0)
 

@@ -29,6 +29,9 @@
 # pretest covariate, and is otherwise counted from the data the model was
 # fitted to. NULL for fits made before #135 and for fits whose data do not
 # hold the posttests (fit_solomon_mmrm(), which .mmrm_attrition() covers).
+# The groups are those of the conditions in a fit with several treatments
+# (class `solomon_ngroup`), and of `treat` otherwise: a four-group fit made
+# before #174 can have a covariate named condition (issue #174).
 .fit_attrition <- function(x) {
   if (is.null(x$pretest_center)) return(NULL)
   # A summary carries the table it was given.
@@ -36,7 +39,7 @@
   if (!is.null(x$pretest_sensitivity$attrition)) return(x$pretest_sensitivity$attrition)
   d <- x$data
   if (!is.data.frame(d) || !all(c("y", "pretested") %in% names(d))) return(NULL)
-  condition <- as.character(if ("condition" %in% names(d)) d$condition else d$treat)
+  condition <- as.character(if (inherits(x, "solomon_ngroup")) d$condition else d$treat)
   levels <- sort(unique(condition[!is.na(condition)]))
   .pretest_attrition(condition, levels, d$pretested, d$y, rep(TRUE, nrow(d)), 0,
                      c(analyzed = 0, observed = 0), identity = FALSE)$attrition

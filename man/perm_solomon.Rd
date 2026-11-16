@@ -35,7 +35,15 @@ see \code{\link[=marginal_solomon]{marginal_solomon()}}.}
 with at most \code{reps} possible allocations, every allocation is used.}
 
 \item{seed}{Optional random-number seed for reproducibility. The global
-random-number state is restored when the function exits.}
+random-number state is restored when the function exits. In clustered
+designs, the clusters are taken in the C locale's order of their IDs
+(the order of the characters' Unicode code points, in which capital
+letters come before lower-case ones and accented letters after
+both), whatever the session's collation; a factor \code{cluster} is taken
+by its labels in that order, not by its level order. The IDs are not
+changed: text as \code{read.csv()} returns it is taken by its bytes, which
+gives that order for a UTF-8 file in any session. So a seed gives the
+same allocations in every session.}
 
 \item{return_dist}{Logical. If \code{TRUE}, return the permutation
 distribution in addition to the observed statistic and p-value.}
@@ -227,6 +235,11 @@ every cluster must contain pretested and unpretested participants.
 
 Designs that assign treatment to participants within clusters are refused,
 and stratified or restricted randomization of clusters is not supported.
+A cluster ID that is missing (\code{NA}), empty (\code{""}), or only white space
+for a participant in the model is refused with an error of class
+\code{solomonR_cluster_error}. The CR2 fits of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} refuse such
+an ID too, but a fit with a \code{cluster} and another covariance can hold
+one, as can a fit made by an earlier version of solomonR.
 
 The statistic is built from cluster-level summaries (Gail et al., 1996;
 Hayes & Moulton, 2017, ch. 10). A Stage 1 model with every term of the fit

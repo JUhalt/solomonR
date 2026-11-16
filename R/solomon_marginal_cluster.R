@@ -22,6 +22,11 @@
   treat <- fit$data$treat[used]
   pretested <- fit$data$pretested[used]
   cl <- fit$cluster[used]
+  # A CR2 fit made by an earlier version could hold an empty cluster ID.
+  # With pretesting within clusters, the summaries are looked up by name,
+  # and no name matches "", so the contrasts were NA; such a fit stops, as
+  # in perm_solomon() (issue #183).
+  .check_cluster_ids(cl)
 
   varies <- function(v) tapply(v, cl, function(x) length(unique(x)) > 1)
   if (any(varies(treat))) {

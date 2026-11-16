@@ -133,6 +133,378 @@
   every case of the fixture. The help page, `?perm_solomon`, states the
   rules and the limits that remain.
 
+## Empty cluster IDs (bug fix, #183)
+
+* `fit_solomon_glm()` with `robust = "CR2"` refused a missing cluster ID
+  (`NA`) for a participant included in the model, but accepted an empty
+  one (`""`) and fitted, with four groups and with several treatments.
+  `perm_solomon()` on such a four-group fit then stopped with an internal
+  error that did not say what was wrong: "missing value where TRUE/FALSE
+  needed" when whole clusters were assigned to the four groups, and
+  "subscript out of bounds" when pretesting was assigned within
+  clusters. So did `perm_solomon()` on a fit with a `cluster`
+  and HC3 or model-based covariance, which `fit_solomon_glm()` does not
+  check. On a binary CR2 fit with pretesting assigned within clusters,
+  `marginal_solomon(method = "cluster_summary")` gave `NA` for every
+  contrast, with no error or warning. An ID of white space only, such as
+  `"  "`, was taken as a label like any other.
+* A cluster ID that is `""` or only white space (spaces, tabs, or line
+  breaks, which `trimws()` removes) is now refused for a participant
+  included in the model, where a missing ID is refused: in the CR2 fits
+  of `fit_solomon_glm()`, with four groups and with several treatments;
+  and, for a fit that holds one (a fit made by an earlier version, or,
+  in `perm_solomon()`, one with a `cluster` and another covariance), in
+  `perm_solomon()` and `marginal_solomon(method = "cluster_summary")`.
+  The message is "`cluster` is empty ("") or only white space for
+  participants included in the model. Give every cluster a label." A
+  factor `cluster` is taken by its labels: a level `""` that a
+  participant in the model has is refused, and an unused level is not.
+  An empty ID of a participant outside the model, such as one without a
+  posttest, is not refused.
+* The error, and the error for a missing ID, now have the class
+  `solomonR_cluster_error`. The message for a missing ID is unchanged.
+* `validate_solomon()` now warns of assigned participants whose cluster
+  ID is empty (check `empty_cluster`), as it warns of those without one
+  (`missing_cluster`).
+* A factor `cluster` with the level `NA`, which `addNA()` or
+  `factor(x, exclude = NULL)` makes, is now taken as missing for a
+  participant who has that level, in every function. The CR2 fits had
+  stopped with an internal error from clubSandwich, "non-conformable
+  arguments"; they now give the error for a missing ID. On a CR2 fit
+  made by an earlier version, `marginal_solomon(method =
+  "cluster_summary")` with pretesting within clusters gave `NA` for every
+  contrast; it now gives that error too. `validate_solomon()` had counted
+  the level as a cluster and did not warn; it now counts those
+  participants under `missing_cluster`. An unused level `NA` is not
+  refused.
+* A numeric cluster ID `NaN`, which the CR2 fits refused as missing, is
+  now refused by `perm_solomon()` too, which had taken it as the label
+  "NaN".
+* What changes: data with an empty or white-space cluster ID for a
+  participant in the model, which CR2 fits accepted, now stop; give
+  every cluster a label. Fits whose cluster IDs all have a label give
+  the same results as before. `?fit_solomon_glm` (under `cluster`),
+  `?perm_solomon`, `?marginal_solomon`, and `?validate_solomon` say so.
+
+## Seeded results under another collation (bug fix, #179)
+
+* `perm_solomon()` with a clustered fit took the clusters in the order
+  in which the session's collation sorts their IDs. When there are more
+  possible allocations than `reps`, it draws the allocations at random,
+  and the same seed then drew them for other clusters under another
+  collation. So a seeded p-value differed from one session to another
+  by Monte Carlo error: for instance, between an English session and
+  one started with `LC_COLLATE=C`, or inside
+  `withr::with_collate("C", ...)`. Both p-values were valid, but the
+  result could not be reproduced exactly, and no message said why. The
+  print, `report_solomon()`, and `plot_perm()` carried the difference,
+  and so did `z_perm` with `return_dist = TRUE`. This happened in both
+  designs (clusters assigned to the four groups, and pretesting within
+  clusters), for IDs that the two collations sort differently: names
+  that start with capital and lower-case letters (`north01`,
+  `South02`), or that contain accented letters or, in some collations,
+  punctuation such as underscores. A factor cluster was sorted by its
+  labels in the same way. Within one session, a seed gave the same
+  result. The participant-level test, and a cluster test that uses
+  every allocation, gave the same p-value in every session.
+* `check_solomon_missing()` listed the levels of a character or factor
+  covariate in the order of the session's collation; a factor's own
+  level order was not used. With three or more levels, its Fisher test
+  of loss by level simulates the p-value from tables drawn under a
+  fixed seed, so that p-value, and the printed summary, changed with
+  the collation too.
+* The clusters, and the levels of such a covariate, are now taken in the
+  C locale's order (the order of the characters' Unicode code points,
+  in which capital letters come before lower-case ones and accented
+  letters after both) in every session. A factor is still taken by its
+  labels, now in that order, not by its level order. The IDs and levels
+  themselves are not changed. Text as `read.csv()` returns it is
+  ordered by its bytes, which gives that order for a UTF-8 file in any
+  session, including one whose native encoding is not UTF-8, such as a
+  session started with `LC_ALL=C`. In a session whose native encoding
+  is a single-byte code page, such as Windows-1252 (R 4.1 on Windows)
+  or Latin-1, text in that encoding is ordered by its bytes too, as a C
+  session there ordered it before; that order can differ from the
+  order of the same text in UTF-8, as it does for the euro sign and
+  curly quotes in Windows-1252. There R takes such text and the same
+  letters marked as UTF-8 or as Latin-1 as one value, although their
+  bytes differ. A value that comes in more than one of these forms is
+  placed by the form whose bytes come first, text marked as Latin-1
+  being taken by its bytes in UTF-8, and keeps the form in which it
+  first appears in the data, so the order of the rows does not move it.
+  For instance, `é` that comes both in Windows-1252 (e9) and in UTF-8
+  (c3 a9) comes before `Ä` (c4), and `À` that comes in both (c0 and
+  c3 80) before `Á` (c1). In a session whose native encoding is not
+  UTF-8, R takes text with the same bytes marked as native and as UTF-8
+  as two values; the one marked UTF-8 comes first, whatever the
+  collation.
+  `?perm_solomon` (under `seed`) and `?check_solomon_missing` say so.
+* `marginal_solomon()` stopped with "Character encoding must be UTF-8,
+  Latin-1 or bytes" on a binary or count fit with a pretest and a
+  character covariate with accented levels, as `read.csv()` returns
+  them in a UTF-8 session (the default on macOS and Linux, and on
+  Windows since R 4.2). It came in after the 0.8.2 release, with the
+  check of the levels that the model does not have (#171). A fit now
+  stores such a covariate as a factor (#170), and the note names those
+  levels in the order of the factor's levels. A fit that stores it as
+  character, as fits made before #170 did, no longer stops either, and
+  its note names those levels in the C order.
+* What changes: outside a session whose collation is C, a seeded
+  cluster p-value with random allocations (`exact = FALSE`), for IDs
+  that the C locale and the session sort differently, is now the one
+  that a C session gave before. So is the simulated p-value of
+  `check_solomon_missing()` for such levels (its `covariates` argument
+  came after the 0.8.2 release). A seeded p-value reported from such a
+  session will differ when the analysis is rerun. Other results change
+  in order, and in value only by rounding error: when every allocation
+  is used, `z_perm` comes in another order, its values can differ in
+  the last digits, and the p-value is the same; and the rows of a
+  covariate's table in `check_solomon_missing()`, and the levels in its
+  printed summary, come in another order with two levels too, where the
+  exact test's p-value can differ by rounding error. In a session
+  whose native encoding is not UTF-8, text marked as UTF-8 or as
+  Latin-1 (as `Encoding()` shows; `read.csv()` marks text as native)
+  was converted to that encoding to be sorted, and is now ordered by
+  its bytes in UTF-8. Where that encoding lacks the accented letters,
+  as in a session started with `LC_ALL=C`, IDs and levels with such
+  letters were sorted as if each came before every unaccented letter,
+  and now come after them, as in a UTF-8 session. In a single-byte
+  code page, the order can change where such text is mixed with
+  accented text in the code page, or holds characters, such as the
+  euro sign, that the code page orders differently from UTF-8. So
+  seeded and simulated p-values for such IDs and levels can change
+  there too, under the C collation as well.
+* What does not change: any result in a session whose collation is C,
+  except for the text marked as UTF-8 or as Latin-1 just described;
+  in every session, results for IDs and levels that both orders sort
+  the same: numeric IDs, names of letters and digits in one case
+  (`n01`, `N01`), and zero-padded names (`school01`); and the
+  participant-level test. The package's cluster simulation study
+  numbers its clusters, so its results stand.
+* Tests check, with mixed-case IDs and more allocations than `reps`, in
+  both designs and with `return_dist = TRUE`, that `perm_solomon()`
+  gives the same result under the session's collation (or an English
+  one, when the session sorts the IDs as C does) and under C; the same
+  result as with the IDs replaced by zero-padded labels in their C
+  order, and as with a factor cluster whose levels are in the order of
+  the data; and the same p-value, with statistics equal to rounding
+  error, when the rows are shuffled. They check that a test that uses
+  every allocation gives the same `z_perm`, in the same order, under
+  both collations; that seeded p-values for IDs `c1`, `c2`, ... are
+  those of the previous version, under both collations; and that
+  `check_solomon_missing()` gives the same table under both collations,
+  with the levels in the C order and the p-values that a C session gave
+  before, for a character and a factor covariate, and with two levels.
+  In a UTF-8 session, they check that accented IDs and levels marked as
+  `read.csv()` marks them give, in the C order, the results of the same
+  text marked as UTF-8, in `perm_solomon()` (both designs),
+  `check_solomon_missing()`, and `marginal_solomon()`, where a
+  participant outside the model from a site that the model has is
+  standardized over; and that a fit storing those sites as character,
+  as fits made before #170 did, gives the same results, with the levels
+  the model does not have named in the C order. They check that the IDs
+  and levels come back with their own bytes and encoding marks, for text
+  marked as UTF-8, as Latin-1, and as `read.csv()` marks it, and that a
+  byte below 0x10, such as a tab, takes its place in the C order. In a
+  session started with `LC_ALL=C` (skipped on CRAN), they check that
+  text as `read.csv()` returns it there keeps its values and gives the
+  results of a UTF-8 session in all three functions, and that IDs
+  marked as UTF-8 or as Latin-1 are put in the C order. In a session
+  whose native encoding is Windows-1252 or Latin-1 (skipped on CRAN and
+  where no such locale is available), with an ID or a level in UTF-8 in
+  some rows and in the code page in others, they check that reversing
+  the rows changes neither the order of the clusters and levels nor the
+  results of `perm_solomon()` (both designs) and
+  `check_solomon_missing()`. There they check that `é` and `À`, in the
+  code page and in UTF-8 or Latin-1, are placed by the form whose bytes
+  come first, whichever comes first in the data, and come back as they
+  first appear; and that the same bytes marked as native and as UTF-8
+  come with the one marked UTF-8 first, under the collation of the code
+  page's locale.
+
+## Character covariates and the collation (bug fix, #170)
+
+* `fit_solomon_glm()` kept a character covariate as character, in
+  `fit$data` and in the model frame of `fit$model`. R makes such a
+  covariate a factor each time it builds a design, with its levels
+  sorted by the collation in force at that moment
+  (`Sys.getlocale("LC_COLLATE")`), but the coefficients took their names
+  and order from the levels sorted when the fit was made. Under a
+  collation that sorted the values in a different order,
+  `marginal_solomon()` and `plot_sensitization()` paired a design coded
+  one way with coefficients coded the other, and their results were
+  wrong, without an error or a warning. This happened, for instance, to
+  a fit saved with `saveRDS()` and read in a session with another
+  collation, or analyzed after `Sys.setlocale("LC_COLLATE", "C")`. The C
+  collation sorts capitals first, so values that begin with capital and
+  lower-case letters, such as `north`, `South`, and `west`, sort
+  differently there, and so can values with accented letters. Factor,
+  logical, and numeric covariates were not affected, nor were character
+  values that sort the same in both collations.
+
+  - In `marginal_solomon()`, every method but `"cluster_summary"` was
+    affected, under either center, for binary, Poisson, and
+    negative-binomial fits, with HC3 or CR2 standard errors: the
+    estimates, the delta-method standard errors, and the CR2 degrees of
+    freedom were wrong. In the issue's example, the pretest main effect
+    was a risk difference of -0.0245 instead of 0.0402. The bootstrap
+    standard errors and limits were right, but they were not those of
+    the estimates reported with them. When pretested participants with
+    a pretest were outside the model, as when their posttest was
+    missing, it stopped with "subscript out of bounds" instead.
+  - In `plot_sensitization()`, for four-group fits and fits with
+    several treatments, the model-adjusted cell means and their standard
+    errors were wrong (in the example, every cell shifted by -0.350 on
+    the logit scale), and so were their CR2 degrees of freedom when the
+    fit had no numeric covariate. The difference of differences, and the
+    Pretest x Treatment estimate in the subtitle, were right.
+* `fit_solomon_glm()` now stores each character covariate as a factor,
+  made with `factor()` when the fit is made, so its levels are sorted by
+  the same collation as the levels its coefficients are named and
+  ordered by. `fit$data` and the model frame of `fit$model` hold a
+  factor where they held character, and code of your own that reads
+  `fit$data` will see the change. A level seen only in rows the model
+  does not use is a level of the factor in `fit$data` but has no
+  coefficient. The coefficients, the effects, and every other result
+  are as before. A character matrix column of one column, which
+  `glm()` takes as one categorical covariate, is stored as a factor too.
+* A fit saved by an earlier version still holds character. Under a
+  collation that sorts the covariate's values, among the participants
+  the model used, in a different order than the session that made the
+  fit, `marginal_solomon()` and `plot_sensitization()` now stop with
+  an error of class `solomonR_collation_error` instead of giving wrong
+  results: refit it with this version, or analyze it under the
+  collation of the session that made it. They check two things: that
+  the levels of each character covariate in the rows the model used,
+  sorted by the collation in force, are the levels stored with the fit
+  (`fit$model$xlevels`), and that the columns of the design rebuilt
+  from the fit are the names of its coefficients, in their order. The
+  levels are needed for a fit made under contrasts such as `contr.sum`
+  or `contr.helmert`, whose columns are numbered (`site1`, `site2`)
+  whatever the order of the levels. The error names the covariates
+  whose levels change order. Under the fit's own collation such a fit
+  gives the results of the same fit made by this version, also when a
+  level occurs only in rows the model did not use.
+  `marginal_solomon(method = "cluster_summary")`, which does not use the
+  covariates, does not stop under any collation.
+* `perm_solomon()` also refits the model under the collation in force.
+  Its statistic uses only the treatment coefficients and their variance,
+  which do not depend on how a covariate is coded, so the coding of a
+  character covariate did not change its results; it is unchanged.
+* Tests fit under the session's collation and analyze under another: C,
+  or, where the session already sorts the test values as C does, an
+  English collation. They compare the results with those of the same
+  fit with the covariates given as factors, and check that fits stored
+  as earlier versions stored them stop, whether made under
+  `contr.treatment`, `contr.sum`, or `contr.helmert`, and that such a
+  fit runs under its own collation when a level occurs only in rows the
+  model did not use. Those that need another collation are skipped
+  where none is available.
+
+## Covariates named pre_obs or condition (bug fix, #174)
+
+* The model of `fit_solomon_glm()` names the pretest `pre_obs` and, with
+  several treatments, the condition `condition`. A covariate of either
+  name was refused only when the model had that column: `pre_obs` when
+  `y_pre` was given, and `condition` with several treatments. Several
+  functions that take a fit decided by the column name whether it had a
+  pretest or several treatments. So a covariate named `pre_obs` in a fit
+  without a pretest was taken for the pretest, and one named `condition`
+  in a four-group fit for the condition, without an error or a warning.
+  The fit's coefficients and effects were right. With a covariate named
+  `pre_obs` and no pretest:
+
+  - `marginal_solomon()` reported `pretest_adjusted = TRUE`, filled in
+    `pretest_sensitivity`, and printed that the risks were standardized
+    over the pretest, with a block comparing the two pretest centers.
+    Under `pretest_center = "observed"` its estimates and standard
+    errors were wrong: it standardized the pretested cells over every
+    pretested participant with the covariates recorded, those without an
+    outcome included. In the issue's example, the average treatment
+    effect was a risk difference of 0.04678 instead of 0.04730. At the
+    default center the estimates and standard errors were right.
+  - `report_solomon()` wrote that the model adjusted for the pretest
+    score and, on a link other than the identity, added the note on the
+    pretest effects at the mean pretest, with their references.
+  - `equivalence_solomon()`, `perm_solomon()`, and
+    `plot_solomon_effects(bounds = )` warned about the pretest as a
+    covariate: for the pretest effects on any link but the identity, and
+    for the Pretest x Treatment contrast on any link but the identity
+    and the log.
+  - When `pre_obs` was the only numeric covariate, the robust
+    covariances skipped the accurate computation of #137. On nearly
+    collinear designs the standard errors of the fit, of
+    `plot_sensitization()`, and of the CR2 delta method of
+    `marginal_solomon()` were off, or NaN.
+
+  With a covariate named `condition` in a four-group fit without a
+  pretest, the range "by group" of the attrition line in `print()`,
+  `summary()`, `report_solomon()`, and `marginal_solomon()` was counted
+  over the covariate's levels instead of the four Solomon groups.
+* `pre_obs` and `condition` are now reserved in every fit, on top of the
+  names refused before: with or without `y_pre`, and with one treatment
+  or several. A covariate of either name stops with the error of class
+  `solomonR_covariate_error`. Rename that column. `condition` is now
+  refused in a four-group fit with a pretest as well, where it worked.
+  `treat` stays free with several treatments, where it works.
+  `check_solomon_missing()` without numeric `y_pre` fits no model, so it
+  now checks these two names itself, with the same error, and also
+  `log_exposure`, which every fit reserves too and which it accepted.
+  The message names the covariate and says which names are reserved: in
+  a fit, the names reserved in its design; in `check_solomon_missing()`
+  without numeric `y_pre`, that `fit_solomon_glm()` reserves `pre_obs`,
+  `condition`, and `log_exposure` in every fit. For every reserved name,
+  the message now begins "Rename these covariates, whose names are
+  reserved:" instead of "whose names the model uses:".
+* A fit saved by an earlier version can still hold such a covariate.
+  `marginal_solomon()`, `report_solomon()`, and the warnings of
+  `equivalence_solomon()`, `perm_solomon()`, and
+  `plot_solomon_effects()` now ask the fit whether it has a pretest
+  (`fit$pretest_mean`), as `plot_sensitization()` already did, and the
+  attrition line counts the conditions only in a fit with several
+  treatments. This reads correctly the fits made by development
+  versions since #104, which added `fit$pretest_mean`. Two cases
+  remain:
+
+  - A fit saved by solomonR 0.8.2 or earlier has no `fit$pretest_mean`,
+    so a covariate named `pre_obs` in it is still taken for the pretest.
+    Such a fit has no attrition line, which #135 added, so a covariate
+    named `condition` changes nothing there.
+  - In a fit without a pretest whose only numeric covariate is named
+    `pre_obs`, the stored covariance is not recomputed. The CR2 delta
+    method of `marginal_solomon()`, the CR2 degrees of freedom of
+    `plot_sensitization()`, and the studentized statistic of
+    `perm_solomon()` are computed when they run, but they still skip the
+    computation of #137 for such a fit. On nearly collinear designs, its
+    standard errors can still be off.
+
+  Refit such a fit with the covariate renamed.
+* The indicator of a factor's level can still be named `pre_obs` in the
+  model matrix, as for a factor `pre` with a level `_obs`. In a fit
+  without a pretest, `marginal_solomon()` reported such a fit as
+  adjusted for the pretest, though its estimates and standard errors
+  were right. When the indicator was collinear with other terms, the
+  error of `fit_solomon_glm()` called it "pre_obs (the pretest,
+  `y_pre`)", in a fit with a pretest or without, as the label went by
+  the column's name. Neither happens now: the error finds the pretest's
+  column by its position in the model, as the computation of #137 finds
+  the columns it rescales, and gives the label to that column alone.
+* Tests check the refusals in four-group and six-group fits, from
+  `fit_solomon_glm()` and `check_solomon_missing()`, with and without a
+  pretest, and `log_exposure` in `check_solomon_missing()`. They test
+  the check that `check_solomon_missing()` makes itself both without
+  `y_pre` and with a `y_pre` that is not numeric. For a fit made as
+  the development version made it before this change, they check that
+  `marginal_solomon()` (the delta method under HC3 and CR2, and the
+  bootstrap, each at both centers), `report_solomon()`, the warnings,
+  and the attrition line of `print()`, `summary()`, `report_solomon()`,
+  and `marginal_solomon()` equal those of the same fit with the
+  covariate renamed. They also check the factor `pre` with a level
+  `_obs` in `marginal_solomon()`, and in the collinearity error with
+  and without a pretest: for terms that `glm()` finds collinear, and
+  for terms collinear but for rounding, which only the check of #137
+  finds.
+
 ## Ordered occasions in fit_solomon_mmrm() (bug fix, #172)
 
 * `fit_solomon_mmrm()` fitted the model with `occasion` as given, but

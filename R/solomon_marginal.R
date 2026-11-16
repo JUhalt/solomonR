@@ -31,6 +31,9 @@
 # itself plays no part in the standardization.) Without a
 # pretest covariate, and when every such participant is in the model, the
 # rows are the model's, the participants the default standardizes over.
+# Whether the fit has a pretest is asked of the fit (.has_pretest_column()):
+# a fit made before #174 without a pretest can have a covariate named
+# pre_obs (issue #174).
 #
 # Returns `X`, one row per participant in the order of the fit's data;
 # `pretested` and `treat` (NA where the condition was not recorded);
@@ -46,10 +49,11 @@
 # counted under `missing_covariate` lack; `unseen`, the levels of those
 # counted under `unseen_level`, a list named by covariate; and `also` and
 # `also_unseen`, how many of those who lack a covariate also have a level
-# the model does not have, and those levels.
-.marginal_rows <- function(fit) {
+# the model does not have, and those levels. `X_model` is the model
+# matrix of the fit's model, which marginal_solomon() has computed for
+# .check_fit_collation().
+.marginal_rows <- function(fit, X_model = stats::model.matrix(fit$model)) {
   model <- fit$model
-  X_model <- stats::model.matrix(model)
   d <- fit$data
   used <- .glm_rows_used(fit)
   extra <- rep(FALSE, nrow(d))
@@ -57,7 +61,7 @@
   new_level <- extra
   also_new <- extra
   left_out <- list(missing = character(0), unseen = list(), also = 0L, also_unseen = list())
-  if ("pre_obs" %in% colnames(X_model)) {
+  if (.has_pretest_column(fit, X_model)) {
     outside <- .in_pretest_center(d) & !used
     covariates <- setdiff(names(d), c("y", "treat", "pretested", "pre_obs", "log_exposure"))
     if (length(covariates)) {
@@ -72,9 +76,14 @@
     # that is missing is not a level; a participant who lacks one covariate
     # can still have a level the model does not have in another.
     for (v in intersect(names(model$xlevels), covariates)) {
+      # The values as the data have them, so that they match the model's
+      # levels. A factor, as fits store a character covariate since issue
+      # #170, gives its levels in their order. A covariate stored as
+      # character, as earlier fits stored it, is ordered by .sort_c(), in
+      # the C order, which leaves the values as they are (issue #179).
       value <- as.character(d[[v]])
       new <- outside & !is.na(d[[v]]) & !(value %in% model$xlevels[[v]])
-      levels_v <- if (is.factor(d[[v]])) levels(d[[v]]) else sort(unique(value), method = "radix")
+      levels_v <- if (is.factor(d[[v]])) levels(d[[v]]) else .sort_c(value)
       counted <- new & !no_covariate
       if (any(counted)) {
         new_level <- new_level | counted
@@ -418,10 +427,11 @@
 # log; Daniel et al., 2021), and the pretest effects (issue #104) on any
 # link but the identity, because a fitted mean at the mean pretest is not
 # the mean over the pretests. Used by equivalence_solomon(), perm_solomon(),
-# and plot_solomon_effects(bounds =).
+# and plot_solomon_effects(bounds =). Whether the fit has a pretest is asked
+# of the fit, not of its data alone (.has_pretest_column(); issue #174).
 .warn_link_scale <- function(fit, contrast) {
   if (!inherits(fit, c("solomon_glm", "solomon_ngroup")) ||
-      !"pre_obs" %in% names(fit$data)) {
+      !.has_pretest_column(fit, fit$data)) {
     return(invisible(NULL))
   }
   family <- stats::family(fit$model)
@@ -625,7 +635,7 @@
 # reparameterization (enrolled, tested - enrolled, delay) withholds them.
 # Before a refit that failed as "maxit" is fitted again, its resample is
 # therefore checked by the rule that fit_solomon_glm() applies to the
-# model (.collinear_terms()), on the rows of the resample, in the
+# model (.collinear_positions()), on the rows of the resample, in the
 # model's working weights and with the rounding error the fit computed
 # for their entries (.bootstrap_rank_check(), .resample_collinear()). If
 # a term is collinear with the others by that rule, the refit counts as
@@ -634,7 +644,7 @@
 # fit_solomon_glm() given those rows would weight and standardize them
 # anew. What is left of that term on those rows after the others is then
 # within the rounding error the rule allows for (4 B_k of
-# .collinear_terms()), or within glm()'s tolerance, 1e-11 of its norm.
+# .collinear_positions()), or within glm()'s tolerance, 1e-11 of its norm.
 # In the first case, as on each of the 43 timestamp resamples, a refit
 # in the basis could converge on rounding error. Near the edge of the
 # fit's check, as in the next paragraph, the rule stops refits by the
@@ -691,7 +701,7 @@
 # many reflections as the rank, so a column moved to the end would be
 # replaced by a direction outside the span of X_N.) fit_solomon_glm()
 # stops when a term is collinear with the others, in the model as given
-# and standardized (.collinear_terms()), so X_N has full rank on the
+# and standardized (.collinear_positions()), so X_N has full rank on the
 # model's rows as glm() and that check judge it, in the working weights
 # of the fit, and so on any set of rows that contains them. Without
 # those weights X_N can fall short of full rank at 1e-11: on the data
@@ -718,7 +728,7 @@
   list(X = X, start = b)
 }
 
-# The collinearity check of fit_solomon_glm() (.collinear_terms()),
+# The collinearity check of fit_solomon_glm() (.collinear_positions()),
 # prepared for the bootstrap resamples of marginal_solomon() whose refit
 # does not converge on the model's design (issue #154;
 # .resample_collinear()). `X` is the design that the bootstrap refits,
@@ -746,7 +756,7 @@
 # depend on how far they moved. The rows outside the model, under
 # `pretest_center = "observed"`, are never refitted; they get a weight of
 # zero, and rows with a weight of zero are left out of the check, as
-# .collinear_terms() leaves them out.
+# .collinear_positions() leaves them out.
 .bootstrap_rank_check <- function(fit, model, X, in_model) {
   noise <- matrix(0, nrow(X), ncol(X))
   noise[in_model, ] <- .representation_error(model, fit$model, fit$covariate_scaling,
@@ -1075,6 +1085,10 @@
 #' fits have not been validated and are refused; for them, the log rate-ratio
 #' contrasts of [fit_solomon_glm()] with CR2 covariance and [perm_solomon()]
 #' account for clustering.
+#' With `method = "cluster_summary"`, a fit made by an earlier version of
+#' solomonR whose clusters include an empty ID (`""` or only white space)
+#' for a participant in the model, which CR2 fits now refuse, stops with an
+#' error of class `solomonR_cluster_error`.
 #'
 #' The package's simulation validation of this function is described on
 #' issue #43 (binary outcomes), issue #44 (count outcomes), issue #62
@@ -1084,7 +1098,15 @@
 #'   link), `family = poisson()` (log link), or
 #'   `family = "negative_binomial"`, with HC3 or model-based covariance, or,
 #'   for binary outcomes, CR2 covariance. Designs with several treatments are
-#'   not supported; see [fit_solomon_glm()].
+#'   not supported; see [fit_solomon_glm()]. A fit made by an earlier version
+#'   of solomonR, which stored a character covariate as character, stops
+#'   with an error of class `solomonR_collation_error` when the collation in
+#'   force sorts that covariate's values, among the participants the model
+#'   used, in a different order than the R session that made the fit,
+#'   whatever contrasts the fit was made under (issue #170). Refit it, or
+#'   analyze it under that collation.
+#'   `method = "cluster_summary"` does not use the covariates and does not
+#'   stop.
 #' @param scale One or more of `"difference"`, `"ratio"`, and, for binary
 #'   outcomes, `"odds_ratio"`. For count outcomes the default is
 #'   `c("difference", "ratio")`.
@@ -1324,6 +1346,14 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     stop("`R` must be a single number of at least 99.", call. = FALSE)
   }
 
+  # The design rows below are built from the fit's model and data and used
+  # with its coefficients and covariance. A fit made before issue #170 with
+  # a character covariate, analyzed under a collation that sorts its values
+  # in the rows the model used in a different order than the session that
+  # made it, stops here rather than pair them wrongly
+  # (.check_fit_collation()). `X_fit` is the fit's model matrix.
+  X_fit <- .check_fit_collation(fit)
+
   # With a pretest or numeric covariates the fit's inference was computed
   # with the covariates standardized and the pretest scaled (issue #137;
   # .covariate_scaling()), and so is this: the model, its coefficients and
@@ -1356,11 +1386,11 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # #171). `X`, `pretested`, and `treat` run over them; `in_model` flags
   # the rows the model used, to which `y` belongs.
   model_set <- function() {
-    X <- stats::model.matrix(model)
+    X <- if (is.null(scaling)) X_fit else stats::model.matrix(model)
     list(X = X, pretested = as.integer(X[, "pretested"]), treat = as.integer(X[, "treat"]),
          in_model = NULL, index = NULL)
   }
-  observed_set <- .marginal_rows(fit)
+  observed_set <- .marginal_rows(fit, X_fit)
   if (!is.null(scaling)) {
     observed_set$X <- .standardized_columns(observed_set$X, scaling, fit$model)
   }
@@ -1655,7 +1685,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # that the resamples are those of the set used. When the two sets are the
   # same participants, the rows are copied.
   sensitivity <- NULL
-  pretest_adjusted <- "pre_obs" %in% colnames(X)
+  pretest_adjusted <- .has_pretest_column(fit, X)
   if (pretest_adjusted) {
     other_center <- .other_center(pretest_center)
     other_effects <- effects

@@ -310,19 +310,26 @@ test_that("a covariate named like a model column is refused", {
   d <- solomon_example
   x <- withr::with_seed(3, stats::rnorm(nrow(d)))
 
-  for (name in c("y", "treat", "pretested", "pre_obs", "log_exposure")) {
+  for (name in c("y", "treat", "pretested", "pre_obs", "condition", "log_exposure")) {
     expect_error(
       fit_solomon_glm(d$y_post, d$treat, d$pretested, d$y_pre,
                       covariates = stats::setNames(data.frame(x), name)),
-      paste0("Rename these covariates, whose names the model uses: ", name, "."),
+      paste0("Rename these covariates, whose names are reserved: ", name, "."),
       fixed = TRUE
     )
   }
 
-  # Without `y_pre` the model has no `pre_obs` column, and the name is free.
-  fit <- fit_solomon_glm(d$y_post, d$treat, d$pretested,
-                         covariates = data.frame(pre_obs = x))
-  expect_true("pre_obs" %in% fit$coefficients$term)
+  # Without `y_pre` the model has no `pre_obs` column, and a four-group
+  # model no `condition` column, but both names are reserved in every fit
+  # (issue #174).
+  for (name in c("pre_obs", "condition")) {
+    expect_error(
+      fit_solomon_glm(d$y_post, d$treat, d$pretested,
+                      covariates = stats::setNames(data.frame(x), name)),
+      paste0("Rename these covariates, whose names are reserved: ", name, "."),
+      fixed = TRUE
+    )
+  }
 })
 
 

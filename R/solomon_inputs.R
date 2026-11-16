@@ -127,12 +127,47 @@
 }
 
 
+# The names of columns of the model that a covariate cannot take in any
+# fit, whether or not the fit has the column (issue #174): `pre_obs`, the
+# pretest, and `condition`, the condition in a design with several
+# treatments. Functions that take a fit decided by these names whether it
+# had a pretest or several treatments, so a covariate of either name in a
+# fit without that column was taken for the pretest or for the condition.
+# `treat` is not reserved in a design with several treatments, whose model
+# has no such column: in the checks of issue #174, a covariate of that
+# name gave the same results as when renamed.
+.solomon_reserved_names <- c("pre_obs", "condition")
+
+# Stop with an error of class `solomonR_covariate_error`, so that
+# check_solomon_missing() passes it on rather than leave out the fit behind
+# its gap.
+.solomon_covariate_error <- function(message) {
+  stop(structure(class = c("solomonR_covariate_error", "error", "condition"),
+                 list(message = message, call = NULL)))
+}
+
+# Stop when a covariate, a column of the data frame `covariates`, is named
+# as one of `reserved`. The message names those covariates, and `note`, a
+# sentence that follows, says which names are reserved and where.
+.solomon_check_names <- function(covariates, reserved, note) {
+  clash <- intersect(names(covariates), reserved)
+  if (length(clash)) {
+    .solomon_covariate_error(paste0(
+      "Rename these covariates, whose names are reserved: ",
+      paste(clash, collapse = ", "), ". ", note
+    ))
+  }
+  invisible(NULL)
+}
+
 # Stop when a covariate, a column of the data frame `covariates`, cannot
 # enter the model (issue #146):
 #   - a name that the model's data use: `used`, the names of the columns of
-#     the model data, and `log_exposure`, which is reserved with or without
+#     the model data; `log_exposure`, which is reserved with or without
 #     `exposure`, as report_solomon() and the clustered permutation test
 #     read a column of that name in the fit's data as the exposure offset;
+#     and `pre_obs` and `condition`, which are reserved in every fit
+#     (.solomon_reserved_names);
 #   - a logical or character matrix of several columns, such as a column of
 #     `data` given by its name. glm() makes a factor of a logical or
 #     character variable, and of such a matrix one factor of all its
@@ -140,26 +175,20 @@
 #     Given by its bare name, a logical matrix column of `data` is taken
 #     one covariate per column, and a character one stops before the fit
 #     (.solomon_covariates()).
-# The error has the class `solomonR_covariate_error`, so that
-# check_solomon_missing() passes it on rather than leave out the fit behind
-# its gap.
+# The error has the class `solomonR_covariate_error`
+# (.solomon_covariate_error()).
 .solomon_check_covariates <- function(covariates, used) {
-  refuse <- function(message) {
-    stop(structure(class = c("solomonR_covariate_error", "error", "condition"),
-                   list(message = message, call = NULL)))
-  }
-  clash <- intersect(names(covariates), c(used, "log_exposure"))
-  if (length(clash)) {
-    refuse(paste0("Rename these covariates, whose names the model uses: ",
-                  paste(clash, collapse = ", "), "."))
-  }
+  reserved <- unique(c(used, .solomon_reserved_names, "log_exposure"))
+  .solomon_check_names(covariates, reserved, paste0(
+    "Names reserved in this design: ", paste(reserved, collapse = ", "), "."
+  ))
   wide <- vapply(covariates, function(v) {
     is.matrix(v) && ncol(v) > 1L && (is.logical(v) || is.character(v))
   }, logical(1))
   if (any(wide)) {
     name <- names(covariates)[which(wide)[1]]
     v <- covariates[[name]]
-    refuse(paste0(
+    .solomon_covariate_error(paste0(
       "Column ", name, " of `covariates` is a ", typeof(v), " matrix of ", ncol(v),
       " columns, which glm() cannot fit. Give its columns as columns of a data frame",
       if (is.logical(v)) {
@@ -173,9 +202,166 @@
 }
 
 
+# The model data `df` with each character covariate, among the columns
+# named in `covariates`, made a factor (issue #170). glm() codes a
+# character variable by the factor that factor() makes of it, whose levels
+# are sorted by the collation in force (Sys.getlocale("LC_COLLATE")), and
+# the coefficients take their names and order from those levels when the
+# fit is made. Kept as character, the covariate was made a factor again
+# each time a design was built from the stored data or model frame, by
+# model.matrix() or by a refit, under the collation in force then. Under a
+# collation that sorts its values otherwise, such as C, which sorts
+# capitals first, the columns of that design no longer matched the
+# coefficients. Made a factor here, as glm() would make it, the covariate
+# keeps the levels of the session that fits it, and the coefficients have
+# the same names, order, and values as before. A character matrix of one
+# column, which glm() takes as one categorical covariate, becomes a factor
+# too. A logical covariate is left as it is: model.matrix() codes it
+# FALSE, TRUE under any collation.
+.character_covariates_as_factors <- function(df, covariates) {
+  for (name in covariates) {
+    if (is.character(df[[name]])) df[[name]] <- factor(df[[name]])
+  }
+  df
+}
+
+
+# Stop when a fit from fit_solomon_glm() would be coded otherwise under the
+# collation in force than when it was made (issue #170). Fits made before
+# #170 store a character covariate as character, and model.matrix() makes
+# it a factor whose levels follow the collation in force when it runs. Two
+# things are checked. First, the levels of each character column of the
+# stored model frame, sorted now, must be the levels stored with the model
+# (`xlevels`), which were sorted when the fit was made. Both come from the
+# rows the model used, so a level seen only in other rows, such as those
+# of participants without an outcome, is in neither. This catches a fit
+# made under contrasts such as contr.sum or contr.helmert, whose columns
+# are numbered (site1, site2) whatever the order of the levels, so that
+# their names stay the same when the order changes. Second, the columns of
+# the model matrix `X` must be the names of the coefficients, in their
+# order. Under treatment contrasts the names change when the reference
+# level changes, and only their order when it does not (Alpha, beta, Gamma
+# in English; Alpha, Gamma, beta in C). The functions that pair a design
+# built from the stored model or data with the fit's coefficients or
+# covariance call this first, rather than give wrong results. A covariate
+# stored as a factor, as fits now store it, keeps its levels and passes.
+# An aliased coefficient is NA but keeps its name and its column, so it
+# does not stop this. The message names the covariates whose levels change
+# order. Returns `X`, invisibly, for the caller to use; `X` is not built
+# when the levels have changed.
+.check_fit_collation <- function(fit, X = stats::model.matrix(fit$model)) {
+  frame <- fit$model$model
+  xlevels <- fit$model$xlevels
+  character <- intersect(names(frame)[vapply(frame, is.character, logical(1))],
+                         names(xlevels))
+  changed <- character[!vapply(character, function(name) {
+    identical(levels(factor(frame[[name]])), xlevels[[name]])
+  }, logical(1))]
+  if (!length(changed) && identical(colnames(X), names(stats::coef(fit$model)))) {
+    return(invisible(X))
+  }
+  covariates <- if (!length(changed)) {
+    "a character covariate"
+  } else {
+    paste0(if (length(changed) == 1L) "the character covariate " else
+      "the character covariates ", paste(changed, collapse = ", "))
+  }
+  stop(structure(
+    class = c("solomonR_collation_error", "error", "condition"),
+    list(message = paste0(
+      "The fit codes ", covariates, " by the collation (the sort order of text) of the ",
+      "R session that made it. The collation in force (", Sys.getlocale("LC_COLLATE"),
+      ") sorts those values in a different order, so the design rebuilt from the fit ",
+      "does not match its coefficients. Refit it with this version of solomonR, which ",
+      "stores a character covariate as a factor, or analyze it under the collation of ",
+      "the session that made it."
+    ), call = NULL)
+  ))
+}
+
+
 # Names as they must be written in a formula: a name that is not
 # syntactic (such as "my cov") is quoted with backticks.
 .formula_names <- function(x) {
   vapply(x, function(nm) deparse1(as.name(nm), backtick = TRUE),
          character(1), USE.NAMES = FALSE)
+}
+
+# The distinct values of `x` other than NA, as character strings, in the C
+# locale's order whatever the session's collation (issue #179). The values
+# are returned as they are in `x`, with the same bytes and the same
+# encoding mark; only their order is computed, from a key. The key is the
+# bytes of a string written as hexadecimal digits (.hex_bytes()), which
+# are ASCII and sort the same way in every collation, so that comparing
+# two keys compares the bytes. Text marked as Latin-1 is keyed by its
+# bytes in UTF-8: R converts it in the same way, whatever the session, to
+# compare it with ==, so the same letter marked as Latin-1 or as UTF-8 has
+# one key. All other text is keyed by the bytes it is stored in, without
+# any conversion. That includes text marked as being in the native
+# encoding, which is how read.csv() returns it. Converting such text from
+# the native encoding would make the order depend on the session, and in
+# a session whose native encoding is not UTF-8, such as one started with
+# LC_ALL=C, it can garble UTF-8 text. For text in UTF-8, the byte order is
+# the order of the characters' Unicode code points, the order that sort()
+# gives under the C collation in a UTF-8 session. (sort(method = "radix")
+# gives it too, but stops on text that is not ASCII and is marked as
+# native in a UTF-8 session.)
+#
+# The distinct values are those that unique() finds, as R's == takes them,
+# so that factor(x, levels = .sort_c(x)) and match() take every value of
+# `x` to its level. Each value comes back as it first appears in `x`. In
+# every session, the same letter marked as Latin-1 and as UTF-8 is one
+# value. Text with the same bytes marked as native and as UTF-8 is one
+# value in a UTF-8 session; in a session whose native encoding is not
+# UTF-8, == takes them as two. In a session whose native encoding is a
+# single-byte code page, such as Windows-1252 or Latin-1, == also takes a
+# letter in that code page and the same letter marked as UTF-8 or as
+# Latin-1 as one value, although their bytes, and so their keys, differ.
+# So every form in which a value appears in `x`, its bytes with its mark,
+# is keyed, and the value is placed by the smallest key among its forms,
+# and then by that form's mark. Which of its forms comes first in `x` does
+# not matter. Values whose keys tie, such as the same bytes marked as
+# native and as UTF-8 in a session whose native encoding is not UTF-8, are
+# ordered by those marks, the one marked UTF-8 first. So the order does
+# not depend on the order of the data. (In a UTF-8 session and in a C
+# session, the forms of a value have the same key.)
+.sort_c <- function(x) {
+  x <- as.character(x)
+  x <- x[!is.na(x)]
+  u <- unique(x)
+  # The forms: within one mark, unique() keeps each string of bytes once.
+  marks <- Encoding(x)
+  forms <- unlist(lapply(unique(marks), function(m) unique(x[marks == m])), use.names = FALSE)
+  value <- match(forms, u)
+  # A value that match() takes no form to is keyed by itself, so that every
+  # value is returned.
+  lost <- setdiff(seq_along(u), value)
+  forms <- c(forms[!is.na(value)], u[lost])
+  value <- c(value[!is.na(value)], lost)
+  key <- forms
+  latin1 <- Encoding(forms) == "latin1"
+  key[latin1] <- enc2utf8(forms[latin1])
+  key <- .hex_bytes(key)
+  mark <- Encoding(forms)
+  # The form with the smallest key, then mark, of each value, in the order
+  # of `u`.
+  o <- order(value, key, mark, method = "radix")
+  first <- o[!duplicated(value[o])]
+  u[order(key[first], mark[first], method = "radix")]
+}
+
+# The bytes of each string in `s` as hexadecimal digits, two to a byte: the
+# keys of .sort_c(). The strings of one length are written together, one
+# byte at a time, so that a long vector takes no loop over its strings.
+.hex_bytes <- function(s) {
+  bytes <- lapply(s, charToRaw)
+  n <- lengths(bytes)
+  digits <- sprintf("%02x", 0:255)[as.integer(unlist(bytes, use.names = FALSE)) + 1L]
+  start <- cumsum(n) - n
+  key <- character(length(s))
+  for (len in unique(n[n > 0L])) {
+    i <- which(n == len)
+    key[i] <- do.call(paste0, lapply(seq_len(len), function(j) digits[start[i] + j]))
+  }
+  key
 }

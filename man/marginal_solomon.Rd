@@ -19,7 +19,15 @@ marginal_solomon(
 link), \code{family = poisson()} (log link), or
 \code{family = "negative_binomial"}, with HC3 or model-based covariance, or,
 for binary outcomes, CR2 covariance. Designs with several treatments are
-not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.}
+not supported; see \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}. A fit made by an earlier version
+of solomonR, which stored a character covariate as character, stops
+with an error of class \code{solomonR_collation_error} when the collation in
+force sorts that covariate's values, among the participants the model
+used, in a different order than the R session that made the fit,
+whatever contrasts the fit was made under (issue #170). Refit it, or
+analyze it under that collation.
+\code{method = "cluster_summary"} does not use the covariates and does not
+stop.}
 
 \item{scale}{One or more of \code{"difference"}, \code{"ratio"}, and, for binary
 outcomes, \code{"odds_ratio"}. For count outcomes the default is
@@ -340,6 +348,10 @@ covering more than 96\% of the time with 4 clusters per cell or arm.
 fits have not been validated and are refused; for them, the log rate-ratio
 contrasts of \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with CR2 covariance and \code{\link[=perm_solomon]{perm_solomon()}}
 account for clustering.
+With \code{method = "cluster_summary"}, a fit made by an earlier version of
+solomonR whose clusters include an empty ID (\code{""} or only white space)
+for a participant in the model, which CR2 fits now refuse, stops with an
+error of class \code{solomonR_cluster_error}.
 
 The package's simulation validation of this function is described on
 issue #43 (binary outcomes), issue #44 (count outcomes), issue #62

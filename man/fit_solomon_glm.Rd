@@ -72,21 +72,29 @@ does a logical or character matrix column of several columns, such as
 \code{d$lm2 <- cbind(d$age > 40, d$z > 0)} makes, given by its name or in a
 data frame, as \code{\link[stats:glm]{stats::glm()}} cannot fit it, and a character one also
 by its bare name. A value of the wrong length stops too, and so does
-a covariate named as a column of the model: \code{y}, \code{pretested},
-\code{log_exposure}, \code{pre_obs} when \code{y_pre} is given, and \code{treat} or, with
-several treatments, \code{condition} and \code{treat_} followed by each
-treatment's name. Any other form stops with an error, so that no
-covariate is left out unnoticed, for example: a character vector
-without \code{data} (give the data frame as \code{data}, or a categorical
-covariate as a factor); a list that is not a data frame; an array of
-more than two dimensions; and a vector of another type, such as a
-date (give it as a column of a data frame).}
+a covariate with a name that the model reserves for its own columns:
+in every design, \code{y}, \code{pretested}, \code{pre_obs} (the pretest),
+\code{condition}, and \code{log_exposure}, with or without \code{y_pre} and
+\code{exposure}; \code{treat} in a four-group design; and, with several
+treatments, \code{treat_} followed by each treatment's name. The error
+lists the reserved names; rename the covariate. Any other form stops
+with an error, so that no covariate is left out unnoticed, for
+example: a character vector without \code{data} (give the data frame as
+\code{data}, or a categorical covariate as a factor); a list that is not a
+data frame; an array of more than two dimensions; and a vector of
+another type, such as a date (give it as a column of a data frame).}
 
 \item{robust}{character: "HC3" (default), "none", or "CR2" (cluster-robust; requires \code{cluster})}
 
 \item{cluster}{optional clustering id (e.g., class/site), one value per
-participant. CR2 fits refuse designs in which a Solomon cell contains a
-single cluster, because cluster and condition are then confounded; see
+participant. CR2 fits refuse a cluster ID that is missing (\code{NA}), empty
+(\code{""}), or only white space (spaces, tabs, or line breaks, which
+\code{\link[=trimws]{trimws()}} removes) for a participant included in the model, with an
+error of class \code{solomonR_cluster_error}: give every cluster a label. A
+factor is taken by its labels, so a level \code{""} or \code{NA} that such a
+participant has is refused, and an unused one is not. CR2 fits also
+refuse designs in which a Solomon cell contains a single cluster,
+because cluster and condition are then confounded; see
 \code{\link[=validate_solomon]{validate_solomon()}}. A classed warning (\code{solomonR_small_df_warning})
 flags Solomon contrasts whose Satterthwaite degrees of freedom are below
 4, where Tipton (2015) advises that p-values not be trusted.}
@@ -208,7 +216,15 @@ the participants whose leverage is 1 (see "HC3 at leverage 1"), and
 an empty vector when there are none; \code{NULL} with the other
 covariances.
 \item \code{call}, and \code{data} (the data the model was fitted to), which
-solomonR's own functions use.
+solomonR's own functions use. A character covariate is held in
+\code{data}, and in the model frame of \code{model}, as a factor made with
+\code{\link[=factor]{factor()}} when the fit is made, so its levels are sorted by the
+collation of that R session, as were the levels its coefficients are
+named and ordered by. A level seen only in rows the model did not use
+is a level of the factor in \code{data} but has no coefficient.
+\code{\link[=marginal_solomon]{marginal_solomon()}} and \code{\link[=plot_sensitization]{plot_sensitization()}} then code the
+covariate as the fit did, whatever the collation when they run
+(issue #170).
 }
 
 For a design with several treatments, an object of class
