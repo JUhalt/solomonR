@@ -1435,3 +1435,23 @@ test_that("z_perm has one entry per draw, and plot_perm() and print() read it (#
     "Permutations used: 9 of 9"
   ))
 })
+
+# report_solomon() says why an observed statistic is infinite, and what the
+# p-value then counts (#134, step 9). The issue's item-2 data; the draws come
+# from seed 1342009.
+test_that("the report says why an observed statistic is infinite (#134)", {
+  b <- binary_data(10, c(6, 4, 4, 0))
+  fb <- suppressWarnings(fit_solomon_glm(b$y, b$treat, b$pretested, family = stats::binomial()))
+  p <- perm_solomon(fb, "Treatment | unpretested", reps = 19, seed = 1342009L)
+  expect_identical(p$z_obs, Inf)
+  r <- report_solomon(p)
+  expect_match(r$results, paste0(
+    "The observed statistic was infinite: in an arm the contrast uses, the outcome was at its bound ",
+    "(no events, or only events) or constant, or a covariate separated it. Only allocations whose ",
+    "statistic was also infinite counted as at least as extreme; at a bound or under separation, the ",
+    "estimate reported is where the model fit stopped."), fixed = TRUE)
+  # A finite observed statistic gives no such sentence.
+  finite <- perm_solomon(fb, "Treatment | pretested", reps = 19, seed = 1342009L)
+  expect_true(is.finite(finite$z_obs))
+  expect_no_match(report_solomon(finite)$results, "infinite", fixed = TRUE)
+})

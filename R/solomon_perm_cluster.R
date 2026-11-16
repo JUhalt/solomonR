@@ -221,6 +221,10 @@
   used <- rep(TRUE, nrow(object$data))
   if (!is.null(fit$na.action)) used[fit$na.action] <- FALSE
   d <- object$data[used, , drop = FALSE]
+  # Stage 1 is fitted to the covariates and pretest standardized as the fit's
+  # inference was (#151), so that covariates far from zero do not change p
+  # (issue #134, item 10). The outcome is not standardized.
+  if (!is.null(object$covariate_scaling)) d <- .standardized_frame(d, object$covariate_scaling)
   cluster <- as.character(object$cluster[used])
 
   if (anyNA(cluster)) {
@@ -313,37 +317,64 @@
     ))
   }
 
+  # The variance the contrast would have if each arm's scores varied as their
+  # stratum's do, against which an allocation's variance is judged zero
+  # (issue #134): constant arms give an infinite studentized statistic,
+  # counted, or 0 when the contrast is 0 too (decision D11).
+  v_scale <- sum(vapply(seq_along(strata), function(k) {
+    h <- strata[[k]]
+    weights[[k]]^2 * stats::var(h$s) * (1 / sum(h$t) + 1 / sum(1 - h$t))
+  }, numeric(1)))
+
   stat_for <- function(alloc) {
     parts <- Map(function(h, a) .arm_differences(h$s, a), strata, alloc)
     est <- Reduce(`+`, Map(function(p, w) w * p$difference, parts, weights))
     if (statistic == "difference") return(list(estimate = est, stat = est))
     v <- Reduce(`+`, Map(function(p, w) w^2 * p$variance, parts, weights))
-    list(estimate = est, stat = ifelse(v > 0, est / sqrt(v), NA_real_))
+    zero <- !(v > 1e-10 * v_scale)
+    stat <- est / sqrt(ifelse(zero, 1, v))
+    stat[zero] <- ifelse(abs(est[zero]) <= 1e-8 * sqrt(v_scale), 0, Inf)
+    list(estimate = est, stat = stat)
   }
 
+  # An infinite observed statistic is allowed: it is equalled only by the
+  # allocations whose statistic is infinite too (.perm_at_least()). A
+  # statistic is missing only if the scores are not finite.
   observed <- stat_for(lapply(strata, function(h) matrix(h$t, ncol = 1)))
 
-  if (!is.finite(observed$stat)) {
-    stop("Could not calculate the observed permutation-test statistic.", call. = FALSE)
+  if (is.na(observed$stat)) {
+    .perm_stop(
+      "solomonR_perm_estimable_error",
+      "Could not calculate the observed permutation-test statistic: the Stage 1 cluster scores are ",
+      "not finite."
+    )
   }
 
   allocations <- .cluster_allocations(lapply(strata, `[[`, "t"), reps)
-  z_perm <- stat_for(allocations$alloc)$stat
-  valid <- is.finite(z_perm)
+  # One entry per allocation, in order; NA would mark one left out.
+  z_all <- stat_for(allocations$alloc)$stat
+  valid <- !is.na(z_all)
 
-  if (!any(valid)) stop("No valid permutation statistics were obtained.", call. = FALSE)
+  if (!any(valid)) {
+    .perm_stop(
+      "solomonR_perm_estimable_error",
+      "No allocation gave a statistic: the Stage 1 cluster scores are not finite."
+    )
+  }
 
-  z_perm <- z_perm[valid]
+  z_perm <- z_all[valid]
   # A difference counts as zero against the largest permuted difference, with
-  # no floor, so that the count does not depend on the scores' units.
+  # no floor (`scale = 0`, recorded as `tie_scale`), so that the count does
+  # not depend on the scores' units; the tie window is 1e-10, recorded as
+  # `tie_tolerance`, so that plot_perm() recomputes the same p-value.
   unit <- .perm_unit(z_perm, statistic, scale = 0)
 
   if (allocations$exact) {
     # The observed allocation is one of the enumerated allocations.
-    p_perm <- mean(.perm_at_least(z_perm, observed$stat, unit))
+    p_perm <- .perm_p_value(z_perm, observed$stat, statistic, 1e-10, exact = TRUE, scale = 0)
     min_p <- mean(.perm_at_least(z_perm, max(abs(z_perm)), unit))
   } else {
-    p_perm <- (sum(.perm_at_least(z_perm, observed$stat, unit)) + 1) / (length(z_perm) + 1)
+    p_perm <- .perm_p_value(z_perm, observed$stat, statistic, 1e-10, scale = 0)
     min_p <- NA_real_
   }
 
@@ -367,10 +398,14 @@
     exact = allocations$exact,
     n_allocations = allocations$n_allocations,
     min_p = min_p,
-    clusters = clusters
+    clusters = clusters,
+    n_infinite = sum(is.infinite(z_perm)),
+    n_left_out = sum(!valid),
+    tie_tolerance = 1e-10,
+    tie_scale = 0
   )
 
-  if (isTRUE(return_dist)) out$z_perm <- z_perm
+  if (isTRUE(return_dist)) out$z_perm <- z_all
 
   class(out) <- "solomon_perm"
   out
