@@ -2569,7 +2569,10 @@ perm_solomon <- function(
   )
 
   if (isTRUE(return_dist)) {
-    out$z_perm <- z_perm_valid
+    # One entry per draw, in draw order (issue #134): NA for a labeling left
+    # out (decision D16), Inf kept. plot_perm() and print() use the entries
+    # that are not NA.
+    out$z_perm <- z_perm
   }
 
   class(out) <- "solomon_perm"

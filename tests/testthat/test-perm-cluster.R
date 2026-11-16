@@ -179,6 +179,13 @@ test_that("small designs are enumerated exactly", {
   expect_output(print(res), "exact")
   expect_output(print(res), "All 20 possible allocations")
   expect_s3_class(plot_perm(res), "ggplot")
+  # Without a p-value, plot_perm() recomputes b / M for an enumerated object,
+  # not (b + 1) / (M + 1) (issue #134).
+  q <- res
+  q$p_perm <- NULL
+  expect_identical(plot_perm(q)$labels$subtitle, plot_perm(res)$labels$subtitle)
+  expect_match(plot_perm(q)$labels$subtitle, sprintf("permutation p = %.3f (all 20 allocations)", res$p_perm),
+               fixed = TRUE)
 })
 
 test_that("large designs are sampled with the +1 correction", {

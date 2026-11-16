@@ -102,6 +102,19 @@
   2^-40
 }
 
+# The p-value from permuted statistics `z` and the observed `z0`: b / M when
+# `z` holds every allocation (the observed one among them), otherwise
+# (b + 1) / (m + 1) (Phipson & Smyth, 2010). `tol` and `scale` are the tie
+# window and the unit floor the result records (`tie_tolerance`,
+# `tie_scale`), so plot_perm() recomputes the p-value of perm_solomon()
+# (issue #134). The participant path computes the same expression in
+# perm_solomon()'s own frame, which holds `z_perm`: the reference harness
+# (tools/perm-reference/) reads it there when .perm_at_least() is called.
+.perm_p_value <- function(z, z0, statistic, tol, exact = FALSE, scale = 1) {
+  b <- sum(.perm_at_least(z, z0, .perm_unit(z, statistic, scale), tol))
+  if (isTRUE(exact)) b / length(z) else (b + 1) / (length(z) + 1)
+}
+
 # One permutation of the treatment labels within pretest conditions.
 .perm_treat <- function(treat, pretested) {
   stats::ave(treat, pretested, FUN = function(x) sample(x, length(x), replace = FALSE))

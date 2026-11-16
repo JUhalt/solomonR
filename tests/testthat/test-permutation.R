@@ -84,9 +84,11 @@ test_that("permutation print is concise and informative", {
     "Solomon randomization test"
   )
 
+  # "Valid permutations" before issue #134 (decision M7): infinite
+  # statistics now count as used.
   expect_output(
     print(perm),
-    "Valid permutations"
+    "Permutations used: 99 of 99"
   )
 
   expect_output(
@@ -645,7 +647,8 @@ test_that("perm_solomon() permutes the rows in the model and counts infinite sta
                             .perm_treat = feed(list(other, other, treat)))
   expect_identical(p$n_left_out, 2L)
   expect_identical(p$valid_reps, 1L)
-  expect_identical(p$z_perm, p$z_obs)
+  # z_perm has one entry per draw, NA for a labeling left out (step 8).
+  expect_identical(p$z_perm, c(NA, NA, p$z_obs))
   expect_identical(p$p_perm, 1)
   for (s in c("studentized", "difference")) {
     expect_error(with_mocked_bindings(perm_solomon(fx, tu, reps = 4, statistic = s),
@@ -1278,4 +1281,157 @@ test_that("the statistic routine marks decisions close to a threshold (#134)", {
       nt
     })
   expect_identical(c(s$code, s$amb_src), c("LIM", "slow separation"))
+})
+
+# What perm_solomon() returns of its distribution, and how plot_perm() and
+# print() read it (#134, step 8). z_perm has one entry per draw, in draw
+# order: NA for a labeling left out (D16), Inf kept. Without a p-value,
+# plot_perm() recomputes it from the tie window and unit floor the object
+# records, through .perm_p_value(); an object saved before #134 records
+# neither and gets the rule it was made with (1e-10, unit 1). Infinite
+# statistics are counted, not drawn. The print line "Valid permutations" is
+# now "Permutations used" (decision M7). The draws on the binary data come
+# from seed 1342009; the other labelings are fed.
+test_that("z_perm has one entry per draw, and plot_perm() and print() read it (#134)", {
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  y <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1,
+         0.4, 2.6, 1.9, 3.1, 0.8, 2.2, 1.3, 3.6, 2.4, 0.7, 1.6, 2.9)
+  tu <- "Treatment | unpretested"
+  feed <- function(labelings) {
+    k <- 0L
+    function(treat, pretested) {
+      k <<- k + 1L
+      labelings[[k]]
+    }
+  }
+  without_p <- function(p) {
+    p$p_perm <- NULL
+    p
+  }
+  subtitle <- function(p) plot_perm(p)$labels$subtitle
+
+  # A labeling left out keeps its place in z_perm, as NA.
+  other <- c(0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0)
+  fx <- fit_solomon_glm(y, treat, pretested, covariates = data.frame(x = other))
+  p <- with_mocked_bindings(perm_solomon(fx, tu, reps = 3, return_dist = TRUE),
+                            .perm_treat = feed(list(other, treat, other)))
+  expect_identical(p$z_perm, c(NA, p$z_obs, NA))
+  expect_identical(c(p$valid_reps, p$n_left_out), c(1L, 2L))
+  out <- capture.output(print(p))
+  expect_true("Permutations used: 1 of 3" %in% out)
+  expect_true(paste0("Left out: 2 permutation(s) under which the contrast is not estimable or the ",
+                     "model could not be refitted") %in% out)
+  expect_true(any(startsWith(out, "Permutation distribution retained (1 draws)")))
+  expect_identical(subtitle(without_p(p)), subtitle(p))
+  expect_match(subtitle(p), "permutation p = 1.000 (1 permutations)", fixed = TRUE)
+  expect_null(plot_perm(p)$labels$caption)
+
+  # Infinite statistics are kept in draw order: the draws that put all 4
+  # unpretested successes in one arm, as the observed labels do (the issue's
+  # item 2).
+  b <- binary_data(10, c(6, 4, 4, 0))
+  fb <- suppressWarnings(fit_solomon_glm(b$y, b$treat, b$pretested, family = stats::binomial()))
+  emptied <- unpretested_totals(fb, perm_labels(fb, 199, 1342009L))[1, ] %in% c(0, 4)
+  expect_gt(sum(emptied), 0)
+  for (s in c("studentized", "difference")) {
+    p <- perm_solomon(fb, tu, reps = 199, seed = 1342009L, statistic = s, return_dist = TRUE)
+    expect_length(p$z_perm, 199)
+    expect_identical(which(is.infinite(p$z_perm)), which(emptied))
+    expect_identical(p$n_infinite, sum(emptied))
+    out <- capture.output(print(p))
+    expect_true(sprintf(paste0("Infinite statistics (emptied or constant arms, separation): %d, ",
+                               "counted as at least as extreme"), sum(emptied)) %in% out)
+    expect_true("  The observed statistic is infinite: in an arm the contrast uses, the outcome is at" %in% out)
+    pl <- plot_perm(p)
+    expect_identical(subtitle(without_p(p)), pl$labels$subtitle)
+    expect_match(pl$labels$subtitle, sprintf("permutation p = %.3f (199 permutations)", p$p_perm), fixed = TRUE)
+    expect_identical(pl$labels$caption, sprintf(paste0(
+      "%d of 199 permuted statistics are infinite (an emptied or constant arm, or separation) and ",
+      "are counted, not drawn; the observed statistic is infinite."), sum(emptied)))
+    # Only the finite statistics are drawn, and no line marks the observed one.
+    expect_identical(pl$data$z, p$z_perm[!emptied])
+    expect_length(pl$layers, 1)
+    expect_no_error(ggplot2::ggplot_build(pl))
+  }
+
+  # The recorded window and unit floor, NA left out and Inf counted: of the
+  # 3 statistics used, Inf and a value 5e-11 below the observed 0.1 count,
+  # within a window of 1e-10 relative to the unit floor 1.
+  obj <- structure(list(contrast = tu, statistic = "difference", level = "participant", z_obs = 0.1,
+                        exact = FALSE, z_perm = c(Inf, NA, 0.1 - 5e-11, 0.05),
+                        tie_tolerance = 1e-10, tie_scale = 1), class = "solomon_perm")
+  expect_match(subtitle(obj), "permutation p = 0.750 (3 permutations)", fixed = TRUE)
+  expect_identical(plot_perm(obj)$labels$caption, paste0(
+    "1 of 3 permuted statistics are infinite (an emptied or constant arm, or separation) and are ",
+    "counted, not drawn."))
+  expect_length(plot_perm(obj)$layers, 2)
+  # A window of 1e-12, or the unit floor 0 (the unit is then 0.1), leaves the
+  # near value out.
+  expect_match(subtitle(modifyList(obj, list(tie_tolerance = 1e-12))), "p = 0.500", fixed = TRUE)
+  expect_match(subtitle(modifyList(obj, list(tie_scale = 0))), "p = 0.500", fixed = TRUE)
+  # An object saved before #134 records neither: 1e-10 and unit 1.
+  old <- obj[setdiff(names(obj), c("tie_tolerance", "tie_scale"))]
+  class(old) <- "solomon_perm"
+  old$z_perm <- c(0.1 - 5e-11, 0.05)
+  expect_match(subtitle(old), "permutation p = 0.667 (2 permutations)", fixed = TRUE)
+  # Every allocation used: b / M, the observed allocation among them.
+  ex <- structure(list(contrast = tu, statistic = "studentized", level = "cluster", z_obs = 2,
+                       exact = TRUE, z_perm = c(2, -2, 1, 0.5)), class = "solomon_perm")
+  expect_match(subtitle(ex), "permutation p = 0.500 (all 4 allocations)", fixed = TRUE)
+
+  # The print lines, in full.
+  obj <- structure(list(contrast = tu, statistic = "studentized", level = "participant",
+                        estimate = 18.16, z_obs = Inf, p_perm = 0.1, reps = 199L, valid_reps = 197L,
+                        exact = FALSE, n_infinite = 19L, n_left_out = 2L,
+                        z_perm = c(NA, NA, rep(c(Inf, 0.5), c(19, 178)))), class = "solomon_perm")
+  expect_identical(capture.output(print(obj)), c(
+    "Solomon randomization test",
+    "--------------------------",
+    "Contrast: Treatment | unpretested",
+    "Estimate: 18.16",
+    "Observed studentized statistic: z = Inf",
+    "  The observed statistic is infinite: in an arm the contrast uses, the outcome is at",
+    "  its bound (no events, or only events) or constant, or a covariate separates it. At",
+    "  a bound or under separation, the estimate above is where the fit stopped.",
+    "Permutation p = .100",
+    "Permutations used: 197 of 199",
+    "Infinite statistics (emptied or constant arms, separation): 19, counted as at least as extreme",
+    paste0("Left out: 2 permutation(s) under which the contrast is not estimable or the model could ",
+           "not be refitted"),
+    "Permutation distribution retained (197 draws); use plot_perm() to visualize it."
+  ))
+  cl <- structure(list(contrast = tu, statistic = "studentized", level = "cluster",
+                       design = "clusters assigned to the four Solomon conditions",
+                       clusters = data.frame(stratum = "unpretested", treated = 3, control = 3),
+                       estimate = 0.5, z_obs = Inf, p_perm = 0.1, exact = TRUE, n_allocations = 20,
+                       min_p = 0.1, n_infinite = 2L, n_left_out = 0L), class = "solomon_perm")
+  expect_identical(capture.output(print(cl)), c(
+    "Solomon randomization test",
+    "--------------------------",
+    "Contrast: Treatment | unpretested",
+    "Permuted: whole clusters (clusters assigned to the four Solomon conditions)",
+    "Clusters (treated/control): unpretested 3/3",
+    "Estimate: 0.50",
+    "Observed studentized statistic: z = Inf",
+    "  The observed statistic is infinite: the cluster scores are constant within each",
+    "  arm the contrast compares, and the contrast is not zero.",
+    "Permutation p = .100 (exact)",
+    "All 20 possible allocations used; smallest attainable p = .100",
+    "Infinite statistics (emptied or constant arms, separation): 2, counted as at least as extreme"
+  ))
+  # An object saved before #134 prints none of the new lines.
+  old <- structure(list(contrast = tu, statistic = "difference", level = "participant", estimate = 0.25,
+                        z_obs = 0.25, p_perm = 0.3, reps = 9L, valid_reps = 9L, exact = FALSE),
+                   class = "solomon_perm")
+  expect_identical(capture.output(print(old)), c(
+    "Solomon randomization test",
+    "--------------------------",
+    "Contrast: Treatment | unpretested",
+    "Estimate: 0.25",
+    "Observed statistic (the contrast itself): 0.25",
+    "Permutation p = .300",
+    "Permutations used: 9 of 9"
+  ))
 })

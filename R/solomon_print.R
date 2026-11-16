@@ -406,6 +406,25 @@ print.solomon_perm <- function(x, digits = 2, ...) {
     )
   }
 
+  # An infinite observed statistic (issue #134): only infinite permuted
+  # statistics count as at least as extreme. Where the outcome is at its
+  # bound or separated, the maximum-likelihood estimate does not exist, and
+  # the estimate printed is where the fit stopped.
+  if (isTRUE(is.infinite(x$z_obs))) {
+    if (identical(x$level, "cluster")) {
+      cat(paste0(
+        "  The observed statistic is infinite: the cluster scores are constant within each\n",
+        "  arm the contrast compares, and the contrast is not zero.\n"
+      ))
+    } else {
+      cat(paste0(
+        "  The observed statistic is infinite: in an arm the contrast uses, the outcome is at\n",
+        "  its bound (no events, or only events) or constant, or a covariate separates it. At\n",
+        "  a bound or under separation, the estimate above is where the fit stopped.\n"
+      ))
+    }
+  }
+
   cat(
     sprintf(
       "Permutation p = %s%s\n",
@@ -423,20 +442,35 @@ print.solomon_perm <- function(x, digits = 2, ...) {
       )
     )
   } else {
+    # Infinite statistics count as used (issue #134, decision M7).
     cat(
       sprintf(
-        "Valid permutations: %d of %d\n",
+        "Permutations used: %d of %d\n",
         x$valid_reps,
         x$reps
       )
     )
   }
 
+  if (isTRUE(x$n_infinite > 0)) {
+    cat(sprintf(
+      "Infinite statistics (emptied or constant arms, separation): %d, counted as at least as extreme\n",
+      x$n_infinite
+    ))
+  }
+  if (isTRUE(x$n_left_out > 0)) {
+    cat(sprintf(
+      "Left out: %d permutation(s) under which the contrast is not estimable or the model could not be refitted\n",
+      x$n_left_out
+    ))
+  }
+
+  # z_perm has one entry per draw, NA for a labeling left out (issue #134).
   if (!is.null(x$z_perm)) {
     cat(
       sprintf(
         "Permutation distribution retained (%d draws); use plot_perm() to visualize it.\n",
-        length(x$z_perm)
+        sum(!is.na(x$z_perm))
       )
     )
   }
