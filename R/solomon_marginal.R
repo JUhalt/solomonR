@@ -76,9 +76,14 @@
     # that is missing is not a level; a participant who lacks one covariate
     # can still have a level the model does not have in another.
     for (v in intersect(names(model$xlevels), covariates)) {
+      # The values as the data have them, so that they match the model's
+      # levels. A factor, as fits store a character covariate since issue
+      # #170, gives its levels in their order. A covariate stored as
+      # character, as earlier fits stored it, is ordered by .sort_c(), in
+      # the C order, which leaves the values as they are (issue #179).
       value <- as.character(d[[v]])
       new <- outside & !is.na(d[[v]]) & !(value %in% model$xlevels[[v]])
-      levels_v <- if (is.factor(d[[v]])) levels(d[[v]]) else sort(unique(value), method = "radix")
+      levels_v <- if (is.factor(d[[v]])) levels(d[[v]]) else .sort_c(value)
       counted <- new & !no_covariate
       if (any(counted)) {
         new_level <- new_level | counted
