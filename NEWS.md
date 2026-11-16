@@ -46,11 +46,12 @@
   placed by the form whose bytes come first, text marked as Latin-1
   being taken by its bytes in UTF-8, and keeps the form in which it
   first appears in the data, so the order of the rows does not move it.
-  For instance, é that comes both in Windows-1252 (e9) and in UTF-8
-  (c3 a9) comes before Ä (c4), and À that comes in both (c0 and c3 80)
-  before Á (c1). In a session whose native encoding is not UTF-8, R
-  takes text with the same bytes marked as native and as UTF-8 as two
-  values; the one marked UTF-8 comes first, whatever the collation.
+  For instance, `é` that comes both in Windows-1252 (e9) and in UTF-8
+  (c3 a9) comes before `Ä` (c4), and `À` that comes in both (c0 and
+  c3 80) before `Á` (c1). In a session whose native encoding is not
+  UTF-8, R takes text with the same bytes marked as native and as UTF-8
+  as two values; the one marked UTF-8 comes first, whatever the
+  collation.
   `?perm_solomon` (under `seed`) and `?check_solomon_missing` say so.
 * `marginal_solomon()` stopped with "Character encoding must be UTF-8,
   Latin-1 or bytes" on a binary or count fit with a pretest and a
@@ -128,11 +129,11 @@
   some rows and in the code page in others, they check that reversing
   the rows changes neither the order of the clusters and levels nor the
   results of `perm_solomon()` (both designs) and
-  `check_solomon_missing()`. There they check that é and À, in the code
-  page and in UTF-8 or Latin-1, are placed by the form whose bytes come
-  first, whichever comes first in the data, and come back as they first
-  appear; and that the same bytes marked as native and as UTF-8 come
-  with the one marked UTF-8 first, under the collation of the code
+  `check_solomon_missing()`. There they check that `é` and `À`, in the
+  code page and in UTF-8 or Latin-1, are placed by the form whose bytes
+  come first, whichever comes first in the data, and come back as they
+  first appear; and that the same bytes marked as native and as UTF-8
+  come with the one marked UTF-8 first, under the collation of the code
   page's locale.
 
 ## Character covariates and the collation (bug fix, #170)
