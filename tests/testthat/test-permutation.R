@@ -988,7 +988,9 @@ test_that("near-ties stay apart, and zero contrasts and zero variances give p = 
     expect_identical(p$z_perm[2], -p$z_perm[1])
     expect_identical(p$n_classes, 2L)
     expect_lt(p$tie_tolerance, 1e-9)
-    if (s == "difference") expect_equal(abs(p$z_perm[1]) / abs(p$z_obs) - 1, -4.28e-8, tolerance = 1e-3)
+    # the gap as a ratio, so that the tolerance is relative (testthat compares
+    # absolute differences when the expected value is below the tolerance)
+    if (s == "difference") expect_equal((1 - abs(p$z_perm[1]) / abs(p$z_obs)) / 4.2819e-8, 1, tolerance = 1e-4)
   }
 
   # The reference set's E-gaussian-pair: a labeling a relative 4.3e-11 below
@@ -1007,7 +1009,7 @@ test_that("near-ties stay apart, and zero contrasts and zero variances give p = 
     perm_solomon(fe, "Treatment | pretested", reps = 2, return_dist = TRUE), .perm_treat = feed(list(nb, ep$treat))),
     "1 distinct permuted statistic\\(s\\) lie within 100 tie windows below", class = "solomonR_perm_margin_warning")
   expect_identical(p$p_perm, 2 / 3)
-  expect_equal(abs(p$z_perm[1]) / abs(p$z_obs) - 1, -4.3e-11, tolerance = 1e-2)
+  expect_equal((1 - abs(p$z_perm[1]) / abs(p$z_obs)) / 4.3082e-11, 1, tolerance = 1e-3)
   expect_identical(p$n_classes, 2L)
   expect_identical(p$tie_tolerance, 2^-40)
   expect_no_warning(with_mocked_bindings(
@@ -1104,8 +1106,11 @@ test_that("the window is recorded, and the margin, infinite, and convergence war
          0.4, 2.6, 1.9, 3.1, 0.8, 2.2, 1.3, 3.6, 2.4, 0.7, 1.6, 2.9)
   f <- fit_solomon_glm(y, treat, pretested)
   labs <- list(replace(treat, c(1, 7), c(0, 1)), replace(treat, c(2, 8), c(0, 1)), replace(treat, c(3, 9), c(0, 1)))
-  stand_in <- function(...) {
+  # the stand-in keeps the rows each call was given
+  seen <- list()
+  stand_in <- function(X, y, ...) {
     calls <<- calls + 1L
+    seen[[calls]] <<- list(X = X, y = y)
     if (calls <= length(answers)) answers[[calls]] else list(z = 2, code = "ok", nonconv = FALSE, amb = FALSE)
   }
   ok <- function(z, nonconv = FALSE, amb = FALSE) list(z = z, code = "ok", nonconv = nonconv, amb = amb)
@@ -1125,13 +1130,22 @@ test_that("the window is recorded, and the margin, infinite, and convergence war
   expect_identical(c(p$valid_reps, p$n_left_out, p$n_classes), c(2L, 1L, 4L))
   # The measured window counts a draw that the floor would not: the observed
   # statistic, 2, changes by 1e-10 when refitted in reverse order, so the
-  # window is a relative 100 * 1e-10 / 2, and a draw 2e-9 below ties.
+  # window is a relative 100 * 1e-10 / 2, and a draw 2e-9 below ties. The
+  # third and fourth calls refit the observed class and the draw's class with
+  # their rows in reverse order. (The window is compared as a ratio, so that
+  # the tolerance is relative.)
   calls <- 0L
   answers <- list(ok(2), ok(2 * (1 - 1e-9)), ok(2 + 1e-10), ok(2 * (1 - 1e-9)))
   p <- with_mocked_bindings(perm_solomon(f, reps = 1), .perm_treat = feed(labs), .perm_statistic = stand_in)
   expect_identical(calls, 4L)
-  expect_equal(p$tie_tolerance, 5e-9, tolerance = 1e-5)
+  expect_equal(p$tie_tolerance / 5e-9, 1, tolerance = 1e-6)
   expect_identical(p$p_perm, 1)
+  rows <- rev(seq_len(24))
+  expect_false(identical(seen[[1]]$X[rows, , drop = FALSE], seen[[1]]$X))
+  for (j in 1:2) {
+    expect_identical(seen[[j + 2]]$X, seen[[j]]$X[rows, , drop = FALSE])
+    expect_identical(seen[[j + 2]]$y, seen[[j]]$y[rows])
+  }
   calls <- 0L
   answers <- list(ok(2, nonconv = TRUE), ok(1), ok(0.5), ok(3))
   expect_warning(with_mocked_bindings(perm_solomon(f, reps = 3), .perm_treat = feed(labs), .perm_statistic = stand_in),
@@ -1139,8 +1153,14 @@ test_that("the window is recorded, and the margin, infinite, and convergence war
 })
 
 # The margin flags of the statistic routine (#134, decision M8): a decision
-# within three orders of magnitude of its threshold (six for a variance) is
-# marked, and one clear of it is not.
+# within three orders of magnitude of its threshold (six for a variance), on
+# the side the decision went to, is marked, and one clear of it is not. The
+# bands as coded: a null-space component of the contrast in (1e-7, 1e-4]
+# (not estimable), a leverage in (1 - 1e-5, 1 - 1e-8] (kept), a contrast in
+# (1e-10, 1e-7] of its scale (not 0) when the variance is zero, a variance in
+# (1e-20, 1e-14] of its scale (not zero), a Newton step in (1e-6, 1e-3], and
+# a separated row moving by less than 0.1 per step. Each flag also reaches
+# the labeling's statistic, `amb` and `amb_src`.
 test_that("the statistic routine marks decisions close to a threshold (#134)", {
   flag <- function(x) isTRUE(attr(x, "amb"))
   expect_true(flag(.perm_finish(1e-9, 0, 1)))
@@ -1182,4 +1202,80 @@ test_that("the statistic routine marks decisions close to a threshold (#134)", {
   expect_identical(c(s$code, s$amb_src), c("ok", "leverage"))
   expect_true(s$amb)
   expect_false(.perm_statistic(Xg, yg, rep(0, 24), rep(1, 24), stats::gaussian(), NULL, L, "difference")$amb)
+
+  # The same design in a Poisson model, at coefficients whose weights are
+  # constant within each cell: the weighted hat value of participant 13 is in
+  # the band too, and .perm_glm_stat() marks it; with a covariate value of 1
+  # there, no flag.
+  yk <- c(3, 1, 2, 4, 0, 2, 1, 3, 0, 2, 4, 1, 0, 2, 1, 3, 0, 2, 1, 3, 2, 0, 1, 2)
+  bk <- c(log(2), 0.3, 0, 0, 0)
+  wk <- exp(drop(Xg %*% bk))
+  hk <- rowSums(qr.Q(qr(sqrt(wk) * Xg))^2)
+  expect_true(hk[13] > 1 - 1e-5 && hk[13] <= 1 - 1e-8)
+  zk <- .perm_glm_stat(Xg, yk, rep(0, 24), rep(1, 24), stats::poisson(), bk, L, "studentized")
+  expect_true(flag(zk) && is.finite(zk) && zk != 0)
+  X1 <- Xg
+  X1[13, "x"] <- 1
+  expect_false(flag(.perm_glm_stat(X1, yk, rep(0, 24), rep(1, 24), stats::poisson(), bk, L, "studentized")))
+
+  # A Gaussian fit exact up to residuals of 1e-9: the HC3 variance is judged
+  # not zero, within six orders of magnitude of its cut, and the labeling is
+  # marked through the statistic's attribute ("variance or leverage").
+  ye <- drop(X1 %*% c(1, 0.5, 0.25, -0.5, 0.75)) + 1e-9 * c(1, -1, 0, 1, -1, 0)[rep(1:6, 4)] * g
+  s <- .perm_statistic(X1, ye, rep(0, 24), rep(1, 24), stats::gaussian(), NULL, L, "studentized")
+  expect_identical(c(s$code, s$amb_src), c("ok", "variance or leverage"))
+  expect_false(.perm_statistic(X1, yg, rep(0, 24), rep(1, 24), stats::gaussian(), NULL, L, "studentized")$amb)
+
+  # A covariate equal to the pretest column plus 2e-6 times the treatment
+  # column: the contrast is not estimable, by a component in the null space
+  # within three orders of magnitude of the tolerance, so the labeling is left
+  # out and marked; 2e-3 times is clear of it, and the pretest column itself
+  # leaves the contrast estimable. The same in a model fitted by iteration.
+  for (case in list(list(d = 2e-6, code = "ALIAS", src = "estimability"), list(d = 2e-3, code = "ALIAS", src = ""),
+                    list(d = 0, code = "ok", src = ""))) {
+    Xa <- Xg
+    Xa[, "x"] <- Xa[, "pretested"] + case$d * Xa[, "treat"]
+    for (fam in list(stats::gaussian(), stats::poisson())) {
+      s <- .perm_statistic(Xa, yk, rep(0, 24), rep(1, 24), fam, NULL, L, "difference")
+      expect_identical(c(s$code, s$amb_src), c(case$code, case$src))
+    }
+  }
+
+  # The flags of a fit by iteration reach the labeling, with the routine that
+  # sets each replaced to report it (the decisions themselves are tested
+  # above): Newton's method still moving in the final fit; the limiting
+  # model's estimability (binary outcome, no success in the treated
+  # pretested cell, which Treatment | unpretested does not use); and a
+  # separated row set aside while moving by less than 0.1 per step (a
+  # covariate separating the treated unpretested cell, steps scaled by 1/20).
+  newton <- .perm_newton
+  estimable <- .perm_estimable
+  s <- .perm_statistic(X1, yk, rep(0, 24), rep(1, 24), stats::poisson(), NULL, L, "studentized")
+  expect_identical(c(s$code, s$amb_src), c("ok", ""))
+  s <- with_mocked_bindings(
+    .perm_statistic(X1, yk, rep(0, 24), rep(1, 24), stats::poisson(), NULL, L, "studentized"),
+    .perm_newton = function(...) utils::modifyList(newton(...), list(amb = TRUE)))
+  expect_identical(c(s$code, s$amb_src), c("ok", "newton band"))
+  yb <- c(0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1)
+  Xb <- Xg[, 1:4]
+  Lb <- .perm_contrast_vector(colnames(Xb), "Treatment | unpretested")
+  s <- .perm_statistic(Xb, yb, rep(0, 24), rep(1, 24), stats::binomial(), NULL, Lb, "studentized")
+  expect_identical(c(s$code, s$amb_src), c("LIM", ""))
+  s <- with_mocked_bindings(
+    .perm_statistic(Xb, yb, rep(0, 24), rep(1, 24), stats::binomial(), NULL, Lb, "studentized"),
+    .perm_estimable = function(...) structure(estimable(...), amb = TRUE))
+  expect_identical(c(s$code, s$amb_src), c("LIM", "estimability (limiting)"))
+  ys <- c(1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1)
+  Xs <- cbind(Xb, x = c(rep(0, 12), -2, -1, 1, 2, 3, -3, rep(0, 6)))
+  Ls <- .perm_contrast_vector(colnames(Xs), "Treatment | pretested")
+  s <- .perm_statistic(Xs, ys, rep(0, 24), rep(1, 24), stats::binomial(), NULL, Ls, "difference")
+  expect_identical(c(s$code, s$amb_src), c("LIM", ""))
+  s <- with_mocked_bindings(
+    .perm_statistic(Xs, ys, rep(0, 24), rep(1, 24), stats::binomial(), NULL, Ls, "difference"),
+    .perm_newton = function(...) {
+      nt <- newton(...)
+      nt$deta <- nt$deta / 20
+      nt
+    })
+  expect_identical(c(s$code, s$amb_src), c("LIM", "slow separation"))
 })
