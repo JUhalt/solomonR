@@ -2036,29 +2036,111 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' clustered ones.
 #'
 #' @details
+#' **Supported models.** `perm_solomon()` supports the four models the package
+#' documents and validates: the Gaussian (identity link), binomial (logit
+#' link), and Poisson (log link) models, and `family = "negative_binomial"`
+#' (`MASS::glm.nb()`; Venables & Ripley, 2002). Any other family or link stops
+#' with an error of class `solomonR_perm_family_error`, at the participant and
+#' the cluster level; the review of issue #132 found p-values too small with
+#' other links (issue #134). A quasi-binomial or quasi-Poisson model gives the
+#' coefficients and HC3 standard errors of its parent family, so refit it with
+#' `binomial()` or `poisson()`; refit a `MASS::negative.binomial(theta)` model
+#' with `family = "negative_binomial"`. Every error of `perm_solomon()` named
+#' below also has the class `solomonR_perm_error`.
+#'
 #' **Unclustered designs.** Treatment labels of participants are permuted
-#' within pretest strata and the model is refitted for each permutation. The
-#' default statistic is the HC3-studentized contrast. The permutation
+#' within pretest strata, among the participants in the model, and the model
+#' is refitted for each permutation. A participant outside the model (a
+#' missing posttest, covariate, or treatment) enters no refit and is not
+#' permuted, so each pretest condition of the model keeps its numbers of
+#' treated and control participants, as randomized. The default statistic is
+#' the HC3-studentized contrast (MacKinnon & White, 1985). The permutation
 #' p-value is a valid test of the sharp null hypothesis that treatment has no
 #' effect for any participant; the `+1` correction keeps the Monte Carlo
 #' p-value from being zero (Phipson & Smyth, 2010). That result is for the
-#' count of permuted statistics at least as extreme as the observed one, so
-#' a permutation whose statistic equals the observed one is counted. Such
-#' ties occur when a permutation repeats the observed assignment or swaps
-#' arms of equal size, and often when scores are tied, as with binary
-#' outcomes, counts, and ratings. So that rounding error does not decide,
-#' statistics that differ by less than a small relative tolerance are
-#' treated as equal: 1e-10 for a linear model and 1e-6 for models fitted by
-#' iteration. The tolerance is relative to the observed statistic or, when
-#' that is smaller, to 1 for the studentized statistic and to the largest
-#' permuted difference for the difference statistic. In a model fitted by
-#' iteration, equal fits usually agree to about 1e-7; with a covariate they
-#' can differ by more, most with a link other than the canonical one, and
-#' such a tie can still be missed (issue #134). Studentizing the
-#' statistic makes permutation tests asymptotically robust when only an
-#' average effect is hypothesized to be zero (DiCiccio & Romano, 2017;
-#' Wu & Ding, 2021); for the Pretest x Treatment contrast that robustness
-#' should be regarded as approximate.
+#' count of permuted statistics at least as extreme as the observed one, so a
+#' permutation whose statistic equals the observed one is counted.
+#' Studentizing the statistic makes permutation tests asymptotically robust
+#' when only an average effect is hypothesized to be zero (DiCiccio & Romano,
+#' 2017; Wu & Ding, 2021); for the Pretest x Treatment contrast that
+#' robustness should be regarded as approximate.
+#'
+#' **Ties.** A permutation ties with the observed one when it repeats the
+#' observed assignment or swaps arms of equal size, and often when scores are
+#' tied, as with binary outcomes, counts, and ratings. Ties are found by
+#' structure first. Permutations that give each arm the same participants as
+#' the model sees them (the same outcome, covariates, and exposure) form one
+#' class, whose statistic is computed once; a permutation that swaps the arms
+#' of a pretest condition gets the statistic of its swap with the sign
+#' reversed, and a class that is its own swap gets exactly 0. Each refit is
+#' taken to the exact maximum-likelihood estimate by Newton's method, with the
+#' HC3 variance computed from the weights at that estimate, as the sandwich
+#' package computes it for a generalized linear model (Zeileis, 2006). The
+#' outcome of a Gaussian fit and any matrix covariate are moved by one of
+#' their own values before the refits, a subtraction that is exact for values
+#' within a factor of two of it (Higham, 2002, Theorem 2.5); numeric
+#' covariates and the pretest are standardized as for the fit's inference. So
+#' scores and covariates far from zero give the same p-value.
+#'
+#' Statistics that structure does not tie, but that are equal in exact
+#' arithmetic, are counted as ties within a window measured on each call: 100
+#' times the largest rounding error of the observed statistic and of the
+#' distinct permuted statistics within a relative 1e-6 of it, each measured as
+#' the change when its model is refitted with the rows in reverse order. The
+#' window is relative to the larger of the observed statistic and a unit, and
+#' is never below 2^-40. The unit is 1 for the studentized statistic; for the
+#' difference statistic it is the largest permuted difference, but at least
+#' the outcome's standard deviation for a Gaussian fit and 1 for the logit and
+#' log links. The result records the window as `tie_tolerance` and the unit's
+#' floor as `tie_scale`. A classed warning (`solomonR_perm_margin_warning`)
+#' says when the count rests on a numerical margin: a distinct permuted
+#' statistic below the window but within 100 windows of it, a window wider
+#' than a relative 1e-7, or a permutation classified close to one of the
+#' thresholds given under "Limits".
+#'
+#' **Degenerate permutations.** Each permutation, the observed labels
+#' included, is classified in this order:
+#'
+#' - With the studentized statistic, a participant at leverage 1 whose HC3
+#'   term enters the contrast's variance (an arm of one participant, or a
+#'   covariate value that no one else in the cell shares) leaves the HC3
+#'   standard error undefined, so the test stops with
+#'   `solomonR_perm_leverage_error`, which names the permutation; use
+#'   `statistic = "difference"`. An arm of one has one participant under every
+#'   permutation, so the test then stops at the observed labels.
+#' - A permutation under which a covariate collinear with the cells leaves the
+#'   contrast not estimable is left out, even when it empties an arm, and so
+#'   is one whose model cannot be refitted; `n_left_out` counts both. A
+#'   collinear permutation under which the contrast stays estimable is kept,
+#'   with the aliased coefficient set to 0. When the observed contrast is not
+#'   estimable, or every permutation is left out, the test stops with
+#'   `solomonR_perm_estimable_error`.
+#' - An emptied arm (no events, or only events, in a cell the contrast uses,
+#'   so that the estimate does not exist; Albert & Anderson, 1984),
+#'   separation by a covariate, and constant arms (an HC3 variance of 0 with a
+#'   contrast that is not 0) give an infinite statistic, counted as at least as
+#'   extreme as any other, for both statistics. So do two emptied arms whose
+#'   infinite parts have opposite signs. An infinite observed statistic gives
+#'   the share of permutations whose statistic is also infinite.
+#' - A contrast of exactly 0 with no spread counts as 0.
+#' - A degenerate cell that the contrast does not use takes the value of the
+#'   limiting model (Geyer, 2009).
+#'
+#' A classed warning (`solomonR_perm_infinite_warning`) says when half or
+#' more of the permutations used have an infinite statistic, since p cannot
+#' then fall below (k + 1) / (m + 1), and another
+#' (`solomonR_perm_convergence_warning`) when a refit failed or did not
+#' converge.
+#'
+#' **No variation.** When the outcome, and any exposure, takes one value
+#' among the participants in the model in a pretest condition that the
+#' contrast uses, the test stops with `solomonR_perm_no_variation_error` if
+#' the contrast is 0 or undefined under every permutation: when the contrast
+#' is on that condition alone, or the outcome is at its bound (no events, or
+#' only events). Otherwise the contrast still varies, through the other
+#' condition, a covariate the conditions share, or the exposure, and the test
+#' gives its p-value with a classed warning
+#' (`solomonR_perm_no_variation_warning`) that names the condition.
 #'
 #' **The difference statistic.** `statistic = "difference"` tests only the
 #' sharp null hypothesis. A permutation test of a difference in means is
@@ -2112,6 +2194,24 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' exceed the nominal level under the weak null hypothesis when the arms have
 #' unequal numbers of clusters and unequal variances.
 #'
+#' Stage 1 is fitted to the covariates and pretest standardized as for the
+#' fit's inference, so covariates far from zero give the same p-value.
+#' Statistics that differ by less than a relative 1e-10 are counted as ties,
+#' relative to the larger of the observed statistic and, for the difference
+#' statistic, the largest permuted difference (1 for the studentized one); the
+#' result records `tie_tolerance = 1e-10` and `tie_scale = 0`. Arms whose
+#' variance is at most 1e-10 times the variance the contrast would have if
+#' each arm's scores varied as their stratum's do are constant: the
+#' studentized statistic is then infinite, counted as at least as extreme, or
+#' 0 when the contrast is within 1e-8 of 0 on that scale, and an infinite
+#' observed statistic gives the share of allocations whose statistic is also
+#' infinite. When the cluster scores do not vary in any stratum the contrast
+#' uses, the test stops with `solomonR_perm_no_variation_error`; when they do
+#' not vary in one of two, it gives the p-value with
+#' `solomonR_perm_no_variation_warning`. A negative binomial fit with HC3
+#' standard errors is permuted at the cluster level too, with Stage 1 at the
+#' fit's theta; the simulation below does not cover it.
+#'
 #' When the number of possible allocations is at most `reps`, all of them are
 #' enumerated and the p-value is exact; the smallest attainable p-value is
 #' then reported. Hayes and Moulton (2017, p. 239) note that at least four
@@ -2137,6 +2237,38 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' - The CR2 tests of [fit_solomon_glm()] reached 0.068 with four clusters per
 #'   arm even under the sharp null, where this test is exact, so the
 #'   permutation test is preferred for designs with few clusters.
+#'
+#' **Limits.** The counts are checked exactly against a reference set of
+#' p-values fixed before these rules were chosen (issue #134). What remains:
+#'
+#' - The classification rests on thresholds, not certificates: leverage 1 at
+#'   a hat value above 1 - 1e-8; a contrast not estimable when its component
+#'   in the null space of the design exceeds 1e-7 (the tolerance of the
+#'   pivoted QR decomposition); a zero HC3 variance at 1e-20 of the
+#'   model-based variance of the contrast (times the outcome's variance for a
+#'   Gaussian fit), and a zero contrast at 1e-10 of its square root; and
+#'   separation when the linear predictor of a row still moves by more than
+#'   1e-3 per Newton step toward its bound. Only emptied arms are decided
+#'   exactly, from counts. The margin warning marks a decision near its
+#'   threshold, on the side the decision went to: a null-space component in
+#'   (1e-7, 1e-4], a leverage in (1 - 1e-5, 1 - 1e-8], a contrast in (1e-10,
+#'   1e-7] of its scale when the variance is 0, a variance in (1e-20, 1e-14]
+#'   of its scale, a Newton step in (1e-6, 1e-3], and a row set aside while
+#'   moving by less than 0.1 per step. It makes such a decision visible; it
+#'   does not make it right.
+#' - The tie window is a margin rule: the rounding error it rests on is an
+#'   estimate, not a bound. An ill-conditioned design widens it, and the
+#'   margin warning then says so. Two classes that are equal only in mirrored
+#'   data (factor levels exchanged and a binary outcome recoded) are tied only
+#'   within the window.
+#' - With the studentized statistic, leverage 1 that a covariate creates can
+#'   arise under some permutations and not others, so whether the test stops
+#'   can depend on the seed.
+#' - The negative binomial's theta is fixed at the fit's estimate in every
+#'   refit.
+#' - solomonR 0.8.2 and earlier permuted the labels of participants outside
+#'   the model, so for data with missing values the p-values, and the
+#'   permutations a seed draws, differ from those releases.
 #'
 #' @param fit An object returned by \code{fit_solomon_glm()}. Designs with
 #'   several treatments are not supported; see [fit_solomon_glm()].
@@ -2171,21 +2303,36 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #'   - `level`: the level permuted, `"participant"` or `"cluster"`.
 #'   - `estimate`: the estimated contrast.
 #'   - `z_obs`: the observed statistic (the contrast itself when
-#'     `statistic = "difference"`).
+#'     `statistic = "difference"`); `Inf` when the observed labels give an
+#'     infinite statistic (see "Degenerate permutations").
 #'   - `p_perm`: the permutation p-value.
 #'   - `reps` and `valid_reps`: the number of permutations, and the number
-#'     that gave a usable statistic.
+#'     used, which counts infinite statistics and not the permutations left
+#'     out.
 #'   - `exact`: whether every possible allocation was used.
+#'   - `n_infinite` and `n_left_out`: the number of permutations used whose
+#'     statistic is infinite, and the number left out.
+#'   - `n_classes`: the number of classes of permutations whose statistic
+#'     was computed, for unclustered fits.
+#'   - `tie_tolerance` and `tie_scale`: the tie window and the unit's floor
+#'     with which ties were counted (see "Ties"); [plot_perm()] uses them.
 #'   - `design`, `n_allocations` (the number of possible allocations),
 #'     `min_p` (the smallest attainable p-value when exact), and `clusters`
 #'     (the numbers of treated and control clusters in each stratum), for
 #'     clustered fits.
-#'   - `z_perm`: the permutation distribution, with `return_dist = TRUE`.
+#'   - `z_perm`: with `return_dist = TRUE`, the permuted statistics, one per
+#'     permutation in the order drawn (one per allocation when every
+#'     allocation was used): `NA` for a permutation left out, `Inf` for an
+#'     infinite statistic.
 #'
 #'   The result tests one contrast and gives no interval, so it has no
 #'   effects table; see [solomon_output].
 #'
 #' @references
+#' Albert, A., & Anderson, J. A. (1984). On the existence of maximum
+#' likelihood estimates in logistic regression models. *Biometrika, 71*(1),
+#' 1–10. https://doi.org/10.1093/biomet/71.1.1
+#'
 #' Bennett, S., Parpia, T., Hayes, R., & Cousens, S. (2002). Methods for the
 #' analysis of incidence rates in cluster randomized trials. *International
 #' Journal of Epidemiology, 31*(4), 839–846.
@@ -2206,13 +2353,26 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' intervention trials. *Statistics in Medicine, 15*(11), 1069–1092.
 #' https://doi.org/10.1002/(SICI)1097-0258(19960615)15:11%3C1069::AID-SIM220%3E3.0.CO;2-Q
 #'
+#' Geyer, C. J. (2009). Likelihood inference in exponential families and
+#' directions of recession. *Electronic Journal of Statistics, 3*, 259–289.
+#' https://doi.org/10.1214/08-EJS349
+#'
 #' Hayes, R. J., & Moulton, L. H. (2017). *Cluster randomised trials* (2nd
 #' ed.). Chapman and Hall/CRC. https://doi.org/10.4324/9781315370286
+#'
+#' Higham, N. J. (2002). *Accuracy and stability of numerical algorithms* (2nd
+#' ed.). Society for Industrial and Applied Mathematics.
+#' https://doi.org/10.1137/1.9780898718027
 #'
 #' Kvalem, I. L., Sundet, J. M., Rivø, K. I., Eilertsen, D. E., & Bakketeig,
 #' L. S. (1996). The effect of sex education on adolescents' use of condoms:
 #' Applying the Solomon four-group design. *Health Education Quarterly,
 #' 23*(1), 34–47. https://doi.org/10.1177/109019819602300103
+#'
+#' MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+#' covariance matrix estimators with improved finite sample properties.
+#' *Journal of Econometrics, 29*(3), 305–325.
+#' https://doi.org/10.1016/0304-4076(85)90158-7
 #'
 #' Phipson, B., & Smyth, G. K. (2010). Permutation p-values should never be
 #' zero: Calculating exact p-values when permutations are randomly drawn.
@@ -2224,9 +2384,16 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 #' Association, 85*(411), 686–692.
 #' https://doi.org/10.1080/01621459.1990.10474928
 #'
+#' Venables, W. N., & Ripley, B. D. (2002). *Modern applied statistics with S*
+#' (4th ed.). Springer. https://doi.org/10.1007/978-0-387-21706-2
+#'
 #' Wu, J., & Ding, P. (2021). Randomization tests for weak null hypotheses in
 #' randomized experiments. *Journal of the American Statistical Association,
 #' 116*(536), 1898–1913. https://doi.org/10.1080/01621459.2020.1750415
+#'
+#' Zeileis, A. (2006). Object-oriented computation of sandwich estimators.
+#' *Journal of Statistical Software, 16*(9), 1–16.
+#' https://doi.org/10.18637/jss.v016.i09
 #'
 #' @examples
 #' fit <- with(solomon_example, fit_solomon_glm(y_post, treat, pretested, y_pre))
