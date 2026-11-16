@@ -458,6 +458,29 @@ test_that("a zero variance gives an infinite or zero cluster statistic, and Stag
   res <- perm_solomon(near, "Pretest x Treatment", reps = 5000)
   expect_identical(c(res$z_obs, res$p_perm), c(Inf, 2 / 400))
 
+  # Each threshold from both sides, within a factor of 10. Arms that vary by
+  # 2e-5 have a variance 1e-9 of the stratum's: small, but above 1e-10, so
+  # the statistic stays finite, sqrt(2) / 2e-5. Arms that vary by 2e-6 have
+  # a variance 1e-11 of it, and count as constant. An ATE of 5e-8 with
+  # constant arms is 1.6e-7 of the standard error the contrast would have if
+  # its arms varied as their strata do: small, but above 1e-8, so it is
+  # infinite, not 0, as are the other 3 of the 400 allocations whose arms
+  # are all constant (the ATE of 5e-11 above, 1.6e-10 of it, counts as 0).
+  # Both rules are relative to the strata's variance, so the outcome's
+  # units, from 1e-6 to 1e6, change neither.
+  wide <- c(0, 1, -1, 2, 0, -2) * 2e-5
+  tight <- c(0, 1, -1, 2, 0, -2) * 2e-6
+  for (u in c(1e-6, 1, 1e6)) {
+    res <- perm_solomon(fit_a1(u * c(yvar, 1 + wide, 0 + wide)), tu, reps = 5000)
+    expect_equal(res$z_obs, sqrt(2) / 2e-5, tolerance = 1e-6)
+    expect_identical(c(res$p_perm, res$n_infinite), c(0.1, 0))
+    res <- perm_solomon(fit_a1(u * c(yvar, 1 + tight, 0 + tight)), tu, reps = 5000)
+    expect_identical(c(res$z_obs, res$p_perm, res$n_infinite), c(Inf, 0.1, 2))
+    shifted <- fit_a1(u * c(rep(1, 6), rep(0, 6), rep(1e-7, 6), rep(1, 6)))
+    res <- perm_solomon(shifted, "ATE (avg over pretest)", reps = 5000)
+    expect_identical(c(res$z_obs, res$p_perm, res$n_infinite), c(Inf, 4 / 400, 4))
+  }
+
   # A statistic that cannot be computed stops with a classed error. (Scores
   # that are not finite do not arise from a fit; .arm_differences() is
   # replaced to reach the guard.)
