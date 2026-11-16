@@ -681,3 +681,97 @@ test_that("perm_solomon() permutes the rows in the model and counts infinite sta
     expect_equal(p$p_perm, (emptied + 1) / 200, tolerance = 1e-12)
   }
 })
+
+# The stops of the statistic routine (#134). A labeling drawn after the
+# observed one can give a participant leverage 1, and the studentized test
+# then stops, naming the draw (D3). fit_solomon_glm() refuses collinear
+# terms, so the observed contrast is estimable in every fit it returns; the
+# routine is replaced here to check the class of the error that guards it.
+# Every labeling is fed; nothing is drawn.
+test_that("perm_solomon() stops at leverage 1 on a draw and at an inestimable observed contrast (#134)", {
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  y <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1,
+         0.4, 2.6, 1.9, 3.1, 0.8, 2.2, 1.3, 3.6, 2.4, 0.7, 1.6, 2.9)
+  tp <- "Treatment | pretested"
+  feed <- function(labelings) {
+    k <- 0L
+    function(treat, pretested) {
+      k <<- k + 1L
+      labelings[[k]]
+    }
+  }
+
+  # Each pretested arm has one pretest that differs from the rest of its arm,
+  # so the observed labeling and the first draw (the same labels) have no
+  # leverage 1. The second draw swaps those two participants: the treated
+  # arm's pretests are then all equal, and the one participant whose pretest
+  # differs in the control arm has leverage 1.
+  pre <- c(1, 1, 1, 1, 1, 5, 1, 2, 2, 2, 2, 2, rep(NA, 12))
+  fl <- suppressWarnings(fit_solomon_glm(y, treat, pretested, pre))
+  swap <- replace(treat, c(6, 7), c(0, 1))
+  expect_error(with_mocked_bindings(perm_solomon(fl, tp, reps = 2), .perm_treat = feed(list(treat, swap))),
+               "^Permutation 2 gives a participant leverage 1", class = "solomonR_perm_leverage_error")
+  p <- with_mocked_bindings(perm_solomon(fl, tp, reps = 2, statistic = "difference"),
+                            .perm_treat = feed(list(treat, swap)))
+  expect_identical(p$valid_reps, 2L)
+
+  fit <- fit_solomon_glm(y, treat, pretested)
+  for (code in c("ALIAS", "FAIL")) {
+    expect_error(
+      with_mocked_bindings(perm_solomon(fit, tp, reps = 3),
+                           .perm_statistic = function(...) list(z = NA_real_, code = code, nonconv = FALSE)),
+      if (code == "ALIAS") "is not estimable from the fitted model" else "could not be refitted",
+      class = "solomonR_perm_estimable_error"
+    )
+  }
+})
+
+# The statistic routine's rules (#134). A zero HC3 variance gives +Inf, or 0
+# when the contrast is 0 too (D11). Rows whose fitted values run to the
+# boundary are set aside in at most four rounds, each followed by a refit of
+# the rows kept: a stand-in for Newton's method that finds one more such row
+# in every round reaches that cap, and the statistic is that of the last
+# refit, marked as not converged. The difference statistic counts as zero
+# against the outcome's standard deviation for an identity link, so its
+# count does not depend on the outcome's units. The draws come from seed
+# 1342006.
+test_that("the statistic routine's zero variance, separation cap, and units (#134)", {
+  expect_identical(.perm_finish(0, 0, 1), 0)
+  expect_identical(.perm_finish(0.5, 0, 1), Inf)
+  expect_identical(.perm_finish(0.5, 0.25, 1), 1)
+
+  g <- rep(1:4, each = 6)
+  treat <- c(1, 0, 1, 0)[g]
+  pretested <- c(1, 1, 0, 0)[g]
+  X <- cbind("(Intercept)" = 1, treat = treat, pretested = pretested, "treat:pretested" = treat * pretested)
+  yc <- c(0, 0, 2, 1, 3, 1, 0, 0, 1, 2, 1, 4, 0, 0, 3, 2, 1, 2, 0, 0, 1, 1, 2, 3)
+  rounds <- 0L
+  newton <- function(X, y, off, pw, fam, beta, theta, steps = 6L) {
+    rounds <<- rounds + 1L
+    list(beta = beta, deta = replace(rep(0, nrow(X)), which(y <= 0)[1L], -1))
+  }
+  L <- .perm_contrast_vector(colnames(X), "ATE (avg over pretest)")
+  expect_no_warning(s <- with_mocked_bindings(
+    .perm_statistic(X, yc, rep(0, 24), rep(1, 24), stats::poisson(), NULL, L, "studentized"),
+    .perm_newton = newton
+  ))
+  expect_identical(rounds, 5L)
+  # Rounds 1 to 4 set aside the first four rows of outcome 0.
+  kept <- -c(1, 2, 7, 8)
+  lim <- stats::glm.fit(X[kept, ], yc[kept], family = stats::poisson())
+  expect_equal(s$z, .perm_glm_stat(X[kept, ], yc[kept], rep(0, 20), rep(1, 20), stats::poisson(),
+                                   lim$coefficients, L, "studentized"), tolerance = 1e-12)
+  expect_identical(s$code, "LIM")
+  expect_true(s$nonconv)
+
+  y <- c(3.25, 1.5, 2.75, 4, 0.5, 2.25, 1.75, 3.5, 0.25, 2, 4.5, 1,
+         0.4, 2.6, 1.9, 3.1, 0.8, 2.2, 1.3, 3.6, 2.4, 0.7, 1.6, 2.9)
+  p <- vapply(c(1, 1e-12), function(u) {
+    perm_solomon(fit_solomon_glm(y * u, treat, pretested), "Treatment | unpretested", reps = 99,
+                 seed = 1342006L, statistic = "difference")$p_perm
+  }, numeric(1))
+  expect_lt(p[1], 1)
+  expect_identical(p[2], p[1])
+})

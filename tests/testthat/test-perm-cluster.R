@@ -315,6 +315,30 @@ test_that("cluster p-values keep the comparison made before the shared tie rule 
   }
 })
 
+test_that("the cluster difference test does not depend on the outcome's units (#134)", {
+  # A difference counts as zero against the largest permuted difference, with
+  # no floor, so scores a trillion times smaller give the same count. Fixed
+  # data; all 4,900 allocations are enumerated, so nothing is drawn.
+  cl <- rep(1:16, each = 3)
+  pretested <- rep(rep(c(1, 0), each = 8), each = 3)
+  treat <- rep(rep(c(1, 1, 1, 1, 0, 0, 0, 0), 2), each = 3)
+  base <- c(0.31, 0.12, 0.45, 0.27, 0.58, 0.19, 0.36, 0.41, 0.22, 0.50, 0.14, 0.33,
+            0.29, 0.47, 0.11, 0.38, 0.25, 0.52, 0.16, 0.44, 0.35, 0.21, 0.49, 0.13,
+            0.40, 0.18, 0.55, 0.26, 0.32, 0.48, 0.15, 0.43, 0.24, 0.51, 0.17, 0.39,
+            0.28, 0.46, 0.20, 0.37, 0.53, 0.23, 0.42, 0.30, 0.10, 0.34, 0.57, 0.09)
+  for (k in c("Treatment | unpretested", "ATE (avg over pretest)")) {
+    p <- vapply(c(1, 1e-12), function(u) {
+      fit <- suppressWarnings(fit_solomon_glm((base + 0.2 * treat) * u, treat, pretested,
+                                              cluster = cl, robust = "CR2"))
+      res <- perm_solomon(fit, k, reps = 5000, statistic = "difference")
+      expect_true(res$exact)
+      res$p_perm
+    }, numeric(1))
+    expect_lt(p[1], 0.05)
+    expect_identical(p[2], p[1])
+  }
+})
+
 test_that("cluster scores without variation stop the test or give a warning (#134, D5)", {
   # Fixed data; every call stops at the error or the warning, before any
   # allocation is drawn or enumerated. The seed (1342004) would be used only

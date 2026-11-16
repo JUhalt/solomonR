@@ -65,9 +65,9 @@
 # statistic is smaller than that, so that an observed statistic of zero is
 # tied with every other zero. `unit` is the size at which a statistic counts
 # as zero: 1 for a studentized statistic, and for a difference the largest
-# finite permuted difference, with a floor (see .perm_unit()). `tol` is
-# 1e-10 on the cluster path, and the window of .perm_tie_tolerance() on the
-# participant path.
+# finite permuted difference, with a floor on the participant path (see
+# .perm_unit()). `tol` is 1e-10 on the cluster path, and the window of
+# .perm_tie_tolerance() on the participant path.
 .perm_at_least <- function(z, z0, unit = 1, tol = 1e-10) {
   # An infinite observed statistic (an emptied or constant arm) is equalled
   # only by other infinite statistics (issue #134).
@@ -80,7 +80,10 @@
 # but not less than `scale`, the size of the data (the outcome's standard
 # deviation for an identity link, 1 on the logit and log scales). Without
 # that floor, when every finite difference is an exact zero computed as
-# rounding noise, the unit is noise too (issue #134).
+# rounding noise, the unit is noise too (issue #134). A floor that is not
+# the data's own makes the count depend on the outcome's units, so the
+# cluster path, which keeps master's rule, passes `scale = 0`: the largest
+# finite difference.
 .perm_unit <- function(z_perm, statistic, scale = 1) {
   if (!identical(statistic, "difference")) return(1)
   max(abs(z_perm[is.finite(z_perm)]), scale)
@@ -318,7 +321,9 @@
   if (!any(valid)) stop("No valid permutation statistics were obtained.", call. = FALSE)
 
   z_perm <- z_perm[valid]
-  unit <- .perm_unit(z_perm, statistic)
+  # A difference counts as zero against the largest permuted difference, with
+  # no floor, so that the count does not depend on the scores' units.
+  unit <- .perm_unit(z_perm, statistic, scale = 0)
 
   if (allocations$exact) {
     # The observed allocation is one of the enumerated allocations.

@@ -2346,6 +2346,9 @@ perm_solomon <- function(
   # labels (#132), takes it to the exact estimate, and classifies the
   # degenerate labelings (issue #134; .perm_statistic()).
   if (is.null(off0)) off0 <- rep(0, nrow(X0))
+  # Prior weights are 1: fit_solomon_glm() takes no weights. (The Gaussian
+  # refit of .perm_statistic() is unweighted least squares, so a fit with
+  # prior weights would need them there too.)
   pw0 <- rep(1, nrow(X0))
   L0 <- .perm_contrast_vector(colnames(X0), contrast)
   treat_used <- df$treat[used]

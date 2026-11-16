@@ -311,7 +311,10 @@
   # that keep moving under Newton's method once the others have converged.
   # The limiting model is refitted without them (Geyer, 2009): a contrast it
   # does not estimate diverges or has no limit, and is +Inf (decisions D4 and
-  # D10); one it estimates takes its value (D9).
+  # D10); one it estimates takes its value (D9). Rows are set aside in at
+  # most four rounds, each followed by a refit, so that the statistic is
+  # always that of the rows last refitted; rows still moving in the fifth
+  # round mark the fit as not converged.
   cell <- X[, "treat"] + 2 * X[, "pretested"]
   K <- rep(TRUE, length(y))
   for (k in unique(cell)) {
@@ -340,7 +343,7 @@
     yK <- y[K]
     side <- if (identical(fam$family, "binomial")) (yK <= 0 & nt$deta < 0) | (yK >= 1 & nt$deta > 0) else
       (yK <= 0 & nt$deta < 0)
-    if (!any(moving & side)) break
+    if (!any(moving & side) || round == 5L) break
     K[which(K)[moving & side]] <- FALSE
   }
   z <- .perm_glm_stat(XK, y[K], off[K], pw[K], fam, nt$beta, L[cols], statistic)
