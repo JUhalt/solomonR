@@ -64,6 +64,11 @@ perm_reference_default <- c(
   "F-arm1-poisson|gen|T|P|studentized|all"
 )
 
+# The default tier's cluster worlds: the first stage far from zero (item
+# 10), an observed statistic of 0, constant arms, a stratum without
+# variation (item 5), and the negative binomial (D7). Master 70022ef already
+# agrees on every first-stage location world of the set, so a revert of
+# Stage 1's standardization is caught by test-perm-cluster.R, not here.
 perm_reference_default_cluster <- c("G-10-x1e+08-gaussian", "G-zero-gaussian", "G-const-gaussian",
                                     "G-conststrat-gaussian", "G-A-N-negbin-k3")
 
