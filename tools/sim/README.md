@@ -15,7 +15,8 @@ seed, the harness sets `set.seed(116)` for the RNG fingerprint
 a gate, the base seed + 1 for the order of its tasks (`sim_run()`). A
 study's own code may set others inside its tasks, such as the seeds of its
 agreement checks. The harness's tests draw their own, in its pull requests
-only.
+only. `merge-test.R`, which measures a run's merge on made-up task files,
+sets no seed and draws no random number.
 
 `tools/` is in `.Rbuildignore`, and `tools/check-validation-scripts.R` looks
 only at `vignettes/articles/*-validation/`, so nothing here is part of the
@@ -38,12 +39,16 @@ package or of the validation-scripts check.
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
+| `merge-test.R`, `merge-test/` | Measures a run's merge at its full size before the run, on task files of that size that hold made-up values: the checks of `merge-chunks.R`, then the study's summary under a limit on R's memory, with the time and the largest memory of each. It sets no seed, draws no random number, and runs no task of the study. `merge-test/<study key>.R` is a study's pattern of made-up rows |
 | `harness-lib.R` | Helpers of the harness scripts |
-| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's checks of the inputs and of the package commit, the contract's plan stage on a synthetic study, `finalize-results.R`, `run-local.R` on the synthetic study, and `merge-chunks.R` on tampered copies of a run |
+| `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's checks of the inputs and of the package commit, the contract's plan stage on a synthetic study, `finalize-results.R`, `run-local.R` on the synthetic study, `merge-test.R` on a study made for it, and `merge-chunks.R` on tampered copies of a run |
+| `tests/merge-test-study.R`, `tests/merge-test-pattern.R` | A study that runs no replication, and its pattern, for the tests of `merge-test.R` |
 | `studies/smoke/` | The harness's smoke study (its script, and `smoke-summarize.R`, which the script sources); not a protocol, and it computes no measure for the package's methods |
 
 The workflow is `.github/workflows/simulation-run.yaml`, with the composite
 action `.github/actions/sim-setup/action.yml`.
+`.github/workflows/simulation-merge-test.yaml` runs `merge-test.R` on a
+runner, with the same action.
 
 ## How a run works
 
@@ -338,13 +343,27 @@ replay list of `merge-chunks.R` and the items and refusals of
 `finalize-results.R` on files made up there; `run-local.R` on the
 synthetic study, as a second study beside smoke, in a package folder made
 there (the study it takes for `--resume` and `--rerun-chunk`, and its
-refusal of another `--study`); and, with `--run`, `merge-chunks.R` on
+refusal of another `--study`); `merge-test.R` on a study that runs no
+replication and its pattern (`tests/merge-test-study.R`,
+`tests/merge-test-pattern.R`), in a package folder made there (group
+`fullsize`): what a run of 6 replications writes and records, a plan and
+envelopes that cannot be taken for a run's, the made-up values by their
+rule, the summary's files named and deleted, the limit on R's vector heap
+(a summary stopped in the study's `summarize()`, one stopped while the
+task files are read and bound, and the same files under a larger limit),
+the refusals (a pattern that draws a random number or sets a seed, rows or
+columns other than the study's, a script that does not end with
+`sim_main(study)`, the options), `--task-file`, the run stage's refusal of
+the plan, and the "Check the inputs" step of
+`simulation-merge-test.yaml`; and, with `--run`, `merge-chunks.R` on
 tampered copies of a run's `plan/` and `chunks/`, and the address scan of
 the run's own folders. Any case that ends otherwise than expected makes
-the exit status 1. The workflow runs them in the pull requests that change
-the harness: the job "Harness tests", and the merge and `run-local.R` cases
-at the end of the merge job, on that run's own chunks and with the study's
-software. Run them after any change to a check.
+the exit status 1. The workflows run them in the pull requests that change
+the harness: the job "Harness tests" of `simulation-run.yaml`, the merge
+and `run-local.R` cases at the end of its merge job, on that run's own
+chunks and with the study's software, and the job "Tests of merge-test.R"
+of `simulation-merge-test.yaml` (group `fullsize`). Run them after any
+change to a check.
 
 The software check runs without its repository and tool checks, so the
 local package versions must match the pins. On Windows, R reports no BLAS or
@@ -362,6 +381,140 @@ A study runs entirely on one platform. The merge refuses chunks whose
 `software.csv` differ, and the protocols' amendments name the platform: a
 run on the laptop or the PC instead of the runners needs its own amendment
 (platform, workers, BLAS and LAPACK) before it starts.
+
+## The merge at full size
+
+A run's merge job reads every task file, binds the results of all tasks
+into one data frame, and only then calls the study's `summarize()`
+(`sim_summarize()` in `contract.R`). The merging machine has 16 GB. While
+the job binds, it holds the tasks' pieces and the bound frame, about twice
+the results' size (`sim_bind_part()`), and `summarize()` adds what it
+derives. If that does not fit, the job stops after every chunk has run,
+and a rerun stops the same way. `merge-test.R` measures the memory and the
+time before the run, on task files of the run's size that hold made-up
+values, so that what a replication stores, or the summary, can be changed
+before the study's gate. It is not a run of the study, of its gate, or of
+a code test: it sets no seed, draws no random number, and runs no task,
+and it does not wait for a study run.
+
+From the package root, or on a runner (`ubuntu-24.04`, with the study's
+own R and packages, as in its merge job):
+
+```
+Rscript tools/sim/merge-test.R --study robustness --reps 5000 --out <empty folder>
+gh workflow run simulation-merge-test.yaml --repo JUhalt/solomonR --ref master \
+  -f study=robustness -f package_sha=<40-character SHA> -f reps=5000
+gh run download <run id> --repo JUhalt/solomonR -n merge-test-robustness-5000 -D <folder>
+```
+
+`--reps` is the run's R (before a gate, the largest it may choose). Every
+scenario is planned, in tasks of the study's size. The script then:
+
+1. reads the study's definition from its script without running any stage
+   of it: the script is evaluated except for its last expression, which
+   must be `sim_main(study)`;
+2. writes a plan and one task file per task, in chunk folders as a run's
+   chunk jobs leave them (`assign-chunks.R` divides the tasks among
+   `--chunks` jobs, 16 unless given), with the rows of the study's pattern,
+   `tools/sim/merge-test/<study key>.R`;
+3. runs `merge-chunks.R` on them and times it;
+4. runs the summary in a new R process, as the merge job does (the
+   script's own `sim_main(study)` with the stage `summarize`, from the
+   package copy), under a limit on R's vector heap (`--limit-gb`, 12
+   unless given; `mem.maxVSize()`), so that a summary that would not fit
+   stops with R's message ("vector memory limit of 12.0 Gb reached") and
+   not with the machine;
+5. writes `merge-test.csv` (item, value) and the logs of steps 2 to 4 into
+   `--out`, and deletes the summary's files.
+
+The exit status is 0, and the record's `verdict` is `pass`, only if the
+checks of `merge-chunks.R` passed, the summary finished under the limit,
+and, where the system reports it, the largest resident memory of the
+summary's process stayed at or below the limit. On a runner, the artifact
+`merge-test-<study>-<reps>` holds the record, the logs, and the job's
+`software.csv`, also after a test that failed.
+
+What the record gives:
+
+- `verdict` and `verdict_reason`: `pass`, or `fail` and why.
+- `summary` and `summary_stopped_in`: whether the summary finished, and
+  otherwise whether it stopped while the task files were read and bound
+  (the rows are too many or too wide: change what a replication stores) or
+  in the study's `summarize()` (change the summary, for instance so that
+  it works scenario by scenario). `summary_message` is the message.
+- `resident_peak_mb`: the largest resident memory of the summary's
+  process, as the system counts it (the high-water mark of
+  `/proc/self/status` on Linux; the peak working set on Windows, asked for
+  once, at the end), to set against the machine's 16 GB.
+- `heap_peak_mb`: the largest of R's heap (cons cells and vectors, from
+  `gc()`), with `heap_peak_read_bind_mb`, `heap_peak_summarize_mb`, and
+  `heap_peak_write_mb` for the reading and binding, the study's
+  `summarize()`, and the writing of the summary's files.
+  `heap_at_summarize_mb` is the heap when `summarize()` starts, which
+  holds the bound parts. The limit (`limit_mb`, and `limit_set_mb` as R
+  reports it once set) is on the vectors alone, so the heap can pass it by
+  the cons cells (some tens of Mb). After a stop at the limit, the largest
+  heap is that before the allocation R refused.
+- `summary_seconds`, with `read_bind_seconds`, `summarize_seconds`, and
+  `write_seconds`, and `merge_checks_seconds`: to set against the merge
+  job's 355 minutes, which also hold its setup, its downloads, its replay
+  of up to four tasks, its scans, and its uploads.
+- `results_rows`, `results_columns`, `results_row_bytes`, and
+  `results_bound_mb` (rows times bytes: 4 for an integer, logical, or
+  factor column, 8 for a double or character column, strings not
+  counted); the same for the agreement rows and the warnings;
+  `parts_bound_mb` for the three together; and `task_files_mb` on disk.
+- `package_sha`, `script_sha256`, `pattern_sha256`, `harness_sha`, and
+  the machine (`cpu_model`, `cpus`, `memory_gb`, `image_version`): what
+  was measured, and where.
+
+**Made-up values.** A pattern takes its numbers from `fill()`, which
+computes one number strictly between 0 and 1 for each row from the
+scenario, the replication, the row, and a column number alone. With
+`frac(x)` for `x - floor(x)`, and `j = row + rows * (column - 1)`, it is
+
+```
+frac(frac(rep * 0.6180339887498949) * (2 * j + 1) + frac(scenario * 0.41421356237309515))
+```
+
+kept at least 2^-41 away from 0 and from 1. This is arithmetic: no value
+of any study, and no random number. The process that writes the task
+files stops at the first task after which R's generator has a state
+(`.Random.seed`), so a pattern, or the top level of a study script, that
+sets a seed or draws a number never reaches the merge; that process does
+not load R's parallel package, which draws one number when it is loaded
+and then removes the state. The record says whether the generator had a
+state after the study's `summarize()` (`summary_random_state`), which a
+study's own summary code may give it.
+
+**The plan cannot be run.** Its purpose is `study` and its design `run`,
+because the summary of a study run is what is measured, and a protocol's
+summary computes its measures only then. Everything else marks it: every
+task's seed is seven zeros, which is no state of the generator; the
+package commit and the three checksums are the word `synthetic`; the base
+seed is `none`; and `plan-info.csv` has the item `synthetic`. The run
+stage refuses such a plan (`sim_verify_plan()`). The made-up task files
+stay in the work folder (`--work`, a temporary folder unless given; on a
+runner, the runner's temporary folder), and nothing is uploaded as a
+chunk or as results.
+
+**The summary's files are deleted.** They hold measures and verdicts of
+made-up values, which say nothing about any method. The record keeps
+their names and their size (`summary_files`, `summary_files_mb`), and
+nothing shows what they held.
+
+**Not measured:** the job's setup and downloads; the replay, which would
+draw from the study's streams (its time is that of its tasks, which the
+gate's seconds per unit of cost give); the address scans; and the
+uploads. Made-up files do not compress exactly as a run's, so the time to
+read them is an estimate. The pattern's values take none of the paths
+that a failed fit takes in a summary, and a summary's time can depend on
+the values where its code iterates on them.
+
+A study's pattern is described under "Adding a study" (item 7).
+`--pattern` names another file than the package copy's, and `--task-file`
+compares the pattern's columns with those of a task file of a
+code-testing run.
 
 ## Adding a study
 
@@ -442,14 +595,42 @@ In the study's own pull request, before its run (the order rule of #117):
    `r-4.6.1 1`, the build that test T2 checked (run 41255391619), it is
    `70c4de5e29eef6269aec5e1841477c07e84839812aaca3b2f240941bfd223953`.
    Elsewhere (Windows) the library's checksum is recorded, not compared.
-6. A row in `studies.csv`, and the key in the workflow's `study` options.
+6. A row in `studies.csv`, and the key in the `study` options of both
+   workflows.
    The row's `required_ancestors` are the commits that the package commit
    of a gate or study run must include, as full SHAs separated by spaces;
    the Plan job checks them, and that the commit is on master, before
    anything is installed (a smoke run checks neither). The smoke study's
    row requires #132's merge (b4ade64), which master holds, so that a run
    of the smoke study with `smoke=false` takes that check too.
-7. Code-testing runs (`smoke=true`) before the gate; the gate's amendment
+7. A pattern for the merge at full size, `tools/sim/merge-test/<key>.R`
+   (see "The merge at full size"). It defines `merge_test_pattern`, a list
+   of functions that give a task's rows with made-up values.
+   `results(s, reps, fill)` is required: the results of the replications
+   `reps` of scenario row `s`, with the columns and column classes that
+   `replicate()` returns, `rows_per_rep(s)` rows for each replication, in
+   the order of the replications, and without `rep`, which `merge-test.R`
+   adds as the contract does. `agreement(s, reps, fill)` and
+   `failures(s, reps, fill)` are optional: the agreement rows, and the
+   warnings as the contract stores them (`rep`, `type`, `class`,
+   `message`, `count`), each with `rep` as its first column, or `NULL`.
+   `preflight()` is optional too: the table of the plan's `preflight.csv`,
+   for a study whose `summarize()` takes the preflight's checks.
+   `fill(column, rows)` gives the made-up numbers, `rows` (unless given,
+   `rows_per_rep(s)`) for each replication; `column` is a whole number
+   from 1, one for each column that needs numbers of its own. The file is
+   evaluated after the study script, so build the rows with the functions
+   that build them in a run, as the patterns of the smoke study and of
+   #116 do. Write values that `summarize()` accepts (its status codes, its
+   labels in its order), or the summary stops for a reason that is not
+   memory. Set no seed and draw no random number. `merge-test.R` cannot
+   run `replicate()`, so check the pattern once against a task file of a
+   code-testing run (`--task-file`, which reads column names and classes
+   only), run it at a small R, and then at the run's R on a runner, before
+   the gate. The pattern is not part of the study: the script does not
+   source it, the plan does not record it, and a change to it changes no
+   checksum of a run.
+8. Code-testing runs (`smoke=true`) before the gate; the gate's amendment
    and the run's amendment are posted on the issue before each.
 
 ## Safety

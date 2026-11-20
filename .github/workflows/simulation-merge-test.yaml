@@ -1,0 +1,192 @@
+name: simulation-merge-test
+
+# Measures the merge job of a study run at its full size, before the run
+# (issues #116 and #117). tools/sim/merge-test.R writes task files of the
+# run's size that hold made-up values, runs the checks of merge-chunks.R on
+# them, and runs the study's summary under a limit on R's memory, on the
+# kind of machine that merges a run (ubuntu-24.04, 16 GB), with the study's
+# own R and packages. It sets no seed, draws no random number, and runs no
+# task of any study, so it is not a run of a study, of its gate, or of a
+# code test, and it does not wait for a study run. Only the record
+# (merge-test.csv), the logs, and software.csv are uploaded; the made-up
+# task files and the summary computed from them are not. It never writes
+# to the repository. See tools/sim/README.md, "The merge at full size".
+
+on:
+  workflow_dispatch:
+    inputs:
+      study:
+        description: Study key in tools/sim/studies.csv
+        type: choice
+        options: [smoke, robustness]
+        default: smoke
+      package_sha:
+        description: Full SHA of the package commit; empty for this workflow's commit
+        type: string
+        default: ''
+      reps:
+        description: Replications per scenario of the study run to be measured
+        type: number
+        default: 5000
+      chunks:
+        description: Number of jobs the made-up tasks are divided among (1 to 256)
+        type: number
+        default: 16
+      limit_gb:
+        description: Limit on R's vector heap in the summary, in GB (the merging machine has 16)
+        type: string
+        default: '12'
+  # The tool tests itself in its own pull requests, on the smoke study,
+  # before the workflow is on master (workflow_dispatch needs the file on
+  # the default branch).
+  pull_request:
+    branches: [main, master]
+    paths:
+      - .github/workflows/simulation-merge-test.yaml
+      - .github/actions/sim-setup/**
+      - tools/sim/**
+
+permissions:
+  contents: read
+
+# One test per ref and study at a time. It shares no group with the study
+# runs of simulation-run.
+concurrency:
+  group: simulation-merge-test-${{ github.ref }}-${{ inputs.study || 'smoke' }}
+  cancel-in-progress: false
+
+env:
+  SIM_STUDY: ${{ inputs.study || 'smoke' }}
+  # A number input is turned into a string first, as in simulation-run.
+  SIM_REPS: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.reps) || '100' }}
+  SIM_CHUNKS: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.chunks) || '3' }}
+  SIM_LIMIT_GB: ${{ inputs.limit_gb || '12' }}
+  SIM_PACKAGE_SHA: ${{ inputs.package_sha || github.event.pull_request.head.sha || github.sha }}
+  SIM_HARNESS_SHA: ${{ github.sha }}
+  OPENBLAS_NUM_THREADS: 1
+  OMP_NUM_THREADS: 1
+
+jobs:
+  merge-test:
+    name: Merge at full size, on made-up task files
+    runs-on: ubuntu-24.04
+    # GitHub stops a job after 6 hours; a run's merge job has the same limit.
+    timeout-minutes: 355
+    steps:
+      # The inputs reach the scripts only through the environment.
+      # merge-test.R checks the numbers again.
+      - name: Check the inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          [[ "$SIM_STUDY" =~ ^[a-z0-9-]+$ ]] || fail "Bad study key."
+          [[ "$SIM_PACKAGE_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "package_sha must be a full commit SHA."
+          # Digits without a leading zero, and few enough of them before any
+          # arithmetic: bash wraps a number beyond 64 bits without an error
+          # and reads a leading 0 as octal.
+          [[ "$SIM_REPS" =~ ^[1-9][0-9]*$ ]] || fail "reps must be a whole number of at least 1, without a leading zero."
+          [[ "$SIM_CHUNKS" =~ ^[1-9][0-9]{0,2}$ ]] && (( SIM_CHUNKS <= 256 )) || fail "chunks must be a whole number from 1 to 256, without a leading zero."
+          [[ "$SIM_LIMIT_GB" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "limit_gb must be a number in digits, such as 12 or 0.5."
+          [[ "$SIM_LIMIT_GB" =~ [1-9] ]] || fail "limit_gb must be above 0."
+          echo "Study $SIM_STUDY, R $SIM_REPS, chunks $SIM_CHUNKS, limit $SIM_LIMIT_GB GB, package $SIM_PACKAGE_SHA."
+
+      - name: Check out the harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Check out the package at the commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.SIM_PACKAGE_SHA }}
+          path: pkg
+          persist-credentials: false
+
+      # The study's own R and packages, as in a run's merge job: the
+      # summary runs the study's code.
+      - name: Set up R and the study's software
+        uses: ./harness/.github/actions/sim-setup
+        with:
+          study: ${{ env.SIM_STUDY }}
+
+      # The study script, its pattern (tools/sim/merge-test/), and
+      # contract.R come from the package commit, which merge-test.R checks
+      # against the checkout; the other scripts come from this workflow's
+      # commit. The output goes to a file, which is shown only after the
+      # address scan (the logs of a public repository are public). The
+      # made-up task files stay in the runner's temporary folder.
+      - name: Measure the merge on made-up task files
+        timeout-minutes: 330
+        shell: bash
+        working-directory: pkg
+        run: |
+          set -euo pipefail
+          SOLOMONR_SIM_PACKAGE_SHA="$SIM_PACKAGE_SHA" \
+            Rscript "$GITHUB_WORKSPACE/harness/tools/sim/merge-test.R" --study "$SIM_STUDY" --reps "$SIM_REPS" \
+            --chunks "$SIM_CHUNKS" --limit-gb "$SIM_LIMIT_GB" --work "$RUNNER_TEMP/merge-test" \
+            --out "$GITHUB_WORKSPACE/merge-test" > "$GITHUB_WORKSPACE/merge-test-log.txt" 2>&1
+
+      # Also after a test that failed: its record says why.
+      - name: Gather the record, the logs, and the software
+        id: gather
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p merge-test
+          if [[ -f merge-test-log.txt ]]; then cp merge-test-log.txt merge-test/log.txt; fi
+          if [[ -f software.csv ]]; then cp software.csv merge-test/software.csv; fi
+
+      - name: Scan the record and the logs for e-mail addresses
+        id: scan
+        if: always() && steps.gather.outcome == 'success'
+        shell: bash
+        run: Rscript harness/tools/sim/scan-addresses.R merge-test
+
+      - name: Show the log and the record (after the address scan)
+        if: always() && steps.scan.outcome == 'success'
+        shell: bash
+        run: |
+          cat merge-test/log.txt || true
+          cat merge-test/merge-test.csv || true
+
+      - name: Upload the record
+        if: always() && steps.scan.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: merge-test-${{ env.SIM_STUDY }}-${{ env.SIM_REPS }}
+          path: merge-test
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 90
+
+  # The tests of merge-test.R (tools/sim/tests/run-tests.R, group fullsize),
+  # in its pull requests only, on cases built in the runner's temporary
+  # folder, which is never uploaded. They need R, git, and bash alone, not
+  # a study's software.
+  tests:
+    name: Tests of merge-test.R
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Remove stale Google Chrome apt source
+        shell: bash
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources*
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          r-version: '4.6.1'
+          use-public-rspm: true
+
+      - name: Run the tests of merge-test.R
+        shell: bash
+        run: Rscript harness/tools/sim/tests/run-tests.R --only fullsize --work "$RUNNER_TEMP/sim-tests"

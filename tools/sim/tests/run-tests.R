@@ -111,6 +111,28 @@
 #            without --study, a smoke run; and --rerun-chunk's chunk number
 #            in at most four digits, with or without leading zeros (0002 is
 #            chunk 0002).
+#   fullsize tools/sim/merge-test.R in a package folder made here, with the
+#            harness under test, on tests/merge-test-study.R, a study that
+#            runs no replication, and its pattern
+#            tests/merge-test-pattern.R (needs R alone): what a run of 6
+#            replications writes and records (the counts and the row
+#            sizes; a plan and envelopes that cannot be taken for a run's;
+#            the made-up values by their stated rule; no state of the
+#            generator; the summary's files, named and deleted; the times,
+#            and the memory by phase; the same files in a second run); the
+#            run stage's refusal of that plan; the limit on R's vector heap
+#            (a summary stopped in the study's summarize(), one stopped
+#            while the task files are read and bound, each by R's message,
+#            the same files under a larger limit, and a limit R cannot
+#            set); an error of the summary, and a summary that draws a
+#            random number; the refusals, each by the script's message, of
+#            a pattern that draws a random number or sets a seed, of
+#            patterns with other rows or columns than the study's, of the
+#            options, and of a study script that does not end with
+#            sim_main(study); --task-file; the "Check the inputs" step of
+#            .github/workflows/simulation-merge-test.yaml, run with bash
+#            (skipped without one); and, with git, the commit the record
+#            gives and the run stage's refusal in a checkout.
 #   merge    merge-chunks.R on tampered copies of a finished run's plan/ and
 #            chunks/ (--run DIR: the folder of a tools/sim/run-local.R run,
 #            or the merge job's workspace; skipped without it), and
@@ -131,7 +153,7 @@ local({
 })
 source(file.path(harness, "harness-lib.R"))
 
-all_groups <- c("results", "scan", "sizing", "inputs", "contract", "replay", "finalize", "local", "merge")
+all_groups <- c("results", "scan", "sizing", "inputs", "contract", "replay", "finalize", "local", "fullsize", "merge")
 opts <- list(only = paste(all_groups, collapse = ","), work = "", run = "", bash = "")
 args <- commandArgs(trailingOnly = TRUE)
 i <- 1L
@@ -183,7 +205,7 @@ sim_vars <- c("SOLOMONR_SMOKE_DIR", "SOLOMONR_SMOKE_REPS", "SOLOMONR_SIM_ROLE", 
               "SOLOMONR_SIM_STAGE", "SOLOMONR_SIM_PURPOSE", "SOLOMONR_SIM_DESIGN", "SOLOMONR_SIM_REPS",
               "SOLOMONR_SIM_PLAN", "SOLOMONR_SIM_SUBSET", "SOLOMONR_SIM_TASK_SIZE", "SOLOMONR_SIM_PACKAGE_SHA",
               "SOLOMONR_SIM_TASKS", "SOLOMONR_SIM_OUT", "SOLOMONR_SIM_IN", "SOLOMONR_SIM_WORKERS",
-              "HARNESS_TEST_VARIANT", "HARNESS_TEST_VERIFY", "GIT_DIR")
+              "HARNESS_TEST_VARIANT", "HARNESS_TEST_VERIFY", "HARNESS_TEST_ROWS", "HARNESS_TEST_PATTERN", "GIT_DIR")
 run_from <- function(dir, script, args = character(), set = character()) {
   vars <- union(sim_vars, names(set))
   old_env <- Sys.getenv(vars, unset = NA, names = TRUE)
@@ -196,6 +218,23 @@ run_from <- function(dir, script, args = character(), set = character()) {
   if (length(set)) do.call(Sys.setenv, as.list(set))
   out <- suppressWarnings(system2(rscript, shQuote(c(script, args)), stdout = TRUE, stderr = TRUE))
   list(status = if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status")), out = out)
+}
+# The `run: |` block of the step `name` of a workflow, whose lines are `y`,
+# written to the file `path`.
+workflow_step <- function(y, name, path) {
+  indent <- function(x) nchar(sub("^( *).*$", "\\1", x))
+  start <- grep(paste0("^ *- name: ", name, " *$"), y)
+  if (length(start) != 1L) h_fail("The workflow has no single step \"", name, "\".")
+  at <- start + which(grepl("^ *run: [|] *$", y[-seq_len(start)]))[[1]]
+  body <- character()
+  for (k in seq(at + 1L, length(y))) {
+    if (nzchar(trimws(y[[k]])) && indent(y[[k]]) <= indent(y[[at]])) break
+    body <- c(body, y[[k]])
+  }
+  body <- substring(body, min(indent(body[nzchar(trimws(body))])) + 1L)
+  dir.create(dirname(path), showWarnings = FALSE, recursive = TRUE)
+  con <- file(path, open = "wb"); writeLines(body, con, sep = "\n"); close(con)
+  path
 }
 outcomes <- list()
 record <- function(group, label, expected, got, note = "") {
@@ -736,24 +775,10 @@ if ("inputs" %in% groups) local({
   wf <- file.path(dirname(dirname(harness)), ".github", "workflows", "simulation-run.yaml")
   if (!file.exists(wf)) return(skip("inputs", paste("no workflow file at", wf)))
   y <- sub("\r$", "", readLines(wf, warn = FALSE))
-  indent <- function(x) nchar(sub("^( *).*$", "\\1", x))
   dir.create(file.path(work, "inputs"), recursive = TRUE)
   # The `run: |` block of the workflow's step `name`, written to `file` in
   # the work folder.
-  step_file <- function(name, file) {
-    start <- grep(paste0("^ *- name: ", name, " *$"), y)
-    if (length(start) != 1L) h_fail("The workflow has no single step \"", name, "\".")
-    at <- start + which(grepl("^ *run: [|] *$", y[-seq_len(start)]))[[1]]
-    body <- character()
-    for (k in seq(at + 1L, length(y))) {
-      if (nzchar(trimws(y[[k]])) && indent(y[[k]]) <= indent(y[[at]])) break
-      body <- c(body, y[[k]])
-    }
-    body <- substring(body, min(indent(body[nzchar(trimws(body))])) + 1L)
-    path <- file.path(work, "inputs", file)
-    con <- file(path, open = "wb"); writeLines(body, con, sep = "\n"); close(con)
-    path
-  }
+  step_file <- function(name, file) workflow_step(y, name, file.path(work, "inputs", file))
   step <- step_file("Check the inputs", "check-the-inputs.sh")
   base <- c(SIM_STUDY = "smoke", SIM_PACKAGE_SHA = "e13e8bbd9bbcb9408afd267bd633fb4ab4a09fe5", SIM_CHUNKS = "3",
             SIM_REPS = "20", SIM_SMOKE = "true", SIM_STAGE = "run", SIM_COST_SECONDS = "0", SIM_FAIL_ONCE = "false",
@@ -1646,6 +1671,354 @@ if ("local" %in% groups) local({
   record("local", "a new run without --study: the smoke study", "yes", yes(ok), last_line(r$out))
   r <- run_local("--out", file.path(root, "nothing-here"), "--resume")
   record("local", "--resume of a folder without a plan", "refuse", refusal(r, "Nothing to resume"), last_line(r$out))
+})
+
+# ---- fullsize: merge-test.R on a study made for it ------------------------------
+
+if ("fullsize" %in% groups) local({
+  root <- file.path(work, "fullsize")
+  yes <- function(ok) if (isTRUE(ok)) "yes" else "no"
+  item <- function(kv, name) if (name %in% names(kv)) kv[[name]] else "absent"
+  num <- function(kv, name) suppressWarnings(as.numeric(item(kv, name)))
+  # A package folder for merge-test.R, which runs only where DESCRIPTION
+  # names solomonR (this one holds no code): the harness under test in
+  # tools/sim, with registry rows for tests/merge-test-study.R, for that
+  # script under another key, and for tests/synthetic-study.R, which does
+  # not end with sim_main(study).
+  make_pkg <- function(name) {
+    d <- file.path(root, name)
+    sim <- file.path(d, "tools", "sim")
+    dir.create(sim, recursive = TRUE)
+    h_write_lines(c("Package: solomonR", "Version: 0.0.0"), file.path(d, "DESCRIPTION"))
+    file.copy(list.files(harness, full.names = TRUE), sim, recursive = TRUE)
+    cat("mergetest,117,tools/sim/tests/merge-test-study.R,tools/sim/tests/synthetic-pins.csv,TRUE,\n",
+        "otherkey,117,tools/sim/tests/merge-test-study.R,tools/sim/tests/synthetic-pins.csv,TRUE,\n",
+        "synthetic,117,tools/sim/tests/synthetic-study.R,tools/sim/tests/synthetic-pins.csv,FALSE,\n",
+        sep = "", file = file.path(sim, "studies.csv"), append = TRUE)
+    normalizePath(d, winslash = "/")
+  }
+  pkg <- make_pkg("pkg")
+  test_pattern <- "tools/sim/tests/merge-test-pattern.R"
+  n <- 0L
+  # merge-test.R of the package folder `from`, run from the folder `cwd`,
+  # with a work and an out folder of its own; unless `git`, git finds no
+  # repository there. `...` are further options (a later one replaces an
+  # earlier one).
+  run_tool <- function(..., set = character(), study = "mergetest", reps = "6", from = pkg, cwd = from, git = FALSE,
+                       pattern = test_pattern) {
+    n <<- n + 1L
+    d <- file.path(root, sprintf("t%02d", n))
+    if (!git) set <- c(set, GIT_DIR = file.path(work, "no-repository-here"))
+    r <- run_from(cwd, file.path(from, "tools", "sim", "merge-test.R"),
+                  c("--study", study, "--reps", reps, "--chunks", "2", "--pattern", pattern,
+                    "--work", file.path(d, "work"), "--out", file.path(d, "out"), ...), set = set)
+    f <- file.path(d, "out", "merge-test.csv")
+    list(r = r, dir = d, kv = if (file.exists(f)) h_read_kv(f) else character())
+  }
+  task_file <- function(x, id) {
+    list.files(file.path(x$dir, "work", "chunks"), pattern = paste0("^", id, "[.]rds$"), recursive = TRUE,
+               full.names = TRUE)
+  }
+  task_files <- function(x) list.files(file.path(x$dir, "work", "chunks"), pattern = "[.]rds$", recursive = TRUE)
+
+  # A run of 6 replications: 3 scenarios in tasks of 4 (2 tasks each), 2 rows
+  # per replication, 3 in scenario 2; an agreement row in each scenario's
+  # first 2 replications; one warning; one preflight row.
+  a <- run_tool()
+  ok <- a$r$status == 0L && identical(item(a$kv, "verdict"), "pass") && identical(item(a$kv, "summary"), "completed")
+  record("fullsize", "the test study at R = 6: every step passes, verdict pass", "yes", yes(ok), last_line(a$r$out))
+  if (!ok) return(invisible())
+  got <- paste(item(a$kv, "scenarios"), item(a$kv, "tasks"), item(a$kv, "chunks"), item(a$kv, "task_files"),
+               item(a$kv, "results_rows"), item(a$kv, "agreement_rows"), item(a$kv, "failures_rows"),
+               item(a$kv, "preflight_rows"))
+  record("fullsize", "record: 3 scenarios, 6 tasks, 2 chunks, 6 files; 42, 6, 1, and 1 rows", "yes",
+         yes(identical(got, "3 6 2 6 42 6 1 1")), got)
+  got <- paste(item(a$kv, "results_row_bytes"), item(a$kv, "agreement_row_bytes"), item(a$kv, "failures_row_bytes"))
+  record("fullsize", "record: 44, 24, and 36 bytes a row of the bound parts", "yes",
+         yes(identical(got, "44 24 36") &&
+               identical(item(a$kv, "results_columns"),
+                         "scenario:integer rep:integer label:character status:character x:numeric p:numeric count:integer")),
+         got)
+  # The plan cannot be taken for a run's: seeds of zeros, and "synthetic"
+  # for the commit and the checksums.
+  plan <- file.path(a$dir, "work", "plan")
+  info <- h_read_kv(file.path(plan, "plan-info.csv"))
+  marks <- c(purpose = "study", design = "run", base_seed = "none", package_sha = "synthetic",
+             script_sha256 = "synthetic", contract_sha256 = "synthetic", files_sha256 = "synthetic", synthetic = "TRUE")
+  record("fullsize", "plan: purpose study; no base seed; \"synthetic\" for commit and checksums", "yes",
+         yes(identical(info[names(marks)], marks)), paste(info[names(marks)], collapse = " "))
+  record("fullsize", "plan: every task's seed is seven zeros", "yes",
+         yes(all(h_read_csv(file.path(plan, "tasks.csv"))$seed == "0 0 0 0 0 0 0")), "")
+  t <- readRDS(task_file(a, "s0002-t0002"))
+  record("fullsize", "task file: the plan's marks in the envelope, made-up times of 0", "yes",
+         yes(identical(t$envelope$task$seed, integer(7)) && identical(t$envelope$package_sha, "synthetic") &&
+               identical(t$envelope$purpose, "study") && identical(t$timing$elapsed, 0) &&
+               identical(names(t), c("envelope", "results", "agreement", "failures", "timing"))), "")
+  res <- t$results
+  record("fullsize", "task s0002-t0002: replications 5 and 6, 3 rows each, `rep` in front", "yes",
+         yes(identical(res$rep, rep(5:6, each = 3L)) &&
+               identical(names(res), c("rep", "label", "status", "x", "p", "count"))), paste(names(res), collapse = " "))
+  # fill(): the rule of merge-test.R's made_up(), written out again here.
+  frac <- function(x) x - floor(x)
+  rule <- function(scenario, reps, rows, column) {
+    j <- rep(seq_len(rows), times = length(reps)) + rows * (column - 1)
+    frac(rep(frac(reps * 0.6180339887498949), each = rows) * (2 * j + 1) + frac(scenario * 0.41421356237309515))
+  }
+  record("fullsize", "fill(): the stated rule, column by column, strictly between 0 and 1", "yes",
+         yes(identical(res$p, rule(2, 5:6, 3, 2)) && identical(res$x, stats::qnorm(rule(2, 5:6, 3, 1))) &&
+               all(res$p > 0 & res$p < 1)), "")
+  readme <- sub("\r$", "", readLines(file.path(harness, "README.md"), warn = FALSE, encoding = "UTF-8"))
+  record("fullsize", "text: the README gives the rule's two constants", "yes",
+         yes(any(grepl("0.6180339887498949", readme, fixed = TRUE)) &&
+               any(grepl("0.41421356237309515", readme, fixed = TRUE))), "")
+  record("fullsize", "record: no generator state, parallel not loaded, in either process", "yes",
+         yes(identical(unname(a$kv[c("task_files_random_state", "task_files_parallel_loaded", "summary_random_state",
+                                     "summary_parallel_loaded")]), c("absent", "FALSE", "absent", "FALSE"))), "")
+  # The summary of a study run was computed, its files named, and deleted.
+  record("fullsize", "record: the summary's six files, measures and decisions among them", "yes",
+         yes(identical(item(a$kv, "summary_files"),
+                       "agreement.csv decisions.csv performance.csv run-information.csv summary.rds timing/task-times.csv")),
+         item(a$kv, "summary_files"))
+  record("fullsize", "the summary's folder is deleted; --out holds the record and three logs", "yes",
+         yes(!dir.exists(file.path(a$dir, "work", "summary")) &&
+               setequal(list.files(file.path(a$dir, "out"), recursive = TRUE),
+                        c("assign-log.txt", "merge-log.txt", "merge-test.csv", "summarize-log.txt"))),
+         paste(list.files(file.path(a$dir, "out"), recursive = TRUE), collapse = " "))
+  times <- vapply(c("task_files_seconds", "merge_checks_seconds", "summary_seconds", "read_bind_seconds",
+                    "summarize_seconds", "write_seconds"), function(k) num(a$kv, k), 0)
+  record("fullsize", "record: six times, each a number of 0 or more", "yes",
+         yes(all(is.finite(times)) && all(times >= 0)), paste(times, collapse = " "))
+  heap <- vapply(c(start = "heap_start_mb", read = "heap_peak_read_bind_mb", at = "heap_at_summarize_mb",
+                   summarize = "heap_peak_summarize_mb", write = "heap_peak_write_mb", peak = "heap_peak_mb"),
+                 function(k) num(a$kv, k), 0)
+  record("fullsize", "record: R's heap by phase; the largest is the largest phase's", "yes",
+         yes(all(is.finite(heap)) && heap[["start"]] > 0 && heap[["read"]] >= heap[["at"]] &&
+               heap[["peak"]] == max(heap[c("read", "summarize", "write")])), paste(heap, collapse = " "))
+  src <- item(a$kv, "resident_source")
+  res_mb <- num(a$kv, "resident_peak_mb")
+  measured <- src %in% c("VmHWM of /proc/self/status", "peak working set (Windows)") && is.finite(res_mb) && res_mb > 0
+  record("fullsize", "record: the largest resident memory, or that it is not available", "yes",
+         yes(if (file.exists("/proc/self/status")) measured && identical(src, "VmHWM of /proc/self/status")
+             else measured || (identical(src, "not available") && identical(item(a$kv, "resident_peak_mb"), "NA"))),
+         paste(item(a$kv, "resident_peak_mb"), src))
+  b <- run_tool()
+  hashes <- function(x) {
+    f <- file.path(x$dir, "work", "merged", "manifest.csv")
+    if (file.exists(f)) h_read_csv(f)[c("task_id", "content_sha256", "file_sha256")] else NULL
+  }
+  record("fullsize", "a second run writes the same task files (content and file SHA-256)", "yes",
+         yes(!is.null(hashes(a)) && identical(hashes(a), hashes(b))), last_line(b$r$out))
+
+  # The run stage refuses the plan: here, where git finds no repository, by
+  # the rule of a study run's checkout (sim_verify_plan()).
+  run_stage <- function(from, plan_dir, name, git = FALSE) {
+    set <- c(SOLOMONR_SIM_STAGE = "run", SOLOMONR_SIM_PLAN = plan_dir,
+             SOLOMONR_SIM_TASKS = file.path(plan_dir, "chunks", "chunk-0001.txt"),
+             SOLOMONR_SIM_OUT = file.path(root, name), SOLOMONR_SIM_WORKERS = "0")
+    if (!git) set <- c(set, GIT_DIR = file.path(work, "no-repository-here"))
+    r <- run_from(from, file.path(from, "tools", "sim", "tests", "merge-test-study.R"), set = set)
+    r$ran <- length(list.files(file.path(root, name), pattern = "[.]rds$", recursive = TRUE))
+    r
+  }
+  r <- run_stage(pkg, plan, "run-stage")
+  record("fullsize", "the run stage on the made-up plan, no repository", "refuse",
+         refusal(r, "A study run needs a checkout of the pinned commit"), last_line(r$out))
+  record("fullsize", "the run stage wrote no task file", "yes", yes(r$ran == 0L), "")
+
+  # The limit on R's vector heap. In summarize(): the study holds 320 Mb
+  # at once under a limit of 0.1 GB (102.4 Mb).
+  x <- run_tool("--limit-gb", "0.1", set = c(HARNESS_TEST_VARIANT = "large-summary"))
+  record("fullsize", "limit 0.1 GB, summarize() holds 320 Mb: exit status 1, verdict fail", "yes",
+         yes(x$r$status != 0L && identical(item(x$kv, "verdict"), "fail") &&
+               identical(item(x$kv, "summary"), "stopped at the limit on R's vector heap")), last_line(x$r$out))
+  record("fullsize", "that stop is in the study's summarize(), by R's message", "yes",
+         yes(identical(item(x$kv, "summary_stopped_in"), "the study's summarize()") &&
+               grepl("vector memory limit of 102.4 Mb reached", item(x$kv, "summary_message"), fixed = TRUE)),
+         item(x$kv, "summary_message"))
+  record("fullsize", "the same summary under the default limit of 12 GB", "accept",
+         if (run_tool(set = c(HARNESS_TEST_VARIANT = "large-summary"))$r$status == 0L) "accept" else "refuse", "")
+  # While the task files are read and bound: 1,440,000 rows of 44 bytes
+  # (60.4 Mb bound, and the tasks' pieces beside them), of constants, which
+  # compress to almost nothing.
+  big <- c(HARNESS_TEST_ROWS = "80000", HARNESS_TEST_PATTERN = "constant")
+  x <- run_tool("--limit-gb", "0.1", set = big)
+  record("fullsize", "limit 0.1 GB, 60.4 Mb of results: stopped while reading and binding", "yes",
+         yes(x$r$status != 0L && identical(item(x$kv, "summary"), "stopped at the limit on R's vector heap") &&
+               identical(item(x$kv, "summary_stopped_in"), "reading and binding the task files") &&
+               identical(item(x$kv, "heap_at_summarize_mb"), "NA")),
+         paste(item(x$kv, "summary_stopped_in"), last_line(x$r$out)))
+  y <- run_tool("--limit-gb", "0.5", set = big)
+  record("fullsize", "the same task files under a limit of 0.5 GB", "accept",
+         if (y$r$status == 0L && identical(item(y$kv, "verdict"), "pass")) "accept" else "refuse", last_line(y$r$out))
+  record("fullsize", "record: the limit asked for, and the limit R reports, 512.0 Mb", "yes",
+         yes(identical(item(y$kv, "limit_mb"), "512.0") && identical(item(y$kv, "limit_set_mb"), "512.0")),
+         paste(item(y$kv, "limit_mb"), item(y$kv, "limit_set_mb")))
+  bound <- num(y$kv, "results_bound_mb")
+  record("fullsize", "record: 1,440,000 result rows, 60.4 Mb bound", "yes",
+         yes(identical(item(y$kv, "results_rows"), "1440000") && identical(item(y$kv, "results_bound_mb"), "60.4")),
+         paste(item(y$kv, "results_rows"), item(y$kv, "results_bound_mb")))
+  # The bound results are in R's heap when summarize() starts, and the
+  # pieces were there beside them while they were bound (40 of their 44
+  # bytes a row): at least 1.8 times the bound size above the start.
+  record("fullsize", "heap when summarize() starts: the start plus the bound results", "yes",
+         yes(num(y$kv, "heap_at_summarize_mb") - num(y$kv, "heap_start_mb") >= bound),
+         paste(item(y$kv, "heap_start_mb"), item(y$kv, "heap_at_summarize_mb")))
+  record("fullsize", "heap while binding: at least 1.8 times the bound results more", "yes",
+         yes(num(y$kv, "heap_peak_read_bind_mb") - num(y$kv, "heap_start_mb") >= 1.8 * bound),
+         item(y$kv, "heap_peak_read_bind_mb"))
+  # A limit R cannot set (below the 64 Mb it reserves when it starts).
+  x <- run_tool("--limit-gb", "0.01")
+  record("fullsize", "limit 0.01 GB: R does not accept it, no summary, verdict fail", "yes",
+         yes(x$r$status != 0L && identical(item(x$kv, "summary"), "not run: R did not accept the limit") &&
+               identical(item(x$kv, "limit_set_mb"), "Inf") && identical(item(x$kv, "verdict"), "fail")),
+         last_line(x$r$out))
+  # An error of the summary that is not about memory, and a summary that
+  # draws a random number, which is recorded.
+  x <- run_tool(set = c(HARNESS_TEST_VARIANT = "summary-error"))
+  record("fullsize", "summarize() stops with its own error: verdict fail, its message", "yes",
+         yes(x$r$status != 0L && identical(item(x$kv, "summary"), "stopped by an error that is not about memory") &&
+               identical(item(x$kv, "summary_message"), "The summary's own error.") &&
+               identical(item(x$kv, "summary_stopped_in"), "the study's summarize()")), last_line(x$r$out))
+  x <- run_tool(set = c(HARNESS_TEST_VARIANT = "summary-draws"))
+  record("fullsize", "summarize() draws a random number: recorded, verdict pass", "yes",
+         yes(x$r$status == 0L && identical(item(x$kv, "summary_random_state"), "present") &&
+               identical(item(x$kv, "task_files_random_state"), "absent")), item(x$kv, "summary_random_state"))
+
+  # Refusals, each by the script's own message; none leaves a record.
+  refused <- function(label, msg, ...) {
+    x <- run_tool(...)
+    record("fullsize", label, "refuse", if (length(x$kv)) "a record" else refusal(x$r, msg), last_line(x$r$out))
+    x
+  }
+  with_pattern <- function(v) c(HARNESS_TEST_PATTERN = v)
+  x <- refused("pattern: results() draws a random number", "set a seed or drew a random number", set = with_pattern("draws"))
+  record("fullsize", "after that refusal: nothing was merged or summarized", "yes",
+         yes(!dir.exists(file.path(x$dir, "work", "merged")) && !dir.exists(file.path(x$dir, "work", "summary"))), "")
+  refused("pattern: results() sets a seed", "set a seed or drew a random number", set = with_pattern("seed"))
+  x <- refused("pattern: results() leaves out a row", "gave 7 rows in task s0001-t0001 instead of 8", set = with_pattern("short"))
+  record("fullsize", "after that refusal: no task file was written", "yes", yes(!length(task_files(x))), "")
+  refused("pattern: results() with a column `rep`", "may not have a column `rep`", set = with_pattern("rep-column"))
+  refused("pattern: results() with a column `scenario`", "may not have a column `scenario`",
+          set = with_pattern("scenario-column"))
+  refused("pattern: another column class in scenario 2", "other columns or column classes in task s0002-t0001",
+          set = with_pattern("other-classes"))
+  refused("pattern: agreement() without `rep` in front", "need `rep` as their first column",
+          set = with_pattern("agreement-rep"))
+  refused("pattern: results() stops", "The pattern's results() stopped in task s0001-t0001: The pattern's own error.",
+          set = with_pattern("stops"))
+  for (v in c("no-results", "unknown-part", "not-a-list")) {
+    refused(paste("pattern:", v), "merge_test_pattern must be a list of functions", set = with_pattern(v))
+  }
+  refused("no pattern file for the study", "has no pattern for this test", pattern = "tools/sim/tests/absent.R")
+  refused("a study that is not in the registry", "is not in tools/sim/studies.csv", study = "absent")
+  refused("a registry key that is not the script's study", "defines study mergetest, not otherkey", study = "otherkey")
+  refused("a script that does not end with sim_main(study)", "must end with the call sim_main(study)", study = "synthetic")
+  for (v in c("0", "2.5", "020", "99999999999")) {
+    refused(paste("--reps", v), "--reps must be a whole number from 1 to 2147483647", reps = v)
+  }
+  for (v in c("0", "257", "02")) refused(paste("--chunks", v), "--chunks must be a whole number from 1 to 256", "--chunks", v)
+  for (v in c("0", "abc", "1e1", "-1")) {
+    refused(paste("--limit-gb", v), "--limit-gb must be a number above 0", "--limit-gb", v)
+  }
+  refused("an option the script does not have", "Unknown option --purpose", "--purpose", "test")
+  refused("--stage, which is for the script's own use", "--stage and --job are for this script's own use", "--stage", "plan")
+  refused("from a folder that is not the package root", "Run this from the root of the solomonR package.",
+          cwd = dirname(pkg))
+  n <- n + 1L
+  d <- file.path(root, sprintf("t%02d", n))
+  dir.create(file.path(d, "out"), recursive = TRUE)
+  writeLines("kept", file.path(d, "out", "notes.txt"))
+  r <- run_from(pkg, file.path(pkg, "tools", "sim", "merge-test.R"),
+                c("--study", "mergetest", "--reps", "6", "--pattern", test_pattern, "--work", file.path(d, "work"),
+                  "--out", file.path(d, "out")), set = c(GIT_DIR = file.path(work, "no-repository-here")))
+  record("fullsize", "an --out folder that is not empty", "refuse", refusal(r, "must be empty or absent"), last_line(r$out))
+
+  # --task-file: the column names and classes of a task file. Scenario 3's
+  # first task of run `a` has all three parts; the pattern's first task has
+  # no warning.
+  real <- task_file(a, "s0003-t0001")
+  x <- run_tool("--task-file", real)
+  record("fullsize", "--task-file with the pattern's columns: the record says what was compared", "yes",
+         yes(x$r$status == 0L && identical(item(x$kv, "schema_check"), paste0(
+           "results: the same 6 columns and classes; agreement: the same 3 columns and classes; ",
+           "failures: not compared (none from the pattern in its first task) as s0003-t0001.rds"))),
+         item(x$kv, "schema_check"))
+  other <- file.path(root, "other-task.rds")
+  t <- readRDS(real)
+  t$results$count <- as.numeric(t$results$count)
+  saveRDS(t, other)
+  x <- refused("--task-file whose results have another column class",
+               "do not have the columns and classes of the task file", "--task-file", other)
+  record("fullsize", "after that refusal: no task file was written", "yes", yes(!length(task_files(x))), "")
+  refused("--task-file that does not exist", "does not exist", "--task-file", file.path(root, "absent.rds"))
+
+  # The workflow's "Check the inputs" step, as in the group inputs.
+  bash <- if (nzchar(opts$bash)) opts$bash else unname(Sys.which("bash"))
+  wf <- file.path(dirname(dirname(harness)), ".github", "workflows", "simulation-merge-test.yaml")
+  if (!nzchar(bash) || grepl("system32", bash, ignore.case = TRUE)) {
+    skip("fullsize", "no bash (give --bash PATH): the workflow's check of the inputs")
+  } else if (!file.exists(wf)) {
+    skip("fullsize", paste("no workflow file at", wf))
+  } else {
+    step <- workflow_step(sub("\r$", "", readLines(wf, warn = FALSE)), "Check the inputs",
+                          file.path(root, "check-the-inputs.sh"))
+    base <- c(SIM_STUDY = "smoke", SIM_PACKAGE_SHA = "e13e8bbd9bbcb9408afd267bd633fb4ab4a09fe5", SIM_REPS = "100",
+              SIM_CHUNKS = "3", SIM_LIMIT_GB = "12")
+    cases <- list(
+      list("workflow: the pull request's values", c(), "accept"),
+      list("workflow: reps 5000, chunks 16", c(SIM_REPS = "5000", SIM_CHUNKS = "16"), "accept"),
+      list("workflow: reps 0", c(SIM_REPS = "0"), "refuse", "reps must be a whole number"),
+      list("workflow: reps 2.5", c(SIM_REPS = "2.5"), "refuse", "reps must be a whole number"),
+      list("workflow: reps 05000, a leading zero", c(SIM_REPS = "05000"), "refuse", "reps must be a whole number"),
+      list("workflow: reps 99999999999 (merge-test.R refuses it)", c(SIM_REPS = "99999999999"), "accept"),
+      list("workflow: chunks 256", c(SIM_CHUNKS = "256"), "accept"),
+      list("workflow: chunks 257", c(SIM_CHUNKS = "257"), "refuse", "chunks must be a whole number from 1 to 256"),
+      list("workflow: chunks 010 (bash reads 8)", c(SIM_CHUNKS = "010"), "refuse",
+           "chunks must be a whole number from 1 to 256, without a leading zero"),
+      list("workflow: limit_gb 0.5", c(SIM_LIMIT_GB = "0.5"), "accept"),
+      list("workflow: limit_gb 0", c(SIM_LIMIT_GB = "0"), "refuse", "limit_gb must be above 0"),
+      list("workflow: limit_gb 0.0", c(SIM_LIMIT_GB = "0.0"), "refuse", "limit_gb must be above 0"),
+      list("workflow: limit_gb 1e1", c(SIM_LIMIT_GB = "1e1"), "refuse", "limit_gb must be a number in digits"),
+      list("workflow: limit_gb abc", c(SIM_LIMIT_GB = "abc"), "refuse", "limit_gb must be a number in digits"),
+      list("workflow: study key with a capital letter", c(SIM_STUDY = "Smoke"), "refuse", "Bad study key."),
+      list("workflow: package_sha of 7 characters", c(SIM_PACKAGE_SHA = "e13e8bb"), "refuse",
+           "package_sha must be a full commit SHA."))
+    for (cs in cases) {
+      vars <- base
+      vars[names(cs[[2]])] <- cs[[2]]
+      out <- with_env(vars, suppressWarnings(system2(bash, shQuote(step), stdout = TRUE, stderr = TRUE)))
+      status <- if (is.null(attr(out, "status"))) 0L else as.integer(attr(out, "status"))
+      got <- if (length(cs) >= 4L) refusal(list(status = status, out = out), cs[[4]]) else if (status == 0L) "accept" else "refuse"
+      record("fullsize", cs[[1]], cs[[3]], got, last_line(out))
+    }
+  }
+
+  # With git: in a clean checkout, the record gives HEAD; a commit given
+  # that is not HEAD is refused; and the run stage, which can read HEAD
+  # there, refuses the made-up plan because nothing in it is the checkout's.
+  git <- unname(Sys.which("git"))
+  if (!nzchar(git)) return(skip("fullsize", "no git on the PATH: the cases of a checkout"))
+  g <- make_pkg("pkg-git")
+  git_c <- function(...) {
+    out <- suppressWarnings(system2(git, c("-C", shQuote(g), ...), stdout = TRUE, stderr = TRUE))
+    if (!is.null(attr(out, "status")) && attr(out, "status") != 0L) h_fail("git failed: ", paste(out, collapse = " "))
+    as.vector(out)
+  }
+  git_c("init", "-q")
+  git_c("add", "DESCRIPTION", "tools")
+  git_c("-c", "user.name=harness-test", "-c", "user.email=harness-test", "commit", "-q", "-m", shQuote("the test study"))
+  head <- git_c("rev-parse", "HEAD")
+  x <- run_tool(from = g, git = TRUE)
+  record("fullsize", "in a clean checkout: the record gives HEAD, not dirty", "yes",
+         yes(x$r$status == 0L && identical(item(x$kv, "package_sha"), head) && identical(item(x$kv, "package_dirty"), "FALSE")),
+         paste(item(x$kv, "package_sha"), item(x$kv, "package_dirty")))
+  refused("in a checkout: a commit given that is not HEAD", "but the checkout is at", from = g, git = TRUE,
+          set = c(SOLOMONR_SIM_PACKAGE_SHA = strrep("0", 40)))
+  r <- run_stage(g, file.path(x$dir, "work", "plan"), "run-stage-git", git = TRUE)
+  record("fullsize", "the run stage on the made-up plan, in a checkout", "refuse",
+         refusal(r, "The plan does not match this checkout (tasks, script, contract_file, sourced_files, package)"),
+         last_line(r$out))
+  record("fullsize", "the run stage wrote no task file there either", "yes", yes(r$ran == 0L), "")
 })
 
 # ---- merge: merge-chunks.R on tampered copies ----------------------------------
