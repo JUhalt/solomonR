@@ -104,7 +104,10 @@ fit
 The output has four parts:
 
 - **Omnibus tests.** Each asks whether the conditions differ on one
-  contrast.
+  contrast. With HC3 standard errors and the default linear model, they
+  are small-sample tests (Pustejovsky & Tipton, 2018), whose denominator
+  degrees of freedom come from the design and are usually not whole
+  numbers. The `method` column of `fit$omnibus` names the test.
 - **Contrasts.** The four Solomon contrasts of the four-group design, for
   each treatment against the control, and then the pretest effect in each
   condition (pretested minus unpretested participants, at the mean pretest
@@ -291,24 +294,34 @@ The joint model was checked in a simulation study with two or three
 treatments and 10 to 50 participants per group, under a protocol posted
 before the study was run. The article
 [Designs With Several Treatments: Validating the Joint Model](ngroup-validation.html)
-reports it. In summary:
+reports it. The study judged the analysis as it then was. With HC3
+standard errors, its omnibus tests were Wald F tests on the HC3 covariance
+matrix, which the small-sample tests above have since replaced for the
+linear model. In summary:
 
 - **Contrasts.** They were unbiased, and coverage of their 95% intervals
   was 0.939 to 0.967.
 - **Adjusted comparisons.** The chance of at least one false rejection in a
   family of Holm-adjusted comparisons was at most 0.059.
-- **Pretest x Condition test.** It rejected a true null hypothesis in 0.036
-  to 0.055 of replications.
-- **Two omnibus tests at the smallest size.** With three treatments and 10
-  participants per group, the omnibus tests of Condition | pretested and
-  Condition | unpretested rejected in 0.055 to 0.069 of replications at the
-  .05 level. The study's rule for error control was therefore not met, and
-  the analysis of designs with several treatments is labeled experimental.
-  With groups that small, judge those two questions by the adjusted
-  comparisons.
+- **The former Pretest x Condition test.** It rejected a true null
+  hypothesis in 0.036 to 0.055 of replications.
+- **Two of the former omnibus tests at the smallest size.** With three
+  treatments and 10 participants per group, the former tests of
+  Condition | pretested and Condition | unpretested rejected in 0.055 to
+  0.069 of replications at the .05 level. The study's rule for error
+  control was therefore not met, and the analysis of designs with several
+  treatments is labeled experimental.
 - **Overlapping four-group analyses.** When no treatment was sensitized,
   at least one of the separate interaction tests was significant in 8% to
   22% of replications.
+
+The small-sample tests replaced the former tests for that reason, under an
+amendment to the protocol that was posted on
+[issue #45](https://github.com/JUhalt/solomonR/issues/45) before any run
+of a new study. That study has not yet run, so the package reports no
+simulation results for the small-sample tests in Solomon designs, and the
+analysis stays experimental until it does. The contrasts, their standard
+errors, and the adjusted comparisons have not changed.
 
 ## What needs a four-group design
 
@@ -346,6 +359,11 @@ Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
 McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 through service learning. *Journal of Management Education, 26*(6), 629–647.
 https://doi.org/10.1177/1052562902238322
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed effects
+models. *Journal of Business & Economic Statistics, 36*(4), 672–683.
+https://doi.org/10.1080/07350015.2016.1247004
 
 Scheffé, H. (1953). A method for judging all contrasts in the analysis of
 variance. *Biometrika, 40*(1–2), 87–104.

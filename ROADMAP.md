@@ -264,9 +264,13 @@ conditions, and make clustered designs safe to analyze.
   - One model with planned contrasts in place of overlapping four-group
     analyses (Edmonds & Kennedy, 2017; Mai et al., 2020):
     `fit_solomon_glm(control = , contrasts = )`
-  - Its simulation study is reported. The analysis is experimental, because
-    the pre-specified rule for error control was not met for two omnibus
-    tests with three treatments and 10 participants per group
+  - Its first simulation study is reported. The analysis is experimental:
+    the pre-specified rule for error control was not met for two of the
+    omnibus tests that it then computed, with three treatments and 10
+    participants per group. A small-sample test (Pustejovsky & Tipton,
+    2018) has replaced them, under an amendment posted on #45; its
+    simulation study has not yet run
+    ([#117](https://github.com/JUhalt/solomonR/issues/117))
   - Steyn's (2009) sequence of tests, `fit_solomon_steyn()`, and the
     `steyn2005` data (Steyn, 2005)
   - Steyn (2009) was read in a pre-publication draft, dated March 2, 2009,
