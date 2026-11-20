@@ -1194,3 +1194,162 @@ test_that("plot_sensitization() follows the rule at one kept participant and und
                                            family = stats::binomial()))
   expect_s3_class(plot_sensitization(drop), "ggplot")
 })
+
+
+# ---- check_solomon_missing() -------------------------------------------------------
+
+test_that("check_solomon_missing() gives items 7a to 7d for participants without a pretest", {
+  d <- mp_data()
+  m <- check_solomon_missing(y_post, treat, pretested, y_pre, data = d)
+  pre <- d$pretested == 1
+  has_post <- !is.na(d$y_post)
+  has_pre <- !is.na(d$y_pre)
+  mp <- m$missing_pretest
+  expect_identical(mp$condition, c("control", "treatment"))
+  for (t in 0:1) {
+    arm <- pre & d$treat == t
+    row <- mp[t + 1L, ]
+    # 7a: the counts.
+    expect_identical(row$n_with_pretest, sum(arm & has_post & has_pre))
+    expect_identical(row$n_without_pretest, sum(arm & has_post & !has_pre))
+    expect_identical(row$n_pretest_only, sum(arm & !has_post & has_pre))
+    expect_identical(row$n_neither, sum(arm & !has_post & !has_pre))
+    # 7b: the posttests without and with a pretest, with Welch's t test.
+    without <- d$y_post[arm & has_post & !has_pre]
+    with <- d$y_post[arm & has_post & has_pre]
+    test <- stats::t.test(without, with)
+    expect_equal(row$mean_without_pretest, mean(without), tolerance = 1e-12)
+    expect_equal(row$mean_with_pretest, mean(with), tolerance = 1e-12)
+    expect_equal(row$difference, mean(without) - mean(with), tolerance = 1e-12)
+    expect_equal(row$std.error, sqrt(stats::var(without) / length(without) +
+                                       stats::var(with) / length(with)), tolerance = 1e-12)
+    expect_equal(row$statistic, unname(test$statistic), tolerance = 1e-12)
+    expect_equal(row$df, unname(test$parameter), tolerance = 1e-12)
+    expect_equal(row$p.value, test$p.value, tolerance = 1e-12)
+    expect_equal(row$share, length(without) / (length(without) + length(with)), tolerance = 1e-15)
+    expect_equal(row$observable, row$share * (mean(with) - mean(without)), tolerance = 1e-12)
+  }
+  expect_true(sum(mp$n_pretest_only) > 0L && sum(mp$n_neither) > 0L)
+  # 7c: the pretest effects kept and dropped are those of the two fits.
+  kept <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
+                                           missing_pretest = "indicator"))
+  drop <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d))
+  e <- m$missing_pretest_effects
+  expect_named(e, c("contrast", "kept", "dropped", "difference"))
+  expect_equal(e$kept, mp_rows(kept, mp_pretest)$estimate, tolerance = 1e-10)
+  expect_equal(e$dropped, mp_rows(drop, mp_pretest)$estimate, tolerance = 1e-10)
+  # Dropping moves each conditional pretest effect by the observable part,
+  # the share without a pretest times the difference in mean posttests, and
+  # by chance terms that the fits give (identity (ii) less identity (iii)):
+  # the arms' mean observed pretests against the center, and the indicator's
+  # coefficient times the difference between the pooled and the arm's share.
+  b_drop <- drop$pretest_sensitivity$slope
+  b_kept <- kept$pretest_sensitivity$slope
+  gamma <- stats::coef(kept$model)[["pre_missing"]]
+  check <- m$missing_pretest_arm_check
+  x_bar <- c(check$mean_control, check$mean_treatment) - kept$pretest_mean
+  expect_equal((e$dropped - e$kept)[1:2],
+               mp$observable - b_drop * x_bar + b_kept * (1 - mp$share) * x_bar -
+                 (kept$missing_pretest_share - mp$share) * gamma,
+               tolerance = 1e-9)
+  # 7d: the arm check among the pretested participants with a posttest, by
+  # hand: Welch's t test and Hedges' g of the observed pretests (What Works
+  # Clearinghouse, 2022, eqs. E.1 to E.4), and Fisher's exact test of the
+  # numbers without a pretest.
+  a <- m$missing_pretest_arm_check
+  x_t <- d$y_pre[pre & has_post & has_pre & d$treat == 1]
+  x_c <- d$y_pre[pre & has_post & has_pre & d$treat == 0]
+  welch <- stats::t.test(x_t, x_c)
+  n <- length(x_t) + length(x_c)
+  pooled <- sqrt(((length(x_t) - 1) * stats::var(x_t) + (length(x_c) - 1) * stats::var(x_c)) /
+                   (n - 2))
+  expect_identical(a$comparison, "treatment vs control")
+  expect_equal(a$statistic, unname(welch$statistic), tolerance = 1e-12)
+  expect_equal(a$df, unname(welch$parameter), tolerance = 1e-12)
+  expect_equal(a$p.value, welch$p.value, tolerance = 1e-12)
+  expect_equal(a$g, (1 - 3 / (4 * (n - 2) - 1)) * (mean(x_t) - mean(x_c)) / pooled,
+               tolerance = 1e-12)
+  expect_equal(c(a$mean_treatment, a$mean_control), c(mean(x_t), mean(x_c)), tolerance = 1e-12)
+  missing <- c(sum(pre & has_post & !has_pre & d$treat == 1),
+               sum(pre & has_post & !has_pre & d$treat == 0))
+  expect_identical(c(a$missing_treatment, a$missing_control), missing)
+  expect_equal(c(a$share_treatment, a$share_control),
+               missing / (missing + c(length(x_t), length(x_c))), tolerance = 1e-15)
+  expect_equal(a$fisher_p,
+               stats::fisher.test(rbind(c(missing[2], length(x_c)),
+                                        c(missing[1], length(x_t))))$p.value,
+               tolerance = 1e-12)
+  # The fits return the same arm check, under either handling.
+  expect_equal(kept$missing_pretest_arm_check, a, tolerance = 1e-12)
+  expect_equal(drop$missing_pretest_arm_check, a, tolerance = 1e-12)
+  # The arm check is a description: the result has no flag, and the print
+  # draws no conclusion from it.
+  expect_false(any(c("differ", "flag") %in% names(a)))
+  out <- paste(utils::capture.output(print(m)), collapse = " ")
+  out <- gsub(" +", " ", out)
+  expect_match(out, "Pretested participants without a pretest (see ?fit_solomon_glm)", fixed = TRUE)
+  expect_match(out, sprintf("neither: control %d, %d, %d, and %d; treatment %d, %d, %d, and %d.",
+                            mp$n_with_pretest[1], mp$n_without_pretest[1], mp$n_pretest_only[1],
+                            mp$n_neither[1], mp$n_with_pretest[2], mp$n_without_pretest[2],
+                            mp$n_pretest_only[2], mp$n_neither[2]), fixed = TRUE)
+  expect_match(out, "Mean posttest without and with a pretest: control", fixed = TRUE)
+  expect_match(out, "Pretest effects with them kept (missing-indicator method; Groenwold et al., 2012;",
+               fixed = TRUE)
+  expect_match(out, "kept dropped difference Pretest effect | control", fixed = TRUE)
+  expect_match(out, "Arm check, a description: treatment against control, pretests missing",
+               fixed = TRUE)
+  expect_match(out, "No statement follows from these tests until the validation study of issue #142 has run.",
+               fixed = TRUE)
+  # The guidance names both handlings and the default.
+  response <- m$guidance$response[m$guidance$category == "Incidental pretest missingness"]
+  expect_match(response, "\"indicator\" keeps them by the missing-indicator method", fixed = TRUE)
+  expect_match(response, "The default is \"drop\".", fixed = TRUE)
+  expect_match(response, "analyze participants as assigned", fixed = TRUE)
+  expect_identical(m$guidance$sources[m$guidance$category == "Incidental pretest missingness"],
+                   "White & Thompson (2005); Groenwold et al. (2012); Carpenter & Kenward (2007)")
+})
+
+test_that("check_solomon_missing() leaves item 7 out when every pretested participant has a pretest", {
+  d <- mp_data()
+  d$y_pre[d$pretested == 1 & is.na(d$y_pre)] <- 50
+  m <- check_solomon_missing(y_post, treat, pretested, y_pre, data = d)
+  expect_identical(m$missing_pretest$n_without_pretest, c(0L, 0L))
+  expect_null(m$missing_pretest_effects)
+  expect_null(m$missing_pretest_arm_check)
+  expect_no_match(paste(utils::capture.output(print(m)), collapse = " "),
+                  "Pretested participants without a pretest", fixed = TRUE)
+  # Without a numeric pretest the elements are NULL.
+  none <- check_solomon_missing(y_post, treat, pretested, data = d)
+  expect_null(none$missing_pretest)
+  expect_null(none$missing_pretest_arm_check)
+})
+
+test_that("check_solomon_missing() gives item 7 for several treatments, with covariates", {
+  six <- mp_six()
+  six$age <- seq_len(nrow(six)) %% 7
+  m <- check_solomon_missing(y_post, cond, pretested, y_pre, control = "Control", data = six,
+                             covariates = "age")
+  expect_identical(m$missing_pretest$condition, c("Control", "A", "B"))
+  expect_identical(m$missing_pretest_arm_check$comparison, c("A vs Control", "B vs Control"))
+  kept <- suppressWarnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                           data = six, covariates = "age",
+                                           missing_pretest = "indicator"))
+  e <- m$missing_pretest_effects
+  expect_identical(e$comparison, c("Control", "A", "B", "All conditions"))
+  expect_equal(e$kept, mp_rows(kept, mp_pretest)$estimate, tolerance = 1e-10)
+  expect_equal(e[c("comparison", "contrast", "kept", "dropped", "difference")],
+               kept$missing_pretest_sensitivity$effects, tolerance = 1e-10)
+  out <- gsub(" +", " ", paste(utils::capture.output(print(m)), collapse = " "))
+  expect_match(out, "identity link, with the covariates) and dropped:", fixed = TRUE)
+  expect_match(out, "A against Control, pretests missing", fixed = TRUE)
+  expect_match(out, "B against Control, pretests missing", fixed = TRUE)
+  # A single participant without a pretest: no test of the posttests.
+  one <- mp_six()
+  one$y_pre <- ifelse(one$pretested == 1, seq_len(nrow(one)) %% 13, NA)
+  one$y_pre[which(one$pretested == 1 & one$cond == "A" & !is.na(one$y_post))[2]] <- NA
+  m1 <- check_solomon_missing(y_post, cond, pretested, y_pre, control = "Control", data = one)
+  expect_identical(m1$missing_pretest$n_without_pretest, c(0L, 1L, 0L))
+  expect_true(all(is.na(m1$missing_pretest$p.value)))
+  expect_true(is.finite(m1$missing_pretest$difference[2]))
+  expect_false(is.null(m1$missing_pretest_effects))
+})

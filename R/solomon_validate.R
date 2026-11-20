@@ -624,16 +624,19 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
         "that never occurred."
       ),
       paste(
-        "solomonR analyses currently use complete cases and warn. Because",
-        "treatment is randomized, deterministic mean imputation of the pretest",
-        "(without using treatment or outcome), with a missingness indicator when",
-        "pretests may not be missing completely at random, retains these",
-        "participants without biasing the treatment effect. That holds for the",
-        "treatment effect only: the pretest effects of a fit with the pretest drop",
-        "these participants at either pretest center, and are biased when their",
-        "loss relates to baseline (issue #142). If the pretest was never",
-        "administered, report the departure and analyze participants as",
-        "assigned."
+        "fit_solomon_glm() handles those who have a posttest as `missing_pretest`",
+        "says. \"drop\" leaves them out, which assumes for the pretest effects that,",
+        "in each pretested group, those without a pretest would have had the same",
+        "mean posttest as those with one; when their loss relates to baseline, the",
+        "pretest effects are biased (issue #142). \"indicator\" keeps them by the",
+        "missing-indicator method: their pretest is set to the mean of the observed",
+        "pretests (without using treatment or outcome), with an indicator that",
+        "marks them. Because treatment is randomized, that does not bias the",
+        "treatment effect, whatever drives the loss, provided losing the pretest",
+        "did not depend on the treatment condition. The default is",
+        paste0("\"", .missing_pretest_default(), "\"."),
+        "The other analyses use complete cases and warn. If the pretest was never",
+        "administered, report the departure and analyze participants as assigned."
       ),
       paste(
         "For the treatment contrasts, complete-case analysis is unbiased when",
@@ -657,7 +660,7 @@ check_solomon_missing <- function(y_post, treat, pretested, y_pre = NULL,
     ),
     sources = c(
       "Solomon (1949); Graham et al. (2006)",
-      "White & Thompson (2005); Groenwold et al. (2012)",
+      "White & Thompson (2005); Groenwold et al. (2012); Carpenter & Kenward (2007)",
       "Rubin (1976); Little & Rubin (2019)",
       "",
       ""
@@ -1009,8 +1012,14 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
       add_issue(
         "warning", "incidental_pretest",
         sprintf(
-          "%d pretested participant(s) are missing pretest scores (incidental missingness); see check_solomon_missing() for supported responses.",
-          counts[["incidental_pretest"]]
+          "%d pretested participant(s) are missing pretest scores (incidental missingness). By default fit_solomon_glm() %s (missing_pretest = \"%s\"); see check_solomon_missing() for both handlings and what each assumes.",
+          counts[["incidental_pretest"]],
+          if (.missing_pretest_default() == "drop") {
+            "leaves them out of the model"
+          } else {
+            "keeps those with a posttest by the missing-indicator method"
+          },
+          .missing_pretest_default()
         )
       )
     }

@@ -453,7 +453,11 @@ test_that("check_solomon_missing() reports missing pretests, selection, and uneq
   expect_true(m$attrition$differ)
   out <- squash(printed(m))
   expect_match(out, "Loss rates differ between the pretest conditions", fixed = TRUE)
-  expect_match(out, "Pretested participants with a posttest and no pretest: 2.", fixed = TRUE)
+  # Item 7 is printed as "Pretested participants without a pretest" since
+  # #142 (test-missing-pretest.R).
+  expect_match(out, "Pretested participants without a pretest (see ?fit_solomon_glm)",
+               fixed = TRUE)
+  expect_match(out, "neither: control 19, 0, 11, and 0; treatment 28, 2, 0, and 0.", fixed = TRUE)
   expect_match(out, "(issue #143)", fixed = TRUE)
   expect_match(out, "The unpretested control group lost no posttests", fixed = TRUE)
   expect_match(out, "the pretested groups' losses, taken together, were unrelated to baseline",
