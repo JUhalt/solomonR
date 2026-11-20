@@ -1,10 +1,10 @@
 # The small-sample omnibus tests of designs with several treatments (issue
-# #45, amendment 2): the reference computation by clubSandwich, and the
-# lines and sentences that the print and the report give for an omnibus
-# table. test-ngroup-aht.R uses them, and so do the two tests that compare
-# new fits with results stored from master (test-covariate-location.R and
-# test-pretest-center.R), where only these tests' numbers and wording may
-# differ from master's.
+# #45, amendment 2): the reference computations, by clubSandwich and from
+# the test's equations, and the lines and sentences that the print and the
+# report give for an omnibus table. test-ngroup-aht.R uses them, and so do
+# the two tests that compare new fits with results stored from master
+# (test-covariate-location.R and test-pretest-center.R), where only these
+# tests' numbers and wording may differ from master's.
 
 # The approximate Hotelling's T-squared test of Pustejovsky and Tipton
 # (2018) for each omnibus hypothesis, from
@@ -14,10 +14,16 @@
 # in the model and each numeric covariate at its mean there, which changes
 # no test and keeps clubSandwich accurate: it inverts X'X, and lost accuracy
 # on a covariate far from zero (#137). Returns the tests in the order and
-# under the labels of the `omnibus` table.
-aht_reference <- function(y, condition, pretested, y_pre = NULL, covariates = NULL, control) {
+# under the labels of the `omnibus` table. With `engine = "literal"`, the
+# tests are computed by aht_literal() instead, which shares no code with
+# clubSandwich or the package. `cluster`, if given, groups the participants
+# into clusters (CR2), in place of one cluster for each participant.
+aht_reference <- function(y, condition, pretested, y_pre = NULL, covariates = NULL, control,
+                          cluster = NULL, engine = c("clubSandwich", "literal")) {
+  engine <- match.arg(engine)
   treatments <- setdiff(unique(as.character(stats::na.omit(condition))), control)
   d <- data.frame(y = y, pretested = pretested)
+  d$cluster_ <- if (is.null(cluster)) seq_along(y) else cluster
   terms <- paste0("t", seq_along(treatments))
   for (j in seq_along(treatments)) d[[terms[j]]] <- as.numeric(condition == treatments[j])
   rhs <- sprintf("(%s) * pretested", paste(terms, collapse = " + "))
@@ -38,7 +44,7 @@ aht_reference <- function(y, condition, pretested, y_pre = NULL, covariates = NU
     if (is.numeric(d[[name]])) d[[name]] <- d[[name]] - mean(d[[name]])
   }
   model <- stats::lm(stats::reformulate(rhs, "y"), data = d)
-  V <- clubSandwich::vcovCR(model, cluster = seq_len(nrow(d)), type = "CR2")
+  V <- clubSandwich::vcovCR(model, cluster = d$cluster_, type = "CR2")
   cn <- names(stats::coef(model))
   constraints <- function(main, interaction) {
     L <- matrix(0, length(terms), length(cn), dimnames = list(NULL, cn))
@@ -55,6 +61,11 @@ aht_reference <- function(y, condition, pretested, y_pre = NULL, covariates = NU
     "Condition | unpretested" = constraints(1, 0)
   )
   out <- do.call(rbind, lapply(names(tests), function(test) {
+    if (engine == "literal") {
+      lt <- aht_literal(model, tests[[test]], d$cluster_)
+      return(data.frame(test = test, statistic = lt[["statistic"]], df1 = length(terms),
+                        df2 = lt[["df2"]], p.value = lt[["p.value"]], stringsAsFactors = FALSE))
+    }
     wt <- as.data.frame(clubSandwich::Wald_test(model, constraints = tests[[test]], vcov = V,
                                                 test = "HTZ"))
     data.frame(test = test, statistic = wt$Fstat, df1 = wt$df_num, df2 = wt$df_denom,
@@ -62,6 +73,73 @@ aht_reference <- function(y, condition, pretested, y_pre = NULL, covariates = NU
   }))
   rownames(out) <- NULL
   out
+}
+
+# The AHT test of the constraints L b = 0 on the coefficients of the
+# least-squares fit `model`, computed literally from the definitions of
+# Pustejovsky and Tipton (2018; Equations 10, 12, and 13 of
+# arXiv:1601.01981v2) under the identity working model, with explicit
+# inverses and N x N matrices, for small data sets only:
+# - the CR2 adjustment of cluster j, A_j = (I - H_jj)^(-1/2), the
+#   symmetric inverse square root, and V = (X'X)^-1 (sum_j X_j' A_j e_j
+#   e_j' A_j X_j) (X'X)^-1;
+# - Q = (L b)' (L V L')^-1 (L b);
+# - with Omega = L (X'X)^-1 L', the normalized covariance estimate
+#   D = Omega^(-1/2) L V L' Omega^(-1/2) has entries
+#   d_st = sum_j (g_sj' e*)(g_tj' e*), where e* is the error vector,
+#   g_sj = (I - H)_j' A_j X_j (X'X)^-1 L' Omega^(-1/2) u_s (u_s the sth unit
+#   vector), and (I - H)_j the rows of I - H for cluster j. Under the
+#   working model (independent errors with one variance, taken as 1),
+#   Var(d_st) = sum_i sum_j [(g_si' g_sj)(g_ti' g_tj) + (g_si' g_tj)(g_ti' g_sj)],
+#   and eta = q (q + 1) / sum_s sum_t Var(d_st);
+# - F = Q (eta - q + 1) / (eta q), on F(q, eta - q + 1).
+# With one participant in each cluster, this is the AHT test on HC2 that
+# fit_solomon_glm() computes with `robust = "HC3"`; with other clusters, the
+# test of `robust = "CR2"`. It forms (X'X)^-1, so it is given covariates
+# near zero.
+aht_literal <- function(model, L, cluster = seq_len(stats::nobs(model))) {
+  X <- stats::model.matrix(model)
+  e <- stats::residuals(model)
+  n <- nrow(X)
+  q <- nrow(L)
+  XtXinv <- solve(crossprod(X))
+  IH <- diag(n) - X %*% XtXinv %*% t(X)
+  inv_sqrt <- function(S) {
+    ev <- eigen(S, symmetric = TRUE)
+    ev$vectors %*% diag(1 / sqrt(ev$values), length(ev$values)) %*% t(ev$vectors)
+  }
+  groups <- unique(cluster)
+  adj <- matrix(0, n, n)
+  meat <- matrix(0, ncol(X), ncol(X))
+  for (j in groups) {
+    at <- which(cluster == j)
+    adj[at, at] <- inv_sqrt(IH[at, at, drop = FALSE])
+    u <- t(X[at, , drop = FALSE]) %*% adj[at, at, drop = FALSE] %*% e[at]
+    meat <- meat + u %*% t(u)
+  }
+  V <- XtXinv %*% meat %*% XtXinv
+  b <- L %*% stats::coef(model)
+  Q <- drop(t(b) %*% solve(L %*% V %*% t(L), b))
+  P <- adj %*% X %*% XtXinv %*% t(L) %*% inv_sqrt(L %*% XtXinv %*% t(L))
+  # G[[s]] has the vector g_sj in column j.
+  G <- lapply(seq_len(q), function(s) {
+    vapply(groups, function(j) {
+      at <- which(cluster == j)
+      drop(crossprod(IH[at, , drop = FALSE], P[at, s]))
+    }, numeric(n))
+  })
+  total <- 0
+  for (s in seq_len(q)) {
+    for (t in seq_len(q)) {
+      st <- crossprod(G[[s]], G[[t]])
+      total <- total + sum(crossprod(G[[s]]) * crossprod(G[[t]])) + sum(st * t(st))
+    }
+  }
+  eta <- q * (q + 1) / total
+  df2 <- eta - q + 1
+  statistic <- Q * df2 / (eta * q)
+  c(statistic = statistic, df2 = df2, p.value = stats::pf(statistic, q, df2, lower.tail = FALSE),
+    eta = eta, Q = Q)
 }
 
 # The columns of an omnibus table that the AHT test changed.

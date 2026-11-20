@@ -2,8 +2,9 @@
 # #45, amendment 2). With `robust = "HC3"`, a Gaussian family, and the
 # identity link, each omnibus test is the approximate Hotelling's T-squared
 # (AHT) test of Pustejovsky and Tipton (2018) on the HC2 covariance, with
-# each participant as a cluster. The reference is clubSandwich
-# (aht_reference(), in helper-ngroup-aht.R). Other families and links,
+# each participant as a cluster. The references are clubSandwich and a
+# literal computation of the test's equations (aht_reference() and
+# aht_literal(), in helper-ngroup-aht.R). Other families and links,
 # model-based covariance, and CR2 keep their tests. No test here estimates
 # a rejection rate: the simulation study of the test is on issue #45.
 
@@ -100,6 +101,57 @@ test_that("the omnibus tests of an HC3 fit of a Gaussian outcome are clubSandwic
       expect_identical(unique(fit$effects$df), as.numeric(stats::df.residual(fit$model)),
                        info = info)
     }
+  }
+})
+
+test_that("the AHT tests equal a literal computation of Pustejovsky and Tipton's equations", {
+  # aht_literal() (helper-ngroup-aht.R) forms the CR2 adjustments, the
+  # covariance, and the variances of the normalized covariance estimate
+  # from their definitions, with N x N matrices and explicit inverses. It
+  # shares no code with .aht_test(), which uses a closed form from the QR
+  # decomposition, or with clubSandwich, the reference of the test above.
+  cases <- list(
+    list(seed = 451261, k = 2, sizes = c(9, 12, 7, 10, 8, 11), spread = 2, covariates = FALSE),
+    list(seed = 451262, k = 3, sizes = 10, spread = 1, covariates = TRUE),
+    list(seed = 451263, k = 4, sizes = c(6, 9, 7, 8, 10, 5, 8, 7, 9, 6), spread = 1.5,
+         covariates = TRUE)
+  )
+  for (case in cases) {
+    d <- aht_data(case$seed, case$k, case$sizes, case$spread)
+    # A factor covariate, and a missing posttest in a pretested group.
+    d$site <- factor(rep(c("north", "south", "east"), length.out = nrow(d)))
+    d$y_post[3] <- NA
+    covariates <- if (case$covariates) d[c("z", "site")]
+    for (pretest in c(TRUE, FALSE)) {
+      y_pre <- if (pretest) d$y_pre
+      info <- paste(case$seed, if (pretest) "with y_pre" else "without y_pre")
+      out <- aht_warnings(fit_solomon_glm(d$y_post, d$condition, d$pretested, y_pre,
+                                          covariates = covariates, control = "Control"))
+      expect_length(out$small_df, 0L)
+      literal <- aht_reference(d$y_post, d$condition, d$pretested, y_pre, covariates = covariates,
+                               control = "Control", engine = "literal")
+      om <- out$value$omnibus
+      expect_identical(om$test, literal$test, info = info)
+      for (column in aht_columns) {
+        expect_equal(om[[column]], literal[[column]], tolerance = 1e-8, info = paste(info, column))
+      }
+    }
+  }
+
+  # Clusters of up to three participants within each group: the tests of a
+  # CR2 fit, which come from clubSandwich.
+  d <- aht_data(451264, 3, c(8, 7, 9, 6, 7, 9, 8, 6), spread = 1.5)
+  d$team <- paste(d$condition, d$pretested,
+                  stats::ave(seq_len(nrow(d)), d$condition, d$pretested,
+                             FUN = function(i) (seq_along(i) - 1L) %/% 3L))
+  cr2 <- suppressWarnings(fit_solomon_glm(y_post, condition, pretested, y_pre, covariates = "z",
+                                          control = "Control", robust = "CR2", cluster = team,
+                                          data = d))
+  literal <- aht_reference(d$y_post, d$condition, d$pretested, d$y_pre, covariates = d["z"],
+                           control = "Control", cluster = d$team, engine = "literal")
+  for (column in aht_columns) {
+    expect_equal(cr2$omnibus[[column]], literal[[column]], tolerance = 1e-8,
+                 info = paste("CR2", column))
   }
 })
 

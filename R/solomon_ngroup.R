@@ -2,8 +2,10 @@
 # and without a pretest, giving 2(k + 1) groups (Steyn, 2009). The joint
 # model of fit_solomon_glm() is fitted with one indicator per treatment, and
 # the four Solomon contrasts are estimated for each comparison, with
-# omnibus Wald tests and a multiplicity adjustment within each family of
-# comparisons (Holm, 1979, by default).
+# omnibus tests (the small-sample tests of Pustejovsky and Tipton, 2018,
+# for the linear model with HC3 standard errors; see the omnibus block of
+# .fit_solomon_ngroup()) and a multiplicity adjustment within each family
+# of comparisons (Holm, 1979, by default).
 
 # Classify the treatment argument of a fitting function.
 #
