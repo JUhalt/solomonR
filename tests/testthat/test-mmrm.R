@@ -463,3 +463,343 @@ test_that("fit_solomon_mmrm() needs mmrm 0.3.13 or later (#172)", {
   expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long),
                "needs the mmrm package, version 0.3.13 or later", fixed = TRUE)
 })
+
+# The internal arguments `structures` and `vcov` (#57). The confirmatory
+# study of the third amendment on #57 fits the fallback structures alone
+# (its method M9) and uses mmrm's jackknife covariance (M9 and M11) through
+# two arguments of the internal fitting function, .mmrm_fit_contrasts().
+# fit_solomon_mmrm() does not pass them. The amendment asks that their
+# defaults reproduce the behavior before they were added;
+# helper-mmrm-frozen.R holds the function as it was then, at 70022ef.
+
+# The rows fit_solomon_mmrm() gives its internal fitting function for a data
+# set of long_example(): the observed posttests, with the pretest centered
+# at the mean of the pretested participants.
+mmrm_rows <- function(long) {
+  center <- mean(long$y_pre[long$occasion == 1 & long$pretested == 1])
+  observed <- data.frame(y = long$y_post, treat = long$treat, pretested = long$pretested,
+                         occ = factor(long$occasion, levels = 1:3), id = factor(long$id),
+                         pre_obs = ifelse(long$pretested == 1, long$y_pre - center, 0))
+  observed$pgrp <- factor(ifelse(observed$pretested == 1, "pretested", "unpretested"))
+  observed[!is.na(observed$y), ]
+}
+
+# The arguments fit_solomon_mmrm() passes to its internal fitting function,
+# and what that function returns for them.
+mmrm_internal_call <- function(data, df, pre) {
+  call <- NULL
+  current <- solomonR:::.mmrm_fit_contrasts
+  testthat::local_mocked_bindings(.mmrm_fit_contrasts = function(...) {
+    result <- current(...)
+    call <<- list(args = list(...), result = result)
+    result
+  })
+  suppressWarnings(
+    if (pre) {
+      fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, df = df, data = data)
+    } else {
+      fit_solomon_mmrm(y_post, treat, pretested, id, occasion, df = df, data = data)
+    }
+  )
+  call
+}
+
+# What a result of the internal fitting function holds, without the
+# environments and the call that the mmrm object carries.
+mmrm_parts <- function(result) {
+  model <- result$model
+  c(result[c("effects", "covariance", "slopes", "other")],
+    list(vcov = model$vcov, method = model$method, adjusted = model$beta_vcov_adj,
+         formula = paste(deparse(mmrm::component(model, "formula")), collapse = " ")),
+    mmrm::component(model, c("beta_est", "beta_vcov", "theta_est", "theta_vcov", "neg_log_lik",
+                             "cov_type", "n_groups", "n_subjects", "n_obs", "convergence")))
+}
+
+# The frozen function of 70022ef, with the arguments of a call of the
+# current one.
+mmrm_frozen_result <- function(args) {
+  mmrm_fit_contrasts_70022ef(args[[1]], args[[2]], args[[3]], grouped = args$grouped,
+                             df = args$df, conf_level = args$conf_level, center = args$center,
+                             other = args$other)
+}
+
+# The data of the comparisons with 70022ef: those of "the fallback
+# covariance is chosen by AIC", and the same with six pretested participants
+# without any posttest, so that the two pretest centers differ and the
+# function is also asked for the effects at the other center.
+mmrm_frozen_data <- function() {
+  fixture <- long_example(missing = 0.2)
+  centers <- fixture
+  centers$y_post[centers$id %in% 1:6] <- NA
+  list(fixture = fixture, centers = centers)
+}
+
+test_that("fit_solomon_mmrm() does not offer or pass `structures` and `vcov` (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  expect_false(any(c("structures", "vcov") %in% names(formals(fit_solomon_mmrm))))
+  expect_identical(names(formals(solomonR:::.mmrm_fit_contrasts)),
+                   c(names(formals(mmrm_fit_contrasts_70022ef)), "structures", "vcov"))
+  expect_null(formals(solomonR:::.mmrm_fit_contrasts)$structures)
+  expect_null(formals(solomonR:::.mmrm_fit_contrasts)$vcov)
+  long <- long_example(missing = 0.2)
+  # R refuses an argument the function does not have; its message is not
+  # matched, because R translates it.
+  expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long,
+                                structures = "ar1h"))
+  expect_error(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long,
+                                vcov = "Empirical-Jackknife"))
+  call <- mmrm_internal_call(long, "kenward-roger", TRUE)
+  expect_named(call$args, c("", "", "", "grouped", "df", "conf_level", "center", "other"))
+})
+
+test_that("at its defaults the internal fit is that of 70022ef (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  data <- mmrm_frozen_data()
+  for (set in names(data)) {
+    for (df in c("kenward-roger", "satterthwaite")) {
+      for (pre in c(TRUE, FALSE)) {
+        info <- paste(set, df, if (pre) "with a pretest" else "without a pretest")
+        call <- mmrm_internal_call(data[[set]], df, pre)
+        now <- mmrm_parts(call$result)
+        then <- mmrm_parts(mmrm_frozen_result(call$args))
+        expect_identical(now, then, info = info)
+        expect_identical(now$covariance, "unstructured", info = info)
+        expect_identical(now$vcov,
+                         if (df == "kenward-roger") "Kenward-Roger-Linear" else "Asymptotic",
+                         info = info)
+        expect_equal(nrow(now$effects), 22L, info = info)
+        # With a pretest the comparison covers the variance of the center
+        # and the slopes, and with participants without any posttest the
+        # effects at the other center.
+        expect_identical(is.null(call$args$center), !pre, info = info)
+        expect_identical(is.null(now$slopes), !pre, info = info)
+        expect_identical(is.null(now$other), !(pre && set == "centers"), info = info)
+      }
+    }
+  }
+})
+
+test_that("at its defaults the fallback is that of 70022ef (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  data <- mmrm_frozen_data()
+  real <- mmrm::mmrm
+  # As in "the fallback covariance is chosen by AIC": the unstructured
+  # model fails, for the current function and for the frozen one.
+  testthat::local_mocked_bindings(
+    mmrm = function(formula, ...) {
+      if (grepl("us(", paste(deparse(formula), collapse = ""), fixed = TRUE)) stop("no convergence")
+      real(formula, ...)
+    },
+    .package = "mmrm"
+  )
+  for (set in names(data)) {
+    for (df in c("kenward-roger", "satterthwaite")) {
+      for (pre in c(TRUE, FALSE)) {
+        info <- paste(set, df, if (pre) "with a pretest" else "without a pretest")
+        call <- mmrm_internal_call(data[[set]], df, pre)
+        now <- mmrm_parts(call$result)
+        then <- mmrm_parts(mmrm_frozen_result(call$args))
+        expect_identical(now, then, info = info)
+        expect_true(now$covariance %in% solomonR:::.mmrm_fallbacks, info = info)
+        expect_identical(now$vcov,
+                         if (df == "kenward-roger") "Kenward-Roger-Linear" else "Asymptotic",
+                         info = info)
+        expect_identical(is.null(now$other), !(pre && set == "centers"), info = info)
+      }
+    }
+  }
+})
+
+test_that("at its defaults a model that never converges stops as at 70022ef (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  observed <- mmrm_rows(long_example(missing = 0.2))
+  testthat::local_mocked_bindings(mmrm = function(...) stop("no convergence"), .package = "mmrm")
+  message_of <- function(f) {
+    tryCatch(f(observed, as.character(1:3), TRUE, TRUE, "kenward-roger", 0.95),
+             error = conditionMessage)
+  }
+  now <- message_of(solomonR:::.mmrm_fit_contrasts)
+  expect_identical(now, message_of(mmrm_fit_contrasts_70022ef))
+  expect_identical(now, paste0(
+    "The model did not converge with an unstructured covariance or any of the fallback ",
+    "structures (heterogeneous Toeplitz, heterogeneous AR(1), heterogeneous compound symmetry)."
+  ))
+})
+
+test_that("the defaults named give the fit without them (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  observed <- mmrm_rows(long_example(missing = 0.2))
+  occasions <- as.character(1:3)
+  for (df in c("kenward-roger", "satterthwaite")) {
+    plain <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, df, 0.95)
+    named <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, df, 0.95,
+                                            structures = NULL, vcov = NULL)
+    expect_identical(mmrm_parts(named), mmrm_parts(plain), info = df)
+  }
+})
+
+test_that("`structures` fits the named fallback structures only and keeps the smallest AIC (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  observed <- mmrm_rows(long_example(missing = 0.2))
+  occasions <- as.character(1:3)
+  fallbacks <- solomonR:::.mmrm_fallbacks
+  fit <- function(structures, df = "kenward-roger") {
+    solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, df, 0.95,
+                                   structures = structures)
+  }
+  # The unstructured model converges on these data, and is not used.
+  expect_identical(solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE,
+                                                  "kenward-roger", 0.95)$covariance,
+                   "unstructured")
+  single <- lapply(names(fallbacks), fit)
+  names(single) <- names(fallbacks)
+  for (s in names(fallbacks)) {
+    expect_identical(single[[s]]$covariance, unname(fallbacks[s]), info = s)
+    expect_identical(mmrm::component(single[[s]]$model, "cov_type"), s, info = s)
+    expect_identical(single[[s]]$model$vcov, "Kenward-Roger-Linear", info = s)
+  }
+  aic <- vapply(single, function(r) stats::AIC(r$model), numeric(1))
+  expect_identical(anyDuplicated(aic), 0L)
+  ranked <- names(sort(aic))
+  all <- fit(names(fallbacks))
+  expect_identical(all$covariance, unname(fallbacks[ranked[1]]))
+  expect_identical(mmrm_parts(all), mmrm_parts(single[[ranked[1]]]))
+  # The order in which they are named does not matter, and a subset is
+  # chosen among its members.
+  expect_identical(mmrm_parts(fit(rev(names(fallbacks)))), mmrm_parts(all))
+  expect_identical(mmrm_parts(fit(ranked[3:2])), mmrm_parts(single[[ranked[2]]]))
+  # With Satterthwaite degrees of freedom too.
+  sat <- fit(names(fallbacks), df = "satterthwaite")
+  expect_identical(sat$covariance, all$covariance)
+  expect_identical(sat$model$vcov, "Asymptotic")
+  expect_equal(sat$effects$estimate, all$effects$estimate, tolerance = 1e-6)
+
+  # A named structure that does not converge is passed over, as when the
+  # unstructured model fails.
+  real <- mmrm::mmrm
+  fitted <- character()
+  testthat::local_mocked_bindings(
+    mmrm = function(formula, ...) {
+      text <- paste(deparse(formula), collapse = "")
+      fitted <<- c(fitted, sub("^.*[+] *([a-z0-9]+)\\(occ.*$", "\\1", text))
+      if (grepl(paste0(ranked[1], "("), text, fixed = TRUE)) stop("no convergence")
+      real(formula, ...)
+    },
+    .package = "mmrm"
+  )
+  second <- fit(names(fallbacks))
+  expect_identical(second$covariance, unname(fallbacks[ranked[2]]))
+  # Each structure was fitted once, in the order of the fallback list, and
+  # the unstructured model not at all.
+  expect_identical(fitted, names(fallbacks))
+  # In that order too when they are named in another, so that a tie in AIC
+  # could not make the choice depend on the order of the names.
+  fitted <- character()
+  expect_identical(fit(rev(names(fallbacks)))$covariance, second$covariance)
+  expect_identical(fitted, names(fallbacks))
+  expect_error(fit(ranked[1]),
+               paste0("The model did not converge with any of these structures: ",
+                      fallbacks[[ranked[1]]], "."), fixed = TRUE)
+})
+
+test_that("`vcov = \"Empirical-Jackknife\"` gives mmrm's jackknife inference (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  observed <- mmrm_rows(long_example(missing = 0.2))
+  occasions <- as.character(1:3)
+  # The 22 contrasts as weights on the coefficients, written out here: the
+  # cells of occasion t, and their differences.
+  expected <- function(direct) {
+    beta <- mmrm::component(direct, "beta_est")
+    cell <- function(t, treat, pretested) {
+      x <- stats::model.matrix(
+        ~ occ * treat * pretested + occ:pre_obs,
+        data.frame(occ = factor(t, levels = 1:3), treat = treat, pretested = pretested, pre_obs = 0)
+      )[1, ]
+      x[names(beta)]
+    }
+    expect_false(anyNA(cell(1, 1, 1)))
+    weights <- list()
+    sensitization <- list()
+    for (t in 1:3) {
+      pre <- cell(t, 1, 1) - cell(t, 0, 1)
+      un <- cell(t, 1, 0) - cell(t, 0, 0)
+      control <- cell(t, 0, 1) - cell(t, 0, 0)
+      treated <- cell(t, 1, 1) - cell(t, 1, 0)
+      sensitization[[t]] <- pre - un
+      weights <- c(weights, list((pre + un) / 2, pre - un, pre, un, control, treated,
+                                 (control + treated) / 2))
+    }
+    weights <- c(weights, list(sensitization[[3]] - sensitization[[1]]))
+    rows <- lapply(weights, function(w) as.data.frame(mmrm::df_1d(direct, w)[c("est", "se", "df")]))
+    do.call(rbind, rows)
+  }
+  compare <- function(result, direct) {
+    rows <- expected(direct)
+    expect_equal(nrow(result$effects), 22L)
+    expect_equal(result$effects$estimate, rows$est)
+    expect_equal(result$effects$std.error, rows$se)
+    expect_equal(result$effects$df, rows$df)
+    expect_equal(result$effects$conf.high,
+                 rows$est + stats::qt(0.975, rows$df) * rows$se)
+    expect_identical(result$model$vcov, "Empirical-Jackknife")
+    expect_identical(result$model$method, "Satterthwaite")
+  }
+
+  # With the unstructured matrix, which stays the first choice (M11).
+  jackknife <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "satterthwaite",
+                                              0.95, vcov = "Empirical-Jackknife")
+  expect_identical(jackknife$covariance, "unstructured")
+  compare(jackknife, mmrm::mmrm(
+    y ~ occ * treat * pretested + occ:pre_obs + us(occ | pgrp / id), data = observed,
+    reml = TRUE, method = "Satterthwaite", vcov = "Empirical-Jackknife"
+  ))
+  # The estimates are those of the default; the standard errors are not.
+  default <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "satterthwaite", 0.95)
+  expect_identical(jackknife$effects$estimate, default$effects$estimate)
+  expect_false(isTRUE(all.equal(jackknife$effects$std.error, default$effects$std.error)))
+
+  # With one fallback structure, as in a refit with the structure chosen
+  # (M9).
+  refit <- solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, "satterthwaite", 0.95,
+                                          structures = "ar1h", vcov = "Empirical-Jackknife")
+  expect_identical(refit$covariance, "heterogeneous AR(1)")
+  compare(refit, mmrm::mmrm(
+    y ~ occ * treat * pretested + occ:pre_obs + ar1h(occ | pgrp / id), data = observed,
+    reml = TRUE, method = "Satterthwaite", vcov = "Empirical-Jackknife"
+  ))
+})
+
+test_that("other values of `structures` and `vcov` stop before any fit (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  observed <- mmrm_rows(long_example(missing = 0.2))
+  occasions <- as.character(1:3)
+  fits <- 0L
+  testthat::local_mocked_bindings(
+    mmrm = function(...) {
+      fits <<- fits + 1L
+      stop("The model was fitted.")
+    },
+    .package = "mmrm"
+  )
+  fit <- function(df = "satterthwaite", ...) {
+    solomonR:::.mmrm_fit_contrasts(observed, occasions, TRUE, TRUE, df, 0.95, ...)
+  }
+  structures_message <- paste("`structures` must be NULL or name fallback structures, each once:",
+                              "toeph, ar1h, csh.")
+  # "us" is refused: the unstructured model is the default's first choice,
+  # not one of several structures compared by AIC.
+  for (bad in list("us", c("us", "ar1h"), "unstructured", "heterogeneous AR(1)", character(),
+                   NA_character_, c("ar1h", NA), c("csh", "csh"), 2L, TRUE, list("ar1h"))) {
+    expect_error(fit(structures = bad), structures_message, fixed = TRUE)
+    expect_error(fit("kenward-roger", structures = bad), structures_message, fixed = TRUE)
+  }
+  for (bad in list("Kenward-Roger", "Kenward-Roger-Linear", "Asymptotic", "Empirical",
+                   "Empirical-Bias-Reduced", "empirical-jackknife", NA_character_, character(),
+                   c("Empirical-Jackknife", "Empirical-Jackknife"), TRUE)) {
+    expect_error(fit(vcov = bad), "`vcov` must be NULL or \"Empirical-Jackknife\".", fixed = TRUE)
+  }
+  # mmrm has no Kenward-Roger degrees of freedom for this covariance.
+  expect_error(fit("kenward-roger", vcov = "Empirical-Jackknife"),
+               "`vcov = \"Empirical-Jackknife\"` needs `df = \"satterthwaite\"`.", fixed = TRUE)
+  expect_identical(fits, 0L)
+})

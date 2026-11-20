@@ -36,8 +36,37 @@
 # with the pretested cells at pre_obs = shift; the result then has them in
 # `other`. `slopes` holds the pretest slope at each occasion, named by
 # occasion (NULL without a pretest).
+#
+# `structures` and `vcov` serve the confirmatory study of issue #57 (third
+# amendment, methods M9 and M11). fit_solomon_mmrm() never passes them, and
+# their defaults give the fit that ?fit_solomon_mmrm describes; a test
+# compares that fit with this function as it was before they were added.
+# - `structures`: NULL, or names of .mmrm_fallbacks. Only the named
+#   structures are then fitted, without the unstructured model, and the
+#   converged one with the smallest AIC is kept, as when the unstructured
+#   model fails. They are fitted in the order of .mmrm_fallbacks, so the
+#   result does not depend on the order in which they are named.
+# - `vcov`: NULL, or "Empirical-Jackknife": mmrm's jackknife covariance of
+#   the estimates (its "leave-one-cluster-out" method, CR3). It needs
+#   `df = "satterthwaite"`: mmrm does not combine it with Kenward-Roger
+#   degrees of freedom.
 .mmrm_fit_contrasts <- function(observed, occasions, pre, grouped, df, conf_level,
-                                center = NULL, other = NULL) {
+                                center = NULL, other = NULL, structures = NULL,
+                                vcov = NULL) {
+  if (!is.null(structures) &&
+      (!is.character(structures) || !length(structures) || anyNA(structures) ||
+         anyDuplicated(structures) || !all(structures %in% names(.mmrm_fallbacks)))) {
+    stop("`structures` must be NULL or name fallback structures, each once: ",
+         paste(names(.mmrm_fallbacks), collapse = ", "), ".", call. = FALSE)
+  }
+  if (!is.null(vcov)) {
+    if (!identical(vcov, "Empirical-Jackknife")) {
+      stop("`vcov` must be NULL or \"Empirical-Jackknife\".", call. = FALSE)
+    }
+    if (df != "satterthwaite") {
+      stop("`vcov = \"Empirical-Jackknife\"` needs `df = \"satterthwaite\"`.", call. = FALSE)
+    }
+  }
   # mmrm drops an occasion at which no analyzed participant has a posttest,
   # so the model has no coefficients for it, and the contrasts of the fitted
   # model do not cover it (issue #172). Stop before fitting, naming the
@@ -53,15 +82,18 @@
   fit_one <- function(type) {
     f <- stats::as.formula(sprintf("%s + %s(occ | %sid)", fixed, type,
                                    if (grouped) "pgrp / " else ""))
-    # Kenward-Roger with the covariance parameterized by its elements (the
-    # "linear" computation), which reproduces SAS PROC MIXED; see
-    # ?fit_solomon_mmrm.
+    # Kenward-Roger in its "linear" computation, which leaves out the
+    # second-derivative term of the adjustment. With the unstructured matrix
+    # that reproduces SAS PROC MIXED; with a fallback structure it is the
+    # first-order form of the adjustment. See ?fit_solomon_mmrm.
     fit <- tryCatch(
       if (df == "kenward-roger") {
         mmrm::mmrm(f, data = observed, reml = TRUE, method = method,
                    vcov = "Kenward-Roger-Linear")
-      } else {
+      } else if (is.null(vcov)) {
         mmrm::mmrm(f, data = observed, reml = TRUE, method = method)
+      } else {
+        mmrm::mmrm(f, data = observed, reml = TRUE, method = method, vcov = vcov)
       },
       error = function(e) NULL
     )
@@ -69,22 +101,30 @@
     fit
   }
 
+  # The fallback structures fitted when the unstructured model is not used:
+  # all of them by default, or those named in `structures`.
+  fallbacks <- .mmrm_fallbacks
+  if (!is.null(structures)) fallbacks <- fallbacks[names(fallbacks) %in% structures]
   structure_used <- "unstructured"
-  fit <- fit_one("us")
+  fit <- if (is.null(structures)) fit_one("us")
   if (is.null(fit)) {
     # Mallinckrodt et al. (2008, p. 312): if the unstructured model does not
     # converge, fit the listed alternatives and keep the converged one with
     # the smallest AIC.
-    fits <- lapply(names(.mmrm_fallbacks), fit_one)
+    fits <- lapply(names(fallbacks), fit_one)
     ok <- !vapply(fits, is.null, logical(1))
     if (!any(ok)) {
+      if (!is.null(structures)) {
+        stop("The model did not converge with any of these structures: ",
+             paste(fallbacks, collapse = ", "), ".", call. = FALSE)
+      }
       stop("The model did not converge with an unstructured covariance or any of the ",
            "fallback structures (", paste(.mmrm_fallbacks, collapse = ", "), ").", call. = FALSE)
     }
     aic <- vapply(fits[ok], stats::AIC, numeric(1))
     best <- which(ok)[which.min(aic)]
     fit <- fits[[best]]
-    structure_used <- unname(.mmrm_fallbacks[best])
+    structure_used <- unname(fallbacks[best])
   }
 
   beta <- mmrm::component(fit, "beta_est")
