@@ -426,6 +426,27 @@ test_that("with the pretest, a singular test keeps the df2 of its design, and on
   expect_type(report_solomon(out$value)$results, "character")
 })
 
+test_that("the report's sentence on leverage 1 does not count a singular test", {
+  # Participant 1 alone has the level "rare" of a factor covariate, so its
+  # leverage is 1, but only that level's coefficient depends on it. The
+  # unpretested Control and A groups all score 0, so Condition | unpretested
+  # is singular. No result that the report gives lacks a test because of
+  # leverage 1, so its method has no sentence on it.
+  d <- aht_data(451272, 2, 6)
+  d$y <- withr::with_seed(451272, stats::rbinom(nrow(d), 1, 0.4))
+  d$y[d$pretested == 0L & d$condition %in% c("Control", "A")] <- 0
+  d$site <- factor(c("rare", rep("common", nrow(d) - 1L)))
+  out <- aht_warnings(fit_solomon_glm(y, condition, pretested, covariates = d["site"],
+                                      control = "Control", data = d))
+  fit <- out$value
+  expect_equal(fit$hc3_leverage, 1)
+  expect_true(any(vapply(out$other, inherits, logical(1), "solomonR_hc3_leverage_warning")))
+  expect_identical(.omnibus_singular(fit$omnibus), omnibus_tests == "Condition | unpretested")
+  method <- report_solomon(fit)$method
+  expect_match(method, aht_method_phrase, fixed = TRUE)
+  expect_no_match(method, "leverage", fixed = TRUE)
+})
+
 
 # ---- the tests that did not change ---------------------------------------------------
 
