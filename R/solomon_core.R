@@ -1056,7 +1056,7 @@ stouffer_solomon <- function(p) {
 #'   without the column. A fit in which no pretested participant analyzed
 #'   lacks a pretest is the `"drop"` fit, with no such column.
 #'
-#' `"indicator"` is new. The default stays `"drop"`, so no result of an
+#' `"indicator"` is new. The default stays `"drop"`, so no estimate of an
 #' existing call changes, until the validation study of issue #142 has
 #' run; the default will then follow the rules posted there. The decision
 #' record posted on that issue gives the method and the reasons for each

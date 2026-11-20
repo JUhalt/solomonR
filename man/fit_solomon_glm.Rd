@@ -722,7 +722,7 @@ without the column. A fit in which no pretested participant analyzed
 lacks a pretest is the \code{"drop"} fit, with no such column.
 }
 
-\code{"indicator"} is new. The default stays \code{"drop"}, so no result of an
+\code{"indicator"} is new. The default stays \code{"drop"}, so no estimate of an
 existing call changes, until the validation study of issue #142 has
 run; the default will then follow the rules posted there. The decision
 record posted on that issue gives the method and the reasons for each
