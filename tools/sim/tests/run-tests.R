@@ -129,7 +129,9 @@
 #            a pattern that draws a random number or sets a seed, of
 #            patterns with other rows or columns than the study's, of the
 #            options, and of a study script that does not end with
-#            sim_main(study); --task-file; the "Check the inputs" step of
+#            sim_main(study); the pattern's place without --pattern;
+#            that a run changes no file of the package copy; --task-file;
+#            the "Check the inputs" step of
 #            .github/workflows/simulation-merge-test.yaml, run with bash
 #            (skipped without one); and, with git, the commit the record
 #            gives and the run stage's refusal in a checkout.
@@ -1684,13 +1686,16 @@ if ("fullsize" %in% groups) local({
   # names solomonR (this one holds no code): the harness under test in
   # tools/sim, with registry rows for tests/merge-test-study.R, for that
   # script under another key, and for tests/synthetic-study.R, which does
-  # not end with sim_main(study).
+  # not end with sim_main(study). The study's pattern is also where
+  # merge-test.R looks for it without --pattern,
+  # tools/sim/merge-test/mergetest.R; the other key has none there.
   make_pkg <- function(name) {
     d <- file.path(root, name)
     sim <- file.path(d, "tools", "sim")
     dir.create(sim, recursive = TRUE)
     h_write_lines(c("Package: solomonR", "Version: 0.0.0"), file.path(d, "DESCRIPTION"))
     file.copy(list.files(harness, full.names = TRUE), sim, recursive = TRUE)
+    file.copy(file.path(sim, "tests", "merge-test-pattern.R"), file.path(sim, "merge-test", "mergetest.R"))
     cat("mergetest,117,tools/sim/tests/merge-test-study.R,tools/sim/tests/synthetic-pins.csv,TRUE,\n",
         "otherkey,117,tools/sim/tests/merge-test-study.R,tools/sim/tests/synthetic-pins.csv,TRUE,\n",
         "synthetic,117,tools/sim/tests/synthetic-study.R,tools/sim/tests/synthetic-pins.csv,FALSE,\n",
@@ -1698,19 +1703,26 @@ if ("fullsize" %in% groups) local({
     normalizePath(d, winslash = "/")
   }
   pkg <- make_pkg("pkg")
+  # The entries of a folder and the MD5 of each file, to show that
+  # merge-test.R only reads the package copy.
+  listing <- function(d) {
+    f <- sort(list.files(d, recursive = TRUE, all.files = TRUE, include.dirs = TRUE, no.. = TRUE))
+    paste(f, ifelse(dir.exists(file.path(d, f)), "folder", unname(tools::md5sum(file.path(d, f)))))
+  }
+  before <- listing(pkg)
   test_pattern <- "tools/sim/tests/merge-test-pattern.R"
   n <- 0L
   # merge-test.R of the package folder `from`, run from the folder `cwd`,
   # with a work and an out folder of its own; unless `git`, git finds no
-  # repository there. `...` are further options (a later one replaces an
-  # earlier one).
+  # repository there. `pattern` NULL leaves out --pattern. `...` are
+  # further options (a later one replaces an earlier one).
   run_tool <- function(..., set = character(), study = "mergetest", reps = "6", from = pkg, cwd = from, git = FALSE,
                        pattern = test_pattern) {
     n <<- n + 1L
     d <- file.path(root, sprintf("t%02d", n))
     if (!git) set <- c(set, GIT_DIR = file.path(work, "no-repository-here"))
     r <- run_from(cwd, file.path(from, "tools", "sim", "merge-test.R"),
-                  c("--study", study, "--reps", reps, "--chunks", "2", "--pattern", pattern,
+                  c("--study", study, "--reps", reps, "--chunks", "2", if (!is.null(pattern)) c("--pattern", pattern),
                     "--work", file.path(d, "work"), "--out", file.path(d, "out"), ...), set = set)
     f <- file.path(d, "out", "merge-test.csv")
     list(r = r, dir = d, kv = if (file.exists(f)) h_read_kv(f) else character())
@@ -1808,6 +1820,12 @@ if ("fullsize" %in% groups) local({
   }
   record("fullsize", "a second run writes the same task files (content and file SHA-256)", "yes",
          yes(!is.null(hashes(a)) && identical(hashes(a), hashes(b))), last_line(b$r$out))
+  record("fullsize", "the two runs changed no file of the package copy", "yes", yes(identical(listing(pkg), before)), "")
+  # Without --pattern: tools/sim/merge-test/<study key>.R of the package copy.
+  x <- run_tool(pattern = NULL)
+  record("fullsize", "without --pattern: the package copy's merge-test/mergetest.R", "yes",
+         yes(x$r$status == 0L && identical(item(x$kv, "pattern"), "tools/sim/merge-test/mergetest.R") &&
+               identical(item(x$kv, "pattern_sha256"), item(a$kv, "pattern_sha256"))), item(x$kv, "pattern"))
 
   # The run stage refuses the plan: here, where git finds no repository, by
   # the rule of a study run's checkout (sim_verify_plan()).
@@ -1909,7 +1927,10 @@ if ("fullsize" %in% groups) local({
   for (v in c("no-results", "unknown-part", "not-a-list")) {
     refused(paste("pattern:", v), "merge_test_pattern must be a list of functions", set = with_pattern(v))
   }
-  refused("no pattern file for the study", "has no pattern for this test", pattern = "tools/sim/tests/absent.R")
+  refused("--pattern names a file that does not exist", "has no pattern for this test: tools/sim/tests/absent.R is missing",
+          pattern = "tools/sim/tests/absent.R")
+  refused("without --pattern, a study that has none in merge-test/",
+          "has no pattern for this test: tools/sim/merge-test/otherkey.R is missing", study = "otherkey", pattern = NULL)
   refused("a study that is not in the registry", "is not in tools/sim/studies.csv", study = "absent")
   refused("a registry key that is not the script's study", "defines study mergetest, not otherkey", study = "otherkey")
   refused("a script that does not end with sim_main(study)", "must end with the call sim_main(study)", study = "synthetic")

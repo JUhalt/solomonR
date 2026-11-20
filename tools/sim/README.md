@@ -353,17 +353,18 @@ rule, the summary's files named and deleted, the limit on R's vector heap
 task files are read and bound, and the same files under a larger limit),
 the refusals (a pattern that draws a random number or sets a seed, rows or
 columns other than the study's, a script that does not end with
-`sim_main(study)`, the options), `--task-file`, the run stage's refusal of
-the plan, and the "Check the inputs" step of
-`simulation-merge-test.yaml`; and, with `--run`, `merge-chunks.R` on
-tampered copies of a run's `plan/` and `chunks/`, and the address scan of
-the run's own folders. Any case that ends otherwise than expected makes
-the exit status 1. The workflows run them in the pull requests that change
-the harness: the job "Harness tests" of `simulation-run.yaml`, the merge
-and `run-local.R` cases at the end of its merge job, on that run's own
-chunks and with the study's software, and the job "Tests of merge-test.R"
-of `simulation-merge-test.yaml` (group `fullsize`). Run them after any
-change to a check.
+`sim_main(study)`, the options), the pattern's own place when `--pattern`
+is not given, `--task-file`, the run stage's refusal of the plan, that a
+run changes no file of the package copy, and the "Check the inputs" step
+of `simulation-merge-test.yaml`; and, with `--run`,
+`merge-chunks.R` on tampered copies of a run's `plan/` and `chunks/`, and
+the address scan of the run's own folders. Any case that ends otherwise
+than expected makes the exit status 1. The workflows run them in the pull
+requests that change the harness: the job "Harness tests" of
+`simulation-run.yaml`, the merge and `run-local.R` cases at the end of its
+merge job, on that run's own chunks and with the study's software, and the
+job "Tests of merge-test.R" of `simulation-merge-test.yaml` (group
+`fullsize`). Run them after any change to a check.
 
 The software check runs without its repository and tool checks, so the
 local package versions must match the pins. On Windows, R reports no BLAS or
