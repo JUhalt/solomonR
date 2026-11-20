@@ -1353,3 +1353,458 @@ test_that("check_solomon_missing() gives item 7 for several treatments, with cov
   expect_true(is.finite(m1$missing_pretest$difference[2]))
   expect_false(is.null(m1$missing_pretest_effects))
 })
+
+
+# ---- print, summary, tidy, and report_solomon() ------------------------------------
+
+# The printed lines of `x` from the block on the participants without a
+# pretest to the end, and character(0) when there is no block.
+mp_block <- function(x) {
+  out <- utils::capture.output(print(x))
+  at <- match("Pretested participants without a pretest", out)
+  if (is.na(at)) character(0) else out[at:length(out)]
+}
+
+# Printed lines joined into one text, as wrapped.
+mp_text <- function(lines) paste(trimws(lines), collapse = " ")
+
+# The numbers printed on a line, in order.
+mp_numbers <- function(line) {
+  as.numeric(regmatches(line, gregexpr("-?Inf|-?[0-9]+[.][0-9]+", line))[[1]])
+}
+
+test_that("the print gives the participants without a pretest under either handling", {
+  d <- mp_data()
+  kept <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
+                                           missing_pretest = "indicator"))
+  drop <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d))
+  n <- kept$n_missing_pretest
+  share <- sprintf("%.1f%%", 100 * kept$missing_pretest_share)
+  e <- kept$missing_pretest_sensitivity$effects
+  p <- kept$missing_pretest_sensitivity$posttests
+  a <- kept$missing_pretest_arm_check
+  for (fit in list(kept, drop)) {
+    info <- fit$missing_pretest
+    block <- mp_block(fit)
+    text <- mp_text(block)
+    expect_match(text, sprintf(paste0("^Pretested participants without a pretest %d pretested ",
+                                      "participants had a posttest but no pretest \\(%d control, ",
+                                      "%d treatment"), sum(n), n[[1]], n[[2]]), info = info)
+    # The pretest effects kept and dropped, and their difference, whichever
+    # handling the fit used.
+    rows <- grep("^  Pretest (effect|main)", block, value = TRUE)
+    expect_length(rows, 3L)
+    for (j in 1:3) {
+      expect_equal(mp_numbers(rows[j]), round(c(e$kept[j], e$dropped[j], e$difference[j]), 3),
+                   tolerance = 1e-12, info = info)
+    }
+    expect_match(text, sprintf(paste0(
+      "Mean posttest without and with a pretest: control %.2f \\(%d\\) and %.2f \\(%d\\); ",
+      "treatment %.2f \\(%d\\) and %.2f \\(%d\\)\\."), p$mean_without[1], p$n_without[1],
+      p$mean_with[1], p$n_with[1], p$mean_without[2], p$n_without[2], p$mean_with[2],
+      p$n_with[2]), info = info)
+    expect_match(text, sprintf(paste0(
+      "Pretests missing: control %.1f%%, treatment %.1f%% \\(Fisher's exact test, p = [.0-9]+\\); ",
+      "mean observed pretest %.2f and %.2f \\(Hedges' g = %.2f, Welch p = [.0-9]+\\)\\. ",
+      "A description; see \\?check_solomon_missing\\."), 100 * a$share_control,
+      100 * a$share_treatment, a$mean_control, a$mean_treatment, a$g), info = info)
+    expect_false(grepl("missing completely at random", text), info = info)
+    # The summary prints the same block, and tidy() the effects table.
+    expect_identical(mp_block(summary(fit)), block, info = info)
+    expect_identical(tidy(fit), fit$effects, info = info)
+  }
+  kept_text <- mp_text(mp_block(kept))
+  expect_match(kept_text, sprintf(paste0(
+    "%s of the pretested participants analyzed\\)\\. They are kept by the missing-indicator ",
+    "method \\(Groenwold et al\\., 2012; missing_pretest = \"indicator\"\\)"), share))
+  expect_match(kept_text, "standardizes it over all the pretested participants analyzed (solomonR's step)",
+               fixed = TRUE)
+  expect_match(kept_text, "This assumes that losing the pretest did not depend on the treatment condition.",
+               fixed = TRUE)
+  drop_text <- mp_text(mp_block(drop))
+  expect_match(drop_text, "and were dropped (missing_pretest = \"drop\")", fixed = TRUE)
+  expect_match(drop_text, paste("dropping them assumes that, in each pretested group, they would",
+                                "have had the same mean posttest as those with a pretest"), fixed = TRUE)
+  expect_match(drop_text, sprintf("they would be %s of the pretested participants analyzed", share),
+               fixed = TRUE)
+  # The center of #135 is the mean of the participants with a pretest; with
+  # the indicator, the pretested participants analyzed include others.
+  analyzed <- kept$pretest_n[["analyzed"]]
+  expect_match(mp_text(utils::capture.output(print(kept))), sprintf(
+    "the mean pretest of the %d pretested participants analyzed with a pretest (default)", analyzed),
+    fixed = TRUE)
+  expect_match(mp_text(utils::capture.output(print(drop))), sprintf(
+    "the mean pretest of the %d pretested participants analyzed (default)", analyzed), fixed = TRUE)
+  # The observed center's assumption.
+  observed <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
+                                               missing_pretest = "indicator",
+                                               pretest_center = "observed"))
+  expect_match(mp_text(mp_block(observed)), paste(
+    "The observed center assumes pretests were missing completely at random among the",
+    "pretested participants."), fixed = TRUE)
+  # No block without such a participant, or without a pretest.
+  complete <- d
+  complete$y_pre[complete$pretested == 1 & is.na(complete$y_pre)] <- 50
+  for (m in c("drop", "indicator")) {
+    expect_length(mp_block(fit_solomon_glm(y_post, treat, pretested, y_pre, data = complete,
+                                           missing_pretest = m)), 0L)
+  }
+  expect_length(mp_block(fit_solomon_glm(y_post, treat, pretested, data = d,
+                                         missing_pretest = "indicator")), 0L)
+})
+
+test_that("the print says what one kept participant and separation mean", {
+  d <- mp_data()
+  d$y_pre <- ifelse(d$pretested == 1, 50 + seq_len(nrow(d)) %% 17, NA)
+  d1 <- d
+  d1$y_pre[which(d1$pretested == 1 & d1$treat == 1 & !is.na(d1$y_post))[5]] <- NA
+  kept <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d1,
+                                           missing_pretest = "indicator"))
+  text <- mp_text(mp_block(kept))
+  expect_match(text, "^Pretested participants without a pretest 1 pretested participant had a posttest")
+  expect_match(text, paste(
+    "With one such participant, the indicator fits that participant exactly: the treatment",
+    "contrasts equal those of missing_pretest = \"drop\", and each pretest effect differs from",
+    "that of \"drop\" by the indicator's mean times the participant's residual. Under HC3 the",
+    "pretest effects then have no standard error"), fixed = TRUE)
+  none <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d1,
+                                           missing_pretest = "indicator", robust = "none"))
+  expect_false(grepl("Under HC3", mp_text(mp_block(none)), fixed = TRUE))
+  drop <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d1))
+  expect_match(mp_text(mp_block(drop)), paste(
+    "With one such participant, missing_pretest = \"indicator\" gives the same treatment",
+    "contrasts, and pretest effects that differ by the difference shown; under HC3 they would",
+    "have no standard error."), fixed = TRUE)
+  r <- report_solomon(kept)$results
+  expect_true(any(grepl(paste(
+    "With one such participant, the indicator fitted that participant exactly, so the treatment",
+    "contrasts equal those of the analysis that excludes the participant. The pretest effects",
+    "then have no HC3 standard error."), r, fixed = TRUE)))
+
+  # Separation: every kept participant has the outcome 0.
+  ds <- d
+  ds$y_pre[which(ds$pretested == 1 & ds$passed %in% 0)[1:3]] <- NA
+  logit <- suppressWarnings(fit_solomon_glm(passed, treat, pretested, y_pre, data = ds,
+                                            family = stats::binomial(),
+                                            missing_pretest = "indicator"))
+  block <- mp_block(logit)
+  expect_true("  Pretest effects on the log-odds scale:" %in% block)
+  rows <- grep("^  Pretest (effect [|]|main)", block, value = TRUE)
+  expect_identical(vapply(rows, function(l) mp_numbers(l)[1], 0, USE.NAMES = FALSE), rep(-Inf, 3))
+  expect_match(mp_text(block), paste(
+    "All 3 have the outcome 0, so the indicator's coefficient has no finite estimate on the",
+    "log-odds scale (separation; Albert & Anderson, 1984). With them kept, the pretest effects",
+    "are minus infinity on that scale, with no standard error, test, or interval; the treatment",
+    "contrasts keep theirs."), fixed = TRUE)
+  # The report leaves out the infinite pretest effects and says why.
+  report <- report_solomon(logit)
+  expect_false(any(grepl("^The pretest effect \\(", report$results)))
+  expect_true(any(grepl(paste(
+    "Every such participant had the outcome 0, so the indicator's coefficient had no finite",
+    "estimate on the log-odds scale (separation; Albert & Anderson, 1984)"), report$results,
+    fixed = TRUE)))
+  expect_true(any(startsWith(report$references, "Albert, A., & Anderson, J. A. (1984).")))
+  # plot_sensitization() cannot draw infinite means, and says so.
+  expect_error(plot_sensitization(logit), class = "solomonR_missing_pretest_separation_error")
+})
+
+test_that("report_solomon() gives the participants without a pretest under either handling", {
+  d <- mp_data()
+  kept <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
+                                           missing_pretest = "indicator"))
+  drop <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d))
+  n <- kept$n_missing_pretest
+  e <- kept$missing_pretest_sensitivity$effects
+  num <- function(v) sprintf("%.2f", v)
+  groenwold <- "Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R."
+  r <- report_solomon(kept)
+  expect_true(sprintf(paste0(
+    "Of the pretested participants analyzed, %d (%.1f%%) had a posttest but no pretest score ",
+    "(%d in the control condition and %d in the treatment condition). They were kept by the ",
+    "missing-indicator method (Groenwold et al., 2012): their centered pretest score was set ",
+    "to 0, an indicator marked them, and the pretest effects were standardized over all the ",
+    "pretested participants analyzed. This assumes that losing the pretest did not depend on ",
+    "the treatment condition."), sum(n), 100 * kept$missing_pretest_share, n[[1]], n[[2]]) %in%
+      r$results)
+  expect_true(sprintf(paste0(
+    "With these participants excluded instead, the pretest effect was %s among control ",
+    "participants and %s among treated participants, and the pretest main effect was %s."),
+    num(e$dropped[1]), num(e$dropped[2]), num(e$dropped[3])) %in% r$results)
+  expect_true(any(grepl(sprintf("pretested participants analyzed with a pretest (%s)",
+                                num(kept$pretest_mean)), r$results, fixed = TRUE)))
+  expect_true(any(startsWith(r$references, groenwold)))
+  r0 <- report_solomon(drop)
+  expect_true(sprintf(paste0(
+    "Pretested participants who had a posttest but no pretest score were excluded from the ",
+    "model (%d: %d in the control condition and %d in the treatment condition). For the pretest ",
+    "effects, that assumes that, within each pretested condition, they would have had the same ",
+    "mean posttest as the participants with a pretest score."), sum(n), n[[1]], n[[2]]) %in%
+      r0$results)
+  expect_true(sprintf(paste0(
+    "With them kept by the missing-indicator method (Groenwold et al., 2012), the pretest effect ",
+    "was %s among control participants and %s among treated participants, and the pretest main ",
+    "effect was %s."), num(e$kept[1]), num(e$kept[2]), num(e$kept[3])) %in% r0$results)
+  expect_true(any(startsWith(r0$references, groenwold)))
+  # Several treatments: the sentences close the last paragraph.
+  six <- mp_six()
+  fit6 <- suppressWarnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                           data = six, missing_pretest = "indicator"))
+  e6 <- fit6$missing_pretest_sensitivity$effects
+  last <- utils::tail(report_solomon(fit6)$results, 1)
+  expect_match(last, sprintf(paste0(
+    "With these participants excluded instead, the pretest effect was %s in the Control ",
+    "condition, %s in the A condition, and %s in the B condition; averaged over the conditions, ",
+    "the pretest main effect was %s\\.$"), num(e6$dropped[1]), num(e6$dropped[2]),
+    num(e6$dropped[3]), num(e6$dropped[4])))
+  block6 <- mp_block(fit6)
+  expect_length(grep("^  Pretest (effect|main)", block6, value = TRUE), 4L)
+  # Without such a participant, nothing is added and no reference.
+  complete <- d
+  complete$y_pre[complete$pretested == 1 & is.na(complete$y_pre)] <- 50
+  rc <- report_solomon(fit_solomon_glm(y_post, treat, pretested, y_pre, data = complete,
+                                       missing_pretest = "indicator"))
+  expect_false(any(grepl("missing-indicator", rc$results, fixed = TRUE)))
+  expect_false(any(startsWith(rc$references, groenwold)))
+})
+
+test_that("marginal_solomon() prints and reports the participants without a pretest", {
+  d <- mp_data()
+  d$y_pre <- ifelse(d$pretested == 1, 50 + seq_len(nrow(d)) %% 17, NA)
+  d$y_pre[which(d$pretested == 1 & d$passed %in% 0)[1:3]] <- NA
+  logit <- suppressWarnings(fit_solomon_glm(passed, treat, pretested, y_pre, data = d,
+                                            family = stats::binomial(),
+                                            missing_pretest = "indicator"))
+  m <- suppressWarnings(marginal_solomon(logit, R = 199, seed = 20261122))
+  block <- mp_block(m)
+  text <- mp_text(block)
+  expect_match(text, paste0(
+    "^Pretested participants without a pretest 3 pretested participants had an outcome but no ",
+    "pretest"))
+  expect_true(all(c("  Risk difference:", "  Risk ratio:", "  Odds ratio:") %in% block))
+  s <- m$missing_pretest_sensitivity$effects
+  rows <- grep("^    Pretest (effect|main)", block, value = TRUE)
+  expect_length(rows, 9L)
+  expect_equal(mp_numbers(rows[1]),
+               round(unname(unlist(s[1, c("kept", "dropped", "difference")])), 3),
+               tolerance = 1e-12)
+  expect_match(text, paste(
+    "All 3 have the outcome 0, so the indicator's coefficient has no finite estimate",
+    "(separation; Albert & Anderson, 1984). With them kept, their risks are set to that outcome,",
+    "the limit of the fit, and the other participants are fitted without them."), fixed = TRUE)
+  refits <- m$indicator_refits
+  expect_gt(sum(refits), 0L)
+  expect_match(text, sprintf(paste0(
+    "Bootstrap refits: %d resamples held no participant kept without a pretest, and the ",
+    "indicator was left out; in %d, all those drawn had the same outcome"),
+    refits[["none_kept"]], refits[["shared_outcome"]]), fixed = TRUE)
+  r <- report_solomon(m)
+  expect_true(any(grepl(paste(
+    "With these participants excluded instead, the pretest effects were as follows: on the risk",
+    "difference scale,"), r$results, fixed = TRUE)))
+  expect_true(any(startsWith(r$references, "Albert, A., & Anderson, J. A. (1984).")))
+})
+
+test_that("perm_solomon() takes a fit with the indicator", {
+  # The indicator is 0 for every unpretested participant, as the pretest
+  # is, so it is not a term the pretest conditions share; a test of a
+  # contrast among the unpretested participants does not stop on it.
+  d <- mp_data()
+  kept <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
+                                           missing_pretest = "indicator"))
+  for (contrast in c("Treatment | unpretested", "Pretest x Treatment")) {
+    p <- suppressWarnings(perm_solomon(kept, contrast = contrast, reps = 99, seed = 20261123))
+    expect_equal(p$estimate, kept$effects$estimate[kept$effects$contrast == contrast],
+                 tolerance = 1e-10, info = contrast)
+    expect_true(is.finite(p$p_perm), info = contrast)
+    expect_identical(p$valid_reps, 99L, info = contrast)
+  }
+  # With the same posttest for every pretested participant, a contrast among
+  # them is 0 under every labeling, as it is without the indicator: the
+  # indicator varies only among the pretested, so it links them to no one.
+  flat <- d
+  flat$y_post[flat$pretested == 1] <- 50
+  for (m in c("drop", "indicator")) {
+    fit <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = flat,
+                                            missing_pretest = m))
+    expect_error(perm_solomon(fit, contrast = "Treatment | pretested", reps = 19,
+                              seed = 20261123),
+                 class = "solomonR_perm_no_variation_error", info = m)
+  }
+})
+
+
+# ---- other fits and the analysis plan ----------------------------------------------
+
+test_that("fit_solomon_mi() and fit_solomon_mmrm() say why they exclude participants", {
+  d <- mp_data()
+  excluded <- sum(d$pretested == 1 & is.na(d$y_pre))
+  mi <- suppressWarnings(fit_solomon_mi(y_post, treat, pretested, y_pre, data = d, m = 5,
+                                        seed = 20261124))
+  expect_identical(mi$excluded_pretest, excluded)
+  out <- mp_text(utils::capture.output(print(mi)))
+  expect_match(out, sprintf(paste0(
+    "Excluded participants: %d Pretested participants with no pretest score. Excluding them ",
+    "assumes, for the pretest effects, that in each pretested group they would have had the ",
+    "same mean posttest as those with a pretest"), excluded), fixed = TRUE)
+  # Some excluded for another reason.
+  d2 <- d
+  d2$treat[which(d2$pretested == 0)[1]] <- NA
+  mi2 <- suppressWarnings(fit_solomon_mi(y_post, treat, pretested, y_pre, data = d2, m = 5,
+                                         seed = 20261124))
+  expect_match(mp_text(utils::capture.output(print(mi2))), sprintf(
+    "Excluded participants: %d %d of them are pretested with no pretest score.", excluded + 1L,
+    excluded), fixed = TRUE)
+  # A fit made by an earlier version has no count, and prints as before.
+  old <- mi
+  old$excluded_pretest <- NULL
+  expect_false(grepl("no pretest score", mp_text(utils::capture.output(print(old))), fixed = TRUE))
+
+  skip_if_not_installed("mmrm", "0.3.13")
+  withr::with_seed(20261125, {
+    n <- 25
+    g <- rep(1:4, each = n)
+    x <- stats::rnorm(4 * n)
+    long <- data.frame(id = rep(seq_len(4 * n), 2), occasion = rep(1:2, each = 4 * n),
+                       treat = rep(as.integer(g %in% c(1, 3)), 2),
+                       pretested = rep(as.integer(g <= 2), 2),
+                       y_pre = rep(ifelse(g <= 2, x, NA), 2))
+    long$y_post <- 0.5 * rep(x, 2) + 0.3 * long$treat + stats::rnorm(nrow(long))
+  })
+  lost <- c(3, 7, 30)
+  long$y_pre[long$id %in% lost] <- NA
+  fit <- suppressWarnings(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre,
+                                           data = long))
+  expect_identical(fit$excluded, 3L)
+  expect_match(mp_text(utils::capture.output(print(fit))), paste(
+    "Excluded participants: 3 Pretested participants with no pretest score. Excluding them",
+    "assumes, for the pretest effects"), fixed = TRUE)
+})
+
+test_that("analysis_plan_solomon() states how participants without a pretest are handled", {
+  default <- analysis_plan_solomon()
+  expect_identical(default$settings$missing_pretest, "drop")
+  text <- paste(default$text, collapse = "\n")
+  expect_match(text, "`fit_solomon_glm(y_post, treat, pretested, y_pre)`", fixed = TRUE)
+  expect_match(text, paste(
+    "Missing pretests among pretested participants are not imputed: those who have a posttest",
+    "are left out of the model (`missing_pretest = \"drop\"`). For the pretest effects, that",
+    "assumes that, in each pretested group, they would have had the same mean posttest as those",
+    "with a pretest."), fixed = TRUE)
+  expect_false(grepl("[state how they are handled]", text, fixed = TRUE))
+  expect_match(text, "Groenwold, R. H. H., White, I. R.", fixed = TRUE)
+  kept <- analysis_plan_solomon(missing_pretest = "indicator")
+  expect_identical(kept$settings$missing_pretest, "indicator")
+  text <- paste(kept$text, collapse = "\n")
+  expect_match(text, "`fit_solomon_glm(y_post, treat, pretested, y_pre, missing_pretest = \"indicator\")`",
+               fixed = TRUE)
+  expect_match(text, paste(
+    "those who have a posttest are kept by the missing-indicator method (`missing_pretest =",
+    "\"indicator\"`; Groenwold et al., 2012)"), fixed = TRUE)
+  expect_match(text, "losing the pretest does not depend on the treatment condition", fixed = TRUE)
+  expect_identical(analysis_plan_solomon(missing_pretest = "drop")$text, default$text)
+  expect_error(analysis_plan_solomon(missing_pretest = "impute"), "should be one of")
+  # The mixed model excludes them, whatever the handling.
+  long <- analysis_plan_solomon(occasions = 1:3)
+  expect_match(paste(long$text, collapse = "\n"),
+               "a pretested participant without a pretest is excluded from the mixed model",
+               fixed = TRUE)
+})
+
+
+# ---- the results of master ----------------------------------------------------------
+
+test_that("\"drop\", and fits without a missing pretest, give the results of master (941eb77)", {
+  # fixtures/missing-pretest-master.rds holds results computed on master
+  # 941eb77, before `missing_pretest` was added; fixtures/missing-pretest-master.R
+  # made it and defines the calls: four groups and several treatments, with
+  # pretests missing among the pretested participants and with every
+  # pretest observed, for every family, covariance, and pretest center, and
+  # the functions that take a fit. Every element that master returned must
+  # be the same: identical() on the platform that made the file, and
+  # within the fits' tolerance elsewhere.
+  source(test_path("fixtures", "missing-pretest-master.R"), local = TRUE)
+  stored <- readRDS(test_path("fixtures", "missing-pretest-master.rds"))
+  same_platform <- identical(stored$platform, missing_pretest_platform())
+  tolerance <- function(name) {
+    if (grepl("negative binomial", name)) 1e-5
+    else if (grepl("binomial|poisson|logit|counts|marginal", name)) 1e-6
+    else 1e-8
+  }
+  runs <- list(default = list(), drop = list(missing_pretest = "drop"),
+               indicator = list(missing_pretest = "indicator"))
+  for (run in names(runs)) {
+    now <- suppressWarnings(missing_pretest_results(stored$data, runs[[run]]))
+    expect_setequal(names(now), names(stored$results))
+    expect_gte(length(now), 100L)
+    for (name in names(stored$results)) {
+      complete <- grepl("complete", name)
+      # With the indicator, only the data without a missing pretest must
+      # give master's results.
+      if (run == "indicator" && !complete) next
+      for (part in names(stored$results[[name]])) {
+        ref <- stored$results[[name]][[part]]
+        got <- now[[name]][[part]]
+        info <- paste(run, name, part)
+        if (part == "warnings") {
+          # The warning on missing pretests now has a class.
+          if (!complete) ref[ref == "simpleWarning"] <- "solomonR_missing_pretest_warning"
+          expect_identical(got, ref, info = info)
+          next
+        }
+        if (part %in% c("text", "sentences")) {
+          if (complete) {
+            expect_identical(got, ref, info = info)
+          } else if (part == "text") {
+            # Master's lines, unchanged, with the block on the
+            # participants without a pretest, an empty line and the indented
+            # lines under its title, added before any closing note.
+            at <- match("Pretested participants without a pretest", got)
+            expect_false(is.na(at), info = info)
+            expect_identical(got[at - 1L], "", info = info)
+            end <- at
+            while (end < length(got) && startsWith(got[end + 1L], "  ")) end <- end + 1L
+            expect_identical(got[-((at - 1L):end)], ref, info = info)
+          } else {
+            # Master's paragraphs, unchanged, then the sentences on them,
+            # which may close master's last paragraph.
+            k <- length(ref)
+            expect_identical(got[seq_len(k - 1L)], ref[seq_len(k - 1L)], info = info)
+            expect_true(startsWith(got[k], ref[k]), info = info)
+            expect_true(any(grepl("missing-indicator method", got[k:length(got)], fixed = TRUE)),
+                        info = info)
+          }
+          next
+        }
+        # The elements that master returned; the fits now return more.
+        if (is.list(ref) && !is.data.frame(ref) && !is.null(names(ref))) {
+          expect_true(all(names(ref) %in% names(got)), info = info)
+          got <- got[names(ref)]
+        }
+        if (same_platform) {
+          expect_identical(got, ref, info = info)
+        } else {
+          expect_equal(got, ref, tolerance = tolerance(name), info = info)
+        }
+      }
+    }
+  }
+})
+
+test_that("fits saved by master print, summarize, report, tidy, and plot as on master", {
+  # fixtures/missing-pretest-master.rds also holds fits and a
+  # marginal_solomon() result made by master (941eb77), with their output
+  # there. They lack every element added by #142.
+  source(test_path("fixtures", "missing-pretest-master.R"), local = TRUE)
+  stored <- readRDS(test_path("fixtures", "missing-pretest-master.rds"))
+  expect_named(stored$objects, c("glm", "glm_observed", "logit", "ngroup", "marginal"))
+  for (name in names(stored$objects)) {
+    x <- stored$objects[[name]]
+    expect_null(x$missing_pretest)
+    now <- suppressWarnings(missing_pretest_output(x))
+    ref <- stored$objects_output[[name]]
+    expect_named(now, names(ref))
+    for (part in names(ref)) {
+      expect_identical(now[[part]], ref[[part]], info = paste(name, part))
+    }
+  }
+})

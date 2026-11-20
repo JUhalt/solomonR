@@ -2101,6 +2101,8 @@ print.solomon_marginal <- function(x, digits = 3, ...) {
       cat("\n", paste(vapply(lines, .wrap_lines, ""), collapse = "\n"), "\n", sep = "")
     }
   }
+  # Pretested participants without a pretest (issue #142).
+  .missing_pretest_output(x, digits, marginal = TRUE)
   cat("\nSensitization depends on the scale; report the scale with every result.\n")
   invisible(x)
 }

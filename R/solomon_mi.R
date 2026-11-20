@@ -20,7 +20,8 @@
 }
 
 # Participants analyzed, their groups, their row numbers in the data as
-# given (`rows`), and the number excluded.
+# given (`rows`), the number excluded, and how many of those are pretested
+# participants without a pretest (`excluded_pretest`; issue #142).
 .mi_prepare <- function(y_post, treat, pretested, y_pre) {
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
@@ -30,6 +31,7 @@
          call. = FALSE)
   }
   keep <- !is.na(treat) & !is.na(pretested)
+  excluded_pretest <- 0L
   if (!is.null(y_pre)) {
     if (!is.numeric(y_pre)) stop("`y_pre` must be numeric.", call. = FALSE)
     if (any(pretested == 0L & !is.na(y_pre), na.rm = TRUE)) {
@@ -42,6 +44,7 @@
       warning(sum(no_pre), " pretested participant(s) have missing pretest scores and ",
               "are excluded. Missing pretests are not imputed; see check_solomon_missing().",
               call. = FALSE)
+      excluded_pretest <- sum(no_pre)
       keep <- keep & !no_pre
     }
   }
@@ -50,7 +53,8 @@
     y_pre = if (!is.null(y_pre)) y_pre[keep],
     group = .solomon_group(treat[keep], pretested[keep]),
     rows = which(keep),
-    excluded = sum(!keep)
+    excluded = sum(!keep),
+    excluded_pretest = excluded_pretest
   )
 }
 
@@ -460,6 +464,7 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
       m = m,
       missing = .mi_missing_table(d),
       excluded = d$excluded,
+      excluded_pretest = d$excluded_pretest,
       pretest = !is.null(d$y_pre),
       estimates = est,
       std_errors = se,
@@ -489,7 +494,14 @@ print.solomon_mi <- function(x, digits = 3, ...) {
   cat("Missing posttests: ",
       paste(sprintf("%d of %d (%s)", miss$missing, miss$n, miss$group), collapse = "; "),
       "\n", sep = "")
-  if (x$excluded > 0L) cat("Excluded participants: ", x$excluded, "\n", sep = "")
+  if (x$excluded > 0L) {
+    cat("Excluded participants: ", x$excluded, "\n", sep = "")
+    # Fits made by earlier versions do not say how many of them are
+    # pretested participants without a pretest.
+    if (isTRUE(x$excluded_pretest > 0L)) {
+      cat(.excluded_pretest_lines(x$excluded_pretest, of = x$excluded), sep = "\n")
+    }
+  }
   cat("Pooling: Rubin's rules; Barnard-Rubin degrees of freedom; ",
       if (x$robust == "HC3") "HC3 standard errors" else "model-based standard errors",
       "\n\n", sep = "")

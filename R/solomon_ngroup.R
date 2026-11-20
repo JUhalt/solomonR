@@ -1192,6 +1192,8 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
   }
   # The two pretest centers when posttests are missing (issue #135).
   .center_output(x, digits)
+  # Pretested participants without a pretest (issue #142).
+  .missing_pretest_output(x, digits)
   cat(.ngroup_lifecycle_note(), sep = "\n")
   invisible(x)
 }

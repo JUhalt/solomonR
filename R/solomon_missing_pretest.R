@@ -50,6 +50,15 @@
 # marks, for a fit with the indicator.
 .kept_share <- function(fit) fit$missing_pretest_share
 
+# " with a pretest" for a fit, or its summary, that keeps pretested
+# participants without a pretest by the indicator, where "the pretested
+# participants analyzed" would also take in those without one; "" for every
+# other fit, and for fits made before #142, so that their output is as before.
+.analyzed_with_pretest <- function(x) {
+  kept <- identical(x$missing_pretest, "indicator") && isTRUE(sum(x$n_missing_pretest) > 0L)
+  if (kept) " with a pretest" else ""
+}
+
 # The names of the columns of a fit's data that are not covariates: the
 # outcome, the treatment and pretest terms, the pretest, the exposure, and,
 # in a fit with the indicator, the indicator.
@@ -112,6 +121,29 @@
     class = c("solomonR_missing_pretest_warning", "warning", "condition"),
     list(message = text, call = NULL)
   ))
+}
+
+# The lines that the print methods of fit_solomon_mmrm() and
+# fit_solomon_mi() add under "Excluded participants" (issue #142): why the
+# `n` pretested participants without a pretest were excluded, and what
+# that assumes. Those fits drop such participants; the handling of
+# fit_solomon_glm(missing_pretest = "indicator") waits for an amendment to
+# the protocol of each (issues #57 and #82). `of` is the number excluded
+# in all, when some were excluded for another reason.
+.excluded_pretest_lines <- function(n, of = n) {
+  who <- if (of > n) {
+    sprintf("%d of them %s pretested with no pretest score.", n, if (n == 1L) "is" else "are")
+  } else if (n == 1L) {
+    "A pretested participant with no pretest score."
+  } else {
+    "Pretested participants with no pretest score."
+  }
+  strwrap(paste(
+    who, "Excluding them assumes, for the pretest effects, that in each pretested group",
+    "they would have had the same mean posttest as those with a pretest; when their loss",
+    "relates to baseline, the pretest effects are biased. See \"Pretested participants",
+    "without a pretest\" in ?fit_solomon_glm."
+  ), width = 78, indent = 2, exdent = 2)
 }
 
 # Whether the indicator separates the outcome: every participant it marks

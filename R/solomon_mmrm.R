@@ -641,7 +641,10 @@ print.solomon_mmrm <- function(x, digits = 3, ...) {
                 digits, x$pretest_mean))
     cat("Pretest effects: standard errors include the sampling variance of that mean.\n")
   }
-  if (x$excluded > 0L) cat("Excluded participants: ", x$excluded, "\n", sep = "")
+  if (x$excluded > 0L) {
+    cat("Excluded participants: ", x$excluded, "\n", sep = "")
+    cat(.excluded_pretest_lines(x$excluded), sep = "\n")
+  }
   cat("\nObserved posttests by group and occasion:\n")
   print(x$observed)
   cat("\n")

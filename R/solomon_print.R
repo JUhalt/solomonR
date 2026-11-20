@@ -144,6 +144,8 @@ print.solomon_glm <- function(x, digits = 3, ...) {
   )
   .glm_pretest_note(x, digits)
   .center_output(x, digits)
+  # Pretested participants without a pretest (issue #142).
+  .missing_pretest_output(x, digits)
   invisible(x)
 }
 

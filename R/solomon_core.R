@@ -2671,8 +2671,12 @@ perm_solomon <- function(
   # still varies, through the other condition, a covariate the conditions
   # share, or the exposure. The outcome is taken as glm() fits it, so that a
   # binary factor meets the bounds.
+  # The indicator of a missing pretest (issue #142) is 0 for every
+  # unpretested participant, as the pretest is, so the conditions do not
+  # share it.
   labels <- attr(stats::terms(form), "term.labels")
-  shared <- setdiff(labels, c("treat", "pretested", "pre_obs", "treat:pretested"))
+  shared <- setdiff(labels, c("treat", "pretested", "pre_obs", "treat:pretested",
+                              if (.has_missing_indicator(fit)) .missing_pretest_column))
   .perm_check_variation(
     y0, df$pretested[used], contrast, fam,
     shared = X0[, attr(X0, "assign") %in% match(shared, labels), drop = FALSE],
