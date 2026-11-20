@@ -119,7 +119,8 @@ posttests and the pretest center" below). Per-occasion analyses of
 the participants still observed, and unweighted generalized estimating
 equations, require the stronger assumption that the posttests are missing
 completely at random (Liang & Zeger, 1986; Fitzmaurice et al., 2011, pp.
-358, 498).
+358, 498). The section "Limits" states what else the model assumes and
+where its standard errors are approximate.
 }
 \section{Model}{
 
@@ -151,7 +152,16 @@ pretest effects were not part of the validation study below.
 are missing"), the pretest effects depend on the mean pretest at which
 they are evaluated when some pretested participants have no posttest at
 any occasion; \code{pretest_center} chooses it, and \code{"observed"} needs those
-participants' rows, with \code{y_post} missing. A participant with a
+participants' rows, with \code{y_post} missing. At each occasion, the
+pretest effects at the two centers differ by that occasion's pretest
+slope times the difference between the two means. Which center is
+right depends on who was lost before the first posttest. When all four
+groups lose participants alike by their baseline, the default is
+unbiased, and \code{"observed"} is off by that difference. When only the
+pretested groups lose them by their pretest, and the unpretested
+groups' losses are unrelated to baseline, \code{"observed"} is unbiased, and
+the default is off by it (the decision record posted on issue #135,
+section 1). A participant with a
 posttest at any occasion is analyzed, so dropout after the first
 occasion leaves the two centers equal. Neither center protects the
 later occasions when dropout depends on baseline beyond the earlier
@@ -175,20 +185,25 @@ restricted maximum likelihood (Laird & Ware, 1982). With a pretest, it
 is estimated separately for pretested and unpretested participants: the
 pretest adjustment makes the residual covariance conditional on the
 pretest in the pretested groups only, so a single shared matrix would
-be misspecified.
+be misspecified. The treated and the control group of a pretest
+condition share one matrix; see "Limits".
 \item \strong{Fallback.} If the unstructured model does not converge, the
 heterogeneous Toeplitz, heterogeneous AR(1), and heterogeneous compound
 symmetry structures are fitted, and the converged one with the smallest
 AIC is used (Mallinckrodt et al., 2008, p. 312). The output names the
-structure used.
+structure used. "Limits" says what changes after a fallback.
 \item \strong{Inference.} t tests and intervals with Kenward-Roger degrees of
 freedom and adjusted covariance (Kenward & Roger, 1997, as cited in
 Fitzmaurice et al., 2011, p. 101), as Mallinckrodt et al. (2008, p.
 312) specify, or with Satterthwaite (1946) degrees of freedom. The
 Kenward-Roger adjustment depends on how the covariance is
-parameterized; it is computed with the matrix's own elements as the
-parameters, the form that reproduces SAS PROC MIXED (mmrm's
-"Kenward-Roger-Linear"; Sabanes Bove et al., 2026).
+parameterized. It is computed in its linear form (mmrm's
+"Kenward-Roger-Linear"), which leaves out the term of the adjustment
+that holds the second derivatives of the covariance matrix with respect
+to its parameters (Sabanes Bove et al., 2026). With the unstructured
+matrix and its own elements as the parameters, that term is zero, and
+the computation reproduces SAS PROC MIXED. This holds for the
+unstructured matrix only, not after a fallback (see "Limits").
 Fitzmaurice et al. (2011, p. 101) note that the small-sample properties
 of both approximations in longitudinal models "have not been
 extensively studied"; the simulation study posted on issue #57 compares
@@ -197,6 +212,69 @@ them in Solomon designs.
 
 The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
 version 0.3.13 or later, which must be installed.
+}
+
+\section{Limits}{
+
+These limits come from the model and from the literature on it. They do
+not depend on the results of a simulation study.
+\itemize{
+\item \strong{Dropout that depends on scores.} The standard errors rest on the
+expected information, as mmrm and SAS PROC MIXED compute it, with
+either choice of \code{df}. Kenward and Molenberghs (1998) show that when
+dropout depends on the scores observed before it, the mean and the
+covariance parameters of the normal model are no longer orthogonal (p.
+242): their estimates are correlated however large the sample. Such
+standard errors can then be wrong at any sample size, and Kenward and
+Molenberghs recommend the observed information instead (pp. 238--239,
+247). In the simulations of Maruo et al. (2020, Table 1), with 200
+participants per arm, three occasions, maximum likelihood, and dropout
+that depended on the previous score, the usual standard error of the
+treatment difference at the last occasion was 4\% to 5\% too small with
+20\% of the last scores missing, and 13\% to 17\% too small with 40\%,
+when each arm had its own unstructured matrix. When the arms rightly
+shared one matrix, it was within 2\% of the right value. With a pretest
+in the model, a treatment contrast compares two groups that share a
+matrix, and a pretest effect compares two groups whose matrices are
+estimated separately. The limit therefore bears on the pretest
+effects: under such dropout their standard errors can be too small.
+The function does not offer standard errors from the observed
+information. The printed output of a fit with a pretest and missing
+posttests carries a note.
+\item \strong{One covariance matrix for both arms.} The model assumes that the
+treated and the control group of a pretest condition have the same
+covariance matrix. With one unstructured matrix for both arms and the
+Kenward-Roger method, Gosho and Maruo (2018) found that intervals for
+the treatment effect covered too rarely when the arm with more dropout
+had the larger variance, and that the estimate was biased as well when
+the arms' correlations also differed. The covariance estimator of Mancl
+and DeRouen (2001, as cited in Gosho & Maruo, 2018) did better in the
+first case, and a matrix for each arm in the second. The function
+offers neither.
+\item \strong{After a fallback.} The fallback structures are not linear in their
+parameters. For such structures, the default Kenward-Roger adjustment
+of SAS PROC MIXED includes the second-derivative term, which can shrink
+the standard errors and depends on the parameterization; its
+\code{FIRSTORDER} option leaves the term out (SAS Institute Inc., 2009).
+This function always leaves it out, so after a fallback it gives the
+first-order form of the adjustment, not the default of SAS. The
+structure is also chosen by AIC, which is unreliable in small samples.
+With 10 participants and five occasions, AIC chose the true structure,
+when that was simpler than the unstructured one, in 27\% to 73\% of
+complete samples and in 20\% to 66\% of samples with dropouts (Skene &
+Kenward, 2010, Table II). In the simulations of Gomez et al. (2005),
+Kenward-Roger tests had Type I error rates above the nominal level
+whenever the structure was chosen by AIC or BIC. The inference after a
+fallback has not been evaluated for this function: in the simulation
+study below, the unstructured model converged in every replication.
+\item \strong{Outcomes that are not normal.} The model assumes normal residuals,
+and the simulation study below drew normal outcomes. From simulations
+with 30 to 42 participants in three groups, Arnau et al. (2012)
+conclude that Kenward-Roger tests are compromised when the outcome is
+moderately skewed, as a log-normal outcome is, most of all for the
+effect of time, and that they hold up when it is normal or only
+slightly skewed.
+}
 }
 
 \section{Validation}{
@@ -253,12 +331,31 @@ if (requireNamespace("mmrm", quietly = TRUE) && utils::packageVersion("mmrm") >=
 
 }
 \references{
+Arnau, J., Bono, R., Blanca, M. J., & Bendayan, R. (2012). Using the linear
+mixed model to analyze nonnormal data distributions in longitudinal
+designs. \emph{Behavior Research Methods, 44}(4), 1224–1238.
+https://doi.org/10.3758/s13428-012-0196-y
+
 Entwisle, D. R. (1961). Interactive effects of pretesting. \emph{Educational and
 Psychological Measurement, 21}(3), 607–620.
 https://doi.org/10.1177/001316446102100307
 
 Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). \emph{Applied
 longitudinal analysis} (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
+
+Gomez, E. V., Schaalje, G. B., & Fellingham, G. W. (2005). Performance of
+the Kenward–Roger method when the covariance structure is selected using
+AIC and BIC. \emph{Communications in Statistics - Simulation and Computation,
+34}(2), 377–392. https://doi.org/10.1081/SAC-200055719
+
+Gosho, M., & Maruo, K. (2018). Effect of heteroscedasticity between
+treatment groups on mixed-effects models for repeated measures.
+\emph{Pharmaceutical Statistics, 17}(5), 578–592.
+https://doi.org/10.1002/pst.1872
+
+Kenward, M. G., & Molenberghs, G. (1998). Likelihood based frequentist
+inference when data are missing at random. \emph{Statistical Science, 13}(3),
+236–247. https://doi.org/10.1214/ss/1028905886
 
 Laird, N. M., & Ware, J. H. (1982). Random-effects models for longitudinal
 data. \emph{Biometrics, 38}(4), 963–974. https://doi.org/10.2307/2529876
@@ -272,15 +369,28 @@ Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J. P.
 in longitudinal clinical trials. \emph{Drug Information Journal, 42}(4),
 303–319. https://doi.org/10.1177/009286150804200402
 
+Maruo, K., Ishii, R., Yamaguchi, Y., Doi, M., & Gosho, M. (2020). A note
+on the bias of standard errors when orthogonality of mean and variance
+parameters is not satisfied in the mixed model for repeated measures
+analysis. \emph{Statistics in Medicine, 39}(9), 1264–1274.
+https://doi.org/10.1002/sim.8474
+
 Sabanes Bove, D., Li, L., Dedic, J., Kelkhoff, D., Kunzmann, K., Lang, B.
 M., Stock, C., Wang, Y., James, D., Sidi, J., Leibovitz, D., Sjoberg, D.
 D., Krieger, N. I., Panagos, A., & Jones, J. (2026). \emph{mmrm: Mixed models
 for repeated measures} (Version 0.3.18) [R package].
 https://doi.org/10.32614/CRAN.package.mmrm
 
+SAS Institute Inc. (2009). \emph{SAS/STAT 9.2 user's guide} (2nd ed.).
+https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/statug_mixed_sect015.htm
+
 Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 variance components. \emph{Biometrics Bulletin, 2}(6), 110–114.
 https://doi.org/10.2307/3002019
+
+Skene, S. S., & Kenward, M. G. (2010). The analysis of very small samples
+of repeated measurements I: An adjusted sandwich estimator. \emph{Statistics
+in Medicine, 29}(27), 2825–2837. https://doi.org/10.1002/sim.4073
 
 Welch, B. L. (1947). The generalization of "Student's" problem when several
 different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.

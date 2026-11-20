@@ -6,9 +6,11 @@ APA
 Appelbaum
 Arendasy
 Ariza
+Arnau
 Aviv
 BMJ
 Bakketeig
+Bendayan
 Bentler
 Bhavsar
 Biometrical
@@ -41,6 +43,7 @@ Cumsille
 D'Agostino
 DLS
 DeHaven
+DeRouen
 DeVinney
 Dedic
 DejaVu
@@ -63,7 +66,9 @@ Eqs
 Ervin
 Estimand
 Estimands
+FIRSTORDER
 Farrar
+Fellingham
 Fitzmaurice
 Forsythe
 Frangakis
@@ -72,6 +77,7 @@ Galati
 Gelman
 Giner
 Golub
+Gosho
 Groenwold
 Gulliford
 Gøtzsche
@@ -86,6 +92,7 @@ Hu
 II's
 Imbens
 Isager
+Ishii
 Jerić
 Jordaan
 Jordaan's
@@ -121,11 +128,13 @@ MLR
 MMRM
 MacKinnon
 Mallinckrodt
+Mancl
 Mancuso
 Margolis
 Markman
 Markman's
 Marschner
+Maruo
 Mathematik
 Mavridis
 McCaffrey
@@ -199,6 +208,7 @@ Satorra
 Satterthwaite
 Sawilowsky
 Sawilowsky's
+Schaalje
 Scharfstein
 Scheel
 Scheffé
@@ -210,6 +220,7 @@ Shih
 Sidi
 Siegel
 Sjoberg
+Skene
 Smyth
 Sorolla
 Sorolla's
@@ -252,6 +263,7 @@ Wickham
 Wilk
 Willson
 Witton
+Yamaguchi
 Yoshi
 Zeger
 Zhang
@@ -271,6 +283,7 @@ bioavailability
 biomet
 bmj
 brainsci
+cdl
 checkable
 clubSandwich
 cmaj
@@ -304,6 +317,7 @@ hdl
 heteroskedastic
 heteroskedasticity
 hta
+htm
 https
 ies
 ije
@@ -351,6 +365,7 @@ pre
 predata
 pretest's
 programme
+pst
 purrr
 quasicomplete
 randomised
@@ -362,13 +377,16 @@ roadmap
 roundoff
 rssa
 runnable
+sas
 sav
 selfdoeltreffendheidspersepsies
 sensitisation
 solomon
 solomonR's
+ss
 standardizations
 standardizers
+statug
 stringi
 stringr
 studentization

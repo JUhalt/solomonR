@@ -803,3 +803,80 @@ test_that("other values of `structures` and `vcov` stop before any fit (#57)", {
                "`vcov = \"Empirical-Jackknife\"` needs `df = \"satterthwaite\"`.", fixed = TRUE)
   expect_identical(fits, 0L)
 })
+
+# The note on dropout that depends on scores (#57, third amendment,
+# consequence (b)): a printed fit with a pretest and missing posttests
+# carries it, whatever its results.
+
+test_that("a printed fit with a pretest and missing posttests carries the dropout note (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  note <- paste("If dropout depends on earlier scores, the standard errors of the pretest",
+                "effects can be too small. See ?fit_solomon_mmrm, \"Limits\".")
+  shown <- function(fit) {
+    text <- gsub("\\s+", " ", paste(utils::capture.output(print(fit)), collapse = " "))
+    grepl(note, text, fixed = TRUE)
+  }
+  long <- long_example(missing = 0.2)
+  complete <- long_example()
+
+  # Posttests missing as NA values.
+  with_na <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
+  expect_true(shown(with_na))
+  # The note is the last thing printed, after an empty line.
+  lines <- utils::capture.output(print(with_na))
+  expect_identical(utils::tail(lines, 3), c(
+    "",
+    "If dropout depends on earlier scores, the standard errors of the pretest",
+    "effects can be too small. See ?fit_solomon_mmrm, \"Limits\"."
+  ))
+  # Posttests missing because their rows are absent: the same fit, and the
+  # same note.
+  absent <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre,
+                             data = long[!is.na(long$y_post), ])
+  expect_identical(absent$effects, with_na$effects)
+  expect_true(shown(absent))
+  # One posttest missing, at the first occasion, of either kind: none is
+  # missing at the last occasion, which the attrition line reports.
+  one <- complete
+  one$y_post[one$id == 5 & one$occasion == 1] <- NA
+  expect_true(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = one)))
+  expect_true(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre,
+                                     data = one[!is.na(one$y_post), ])))
+  # One participant of an unpretested group without any posttest, whose
+  # rows are in the data.
+  none <- complete
+  none$y_post[none$id == 100] <- NA
+  expect_true(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = none)))
+  # With either choice of degrees of freedom and either center.
+  expect_true(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long,
+                                     df = "satterthwaite", pretest_center = "observed")))
+
+  # Not with every posttest observed.
+  full <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = complete)
+  expect_false(shown(full))
+  expect_false(any(grepl("dropout", utils::capture.output(print(full)))))
+  # Not without a pretest, whatever is missing.
+  expect_false(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, data = long)))
+  expect_false(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, data = complete)))
+})
+
+test_that("the dropout note counts posttests against each group's participants (#57)", {
+  # .mmrm_posttests_missing() needs no model: the counts of observed
+  # posttests by group and occasion, and the participants of each group.
+  groups <- solomonR:::.solomon_group_labels
+  fit <- function(counts, n = 5L) {
+    observed <- as.data.frame(matrix(counts, nrow = 4, dimnames = list(groups, c("1", "2"))))
+    list(observed = observed,
+         data = data.frame(treat = rep(c(1, 0, 1, 0), each = n),
+                           pretested = rep(c(1, 1, 0, 0), each = n)))
+  }
+  expect_false(solomonR:::.mmrm_posttests_missing(fit(rep(5L, 8))))
+  for (cell in 1:8) {
+    counts <- rep(5L, 8)
+    counts[cell] <- 4L
+    expect_true(solomonR:::.mmrm_posttests_missing(fit(counts)), info = cell)
+  }
+  # A fit that lacks the counts or the participants gives no note.
+  expect_false(solomonR:::.mmrm_posttests_missing(list(observed = fit(rep(4L, 8))$observed)))
+  expect_false(solomonR:::.mmrm_posttests_missing(list(data = fit(rep(4L, 8))$data)))
+})
