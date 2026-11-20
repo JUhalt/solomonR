@@ -410,18 +410,28 @@
   if (is.na(pretest_mean)) return("Means from the fitted model")
   num <- function(v) formatC(v, format = "f", digits = 2)
   s <- fit$pretest_sensitivity
+  # In a fit with the missing-indicator method (issue #142), the pretested
+  # groups' means are also at the indicator's mean, which standardizes them
+  # over the pretested participants analyzed, with a pretest or without.
+  kept <- if (.has_missing_indicator(fit)) {
+    sprintf(paste0(".\nPretested participants kept without a pretest: %d (missing-indicator method;\n",
+                   "Groenwold et al., 2012)"), sum(fit$n_missing_pretest))
+  } else {
+    ""
+  }
   if (is.null(fit$pretest_center) || is.null(s) || !isTRUE(s$differ)) {
-    return(sprintf("Adjusted means: pretested groups at the mean pretest (%s)", num(pretest_mean)))
+    return(paste0(sprintf("Adjusted means: pretested groups at the mean pretest (%s)",
+                          num(pretest_mean)), kept))
   }
   if (identical(fit$pretest_center, "observed")) {
-    sprintf(paste0("Adjusted means: pretested groups at the mean of every observed pretest\n",
-                   "(%s; pretested participants analyzed: %s)"),
-            num(fit$pretest_mean_observed), num(fit$pretest_mean_analyzed))
+    paste0(sprintf(paste0("Adjusted means: pretested groups at the mean of every observed pretest\n",
+                          "(%s; pretested participants analyzed: %s)"),
+                   num(fit$pretest_mean_observed), num(fit$pretest_mean_analyzed)), kept)
   } else {
-    sprintf(paste0("Adjusted means: pretested groups at the mean pretest of the %d pretested\n",
-                   "participants analyzed (%s; every observed pretest: %s)"),
-            fit$pretest_n[["analyzed"]], num(fit$pretest_mean_analyzed),
-            num(fit$pretest_mean_observed))
+    paste0(sprintf(paste0("Adjusted means: pretested groups at the mean pretest of the %d pretested\n",
+                          "participants analyzed (%s; every observed pretest: %s)"),
+                   fit$pretest_n[["analyzed"]], num(fit$pretest_mean_analyzed),
+                   num(fit$pretest_mean_observed)), kept)
   }
 }
 

@@ -126,6 +126,12 @@
 # The rows are applied to the fit's coefficients by position, so a fit made
 # before issue #170 whose model matrix no longer codes its covariates as the
 # fit did stops (.check_fit_collation()).
+#
+# In a fit with the missing-indicator method (issue #142), the indicator is
+# not a covariate: it is at its mean among the pretested participants in
+# the model in the pretested cells, and at 0 in the unpretested cells, so
+# that the differences between the cells are the fit's pretest effects
+# (.indicator_cells()).
 .glm_cell_means_design <- function(fit) {
   X <- .check_fit_collation(fit)
   cn <- colnames(X)
@@ -141,9 +147,10 @@
   if (.has_pretest_column(fit, X)) L[, "pre_obs"] <- cells$pretested * pre_mean
 
   design_cols <- c("(Intercept)", "treat", "pretested", "treat:pretested", "pre_obs")
-  for (j in .covariate_columns(fit, X, design_cols)) {
+  for (j in setdiff(.covariate_columns(fit, X, design_cols), .indicator_position(fit))) {
     L[, j] <- mean(X[, j])
   }
+  L <- .indicator_cells(fit, L, cells$pretested)
 
   list(L = L, cells = cells, pretest_mean = .raw_pretest_mean(fit, pre_mean))
 }
@@ -198,9 +205,11 @@
   if (.has_pretest_column(fit, X)) L[, "pre_obs"] <- cells$pretested * pre_mean
 
   design_cols <- c("(Intercept)", terms, "pretested", interactions, "pre_obs")
-  for (j in .covariate_columns(fit, X, design_cols)) {
+  for (j in setdiff(.covariate_columns(fit, X, design_cols), .indicator_position(fit))) {
     L[, j] <- mean(X[, j])
   }
+  # The indicator of a missing pretest, as for four groups (issue #142).
+  L <- .indicator_cells(fit, L, cells$pretested)
 
   list(L = L, cells = cells, pretest_mean = .raw_pretest_mean(fit, pre_mean))
 }

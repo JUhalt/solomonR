@@ -1113,3 +1113,84 @@ test_that("marginal_solomon() takes a count fit with the indicator", {
   expect_equal(mz$rates$rate[1:2], mdz$rates$rate[1:2] * (n - 2) / n, tolerance = 1e-6)
   expect_true(all(is.finite(mz$effects$std.error)))
 })
+
+
+# ---- plot_sensitization() ----------------------------------------------------------
+
+test_that("plot_sensitization() puts the indicator at its mean in the pretested cells", {
+  d <- mp_data()
+  d$cluster <- d$site
+  for (robust in c("HC3", "none", "CR2")) {
+    fit <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "age",
+                                            data = d, missing_pretest = "indicator",
+                                            robust = robust, cluster = cluster))
+    p <- plot_sensitization(fit)
+    cell <- function(t, pre) p$data$estimate[p$data$treat == t & p$data$pretested == pre]
+    est <- stats::setNames(fit$effects$estimate, fit$effects$contrast)
+    # The differences between the adjusted means are the fit's pretest
+    # effects, and their difference of differences its Pretest x Treatment.
+    expect_equal(cell(0, 1) - cell(0, 0), est[["Pretest effect | control"]], tolerance = 1e-10,
+                 info = robust)
+    expect_equal(cell(1, 1) - cell(1, 0), est[["Pretest effect | treated"]], tolerance = 1e-10,
+                 info = robust)
+    expect_equal((cell(1, 1) - cell(0, 1)) - (cell(1, 0) - cell(0, 0)),
+                 est[["Pretest x Treatment"]], tolerance = 1e-10, info = robust)
+    expect_true(all(is.finite(p$data$std.error)), info = robust)
+    # The unpretested cells have the indicator at 0: the intercept, the
+    # treatment coefficient, and the covariate at its mean.
+    b <- stats::coef(fit$model)
+    age <- mean(d$age[!is.na(d$y_post)])
+    expect_equal(cell(0, 0), b[["(Intercept)"]] + b[["age"]] * age, tolerance = 1e-10,
+                 info = robust)
+    expect_equal(cell(1, 0) - cell(0, 0), b[["treat"]], tolerance = 1e-10, info = robust)
+  }
+  expect_match(p$labels$caption,
+               sprintf(paste0("Pretested participants kept without a pretest: %d (missing-indicator ",
+                              "method;\nGroenwold et al., 2012)."), sum(fit$n_missing_pretest)),
+               fixed = TRUE)
+  # With missing_pretest = "drop" the caption does not mention them.
+  drop <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d))
+  expect_no_match(plot_sensitization(drop)$labels$caption, "kept without a pretest", fixed = TRUE)
+
+  # Several treatments: each condition's difference is its pretest effect.
+  six <- mp_six()
+  fit6 <- suppressWarnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                           data = six, missing_pretest = "indicator"))
+  p6 <- plot_sensitization(fit6)
+  e6 <- fit6$effects[fit6$effects$contrast %in% mp_pretest[1:2], ]
+  for (condition in c("Control", "A", "B")) {
+    expect_equal(p6$data$estimate[p6$data$treat == condition & p6$data$pretested == 1] -
+                   p6$data$estimate[p6$data$treat == condition & p6$data$pretested == 0],
+                 e6$estimate[e6$comparison == condition], tolerance = 1e-10, info = condition)
+  }
+  expect_match(p6$labels$caption, "Pretested participants kept without a pretest: ", fixed = TRUE)
+})
+
+test_that("plot_sensitization() follows the rule at one kept participant and under separation", {
+  d <- mp_data()
+  d$y_pre <- ifelse(d$pretested == 1, 50 + seq_len(nrow(d)) %% 17, NA)
+  one <- which(d$pretested == 1 & !is.na(d$y_post))[5]
+  d1 <- d
+  d1$y_pre[one] <- NA
+  fit <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d1,
+                                          missing_pretest = "indicator"))
+  p <- plot_sensitization(fit)
+  # The pretested cells depend on that participant, whose leverage is 1.
+  expect_true(all(is.na(p$data$std.error[p$data$pretested == 1])))
+  expect_true(all(is.finite(p$data$std.error[p$data$pretested == 0])))
+  expect_true(all(is.finite(p$data$estimate)))
+  expect_match(p$labels$caption, sprintf("leverage 1 for participant %d", one), fixed = TRUE)
+  # Under separation the pretested cells' means are infinite on the model's
+  # scale, and the figure stops with a classed error; "drop" can be drawn.
+  ds <- d
+  ds$y_pre[which(ds$pretested == 1 & ds$passed %in% 0)[1:2]] <- NA
+  separated <- suppressWarnings(fit_solomon_glm(passed, treat, pretested, y_pre, data = ds,
+                                                family = stats::binomial(),
+                                                missing_pretest = "indicator"))
+  err <- expect_error(plot_sensitization(separated),
+                      class = "solomonR_missing_pretest_separation_error")
+  expect_match(conditionMessage(err), "infinite on the log-odds scale", fixed = TRUE)
+  drop <- suppressWarnings(fit_solomon_glm(passed, treat, pretested, y_pre, data = ds,
+                                           family = stats::binomial()))
+  expect_s3_class(plot_sensitization(drop), "ggplot")
+})
