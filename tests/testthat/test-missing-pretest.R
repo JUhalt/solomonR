@@ -400,12 +400,16 @@ test_that("with no missing pretest the two values give the same fit (agreement c
   d <- mp_data()
   d$y_pre[d$pretested == 1 & is.na(d$y_pre)] <- 50
   d$cluster <- d$site
+  six <- mp_six()
+  six$y_pre[six$pretested == 1 & is.na(six$y_pre)] <- 0
   calls <- list(
     function(m) fit_solomon_glm(y_post, treat, pretested, y_pre, data = d, missing_pretest = m),
     function(m) fit_solomon_glm(y_post, treat, pretested, y_pre, data = d, missing_pretest = m,
                                 robust = "CR2", cluster = cluster, pretest_center = "observed"),
     function(m) suppressWarnings(fit_solomon_glm(passed, treat, pretested, y_pre, data = d,
-                                                 missing_pretest = m, family = stats::binomial()))
+                                                 missing_pretest = m, family = stats::binomial())),
+    function(m) fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control", data = six,
+                                missing_pretest = m)
   )
   for (call in calls) {
     expect_no_warning(drop <- call("drop"), class = "solomonR_missing_pretest_warning")
@@ -478,6 +482,18 @@ test_that("with exactly one kept participant, the pretest effects have no HC3 st
   expect_identical(mp_classes(none$warnings), "solomonR_missing_pretest_warning")
   expect_equal(mp_rows(none$value, mp_pretest)$std.error, mp_hand(d, robust = "none")$std.error,
                tolerance = 1e-8)
+  # The same with several treatments.
+  six <- mp_six()
+  six$y_pre <- ifelse(six$pretested == 1, seq_len(nrow(six)) %% 13, NA)
+  one6 <- which(six$pretested == 1 & six$cond == "B" & !is.na(six$y_post))[3]
+  six$y_pre[one6] <- NA
+  w6 <- mp_warnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                    data = six, missing_pretest = "indicator"))
+  expect_true("solomonR_hc3_leverage_warning" %in% mp_classes(w6$warnings))
+  e6 <- w6$value$effects
+  expect_true(all(is.na(e6$std.error[e6$contrast %in% mp_pretest])))
+  expect_true(all(is.finite(e6$std.error[!e6$contrast %in% mp_pretest])))
+  expect_true(all(is.finite(w6$value$omnibus$statistic)))
 })
 
 test_that("when the kept participants share a binary outcome, the pretest effects are infinite", {
@@ -647,6 +663,55 @@ test_that("with clusters, the CR2 standard errors stack the two means by cluster
   expect_null(w$value$hc3_leverage)
 })
 
+test_that("several treatments: the indicator is common to all conditions", {
+  six <- mp_six()
+  for (center in c("analyzed", "observed")) {
+    for (robust in c("HC3", "none")) {
+      fit <- suppressWarnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                              data = six, missing_pretest = "indicator",
+                                              robust = robust, pretest_center = center))
+      hand <- mp_hand(six, center, robust)
+      rows <- mp_rows(fit, mp_pretest)
+      info <- paste(center, robust)
+      expect_identical(rows$comparison, c("Control", "A", "B", "All conditions"), info = info)
+      expect_equal(rows$estimate, hand$estimate, tolerance = 1e-10, info = info)
+      expect_equal(rows$std.error, hand$std.error, tolerance = 1e-8, info = info)
+      # The treatments' pretest effects are adjusted across the treatments.
+      expect_equal(rows$p.adjusted[2:3], stats::p.adjust(rows$p.value[2:3], "holm"),
+                   tolerance = 1e-12, info = info)
+    }
+  }
+  fit <- suppressWarnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                          data = six, missing_pretest = "indicator"))
+  drop <- suppressWarnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                           data = six))
+  kept <- six$pretested == 1 & is.na(six$y_pre) & !is.na(six$y_post)
+  expect_identical(names(fit$data),
+                   c("y", "condition", "pretested", "treat_A", "treat_B", "pre_obs", "pre_missing"))
+  expect_identical(fit$n_missing_pretest,
+                   vapply(c(Control = "Control", A = "A", B = "B"),
+                          function(l) sum(kept & six$cond == l), 1L))
+  expect_identical(drop$n_missing_pretest, fit$n_missing_pretest)
+  # Each handling reports the other's pretest effects, and they agree.
+  s <- fit$missing_pretest_sensitivity$effects
+  expect_named(s, c("comparison", "contrast", "kept", "dropped", "difference"))
+  expect_equal(s$kept, mp_rows(fit, mp_pretest)$estimate, tolerance = 1e-12)
+  expect_equal(s$dropped, mp_rows(drop, mp_pretest)$estimate, tolerance = 1e-10)
+  expect_equal(drop$missing_pretest_sensitivity$effects, s, tolerance = 1e-10)
+  # The arm check has a row for each treatment against the control.
+  expect_identical(fit$missing_pretest_arm_check$comparison, c("A vs Control", "B vs Control"))
+  # With clusters the fit runs, and the other center equals a refit.
+  cr2 <- lapply(c(analyzed = "analyzed", observed = "observed"), function(center) {
+    suppressWarnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                     data = six, missing_pretest = "indicator", robust = "CR2",
+                                     cluster = six$site, pretest_center = center))
+  })
+  other <- cr2$analyzed$pretest_sensitivity$effects
+  other <- other[other$center == "observed", setdiff(names(other), "center")]
+  rownames(other) <- NULL
+  expect_equal(other, mp_rows(cr2$observed, mp_pretest)[names(other)], tolerance = 1e-9)
+})
+
 test_that("each handling reports the pretest effects of the other", {
   d <- mp_data()
   d$age[which(d$pretested == 1 & is.na(d$y_pre) & !is.na(d$y_post))[3]] <- NA
@@ -682,11 +747,15 @@ test_that("each handling reports the pretest effects of the other", {
 test_that("no covariate can be named as the indicator's column", {
   d <- mp_data()
   d$pre_missing <- d$age
+  six <- mp_six()
+  six$pre_missing <- seq_len(nrow(six)) %% 5
   calls <- list(
     quote(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "pre_missing", data = d)),
     quote(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = "pre_missing", data = d,
                           missing_pretest = "indicator")),
     quote(fit_solomon_glm(y_post, treat, pretested, covariates = "pre_missing", data = d)),
+    quote(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                          covariates = "pre_missing", data = six)),
     quote(check_solomon_missing(y_post, treat, pretested, y_pre, covariates = "pre_missing",
                                 data = d)),
     quote(check_solomon_missing(y_post, treat, pretested, covariates = "pre_missing", data = d))
