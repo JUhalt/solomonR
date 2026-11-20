@@ -859,13 +859,24 @@ fits it is also given when a group that a test compares has fewer than 5
 analyzable participants with two or three treatments, or fewer than 4
 with more. The approximation that gives the test its F distribution needs
 more than 4 denominator degrees of freedom. For tests of group means,
-that is assured for any variances of the groups when every group
-compared has more than 3 + 4 / (k + 1) participants (Zhang, 2013). The
-Pretest x Condition test and the test of the conditions averaged over
-pretest compare all 2(k + 1) groups, Condition | pretested compares the
-pretested groups, and Condition | unpretested the unpretested groups.
-Both conditions depend on the group sizes and the covariates, not on the
-outcomes.
+without pretest scores or covariates, that is assured for any variances
+of the groups when every group compared has more than 3 + 4 / (k + 1)
+participants (Zhang, 2013). With covariates, \code{df2} can be 4 or less even
+then. The Pretest x Condition test and the test of the conditions
+averaged over pretest compare all 2(k + 1) groups, Condition | pretested
+compares the pretested groups, and Condition | unpretested the
+unpretested groups. Both conditions depend on the group sizes and the
+covariates, not on the outcomes.
+
+An AHT test on HC2 has no statistic and no p-value (\code{NA}) when the HC2
+covariance matrix of the contrasts it tests is singular, as when the
+outcome does not vary within two of the groups that it compares, so that
+their residuals are 0. The matrix is taken as singular when its
+reciprocal condition number is below the machine epsilon, the rule by
+which base R's \code{solve()} refuses a matrix. The test's \code{df2}, which
+depends on the design alone, is still given, and a classed warning,
+\code{solomonR_singular_test_warning}, names the test. With \code{robust = "CR2"},
+\code{\link[clubSandwich:Wald_test]{clubSandwich::Wald_test()}} stops on such a matrix.
 
 The p-values of each contrast are adjusted across the comparisons, by
 Holm's (1979) procedure by default. It controls the familywise error rate

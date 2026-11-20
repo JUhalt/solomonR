@@ -123,7 +123,8 @@
 # means, that holds for any variances of the groups when every group
 # compared has more than 3 + 4 / (k + 1) participants, with k + 1 the
 # number of groups (Zhang, 2013, Remarks 2.3, 2.16, and 2.17): at least 5
-# with two or three treatments, and at least 4 with more. `tests` and `df2`
+# with two or three treatments, and at least 4 with more. With covariates,
+# `df2` can be 4 or less with groups of that size. `tests` and `df2`
 # name the tests with 4 or fewer denominator degrees of freedom. For the
 # AHT tests on HC2, `groups` and `sizes` name the groups with fewer than
 # `need` analyzable participants, and `compared` the tests that compare
@@ -155,15 +156,43 @@
         "The F distribution of these tests is an approximation that needs more than 4 ",
         "denominator degrees of freedom",
         if (length(groups)) {
-          paste0(", which is assured, whatever the variances of the groups, when every ",
-                 "group that a test compares has at least ", need, " participants")
+          paste0(". For tests of group means, without pretest scores or covariates, that ",
+                 "holds whatever the variances of the groups when every group that a test ",
+                 "compares has at least ", need, " participants (Zhang, 2013). With ",
+                 "covariates, df2 can be 4 or less even then. ")
+        } else {
+          " (Zhang, 2013). "
         },
-        " (Zhang, 2013). ",
         if (clustered) {
           "More clusters, or clusters of more equal size, are needed; see validate_solomon()."
         } else {
           "See ?fit_solomon_glm."
         }
+      ),
+      call = NULL
+    )
+  ))
+}
+
+# Classed warning for the AHT omnibus tests on HC2 `tests` that have no
+# statistic because the HC2 covariance matrix of their contrasts is
+# singular (.aht_test()), as when the outcome does not vary within two of
+# the groups that a test compares, whose residuals are then 0. Their
+# statistics and p-values are NA, and their `df2`, which depends on the
+# design alone, is kept.
+.warn_aht_singular <- function(tests) {
+  one <- length(tests) == 1L
+  warning(structure(
+    class = c("solomonR_singular_test_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "The small-sample omnibus test", if (one) " of " else "s of ",
+        paste(tests, collapse = "; "), if (one) " has" else " have",
+        " no statistic and no p-value: the HC2 covariance matrix of the contrasts ",
+        if (one) "it tests" else "they test", " is singular, as when the outcome does not ",
+        "vary within two of the groups that a test compares, so that their residuals are ",
+        "0. The denominator degrees of freedom, which depend on the design alone, are ",
+        "given. See ?fit_solomon_glm."
       ),
       call = NULL
     )

@@ -31,8 +31,9 @@
   `"chi-square, model-based"`, or
   `"AHT, CR2 (Pustejovsky & Tipton, 2018)"`.
 * Other families and links, `robust = "none"`, and `robust = "CR2"` give
-  the same tests as before. With HC3, the tests of other families and
-  links have no small-sample correction, and the help page now says so.
+  the same tests as before; CR2 fits now print them under the heading of
+  the AHT tests. With HC3, the tests of other families and links have no
+  small-sample correction, and the help page now says so.
 * **A new warning.** `solomonR_small_df_warning`, the class of the
   warning for CR2 contrasts, is now also raised when an AHT omnibus test
   has 4 or fewer denominator degrees of freedom, under HC3 or CR2. For
@@ -43,6 +44,12 @@
 * An omnibus test that is undefined because one of its contrasts depends
   on a participant at leverage 1 (#173) is `NA`, as before. The `df2` of
   an AHT test is then `NA` too.
+* An AHT omnibus test has no statistic and no p-value (`NA`) when the
+  HC2 covariance matrix of the contrasts it tests is singular, as when
+  the outcome does not vary within two of the groups that it compares.
+  A new classed warning, `solomonR_singular_test_warning`, names the
+  test, and its `df2` is given. The former test could give a meaningless
+  statistic there.
 * The printed heading of the omnibus tests and the method of
   `report_solomon()` name the test and its sources, and the print, the
   report, and the subtitle of `plot_sensitization()` give a `df2` that

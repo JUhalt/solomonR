@@ -55,6 +55,16 @@
   !is.null(omnibus$method) && all(omnibus$method == .omnibus_methods[["aht_hc2"]])
 }
 
+# Which rows of the omnibus table `omnibus` are AHT tests on HC2 that have
+# no statistic because L V L' is singular (.aht_test()). Unlike a test that
+# is undefined at leverage 1 (issue #173), whose `df2` is NA too, such a
+# test keeps its `df2`, which depends on the design alone.
+.omnibus_singular <- function(omnibus) {
+  if (is.null(omnibus$method)) return(rep(FALSE, NROW(omnibus)))
+  omnibus$method == .omnibus_methods[["aht_hc2"]] & is.na(omnibus$statistic) &
+    !is.na(omnibus$df2)
+}
+
 # The AHT test of the constraints L b = 0 (one per row of `L`) on the
 # coefficients of the least-squares fit `model`, a glm with a Gaussian
 # family and the identity link, with each participant as a cluster.
@@ -84,11 +94,21 @@
 # when no constraint depends on that participant, which the caller checks
 # (.hc3_undefined(); issue #173).
 #
+# Q is undefined when L V L' is singular, that is, when the residuals that
+# enter it do not span the q constraints, as when the outcome is constant
+# in two of the groups that a test of group means compares, whose
+# residuals are then 0. The matrix is taken as singular when its
+# reciprocal condition number is below the machine epsilon, the rule by
+# which base R's solve() refuses it. Q, the statistic, and the p-value are
+# then NA, and `singular` is TRUE; eta and `df2`, which depend on the
+# design alone, are kept. clubSandwich stops on such a matrix, as not
+# positive definite, and so does a fit with `robust = "CR2"`.
+#
 # Returns `statistic` (F), `df1` (q), `df2` (eta - q + 1), and `p.value`,
-# with `eta` and `Q`. As in clubSandwich, the factor (eta - q + 1) / eta is
-# taken as 0 when it is negative, and the p-value is NA when `df2` is not
-# positive. When the constraints are linearly dependent, every value but
-# `df1` is NA.
+# with `eta`, `Q`, and `singular`. As in clubSandwich, the factor
+# (eta - q + 1) / eta is taken as 0 when it is negative, and the p-value is
+# NA when `df2` is not positive. When the constraints are linearly
+# dependent, every value but `df1` is NA.
 .aht_test <- function(model, L) {
   cf <- stats::coef(model)
   L <- matrix(L, ncol = length(cf))
@@ -109,14 +129,16 @@
   qb <- qr(B)
   if (qb$rank < q) {
     return(list(statistic = NA_real_, df1 = q, df2 = NA_real_, p.value = NA_real_,
-                eta = NA_real_, Q = NA_real_))
+                eta = NA_real_, Q = NA_real_, singular = FALSE))
   }
   leverage <- hat > .hc3_leverage_limit
   A <- (Qx %*% qr.Q(qb)) / sqrt(ifelse(leverage, 1, 1 - hat))
   A[leverage, ] <- 0
   e <- (sqrt(w) * model$residuals)[good]
   tb <- backsolve(qr.R(qb), drop(L %*% cf)[qb$pivot], transpose = TRUE)
-  Q <- sum(tb * solve(crossprod(A * e), tb))
+  M <- crossprod(A * e)
+  singular <- rcond(M) < .Machine$double.eps
+  Q <- if (singular) NA_real_ else sum(tb * solve(M, tb))
 
   total <- sum(rowSums(A^2)^2 * (1 - 2 * hat))
   for (s in seq_len(q)) {
@@ -131,6 +153,6 @@
   list(
     statistic = statistic, df1 = q, df2 = df2,
     p.value = if (df2 > 0) stats::pf(statistic, q, df2, lower.tail = FALSE) else NA_real_,
-    eta = eta, Q = Q
+    eta = eta, Q = Q, singular = singular
   )
 }

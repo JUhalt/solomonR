@@ -397,8 +397,13 @@
     covariance = covariance,
     scale = scale,
     pretest_caution = pretest_caution,
-    leverage = .hc3_leverage_sentence(fit$hc3_leverage, fit$effects, fit$omnibus,
-                                      .reported_other_center(fit)),
+    # An omnibus test whose covariance matrix is singular lacks a statistic
+    # for another reason than leverage (.omnibus_singular()).
+    leverage = .hc3_leverage_sentence(
+      fit$hc3_leverage, fit$effects,
+      if (!is.null(fit$omnibus)) fit$omnibus[!.omnibus_singular(fit$omnibus), , drop = FALSE],
+      .reported_other_center(fit)
+    ),
     refs = refs
   )
 }
@@ -634,7 +639,11 @@
   om_sentence <- function(test) {
     r <- om[om$test == test, , drop = FALSE]
     # A test of a contrast whose HC3 standard error is undefined (issue
-    # #173) has no statistic.
+    # #173) has no statistic, nor has an AHT test whose covariance matrix
+    # is singular (.aht_test()).
+    if (.omnibus_singular(r)) {
+      return("no result, as the covariance matrix of the contrasts it tests is singular")
+    }
     if (is.na(r$statistic)) return("no result, as a standard error it needs is undefined")
     paste0(.apa_omnibus(r$statistic, r$df1, r$df2, r$reference, md, digits), ", ",
            .apa_p(r$p.value, md))

@@ -320,6 +320,113 @@ test_that("an AHT test is NA when a contrast it tests depends on a participant a
 })
 
 
+# ---- a singular covariance matrix ----------------------------------------------------
+
+test_that("an AHT test whose covariance matrix is singular is NA, with a warning, and the fit returns", {
+  # A linear probability model in which the unpretested Control and A groups
+  # all score 0: their residuals are 0, so the residuals of the unpretested
+  # groups span one of the two constraints of Condition | unpretested, and
+  # the HC2 covariance matrix of its contrasts is singular.
+  d <- aht_data(451270, 2, 6)
+  d$y <- withr::with_seed(451270, stats::rbinom(nrow(d), 1, 0.4))
+  d$y[d$pretested == 0L & d$condition %in% c("Control", "A")] <- 0
+  out <- aht_warnings(fit_solomon_glm(y, condition, pretested, control = "Control", data = d))
+  fit <- out$value
+  om <- fit$omnibus
+  singular <- om$test == "Condition | unpretested"
+  expect_true(is.na(om$statistic[singular]))
+  expect_true(is.na(om$p.value[singular]))
+  expect_false(any(is.nan(unlist(om[aht_columns]))))
+  # Its df2 depends on the design alone: (k + 1)^2 (n - 1) / (2k) - k + 1
+  # = 9 * 5 / 4 - 1 with two treatments and 6 per group.
+  expect_equal(om$df2[singular], 10.25, tolerance = 1e-10)
+  expect_identical(om$df1, rep(2L, 4L))
+  expect_identical(om$method, rep(aht_hc2_label, 4L))
+  # The other tests are those of clubSandwich and of the literal computation.
+  defined <- omnibus_tests[!singular]
+  ref <- aht_reference(d$y, d$condition, d$pretested, control = "Control", only = defined)
+  literal <- aht_reference(d$y, d$condition, d$pretested, control = "Control",
+                           engine = "literal", only = defined)
+  for (column in aht_columns) {
+    expect_equal(om[!singular, column], ref[[column]], tolerance = 1e-10, info = column)
+    expect_equal(om[!singular, column], literal[[column]], tolerance = 1e-8, info = column)
+  }
+  # The contrasts are estimated as before.
+  expect_true(all(is.finite(fit$effects$estimate)))
+
+  # One classed warning, which names the test; no warning on small groups.
+  # (The HC3 variances of the contrasts within the two constant groups are 0
+  # up to rounding, so base R can warn that sqrt() produced NaNs, as before.)
+  expect_length(out$small_df, 0L)
+  singular_warnings <- Filter(function(w) inherits(w, "solomonR_singular_test_warning"),
+                              out$other)
+  expect_length(singular_warnings, 1L)
+  expect_match(conditionMessage(singular_warnings[[1]]), paste0(
+    "The small-sample omnibus test of Condition | unpretested has no statistic and no ",
+    "p-value: the HC2 covariance matrix of the contrasts it tests is singular"
+  ), fixed = TRUE)
+
+  # The print gives the test as NA and says why; the report and the figure
+  # give the other tests.
+  text <- gsub(" +", " ", utils::capture.output(print(fit)))
+  expect_true(aht_heading %in% text)
+  expect_true(any(grepl("^Condition \\| unpretested F\\(2, [0-9.]+\\) = NA NA$", text)))
+  expect_true(any(startsWith(text, "No statistic for Condition | unpretested: the HC2 covariance")))
+  rp <- report_solomon(fit)
+  expect_identical(rp$results[1], aht_report_sentence(om))
+  expect_no_match(rp$method, "leverage", fixed = TRUE)
+  expect_identical(.ngroup_omnibus_text(fit, "Condition | unpretested"), paste(
+    "Condition | unpretested: no result, as the covariance matrix of the contrasts it tests",
+    "is singular"
+  ))
+  expect_match(.ngroup_omnibus_text(fit), "^Pretest x Condition: F\\(2, 21\\.5\\) = ")
+  expect_true(inherits(plot_sensitization(fit), "ggplot"))
+  # Were the Pretest x Condition test the singular one, the report would say so.
+  fit$omnibus[2, c("statistic", "p.value")] <- NA_real_
+  expect_match(report_solomon(fit)$results[1], paste(
+    "The omnibus test of the Pretest x Condition interaction (pretest sensitization) gave no",
+    "result, as the covariance matrix of the contrasts it tests is singular, and"
+  ), fixed = TRUE)
+  expect_match(.ngroup_omnibus_text(fit), "Pretest x Condition: no result, as the covariance",
+               fixed = TRUE)
+})
+
+test_that("with the pretest, a singular test keeps the df2 of its design, and one constant group gives none", {
+  d <- aht_data(451271, 2, 5)
+  d$y <- round(d$y_post / 10)
+  # One constant group: every test is defined.
+  d$y[d$pretested == 0L & d$condition == "Control"] <- 5
+  out <- aht_warnings(fit_solomon_glm(y, condition, pretested, y_pre, control = "Control",
+                                      data = d))
+  expect_false(any(vapply(out$other, inherits, logical(1), "solomonR_singular_test_warning")))
+  ref <- aht_reference(d$y, d$condition, d$pretested, d$y_pre, control = "Control")
+  for (column in aht_columns) {
+    expect_equal(out$value$omnibus[[column]], ref[[column]], tolerance = 1e-10, info = column)
+  }
+
+  # Two constant unpretested groups: Condition | unpretested is NA, with the
+  # df2 of a fit of the same design with an outcome that varies.
+  d$y[d$pretested == 0L & d$condition == "A"] <- 6
+  out <- aht_warnings(fit_solomon_glm(y, condition, pretested, y_pre, control = "Control",
+                                      data = d))
+  om <- out$value$omnibus
+  singular <- om$test == "Condition | unpretested"
+  expect_length(Filter(function(w) inherits(w, "solomonR_singular_test_warning"), out$other), 1L)
+  expect_true(all(is.na(unlist(om[singular, c("statistic", "p.value")]))))
+  design <- suppressWarnings(fit_solomon_glm(y_post, condition, pretested, y_pre,
+                                             control = "Control", data = d))$omnibus
+  expect_equal(om$df2, design$df2, tolerance = 1e-10)
+  ref <- aht_reference(d$y, d$condition, d$pretested, d$y_pre, control = "Control",
+                       only = omnibus_tests[!singular])
+  for (column in aht_columns) {
+    expect_equal(om[!singular, column], ref[[column]], tolerance = 1e-10, info = column)
+  }
+  text <- utils::capture.output(print(out$value))
+  expect_true(any(startsWith(text, "No statistic for Condition | unpretested")))
+  expect_type(report_solomon(out$value)$results, "character")
+})
+
+
 # ---- the tests that did not change ---------------------------------------------------
 
 test_that("other families and links, model-based covariance, and CR2 keep their tests", {
@@ -419,8 +526,12 @@ test_that("three treatments warn with groups of 4 and not with groups of 5", {
       "The tests that compare them: Condition (avg over pretest); Pretest x Condition; ",
       "Condition | pretested; Condition | unpretested. "
     ), fixed = TRUE)
-    expect_match(message, "has at least 5 participants (Zhang, 2013). See ?fit_solomon_glm.",
-                 fixed = TRUE)
+    expect_match(message, paste0(
+      "For tests of group means, without pretest scores or covariates, that holds whatever ",
+      "the variances of the groups when every group that a test compares has at least 5 ",
+      "participants (Zhang, 2013). With covariates, df2 can be 4 or less even then. ",
+      "See ?fit_solomon_glm."
+    ), fixed = TRUE)
     expect_match(message, "(Pustejovsky & Tipton, 2018)", fixed = TRUE)
     expect_no_match(message, "Tests with 4 or fewer denominator degrees of freedom", fixed = TRUE)
   }

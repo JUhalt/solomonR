@@ -933,6 +933,11 @@
   }))
   rownames(omnibus) <- NULL
 
+  # An AHT test on HC2 whose L V L' is singular has no statistic
+  # (.aht_test()); a classed warning names it.
+  singular <- .omnibus_singular(omnibus)
+  if (any(singular)) .warn_aht_singular(omnibus$test[singular])
+
   # The classed warning of the AHT tests (issue #45, amendment 2): a test
   # with 4 or fewer denominator degrees of freedom, under HC3 or CR2, and,
   # where the AHT test on HC2 is computed, a group that a test compares
@@ -1076,6 +1081,15 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
                  sprintf("F(%s, %s) = %.2f", .df_fmt(om$df1), df2, om$statistic),
                  sprintf("chi2(%s) = %.2f", .df_fmt(om$df1), om$statistic))
   .print_columns(c("Test", "Statistic", "p"), list(om$test, stat, p_fmt(om$p.value)))
+  # An AHT test whose covariance matrix is singular has no statistic.
+  singular <- .omnibus_singular(om)
+  if (any(singular)) {
+    cat(.wrap_lines(paste0(
+      "No statistic for ", paste(om$test[singular], collapse = "; "), ": the HC2 ",
+      "covariance matrix of the contrasts tested is singular, as when the outcome does ",
+      "not vary within two of the groups compared. See ?fit_solomon_glm."
+    )), "\n", sep = "")
+  }
 
   adj <- .adjust_label(x$adjust)
   cat("\nContrasts\n")

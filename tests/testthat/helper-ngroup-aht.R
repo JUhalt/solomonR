@@ -17,9 +17,11 @@
 # under the labels of the `omnibus` table. With `engine = "literal"`, the
 # tests are computed by aht_literal() instead, which shares no code with
 # clubSandwich or the package. `cluster`, if given, groups the participants
-# into clusters (CR2), in place of one cluster for each participant.
+# into clusters (CR2), in place of one cluster for each participant. `only`,
+# if given, names the tests to compute, as when one of them has no
+# statistic.
 aht_reference <- function(y, condition, pretested, y_pre = NULL, covariates = NULL, control,
-                          cluster = NULL, engine = c("clubSandwich", "literal")) {
+                          cluster = NULL, engine = c("clubSandwich", "literal"), only = NULL) {
   engine <- match.arg(engine)
   treatments <- setdiff(unique(as.character(stats::na.omit(condition))), control)
   d <- data.frame(y = y, pretested = pretested)
@@ -60,6 +62,7 @@ aht_reference <- function(y, condition, pretested, y_pre = NULL, covariates = NU
     "Condition | pretested" = constraints(1, 1),
     "Condition | unpretested" = constraints(1, 0)
   )
+  if (!is.null(only)) tests <- tests[only]
   out <- do.call(rbind, lapply(names(tests), function(test) {
     if (engine == "literal") {
       lt <- aht_literal(model, tests[[test]], d$cluster_)
