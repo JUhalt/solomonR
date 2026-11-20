@@ -496,7 +496,7 @@
 .fit_solomon_ngroup <- function(y_post, cond, pretested, y_pre, covariates,
                                 robust, cluster, family, negbin, conf_level,
                                 exposure, contrasts, adjust, call,
-                                pretest_center = "analyzed") {
+                                pretest_center = "analyzed", missing_pretest = "drop") {
 
   pretested <- .solomon_indicator(pretested, "pretested")
 

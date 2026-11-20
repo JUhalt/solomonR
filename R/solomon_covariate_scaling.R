@@ -41,11 +41,17 @@
 # `means` is empty when there is neither. No covariate can be named
 # `pre_obs`, with a pretest or without (issue #174;
 # .solomon_check_covariates()), so a column of that name is the pretest.
-.covariate_scaling <- function(df, covariates, in_model) {
+# `kept` flags the pretested participants whom `missing_pretest =
+# "indicator"` keeps without a pretest (issue #142): the 0 in their
+# `pre_obs` is not a pretest, so the standard deviation leaves them out.
+# NULL when no participant is kept that way.
+.covariate_scaling <- function(df, covariates, in_model, kept = NULL) {
   means <- numeric()
   scales <- numeric()
   if ("pre_obs" %in% setdiff(names(df), covariates)) {
-    s <- stats::sd(df$pre_obs[in_model & df$pretested %in% 1])
+    with_pretest <- in_model & df$pretested %in% 1
+    if (!is.null(kept)) with_pretest <- with_pretest & !kept
+    s <- stats::sd(df$pre_obs[with_pretest])
     s <- if (is.finite(s) && s > 0) 2^round(log2(s)) else 1
     df$pre_obs <- df$pre_obs / s
     means[["pre_obs"]] <- 0

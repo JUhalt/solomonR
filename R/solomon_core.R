@@ -114,9 +114,13 @@ NULL
 # with `pre_obs` the pretest (centered or not) in the pretested rows; one
 # logical value per row. The participants of .pretest_center() are among
 # them, so the two centers are the same number when no pretested
-# participant with a pretest is outside the model.
-.in_pretest_center <- function(df) {
-  df$pretested %in% 1 & !is.na(df$pre_obs)
+# participant with a pretest is outside the model. `kept` flags the
+# pretested participants whom `missing_pretest = "indicator"` keeps without
+# a pretest (issue #142): the 0 in their `pre_obs` is not a pretest, so
+# they are left out. NULL when no participant is kept that way.
+.in_pretest_center <- function(df, kept = NULL) {
+  observed <- df$pretested %in% 1 & !is.na(df$pre_obs)
+  if (is.null(kept)) observed else observed & !kept
 }
 
 # Both centers, from `df` with the uncentered `pre_obs`: `analyzed`, the
@@ -1335,6 +1339,14 @@ stouffer_solomon <- function(p) {
 #'   covariances) depend on it; the treatment contrasts, Pretest x
 #'   Treatment, and the fitted values do not, on the model's scale. Ignored
 #'   without `y_pre`.
+#' @param missing_pretest with `y_pre`, how pretested participants who have
+#'   a posttest but no pretest are handled (issue #142). `"drop"` (the
+#'   default) leaves them out of the model, as earlier versions did.
+#'   `"indicator"` keeps them by the missing-indicator method (Groenwold et
+#'   al., 2012): their centered pretest is set to 0, a 0/1 column,
+#'   `pre_missing`, marks them, and each pretest effect is evaluated at that
+#'   column's mean among the pretested participants in the model. Ignored
+#'   without `y_pre`.
 #' @param y,pretest_score `r lifecycle::badge("deprecated")` Use `y_post`
 #'   and `y_pre`.
 #' @return An object of class `solomon_glm`, a list with:
@@ -1584,6 +1596,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
                             adjust = c("holm", "bonferroni", "none"),
                             data = NULL,
                             pretest_center = c("analyzed", "observed"),
+                            missing_pretest = c("drop", "indicator"),
                             y = deprecated(),
                             pretest_score = deprecated()) {
   .solomon_data_args(
@@ -1602,6 +1615,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
   robust <- match.arg(robust)
   pretest_center <- match.arg(pretest_center)
+  missing_pretest <- match.arg(missing_pretest)
   .check_conf_level(conf_level)
   negbin <- identical(family, "negative_binomial")
   if (negbin) {
@@ -1621,7 +1635,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     return(.fit_solomon_ngroup(
       y_post, conditions, pretested, y_pre, covariates, robust, cluster,
       family, negbin, conf_level, exposure, contrasts, adjust, match.call(),
-      pretest_center = pretest_center
+      pretest_center = pretest_center, missing_pretest = missing_pretest
     ))
   }
   if (!(is.character(contrasts) && length(contrasts) == 1L &&
@@ -1656,11 +1670,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
     n_incidental <- sum(pretested == 1L & is.na(y_pre), na.rm = TRUE)
 
+    # The warning names the handling (issue #142).
     if (n_incidental > 0L) {
-      warning(
-        n_incidental, " pretested participant(s) have missing pretest scores ",
-        "and are excluded from the model. Incidental missingness is not imputed.",
-        call. = FALSE
+      .warn_missing_pretest(
+        n_incidental, sum(pretested == 1L & is.na(y_pre) & !is.na(y_post), na.rm = TRUE),
+        missing_pretest
       )
     }
 
@@ -1699,6 +1713,23 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     df$log_exposure <- log(exposure)
     rhs <- c(rhs, "offset(log_exposure)")
   }
+
+  # Pretested participants with a posttest and no pretest (issue #142):
+  # `kept` flags those whom only the pretest keeps out of the model. With
+  # missing_pretest = "indicator" they are kept: the model gains the
+  # indicator that marks them, after the pretest. With no such participant
+  # the model is that of "drop". `fml_other` is the model of the handling
+  # not in use, for `missing_pretest_sensitivity`.
+  kept <- .missing_pretest_rows(df)
+  indicator <- missing_pretest == "indicator" && any(kept)
+  fml_other <- NULL
+  if (any(kept)) {
+    rhs_indicator <- append(rhs, .missing_pretest_column, after = match("pre_obs", rhs))
+    fml_other <- stats::as.formula(
+      paste("y ~", paste(if (indicator) rhs else rhs_indicator, collapse = " + "))
+    )
+    if (indicator) rhs <- rhs_indicator
+  }
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
   # Center the pretest at its mean among the pretested participants in the
@@ -1706,12 +1737,21 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # unpretested participants at that score (issue #104); or, with
   # `pretest_center = "observed"`, at the mean of every observed pretest
   # among the pretested participants, in the model or not (issue #135).
+  # Either center is taken from observed pretests only: the participants
+  # kept without one still have a missing `pre_obs` here (issue #142).
   pretest_mean <- NA_real_
   centers <- c(analyzed = NA_real_, observed = NA_real_)
   if (!is.null(y_pre)) {
     centers <- .pretest_centers(df)
     pretest_mean <- centers[[pretest_center]]
     df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
+  }
+
+  # The missing-indicator method (Groenwold et al., 2012): the participants
+  # kept without a pretest get a centered pretest of 0 and the indicator.
+  if (indicator) {
+    df$pre_obs[kept] <- 0
+    df <- .add_missing_indicator(df, kept)
   }
 
   # The model as given, which the result returns as `model`. With a pretest
@@ -1732,7 +1772,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   in_model <- rep(TRUE, nrow(df))
   if (!is.null(fit$na.action)) in_model[fit$na.action] <- FALSE
   fit_given <- fit
-  scaling <- .covariate_scaling(df, names(covariates), in_model)
+  scaling <- .covariate_scaling(df, names(covariates), in_model, if (indicator) kept)
   if (standardize) {
     held <- .record_warnings(.fit_model(fml, scaling$data, family, negbin))
     fit <- held$value
@@ -1778,6 +1818,17 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     .warn_noncollapsible(stats::family(fit)$link)
   }
 
+  # When every participant the indicator marks has the same outcome, at a
+  # bound of the family's mean, the indicator's coefficient has no finite
+  # estimate (issue #142; .indicator_separation()): the pretest effects,
+  # which weight it, are then infinite on the model's scale, with no
+  # standard error under any covariance.
+  separation <- 0L
+  if (indicator) {
+    separation <- .indicator_separation(stats::family(fit), fit$y[kept[in_model]])
+    if (separation != 0L) .warn_indicator_separation(sum(kept), separation, stats::family(fit))
+  }
+
   # Robust VCOV. With a numeric covariate, the HC3 and CR2 covariances
   # are computed from the standardized model's QR decomposition, which
   # stays accurate when covariates are nearly collinear (.hc3_vcov(),
@@ -1799,8 +1850,12 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     } else {
       sandwich::vcovHC(fit, type = "HC3")
     }
-    if (!is.null(hc3)) {
-      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates))
+    # A single participant kept without a pretest is fitted exactly by the
+    # indicator, at leverage 1; the warning names that cause (issue #142).
+    # Under separation the warning above has said so already.
+    if (!is.null(hc3) && !(separation != 0L && all(kept[hc3$rows]))) {
+      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates),
+                         indicator = indicator && any(kept[hc3$rows]))
     }
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
@@ -1848,11 +1903,22 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   center_note <- NULL
   parts <- NULL
   differ <- FALSE
+  # With the indicator (issue #142), a pretest effect also depends on the
+  # indicator's mean, and the center moves only the participants with a
+  # pretest; .indicator_terms() gives the terms of both means.
+  kept_terms <- NULL
   if (!is.null(y_pre)) {
     rows <- rep(TRUE, nrow(df))
     if (!is.null(fit$na.action)) rows[fit$na.action] <- FALSE
-    both <- .center_terms_both(scaling$data, y_pre, rows, if (robust == "CR2") fit_cr else fit,
-                               robust, cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    both <- if (indicator) {
+      kept_terms <- .indicator_terms(scaling$data, y_pre, kept, rows,
+                                     if (robust == "CR2") fit_cr else fit, robust, cluster,
+                                     if (robust == "CR2") cluster_fit, pretest_center, centers,
+                                     .pretest_scale(scaling))
+    } else {
+      .center_terms_both(scaling$data, y_pre, rows, if (robust == "CR2") fit_cr else fit,
+                         robust, cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    }
     center <- both$center
     center_other <- both$other
     center_note <- both$note
@@ -1871,6 +1937,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # --- tidy coefficients with chosen vcov, for the covariates as given ---
   coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
                                      cr2_basis, hc3)
+  if (separation != 0L) coefficients <- .separated_coefficients(coefficients, separation)
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -1884,12 +1951,24 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # that depends on a participant at leverage 1 has no HC3 standard error:
   # its variance is NA, and so are its test, interval, and Wald R-squared
   # (issue #173).
+  # With the indicator (issue #142), the contrast of a pretest effect holds
+  # the indicator's mean on the indicator's coefficient, and its variance
+  # gains the terms of both means (.indicator_adjusted()). Under separation
+  # it is plus or minus infinity, with no standard error.
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
-    adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
+    adj <- if (indicator) {
+      .indicator_adjusted(L, vcovM, terms, robust, dfc)
+    } else {
+      .center_adjusted(L, cf, vcovM, terms, robust, dfc)
+    }
     if (.hc3_undefined(hc3, L)) adj[c("variance", "added")] <- list(NA_real_, NA_real_)
+    if (separation != 0L && L[[.missing_pretest_column]] != 0) {
+      est <- sign(L[[.missing_pretest_column]]) * separation * Inf
+      adj[c("variance", "added")] <- list(NA_real_, NA_real_)
+    }
     se  <- sqrt(adj$variance)
     dfc <- adj$df
     z   <- est / se
@@ -1948,6 +2027,19 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     c(.solomon_contrast_order, .solomon_pretest_order)
   )
 
+  # With the indicator (issue #142), each pretest effect is evaluated at the
+  # indicator's mean among the pretested participants in the model, which
+  # standardizes it over them: its contrast gains that mean times the
+  # indicator's coefficient. `L_design` keeps the contrasts over the
+  # treatment and pretest terms, which the other handling's model shares.
+  L_design <- Ls[.solomon_pretest_order]
+  if (indicator) {
+    Ls[.solomon_pretest_order] <- lapply(L_design, function(L) {
+      L[[.missing_pretest_column]] <- L[["pretested"]] * kept_terms$m
+      L
+    })
+  }
+
   # Wald-based partial R^2 for each contrast (intervals only for
   # conventional covariance)
   conventional <- robust == "none"
@@ -1992,10 +2084,15 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     used_rows <- effects[effects$contrast %in% .solomon_pretest_order,
                          .solomon_effect_columns, drop = FALSE]
     other_rows <- NULL
+    # With the indicator (issue #142), moving the center moves only the
+    # participants with a pretest, so a pretest effect moves by the slope
+    # times their share, `gap`, for each unit the center moves.
+    gap <- if (indicator) kept_terms$p else 1
     if (differ) {
+      shift <- (centers[[.other_center(pretest_center)]] - pretest_mean) / .pretest_scale(scaling)
+      if (indicator) shift <- shift * gap
       other_rows <- .other_center_rows(
-        Ls[.solomon_pretest_order], .solomon_pretest_order,
-        (centers[[.other_center(pretest_center)]] - pretest_mean) / .pretest_scale(scaling),
+        Ls[.solomon_pretest_order], .solomon_pretest_order, shift,
         function(L) lin_contrast(L, center_other), no_se = !is.null(center_note)
       )
     }
@@ -2004,8 +2101,34 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     sensitivity <- .pretest_sensitivity(
       used_rows, other_rows, pretest_center, character(), parts, centers, slope, identity,
       .pretest_attrition(ifelse(df$treat == 1L, arms[1], arms[2]), rev(arms), df$pretested,
-                         df$y, rows, slope, centers, identity),
+                         df$y, rows, if (indicator) slope * gap else slope, centers, identity),
       note = center_note
+    )
+    if (separation != 0L) sensitivity <- .separated_sensitivity(sensitivity, slope * gap, centers)
+  }
+
+  # The pretested participants without a pretest (issue #142): how many
+  # there are, the pretest effects with them kept and dropped, and the arm
+  # check. The other handling's estimates come from a fit of its model, of
+  # which only the coefficients are used.
+  missing <- .missing_pretest_elements(missing_pretest)
+  if (!is.null(y_pre)) {
+    used_estimates <- effects$estimate[match(.solomon_pretest_order, effects$contrast)]
+    other_estimates <- NULL
+    direction <- separation
+    if (any(kept)) {
+      other <- .other_handling_estimates(fml_other, scaling$data, family, negbin, kept,
+                                         if (indicator) "drop" else "indicator", L_design)
+      other_estimates <- other$estimates
+      if (!indicator) direction <- other$direction
+    }
+    missing <- .missing_pretest_elements(
+      missing_pretest, kept, (in_model & df$pretested %in% 1L) | kept,
+      ifelse(df$treat == 1L, arms[1], arms[2]), rev(arms), df$y, y_pre,
+      data.frame(contrast = .solomon_pretest_order, stringsAsFactors = FALSE),
+      kept_estimates = if (indicator) used_estimates else other_estimates,
+      dropped_estimates = if (indicator) other_estimates else used_estimates,
+      direction = direction
     )
   }
 
@@ -2032,6 +2155,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     pretest_mean_observed = centers[["observed"]],
     pretest_n = parts$n,
     pretest_sensitivity = sensitivity,
+    missing_pretest = missing$missing_pretest,
+    n_missing_pretest = missing$n_missing_pretest,
+    missing_pretest_share = missing$missing_pretest_share,
+    missing_pretest_sensitivity = missing$missing_pretest_sensitivity,
+    missing_pretest_arm_check = missing$missing_pretest_arm_check,
     robust = robust,
     hc3_leverage = if (robust == "HC3") if (is.null(hc3)) integer() else hc3$rows,
     family = family,

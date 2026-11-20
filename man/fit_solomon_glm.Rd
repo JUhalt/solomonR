@@ -20,6 +20,7 @@ fit_solomon_glm(
   adjust = c("holm", "bonferroni", "none"),
   data = NULL,
   pretest_center = c("analyzed", "observed"),
+  missing_pretest = c("drop", "indicator"),
   y = deprecated(),
   pretest_score = deprecated()
 )
@@ -138,6 +139,15 @@ condition, covariate, or exposure; their rows must be in the data, with
 (and the coefficient of \code{pretested}, with its standard error and
 covariances) depend on it; the treatment contrasts, Pretest x
 Treatment, and the fitted values do not, on the model's scale. Ignored
+without \code{y_pre}.}
+
+\item{missing_pretest}{with \code{y_pre}, how pretested participants who have
+a posttest but no pretest are handled (issue #142). \code{"drop"} (the
+default) leaves them out of the model, as earlier versions did.
+\code{"indicator"} keeps them by the missing-indicator method (Groenwold et
+al., 2012): their centered pretest is set to 0, a 0/1 column,
+\code{pre_missing}, marks them, and each pretest effect is evaluated at that
+column's mean among the pretested participants in the model. Ignored
 without \code{y_pre}.}
 
 \item{y, pretest_score}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{y_post}

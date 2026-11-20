@@ -105,8 +105,11 @@
 # The classed warning of a fit with participants at leverage 1 under HC3,
 # once for each fit. `rows` are their row numbers in the data as given;
 # `pretest` and `covariates` say whether the model has a pretest and
-# covariates, which name the likely cause.
-.warn_hc3_leverage <- function(rows, pretest, covariates) {
+# covariates, which name the likely cause. `indicator` says that one of
+# them is the single pretested participant kept without a pretest under
+# `missing_pretest = "indicator"`, whom the indicator fits exactly (issue
+# #142); that cause is then named first.
+.warn_hc3_leverage <- function(rows, pretest, covariates, indicator = FALSE) {
   shown <- if (length(rows) > 10L) {
     c(rows[1:10], sprintf("and %d more", length(rows) - 10L))
   } else {
@@ -114,6 +117,11 @@
   }
   one <- length(rows) == 1L
   causes <- c(
+    if (indicator) {
+      paste0("the indicator of a missing pretest, ", .missing_pretest_column, ", marks only ",
+             if (one) "this participant" else "one of them",
+             ", the one pretested participant kept without a pretest")
+    },
     if (pretest) {
       paste0("the pretest varies within the pretested groups only through ",
              if (one) "this participant" else "them")

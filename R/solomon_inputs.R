@@ -127,6 +127,11 @@
 }
 
 
+# The column that marks the pretested participants kept without a pretest
+# under `missing_pretest = "indicator"` (issue #142): 1 for them and 0 for
+# everyone else.
+.missing_pretest_column <- "pre_missing"
+
 # The names of columns of the model that a covariate cannot take in any
 # fit, whether or not the fit has the column (issue #174): `pre_obs`, the
 # pretest, and `condition`, the condition in a design with several
@@ -135,8 +140,10 @@
 # fit without that column was taken for the pretest or for the condition.
 # `treat` is not reserved in a design with several treatments, whose model
 # has no such column: in the checks of issue #174, a covariate of that
-# name gave the same results as when renamed.
-.solomon_reserved_names <- c("pre_obs", "condition")
+# name gave the same results as when renamed. The indicator of a missing
+# pretest (.missing_pretest_column) is reserved in the same way (issue
+# #142), so that no covariate can be taken for it.
+.solomon_reserved_names <- c("pre_obs", "condition", .missing_pretest_column)
 
 # Stop with an error of class `solomonR_covariate_error`, so that
 # check_solomon_missing() passes it on rather than leave out the fit behind
