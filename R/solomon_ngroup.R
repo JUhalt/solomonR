@@ -868,8 +868,17 @@
     }
   }
 
-  # Omnibus Wald tests that all conditions are equal on each contrast type:
-  # k constraints, one per treatment against the control.
+  # Omnibus tests that all conditions are equal on each contrast type: k
+  # constraints, one per treatment against the control. `method` names the
+  # test of each row (.omnibus_methods):
+  # - HC3 with a Gaussian family and the identity link: the AHT test of
+  #   Pustejovsky and Tipton (2018) on the HC2 covariance, with each
+  #   participant as a cluster (.aht_test(); issue #45, amendment 2);
+  # - HC3 with another family or link, and model-based covariance: the Wald
+  #   statistic W, as W / k on F(k, N - p), or on chi-square(k) when the
+  #   dispersion is fixed;
+  # - CR2: the AHT test of clubSandwich with the user's clusters
+  #   (.cr2_wald()).
   basis <- lapply(cond$treatments, function(t) {
     w <- stats::setNames(numeric(length(lev)), lev)
     w[t] <- 1
@@ -882,34 +891,70 @@
     "Treatment | pretested" = "Condition | pretested",
     "Treatment | unpretested" = "Condition | unpretested"
   )
+  aht <- robust == "HC3" && .aht_family(stats::family(fit))
   omnibus <- do.call(rbind, lapply(types, function(type) {
     L <- do.call(rbind, lapply(basis, `[[`, type))
-    b <- as.numeric(L %*% cf)
+    omnibus_row <- function(statistic, df1, df2, p.value, reference, method) {
+      data.frame(test = omnibus_labels[[type]], statistic = statistic,
+                 df1 = df1, df2 = df2, p.value = p.value, reference = reference,
+                 method = .omnibus_methods[[method]], stringsAsFactors = FALSE)
+    }
+    if (robust == "CR2") {
+      wt <- .cr2_wald(L, fit_cr, vcovM, cr2_basis)
+      return(omnibus_row(wt$Fstat, wt$df_num, wt$df_denom, wt$p_val, "F", "aht_cr2"))
+    }
     # Under HC3, the test is undefined when one of its contrasts depends on
-    # a participant at leverage 1 (issue #173).
-    W <- if (any(.hc3_undefined(hc3, L))) {
+    # a participant at leverage 1 (issue #173): HC2 divides that
+    # participant's squared residual by 1 - h, as HC3 does by its square.
+    undefined <- any(.hc3_undefined(hc3, L))
+    if (aht) {
+      at <- if (undefined) {
+        list(statistic = NA_real_, df2 = NA_real_, p.value = NA_real_)
+      } else {
+        .aht_test(fit, L)
+      }
+      return(omnibus_row(at$statistic, k, at$df2, at$p.value, "F", "aht_hc2"))
+    }
+    b <- as.numeric(L %*% cf)
+    W <- if (undefined) {
       NA_real_
     } else {
       as.numeric(t(b) %*% solve(L %*% vcovM %*% t(L), b))
     }
-    if (robust == "CR2") {
-      wt <- .cr2_wald(L, fit_cr, vcovM, cr2_basis)
-      data.frame(test = omnibus_labels[[type]], statistic = wt$Fstat,
-                 df1 = wt$df_num, df2 = wt$df_denom, p.value = wt$p_val,
-                 reference = "F", stringsAsFactors = FALSE)
-    } else if (is.finite(df_model)) {
-      data.frame(test = omnibus_labels[[type]], statistic = W / k,
-                 df1 = k, df2 = df_model,
-                 p.value = stats::pf(W / k, k, df_model, lower.tail = FALSE),
-                 reference = "F", stringsAsFactors = FALSE)
+    if (is.finite(df_model)) {
+      omnibus_row(W / k, k, df_model, stats::pf(W / k, k, df_model, lower.tail = FALSE), "F",
+                  if (robust == "HC3") "wald_f_hc3" else "f_model")
     } else {
-      data.frame(test = omnibus_labels[[type]], statistic = W,
-                 df1 = k, df2 = Inf,
-                 p.value = stats::pchisq(W, k, lower.tail = FALSE),
-                 reference = "chisq", stringsAsFactors = FALSE)
+      omnibus_row(W, k, Inf, stats::pchisq(W, k, lower.tail = FALSE), "chisq",
+                  if (robust == "HC3") "wald_chisq_hc3" else "chisq_model")
     }
   }))
   rownames(omnibus) <- NULL
+
+  # The classed warning of the AHT tests (issue #45, amendment 2): a test
+  # with 4 or fewer denominator degrees of freedom, under HC3 or CR2, and,
+  # where the AHT test on HC2 is computed, a group that a test compares
+  # with 3 + 4 / (k + 1) or fewer analyzable participants (Zhang, 2013):
+  # fewer than 5 with two or three treatments, and fewer than 4 with more.
+  # Pretest x Condition and Condition (avg over pretest) compare all
+  # 2(k + 1) groups, Condition | pretested the pretested groups, and
+  # Condition | unpretested the unpretested groups. Both conditions depend
+  # on the group sizes and the covariates, not on the outcomes.
+  if (aht || robust == "CR2") {
+    few_df <- is.finite(omnibus$df2) & omnibus$df2 <= 4
+    need <- as.integer(floor(3 + 4 / (k + 1))) + 1L
+    small <- aht & counts < need
+    if (any(few_df) || any(small)) {
+      .warn_aht_small_df(
+        tests = omnibus$test[few_df], df2 = omnibus$df2[few_df],
+        groups = .group_names(counts, small), sizes = counts[small], need = need,
+        compared = unname(omnibus_labels[c(
+          any(small), any(small), any(small[, "1"]), any(small[, "0"])
+        )]),
+        clustered = robust == "CR2"
+      )
+    }
+  }
 
   # The dispersion and theta come from the fit the inference came from, as
   # in the four-group model.
@@ -1013,10 +1058,20 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
   ci_label <- sprintf("%s%% CI", format(100 * level))
   show_df <- any(is.finite(x$effects$df))
 
-  cat("\nOmnibus tests\n")
+  # The heading names the AHT tests by the `method` column of the table. A
+  # fit made before the column was added holds the former tests, and its
+  # heading is the one it was printed with (issue #45, amendment 2). An AHT
+  # test that is undefined at leverage 1 has no denominator degrees of
+  # freedom (issue #173).
   om <- x$omnibus
+  cat(if (.omnibus_aht(om)) {
+    "\nOmnibus tests (small-sample AHT tests; Pustejovsky & Tipton, 2018)\n"
+  } else {
+    "\nOmnibus tests\n"
+  })
+  df2 <- ifelse(is.na(om$df2), "NA", .df_fmt(om$df2))
   stat <- ifelse(om$reference == "F",
-                 sprintf("F(%s, %s) = %.2f", .df_fmt(om$df1), .df_fmt(om$df2), om$statistic),
+                 sprintf("F(%s, %s) = %.2f", .df_fmt(om$df1), df2, om$statistic),
                  sprintf("chi2(%s) = %.2f", .df_fmt(om$df1), om$statistic))
   .print_columns(c("Test", "Statistic", "p"), list(om$test, stat, p_fmt(om$p.value)))
 
@@ -1084,22 +1139,43 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
   }
   # The two pretest centers when posttests are missing (issue #135).
   .center_output(x, digits)
-  cat(.ngroup_lifecycle_note(), sep = "\n")
+  cat(.ngroup_lifecycle_note(x), sep = "\n")
   invisible(x)
 }
 
 # The lifecycle label of the analysis of designs with several treatments.
-# The protocol of its simulation study (issue #45) required the printed
-# output to say that the analysis is experimental and to name the scenarios
-# that failed the rule for error control.
-.ngroup_lifecycle_note <- function() {
+# The protocol of its first simulation study (issue #45) required the
+# printed output to say that the analysis is experimental and to name the
+# scenarios that failed the rule for error control. That study judged the
+# omnibus tests that Gaussian fits with the identity link and HC3 gave
+# then: the HC3 Wald statistic over k, on F(k, N - p). Amendment 2 replaced
+# them by the AHT test (.aht_test()), whose study has not yet run, so the
+# note of a fit `x` made since, whose omnibus table has the `method`
+# column, says which tests the study judged and that such fits no longer
+# give them. A fit made before holds the former tests and keeps the note it
+# was printed with, which describes them.
+.ngroup_lifecycle_note <- function(x = NULL) {
+  if (is.null(x$omnibus$method)) {
+    return(c(
+      "",
+      "Experimental: in the package's simulation study (issue #45), the omnibus",
+      "tests of Condition | pretested and Condition | unpretested rejected in up",
+      "to 6.9% of replications at the .05 level with three treatments and 10",
+      "participants per group. No other test, and no family of adjusted",
+      "comparisons, failed the study's rule. See ?fit_solomon_glm."
+    ))
+  }
   c(
     "",
-    "Experimental: in the package's simulation study (issue #45), the omnibus",
-    "tests of Condition | pretested and Condition | unpretested rejected in up",
-    "to 6.9% of replications at the .05 level with three treatments and 10",
-    "participants per group. No other test, and no family of adjusted",
-    "comparisons, failed the study's rule. See ?fit_solomon_glm."
+    "Experimental: the package's first simulation study (issue #45) judged the",
+    "omnibus tests that Gaussian fits with the identity link and robust = \"HC3\"",
+    "gave then, Wald F tests on the HC3 covariance. With three treatments and",
+    "10 participants per group, those tests of Condition | pretested and",
+    "Condition | unpretested rejected in up to 6.9% of replications at the .05",
+    "level. No other test, and no family of adjusted comparisons, failed the",
+    "study's rule. Such fits now give small-sample AHT tests (Pustejovsky &",
+    "Tipton, 2018), whose simulation study has not yet run. See",
+    "?fit_solomon_glm."
   )
 }
 

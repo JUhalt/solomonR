@@ -781,6 +781,10 @@ test_that("the other results name their contrast and their interaction with the 
     c("Condition (avg over pretest)", "Pretest x Condition", "Condition | pretested",
       "Condition | unpretested")
   )
+  # The columns of the table of omnibus tests; `method` names the test of
+  # each row (#45, amendment 2).
+  expect_identical(names(several$omnibus),
+                   c("test", "statistic", "df1", "df2", "p.value", "reference", "method"))
 })
 
 # ---- The help pages ------------------------------------------------------------

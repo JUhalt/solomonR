@@ -254,9 +254,12 @@ of \code{contrast}.
 \code{\link[=fit_solomon_classic]{fit_solomon_classic()}}) have \code{source}, \code{sumsq}, \code{df}, \code{meansq}, \code{F},
 and \code{p.value}.
 \item Tables of omnibus tests (\code{omnibus} in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} for several
-treatments) have \code{test}, \code{statistic}, \code{df1}, \code{df2}, \code{p.value}, and
-\code{reference}, because such a test has several numerator degrees of
-freedom and no single estimate.
+treatments) have \code{test}, \code{statistic}, \code{df1}, \code{df2}, \code{p.value},
+\code{reference}, and \code{method}, because such a test has several numerator
+degrees of freedom and no single estimate. In this table \code{method}
+names the test of each row, such as
+\code{"AHT, HC2 (Pustejovsky & Tipton, 2018)"}; in the \code{results} of
+\code{\link[=compare_solomon_methods]{compare_solomon_methods()}} the column of that name is the analysis.
 \item \code{\link[=baseline_solomon]{baseline_solomon()}} compares pretests, not posttests: its estimate is
 \code{difference}, followed by \code{std.error}, \code{statistic}, \code{df}, \code{p.value},
 \code{conf.low}, and \code{conf.high}, and it has no \code{contrast}.

@@ -379,12 +379,17 @@ test_that("pretested cells are evaluated at the mean pretest, covariates at thei
 
 test_that("the subtitle reports the omnibus Pretest x Condition test", {
 
+  # The test of an HC3 fit of a Gaussian outcome is the small-sample test
+  # (#45, amendment 2), whose denominator degrees of freedom are not a whole
+  # number and are given to one decimal.
   fit <- mai_fit()
   p <- plot_sensitization(fit)
   om <- fit$omnibus[fit$omnibus$test == "Pretest x Condition", ]
+  expect_gt(abs(om$df2 - round(om$df2)), 0.01)
   expect_equal(
     p$labels$subtitle,
-    sprintf("Pretest x Condition: F(2, %s) = %s, p = %s", om$df2,
+    sprintf("Pretest x Condition: F(2, %s) = %s, p = %s",
+            formatC(om$df2, format = "f", digits = 1),
             formatC(om$statistic, format = "f", digits = 2),
             sub("^0", "", sprintf("%.3f", om$p.value)))
   )

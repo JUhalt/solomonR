@@ -190,9 +190,12 @@ generics::tidy
 #'   [fit_solomon_classic()]) have `source`, `sumsq`, `df`, `meansq`, `F`,
 #'   and `p.value`.
 #' - Tables of omnibus tests (`omnibus` in [fit_solomon_glm()] for several
-#'   treatments) have `test`, `statistic`, `df1`, `df2`, `p.value`, and
-#'   `reference`, because such a test has several numerator degrees of
-#'   freedom and no single estimate.
+#'   treatments) have `test`, `statistic`, `df1`, `df2`, `p.value`,
+#'   `reference`, and `method`, because such a test has several numerator
+#'   degrees of freedom and no single estimate. In this table `method`
+#'   names the test of each row, such as
+#'   `"AHT, HC2 (Pustejovsky & Tipton, 2018)"`; in the `results` of
+#'   [compare_solomon_methods()] the column of that name is the analysis.
 #' - [baseline_solomon()] compares pretests, not posttests: its estimate is
 #'   `difference`, followed by `std.error`, `statistic`, `df`, `p.value`,
 #'   `conf.low`, and `conf.high`, and it has no `contrast`.

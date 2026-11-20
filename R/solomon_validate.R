@@ -115,6 +115,61 @@
   ))
 }
 
+# Classed warning for the small-sample (AHT) omnibus tests of a design with
+# several treatments (issue #45, amendment 2), of the class that the CR2
+# contrasts use. The approximation that gives an AHT test its F
+# distribution needs more than 4 denominator degrees of freedom, so that
+# the first two moments of that distribution exist. For tests of group
+# means, that holds for any variances of the groups when every group
+# compared has more than 3 + 4 / (k + 1) participants, with k + 1 the
+# number of groups (Zhang, 2013, Remarks 2.3, 2.16, and 2.17): at least 5
+# with two or three treatments, and at least 4 with more. `tests` and `df2`
+# name the tests with 4 or fewer denominator degrees of freedom. For the
+# AHT tests on HC2, `groups` and `sizes` name the groups with fewer than
+# `need` analyzable participants, and `compared` the tests that compare
+# them. `clustered` is TRUE for a CR2 fit, whose remedy is more clusters.
+# The warning for CR2 contrasts keeps its own threshold, below 4, and its
+# own source (.warn_cr2_small_df()).
+.warn_aht_small_df <- function(tests = character(), df2 = numeric(), groups = character(),
+                               sizes = integer(), need = NA_integer_,
+                               compared = character(), clustered = FALSE) {
+  few_df <- if (length(tests)) {
+    paste0(
+      "Tests with 4 or fewer denominator degrees of freedom: ",
+      paste(sprintf("%s (df2 = %.1f)", tests, df2), collapse = "; "), ". "
+    )
+  }
+  small <- if (length(groups)) {
+    paste0(
+      "Groups with fewer than ", need, " analyzable participants: ",
+      paste(sprintf("%s (%d)", groups, as.integer(sizes)), collapse = "; "),
+      ". The tests that compare them: ", paste(compared, collapse = "; "), ". "
+    )
+  }
+  warning(structure(
+    class = c("solomonR_small_df_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "The p-values of the small-sample omnibus tests (Pustejovsky & Tipton, 2018) ",
+        "may not be accurate here. ", few_df, small,
+        "The F distribution of these tests is an approximation that needs more than 4 ",
+        "denominator degrees of freedom",
+        if (length(groups)) {
+          paste0(", which is assured, whatever the variances of the groups, when every ",
+                 "group that a test compares has at least ", need, " participants")
+        },
+        " (Zhang, 2013). ",
+        if (clustered) {
+          "More clusters, or clusters of more equal size, are needed; see validate_solomon()."
+        } else {
+          "See ?fit_solomon_glm."
+        }
+      ),
+      call = NULL
+    )
+  ))
+}
+
 # Classed error for cluster-robust inference in a design whose cells contain
 # a single cluster.
 .stop_confounded_clusters <- function(cells) {

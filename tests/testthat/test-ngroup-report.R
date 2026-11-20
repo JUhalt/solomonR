@@ -141,12 +141,16 @@ test_that("the references and wording follow the adjustment the fit used", {
   expect_match(bonf$method, "the Bonferroni procedure (see Holm, 1979)", fixed = TRUE)
   expect_match(bonf$results[2], "Bonferroni-adjusted", fixed = TRUE)
 
-  # Pretest adjustment and HC3 bring their references, as in four-group reports.
+  # Pretest adjustment and HC3 bring their references, as in four-group
+  # reports, and the small-sample omnibus test brings its source (#45,
+  # amendment 2).
   hc3 <- report_solomon(fit_solomon_glm(post_behavior, condition, pretested, pre_behavior,
                                         control = "Control", data = mai2020))
   expect_true(any(startsWith(hc3$references, "Lin, W.")))
   expect_true(any(startsWith(hc3$references, "MacKinnon")))
   expect_true(any(startsWith(hc3$references, "Newman, I.")))
+  expect_true(any(startsWith(hc3$references, "Pustejovsky, J. E., & Tipton, E. (2018).")))
+  expect_true(all(hc3$references %in% gsub("*", "", .solomon_reference_text, fixed = TRUE)))
   expect_match(hc3$method,
                "adjusting for the pretest score among pretested participants (Lin, 2013; Newman et al., 1990)",
                fixed = TRUE)
@@ -202,12 +206,24 @@ test_that("pairwise and weighted comparisons are described", {
 })
 
 test_that("the omnibus tests are described as the two tests the results report", {
-  r <- report_solomon(mai_fit(robust = "none"))
-  expect_match(r$method, paste0(
-    "Omnibus Wald F tests examined whether the differences between the conditions depended on ",
+  examined <- paste0(
+    " examined whether the differences between the conditions depended on ",
     "pretesting (the Pretest x Condition interaction) and whether the conditions differed when ",
     "averaged over pretest conditions."
-  ), fixed = TRUE)
+  )
+  r <- report_solomon(mai_fit(robust = "none"))
+  expect_match(r$method, paste0("Omnibus Wald F tests", examined), fixed = TRUE)
+
+  # With HC3, the tests of a Gaussian outcome are the small-sample tests of
+  # Pustejovsky and Tipton (2018) on the HC2 covariance, with each
+  # participant as a cluster, and the method says so (#45, amendment 2).
+  fit <- mai_fit()
+  hc3 <- report_solomon(fit)
+  expect_match(hc3$method, paste0(aht_method_phrase, examined), fixed = TRUE)
+  expect_no_match(hc3$method, "Omnibus Wald F tests", fixed = TRUE)
+  expect_identical(hc3$results[1], aht_report_sentence(fit$omnibus))
+  # The denominator degrees of freedom are given with a decimal.
+  expect_match(hc3$results[1], "gave F\\(2, [0-9]+\\.[0-9]\\) = [0-9.]+, p = \\.[0-9]{3}, and")
 })
 
 test_that("a two-level factor treatment gives the four-group report", {
@@ -272,6 +288,14 @@ test_that("fixed-dispersion fits report chi-square omnibus tests", {
   expect_match(r$results[1], sprintf("\u03c7\u00b2(2) = %.2f", om$statistic), fixed = TRUE)
   expect_match(r$method, "Omnibus Wald chi-square tests", fixed = TRUE)
   expect_match(r$results[2], "z = ", fixed = TRUE)
+  expect_identical(unique(fit$omnibus$method), "chi-square, model-based")
+  # With HC3 too: only a Gaussian outcome with the identity link has the
+  # small-sample test (#45, amendment 2).
+  hc3 <- fit_solomon_glm(high, condition, pretested, family = stats::binomial(),
+                         control = "Control", data = d)
+  expect_identical(unique(hc3$omnibus$method), "Wald chi-square, HC3")
+  expect_identical(unique(hc3$omnibus$reference), "chisq")
+  expect_match(report_solomon(hc3)$method, "Omnibus Wald chi-square tests examined", fixed = TRUE)
   md <- report_solomon(fit, format = "markdown")
   expect_match(md$results[1], "*\u03c7*\u00b2(2) = ", fixed = TRUE)
   expect_identical(.apa_omnibus(3.456, 2, Inf, "chisq", FALSE), "\u03c7\u00b2(2) = 3.46")
@@ -315,6 +339,7 @@ test_that("CR2 fits report the small-sample omnibus test and its sources", {
   fit <- suppressWarnings(fit_solomon_glm(post_behavior, condition, pretested, robust = "CR2",
                                           cluster = cluster, control = "Control", data = d))
   om <- fit$omnibus[fit$omnibus$test == "Pretest x Condition", ]
+  expect_identical(om$method, "AHT, CR2 (Pustejovsky & Tipton, 2018)")
   r <- report_solomon(fit)
   expect_match(r$method, "CR2 cluster-robust standard errors with Satterthwaite degrees of freedom",
                fixed = TRUE)

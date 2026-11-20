@@ -29,10 +29,12 @@
 #'   criterion that holds its false-rejection rate in Solomon-sized groups,
 #'   which affects [fit_solomon_sem_latent()] and [invariance_solomon()].
 #'   The analysis of designs with several treatments in [fit_solomon_glm()] is
-#'   experimental, because the rule for error control set before its
-#'   simulation study (issue #45) was not met for two omnibus tests with
-#'   three treatments and 10 participants per group. The pre-specified
-#'   rules of their simulation studies were not met for [fit_solomon_mmrm()]
+#'   experimental. The rule for error control set before its first
+#'   simulation study (issue #45) was not met for two of the omnibus tests
+#'   that the analysis then computed, with three treatments and 10
+#'   participants per group. A small-sample test has replaced them, and its
+#'   simulation study has not yet run. The pre-specified rules of their
+#'   simulation studies were not met for [fit_solomon_mmrm()]
 #'   (issue #57) and for [fit_solomon_mi()], [tipping_point_solomon()], and
 #'   [plot_tipping_point()] (issue #82). [analysis_plan_solomon()] stays
 #'   experimental until researchers have used it (issue #81).
@@ -811,8 +813,9 @@ stouffer_solomon <- function(p) {
 #' depend on the pretested participants, keeps its HC3 standard error, and
 #' the other three treatment contrasts and the three pretest effects are
 #' `NA`. With several treatments, an omnibus test is `NA` when one of its
-#' contrasts is. A comparison whose p-value is `NA` still counts in the
-#' Holm or Bonferroni adjustment of the other comparisons, as if its
+#' contrasts is, and so are the denominator degrees of freedom of a
+#' small-sample (AHT) test. A comparison whose p-value is `NA` still counts
+#' in the Holm or Bonferroni adjustment of the other comparisons, as if its
 #' p-value were the largest, so their adjustment is conservative. The same
 #' rule gives `NA` in the delta method of
 #' [marginal_solomon()], in the cell means of [plot_sensitization()], and
@@ -1181,9 +1184,52 @@ stouffer_solomon <- function(p) {
 #'   `contrasts = list(Lecture = c(Lecture = 0.5, Both = 0.5, Service = -0.5,
 #'   None = -0.5))`. The weights of each comparison must sum to zero.
 #'
-#' Omnibus Wald tests ask whether the conditions differ on each contrast. The
+#' Omnibus tests ask whether the conditions differ on each contrast. The
 #' Pretest x Condition test asks whether pretesting changes the effect of any
-#' treatment.
+#' treatment. Each tests k constraints, one for each treatment against the
+#' control. The `method` column of `omnibus` names the test, which depends on
+#' `robust` and the family:
+#'
+#' - `robust = "HC3"` (the default) with a Gaussian family and the identity
+#'   link: the approximate Hotelling's T-squared (AHT) test of Pustejovsky
+#'   and Tipton (2018), a test for small samples. It is their test for
+#'   cluster-robust covariance with each participant as a cluster, so it
+#'   equals the omnibus test of `robust = "CR2"` when `cluster` identifies
+#'   the participants. The Wald statistic Q comes from the HC2 covariance
+#'   matrix (MacKinnon & White, 1985), and Q(\eqn{\eta} - k + 1) /
+#'   (\eqn{\eta}k) is referred to the F distribution with k and
+#'   \eqn{\eta} - k + 1 degrees of freedom. \eqn{\eta} is computed from the
+#'   design (the group sizes, the pretest, and the covariates) under a
+#'   working model of independent errors with equal variances. It does not
+#'   depend on the outcomes, and `df2` is usually not a whole number. The
+#'   contrasts keep their HC3 standard errors; the omnibus tests use HC2
+#'   because the AHT test is built on the estimator that is unbiased under
+#'   the working model (Pustejovsky & Tipton, 2018).
+#' - `robust = "HC3"` with any other family or link: the Wald statistic W
+#'   from the HC3 covariance matrix. W / k is referred to the F distribution
+#'   with k and N - p degrees of freedom, where N - p is the residual
+#'   degrees of freedom, or W to the chi-square distribution with k degrees
+#'   of freedom when the dispersion is fixed (binomial, Poisson, and
+#'   negative-binomial fits). These tests have no small-sample correction,
+#'   and no simulation study of them has been run for several treatments.
+#' - `robust = "none"`: the same with the model-based covariance matrix. For
+#'   a Gaussian model with the identity link this is the classical F test.
+#' - `robust = "CR2"`: the AHT test with the CR2 covariance matrix of the
+#'   clusters given, from [clubSandwich::Wald_test()] with `test = "HTZ"`.
+#'
+#' A classed warning, `solomonR_small_df_warning`, is given when an AHT test
+#' has 4 or fewer denominator degrees of freedom. For the AHT tests of HC3
+#' fits it is also given when a group that a test compares has fewer than 5
+#' analyzable participants with two or three treatments, or fewer than 4
+#' with more. The approximation that gives the test its F distribution needs
+#' more than 4 denominator degrees of freedom. For tests of group means,
+#' that is assured for any variances of the groups when every group
+#' compared has more than 3 + 4 / (k + 1) participants (Zhang, 2013). The
+#' Pretest x Condition test and the test of the conditions averaged over
+#' pretest compare all 2(k + 1) groups, Condition | pretested compares the
+#' pretested groups, and Condition | unpretested the unpretested groups.
+#' Both conditions depend on the group sizes and the covariates, not on the
+#' outcomes.
 #'
 #' The p-values of each contrast are adjusted across the comparisons, by
 #' Holm's (1979) procedure by default. It controls the familywise error rate
@@ -1215,24 +1261,33 @@ stouffer_solomon <- function(p) {
 #' (2009) proposed for these designs.
 #'
 #' `r lifecycle::badge("experimental")` The analysis of designs with several
-#' treatments is experimental. In the package's simulation study (issue #45;
-#' 112 scenarios with two or three treatments and 10 to 50 participants per
-#' group, 5,000 replications each):
+#' treatments is experimental. The package's first simulation study (issue
+#' #45; 112 scenarios with two or three treatments and 10 to 50 participants
+#' per group, 5,000 replications each) judged the analysis as it then was.
+#' The omnibus tests of its HC3 fits were the Wald tests above, W / k on the
+#' F distribution with k and N - p degrees of freedom, which Gaussian fits
+#' with the identity link no longer give. In that study:
+#'
 #' - the treatment contrasts were unbiased, and coverage of their 95%
 #'   intervals was 0.939 to 0.967;
 #' - the familywise error rates of the Holm-adjusted comparisons were at most
 #'   0.059;
-#' - the Pretest x Condition test and the test of the conditions averaged
-#'   over pretest rejected a true null hypothesis in 0.036 to 0.055 of
-#'   replications;
-#' - with three treatments and 10 participants per group, the omnibus tests
-#'   of Condition | pretested and Condition | unpretested rejected in 0.055
-#'   to 0.069 of replications at the .05 level. The rule for error control
-#'   set before the study was therefore not met, which is why the analysis
-#'   is experimental. With groups that small, judge those two questions by
-#'   the adjusted comparisons.
+#' - the former Pretest x Condition test and the former test of the
+#'   conditions averaged over pretest rejected a true null hypothesis in
+#'   0.036 to 0.055 of replications;
+#' - with three treatments and 10 participants per group, the former omnibus
+#'   tests of Condition | pretested and Condition | unpretested rejected in
+#'   0.055 to 0.069 of replications at the .05 level. The rule for error
+#'   control set before the study was therefore not met.
 #'
-#' The study did not cover the pretest effects, which were added later
+#' The AHT test replaced those tests for that reason, by an amendment of
+#' the protocol posted on issue #45 before any run of the new study. That
+#' study has not yet run, so the package reports no simulation results for
+#' the AHT test in Solomon designs, and the analysis stays experimental
+#' until it does. The contrasts, their HC3 standard errors, and the Holm
+#' adjustment have not changed.
+#'
+#' The first study did not cover the pretest effects, which were added later
 #' (issue #104), binary or count outcomes, clustered designs, or comparisons
 #' given as weights. It is reported in the article "Designs With Several
 #' Treatments: Validating the Joint Model".
@@ -1301,7 +1356,10 @@ stouffer_solomon <- function(p) {
 #'   because cluster and condition are then confounded; see
 #'   [validate_solomon()]. A classed warning (`solomonR_small_df_warning`)
 #'   flags Solomon contrasts whose Satterthwaite degrees of freedom are below
-#'   4, where Tipton (2015) advises that p-values not be trusted.
+#'   4, where Tipton (2015) advises that p-values not be trusted. With
+#'   several treatments, a warning of that class also flags omnibus tests
+#'   with 4 or fewer denominator degrees of freedom (see "Designs with
+#'   several treatments").
 #' @param family model family (default gaussian()), given as a family object,
 #'   a family function, or its name; or `"negative_binomial"` for the NB2
 #'   model for counts.
@@ -1425,7 +1483,13 @@ stouffer_solomon <- function(p) {
 #'     treatment contrasts for each comparison, then the pretest effect in
 #'     each condition and the pretest main effect.
 #'   - `omnibus`: the omnibus tests, in the columns `test`, `statistic`,
-#'     `df1`, `df2`, `p.value`, and `reference` (`"F"` or `"chisq"`).
+#'     `df1`, `df2`, `p.value`, `reference` (`"F"` or `"chisq"`), and
+#'     `method`. `method` names the test of each row (see "Designs with
+#'     several treatments"): `"AHT, HC2 (Pustejovsky & Tipton, 2018)"`,
+#'     `"Wald F, HC3"`, `"Wald chi-square, HC3"`, `"F, model-based"`,
+#'     `"chi-square, model-based"`, or
+#'     `"AHT, CR2 (Pustejovsky & Tipton, 2018)"`. `df2` is usually not a
+#'     whole number for an AHT test, and is `Inf` for a chi-square test.
 #'   - `conditions`: the control and the treatments, with their model
 #'     terms (`condition`, `role`, and `term`).
 #'   - `weights`: the weights of each comparison over the conditions, one
@@ -1559,6 +1623,10 @@ stouffer_solomon <- function(p) {
 #' White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
 #' for intention to treat analysis in randomised trials with missing outcome
 #' data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40
+#'
+#' Zhang, J.-T. (2013). Tests of linear hypotheses in the ANOVA under
+#' heteroscedasticity. *International Journal of Advanced Statistics and
+#' Probability, 1*(2), 9–24. https://doi.org/10.14419/ijasp.v1i2.908
 #' @examples
 #' fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 #' fit
