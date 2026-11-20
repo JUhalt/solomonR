@@ -1,5 +1,66 @@
 # solomonR (development version)
 
+## Small-sample omnibus tests for designs with several treatments (#45)
+
+* **A change in results.** With several treatments, a Gaussian outcome
+  with the identity link, and the default `robust = "HC3"`,
+  `fit_solomon_glm()` now gives its omnibus tests as approximate
+  Hotelling's T-squared (AHT) tests (Pustejovsky & Tipton, 2018). The
+  Wald statistic comes from the HC2 covariance matrix (MacKinnon &
+  White, 1985), with each participant as a cluster, and is referred to
+  an F distribution whose denominator degrees of freedom come from the
+  design, not from the outcomes. Before, the HC3 Wald statistic over the
+  number of treatments, k, was referred to F(k, N - p), with N - p the
+  residual degrees of freedom. The `statistic`, `df2`, and `p.value` of
+  these rows of `omnibus` change, and `df2` is usually no longer a whole
+  number. The tests equal those of `robust = "CR2"` when `cluster`
+  identifies the participants. The contrasts, their HC3 standard errors,
+  and the Holm adjustment do not change.
+* **Why.** In the package's first simulation study of these designs, the
+  former tests of Condition | pretested and Condition | unpretested
+  rejected a true null hypothesis in up to 6.9% of replications at the
+  .05 level with three treatments and 10 participants per group, so the
+  rule for error control set before the study was not met. An amendment
+  to the protocol, posted on issue #45 before any run of a new study,
+  named this test as the replacement. The study of the new test has not
+  yet run, and the analysis of designs with several treatments stays
+  experimental.
+* The `omnibus` table has a new last column, `method`, which names the
+  test in every row: `"AHT, HC2 (Pustejovsky & Tipton, 2018)"`,
+  `"Wald F, HC3"`, `"Wald chi-square, HC3"`, `"F, model-based"`,
+  `"chi-square, model-based"`, or
+  `"AHT, CR2 (Pustejovsky & Tipton, 2018)"`.
+* Other families and links, `robust = "none"`, and `robust = "CR2"` give
+  the same tests as before. With HC3, the tests of other families and
+  links have no small-sample correction, and the help page now says so.
+* **A new warning.** `solomonR_small_df_warning`, the class of the
+  warning for CR2 contrasts, is now also raised when an AHT omnibus test
+  has 4 or fewer denominator degrees of freedom, under HC3 or CR2. For
+  the AHT tests of HC3 fits, it is also raised when a group that a test
+  compares has fewer than 5 analyzable participants with two or three
+  treatments, or fewer than 4 with more (Zhang, 2013). A fit with groups
+  that small gave no such warning before.
+* An omnibus test that is undefined because one of its contrasts depends
+  on a participant at leverage 1 (#173) is `NA`, as before. The `df2` of
+  an AHT test is then `NA` too.
+* The printed heading of the omnibus tests and the method of
+  `report_solomon()` name the test and its sources, and the print, the
+  report, and the subtitle of `plot_sensitization()` give a `df2` that
+  is not whole to one decimal.
+* Fits saved by earlier versions hold the former tests. They print and
+  report as before, with the heading, the note, and the wording that
+  describe those tests.
+* The help page, the printed note, the methods guide, the roadmap, and
+  the articles "Designs With Several Treatments", "Validation Evidence",
+  and "Designs With Several Treatments: Validating the Joint Model" now
+  say that the first study judged the former tests, and that the study
+  of the new test has not yet run.
+* The script of the first study still runs in smoke mode against the
+  current package, without the comparison of the omnibus p-values of its
+  HC3 fits, which the package no longer computes. That comparison holds
+  at the commit that the study records.
+* Zhang (2013) joins the reference list.
+
 ## Ties and degenerate labelings in perm_solomon() (bug fix, #134)
 
 * **A change in behavior: four supported models.** `perm_solomon()`
