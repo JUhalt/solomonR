@@ -18,16 +18,18 @@
   without a pretest" in `?fit_solomon_glm`.
 * **The default is unchanged.** `"drop"`, the default, leaves these
   participants out, as before, so no result of an existing call
-  changes: a fixture made by the previous master checks that `"drop"`,
-  and every fit in which no pretested participant analyzed lacks a
-  pretest, gives identical results. The default will follow the rules
-  posted on #142 once its validation study has run.
+  changes: a fixture made by the previous master checks, on a battery
+  of fits, that `"drop"`, and any fit in which no pretested participant
+  analyzed lacks a pretest, give identical results. The default will
+  follow the rules posted on #142 once its validation study has run.
 * **Printed under either handling.** Whenever such a participant is
-  present, the print of `fit_solomon_glm()` and of its summary,
-  `marginal_solomon()`, and `report_solomon()` give their number, the
-  pretest effects with them kept and dropped and the difference, their
-  mean posttest beside that of the participants with a pretest, and an
-  arm check, which is a description until the validation study has run.
+  present, the print of `fit_solomon_glm()`, of its summary, and of
+  `marginal_solomon()` gives their number, the pretest effects with them
+  kept and dropped and the difference, their mean posttest beside that
+  of the participants with a pretest, and an arm check, which is a
+  description until the validation study has run. `report_solomon()`
+  gives their number, what the handling assumes, and the pretest
+  effects under the other handling.
   The fits return `missing_pretest`, `n_missing_pretest`,
   `missing_pretest_share`, `missing_pretest_sensitivity`, and
   `missing_pretest_arm_check`. The warning on missing pretests names the
