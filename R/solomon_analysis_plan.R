@@ -116,6 +116,12 @@
 #'   assumption of the pretest effects, apart from those of the treatment
 #'   contrasts, which do not depend on it. A plan that assumes missingness at
 #'   random for the pretest effects chooses `"observed"`.
+#' @param missing_pretest How the planned fit handles pretested participants
+#'   who have a posttest but no pretest (issue #142): `"drop"` or
+#'   `"indicator"`, as in [fit_solomon_glm()], whose default it follows when
+#'   `NULL` (the default). The plan writes the fit's call with it, and
+#'   states the handling and what it assumes. A longitudinal plan states
+#'   that [fit_solomon_mmrm()] excludes them, whatever this says.
 #'
 #' @return An object of class `solomon_analysis_plan`, a list with:
 #'   - `text`: the lines of the plan, in Markdown.

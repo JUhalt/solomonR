@@ -18,7 +18,8 @@ analysis_plan_solomon(
   tipping_groups = "treatment",
   title = "Analysis plan for a Solomon four-group study",
   file = NULL,
-  pretest_center = c("analyzed", "observed")
+  pretest_center = c("analyzed", "observed"),
+  missing_pretest = NULL
 )
 }
 \arguments{
@@ -72,6 +73,13 @@ plan writes the fit's call with it, and states the population and the
 assumption of the pretest effects, apart from those of the treatment
 contrasts, which do not depend on it. A plan that assumes missingness at
 random for the pretest effects chooses \code{"observed"}.}
+
+\item{missing_pretest}{How the planned fit handles pretested participants
+who have a posttest but no pretest (issue #142): \code{"drop"} or
+\code{"indicator"}, as in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, whose default it follows when
+\code{NULL} (the default). The plan writes the fit's call with it, and
+states the handling and what it assumes. A longitudinal plan states
+that \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}} excludes them, whatever this says.}
 }
 \value{
 An object of class \code{solomon_analysis_plan}, a list with:

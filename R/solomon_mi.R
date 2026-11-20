@@ -276,8 +276,15 @@
 #'
 #' **Structural and incidental missingness.** Pretests absent by design are
 #' never imputed. Pretested participants with a missing pretest are excluded
-#' with a warning, as in [fit_solomon_glm()]; [check_solomon_missing()]
-#' describes the options for them.
+#' with a warning, as `missing_pretest = "drop"` excludes them in
+#' [fit_solomon_glm()], and the print says how many and why. For the
+#' pretest effects, that assumes that in each pretested group those without
+#' a pretest would have had the same mean posttest as those with one; when
+#' their loss relates to baseline, the pretest effects are biased (see
+#' "Pretested participants without a pretest" in [fit_solomon_glm()]).
+#' Keeping them by the missing-indicator method, with the indicator in the
+#' imputation model as well, waits for an amendment to the protocol of
+#' issue #82. [check_solomon_missing()] describes the options for them.
 #'
 #' **The pretest center.** Only the four treatment contrasts are pooled,
 #' and they do not depend on the mean pretest at which the pretested groups
@@ -353,8 +360,10 @@
 #'   - `m`: the number of imputations.
 #'   - `missing`: the posttests missing in each group (`group`, `n`,
 #'     `missing`, and `proportion`).
-#'   - `excluded`: the number of pretested participants left out because
-#'     their pretest was missing.
+#'   - `excluded`: the number of participants left out, because their
+#'     pretest was missing or their treatment or pretest condition was not
+#'     recorded, and `excluded_pretest`, how many of them are pretested
+#'     participants without a pretest.
 #'   - `estimates` and `std_errors`: the estimates and standard errors of
 #'     each imputation, one row for each imputation and one column for each
 #'     contrast.

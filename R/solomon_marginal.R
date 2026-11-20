@@ -1139,6 +1139,44 @@
 #' with it (Higham, 2002, Chapter 20). A bootstrap whose refits all
 #' converge is computed as before.
 #'
+#' **Pretested participants without a pretest.** For a fit with
+#' `missing_pretest = "indicator"` (see "Pretested participants without a
+#' pretest" in [fit_solomon_glm()]), each pretested participant analyzed is
+#' standardized over with their own value of the indicator, so the
+#' pretested cells describe all the pretested participants analyzed, with
+#' a pretest or without; on the risk and rate scales that is the
+#' indicator at its mean. With `pretest_center = "observed"` and pretested
+#' participants with a pretest outside the model, the pretested cells are
+#' standardized in two strata: the participants kept without a pretest
+#' weigh their share, m, of the pretested participants analyzed, and every
+#' pretested participant with a pretest, in the model or not, weighs 1 - m.
+#' On the identity scale that reproduces the fit's shift between the
+#' centers, and the result does not depend on whether the data keep rows
+#' without an outcome. The two strata are a judgment, by analogy with the
+#' fit (the decision record posted on issue #142, section 5). The delta
+#' method stacks the means of the strata and m with the model's estimating
+#' equations (Stefanski & Boos, 2002).
+#'
+#' The bootstrap's refits treat the indicator by what a resample holds. A
+#' resample that draws no participant kept without a pretest is refitted
+#' without the indicator, as a fit without such participants is; before,
+#' it failed as a design not of full rank. When every kept participant in
+#' a resample has the same outcome, the indicator's coefficient has no
+#' finite estimate (Albert & Anderson, 1984). Their fitted risks are then
+#' set to that outcome, the limit of the maximum-likelihood fit, and the
+#' other participants are refitted without them, so the checks of a refit
+#' above apply to the others' fitted risks. The same limit gives the
+#' estimates when the kept participants of the data share an outcome.
+#' `indicator_refits` counts the resamples each rule took. The rule is a
+#' derivation in the decision record; whether the intervals built from it
+#' cover well is a question for the validation study of issue #142.
+#'
+#' Whenever a pretested participant analyzed lacks a pretest, under either
+#' handling, the print gives the pretest effects on each scale with them
+#' kept and dropped, the second from a fit of the other handling
+#' standardized in the same way, and `missing_pretest_sensitivity` returns
+#' them.
+#'
 #' For the pretest effects, the pretested and the unpretested risks are
 #' standardized over different participants, so the sampling variance of
 #' each standardization does not cancel, as it does for the treatment
@@ -1312,6 +1350,21 @@
 #'     [solomon_output]).
 #'   - `design` and `clusters` (the number of clusters in each cell), with
 #'     `method = "cluster_summary"`.
+#'   - `missing_pretest`, `n_missing_pretest`, `missing_pretest_share`, and
+#'     `missing_pretest_arm_check`: as in the fit (see "Pretested
+#'     participants without a pretest" there); absent for fits made before
+#'     they existed.
+#'   - `missing_pretest_sensitivity`: when a pretested participant analyzed
+#'     lacks a pretest, a list with `effects` (each pretest effect on each
+#'     `scale`, `kept` and `dropped`, and their `difference`) and the fit's
+#'     `posttests`, `separation`, and `one`; otherwise `NULL`. Outside the
+#'     stable interface (see [solomon_output]).
+#'   - `indicator_refits`: with `method = "bootstrap"` and a fit with the
+#'     indicator, the number of resamples refitted without it because they
+#'     drew no participant kept without a pretest (`none_kept`), and the
+#'     number whose kept participants all had the same outcome
+#'     (`shared_outcome`). The resamples that failed are counted in
+#'     `failures`.
 #'
 #'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
 #'   which returns the table, are the stable interface of the result; see

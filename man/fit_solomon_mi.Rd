@@ -61,8 +61,10 @@ information \code{fmi} and the Monte Carlo standard error \code{mc_se}.
 \item \code{m}: the number of imputations.
 \item \code{missing}: the posttests missing in each group (\code{group}, \code{n},
 \code{missing}, and \code{proportion}).
-\item \code{excluded}: the number of pretested participants left out because
-their pretest was missing.
+\item \code{excluded}: the number of participants left out, because their
+pretest was missing or their treatment or pretest condition was not
+recorded, and \code{excluded_pretest}, how many of them are pretested
+participants without a pretest.
 \item \code{estimates} and \code{std_errors}: the estimates and standard errors of
 each imputation, one row for each imputation and one column for each
 contrast.
@@ -142,8 +144,15 @@ participant stops the analysis with an error of class
 
 \strong{Structural and incidental missingness.} Pretests absent by design are
 never imputed. Pretested participants with a missing pretest are excluded
-with a warning, as in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}; \code{\link[=check_solomon_missing]{check_solomon_missing()}}
-describes the options for them.
+with a warning, as \code{missing_pretest = "drop"} excludes them in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, and the print says how many and why. For the
+pretest effects, that assumes that in each pretested group those without
+a pretest would have had the same mean posttest as those with one; when
+their loss relates to baseline, the pretest effects are biased (see
+"Pretested participants without a pretest" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
+Keeping them by the missing-indicator method, with the indicator in the
+imputation model as well, waits for an amendment to the protocol of
+issue #82. \code{\link[=check_solomon_missing]{check_solomon_missing()}} describes the options for them.
 
 \strong{The pretest center.} Only the four treatment contrasts are pooled,
 and they do not depend on the mean pretest at which the pretested groups

@@ -110,10 +110,21 @@ levels are those of the data, unchanged: text as \code{read.csv()}
 returns it is taken by its bytes, which gives that order for a UTF-8
 file in any session. So the p-value simulated under the fixed seed
 is the same in every session.
-\item \code{missing_pretest}: for each pretested condition, the participants
-with a posttest and no pretest (\code{n_without_pretest},
-\code{mean_without_pretest}, their mean posttest) and those with both
-scores (\code{n_with_pretest}, \code{mean_with_pretest}).
+\item \code{missing_pretest}: for each pretested condition (item 7), the
+participants with a posttest and no pretest (\code{n_without_pretest},
+and \code{mean_without_pretest}, their mean posttest), those with both
+scores (\code{n_with_pretest} and \code{mean_with_pretest}), those with a
+pretest and no posttest (\code{n_pretest_only}), and those with neither
+(\code{n_neither}); the \code{difference} of the mean posttests (without minus
+with), its Welch \code{std.error}, \code{statistic}, \code{df}, and \code{p.value}; the
+\code{share} without a pretest among those with a posttest; and
+\code{observable}, that share times the difference with minus without.
+\item \code{missing_pretest_effects}: when a pretested participant with a
+posttest lacks a pretest, the pretest effects with them \code{kept} and
+\code{dropped}, and the \code{difference} (item 7c); otherwise \code{NULL}.
+\item \code{missing_pretest_arm_check}: when a pretested participant with a
+posttest lacks a pretest, the arm check (item 7d), in the columns of
+\code{missing_pretest_arm_check} in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}; otherwise \code{NULL}.
 \item \code{raw_pretest_effects}: the pretest effects of a fit without the
 pretest, in the columns of an effects table, when the selection
 differs or a pretested participant lacks a pretest; otherwise \code{NULL}.
@@ -142,16 +153,21 @@ Unlike planned missing-data designs, in which unmeasured values exist and
 can be imputed (Graham et al., 2006), an imputed pretest here would
 describe a measurement that never occurred.
 \item \strong{Incidental pretest missingness}: pretested participants without a
-pretest score. solomonR analyses currently use complete cases and warn.
-Because treatment is randomized, deterministic mean imputation of the
-pretest (without using treatment or outcome), with a missingness indicator
-when pretests may not be missing completely at random, retains these
-participants without biasing the treatment effect (White & Thompson,
-2005; Groenwold et al., 2012). This concerns the treatment effect only:
-every fit with the pretest as a covariate drops these participants from
-the pretest effects, at either pretest center, and when their loss
-relates to baseline those effects are biased while a fit without the
-pretest is not (issue #142).
+pretest score. \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} handles those who have a posttest
+as its argument \code{missing_pretest} says. \code{"drop"}, the default, leaves
+them out, which assumes for the pretest effects that, in each pretested
+group, those without a pretest would have had the same mean posttest
+as those with one; when their loss relates to baseline, the pretest
+effects are biased (issue #142). \code{"indicator"} keeps them by the
+missing-indicator method (Groenwold et al., 2012, pp. 1266, 1269;
+Carpenter & Kenward, 2007, pp. 36--38): their pretest is set to the
+mean of the observed pretests, without using treatment or outcome, and
+an indicator marks them. Because treatment is randomized, that does not
+bias the treatment effect (White & Thompson, 2005), whatever drives the
+loss, provided losing the pretest did not depend on the treatment
+condition. The other analyses use complete cases and warn. If the
+pretest was never administered, report the departure and analyze
+participants as assigned.
 \item \strong{Incidental posttest missingness}: missing outcomes. For the treatment
 contrasts, complete-case analysis is unbiased when missingness is
 unrelated to the outcome given the variables in the model (Little &
@@ -252,9 +268,41 @@ compared the course grades of the students lost in this way. A
 covariate that predicts the posttest belongs in the model; that it
 weakens both centers' assumptions is the record's inference, not a
 checked result.
-\item \strong{Pretested participants with a posttest and no pretest}: their number
-and mean posttest beside those of the pretested participants with both
-scores, and the raw comparison, which keeps them (issue #142).
+\item \strong{Pretested participants without a pretest} (issue #142), for each
+pretested condition:
+\itemize{
+\item 7a, the counts: the participants with both scores, a posttest
+only, a pretest only, and neither, the numbers analyzed that CONSORT
+asks for (Moher et al., 2010, item 16; Hopewell et al., 2025, item
+21c). \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} leaves out those with a posttest only
+under \code{missing_pretest = "drop"} and keeps them under
+\code{"indicator"}.
+\item 7b, their posttests: the mean posttest of those without and with a
+pretest, the difference, its Welch standard error, and Welch's
+(1947) t test. The difference is what dropping them assumes to be 0
+for the pretest effects (Carpenter & Smuk, 2021, secs. 3 and 3.2);
+otherwise the pretest effects of \code{"drop"} are off by about the share
+without a pretest times the difference (identity (ii) of the
+decision record posted on the issue). p < .05 is the package's rule,
+and no source fixes a level.
+\item 7c, the effect of dropping: the pretest effects with them kept by
+the missing-indicator method and dropped, and the difference, from
+fits on the identity link with \code{covariates}.
+\item 7d, the arm check, for each treatment against the control, among
+the pretested participants with a posttest: the mean observed
+pretest by condition, as Hedges' g (What Works Clearinghouse, 2022,
+p. 162), with Welch's t test, the check that Kayembe et al. (2020,
+sec. 5) give for loss that depends on the condition and the pretest
+together, which would bias the kept analysis; and the share without a
+pretest by condition, with Fisher's exact test, which is the
+package's choice and a description only, because different rates
+alone do not bias it (Kayembe et al., 2020, sec. 3.3). Until the
+validation study of issue #142 has run, both are a description, and
+no statement follows from them.
+}
+
+The raw comparison of posttest means, which keeps them, is given too
+(\code{raw_pretest_effects}).
 \item \strong{What cannot be checked}: the unpretested groups' losses cannot be
 checked against baseline (Campbell, 1957, p. 305). When only those
 groups lost posttests, the two centers coincide, but neither is
@@ -267,7 +315,8 @@ posttests are missing" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
 
 The checks on the pretest (items 2 to 5 and 7) need numeric pretest
 scores and are left out otherwise. \code{\link[=validate_solomon]{validate_solomon()}} leaves out all
-of them.
+of them. Items 4 and 5 come from a fit with the default of
+\code{missing_pretest} in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, \code{"drop"}.
 }
 
 \examples{
@@ -296,6 +345,14 @@ Campbell, D. T., & Stanley, J. C. (1966). \emph{Experimental and
 quasi-experimental designs for research}. Rand McNally. (Original work
 published 1963)
 
+Carpenter, J. R., & Kenward, M. G. (2007). \emph{Missing data in randomised
+controlled trials: A practical guide}. Health Technology Assessment
+Methodology Programme. https://researchonline.lshtm.ac.uk/id/eprint/4018500
+
+Carpenter, J. R., & Smuk, M. (2021). Missing data: A statistical framework
+for practice. \emph{Biometrical Journal, 63}(5), 915–947.
+https://doi.org/10.1002/bimj.202000196
+
 Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of D.A.R.E.
 (Drug Abuse Resistance Education), using a Solomon four-group design with
 latent variables. \emph{Evaluation Review, 19}(4), 409–435.
@@ -316,6 +373,20 @@ research: When and when not to use the missing-indicator method for analysis.
 \emph{Canadian Medical Association Journal, 184}(11), 1265–1269.
 https://doi.org/10.1503/cmaj.110977
 
+Hopewell, S., Chan, A.-W., Collins, G. S., Hróbjartsson, A., Moher, D.,
+Schulz, K. F., Tunn, R., Aggarwal, R., Berkwits, M., Berlin, J. A.,
+Bhandari, N., Butcher, N. J., Campbell, M. K., Chidebe, R. C. W.,
+Elbourne, D., Farmer, A., Fergusson, D. A., Golub, R. M., Goodman, S. N.,
+. . . Boutron, I. (2025). CONSORT 2025 explanation and elaboration:
+Updated guideline for reporting randomised trials. \emph{BMJ, 389}, Article
+e081124. https://doi.org/10.1136/bmj-2024-081124
+
+Kayembe, M. T., Jolani, S., Tan, F. E. S., & van Breukelen, G. J. P.
+(2020). Imputation of missing covariate in randomized controlled trials
+with a continuous outcome: Scoping review and new results.
+\emph{Pharmaceutical Statistics, 19}(6), 840–860.
+https://doi.org/10.1002/pst.2041
+
 Lee, D. S. (2005). \emph{Training, wages, and sample selection: Estimating sharp
 bounds on treatment effects} (NBER Working Paper No. 11721). National
 Bureau of Economic Research. https://doi.org/10.3386/w11721
@@ -326,6 +397,12 @@ data} (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. \emph{Education
 Sciences, 10}(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+Moher, D., Hopewell, S., Schulz, K. F., Montori, V., Gøtzsche, P. C.,
+Devereaux, P. J., Elbourne, D., Egger, M., & Altman, D. G. (2010). CONSORT
+2010 explanation and elaboration: Updated guidelines for reporting parallel
+group randomised trials. \emph{BMJ, 340}, Article c869.
+https://doi.org/10.1136/bmj.c869
 
 Rubin, D. B. (1976). Inference and missing data. \emph{Biometrika, 63}(3),
 581–592. https://doi.org/10.1093/biomet/63.3.581
@@ -340,6 +417,10 @@ https://doi.org/10.1198/000313002753631330
 Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? \emph{Design Principles and Practices: An International
 Journal—Annual Review, 3}(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+
+Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. \emph{Biometrika, 34}(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28
 
 What Works Clearinghouse. (2022). \emph{What Works Clearinghouse procedures and
 standards handbook, version 5.0} (WWC 2022008REV). U.S. Department of

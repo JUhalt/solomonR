@@ -108,6 +108,15 @@ within each treatment condition, the pretested and unpretested groups lost
 the same kinds of participants; \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with
 \code{pretest_center = "observed"} keeps their pretests instead. See "The
 pretest effect when posttests are missing" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}.
+
+A pretested participant without a pretest stops the fit too. Removing
+such participants before the call is the analysis of
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \code{missing_pretest = "drop"}: for the pretest
+effects, it assumes that in each pretested group those without a pretest
+would have had the same mean posttest as those with one, and when their
+loss relates to baseline the pretest effects are biased (see "Pretested
+participants without a pretest" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, whose
+\code{missing_pretest = "indicator"} keeps them).
 }
 \section{Inference options}{
 
