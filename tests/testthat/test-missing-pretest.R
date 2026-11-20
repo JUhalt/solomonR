@@ -768,3 +768,348 @@ test_that("no covariate can be named as the indicator's column", {
   expect_true("pre_missing" %in% .solomon_reserved_names)
   expect_identical(.missing_pretest_column, "pre_missing")
 })
+
+
+# ---- marginal_solomon() -----------------------------------------------------------
+
+# A four-group design with a binary outcome, outcomes missing more often at
+# low baseline scores in every group, and every pretest observed; the tests
+# remove the pretests they need.
+mp_binary <- function(n = 50, seed = 20261122) {
+  withr::with_seed(seed, {
+    g <- rep(1:4, each = n)
+    treat <- as.integer(g %in% c(1, 3))
+    pretested <- as.integer(g <= 2)
+    x <- stats::rnorm(4 * n)
+    d <- data.frame(treat = treat, pretested = pretested, y_pre = ifelse(pretested == 1, x, NA))
+    d$y <- stats::rbinom(4 * n, 1, stats::plogis(-0.5 + x + 0.5 * treat))
+    d$y[stats::runif(4 * n) < stats::plogis(-1.5 - x)] <- NA
+    d
+  })
+}
+
+# The pretested participants of mp_binary() with an outcome of 0 and of 1.
+mp_binary_rows <- function(d) {
+  rows <- which(d$pretested == 1 & !is.na(d$y))
+  list(zeros = rows[d$y[rows] == 0], ones = rows[d$y[rows] == 1])
+}
+
+# The model's data by hand: the rows with an outcome, the centered pretest
+# `z` (0 for the kept participants), and the indicator `m`.
+mp_model_data <- function(d) {
+  dm <- d[!is.na(d$y), ]
+  kept <- dm$pretested == 1 & is.na(dm$y_pre)
+  center <- mean(dm$y_pre[dm$pretested == 1 & !kept])
+  dm$z <- ifelse(dm$pretested == 1 & !kept, dm$y_pre - center, 0)
+  dm$m <- as.integer(kept)
+  dm
+}
+
+# The standardized risks of the rows `rows` of the model's data by the rule
+# of the decision record (section 5), computed with glm(), without the
+# package. A resample with no kept participant is fitted without the
+# indicator. One whose kept participants share an outcome sets their risks
+# to it and fits the others without them. Otherwise the model has the
+# indicator. `ok` is FALSE when a Solomon cell (of the participants fitted)
+# has only events or only non-events, the fit does not converge, or a
+# fitted risk is within 1e-8 of 0 or 1.
+mp_limit <- function(dm, rows = seq_len(nrow(dm))) {
+  dd <- dm[rows, ]
+  kept <- dd$m == 1
+  failed <- list(ok = FALSE)
+  one_outcome <- function(x) {
+    cells <- interaction(x$treat, x$pretested)
+    any(table(cells) == 0) || any(tapply(x$y, cells, function(v) all(v == 0) || all(v == 1)))
+  }
+  if (one_outcome(dd)) return(failed)
+  fit <- function(formula, data) {
+    suppressWarnings(stats::glm(formula, data = data, family = stats::binomial(),
+                                control = stats::glm.control(epsilon = 1e-13, maxit = 100)))
+  }
+  fixed <- rep(NA_real_, nrow(dd))
+  kind <- "both"
+  if (!any(kept)) {
+    kind <- "none"
+    f <- fit(y ~ treat * pretested + z, dd)
+  } else if (length(unique(dd$y[kept])) == 1L) {
+    kind <- "shared"
+    if (one_outcome(dd[!kept, ])) return(c(failed, kind = kind))
+    f <- fit(y ~ treat * pretested + z, dd[!kept, ])
+    fixed[kept] <- dd$y[kept][1]
+  } else {
+    f <- fit(y ~ treat * pretested + z + m, dd)
+  }
+  if (!f$converged || any(stats::fitted(f) < 1e-8 | stats::fitted(f) > 1 - 1e-8)) {
+    return(c(failed, kind = kind))
+  }
+  risk <- function(t, p) {
+    nd <- dd[dd$pretested == p, ]
+    nd$treat <- t
+    r <- stats::predict(f, nd, type = "response")
+    set <- !is.na(fixed[dd$pretested == p])
+    r[set] <- fixed[dd$pretested == p][set]
+    mean(r)
+  }
+  list(ok = TRUE, kind = kind,
+       r = c(t1p1 = risk(1, 1), t0p1 = risk(0, 1), t1p0 = risk(1, 0), t0p0 = risk(0, 0)))
+}
+
+# The seven contrasts on the risk-difference scale from the four risks.
+mp_differences <- function(r) {
+  unname(c((r[["t1p1"]] + r[["t1p0"]]) / 2 - (r[["t0p1"]] + r[["t0p0"]]) / 2,
+           (r[["t1p1"]] - r[["t0p1"]]) - (r[["t1p0"]] - r[["t0p0"]]),
+           r[["t1p1"]] - r[["t0p1"]], r[["t1p0"]] - r[["t0p0"]],
+           r[["t0p1"]] - r[["t0p0"]], r[["t1p1"]] - r[["t1p0"]],
+           (r[["t1p1"]] + r[["t0p1"]]) / 2 - (r[["t1p0"]] + r[["t0p0"]]) / 2))
+}
+
+# The bootstrap of marginal_solomon() by hand: the same resamples, drawn
+# within the four cells from the same seed, each analyzed by mp_limit().
+mp_bootstrap <- function(d, R, seed) {
+  dm <- mp_model_data(d)
+  cells <- split(seq_len(nrow(dm)), interaction(dm$treat, dm$pretested, drop = TRUE))
+  draws <- withr::with_seed(seed, lapply(seq_len(R), function(i) {
+    unlist(lapply(cells, function(rows) rows[sample.int(length(rows), replace = TRUE)]),
+           use.names = FALSE)
+  }))
+  fits <- lapply(draws, function(rows) mp_limit(dm, rows))
+  ok <- vapply(fits, `[[`, TRUE, "ok")
+  kind <- vapply(fits, function(f) if (is.null(f$kind)) NA_character_ else f$kind, "")
+  estimates <- t(vapply(fits[ok], function(f) mp_differences(f$r), numeric(7)))
+  list(failures = sum(!ok), none = sum(kind %in% "none"), shared = sum(kind %in% "shared"),
+       std.error = apply(estimates, 2, stats::sd),
+       conf.low = apply(estimates, 2, stats::quantile, 0.025, names = FALSE),
+       conf.high = apply(estimates, 2, stats::quantile, 0.975, names = FALSE))
+}
+
+test_that("marginal_solomon() standardizes each kept participant with their own indicator", {
+  d <- mp_binary()
+  rows <- mp_binary_rows(d)
+  d$y_pre[c(rows$zeros[c(2, 9, 30)], rows$ones[c(5, 11)])] <- NA
+  fit <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = d,
+                                          family = stats::binomial(),
+                                          missing_pretest = "indicator"))
+  m <- marginal_solomon(fit, scale = "difference", method = "delta")
+  dm <- mp_model_data(d)
+  hand <- mp_limit(dm)
+  expect_identical(hand$kind, "both")
+  expect_equal(m$risks$risk, unname(hand$r), tolerance = 1e-6)
+  expect_equal(m$effects$estimate, mp_differences(hand$r), tolerance = 1e-6)
+  expect_true(all(is.finite(m$effects$std.error)))
+  # What the result carries from the fit, and the pretest effects on the
+  # risk scale under the other handling, which the "drop" fit reports too.
+  expect_identical(m$missing_pretest, "indicator")
+  expect_identical(m$n_missing_pretest, fit$n_missing_pretest)
+  expect_identical(m$missing_pretest_share, fit$missing_pretest_share)
+  expect_identical(m$missing_pretest_arm_check, fit$missing_pretest_arm_check)
+  drop <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = d,
+                                           family = stats::binomial()))
+  md <- marginal_solomon(drop, scale = "difference", method = "delta")
+  s <- m$missing_pretest_sensitivity$effects
+  expect_named(s, c("scale", "contrast", "kept", "dropped", "difference"))
+  expect_identical(s$contrast, mp_pretest)
+  expect_equal(s$kept, m$effects$estimate[5:7], tolerance = 1e-12)
+  expect_equal(s$dropped, md$effects$estimate[5:7], tolerance = 1e-8)
+  expect_equal(md$missing_pretest_sensitivity$effects, s, tolerance = 1e-8)
+  expect_identical(md$missing_pretest, "drop")
+  expect_null(md$indicator_refits)
+  expect_null(m$indicator_refits)
+  # A fit in which every pretested participant has a pretest reports no one.
+  complete <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = mp_binary(),
+                                               family = stats::binomial(),
+                                               missing_pretest = "indicator"))
+  mc <- marginal_solomon(complete, scale = "difference", method = "delta")
+  expect_null(mc$missing_pretest_sensitivity)
+  expect_true(all(mc$n_missing_pretest == 0L))
+})
+
+test_that("when the kept participants share an outcome, the risks are those of the limiting model", {
+  # Agreement check 7 of the protocol, first part: the kept participants'
+  # fitted risks are their shared outcome, and the others are fitted without
+  # them and without the indicator.
+  d <- mp_binary()
+  rows <- mp_binary_rows(d)
+  for (kept in list(rows$zeros[c(3, 40)], rows$ones[7], rows$ones[c(1, 9, 20, 28)])) {
+    expect_false(anyNA(kept))
+    dk <- d
+    dk$y_pre[kept] <- NA
+    fit <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = dk,
+                                            family = stats::binomial(),
+                                            missing_pretest = "indicator"))
+    hand <- mp_limit(mp_model_data(dk))
+    expect_identical(hand$kind, "shared")
+    for (method in c("delta", "bootstrap")) {
+      m <- suppressWarnings(marginal_solomon(fit, scale = c("difference", "ratio"), method = method,
+                                             R = 99, seed = 3))
+      expect_equal(m$risks$risk, unname(hand$r), tolerance = 1e-6, info = method)
+      expect_equal(m$effects$estimate[1:7], mp_differences(hand$r), tolerance = 1e-6,
+                   info = method)
+      # The standard errors are defined, also with one kept participant,
+      # whose leverage is 1 in the fit: no contrast depends on them.
+      expect_true(all(is.finite(m$effects$std.error)), info = method)
+    }
+    # The pretested cells' risks are those of "drop" for the others, with
+    # the kept participants added at their outcome.
+    drop <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = dk,
+                                             family = stats::binomial()))
+    md <- marginal_solomon(drop, scale = "difference", method = "delta")
+    k <- length(kept)
+    n <- sum(dk$pretested == 1 & !is.na(dk$y))
+    expect_equal(m$risks$risk[1:2], (md$risks$risk[1:2] * (n - k) + k * dk$y[kept[1]]) / n,
+                 tolerance = 1e-6)
+  }
+})
+
+test_that("the bootstrap's refits follow the rule for the indicator: both halves, by hand", {
+  # Agreement check 7 of the protocol, second part. Each resample is
+  # analyzed by hand with glm(): the failures, the resamples each half of
+  # the rule took, the bootstrap standard errors, and the percentile limits
+  # are those of marginal_solomon(). Without the rule, a resample with no
+  # kept participant failed as a design not of full rank, and most refits of
+  # a data set whose kept participants share an outcome failed for a fitted
+  # risk within 1e-8 of 0 or 1.
+  d <- mp_binary()
+  rows <- mp_binary_rows(d)
+  reference <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = d,
+                                                family = stats::binomial()))
+  reference_failures <- suppressWarnings(
+    marginal_solomon(reference, scale = "difference", R = 199, seed = 1422))$failures
+  cases <- list(
+    both = c(rows$zeros[c(2, 30)], rows$ones[5]),
+    zeros = rows$zeros[c(3, 40)],
+    one = rows$ones[7],
+    ones = rows$ones[c(1, 9, 20, 28)]
+  )
+  expect_false(anyNA(unlist(cases)))
+  for (name in names(cases)) {
+    dk <- d
+    dk$y_pre[cases[[name]]] <- NA
+    fit <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = dk,
+                                            family = stats::binomial(),
+                                            missing_pretest = "indicator"))
+    expect_no_warning(m <- marginal_solomon(fit, scale = "difference", R = 199, seed = 1422),
+                      class = "solomonR_bootstrap_warning")
+    hand <- mp_bootstrap(dk, 199, 1422)
+    expect_identical(m$failures, hand$failures, info = name)
+    expect_identical(m$indicator_refits, c(none_kept = hand$none, shared_outcome = hand$shared),
+                     info = name)
+    expect_equal(m$effects$std.error, hand$std.error, tolerance = 1e-6, info = name)
+    expect_equal(m$effects$conf.low, hand$conf.low, tolerance = 1e-6, info = name)
+    expect_equal(m$effects$conf.high, hand$conf.high, tolerance = 1e-6, info = name)
+    # Both halves act, and the indicator fit fails in no more resamples than
+    # the fit with every pretest (the protocol allows fewer than 5% more).
+    expect_gt(hand$none, 0L)
+    expect_gt(hand$shared, 0L)
+    expect_lt(m$failures - reference_failures, 0.05 * 199)
+  }
+  # A data set whose kept participants share an outcome takes one of the
+  # two halves in every resample.
+  expect_identical(m$failures, 0L)
+  expect_identical(sum(m$indicator_refits), 199L)
+})
+
+test_that("with pretest_center = \"observed\" the pretested cells are standardized in two strata", {
+  d <- mp_binary(n = 30, seed = 20261123)
+  rows <- mp_binary_rows(d)
+  d$y_pre[c(rows$zeros[c(1, 6, 11, 16)], rows$ones[c(2, 7, 12)])] <- NA
+  fit <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = d,
+                                          family = stats::binomial(),
+                                          missing_pretest = "indicator"))
+  m <- marginal_solomon(fit, scale = c("difference", "ratio"), method = "delta",
+                        pretest_center = "observed")
+  # By hand: the kept participants weigh their share of the pretested
+  # participants in the model, and every pretested participant with a
+  # pretest, in the model or not, the rest.
+  dm <- mp_model_data(d)
+  f <- stats::glm(y ~ treat * pretested + z + m, data = dm, family = stats::binomial())
+  center <- mean(dm$y_pre[dm$pretested == 1 & dm$m == 0])
+  all_rows <- d
+  all_rows$z <- ifelse(d$pretested == 1 & !is.na(d$y_pre), d$y_pre - center, 0)
+  all_rows$m <- as.integer(d$pretested == 1 & is.na(d$y_pre) & !is.na(d$y))
+  with_pretest <- d$pretested == 1 & !is.na(d$y_pre)
+  expect_gt(sum(with_pretest & is.na(d$y)), 0L)
+  share <- fit$missing_pretest_share
+  risk <- function(t, rows) {
+    nd <- all_rows[rows, ]
+    nd$treat <- t
+    mean(stats::predict(f, nd, type = "response"))
+  }
+  two_strata <- function(t) share * risk(t, all_rows$m == 1) + (1 - share) * risk(t, with_pretest)
+  expect_equal(m$risks$risk[1:2], c(two_strata(1), two_strata(0)), tolerance = 1e-6)
+  expect_identical(m$standardized[["observed"]],
+                   sum(d$pretested == 1 & !is.na(d$y)) + sum(with_pretest & is.na(d$y)))
+  # Standardizing over the union with each row's own indicator would shrink
+  # the share without a pretest; the two strata keep it.
+  union <- function(t) risk(t, with_pretest | all_rows$m == 1)
+  expect_gt(abs(union(1) - two_strata(1)), 1e-4)
+  # The delta method's standard errors, with the variance of the two
+  # strata's means and of the share, agree with a jackknife that leaves out
+  # one participant at a time and repeats the whole analysis. A ratio is
+  # compared on the log scale, on which it is tested.
+  analysis_scale <- function(e) {
+    ratio <- e$scale == "Risk ratio"
+    replace(e$estimate, ratio, log(e$estimate[ratio]))
+  }
+  estimates <- function(data) {
+    f <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = data,
+                                          family = stats::binomial(), robust = "none",
+                                          missing_pretest = "indicator"))
+    e <- suppressWarnings(.marginal_solomon(f, scale = c("difference", "ratio"), method = "delta",
+                                            pretest_center = "observed",
+                                            other_handling = FALSE))$effects
+    analysis_scale(e)
+  }
+  full <- estimates(d)
+  expect_equal(full, analysis_scale(m$effects), tolerance = 1e-10)
+  in_set <- which(!is.na(d$y) | with_pretest)
+  left_out <- t(vapply(in_set, function(i) estimates(d[-i, ]), numeric(14)))
+  jackknife <- sqrt(colSums(sweep(left_out, 2, full)^2))
+  expect_equal(m$effects$std.error, jackknife, tolerance = 0.05)
+  # The bootstrap standardizes each resample in the same two strata.
+  b <- suppressWarnings(marginal_solomon(fit, scale = "difference", R = 199, seed = 8,
+                                         pretest_center = "observed"))
+  expect_equal(b$effects$estimate, m$effects$estimate[1:7], tolerance = 1e-10)
+  expect_equal(b$effects$std.error, m$effects$std.error[1:7], tolerance = 0.25)
+  # With no participant outside the model the two standardizations are one.
+  complete <- d[!is.na(d$y), ]
+  fit_c <- suppressWarnings(fit_solomon_glm(y, treat, pretested, y_pre, data = complete,
+                                            family = stats::binomial(),
+                                            missing_pretest = "indicator"))
+  expect_equal(marginal_solomon(fit_c, method = "delta", pretest_center = "observed")$effects,
+               marginal_solomon(fit_c, method = "delta")$effects, tolerance = 1e-12)
+})
+
+test_that("marginal_solomon() takes a count fit with the indicator", {
+  d <- mp_data()
+  fit <- suppressWarnings(fit_solomon_glm(visits, treat, pretested, y_pre, data = d,
+                                          family = stats::poisson(),
+                                          missing_pretest = "indicator"))
+  m <- marginal_solomon(fit)
+  hand <- mp_hand(d, outcome = "visits", family = stats::poisson())
+  dm <- d[!is.na(d$visits), ]
+  dm$z <- ifelse(dm$pretested == 1 & !is.na(dm$y_pre), dm$y_pre - hand$center, 0)
+  dm$m <- as.integer(dm$pretested == 1 & is.na(dm$y_pre))
+  dm$t1 <- dm$treat
+  rate <- function(t, p) {
+    nd <- dm[dm$pretested == p, ]
+    nd$t1 <- t
+    mean(stats::predict(hand$model, nd, type = "response"))
+  }
+  expect_equal(m$rates$rate, c(rate(1, 1), rate(0, 1), rate(1, 0), rate(0, 0)), tolerance = 1e-6)
+  expect_true(all(is.finite(m$effects$std.error)))
+  # Every kept participant with a count of 0: their rates are 0, the limit.
+  zero <- which(d$pretested == 1 & d$visits %in% 0)[1:2]
+  dz <- d
+  dz$y_pre <- ifelse(dz$pretested == 1, 50 + seq_len(nrow(dz)) %% 17, NA)
+  dz$y_pre[zero] <- NA
+  fit_z <- suppressWarnings(fit_solomon_glm(visits, treat, pretested, y_pre, data = dz,
+                                            family = stats::poisson(),
+                                            missing_pretest = "indicator"))
+  drop_z <- suppressWarnings(fit_solomon_glm(visits, treat, pretested, y_pre, data = dz,
+                                             family = stats::poisson()))
+  mz <- marginal_solomon(fit_z)
+  mdz <- marginal_solomon(drop_z)
+  n <- sum(dz$pretested == 1 & !is.na(dz$visits))
+  expect_equal(mz$rates$rate[1:2], mdz$rates$rate[1:2] * (n - 2) / n, tolerance = 1e-6)
+  expect_true(all(is.finite(mz$effects$std.error)))
+})

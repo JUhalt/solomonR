@@ -437,6 +437,122 @@
   list(estimates = estimates, direction = direction)
 }
 
+# The position of the indicator's column among the coefficients of `model`,
+# the model of a fit with the indicator. It is found from the indicator's
+# term, as .pretest_column() finds the pretest's, not from the column's
+# name, which the indicator of a factor's level can share.
+.indicator_column <- function(model) {
+  term <- match(.missing_pretest_column, attr(stats::terms(model), "term.labels"))
+  match(term, attr(stats::model.matrix(model), "assign"))
+}
+
+# The position of the indicator's column in the model matrix of a fit, or
+# an empty vector for a fit without the indicator.
+.indicator_position <- function(fit) {
+  if (!.has_missing_indicator(fit)) return(integer())
+  .indicator_column(fit$model)
+}
+
+# The rows `L` of the cell means of plot_sensitization() for a fit with the
+# indicator: the indicator is at its mean among the pretested participants
+# in the model in the pretested cells (`pretested` flags them), and at 0 in
+# the unpretested cells, so that the differences between the adjusted means
+# are the fit's pretest effects. When the indicator separates the outcome,
+# the pretested cells' means are infinite on the model's scale, and the
+# figure cannot draw them: an error of class
+# `solomonR_missing_pretest_separation_error`. `L` itself for a fit without
+# the indicator.
+.indicator_cells <- function(fit, L, pretested) {
+  if (!.has_missing_indicator(fit)) return(L)
+  if (!identical(fit$missing_pretest_sensitivity$separation, 0L)) {
+    stop(structure(
+      class = c("solomonR_missing_pretest_separation_error", "error", "condition"),
+      list(message = paste0(
+        "plot_sensitization() cannot draw the pretested groups' adjusted means: every ",
+        "pretested participant kept without a pretest has the same outcome, so the ",
+        "coefficient of ", .missing_pretest_column, " has no finite estimate, and those ",
+        "means are infinite on the ", .separation_scale(fit$family), " scale. ",
+        "marginal_solomon() estimates the contrasts from standardized risks or rates, ",
+        "which are defined; a fit with missing_pretest = \"drop\" can be drawn."
+      ), call = NULL)
+    ))
+  }
+  L[, .indicator_column(fit$model)] <- pretested * fit$missing_pretest_share
+  L
+}
+
+# A fit of the same model to the same data with the other handling of the
+# pretested participants without a pretest, rebuilt from a four-group
+# fit's data: the pretest as given is the centered pretest plus the center
+# (missing for the participants concerned), and the covariates and the
+# exposure are those the fit stored. Model-based covariance, because only
+# its estimates are used. NULL when that fit cannot be made.
+.other_handling_fit <- function(fit) {
+  d <- fit$data
+  kept <- if (.has_missing_indicator(fit)) .kept_rows(fit) else rep(FALSE, nrow(d))
+  y_pre <- ifelse(d$pretested %in% 1L & !kept, d$pre_obs + fit$pretest_mean, NA_real_)
+  covariates <- d[setdiff(names(d), .design_names(fit))]
+  tryCatch(suppressWarnings(fit_solomon_glm(
+    d$y, d$treat, d$pretested, y_pre,
+    covariates = if (ncol(covariates)) covariates,
+    robust = "none",
+    family = if (.is_negbin(fit$family)) "negative_binomial" else fit$family,
+    conf_level = fit$conf_level,
+    exposure = if ("log_exposure" %in% names(d)) exp(d$log_exposure),
+    pretest_center = fit$pretest_center,
+    missing_pretest = setdiff(c("drop", "indicator"), fit$missing_pretest)
+  )), error = function(e) NULL)
+}
+
+# What marginal_solomon() returns on the pretested participants without a
+# pretest (issue #142): the fit's `missing_pretest`, `n_missing_pretest`,
+# `missing_pretest_share`, and `missing_pretest_arm_check`, and
+# `missing_pretest_sensitivity`, the pretest effects on each scale with
+# them kept and dropped. The other handling's come from a fit of that
+# handling (.other_handling_fit()), standardized as this result was;
+# `other_handling = FALSE` leaves them out. NULL for a fit made before
+# #142.
+.marginal_missing_pretest <- function(fit, effects, scale, pretest_center, other_handling) {
+  if (is.null(fit$missing_pretest)) return(NULL)
+  out <- list(
+    missing_pretest = fit$missing_pretest,
+    n_missing_pretest = fit$n_missing_pretest,
+    missing_pretest_share = fit$missing_pretest_share,
+    missing_pretest_sensitivity = NULL,
+    missing_pretest_arm_check = fit$missing_pretest_arm_check
+  )
+  if (!isTRUE(sum(fit$n_missing_pretest) > 0L) || !other_handling) return(out)
+  used <- effects[effects$contrast %in% .solomon_pretest_order, c("scale", "contrast", "estimate")]
+  other <- rep(NA_real_, nrow(used))
+  other_fit <- .other_handling_fit(fit)
+  if (!is.null(other_fit)) {
+    result <- tryCatch(suppressWarnings(.marginal_solomon(
+      other_fit, scale = scale, method = "delta", pretest_center = pretest_center,
+      other_handling = FALSE
+    )), error = function(e) NULL)
+    if (!is.null(result)) {
+      at <- match(paste(used$scale, used$contrast),
+                  paste(result$effects$scale, result$effects$contrast))
+      other <- result$effects$estimate[at]
+    }
+  }
+  kept_fit <- identical(fit$missing_pretest, "indicator")
+  sensitivity <- data.frame(
+    scale = used$scale, contrast = used$contrast,
+    kept = if (kept_fit) used$estimate else other,
+    dropped = if (kept_fit) other else used$estimate,
+    stringsAsFactors = FALSE
+  )
+  sensitivity$difference <- sensitivity$kept - sensitivity$dropped
+  out$missing_pretest_sensitivity <- list(
+    effects = sensitivity,
+    posttests = fit$missing_pretest_sensitivity$posttests,
+    separation = fit$missing_pretest_sensitivity$separation,
+    one = fit$missing_pretest_sensitivity$one
+  )
+  out
+}
+
 # Hedges' g of two samples with means `m1` and `m0`, standard deviations
 # `s1` and `s0`, and sizes `n1` and `n0`: the difference of the means over
 # the pooled standard deviation, times the small-sample correction

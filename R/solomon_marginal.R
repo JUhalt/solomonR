@@ -62,8 +62,10 @@
   also_new <- extra
   left_out <- list(missing = character(0), unseen = list(), also = 0L, also_unseen = list())
   if (.has_pretest_column(fit, X_model)) {
-    outside <- .in_pretest_center(d) & !used
-    covariates <- setdiff(names(d), c("y", "treat", "pretested", "pre_obs", "log_exposure"))
+    # The participants kept without a pretest (issue #142) are in the model;
+    # the indicator's column is not a covariate.
+    outside <- .in_pretest_center(d, .kept_rows(fit)) & !used
+    covariates <- setdiff(names(d), .design_names(fit))
     if (length(covariates)) {
       no_covariate <- outside & !stats::complete.cases(d[, covariates, drop = FALSE])
       lacked <- vapply(covariates, function(v) {
@@ -208,7 +210,17 @@
 # coefficients `b`: each participant's risk is predicted under treatment and
 # under control, and averaged within their pretest condition (Daniel et al.,
 # 2021; Localio et al., 2007). Returns r(t, p) as a named vector.
-.marginal_risks <- function(b, X, pretested, linkinv = stats::plogis) {
+#
+# For a fit with the missing-indicator method (issue #142), `rule` holds
+# two things about the pretested participants, each one value per row of
+# `X`, or NULL (.marginal_rule()):
+# - `weights`: the weight of each pretested participant in the pretested
+#   cells, which sum to 1, when the pretested cells are standardized in two
+#   strata; NULL for the plain average.
+# - `fixed`: the risk of a participant whose risk is set, not predicted,
+#   under treatment and under control alike, and NA for the others; NULL
+#   when no risk is set.
+.marginal_risks <- function(b, X, pretested, linkinv = stats::plogis, rule = NULL) {
   b[is.na(b)] <- 0
   b_t <- b[["treat"]]
   b_tp <- if ("treat:pretested" %in% names(b)) b[["treat:pretested"]] else 0
@@ -217,12 +229,74 @@
   base <- drop(X %*% b) - X[, "treat"] * b_t -
     if (b_tp != 0) X[, "treat:pretested"] * b_tp else 0
   pre <- pretested == 1L
+  if (is.null(rule$weights) && is.null(rule$fixed)) {
+    return(c(
+      t1p1 = mean(linkinv(base[pre] + b_t + b_tp)),
+      t0p1 = mean(linkinv(base[pre])),
+      t1p0 = mean(linkinv(base[!pre] + b_t)),
+      t0p0 = mean(linkinv(base[!pre]))
+    ))
+  }
+  treated <- linkinv(base[pre] + b_t + b_tp)
+  control <- linkinv(base[pre])
+  if (!is.null(rule$fixed)) {
+    set <- !is.na(rule$fixed[pre])
+    treated[set] <- rule$fixed[pre][set]
+    control[set] <- rule$fixed[pre][set]
+  }
+  average <- function(risk) {
+    if (is.null(rule$weights)) mean(risk) else sum(rule$weights[pre] * risk)
+  }
   c(
-    t1p1 = mean(linkinv(base[pre] + b_t + b_tp)),
-    t0p1 = mean(linkinv(base[pre])),
+    t1p1 = average(treated),
+    t0p1 = average(control),
     t1p0 = mean(linkinv(base[!pre] + b_t)),
     t0p0 = mean(linkinv(base[!pre]))
   )
+}
+
+# How marginal_solomon() standardizes the pretested cells of a fit with the
+# missing-indicator method (issue #142), for .marginal_risks(): `weights`
+# and `fixed`, each NULL when it does not apply.
+#
+# `kept` flags, among the participants standardized over, those the
+# indicator marks, and `refitted` those the model was fitted to (all of
+# them at the default center). `pretested` is their pretest condition.
+#
+# Two strata (`strata`), for `pretest_center = "observed"` when participants
+# outside the model are standardized over. Standardizing over all of them
+# with each participant's own indicator would shrink the share without a
+# pretest whenever rows without an outcome are present, because those rows
+# all have a pretest, so the result would depend on whether the data file
+# keeps such rows. The participants kept without a pretest therefore get
+# the total weight m, their share of the pretested participants in the
+# model, as at the default center, and every pretested participant with a
+# pretest, in the model or not, the total weight 1 - m. On the identity
+# scale that reproduces the fit's b (1 - m) (c_B - c_A).
+#
+# Fixed risks (`outcome`, the shared outcome, or NULL): when every kept
+# participant has the same outcome, at a bound of the mean, their fitted
+# risks are that outcome in the limit of the maximum-likelihood fit
+# (Albert & Anderson, 1984), under treatment and under control.
+.marginal_rule <- function(kept, pretested, refitted = NULL, strata = FALSE, outcome = NULL) {
+  weights <- NULL
+  if (strata) {
+    pre <- pretested == 1L
+    if (is.null(refitted)) refitted <- rep(TRUE, length(kept))
+    k <- sum(kept)
+    m <- k / sum(pre & refitted)
+    with_pretest <- pre & !kept
+    weights <- numeric(length(kept))
+    weights[with_pretest] <- (1 - m) / sum(with_pretest)
+    if (k) weights[kept] <- m / k
+  }
+  fixed <- NULL
+  if (!is.null(outcome) && any(kept)) {
+    fixed <- rep(NA_real_, length(kept))
+    fixed[kept] <- outcome
+  }
+  if (is.null(weights) && is.null(fixed)) return(NULL)
+  list(weights = weights, fixed = fixed, kept = kept, refitted = refitted)
 }
 
 # The four Solomon contrasts and the three pretest effects (issue #104) on
@@ -253,8 +327,8 @@
                   .marginal_contrast_names())
 }
 
-.marginal_all <- function(b, X, pretested, scales, count = FALSE) {
-  r <- .marginal_risks(b, X, pretested, linkinv = if (count) exp else stats::plogis)
+.marginal_all <- function(b, X, pretested, scales, count = FALSE, rule = NULL) {
+  r <- .marginal_risks(b, X, pretested, linkinv = if (count) exp else stats::plogis, rule = rule)
   unlist(lapply(scales, function(s) .marginal_contrasts(r, s, count)), use.names = FALSE)
 }
 
@@ -271,7 +345,10 @@
 # derivatives instead, with steps of 1e-6 times each coefficient: with
 # nearly collinear covariates, whose standardized coefficients are large,
 # the steps were too large, and so were the standard errors (issue #137).
-.marginal_gradient <- function(b, X, pretested, scales, count = FALSE) {
+# `rule` is that of .marginal_risks() (issue #142): a pretested
+# participant's weight in the pretested cells, and a risk that is set, not
+# predicted, which has no derivative.
+.marginal_gradient <- function(b, X, pretested, scales, count = FALSE, rule = NULL) {
   b[is.na(b)] <- 0
   linkinv <- if (count) exp else stats::plogis
   slope_link <- if (count) exp else stats::dlogis
@@ -281,12 +358,27 @@
   base <- drop(X %*% b) - X[, "treat"] * b_t -
     if (b_tp != 0) X[, "treat:pretested"] * b_tp else 0
   pre <- pretested == 1L
+  plain <- is.null(rule$weights) && is.null(rule$fixed)
   cell <- function(t, rows, p) {
     Xc <- X[rows, , drop = FALSE]
     Xc[, "treat"] <- t
     if (interaction) Xc[, "treat:pretested"] <- t * p
     eta <- base[rows] + t * b_t + t * p * b_tp
-    list(risk = mean(linkinv(eta)), slope = colMeans(slope_link(eta) * Xc))
+    if (plain || p == 0) {
+      return(list(risk = mean(linkinv(eta)), slope = colMeans(slope_link(eta) * Xc)))
+    }
+    risk <- linkinv(eta)
+    slope <- slope_link(eta)
+    if (!is.null(rule$fixed)) {
+      set <- !is.na(rule$fixed[rows])
+      risk[set] <- rule$fixed[rows][set]
+      slope[set] <- 0
+    }
+    if (is.null(rule$weights)) {
+      return(list(risk = mean(risk), slope = colMeans(slope * Xc)))
+    }
+    w <- rule$weights[rows]
+    list(risk = sum(w * risk), slope = colSums(w * slope * Xc))
   }
   cells <- list(t1p1 = cell(1, pre, 1), t0p1 = cell(0, pre, 1), t1p0 = cell(1, !pre, 0),
                 t0p0 = cell(0, !pre, 0))
@@ -339,8 +431,22 @@
 # standardization is then taken over every participant in it, and its
 # covariance with the coefficients over those of them in the model, as
 # .center_terms() describes. By default, every participant is in the model.
+#
+# `rule` is that of .marginal_risks() (issue #142). A risk that is set is
+# a constant of its participant. With two strata, a pretested risk is
+# m (mean over the kept participants) + (1 - m) (mean over those with a
+# pretest), with m the kept participants' share of the pretested
+# participants in the model, itself a sample mean. To first order it moves
+# by the difference between the two strata's means for each unit m moves,
+# so the contrast depends on four means over samples that share
+# participants: m, over the pretested participants in the model; the kept
+# participants' mean, weighted by m; that of the participants with a
+# pretest, weighted by 1 - m; and the unpretested participants' mean.
+# .stacked_mean_terms() gives the variance of their sum and its covariance
+# with the coefficients.
 .marginal_standardization_variance <- function(fit, model, b, X, pretested, scale, count,
-                                               rows, grad, in_model = NULL, cluster = NULL) {
+                                               rows, grad, in_model = NULL, cluster = NULL,
+                                               rule = NULL) {
   linkinv <- if (count) exp else stats::plogis
   b0 <- b
   b0[is.na(b0)] <- 0
@@ -355,7 +461,11 @@
     t1p0 = ifelse(pre, 0, linkinv(base + b_t)),
     t0p0 = ifelse(pre, 0, linkinv(base))
   )
-  r <- .marginal_risks(b, X, pretested, linkinv)
+  if (!is.null(rule$fixed)) {
+    set <- !is.na(rule$fixed)
+    f[set, c("t1p1", "t0p1")] <- rule$fixed[set]
+  }
+  r <- .marginal_risks(b, X, pretested, linkinv, rule = rule)
   slope <- function(s, x) {
     switch(s, difference = 1, ratio = 1 / x, odds_ratio = 1 / (x * (1 - x)))
   }
@@ -376,8 +486,26 @@
       J[c("t1p1", "t0p1")] <- slope(s, (r[["t1p1"]] + r[["t0p1"]]) / 2) / 2
       J[c("t1p0", "t0p0")] <- -slope(s, (r[["t1p0"]] + r[["t0p0"]]) / 2) / 2
     }
-    terms <- .center_terms(model, fit$robust, a = drop(f %*% J), set = set, cluster = cluster,
-                           used = in_model)
+    a <- drop(f %*% J)
+    terms <- if (is.null(rule$weights)) {
+      .center_terms(model, fit$robust, a = a, set = set, cluster = cluster, used = in_model)
+    } else {
+      kept <- rule$kept
+      with_pretest <- pre & !kept
+      m <- sum(kept) / sum(pre & rule$refitted)
+      between <- (if (any(kept)) mean(a[kept]) else 0) - mean(a[with_pretest])
+      .stacked_mean_terms(
+        model, fit$robust,
+        samples = list(
+          list(a = between * kept, member = pre & rule$refitted),
+          list(a = m * a, member = kept),
+          list(a = (1 - m) * a, member = with_pretest),
+          list(a = a, member = !pre)
+        ),
+        cluster = cluster,
+        used = if (is.null(in_model)) rep(TRUE, length(a)) else in_model
+      )
+    }
     c(v = terms$v, cross = 2 * sum(grad[row, keep] * terms$cross), df = terms$df)
   })
   parts <- do.call(rbind, parts)
@@ -1286,6 +1414,22 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   if (!inherits(fit, "solomon_glm")) {
     stop("`fit` must come from fit_solomon_glm().", call. = FALSE)
   }
+  .marginal_solomon(fit, scale = scale, method = method, R = R, seed = seed,
+                    conf_level = conf_level, pretest_center = pretest_center,
+                    scale_missing = missing(scale), method_missing = missing(method))
+}
+
+# The work of marginal_solomon(). `scale_missing` and `method_missing` say
+# whether the caller gave `scale` and `method`, on which their defaults for
+# counts and for clustered fits depend. `other_handling = FALSE` leaves out
+# the pretest effects under the other handling of pretested participants
+# without a pretest (issue #142), which a call of this function computes
+# for a fit of that handling (.marginal_missing_pretest()).
+.marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio"),
+                              method = c("bootstrap", "delta", "cluster_summary"), R = 999,
+                              seed = NULL, conf_level = fit$conf_level,
+                              pretest_center = fit$pretest_center, scale_missing = FALSE,
+                              method_missing = FALSE, other_handling = TRUE) {
   # Fits made before issue #135 have no `pretest_center`; theirs is the
   # default.
   if (is.null(pretest_center)) pretest_center <- "analyzed"
@@ -1299,7 +1443,6 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
          "or \"negative_binomial\".", call. = FALSE)
   }
   cr2 <- identical(fit$robust, "CR2")
-  method_missing <- missing(method)
   if (cr2 && count) {
     stop("Clustered (CR2) fits are supported for binary outcomes, the case ",
          "validated in the package's simulation (issue #64). For counts, the ",
@@ -1311,7 +1454,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       stop("method = \"cluster_summary\" needs a binary fit with robust = \"CR2\" ",
            "and its clusters.", call. = FALSE)
     }
-    if (!missing(scale) && !identical(unique(scale), "difference")) {
+    if (!scale_missing && !identical(unique(scale), "difference")) {
       stop("Cluster-level summaries give risk differences only; use scale = \"difference\".",
            call. = FALSE)
     }
@@ -1328,7 +1471,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     }
     method <- "delta"
   }
-  if (count && missing(scale)) scale <- c("difference", "ratio")
+  if (count && scale_missing) scale <- c("difference", "ratio")
   scale <- match.arg(scale, several.ok = TRUE)
   method <- match.arg(method)
   if (count) {
@@ -1377,6 +1520,20 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   n_contrasts <- length(.marginal_contrast_names())
   linkinv <- if (count) exp else stats::plogis
 
+  # A fit with the missing-indicator method (issue #142). `kept_data` flags,
+  # in the fit's data, the pretested participants kept without a pretest.
+  # When they all have the same outcome, at a bound of the mean, the
+  # indicator's coefficient has no finite estimate (Albert & Anderson,
+  # 1984), and their risks (or rates) are set to that outcome, `outcome`,
+  # the limit of the maximum-likelihood fit (.marginal_rule()).
+  indicator <- .has_missing_indicator(fit)
+  kept_data <- if (indicator) .kept_rows(fit)
+  outcome <- NULL
+  if (indicator) {
+    direction <- .indicator_separation(family, y[kept_data[.glm_rows_used(fit)]])
+    if (direction != 0L) outcome <- if (direction > 0L) 1 else 0
+  }
+
   # The participants standardized over (issue #135). By default, those in
   # the model: the pretested cells are standardized over the pretested
   # participants the model used. With `pretest_center = "observed"`, the
@@ -1387,12 +1544,27 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # the rows the model used, to which `y` belongs.
   model_set <- function() {
     X <- if (is.null(scaling)) X_fit else stats::model.matrix(model)
-    list(X = X, pretested = as.integer(X[, "pretested"]), treat = as.integer(X[, "treat"]),
-         in_model = NULL, index = NULL)
+    pretested <- as.integer(X[, "pretested"])
+    list(X = X, pretested = pretested, treat = as.integer(X[, "treat"]),
+         in_model = NULL, index = NULL,
+         kept = if (indicator) kept_data[.glm_rows_used(fit)],
+         rule = if (indicator) {
+           .marginal_rule(kept_data[.glm_rows_used(fit)], pretested, outcome = outcome)
+         })
   }
   observed_set <- .marginal_rows(fit, X_fit)
   if (!is.null(scaling)) {
     observed_set$X <- .standardized_columns(observed_set$X, scaling, fit$model)
+  }
+  # With the indicator, the pretested cells of the "observed" set are
+  # standardized in two strata when it holds participants outside the model
+  # (issue #142; .marginal_rule()).
+  if (indicator) {
+    observed_set$kept <- kept_data[observed_set$index]
+    observed_set$rule <- .marginal_rule(
+      observed_set$kept, observed_set$pretested, refitted = observed_set$in_model,
+      strata = any(!observed_set$in_model), outcome = outcome
+    )
   }
   standardized <- observed_set$n
   set <- if (pretest_center == "analyzed") model_set() else observed_set
@@ -1405,8 +1577,8 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # NA when a cell is separated (binary) or empty (counts).
   estimate_at <- function(set) {
     keep <- if (is.null(set$in_model)) rep(TRUE, nrow(set$X)) else set$in_model
-    estimate <- .marginal_all(b, set$X, set$pretested, scale, count)
-    risks <- .marginal_risks(b, set$X, set$pretested, linkinv = linkinv)
+    estimate <- .marginal_all(b, set$X, set$pretested, scale, count, rule = set$rule)
+    risks <- .marginal_risks(b, set$X, set$pretested, linkinv = linkinv, rule = set$rule)
     separated <- if (count) {
       .cell_empty(y, set$treat[keep], set$pretested[keep]) || any(risks < 1e-8)
     } else {
@@ -1452,7 +1624,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     X <- set$X
     pretested <- set$pretested
     df <- rep(Inf, length(estimate))
-    grad <- .marginal_gradient(b, X, pretested, scale, count)
+    grad <- .marginal_gradient(b, X, pretested, scale, count, rule = set$rule)
     colnames(grad) <- names(b)
     basis <- NULL
     if (cr2) {
@@ -1502,7 +1674,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
     if (length(pretest_rows)) {
       added <- .marginal_standardization_variance(
         fit, if (cr2) fit_cr else model, b, X, pretested, scale, count, pretest_rows, grad,
-        in_model = set$in_model, cluster = cluster
+        in_model = set$in_model, cluster = cluster, rule = set$rule
       )
       v_delta <- std.error[pretest_rows]^2 + added$cross
       if (cr2) {
@@ -1542,20 +1714,100 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # (see .bootstrap_basis() for why). `status` records how each resample
   # ended, "ok" or the reason it failed, and `condition_number` that of a
   # refit that did not converge.
-  basis <- if (method == "bootstrap") .bootstrap_basis(X, b)
-  rank_check <- NULL
+  #
+  # With the missing-indicator method (issue #142; the decision record's
+  # section 5), a refit treats the indicator by what its resample holds.
+  # - No participant kept without a pretest. The indicator's column is all
+  #   0, so it is left out, as the fit leaves it out for data with no such
+  #   participant. Before, such a refit failed as a design not of full rank.
+  # - At least one, all with the same outcome. The indicator's coefficient
+  #   then has no finite maximum-likelihood estimate (Albert & Anderson,
+  #   1984). Their fitted risks are set to that outcome, the limit of the
+  #   fit, and the other participants are refitted without them and without
+  #   the indicator, so the checks of a refit apply to the others: a
+  #   resample in which a Solomon cell of the others has only events or
+  #   only non-events fails as "separated", and one of the others' fitted
+  #   risks within 1e-8 of 0 or 1 as "risk". Before, such a refit ran
+  #   toward that limit and was counted or failed by where it stopped.
+  # - Kept participants with both outcomes: the refit as before.
+  # `refits` counts the resamples of the first two kinds. A design is the
+  # model's columns (`cols`), with the basis and the rank check for the
+  # refits that do not converge on them; the one without the indicator's
+  # column is made when a resample first needs it.
+  designs <- list()
+  design_of <- function(reduced) {
+    key <- if (reduced) "reduced" else "full"
+    if (is.null(designs[[key]])) {
+      cols <- seq_len(ncol(X))
+      if (reduced) cols <- cols[-.indicator_column(model)]
+      designs[[key]] <<- list(cols = cols, basis = .bootstrap_basis(X[, cols, drop = FALSE], b[cols]),
+                              rank_check = NULL)
+    }
+    designs[[key]]
+  }
+  rank_check_of <- function(reduced) {
+    key <- if (reduced) "reduced" else "full"
+    design <- design_of(reduced)
+    if (is.null(design$rank_check)) {
+      check <- .bootstrap_rank_check(fit, model, X, in_model)
+      cols <- design$cols
+      check$X <- check$X[, cols, drop = FALSE]
+      check$noise <- check$noise[, cols, drop = FALSE]
+      check$last <- check$last[cols]
+      check$intercept <- match(check$intercept, cols)
+      designs[[key]]$rank_check <<- check
+    }
+    designs[[key]]$rank_check
+  }
+  # The pretested cells are standardized in two strata when participants
+  # outside the model are standardized over (.marginal_rule()).
+  strata <- indicator && any(!in_model)
+  kept_set <- if (indicator) set$kept
+  refits <- c(none_kept = 0L, shared_outcome = 0L)
   status <- character(if (method == "bootstrap") R else 0L)
   condition_number <- rep(NA_real_, length(status))
   refit_resample <- function(i, rows, keep, y_fit) {
-    Xi <- X[rows, , drop = FALSE]
-    refit <- .logistic_irls(Xi[keep, , drop = FALSE], y_fit, start = b)
-    if (identical(refit$reason, "maxit") && !is.null(basis)) {
-      if (is.null(rank_check)) rank_check <<- .bootstrap_rank_check(fit, model, X, in_model)
-      if (.resample_collinear(rank_check, rows[keep])) {
+    reduced <- FALSE
+    others <- NULL
+    rule <- NULL
+    if (indicator) {
+      refitted <- if (isTRUE(keep)) rep(TRUE, length(rows)) else keep
+      kept_fit <- kept_set[rows][refitted]
+      shared <- NULL
+      if (!any(kept_fit)) {
+        reduced <- TRUE
+        refits[["none_kept"]] <<- refits[["none_kept"]] + 1L
+      } else if (length(unique(y_fit[kept_fit])) == 1L) {
+        reduced <- TRUE
+        refits[["shared_outcome"]] <<- refits[["shared_outcome"]] + 1L
+        shared <- y_fit[kept_fit][1L]
+        others <- !kept_fit
+        cell <- 2L * treat[rows][refitted][others] + pretested[rows][refitted][others]
+        events <- tapply(y_fit[others], factor(cell, levels = 0:3), sum)
+        sizes <- tabulate(cell + 1L, nbins = 4L)
+        if (any(sizes == 0L) || any(events == 0 | events == sizes)) {
+          status[i] <<- "separated"
+          return(rep(NA_real_, length(estimate)))
+        }
+      }
+      rule <- .marginal_rule(kept_set[rows], pretested[rows], refitted = refitted,
+                             strata = strata, outcome = shared)
+    }
+    design <- design_of(reduced)
+    Xi <- X[rows, design$cols, drop = FALSE]
+    fitted <- function(M) {
+      M <- M[keep, , drop = FALSE]
+      if (is.null(others)) M else M[others, , drop = FALSE]
+    }
+    y_refit <- if (is.null(others)) y_fit else y_fit[others]
+    refit <- .logistic_irls(fitted(Xi), y_refit, start = b[design$cols])
+    if (identical(refit$reason, "maxit") && !is.null(design$basis)) {
+      resample <- if (is.null(others)) rows[keep] else rows[keep][others]
+      if (.resample_collinear(rank_check_of(reduced), resample)) {
         refit <- list(converged = FALSE, reason = "rank")
       } else {
-        Xi <- basis$X[rows, , drop = FALSE]
-        refit <- .logistic_irls(Xi[keep, , drop = FALSE], y_fit, start = basis$start)
+        Xi <- design$basis$X[rows, , drop = FALSE]
+        refit <- .logistic_irls(fitted(Xi), y_refit, start = design$basis$start)
       }
     }
     if (!is.null(refit$fitted.values) && .degenerate_risk(refit$fitted.values)) {
@@ -1565,7 +1817,7 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
       if (!is.null(refit$kappa)) condition_number[i] <<- refit$kappa
     } else {
       status[i] <<- "ok"
-      return(.marginal_all(refit$coefficients, Xi, pretested[rows], scale))
+      return(.marginal_all(refit$coefficients, Xi, pretested[rows], scale, rule = rule))
     }
     rep(NA_real_, length(estimate))
   }
@@ -1768,6 +2020,14 @@ marginal_solomon <- function(fit, scale = c("difference", "ratio", "odds_ratio")
   # the result carries the fit's participants at leverage 1 under HC3 (issue
   # #173), which the report names.
   if (method == "delta" && length(fit$hc3_leverage)) out$hc3_leverage <- fit$hc3_leverage
+  # The pretested participants without a pretest (issue #142): what the fit
+  # returns on them, the pretest effects on each scale with them kept and
+  # dropped, and, for the bootstrap of a fit with the indicator, how many
+  # resamples each half of the refit rule took. A fit made before #142 has
+  # none of these.
+  missing <- .marginal_missing_pretest(fit, effects, scale, pretest_center, other_handling)
+  out[names(missing)] <- missing
+  if (indicator && method == "bootstrap") out$indicator_refits <- refits
   out
 }
 
