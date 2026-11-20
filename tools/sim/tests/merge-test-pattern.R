@@ -2,20 +2,27 @@
 # (tools/sim/tests/run-tests.R, group "fullsize"; issue #117): the rows a
 # replication of that study would store, with made-up values. It uses the
 # study script's `statuses`. HARNESS_TEST_PATTERN changes one thing for a
-# refusal case:
-#   constant        every number is 0, which compresses to almost nothing
-#                   (the cases of the memory limit write large files fast)
-#   short           results() leaves out a row
-#   rep-column      results() has a column `rep`
-#   scenario-column results() has a column `scenario`
-#   other-classes   scenario 2's results have another column class
-#   draws           results() draws a random number
-#   seed            results() sets a seed
-#   agreement-rep   agreement() has no column `rep`
-#   no-results      the pattern has no results()
-#   unknown-part    the pattern has a function under another name
-#   not-a-list      merge_test_pattern is not a list
-#   stops           results() stops with an error
+# case:
+#   constant              every number is 0, which compresses to almost
+#                         nothing (the cases of the memory limit write
+#                         large files fast)
+#   short                 results() leaves out a row
+#   rep-column            results() has a column `rep`
+#   scenario-column       results() has a column `scenario`
+#   other-classes         scenario 2's results have another column class
+#   draws                 results() draws a random number
+#   seed                  results() sets a seed
+#   agreement-rep         agreement() has no column `rep`
+#   agreement-rep-outside agreement() gives a `rep` outside the task
+#   agreement-rep-order   agreement() gives its rows out of the order of `rep`
+#   agreement-rep-double  agreement() gives `rep` as doubles, not integers
+#   failures-rep-outside  failures() gives a `rep` outside the task
+#   warning-first         a warning in replication 1 of every scenario, so
+#                         that the first task has all three parts
+#   no-results            the pattern has no results()
+#   unknown-part          the pattern has a function under another name
+#   not-a-list            merge_test_pattern is not a list
+#   stops                 results() stops with an error
 
 pattern_variant <- Sys.getenv("HARNESS_TEST_PATTERN")
 
@@ -40,15 +47,19 @@ merge_test_pattern <- list(
   agreement = function(s, reps, fill) {
     r <- reps[reps <= 2L]
     if (!length(r)) return(NULL)
+    if (identical(pattern_variant, "agreement-rep-outside")) r <- r + 100L
+    if (identical(pattern_variant, "agreement-rep-order")) r <- rev(r)
     out <- data.frame(rep = r, check = "made up", abs_diff = 0, stringsAsFactors = FALSE)
     if (identical(pattern_variant, "agreement-rep")) names(out)[1L] <- "replication"
+    if (identical(pattern_variant, "agreement-rep-double")) out$rep <- as.numeric(out$rep)
     out
   },
-  # A warning in replication 1 of scenario 3, as the contract stores it.
+  # A warning in replication 1 of scenario 3 (of every scenario with
+  # warning-first), as the contract stores it.
   failures = function(s, reps, fill) {
-    if (s$scenario != 3L || !1L %in% reps) return(NULL)
-    data.frame(rep = 1L, type = "warning", class = "simpleWarning", message = "made up", count = 1L,
-               stringsAsFactors = FALSE)
+    if ((s$scenario != 3L && !identical(pattern_variant, "warning-first")) || !1L %in% reps) return(NULL)
+    data.frame(rep = if (identical(pattern_variant, "failures-rep-outside")) 99L else 1L, type = "warning",
+               class = "simpleWarning", message = "made up", count = 1L, stringsAsFactors = FALSE)
   },
   preflight = function() data.frame(check = "made up", passed = TRUE, detail = "", stringsAsFactors = FALSE))
 

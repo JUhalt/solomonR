@@ -123,15 +123,22 @@
 #            run stage's refusal of that plan; the limit on R's vector heap
 #            (a summary stopped in the study's summarize(), one stopped
 #            while the task files are read and bound, each by R's message,
-#            the same files under a larger limit, and a limit R cannot
-#            set); an error of the summary, and a summary that draws a
-#            random number; the refusals, each by the script's message, of
-#            a pattern that draws a random number or sets a seed, of
-#            patterns with other rows or columns than the study's, of the
-#            options, and of a study script that does not end with
-#            sim_main(study); the pattern's place without --pattern;
-#            that a run changes no file of the package copy; --task-file;
-#            the "Check the inputs" step of
+#            the same files under a larger limit, with the heap in use when
+#            summarize() starts, and a limit R cannot set); a summary that
+#            completes under the limit while its process's largest
+#            resident memory is above it (skipped where the system does
+#            not give that memory); an error of the summary, with no time
+#            or heap for the writing, a stop while the summary's files are
+#            written, and a summary that draws a random number; the
+#            refusals, each by the script's message, of a pattern that
+#            draws a random number or sets a seed, of patterns with other
+#            rows or columns than the study's, of agreement and warning
+#            rows whose `rep` is not the task's replications in their
+#            order, of the options, and of a study script that does not
+#            end with sim_main(study); the pattern's place without
+#            --pattern; that a run changes no file of the package copy;
+#            --task-file, for each of the three parts; the "Check the
+#            inputs" step of
 #            .github/workflows/simulation-merge-test.yaml, run with bash
 #            (skipped without one); and, with git, the commit the record
 #            gives and the run stage's refusal in a checkout.
@@ -1853,6 +1860,17 @@ if ("fullsize" %in% groups) local({
          yes(identical(item(x$kv, "summary_stopped_in"), "the study's summarize()") &&
                grepl("vector memory limit of 102.4 Mb reached", item(x$kv, "summary_message"), fixed = TRUE)),
          item(x$kv, "summary_message"))
+  # After a stop in the study's summarize(): its time and its heap, and
+  # none for the writing of the summary's files, which did not start.
+  no_write <- function(kv) {
+    identical(unname(kv[c("write_seconds", "heap_peak_write_mb")]), c("NA", "NA")) &&
+      is.finite(num(kv, "summarize_seconds")) && is.finite(num(kv, "heap_peak_summarize_mb"))
+  }
+  phases <- function(kv) {
+    paste(unname(kv[c("summarize_seconds", "heap_peak_summarize_mb", "write_seconds", "heap_peak_write_mb")]),
+          collapse = " ")
+  }
+  record("fullsize", "after that stop: no time or heap for the writing", "yes", yes(no_write(x$kv)), phases(x$kv))
   record("fullsize", "the same summary under the default limit of 12 GB", "accept",
          if (run_tool(set = c(HARNESS_TEST_VARIANT = "large-summary"))$r$status == 0L) "accept" else "refuse", "")
   # While the task files are read and bound: 1,440,000 rows of 44 bytes
@@ -1884,6 +1902,13 @@ if ("fullsize" %in% groups) local({
   record("fullsize", "heap while binding: at least 1.8 times the bound results more", "yes",
          yes(num(y$kv, "heap_peak_read_bind_mb") - num(y$kv, "heap_start_mb") >= 1.8 * bound),
          item(y$kv, "heap_peak_read_bind_mb"))
+  # The heap recorded when summarize() starts is the heap in use then, not
+  # the largest before it: the bound results are there, the tasks' pieces
+  # are gone (sim_summarize() lets them go before it calls summarize()).
+  record("fullsize", "heap when summarize() starts: in use then, pieces freed", "yes",
+         yes(num(y$kv, "heap_at_summarize_mb") - num(y$kv, "heap_start_mb") <= 1.5 * bound &&
+               num(y$kv, "heap_peak_read_bind_mb") - num(y$kv, "heap_at_summarize_mb") >= 0.5 * bound),
+         paste(item(y$kv, "heap_peak_read_bind_mb"), item(y$kv, "heap_at_summarize_mb")))
   # A limit R cannot set (below the 64 Mb it reserves when it starts).
   x <- run_tool("--limit-gb", "0.01")
   record("fullsize", "limit 0.01 GB: R does not accept it, no summary, verdict fail", "yes",
@@ -1897,10 +1922,37 @@ if ("fullsize" %in% groups) local({
          yes(x$r$status != 0L && identical(item(x$kv, "summary"), "stopped by an error that is not about memory") &&
                identical(item(x$kv, "summary_message"), "The summary's own error.") &&
                identical(item(x$kv, "summary_stopped_in"), "the study's summarize()")), last_line(x$r$out))
+  record("fullsize", "after that stop: no time or heap for the writing", "yes", yes(no_write(x$kv)), phases(x$kv))
+  # A stop after summarize() has returned, while the summary's files are
+  # written: summarize() returns a name that the contract does not allow.
+  x <- run_tool(set = c(HARNESS_TEST_VARIANT = "summary-bad-name"))
+  record("fullsize", "a stop while the summary's files are written: that phase", "yes",
+         yes(x$r$status != 0L && identical(item(x$kv, "summary"), "stopped by an error that is not about memory") &&
+               identical(item(x$kv, "summary_stopped_in"), "writing the summary's files") &&
+               grepl("Summary names not allowed: Not Allowed", item(x$kv, "summary_message"), fixed = TRUE) &&
+               all(is.finite(c(num(x$kv, "summarize_seconds"), num(x$kv, "write_seconds"),
+                               num(x$kv, "heap_peak_write_mb"))))),
+         paste(item(x$kv, "summary_stopped_in"), phases(x$kv)))
   x <- run_tool(set = c(HARNESS_TEST_VARIANT = "summary-draws"))
   record("fullsize", "summarize() draws a random number: recorded, verdict pass", "yes",
          yes(x$r$status == 0L && identical(item(x$kv, "summary_random_state"), "present") &&
                identical(item(x$kv, "task_files_random_state"), "absent")), item(x$kv, "summary_random_state"))
+  # The verdict's rule on resident memory: summarize() holds 4 million cons
+  # cells (213.6 Mb), outside R's vector heap and so outside its limit of
+  # 0.1 GB (102.4 Mb). The summary completes; the process's largest
+  # resident memory is above the limit.
+  if (!measured) {
+    skip("fullsize", "no largest resident memory on this system: the verdict's rule for it")
+  } else {
+    x <- run_tool("--limit-gb", "0.1", set = c(HARNESS_TEST_VARIANT = "resident-memory"))
+    record("fullsize", "summary completed, resident memory above 0.1 GB: fail", "yes",
+           yes(x$r$status != 0L && identical(item(x$kv, "summary"), "completed") &&
+                 num(x$kv, "resident_peak_mb") > 102.4 && identical(item(x$kv, "verdict"), "fail") &&
+                 identical(item(x$kv, "verdict_reason"),
+                           paste0("the summary's largest resident memory, ", item(x$kv, "resident_peak_mb"),
+                                  " Mb, is above the limit of 102.4 Mb"))),
+           item(x$kv, "verdict_reason"))
+  }
 
   # Refusals, each by the script's own message; none leaves a record.
   refused <- function(label, msg, ...) {
@@ -1922,6 +1974,18 @@ if ("fullsize" %in% groups) local({
           set = with_pattern("other-classes"))
   refused("pattern: agreement() without `rep` in front", "need `rep` as their first column",
           set = with_pattern("agreement-rep"))
+  rep_msg <- function(part, id) {
+    paste0("The pattern's ", part, " need `rep` as their first column: whole numbers (integer) among the task's ",
+           "replications, in their order (task ", id, ").")
+  }
+  refused("pattern: agreement() with a `rep` outside the task", rep_msg("agreement", "s0001-t0001"),
+          set = with_pattern("agreement-rep-outside"))
+  refused("pattern: agreement() rows out of the order of `rep`", rep_msg("agreement", "s0001-t0001"),
+          set = with_pattern("agreement-rep-order"))
+  refused("pattern: agreement() with `rep` as doubles", rep_msg("agreement", "s0001-t0001"),
+          set = with_pattern("agreement-rep-double"))
+  refused("pattern: failures() with a `rep` outside the task", rep_msg("failures", "s0003-t0001"),
+          set = with_pattern("failures-rep-outside"))
   refused("pattern: results() stops", "The pattern's results() stopped in task s0001-t0001: The pattern's own error.",
           set = with_pattern("stops"))
   for (v in c("no-results", "unknown-part", "not-a-list")) {
@@ -1971,6 +2035,26 @@ if ("fullsize" %in% groups) local({
   x <- refused("--task-file whose results have another column class",
                "do not have the columns and classes of the task file", "--task-file", other)
   record("fullsize", "after that refusal: no task file was written", "yes", yes(!length(task_files(x))), "")
+  # The agreement rows and the warnings are compared too. With the pattern
+  # warning-first, the pattern's first task has all three parts.
+  t <- readRDS(real)
+  t$agreement$abs_diff <- as.integer(t$agreement$abs_diff)
+  saveRDS(t, other)
+  refused("--task-file whose agreement has another column class",
+          "The pattern's agreement do not have the columns and classes of the task file", "--task-file", other)
+  x <- run_tool("--task-file", real, set = with_pattern("warning-first"))
+  record("fullsize", "--task-file, all three parts in the first task: compared", "yes",
+         yes(x$r$status == 0L && identical(item(x$kv, "failures_rows"), "3") &&
+               identical(item(x$kv, "schema_check"), paste0(
+                 "results: the same 6 columns and classes; agreement: the same 3 columns and classes; ",
+                 "failures: the same 5 columns and classes as s0003-t0001.rds"))),
+         item(x$kv, "schema_check"))
+  t <- readRDS(real)
+  t$failures$count <- as.numeric(t$failures$count)
+  saveRDS(t, other)
+  refused("--task-file whose warnings have another column class",
+          "The pattern's failures do not have the columns and classes of the task file", "--task-file", other,
+          set = with_pattern("warning-first"))
   refused("--task-file that does not exist", "does not exist", "--task-file", file.path(root, "absent.rds"))
 
   # The workflow's "Check the inputs" step, as in the group inputs.

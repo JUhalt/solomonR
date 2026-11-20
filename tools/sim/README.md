@@ -39,7 +39,7 @@ package or of the validation-scripts check.
 | `rng-fingerprint.R`, `rng-fingerprint-windows-4.6.1.txt` | Platform fingerprint, and the laptop's output to compare it with |
 | `compare-runs.R` | Compares two runs: task files, or summaries and manifests |
 | `run-local.R` | Runs every stage on one machine; resumes an interrupted run |
-| `merge-test.R`, `merge-test/` | Measures a run's merge at its full size before the run, on task files of that size that hold made-up values: the checks of `merge-chunks.R`, then the study's summary under a limit on R's memory, with the time and the largest memory of each. It sets no seed, draws no random number, and runs no task of the study. `merge-test/<study key>.R` is a study's pattern of made-up rows |
+| `merge-test.R`, `merge-test/` | Measures a run's merge at its full size before the run, on task files of that size that hold made-up values: the time of the checks of `merge-chunks.R`, then the time and the largest memory of the study's summary under a limit on R's memory. It sets no seed, draws no random number, and runs no task of the study. `merge-test/<study key>.R` is a study's pattern of made-up rows |
 | `harness-lib.R` | Helpers of the harness scripts |
 | `tests/run-tests.R`, `tests/synthetic-study.R` | The harness's own tests: `check-results.R`, `scan-addresses.R`, `assign-chunks.R`, the workflow's checks of the inputs and of the package commit, the contract's plan stage on a synthetic study, `finalize-results.R`, `run-local.R` on the synthetic study, `merge-test.R` on a study made for it, and `merge-chunks.R` on tampered copies of a run |
 | `tests/merge-test-study.R`, `tests/merge-test-pattern.R` | A study that runs no replication, and its pattern, for the tests of `merge-test.R` |
@@ -351,12 +351,16 @@ envelopes that cannot be taken for a run's, the made-up values by their
 rule, the summary's files named and deleted, the limit on R's vector heap
 (a summary stopped in the study's `summarize()`, one stopped while the
 task files are read and bound, and the same files under a larger limit),
-the refusals (a pattern that draws a random number or sets a seed, rows or
-columns other than the study's, a script that does not end with
-`sim_main(study)`, the options), the pattern's own place when `--pattern`
-is not given, `--task-file`, the run stage's refusal of the plan, that a
-run changes no file of the package copy, and the "Check the inputs" step
-of `simulation-merge-test.yaml`; and, with `--run`,
+a summary that completes under that limit while its process's largest
+resident memory is above it, a stop while the summary's files are
+written, the refusals (a pattern that draws a random number or sets a
+seed, rows or columns other than the study's, agreement or warning rows
+whose `rep` is not the task's replications in their order, a script that
+does not end with `sim_main(study)`, the options), the pattern's own place
+when `--pattern` is not given, `--task-file` for each of the three parts,
+the run stage's refusal of the plan, that a run changes no file of the
+package copy, and the "Check the inputs" step of
+`simulation-merge-test.yaml`; and, with `--run`,
 `merge-chunks.R` on tampered copies of a run's `plan/` and `chunks/`, and
 the address scan of the run's own folders. Any case that ends otherwise
 than expected makes the exit status 1. The workflows run them in the pull
@@ -451,11 +455,11 @@ What the record gives:
   `gc()`), with `heap_peak_read_bind_mb`, `heap_peak_summarize_mb`, and
   `heap_peak_write_mb` for the reading and binding, the study's
   `summarize()`, and the writing of the summary's files.
-  `heap_at_summarize_mb` is the heap when `summarize()` starts, which
-  holds the bound parts. The limit (`limit_mb`, and `limit_set_mb` as R
-  reports it once set) is on the vectors alone, so the heap can pass it by
-  the cons cells (some tens of Mb). After a stop at the limit, the largest
-  heap is that before the allocation R refused.
+  `heap_at_summarize_mb` is the heap in use when `summarize()` starts,
+  which holds the bound parts. The limit (`limit_mb`, and `limit_set_mb`
+  as R reports it once set) is on the vectors alone, so the heap can pass
+  it by the cons cells (some tens of Mb). After a stop at the limit, the
+  largest heap is that before the allocation R refused.
 - `summary_seconds`, with `read_bind_seconds`, `summarize_seconds`, and
   `write_seconds`, and `merge_checks_seconds`: to set against the merge
   job's 355 minutes, which also hold its setup, its downloads, its replay
@@ -463,8 +467,10 @@ What the record gives:
 - `results_rows`, `results_columns`, `results_row_bytes`, and
   `results_bound_mb` (rows times bytes: 4 for an integer, logical, or
   factor column, 8 for a double or character column, strings not
-  counted); the same for the agreement rows and the warnings;
-  `parts_bound_mb` for the three together; and `task_files_mb` on disk.
+  counted); `agreement_rows` and `agreement_row_bytes`, and
+  `failures_rows` and `failures_row_bytes`, for the agreement rows and
+  the warnings; `parts_bound_mb` for the three parts bound together; and
+  `task_files_mb` on disk.
 - `package_sha`, `script_sha256`, `pattern_sha256`, `harness_sha`, and
   the machine (`cpu_model`, `cpus`, `memory_gb`, `image_version`): what
   was measured, and where.

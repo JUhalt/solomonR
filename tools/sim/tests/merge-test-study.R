@@ -16,6 +16,10 @@
 #   large-summary    summarize() holds 40 million numbers (320 Mb) at once
 #   summary-error    summarize() stops with an error of its own
 #   summary-draws    summarize() draws a random number
+#   resident-memory  summarize() holds 4 million cons cells (213.6 Mb) at
+#                    once, outside R's vector heap and so outside its limit
+#   summary-bad-name summarize() returns a name the contract does not allow,
+#                    so the summary stops while its files are written
 
 source(file.path("tools", "sim", "contract.R"))
 
@@ -34,6 +38,10 @@ summarize_merge_test <- function(results, agreement, failures, scenarios, info, 
     derived <- numeric(4e7)
     derived[1L] <- 1
   }
+  if (identical(variant, "resident-memory")) {
+    cells <- as.pairlist(vector("list", 4e6))
+    cells <- NULL
+  }
   out <- list(agreement = data.frame(check = "made up", rows = nrow(agreement), preflight = nrow(preflight),
                                      passed = all(agreement$abs_diff == 0), stringsAsFactors = FALSE),
               `run-information` = data.frame(item = "rows_summarized", value = nrow(results), stringsAsFactors = FALSE))
@@ -43,6 +51,7 @@ summarize_merge_test <- function(results, agreement, failures, scenarios, info, 
                                 n_success = as.integer(table(factor(results$scenario, scenarios$scenario))),
                                 stringsAsFactors = FALSE)
   out$decisions <- data.frame(rule = "none", verdict = "none", threshold = 0, stringsAsFactors = FALSE)
+  if (identical(variant, "summary-bad-name")) out$`Not Allowed` <- out$decisions
   out
 }
 
