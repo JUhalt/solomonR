@@ -810,8 +810,7 @@ test_that("other values of `structures` and `vcov` stop before any fit (#57)", {
 
 test_that("a printed fit with a pretest and missing posttests carries the dropout note (#57)", {
   skip_if_not_installed("mmrm", "0.3.13")
-  note <- paste("If dropout depends on earlier scores, the standard errors of the pretest",
-                "effects can be too small. See ?fit_solomon_mmrm, \"Limits\".")
+  note <- "Pretest effects: SEs can be too small if dropout depends on earlier scores."
   shown <- function(fit) {
     text <- gsub("\\s+", " ", paste(utils::capture.output(print(fit)), collapse = " "))
     grepl(note, text, fixed = TRUE)
@@ -822,13 +821,14 @@ test_that("a printed fit with a pretest and missing posttests carries the dropou
   # Posttests missing as NA values.
   with_na <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
   expect_true(shown(with_na))
-  # The note is the last thing printed, after an empty line.
+  # The note is the last thing printed, after an empty line. The third
+  # amendment asks for a one-line note: it is one line of at most 78
+  # characters, whatever the width of the console.
   lines <- utils::capture.output(print(with_na))
-  expect_identical(utils::tail(lines, 3), c(
-    "",
-    "If dropout depends on earlier scores, the standard errors of the pretest",
-    "effects can be too small. See ?fit_solomon_mmrm, \"Limits\"."
-  ))
+  expect_identical(utils::tail(lines, 2), c("", note))
+  expect_lte(nchar(note), 78L)
+  narrow <- withr::with_options(list(width = 40), utils::capture.output(print(with_na)))
+  expect_identical(utils::tail(narrow, 2), c("", note))
   # Posttests missing because their rows are absent: the same fit, and the
   # same note.
   absent <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre,

@@ -259,14 +259,15 @@ the standard errors and depends on the parameterization; its
 This function always leaves it out, so after a fallback it gives the
 first-order form of the adjustment, not the default of SAS. The
 structure is also chosen by AIC, which is unreliable in small samples.
-With 10 participants and five occasions, AIC chose the true structure,
-when that was simpler than the unstructured one, in 27\% to 73\% of
-complete samples and in 20\% to 66\% of samples with dropouts (Skene &
-Kenward, 2010, Table II). In the simulations of Gomez et al. (2005),
-Kenward-Roger tests had Type I error rates above the nominal level
-whenever the structure was chosen by AIC or BIC. The inference after a
-fallback has not been evaluated for this function: in the simulation
-study below, the unstructured model converged in every replication.
+With 10 participants in two groups and five occasions, AIC chose the
+true structure, when that was simpler than the unstructured one, in
+27\% to 73\% of complete samples and in 20\% to 66\% of samples with
+dropouts (Skene & Kenward, 2010, Table II). In the simulations of
+Gomez et al. (2005), Kenward-Roger tests had Type I error rates above
+the nominal level whenever the structure was chosen by AIC or BIC. The
+inference after a fallback has not been evaluated for this function:
+in the simulation study below, the unstructured model converged in
+every replication.
 \item \strong{Outcomes that are not normal.} The model assumes normal residuals,
 and the simulation study below drew normal outcomes. From simulations
 with 30 to 42 participants in three groups, Arnau et al. (2012)

@@ -367,14 +367,15 @@
 #'   This function always leaves it out, so after a fallback it gives the
 #'   first-order form of the adjustment, not the default of SAS. The
 #'   structure is also chosen by AIC, which is unreliable in small samples.
-#'   With 10 participants and five occasions, AIC chose the true structure,
-#'   when that was simpler than the unstructured one, in 27% to 73% of
-#'   complete samples and in 20% to 66% of samples with dropouts (Skene &
-#'   Kenward, 2010, Table II). In the simulations of Gomez et al. (2005),
-#'   Kenward-Roger tests had Type I error rates above the nominal level
-#'   whenever the structure was chosen by AIC or BIC. The inference after a
-#'   fallback has not been evaluated for this function: in the simulation
-#'   study below, the unstructured model converged in every replication.
+#'   With 10 participants in two groups and five occasions, AIC chose the
+#'   true structure, when that was simpler than the unstructured one, in
+#'   27% to 73% of complete samples and in 20% to 66% of samples with
+#'   dropouts (Skene & Kenward, 2010, Table II). In the simulations of
+#'   Gomez et al. (2005), Kenward-Roger tests had Type I error rates above
+#'   the nominal level whenever the structure was chosen by AIC or BIC. The
+#'   inference after a fallback has not been evaluated for this function:
+#'   in the simulation study below, the unstructured model converged in
+#'   every replication.
 #' - **Outcomes that are not normal.** The model assumes normal residuals,
 #'   and the simulation study below drew normal outcomes. From simulations
 #'   with 30 to 42 participants in three groups, Arnau et al. (2012)
@@ -783,14 +784,13 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
   any(observed < n, na.rm = TRUE)
 }
 
-# The note that a printed fit with a pretest and missing posttests carries,
-# whatever its results (issue #57, third amendment, consequence (b)). The
-# section "Limits" of ?fit_solomon_mmrm gives the limit and its sources
-# (Kenward & Molenberghs, 1998; Maruo et al., 2020).
-.mmrm_dropout_note <- paste(
-  "If dropout depends on earlier scores, the standard errors of the pretest",
-  "effects can be too small. See ?fit_solomon_mmrm, \"Limits\"."
-)
+# The one-line note that a printed fit with a pretest and missing
+# posttests carries, whatever its results (issue #57, third amendment,
+# consequence (b)). It is printed as it stands, on one line of fewer than
+# 78 characters. The section "Limits" of ?fit_solomon_mmrm gives the limit
+# and its sources (Kenward & Molenberghs, 1998; Maruo et al., 2020).
+.mmrm_dropout_note <-
+  "Pretest effects: SEs can be too small if dropout depends on earlier scores."
 
 #' @export
 print.solomon_mmrm <- function(x, digits = 3, ...) {
@@ -833,7 +833,7 @@ print.solomon_mmrm <- function(x, digits = 3, ...) {
   # The two pretest centers when posttests are missing (issue #135).
   .center_output(x, digits, mmrm = TRUE)
   if (isTRUE(x$pretest) && .mmrm_posttests_missing(x)) {
-    cat("\n", .wrap_lines(.mmrm_dropout_note), "\n", sep = "")
+    cat("\n", .mmrm_dropout_note, "\n", sep = "")
   }
   invisible(x)
 }
