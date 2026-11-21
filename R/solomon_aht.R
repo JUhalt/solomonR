@@ -169,9 +169,10 @@
 # contrasts of the other groups still span the constraints otherwise.
 # With pretest scores or covariates, the residuals of a group are 0 when
 # its outcome is an exact linear function of them, with the slopes of the
-# fit. With the pretest and no covariates, Condition | pretested is
-# singular when every pretested participant's score changes by the same
-# amount, or none changes. The unpretested groups have no pretest scores.
+# fit. With the pretest and no covariates, for example, Condition |
+# pretested is singular when every pretested participant's score changes
+# by the same amount, or none changes. The unpretested groups have no
+# pretest scores.
 #
 # Computed residuals are 0 only up to rounding error, so the matrix is
 # taken as singular when either
@@ -216,6 +217,19 @@
 # 10^3 in the other groups. The eigenvalues of M are found only to within
 # about eps times the largest, so the second rule does not replace the
 # first.
+#
+# The rounding error also depends on the design, so tau is a margin, not
+# a proof. In checks of designs whose compared groups had 5 or more
+# participants and whose covariates were not nearly collinear, every test
+# whose residuals are 0 in exact arithmetic was found singular. Compared
+# groups of a few participants among groups of tens of thousands, or
+# nearly collinear covariates, can leave rounding error above tau, and the
+# test then has a statistic: the root of the smallest eigenvalue reached
+# 54 N eps s (s the root mean square of `outcome`) with two unpretested
+# groups of 2, all at 0, among pretested groups of 30,000 to 100,000, and
+# 3,334 N eps s with every unpretested group constant and two covariates,
+# 0 for the unpretested, that differ by noise of 10^-4 or 10^-6 of their
+# spread.
 .aht_singular <- function(M, outcome) {
   if (rcond(M) < .Machine$double.eps) return(TRUE)
   tau <- 10 * length(outcome) * .Machine$double.eps * sqrt(mean(outcome^2))

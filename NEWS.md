@@ -50,20 +50,27 @@
   Condition | pretested or Condition | unpretested compares, or, for the
   other two tests, within the pretested and the unpretested groups of
   two conditions: in a linear probability model with no events in two
-  unpretested groups, for example. With the pretest and no covariates,
-  the matrix of Condition | pretested is singular when every pretested
-  participant's score changes by the same amount, or none changes. Such
-  fits often stopped with "system is computationally singular" or
-  "system is exactly singular", and otherwise gave a meaningless
-  statistic. When the outcome did not vary within any of the groups that
-  a test compares, the test mostly gave a meaningless statistic. The AHT
-  test of a Gaussian HC3 fit now has no statistic and no p-value (`NA`)
-  in all these cases, and the rest of the fit is computed as usual. A
-  new classed warning, `solomonR_singular_test_warning`, names the test,
-  and its `df2` is given. The help page gives the rule ("Designs with
-  several treatments"). Fits with `robust = "CR2"`, whose omnibus tests
-  come from clubSandwich, still stop or give an arbitrary value on such
-  data.
+  unpretested groups, for example. With pretest scores or covariates,
+  the same holds for groups whose outcome is an exact linear function of
+  them, with the slopes of the fit: with the pretest and no covariates,
+  for example, the matrix of Condition | pretested is singular when
+  every pretested participant's score changes by the same amount, or
+  none changes. Such fits often stopped with "system is computationally
+  singular" or "system is exactly singular", and otherwise gave a
+  meaningless statistic. When the outcome did not vary within any of the
+  groups that a test compares, the test mostly gave a meaningless
+  statistic. The AHT test of a Gaussian HC3 fit now has no statistic and
+  no p-value (`NA`) in these cases, and the rest of the fit is computed
+  as usual. A new classed warning, `solomonR_singular_test_warning`,
+  names the test, and its `df2` is given. The help page gives the rule
+  ("Designs with several treatments"). In checks of designs whose
+  compared groups had 5 or more participants and whose covariates were
+  not nearly collinear, it found every test with such a singular matrix.
+  Compared groups of a few participants among groups of tens of
+  thousands, or nearly collinear covariates, can leave rounding error
+  above its bound, and the test then has a statistic and a p-value.
+  Fits with `robust = "CR2"`, whose omnibus tests come from
+  clubSandwich, still stop or give an arbitrary value on such data.
 * The printed heading of the omnibus tests and the method of
   `report_solomon()` name the test and its sources, and the print, the
   report, and the subtitle of `plot_sensitization()` give a `df2` that

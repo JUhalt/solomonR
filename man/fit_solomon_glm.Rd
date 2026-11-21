@@ -880,10 +880,10 @@ has an event. The other two tests are singular when it does not vary
 within the pretested and the unpretested groups of two conditions.
 With pretest scores or covariates, a group has residuals of 0 when its
 outcome is an exact linear function of them, with the slopes of the
-fit. With the pretest and no covariates, Condition | pretested is
-singular when every pretested participant's score changes by the same
-amount from pretest to posttest, or none changes. The unpretested groups
-have no pretest scores.
+fit. With the pretest and no covariates, for example, Condition |
+pretested is singular when every pretested participant's score changes
+by the same amount from pretest to posttest, or none changes. The
+unpretested groups have no pretest scores.
 
 Computed residuals are 0 only up to rounding error, so the matrix is
 taken as singular when either holds:
@@ -902,7 +902,13 @@ the outcome, the other groups' included, so the bound does too.
 The second rule catches a test whose groups all have an outcome that
 does not vary: its matrix is then made of rounding error alone, the
 first rule does not find it singular, and it would give an arbitrary
-statistic. The second rule also takes as singular a test whose groups
+statistic. In checks of designs whose compared groups had 5 or more
+participants and whose covariates were not nearly collinear, the two
+rules found every test whose residuals are 0 in exact arithmetic.
+Compared groups of a few participants among groups of tens of
+thousands, or nearly collinear covariates, can leave rounding error
+above the bound: the test then has a statistic and a p-value, not \code{NA}.
+The second rule also takes as singular a test whose groups
 vary by less than about 10N times the machine epsilon of the outcome's
 root mean square: an outcome whose spread is that small against its
 distance from zero, or groups whose spread is that small against the
