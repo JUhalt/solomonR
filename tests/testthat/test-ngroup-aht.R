@@ -647,6 +647,25 @@ test_that(".aht_singular() bounds the smallest eigenvalue by 10 N eps times the 
   }
 })
 
+test_that(".wrap_words() keeps each word whole, in lines shorter than 78 characters", {
+  # As strwrap(width = 78), which .wrap_lines() uses: a line of 77
+  # characters is kept, and one of 78 is not.
+  expect_identical(.wrap_words(c(strrep("a", 70), strrep("b", 6))),
+                   paste(strrep("a", 70), strrep("b", 6)))
+  expect_identical(.wrap_words(c(strrep("a", 70), strrep("b", 7))),
+                   paste0(strrep("a", 70), "\n", strrep("b", 7)))
+  # A word with spaces is not split.
+  words <- c("No", "statistic", "for", paste0(omnibus_tests, c(";", ";", ";", ":")))
+  expect_identical(strsplit(.wrap_words(words), "\n", fixed = TRUE)[[1]], c(
+    "No statistic for Condition (avg over pretest); Pretest x Condition;",
+    "Condition | pretested; Condition | unpretested:"
+  ))
+  # Words without spaces are wrapped as strwrap() wraps them.
+  text <- singular_text("Condition | unpretested")
+  expect_identical(.wrap_words(strsplit(text, " ", fixed = TRUE)[[1]]),
+                   paste(strwrap(text, width = 78), collapse = "\n"))
+})
+
 test_that("the rule on rounding error follows the outcome, not the fitted values", {
   # Every unpretested participant at 0, and the pretested groups' means at
   # 0 (half of each group at +s and half at -s), at 1, -1, and 0 (each
