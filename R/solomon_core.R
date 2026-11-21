@@ -1269,16 +1269,18 @@ stouffer_solomon <- function(p) {
 #' margin, not a proof. In checks of designs whose groups were within 10
 #' times of each other in size and whose covariates were not nearly
 #' collinear, the two rules found every test whose residuals are 0 in
-#' exact arithmetic, and the root of the smallest eigenvalue was at most
-#' 6% of the root of the bound. With groups of more different sizes, or
-#' nearly collinear covariates, rounding error can exceed the bound, and
-#' the test is then reported with an arbitrary statistic instead of `NA`.
-#' Every such miss in the checks came with compared groups whose outcome
-#' was constant within each group. With compared groups 100 times the
-#' size of the others, the root reached 83% of the root of the bound.
-#' Misses were found from compared groups 300 times the size of the
-#' others (groups of 1,500 against groups of 5) and, with the compared
-#' groups the smaller, from 7,500 times (groups of 2 among groups of
+#' exact arithmetic; in those that the first rule did not find, the root
+#' of the smallest eigenvalue was at most 6% of the root of the bound.
+#' With groups of more different sizes, or nearly collinear covariates,
+#' rounding error can exceed the bound, and the test is then reported with
+#' an arbitrary statistic instead of `NA`. Every such miss in the checks
+#' came with compared groups whose outcome was constant within each
+#' group: all of them, or, in one design, two of three (groups of 2 at 0
+#' among groups of 100,000). With compared groups 100 times the size of
+#' the others, the root reached 83% of the root of the bound. The
+#' smallest ratios of group sizes at which misses were found were 300,
+#' with the compared groups the larger (groups of 1,500 against groups of
+#' 5), and 7,500, with them the smaller (groups of 2 among groups of
 #' 15,000).
 #' The second rule also takes as singular a test whose groups
 #' vary by less than about 10N times the machine epsilon of the outcome's

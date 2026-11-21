@@ -66,15 +66,15 @@
   ("Designs with several treatments"). In checks of designs whose
   groups were within 10 times of each other in size and whose
   covariates were not nearly collinear, the rule found every test with
-  such a singular matrix, with a wide margin. With groups of more
-  different sizes, or nearly collinear covariates, rounding error can
-  exceed the rule's bound, and the test is then reported with an
-  arbitrary statistic instead of `NA`. In the checks, every such miss
-  came with compared groups whose outcome was constant within each
-  group, and misses were found from compared groups 300 times the size
-  of the others (groups of 1,500 against groups of 5) and, with the
-  compared groups the smaller, from 7,500 times (groups of 2 among
-  groups of 15,000).
+  such a singular matrix. With groups of more different sizes, or nearly
+  collinear covariates, rounding error can exceed the rule's bound, and
+  the test is then reported with an arbitrary statistic instead of `NA`.
+  In the checks, every such miss came with compared groups whose outcome
+  was constant within each group (all of them, or in one design two of
+  three), and the smallest ratios at which misses were found were 300
+  times, with the compared groups the larger (groups of 1,500 against
+  groups of 5), and 7,500 times, with them the smaller (groups of 2
+  among groups of 15,000).
   Fits with `robust = "CR2"`, whose omnibus tests come from
   clubSandwich, still stop or give an arbitrary value on such data.
 * The printed heading of the omnibus tests and the method of

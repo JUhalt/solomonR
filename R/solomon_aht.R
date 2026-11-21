@@ -223,20 +223,23 @@
 # N eps s, s the root mean square of `outcome`; tau is at r = 10. In checks
 # of designs whose groups were within 10 times of each other in size and
 # whose covariates were not nearly collinear, every test whose residuals
-# are 0 in exact arithmetic was found singular, with r at most 0.6. With
-# groups of more different sizes, or nearly collinear covariates,
-# rounding error can exceed tau, and the test is then reported with an
-# arbitrary statistic instead of NA. Every miss in the checks came with
-# compared groups whose outcome was constant within each group.
+# are 0 in exact arithmetic was found singular; in those that the first
+# rule did not find, r was at most 0.6. With groups of more different
+# sizes, or nearly collinear covariates, rounding error can exceed tau,
+# and the test is then reported with an arbitrary statistic instead of
+# NA. Every miss in the checks came with compared groups whose outcome
+# was constant within each group: all of them, or, in one design, two of
+# three (groups of 2 at 0 among groups of 100,000).
 #
 # Compared groups larger than the others: with every pretested
 # participant at 0, Condition | pretested had r up to 8.3 with pretested
 # groups 100 times the size of the unpretested ones (500 against 5), and
 # kept a statistic in 8 of 8 fits with groups of 1,500 against 5 (300
-# times), one with p = 1.6e-7 and no warning. There the unpretested rows,
-# whose weights in M are 0 in exact arithmetic, carried weights up to
-# 1.4e-12 by rounding, and with residuals up to 0.8 they lifted the root
-# of the smallest eigenvalue to 4.6e-13, above tau = 4.2e-13, which the
+# times), one with p = 1.5e-7 and no warning. There the unpretested
+# participants, whose g_i are 0 in exact arithmetic, had g_i / sqrt(1 - h_i)
+# with entries up to 1.4e-12 by rounding (weights (g_i' v)^2 up to
+# 1.6e-24), and with residuals up to 0.8 they lifted the root of the
+# smallest eigenvalue to 4.6e-13, above tau = 4.2e-13, which the
 # pretested zeros make small. With pretested groups of 300,000 at 0
 # against unpretested groups of 5, r reached 4,229.
 #
@@ -245,11 +248,13 @@
 # pretested groups 7,500 times the size of the unpretested ones (groups
 # of 2 among groups of 15,000), and with unpretested groups of 2, 3, 4,
 # 5, 10, and 20 (5 or 10 among 300,000, 20 among 1,000,000), with r up
-# to 54.
+# to 54 (computed outside .aht_test(), whose own r can differ from it by
+# a factor of about 4).
 #
 # Nearly collinear covariates: with every unpretested group constant and
 # two covariates, 0 for the unpretested, that differ by noise of 10^-4
-# or 10^-6 of their spread, r reached 3,334.
+# or 10^-6 of their spread, r reached 3,334. With noise of 10^-3, every
+# test was found, with r up to 1.1.
 .aht_singular <- function(M, outcome) {
   if (rcond(M) < .Machine$double.eps) return(TRUE)
   tau <- 10 * length(outcome) * .Machine$double.eps * sqrt(mean(outcome^2))
