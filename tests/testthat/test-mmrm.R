@@ -702,6 +702,41 @@ test_that("`structures` fits the named fallback structures only and keeps the sm
                       fallbacks[[ranked[1]]], "."), fixed = TRUE)
 })
 
+test_that("the fallback is the structure with the smallest AIC, not BIC (#57)", {
+  skip_if_not_installed("mmrm", "0.3.13")
+  # On these data AIC and BIC choose different fallback structures. Each
+  # structure is fitted here directly with mmrm.
+  long <- long_example(missing = 0.2, seed = 5703020)
+  observed <- mmrm_rows(long)
+  fallbacks <- solomonR:::.mmrm_fallbacks
+  direct <- lapply(names(fallbacks), function(s) {
+    formula <- sprintf("y ~ occ * treat * pretested + occ:pre_obs + %s(occ | pgrp / id)", s)
+    mmrm::mmrm(stats::as.formula(formula), data = observed, reml = TRUE)
+  })
+  aic <- vapply(direct, stats::AIC, numeric(1))
+  bic <- vapply(direct, stats::BIC, numeric(1))
+  expect_false(which.min(aic) == which.min(bic))
+  chosen <- unname(fallbacks[which.min(aic)])
+  # With `structures` naming all three.
+  fit <- solomonR:::.mmrm_fit_contrasts(observed, as.character(1:3), TRUE, TRUE,
+                                        "kenward-roger", 0.95, structures = names(fallbacks))
+  expect_identical(fit$covariance, chosen)
+  # By default, when the unstructured model fails.
+  real <- mmrm::mmrm
+  testthat::local_mocked_bindings(
+    mmrm = function(formula, ...) {
+      if (grepl("us(", paste(deparse(formula), collapse = ""), fixed = TRUE)) stop("no convergence")
+      real(formula, ...)
+    },
+    .package = "mmrm"
+  )
+  expect_warning(
+    default <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long),
+    class = "solomonR_mmrm_fallback_warning"
+  )
+  expect_identical(default$covariance, chosen)
+})
+
 test_that("`vcov = \"Empirical-Jackknife\"` gives mmrm's jackknife inference (#57)", {
   skip_if_not_installed("mmrm", "0.3.13")
   observed <- mmrm_rows(long_example(missing = 0.2))
@@ -788,8 +823,10 @@ test_that("other values of `structures` and `vcov` stop before any fit (#57)", {
                               "toeph, ar1h, csh.")
   # "us" is refused: the unstructured model is the default's first choice,
   # not one of several structures compared by AIC.
+  # Names are matched exactly, so "TOEPH" and "Csh" are refused too.
   for (bad in list("us", c("us", "ar1h"), "unstructured", "heterogeneous AR(1)", character(),
-                   NA_character_, c("ar1h", NA), c("csh", "csh"), 2L, TRUE, list("ar1h"))) {
+                   NA_character_, c("ar1h", NA), c("csh", "csh"), 2L, TRUE, list("ar1h"),
+                   "TOEPH", c("ar1h", "Csh"))) {
     expect_error(fit(structures = bad), structures_message, fixed = TRUE)
     expect_error(fit("kenward-roger", structures = bad), structures_message, fixed = TRUE)
   }
@@ -822,11 +859,13 @@ test_that("a printed fit with a pretest and missing posttests carries the dropou
   with_na <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = long)
   expect_true(shown(with_na))
   # The note is the last thing printed, after an empty line. The third
-  # amendment asks for a one-line note: it is one line of at most 78
-  # characters, whatever the width of the console.
+  # amendment asks for a one-line note: R writes it as one line of fewer
+  # than 78 characters, the lines .wrap_lines() gives, whatever the `width`
+  # option. (A console narrower than the note still displays it over two
+  # rows.)
   lines <- utils::capture.output(print(with_na))
   expect_identical(utils::tail(lines, 2), c("", note))
-  expect_lte(nchar(note), 78L)
+  expect_lt(nchar(note), 78L)
   narrow <- withr::with_options(list(width = 40), utils::capture.output(print(with_na)))
   expect_identical(utils::tail(narrow, 2), c("", note))
   # Posttests missing because their rows are absent: the same fit, and the
@@ -855,6 +894,15 @@ test_that("a printed fit with a pretest and missing posttests carries the dropou
   full <- fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre, data = complete)
   expect_false(shown(full))
   expect_false(any(grepl("dropout", utils::capture.output(print(full)))))
+  # Groups of unequal size (30, 24, 27, and 21): each group's posttests are
+  # counted against its own participants, with every posttest observed and
+  # with one missing.
+  uneven <- complete[!complete$id %in% c(31:36, 61:63, 91:99), ]
+  expect_false(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre,
+                                      data = uneven)))
+  uneven$y_post[uneven$id == 120 & uneven$occasion == 3] <- NA
+  expect_true(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, y_pre,
+                                     data = uneven)))
   # Not without a pretest, whatever is missing.
   expect_false(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, data = long)))
   expect_false(shown(fit_solomon_mmrm(y_post, treat, pretested, id, occasion, data = complete)))
@@ -874,7 +922,22 @@ test_that("the dropout note counts posttests against each group's participants (
   for (cell in 1:8) {
     counts <- rep(5L, 8)
     counts[cell] <- 4L
-    expect_true(solomonR:::.mmrm_posttests_missing(fit(counts)), info = cell)
+    expect_true(solomonR:::.mmrm_posttests_missing(fit(counts)), info = paste("cell", cell))
+  }
+  # Groups of unequal size: each group's counts are compared with its own
+  # number of participants, not with another group's.
+  sizes <- c(4L, 6L, 5L, 3L)
+  uneven <- function(counts) {
+    x <- fit(counts)
+    x$data <- data.frame(treat = rep(c(1, 0, 1, 0), times = sizes),
+                         pretested = rep(c(1, 1, 0, 0), times = sizes))
+    x
+  }
+  expect_false(solomonR:::.mmrm_posttests_missing(uneven(rep(sizes, 2))))
+  for (cell in 1:8) {
+    counts <- rep(sizes, 2)
+    counts[cell] <- counts[cell] - 1L
+    expect_true(solomonR:::.mmrm_posttests_missing(uneven(counts)), info = paste("cell", cell))
   }
   # A fit that lacks the counts or the participants gives no note.
   expect_false(solomonR:::.mmrm_posttests_missing(list(observed = fit(rep(4L, 8))$observed)))

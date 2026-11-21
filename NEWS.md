@@ -41,7 +41,10 @@
   missing whether its value is `NA` or its row is absent. A fit with
   every posttest observed, and a fit without a pretest, print as before.
   The third amendment on #57 fixed this note in advance, whatever the
-  confirmatory study shows.
+  confirmatory study shows. The article "Missing and Repeated
+  Posttests" now explains the note in its example and says that under
+  such dropout the model's estimates stay valid but its standard errors
+  can be wrong (Kenward & Molenberghs, 1998).
 * **References.** The reference list gains the seven sources named
   above. Gomez et al. (2005) and Gosho and Maruo (2018) were read in
   their abstracts only, and Maruo et al. (2020) and Skene and Kenward
