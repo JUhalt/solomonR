@@ -219,22 +219,37 @@
 # first.
 #
 # The rounding error also depends on the design, so tau is a margin, not
-# a proof. In checks of designs whose compared groups were not much
-# smaller than the other groups and whose covariates were not nearly
-# collinear, every test whose residuals are 0 in exact arithmetic was
-# found singular. When the other groups are very much larger than the
-# compared ones, or covariates are nearly collinear, rounding error can
-# exceed tau, and the test is then reported with an arbitrary statistic
-# instead of NA. With every unpretested participant at 0, misses of
-# Condition | unpretested began once the pretested groups were about
-# 15,000 times the size of the unpretested ones (groups of 2 among groups
-# of 30,000), and they occurred with unpretested groups of 2, 3, 4, 5,
-# 10, and 20 (5 or 10 among 300,000, 20 among 1,000,000). The root of
-# the smallest eigenvalue reached 54 N eps s (s the root mean square of
-# `outcome`) with every unpretested group of 2 among pretested groups of
-# 100,000, and 3,334 N eps s with every unpretested group constant and
+# a proof. Below, r is the root of the smallest eigenvalue of M over
+# N eps s, s the root mean square of `outcome`; tau is at r = 10. In checks
+# of designs whose groups were within 10 times of each other in size and
+# whose covariates were not nearly collinear, every test whose residuals
+# are 0 in exact arithmetic was found singular, with r at most 0.6. With
+# groups of more different sizes, or nearly collinear covariates,
+# rounding error can exceed tau, and the test is then reported with an
+# arbitrary statistic instead of NA. Every miss in the checks came with
+# compared groups whose outcome was constant within each group.
+#
+# Compared groups larger than the others: with every pretested
+# participant at 0, Condition | pretested had r up to 8.3 with pretested
+# groups 100 times the size of the unpretested ones (500 against 5), and
+# kept a statistic in 8 of 8 fits with groups of 1,500 against 5 (300
+# times), one with p = 1.6e-7 and no warning. There the unpretested rows,
+# whose weights in M are 0 in exact arithmetic, carried weights up to
+# 1.4e-12 by rounding, and with residuals up to 0.8 they lifted the root
+# of the smallest eigenvalue to 4.6e-13, above tau = 4.2e-13, which the
+# pretested zeros make small. With pretested groups of 300,000 at 0
+# against unpretested groups of 5, r reached 4,229.
+#
+# Compared groups smaller than the others: with every unpretested
+# participant at 0, Condition | unpretested kept a statistic from
+# pretested groups 7,500 times the size of the unpretested ones (groups
+# of 2 among groups of 15,000), and with unpretested groups of 2, 3, 4,
+# 5, 10, and 20 (5 or 10 among 300,000, 20 among 1,000,000), with r up
+# to 54.
+#
+# Nearly collinear covariates: with every unpretested group constant and
 # two covariates, 0 for the unpretested, that differ by noise of 10^-4
-# or 10^-6 of their spread.
+# or 10^-6 of their spread, r reached 3,334.
 .aht_singular <- function(M, outcome) {
   if (rcond(M) < .Machine$double.eps) return(TRUE)
   tau <- 10 * length(outcome) * .Machine$double.eps * sqrt(mean(outcome^2))

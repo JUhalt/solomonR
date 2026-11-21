@@ -1265,16 +1265,21 @@ stouffer_solomon <- function(p) {
 #' The second rule catches a test whose groups all have an outcome that
 #' does not vary: its matrix is then made of rounding error alone, the
 #' first rule does not find it singular, and it would give an arbitrary
-#' statistic. In checks of designs whose compared groups were not much
-#' smaller than the other groups and whose covariates were not nearly
+#' statistic. Rounding error also depends on the design, so the bound is a
+#' margin, not a proof. In checks of designs whose groups were within 10
+#' times of each other in size and whose covariates were not nearly
 #' collinear, the two rules found every test whose residuals are 0 in
-#' exact arithmetic. When the other groups are very much larger than the
-#' compared ones, or covariates are nearly collinear, rounding error can
-#' exceed the bound, and the test is then reported with an arbitrary
-#' statistic instead of `NA`. In the checks, such misses began once the
-#' other groups were about 15,000 times the size of the compared ones,
-#' and they occurred with compared groups of 2, 5, 10, and 20
-#' participants.
+#' exact arithmetic, and the root of the smallest eigenvalue was at most
+#' 6% of the root of the bound. With groups of more different sizes, or
+#' nearly collinear covariates, rounding error can exceed the bound, and
+#' the test is then reported with an arbitrary statistic instead of `NA`.
+#' Every such miss in the checks came with compared groups whose outcome
+#' was constant within each group. With compared groups 100 times the
+#' size of the others, the root reached 83% of the root of the bound.
+#' Misses were found from compared groups 300 times the size of the
+#' others (groups of 1,500 against groups of 5) and, with the compared
+#' groups the smaller, from 7,500 times (groups of 2 among groups of
+#' 15,000).
 #' The second rule also takes as singular a test whose groups
 #' vary by less than about 10N times the machine epsilon of the outcome's
 #' root mean square: an outcome whose spread is that small against its
