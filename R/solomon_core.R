@@ -1265,12 +1265,16 @@ stouffer_solomon <- function(p) {
 #' The second rule catches a test whose groups all have an outcome that
 #' does not vary: its matrix is then made of rounding error alone, the
 #' first rule does not find it singular, and it would give an arbitrary
-#' statistic. In checks of designs whose compared groups had 5 or more
-#' participants and whose covariates were not nearly collinear, the two
-#' rules found every test whose residuals are 0 in exact arithmetic.
-#' Compared groups of a few participants among groups of tens of
-#' thousands, or nearly collinear covariates, can leave rounding error
-#' above the bound: the test then has a statistic and a p-value, not `NA`.
+#' statistic. In checks of designs whose compared groups were not much
+#' smaller than the other groups and whose covariates were not nearly
+#' collinear, the two rules found every test whose residuals are 0 in
+#' exact arithmetic. When the other groups are very much larger than the
+#' compared ones, or covariates are nearly collinear, rounding error can
+#' exceed the bound, and the test is then reported with an arbitrary
+#' statistic instead of `NA`. In the checks, such misses began once the
+#' other groups were about 15,000 times the size of the compared ones,
+#' and they occurred with compared groups of 2, 5, 10, and 20
+#' participants.
 #' The second rule also takes as singular a test whose groups
 #' vary by less than about 10N times the machine epsilon of the outcome's
 #' root mean square: an outcome whose spread is that small against its

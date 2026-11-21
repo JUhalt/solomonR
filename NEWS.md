@@ -64,11 +64,15 @@
   as usual. A new classed warning, `solomonR_singular_test_warning`,
   names the test, and its `df2` is given. The help page gives the rule
   ("Designs with several treatments"). In checks of designs whose
-  compared groups had 5 or more participants and whose covariates were
-  not nearly collinear, it found every test with such a singular matrix.
-  Compared groups of a few participants among groups of tens of
-  thousands, or nearly collinear covariates, can leave rounding error
-  above its bound, and the test then has a statistic and a p-value.
+  compared groups were not much smaller than the other groups and whose
+  covariates were not nearly collinear, the rule found every test with
+  such a singular matrix. When the other groups are very much larger
+  than the compared ones, or covariates are nearly collinear, rounding
+  error can exceed the rule's bound, and the test is then reported with
+  an arbitrary statistic instead of `NA`. In the checks, such misses
+  began once the other groups were about 15,000 times the size of the
+  compared ones, and they occurred with compared groups of 2, 5, 10, and
+  20 participants.
   Fits with `robust = "CR2"`, whose omnibus tests come from
   clubSandwich, still stop or give an arbitrary value on such data.
 * The printed heading of the omnibus tests and the method of

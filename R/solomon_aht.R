@@ -219,17 +219,22 @@
 # first.
 #
 # The rounding error also depends on the design, so tau is a margin, not
-# a proof. In checks of designs whose compared groups had 5 or more
-# participants and whose covariates were not nearly collinear, every test
-# whose residuals are 0 in exact arithmetic was found singular. Compared
-# groups of a few participants among groups of tens of thousands, or
-# nearly collinear covariates, can leave rounding error above tau, and the
-# test then has a statistic: the root of the smallest eigenvalue reached
-# 54 N eps s (s the root mean square of `outcome`) with two unpretested
-# groups of 2, all at 0, among pretested groups of 30,000 to 100,000, and
-# 3,334 N eps s with every unpretested group constant and two covariates,
-# 0 for the unpretested, that differ by noise of 10^-4 or 10^-6 of their
-# spread.
+# a proof. In checks of designs whose compared groups were not much
+# smaller than the other groups and whose covariates were not nearly
+# collinear, every test whose residuals are 0 in exact arithmetic was
+# found singular. When the other groups are very much larger than the
+# compared ones, or covariates are nearly collinear, rounding error can
+# exceed tau, and the test is then reported with an arbitrary statistic
+# instead of NA. With every unpretested participant at 0, misses of
+# Condition | unpretested began once the pretested groups were about
+# 15,000 times the size of the unpretested ones (groups of 2 among groups
+# of 30,000), and they occurred with unpretested groups of 2, 3, 4, 5,
+# 10, and 20 (5 or 10 among 300,000, 20 among 1,000,000). The root of
+# the smallest eigenvalue reached 54 N eps s (s the root mean square of
+# `outcome`) with every unpretested group of 2 among pretested groups of
+# 100,000, and 3,334 N eps s with every unpretested group constant and
+# two covariates, 0 for the unpretested, that differ by noise of 10^-4
+# or 10^-6 of their spread.
 .aht_singular <- function(M, outcome) {
   if (rcond(M) < .Machine$double.eps) return(TRUE)
   tau <- 10 * length(outcome) * .Machine$double.eps * sqrt(mean(outcome^2))
