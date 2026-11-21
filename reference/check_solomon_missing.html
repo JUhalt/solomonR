@@ -231,10 +231,21 @@ levels are those of the data, unchanged: text as <code><a href="https://rdrr.io/
 returns it is taken by its bytes, which gives that order for a UTF-8
 file in any session. So the p-value simulated under the fixed seed
 is the same in every session.</p></li>
-<li><p><code>missing_pretest</code>: for each pretested condition, the participants
-with a posttest and no pretest (<code>n_without_pretest</code>,
-<code>mean_without_pretest</code>, their mean posttest) and those with both
-scores (<code>n_with_pretest</code>, <code>mean_with_pretest</code>).</p></li>
+<li><p><code>missing_pretest</code>: for each pretested condition (item 7), the
+participants with a posttest and no pretest (<code>n_without_pretest</code>,
+and <code>mean_without_pretest</code>, their mean posttest), those with both
+scores (<code>n_with_pretest</code> and <code>mean_with_pretest</code>), those with a
+pretest and no posttest (<code>n_pretest_only</code>), and those with neither
+(<code>n_neither</code>); the <code>difference</code> of the mean posttests (without minus
+with), its Welch <code>std.error</code>, <code>statistic</code>, <code>df</code>, and <code>p.value</code>; the
+<code>share</code> without a pretest among those with a posttest; and
+<code>observable</code>, that share times the difference with minus without.</p></li>
+<li><p><code>missing_pretest_effects</code>: when a pretested participant with a
+posttest lacks a pretest, the pretest effects with them <code>kept</code> and
+<code>dropped</code>, and the <code>difference</code> (item 7c); otherwise <code>NULL</code>.</p></li>
+<li><p><code>missing_pretest_arm_check</code>: when a pretested participant with a
+posttest lacks a pretest, the arm check (item 7d), in the columns of
+<code>missing_pretest_arm_check</code> in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>; otherwise <code>NULL</code>.</p></li>
 <li><p><code>raw_pretest_effects</code>: the pretest effects of a fit without the
 pretest, in the columns of an effects table, when the selection
 differs or a pretested participant lacks a pretest; otherwise <code>NULL</code>.</p></li>
@@ -250,16 +261,21 @@ Unlike planned missing-data designs, in which unmeasured values exist and
 can be imputed (Graham et al., 2006), an imputed pretest here would
 describe a measurement that never occurred.</p></li>
 <li><p><strong>Incidental pretest missingness</strong>: pretested participants without a
-pretest score. solomonR analyses currently use complete cases and warn.
-Because treatment is randomized, deterministic mean imputation of the
-pretest (without using treatment or outcome), with a missingness indicator
-when pretests may not be missing completely at random, retains these
-participants without biasing the treatment effect (White &amp; Thompson,
-2005; Groenwold et al., 2012). This concerns the treatment effect only:
-every fit with the pretest as a covariate drops these participants from
-the pretest effects, at either pretest center, and when their loss
-relates to baseline those effects are biased while a fit without the
-pretest is not (issue #142).</p></li>
+pretest score. <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> handles those who have a posttest
+as its argument <code>missing_pretest</code> says. <code>"drop"</code>, the default, leaves
+them out, which assumes for the pretest effects that, in each pretested
+group, those without a pretest would have had the same mean posttest
+as those with one; when their loss relates to baseline, the pretest
+effects are biased (issue #142). <code>"indicator"</code> keeps them by the
+missing-indicator method (Groenwold et al., 2012, pp. 1266, 1269;
+Carpenter &amp; Kenward, 2007, pp. 36–38): their pretest is set to the
+mean of the observed pretests, without using treatment or outcome, and
+an indicator marks them. Because treatment is randomized, that does not
+bias the treatment effect (White &amp; Thompson, 2005), whatever drives the
+loss, provided losing the pretest did not depend on the treatment
+condition. The other analyses use complete cases and warn. If the
+pretest was never administered, report the departure and analyze
+participants as assigned.</p></li>
 <li><p><strong>Incidental posttest missingness</strong>: missing outcomes. For the treatment
 contrasts, complete-case analysis is unbiased when missingness is
 unrelated to the outcome given the variables in the model (Little &amp;
@@ -356,9 +372,37 @@ compared the course grades of the students lost in this way. A
 covariate that predicts the posttest belongs in the model; that it
 weakens both centers' assumptions is the record's inference, not a
 checked result.</p></li>
-<li><p><strong>Pretested participants with a posttest and no pretest</strong>: their number
-and mean posttest beside those of the pretested participants with both
-scores, and the raw comparison, which keeps them (issue #142).</p></li>
+<li><p><strong>Pretested participants without a pretest</strong> (issue #142), for each
+pretested condition:</p><ul><li><p>7a, the counts: the participants with both scores, a posttest
+only, a pretest only, and neither, the numbers analyzed that CONSORT
+asks for (Moher et al., 2010, item 16; Hopewell et al., 2025, item
+21c). <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> leaves out those with a posttest only
+under <code>missing_pretest = "drop"</code> and keeps them under
+<code>"indicator"</code>.</p></li>
+<li><p>7b, their posttests: the mean posttest of those without and with a
+pretest, the difference, its Welch standard error, and Welch's
+(1947) t test. The difference is what dropping them assumes to be 0
+for the pretest effects (Carpenter &amp; Smuk, 2021, secs. 3 and 3.2);
+otherwise the pretest effects of <code>"drop"</code> are off by about the share
+without a pretest times the difference (identity (ii) of the
+decision record posted on the issue). p &lt; .05 is the package's rule,
+and no source fixes a level.</p></li>
+<li><p>7c, the effect of dropping: the pretest effects with them kept by
+the missing-indicator method and dropped, and the difference, from
+fits on the identity link with <code>covariates</code>.</p></li>
+<li><p>7d, the arm check, for each treatment against the control, among
+the pretested participants with a posttest: the mean observed
+pretest by condition, as Hedges' g (What Works Clearinghouse, 2022,
+p. 162), with Welch's t test, the check that Kayembe et al. (2020,
+sec. 5) give for loss that depends on the condition and the pretest
+together, which would bias the kept analysis; and the share without a
+pretest by condition, with Fisher's exact test, which is the
+package's choice and a description only, because different rates
+alone do not bias it (Kayembe et al., 2020, sec. 3.3). Until the
+validation study of issue #142 has run, both are a description, and
+no statement follows from them.</p></li>
+</ul><p>The raw comparison of posttest means, which keeps them, is given too
+(<code>raw_pretest_effects</code>).</p></li>
 <li><p><strong>What cannot be checked</strong>: the unpretested groups' losses cannot be
 checked against baseline (Campbell, 1957, p. 305). When only those
 groups lost posttests, the two centers coincide, but neither is
@@ -369,7 +413,8 @@ group's share without a posttest (see "The pretest effect when
 posttests are missing" in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>).</p></li>
 </ol><p>The checks on the pretest (items 2 to 5 and 7) need numeric pretest
 scores and are left out otherwise. <code><a href="validate_solomon.html">validate_solomon()</a></code> leaves out all
-of them.</p>
+of them. Items 4 and 5 come from a fit with the default of
+<code>missing_pretest</code> in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>, <code>"drop"</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -379,6 +424,12 @@ https://doi.org/10.1037/h0040950</p>
 <p>Campbell, D. T., &amp; Stanley, J. C. (1966). <em>Experimental and
 quasi-experimental designs for research</em>. Rand McNally. (Original work
 published 1963)</p>
+<p>Carpenter, J. R., &amp; Kenward, M. G. (2007). <em>Missing data in randomised
+controlled trials: A practical guide</em>. Health Technology Assessment
+Methodology Programme. https://researchonline.lshtm.ac.uk/id/eprint/4018500</p>
+<p>Carpenter, J. R., &amp; Smuk, M. (2021). Missing data: A statistical framework
+for practice. <em>Biometrical Journal, 63</em>(5), 915–947.
+https://doi.org/10.1002/bimj.202000196</p>
 <p>Dukes, R. L., Ullman, J. B., &amp; Stein, J. A. (1995). An evaluation of D.A.R.E.
 (Drug Abuse Resistance Education), using a Solomon four-group design with
 latent variables. <em>Evaluation Review, 19</em>(4), 409–435.
@@ -395,6 +446,18 @@ Altman, D. G., &amp; Moons, K. G. M. (2012). Missing covariate data in clinical
 research: When and when not to use the missing-indicator method for analysis.
 <em>Canadian Medical Association Journal, 184</em>(11), 1265–1269.
 https://doi.org/10.1503/cmaj.110977</p>
+<p>Hopewell, S., Chan, A.-W., Collins, G. S., Hróbjartsson, A., Moher, D.,
+Schulz, K. F., Tunn, R., Aggarwal, R., Berkwits, M., Berlin, J. A.,
+Bhandari, N., Butcher, N. J., Campbell, M. K., Chidebe, R. C. W.,
+Elbourne, D., Farmer, A., Fergusson, D. A., Golub, R. M., Goodman, S. N.,
+. . . Boutron, I. (2025). CONSORT 2025 explanation and elaboration:
+Updated guideline for reporting randomised trials. <em>BMJ, 389</em>, Article
+e081124. https://doi.org/10.1136/bmj-2024-081124</p>
+<p>Kayembe, M. T., Jolani, S., Tan, F. E. S., &amp; van Breukelen, G. J. P.
+(2020). Imputation of missing covariate in randomized controlled trials
+with a continuous outcome: Scoping review and new results.
+<em>Pharmaceutical Statistics, 19</em>(6), 840–860.
+https://doi.org/10.1002/pst.2041</p>
 <p>Lee, D. S. (2005). <em>Training, wages, and sample selection: Estimating sharp
 bounds on treatment effects</em> (NBER Working Paper No. 11721). National
 Bureau of Economic Research. https://doi.org/10.3386/w11721</p>
@@ -403,6 +466,11 @@ data</em> (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260</p>
 <p>Mai, N. N., Takahashi, Y., &amp; Oo, M. M. (2020). Testing the effectiveness of
 transfer interventions using Solomon four-group designs. <em>Education
 Sciences, 10</em>(4), Article 92. https://doi.org/10.3390/educsci10040092</p>
+<p>Moher, D., Hopewell, S., Schulz, K. F., Montori, V., Gøtzsche, P. C.,
+Devereaux, P. J., Elbourne, D., Egger, M., &amp; Altman, D. G. (2010). CONSORT
+2010 explanation and elaboration: Updated guidelines for reporting parallel
+group randomised trials. <em>BMJ, 340</em>, Article c869.
+https://doi.org/10.1136/bmj.c869</p>
 <p>Rubin, D. B. (1976). Inference and missing data. <em>Biometrika, 63</em>(3),
 581–592. https://doi.org/10.1093/biomet/63.3.581</p>
 <p>Solomon, R. L. (1949). An extension of control group design. <em>Psychological
@@ -413,6 +481,9 @@ https://doi.org/10.1198/000313002753631330</p>
 <p>Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? <em>Design Principles and Practices: An International
 Journal—Annual Review, 3</em>(1), 383–394. https://doi.org/10.18848/1833-1874/CGP/v03i01/37588</p>
+<p>Welch, B. L. (1947). The generalization of "Student's" problem when several
+different population variances are involved. <em>Biometrika, 34</em>(1–2), 28–35.
+https://doi.org/10.1093/biomet/34.1-2.28</p>
 <p>What Works Clearinghouse. (2022). <em>What Works Clearinghouse procedures and
 standards handbook, version 5.0</em> (WWC 2022008REV). U.S. Department of
 Education, Institute of Education Sciences, National Center for Education
@@ -489,16 +560,20 @@ baseline measurements in randomized trials. <em>Statistics in Medicine, 24</em>(
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Participants assigned to be pretested have no pretest score. Determine</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   whether the pretest was administered but the score was lost, or never</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   administered, which is a departure from the assigned pretest condition.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Response: solomonR analyses currently use complete cases and warn. Because</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     treatment is randomized, deterministic mean imputation of the pretest</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     (without using treatment or outcome), with a missingness indicator when</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pretests may not be missing completely at random, retains these</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     participants without biasing the treatment effect. That holds for the</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     treatment effect only: the pretest effects of a fit with the pretest drop</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     these participants at either pretest center, and are biased when their</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     loss relates to baseline (issue #142). If the pretest was never</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     administered, report the departure and analyze participants as assigned.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Sources: White &amp; Thompson (2005); Groenwold et al. (2012)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Response: fit_solomon_glm() handles those who have a posttest as</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     `missing_pretest` says. "drop" leaves them out, which assumes for the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pretest effects that, in each pretested group, those without a pretest</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     would have had the same mean posttest as those with one; when their loss</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     relates to baseline, the pretest effects are biased (issue #142).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     "indicator" keeps them by the missing-indicator method: their pretest is</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     set to the mean of the observed pretests (without using treatment or</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     outcome), with an indicator that marks them. Because treatment is</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     randomized, that does not bias the treatment effect, whatever drives the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     loss, provided losing the pretest did not depend on the treatment</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     condition. The default is "drop". The other analyses use complete cases</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     and warn. If the pretest was never administered, report the departure and</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     analyze participants as assigned.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Sources: White &amp; Thompson (2005); Groenwold et al. (2012); Carpenter &amp; Kenward (2007)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Incidental posttest missingness (n = 1)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Posttest scores are missing, so these participants are excluded from</span>
@@ -518,10 +593,30 @@ baseline measurements in randomized trials. <em>Statistics in Medicine, 24</em>(
 <span class="r-out co"><span class="r-pr">#&gt;</span>   difference of -1.7 points; Fisher's exact test, p = 1.000); by condition,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   control 0.0% and treatment 1.7% (the largest difference 1.7 points).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Equal loss rates do not show that the same kinds of participants were lost.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretested participants with a posttest and no pretest: 1. Their mean posttest</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   was 60.00, against 55.29 for the pretested participants with both scores.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Every fit with the pretest drops them, at either center (issue #142); the raw</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   comparison below keeps them.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pretested participants without a pretest (see ?fit_solomon_glm)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Pretested participants with both scores, a posttest only, a pretest only,</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     and neither: control 30, 0, 0, and 0; treatment 29, 1, 0, and 0.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     fit_solomon_glm() leaves out those with a posttest only under</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     missing_pretest = "drop" and keeps them under "indicator".</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Mean posttest without and with a pretest: treatment 60.00 (1) and 56.10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     (29); difference 3.90. Dropping them assumes that these means are equal in</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     each pretested condition; otherwise the pretest effects of "drop" are off</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     by about the share without a pretest times the difference (p &lt; .05 is the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     package's rule, and no source fixes a level).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Pretest effects with them kept (missing-indicator method; Groenwold et al.,</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2012; identity link) and dropped:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                   kept   dropped   difference</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest effect | control   3.430     3.365        0.064</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest effect | treated   0.962     0.898        0.064</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Pretest main effect        2.196     2.132        0.064</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Arm check, a description: treatment against control, pretests missing 3.3%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     and 0.0% (Fisher's exact test, p = 1.000); mean observed pretest 49.45 and</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     49.57 (Hedges' g = -0.01; Welch t(55.1) = -0.04, p = .967). Keeping them</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     assumes that losing the pretest did not depend on the treatment condition.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     A difference between the conditions' observed pretests is what would bias</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     the kept analysis (Kayembe et al., 2020, sec. 5); a difference in the rates</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     alone does not. No statement follows from these tests until the validation</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     study of issue #142 has run.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Raw comparison (a fit without the pretest, HC3; 95% CI):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     Pretest effect | control   3.40  [-1.36,  8.16]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     Pretest effect | treated   0.99  [-4.19,  6.17]</span>

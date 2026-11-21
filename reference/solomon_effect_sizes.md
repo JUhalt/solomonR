@@ -67,7 +67,12 @@ the pre-post correlation `r`, assumed equal in the two groups. Morris
 in most conditions. When the treatment inflates posttest variance,
 however, it underestimated the true variance by 21% to 48% (p. 380), and
 a correlation that differs between the groups can make it less accurate
-still.
+still. The pre-post change and `r` need each participant's two scores,
+so the pretested groups' summaries should be those of the participants
+with both; a pretested participant with a posttest but no pretest is
+then left out, as in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+with `missing_pretest = "drop"` (issue \#142).
 
 **Unpretested pair.** The effect size is Hedges's g for the two posttest
 groups, with the pooled posttest standard deviation. Its variance comes

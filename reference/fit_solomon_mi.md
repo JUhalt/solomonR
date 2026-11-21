@@ -101,8 +101,10 @@ An object of class `solomon_mi`, a list with:
 - `missing`: the posttests missing in each group (`group`, `n`,
   `missing`, and `proportion`).
 
-- `excluded`: the number of pretested participants left out because
-  their pretest was missing.
+- `excluded`: the number of participants left out, because their pretest
+  was missing or their treatment or pretest condition was not recorded,
+  and `excluded_pretest`, how many of them are pretested participants
+  without a pretest.
 
 - `estimates` and `std_errors`: the estimates and standard errors of
   each imputation, one row for each imputation and one column for each
@@ -180,8 +182,17 @@ with a single participant stops the analysis with an error of class
 
 **Structural and incidental missingness.** Pretests absent by design are
 never imputed. Pretested participants with a missing pretest are
-excluded with a warning, as in
-[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md);
+excluded with a warning, as `missing_pretest = "drop"` excludes them in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+and the print says how many and why. For the pretest effects, that
+assumes that in each pretested group those without a pretest would have
+had the same mean posttest as those with one; when their loss relates to
+baseline, the pretest effects are biased (see "Pretested participants
+without a pretest" in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
+Keeping them by the missing-indicator method, with the indicator in the
+imputation model as well, waits for an amendment to the protocol of
+issue \#82.
 [`check_solomon_missing()`](https://juhalt.github.io/solomonR/reference/check_solomon_missing.md)
 describes the options for them.
 

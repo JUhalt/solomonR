@@ -192,8 +192,10 @@ information <code>fmi</code> and the Monte Carlo standard error <code>mc_se</cod
 <li><p><code>m</code>: the number of imputations.</p></li>
 <li><p><code>missing</code>: the posttests missing in each group (<code>group</code>, <code>n</code>,
 <code>missing</code>, and <code>proportion</code>).</p></li>
-<li><p><code>excluded</code>: the number of pretested participants left out because
-their pretest was missing.</p></li>
+<li><p><code>excluded</code>: the number of participants left out, because their
+pretest was missing or their treatment or pretest condition was not
+recorded, and <code>excluded_pretest</code>, how many of them are pretested
+participants without a pretest.</p></li>
 <li><p><code>estimates</code> and <code>std_errors</code>: the estimates and standard errors of
 each imputation, one row for each imputation and one column for each
 contrast.</p></li>
@@ -258,8 +260,15 @@ participant stops the analysis with an error of class
 <code>solomonR_hc3_singleton_error</code>.</p>
 <p><strong>Structural and incidental missingness.</strong> Pretests absent by design are
 never imputed. Pretested participants with a missing pretest are excluded
-with a warning, as in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>; <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code>
-describes the options for them.</p>
+with a warning, as <code>missing_pretest = "drop"</code> excludes them in
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>, and the print says how many and why. For the
+pretest effects, that assumes that in each pretested group those without
+a pretest would have had the same mean posttest as those with one; when
+their loss relates to baseline, the pretest effects are biased (see
+"Pretested participants without a pretest" in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>).
+Keeping them by the missing-indicator method, with the indicator in the
+imputation model as well, waits for an amendment to the protocol of
+issue #82. <code><a href="check_solomon_missing.html">check_solomon_missing()</a></code> describes the options for them.</p>
 <p><strong>The pretest center.</strong> Only the four treatment contrasts are pooled,
 and they do not depend on the mean pretest at which the pretested groups
 are compared with the unpretested groups (see "The pretest effect when

@@ -262,6 +262,15 @@ combined z is judged by its two-tailed p-value, as in their worked example
 Sawilowsky et al., 1994) raised concerns about experiment-wise Type I
 error when the procedure is used conditionally. Its presence in this function should not be interpreted
 as a general contemporary recommendation.</p>
+<p><strong>Missing pretests</strong> (issue #142). Tests A-D, the pretest main effect,
+and the analysis of variance use the posttests of the four groups only,
+so a pretested participant with a posttest but no pretest enters them.
+Test H uses the unpretested groups only, so that participant is not in
+it. Tests E, F, and G use the pretested participants with both scores,
+and leave that participant out, as <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> does with
+<code>missing_pretest = "drop"</code>; so does Test I, which combines one of them
+with Test H. The <code>history</code> comparisons use every observed pretest,
+including those of pretested participants without a posttest.</p>
     </div>
     <div class="section level2">
     <h2 id="error-rates-and-the-published-replication">Error rates and the published replication<a class="anchor" aria-label="anchor" href="#error-rates-and-the-published-replication"></a></h2>

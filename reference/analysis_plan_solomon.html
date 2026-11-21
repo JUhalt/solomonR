@@ -132,7 +132,8 @@ Text in square brackets is for the researcher to complete.</p>
 <span>  tipping_groups <span class="op">=</span> <span class="st">"treatment"</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"Analysis plan for a Solomon four-group study"</span>,</span>
 <span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  pretest_center <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analyzed"</span>, <span class="st">"observed"</span><span class="op">)</span></span>
+<span>  pretest_center <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"analyzed"</span>, <span class="st">"observed"</span><span class="op">)</span>,</span>
+<span>  missing_pretest <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -215,6 +216,15 @@ plan writes the fit's call with it, and states the population and the
 assumption of the pretest effects, apart from those of the treatment
 contrasts, which do not depend on it. A plan that assumes missingness at
 random for the pretest effects chooses <code>"observed"</code>.</p></dd>
+
+
+<dt id="arg-missing-pretest">missing_pretest<a class="anchor" aria-label="anchor" href="#arg-missing-pretest"></a></dt>
+<dd><p>How the planned fit handles pretested participants
+who have a posttest but no pretest (issue #142): <code>"drop"</code> or
+<code>"indicator"</code>, as in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>, whose default it follows when
+<code>NULL</code> (the default). The plan writes the fit's call with it, and
+states the handling and what it assumes. A longitudinal plan states
+that <code><a href="fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code> excludes them, whatever this says.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -372,7 +382,7 @@ which runs the planned analysis in order.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ### Missing data and the analysis population (SPIRIT 20c)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> - **Population.** For the treatment contrasts, all randomized participants, analyzed in the groups to which they were assigned.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> - **Main assumption.** For the treatment contrasts, missing posttests are missing at random given group and, in the pretested groups, the pretest. Under that assumption the model above, fitted to the observed posttests, is the main analysis; multiple imputation under the same assumption agrees with it (Carpenter et al., 2023, p. 256). Missing pretests among pretested participants are not imputed; [state how they are handled].</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - **Main assumption.** For the treatment contrasts, missing posttests are missing at random given group and, in the pretested groups, the pretest. Under that assumption the model above, fitted to the observed posttests, is the main analysis; multiple imputation under the same assumption agrees with it (Carpenter et al., 2023, p. 256). Missing pretests among pretested participants are not imputed: those who have a posttest are left out of the model (`missing_pretest = "drop"`). For the pretest effects, that assumes that, in each pretested group, they would have had the same mean posttest as those with a pretest. The pretest effects with them kept by the missing-indicator method (`missing_pretest = "indicator"`; Groenwold et al., 2012) are reported beside them.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> - **Pretest effects.** The pretest effects compare the pretested groups, at the mean pretest of the pretested participants analyzed (`pretest_center = "analyzed"`, the default), with the unpretested groups in the same treatment condition. Their population is the participants who would be analyzed in either pretest condition, and they assume that, within each treatment condition, the pretested and unpretested groups lose the same kinds of participants. The pretest effects at the mean of every observed pretest (`pretest_center = "observed"`), which assume instead that the pretested groups' losses depend at most on the pretest and that the unpretested groups' losses are unrelated to baseline and to the posttest, are reported beside them as a sensitivity analysis, with the attrition of each group. [A plan that assumes missingness at random for the pretest effects chooses `pretest_center = "observed"`.]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> - **Sensitivity analysis.** `tipping_point_solomon(..., groups = "treatment")` shifts the imputed posttests of the treatment groups from -1 to 1 standard deviation and reports the offset at which each confirmatory conclusion changes (White et al., 2011; Carpenter et al., 2023).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> - **Sensitization-specific sensitivity analysis.** `tipping_point_solomon(..., contrast = "Pretest x Treatment", groups = 1)` shifts the imputed posttests of the pretested treatment group alone, the departure from missing at random that bears on the sensitization contrast.</span>
@@ -394,6 +404,8 @@ which runs the planned analysis in order.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Entwisle, D. R. (1961). Interactive effects of pretesting. *Educational and Psychological Measurement, 21*(3), 607–620. https://doi.org/10.1177/001316446102100307</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> French, D. P., Miles, L. M., Elbourne, D., Farmer, A., Gulliford, M., Locock, L., Sutton, S., McCambridge, J., &amp; MERIT Collaborative Group. (2021b). Reducing bias in trials from reactions to measurement: The MERIT study including developmental work and expert workshop. *Health Technology Assessment, 25*(55), 1–72. https://doi.org/10.3310/hta25550</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R., Altman, D. G., &amp; Moons, K. G. M. (2012). Missing covariate data in clinical research: When and when not to use the missing-indicator method for analysis. *Canadian Medical Association Journal, 184*(11), 1265–1269. https://doi.org/10.1503/cmaj.110977</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Lakens, D. (2017). Equivalence tests: A practical primer for t tests, correlations, and meta-analyses. *Social Psychological and Personality Science, 8*(4), 355–362. https://doi.org/10.1177/1948550617697177</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>

@@ -149,6 +149,17 @@ with `pretest_center = "observed"` keeps their pretests instead. See
 "The pretest effect when posttests are missing" in
 [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md).
 
+A pretested participant without a pretest stops the fit too. Removing
+such participants before the call is the analysis of
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+with `missing_pretest = "drop"`: for the pretest effects, it assumes
+that in each pretested group those without a pretest would have had the
+same mean posttest as those with one, and when their loss relates to
+baseline the pretest effects are biased (see "Pretested participants
+without a pretest" in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+whose `missing_pretest = "indicator"` keeps them).
+
 ## Inference options
 
 The point estimates are maximum-likelihood estimates, which coincide

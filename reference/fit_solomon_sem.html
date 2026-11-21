@@ -220,6 +220,15 @@ minus unpretested participants: among controls
 ANCOVA mode has no unpretested groups, so it does not report them.</p>
 <p>Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.</p>
+<p><strong>Missing pretests</strong> (issue #142). The four-group model uses the
+posttests only, so a pretested participant with a posttest but no
+pretest enters it. The ANCOVA mode is fitted by full-information maximum
+likelihood, with the pretest's distribution estimated (lavaan's
+<code>missing = "fiml"</code> and <code>fixed.x = FALSE</code>; Rosseel, 2012), so it keeps
+that participant too. That assumes the pretest is missing at random
+(Rubin, 1976) given the treatment condition and the posttest.
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> drops such participants by default; see "Pretested
+participants without a pretest" there.</p>
     </div>
     <div class="section level2">
     <h2 id="lifecycle">Lifecycle<a class="anchor" aria-label="anchor" href="#lifecycle"></a></h2>
@@ -238,6 +247,8 @@ Appropriate statistical analyses. <em>The Journal of Experimental Education,
 <p>Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
 <em>Journal of Statistical Software, 48</em>(2), 1–36.
 https://doi.org/10.18637/jss.v048.i02</p>
+<p>Rubin, D. B. (1976). Inference and missing data. <em>Biometrika, 63</em>(3),
+581–592. https://doi.org/10.1093/biomet/63.3.581</p>
     </div>
 
     <div class="section level2">

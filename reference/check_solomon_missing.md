@@ -147,10 +147,25 @@ being `NULL` without a numeric `y_pre`:
   session. So the p-value simulated under the fixed seed is the same in
   every session.
 
-- `missing_pretest`: for each pretested condition, the participants with
-  a posttest and no pretest (`n_without_pretest`,
-  `mean_without_pretest`, their mean posttest) and those with both
-  scores (`n_with_pretest`, `mean_with_pretest`).
+- `missing_pretest`: for each pretested condition (item 7), the
+  participants with a posttest and no pretest (`n_without_pretest`, and
+  `mean_without_pretest`, their mean posttest), those with both scores
+  (`n_with_pretest` and `mean_with_pretest`), those with a pretest and
+  no posttest (`n_pretest_only`), and those with neither (`n_neither`);
+  the `difference` of the mean posttests (without minus with), its Welch
+  `std.error`, `statistic`, `df`, and `p.value`; the `share` without a
+  pretest among those with a posttest; and `observable`, that share
+  times the difference with minus without.
+
+- `missing_pretest_effects`: when a pretested participant with a
+  posttest lacks a pretest, the pretest effects with them `kept` and
+  `dropped`, and the `difference` (item 7c); otherwise `NULL`.
+
+- `missing_pretest_arm_check`: when a pretested participant with a
+  posttest lacks a pretest, the arm check (item 7d), in the columns of
+  `missing_pretest_arm_check` in
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md);
+  otherwise `NULL`.
 
 - `raw_pretest_effects`: the pretest effects of a fit without the
   pretest, in the columns of an effects table, when the selection
@@ -172,16 +187,23 @@ Categories:
   pretest here would describe a measurement that never occurred.
 
 - **Incidental pretest missingness**: pretested participants without a
-  pretest score. solomonR analyses currently use complete cases and
-  warn. Because treatment is randomized, deterministic mean imputation
-  of the pretest (without using treatment or outcome), with a
-  missingness indicator when pretests may not be missing completely at
-  random, retains these participants without biasing the treatment
-  effect (White & Thompson, 2005; Groenwold et al., 2012). This concerns
-  the treatment effect only: every fit with the pretest as a covariate
-  drops these participants from the pretest effects, at either pretest
-  center, and when their loss relates to baseline those effects are
-  biased while a fit without the pretest is not (issue \#142).
+  pretest score.
+  [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+  handles those who have a posttest as its argument `missing_pretest`
+  says. `"drop"`, the default, leaves them out, which assumes for the
+  pretest effects that, in each pretested group, those without a pretest
+  would have had the same mean posttest as those with one; when their
+  loss relates to baseline, the pretest effects are biased (issue
+  \#142). `"indicator"` keeps them by the missing-indicator method
+  (Groenwold et al., 2012, pp. 1266, 1269; Carpenter & Kenward, 2007,
+  pp. 36–38): their pretest is set to the mean of the observed pretests,
+  without using treatment or outcome, and an indicator marks them.
+  Because treatment is randomized, that does not bias the treatment
+  effect (White & Thompson, 2005), whatever drives the loss, provided
+  losing the pretest did not depend on the treatment condition. The
+  other analyses use complete cases and warn. If the pretest was never
+  administered, report the departure and analyze participants as
+  assigned.
 
 - **Incidental posttest missingness**: missing outcomes. For the
   treatment contrasts, complete-case analysis is unbiased when
@@ -295,10 +317,44 @@ summarizes them:
     model; that it weakens both centers' assumptions is the record's
     inference, not a checked result.
 
-7.  **Pretested participants with a posttest and no pretest**: their
-    number and mean posttest beside those of the pretested participants
-    with both scores, and the raw comparison, which keeps them (issue
-    \#142).
+7.  **Pretested participants without a pretest** (issue \#142), for each
+    pretested condition:
+
+    - 7a, the counts: the participants with both scores, a posttest
+      only, a pretest only, and neither, the numbers analyzed that
+      CONSORT asks for (Moher et al., 2010, item 16; Hopewell et al.,
+      2025, item 21c).
+      [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+      leaves out those with a posttest only under
+      `missing_pretest = "drop"` and keeps them under `"indicator"`.
+
+    - 7b, their posttests: the mean posttest of those without and with a
+      pretest, the difference, its Welch standard error, and
+      Welch's (1947) t test. The difference is what dropping them
+      assumes to be 0 for the pretest effects (Carpenter & Smuk, 2021,
+      secs. 3 and 3.2); otherwise the pretest effects of `"drop"` are
+      off by about the share without a pretest times the difference
+      (identity (ii) of the decision record posted on the issue). p \<
+      .05 is the package's rule, and no source fixes a level.
+
+    - 7c, the effect of dropping: the pretest effects with them kept by
+      the missing-indicator method and dropped, and the difference, from
+      fits on the identity link with `covariates`.
+
+    - 7d, the arm check, for each treatment against the control, among
+      the pretested participants with a posttest: the mean observed
+      pretest by condition, as Hedges' g (What Works Clearinghouse,
+      2022, p. 162), with Welch's t test, the check that Kayembe et al.
+      (2020, sec. 5) give for loss that depends on the condition and the
+      pretest together, which would bias the kept analysis; and the
+      share without a pretest by condition, with Fisher's exact test,
+      which is the package's choice and a description only, because
+      different rates alone do not bias it (Kayembe et al., 2020, sec.
+      3.3). Until the validation study of issue \#142 has run, both are
+      a description, and no statement follows from them.
+
+    The raw comparison of posttest means, which keeps them, is given too
+    (`raw_pretest_effects`).
 
 8.  **What cannot be checked**: the unpretested groups' losses cannot be
     checked against baseline (Campbell, 1957, p. 305). When only those
@@ -313,7 +369,10 @@ summarizes them:
 The checks on the pretest (items 2 to 5 and 7) need numeric pretest
 scores and are left out otherwise.
 [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md)
-leaves out all of them.
+leaves out all of them. Items 4 and 5 come from a fit with the default
+of `missing_pretest` in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md),
+`"drop"`.
 
 ## References
 
@@ -324,6 +383,15 @@ https://doi.org/10.1037/h0040950
 Campbell, D. T., & Stanley, J. C. (1966). *Experimental and
 quasi-experimental designs for research*. Rand McNally. (Original work
 published 1963)
+
+Carpenter, J. R., & Kenward, M. G. (2007). *Missing data in randomised
+controlled trials: A practical guide*. Health Technology Assessment
+Methodology Programme.
+https://researchonline.lshtm.ac.uk/id/eprint/4018500
+
+Carpenter, J. R., & Smuk, M. (2021). Missing data: A statistical
+framework for practice. *Biometrical Journal, 63*(5), 915–947.
+https://doi.org/10.1002/bimj.202000196
 
 Dukes, R. L., Ullman, J. B., & Stein, J. A. (1995). An evaluation of
 D.A.R.E. (Drug Abuse Resistance Education), using a Solomon four-group
@@ -346,6 +414,20 @@ clinical research: When and when not to use the missing-indicator method
 for analysis. *Canadian Medical Association Journal, 184*(11),
 1265–1269. https://doi.org/10.1503/cmaj.110977
 
+Hopewell, S., Chan, A.-W., Collins, G. S., Hróbjartsson, A., Moher, D.,
+Schulz, K. F., Tunn, R., Aggarwal, R., Berkwits, M., Berlin, J. A.,
+Bhandari, N., Butcher, N. J., Campbell, M. K., Chidebe, R. C. W.,
+Elbourne, D., Farmer, A., Fergusson, D. A., Golub, R. M., Goodman, S.
+N., . . . Boutron, I. (2025). CONSORT 2025 explanation and elaboration:
+Updated guideline for reporting randomised trials. *BMJ, 389*, Article
+e081124. https://doi.org/10.1136/bmj-2024-081124
+
+Kayembe, M. T., Jolani, S., Tan, F. E. S., & van Breukelen, G. J. P.
+(2020). Imputation of missing covariate in randomized controlled trials
+with a continuous outcome: Scoping review and new results.
+*Pharmaceutical Statistics, 19*(6), 840–860.
+https://doi.org/10.1002/pst.2041
+
 Lee, D. S. (2005). *Training, wages, and sample selection: Estimating
 sharp bounds on treatment effects* (NBER Working Paper No. 11721).
 National Bureau of Economic Research. https://doi.org/10.3386/w11721
@@ -356,6 +438,12 @@ missing data* (3rd ed.). Wiley. https://doi.org/10.1002/9781119482260
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
 of transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. https://doi.org/10.3390/educsci10040092
+
+Moher, D., Hopewell, S., Schulz, K. F., Montori, V., Gøtzsche, P. C.,
+Devereaux, P. J., Elbourne, D., Egger, M., & Altman, D. G. (2010).
+CONSORT 2010 explanation and elaboration: Updated guidelines for
+reporting parallel group randomised trials. *BMJ, 340*, Article c869.
+https://doi.org/10.1136/bmj.c869
 
 Rubin, D. B. (1976). Inference and missing data. *Biometrika, 63*(3),
 581–592. https://doi.org/10.1093/biomet/63.3.581
@@ -372,6 +460,10 @@ Steyn, R. (2009). Re-designing the Solomon four-group: Can we improve on
 this exemplary model? *Design Principles and Practices: An International
 Journal—Annual Review, 3*(1), 383–394.
 https://doi.org/10.18848/1833-1874/CGP/v03i01/37588
+
+Welch, B. L. (1947). The generalization of "Student's" problem when
+several different population variances are involved. *Biometrika,
+34*(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
 
 What Works Clearinghouse. (2022). *What Works Clearinghouse procedures
 and standards handbook, version 5.0* (WWC 2022008REV). U.S. Department
@@ -451,16 +543,20 @@ with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
 #>   Participants assigned to be pretested have no pretest score. Determine
 #>   whether the pretest was administered but the score was lost, or never
 #>   administered, which is a departure from the assigned pretest condition.
-#>   Response: solomonR analyses currently use complete cases and warn. Because
-#>     treatment is randomized, deterministic mean imputation of the pretest
-#>     (without using treatment or outcome), with a missingness indicator when
-#>     pretests may not be missing completely at random, retains these
-#>     participants without biasing the treatment effect. That holds for the
-#>     treatment effect only: the pretest effects of a fit with the pretest drop
-#>     these participants at either pretest center, and are biased when their
-#>     loss relates to baseline (issue #142). If the pretest was never
-#>     administered, report the departure and analyze participants as assigned.
-#>   Sources: White & Thompson (2005); Groenwold et al. (2012)
+#>   Response: fit_solomon_glm() handles those who have a posttest as
+#>     `missing_pretest` says. "drop" leaves them out, which assumes for the
+#>     pretest effects that, in each pretested group, those without a pretest
+#>     would have had the same mean posttest as those with one; when their loss
+#>     relates to baseline, the pretest effects are biased (issue #142).
+#>     "indicator" keeps them by the missing-indicator method: their pretest is
+#>     set to the mean of the observed pretests (without using treatment or
+#>     outcome), with an indicator that marks them. Because treatment is
+#>     randomized, that does not bias the treatment effect, whatever drives the
+#>     loss, provided losing the pretest did not depend on the treatment
+#>     condition. The default is "drop". The other analyses use complete cases
+#>     and warn. If the pretest was never administered, report the departure and
+#>     analyze participants as assigned.
+#>   Sources: White & Thompson (2005); Groenwold et al. (2012); Carpenter & Kenward (2007)
 #> 
 #> Incidental posttest missingness (n = 1)
 #>   Posttest scores are missing, so these participants are excluded from
@@ -480,10 +576,30 @@ with(d, check_solomon_missing(y_post, treat, pretested, y_pre))
 #>   difference of -1.7 points; Fisher's exact test, p = 1.000); by condition,
 #>   control 0.0% and treatment 1.7% (the largest difference 1.7 points).
 #>   Equal loss rates do not show that the same kinds of participants were lost.
-#>   Pretested participants with a posttest and no pretest: 1. Their mean posttest
-#>   was 60.00, against 55.29 for the pretested participants with both scores.
-#>   Every fit with the pretest drops them, at either center (issue #142); the raw
-#>   comparison below keeps them.
+#>   Pretested participants without a pretest (see ?fit_solomon_glm)
+#>     Pretested participants with both scores, a posttest only, a pretest only,
+#>     and neither: control 30, 0, 0, and 0; treatment 29, 1, 0, and 0.
+#>     fit_solomon_glm() leaves out those with a posttest only under
+#>     missing_pretest = "drop" and keeps them under "indicator".
+#>     Mean posttest without and with a pretest: treatment 60.00 (1) and 56.10
+#>     (29); difference 3.90. Dropping them assumes that these means are equal in
+#>     each pretested condition; otherwise the pretest effects of "drop" are off
+#>     by about the share without a pretest times the difference (p < .05 is the
+#>     package's rule, and no source fixes a level).
+#>     Pretest effects with them kept (missing-indicator method; Groenwold et al.,
+#>     2012; identity link) and dropped:
+#>                                   kept   dropped   difference
+#>       Pretest effect | control   3.430     3.365        0.064
+#>       Pretest effect | treated   0.962     0.898        0.064
+#>       Pretest main effect        2.196     2.132        0.064
+#>     Arm check, a description: treatment against control, pretests missing 3.3%
+#>     and 0.0% (Fisher's exact test, p = 1.000); mean observed pretest 49.45 and
+#>     49.57 (Hedges' g = -0.01; Welch t(55.1) = -0.04, p = .967). Keeping them
+#>     assumes that losing the pretest did not depend on the treatment condition.
+#>     A difference between the conditions' observed pretests is what would bias
+#>     the kept analysis (Kayembe et al., 2020, sec. 5); a difference in the rates
+#>     alone does not. No statement follows from these tests until the validation
+#>     study of issue #142 has run.
 #>   Raw comparison (a fit without the pretest, HC3; 95% CI):
 #>     Pretest effect | control   3.40  [-1.36,  8.16]
 #>     Pretest effect | treated   0.99  [-4.19,  6.17]

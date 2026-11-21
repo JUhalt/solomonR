@@ -125,6 +125,10 @@ statistics reproduce published tests only to within rounding: for El
 Karkri et al. (2025a), the interaction F is 11.46 against the published
 11.48.
 
+The analysis uses the posttests only, so a pretested participant with a
+posttest but no pretest is in it whenever the posttest summaries count
+them (issue \#142).
+
 ## Designs with several treatments
 
 A Solomon N-group design has k treatments and a control, each with and

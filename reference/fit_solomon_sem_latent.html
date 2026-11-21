@@ -292,6 +292,14 @@ pretested groups share cancels from the Pretest x Treatment contrast but
 not from the pretest effects, which it biases (see Invariance check).</p>
 <p>Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.</p>
+<p><strong>Missing pretests</strong> (issue #142). The four-group model uses the POST
+indicators only, so a pretested participant without a pretest enters
+it. The latent ANCOVA is fitted by full-information maximum likelihood
+(lavaan's <code>missing = "fiml"</code>; Rosseel, 2012), so it keeps a pretested
+participant whose PRE indicators are missing too. That assumes they are
+missing at random (Rubin, 1976) given the treatment condition and the
+POST indicators. <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> drops such participants by default;
+see "Pretested participants without a pretest" there.</p>
     </div>
     <div class="section level2">
     <h2 id="invariance-check">Invariance check<a class="anchor" aria-label="anchor" href="#invariance-check"></a></h2>
@@ -350,6 +358,8 @@ https://doi.org/10.1007/BF02294825</p>
 <p>Rosseel, Y. (2012). lavaan: An R package for structural equation modeling.
 <em>Journal of Statistical Software, 48</em>(2), 1–36.
 https://doi.org/10.18637/jss.v048.i02</p>
+<p>Rubin, D. B. (1976). Inference and missing data. <em>Biometrika, 63</em>(3),
+581–592. https://doi.org/10.1093/biomet/63.3.581</p>
 <p>Satorra, A., &amp; Bentler, P. M. (2001). A scaled difference chi-square test
 statistic for moment structure analysis. <em>Psychometrika, 66</em>(4), 507–514.
 https://doi.org/10.1007/BF02296192</p>

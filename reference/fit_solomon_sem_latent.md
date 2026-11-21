@@ -211,6 +211,17 @@ Treatment contrast but not from the pretest effects, which it biases
 Tests and confidence intervals for the contrasts are lavaan's Wald
 results, which use a large-sample normal reference distribution.
 
+**Missing pretests** (issue \#142). The four-group model uses the POST
+indicators only, so a pretested participant without a pretest enters it.
+The latent ANCOVA is fitted by full-information maximum likelihood
+(lavaan's `missing = "fiml"`; Rosseel, 2012), so it keeps a pretested
+participant whose PRE indicators are missing too. That assumes they are
+missing at random (Rubin, 1976) given the treatment condition and the
+POST indicators.
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+drops such participants by default; see "Pretested participants without
+a pretest" there.
+
 ## Invariance check
 
 By default the function first runs
@@ -280,6 +291,9 @@ https://doi.org/10.1007/BF02294825
 Rosseel, Y. (2012). lavaan: An R package for structural equation
 modeling. *Journal of Statistical Software, 48*(2), 1–36.
 https://doi.org/10.18637/jss.v048.i02
+
+Rubin, D. B. (1976). Inference and missing data. *Biometrika, 63*(3),
+581–592. https://doi.org/10.1093/biomet/63.3.581
 
 Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square
 test statistic for moment structure analysis. *Psychometrika, 66*(4),

@@ -249,7 +249,7 @@ occasion; <code>NULL</code> without <code>y_pre</code>.</p></li>
 <li><p><code>observed</code>: the number of observed posttests in each group, one
 column for each occasion.</p></li>
 <li><p><code>excluded</code>: the number of pretested participants left out because
-their pretest was missing.</p></li>
+their pretest was missing (see Details).</p></li>
 <li><p><code>pretest</code> (whether pretest scores were supplied) and <code>data</code> (the
 design indicators of each participant), which solomonR's own
 functions use.</p></li>
@@ -345,6 +345,16 @@ extensively studied"; the simulation study posted on issue #57 compares
 them in Solomon designs.</p></li>
 </ul><p>The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
 version 0.3.13 or later, which must be installed.</p>
+<p>A pretested participant with no pretest score in any row is excluded,
+with a warning, as <code>missing_pretest = "drop"</code> excludes them in
+<code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>, and the print says how many and why. For the
+pretest effects, that assumes that in each pretested group those without
+a pretest would have had the same mean posttests as those with one; when
+their loss relates to baseline, the pretest effects are biased (see
+"Pretested participants without a pretest" in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code>).
+Keeping them by the missing-indicator method, as
+<code>missing_pretest = "indicator"</code> does there, waits for an amendment to
+the protocol of issue #57.</p>
     </div>
     <div class="section level2">
     <h2 id="limits">Limits<a class="anchor" aria-label="anchor" href="#limits"></a></h2>
