@@ -575,6 +575,20 @@ https://doi.org/10.1037/amp0000191
 > equation models and measurement invariance tests
 > ([#112](https://github.com/JUhalt/solomonR/issues/112)).
 
+Arnau, J., Bono, R., Blanca, M. J., & Bendayan, R. (2012). Using the linear
+mixed model to analyze nonnormal data distributions in longitudinal designs.
+*Behavior Research Methods, 44*(4), 1224–1238.
+https://doi.org/10.3758/s13428-012-0196-y
+
+> A simulation of the linear mixed model with the Kenward-Roger method in
+> designs with three groups, four to eight occasions, and 30 to 42
+> participants. The tests held their Type I error rate less often with
+> log-normal outcomes than with normal ones, most of all the test of the
+> effect of time; outcomes with slight skewness behaved like normal ones
+> (pp. 1231–1235). *In solomonR:* the limit that the help page of
+> `fit_solomon_mmrm()` states for outcomes that are not normal
+> ([#57](https://github.com/JUhalt/solomonR/issues/57)).
+
 Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors
 for linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 169–181.
@@ -671,6 +685,34 @@ Golub, G. (1965). Numerical methods for solving linear least squares
 problems. *Numerische Mathematik, 7*(3), 206–216.
 https://doi.org/10.1007/BF01436075
 
+Gomez, E. V., Schaalje, G. B., & Fellingham, G. W. (2005). Performance of
+the Kenward–Roger method when the covariance structure is selected using AIC
+and BIC. *Communications in Statistics - Simulation and Computation, 34*(2),
+377–392. https://doi.org/10.1081/SAC-200055719
+
+> A simulation of tests of fixed effects with the Kenward-Roger adjustment
+> under 15 covariance structures. When the structure was chosen by AIC or
+> BIC, the Type I error rates were always above their nominal level, and
+> the criteria seldom chose the true structure. Only the abstract was read.
+> *In solomonR:* the caution on the help page of `fit_solomon_mmrm()` about
+> its fallback structure, which is chosen by AIC
+> ([#57](https://github.com/JUhalt/solomonR/issues/57)).
+
+Gosho, M., & Maruo, K. (2018). Effect of heteroscedasticity between
+treatment groups on mixed-effects models for repeated measures.
+*Pharmaceutical Statistics, 17*(5), 578–592. https://doi.org/10.1002/pst.1872
+
+> Simulations of the mixed model for repeated measures with one unstructured
+> covariance matrix for both treatment groups and the Kenward-Roger method.
+> Intervals for the treatment effect covered too rarely when the group with
+> more dropout had the larger variance, and the estimate was biased as well
+> when the groups' correlations also differed. The covariance estimator of
+> Mancl and DeRouen did better in the first case, and a matrix for each
+> group in the second. Only the abstract was read. *In solomonR:* the limit,
+> on the help page of `fit_solomon_mmrm()`, that the two arms of a pretest
+> condition share one covariance matrix
+> ([#57](https://github.com/JUhalt/solomonR/issues/57)).
+
 Graham, J. W., Taylor, B. J., Olchowski, A. E., & Cumsille, P. E. (2006).
 Planned missing data designs in psychological research. *Psychological
 Methods, 11*(4), 323–343. https://doi.org/10.1037/1082-989X.11.4.323
@@ -735,6 +777,20 @@ samples: Some practical advice. *The Review of Economics and Statistics,
 Kelley, K. (2007). Confidence intervals for standardized effect sizes:
 Theory, application, and implementation. *Journal of Statistical Software,
 20*(8), 1–24. https://doi.org/10.18637/jss.v020.i08
+
+Kenward, M. G., & Molenberghs, G. (1998). Likelihood based frequentist
+inference when data are missing at random. *Statistical Science, 13*(3),
+236–247. https://doi.org/10.1214/ss/1028905886
+
+> Which parts of likelihood-based inference depend on how the data came to
+> be missing. When missingness depends on the observed outcomes, the mean
+> and the covariance parameters of the normal model are no longer orthogonal
+> (p. 242); the expected information matrix as it is usually computed is
+> then biased, and the observed information matrix is recommended (pp.
+> 238–239, 247). *In solomonR:* the limit that the help page of
+> `fit_solomon_mmrm()` states for the standard errors of the pretest effects
+> under dropout that depends on scores, and the note that the printed fit
+> carries ([#57](https://github.com/JUhalt/solomonR/issues/57)).
 
 Laird, N. M., & Ware, J. H. (1982). Random-effects models for longitudinal
 data. *Biometrics, 38*(4), 963–974. https://doi.org/10.2307/2529876
@@ -804,6 +860,25 @@ https://doi.org/10.1177/009286150804200402
 Marschner, I. C. (2011). glm2: Fitting generalized linear models with
 convergence problems. *The R Journal, 3*(2), 12–15.
 https://doi.org/10.32614/RJ-2011-012
+
+Maruo, K., Ishii, R., Yamaguchi, Y., Doi, M., & Gosho, M. (2020). A note on
+the bias of standard errors when orthogonality of mean and variance
+parameters is not satisfied in the mixed model for repeated measures
+analysis. *Statistics in Medicine, 39*(9), 1264–1274.
+https://doi.org/10.1002/sim.8474
+
+> Simulations of a trial with two arms of 200 participants, three occasions,
+> and dropout that depended on the previous outcome. The standard error
+> that takes the mean and covariance parameters to be orthogonal, as
+> standard software does, was 3.8% to 5.1% too small with 20% of the last
+> outcomes missing and 13.4% to 16.7% too small with 40%, when each arm had
+> its own unstructured matrix. With one matrix for both arms, where that
+> model was correct, it was between 0.1% too large and 1.7% too small (Table
+> 1). Read in the accepted manuscript. *In solomonR:* the size and the
+> direction of the limit that the help page of `fit_solomon_mmrm()` states
+> for the pretest effects, which compare groups whose covariance matrices
+> are estimated separately
+> ([#57](https://github.com/JUhalt/solomonR/issues/57)).
 
 Mavridis, D., White, I. R., Higgins, J. P. T., Cipriani, A., & Salanti, G.
 (2015). Allowing for uncertainty due to missing continuous outcome data in
@@ -904,6 +979,19 @@ Krieger, N. I., Panagos, A., & Jones, J. (2026). *mmrm: Mixed models for
 repeated measures* (Version 0.3.18) [R package].
 https://doi.org/10.32614/CRAN.package.mmrm
 
+SAS Institute Inc. (2009). *SAS/STAT 9.2 user's guide* (2nd ed.).
+https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/statug_mixed_sect015.htm
+
+> The page on the MODEL statement of PROC MIXED. For covariance structures
+> with nonzero second derivatives with respect to their parameters, among
+> them the heterogeneous AR(1), heterogeneous compound symmetry, and
+> heterogeneous Toeplitz structures, the Kenward-Roger adjustment includes a
+> second-order term, which can shrink the standard errors and is not
+> invariant to the parameterization; the FIRSTORDER option leaves it out.
+> *In solomonR:* the description, on the help page of `fit_solomon_mmrm()`,
+> of the inference after a fallback
+> ([#57](https://github.com/JUhalt/solomonR/issues/57)).
+
 Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square test
 statistic for moment structure analysis. *Psychometrika, 66*(4), 507–514.
 https://doi.org/10.1007/BF02296192
@@ -945,6 +1033,17 @@ https://doi.org/10.1214/13-STS415
 > observed pretest center of `fit_solomon_glm()` in the pretested groups, a
 > mapping that is the package's inference
 > ([#135](https://github.com/JUhalt/solomonR/issues/135)).
+
+Skene, S. S., & Kenward, M. G. (2010). The analysis of very small samples of
+repeated measurements I: An adjusted sandwich estimator. *Statistics in
+Medicine, 29*(27), 2825–2837. https://doi.org/10.1002/sim.4073
+
+> With 10 participants in two groups and five occasions, AIC chose the true
+> covariance structure, when it was simpler than the unstructured one, in
+> 27% to 73% of complete samples and in 20% to 66% of samples with dropouts
+> (Table II). Read in the accepted manuscript. *In solomonR:* the caution on
+> the help page of `fit_solomon_mmrm()` about its fallback structure, which
+> is chosen by AIC ([#57](https://github.com/JUhalt/solomonR/issues/57)).
 
 Stadler, K., & Kotze, M. E. (2006). The influence of a ropes course
 development programme on the self-concept and self-efficacy of young career
