@@ -135,11 +135,13 @@
 #            rows or columns than the study's, of agreement and warning
 #            rows whose `rep` is not among the task's replications (also
 #            when it is another task's) or not in their order, of the
-#            options, and of a study script that does not
-#            end with sim_main(study); the pattern's place without
-#            --pattern; that a run changes no file of the package copy;
-#            --task-file, for each of the three parts; the "Check the
-#            inputs" step of
+#            options, and of a study script that does not end with
+#            sim_main(study); valid agreement and warning rows accepted
+#            and stored as given (in a scenario's later task, in a task's
+#            later replications, several for one replication); the
+#            pattern's place without --pattern; that a run changes no
+#            file of the package copy; --task-file, for each of the three
+#            parts; the "Check the inputs" step of
 #            .github/workflows/simulation-merge-test.yaml, run with bash
 #            (skipped without one); and, with git, the commit the record
 #            gives and the run stage's refusal in a checkout.
@@ -1965,11 +1967,12 @@ if ("fullsize" %in% groups) local({
   }
   with_pattern <- function(v) c(HARNESS_TEST_PATTERN = v)
   x <- refused("pattern: results() draws a random number", "set a seed or drew a random number", set = with_pattern("draws"))
-  record("fullsize", "after that refusal: nothing was merged or summarized", "yes",
+  record("fullsize", "after the refusal of the draw: nothing was merged or summarized", "yes",
          yes(!dir.exists(file.path(x$dir, "work", "merged")) && !dir.exists(file.path(x$dir, "work", "summary"))), "")
   refused("pattern: results() sets a seed", "set a seed or drew a random number", set = with_pattern("seed"))
   x <- refused("pattern: results() leaves out a row", "gave 7 rows in task s0001-t0001 instead of 8", set = with_pattern("short"))
-  record("fullsize", "after that refusal: no task file was written", "yes", yes(!length(task_files(x))), "")
+  record("fullsize", "after the refusal of the short results: no task file was written", "yes",
+         yes(!length(task_files(x))), "")
   refused("pattern: results() with a column `rep`", "may not have a column `rep`", set = with_pattern("rep-column"))
   refused("pattern: results() with a column `scenario`", "may not have a column `scenario`",
           set = with_pattern("scenario-column"))
@@ -1996,6 +1999,25 @@ if ("fullsize" %in% groups) local({
           set = with_pattern("agreement-rep-task"))
   refused("pattern: failures() with a `rep` of another task", rep_msg("failures", "s0003-t0002"),
           set = with_pattern("failures-rep-task"))
+  # Valid rows that the cases above do not give, which must be accepted and
+  # stored as given: an agreement row for every replication (so rows in a
+  # scenario's later task and in a task's later replications) and a second
+  # one for each task's first, and two warnings in the last replication of
+  # each of scenario 3's tasks (4 and 6).
+  x <- run_tool(set = with_pattern("rep-spread"))
+  record("fullsize", "pattern: valid rows in later tasks and replications, ties too: accepted", "yes",
+         yes(x$r$status == 0L && identical(item(x$kv, "verdict"), "pass")), last_line(x$r$out))
+  got <- paste(item(x$kv, "agreement_rows"), item(x$kv, "failures_rows"))
+  record("fullsize", "that run's record: 24 agreement rows and 4 warnings", "yes", yes(identical(got, "24 4")), got)
+  rep_of <- function(id, part) {
+    f <- task_file(x, id)
+    if (length(f) == 1L) readRDS(f)[[part]]$rep
+  }
+  got <- list(rep_of("s0001-t0001", "agreement"), rep_of("s0003-t0002", "agreement"),
+              rep_of("s0003-t0001", "failures"), rep_of("s0003-t0002", "failures"))
+  record("fullsize", "that run's task files: `rep` as the pattern gave it", "yes",
+         yes(identical(got, list(c(1L, 1:4), c(5L, 5:6), c(4L, 4L), c(6L, 6L)))),
+         paste(vapply(got, paste, "", collapse = ","), collapse = " "))
   refused("pattern: results() stops", "The pattern's results() stopped in task s0001-t0001: The pattern's own error.",
           set = with_pattern("stops"))
   for (v in c("no-results", "unknown-part", "not-a-list")) {
@@ -2044,7 +2066,8 @@ if ("fullsize" %in% groups) local({
   saveRDS(t, other)
   x <- refused("--task-file whose results have another column class",
                "do not have the columns and classes of the task file", "--task-file", other)
-  record("fullsize", "after that refusal: no task file was written", "yes", yes(!length(task_files(x))), "")
+  record("fullsize", "after the refusal of the task file's class: no task file was written", "yes",
+         yes(!length(task_files(x))), "")
   # The agreement rows and the warnings are compared too. With the pattern
   # warning-first, the pattern's first task has all three parts.
   t <- readRDS(real)

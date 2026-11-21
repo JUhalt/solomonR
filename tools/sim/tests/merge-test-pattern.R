@@ -16,11 +16,19 @@
 #   agreement-rep-outside agreement() gives a `rep` outside the task
 #   agreement-rep-order   agreement() gives its rows out of the order of `rep`
 #   agreement-rep-double  agreement() gives `rep` as doubles, not integers
-#   agreement-rep-task    agreement() gives `rep` 1 in a scenario's second
-#                         task: a replication of the run, not of that task
+#   agreement-rep-task    agreement() gives `rep` 1 in every task after a
+#                         scenario's first (at R = 6, the second task, which
+#                         holds replications 5 and 6): a replication of the
+#                         run, not of that task
 #   failures-rep-outside  failures() gives a `rep` outside the task
-#   failures-rep-task     failures() gives `rep` 1 in scenario 3's second
-#                         task too: a replication of the run, not of that task
+#   failures-rep-task     failures() gives `rep` 1 in scenario 3's later
+#                         tasks too (at R = 6, its second task): a
+#                         replication of the run, not of that task
+#   rep-spread            valid rows that the other variants do not give:
+#                         an agreement row for every replication and a
+#                         second one for each task's first, and two
+#                         warnings in the last replication of each of
+#                         scenario 3's tasks
 #   warning-first         a warning in replication 1 of every scenario, so
 #                         that the first task has all three parts
 #   no-results            the pattern has no results()
@@ -47,9 +55,11 @@ merge_test_pattern <- list(
     if (identical(pattern_variant, "scenario-column")) out$scenario <- s$scenario
     out
   },
-  # One agreement row for each of a scenario's first two replications.
+  # One agreement row for each of a scenario's first two replications;
+  # with rep-spread, one for each of the task's replications and a second
+  # one for its first.
   agreement = function(s, reps, fill) {
-    r <- reps[reps <= 2L]
+    r <- if (identical(pattern_variant, "rep-spread")) c(reps[1L], reps) else reps[reps <= 2L]
     if (identical(pattern_variant, "agreement-rep-task") && !length(r)) r <- 1L
     if (!length(r)) return(NULL)
     if (identical(pattern_variant, "agreement-rep-outside")) r <- r + 100L
@@ -61,9 +71,15 @@ merge_test_pattern <- list(
   },
   # A warning in replication 1 of scenario 3 (of every scenario with
   # warning-first), as the contract stores it. With failures-rep-task, the
-  # same row in scenario 3's second task too, which does not hold
-  # replication 1.
+  # same row in scenario 3's later tasks too, which do not hold
+  # replication 1. With rep-spread, two warnings in the last replication of
+  # each of scenario 3's tasks instead.
   failures = function(s, reps, fill) {
+    if (identical(pattern_variant, "rep-spread")) {
+      if (s$scenario != 3L) return(NULL)
+      return(data.frame(rep = rep(reps[length(reps)], 2L), type = "warning", class = "simpleWarning",
+                        message = c("made up", "made up too"), count = 1L, stringsAsFactors = FALSE))
+    }
     other_task <- identical(pattern_variant, "failures-rep-task") && !(1L %in% reps)
     if ((s$scenario != 3L && !identical(pattern_variant, "warning-first")) || (!(1L %in% reps) && !other_task)) {
       return(NULL)

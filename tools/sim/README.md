@@ -356,11 +356,13 @@ resident memory is above it, a stop while the summary's files are
 written, the refusals (a pattern that draws a random number or sets a
 seed, rows or columns other than the study's, agreement or warning rows
 whose `rep` is not among the task's replications (also when it is
-another task's) or not in their order, a script that
-does not end with `sim_main(study)`, the options), the pattern's own place
-when `--pattern` is not given, `--task-file` for each of the three parts,
-the run stage's refusal of the plan, that a run changes no file of the
-package copy, and the "Check the inputs" step of
+another task's) or not in their order, a script that does not end with
+`sim_main(study)`, the options), valid agreement and warning rows
+accepted and stored as given (in a scenario's later task, in a task's
+later replications, and several for one replication), the pattern's own
+place when `--pattern` is not given, `--task-file` for each of the three
+parts, the run stage's refusal of the plan, that a run changes no file
+of the package copy, and the "Check the inputs" step of
 `simulation-merge-test.yaml`; and, with `--run`,
 `merge-chunks.R` on tampered copies of a run's `plan/` and `chunks/`, and
 the address scan of the run's own folders. Any case that ends otherwise
@@ -623,7 +625,8 @@ In the study's own pull request, before its run (the order rule of #117):
    warnings as the contract stores them (`rep`, `type`, `class`,
    `message`, `count`), each with `rep` as its first column, or `NULL`;
    `rep` holds whole numbers stored as integer, each one of the task's
-   replications `reps`, with the rows in the order of the replications.
+   replications `reps`, with the rows in the order of the replications;
+   several rows may share a replication, and a replication may have none.
    `preflight()` is optional too: the table of the plan's `preflight.csv`,
    for a study whose `summarize()` takes the preflight's checks.
    `fill(column, rows)` gives the made-up numbers, `rows` (unless given,
