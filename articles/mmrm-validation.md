@@ -10,9 +10,9 @@ following the ADEMP structure of Morris et al. (2019). Two amendments
 were posted before any run: the covariance is estimated separately for
 pretested and unpretested participants, with a shared-covariance model
 added as a comparator; and the Kenward-Roger adjustment uses the
-element-wise parameterization that reproduces SAS. The results come from
-package commit c4dc6da, with 2000 replications per scenario, mmrm
-0.3.18.
+element-wise parameterization, which reproduces SAS for the unstructured
+covariance matrix. The results come from package commit c4dc6da, with
+2000 replications per scenario, mmrm 0.3.18.
 
 ## Design
 

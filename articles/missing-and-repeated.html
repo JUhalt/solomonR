@@ -125,8 +125,10 @@ changes (White et al., 2011).</li>
 <li>
 <strong>The posttest is measured on several occasions,</strong> and
 some participants drop out along the way. A model for all occasions at
-once uses every observed score and stays valid when dropout depends on
-earlier scores (Fitzmaurice et al., 2011).</li>
+once uses every observed score, and its estimates stay valid when
+dropout depends on earlier scores (Fitzmaurice et al., 2011). Its
+standard errors, computed from the expected information, can then be
+wrong (Kenward &amp; Molenberghs, 1998).</li>
 </ul>
 <p>Both are shown here on simulated data whose true effects are known.
 The methods are validated in the articles <a href="mi-validation.html">Missing Posttests: Validating the Sensitivity
@@ -611,7 +613,9 @@ sensitization from the first occasion to the last:</p>
 <span><span class="co">#&gt;  0.714 [ -6.416,  9.356]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Posttests missing at occasion 12 months: pretested 20.8%, unpretested 23.3%</span></span>
-<span><span class="co">#&gt; (18% to 27% by group).</span></span></code></pre></div>
+<span><span class="co">#&gt; (18% to 27% by group).</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Pretest effects: SEs can be too small if dropout depends on earlier scores.</span></span></code></pre></div>
 <p>The model needs the mmrm package, version 0.3.13 or later. It
 estimates the covariance of the posttests separately for pretested and
 unpretested participants, because the pretest adjustment makes their
@@ -620,6 +624,10 @@ freedom. The table of observed posttests shows the dropout. Every
 participant has the first posttest, so the pretest effects have one
 center here; for data with participants who miss every posttest, see
 <code>pretest_center</code> in <code><a href="../reference/fit_solomon_mmrm.html">?fit_solomon_mmrm</a></code>.</p>
+<p>With a pretest and missing posttests, the output ends with a note.
+When dropout depends on earlier scores, as it does here, the standard
+errors of the pretest effects can be too small; the section “Limits” of
+<code><a href="../reference/fit_solomon_mmrm.html">?fit_solomon_mmrm</a></code> explains why and gives the sources.</p>
 </div>
 <div class="section level3">
 <h3 id="why-not-analyze-each-occasion-separately">Why not analyze each occasion separately?<a class="anchor" aria-label="anchor" href="#why-not-analyze-each-occasion-separately"></a>
@@ -677,6 +685,9 @@ Quartagno, M., &amp; Kenward, M. G. (2023). <em>Multiple imputation and
 its application</em> (2nd ed.). Wiley. <a href="https://doi.org/10.1002/9781119756118" class="external-link uri">https://doi.org/10.1002/9781119756118</a></p>
 <p>Fitzmaurice, G. M., Laird, N. M., &amp; Ware, J. H. (2011).
 <em>Applied longitudinal analysis</em> (2nd ed.). Wiley. <a href="https://doi.org/10.1002/9781119513469" class="external-link uri">https://doi.org/10.1002/9781119513469</a></p>
+<p>Kenward, M. G., &amp; Molenberghs, G. (1998). Likelihood based
+frequentist inference when data are missing at random. <em>Statistical
+Science, 13</em>(3), 236–247. <a href="https://doi.org/10.1214/ss/1028905886" class="external-link uri">https://doi.org/10.1214/ss/1028905886</a></p>
 <p>Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., &amp;
 Mancuso, J. P. (2008). Recommendations for the primary analysis of
 continuous endpoints in longitudinal clinical trials. <em>Drug

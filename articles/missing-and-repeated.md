@@ -8,8 +8,10 @@ Two situations call for more than one model fitted to complete data:
   (White et al., 2011).
 - **The posttest is measured on several occasions,** and some
   participants drop out along the way. A model for all occasions at once
-  uses every observed score and stays valid when dropout depends on
-  earlier scores (Fitzmaurice et al., 2011).
+  uses every observed score, and its estimates stay valid when dropout
+  depends on earlier scores (Fitzmaurice et al., 2011). Its standard
+  errors, computed from the expected information, can then be wrong
+  (Kenward & Molenberghs, 1998).
 
 Both are shown here on simulated data whose true effects are known. The
 methods are validated in the articles [Missing Posttests: Validating the
@@ -537,6 +539,8 @@ mm
 #> 
 #> Posttests missing at occasion 12 months: pretested 20.8%, unpretested 23.3%
 #> (18% to 27% by group).
+#> 
+#> Pretest effects: SEs can be too small if dropout depends on earlier scores.
 ```
 
 The model needs the mmrm package, version 0.3.13 or later. It estimates
@@ -547,6 +551,12 @@ table of observed posttests shows the dropout. Every participant has the
 first posttest, so the pretest effects have one center here; for data
 with participants who miss every posttest, see `pretest_center` in
 [`?fit_solomon_mmrm`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md).
+
+With a pretest and missing posttests, the output ends with a note. When
+dropout depends on earlier scores, as it does here, the standard errors
+of the pretest effects can be too small; the section “Limits” of
+[`?fit_solomon_mmrm`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
+explains why and gives the sources.
 
 ### Why not analyze each occasion separately?
 
@@ -611,6 +621,10 @@ application* (2nd ed.). Wiley. <https://doi.org/10.1002/9781119756118>
 Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied
 longitudinal analysis* (2nd ed.). Wiley.
 <https://doi.org/10.1002/9781119513469>
+
+Kenward, M. G., & Molenberghs, G. (1998). Likelihood based frequentist
+inference when data are missing at random. *Statistical Science, 13*(3),
+236–247. <https://doi.org/10.1214/ss/1028905886>
 
 Mallinckrodt, C. H., Lane, P. W., Schnell, D., Peng, Y., & Mancuso, J.
 P. (2008). Recommendations for the primary analysis of continuous
