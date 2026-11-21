@@ -7,7 +7,7 @@ v1.0.0 submission, which follows the maintainer's sign-off (#85).
 
 * Local: Windows 11, R 4.6.1, `R CMD check --as-cran`.
 * GitHub Actions: Windows, macOS, and Ubuntu (R release); Ubuntu (R devel,
-  also with `--as-cran`; R oldrel-1).
+  also with `--as-cran`; R oldrel-1; R 4.2, the minimum).
 * win-builder: R-release (R 4.6.1) and R-devel.
 * mac-builder: macOS 14.4 (Apple M1), R 4.6.1 Patched.
 
