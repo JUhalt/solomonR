@@ -44,12 +44,21 @@
 * An omnibus test that is undefined because one of its contrasts depends
   on a participant at leverage 1 (#173) is `NA`, as before. The `df2` of
   an AHT test is then `NA` too.
-* An AHT omnibus test has no statistic and no p-value (`NA`) when the
-  HC2 covariance matrix of the contrasts it tests is singular, as when
-  the outcome does not vary within two of the groups that it compares.
-  A new classed warning, `solomonR_singular_test_warning`, names the
-  test, and its `df2` is given. The former test could give a meaningless
-  statistic there.
+* **Fits that stopped now return.** Without pretest scores or
+  covariates, the covariance matrix of the contrasts that an omnibus
+  test compares is singular when the outcome does not vary within two of
+  the groups that Condition | pretested or Condition | unpretested
+  compares, or, for the other two tests, within the pretested and the
+  unpretested groups of two conditions: in a linear probability model
+  with no events in two unpretested groups, for example. Such fits often
+  stopped with "system is computationally singular", and otherwise gave
+  a meaningless statistic. When the outcome did not vary within any of
+  the groups that a test compares, the test mostly gave a meaningless
+  statistic. The AHT test now has no statistic and no p-value (`NA`) in
+  all these cases, and the rest of the fit is computed as usual. A new
+  classed warning, `solomonR_singular_test_warning`, names the test, and
+  its `df2` is given. The help page gives the rule ("Designs with
+  several treatments").
 * The printed heading of the omnibus tests and the method of
   `report_solomon()` name the test and its sources, and the print, the
   report, and the subtitle of `plot_sensitization()` give a `df2` that

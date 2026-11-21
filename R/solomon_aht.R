@@ -56,7 +56,8 @@
 }
 
 # Which rows of the omnibus table `omnibus` are AHT tests on HC2 that have
-# no statistic because L V L' is singular (.aht_test()). Unlike a test that
+# no statistic because L V L' is singular to working precision
+# (.aht_singular()). Unlike a test that
 # is undefined at leverage 1 (issue #173), whose `df2` is NA too, such a
 # test keeps its `df2`, which depends on the design alone.
 .omnibus_singular <- function(omnibus) {
@@ -95,14 +96,11 @@
 # (.hc3_undefined(); issue #173).
 #
 # Q is undefined when L V L' is singular, that is, when the residuals that
-# enter it do not span the q constraints, as when the outcome is constant
-# in two of the groups that a test of group means compares, whose
-# residuals are then 0. The matrix is taken as singular when its
-# reciprocal condition number is below the machine epsilon, the rule by
-# which base R's solve() refuses it. Q, the statistic, and the p-value are
-# then NA, and `singular` is TRUE; eta and `df2`, which depend on the
-# design alone, are kept. clubSandwich stops on such a matrix, as not
-# positive definite, and so does a fit with `robust = "CR2"`.
+# enter it do not span the q constraints (.aht_singular()). Q, the
+# statistic, and the p-value are then NA, and `singular` is TRUE; eta and
+# `df2`, which depend on the design alone, are kept. clubSandwich does not
+# test for this: on such a matrix it stops, as not positive definite, or
+# gives a value, depending on the rounding error of the residuals.
 #
 # Returns `statistic` (F), `df1` (q), `df2` (eta - q + 1), and `p.value`,
 # with `eta`, `Q`, and `singular`. As in clubSandwich, the factor
@@ -137,7 +135,7 @@
   e <- (sqrt(w) * model$residuals)[good]
   tb <- backsolve(qr.R(qb), drop(L %*% cf)[qb$pivot], transpose = TRUE)
   M <- crossprod(A * e)
-  singular <- rcond(M) < .Machine$double.eps
+  singular <- .aht_singular(M, (sqrt(w) * model$fitted.values)[good])
   Q <- if (singular) NA_real_ else sum(tb * solve(M, tb))
 
   total <- sum(rowSums(A^2)^2 * (1 - 2 * hat))
@@ -155,4 +153,62 @@
     p.value = if (df2 > 0) stats::pf(statistic, q, df2, lower.tail = FALSE) else NA_real_,
     eta = eta, Q = Q, singular = singular
   )
+}
+
+# Whether L V L', held as M = sum_i a_i a_i' e_i^2 (.aht_test()), is
+# singular to working precision. `fitted` holds the fitted values of the N
+# participants, times the root of their weights.
+#
+# The matrix is singular when the residuals that enter it do not span the
+# q constraints. Without pretest scores or covariates, the residuals of a
+# group are 0 when its outcome does not vary. Condition | pretested and
+# Condition | unpretested are then singular when two of the groups that
+# they compare have residuals of 0, and the other two tests when the
+# pretested and the unpretested groups of two conditions do: the
+# contrasts of the other groups still span the constraints otherwise.
+# Pretest scores and covariates that vary within a group give it
+# residuals unless their coefficients are 0; the unpretested groups have
+# no pretest scores.
+#
+# Computed residuals are 0 only up to rounding error, so the matrix is
+# taken as singular when either
+# - its reciprocal condition number is below the machine epsilon, the rule
+#   by which base R's solve() refuses it; or
+# - its smallest eigenvalue is at most tau^2, with tau = 10 N eps times the
+#   root mean square of `fitted`.
+# In a direction v of unit length, v' M v is a weighted mean of
+# e_i^2 / (1 - h_i), with weights (g_i' v)^2 that sum to 1, as the g_i of
+# .aht_test() sum to the identity in their outer products. So the second
+# rule asks whether the residuals that carry some direction of the
+# contrasts are 0 up to rounding error. The first misses that when the
+# residuals that enter the test are rounding error in every direction:
+# when the outcome does not vary within any of the groups that a test of
+# group means compares, as when no unpretested participant of a linear
+# probability model has an event, M is made of rounding error alone, is
+# not singular by its condition number, and gave an arbitrary statistic. It
+# misses it too for two groups with residuals of 0 among groups that vary,
+# once the outcome lies so far from zero (10^8 with a spread of 0.5) that
+# the rounding error of those residuals is no longer negligible against
+# the others.
+#
+# The rounding error of a residual is of the order of eps times the size
+# of the values it is computed from, and it grows with the size of the
+# fit. Of 7,440 tests (two to five treatments, 12 to 6,000 participants,
+# binary, integer, and normal outcomes 0 to 10^10 from zero, with and
+# without the pretest), the 1,625 whose residuals are 0 in exact
+# arithmetic were all found singular: 463 by the first rule, and the
+# other 1,162 by the second, with a root of the smallest eigenvalue of at
+# most 0.52 N eps times the root mean square of the fitted values, 19
+# times below tau. In the 5,815 others, that root was at least 270 N eps
+# times it with the outcome 10^10 from zero, 1,060 N eps at 10^8, and
+# 6 * 10^6 N eps at 100 or closer, and neither rule found a matrix
+# singular. Outcomes that vary give residuals of about their spread,
+# which is within tau only when the spread is below about 10 N eps of the
+# outcome's distance from zero: 0.0013 with 6,000 participants 10^8 from
+# zero. The eigenvalues of M are found only to within about eps times the
+# largest, so the second rule does not replace the first.
+.aht_singular <- function(M, fitted) {
+  if (rcond(M) < .Machine$double.eps) return(TRUE)
+  tau <- 10 * length(fitted) * .Machine$double.eps * sqrt(mean(fitted^2))
+  min(eigen(M, symmetric = TRUE, only.values = TRUE)$values) <= tau^2
 }

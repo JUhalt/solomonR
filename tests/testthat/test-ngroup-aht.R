@@ -447,6 +447,185 @@ test_that("the report's sentence on leverage 1 does not count a singular test", 
   expect_no_match(method, "leverage", fixed = TRUE)
 })
 
+test_that("an AHT test of groups whose outcome all fail to vary is NA, with a warning", {
+  # Linear probability models in which no unpretested participant has an
+  # event, with two and three treatments, with and without the pretest.
+  # Every residual that enters Condition | unpretested is rounding error, so
+  # its covariance matrix need not be singular by its condition number; the
+  # rule on rounding error (.aht_singular()) finds it so.
+  for (case in list(list(seed = 451281, k = 2, n = 6, pretest = FALSE),
+                    list(seed = 451282, k = 3, n = 5, pretest = TRUE))) {
+    info <- paste(case$seed, if (case$pretest) "with y_pre" else "without y_pre")
+    d <- aht_data(case$seed, case$k, case$n)
+    d$y <- withr::with_seed(case$seed, stats::rbinom(nrow(d), 1, 0.4))
+    d$y[d$pretested == 0L] <- 0
+    y_pre <- if (case$pretest) d$y_pre
+    out <- aht_warnings(fit_solomon_glm(d$y, d$condition, d$pretested, y_pre,
+                                        control = "Control"))
+    fit <- out$value
+    om <- fit$omnibus
+    singular <- om$test == "Condition | unpretested"
+    expect_identical(.omnibus_singular(om), singular, info = info)
+    expect_true(all(is.na(unlist(om[singular, c("statistic", "p.value")]))), info = info)
+    # df2 is that of the design: (k + 1)^2 (n - 1) / (2k) - k + 1.
+    expect_equal(om$df2[singular], (case$k + 1)^2 * (case$n - 1) / (2 * case$k) - case$k + 1,
+                 tolerance = 1e-10, info = info)
+    L <- omnibus_constraints(fit$model, LETTERS[seq_len(case$k)])[["Condition | unpretested"]]
+    expect_true(.aht_test(fit$model, L)$singular, info = info)
+    singular_warnings <- Filter(function(w) inherits(w, "solomonR_singular_test_warning"),
+                                out$other)
+    expect_length(singular_warnings, 1L)
+    expect_match(conditionMessage(singular_warnings[[1]]), paste0(
+      "The small-sample omnibus test of Condition | unpretested has no statistic and no ",
+      "p-value: the HC2 covariance matrix of the contrasts it tests is singular to working ",
+      "precision, as when the outcome does not vary within enough of the groups that a test ",
+      "compares."
+    ), fixed = TRUE, info = info)
+    text <- gsub(" +", " ", utils::capture.output(print(fit)))
+    expect_true(any(startsWith(text, "No statistic for Condition | unpretested: the HC2 covariance")),
+                info = info)
+    defined <- omnibus_tests[!singular]
+    ref <- aht_reference(d$y, d$condition, d$pretested, y_pre, control = "Control", only = defined)
+    literal <- aht_reference(d$y, d$condition, d$pretested, y_pre, control = "Control",
+                             engine = "literal", only = defined)
+    for (column in aht_columns) {
+      expect_equal(om[!singular, column], ref[[column]], tolerance = 1e-10,
+                   info = paste(info, column))
+      expect_equal(om[!singular, column], literal[[column]], tolerance = 1e-8,
+                   info = paste(info, column))
+    }
+  }
+})
+
+test_that("the tests that compare every group are singular when two conditions do not vary", {
+  # Constant in both groups of A and in the pretested Control group: the
+  # contrasts of the other groups still span Pretest x Condition and the
+  # test averaged over pretest, and Condition | unpretested has one constant
+  # group. Only Condition | pretested, with two, is singular.
+  d <- aht_data(451288, 2, 6)
+  d$y <- withr::with_seed(451288, stats::rbinom(nrow(d), 1, 0.4))
+  d$y[d$condition == "A" | (d$condition == "Control" & d$pretested == 1L)] <- 0
+  fit <- suppressWarnings(fit_solomon_glm(y, condition, pretested, control = "Control", data = d))
+  singular <- omnibus_tests == "Condition | pretested"
+  expect_identical(.omnibus_singular(fit$omnibus), singular)
+  ref <- aht_reference(d$y, d$condition, d$pretested, control = "Control",
+                       only = omnibus_tests[!singular])
+  for (column in aht_columns) {
+    expect_equal(fit$omnibus[!singular, column], ref[[column]], tolerance = 1e-10, info = column)
+  }
+  # Constant in both groups of A and of the Control: every test is singular.
+  d$y[d$condition == "Control"] <- 0
+  out <- aht_warnings(fit_solomon_glm(y, condition, pretested, control = "Control", data = d))
+  om <- out$value$omnibus
+  expect_identical(.omnibus_singular(om), rep(TRUE, 4L))
+  expect_true(all(is.finite(om$df2)))
+  singular_warnings <- Filter(function(w) inherits(w, "solomonR_singular_test_warning"),
+                              out$other)
+  expect_length(singular_warnings, 1L)
+  expect_match(conditionMessage(singular_warnings[[1]]), paste0(
+    "The small-sample omnibus tests of ", paste(omnibus_tests, collapse = "; "), " have no ",
+    "statistic and no p-value: the HC2 covariance matrix of the contrasts they test is singular"
+  ), fixed = TRUE)
+})
+
+test_that("a matrix is singular below the machine epsilon in reciprocal condition number", {
+  # The unpretested Control and A groups vary by `spread` about 50, the
+  # others by about 9: the reciprocal condition number of the covariance
+  # matrix of Condition | unpretested is about 1e-12 at 1e-5, and 1e-17 at
+  # 3e-8, below the machine epsilon (2.2e-16). Neither is near the rule on
+  # rounding error, 10 N eps of the fitted values, about 4e-12.
+  test_at <- function(spread) {
+    d <- aht_data(451283, 2, 6)
+    idx <- d$pretested == 0L & d$condition %in% c("Control", "A")
+    d$y <- d$y_post
+    d$y[idx] <- 50 + spread * withr::with_seed(451284, stats::rnorm(sum(idx)))
+    out <- aht_warnings(fit_solomon_glm(y, condition, pretested, control = "Control", data = d))
+    list(data = d, out = out, om = out$value$omnibus)
+  }
+  near <- test_at(1e-5)
+  u <- near$om$test == "Condition | unpretested"
+  expect_false(any(.omnibus_singular(near$om)))
+  expect_false(any(vapply(near$out$other, inherits, logical(1), "solomonR_singular_test_warning")))
+  # clubSandwich forms the matrix less accurately; they agree to 1.5e-3.
+  ref <- aht_reference(near$data$y, near$data$condition, near$data$pretested,
+                       control = "Control", only = "Condition | unpretested")
+  expect_equal(near$om$statistic[u], ref$statistic, tolerance = 1e-2)
+
+  below <- test_at(3e-8)
+  expect_identical(.omnibus_singular(below$om), omnibus_tests == "Condition | unpretested")
+  expect_true(any(vapply(below$out$other, inherits, logical(1), "solomonR_singular_test_warning")))
+})
+
+test_that("a matrix is singular when its smallest eigenvalue is within 10 N eps of the fitted values", {
+  # The residuals of the unpretested participants replaced by +-r, with
+  # groups of 6: the covariance matrix of Condition | unpretested is then
+  # r^2 6/5 times the identity, whose reciprocal condition number is 1, and
+  # it is singular when r sqrt(6/5) <= 10 N eps times the root mean square
+  # of the fitted values.
+  d <- aht_data(451286, 2, 6)
+  fit <- suppressWarnings(fit_solomon_glm(y_post, condition, pretested, control = "Control",
+                                          data = d))
+  L <- omnibus_constraints(fit$model, c("A", "B"))[["Condition | unpretested"]]
+  N <- nrow(d)
+  scale <- N * .Machine$double.eps * sqrt(mean(fit$model$fitted.values^2))
+  unpretested <- d$pretested == 0L
+  at <- function(r) {
+    model <- fit$model
+    model$residuals[unpretested] <- r * rep_len(c(1, -1), sum(unpretested))
+    .aht_test(model, L)
+  }
+  expect_true(at(5 * scale)$singular)
+  expect_true(is.na(at(5 * scale)$statistic))
+  expect_false(at(20 * scale)$singular)
+  expect_true(is.finite(at(20 * scale)$statistic))
+  expect_equal(at(5 * scale)$df2, at(20 * scale)$df2)
+
+  # Two constant groups among groups that vary, 10^10 from zero: the
+  # rounding error of their residuals is no longer negligible against the
+  # others, and the condition number does not find the matrix singular. The
+  # same data without the constant groups give the tests of the data at
+  # zero.
+  d$y <- round(d$y_post)
+  at_zero <- suppressWarnings(fit_solomon_glm(y, condition, pretested, control = "Control",
+                                              data = d))$omnibus
+  d$far <- d$y + 1e10
+  far <- suppressWarnings(fit_solomon_glm(far, condition, pretested, control = "Control",
+                                          data = d))$omnibus
+  expect_false(any(.omnibus_singular(far)))
+  for (column in aht_columns) {
+    expect_equal(far[[column]], at_zero[[column]], tolerance = 1e-5, info = column)
+  }
+  d$far[d$pretested == 0L & d$condition %in% c("Control", "A")] <- 1e10 + 40
+  out <- aht_warnings(fit_solomon_glm(far, condition, pretested, control = "Control", data = d))
+  expect_identical(.omnibus_singular(out$value$omnibus),
+                   omnibus_tests == "Condition | unpretested")
+})
+
+test_that("a test without a statistic at leverage 1 in a fit of another family is not called singular", {
+  # The data of test-hc3-leverage.R in a Poisson fit: three Wald chi-square
+  # tests are undefined at leverage 1 (#173). Their reason is the leverage,
+  # not a singular matrix.
+  y <- c(3, 5, 2, 4, 1, 6, 2, 4, 3, 2, 7, 4, 5, 1, 3, 4, 6, 2)
+  condition <- rep(c("A", "Control", "B", "A", "Control", "B"), each = 3)
+  pretested <- rep(c(1, 0), each = 9)
+  y_pre <- c(1, 1, 5, 2, 2, 2, 3, 3, 3, rep(NA, 9))
+  out <- aht_warnings(fit_solomon_glm(y, condition, pretested, y_pre, control = "Control",
+                                      family = "poisson"))
+  fit <- out$value
+  undefined <- fit$omnibus$test != "Condition | unpretested"
+  expect_true(all(is.na(fit$omnibus$statistic[undefined])))
+  expect_identical(fit$omnibus$method, rep("Wald chi-square, HC3", 4L))
+  expect_identical(.omnibus_singular(fit$omnibus), rep(FALSE, 4L))
+  expect_false(any(vapply(out$other, inherits, logical(1), "solomonR_singular_test_warning")))
+  text <- utils::capture.output(print(fit))
+  expect_false(any(startsWith(text, "No statistic for")))
+  results <- report_solomon(fit)$results[1]
+  expect_match(results, "gave no result, as a standard error it needs is undefined", fixed = TRUE)
+  expect_no_match(results, "singular", fixed = TRUE)
+  expect_identical(.ngroup_omnibus_text(fit),
+                   "Pretest x Condition: no result, as a standard error it needs is undefined")
+})
+
 
 # ---- the tests that did not change ---------------------------------------------------
 

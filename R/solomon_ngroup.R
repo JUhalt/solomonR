@@ -933,8 +933,8 @@
   }))
   rownames(omnibus) <- NULL
 
-  # An AHT test on HC2 whose L V L' is singular has no statistic
-  # (.aht_test()); a classed warning names it.
+  # An AHT test on HC2 whose L V L' is singular to working precision has
+  # no statistic (.aht_singular()); a classed warning names it.
   singular <- .omnibus_singular(omnibus)
   if (any(singular)) .warn_aht_singular(omnibus$test[singular])
 
@@ -1087,7 +1087,7 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
     cat(.wrap_lines(paste0(
       "No statistic for ", paste(om$test[singular], collapse = "; "), ": the HC2 ",
       "covariance matrix of the contrasts tested is singular, as when the outcome does ",
-      "not vary within two of the groups compared. See ?fit_solomon_glm."
+      "not vary within enough of the groups compared. See ?fit_solomon_glm."
     )), "\n", sep = "")
   }
 

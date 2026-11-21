@@ -1233,14 +1233,41 @@ stouffer_solomon <- function(p) {
 #' covariates, not on the outcomes.
 #'
 #' An AHT test on HC2 has no statistic and no p-value (`NA`) when the HC2
-#' covariance matrix of the contrasts it tests is singular, as when the
-#' outcome does not vary within two of the groups that it compares, so that
-#' their residuals are 0. The matrix is taken as singular when its
-#' reciprocal condition number is below the machine epsilon, the rule by
-#' which base R's `solve()` refuses a matrix. The test's `df2`, which
-#' depends on the design alone, is still given, and a classed warning,
-#' `solomonR_singular_test_warning`, names the test. With `robust = "CR2"`,
-#' [clubSandwich::Wald_test()] stops on such a matrix.
+#' covariance matrix of the contrasts it tests is singular, that is, when
+#' the residuals of the groups that it compares do not span its k
+#' constraints. Without pretest scores or covariates, a group whose outcome
+#' does not vary has residuals of 0. Condition | pretested and Condition |
+#' unpretested are then singular when the outcome does not vary within two
+#' of the groups that they compare, as in a linear probability model in
+#' which no unpretested participant of the control and of one treatment
+#' has an event. The other two tests are singular when it does not vary
+#' within the pretested and the unpretested groups of two conditions.
+#' Pretest scores and covariates that vary within a group give it
+#' residuals unless their coefficients are 0; the unpretested groups have
+#' no pretest scores.
+#'
+#' Computed residuals are 0 only up to rounding error, so the matrix is
+#' taken as singular when either holds:
+#'
+#' - its reciprocal condition number is below the machine epsilon, the rule
+#'   by which base R's `solve()` refuses a matrix;
+#' - its smallest eigenvalue is at most the square of 10N times the machine
+#'   epsilon times the root mean square of the fitted values, for N
+#'   participants. That eigenvalue is a weighted mean of the participants'
+#'   squared residuals, each divided by one minus its leverage, so this
+#'   rule asks whether the residuals that carry some direction of the
+#'   contrasts are 0 up to rounding error.
+#'
+#' The second rule catches a test whose groups all have an outcome that
+#' does not vary: its matrix is then made of rounding error alone, the
+#' first rule does not find it singular, and it would give an arbitrary
+#' statistic. The second rule also takes as singular a test of an outcome
+#' whose spread is below about 10N times the machine epsilon of its
+#' distance from zero. The test's `df2`, which depends on the design alone,
+#' is still given, and a classed warning, `solomonR_singular_test_warning`,
+#' names the test. With `robust = "CR2"`, the test comes from
+#' [clubSandwich::Wald_test()], which makes neither check: on such a matrix
+#' it stops or gives an arbitrary value, depending on rounding error.
 #'
 #' The p-values of each contrast are adjusted across the comparisons, by
 #' Holm's (1979) procedure by default. It controls the familywise error rate

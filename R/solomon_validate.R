@@ -176,10 +176,11 @@
 
 # Classed warning for the AHT omnibus tests on HC2 `tests` that have no
 # statistic because the HC2 covariance matrix of their contrasts is
-# singular (.aht_test()), as when the outcome does not vary within two of
-# the groups that a test compares, whose residuals are then 0. Their
-# statistics and p-values are NA, and their `df2`, which depends on the
-# design alone, is kept.
+# singular to working precision (.aht_singular()): the residuals of the
+# groups that a test compares do not span its contrasts, as when the
+# outcome does not vary within enough of those groups. Their statistics
+# and p-values are NA, and their `df2`, which depends on the design alone,
+# is kept.
 .warn_aht_singular <- function(tests) {
   one <- length(tests) == 1L
   warning(structure(
@@ -189,10 +190,10 @@
         "The small-sample omnibus test", if (one) " of " else "s of ",
         paste(tests, collapse = "; "), if (one) " has" else " have",
         " no statistic and no p-value: the HC2 covariance matrix of the contrasts ",
-        if (one) "it tests" else "they test", " is singular, as when the outcome does not ",
-        "vary within two of the groups that a test compares, so that their residuals are ",
-        "0. The denominator degrees of freedom, which depend on the design alone, are ",
-        "given. See ?fit_solomon_glm."
+        if (one) "it tests" else "they test", " is singular to working precision, as when ",
+        "the outcome does not vary within enough of the groups that a test compares. The ",
+        "denominator degrees of freedom, which depend on the design alone, are given. See ",
+        "\"Designs with several treatments\" in ?fit_solomon_glm."
       ),
       call = NULL
     )
