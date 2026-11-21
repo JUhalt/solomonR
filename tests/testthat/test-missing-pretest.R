@@ -2361,8 +2361,11 @@ test_that("fits saved by master print, summarize, report, tidy, and plot as on m
   stored <- readRDS(test_path("fixtures", "missing-pretest-master.rds"))
   # Identical on the platform that made the fixture; elsewhere, numbers
   # recomputed from the stored fits (such as marginal_solomon()'s) may
-  # differ in the last digits, as in the test above.
+  # differ in the last digits, so they are compared within the tolerances
+  # of the test above: 1e-6 for the logistic fit and its marginal effects,
+  # 1e-8 for the gaussian fits.
   same_platform <- identical(stored$platform, missing_pretest_platform())
+  tolerance <- function(name) if (name %in% c("logit", "marginal")) 1e-6 else 1e-8
   expect_named(stored$objects, c("glm", "glm_observed", "logit", "ngroup", "marginal"))
   for (name in names(stored$objects)) {
     x <- stored$objects[[name]]
@@ -2374,7 +2377,7 @@ test_that("fits saved by master print, summarize, report, tidy, and plot as on m
       if (same_platform) {
         expect_identical(now[[part]], ref[[part]], info = paste(name, part))
       } else {
-        expect_equal(now[[part]], ref[[part]], tolerance = 1e-6,
+        expect_equal(now[[part]], ref[[part]], tolerance = tolerance(name),
                      info = paste(name, part))
       }
     }
