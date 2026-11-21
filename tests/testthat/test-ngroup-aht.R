@@ -642,8 +642,8 @@ test_that(".aht_singular() bounds the smallest eigenvalue by 10 N eps times the 
     outcome <- rep_len(c(1, -1, 7, -7), N)
     tau <- 10 * N * .Machine$double.eps * 5
     at <- function(r) .aht_singular(r^2 * matrix(c(2, 1, 1, 2), 2L), outcome)
-    expect_true(at(0.95 * tau), info = N)
-    expect_false(at(1.05 * tau), info = N)
+    expect_true(at(0.95 * tau), info = paste("N =", N))
+    expect_false(at(1.05 * tau), info = paste("N =", N))
   }
 })
 
