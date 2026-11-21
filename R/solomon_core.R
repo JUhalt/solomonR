@@ -1244,9 +1244,10 @@ stouffer_solomon <- function(p) {
 #' within the pretested and the unpretested groups of two conditions.
 #' With pretest scores or covariates, a group has residuals of 0 when its
 #' outcome is an exact linear function of them, with the slopes of the
-#' fit. When every pretested participant's score changes by the same
-#' amount from pretest to posttest, or none changes, Condition | pretested
-#' is singular. The unpretested groups have no pretest scores.
+#' fit. With the pretest and no covariates, Condition | pretested is
+#' singular when every pretested participant's score changes by the same
+#' amount from pretest to posttest, or none changes. The unpretested groups
+#' have no pretest scores.
 #'
 #' Computed residuals are 0 only up to rounding error, so the matrix is
 #' taken as singular when either holds:

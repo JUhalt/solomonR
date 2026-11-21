@@ -169,9 +169,9 @@
 # contrasts of the other groups still span the constraints otherwise.
 # With pretest scores or covariates, the residuals of a group are 0 when
 # its outcome is an exact linear function of them, with the slopes of the
-# fit: when every pretested participant's score changes by the same
-# amount, or none changes, Condition | pretested is singular. The
-# unpretested groups have no pretest scores.
+# fit. With the pretest and no covariates, Condition | pretested is
+# singular when every pretested participant's score changes by the same
+# amount, or none changes. The unpretested groups have no pretest scores.
 #
 # Computed residuals are 0 only up to rounding error, so the matrix is
 # taken as singular when either

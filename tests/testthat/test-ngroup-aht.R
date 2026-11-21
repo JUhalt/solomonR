@@ -755,6 +755,25 @@ test_that("with the pretest, Condition | pretested is singular when every pretes
                    info = paste(info, column))
     }
   }
+
+  # With a covariate on which the unpretested outcome depends, its slope is
+  # not 0, the pretested residuals are not 0, and every test is defined.
+  d <- aht_data(451297, 3, 5)
+  pretested <- d$pretested == 1L
+  withr::with_seed(451297, {
+    d$y_pre <- ifelse(pretested, round(stats::rnorm(nrow(d), 20, 4)), NA)
+    d$y <- round(stats::rnorm(nrow(d), 22, 4)) + 2 * d$z * !pretested
+    d$y[pretested] <- d$y_pre[pretested] + 2
+  })
+  out <- aht_warnings(fit_solomon_glm(d$y, d$condition, d$pretested, d$y_pre,
+                                      covariates = d["z"], control = "Control"))
+  expect_false(any(.omnibus_singular(out$value$omnibus)))
+  expect_false(any(vapply(out$other, inherits, logical(1), "solomonR_singular_test_warning")))
+  ref <- aht_reference(d$y, d$condition, d$pretested, d$y_pre, covariates = d["z"],
+                       control = "Control")
+  for (column in aht_columns) {
+    expect_equal(out$value$omnibus[[column]], ref[[column]], tolerance = 1e-10, info = column)
+  }
 })
 
 test_that("a test without a statistic at leverage 1 in a fit of another family is not called singular", {
