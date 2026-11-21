@@ -116,6 +116,10 @@
     rows
   }
   one <- length(rows) == 1L
+  # A single participant whom the indicator fits exactly has no pretest, and
+  # a covariate that varied only through them would be aliased with the
+  # indicator, so the indicator is then the only cause named.
+  if (indicator && one) pretest <- covariates <- FALSE
   causes <- c(
     if (indicator) {
       paste0("the indicator of a missing pretest, ", .missing_pretest_column, ", marks only ",

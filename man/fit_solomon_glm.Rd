@@ -802,7 +802,14 @@ each pretest effect differs from that of \code{"drop"} by m times that
 participant's residual from the \code{"drop"} fit. Under HC3 the rule of "HC3
 at leverage 1" then gives the pretest effects no standard error, and the
 classed warning \code{solomonR_hc3_leverage_warning} names the indicator as
-the cause; \code{robust = "none"} gives one. This is not rare: with 50
+the cause; \code{robust = "none"} gives one. Under \code{robust = "CR2"} that rule
+is not applied, as for every CR2 fit, and the pretest effects keep a
+standard error. It leaves out the variance of that participant's
+posttest, because the model fits them exactly, with a residual of 0. On
+the identity link, each pretest effect moves by m for each point of that
+posttest, so the part left out is m squared times its variance (a
+derivation), which \code{robust = "none"} includes; the print says so. Having
+one such participant is not rare: with 50
 pretested participants per condition and 2\% of pretests missing,
 exactly one is missing in about 27\% of studies (binomial arithmetic).
 In a logistic fit, and in a count fit on the log link, the indicator's

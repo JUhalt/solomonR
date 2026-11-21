@@ -310,6 +310,14 @@
 #' error when the procedure is used conditionally. Its presence in this function should not be interpreted
 #' as a general contemporary recommendation.
 #'
+#' **Missing pretests** (issue #142). Tests A-D, Test H, the pretest main
+#' effect, and the analysis of variance use the posttests only, so a
+#' pretested participant with a posttest but no pretest enters them. Tests
+#' E, F, and G use the pretested participants with both scores, and leave
+#' that participant out, as [fit_solomon_glm()] does with
+#' `missing_pretest = "drop"`; so does Test I, which combines one of them
+#' with Test H. The `history` comparisons use every observed pretest.
+#'
 #' @param y_post Numeric posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
 #'   Designs with several treatments are not supported; see

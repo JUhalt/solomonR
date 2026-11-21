@@ -103,6 +103,10 @@ standard errors, covariate adjustment, and the analyses of the pretested
 groups (Tests E-G) need the individual data. Rounded published statistics
 reproduce published tests only to within rounding: for El Karkri et al.
 (2025a), the interaction F is 11.46 against the published 11.48.
+
+The analysis uses the posttests only, so a pretested participant with a
+posttest but no pretest is in it whenever the posttest summaries count
+them (issue #142).
 }
 \section{Designs with several treatments}{
 

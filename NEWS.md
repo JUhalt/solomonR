@@ -39,6 +39,9 @@
   indicator fits that participant exactly: the treatment contrasts equal
   those of `"drop"`, and under HC3 the pretest effects have no standard
   error, by the rule of #173, with a warning that names the indicator.
+  Under CR2, to which that rule does not apply, they keep one, which
+  leaves out the variance of that participant's posttest; the help and
+  the print say so.
   When every participant kept has the same binary outcome, or a count of
   0, the indicator's coefficient has no finite estimate (Albert &
   Anderson, 1984): the pretest effects are then infinite on the model's
@@ -72,7 +75,14 @@
   what removing them before the call assumes. `analysis_plan_solomon()`
   gains `missing_pretest` and states the handling where it wrote
   "[state how they are handled]". `perm_solomon()` no longer takes the
-  indicator for a covariate that the pretest conditions share.
+  indicator for a covariate that the pretest conditions share. The help
+  pages of `fit_solomon_1949()`, `fit_solomon_classic()`,
+  `fit_solomon_sem()`, `fit_solomon_sem_latent()`,
+  `solomon_from_summary()`, and `solomon_effect_sizes()` say what each
+  does with these participants: the posttest-only analyses keep them,
+  the analyses that need both scores leave them out, and the ANCOVA
+  modes of the two SEM fits keep them by full-information maximum
+  likelihood.
 * **A change in behavior: a reserved name.** No covariate can be named
   `pre_missing`, in any fit, with a pretest or without, as no covariate
   can be named `pre_obs` or `condition` (#174): such a covariate now

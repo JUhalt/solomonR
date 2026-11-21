@@ -157,16 +157,30 @@ print.solomon_glm <- function(x, digits = 3, ...) {
 .glm_pretest_note <- function(x, digits = 3) {
   center <- .null_na(x$pretest_mean)
   if (!is.finite(center)) return(invisible(NULL))
+  # With pretested participants kept without a pretest (issue #142), the
+  # pretest effects are also standardized over them, and their standard
+  # errors include the sampling variance of the share they make up.
+  kept <- nzchar(.analyzed_with_pretest(x))
   at <- if (identical(x$pretest_center, "observed")) {
     "the mean of every observed pretest among the pretested participants"
+  } else if (kept) {
+    "the mean of the pretested participants analyzed with a pretest"
   } else {
     "the pretested participants' mean"
   }
+  compare <- if (kept) {
+    paste("The pretest effects compare pretested and unpretested participants at that score,",
+          "standardized over the pretested participants with and without a pretest",
+          "(pre_missing marks those without one); their standard errors include the sampling",
+          "variance of the mean and of the share without a pretest, and the coefficient of",
+          "pretested treats the mean as fixed.")
+  } else {
+    paste("The pretest effects compare pretested and unpretested participants at that score;",
+          "their standard errors include the sampling variance of the mean, and the",
+          "coefficient of pretested treats it as fixed.")
+  }
   cat(.wrap_lines(sprintf(paste(
-    "pre_obs: the pretest, centered at %s (%.*f).",
-    "The pretest effects compare pretested and unpretested participants at that score;",
-    "their standard errors include the sampling variance of the mean, and the",
-    "coefficient of pretested treats it as fixed."
+    "pre_obs: the pretest, centered at %s (%.*f).", compare
   ), at, digits, center)), "\n", sep = "")
   .link_pretest_note(x)
   invisible(NULL)

@@ -201,6 +201,57 @@ test_that("the warning names the handling and has a class", {
   expect_match(conditionMessage(w$warnings[[1]]), "None of them has a posttest", fixed = TRUE)
   expect_identical(unname(w$value$n_missing_pretest), c(0L, 0L))
   expect_false(.missing_pretest_column %in% names(w$value$data))
+
+  # The number kept counts those with every other variable of the model: a
+  # participant without a pretest who also lacks a covariate or the
+  # exposure is in neither model, and the warning agrees with
+  # `n_missing_pretest`.
+  lost <- which(d$pretested == 1 & is.na(d$y_pre) & !is.na(d$y_post))
+  dc <- d
+  dc$age[lost[1]] <- NA
+  dc$time <- 1 + seq_len(nrow(dc)) %% 3
+  dc$time[lost[2]] <- NA
+  kept_text <- function(k) sprintf(paste0(
+    "^%d pretested participant\\(s\\) have missing pretest scores\\. The %d with a posttest ",
+    "and every other variable of the model are kept by the missing-indicator method"),
+    n_missing, k)
+  w <- mp_warnings(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = age, data = dc,
+                                   missing_pretest = "indicator"))
+  expect_identical(sum(w$value$n_missing_pretest), length(lost) - 1L)
+  expect_match(conditionMessage(w$warnings[[1]]), kept_text(length(lost) - 1L))
+  w <- mp_warnings(fit_solomon_glm(visits, treat, pretested, y_pre, covariates = age,
+                                   exposure = time, family = stats::poisson(), data = dc,
+                                   missing_pretest = "indicator"))
+  expect_identical(sum(w$value$n_missing_pretest), length(lost) - 2L)
+  expect_match(conditionMessage(w$warnings[[1]]), kept_text(length(lost) - 2L))
+  # Without the covariate, the count is again those with a posttest.
+  w <- mp_warnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = dc,
+                                   missing_pretest = "indicator"))
+  expect_identical(sum(w$value$n_missing_pretest), length(lost))
+  expect_match(conditionMessage(w$warnings[[1]]), sprintf("The %d with a posttest are kept",
+                                                          length(lost)), fixed = TRUE)
+  # When every one with a posttest lacks the covariate, no one is kept.
+  dn <- d
+  dn$age[lost] <- NA
+  w <- mp_warnings(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = age, data = dn,
+                                   missing_pretest = "indicator"))
+  expect_match(conditionMessage(w$warnings[[1]]), paste(
+    "None of them has both a posttest and every other variable of the model, so none is in",
+    "the model"), fixed = TRUE)
+  expect_identical(unname(w$value$n_missing_pretest), c(0L, 0L))
+  # Several treatments.
+  six <- mp_six()
+  six$age <- rep(18:27, length.out = nrow(six))
+  lost6 <- which(six$pretested == 1 & is.na(six$y_pre) & !is.na(six$y_post))
+  six$age[lost6[1:2]] <- NA
+  w6 <- mp_warnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                    covariates = age, data = six,
+                                    missing_pretest = "indicator"))
+  expect_identical(sum(w6$value$n_missing_pretest), length(lost6) - 2L)
+  at <- match("solomonR_missing_pretest_warning", mp_classes(w6$warnings))
+  expect_match(conditionMessage(w6$warnings[[at]]), sprintf(
+    "The %d with a posttest and every other variable of the model are kept",
+    length(lost6) - 2L), fixed = TRUE)
 })
 
 
@@ -449,6 +500,14 @@ test_that("with exactly one kept participant, the pretest effects have no HC3 st
                               "only this participant, the one pretested participant kept without",
                               "a pretest"), fixed = TRUE)
   expect_match(message, "Use `robust = \"none\"` for model-based standard errors", fixed = TRUE)
+  # That participant has no pretest, so the pretest is not named as a
+  # cause, nor, with a covariate, a covariate.
+  expect_no_match(message, "the pretest varies", fixed = TRUE)
+  w_cov <- mp_warnings(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = age,
+                                       data = d, missing_pretest = "indicator"))
+  message_cov <- conditionMessage(w_cov$warnings[[2]])
+  expect_match(message_cov, "Likely cause: the indicator of a missing pretest", fixed = TRUE)
+  expect_no_match(message_cov, "the pretest varies|a covariate varies")
   pretest <- mp_rows(fit, mp_pretest)
   expect_true(all(is.finite(pretest$estimate)))
   expect_true(all(is.na(unlist(pretest[mp_inference]))))
@@ -602,11 +661,12 @@ test_that("binary and count fits with the indicator equal a computation by hand"
   expect_true(all(is.finite(mp_rows(nb, mp_pretest)$std.error)))
 })
 
-test_that("with clusters, the CR2 standard errors stack the two means by cluster", {
-  d <- mp_data()
-  fit <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
-                                          missing_pretest = "indicator", robust = "CR2",
-                                          cluster = d$site))
+# The CR2 standard errors and degrees of freedom of the three pretest
+# effects, by hand, for the four-group data `d` clustered by `site`: the CR2
+# covariance of the model from clubSandwich, the CR2 variance of the two
+# stacked means, their covariance with the coefficients from cluster sums,
+# and Welch-Satterthwaite degrees of freedom for the sum.
+mp_cr2 <- function(d) {
   hand <- mp_hand(d, robust = "none")
   in_model <- !is.na(d$y_post)
   model <- hand$model
@@ -637,30 +697,66 @@ test_that("with clusters, the CR2 standard errors stack the two means by cluster
   u[pre] <- u[pre] + hand$gamma * (as.integer(kept[pre]) - hand$m) / sum(pre)
   G <- length(unique(cluster))
   cross <- G / (G - 1) * colSums(rowsum(influence, cluster) * rowsum(u, cluster)[, 1])
-  rows <- mp_rows(fit, mp_pretest)
-  for (j in 1:3) {
+  out <- lapply(1:3, function(j) {
     L <- c(0, 0, 1, 0, hand$m, c(0, 1, 0.5)[j])
     names(L) <- names(b)
     v_contrast <- drop(L %*% V %*% L) + 2 * sum(L * cross)
-    expect_equal(rows$std.error[j], sqrt(v_contrast + contrast$SE^2), tolerance = 1e-8)
     df_contrast <- as.data.frame(clubSandwich::linear_contrast(
       model, vcov = V, contrasts = matrix(L, 1), test = "Satterthwaite"))$df
-    expect_equal(rows$df[j],
-                 (v_contrast + contrast$SE^2)^2 /
-                   (v_contrast^2 / df_contrast + contrast$SE^4 / contrast$df),
-                 tolerance = 1e-8)
-  }
+    c(std.error = sqrt(v_contrast + contrast$SE^2),
+      df = (v_contrast + contrast$SE^2)^2 /
+        (v_contrast^2 / df_contrast + contrast$SE^4 / contrast$df))
+  })
+  list(std.error = vapply(out, `[[`, 0, "std.error"), df = vapply(out, `[[`, 0, "df"),
+       estimate = hand$estimate, m = hand$m)
+}
+
+test_that("with clusters, the CR2 standard errors stack the two means by cluster", {
+  d <- mp_data()
+  fit <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d,
+                                          missing_pretest = "indicator", robust = "CR2",
+                                          cluster = d$site))
+  hand <- mp_cr2(d)
+  rows <- mp_rows(fit, mp_pretest)
+  expect_equal(rows$std.error, hand$std.error, tolerance = 1e-8)
+  expect_equal(rows$df, hand$df, tolerance = 1e-8)
   expect_equal(rows$estimate, hand$estimate, tolerance = 1e-10)
   # The CR2 rule of #173 is not applied to clustered fits: one kept
   # participant gives no leverage warning.
   d1 <- d
   d1$y_pre <- ifelse(d1$pretested == 1, 50 + seq_len(nrow(d1)) %% 17, NA)
-  d1$y_pre[which(d1$pretested == 1 & !is.na(d1$y_post))[4]] <- NA
+  one <- which(d1$pretested == 1 & !is.na(d1$y_post))[4]
+  d1$y_pre[one] <- NA
   w <- mp_warnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d1,
                                    missing_pretest = "indicator", robust = "CR2",
                                    cluster = d1$site))
   expect_false("solomonR_hc3_leverage_warning" %in% mp_classes(w$warnings))
   expect_null(w$value$hc3_leverage)
+  # The pretest effects keep a CR2 standard error, the one computed by hand.
+  rows1 <- mp_rows(w$value, mp_pretest)
+  hand1 <- mp_cr2(d1)
+  expect_true(all(is.finite(rows1$std.error)))
+  expect_equal(rows1$std.error, hand1$std.error, tolerance = 1e-8)
+  expect_equal(rows1$df, hand1$df, tolerance = 1e-8)
+  # The model fits that participant exactly: each pretest effect moves by m
+  # for each point of their posttest, and no other estimate moves, yet the
+  # participant's residual stays 0, so the CR2 covariance of the model does
+  # not depend on that posttest. That variance, m^2 times the variance of a
+  # posttest, is what the help and the print say CR2 leaves out.
+  shifted <- d1
+  shifted$y_post[one] <- shifted$y_post[one] + 1
+  w2 <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = shifted,
+                                         missing_pretest = "indicator", robust = "CR2",
+                                         cluster = shifted$site))
+  expect_equal(mp_rows(w2, mp_pretest)$estimate - rows1$estimate, rep(hand1$m, 3),
+               tolerance = 1e-10)
+  expect_equal(mp_rows(w2, mp_treatment)$estimate, mp_rows(w$value, mp_treatment)$estimate,
+               tolerance = 1e-10)
+  expect_equal(unname(stats::residuals(w$value$model)[as.character(one)]), 0, tolerance = 1e-8)
+  keep <- setdiff(rownames(w$value$vcov), .missing_pretest_column)
+  expect_equal(w2$vcov[keep, keep], w$value$vcov[keep, keep], tolerance = 1e-10)
+  expect_equal(mp_rows(w2, mp_treatment)$std.error, mp_rows(w$value, mp_treatment)$std.error,
+               tolerance = 1e-10)
 })
 
 test_that("several treatments: the indicator is common to all conditions", {
@@ -1480,6 +1576,43 @@ test_that("the print says what one kept participant and separation mean", {
     "With one such participant, the indicator fitted that participant exactly, so the treatment",
     "contrasts equal those of the analysis that excludes the participant. The pretest effects",
     "then have no HC3 standard error."), r, fixed = TRUE)))
+  expect_true(any(startsWith(r, "With this participant excluded instead, the pretest effect was")))
+  expect_true(any(startsWith(report_solomon(drop)$results, paste(
+    "With this participant kept by the missing-indicator method (Groenwold et al., 2012), the",
+    "pretest effect was"))))
+  # Under CR2 the pretest effects keep a standard error, and the print and
+  # the report say what it leaves out.
+  cr2 <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = d1,
+                                          missing_pretest = "indicator", robust = "CR2",
+                                          cluster = d1$site))
+  expect_match(mp_text(mp_block(cr2)), paste(
+    "participant's residual. Under CR2 the pretest effects keep a standard error, which leaves",
+    "out the variance of that participant's posttest (see \"Pretested participants without a",
+    "pretest\" in ?fit_solomon_glm); robust = \"none\" includes it."), fixed = TRUE)
+  expect_true(any(grepl(paste(
+    "excludes the participant. The CR2 standard errors of the pretest effects leave out the",
+    "variance of that participant's posttest."), report_solomon(cr2)$results, fixed = TRUE)))
+  expect_false(grepl("Under CR2", mp_text(mp_block(none)), fixed = TRUE))
+  # The note on the centered pretest says that the pretest effects are
+  # standardized over the participants kept without a pretest too; under
+  # "drop" it is as before.
+  note <- function(fit) {
+    out <- utils::capture.output(print(fit))
+    at <- grep("^pre_obs: ", out)
+    mp_text(out[at:(at + 6L)])
+  }
+  expect_match(note(kept), sprintf(paste(
+    "pre_obs: the pretest, centered at the mean of the pretested participants analyzed with a",
+    "pretest \\(%.3f\\)\\. The pretest effects compare pretested and unpretested participants",
+    "at that score, standardized over the pretested participants with and without a pretest",
+    "\\(pre_missing marks those without one\\); their standard errors include the sampling",
+    "variance of the mean and of the share without a pretest, and the coefficient of",
+    "pretested treats the mean as fixed\\."), kept$pretest_mean))
+  expect_match(note(drop), sprintf(paste(
+    "pre_obs: the pretest, centered at the pretested participants' mean \\(%.3f\\)\\. The",
+    "pretest effects compare pretested and unpretested participants at that score; their",
+    "standard errors include the sampling variance of the mean, and the coefficient of",
+    "pretested treats it as fixed\\."), drop$pretest_mean))
 
   # Separation: every kept participant has the outcome 0.
   ds <- d
@@ -1491,6 +1624,23 @@ test_that("the print says what one kept participant and separation mean", {
   expect_true("  Pretest effects on the log-odds scale:" %in% block)
   rows <- grep("^  Pretest (effect [|]|main)", block, value = TRUE)
   expect_identical(vapply(rows, function(l) mp_numbers(l)[1], 0, USE.NAMES = FALSE), rep(-Inf, 3))
+  # The table of the two centers (#135) gives the difference the fit
+  # stores, which is finite and not 0, although both effects are infinite.
+  out <- utils::capture.output(print(logit))
+  start <- match("Missing posttests and the pretest effects", out)
+  center_rows <- grep("^  Pretest (effect [|]|main)", out[start:(start + 8L)], value = TRUE)
+  expect_length(center_rows, 3L)
+  stored <- logit$pretest_sensitivity$difference$difference
+  expect_true(all(is.finite(stored) & abs(stored) > 5e-4))
+  for (j in 1:3) {
+    expect_equal(mp_numbers(center_rows[j]), c(-Inf, -Inf, round(stored[j], 3)), tolerance = 1e-12)
+  }
+  # A difference that is zero but for rounding error is still printed as 0
+  # when the effects are finite (issue #137).
+  expect_identical(.center_differences(data.frame(
+    analyzed = c(-Inf, 1, 2, Inf), observed = c(-Inf, 1 + 1e-15, 1.5, NA),
+    difference = c(0.0063, -1e-15, 0.5, NA)
+  )), c(0.0063, 0, 0.5, NA))
   expect_match(mp_text(block), paste(
     "All 3 have the outcome 0, so the indicator's coefficient has no finite estimate on the",
     "log-odds scale (separation; Albert & Anderson, 1984). With them kept, the pretest effects",
@@ -1712,6 +1862,71 @@ test_that("analysis_plan_solomon() states how participants without a pretest are
 
 
 # ---- the results of master ----------------------------------------------------------
+
+test_that("the other fits do with participants without a pretest what their help pages say", {
+  d <- mp_data()
+  pre <- d$pretested == 1
+  lost <- pre & is.na(d$y_pre) & !is.na(d$y_post)
+  expect_gt(sum(lost), 0L)
+  without <- d[!lost, ]
+  posttests <- sum(!is.na(d$y_post))
+  # fit_solomon_1949(): each improvement needs both scores, so they are left
+  # out of both means of their pretested group.
+  s49 <- suppressWarnings(fit_solomon_1949(y_post, treat, pretested, y_pre, data = d))
+  s49_without <- suppressWarnings(fit_solomon_1949(y_post, treat, pretested, y_pre,
+                                                   data = without))
+  both <- pre & !is.na(d$y_post) & !is.na(d$y_pre)
+  expect_identical(s49$groups$n[1:2], c(sum(both & d$treat == 1), sum(both & d$treat == 0)))
+  expect_identical(s49$groups[c("n", "pre_mean", "post_mean", "change")],
+                   s49_without$groups[c("n", "pre_mean", "post_mean", "change")])
+  # fit_solomon_classic(): Tests A-D use every posttest, Tests E-G only the
+  # pretested participants with both scores.
+  classic <- fit_solomon_classic(y_post, treat, pretested, y_pre, data = d)
+  classic_without <- fit_solomon_classic(y_post, treat, pretested, y_pre, data = without)
+  a_d <- classic$effects$test %in% c("A", "B", "C", "D")
+  e_g <- classic$effects$test %in% c("E", "F", "G")
+  expect_equal(classic$effects$df[a_d], rep(posttests - 4, 4))
+  expect_equal(classic$anova$df[classic$anova$source == "Error"], posttests - 4)
+  expect_equal(classic$effects[e_g, ], classic_without$effects[e_g, ], tolerance = 1e-12)
+  expect_false(isTRUE(all.equal(classic$effects$estimate[a_d],
+                                classic_without$effects$estimate[a_d])))
+  # solomon_from_summary() uses the posttest summaries only.
+  cells <- list(pre & d$treat == 1, pre & d$treat == 0, !pre & d$treat == 1, !pre & d$treat == 0)
+  summary_fit <- solomon_from_summary(
+    n = vapply(cells, function(k) sum(k & !is.na(d$y_post)), 0),
+    mean = vapply(cells, function(k) mean(d$y_post[k], na.rm = TRUE), 0),
+    sd = vapply(cells, function(k) stats::sd(d$y_post[k], na.rm = TRUE), 0)
+  )
+  expect_equal(summary_fit$effects$estimate, classic$effects$estimate[match(
+    summary_fit$effects$test, classic$effects$test)], tolerance = 1e-10)
+
+  # The SEM fits: the four-group models use the posttests only; the ANCOVA
+  # modes, fitted by full-information maximum likelihood, keep these
+  # participants, so leaving them out changes the estimate.
+  skip_if_not_installed("lavaan")
+  sem <- suppressWarnings(fit_solomon_sem(y_post, treat, pretested, y_pre, data = d))
+  expect_equal(sum(lavaan::lavInspect(sem$fit, "nobs")), posttests)
+  ancova <- suppressWarnings(fit_solomon_sem(y_post, treat, pretested, y_pre, ancova = TRUE,
+                                             data = d))
+  ancova_without <- suppressWarnings(fit_solomon_sem(y_post, treat, pretested, y_pre,
+                                                     ancova = TRUE, data = without))
+  expect_gt(abs(ancova$effects$estimate - ancova_without$effects$estimate), 1e-4)
+  withr::with_seed(20261122, {
+    for (j in 1:3) d[[paste0("post", j)]] <- d$y_post + stats::rnorm(nrow(d), sd = 3)
+    for (j in 1:3) d[[paste0("pre", j)]] <- d$y_pre + stats::rnorm(nrow(d), sd = 3)
+  })
+  latent <- function(data) {
+    suppressWarnings(fit_solomon_sem_latent(
+      data, post_items = paste0("post", 1:3), treat = data$treat,
+      pretested = data$pretested, pre_items = paste0("pre", 1:3), ancova = TRUE,
+      check_invariance = FALSE
+    ))
+  }
+  latent_all <- latent(d)
+  latent_without <- latent(d[!lost, ])
+  expect_equal(sum(lavaan::lavInspect(latent_all$fit, "nobs")), posttests)
+  expect_gt(abs(latent_all$effects_pre$estimate - latent_without$effects_pre$estimate), 1e-4)
+})
 
 test_that("\"drop\", and fits without a missing pretest, give the results of master (941eb77)", {
   # fixtures/missing-pretest-master.rds holds results computed on master

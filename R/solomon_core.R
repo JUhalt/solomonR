@@ -1135,7 +1135,14 @@ stouffer_solomon <- function(p) {
 #' participant's residual from the `"drop"` fit. Under HC3 the rule of "HC3
 #' at leverage 1" then gives the pretest effects no standard error, and the
 #' classed warning `solomonR_hc3_leverage_warning` names the indicator as
-#' the cause; `robust = "none"` gives one. This is not rare: with 50
+#' the cause; `robust = "none"` gives one. Under `robust = "CR2"` that rule
+#' is not applied, as for every CR2 fit, and the pretest effects keep a
+#' standard error. It leaves out the variance of that participant's
+#' posttest, because the model fits them exactly, with a residual of 0. On
+#' the identity link, each pretest effect moves by m for each point of that
+#' posttest, so the part left out is m squared times its variance (a
+#' derivation), which `robust = "none"` includes; the print says so. Having
+#' one such participant is not rare: with 50
 #' pretested participants per condition and 2% of pretests missing,
 #' exactly one is missing in about 27% of studies (binomial arithmetic).
 #' In a logistic fit, and in a count fit on the log link, the indicator's
@@ -1888,6 +1895,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     if (n_incidental > 0L) {
       .warn_missing_pretest(
         n_incidental, sum(pretested == 1L & is.na(y_pre) & !is.na(y_post), na.rm = TRUE),
+        .n_missing_pretest_kept(pretested, y_pre, list(y_post, treat, covariates, exposure)),
         missing_pretest
       )
     }

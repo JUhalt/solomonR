@@ -17,9 +17,14 @@
 # is zero in exact arithmetic, as for a rate ratio, which does not depend on
 # the center, would otherwise print with the sign of its rounding error
 # (issue #137). A small real difference keeps its sign. `d` is
-# `pretest_sensitivity$difference`.
+# `pretest_sensitivity$difference`. When the effects are infinite, as under
+# separation by the indicator of a missing pretest (issue #142), the
+# difference is the finite value the fit gives it and is not compared with
+# them.
 .center_differences <- function(d) {
-  zero <- abs(d$difference) <= 1e-12 * pmax(abs(d$analyzed), abs(d$observed))
+  size <- pmax(abs(d$analyzed), abs(d$observed))
+  size[is.infinite(size)] <- 0
+  zero <- abs(d$difference) <= 1e-12 * size
   ifelse(is.finite(d$difference) & zero, 0, d$difference)
 }
 
@@ -630,6 +635,10 @@
         if (identical(x$robust, "HC3")) {
           paste0(" Under HC3 the pretest effects then have no standard error (see \"HC3 at ",
                  "leverage 1\" in ?fit_solomon_glm); robust = \"none\" gives one.")
+        } else if (identical(x$robust, "CR2")) {
+          paste0(" Under CR2 the pretest effects keep a standard error, which leaves out the ",
+                 "variance of that participant's posttest (see \"Pretested participants ",
+                 "without a pretest\" in ?fit_solomon_glm); robust = \"none\" includes it.")
         }
       )
     } else {

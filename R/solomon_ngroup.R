@@ -533,6 +533,8 @@
     if (n_incidental > 0L) {
       .warn_missing_pretest(
         n_incidental, sum(pretested == 1L & is.na(y_pre) & !is.na(y_post), na.rm = TRUE),
+        .n_missing_pretest_kept(pretested, y_pre,
+                                list(y_post, cond$condition, covariates, exposure)),
         missing_pretest
       )
     }

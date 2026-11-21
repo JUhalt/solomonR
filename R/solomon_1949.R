@@ -54,6 +54,13 @@
 #' scores (a derivation checked on issue #135). The print and
 #' [report_solomon()] give both inferred pretests when they differ.
 #'
+#' **Missing pretests** (issue #142). Each improvement in a pretested group
+#' needs both scores, so a pretested participant with a posttest but no
+#' pretest is left out of both means of their group, at either
+#' `pretest_center`, as in [fit_solomon_glm()] with
+#' `missing_pretest = "drop"`. For what that assumes, see "Pretested
+#' participants without a pretest" there.
+#'
 #' **No test.** Solomon gave standard errors for the observed means but
 #' printed the error of d3 as "?" (Tables II–III), and judged the interaction
 #' from "an examination of the variabilities" (p. 144). This function

@@ -354,10 +354,11 @@
   }
   other <- if (!is.null(other_text)) {
     if (kept) {
-      sprintf("With these participants excluded instead, %s.", other_text)
+      sprintf("With %s excluded instead, %s.",
+              if (k == 1L) "this participant" else "these participants", other_text)
     } else {
-      sprintf(paste0("With them kept by the missing-indicator method (Groenwold et al., 2012), ",
-                     "%s."), other_text)
+      sprintf(paste0("With %s kept by the missing-indicator method (Groenwold et al., 2012), ",
+                     "%s."), if (k == 1L) "this participant" else "them", other_text)
     }
   }
   separation <- if (!is.null(s) && !identical(s$separation, 0L)) {
@@ -388,6 +389,9 @@
       "treatment contrasts equal those of the analysis that excludes the participant.",
       if (identical(x$robust, "HC3")) {
         " The pretest effects then have no HC3 standard error."
+      } else if (identical(x$robust, "CR2")) {
+        paste0(" The CR2 standard errors of the pretest effects leave out the variance of ",
+               "that participant's posttest.")
       }
     )
   }

@@ -87,10 +87,23 @@
   df[c(names(df)[seq_len(at)], column, setdiff(names(df)[-seq_len(at)], column))]
 }
 
+# The number of pretested participants without a pretest whom "indicator"
+# keeps, for the warning, which comes before the model's data are put
+# together: those with every other variable of the model, as
+# .missing_pretest_rows() takes them. `others` lists those variables (the
+# posttest, the treatment or condition, the covariates, and the exposure);
+# NULL elements are left out.
+.n_missing_pretest_kept <- function(pretested, y_pre, others) {
+  others <- Filter(Negate(is.null), others)
+  complete <- do.call(stats::complete.cases, unname(others))
+  sum(complete & pretested %in% 1L & is.na(y_pre))
+}
+
 # The classed warning on pretested participants without a pretest, which
-# names the handling. `n` counts them, and `with_posttest` those of them
-# who have a posttest, whom "indicator" keeps.
-.warn_missing_pretest <- function(n, with_posttest, handling) {
+# names the handling. `n` counts them, `with_posttest` those of them who
+# have a posttest, and `kept` those whom "indicator" keeps: those who also
+# have every covariate and the exposure (.n_missing_pretest_kept()).
+.warn_missing_pretest <- function(n, with_posttest, kept, handling) {
   text <- if (handling == "drop") {
     paste0(
       n, " pretested participant(s) have missing pretest scores and are excluded ",
@@ -100,10 +113,16 @@
       "missing_pretest = \"indicator\" keeps those who have a posttest. See ",
       "\"Pretested participants without a pretest\" in ?fit_solomon_glm."
     )
-  } else if (with_posttest > 0L) {
+  } else if (kept > 0L) {
+    who <- if (kept == n) {
+      "They"
+    } else if (kept == with_posttest) {
+      paste("The", kept, "with a posttest")
+    } else {
+      paste("The", kept, "with a posttest and every other variable of the model")
+    }
     paste0(
-      n, " pretested participant(s) have missing pretest scores. ",
-      if (with_posttest == n) "They" else paste("The", with_posttest, "with a posttest"),
+      n, " pretested participant(s) have missing pretest scores. ", who,
       " are kept by the missing-indicator method (missing_pretest = \"indicator\"; ",
       "Groenwold et al., 2012): their centered pretest is set to 0, and the column ",
       .missing_pretest_column, " marks them. This assumes that losing the pretest did ",
@@ -112,9 +131,10 @@
     )
   } else {
     paste0(
-      n, " pretested participant(s) have missing pretest scores. None of them has a ",
-      "posttest, so none is in the model, and missing_pretest = \"indicator\" has ",
-      "no one to keep."
+      n, " pretested participant(s) have missing pretest scores. None of them has ",
+      if (with_posttest > 0L) "both a posttest and every other variable of the model" else
+        "a posttest",
+      ", so none is in the model, and missing_pretest = \"indicator\" has no one to keep."
     )
   }
   warning(structure(
