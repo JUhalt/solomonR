@@ -2359,6 +2359,10 @@ test_that("fits saved by master print, summarize, report, tidy, and plot as on m
   # there. They lack every element added by #142.
   source(test_path("fixtures", "missing-pretest-master.R"), local = TRUE)
   stored <- readRDS(test_path("fixtures", "missing-pretest-master.rds"))
+  # Identical on the platform that made the fixture; elsewhere, numbers
+  # recomputed from the stored fits (such as marginal_solomon()'s) may
+  # differ in the last digits, as in the test above.
+  same_platform <- identical(stored$platform, missing_pretest_platform())
   expect_named(stored$objects, c("glm", "glm_observed", "logit", "ngroup", "marginal"))
   for (name in names(stored$objects)) {
     x <- stored$objects[[name]]
@@ -2367,7 +2371,12 @@ test_that("fits saved by master print, summarize, report, tidy, and plot as on m
     ref <- stored$objects_output[[name]]
     expect_named(now, names(ref))
     for (part in names(ref)) {
-      expect_identical(now[[part]], ref[[part]], info = paste(name, part))
+      if (same_platform) {
+        expect_identical(now[[part]], ref[[part]], info = paste(name, part))
+      } else {
+        expect_equal(now[[part]], ref[[part]], tolerance = 1e-6,
+                     info = paste(name, part))
+      }
     }
   }
 })
