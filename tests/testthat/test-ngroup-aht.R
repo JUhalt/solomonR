@@ -637,10 +637,12 @@ test_that(".aht_singular() bounds the smallest eigenvalue by 10 N eps times the 
   # condition number does not apply. The rule on rounding error takes M as
   # singular when r <= 10 N eps s, with s the root mean square of the
   # outcome, which here has both signs, a mean of 0, a root mean square of
-  # 5, and a largest size of 7. The bound grows with N.
+  # 2.5, and a largest size of 4. Half of the outcome is 0, as for the
+  # participants without an event in a linear probability model: N counts
+  # them too. The bound grows with N.
   for (N in c(40L, 400L, 4000L)) {
-    outcome <- rep_len(c(1, -1, 7, -7), N)
-    tau <- 10 * N * .Machine$double.eps * 5
+    outcome <- rep_len(c(0, 0, 0, 0, 3, -3, 4, -4), N)
+    tau <- 10 * N * .Machine$double.eps * 2.5
     at <- function(r) .aht_singular(r^2 * matrix(c(2, 1, 1, 2), 2L), outcome)
     expect_true(at(0.95 * tau), info = paste("N =", N))
     expect_false(at(1.05 * tau), info = paste("N =", N))
