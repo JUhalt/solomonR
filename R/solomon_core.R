@@ -2074,10 +2074,14 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     }
     # A single participant kept without a pretest is fitted exactly by the
     # indicator, at leverage 1; the warning names that cause (issue #142).
-    # Under separation the warning above has said so already.
+    # With several kept, the indicator fits none of them exactly, so a kept
+    # participant at leverage 1 has another cause, such as a factor level
+    # held alone; the pretest is not a cause when every such participant
+    # lacks one. Under separation the warning above has said so already.
     if (!is.null(hc3) && !(separation != 0L && all(kept[hc3$rows]))) {
-      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates),
-                         indicator = indicator && any(kept[hc3$rows]))
+      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre) && !all(kept[hc3$rows]),
+                         covariates = !is.null(covariates),
+                         indicator = indicator && sum(kept) == 1L && any(kept[hc3$rows]))
     }
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)

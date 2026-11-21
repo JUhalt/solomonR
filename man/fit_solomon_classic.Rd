@@ -150,13 +150,15 @@ Sawilowsky et al., 1994) raised concerns about experiment-wise Type I
 error when the procedure is used conditionally. Its presence in this function should not be interpreted
 as a general contemporary recommendation.
 
-\strong{Missing pretests} (issue #142). Tests A-D, Test H, the pretest main
-effect, and the analysis of variance use the posttests only, so a
-pretested participant with a posttest but no pretest enters them. Tests
-E, F, and G use the pretested participants with both scores, and leave
-that participant out, as \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} does with
+\strong{Missing pretests} (issue #142). Tests A-D, the pretest main effect,
+and the analysis of variance use the posttests of the four groups only,
+so a pretested participant with a posttest but no pretest enters them.
+Test H uses the unpretested groups only, so that participant is not in
+it. Tests E, F, and G use the pretested participants with both scores,
+and leave that participant out, as \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} does with
 \code{missing_pretest = "drop"}; so does Test I, which combines one of them
-with Test H. The \code{history} comparisons use every observed pretest.
+with Test H. The \code{history} comparisons use every observed pretest,
+including those of pretested participants without a posttest.
 }
 \section{Error rates and the published replication}{
 

@@ -79,10 +79,10 @@
   pages of `fit_solomon_1949()`, `fit_solomon_classic()`,
   `fit_solomon_sem()`, `fit_solomon_sem_latent()`,
   `solomon_from_summary()`, and `solomon_effect_sizes()` say what each
-  does with these participants: the posttest-only analyses keep them,
-  the analyses that need both scores leave them out, and the ANCOVA
-  modes of the two SEM fits keep them by full-information maximum
-  likelihood.
+  does with these participants: the analyses of the posttests of all
+  four groups keep them, those that need both scores leave them out,
+  and the ANCOVA modes of the two SEM fits keep them by full-information
+  maximum likelihood.
 * **A change in behavior: a reserved name.** No covariate can be named
   `pre_missing`, in any fit, with a pretest or without, as no covariate
   can be named `pre_obs` or `condition` (#174): such a covariate now

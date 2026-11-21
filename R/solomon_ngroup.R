@@ -685,11 +685,14 @@
     } else {
       sandwich::vcovHC(fit, type = "HC3")
     }
-    # A single participant kept without a pretest is at leverage 1, as in
+    # A single participant kept without a pretest is at leverage 1; with
+    # several kept the indicator fits none of them exactly, and the pretest
+    # is not a cause when every participant at leverage 1 lacks one, as in
     # the four-group model (issue #142).
     if (!is.null(hc3) && !(separation != 0L && all(kept[hc3$rows]))) {
-      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates),
-                         indicator = indicator && any(kept[hc3$rows]))
+      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre) && !all(kept[hc3$rows]),
+                         covariates = !is.null(covariates),
+                         indicator = indicator && sum(kept) == 1L && any(kept[hc3$rows]))
     }
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
@@ -1177,6 +1180,21 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
   if (pretest_rows) {
     cat(if (!is.finite(.null_na(x$pretest_mean))) {
       "Pretest effects: pretested minus unpretested participants in each condition.\n"
+    } else if (nzchar(.analyzed_with_pretest(x))) {
+      # With pretested participants kept without a pretest (issue #142), the
+      # pretest effects are also standardized over them, and their standard
+      # errors include the sampling variance of the share they make up, as
+      # in the four-group print.
+      paste0(.wrap_lines(sprintf(paste(
+        "Pretest effects: pretested minus unpretested participants in each condition,",
+        "at %s (%.*f), standardized over the pretested participants with and without a",
+        "pretest (pre_missing marks those without one), with standard errors that include",
+        "the sampling variance of that mean and of the share without a pretest."
+      ), if (identical(x$pretest_center, "observed")) {
+        "the mean of every observed pretest among the pretested participants"
+      } else {
+        "the mean pretest of the pretested participants analyzed with a pretest"
+      }, digits, x$pretest_mean)), "\n")
     } else if (identical(x$pretest_center, "observed")) {
       paste0(.wrap_lines(sprintf(paste(
         "Pretest effects: pretested minus unpretested participants in each condition,",

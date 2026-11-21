@@ -367,19 +367,22 @@
     }
     shared <- if (!binary) "a count of 0" else if (s$separation < 0) "the outcome 0" else
       "the outcome 1"
+    # One participant, as the print says, or several; a single participant
+    # kept with a binary outcome is always separated.
+    who <- if (k == 1L) "That participant" else "Every such participant"
     if (marginal) {
       sprintf(paste0(
-        "Every such participant had %s, so the indicator's coefficient had no finite ",
+        "%s had %s, so the indicator's coefficient had no finite ",
         "estimate (separation; Albert & Anderson, 1984); with them kept, their %s set to ",
         "that outcome, the limit of the fit."
-      ), shared, if (binary) "risks were" else "rates were")
+      ), who, shared, if (binary) "risks were" else "rates were")
     } else {
       sprintf(paste0(
-        "Every such participant had %s, so the indicator's coefficient had no finite ",
+        "%s had %s, so the indicator's coefficient had no finite ",
         "estimate on the %s scale (separation; Albert & Anderson, 1984), and the pretest ",
         "effects with them kept are %sinfinite on that scale, without a standard error; ",
         "they can be estimated from standardized %s."
-      ), shared, .center_scale(x$family), if (s$separation < 0) "negatively " else "",
+      ), who, shared, .center_scale(x$family), if (s$separation < 0) "negatively " else "",
       if (binary) "risks" else "rates")
     }
   }
