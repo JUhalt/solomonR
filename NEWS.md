@@ -88,6 +88,58 @@
   can be named `pre_obs` or `condition` (#174): such a covariate now
   stops with an error of class `solomonR_covariate_error`. Rename it.
 
+## fit_solomon_mmrm(): corrected help text and a print note (#57)
+
+* **A correction: SAS PROC MIXED.** The help page of `fit_solomon_mmrm()`
+  said that its Kenward-Roger computation reproduces SAS PROC MIXED. That
+  holds for the unstructured covariance matrix only, as the third
+  amendment of the protocol on #57 pointed out. When the unstructured
+  model does not converge and the function falls back to another
+  structure, it gives the first-order form of the adjustment, without
+  the second-derivative term that the default of SAS includes for those
+  structures (SAS Institute Inc., 2009). The help page now says so, and
+  so does the article "Longitudinal Designs: Validating the
+  Repeated-Measures Analysis". No result changes.
+* **Limits stated.** The help page has a new section, "Limits". It says
+  what the model assumes and where its standard errors are approximate,
+  whatever a simulation study shows:
+
+  - Under dropout that depends on earlier scores, standard errors from
+    the expected information can be wrong at any sample size (Kenward &
+    Molenberghs, 1998). In the simulations of Maruo et al. (2020) they
+    were too small when each arm had its own covariance matrix. In this
+    model that bears on the pretest effects, which compare groups whose
+    matrices are estimated separately.
+  - The treated and the control group of a pretest condition share one
+    covariance matrix (Gosho & Maruo, 2018).
+  - A fallback structure is chosen by AIC, which is unreliable in small
+    samples (Gomez et al., 2005; Skene & Kenward, 2010), and the
+    inference after a fallback has not been evaluated for this function.
+  - Outcomes that are not normal have not been studied for this
+    function, and Kenward-Roger tests can fail when the outcome is skewed
+    (Arnau et al., 2012).
+
+  The section "Model" now also says which pretest center is unbiased for
+  each kind of loss before the first posttest, as the fourth amendment
+  on #57 asked.
+* **A note in the printed output.** A printed fit with a pretest and
+  missing posttests now ends with a one-line note: "Pretest effects: SEs
+  can be too small if dropout depends on earlier scores." The section
+  "Limits" of `?fit_solomon_mmrm` explains it. A posttest counts as
+  missing whether its value is `NA` or its row is absent. A fit with
+  every posttest observed, and a fit without a pretest, print as before.
+  The third amendment on #57 fixed this note in advance, whatever the
+  confirmatory study shows. The article "Missing and Repeated
+  Posttests" now explains the note in its example and says that under
+  such dropout the model's estimates stay valid but its standard errors
+  can be wrong (Kenward & Molenberghs, 1998).
+* **References.** The reference list gains the seven sources named
+  above. Gomez et al. (2005) and Gosho and Maruo (2018) were read in
+  their abstracts only, and Maruo et al. (2020) and Skene and Kenward
+  (2010) in their accepted manuscripts; the list says so.
+* Tests check that the note is printed for a fit with a pretest and
+  missing posttests of either kind, and for no other fit.
+
 ## Ties and degenerate labelings in perm_solomon() (bug fix, #134)
 
 * **A change in behavior: four supported models.** `perm_solomon()`

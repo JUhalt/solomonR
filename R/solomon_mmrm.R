@@ -36,8 +36,37 @@
 # with the pretested cells at pre_obs = shift; the result then has them in
 # `other`. `slopes` holds the pretest slope at each occasion, named by
 # occasion (NULL without a pretest).
+#
+# `structures` and `vcov` serve the confirmatory study of issue #57 (third
+# amendment, methods M9 and M11). fit_solomon_mmrm() never passes them, and
+# their defaults give the fit that ?fit_solomon_mmrm describes; a test
+# compares that fit with this function as it was before they were added.
+# - `structures`: NULL, or names of .mmrm_fallbacks. Only the named
+#   structures are then fitted, without the unstructured model, and the
+#   converged one with the smallest AIC is kept, as when the unstructured
+#   model fails. They are fitted in the order of .mmrm_fallbacks, so the
+#   result does not depend on the order in which they are named.
+# - `vcov`: NULL, or "Empirical-Jackknife": mmrm's jackknife covariance of
+#   the estimates (its "leave-one-cluster-out" method, CR3). It needs
+#   `df = "satterthwaite"`: mmrm does not combine it with Kenward-Roger
+#   degrees of freedom.
 .mmrm_fit_contrasts <- function(observed, occasions, pre, grouped, df, conf_level,
-                                center = NULL, other = NULL) {
+                                center = NULL, other = NULL, structures = NULL,
+                                vcov = NULL) {
+  if (!is.null(structures) &&
+      (!is.character(structures) || !length(structures) || anyNA(structures) ||
+         anyDuplicated(structures) || !all(structures %in% names(.mmrm_fallbacks)))) {
+    stop("`structures` must be NULL or name fallback structures, each once: ",
+         paste(names(.mmrm_fallbacks), collapse = ", "), ".", call. = FALSE)
+  }
+  if (!is.null(vcov)) {
+    if (!identical(vcov, "Empirical-Jackknife")) {
+      stop("`vcov` must be NULL or \"Empirical-Jackknife\".", call. = FALSE)
+    }
+    if (df != "satterthwaite") {
+      stop("`vcov = \"Empirical-Jackknife\"` needs `df = \"satterthwaite\"`.", call. = FALSE)
+    }
+  }
   # mmrm drops an occasion at which no analyzed participant has a posttest,
   # so the model has no coefficients for it, and the contrasts of the fitted
   # model do not cover it (issue #172). Stop before fitting, naming the
@@ -53,15 +82,18 @@
   fit_one <- function(type) {
     f <- stats::as.formula(sprintf("%s + %s(occ | %sid)", fixed, type,
                                    if (grouped) "pgrp / " else ""))
-    # Kenward-Roger with the covariance parameterized by its elements (the
-    # "linear" computation), which reproduces SAS PROC MIXED; see
-    # ?fit_solomon_mmrm.
+    # Kenward-Roger in its "linear" computation, which leaves out the
+    # second-derivative term of the adjustment. With the unstructured matrix
+    # that reproduces SAS PROC MIXED; with a fallback structure it is the
+    # first-order form of the adjustment. See ?fit_solomon_mmrm.
     fit <- tryCatch(
       if (df == "kenward-roger") {
         mmrm::mmrm(f, data = observed, reml = TRUE, method = method,
                    vcov = "Kenward-Roger-Linear")
-      } else {
+      } else if (is.null(vcov)) {
         mmrm::mmrm(f, data = observed, reml = TRUE, method = method)
+      } else {
+        mmrm::mmrm(f, data = observed, reml = TRUE, method = method, vcov = vcov)
       },
       error = function(e) NULL
     )
@@ -69,22 +101,30 @@
     fit
   }
 
+  # The fallback structures fitted when the unstructured model is not used:
+  # all of them by default, or those named in `structures`.
+  fallbacks <- .mmrm_fallbacks
+  if (!is.null(structures)) fallbacks <- fallbacks[names(fallbacks) %in% structures]
   structure_used <- "unstructured"
-  fit <- fit_one("us")
+  fit <- if (is.null(structures)) fit_one("us")
   if (is.null(fit)) {
     # Mallinckrodt et al. (2008, p. 312): if the unstructured model does not
     # converge, fit the listed alternatives and keep the converged one with
     # the smallest AIC.
-    fits <- lapply(names(.mmrm_fallbacks), fit_one)
+    fits <- lapply(names(fallbacks), fit_one)
     ok <- !vapply(fits, is.null, logical(1))
     if (!any(ok)) {
+      if (!is.null(structures)) {
+        stop("The model did not converge with any of these structures: ",
+             paste(fallbacks, collapse = ", "), ".", call. = FALSE)
+      }
       stop("The model did not converge with an unstructured covariance or any of the ",
            "fallback structures (", paste(.mmrm_fallbacks, collapse = ", "), ").", call. = FALSE)
     }
     aic <- vapply(fits[ok], stats::AIC, numeric(1))
     best <- which(ok)[which.min(aic)]
     fit <- fits[[best]]
-    structure_used <- unname(.mmrm_fallbacks[best])
+    structure_used <- unname(fallbacks[best])
   }
 
   beta <- mmrm::component(fit, "beta_est")
@@ -192,7 +232,8 @@
 #' the participants still observed, and unweighted generalized estimating
 #' equations, require the stronger assumption that the posttests are missing
 #' completely at random (Liang & Zeger, 1986; Fitzmaurice et al., 2011, pp.
-#' 358, 498).
+#' 358, 498). The section "Limits" states what else the model assumes and
+#' where its standard errors are approximate.
 #'
 #' @section Model:
 #' The specification follows the example of Mallinckrodt et al. (2008, p.
@@ -222,7 +263,16 @@
 #'   are missing"), the pretest effects depend on the mean pretest at which
 #'   they are evaluated when some pretested participants have no posttest at
 #'   any occasion; `pretest_center` chooses it, and `"observed"` needs those
-#'   participants' rows, with `y_post` missing. A participant with a
+#'   participants' rows, with `y_post` missing. At each occasion, the
+#'   pretest effects at the two centers differ by that occasion's pretest
+#'   slope times the difference between the two means. Which center is
+#'   right depends on who was lost before the first posttest. When all four
+#'   groups lose participants alike by their baseline, the default is
+#'   unbiased, and `"observed"` is off by that difference. When only the
+#'   pretested groups lose them by their pretest, and the unpretested
+#'   groups' losses are unrelated to baseline, `"observed"` is unbiased, and
+#'   the default is off by it (the decision record posted on issue #135,
+#'   section 1). A participant with a
 #'   posttest at any occasion is analyzed, so dropout after the first
 #'   occasion leaves the two centers equal. Neither center protects the
 #'   later occasions when dropout depends on baseline beyond the earlier
@@ -246,20 +296,25 @@
 #'   is estimated separately for pretested and unpretested participants: the
 #'   pretest adjustment makes the residual covariance conditional on the
 #'   pretest in the pretested groups only, so a single shared matrix would
-#'   be misspecified.
+#'   be misspecified. The treated and the control group of a pretest
+#'   condition share one matrix; see "Limits".
 #' - **Fallback.** If the unstructured model does not converge, the
 #'   heterogeneous Toeplitz, heterogeneous AR(1), and heterogeneous compound
 #'   symmetry structures are fitted, and the converged one with the smallest
 #'   AIC is used (Mallinckrodt et al., 2008, p. 312). The output names the
-#'   structure used.
+#'   structure used. "Limits" says what changes after a fallback.
 #' - **Inference.** t tests and intervals with Kenward-Roger degrees of
 #'   freedom and adjusted covariance (Kenward & Roger, 1997, as cited in
 #'   Fitzmaurice et al., 2011, p. 101), as Mallinckrodt et al. (2008, p.
 #'   312) specify, or with Satterthwaite (1946) degrees of freedom. The
 #'   Kenward-Roger adjustment depends on how the covariance is
-#'   parameterized; it is computed with the matrix's own elements as the
-#'   parameters, the form that reproduces SAS PROC MIXED (mmrm's
-#'   "Kenward-Roger-Linear"; Sabanes Bove et al., 2026).
+#'   parameterized. It is computed in its linear form (mmrm's
+#'   "Kenward-Roger-Linear"), which leaves out the term of the adjustment
+#'   that holds the second derivatives of the covariance matrix with respect
+#'   to its parameters (Sabanes Bove et al., 2026). With the unstructured
+#'   matrix and its own elements as the parameters, that term is zero, and
+#'   the computation reproduces SAS PROC MIXED. This holds for the
+#'   unstructured matrix only, not after a fallback (see "Limits").
 #'   Fitzmaurice et al. (2011, p. 101) note that the small-sample properties
 #'   of both approximations in longitudinal models "have not been
 #'   extensively studied"; the simulation study posted on issue #57 compares
@@ -278,6 +333,67 @@
 #' Keeping them by the missing-indicator method, as
 #' `missing_pretest = "indicator"` does there, waits for an amendment to
 #' the protocol of issue #57.
+#'
+#' @section Limits:
+#' These limits come from the model and from the literature on it. They do
+#' not depend on the results of a simulation study.
+#'
+#' - **Dropout that depends on scores.** The standard errors rest on the
+#'   expected information, as mmrm and SAS PROC MIXED compute it, with
+#'   either choice of `df`. Kenward and Molenberghs (1998) show that when
+#'   dropout depends on the scores observed before it, the mean and the
+#'   covariance parameters of the normal model are no longer orthogonal (p.
+#'   242): their estimates are correlated however large the sample. Such
+#'   standard errors can then be wrong at any sample size, and Kenward and
+#'   Molenberghs recommend the observed information instead (pp. 238--239,
+#'   247). In the simulations of Maruo et al. (2020, Table 1), with 200
+#'   participants per arm, three occasions, maximum likelihood, and dropout
+#'   that depended on the previous score, the usual standard error of the
+#'   treatment difference at the last occasion was 4% to 5% too small with
+#'   20% of the last scores missing, and 13% to 17% too small with 40%,
+#'   when each arm had its own unstructured matrix. When the arms rightly
+#'   shared one matrix, it was within 2% of the right value. With a pretest
+#'   in the model, a treatment contrast compares two groups that share a
+#'   matrix, and a pretest effect compares two groups whose matrices are
+#'   estimated separately. The limit therefore bears on the pretest
+#'   effects: under such dropout their standard errors can be too small.
+#'   The function does not offer standard errors from the observed
+#'   information. The printed output of a fit with a pretest and missing
+#'   posttests carries a note.
+#' - **One covariance matrix for both arms.** The model assumes that the
+#'   treated and the control group of a pretest condition have the same
+#'   covariance matrix. With one unstructured matrix for both arms and the
+#'   Kenward-Roger method, Gosho and Maruo (2018) found that intervals for
+#'   the treatment effect covered too rarely when the arm with more dropout
+#'   had the larger variance, and that the estimate was biased as well when
+#'   the arms' correlations also differed. The covariance estimator of Mancl
+#'   and DeRouen (2001, as cited in Gosho & Maruo, 2018) did better in the
+#'   first case, and a matrix for each arm in the second. The function
+#'   offers neither.
+#' - **After a fallback.** The fallback structures are not linear in their
+#'   parameters. For such structures, the default Kenward-Roger adjustment
+#'   of SAS PROC MIXED includes the second-derivative term, which can shrink
+#'   the standard errors and depends on the parameterization; its
+#'   `FIRSTORDER` option leaves the term out (SAS Institute Inc., 2009).
+#'   This function always leaves it out, so after a fallback it gives the
+#'   first-order form of the adjustment, not the default of SAS. The
+#'   structure is also chosen by AIC, which is unreliable in small samples.
+#'   With 10 participants in two groups and five occasions, AIC chose the
+#'   true structure, when that was simpler than the unstructured one, in
+#'   27% to 73% of complete samples and in 20% to 66% of samples with
+#'   dropouts (Skene & Kenward, 2010, Table II). In the simulations of
+#'   Gomez et al. (2005), Kenward-Roger tests had Type I error rates above
+#'   the nominal level whenever the structure was chosen by AIC or BIC. The
+#'   inference after a fallback has not been evaluated for this function:
+#'   in the simulation study below, the unstructured model converged in
+#'   every replication.
+#' - **Outcomes that are not normal.** The model assumes normal residuals,
+#'   and the simulation study below drew normal outcomes. From simulations
+#'   with 30 to 42 participants in three groups, Arnau et al. (2012)
+#'   conclude that Kenward-Roger tests are compromised when the outcome is
+#'   moderately skewed, as a log-normal outcome is, most of all for the
+#'   effect of time, and that they hold up when it is normal or only
+#'   slightly skewed.
 #'
 #' @section Validation:
 #' A simulation study under a protocol posted on issue #57 before any run
@@ -382,12 +498,31 @@
 #'   [solomon_output].
 #'
 #' @references
+#' Arnau, J., Bono, R., Blanca, M. J., & Bendayan, R. (2012). Using the linear
+#' mixed model to analyze nonnormal data distributions in longitudinal
+#' designs. *Behavior Research Methods, 44*(4), 1224–1238.
+#' https://doi.org/10.3758/s13428-012-0196-y
+#'
 #' Entwisle, D. R. (1961). Interactive effects of pretesting. *Educational and
 #' Psychological Measurement, 21*(3), 607–620.
 #' https://doi.org/10.1177/001316446102100307
 #'
 #' Fitzmaurice, G. M., Laird, N. M., & Ware, J. H. (2011). *Applied
 #' longitudinal analysis* (2nd ed.). Wiley. https://doi.org/10.1002/9781119513469
+#'
+#' Gomez, E. V., Schaalje, G. B., & Fellingham, G. W. (2005). Performance of
+#' the Kenward–Roger method when the covariance structure is selected using
+#' AIC and BIC. *Communications in Statistics - Simulation and Computation,
+#' 34*(2), 377–392. https://doi.org/10.1081/SAC-200055719
+#'
+#' Gosho, M., & Maruo, K. (2018). Effect of heteroscedasticity between
+#' treatment groups on mixed-effects models for repeated measures.
+#' *Pharmaceutical Statistics, 17*(5), 578–592.
+#' https://doi.org/10.1002/pst.1872
+#'
+#' Kenward, M. G., & Molenberghs, G. (1998). Likelihood based frequentist
+#' inference when data are missing at random. *Statistical Science, 13*(3),
+#' 236–247. https://doi.org/10.1214/ss/1028905886
 #'
 #' Laird, N. M., & Ware, J. H. (1982). Random-effects models for longitudinal
 #' data. *Biometrics, 38*(4), 963–974. https://doi.org/10.2307/2529876
@@ -401,15 +536,28 @@
 #' in longitudinal clinical trials. *Drug Information Journal, 42*(4),
 #' 303–319. https://doi.org/10.1177/009286150804200402
 #'
+#' Maruo, K., Ishii, R., Yamaguchi, Y., Doi, M., & Gosho, M. (2020). A note
+#' on the bias of standard errors when orthogonality of mean and variance
+#' parameters is not satisfied in the mixed model for repeated measures
+#' analysis. *Statistics in Medicine, 39*(9), 1264–1274.
+#' https://doi.org/10.1002/sim.8474
+#'
 #' Sabanes Bove, D., Li, L., Dedic, J., Kelkhoff, D., Kunzmann, K., Lang, B.
 #' M., Stock, C., Wang, Y., James, D., Sidi, J., Leibovitz, D., Sjoberg, D.
 #' D., Krieger, N. I., Panagos, A., & Jones, J. (2026). *mmrm: Mixed models
 #' for repeated measures* (Version 0.3.18) \[R package\].
 #' https://doi.org/10.32614/CRAN.package.mmrm
 #'
+#' SAS Institute Inc. (2009). *SAS/STAT 9.2 user's guide* (2nd ed.).
+#' https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/statug_mixed_sect015.htm
+#'
 #' Satterthwaite, F. E. (1946). An approximate distribution of estimates of
 #' variance components. *Biometrics Bulletin, 2*(6), 110–114.
 #' https://doi.org/10.2307/3002019
+#'
+#' Skene, S. S., & Kenward, M. G. (2010). The analysis of very small samples
+#' of repeated measurements I: An adjusted sandwich estimator. *Statistics
+#' in Medicine, 29*(27), 2825–2837. https://doi.org/10.1002/sim.4073
 #'
 #' Welch, B. L. (1947). The generalization of "Student's" problem when several
 #' different population variances are involved. *Biometrika, 34*(1–2), 28–35.
@@ -633,6 +781,28 @@ fit_solomon_mmrm <- function(y_post, treat, pretested, id, occasion, y_pre = NUL
   )
 }
 
+# Whether a fit of fit_solomon_mmrm() has a missing posttest: in some
+# group, fewer posttests were observed at some occasion (`x$observed`) than
+# the group has participants (`x$data`). A posttest counts as missing
+# whether its value is NA or its row is absent, and so does every posttest
+# of a participant in the data who has none.
+.mmrm_posttests_missing <- function(x) {
+  if (is.null(x$observed) || is.null(x$data)) return(FALSE)
+  groups <- .solomon_group_labels
+  members <- factor(groups[.solomon_group(x$data$treat, x$data$pretested)], levels = groups)
+  n <- as.integer(table(members))
+  observed <- as.matrix(x$observed)[groups, , drop = FALSE]
+  any(observed < n, na.rm = TRUE)
+}
+
+# The one-line note that a printed fit with a pretest and missing
+# posttests carries, whatever its results (issue #57, third amendment,
+# consequence (b)). It is printed as it stands, on one line of fewer than
+# 78 characters. The section "Limits" of ?fit_solomon_mmrm gives the limit
+# and its sources (Kenward & Molenberghs, 1998; Maruo et al., 2020).
+.mmrm_dropout_note <-
+  "Pretest effects: SEs can be too small if dropout depends on earlier scores."
+
 #' @export
 print.solomon_mmrm <- function(x, digits = 3, ...) {
   cat("Solomon MMRM: mixed model for repeated measures (Mallinckrodt et al., 2008)\n")
@@ -676,5 +846,8 @@ print.solomon_mmrm <- function(x, digits = 3, ...) {
   print(tab, row.names = FALSE, right = FALSE)
   # The two pretest centers when posttests are missing (issue #135).
   .center_output(x, digits, mmrm = TRUE)
+  if (isTRUE(x$pretest) && .mmrm_posttests_missing(x)) {
+    cat("\n", .mmrm_dropout_note, "\n", sep = "")
+  }
   invisible(x)
 }
