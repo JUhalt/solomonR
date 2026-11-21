@@ -718,9 +718,9 @@
       sandwich::vcovHC(fit, type = "HC3")
     }
     # A single participant kept without a pretest is at leverage 1; with
-    # several kept the indicator fits none of them exactly, and the pretest
-    # is not a cause when every participant at leverage 1 lacks one, as in
-    # the four-group model (issue #142).
+    # several kept the indicator alone fits none of them exactly, and the
+    # pretest is not a cause when every participant at leverage 1 lacks
+    # one, as in the four-group model (issue #142).
     if (!is.null(hc3) && !(separation != 0L && all(kept[hc3$rows]))) {
       .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre) && !all(kept[hc3$rows]),
                          covariates = !is.null(covariates),

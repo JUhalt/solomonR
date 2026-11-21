@@ -2089,10 +2089,12 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     }
     # A single participant kept without a pretest is fitted exactly by the
     # indicator, at leverage 1; the warning names that cause (issue #142).
-    # With several kept, the indicator fits none of them exactly, so a kept
-    # participant at leverage 1 has another cause, such as a factor level
-    # held alone; the pretest is not a cause when every such participant
-    # lacks one. Under separation the warning above has said so already.
+    # With several kept, the indicator alone fits none of them exactly, so a
+    # kept participant at leverage 1 has another cause, such as a factor
+    # level held alone, which is named (with exactly two kept, that cause
+    # also leaves the indicator to fit the other one exactly); the pretest
+    # is not a cause when every such participant lacks one. Under
+    # separation the warning above has said so already.
     if (!is.null(hc3) && !(separation != 0L && all(kept[hc3$rows]))) {
       .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre) && !all(kept[hc3$rows]),
                          covariates = !is.null(covariates),
