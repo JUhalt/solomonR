@@ -1081,13 +1081,17 @@ print.solomon_ngroup <- function(x, digits = 3, ...) {
                  sprintf("F(%s, %s) = %.2f", .df_fmt(om$df1), df2, om$statistic),
                  sprintf("chi2(%s) = %.2f", .df_fmt(om$df1), om$statistic))
   .print_columns(c("Test", "Statistic", "p"), list(om$test, stat, p_fmt(om$p.value)))
-  # An AHT test whose covariance matrix is singular has no statistic.
+  # An AHT test whose covariance matrix is singular has no statistic. The
+  # line keeps the name of each test whole (.wrap_words()).
   singular <- .omnibus_singular(om)
   if (any(singular)) {
-    cat(.wrap_lines(paste0(
-      "No statistic for ", paste(om$test[singular], collapse = "; "), ": the HC2 ",
-      "covariance matrix of the contrasts tested is singular, as when the outcome does ",
-      "not vary within enough of the groups compared. See ?fit_solomon_glm."
+    tests <- om$test[singular]
+    cat(.wrap_words(c(
+      "No", "statistic", "for", paste0(tests, ifelse(seq_along(tests) < length(tests), ";", ":")),
+      strsplit(paste(
+        "the HC2 covariance matrix of the contrasts tested is singular, as when the outcome",
+        "does not vary within enough of the groups compared. See ?fit_solomon_glm."
+      ), " ", fixed = TRUE)[[1]]
     )), "\n", sep = "")
   }
 

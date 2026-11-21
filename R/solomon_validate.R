@@ -177,7 +177,7 @@
 # Classed warning for the AHT omnibus tests on HC2 `tests` that have no
 # statistic because the HC2 covariance matrix of their contrasts is
 # singular to working precision (.aht_singular()): the residuals of the
-# groups that a test compares do not span its contrasts, as when the
+# groups that a test compares do not span its constraints, as when the
 # outcome does not vary within enough of those groups. Their statistics
 # and p-values are NA, and their `df2`, which depends on the design alone,
 # is kept.
@@ -1226,6 +1226,25 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
 
 .wrap_lines <- function(text, indent = 0, exdent = indent) {
   paste(strwrap(text, width = 78, indent = indent, exdent = exdent), collapse = "\n")
+}
+
+# Wraps `words` into lines shorter than 78 characters, as .wrap_lines()
+# does, but keeps each element of `words` whole, spaces and all: a name
+# such as "Condition | pretested" is not split across lines.
+.wrap_words <- function(words, width = 78) {
+  lines <- character()
+  line <- ""
+  for (word in words) {
+    if (!nzchar(line)) {
+      line <- word
+    } else if (nchar(line) + 1L + nchar(word) < width) {
+      line <- paste(line, word)
+    } else {
+      lines <- c(lines, line)
+      line <- word
+    }
+  }
+  paste(c(lines, line), collapse = "\n")
 }
 
 

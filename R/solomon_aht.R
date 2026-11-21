@@ -135,7 +135,7 @@
   e <- (sqrt(w) * model$residuals)[good]
   tb <- backsolve(qr.R(qb), drop(L %*% cf)[qb$pivot], transpose = TRUE)
   M <- crossprod(A * e)
-  singular <- .aht_singular(M, (sqrt(w) * model$fitted.values)[good])
+  singular <- .aht_singular(M, (sqrt(w) * (model$fitted.values + model$residuals))[good])
   Q <- if (singular) NA_real_ else sum(tb * solve(M, tb))
 
   total <- sum(rowSums(A^2)^2 * (1 - 2 * hat))
@@ -156,8 +156,9 @@
 }
 
 # Whether L V L', held as M = sum_i a_i a_i' e_i^2 (.aht_test()), is
-# singular to working precision. `fitted` holds the fitted values of the N
-# participants, times the root of their weights.
+# singular to working precision. `outcome` holds the outcome of the N
+# participants, as the fitted values plus the residuals, times the root of
+# their weights.
 #
 # The matrix is singular when the residuals that enter it do not span the
 # q constraints. Without pretest scores or covariates, the residuals of a
@@ -166,16 +167,18 @@
 # they compare have residuals of 0, and the other two tests when the
 # pretested and the unpretested groups of two conditions do: the
 # contrasts of the other groups still span the constraints otherwise.
-# Pretest scores and covariates that vary within a group give it
-# residuals unless their coefficients are 0; the unpretested groups have
-# no pretest scores.
+# With pretest scores or covariates, the residuals of a group are 0 when
+# its outcome is an exact linear function of them, with the slopes of the
+# fit: when every pretested participant's score changes by the same
+# amount, or none changes, Condition | pretested is singular. The
+# unpretested groups have no pretest scores.
 #
 # Computed residuals are 0 only up to rounding error, so the matrix is
 # taken as singular when either
 # - its reciprocal condition number is below the machine epsilon, the rule
 #   by which base R's solve() refuses it; or
 # - its smallest eigenvalue is at most tau^2, with tau = 10 N eps times the
-#   root mean square of `fitted`.
+#   root mean square of `outcome`.
 # In a direction v of unit length, v' M v is a weighted mean of
 # e_i^2 / (1 - h_i), with weights (g_i' v)^2 that sum to 1, as the g_i of
 # .aht_test() sum to the identity in their outer products. So the second
@@ -192,23 +195,29 @@
 # the others.
 #
 # The rounding error of a residual is of the order of eps times the size
-# of the values it is computed from, and it grows with the size of the
-# fit. Of 7,440 tests (two to five treatments, 12 to 6,000 participants,
-# binary, integer, and normal outcomes 0 to 10^10 from zero, with and
-# without the pretest), the 1,625 whose residuals are 0 in exact
-# arithmetic were all found singular: 463 by the first rule, and the
-# other 1,162 by the second, with a root of the smallest eigenvalue of at
-# most 0.52 N eps times the root mean square of the fitted values, 19
-# times below tau. In the 5,815 others, that root was at least 270 N eps
-# times it with the outcome 10^10 from zero, 1,060 N eps at 10^8, and
-# 6 * 10^6 N eps at 100 or closer, and neither rule found a matrix
-# singular. Outcomes that vary give residuals of about their spread,
-# which is within tau only when the spread is below about 10 N eps of the
-# outcome's distance from zero: 0.0013 with 6,000 participants 10^8 from
-# zero. The eigenvalues of M are found only to within about eps times the
-# largest, so the second rule does not replace the first.
-.aht_singular <- function(M, fitted) {
+# of the outcome values that the decomposition combines to compute it,
+# those of the other groups included, and it grows with the size of the
+# fit. So tau is set by the outcome, not by the fitted values: with the
+# groups that do not vary at 0 and the other groups' means near 0 against
+# their spread, the fitted values are near 0 but the rounding error is
+# not, and a bound on the fitted values missed such tests. Of 9,478 tests
+# (two to five treatments, 12 to 14,740 participants, binary, integer,
+# and normal outcomes 0 to 10^10 from zero, with and without the
+# pretest), the 2,673 whose residuals are 0 in exact arithmetic were all
+# found singular: 499 by the first rule, and the other 2,174 by the
+# second, with a root of the smallest eigenvalue of at most 0.41 N eps
+# times the root mean square of the outcome, 24 times below tau. Of the
+# 6,805 others, the second rule found 30 singular, and the first none.
+# Outcomes that vary give residuals of about their spread, which is within
+# tau only when the spread of the groups that a test compares is below
+# about 10 N eps of the outcome's root mean square: 16 of the 30 tests had
+# an outcome 10^8 from zero with a spread of 10^-4 (2,432 to 9,820
+# participants), and 14 had groups with a spread of 10^-9 or less against
+# 10^3 in the other groups. The eigenvalues of M are found only to within
+# about eps times the largest, so the second rule does not replace the
+# first.
+.aht_singular <- function(M, outcome) {
   if (rcond(M) < .Machine$double.eps) return(TRUE)
-  tau <- 10 * length(fitted) * .Machine$double.eps * sqrt(mean(fitted^2))
+  tau <- 10 * length(outcome) * .Machine$double.eps * sqrt(mean(outcome^2))
   min(eigen(M, symmetric = TRUE, only.values = TRUE)$values) <= tau^2
 }

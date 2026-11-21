@@ -878,9 +878,11 @@ of the groups that they compare, as in a linear probability model in
 which no unpretested participant of the control and of one treatment
 has an event. The other two tests are singular when it does not vary
 within the pretested and the unpretested groups of two conditions.
-Pretest scores and covariates that vary within a group give it
-residuals unless their coefficients are 0; the unpretested groups have
-no pretest scores.
+With pretest scores or covariates, a group has residuals of 0 when its
+outcome is an exact linear function of them, with the slopes of the
+fit. When every pretested participant's score changes by the same
+amount from pretest to posttest, or none changes, Condition | pretested
+is singular. The unpretested groups have no pretest scores.
 
 Computed residuals are 0 only up to rounding error, so the matrix is
 taken as singular when either holds:
@@ -888,19 +890,22 @@ taken as singular when either holds:
 \item its reciprocal condition number is below the machine epsilon, the rule
 by which base R's \code{solve()} refuses a matrix;
 \item its smallest eigenvalue is at most the square of 10N times the machine
-epsilon times the root mean square of the fitted values, for N
+epsilon times the root mean square of the outcome, for N
 participants. That eigenvalue is a weighted mean of the participants'
 squared residuals, each divided by one minus its leverage, so this
 rule asks whether the residuals that carry some direction of the
-contrasts are 0 up to rounding error.
+contrasts are 0 up to rounding error. That error follows the size of
+the outcome, the other groups' included, so the bound does too.
 }
 
 The second rule catches a test whose groups all have an outcome that
 does not vary: its matrix is then made of rounding error alone, the
 first rule does not find it singular, and it would give an arbitrary
-statistic. The second rule also takes as singular a test of an outcome
-whose spread is below about 10N times the machine epsilon of its
-distance from zero. The test's \code{df2}, which depends on the design alone,
+statistic. The second rule also takes as singular a test whose groups
+vary by less than about 10N times the machine epsilon of the outcome's
+root mean square: an outcome whose spread is that small against its
+distance from zero, or groups whose spread is that small against the
+others'. The test's \code{df2}, which depends on the design alone,
 is still given, and a classed warning, \code{solomonR_singular_test_warning},
 names the test. With \code{robust = "CR2"}, the test comes from
 \code{\link[clubSandwich:Wald_test]{clubSandwich::Wald_test()}}, which makes neither check: on such a matrix
