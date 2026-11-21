@@ -87,6 +87,10 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="solomonr-development-version">solomonR (development version)<a class="anchor" aria-label="anchor" href="#solomonr-development-version"></a></h2>
 <div class="section level3">
+<h3 id="r-or-later-is-required-development-version">R 4.2 or later is required<a class="anchor" aria-label="anchor" href="#r-or-later-is-required-development-version"></a></h3>
+<ul><li>solomonR now requires R 4.2.0 or later; it required R 4.1.0. ggplot2, which solomonR imports, imports S7, and S7 1.0.0 (released on CRAN on November 19, 2026) requires R 4.2.0, so a new installation on R 4.1 could no longer install the current ggplot2. No code of solomonR changes. The check of the oldest supported version of R now runs on R 4.2.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="fit_solomon_mmrm-corrected-help-text-and-a-print-note-development-version">fit_solomon_mmrm(): corrected help text and a print note (<a href="https://github.com/JUhalt/solomonR/issues/57" class="external-link">#57</a>)<a class="anchor" aria-label="anchor" href="#fit_solomon_mmrm-corrected-help-text-and-a-print-note-development-version"></a></h3>
 <ul><li><p><strong>A correction: SAS PROC MIXED.</strong> The help page of <code><a href="../reference/fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code> said that its Kenward-Roger computation reproduces SAS PROC MIXED. That holds for the unstructured covariance matrix only, as the third amendment of the protocol on <a href="https://github.com/JUhalt/solomonR/issues/57" class="external-link">#57</a> pointed out. When the unstructured model does not converge and the function falls back to another structure, it gives the first-order form of the adjustment, without the second-derivative term that the default of SAS includes for those structures (SAS Institute Inc., 2009). The help page now says so, and so does the article “Longitudinal Designs: Validating the Repeated-Measures Analysis”. No result changes.</p></li>
 <li>
