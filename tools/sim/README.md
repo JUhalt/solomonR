@@ -358,7 +358,7 @@ seed, rows or columns other than the study's, agreement or warning rows
 whose `rep` is not among the task's replications (also when it is
 another task's) or not in their order, a script that does not end with
 `sim_main(study)`, the options), valid agreement and warning rows
-accepted and stored as given (in a scenario's later task, in a task's
+accepted, counted, and stored with their `rep` (in a scenario's later task, in a task's
 later replications, and several for one replication), the pattern's own
 place when `--pattern` is not given, `--task-file` for each of the three
 parts, the run stage's refusal of the plan, that a run changes no file

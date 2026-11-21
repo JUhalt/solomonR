@@ -137,7 +137,7 @@
 #            when it is another task's) or not in their order, of the
 #            options, and of a study script that does not end with
 #            sim_main(study); valid agreement and warning rows accepted
-#            and stored as given (in a scenario's later task, in a task's
+#            and stored with their rep (in a scenario's later task, in a task's
 #            later replications, several for one replication); the
 #            pattern's place without --pattern; that a run changes no
 #            file of the package copy; --task-file, for each of the three
@@ -2000,7 +2000,7 @@ if ("fullsize" %in% groups) local({
   refused("pattern: failures() with a `rep` of another task", rep_msg("failures", "s0003-t0002"),
           set = with_pattern("failures-rep-task"))
   # Valid rows that the cases above do not give, which must be accepted and
-  # stored as given: an agreement row for every replication (so rows in a
+  # stored with their rep: an agreement row for every replication (so rows in a
   # scenario's later task and in a task's later replications) and a second
   # one for each task's first, and two warnings in the last replication of
   # each of scenario 3's tasks (4 and 6).
