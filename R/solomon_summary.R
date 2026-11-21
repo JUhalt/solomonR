@@ -23,6 +23,15 @@ summary.solomon_glm <- function(object, digits = 3, ...) {
     res$pretest_sensitivity <- object$pretest_sensitivity
     res$attrition <- .fit_attrition(object)
   }
+  # The pretested participants without a pretest, for the block printed when
+  # there is one (issue #142). Fits made by earlier versions have none of
+  # these elements.
+  if (!is.null(object$missing_pretest)) {
+    for (name in c("missing_pretest", "n_missing_pretest", "missing_pretest_share",
+                   "missing_pretest_sensitivity", "missing_pretest_arm_check")) {
+      res[name] <- list(object[[name]])
+    }
+  }
   class(res) <- "summary.solomon_glm"
   res
 }
@@ -37,6 +46,7 @@ print.summary.solomon_glm <- function(x, digits = 3, ...) {
   if (is.finite(.null_na(x$pretest_mean))) cat("\n")
   .glm_pretest_note(x, digits)
   .center_output(x, digits)
+  .missing_pretest_output(x, digits)
   invisible(x)
 }
 

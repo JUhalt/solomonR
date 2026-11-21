@@ -614,6 +614,14 @@ Carpenter, J. R., Bartlett, J. W., Morris, T. P., Wood, A. M., Quartagno,
 M., & Kenward, M. G. (2023). *Multiple imputation and its application* (2nd
 ed.). Wiley. https://doi.org/10.1002/9781119756118
 
+Carpenter, J. R., & Kenward, M. G. (2007). *Missing data in randomised
+controlled trials: A practical guide*. Health Technology Assessment
+Methodology Programme. https://researchonline.lshtm.ac.uk/id/eprint/4018500
+
+Carpenter, J. R., & Smuk, M. (2021). Missing data: A statistical framework
+for practice. *Biometrical Journal, 63*(5), 915–947.
+https://doi.org/10.1002/bimj.202000196
+
 Chan, A.-W., Tetzlaff, J. M., Altman, D. G., Laupacis, A., Gøtzsche, P. C.,
 Krleža-Jerić, K., Hróbjartsson, A., Mann, H., Dickersin, K., Berlin, J. A.,
 Doré, C. J., Parulekar, W. R., Summerskill, W. S. M., Groves, T., Schulz, K.
@@ -770,9 +778,23 @@ https://www.jstor.org/stable/4615733
 > `fit_solomon_steyn()`
 > ([#45](https://github.com/JUhalt/solomonR/issues/45)).
 
+Hopewell, S., Chan, A.-W., Collins, G. S., Hróbjartsson, A., Moher, D.,
+Schulz, K. F., Tunn, R., Aggarwal, R., Berkwits, M., Berlin, J. A.,
+Bhandari, N., Butcher, N. J., Campbell, M. K., Chidebe, R. C. W.,
+Elbourne, D., Farmer, A., Fergusson, D. A., Golub, R. M., Goodman, S. N.,
+. . . Boutron, I. (2025). CONSORT 2025 explanation and elaboration:
+Updated guideline for reporting randomised trials. *BMJ, 389*, Article
+e081124. https://doi.org/10.1136/bmj-2024-081124
+
 Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small
 samples: Some practical advice. *The Review of Economics and Statistics,
 98*(4), 701–712. https://doi.org/10.1162/REST_a_00552
+
+Kayembe, M. T., Jolani, S., Tan, F. E. S., & van Breukelen, G. J. P.
+(2020). Imputation of missing covariate in randomized controlled trials
+with a continuous outcome: Scoping review and new results.
+*Pharmaceutical Statistics, 19*(6), 840–860.
+https://doi.org/10.1002/pst.2041
 
 Kelley, K. (2007). Confidence intervals for standardized effect sizes:
 Theory, application, and implementation. *Journal of Statistical Software,
@@ -895,6 +917,17 @@ pairwise and network meta-analysis. *Statistics in Medicine, 34*(5),
 Meredith, W. (1993). Measurement invariance, factor analysis and factorial
 invariance. *Psychometrika, 58*(4), 525–543.
 https://doi.org/10.1007/BF02294825
+
+Moher, D., Hopewell, S., Schulz, K. F., Montori, V., Gøtzsche, P. C.,
+Devereaux, P. J., Elbourne, D., Egger, M., & Altman, D. G. (2010). CONSORT
+2010 explanation and elaboration: Updated guidelines for reporting parallel
+group randomised trials. *BMJ, 340*, Article c869.
+https://doi.org/10.1136/bmj.c869
+
+Morris, T. P., Walker, A. S., Williamson, E. J., & White, I. R. (2022).
+Planning a method for covariate adjustment in individually randomised
+trials: A practical guide. *Trials, 23*, Article 328.
+https://doi.org/10.1186/s13063-022-06097-z
 
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine, 38*(11),
@@ -1171,6 +1204,11 @@ https://doi.org/10.18637/jss.v016.i09
 > the HC3 variance that `perm_solomon()` computes for each permutation, at
 > the exact estimate
 > ([#134](https://github.com/JUhalt/solomonR/issues/134)).
+
+Zhao, A., & Ding, P. (2024). To adjust or not to adjust? Estimating the
+average treatment effect in randomized experiments with missing
+covariates. *Journal of the American Statistical Association, 119*(545),
+450–460. https://doi.org/10.1080/01621459.2022.2123814
 
 Zimmerman, D. W. (2004). A note on preliminary tests of equality of
 variances. *British Journal of Mathematical and Statistical Psychology,

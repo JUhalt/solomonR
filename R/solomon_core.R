@@ -114,9 +114,13 @@ NULL
 # with `pre_obs` the pretest (centered or not) in the pretested rows; one
 # logical value per row. The participants of .pretest_center() are among
 # them, so the two centers are the same number when no pretested
-# participant with a pretest is outside the model.
-.in_pretest_center <- function(df) {
-  df$pretested %in% 1 & !is.na(df$pre_obs)
+# participant with a pretest is outside the model. `kept` flags the
+# pretested participants whom `missing_pretest = "indicator"` keeps without
+# a pretest (issue #142): the 0 in their `pre_obs` is not a pretest, so
+# they are left out. NULL when no participant is kept that way.
+.in_pretest_center <- function(df, kept = NULL) {
+  observed <- df$pretested %in% 1 & !is.na(df$pre_obs)
+  if (is.null(kept)) observed else observed & !kept
 }
 
 # Both centers, from `df` with the uncentered `pre_obs`: `analyzed`, the
@@ -687,9 +691,11 @@ stouffer_solomon <- function(p) {
 #' with several treatments. Regression adjustment for baseline covariates in
 #' randomized experiments, and the case for pairing it with
 #' heteroskedasticity-robust standard errors, is discussed by Lin (2013).
-#' Pretested participants with a missing pretest score are excluded with a
-#' warning; incidental missingness is never imputed. Their exclusion biases
-#' the pretest effects when it relates to baseline (issue #142).
+#' Pretested participants who have a posttest but no pretest score are left
+#' out or kept, as `missing_pretest` says, with a classed warning
+#' (`solomonR_missing_pretest_warning`); a missing pretest is never imputed
+#' from the treatment or the outcome. See "Pretested participants without a
+#' pretest".
 #'
 #' @section Inference:
 #' - `robust = "HC3"` (default): heteroskedasticity-consistent covariance
@@ -956,8 +962,9 @@ stouffer_solomon <- function(p) {
 #'   not differ and no diagnostic warns: the printed observed center is
 #'   then the only check.
 #' - The default keeps the design's own pretest effect. For the main effect
-#'   it is, when every pretested participant has a pretest (see issue #142)
-#'   and up to a term that vanishes when the two pretested groups keep equal
+#'   it is, when every pretested participant has a pretest (see "Pretested
+#'   participants without a pretest") and up to a term that vanishes when
+#'   the two pretested groups keep equal
 #'   numbers, the difference between the posttest means of the participants
 #'   analyzed, as the design defines the effect (Solomon & Lessac, 1968, p.
 #'   147). It does not depend on whether the data keep rows for participants
@@ -1011,9 +1018,11 @@ stouffer_solomon <- function(p) {
 #'   biased at every center (issue #143). [check_solomon_missing()] tests
 #'   whether the pretested conditions' selection differs and then gives the
 #'   raw comparison of posttest means in each condition.
-#' - Pretested participants with a posttest and no pretest are dropped at
-#'   either center. When that loss relates to baseline, both centers are
-#'   biased alike, and a fit without `y_pre` is not (issue #142).
+#' - With `missing_pretest = "drop"`, the default, pretested participants
+#'   with a posttest and no pretest are dropped at either center. When that
+#'   loss relates to baseline, both centers are biased alike, and a fit
+#'   without `y_pre` is not; see "Pretested participants without a
+#'   pretest".
 #' - When loss depends on the posttest itself, both centers understate a
 #'   real pretest effect: in a derivation reported on issue #135, a true
 #'   effect of 0.3 gave 0.234 at the default and 0.174 at the observed
@@ -1023,6 +1032,153 @@ stouffer_solomon <- function(p) {
 #'   would be analyzed in either pretest condition. It equals the effect in
 #'   the randomized population only when the pretest effect does not vary
 #'   with what drives the loss.
+#'
+#' @section Pretested participants without a pretest:
+#' A pretested participant can have a posttest but no pretest score, as
+#' when the pretest was lost or skipped. `missing_pretest` says what the
+#' fit does with such participants:
+#'
+#' - `"drop"` (the default) leaves them out of the model, as every earlier
+#'   version of solomonR did.
+#' - `"indicator"` keeps them by the missing-indicator method (Groenwold et
+#'   al., 2012; Carpenter & Kenward, 2007, pp. 37--38). Their centered
+#'   pretest is set to 0, so that they sit at the center, and a 0/1 column,
+#'   `pre_missing`, marks them. The column is common to all the conditions,
+#'   and no covariate can take its name. Both centers are computed from
+#'   observed pretests only. The coefficient of `pretested` then compares
+#'   the participants with a pretest, and each pretest effect adds the
+#'   column's mean among the pretested participants analyzed, m, times the
+#'   column's coefficient. That standardizes the pretest effects over all
+#'   the pretested participants analyzed, with a pretest or without, a step
+#'   that is the package's own, by analogy with Morris et al. (2022, p. 14),
+#'   who standardize over the distribution of a complete covariate. The
+#'   treatment contrasts and Pretest x Treatment are the coefficients, as
+#'   without the column. A fit in which no pretested participant analyzed
+#'   lacks a pretest is the `"drop"` fit, with no such column. Each
+#'   pretested group needs at least one participant analyzed with a
+#'   pretest, as under `"drop"`, which leaves a group without one empty.
+#'   Otherwise the fit stops and names the group: its pretest effect would
+#'   rest on the column's coefficient alone, estimated in the other groups,
+#'   or could not be estimated at all.
+#'
+#' `"indicator"` is new. The default stays `"drop"`, so no estimate of an
+#' existing call changes, until the validation study of issue #142 has
+#' run; the default will then follow the rules posted there. The decision
+#' record posted on that issue gives the method and the reasons for each
+#' choice below.
+#'
+#' **What dropping assumes.**
+#'
+#' - For the pretest effects: within each pretested condition, those
+#'   without a pretest would have had the same mean posttest as those with
+#'   one. Otherwise each pretest effect is biased; the printed difference
+#'   between kept and dropped shows by how much if the indicator's
+#'   assumption holds.
+#' - For Treatment | pretested: the loss depended at most on the pretest
+#'   and the condition (Carpenter & Smuk, 2021, Table 2), and the result
+#'   describes the participants with a pretest. It equals the effect among
+#'   all pretested participants only if the treatment effect does not vary
+#'   with what drove the loss. If it does, Pretest x Treatment is biased as
+#'   well (Morris et al., 2022, pp. 12--13).
+#'
+#' **What the indicator assumes.** That losing the pretest did not depend
+#' on the treatment condition: the pretested conditions lost pretests by
+#' the same rule, whatever drove the loss. That holds by design when the
+#' pretest is taken before anyone knows their condition (Zhao & Ding, 2024,
+#' Condition 2). Then the treatment contrasts are consistent (Groenwold et
+#' al., 2012), and so are the pretest effects: on the identity link, each
+#' equals the raw comparison of posttest means plus terms that vanish as
+#' the sample grows (identity (iii) of the decision record, a derivation,
+#' checked numerically on fixed data in the package's tests). Whether the
+#' tests of the pretest effects keep their level is what the validation
+#' study checks. When the conditions lost pretests by different rules in
+#' relation to baseline, as when the condition is known when the pretest
+#' is taken, Treatment | pretested and Pretest x Treatment may be biased
+#' under the indicator (Zhao & Ding, 2024, Prop. S3), where dropping is
+#' right for them if the loss depended only on the pretest and the
+#' condition (Carpenter & Smuk, 2021, Table 2). A fit without `y_pre` is
+#' right for every contrast, at a cost in precision.
+#'
+#' **The arm check.** The print and [check_solomon_missing()] (item 7d)
+#' compare, for each treatment against the control, the mean observed
+#' pretest of the pretested participants analyzed, as Hedges' g with
+#' Welch's (1947) t test, the check that Kayembe et al. (2020, sec. 5)
+#' give, and the shares without a pretest, with Fisher's exact test. Until
+#' the validation study has run, both are a description, and no warning
+#' follows from them.
+#'
+#' **Weighting.** The sources advise weighting the rows without a pretest
+#' when the pretest and the posttest correlate above about .6 (White &
+#' Thompson, 2005; Carpenter & Kenward, 2007, pp. 41--42). The method here
+#' is unweighted, because weights that depend on the indicator change what
+#' the treatment contrasts estimate when the treatment effect varies with
+#' what drove the loss. That reason is a derivation in the decision record,
+#' and the choice a judgment, not a published result. The cost is
+#' precision when the correlation is high: in one large illustrative data
+#' set with a third of the pretests missing, the HC3 standard error of
+#' Treatment | pretested was 1.15 to 1.27 times that of dropping at a
+#' correlation of .9, and 0.85 to 0.86 times at .5. The validation study
+#' judges the weighted form as well.
+#'
+#' **Standard errors.** The indicator's mean, m, is a sample mean, like the
+#' center. A pretest effect's standard error therefore includes the
+#' variance of m and its covariances with the coefficients and the center,
+#' from their estimating equations stacked with the model's (Stefanski &
+#' Boos, 2002), in the fit's covariance type, as for the center (see "The
+#' pretest effect"). With model-based covariance, m has variance m (1 -
+#' m) / (n - 1) for the n pretested participants analyzed. Moving the
+#' center moves only the participants with a pretest, so a pretest effect
+#' moves by b (1 - m) for each point the center moves, where b is the
+#' pretest slope, and the pretest effects at the two centers differ by b
+#' (1 - m) times the difference between the centers. Clustered (CR2) fits
+#' stack the means by cluster; the validation study does not cover them.
+#'
+#' **One such participant, or separation.** With exactly one such
+#' participant, the indicator fits that participant exactly, at a leverage
+#' of 1. The treatment contrasts then equal those of `"drop"` exactly, and
+#' each pretest effect differs from that of `"drop"` by m times that
+#' participant's residual from the `"drop"` fit. Under HC3 the rule of "HC3
+#' at leverage 1" then gives the pretest effects no standard error, and the
+#' classed warning `solomonR_hc3_leverage_warning` names the indicator as
+#' the cause; `robust = "none"` gives one. Under `robust = "CR2"` that rule
+#' is not applied, as for every CR2 fit, and the pretest effects keep a
+#' standard error. It leaves out the variance of that participant's
+#' posttest, because the model fits them exactly, with a residual of 0. On
+#' the identity link, each pretest effect moves by m for each point of that
+#' posttest, so the part left out is m squared times its variance (a
+#' derivation), which `robust = "none"` includes; the print says so. Having
+#' one such participant is not rare: with 50
+#' pretested participants per condition and 2% of pretests missing,
+#' exactly one is missing in about 27% of studies (binomial arithmetic).
+#' In a logistic fit, and in a count fit on the log link, the indicator's
+#' coefficient has no finite estimate when every participant it marks has
+#' the same outcome (or a count of 0): the outcome is separated (Albert &
+#' Anderson, 1984). The pretest effects are then reported as minus or plus
+#' infinity on the model's scale, with no standard error, test, or
+#' interval, and the classed warning
+#' `solomonR_missing_pretest_separation_warning` says so; the treatment
+#' contrasts keep theirs. [marginal_solomon()] estimates the pretest effects
+#' from standardized risks or rates, which are defined.
+#'
+#' **Other links.** On a link other than the identity, a pretest effect
+#' at the indicator's mean is not the average over the participants with
+#' and without a pretest, so it is an approximation on the model's scale;
+#' [marginal_solomon()] standardizes each participant with their own value
+#' of the indicator.
+#'
+#' **What is reported.** Whenever a pretested participant analyzed lacks a
+#' pretest, under either handling, the print gives their number, the
+#' pretest effects with them kept and dropped and the difference, their
+#' mean posttest beside that of the participants with a pretest, and the
+#' arm check. [report_solomon()] gives the pretest effects under the other
+#' handling in a sentence, and `missing_pretest_sensitivity` returns them. A
+#' pretested participant who also lacks the posttest, a covariate, or the
+#' exposure is in neither model. If some of these participants never took
+#' the pretest, the pretest effects under `"indicator"` describe assignment
+#' to pretesting. With `pretest_center = "observed"`, the center also
+#' assumes that pretests were missing completely at random among the
+#' pretested participants, so when they were lost by baseline it is biased
+#' under either handling.
 #'
 #' @section Covariates:
 #' `covariates` enter the model as main effects, beside the pretest. The
@@ -1335,6 +1491,15 @@ stouffer_solomon <- function(p) {
 #'   covariances) depend on it; the treatment contrasts, Pretest x
 #'   Treatment, and the fitted values do not, on the model's scale. Ignored
 #'   without `y_pre`.
+#' @param missing_pretest with `y_pre`, how pretested participants who have
+#'   a posttest but no pretest are handled (issue #142). `"drop"` (the
+#'   default) leaves them out of the model, as earlier versions did.
+#'   `"indicator"` keeps them by the missing-indicator method (Groenwold et
+#'   al., 2012): their centered pretest is set to 0, a 0/1 column,
+#'   `pre_missing`, marks them, and each pretest effect is evaluated at that
+#'   column's mean among the pretested participants in the model. See
+#'   "Pretested participants without a pretest", which says what each
+#'   assumes. Ignored without `y_pre`.
 #' @param y,pretest_score `r lifecycle::badge("deprecated")` Use `y_post`
 #'   and `y_pre`.
 #' @return An object of class `solomon_glm`, a list with:
@@ -1400,6 +1565,35 @@ stouffer_solomon <- function(p) {
 #'     contrasts, with the variance of its mean stacked as for the center
 #'     used. `NULL` without `y_pre`; outside the stable interface (see
 #'     [solomon_output]).
+#'   - `missing_pretest`: the handling of pretested participants without a
+#'     pretest, `"drop"` or `"indicator"` (see "Pretested participants
+#'     without a pretest").
+#'   - `n_missing_pretest`: by condition, the number of pretested
+#'     participants who have a posttest and every other variable of the
+#'     model but no pretest, whom `"indicator"` keeps or would keep. `NULL`
+#'     without `y_pre`.
+#'   - `missing_pretest_share`: their share, m, of the pretested
+#'     participants analyzed with them kept; `NA` without `y_pre`.
+#'   - `missing_pretest_sensitivity`: when there is such a participant, a
+#'     list with `effects` (each pretest effect `kept` and `dropped`, and
+#'     their `difference`); `posttests` (for each condition, the number and
+#'     the mean posttest of the pretested participants analyzed without a
+#'     pretest, `n_without` and `mean_without`, and with one, `n_with` and
+#'     `mean_with`); `separation` (-1 when every participant kept has the
+#'     outcome 0 or a count of 0, 1 when every one has the outcome 1, and 0
+#'     otherwise); and `one` (whether there is exactly one). Otherwise
+#'     `NULL`. Outside the stable interface.
+#'   - `missing_pretest_arm_check`: when there is such a participant, the
+#'     arm check, a row for each treatment against the control
+#'     (`comparison`): among the pretested participants analyzed, the
+#'     number, mean, and standard deviation of the observed pretests in the
+#'     control (`n_control`, `mean_control`, and `sd_control`) and in the
+#'     treatment (`n_treatment`, `mean_treatment`, and `sd_treatment`),
+#'     their `difference`, Hedges' `g`, Welch's t test (`statistic`, `df`,
+#'     and `p.value`), the number and the share without a pretest in each
+#'     (`missing_control`, `share_control`, `missing_treatment`, and
+#'     `share_treatment`), and Fisher's exact test of those shares
+#'     (`fisher_p`). Otherwise `NULL`. Outside the stable interface.
 #'   - `robust`, `family`, `cluster` (the cluster of each participant), and
 #'     `n_clusters`: the settings used. The last two are `NULL` without
 #'     `cluster`.
@@ -1408,7 +1602,10 @@ stouffer_solomon <- function(p) {
 #'     an empty vector when there are none; `NULL` with the other
 #'     covariances.
 #'   - `call`, and `data` (the data the model was fitted to), which
-#'     solomonR's own functions use. A character covariate is held in
+#'     solomonR's own functions use. In a fit that keeps a pretested
+#'     participant without a pretest, `data` holds the column `pre_missing`,
+#'     which [marginal_solomon()] and [plot_sensitization()] read. A
+#'     character covariate is held in
 #'     `data`, and in the model frame of `model`, as a factor made with
 #'     [factor()] when the fit is made, so its levels are sorted by the
 #'     collation of that R session, as were the levels its coefficients are
@@ -1434,11 +1631,18 @@ stouffer_solomon <- function(p) {
 #'   - The tables of `pretest_sensitivity` have `comparison` first, as
 #'     `effects` does, and its `effects` has `p.adjusted`; `delta` has a row
 #'     for each unpretested group.
+#'   - The `effects` of `missing_pretest_sensitivity` have `comparison`
+#'     first, naming the condition, and `n_missing_pretest` and its
+#'     `posttests` are given for each condition.
 #'
 #'   The `effects` table, `conf_level`, and [`tidy()`][solomon_output],
 #'   which returns the table, are the stable interface of the result; see
 #'   [solomon_output].
 #' @references
+#' Albert, A., & Anderson, J. A. (1984). On the existence of maximum
+#' likelihood estimates in logistic regression models. *Biometrika, 71*(1),
+#' 1–10. https://doi.org/10.1093/biomet/71.1.1
+#'
 #' Bell, R. M., & McCaffrey, D. F. (2002). Bias reduction in standard errors for
 #' linear regression with multi-stage samples. *Survey Methodology, 28*(2),
 #' 169–181.
@@ -1455,10 +1659,24 @@ stouffer_solomon <- function(p) {
 #' quasi-experimental designs for research*. Rand McNally. (Original work
 #' published 1963)
 #'
+#' Carpenter, J. R., & Kenward, M. G. (2007). *Missing data in randomised
+#' controlled trials: A practical guide*. Health Technology Assessment
+#' Methodology Programme. https://researchonline.lshtm.ac.uk/id/eprint/4018500
+#'
+#' Carpenter, J. R., & Smuk, M. (2021). Missing data: A statistical framework
+#' for practice. *Biometrical Journal, 63*(5), 915–947.
+#' https://doi.org/10.1002/bimj.202000196
+#'
 #' Daniel, R., Zhang, J., & Farewell, D. (2021). Making apples from oranges:
 #' Comparing noncollapsible effect estimators and their standard errors after
 #' adjustment for different covariate sets. *Biometrical Journal, 63*(3),
 #' 528–557. https://doi.org/10.1002/bimj.201900297
+#'
+#' Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R.,
+#' Altman, D. G., & Moons, K. G. M. (2012). Missing covariate data in clinical
+#' research: When and when not to use the missing-indicator method for
+#' analysis. *Canadian Medical Association Journal, 184*(11), 1265–1269.
+#' https://doi.org/10.1503/cmaj.110977
 #'
 #' Hayes, A. F., & Cai, L. (2007). Using heteroskedasticity-consistent standard
 #' error estimators in OLS regression: An introduction and software
@@ -1472,6 +1690,12 @@ stouffer_solomon <- function(p) {
 #' Imbens, G. W., & Kolesár, M. (2016). Robust standard errors in small samples:
 #' Some practical advice. *The Review of Economics and Statistics, 98*(4),
 #' 701–712. https://doi.org/10.1162/REST_a_00552
+#'
+#' Kayembe, M. T., Jolani, S., Tan, F. E. S., & van Breukelen, G. J. P.
+#' (2020). Imputation of missing covariate in randomized controlled trials
+#' with a continuous outcome: Scoping review and new results.
+#' *Pharmaceutical Statistics, 19*(6), 840–860.
+#' https://doi.org/10.1002/pst.2041
 #'
 #' Lin, W. (2013). Agnostic notes on regression adjustments to experimental
 #' data: Reexamining Freedman's critique. *The Annals of Applied Statistics,
@@ -1498,6 +1722,11 @@ stouffer_solomon <- function(p) {
 #' McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 #' through service learning. *Journal of Management Education, 26*(6), 629–647.
 #' https://doi.org/10.1177/1052562902238322
+#'
+#' Morris, T. P., Walker, A. S., Williamson, E. J., & White, I. R. (2022).
+#' Planning a method for covariate adjustment in individually randomised
+#' trials: A practical guide. *Trials, 23*, Article 328.
+#' https://doi.org/10.1186/s13063-022-06097-z
 #'
 #' National Research Council. (2010). *The prevention and treatment of missing
 #' data in clinical trials*. The National Academies Press.
@@ -1559,6 +1788,15 @@ stouffer_solomon <- function(p) {
 #' White, I. R., Horton, N. J., Carpenter, J., & Pocock, S. J. (2011). Strategy
 #' for intention to treat analysis in randomised trials with missing outcome
 #' data. *BMJ, 342*, Article d40. https://doi.org/10.1136/bmj.d40
+#'
+#' White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
+#' baseline measurements in randomized trials. *Statistics in Medicine, 24*(7),
+#' 993–1007. https://doi.org/10.1002/sim.1981
+#'
+#' Zhao, A., & Ding, P. (2024). To adjust or not to adjust? Estimating the
+#' average treatment effect in randomized experiments with missing
+#' covariates. *Journal of the American Statistical Association, 119*(545),
+#' 450–460. https://doi.org/10.1080/01621459.2022.2123814
 #' @examples
 #' fit <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
 #' fit
@@ -1584,6 +1822,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
                             adjust = c("holm", "bonferroni", "none"),
                             data = NULL,
                             pretest_center = c("analyzed", "observed"),
+                            missing_pretest = c("drop", "indicator"),
                             y = deprecated(),
                             pretest_score = deprecated()) {
   .solomon_data_args(
@@ -1602,6 +1841,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   }
   robust <- match.arg(robust)
   pretest_center <- match.arg(pretest_center)
+  missing_pretest <- match.arg(missing_pretest)
   .check_conf_level(conf_level)
   negbin <- identical(family, "negative_binomial")
   if (negbin) {
@@ -1621,7 +1861,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     return(.fit_solomon_ngroup(
       y_post, conditions, pretested, y_pre, covariates, robust, cluster,
       family, negbin, conf_level, exposure, contrasts, adjust, match.call(),
-      pretest_center = pretest_center
+      pretest_center = pretest_center, missing_pretest = missing_pretest
     ))
   }
   if (!(is.character(contrasts) && length(contrasts) == 1L &&
@@ -1656,11 +1896,12 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
 
     n_incidental <- sum(pretested == 1L & is.na(y_pre), na.rm = TRUE)
 
+    # The warning names the handling (issue #142).
     if (n_incidental > 0L) {
-      warning(
-        n_incidental, " pretested participant(s) have missing pretest scores ",
-        "and are excluded from the model. Incidental missingness is not imputed.",
-        call. = FALSE
+      .warn_missing_pretest(
+        n_incidental, sum(pretested == 1L & is.na(y_pre) & !is.na(y_post), na.rm = TRUE),
+        .n_missing_pretest_kept(pretested, y_pre, list(y_post, treat, covariates, exposure)),
+        missing_pretest
       )
     }
 
@@ -1699,6 +1940,23 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     df$log_exposure <- log(exposure)
     rhs <- c(rhs, "offset(log_exposure)")
   }
+
+  # Pretested participants with a posttest and no pretest (issue #142):
+  # `kept` flags those whom only the pretest keeps out of the model. With
+  # missing_pretest = "indicator" they are kept: the model gains the
+  # indicator that marks them, after the pretest. With no such participant
+  # the model is that of "drop". `fml_other` is the model of the handling
+  # not in use, for `missing_pretest_sensitivity`.
+  kept <- .missing_pretest_rows(df)
+  indicator <- missing_pretest == "indicator" && any(kept)
+  fml_other <- NULL
+  if (any(kept)) {
+    rhs_indicator <- append(rhs, .missing_pretest_column, after = match("pre_obs", rhs))
+    fml_other <- stats::as.formula(
+      paste("y ~", paste(if (indicator) rhs else rhs_indicator, collapse = " + "))
+    )
+    if (indicator) rhs <- rhs_indicator
+  }
   fml <- stats::as.formula(paste("y ~", paste(rhs, collapse = " + ")))
 
   # Center the pretest at its mean among the pretested participants in the
@@ -1706,12 +1964,21 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # unpretested participants at that score (issue #104); or, with
   # `pretest_center = "observed"`, at the mean of every observed pretest
   # among the pretested participants, in the model or not (issue #135).
+  # Either center is taken from observed pretests only: the participants
+  # kept without one still have a missing `pre_obs` here (issue #142).
   pretest_mean <- NA_real_
   centers <- c(analyzed = NA_real_, observed = NA_real_)
   if (!is.null(y_pre)) {
     centers <- .pretest_centers(df)
     pretest_mean <- centers[[pretest_center]]
     df$pre_obs <- ifelse(df$pretested == 1, df$pre_obs - pretest_mean, 0)
+  }
+
+  # The missing-indicator method (Groenwold et al., 2012): the participants
+  # kept without a pretest get a centered pretest of 0 and the indicator.
+  if (indicator) {
+    df$pre_obs[kept] <- 0
+    df <- .add_missing_indicator(df, kept)
   }
 
   # The model as given, which the result returns as `model`. With a pretest
@@ -1732,7 +1999,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   in_model <- rep(TRUE, nrow(df))
   if (!is.null(fit$na.action)) in_model[fit$na.action] <- FALSE
   fit_given <- fit
-  scaling <- .covariate_scaling(df, names(covariates), in_model)
+  scaling <- .covariate_scaling(df, names(covariates), in_model, if (indicator) kept)
   if (standardize) {
     held <- .record_warnings(.fit_model(fml, scaling$data, family, negbin))
     fit <- held$value
@@ -1756,6 +2023,16 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     factor(df$treat[in_model], levels = c(1L, 0L), labels = arms),
     factor(df$pretested[in_model], levels = c(1L, 0L))
   )
+  # Under the indicator, a pretested group whose participants in the model
+  # all lack a pretest stops first, naming the groups that "drop" would
+  # leave empty, rather than the term that the indicator makes collinear
+  # (.stop_no_pretest(), issue #142).
+  if (indicator) {
+    .stop_no_pretest(group_counts, table(
+      factor(df$treat[in_model & !kept], levels = c(1L, 0L), labels = arms),
+      factor(df$pretested[in_model & !kept], levels = c(1L, 0L))
+    ))
+  }
   .stop_inestimable(fit_given, .group_names(group_counts, group_counts == 0))
   .stop_inestimable(fit, .group_names(group_counts, group_counts == 0),
                     noise = .representation_error(fit, fit_given, scaling, pretest_mean),
@@ -1776,6 +2053,17 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   rm(held)
   if (!is.null(y_pre) && !stats::family(fit)$link %in% c("identity", "log")) {
     .warn_noncollapsible(stats::family(fit)$link)
+  }
+
+  # When every participant the indicator marks has the same outcome, at a
+  # bound of the family's mean, the indicator's coefficient has no finite
+  # estimate (issue #142; .indicator_separation()): the pretest effects,
+  # which weight it, are then infinite on the model's scale, with no
+  # standard error under any covariance.
+  separation <- 0L
+  if (indicator) {
+    separation <- .indicator_separation(stats::family(fit), fit$y[kept[in_model]])
+    if (separation != 0L) .warn_indicator_separation(sum(kept), separation, stats::family(fit))
   }
 
   # Robust VCOV. With a numeric covariate, the HC3 and CR2 covariances
@@ -1799,8 +2087,18 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     } else {
       sandwich::vcovHC(fit, type = "HC3")
     }
-    if (!is.null(hc3)) {
-      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre), covariates = !is.null(covariates))
+    # A single participant kept without a pretest is fitted exactly by the
+    # indicator, at leverage 1; the warning names that cause (issue #142).
+    # With several kept, the indicator alone fits none of them exactly, so a
+    # kept participant at leverage 1 has another cause, such as a factor
+    # level held alone, which is named (with exactly two kept, that cause
+    # also leaves the indicator to fit the other one exactly); the pretest
+    # is not a cause when every such participant lacks one. Under
+    # separation the warning above has said so already.
+    if (!is.null(hc3) && !(separation != 0L && all(kept[hc3$rows]))) {
+      .warn_hc3_leverage(hc3$rows, pretest = !is.null(y_pre) && !all(kept[hc3$rows]),
+                         covariates = !is.null(covariates),
+                         indicator = indicator && sum(kept) == 1L && any(kept[hc3$rows]))
     }
   } else if (robust == "CR2") {
     if (is.null(cluster)) stop("CR2 requested but 'cluster' is NULL.", call. = FALSE)
@@ -1848,11 +2146,22 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   center_note <- NULL
   parts <- NULL
   differ <- FALSE
+  # With the indicator (issue #142), a pretest effect also depends on the
+  # indicator's mean, and the center moves only the participants with a
+  # pretest; .indicator_terms() gives the terms of both means.
+  kept_terms <- NULL
   if (!is.null(y_pre)) {
     rows <- rep(TRUE, nrow(df))
     if (!is.null(fit$na.action)) rows[fit$na.action] <- FALSE
-    both <- .center_terms_both(scaling$data, y_pre, rows, if (robust == "CR2") fit_cr else fit,
-                               robust, cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    both <- if (indicator) {
+      kept_terms <- .indicator_terms(scaling$data, y_pre, kept, rows,
+                                     if (robust == "CR2") fit_cr else fit, robust, cluster,
+                                     if (robust == "CR2") cluster_fit, pretest_center, centers,
+                                     .pretest_scale(scaling))
+    } else {
+      .center_terms_both(scaling$data, y_pre, rows, if (robust == "CR2") fit_cr else fit,
+                         robust, cluster, if (robust == "CR2") cluster_fit, pretest_center)
+    }
     center <- both$center
     center_other <- both$other
     center_note <- both$note
@@ -1871,6 +2180,7 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # --- tidy coefficients with chosen vcov, for the covariates as given ---
   coefficients <- .coefficient_table(fit, fit_cr, vcovM, scaling, robust, df_model, conf_level,
                                      cr2_basis, hc3)
+  if (separation != 0L) coefficients <- .separated_coefficients(coefficients, separation)
 
   # --- linear contrasts (one row each) ---
   cf <- stats::coef(fit)
@@ -1884,12 +2194,24 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
   # that depends on a participant at leverage 1 has no HC3 standard error:
   # its variance is NA, and so are its test, interval, and Wald R-squared
   # (issue #173).
+  # With the indicator (issue #142), the contrast of a pretest effect holds
+  # the indicator's mean on the indicator's coefficient, and its variance
+  # gains the terms of both means (.indicator_adjusted()). Under separation
+  # it is plus or minus infinity, with no standard error.
   lin_contrast <- function(L, terms = center) {
     Lm <- matrix(L, nrow = 1)
     est <- as.numeric(Lm %*% cf)
     dfc <- if (robust == "CR2") .cr2_df(Lm, fit_cr, vcovM, cr2_basis) else df_model
-    adj <- .center_adjusted(L, cf, vcovM, terms, robust, dfc)
+    adj <- if (indicator) {
+      .indicator_adjusted(L, vcovM, terms, robust, dfc)
+    } else {
+      .center_adjusted(L, cf, vcovM, terms, robust, dfc)
+    }
     if (.hc3_undefined(hc3, L)) adj[c("variance", "added")] <- list(NA_real_, NA_real_)
+    if (separation != 0L && L[[.missing_pretest_column]] != 0) {
+      est <- sign(L[[.missing_pretest_column]]) * separation * Inf
+      adj[c("variance", "added")] <- list(NA_real_, NA_real_)
+    }
     se  <- sqrt(adj$variance)
     dfc <- adj$df
     z   <- est / se
@@ -1948,6 +2270,19 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     c(.solomon_contrast_order, .solomon_pretest_order)
   )
 
+  # With the indicator (issue #142), each pretest effect is evaluated at the
+  # indicator's mean among the pretested participants in the model, which
+  # standardizes it over them: its contrast gains that mean times the
+  # indicator's coefficient. `L_design` keeps the contrasts over the
+  # treatment and pretest terms, which the other handling's model shares.
+  L_design <- Ls[.solomon_pretest_order]
+  if (indicator) {
+    Ls[.solomon_pretest_order] <- lapply(L_design, function(L) {
+      L[[.missing_pretest_column]] <- L[["pretested"]] * kept_terms$m
+      L
+    })
+  }
+
   # Wald-based partial R^2 for each contrast (intervals only for
   # conventional covariance)
   conventional <- robust == "none"
@@ -1992,10 +2327,15 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     used_rows <- effects[effects$contrast %in% .solomon_pretest_order,
                          .solomon_effect_columns, drop = FALSE]
     other_rows <- NULL
+    # With the indicator (issue #142), moving the center moves only the
+    # participants with a pretest, so a pretest effect moves by the slope
+    # times their share, `gap`, for each unit the center moves.
+    gap <- if (indicator) kept_terms$p else 1
     if (differ) {
+      shift <- (centers[[.other_center(pretest_center)]] - pretest_mean) / .pretest_scale(scaling)
+      if (indicator) shift <- shift * gap
       other_rows <- .other_center_rows(
-        Ls[.solomon_pretest_order], .solomon_pretest_order,
-        (centers[[.other_center(pretest_center)]] - pretest_mean) / .pretest_scale(scaling),
+        Ls[.solomon_pretest_order], .solomon_pretest_order, shift,
         function(L) lin_contrast(L, center_other), no_se = !is.null(center_note)
       )
     }
@@ -2004,8 +2344,34 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     sensitivity <- .pretest_sensitivity(
       used_rows, other_rows, pretest_center, character(), parts, centers, slope, identity,
       .pretest_attrition(ifelse(df$treat == 1L, arms[1], arms[2]), rev(arms), df$pretested,
-                         df$y, rows, slope, centers, identity),
+                         df$y, rows, if (indicator) slope * gap else slope, centers, identity),
       note = center_note
+    )
+    if (separation != 0L) sensitivity <- .separated_sensitivity(sensitivity, slope * gap, centers)
+  }
+
+  # The pretested participants without a pretest (issue #142): how many
+  # there are, the pretest effects with them kept and dropped, and the arm
+  # check. The other handling's estimates come from a fit of its model, of
+  # which only the coefficients are used.
+  missing <- .missing_pretest_elements(missing_pretest)
+  if (!is.null(y_pre)) {
+    used_estimates <- effects$estimate[match(.solomon_pretest_order, effects$contrast)]
+    other_estimates <- NULL
+    direction <- separation
+    if (any(kept)) {
+      other <- .other_handling_estimates(fml_other, scaling$data, family, negbin, kept,
+                                         if (indicator) "drop" else "indicator", L_design)
+      other_estimates <- other$estimates
+      if (!indicator) direction <- other$direction
+    }
+    missing <- .missing_pretest_elements(
+      missing_pretest, kept, (in_model & df$pretested %in% 1L) | kept,
+      ifelse(df$treat == 1L, arms[1], arms[2]), rev(arms), df$y, y_pre,
+      data.frame(contrast = .solomon_pretest_order, stringsAsFactors = FALSE),
+      kept_estimates = if (indicator) used_estimates else other_estimates,
+      dropped_estimates = if (indicator) other_estimates else used_estimates,
+      direction = direction
     )
   }
 
@@ -2032,6 +2398,11 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     pretest_mean_observed = centers[["observed"]],
     pretest_n = parts$n,
     pretest_sensitivity = sensitivity,
+    missing_pretest = missing$missing_pretest,
+    n_missing_pretest = missing$n_missing_pretest,
+    missing_pretest_share = missing$missing_pretest_share,
+    missing_pretest_sensitivity = missing$missing_pretest_sensitivity,
+    missing_pretest_arm_check = missing$missing_pretest_arm_check,
     robust = robust,
     hc3_leverage = if (robust == "HC3") if (is.null(hc3)) integer() else hc3$rows,
     family = family,
@@ -2543,8 +2914,12 @@ perm_solomon <- function(
   # still varies, through the other condition, a covariate the conditions
   # share, or the exposure. The outcome is taken as glm() fits it, so that a
   # binary factor meets the bounds.
+  # The indicator of a missing pretest (issue #142) is 0 for every
+  # unpretested participant, as the pretest is, so the conditions do not
+  # share it.
   labels <- attr(stats::terms(form), "term.labels")
-  shared <- setdiff(labels, c("treat", "pretested", "pre_obs", "treat:pretested"))
+  shared <- setdiff(labels, c("treat", "pretested", "pre_obs", "treat:pretested",
+                              if (.has_missing_indicator(fit)) .missing_pretest_column))
   .perm_check_variation(
     y0, df$pretested[used], contrast, fam,
     shared = X0[, attr(X0, "assign") %in% match(shared, labels), drop = FALSE],

@@ -16,19 +16,25 @@
 #   6. covariates recorded in all groups: loss by covariate within each
 #      pretest condition, and their distribution among the participants
 #      analyzed;
-#   7. pretested participants with a posttest and no pretest (issue #142);
+#   7. pretested participants without a pretest (issue #142; the decision
+#      record posted there, section 5): (a) their counts, (b) their
+#      posttests beside those of the participants with a pretest, (c) the
+#      pretest effects with them kept and dropped, and (d) the arm check;
 #   8. what cannot be checked: the unpretested groups' losses against
 #      baseline (Campbell, 1957, p. 305).
-# Items 4 and 5 come from an identity-link fit_solomon_glm() of the data, and
-# items 3 and 7 from one without the pretest. Each fit is wrapped so that
+# Items 4 and 5 come from an identity-link fit_solomon_glm() of the data,
+# with the default `missing_pretest`; item 7c from one with missing_pretest
+# = "indicator", which returns the pretest effects under both handlings;
+# and the raw comparison of items 3 and 7 from one without the pretest.
+# Each fit is wrapped so that
 # check_solomon_missing() never fails because the data do not support a
 # model. A covariate that the model cannot take, one with a name that the
 # model reserves or a logical or character matrix column of several
 # columns, is not a matter of the data: it stops check_solomon_missing()
 # with the error of fit_solomon_glm(), rather than leave out items 4 and 5
 # unnoticed (issue #146). Without numeric pretests, where no fit is made,
-# a covariate named pre_obs, condition, or log_exposure, names that every
-# fit reserves, stops all the same (issue #174).
+# a covariate named pre_obs, condition, pre_missing, or log_exposure, names
+# that every fit reserves, stops all the same (issues #174 and #142).
 # validate_solomon(), which uses only its classification of the missing
 # values, skips these diagnostics and their fits.
 
@@ -242,20 +248,48 @@
   stats::setNames(out, names(covariates))
 }
 
-# Item 7: pretested participants with a posttest and no pretest, whom every
-# fit with a pretest covariate drops (issue #142): their number and mean
-# posttest in each pretested condition, beside those of the pretested
-# participants with both scores.
+# Items 7a and 7b: the pretested participants of each condition by the
+# scores they have, and the posttests of those without a pretest beside
+# those of the participants with both scores (issue #142).
+# - 7a, the counts: a posttest and no pretest (`n_without_pretest`), both
+#   scores (`n_with_pretest`), a pretest and no posttest (`n_pretest_only`),
+#   and neither (`n_neither`), as CONSORT asks for the numbers analyzed
+#   (Moher et al., 2010, item 16; Hopewell et al., 2025, item 21c).
+# - 7b, among those with a posttest: the mean posttest without and with a
+#   pretest, their `difference` (without minus with), its Welch standard
+#   error, and Welch's (1947) t test. The difference is what dropping
+#   assumes to be zero for the pretest effects; comparing those with
+#   observed and missing data is what Hopewell et al. (2025, Box 8) and
+#   Bell et al. (2013, p. 2) ask for. `share` is the share without a pretest
+#   among the condition's pretested participants with a posttest, and
+#   `observable` that share times the difference with minus without, the
+#   part of what dropping adds to the condition's pretest effect that the
+#   data show (identity (ii) of the decision record).
+# The test needs two participants of each kind, with some spread.
 .missing_pretests <- function(y_post, y_pre, condition, levels, pretested) {
   has_post <- !is.na(y_post)
   rows <- lapply(levels, function(l) {
-    member <- pretested %in% 1L & condition %in% l & has_post
+    assigned <- pretested %in% 1L & condition %in% l
+    member <- assigned & has_post
     none <- member & is.na(y_pre)
     both <- member & !is.na(y_pre)
-    list(condition = l, n_without_pretest = sum(none),
-         mean_without_pretest = if (any(none)) mean(y_post[none]) else NA_real_,
-         n_with_pretest = sum(both),
-         mean_with_pretest = if (any(both)) mean(y_post[both]) else NA_real_)
+    welch <- c(std.error = NA_real_, statistic = NA_real_, df = NA_real_, p.value = NA_real_)
+    if (sum(none) > 1L && sum(both) > 1L &&
+        stats::sd(y_post[none]) + stats::sd(y_post[both]) > 0) {
+      test <- stats::t.test(y_post[none], y_post[both], var.equal = FALSE)
+      welch <- c(std.error = unname(test$stderr), statistic = unname(test$statistic),
+                 df = unname(test$parameter), p.value = test$p.value)
+    }
+    mean_without <- if (any(none)) mean(y_post[none]) else NA_real_
+    mean_with <- if (any(both)) mean(y_post[both]) else NA_real_
+    share <- if (any(member)) sum(none) / sum(member) else NA_real_
+    list(condition = l, n_without_pretest = sum(none), mean_without_pretest = mean_without,
+         n_with_pretest = sum(both), mean_with_pretest = mean_with,
+         n_pretest_only = sum(assigned & !has_post & !is.na(y_pre)),
+         n_neither = sum(assigned & !has_post & is.na(y_pre)),
+         difference = mean_without - mean_with, std.error = welch[["std.error"]],
+         statistic = welch[["statistic"]], df = welch[["df"]], p.value = welch[["p.value"]],
+         share = share, observable = share * (mean_with - mean_without))
   })
   list2DF(lapply(stats::setNames(names(rows[[1]]), names(rows[[1]])), function(nm) {
     unlist(lapply(rows, `[[`, nm), use.names = FALSE)
@@ -269,12 +303,12 @@
 .missing_diagnostics <- function(y_post, treat, control, condition, levels, pretested, y_pre,
                                  covariates) {
   # Without numeric pretests no fit is made, so pre_obs and condition, the
-  # names that issue #174 reserved in every fit, and log_exposure, which
-  # every fit reserves with or without an exposure, are checked here: a
-  # covariate of any of these names stops with a pretest or without. The
-  # other names that a fit reserves, y, treat, and pretested, are kept
-  # here, as before. With numeric pretests, the fit checks every name it
-  # reserves.
+  # names that issue #174 reserved in every fit, pre_missing, which issue
+  # #142 reserved, and log_exposure, which every fit reserves with or
+  # without an exposure, are checked here: a covariate of any of these
+  # names stops with a pretest or without. The other names that a fit
+  # reserves, y, treat, and pretested, are kept here, as before. With
+  # numeric pretests, the fit checks every name it reserves.
   if (!is.numeric(y_pre)) {
     reserved <- c(.solomon_reserved_names, "log_exposure")
     .solomon_check_names(covariates, reserved, paste0(
@@ -292,6 +326,8 @@
     unpretested = NULL,
     covariates = .missing_covariates(covariates, y_post, condition, pretested),
     missing_pretest = NULL,
+    missing_pretest_effects = NULL,
+    missing_pretest_arm_check = NULL,
     raw_pretest_effects = NULL,
     unverifiable = attrition$groups$posttest_missing[attrition$groups$pretested == 0L] > 0L
   )
@@ -305,8 +341,22 @@
   out$selection_test <- scores$test
   out$selection_differ <- scores$differ
   out$missing_pretest <- .missing_pretests(y_post, y_pre, condition, levels, pretested)
+  any_kept <- sum(out$missing_pretest$n_without_pretest) > 0L
 
-  # Items 4 and 5, on the identity link, with the covariates.
+  # Item 7d, the arm check, among the pretested participants with a
+  # posttest: a description until the validation study of issue #142 has
+  # run, so no statement follows from it here.
+  if (any_kept) {
+    analyzed <- pretested %in% 1L & !is.na(condition) & !is.na(y_post)
+    out$missing_pretest_arm_check <- .missing_pretest_arm_check(
+      y_pre[analyzed], condition[analyzed], levels
+    )
+  }
+
+  # Items 4 and 5, on the identity link, with the covariates, under the
+  # default handling of the pretested participants without a pretest. Under
+  # "indicator" the gap between the centers has the share of the pretested
+  # participants in the model who have a pretest as a factor (`share`).
   fit <- .diagnostic_fit(y_post, treat, pretested, y_pre, covariates = covariates,
                          robust = "none", control = control)
   s <- if (!is.null(fit)) fit$pretest_sensitivity
@@ -314,6 +364,7 @@
     out$gap <- c(slope = s$slope, m1 = s$m1, analyzed = s$pretest_means[["analyzed"]],
                  not_analyzed = s$pretest_means[["not_analyzed"]],
                  gap = s$difference$difference[1], predicted = s$predicted)
+    if (.has_missing_indicator(fit)) out$gap[["share"]] <- 1 - fit$missing_pretest_share
     unpretested <- attrition$groups[attrition$groups$pretested == 0L,
                                     c("condition", "n", "posttest_missing"), drop = FALSE]
     # The fit's conditions come in the same order, the control first, but a
@@ -327,10 +378,19 @@
     out$unpretested <- unpretested
   }
 
+  # Item 7c: the pretest effects with the pretested participants without a
+  # pretest kept (the missing-indicator method) and dropped, and their
+  # difference, from a fit on the identity link with the covariates.
+  if (any_kept) {
+    kept <- .diagnostic_fit(y_post, treat, pretested, y_pre, covariates = covariates,
+                            robust = "none", control = control, missing_pretest = "indicator")
+    if (!is.null(kept)) out$missing_pretest_effects <- kept$missing_pretest_sensitivity$effects
+  }
+
   # Items 3 and 7: the raw comparison of posttest means in each condition,
   # from a fit without the pretest, when the selection differs between the
   # pretested conditions or pretested participants lack a pretest.
-  if (isTRUE(scores$differ) || sum(out$missing_pretest$n_without_pretest) > 0L) {
+  if (isTRUE(scores$differ) || any_kept) {
     raw <- .diagnostic_fit(y_post, treat, pretested, control = control)
     if (!is.null(raw)) {
       e <- raw$effects
@@ -341,6 +401,103 @@
     }
   }
   out
+}
+
+# The lines of item 7, "Pretested participants without a pretest" (issue
+# #142), for .missing_diagnostic_lines(): the heading, indented by two
+# spaces, and under it, indented by four, the counts (7a), the posttests
+# (7b), the pretest effects kept and dropped (7c), and the arm check (7d),
+# which is a description. Nothing when no pretested participant with a
+# posttest lacks a pretest.
+.missing_pretest_lines <- function(x, digits = 2) {
+  mp <- x$missing_pretest
+  if (is.null(mp) || !sum(mp$n_without_pretest)) return(character(0))
+  num <- function(v) formatC(v, format = "f", digits = digits)
+  wrap <- function(text) strwrap(text, width = 80, indent = 4, exdent = 4)
+  lines <- "  Pretested participants without a pretest (see ?fit_solomon_glm)"
+  # 7a.
+  lines <- c(lines, wrap(sprintf(paste(
+    "Pretested participants with both scores, a posttest only, a pretest only, and neither:",
+    "%s. fit_solomon_glm() leaves out those with a posttest only under missing_pretest =",
+    "\"drop\" and keeps them under \"indicator\"."
+  ), paste(sprintf("%s %d, %d, %d, and %d", mp$condition, mp$n_with_pretest, mp$n_without_pretest,
+                   mp$n_pretest_only, mp$n_neither), collapse = "; "))))
+  # 7b.
+  shown <- mp[mp$n_without_pretest > 0L, , drop = FALSE]
+  test <- ifelse(
+    is.finite(shown$p.value),
+    sprintf("; difference %s, SE %s, Welch t(%s) = %s, %s", num(shown$difference),
+            num(shown$std.error), formatC(shown$df, format = "f", digits = 1),
+            formatC(shown$statistic, format = "f", digits = 2),
+            vapply(shown$p.value, .apa_p, "", md = FALSE)),
+    sprintf("; difference %s", num(shown$difference))
+  )
+  lines <- c(lines, wrap(sprintf(paste(
+    "Mean posttest without and with a pretest: %s. Dropping them assumes that these means",
+    "are equal in each pretested condition; otherwise the pretest effects of \"drop\" are off",
+    "by about the share without a pretest times the difference (p < .05 is the package's",
+    "rule, and no source fixes a level)."
+  ), paste(sprintf("%s %s (%d) and %s (%d)%s", shown$condition, num(shown$mean_without_pretest),
+                   shown$n_without_pretest, num(shown$mean_with_pretest), shown$n_with_pretest,
+                   test), collapse = "; "))))
+  # 7c.
+  e <- x$missing_pretest_effects
+  if (!is.null(e)) {
+    lines <- c(lines, wrap(paste0(
+      "Pretest effects with them kept (missing-indicator method; Groenwold et al., 2012; ",
+      "identity link", if (is.null(x$covariates)) "" else ", with the covariates",
+      ") and dropped:"
+    )), .handling_table(e, digits + 1L, indent = "      "))
+  }
+  # 7d.
+  a <- x$missing_pretest_arm_check
+  if (!is.null(a)) {
+    arm <- function(r) {
+      names <- strsplit(r$comparison, " vs ", fixed = TRUE)[[1]]
+      sprintf(paste0(
+        "%s against %s, pretests missing %s and %s%s; mean observed pretest %s and %s%s"),
+        names[1], names[2], .pct(r$share_treatment), .pct(r$share_control),
+        if (is.finite(r$fisher_p)) {
+          paste0(" (Fisher's exact test, ", .apa_p(r$fisher_p, md = FALSE), ")")
+        } else {
+          ""
+        },
+        num(r$mean_treatment), num(r$mean_control),
+        if (is.finite(r$p.value)) {
+          sprintf(" (Hedges' g = %s; Welch t(%s) = %s, %s)", num(r$g),
+                  formatC(r$df, format = "f", digits = 1),
+                  formatC(r$statistic, format = "f", digits = 2), .apa_p(r$p.value, md = FALSE))
+        } else {
+          ""
+        })
+    }
+    lines <- c(lines, wrap(sprintf(paste(
+      "Arm check, a description: %s. Keeping them assumes that losing the pretest did not",
+      "depend on the treatment condition. A difference between the conditions' observed",
+      "pretests is what would bias the kept analysis (Kayembe et al., 2020, sec. 5); a",
+      "difference in the rates alone does not. No statement follows from these tests until",
+      "the validation study of issue #142 has run."
+    ), paste(vapply(seq_len(nrow(a)), function(i) arm(a[i, ]), ""), collapse = "; "))))
+  }
+  lines
+}
+
+# The table of the pretest effects with the pretested participants without
+# a pretest kept and dropped, and their difference, from the `effects` of
+# `missing_pretest_sensitivity` (`e`), as lines indented by `indent`. An
+# infinite effect is printed as "-Inf" or "Inf", and one that is not
+# available as "NA".
+.handling_table <- function(e, digits, indent = "  ") {
+  value <- function(v) ifelse(is.na(v), "NA", ifelse(is.finite(v), .center_num(v, digits),
+                                                     ifelse(v < 0, "-Inf", "Inf")))
+  cols <- list(.center_labels(e), value(e$kept), value(e$dropped), value(e$difference))
+  heads <- c("", "kept", "dropped", "difference")
+  widths <- mapply(function(h, v) max(nchar(h), nchar(v)), heads, cols)
+  row <- function(values) {
+    paste0(indent, paste(c(sprintf("%-*s", widths[1], values[1]),
+                           sprintf("%*s", widths[-1], values[-1])), collapse = "   "))
+  }
+  c(row(heads), vapply(seq_along(cols[[1]]), function(i) row(vapply(cols, `[`, "", i)), ""))
 }
 
 # The lines print.solomon_missing() adds for the diagnostics, indented by
@@ -412,13 +569,20 @@
   }
   g <- x$gap
   if (!is.null(g) && lost && is.finite(g[["not_analyzed"]])) {
+    # With the missing-indicator method (issue #142), only the participants
+    # with a pretest move with the center, so the gap has their share, p, as
+    # a factor.
+    kept_share <- "share" %in% names(g)
     lines <- c(lines, wrap(sprintf(paste(
-      "Gap between the centers: b m1 (completers - dropouts) = %s x %s x (%s - %s) = %s, the",
+      "Gap between the centers: b %sm1 (completers - dropouts) = %s x %s%s x (%s - %s) = %s, the",
       "pretest effects at the analyzed center minus those at the observed center (identity",
-      "link%s)."
-    ), num(g[["slope"]]), num(g[["m1"]]), num(g[["analyzed"]]), factor_num(g[["not_analyzed"]]),
+      "link%s%s)."
+    ), if (kept_share) "p " else "", num(g[["slope"]]),
+    if (kept_share) paste0(num(g[["share"]]), " x ") else "", num(g[["m1"]]),
+    num(g[["analyzed"]]), factor_num(g[["not_analyzed"]]),
     formatC(g[["gap"]], format = "f", digits = digits + 1L),
-    if (is.null(x$covariates)) "" else ", with the covariates")))
+    if (is.null(x$covariates)) "" else ", with the covariates",
+    if (kept_share) "; p is the share of the pretested participants in the model who have a pretest" else "")))
   }
   u <- x$unpretested
   if (!is.null(u) && lost && !is.null(g) && is.finite(g[["not_analyzed"]])) {
@@ -476,16 +640,7 @@
       )))
     }
   }
-  mp <- x$missing_pretest
-  if (!is.null(mp) && no_pretest) {
-    lines <- c(lines, wrap(sprintf(paste(
-      "Pretested participants with a posttest and no pretest: %d. Their mean posttest was %s,",
-      "against %s for the pretested participants with both scores. Every fit with the pretest",
-      "drops them, at either center (issue #142); the raw comparison below keeps them."
-    ), no_pretest,
-    num(sum(mp$mean_without_pretest * mp$n_without_pretest, na.rm = TRUE) / no_pretest),
-    num(sum(mp$mean_with_pretest * mp$n_with_pretest, na.rm = TRUE) / sum(mp$n_with_pretest)))))
-  }
+  lines <- c(lines, .missing_pretest_lines(x, digits))
   raw <- x$raw_pretest_effects
   if (!is.null(raw)) {
     labels <- .center_labels(raw)

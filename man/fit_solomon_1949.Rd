@@ -134,6 +134,13 @@ from everyone's and r the pretest-posttest correlation of standardized
 scores (a derivation checked on issue #135). The print and
 \code{\link[=report_solomon]{report_solomon()}} give both inferred pretests when they differ.
 
+\strong{Missing pretests} (issue #142). Each improvement in a pretested group
+needs both scores, so a pretested participant with a posttest but no
+pretest is left out of both means of their group, at either
+\code{pretest_center}, as in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with
+\code{missing_pretest = "drop"}. For what that assumes, see "Pretested
+participants without a pretest" there.
+
 \strong{No test.} Solomon gave standard errors for the observed means but
 printed the error of d3 as "?" (Tables II–III), and judged the interaction
 from "an examination of the variabilities" (p. 144). This function

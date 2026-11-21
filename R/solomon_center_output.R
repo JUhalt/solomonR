@@ -17,9 +17,14 @@
 # is zero in exact arithmetic, as for a rate ratio, which does not depend on
 # the center, would otherwise print with the sign of its rounding error
 # (issue #137). A small real difference keeps its sign. `d` is
-# `pretest_sensitivity$difference`.
+# `pretest_sensitivity$difference`. When the effects are infinite, as under
+# separation by the indicator of a missing pretest (issue #142), the
+# difference is the finite value the fit gives it and is not compared with
+# them.
 .center_differences <- function(d) {
-  zero <- abs(d$difference) <= 1e-12 * pmax(abs(d$analyzed), abs(d$observed))
+  size <- pmax(abs(d$analyzed), abs(d$observed))
+  size[is.infinite(size)] <- 0
+  zero <- abs(d$difference) <= 1e-12 * size
   ifelse(is.finite(d$difference) & zero, 0, d$difference)
 }
 
@@ -322,11 +327,11 @@
   centers <- if (identical(x$pretest_center, "observed")) {
     c(sprintf(paste("Centered at %s, the mean of every observed pretest (%d participants, %s;",
                     "pretest_center = \"observed\")."), observed, n[["observed"]], outside),
-      sprintf("Pretested participants analyzed: %s (%d participants).", analyzed,
-              n[["analyzed"]]))
+      sprintf("Pretested participants analyzed%s: %s (%d participants).", .analyzed_with_pretest(x),
+              analyzed, n[["analyzed"]]))
   } else {
-    c(sprintf("Centered at %s, the mean pretest of the %d pretested participants analyzed (default).",
-              analyzed, n[["analyzed"]]),
+    c(sprintf("Centered at %s, the mean pretest of the %d pretested participants analyzed%s (default).",
+              analyzed, n[["analyzed"]], .analyzed_with_pretest(x)),
       sprintf("Every observed pretest: %s (%d participants, %s).", observed, n[["observed"]],
               outside))
   }
@@ -410,18 +415,28 @@
   if (is.na(pretest_mean)) return("Means from the fitted model")
   num <- function(v) formatC(v, format = "f", digits = 2)
   s <- fit$pretest_sensitivity
+  # In a fit with the missing-indicator method (issue #142), the pretested
+  # groups' means are also at the indicator's mean, which standardizes them
+  # over the pretested participants analyzed, with a pretest or without.
+  kept <- if (.has_missing_indicator(fit)) {
+    sprintf(paste0(".\nPretested participants kept without a pretest: %d (missing-indicator method;\n",
+                   "Groenwold et al., 2012)"), sum(fit$n_missing_pretest))
+  } else {
+    ""
+  }
   if (is.null(fit$pretest_center) || is.null(s) || !isTRUE(s$differ)) {
-    return(sprintf("Adjusted means: pretested groups at the mean pretest (%s)", num(pretest_mean)))
+    return(paste0(sprintf("Adjusted means: pretested groups at the mean pretest (%s)",
+                          num(pretest_mean)), kept))
   }
   if (identical(fit$pretest_center, "observed")) {
-    sprintf(paste0("Adjusted means: pretested groups at the mean of every observed pretest\n",
-                   "(%s; pretested participants analyzed: %s)"),
-            num(fit$pretest_mean_observed), num(fit$pretest_mean_analyzed))
+    paste0(sprintf(paste0("Adjusted means: pretested groups at the mean of every observed pretest\n",
+                          "(%s; pretested participants analyzed%s: %s)"),
+                   num(fit$pretest_mean_observed), .analyzed_with_pretest(fit), num(fit$pretest_mean_analyzed)), kept)
   } else {
-    sprintf(paste0("Adjusted means: pretested groups at the mean pretest of the %d pretested\n",
-                   "participants analyzed (%s; every observed pretest: %s)"),
-            fit$pretest_n[["analyzed"]], num(fit$pretest_mean_analyzed),
-            num(fit$pretest_mean_observed))
+    paste0(sprintf(paste0("Adjusted means: pretested groups at the mean pretest of the %d pretested\n",
+                          "participants analyzed%s (%s; every observed pretest: %s)"),
+                   fit$pretest_n[["analyzed"]], .analyzed_with_pretest(fit), num(fit$pretest_mean_analyzed),
+                   num(fit$pretest_mean_observed)), kept)
   }
 }
 
@@ -522,4 +537,199 @@
     s$note,
     "The data cannot tell which standardization is right. See ?marginal_solomon."
   ), wrap)))
+}
+
+# ---- pretested participants without a pretest (issue #142) -------------------------
+
+# The printed block on the pretested participants who have a posttest but
+# no pretest (issue #142; the decision record posted there, section 5), as
+# lines. It is printed under either value of `missing_pretest`, whenever
+# there is such a participant: how many there are and how they are
+# handled, with what that assumes; the pretest effects with them kept and
+# dropped, and the difference; their mean posttest beside that of the
+# participants with a pretest; and the arm check, a description.
+# character(0) when there is none, and for fits made before #142. `x` is a
+# fit of fit_solomon_glm(), its summary, or, with `marginal`, a result of
+# marginal_solomon(), whose table is given scale by scale.
+.missing_pretest_block <- function(x, digits = 3, marginal = FALSE) {
+  s <- x$missing_pretest_sensitivity
+  n <- x$n_missing_pretest
+  if (is.null(x$missing_pretest) || is.null(n) || !isTRUE(sum(n) > 0L)) return(character(0))
+  k <- sum(n)
+  kept <- identical(x$missing_pretest, "indicator")
+  m <- max(digits - 1L, 1L)
+  wrap <- function(text) strwrap(text, width = 80, indent = 2, exdent = 2)
+  outcome <- if (marginal) "an outcome" else "a posttest"
+  one <- k == 1L
+  counts <- paste(sprintf("%d %s", n, names(n)), collapse = ", ")
+  share <- .pct(x$missing_pretest_share)
+  handling <- if (kept) {
+    sprintf(paste(
+      "%d pretested participant%s had %s but no pretest (%s; %s of the pretested participants",
+      "analyzed). %s kept by the missing-indicator method (Groenwold et al., 2012;",
+      "missing_pretest = \"indicator\"): their centered pretest is 0, and %s marks them. %s This",
+      "assumes that losing the pretest did not depend on the treatment condition."
+    ), k, if (one) "" else "s", outcome, counts, share, if (one) "That participant is" else "They are",
+    .missing_pretest_column, if (marginal) {
+      paste("The pretested cells average the predictions of the participants with and",
+            "without a pretest, each at their own value of the indicator.")
+    } else {
+      paste("The coefficient of pretested compares the participants with a pretest; each",
+            "pretest effect adds the indicator's mean times its coefficient, which standardizes",
+            "it over all the pretested participants analyzed (solomonR's step).")
+    })
+  } else {
+    sprintf(paste(
+      "%d pretested participant%s had %s but no pretest (%s) and %s dropped (missing_pretest =",
+      "\"drop\"). For the pretest effects, dropping them assumes that, in each pretested group,",
+      "they would have had the same mean %s as those with a pretest. Kept by the",
+      "missing-indicator method (Groenwold et al., 2012; missing_pretest = \"indicator\"), they",
+      "would be %s of the pretested participants analyzed."
+    ), k, if (one) "" else "s", outcome, counts, if (one) "was" else "were",
+    if (marginal) "outcome" else "posttest", share)
+  }
+  lines <- c("Pretested participants without a pretest", wrap(handling))
+
+  # The pretest effects kept and dropped.
+  if (!is.null(s)) {
+    e <- s$effects
+    if (marginal) {
+      for (sc in unique(e$scale)) {
+        lines <- c(lines, paste0("  ", sc, ":"),
+                   .handling_table(e[e$scale == sc, , drop = FALSE], digits, indent = "    "))
+      }
+    } else {
+      link <- if (is.null(x$family)) "identity" else x$family$link
+      if (!identical(link, "identity")) {
+        lines <- c(lines, wrap(sprintf("Pretest effects on the %s scale:", .center_scale(x$family))))
+      }
+      lines <- c(lines, .handling_table(e, digits))
+    }
+  }
+  notes <- character(0)
+
+  # Their posttests beside those of the participants with a pretest.
+  p <- s$posttests
+  if (!is.null(p)) {
+    p <- p[p$n_without > 0L, , drop = FALSE]
+    notes <- c(notes, sprintf(
+      "Mean %s without and with a pretest: %s.", if (marginal) "outcome" else "posttest",
+      paste(sprintf("%s %s (%d) and %s (%d)", p$condition, .center_num(p$mean_without, m),
+                    p$n_without, .center_num(p$mean_with, m), p$n_with), collapse = "; ")
+    ))
+  }
+
+  # Separation: every kept participant has the same outcome, at a bound.
+  if (!is.null(s) && !identical(s$separation, 0L)) {
+    notes <- c(notes, .missing_pretest_separation_text(x, k, s$separation, marginal, kept))
+  }
+
+  # One such participant: the indicator fits them exactly.
+  if (one && !marginal && (is.null(s) || identical(s$separation, 0L))) {
+    notes <- c(notes, if (kept) {
+      paste0(
+        "With one such participant, the indicator fits that participant exactly: the ",
+        "treatment contrasts equal those of missing_pretest = \"drop\", and each pretest ",
+        "effect differs from that of \"drop\" by the indicator's mean times the participant's ",
+        "residual.",
+        if (identical(x$robust, "HC3")) {
+          paste0(" Under HC3 the pretest effects then have no standard error (see \"HC3 at ",
+                 "leverage 1\" in ?fit_solomon_glm); robust = \"none\" gives one.")
+        } else if (identical(x$robust, "CR2")) {
+          paste0(" Under CR2 the pretest effects keep a standard error, which leaves out the ",
+                 "variance of that participant's posttest (see \"Pretested participants ",
+                 "without a pretest\" in ?fit_solomon_glm); robust = \"none\" includes it.")
+        }
+      )
+    } else {
+      paste0(
+        "With one such participant, missing_pretest = \"indicator\" gives the same treatment ",
+        "contrasts, and pretest effects that differ by the difference shown; under HC3 they ",
+        "would have no standard error."
+      )
+    })
+  }
+
+  # The arm check, a description.
+  a <- x$missing_pretest_arm_check
+  if (!is.null(a)) {
+    check <- vapply(seq_len(nrow(a)), function(i) {
+      r <- a[i, ]
+      arms <- strsplit(r$comparison, " vs ", fixed = TRUE)[[1]]
+      sprintf("%s %s, %s %s%s; mean observed pretest %s and %s%s",
+              arms[2], .pct(r$share_control), arms[1], .pct(r$share_treatment),
+              if (is.finite(r$fisher_p)) {
+                paste0(" (Fisher's exact test, ", .apa_p(r$fisher_p, md = FALSE), ")")
+              } else {
+                ""
+              },
+              .center_num(r$mean_control, m), .center_num(r$mean_treatment, m),
+              if (is.finite(r$p.value)) {
+                sprintf(" (Hedges' g = %s, Welch %s)", .center_num(r$g, 2L),
+                        .apa_p(r$p.value, md = FALSE))
+              } else {
+                ""
+              })
+    }, "")
+    notes <- c(notes, sprintf(
+      "Pretests missing: %s. A description; see ?check_solomon_missing.",
+      paste(check, collapse = "; ")
+    ))
+  }
+
+  if (identical(x$pretest_center, "observed")) {
+    notes <- c(notes, paste(
+      "The observed center assumes pretests were missing completely at random among the",
+      "pretested participants."
+    ))
+  }
+
+  # The bootstrap's refits (marginal_solomon()).
+  refits <- x$indicator_refits
+  if (marginal && !is.null(refits) && sum(refits) > 0L) {
+    notes <- c(notes, sprintf(paste(
+      "Bootstrap refits: %d resample%s held no participant kept without a pretest, and the",
+      "indicator was left out; in %d, all those drawn had the same outcome, and their risks",
+      "were set to it (see ?marginal_solomon)."
+    ), refits[["none_kept"]], if (refits[["none_kept"]] == 1L) "" else "s",
+    refits[["shared_outcome"]]))
+  }
+  c(lines, unlist(lapply(notes, wrap)))
+}
+
+# The sentence of the block on separation by the indicator: every kept
+# participant has the same outcome, at a bound of the mean, so the
+# indicator's coefficient has no finite estimate (Albert & Anderson, 1984).
+# On the model's scale the pretest effects with them kept are infinite; on
+# the risk or rate scale of marginal_solomon() their risks are set to that
+# outcome, the limit of the fit.
+.missing_pretest_separation_text <- function(x, k, direction, marginal, kept) {
+  binary <- if (marginal) identical(x$outcome, "binary") else {
+    x$family$family %in% c("binomial", "quasibinomial")
+  }
+  shared <- if (!binary) "a count of 0" else if (direction < 0) "the outcome 0" else "the outcome 1"
+  who <- if (k == 1L) "That participant has" else sprintf("All %d have", k)
+  if (marginal) {
+    return(sprintf(paste(
+      "%s %s, so the indicator's coefficient has no finite estimate (separation; Albert &",
+      "Anderson, 1984). With them kept, their %s set to that outcome, the limit of the fit,",
+      "and the other participants are fitted without them."
+    ), who, shared, if (binary) "risks are" else "rates are"))
+  }
+  sprintf(paste(
+    "%s %s, so the indicator's coefficient has no finite estimate on the %s scale",
+    "(separation; Albert & Anderson, 1984). With them kept, the pretest effects are %sinfinity",
+    "on that scale, with no standard error, test, or interval%s. marginal_solomon()",
+    "estimates them from standardized %s, which are defined."
+  ), who, shared, .center_scale(x$family), if (direction < 0) "minus " else "",
+  if (kept) "; the treatment contrasts keep theirs" else "",
+  if (binary) "risks" else "rates")
+}
+
+# What a print method adds for the pretested participants without a
+# pretest: the block, preceded by an empty line, or nothing.
+.missing_pretest_output <- function(x, digits = 3, marginal = FALSE) {
+  block <- .missing_pretest_block(x, digits, marginal)
+  if (length(block)) cat("\n", paste(block, collapse = "\n"), "\n", sep = "")
+  invisible(NULL)
 }

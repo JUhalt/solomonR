@@ -3,6 +3,7 @@ ANCOVA
 ANCOVAs
 AOAS
 APA
+Aggarwal
 Appelbaum
 Arendasy
 Ariza
@@ -12,6 +13,8 @@ BMJ
 Bakketeig
 Bendayan
 Bentler
+Berkwits
+Bhandari
 Bhavsar
 Biometrical
 Biometrics
@@ -19,6 +22,7 @@ Biometrika
 Biopharmaceutics
 Bonferroni
 Bornstein
+Boutron
 Bove
 Bracht
 Braver's
@@ -33,6 +37,7 @@ CMD
 CRC
 Cai
 Cheung
+Chidebe
 Choy
 Cipriani
 Cousens
@@ -47,6 +52,7 @@ DeRouen
 DeVinney
 Dedic
 DejaVu
+Devereaux
 DiCiccio
 Dickersin
 Donders
@@ -54,6 +60,7 @@ Doré
 EG
 Ebersole
 Edmonds
+Egger
 Eilertsen
 El
 Elbourne
@@ -69,6 +76,7 @@ Estimands
 FIRSTORDER
 Farrar
 Fellingham
+Fergusson
 Fitzmaurice
 Forsythe
 Frangakis
@@ -94,9 +102,11 @@ Imbens
 Isager
 Ishii
 Jerić
+Jolani
 Jordaan
 Jordaan's
 Karkri
+Kayembe
 Kelkhoff
 Kenward
 Kerlinger
@@ -143,6 +153,7 @@ McNally
 Mellor
 Moher
 Molenberghs
+Montori
 Multisample
 Muthén
 Mynhardt
@@ -222,6 +233,7 @@ Sidi
 Siegel
 Sjoberg
 Skene
+Smuk
 Smyth
 Sorolla
 Sorolla's
@@ -247,6 +259,7 @@ Toeplitz
 Totaal
 Trafimow
 Trivedi
+Tunn
 Twente
 ULS
 Ullman
@@ -260,6 +273,7 @@ Venables
 WLS
 WWC
 Welch
+Welch's
 Wickham
 Wilk
 Willson
@@ -268,6 +282,7 @@ Yamaguchi
 Yoshi
 Zeger
 Zhang
+Zhao
 al
 analysing
 ancova
@@ -301,6 +316,7 @@ dplyr's
 dr
 edu
 educsci
+eprint
 eric
 estimand
 estimands
@@ -332,6 +348,7 @@ lavaan
 lavaan's
 lifecycle
 linearized
+lshtm
 lv
 maintainer's
 maintainer’s
@@ -374,6 +391,7 @@ rejective
 relicense
 reparameterization
 reparameterizes
+researchonline
 roadmap
 roundoff
 rssa
@@ -400,6 +418,7 @@ tibble
 tidyr
 tidyselect
 ua
+uk
 unblinded
 unclustered
 undercovered
