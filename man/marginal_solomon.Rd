@@ -291,11 +291,11 @@ converge is computed as before.
 
 \strong{Pretested participants without a pretest.} For a fit with
 \code{missing_pretest = "indicator"} (see "Pretested participants without a
-pretest" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}), each pretested participant analyzed is
-standardized over with their own value of the indicator, so the
-pretested cells describe all the pretested participants analyzed, with
-a pretest or without; on the risk and rate scales that is the
-indicator at its mean. With \code{pretest_center = "observed"} and pretested
+pretest" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}), the pretested cells average the
+predictions of the pretested participants analyzed, each at their own
+value of the indicator, so they describe all the pretested participants
+analyzed, with a pretest or without; on the risk and rate scales that is
+the indicator at its mean. With \code{pretest_center = "observed"} and pretested
 participants with a pretest outside the model, the pretested cells are
 standardized in two strata: the participants kept without a pretest
 weigh their share, m, of the pretested participants analyzed, and every

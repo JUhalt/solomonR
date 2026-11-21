@@ -14,8 +14,10 @@
   pretest effects include the sampling variance of the indicator's mean,
   stacked with the model's and the center's estimating equations
   (Stefanski & Boos, 2002). The method assumes that losing the pretest
-  did not depend on the treatment condition. See "Pretested participants
-  without a pretest" in `?fit_solomon_glm`.
+  did not depend on the treatment condition. Each pretested group needs
+  at least one participant analyzed with a pretest, as under `"drop"`;
+  without one, the fit stops and names the group. See "Pretested
+  participants without a pretest" in `?fit_solomon_glm`.
 * **The default is unchanged.** `"drop"`, the default, leaves these
   participants out, as before, so no estimate, standard error, or test
   of an existing call changes: a fixture made by the previous master

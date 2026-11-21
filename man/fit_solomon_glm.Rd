@@ -719,7 +719,12 @@ that is the package's own, by analogy with Morris et al. (2022, p. 14),
 who standardize over the distribution of a complete covariate. The
 treatment contrasts and Pretest x Treatment are the coefficients, as
 without the column. A fit in which no pretested participant analyzed
-lacks a pretest is the \code{"drop"} fit, with no such column.
+lacks a pretest is the \code{"drop"} fit, with no such column. Each
+pretested group needs at least one participant analyzed with a
+pretest, as under \code{"drop"}, which leaves a group without one empty.
+Otherwise the fit stops and names the group: its pretest effect would
+rest on the column's coefficient alone, estimated in the other groups,
+or could not be estimated at all.
 }
 
 \code{"indicator"} is new. The default stays \code{"drop"}, so no estimate of an

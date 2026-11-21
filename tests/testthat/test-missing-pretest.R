@@ -494,6 +494,112 @@ test_that("with no missing pretest the two values give the same fit (agreement c
 
 # ---- one such participant, and separation -----------------------------------------
 
+test_that("a pretested group with no analyzed participant with a pretest stops the fit as \"drop\" does", {
+  # Under "drop" such a group is empty, and the fit names it. Under
+  # "indicator" its participants are all kept, and the fit names the same
+  # groups, rather than the term that the indicator makes collinear, also
+  # when the other groups would let the model be estimated.
+  stops <- function(d, groups, ..., center = c("analyzed", "observed")) {
+    for (ce in center) {
+      expect_error(suppressWarnings(fit_solomon_glm(..., data = d, pretest_center = ce,
+                                                    missing_pretest = "drop")),
+                   paste0("The model cannot be estimated because these groups have no ",
+                          "analyzable participants: ", groups, "."), fixed = TRUE, info = ce)
+      expect_error(suppressWarnings(fit_solomon_glm(..., data = d, pretest_center = ce,
+                                                    missing_pretest = "indicator")),
+                   paste0("The model cannot be fitted with `missing_pretest = \"indicator\"` ",
+                          "because these groups have no analyzable participants with a ",
+                          "pretest: ", groups, ". Each pretested group needs at least one, as ",
+                          "it does with \"drop\"."), fixed = TRUE, info = ce)
+    }
+  }
+  d <- mp_data()
+  treated <- d$pretested == 1 & d$treat == 1
+  control <- d$pretested == 1 & d$treat == 0
+  # The pretested treated participants analyzed all lack a pretest, and the
+  # pretested controls all have one: the indicator is the group's column.
+  a <- d
+  a$y_pre[treated] <- NA
+  a$y_pre[control] <- 50 + seq_len(sum(control)) %% 17
+  stops(a, "Pretested, treatment", y_post, treat, pretested, y_pre)
+  # The pretested controls have participants of both kinds, so the model
+  # could be estimated, with the treated group's pretest effect resting on
+  # the indicator's coefficient alone; the fit stops all the same.
+  b <- d
+  b$y_pre[treated] <- NA
+  stopifnot(any(is.na(b$y_pre[control])), any(!is.na(b$y_pre[control])))
+  stops(b, "Pretested, treatment", y_post, treat, pretested, y_pre)
+  # A pretest of a participant without a posttest does not count: under
+  # pretest_center = "observed" it is in the center, not in the model.
+  e <- a
+  e$y_pre[which(treated & is.na(e$y_post))[1]] <- 40
+  stops(e, "Pretested, treatment", y_post, treat, pretested, y_pre)
+  # The control group, and the conditions named by `control`.
+  cc <- d
+  cc$y_pre[control] <- NA
+  cc$arm <- ifelse(cc$treat == 1, "Coached", "Waitlist")
+  stops(cc, "Pretested, control", y_post, treat, pretested, y_pre)
+  stops(cc, "Pretested, Waitlist", y_post, arm, pretested, y_pre, control = "Waitlist",
+        center = "analyzed")
+  # Both pretested groups, with and without a covariate.
+  both <- d
+  both$y_pre[d$pretested == 1] <- NA
+  stops(both, "Pretested, treatment; Pretested, control", y_post, treat, pretested, y_pre)
+  stops(both, "Pretested, treatment; Pretested, control", y_post, treat, pretested, y_pre,
+        covariates = age, center = "analyzed")
+  # A pretested group with no participant at all, beside a group of both
+  # kinds, stops as before; beside a group without a pretest, both are named.
+  empty <- d
+  empty$y_post[treated] <- NA
+  expect_error(suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = empty,
+                                                missing_pretest = "indicator")),
+               paste("The model cannot be estimated because these groups have no analyzable",
+                     "participants: Pretested, treatment."), fixed = TRUE)
+  empty$y_pre[control] <- NA
+  stops(empty, "Pretested, treatment; Pretested, control", y_post, treat, pretested, y_pre)
+  # Only pretested groups are named: an empty unpretested group, which
+  # "drop" names too, is left to the error that follows.
+  lone <- cc
+  lone$y_post[lone$pretested == 0 & lone$treat == 1] <- NA
+  expect_error(suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = lone,
+                                                missing_pretest = "indicator")),
+               "with a pretest: Pretested, control. Each", fixed = TRUE)
+  expect_error(suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = lone,
+                                                missing_pretest = "drop")),
+               "participants: Pretested, control; Unpretested, treatment.", fixed = TRUE)
+  # One participant with a pretest is enough.
+  one <- b
+  one$y_pre[which(treated & !is.na(one$y_post))[1]] <- 45
+  fit <- suppressWarnings(fit_solomon_glm(y_post, treat, pretested, y_pre, data = one,
+                                          missing_pretest = "indicator", robust = "none"))
+  expect_true(all(is.finite(mp_rows(fit, mp_pretest)$std.error)))
+
+  # Several treatments: one treatment, with the other groups of one kind
+  # or of both, and every pretested group.
+  six <- mp_six()
+  B <- six$pretested == 1 & six$cond == "B"
+  s1 <- six
+  s1$y_pre[B] <- NA
+  s1$y_pre[six$pretested == 1 & !B] <- seq_len(sum(six$pretested == 1 & !B)) %% 13 / 10
+  stops(s1, "Pretested, B", y_post, cond, pretested, y_pre, control = "Control")
+  s2 <- six
+  s2$y_pre[B] <- NA
+  stops(s2, "Pretested, B", y_post, cond, pretested, y_pre, control = "Control")
+  s3 <- six
+  s3$y_pre[six$pretested == 1] <- NA
+  stops(s3, "Pretested, Control; Pretested, A; Pretested, B", y_post, cond, pretested, y_pre,
+        control = "Control")
+  s4 <- s2
+  s4$y_post[s4$pretested == 1 & s4$cond == "A"] <- NA
+  stops(s4, "Pretested, A; Pretested, B", y_post, cond, pretested, y_pre, control = "Control")
+  s5 <- s2
+  s5$y_pre[which(B & !is.na(s5$y_post))[1]] <- 0.5
+  fit6 <- suppressWarnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                           data = s5, missing_pretest = "indicator",
+                                           robust = "none"))
+  expect_true(all(is.finite(mp_rows(fit6, mp_pretest)$std.error)))
+})
+
 test_that("with exactly one kept participant, the pretest effects have no HC3 standard error", {
   d <- mp_data()
   d$y_pre <- ifelse(d$pretested == 1, 50 + seq_len(nrow(d)) %% 17, NA)
@@ -603,6 +709,94 @@ test_that("with exactly one kept participant, the pretest effects have no HC3 st
                                 "such as a factor level that the participant holds alone."),
                fixed = TRUE)
   expect_no_match(message64, "indicator|the pretest varies")
+})
+
+test_that("the leverage warning at its boundaries: two kept, and rows of both kinds", {
+  # With exactly two kept, a kept participant at leverage 1 through a
+  # factor level held alone leaves the indicator to fit the other one
+  # exactly, so both are at leverage 1. The level is the cause, and the
+  # warning names it alone: the indicator marks two participants, not "the
+  # one pretested participant kept without a pretest", and nothing is said
+  # of one such participant. When the participants at leverage 1 include
+  # one with a pretest, the pretest is named as well.
+  lever <- function(w) {
+    at <- match("solomonR_hc3_leverage_warning", mp_classes(w$warnings))
+    expect_false(is.na(at))
+    conditionMessage(w$warnings[[at]])
+  }
+  d <- mp_data()
+  d$y_pre <- ifelse(d$pretested == 1, 50 + seq_len(nrow(d)) %% 17, NA)
+  one <- which(d$pretested == 1 & d$treat == 1 & !is.na(d$y_post))[5]
+  d$y_pre[one] <- NA
+  two <- d
+  second <- which(two$pretested == 1 & two$treat == 0 & !is.na(two$y_post))[1]
+  two$y_pre[second] <- NA
+  two$level <- factor(ifelse(seq_len(nrow(two)) == one, "b", "a"))
+  w2 <- mp_warnings(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = level,
+                                    data = two, missing_pretest = "indicator"))
+  expect_identical(sum(w2$value$n_missing_pretest), 2L)
+  expect_identical(w2$value$hc3_leverage, sort(c(one, second)))
+  message2 <- lever(w2)
+  expect_match(message2, paste("Likely cause: a covariate varies only through them, such as a",
+                               "factor level that they alone hold."), fixed = TRUE)
+  expect_no_match(message2, "indicator|the pretest varies")
+  expect_false(w2$value$missing_pretest_sensitivity$one)
+  expect_no_match(paste(utils::capture.output(print(w2$value)), collapse = " "),
+                  "With one such participant", fixed = TRUE)
+  # Four kept, one of them and one participant with a pretest each holding
+  # a level alone.
+  mixed <- d
+  mixed$y_pre[which(mixed$pretested == 1 & mixed$treat == 0 & !is.na(mixed$y_post))[1:3]] <- NA
+  other <- which(mixed$pretested == 1 & mixed$treat == 0 & !is.na(mixed$y_pre) &
+                   !is.na(mixed$y_post))[1]
+  mixed$level <- factor(ifelse(seq_len(nrow(mixed)) == one, "b",
+                               ifelse(seq_len(nrow(mixed)) == other, "c", "a")))
+  wm <- mp_warnings(fit_solomon_glm(y_post, treat, pretested, y_pre, covariates = level,
+                                    data = mixed, missing_pretest = "indicator"))
+  expect_identical(sum(wm$value$n_missing_pretest), 4L)
+  expect_identical(wm$value$hc3_leverage, sort(c(one, other)))
+  messagem <- lever(wm)
+  expect_match(messagem, paste("Likely cause: the pretest varies within the pretested groups",
+                               "only through them, or a covariate varies only through them, such",
+                               "as a factor level that they alone hold."), fixed = TRUE)
+  expect_no_match(messagem, "indicator", fixed = TRUE)
+
+  # The same with several treatments.
+  six <- mp_six()
+  six$y_pre <- ifelse(six$pretested == 1, seq_len(nrow(six)) %% 13, NA)
+  one6 <- which(six$pretested == 1 & six$cond == "B" & !is.na(six$y_post))[3]
+  six$y_pre[one6] <- NA
+  two6 <- six
+  second6 <- which(two6$pretested == 1 & two6$cond == "A" & !is.na(two6$y_post))[1]
+  two6$y_pre[second6] <- NA
+  two6$level <- factor(ifelse(seq_len(nrow(two6)) == one6, "b", "a"))
+  w62 <- mp_warnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                     covariates = level, data = two6,
+                                     missing_pretest = "indicator"))
+  expect_identical(sum(w62$value$n_missing_pretest), 2L)
+  expect_identical(w62$value$hc3_leverage, sort(c(one6, second6)))
+  message62 <- lever(w62)
+  expect_match(message62, paste("Likely cause: a covariate varies only through them, such as a",
+                                "factor level that they alone hold."), fixed = TRUE)
+  expect_no_match(message62, "indicator|the pretest varies")
+  expect_false(w62$value$missing_pretest_sensitivity$one)
+  mixed6 <- six
+  mixed6$y_pre[which(mixed6$pretested == 1 & mixed6$cond == "A" &
+                       !is.na(mixed6$y_post))[1:3]] <- NA
+  other6 <- which(mixed6$pretested == 1 & mixed6$cond == "A" & !is.na(mixed6$y_pre) &
+                    !is.na(mixed6$y_post))[1]
+  mixed6$level <- factor(ifelse(seq_len(nrow(mixed6)) == one6, "b",
+                                ifelse(seq_len(nrow(mixed6)) == other6, "c", "a")))
+  w6m <- mp_warnings(fit_solomon_glm(y_post, cond, pretested, y_pre, control = "Control",
+                                     covariates = level, data = mixed6,
+                                     missing_pretest = "indicator"))
+  expect_identical(sum(w6m$value$n_missing_pretest), 4L)
+  expect_identical(w6m$value$hc3_leverage, sort(c(one6, other6)))
+  message6m <- lever(w6m)
+  expect_match(message6m, paste("Likely cause: the pretest varies within the pretested groups",
+                                "only through them, or a covariate varies only through them, such",
+                                "as a factor level that they alone hold."), fixed = TRUE)
+  expect_no_match(message6m, "indicator", fixed = TRUE)
 })
 
 test_that("when the kept participants share a binary outcome, the pretest effects are infinite", {
@@ -1843,6 +2037,54 @@ test_that("marginal_solomon() prints and reports the participants without a pret
     "With these participants excluded instead, the pretest effects were as follows: on the risk",
     "difference scale,"), r$results, fixed = TRUE)))
   expect_true(any(startsWith(r$references, "Albert, A., & Anderson, J. A. (1984).")))
+})
+
+test_that("marginal_solomon() speaks of one kept participant as one", {
+  d <- mp_data()
+  d$y_pre <- ifelse(d$pretested == 1, 50 + seq_len(nrow(d)) %% 17, NA)
+  one <- which(d$pretested == 1 & d$treat == 1 & d$passed %in% 0)[2]
+  d$y_pre[one] <- NA
+  logit <- suppressWarnings(fit_solomon_glm(passed, treat, pretested, y_pre, data = d,
+                                            family = stats::binomial(),
+                                            missing_pretest = "indicator"))
+  m <- suppressWarnings(marginal_solomon(logit, method = "delta"))
+  expect_identical(sum(m$n_missing_pretest), 1L)
+  text <- mp_text(mp_block(m))
+  expect_match(text, paste(
+    "That participant is kept by the missing-indicator method (Groenwold et al., 2012;",
+    "missing_pretest = \"indicator\"): their centered pretest is 0, and pre_missing marks them.",
+    "The pretested cells average the predictions of the participants with and without a",
+    "pretest, each at their own value of the indicator. This assumes"), fixed = TRUE)
+  expect_match(text, paste(
+    "That participant has the outcome 0, so the indicator's coefficient has no finite estimate",
+    "(separation; Albert & Anderson, 1984)."), fixed = TRUE)
+  expect_no_match(text, "Each is|standardized over with|All 1 have")
+  r <- paste(report_solomon(m)$results, collapse = " ")
+  expect_match(r, paste(
+    "That participant was kept by the missing-indicator method (Groenwold et al., 2012): their",
+    "centered pretest score was set to 0, an indicator marked them, and the pretested cells",
+    "averaged the predictions of the participants with and without a pretest, each at their",
+    "own value of the indicator. This assumes"), fixed = TRUE)
+  expect_match(r, paste(
+    "That participant had the outcome 0, so the indicator's coefficient had no finite estimate",
+    "(separation; Albert & Anderson, 1984); with them kept, their risks were set to that",
+    "outcome, the limit of the fit."), fixed = TRUE)
+  expect_no_match(r, "Every such participant|each was standardized")
+  # With several kept, the same sentences, in the plural where they speak of
+  # the participants kept.
+  d3 <- d
+  d3$y_pre[which(d3$pretested == 1 & d3$passed %in% 0)[1:3]] <- NA
+  logit3 <- suppressWarnings(fit_solomon_glm(passed, treat, pretested, y_pre, data = d3,
+                                             family = stats::binomial(),
+                                             missing_pretest = "indicator"))
+  m3 <- suppressWarnings(marginal_solomon(logit3, method = "delta"))
+  expect_match(mp_text(mp_block(m3)), paste(
+    "They are kept by the missing-indicator method (Groenwold et al., 2012; missing_pretest =",
+    "\"indicator\"): their centered pretest is 0, and pre_missing marks them. The pretested",
+    "cells average the predictions"), fixed = TRUE)
+  r3 <- paste(report_solomon(m3)$results, collapse = " ")
+  expect_match(r3, "Every such participant had the outcome 0", fixed = TRUE)
+  expect_match(r3, "They were kept by the missing-indicator method", fixed = TRUE)
 })
 
 test_that("perm_solomon() takes a fit with the indicator", {

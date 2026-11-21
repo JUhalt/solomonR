@@ -1054,7 +1054,12 @@ stouffer_solomon <- function(p) {
 #'   who standardize over the distribution of a complete covariate. The
 #'   treatment contrasts and Pretest x Treatment are the coefficients, as
 #'   without the column. A fit in which no pretested participant analyzed
-#'   lacks a pretest is the `"drop"` fit, with no such column.
+#'   lacks a pretest is the `"drop"` fit, with no such column. Each
+#'   pretested group needs at least one participant analyzed with a
+#'   pretest, as under `"drop"`, which leaves a group without one empty.
+#'   Otherwise the fit stops and names the group: its pretest effect would
+#'   rest on the column's coefficient alone, estimated in the other groups,
+#'   or could not be estimated at all.
 #'
 #' `"indicator"` is new. The default stays `"drop"`, so no estimate of an
 #' existing call changes, until the validation study of issue #142 has
@@ -2018,6 +2023,16 @@ fit_solomon_glm <- function(y_post, treat, pretested, y_pre = NULL,
     factor(df$treat[in_model], levels = c(1L, 0L), labels = arms),
     factor(df$pretested[in_model], levels = c(1L, 0L))
   )
+  # Under the indicator, a pretested group whose participants in the model
+  # all lack a pretest stops first, naming the groups that "drop" would
+  # leave empty, rather than the term that the indicator makes collinear
+  # (.stop_no_pretest(), issue #142).
+  if (indicator) {
+    .stop_no_pretest(group_counts, table(
+      factor(df$treat[in_model & !kept], levels = c(1L, 0L), labels = arms),
+      factor(df$pretested[in_model & !kept], levels = c(1L, 0L))
+    ))
+  }
   .stop_inestimable(fit_given, .group_names(group_counts, group_counts == 0))
   .stop_inestimable(fit, .group_names(group_counts, group_counts == 0),
                     noise = .representation_error(fit, fit_given, scaling, pretest_mean),

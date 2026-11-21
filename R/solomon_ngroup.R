@@ -235,6 +235,30 @@
   )
 }
 
+# Under missing_pretest = "indicator", stop when a pretested group has
+# participants in the model but none with a pretest (issue #142). The
+# indicator then equals that group's column, or, when another pretested
+# group has participants of both kinds, the group's pretest effect rests
+# on the indicator's coefficient alone, estimated in the other groups.
+# "drop" leaves such a group empty and stops in .stop_inestimable(); this
+# stops as it does, naming the pretested groups that "drop" would leave
+# empty. `counts` is the table of analyzable participants (.group_names())
+# and `with_pretest` the same table of those with a pretest, or without
+# one in an unpretested group. Pretested groups with no participant at
+# all, and no other, are left to .stop_inestimable().
+.stop_no_pretest <- function(counts, with_pretest) {
+  none <- with_pretest == 0
+  none[, colnames(counts) != "1"] <- FALSE
+  if (!any(none & counts > 0)) return(invisible(NULL))
+  stop(
+    "The model cannot be fitted with `missing_pretest = \"indicator\"` ",
+    "because these groups have no analyzable participants with a pretest: ",
+    paste(.group_names(counts, none), collapse = "; "), ". Each pretested ",
+    "group needs at least one, as it does with \"drop\".",
+    call. = FALSE
+  )
+}
+
 # The position of the pretest's column among the coefficients of `model`,
 # a model of fit_solomon_glm(), or NA without a pretest. It is found from
 # the pretest's term, `pre_obs`, as .scaled_columns() finds a column, not
@@ -640,6 +664,14 @@
   # coefficient inestimable, in the model as given or standardized, the
   # latter checked as well for terms collinear but for the rounding error of
   # the values given, as in the four-group model (.collinear_positions()).
+  # Under the indicator, a pretested group whose participants all lack a
+  # pretest stops first, as in the four-group model (.stop_no_pretest()).
+  if (indicator) {
+    .stop_no_pretest(counts, table(
+      factor(df$condition[used & !kept], levels = lev),
+      factor(df$pretested[used & !kept], levels = c(1L, 0L))
+    ))
+  }
   .stop_inestimable(fit_given, .group_names(counts, counts == 0))
   .stop_inestimable(fit, .group_names(counts, counts == 0),
                     noise = .representation_error(fit, fit_given, scaling, pretest_mean),

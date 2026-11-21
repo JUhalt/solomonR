@@ -340,7 +340,8 @@
       "that losing the pretest did not depend on the treatment condition."
     ), k, share, outcome, counts, if (k == 1L) "That participant was" else "They were",
     if (marginal) {
-      "each was standardized over with their own indicator"
+      paste("the pretested cells averaged the predictions of the participants with and",
+            "without a pretest, each at their own value of the indicator")
     } else {
       "the pretest effects were standardized over all the pretested participants analyzed"
     })

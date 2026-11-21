@@ -571,8 +571,8 @@
       "assumes that losing the pretest did not depend on the treatment condition."
     ), k, if (one) "" else "s", outcome, counts, share, if (one) "That participant is" else "They are",
     .missing_pretest_column, if (marginal) {
-      paste("Each is standardized over with their own indicator, so the pretested cells",
-            "describe all the pretested participants analyzed.")
+      paste("The pretested cells average the predictions of the participants with and",
+            "without a pretest, each at their own value of the indicator.")
     } else {
       paste("The coefficient of pretested compares the participants with a pretest; each",
             "pretest effect adds the indicator's mean times its coefficient, which standardizes",
