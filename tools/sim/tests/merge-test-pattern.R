@@ -16,7 +16,11 @@
 #   agreement-rep-outside agreement() gives a `rep` outside the task
 #   agreement-rep-order   agreement() gives its rows out of the order of `rep`
 #   agreement-rep-double  agreement() gives `rep` as doubles, not integers
+#   agreement-rep-task    agreement() gives `rep` 1 in a scenario's second
+#                         task: a replication of the run, not of that task
 #   failures-rep-outside  failures() gives a `rep` outside the task
+#   failures-rep-task     failures() gives `rep` 1 in scenario 3's second
+#                         task too: a replication of the run, not of that task
 #   warning-first         a warning in replication 1 of every scenario, so
 #                         that the first task has all three parts
 #   no-results            the pattern has no results()
@@ -46,6 +50,7 @@ merge_test_pattern <- list(
   # One agreement row for each of a scenario's first two replications.
   agreement = function(s, reps, fill) {
     r <- reps[reps <= 2L]
+    if (identical(pattern_variant, "agreement-rep-task") && !length(r)) r <- 1L
     if (!length(r)) return(NULL)
     if (identical(pattern_variant, "agreement-rep-outside")) r <- r + 100L
     if (identical(pattern_variant, "agreement-rep-order")) r <- rev(r)
@@ -55,9 +60,14 @@ merge_test_pattern <- list(
     out
   },
   # A warning in replication 1 of scenario 3 (of every scenario with
-  # warning-first), as the contract stores it.
+  # warning-first), as the contract stores it. With failures-rep-task, the
+  # same row in scenario 3's second task too, which does not hold
+  # replication 1.
   failures = function(s, reps, fill) {
-    if ((s$scenario != 3L && !identical(pattern_variant, "warning-first")) || !1L %in% reps) return(NULL)
+    other_task <- identical(pattern_variant, "failures-rep-task") && !(1L %in% reps)
+    if ((s$scenario != 3L && !identical(pattern_variant, "warning-first")) || (!(1L %in% reps) && !other_task)) {
+      return(NULL)
+    }
     data.frame(rep = if (identical(pattern_variant, "failures-rep-outside")) 99L else 1L, type = "warning",
                class = "simpleWarning", message = "made up", count = 1L, stringsAsFactors = FALSE)
   },

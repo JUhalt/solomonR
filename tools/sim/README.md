@@ -355,7 +355,8 @@ a summary that completes under that limit while its process's largest
 resident memory is above it, a stop while the summary's files are
 written, the refusals (a pattern that draws a random number or sets a
 seed, rows or columns other than the study's, agreement or warning rows
-whose `rep` is not the task's replications in their order, a script that
+whose `rep` is not among the task's replications (also when it is
+another task's) or not in their order, a script that
 does not end with `sim_main(study)`, the options), the pattern's own place
 when `--pattern` is not given, `--task-file` for each of the three parts,
 the run stage's refusal of the plan, that a run changes no file of the
@@ -620,7 +621,9 @@ In the study's own pull request, before its run (the order rule of #117):
    adds as the contract does. `agreement(s, reps, fill)` and
    `failures(s, reps, fill)` are optional: the agreement rows, and the
    warnings as the contract stores them (`rep`, `type`, `class`,
-   `message`, `count`), each with `rep` as its first column, or `NULL`.
+   `message`, `count`), each with `rep` as its first column, or `NULL`;
+   `rep` holds whole numbers stored as integer, each one of the task's
+   replications `reps`, with the rows in the order of the replications.
    `preflight()` is optional too: the table of the plan's `preflight.csv`,
    for a study whose `summarize()` takes the preflight's checks.
    `fill(column, rows)` gives the made-up numbers, `rows` (unless given,

@@ -133,8 +133,9 @@
 #            refusals, each by the script's message, of a pattern that
 #            draws a random number or sets a seed, of patterns with other
 #            rows or columns than the study's, of agreement and warning
-#            rows whose `rep` is not the task's replications in their
-#            order, of the options, and of a study script that does not
+#            rows whose `rep` is not among the task's replications (also
+#            when it is another task's) or not in their order, of the
+#            options, and of a study script that does not
 #            end with sim_main(study); the pattern's place without
 #            --pattern; that a run changes no file of the package copy;
 #            --task-file, for each of the three parts; the "Check the
@@ -1870,7 +1871,8 @@ if ("fullsize" %in% groups) local({
     paste(unname(kv[c("summarize_seconds", "heap_peak_summarize_mb", "write_seconds", "heap_peak_write_mb")]),
           collapse = " ")
   }
-  record("fullsize", "after that stop: no time or heap for the writing", "yes", yes(no_write(x$kv)), phases(x$kv))
+  record("fullsize", "after the stop at the limit: no time or heap for the writing", "yes", yes(no_write(x$kv)),
+         phases(x$kv))
   record("fullsize", "the same summary under the default limit of 12 GB", "accept",
          if (run_tool(set = c(HARNESS_TEST_VARIANT = "large-summary"))$r$status == 0L) "accept" else "refuse", "")
   # While the task files are read and bound: 1,440,000 rows of 44 bytes
@@ -1922,7 +1924,8 @@ if ("fullsize" %in% groups) local({
          yes(x$r$status != 0L && identical(item(x$kv, "summary"), "stopped by an error that is not about memory") &&
                identical(item(x$kv, "summary_message"), "The summary's own error.") &&
                identical(item(x$kv, "summary_stopped_in"), "the study's summarize()")), last_line(x$r$out))
-  record("fullsize", "after that stop: no time or heap for the writing", "yes", yes(no_write(x$kv)), phases(x$kv))
+  record("fullsize", "after the summary's own error: no time or heap for the writing", "yes", yes(no_write(x$kv)),
+         phases(x$kv))
   # A stop after summarize() has returned, while the summary's files are
   # written: summarize() returns a name that the contract does not allow.
   x <- run_tool(set = c(HARNESS_TEST_VARIANT = "summary-bad-name"))
@@ -1986,6 +1989,13 @@ if ("fullsize" %in% groups) local({
           set = with_pattern("agreement-rep-double"))
   refused("pattern: failures() with a `rep` outside the task", rep_msg("failures", "s0003-t0001"),
           set = with_pattern("failures-rep-outside"))
+  # A `rep` of the run that is another task's: replication 1 in a second
+  # task, which holds replications 5 and 6 (a check against the run's
+  # replications alone would accept it).
+  refused("pattern: agreement() with a `rep` of another task", rep_msg("agreement", "s0001-t0002"),
+          set = with_pattern("agreement-rep-task"))
+  refused("pattern: failures() with a `rep` of another task", rep_msg("failures", "s0003-t0002"),
+          set = with_pattern("failures-rep-task"))
   refused("pattern: results() stops", "The pattern's results() stopped in task s0001-t0001: The pattern's own error.",
           set = with_pattern("stops"))
   for (v in c("no-results", "unknown-part", "not-a-list")) {
