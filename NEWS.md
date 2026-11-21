@@ -1,5 +1,13 @@
 # solomonR (development version)
 
+## R 4.2 or later is required
+
+* solomonR now requires R 4.2.0 or later; it required R 4.1.0. ggplot2,
+  which solomonR imports, imports S7, and S7 1.0.0 (released on CRAN on
+  November 19, 2026) requires R 4.2.0, so a new installation on R 4.1
+  could no longer install the current ggplot2. No code of solomonR changes. The check
+  of the oldest supported version of R now runs on R 4.2.
+
 ## Pretested participants without a pretest (#142)
 
 * **New: `missing_pretest = "indicator"`.** `fit_solomon_glm()` gains
