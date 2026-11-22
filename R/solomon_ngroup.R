@@ -1089,15 +1089,18 @@
   # Condition | unpretested the unpretested groups. Both conditions depend
   # on the group sizes and the covariates, not on the outcomes.
   # In a pretested group, only the participants with a pretest are counted
-  # (issue #142), so "indicator" warns as "drop" does on the same data.
-  # Those kept without a pretest inform a contrast of the groups' means
-  # only together with those kept in other groups, through the shared
-  # coefficient of the indicator. When only one is kept, or they all lie
+  # (issue #142), so "indicator" names the same groups as "drop" does on
+  # the same data. Two or more kept without a pretest inform the contrasts
+  # of the groups' means: through the shared coefficient of the indicator
+  # when they lie in several groups, and through the covariates' slopes
+  # when the model has covariates. When only one is kept, or they all lie
   # in one group and the model has no covariates, they inform none: the
-  # model's columns split into those of "drop", on the other participants,
-  # and the indicator, on them, so the contrasts tested, their HC2
-  # covariance, and the hat values of the others are those of "drop", and
-  # so are the AHT tests (a derivation, checked in test-ngroup-aht.R).
+  # model's column space splits into that of "drop", on the other
+  # participants, and the indicator, on them, so the contrasts tested,
+  # their HC2 covariance, and the hat values of the others are those of
+  # "drop", and so are the AHT tests (a derivation, checked in
+  # test-ngroup-aht.R). Otherwise the tests can differ from those of
+  # "drop", and so can those with 4 or fewer denominator degrees of freedom.
   if (aht || robust == "CR2") {
     few_df <- is.finite(omnibus$df2) & omnibus$df2 <= 4
     need <- as.integer(floor(3 + 4 / (k + 1))) + 1L

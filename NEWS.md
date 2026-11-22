@@ -49,9 +49,9 @@
   compares has fewer than 5 analyzable participants with two or three
   treatments, or fewer than 4 with more (Zhang, 2013). In a pretested
   group, only the participants with a pretest are counted, so
-  `missing_pretest = "indicator"` (#142, below) warns as `"drop"` does
-  on the same data. A fit with groups that small gave no such warning
-  before.
+  `missing_pretest = "indicator"` (#142, below) names the same groups as
+  `"drop"` does on the same data. A fit with groups that small gave no
+  such warning before.
 * An omnibus test that is undefined because one of its contrasts depends
   on a participant at leverage 1 (#173) is `NA`, as before. The `df2` of
   an AHT test is then `NA` too.

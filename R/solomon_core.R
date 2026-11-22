@@ -1388,14 +1388,17 @@ stouffer_solomon <- function(p) {
 #' unpretested groups. Both conditions depend on the group sizes and the
 #' covariates, not on the outcomes. In a pretested group, only the
 #' participants with a pretest are counted, so
-#' `missing_pretest = "indicator"` warns as `"drop"` does on the same data,
-#' and the warning says so when a group it names has participants kept
-#' without a pretest. Those participants inform a contrast of the groups'
-#' means only together with those kept in other groups, through the shared
-#' coefficient of `pre_missing`. When only one is kept, or they all lie in
-#' one group and the model has no covariates, they inform none, and the AHT
-#' tests are those of `"drop"` (a derivation, checked numerically in the
-#' package's tests).
+#' `missing_pretest = "indicator"` names the same groups as `"drop"` does
+#' on the same data, and the warning says so when a group it names has
+#' participants kept without a pretest. Two or more of those participants
+#' inform the contrasts of the groups' means: through the shared
+#' coefficient of `pre_missing` when they lie in several groups, and
+#' through the covariates' slopes when the model has covariates. When only
+#' one is kept, or they all lie in one group and the model has no
+#' covariates, they inform none, and the AHT tests are those of `"drop"` (a
+#' derivation, checked numerically in the package's tests). Otherwise the
+#' AHT tests can differ from those of `"drop"`, and so can the tests with 4
+#' or fewer denominator degrees of freedom that the warning names.
 #'
 #' An AHT test on HC2 has no statistic and no p-value (`NA`) when the HC2
 #' covariance matrix of the contrasts it tests is singular, that is, when
