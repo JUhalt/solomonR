@@ -2269,21 +2269,6 @@
   out
 }
 
-# APA order of the reference list: by the first author's surname and
-# initials, then the other authors, then year (as in tools/check-references.R).
-.apa_sort <- function(refs) {
-  key <- vapply(refs, function(entry) {
-    authors <- sub(" \\(\\d{4}.*$", "", entry)
-    year <- sub("^[^()]+? \\((\\d{4}[a-z]?).*$", "\\1", entry)
-    parts <- strsplit(authors, ", ", fixed = TRUE)[[1]]
-    first <- paste(parts[seq_len(min(2L, length(parts)))], collapse = " ")
-    rest <- paste(parts[-seq_len(min(2L, length(parts)))], collapse = " ")
-    letters_only <- function(x) gsub("[^a-z]", "", tolower(gsub("&", "", x, fixed = TRUE)))
-    paste(letters_only(first), letters_only(rest), year)
-  }, "")
-  refs[order(key)]
-}
-
 #' APA 7 results text for a Solomon analysis
 #'
 #' `r lifecycle::badge("stable")`

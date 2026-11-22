@@ -148,6 +148,18 @@ for (key in names(registry$.solomon_reference_text)) {
 }
 n_checked <- n_checked + length(registry$.solomon_reference_text)
 
+# report_solomon() and analysis_plan_solomon() order their references with
+# .apa_sort() (R/solomon_report_refs.R; issue #191). Its order of the whole
+# table, from the table's order and from the reverse, must be the one
+# checked here.
+table_refs <- unname(enc2utf8(registry$.solomon_reference_text))
+for (input in list(table_refs, rev(table_refs))) {
+  sorted <- registry$.apa_sort(input)
+  if (!setequal(sorted, table_refs) || !in_order(vapply(sorted, sort_key, ""))) {
+    note("R/solomon_report_refs.R", ".apa_sort() does not give the APA order checked here")
+  }
+}
+
 canonical_lines <- readLines(canonical_file, encoding = "UTF-8")
 sections <- split(canonical_lines, cumsum(grepl("^## ", canonical_lines)))
 for (section in sections[-1]) {
