@@ -2388,6 +2388,7 @@ test_that("\"drop\", and fits without a missing pretest, give the results of mas
             # lines under its title, added before any closing note.
             at <- match("Pretested participants without a pretest", got)
             expect_false(is.na(at), info = info)
+            if (is.na(at)) next
             expect_identical(got[at - 1L], "", info = info)
             end <- at
             while (end < length(got) && startsWith(got[end + 1L], "  ")) end <- end + 1L
