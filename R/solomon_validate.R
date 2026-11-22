@@ -128,12 +128,15 @@
 # name the tests with 4 or fewer denominator degrees of freedom. For the
 # AHT tests on HC2, `groups` and `sizes` name the groups with fewer than
 # `need` analyzable participants, and `compared` the tests that compare
-# them. `clustered` is TRUE for a CR2 fit, whose remedy is more clusters.
-# The warning for CR2 contrasts keeps its own threshold, below 4, and its
-# own source (.warn_cr2_small_df()).
+# them. `uncounted` is TRUE when a group named has participants that
+# missing_pretest = "indicator" keeps without a pretest, which its size
+# leaves out (issue #142). `clustered` is TRUE for a CR2 fit, whose remedy
+# is more clusters. The warning for CR2 contrasts keeps its own threshold,
+# below 4, and its own source (.warn_cr2_small_df()).
 .warn_aht_small_df <- function(tests = character(), df2 = numeric(), groups = character(),
                                sizes = integer(), need = NA_integer_,
-                               compared = character(), clustered = FALSE) {
+                               compared = character(), uncounted = FALSE,
+                               clustered = FALSE) {
   few_df <- if (length(tests)) {
     paste0(
       "Tests with 4 or fewer denominator degrees of freedom: ",
@@ -144,7 +147,11 @@
     paste0(
       "Groups with fewer than ", need, " analyzable participants: ",
       paste(sprintf("%s (%d)", groups, as.integer(sizes)), collapse = "; "),
-      ". The tests that compare them: ", paste(compared, collapse = "; "), ". "
+      ". The tests that compare them: ", paste(compared, collapse = "; "), ". ",
+      if (uncounted) {
+        paste0("In a pretested group, the participants kept without a pretest ",
+               "(missing_pretest = \"indicator\") are not counted. ")
+      }
     )
   }
   warning(structure(

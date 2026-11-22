@@ -47,8 +47,11 @@
   has 4 or fewer denominator degrees of freedom, under HC3 or CR2. For
   the AHT tests of HC3 fits, it is also raised when a group that a test
   compares has fewer than 5 analyzable participants with two or three
-  treatments, or fewer than 4 with more (Zhang, 2013). A fit with groups
-  that small gave no such warning before.
+  treatments, or fewer than 4 with more (Zhang, 2013). In a pretested
+  group, only the participants with a pretest are counted, so
+  `missing_pretest = "indicator"` (#142, below) warns as `"drop"` does
+  on the same data. A fit with groups that small gave no such warning
+  before.
 * An omnibus test that is undefined because one of its contrasts depends
   on a participant at leverage 1 (#173) is `NA`, as before. The `df2` of
   an AHT test is then `NA` too.

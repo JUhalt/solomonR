@@ -215,6 +215,51 @@ test_that("the AHT tests are those of a CR2 fit with each participant as a clust
   }
 })
 
+test_that("the AHT tests of a fit with missing_pretest = \"indicator\" are those of its model (#142)", {
+  # Under "indicator", the pretested participants kept without a pretest
+  # have a centered pretest of 0 and the column pre_missing. The references
+  # fit that model by lm(): their pretest is set to the mean of the
+  # observed ones, which aht_reference() centers to 0, and pre_missing is a
+  # covariate. Kept in three groups, they inform the contrasts, so the
+  # tests are not those of "drop".
+  d <- aht_data(8875414, 3, 10)
+  pretested_in <- function(condition) which(d$condition == condition & d$pretested == 1L)
+  d$y_pre[c(pretested_in("A")[1:2], pretested_in("B")[1], pretested_in("Control")[1:3])] <- NA
+  kept <- d$pretested == 1L & is.na(d$y_pre)
+  filled <- d$y_pre
+  filled[kept] <- mean(d$y_pre[d$pretested == 1L & !kept])
+  for (covariate in c(FALSE, TRUE)) {
+    info <- if (covariate) "with z" else "without z"
+    covariates <- if (covariate) "z"
+    fit_with <- function(missing_pretest) {
+      aht_warnings(fit_solomon_glm(y_post, condition, pretested, y_pre, covariates = covariates,
+                                   control = "Control", data = d,
+                                   missing_pretest = missing_pretest))
+    }
+    out <- fit_with("indicator")
+    expect_length(out$small_df, 0L)
+    expect_identical(vapply(out$other, function(w) class(w)[1], ""),
+                     "solomonR_missing_pretest_warning", info = info)
+    expect_true("pre_missing" %in% names(stats::coef(out$value$model)), info = info)
+    om <- out$value$omnibus
+    z <- data.frame(pre_missing = as.numeric(kept))
+    if (covariate) z$z <- d$z
+    for (engine in c("clubSandwich", "literal")) {
+      ref <- aht_reference(d$y_post, d$condition, d$pretested, filled, covariates = z,
+                           control = "Control", engine = engine)
+      expect_identical(om$test, ref$test, info = info)
+      for (column in aht_columns) {
+        expect_equal(om[[column]], ref[[column]],
+                     tolerance = if (engine == "literal") 1e-8 else 1e-10,
+                     info = paste(info, engine, column))
+      }
+    }
+    expect_identical(om$method, rep(aht_hc2_label, 4L), info = info)
+    drop <- fit_with("drop")$value$omnibus
+    expect_gt(max(abs(om$df2 - drop$df2)), 1)
+  }
+})
+
 test_that("without a covariate and with equal groups, df2 has its closed form", {
   # Amendment 2 on issue #45: the tests of Condition | pretested and of
   # Condition | unpretested, which each compare k + 1 groups of n, have
@@ -958,6 +1003,78 @@ test_that("the warning names the small groups and the tests that compare them", 
     "Groups with fewer than 5 analyzable participants: Pretested, B (4). The tests that ",
     "compare them: Condition (avg over pretest); Pretest x Condition; Condition | pretested. "
   ), fixed = TRUE)
+})
+
+test_that("the group size counts only the participants with a pretest in a pretested group (#142)", {
+  # "drop" leaves out the pretested participants without a pretest;
+  # "indicator" keeps them and does not count them, so both name the same
+  # groups, and the warning of "indicator" says why.
+  fit_with <- function(d, missing_pretest, covariates = NULL) {
+    aht_warnings(fit_solomon_glm(y_post, condition, pretested, y_pre, covariates = covariates,
+                                 control = "Control", data = d,
+                                 missing_pretest = missing_pretest))
+  }
+  message_of <- function(out) {
+    expect_length(out$small_df, 1L)
+    conditionMessage(out$small_df[[1]])
+  }
+  note <- paste0("In a pretested group, the participants kept without a pretest ",
+                 "(missing_pretest = \"indicator\") are not counted. ")
+  pretested_a <- paste0(
+    "Groups with fewer than 5 analyzable participants: Pretested, A (%d). The tests that ",
+    "compare them: Condition (avg over pretest); Pretest x Condition; Condition | pretested. "
+  )
+
+  # The pretested group of A has 5 participants, of whom 1 or 2 lack a
+  # pretest. They all lie in that group, so without covariates they inform
+  # no contrast, and the AHT tests of "indicator" are those of "drop".
+  for (n_kept in 1:2) {
+    info <- paste(n_kept, "kept")
+    d <- aht_data(8875411, 2, c(5, 8, 8, 8, 8, 8))
+    d$y_pre[which(d$condition == "A" & d$pretested == 1L)[seq_len(n_kept)]] <- NA
+    groups <- sprintf(pretested_a, 5L - n_kept)
+    drop <- fit_with(d, "drop")
+    indicator <- fit_with(d, "indicator")
+    expect_true("pre_missing" %in% names(stats::coef(indicator$value$model)), info = info)
+    expect_match(message_of(drop), groups, fixed = TRUE, info = info)
+    expect_no_match(message_of(drop), note, fixed = TRUE, info = info)
+    expect_match(message_of(indicator), paste0(groups, note), fixed = TRUE, info = info)
+    expect_identical(indicator$value$omnibus$test, drop$value$omnibus$test, info = info)
+    for (column in aht_columns) {
+      expect_equal(indicator$value$omnibus[[column]], drop$value$omnibus[[column]],
+                   tolerance = 1e-10, info = paste(info, column))
+    }
+    # With a covariate, the count is the same. One participant kept is fitted
+    # exactly by the indicator and still informs nothing; two inform the
+    # covariate's slope, and the tests differ from those of "drop".
+    drop_z <- fit_with(d, "drop", "z")$value$omnibus
+    indicator_z <- fit_with(d, "indicator", "z")
+    expect_match(message_of(indicator_z), paste0(groups, note), fixed = TRUE, info = info)
+    gap <- max(abs(as.matrix(indicator_z$value$omnibus[aht_columns]) -
+                     as.matrix(drop_z[aht_columns])))
+    if (n_kept == 1L) expect_lt(gap, 1e-10) else expect_gt(gap, 1e-4)
+  }
+
+  # Kept in two groups, they inform the contrasts through the shared
+  # coefficient of pre_missing, and the tests differ from those of "drop";
+  # the count is still that of "drop". The pretested groups of A and B have
+  # 6 participants: 2 of A and 1 of B lack a pretest.
+  d <- aht_data(8875412, 2, c(6, 6, 8, 8, 8, 8))
+  d$y_pre[which(d$condition == "A" & d$pretested == 1L)[1:2]] <- NA
+  d$y_pre[which(d$condition == "B" & d$pretested == 1L)[1]] <- NA
+  drop <- fit_with(d, "drop")
+  indicator <- fit_with(d, "indicator")
+  expect_match(message_of(drop), sprintf(pretested_a, 4L), fixed = TRUE)
+  expect_match(message_of(indicator), paste0(sprintf(pretested_a, 4L), note), fixed = TRUE)
+  expect_gt(max(abs(indicator$value$omnibus$df2 - drop$value$omnibus$df2)), 1)
+
+  # A group named without such participants: no note. The pretested group
+  # of A has 4, all with a pretest, and 1 of B lacks one.
+  d <- aht_data(8875413, 2, c(4, 8, 8, 8, 8, 8))
+  d$y_pre[which(d$condition == "B" & d$pretested == 1L)[1]] <- NA
+  indicator <- fit_with(d, "indicator")
+  expect_match(message_of(indicator), sprintf(pretested_a, 4L), fixed = TRUE)
+  expect_no_match(message_of(indicator), note, fixed = TRUE)
 })
 
 test_that("only the AHT tests warn", {

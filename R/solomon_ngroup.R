@@ -656,10 +656,16 @@
   if (negbin) family <- stats::family(fit)
 
   # Analyzable participants (the rows the model kept) in each of the
-  # 2(k + 1) groups.
+  # 2(k + 1) groups, and the same table without the participants that
+  # missing_pretest = "indicator" keeps without a pretest (issue #142),
+  # which is the table of "drop".
   counts <- table(
     factor(df$condition[used], levels = lev),
     factor(df$pretested[used], levels = c(1L, 0L))
+  )
+  with_pretest <- table(
+    factor(df$condition[used & !kept], levels = lev),
+    factor(df$pretested[used & !kept], levels = c(1L, 0L))
   )
 
   # An empty group, or a term collinear with the others, leaves a
@@ -668,12 +674,7 @@
   # the values given, as in the four-group model (.collinear_positions()).
   # Under the indicator, a pretested group whose participants all lack a
   # pretest stops first, as in the four-group model (.stop_no_pretest()).
-  if (indicator) {
-    .stop_no_pretest(counts, table(
-      factor(df$condition[used & !kept], levels = lev),
-      factor(df$pretested[used & !kept], levels = c(1L, 0L))
-    ))
-  }
+  if (indicator) .stop_no_pretest(counts, with_pretest)
   .stop_inestimable(fit_given, .group_names(counts, counts == 0))
   .stop_inestimable(fit, .group_names(counts, counts == 0),
                     noise = .representation_error(fit, fit_given, scaling, pretest_mean),
@@ -1087,17 +1088,29 @@
   # 2(k + 1) groups, Condition | pretested the pretested groups, and
   # Condition | unpretested the unpretested groups. Both conditions depend
   # on the group sizes and the covariates, not on the outcomes.
+  # In a pretested group, only the participants with a pretest are counted
+  # (issue #142), so "indicator" warns as "drop" does on the same data.
+  # Those kept without a pretest inform a contrast of the groups' means
+  # only together with those kept in other groups, through the shared
+  # coefficient of the indicator. When only one is kept, or they all lie
+  # in one group and the model has no covariates, they inform none: the
+  # model's columns split into those of "drop", on the other participants,
+  # and the indicator, on them, so the contrasts tested, their HC2
+  # covariance, and the hat values of the others are those of "drop", and
+  # so are the AHT tests (a derivation, checked in test-ngroup-aht.R).
   if (aht || robust == "CR2") {
     few_df <- is.finite(omnibus$df2) & omnibus$df2 <= 4
     need <- as.integer(floor(3 + 4 / (k + 1))) + 1L
-    small <- aht & counts < need
+    small <- aht & with_pretest < need
     if (any(few_df) || any(small)) {
       .warn_aht_small_df(
         tests = omnibus$test[few_df], df2 = omnibus$df2[few_df],
-        groups = .group_names(counts, small), sizes = counts[small], need = need,
+        groups = .group_names(with_pretest, small), sizes = with_pretest[small],
+        need = need,
         compared = unname(omnibus_labels[c(
           any(small), any(small), any(small[, "1"]), any(small[, "0"])
         )]),
+        uncounted = any(small & counts > with_pretest),
         clustered = robust == "CR2"
       )
     }
