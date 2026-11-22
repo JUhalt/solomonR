@@ -768,6 +768,10 @@ drops, without saying so, a covariate given as a vector or a matrix —
 [\#146](https://github.com/JUhalt/solomonR/issues/146); merged in [PR
 \#155](https://github.com/JUhalt/solomonR/pull/155)
 
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+leaves out a participant with a missing covariate without saying so —
+[\#193](https://github.com/JUhalt/solomonR/issues/193)
+
 [`marginal_solomon()`](https://juhalt.github.io/solomonR/reference/marginal_solomon.md)
 and
 [`plot_sensitization()`](https://juhalt.github.io/solomonR/reference/plot_sensitization.md)
@@ -821,6 +825,10 @@ Contrasts on a link scale named by that scale —
 [\#114](https://github.com/JUhalt/solomonR/issues/114); merged in [PR
 \#121](https://github.com/JUhalt/solomonR/pull/121)
 
+Reference lists that follow the session’s collation, as `.apa_sort()`
+orders with [`order()`](https://rdrr.io/r/base/order.html) —
+[\#191](https://github.com/JUhalt/solomonR/issues/191)
+
 **Inference**
 
 A warning when the difference statistic of the permutation test is used
@@ -832,6 +840,11 @@ Satterthwaite inference by default in
 [`fit_solomon_ml()`](https://juhalt.github.io/solomonR/reference/fit_solomon_ml.md)
 — [\#115](https://github.com/JUhalt/solomonR/issues/115); merged in [PR
 \#124](https://github.com/JUhalt/solomonR/pull/124)
+
+[`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)
+without a significance test of the baseline difference after random
+assignment (`assignment =`) —
+[\#192](https://github.com/JUhalt/solomonR/issues/192)
 
 Permutations tied with the observed statistic counted exactly in
 [`perm_solomon()`](https://juhalt.github.io/solomonR/reference/perm_solomon.md)
