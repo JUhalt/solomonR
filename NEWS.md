@@ -125,11 +125,13 @@
   without one, the fit stops and names the group. See "Pretested
   participants without a pretest" in `?fit_solomon_glm`.
 * **The default is unchanged.** `"drop"`, the default, leaves these
-  participants out, as before, so no estimate, standard error, or test
-  of an existing call changes: a fixture made by the previous master
-  checks, on a battery of fits, that `"drop"`, and any fit in which no
-  pretested participant analyzed lacks a pretest, give identical
-  results. The default will follow the rules posted on #142 once its
+  participants out, as before, so `missing_pretest` changes no estimate,
+  standard error, or test of an existing call: a fixture made by the
+  previous master checks, on a battery of fits, that `"drop"`, and any
+  fit in which no pretested participant analyzed lacks a pretest, give
+  identical results, apart from the omnibus tests of designs with several
+  treatments and the lines that describe them, which change with #45
+  (above). The default will follow the rules posted on #142 once its
   validation study has run.
 * **Printed under either handling.** Whenever such a participant is
   present, the print of `fit_solomon_glm()`, of its summary, and of
