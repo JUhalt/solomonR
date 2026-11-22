@@ -132,13 +132,16 @@ expect_reserved <- function(expr, name, note, info = NULL) {
 }
 
 # The sentences that say which names are reserved: in a fit, by its design,
-# and in check_solomon_missing() without numeric pretests.
+# and in check_solomon_missing() without numeric pretests. pre_missing, the
+# indicator of a missing pretest, is reserved in every fit too (issue #142;
+# test-missing-pretest.R).
 reserved_four_note <- paste("Names reserved in this design: y, treat, pretested, pre_obs,",
-                            "condition, log_exposure.")
+                            "condition, pre_missing, log_exposure.")
 reserved_six_note <- paste("Names reserved in this design: y, condition, pretested, treat_A,",
-                           "treat_B, pre_obs, log_exposure.")
-reserved_missing_note <- paste("fit_solomon_glm() reserves the names pre_obs, condition, and",
-                               "log_exposure in every fit, with a pretest or without.")
+                           "treat_B, pre_obs, pre_missing, log_exposure.")
+reserved_missing_note <- paste("fit_solomon_glm() reserves the names pre_obs, condition,",
+                               "pre_missing, and log_exposure in every fit, with a pretest or",
+                               "without.")
 
 
 test_that("fit_solomon_glm() refuses a covariate named pre_obs or condition in every fit", {

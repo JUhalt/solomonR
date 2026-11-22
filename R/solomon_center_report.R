@@ -22,8 +22,8 @@
 .center_phrase <- function(x, center, digits, posttest = "without a posttest") {
   n <- x$pretest_n
   if (center == "analyzed") {
-    return(sprintf("the mean pretest score of the %d pretested participants analyzed (%s)",
-                   n[["analyzed"]], .apa_num(x$pretest_mean_analyzed, digits)))
+    return(sprintf("the mean pretest score of the %d pretested participants analyzed%s (%s)",
+                   n[["analyzed"]], .analyzed_with_pretest(x), .apa_num(x$pretest_mean_analyzed, digits)))
   }
   sprintf(paste("the mean of every observed pretest score among the pretested participants",
                 "(%s; %d participants, %s)"),
@@ -310,4 +310,163 @@
               ""
             })
   )
+}
+
+# ---- pretested participants without a pretest (issue #142) -------------------------
+
+# The sentences report_solomon() adds on the pretested participants who
+# have a posttest but no pretest (issue #142): how many there are and how
+# they were handled, with what that assumes; the pretest effects under the
+# other handling; and, where they apply, the sentences on one such
+# participant and on separation. `other_text` gives the pretest effects
+# under the other handling as a clause ("the pretest effect was ..."), and
+# `outcome` words the posttest ("an outcome" for marginal_solomon()).
+# character(0) when there is no such participant and for fits made before
+# #142.
+.missing_pretest_sentences <- function(x, digits, other_text, outcome = "a posttest",
+                                       marginal = FALSE) {
+  s <- x$missing_pretest_sensitivity
+  n <- x$n_missing_pretest
+  if (is.null(x$missing_pretest) || is.null(n) || !isTRUE(sum(n) > 0L)) return(character(0))
+  k <- sum(n)
+  kept <- identical(x$missing_pretest, "indicator")
+  counts <- .series_and(sprintf("%d in the %s condition", n[n > 0L], names(n)[n > 0L]))
+  share <- .pct(x$missing_pretest_share)
+  handled <- if (kept) {
+    sprintf(paste0(
+      "Of the pretested participants analyzed, %d (%s) had %s but no pretest score (%s). ",
+      "%s kept by the missing-indicator method (Groenwold et al., 2012): their ",
+      "centered pretest score was set to 0, an indicator marked them, and %s. This assumes ",
+      "that losing the pretest did not depend on the treatment condition."
+    ), k, share, outcome, counts, if (k == 1L) "That participant was" else "They were",
+    if (marginal) {
+      paste("the pretested cells averaged the predictions of the participants with and",
+            "without a pretest, each at their own value of the indicator")
+    } else {
+      "the pretest effects were standardized over all the pretested participants analyzed"
+    })
+  } else {
+    sprintf(paste0(
+      "Pretested participants who had %s but no pretest score were excluded from the model ",
+      "(%d: %s). For the pretest effects, that assumes that, within each pretested ",
+      "condition, they would have had the same mean %s as the participants with a pretest ",
+      "score."
+    ), outcome, k, counts, if (marginal) "outcome" else "posttest")
+  }
+  other <- if (!is.null(other_text)) {
+    if (kept) {
+      sprintf("With %s excluded instead, %s.",
+              if (k == 1L) "this participant" else "these participants", other_text)
+    } else {
+      sprintf(paste0("With %s kept by the missing-indicator method (Groenwold et al., 2012), ",
+                     "%s."), if (k == 1L) "this participant" else "them", other_text)
+    }
+  }
+  separation <- if (!is.null(s) && !identical(s$separation, 0L)) {
+    binary <- if (marginal) identical(x$outcome, "binary") else {
+      x$family$family %in% c("binomial", "quasibinomial")
+    }
+    shared <- if (!binary) "a count of 0" else if (s$separation < 0) "the outcome 0" else
+      "the outcome 1"
+    # One participant, as the print says, or several; a single participant
+    # kept with a binary outcome is always separated.
+    who <- if (k == 1L) "That participant" else "Every such participant"
+    if (marginal) {
+      sprintf(paste0(
+        "%s had %s, so the indicator's coefficient had no finite ",
+        "estimate (separation; Albert & Anderson, 1984); with them kept, their %s set to ",
+        "that outcome, the limit of the fit."
+      ), who, shared, if (binary) "risks were" else "rates were")
+    } else {
+      sprintf(paste0(
+        "%s had %s, so the indicator's coefficient had no finite ",
+        "estimate on the %s scale (separation; Albert & Anderson, 1984), and the pretest ",
+        "effects with them kept are %sinfinite on that scale, without a standard error; ",
+        "they can be estimated from standardized %s."
+      ), who, shared, .center_scale(x$family), if (s$separation < 0) "negatively " else "",
+      if (binary) "risks" else "rates")
+    }
+  }
+  single <- if (k == 1L && kept && !marginal && is.null(separation)) {
+    paste0(
+      "With one such participant, the indicator fitted that participant exactly, so the ",
+      "treatment contrasts equal those of the analysis that excludes the participant.",
+      if (identical(x$robust, "HC3")) {
+        " The pretest effects then have no HC3 standard error."
+      } else if (identical(x$robust, "CR2")) {
+        paste0(" The CR2 standard errors of the pretest effects leave out the variance of ",
+               "that participant's posttest.")
+      }
+    )
+  }
+  c(handled, other, separation, single)
+}
+
+# The pretest effects under the other handling as a clause, from the rows
+# of `missing_pretest_sensitivity$effects` (`e`) and the column of the
+# other handling (`column`): for a four-group fit, among control and among
+# treated participants and their average; for several treatments, in each
+# condition and averaged over the conditions. A value that is not finite
+# is worded.
+.other_handling_clause <- function(e, column, digits) {
+  value <- function(v) {
+    if (is.na(v)) "not available" else if (is.finite(v)) .apa_num(v, digits) else
+      if (v < 0) "minus infinity" else "infinity"
+  }
+  v <- vapply(e[[column]], value, "")
+  if ("comparison" %in% names(e)) {
+    main <- e$contrast == .solomon_pretest_order[3]
+    return(sprintf(
+      "the pretest effect was %s; averaged over the conditions, the pretest main effect was %s",
+      .series_and(sprintf("%s in the %s condition", v[!main], e$comparison[!main])), v[main]
+    ))
+  }
+  at <- match(.solomon_pretest_order, e$contrast)
+  sprintf(paste0("the pretest effect was %s among control participants and %s among treated ",
+                 "participants, and the pretest main effect was %s"), v[at[1]], v[at[2]], v[at[3]])
+}
+
+# The sentences of a four-group or several-treatment fit.
+.fit_missing_pretest_sentences <- function(x, digits) {
+  s <- x$missing_pretest_sensitivity
+  if (is.null(s)) return(character(0))
+  column <- if (identical(x$missing_pretest, "indicator")) "dropped" else "kept"
+  .missing_pretest_sentences(x, digits, .other_handling_clause(s$effects, column, digits))
+}
+
+# The sentences of a marginal_solomon() result: the pretest effects under
+# the other handling on each scale.
+.marginal_missing_pretest_sentences <- function(x, digits) {
+  s <- x$missing_pretest_sensitivity
+  if (is.null(s)) return(character(0))
+  column <- if (identical(x$missing_pretest, "indicator")) "dropped" else "kept"
+  e <- s$effects
+  by_scale <- vapply(unique(e$scale), function(sc) {
+    r <- e[e$scale == sc, , drop = FALSE]
+    r <- r[match(.solomon_pretest_order, r$contrast), , drop = FALSE]
+    v <- ifelse(is.na(r[[column]]), "not available", .apa_num(r[[column]], digits))
+    sprintf("on the %s scale, %s among control participants, %s among treated participants, and %s for the pretest main effect",
+            tolower(sc), v[1], v[2], v[3])
+  }, "")
+  .missing_pretest_sentences(
+    x, digits, paste("the pretest effects were as follows:", paste(by_scale, collapse = "; ")),
+    outcome = "an outcome", marginal = TRUE
+  )
+}
+
+# The references of those sentences: Groenwold et al. (2012) for the
+# method, and Albert and Anderson (1984) under separation.
+.missing_pretest_refs <- function(x) {
+  s <- x$missing_pretest_sensitivity
+  if (is.null(x$missing_pretest) || is.null(s)) return(character(0))
+  c("groenwold2012", if (!identical(s$separation, 0L)) "albert1984")
+}
+
+# Whether the pretest effects of a fit are infinite because the indicator
+# separates the outcome: the report then leaves out their sentence, which
+# the sentences above replace.
+.pretest_effects_separated <- function(x) {
+  identical(x$missing_pretest, "indicator") &&
+    !is.null(x$missing_pretest_sensitivity) &&
+    !identical(x$missing_pretest_sensitivity$separation, 0L)
 }

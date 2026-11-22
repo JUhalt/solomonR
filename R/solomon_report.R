@@ -461,19 +461,32 @@
 
   used <- .glm_rows_used(fit)
 
+  # When the indicator of a missing pretest separates the outcome, the
+  # pretest effects are infinite on the model's scale (issue #142): their
+  # sentence, and the sentences on the two centers, are left out, and the
+  # sentences on the participants without a pretest say so.
+  separated <- .pretest_effects_separated(fit)
+  effects <- if (separated) {
+    fit$effects[!fit$effects$contrast %in% .solomon_pretest_order, , drop = FALSE]
+  } else {
+    fit$effects
+  }
+
   list(
     method = method,
     results = c(
-      .four_group_sentences(fit$effects, fit$conf_level, digits, md, .null_na(fit$pretest_mean),
+      .four_group_sentences(effects, fit$conf_level, digits, md, .null_na(fit$pretest_mean),
                             pretest_center = fit$pretest_center),
       p$pretest_caution,
       # The two pretest centers and the attrition, when posttests are
       # missing (issue #135).
-      .four_group_center_sentences(fit, digits, md),
-      .attrition_sentences(.fit_attrition(fit), is.finite(.null_na(fit$pretest_mean)))
+      if (!separated) .four_group_center_sentences(fit, digits, md),
+      .attrition_sentences(.fit_attrition(fit), is.finite(.null_na(fit$pretest_mean))),
+      # The pretested participants without a pretest (issue #142).
+      .fit_missing_pretest_sentences(fit, digits)
     ),
     table = fit$effects,
-    refs = p$refs,
+    refs = c(p$refs, .missing_pretest_refs(fit)),
     cells = .cell_counts(fit$data$treat[used], fit$data$pretested[used])
   )
 }
@@ -660,19 +673,26 @@
   # The pretest effect in each condition and averaged over the conditions
   # (issue #104); the treatments' pretest effects are adjusted across the
   # treatments.
+  # When the indicator of a missing pretest separates the outcome, the
+  # pretest effects are infinite on the model's scale (issue #142), and
+  # their sentences are left out, as for four groups.
+  separated <- .pretest_effects_separated(fit)
   pretest <- .ngroup_pretest_sentences(fit, digits, md)
-  if (length(pretest$results)) {
+  if (length(pretest$results) && !separated) {
     method <- paste(c(method, pretest$method), collapse = " ")
     results <- c(results, pretest$results, p$pretest_caution)
     refs <- c(refs, pretest$refs)
   }
   # The two pretest centers and the attrition, when posttests are missing
-  # (issue #135), at the end of the last paragraph.
-  added <- c(.ngroup_center_sentences(fit, digits, md),
-             .attrition_sentences(.fit_attrition(fit), is.finite(.null_na(fit$pretest_mean))))
+  # (issue #135), and the pretested participants without a pretest (issue
+  # #142), at the end of the last paragraph.
+  added <- c(if (!separated) .ngroup_center_sentences(fit, digits, md),
+             .attrition_sentences(.fit_attrition(fit), is.finite(.null_na(fit$pretest_mean))),
+             .fit_missing_pretest_sentences(fit, digits))
   if (length(added)) {
     results[length(results)] <- paste(c(results[length(results)], added), collapse = " ")
   }
+  refs <- c(refs, .missing_pretest_refs(fit))
 
   used <- .glm_rows_used(fit)
 
@@ -968,8 +988,11 @@
   # "observed" standardization, whether or not they differ (issue #171);
   # and the attrition whenever an outcome is missing.
   results <- c(results, .marginal_center_sentences(fit, digits),
-               .attrition_sentences(fit$attrition, FALSE, "Outcomes were missing"))
-  list(method = method, results = results, table = fit$effects, refs = refs, cells = NULL)
+               .attrition_sentences(fit$attrition, FALSE, "Outcomes were missing"),
+               # The pretested participants without a pretest (issue #142).
+               .marginal_missing_pretest_sentences(fit, digits))
+  list(method = method, results = results, table = fit$effects,
+       refs = c(refs, .missing_pretest_refs(fit)), cells = NULL)
 }
 
 .report_equivalence <- function(fit, digits, md) {

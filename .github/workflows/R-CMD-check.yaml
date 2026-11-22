@@ -26,10 +26,8 @@ jobs:
           - {os: ubuntu-latest, r: 'release'}
           - {os: ubuntu-latest, r: 'oldrel-1'}
           - {os: ubuntu-latest, r: 'devel', http-user-agent: 'release'}
-          # The minimum R version that DESCRIPTION declares. S7 1.0.0
-          # (November 19, 2026) needs R >= 4.2 and ggplot2 imports S7, so
-          # this job installs S7 0.2.2, the last release that supports R 4.1.
-          - {os: ubuntu-latest, r: '4.1', extra-packages: 'any::rcmdcheck, S7@0.2.2'}
+          # The minimum R version that DESCRIPTION declares.
+          - {os: ubuntu-latest, r: '4.2'}
 
     steps:
       - uses: actions/checkout@v7
@@ -52,7 +50,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: ${{ matrix.config.extra-packages || 'any::rcmdcheck' }}
+          extra-packages: any::rcmdcheck
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2

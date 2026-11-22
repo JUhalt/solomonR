@@ -20,7 +20,8 @@
 }
 
 # Participants analyzed, their groups, their row numbers in the data as
-# given (`rows`), and the number excluded.
+# given (`rows`), the number excluded, and how many of those are pretested
+# participants without a pretest (`excluded_pretest`; issue #142).
 .mi_prepare <- function(y_post, treat, pretested, y_pre) {
   treat <- .solomon_indicator(treat, "treat")
   pretested <- .solomon_indicator(pretested, "pretested")
@@ -30,6 +31,7 @@
          call. = FALSE)
   }
   keep <- !is.na(treat) & !is.na(pretested)
+  excluded_pretest <- 0L
   if (!is.null(y_pre)) {
     if (!is.numeric(y_pre)) stop("`y_pre` must be numeric.", call. = FALSE)
     if (any(pretested == 0L & !is.na(y_pre), na.rm = TRUE)) {
@@ -42,6 +44,7 @@
       warning(sum(no_pre), " pretested participant(s) have missing pretest scores and ",
               "are excluded. Missing pretests are not imputed; see check_solomon_missing().",
               call. = FALSE)
+      excluded_pretest <- sum(no_pre)
       keep <- keep & !no_pre
     }
   }
@@ -50,7 +53,8 @@
     y_pre = if (!is.null(y_pre)) y_pre[keep],
     group = .solomon_group(treat[keep], pretested[keep]),
     rows = which(keep),
-    excluded = sum(!keep)
+    excluded = sum(!keep),
+    excluded_pretest = excluded_pretest
   )
 }
 
@@ -272,8 +276,15 @@
 #'
 #' **Structural and incidental missingness.** Pretests absent by design are
 #' never imputed. Pretested participants with a missing pretest are excluded
-#' with a warning, as in [fit_solomon_glm()]; [check_solomon_missing()]
-#' describes the options for them.
+#' with a warning, as `missing_pretest = "drop"` excludes them in
+#' [fit_solomon_glm()], and the print says how many and why. For the
+#' pretest effects, that assumes that in each pretested group those without
+#' a pretest would have had the same mean posttest as those with one; when
+#' their loss relates to baseline, the pretest effects are biased (see
+#' "Pretested participants without a pretest" in [fit_solomon_glm()]).
+#' Keeping them by the missing-indicator method, with the indicator in the
+#' imputation model as well, waits for an amendment to the protocol of
+#' issue #82. [check_solomon_missing()] describes the options for them.
 #'
 #' **The pretest center.** Only the four treatment contrasts are pooled,
 #' and they do not depend on the mean pretest at which the pretested groups
@@ -349,8 +360,10 @@
 #'   - `m`: the number of imputations.
 #'   - `missing`: the posttests missing in each group (`group`, `n`,
 #'     `missing`, and `proportion`).
-#'   - `excluded`: the number of pretested participants left out because
-#'     their pretest was missing.
+#'   - `excluded`: the number of participants left out, because their
+#'     pretest was missing or their treatment or pretest condition was not
+#'     recorded, and `excluded_pretest`, how many of them are pretested
+#'     participants without a pretest.
 #'   - `estimates` and `std_errors`: the estimates and standard errors of
 #'     each imputation, one row for each imputation and one column for each
 #'     contrast.
@@ -460,6 +473,7 @@ fit_solomon_mi <- function(y_post, treat, pretested, y_pre = NULL, delta = 0, m 
       m = m,
       missing = .mi_missing_table(d),
       excluded = d$excluded,
+      excluded_pretest = d$excluded_pretest,
       pretest = !is.null(d$y_pre),
       estimates = est,
       std_errors = se,
@@ -489,7 +503,14 @@ print.solomon_mi <- function(x, digits = 3, ...) {
   cat("Missing posttests: ",
       paste(sprintf("%d of %d (%s)", miss$missing, miss$n, miss$group), collapse = "; "),
       "\n", sep = "")
-  if (x$excluded > 0L) cat("Excluded participants: ", x$excluded, "\n", sep = "")
+  if (x$excluded > 0L) {
+    cat("Excluded participants: ", x$excluded, "\n", sep = "")
+    # Fits made by earlier versions do not say how many of them are
+    # pretested participants without a pretest.
+    if (isTRUE(x$excluded_pretest > 0L)) {
+      cat(.excluded_pretest_lines(x$excluded_pretest, of = x$excluded), sep = "\n")
+    }
+  }
   cat("Pooling: Rubin's rules; Barnard-Rubin degrees of freedom; ",
       if (x$robust == "HC3") "HC3 standard errors" else "model-based standard errors",
       "\n\n", sep = "")

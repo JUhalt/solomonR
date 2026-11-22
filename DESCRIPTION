@@ -26,7 +26,7 @@ Copyright: See the file inst/COPYRIGHTS for the copyright holders and
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
-Depends: R (>= 4.1)
+Depends: R (>= 4.2)
 Imports:
     stats,
     sandwich,

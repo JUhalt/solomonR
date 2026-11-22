@@ -109,6 +109,15 @@
 #' `pretest_center = "observed"` keeps their pretests instead. See "The
 #' pretest effect when posttests are missing" in [fit_solomon_glm()].
 #'
+#' A pretested participant without a pretest stops the fit too. Removing
+#' such participants before the call is the analysis of
+#' [fit_solomon_glm()] with `missing_pretest = "drop"`: for the pretest
+#' effects, it assumes that in each pretested group those without a pretest
+#' would have had the same mean posttest as those with one, and when their
+#' loss relates to baseline the pretest effects are biased (see "Pretested
+#' participants without a pretest" in [fit_solomon_glm()], whose
+#' `missing_pretest = "indicator"` keeps them).
+#'
 #' @param y_post Numeric posttest scores.
 #' @param treat Treatment indicator coded 0 = control and 1 = treatment.
 #'   Designs with several treatments are not supported; see

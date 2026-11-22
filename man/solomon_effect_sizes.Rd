@@ -56,7 +56,12 @@ correlation \code{r}, assumed equal in the two groups. Morris (2008, p. 374)
 found that Eq. 25 was within 3\% of the simulated variance in most
 conditions. When the treatment inflates posttest variance, however, it
 underestimated the true variance by 21\% to 48\% (p. 380), and a correlation
-that differs between the groups can make it less accurate still.
+that differs between the groups can make it less accurate still. The
+pre-post change and \code{r} need each participant's two scores, so the
+pretested groups' summaries should be those of the participants with
+both; a pretested participant with a posttest but no pretest is then
+left out, as in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} with \code{missing_pretest = "drop"}
+(issue #142).
 
 \strong{Unpretested pair.} The effect size is Hedges's g for the two posttest
 groups, with the pooled posttest standard deviation. Its variance comes

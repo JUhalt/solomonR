@@ -126,6 +126,12 @@
 # The rows are applied to the fit's coefficients by position, so a fit made
 # before issue #170 whose model matrix no longer codes its covariates as the
 # fit did stops (.check_fit_collation()).
+#
+# In a fit with the missing-indicator method (issue #142), the indicator is
+# not a covariate: it is at its mean among the pretested participants in
+# the model in the pretested cells, and at 0 in the unpretested cells, so
+# that the differences between the cells are the fit's pretest effects
+# (.indicator_cells()).
 .glm_cell_means_design <- function(fit) {
   X <- .check_fit_collation(fit)
   cn <- colnames(X)
@@ -141,9 +147,10 @@
   if (.has_pretest_column(fit, X)) L[, "pre_obs"] <- cells$pretested * pre_mean
 
   design_cols <- c("(Intercept)", "treat", "pretested", "treat:pretested", "pre_obs")
-  for (j in .covariate_columns(fit, X, design_cols)) {
+  for (j in setdiff(.covariate_columns(fit, X, design_cols), .indicator_position(fit))) {
     L[, j] <- mean(X[, j])
   }
+  L <- .indicator_cells(fit, L, cells$pretested)
 
   list(L = L, cells = cells, pretest_mean = .raw_pretest_mean(fit, pre_mean))
 }
@@ -198,9 +205,11 @@
   if (.has_pretest_column(fit, X)) L[, "pre_obs"] <- cells$pretested * pre_mean
 
   design_cols <- c("(Intercept)", terms, "pretested", interactions, "pre_obs")
-  for (j in .covariate_columns(fit, X, design_cols)) {
+  for (j in setdiff(.covariate_columns(fit, X, design_cols), .indicator_position(fit))) {
     L[, j] <- mean(X[, j])
   }
+  # The indicator of a missing pretest, as for four groups (issue #142).
+  L <- .indicator_cells(fit, L, cells$pretested)
 
   list(L = L, cells = cells, pretest_mean = .raw_pretest_mean(fit, pre_mean))
 }
@@ -320,7 +329,20 @@
 #' covariates at their sample means. With missing posttests that mean is the
 #' fit's pretest center, chosen by `pretest_center` in [fit_solomon_glm()];
 #' when the two centers differ, the caption names the center used and gives
-#' the other (issue #135). Because neither model has a
+#' the other (issue #135). For a fit with `missing_pretest = "indicator"`
+#' that keeps pretested participants without a pretest (issue #142), the
+#' pretested groups' means also have the indicator at its mean among the
+#' pretested participants analyzed, and the unpretested groups' at 0, so
+#' that the differences between the plotted means are the fit's pretest
+#' effects; the caption gives the number kept. With one such participant
+#' the pretested groups' means have no HC3 interval, by the rule of "HC3 at
+#' leverage 1" in [fit_solomon_glm()]. When every such participant has the
+#' same binary outcome, or a count of 0, those means are infinite on the
+#' model's scale, and the figure stops with an error of class
+#' `solomonR_missing_pretest_separation_error`. With `missing_pretest =
+#' "drop"`, the default, the figure leaves them out, as the fit does; see
+#' "Pretested participants without a pretest" in [fit_solomon_glm()] for
+#' what each handling assumes. Because neither model has a
 #' treatment-by-pretest-score term, the difference of differences among these
 #' adjusted means equals the fitted Pretest x Treatment estimate exactly.
 #' Observed cell means are shown as hollow points for comparison.

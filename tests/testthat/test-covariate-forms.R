@@ -602,8 +602,9 @@ test_that("check_solomon_missing() stops on a reserved name, as fit_solomon_glm(
   expect_false(is.null(kept$gap))
   expect_false(is.null(kept$unpretested))
   # Without a pretest there is no fit behind a gap, and loss is shown by a
-  # covariate of any name but pre_obs, condition, and log_exposure, which
-  # every fit reserves (issue #174; test-reserved-names.R).
+  # covariate of any name but pre_obs, condition, pre_missing, and
+  # log_exposure, which every fit reserves (issues #174 and #142;
+  # test-reserved-names.R).
   expect_identical(
     names(check_solomon_missing(d$y_post, d$treat, d$pretested, covariates = y)$covariates),
     "y"

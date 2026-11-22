@@ -1,5 +1,13 @@
 # solomonR (development version)
 
+## R 4.2 or later is required
+
+* solomonR now requires R 4.2.0 or later; it required R 4.1.0. ggplot2,
+  which solomonR imports, imports S7, and S7 1.0.0 (released on CRAN on
+  November 19, 2026) requires R 4.2.0, so a new installation on R 4.1
+  could no longer install the current ggplot2. No code of solomonR changes. The check
+  of the oldest supported version of R now runs on R 4.2.
+
 ## Small-sample omnibus tests for designs with several treatments (#45)
 
 * **A change in results.** With several treatments, a Gaussian outcome
@@ -94,6 +102,96 @@
   HC3 fits, which the package no longer computes. That comparison holds
   at the commit that the study records.
 * Zhang (2013) joins the reference list.
+
+## Pretested participants without a pretest (#142)
+
+* **New: `missing_pretest = "indicator"`.** `fit_solomon_glm()` gains
+  `missing_pretest = c("drop", "indicator")`, for four groups and for
+  several treatments. `"indicator"` keeps a pretested participant who
+  has a posttest but no pretest by the missing-indicator method
+  (Groenwold et al., 2012): their centered pretest is set to 0, a 0/1
+  column, `pre_missing`, marks them, both pretest centers are computed
+  from observed pretests only, and each pretest effect is standardized
+  over all the pretested participants analyzed, with a pretest or
+  without, which is the package's own step. The standard errors of the
+  pretest effects include the sampling variance of the indicator's mean,
+  stacked with the model's and the center's estimating equations
+  (Stefanski & Boos, 2002). The method assumes that losing the pretest
+  did not depend on the treatment condition. Each pretested group needs
+  at least one participant analyzed with a pretest, as under `"drop"`;
+  without one, the fit stops and names the group. See "Pretested
+  participants without a pretest" in `?fit_solomon_glm`.
+* **The default is unchanged.** `"drop"`, the default, leaves these
+  participants out, as before, so no estimate, standard error, or test
+  of an existing call changes: a fixture made by the previous master
+  checks, on a battery of fits, that `"drop"`, and any fit in which no
+  pretested participant analyzed lacks a pretest, give identical
+  results. The default will follow the rules posted on #142 once its
+  validation study has run.
+* **Printed under either handling.** Whenever such a participant is
+  present, the print of `fit_solomon_glm()`, of its summary, and of
+  `marginal_solomon()` gives their number, the pretest effects with them
+  kept and dropped and the difference, their mean posttest beside that
+  of the participants with a pretest, and an arm check, which is a
+  description until the validation study has run. `report_solomon()`
+  gives their number, what the handling assumes, and the pretest
+  effects under the other handling.
+  The fits return `missing_pretest`, `n_missing_pretest`,
+  `missing_pretest_share`, `missing_pretest_sensitivity`, and
+  `missing_pretest_arm_check`. The warning on missing pretests names the
+  handling and now has the class `solomonR_missing_pretest_warning`.
+* **One such participant, or separation.** With exactly one, the
+  indicator fits that participant exactly: the treatment contrasts equal
+  those of `"drop"`, and under HC3 the pretest effects have no standard
+  error, by the rule of #173, with a warning that names the indicator.
+  Under CR2, to which that rule does not apply, they keep one, which
+  leaves out the variance of that participant's posttest; the help and
+  the print say so.
+  When every participant kept has the same binary outcome, or a count of
+  0, the indicator's coefficient has no finite estimate (Albert &
+  Anderson, 1984): the pretest effects are then infinite on the model's
+  scale, with no standard error, and the classed warning
+  `solomonR_missing_pretest_separation_warning` says so.
+* **`marginal_solomon()` and `plot_sensitization()`.** For a fit with
+  the indicator, `marginal_solomon()` standardizes each participant with
+  their own value of it, in two strata under
+  `pretest_center = "observed"`. Its bootstrap refits a resample that
+  draws no participant kept without a pretest without the indicator,
+  where such a resample failed before, and sets the fitted risks of kept
+  participants who share an outcome to that outcome, refitting the
+  others without them; `indicator_refits` counts both.
+  `plot_sensitization()` draws the pretested groups at the indicator's
+  mean.
+* **`check_solomon_missing()`.** Item 7 is rewritten as "Pretested
+  participants without a pretest": the counts of each pretested
+  condition by the scores its participants have (7a); the mean posttest
+  without and with a pretest, with Welch's (1947) t test (7b); the
+  pretest effects with them kept and dropped (7c); and the arm check
+  (7d), the observed pretests by condition as Hedges' g with Welch's t
+  test (Kayembe et al., 2020) and the shares without a pretest with
+  Fisher's exact test, printed as a description. `missing_pretest` gains
+  columns, and the result gains `missing_pretest_effects` and
+  `missing_pretest_arm_check`. The guidance, and the message of
+  `validate_solomon()`, name both ways of handling them and the default.
+* **Other fits.** `fit_solomon_mmrm()` and `fit_solomon_mi()` still
+  exclude these participants, until amendments to the protocols of #57
+  and #82 decide; their prints now say why, and what that assumes.
+  `fit_solomon_ml()` still requires every pretest, and its help says
+  what removing them before the call assumes. `analysis_plan_solomon()`
+  gains `missing_pretest` and states the handling where it wrote
+  "[state how they are handled]". `perm_solomon()` no longer takes the
+  indicator for a covariate that the pretest conditions share. The help
+  pages of `fit_solomon_1949()`, `fit_solomon_classic()`,
+  `fit_solomon_sem()`, `fit_solomon_sem_latent()`,
+  `solomon_from_summary()`, and `solomon_effect_sizes()` say what each
+  does with these participants: the analyses of the posttests of all
+  four groups keep them, those that need both scores leave them out,
+  and the ANCOVA modes of the two SEM fits keep them by full-information
+  maximum likelihood.
+* **A change in behavior: a reserved name.** No covariate can be named
+  `pre_missing`, in any fit, with a pretest or without, as no covariate
+  can be named `pre_obs` or `condition` (#174): such a covariate now
+  stops with an error of class `solomonR_covariate_error`. Rename it.
 
 ## fit_solomon_mmrm(): corrected help text and a print note (#57)
 

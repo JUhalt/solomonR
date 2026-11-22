@@ -94,7 +94,7 @@ occasion; \code{NULL} without \code{y_pre}.
 \item \code{observed}: the number of observed posttests in each group, one
 column for each occasion.
 \item \code{excluded}: the number of pretested participants left out because
-their pretest was missing.
+their pretest was missing (see Details).
 \item \code{pretest} (whether pretest scores were supplied) and \code{data} (the
 design indicators of each participant), which solomonR's own
 functions use.
@@ -212,6 +212,17 @@ them in Solomon designs.
 
 The model is fitted with the mmrm package (Sabanes Bove et al., 2026),
 version 0.3.13 or later, which must be installed.
+
+A pretested participant with no pretest score in any row is excluded,
+with a warning, as \code{missing_pretest = "drop"} excludes them in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}, and the print says how many and why. For the
+pretest effects, that assumes that in each pretested group those without
+a pretest would have had the same mean posttests as those with one; when
+their loss relates to baseline, the pretest effects are biased (see
+"Pretested participants without a pretest" in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}}).
+Keeping them by the missing-indicator method, as
+\code{missing_pretest = "indicator"} does there, waits for an amendment to
+the protocol of issue #57.
 }
 
 \section{Limits}{

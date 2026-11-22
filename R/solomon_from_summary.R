@@ -88,6 +88,10 @@
 #' reproduce published tests only to within rounding: for El Karkri et al.
 #' (2025a), the interaction F is 11.46 against the published 11.48.
 #'
+#' The analysis uses the posttests only, so a pretested participant with a
+#' posttest but no pretest is in it whenever the posttest summaries count
+#' them (issue #142).
+#'
 #' @section Designs with several treatments:
 #' A Solomon N-group design has k treatments and a control, each with and
 #' without a pretest: 2(k + 1) groups (Edmonds & Kennedy, 2017; Steyn, 2009).
@@ -560,7 +564,12 @@ print.solomon_summary_ngroup <- function(x, digits = 3, ...) {
 #' found that Eq. 25 was within 3% of the simulated variance in most
 #' conditions. When the treatment inflates posttest variance, however, it
 #' underestimated the true variance by 21% to 48% (p. 380), and a correlation
-#' that differs between the groups can make it less accurate still.
+#' that differs between the groups can make it less accurate still. The
+#' pre-post change and `r` need each participant's two scores, so the
+#' pretested groups' summaries should be those of the participants with
+#' both; a pretested participant with a posttest but no pretest is then
+#' left out, as in [fit_solomon_glm()] with `missing_pretest = "drop"`
+#' (issue #142).
 #'
 #' **Unpretested pair.** The effect size is Hedges's g for the two posttest
 #' groups, with the pooled posttest standard deviation. Its variance comes
