@@ -71,10 +71,10 @@
   the test is then reported with an arbitrary statistic instead of `NA`.
   In the checks, every such miss came with compared groups whose outcome
   was constant within each group (all of them, or in one design two of
-  three), and the smallest ratios at which misses were found were 300
-  times, with the compared groups the larger (groups of 1,500 against
-  groups of 5), and 7,500 times, with them the smaller (groups of 2
-  among groups of 15,000).
+  three), and, without nearly collinear covariates, the smallest ratios
+  at which misses were found were 300 times, with the compared groups
+  the larger (groups of 1,500 against groups of 5), and 7,500 times,
+  with them the smaller (groups of 2 among groups of 15,000).
   Fits with `robust = "CR2"`, whose omnibus tests come from
   clubSandwich, still stop or give an arbitrary value on such data.
 * The printed heading of the omnibus tests and the method of

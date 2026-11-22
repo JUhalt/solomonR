@@ -235,7 +235,8 @@
 # participant at 0, Condition | pretested had r up to 8.3 with pretested
 # groups 100 times the size of the unpretested ones (500 against 5), and
 # kept a statistic in 8 of 8 fits with groups of 1,500 against 5 (300
-# times), one with p = 1.5e-7 and no warning. There the unpretested
+# times, the smallest ratio at which a miss was found), one with
+# p = 1.5e-7 and no warning. There the unpretested
 # participants, whose g_i are 0 in exact arithmetic, had g_i / sqrt(1 - h_i)
 # with entries up to 1.4e-12 by rounding (weights (g_i' v)^2 up to
 # 1.6e-24), and with residuals up to 0.8 they lifted the root of the
@@ -244,12 +245,12 @@
 # against unpretested groups of 5, r reached 4,229.
 #
 # Compared groups smaller than the others: with every unpretested
-# participant at 0, Condition | unpretested kept a statistic from
-# pretested groups 7,500 times the size of the unpretested ones (groups
-# of 2 among groups of 15,000), and with unpretested groups of 2, 3, 4,
-# 5, 10, and 20 (5 or 10 among 300,000, 20 among 1,000,000), with r up
-# to 54 (computed outside .aht_test(), whose own r can differ from it by
-# a factor of about 4).
+# participant at 0, Condition | unpretested kept a statistic in 6 of 12
+# fits with pretested groups 7,500 times the size of the unpretested ones
+# (groups of 2 among groups of 15,000), the smallest ratio at which a
+# miss was found, and it kept one with unpretested groups of 2, 3, 4, 5,
+# 10, and 20 (5 or 10 among 300,000, 20 among 1,000,000), with r up to
+# 54.
 #
 # Nearly collinear covariates: with every unpretested group constant and
 # two covariates, 0 for the unpretested, that differ by noise of 10^-4

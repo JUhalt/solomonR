@@ -885,8 +885,10 @@ pretested is singular when every pretested participant's score changes
 by the same amount from pretest to posttest, or none changes. The
 unpretested groups have no pretest scores.
 
-Computed residuals are 0 only up to rounding error, so the matrix is
-taken as singular when either holds:
+Computed residuals are 0 only up to rounding error, so the matrix,
+standardized by the contrasts' model-based covariance (it is singular
+exactly when the HC2 matrix is), is taken as singular when either
+holds:
 \itemize{
 \item its reciprocal condition number is below the machine epsilon, the rule
 by which base R's \code{solve()} refuses a matrix;
@@ -914,8 +916,9 @@ an arbitrary statistic instead of \code{NA}. Every such miss in the checks
 came with compared groups whose outcome was constant within each
 group: all of them, or, in one design, two of three (groups of 2 at 0
 among groups of 100,000). With compared groups 100 times the size of
-the others, the root reached 83\% of the root of the bound. The
-smallest ratios of group sizes at which misses were found were 300,
+the others, the root reached 83\% of the root of the bound. Without
+nearly collinear covariates, the smallest ratios of group sizes at
+which misses were found were 300,
 with the compared groups the larger (groups of 1,500 against groups of
 5), and 7,500, with them the smaller (groups of 2 among groups of
 15,000).
