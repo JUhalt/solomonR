@@ -492,8 +492,8 @@ the audit:
   - [x] Latent-variable reports that follow the fit's own invariance
     result — [#112](https://github.com/JUhalt/solomonR/issues/112); merged in [PR #122](https://github.com/JUhalt/solomonR/pull/122)
   - [x] Contrasts on a link scale named by that scale — [#114](https://github.com/JUhalt/solomonR/issues/114); merged in [PR #121](https://github.com/JUhalt/solomonR/pull/121)
-  - [ ] Reference lists that follow the session's collation, as
-    `.apa_sort()` orders with `order()` — [#191](https://github.com/JUhalt/solomonR/issues/191)
+  - [x] Reference lists that follow the session's collation, as
+    `.apa_sort()` orders with `order()` — [#191](https://github.com/JUhalt/solomonR/issues/191); merged in [PR #195](https://github.com/JUhalt/solomonR/pull/195)
 - **Inference**
   - [x] A warning when the difference statistic of the permutation test
     is used with unequal arms — [#113](https://github.com/JUhalt/solomonR/issues/113); merged in [PR #122](https://github.com/JUhalt/solomonR/pull/122)

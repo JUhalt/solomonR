@@ -74,3 +74,69 @@
   groenwold2012 = "Groenwold, R. H. H., White, I. R., Donders, A. R. T., Carpenter, J. R., Altman, D. G., & Moons, K. G. M. (2012). Missing covariate data in clinical research: When and when not to use the missing-indicator method for analysis. *Canadian Medical Association Journal, 184*(11), 1265\u20131269. https://doi.org/10.1503/cmaj.110977",
   albert1984 = "Albert, A., & Anderson, J. A. (1984). On the existence of maximum likelihood estimates in logistic regression models. *Biometrika, 71*(1), 1\u201310. https://doi.org/10.1093/biomet/71.1.1"
 )
+
+# APA 7 order of a reference list (issue #191), by the rule of
+# tools/check-references.R, which checks every reference list of the
+# package and also checks this function's order. Entries are compared
+# letter by letter by the first author's surname and initials, then by the
+# other authors and the year. Spaces and punctuation within a name are
+# ignored, but the end of a surname or of a set of initials comes before
+# any letter (nothing precedes something), so "Brown, J." precedes
+# "Browning, A.", and "Little, R. J." precedes "Little, R. J. A.". Each
+# name and set of initials is therefore a field of its own, ended by a tab.
+# Accented Latin letters count as their base letters (an e with an acute
+# accent counts as e), from a fixed table rather than the platform's
+# iconv. A work with no date ("n.d.") precedes the same authors' dated
+# works. The keys are compared byte by byte (method = "radix"), so the
+# order does not depend on the session's collation: with order() alone,
+# a Czech collation, in which "ch" is a letter after "h", put "Chan"
+# after every surname beginning with "h".
+.apa_accented <- paste0(
+  "\u00e0\u00e1\u00e2\u00e3\u00e4\u00e5\u0101\u0103\u0105\u01ce",       # a
+  "\u00e7\u0107\u0109\u010b\u010d",                                     # c
+  "\u010f\u0111\u00f0",                                                 # d
+  "\u00e8\u00e9\u00ea\u00eb\u0113\u0115\u0117\u0119\u011b",             # e
+  "\u011d\u011f\u0121\u0123",                                           # g
+  "\u0125\u0127",                                                       # h
+  "\u00ec\u00ed\u00ee\u00ef\u0129\u012b\u012d\u012f\u0131\u01d0",       # i
+  "\u0135",                                                             # j
+  "\u0137",                                                             # k
+  "\u013a\u013c\u013e\u0140\u0142",                                     # l
+  "\u00f1\u0144\u0146\u0148",                                           # n
+  "\u00f2\u00f3\u00f4\u00f5\u00f6\u00f8\u014d\u014f\u0151\u01d2",       # o
+  "\u0155\u0157\u0159",                                                 # r
+  "\u015b\u015d\u015f\u0161\u0219",                                     # s
+  "\u0163\u0165\u0167\u021b",                                           # t
+  "\u00f9\u00fa\u00fb\u00fc\u0169\u016b\u016d\u016f\u0171\u0173\u01d4", # u
+  "\u0175",                                                             # w
+  "\u00fd\u00ff\u0177",                                                 # y
+  "\u017a\u017c\u017e"                                                  # z
+)
+.apa_unaccented <- paste(
+  rep(c("a", "c", "d", "e", "g", "h", "i", "j", "k", "l", "n", "o", "r", "s",
+        "t", "u", "w", "y", "z"),
+      c(10, 5, 3, 9, 4, 2, 10, 1, 1, 5, 4, 10, 3, 5, 4, 11, 1, 3, 3)),
+  collapse = ""
+)
+
+.apa_letters <- function(x) {
+  x <- tolower(gsub("&", "", x, fixed = TRUE))
+  for (pair in list(c("\u00df", "ss"), c("\u00e6", "ae"), c("\u0153", "oe"),
+                    c("\u00fe", "th"))) {
+    x <- gsub(pair[1], pair[2], x, fixed = TRUE)
+  }
+  gsub("[^a-z]", "", chartr(.apa_accented, .apa_unaccented, x))
+}
+
+.apa_sort_key <- function(entry) {
+  authors <- sub(" \\((\\d{4}|n\\.d\\.).*$", "", entry)
+  year <- sub("^[^()]+? \\((\\d{4}[a-z]?|n\\.d\\.).*$", "\\1", entry)
+  if (identical(year, "n.d.")) year <- "0000"
+  parts <- strsplit(authors, ", ", fixed = TRUE)[[1]]
+  paste(c(.apa_letters(parts), year), collapse = "\t")
+}
+
+.apa_sort <- function(refs) {
+  key <- vapply(refs, .apa_sort_key, "", USE.NAMES = FALSE)
+  refs[order(key, method = "radix")]
+}
