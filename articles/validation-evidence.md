@@ -370,9 +370,17 @@ article](https://juhalt.github.io/solomonR/articles/mmrm-validation.html).
 `fit_solomon_glm(control = )` fits one model to all the groups of a
 design with several treatments, tests each Solomon contrast across the
 conditions, and adjusts the comparisons by Holm’s procedure. The study
-checked those tests, and the bias and coverage of the contrasts, with
-two or three treatments and 10 to 50 participants per group. The table
-gives the Type I error of each omnibus test with HC3 standard errors.
+checked those tests as the package then computed them, and the bias and
+coverage of the contrasts, with two or three treatments and 10 to 50
+participants per group. With HC3 standard errors, the omnibus tests were
+then Wald F tests on the HC3 covariance matrix: the Wald statistic over
+the number of treatments, referred to the F distribution with the
+residual degrees of freedom. The table gives the Type I error of each of
+those tests. For a linear model,
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+has since replaced them by the small-sample tests of Pustejovsky and
+Tipton (2018), so the table does not describe the omnibus tests that
+such a fit gives now.
 
 | Omnibus test                 | Mean Type I error | Highest |
 |:-----------------------------|:------------------|:--------|
@@ -381,19 +389,23 @@ gives the Type I error of each omnibus test with HC3 standard errors.
 | Condition \| unpretested     | 0.055             | 0.066   |
 | Pretest x Condition          | 0.046             | 0.055   |
 
-Omnibus tests of the joint model, HC3, where the null hypothesis holds.
-{.table}
+The former omnibus tests of the joint model (Wald F tests on the HC3
+covariance matrix), where the null hypothesis holds. {.table}
 
 The familywise error rates of the Holm-adjusted comparisons were 0.012
 to 0.059, and coverage of the 95% intervals of each treatment against
 the control was 0.939 to 0.967. The pre-specified rule for error control
 was not met: with three treatments and 10 participants per group, the
-omnibus tests of Condition \| pretested and Condition \| unpretested
-rejected in up to 0.069 of replications. The analysis of designs with
-several treatments is therefore labeled experimental. Overlapping
-four-group analyses of every pair of conditions, the published practice,
-found at least one significant interaction in 0.111 to 0.217 of
-replications when no treatment was sensitized. See the [full
+former omnibus tests of Condition \| pretested and Condition \|
+unpretested rejected in up to 0.069 of replications. The analysis of
+designs with several treatments is therefore labeled experimental. The
+small-sample tests replaced the former tests for that reason, under an
+amendment to the protocol that was posted on [issue
+\#45](https://github.com/JUhalt/solomonR/issues/45) before any run of a
+new study. That study has not yet run. Overlapping four-group analyses
+of every pair of conditions, the published practice, found at least one
+significant interaction in 0.111 to 0.217 of replications when no
+treatment was sensitized. See the [full
 article](https://juhalt.github.io/solomonR/articles/ngroup-validation.html).
 
 ## Rerunning a study
@@ -480,6 +492,20 @@ of the changes, as the stored runs of the maximum-likelihood and power
 studies did; the first recorded
 `4e1d820 plus #22 draft (solomon_ml.R md5 b5adb4c9c901)`.
 
+A script that checks its own computations against the package checks
+them against the package it loads. The study of designs with several
+treatments computed, for its fits with HC3 standard errors, the omnibus
+tests that
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+gave then, and its agreement check holds at the commit that its run
+information records for it (`agreement_commit`, 459d17d). The package
+has since replaced those tests by small-sample tests ([issue
+\#45](https://github.com/JUhalt/solomonR/issues/45)). A full run of
+`ngroup-simulation.R` with the current package therefore records
+differences in the omnibus p-values of those fits (`max_diff_omnibus_p`
+for M1 and M2 in `agreement.csv`), as it must. The script’s smoke mode
+leaves that comparison out and makes every other one.
+
 ## Adding a study
 
 A new study joins this page by:
@@ -537,6 +563,11 @@ endpoints in longitudinal clinical trials. *Drug Information Journal,
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine,
 38*(11), 2074–2102. <https://doi.org/10.1002/sim.8086>
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed
+effects models. *Journal of Business & Economic Statistics, 36*(4),
+672–683. <https://doi.org/10.1080/07350015.2016.1247004>
 
 Satorra, A., & Bentler, P. M. (2001). A scaled difference chi-square
 test statistic for moment structure analysis. *Psychometrika, 66*(4),

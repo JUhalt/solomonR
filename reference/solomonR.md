@@ -39,10 +39,12 @@ the lifecycle package (Henry & Wickham, 2026):
   [`invariance_solomon()`](https://juhalt.github.io/solomonR/reference/invariance_solomon.md).
   The analysis of designs with several treatments in
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
-  is experimental, because the rule for error control set before its
-  simulation study (issue \#45) was not met for two omnibus tests with
-  three treatments and 10 participants per group. The pre-specified
-  rules of their simulation studies were not met for
+  is experimental. The rule for error control set before its first
+  simulation study (issue \#45) was not met for two of the omnibus tests
+  that the analysis then computed, with three treatments and 10
+  participants per group. A small-sample test has replaced them, and its
+  simulation study has not yet run. The pre-specified rules of their
+  simulation studies were not met for
   [`fit_solomon_mmrm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mmrm.md)
   (issue \#57) and for
   [`fit_solomon_mi()`](https://juhalt.github.io/solomonR/reference/fit_solomon_mi.md),

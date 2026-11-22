@@ -349,8 +349,12 @@ package news:
 - Tables of omnibus tests (`omnibus` in
   [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
   for several treatments) have `test`, `statistic`, `df1`, `df2`,
-  `p.value`, and `reference`, because such a test has several numerator
-  degrees of freedom and no single estimate.
+  `p.value`, `reference`, and `method`, because such a test has several
+  numerator degrees of freedom and no single estimate. In this table
+  `method` names the test of each row, such as
+  `"AHT, HC2 (Pustejovsky & Tipton, 2018)"`; in the `results` of
+  [`compare_solomon_methods()`](https://juhalt.github.io/solomonR/reference/compare_solomon_methods.md)
+  the column of that name is the analysis.
 
 - [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)
   compares pretests, not posttests: its estimate is `difference`,

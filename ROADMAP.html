@@ -321,7 +321,9 @@
 <p><label><input type="checkbox" checked>Solomon N-group designs: more than two conditions — <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">#45</a>; merged in <a href="https://github.com/JUhalt/solomonR/pull/95" class="external-link">PR #95</a>, <a href="https://github.com/JUhalt/solomonR/pull/97" class="external-link">PR #97</a>, and <a href="https://github.com/JUhalt/solomonR/pull/98" class="external-link">PR #98</a></label></p>
 <ul><li>One model with planned contrasts in place of overlapping four-group analyses (Edmonds &amp; Kennedy, 2017; Mai et al., 2020): <code>fit_solomon_glm(control = , contrasts = )</code>
 </li>
-<li>Its simulation study is reported. The analysis is experimental, because the pre-specified rule for error control was not met for two omnibus tests with three treatments and 10 participants per group</li>
+<li>Its first simulation study is reported. The analysis is experimental: the pre-specified rule for error control was not met for two of the omnibus tests that it then computed, with three treatments and 10 participants per group. A small-sample test (Pustejovsky &amp; Tipton,
+<ol start="2018" style="list-style-type: decimal"><li>has replaced them, under an amendment posted on #45; its simulation study has not yet run (<a href="https://github.com/JUhalt/solomonR/issues/117" class="external-link">#117</a>)</li>
+</ol></li>
 <li>Steyn’s (2009) sequence of tests, <code><a href="reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code>, and the <code>steyn2005</code> data (Steyn, 2005)</li>
 <li>Steyn (2009) was read in a pre-publication draft, dated March 2, 2009, which the author provided. The published article was not available for comparison, so <code><a href="reference/fit_solomon_steyn.html">fit_solomon_steyn()</a></code> follows the draft. It is stable, and its help page lists each choice the draft leaves open</li>
 </ul></li>

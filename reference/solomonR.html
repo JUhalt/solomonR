@@ -130,10 +130,12 @@ sample sizes. The issue #55 study found no measurement-invariance
 criterion that holds its false-rejection rate in Solomon-sized groups,
 which affects <code><a href="fit_solomon_sem_latent.html">fit_solomon_sem_latent()</a></code> and <code><a href="invariance_solomon.html">invariance_solomon()</a></code>.
 The analysis of designs with several treatments in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> is
-experimental, because the rule for error control set before its
-simulation study (issue #45) was not met for two omnibus tests with
-three treatments and 10 participants per group. The pre-specified
-rules of their simulation studies were not met for <code><a href="fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code>
+experimental. The rule for error control set before its first
+simulation study (issue #45) was not met for two of the omnibus tests
+that the analysis then computed, with three treatments and 10
+participants per group. A small-sample test has replaced them, and its
+simulation study has not yet run. The pre-specified rules of their
+simulation studies were not met for <code><a href="fit_solomon_mmrm.html">fit_solomon_mmrm()</a></code>
 (issue #57) and for <code><a href="fit_solomon_mi.html">fit_solomon_mi()</a></code>, <code><a href="tipping_point_solomon.html">tipping_point_solomon()</a></code>, and
 <code><a href="plot_tipping_point.html">plot_tipping_point()</a></code> (issue #82). <code><a href="analysis_plan_solomon.html">analysis_plan_solomon()</a></code> stays
 experimental until researchers have used it (issue #81).</p></li>

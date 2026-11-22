@@ -344,9 +344,12 @@ of <code>contrast</code>.</p></li>
 <code><a href="fit_solomon_classic.html">fit_solomon_classic()</a></code>) have <code>source</code>, <code>sumsq</code>, <code>df</code>, <code>meansq</code>, <code>F</code>,
 and <code>p.value</code>.</p></li>
 <li><p>Tables of omnibus tests (<code>omnibus</code> in <code><a href="fit_solomon_glm.html">fit_solomon_glm()</a></code> for several
-treatments) have <code>test</code>, <code>statistic</code>, <code>df1</code>, <code>df2</code>, <code>p.value</code>, and
-<code>reference</code>, because such a test has several numerator degrees of
-freedom and no single estimate.</p></li>
+treatments) have <code>test</code>, <code>statistic</code>, <code>df1</code>, <code>df2</code>, <code>p.value</code>,
+<code>reference</code>, and <code>method</code>, because such a test has several numerator
+degrees of freedom and no single estimate. In this table <code>method</code>
+names the test of each row, such as
+<code>"AHT, HC2 (Pustejovsky &amp; Tipton, 2018)"</code>; in the <code>results</code> of
+<code><a href="compare_solomon_methods.html">compare_solomon_methods()</a></code> the column of that name is the analysis.</p></li>
 <li><p><code><a href="baseline_solomon.html">baseline_solomon()</a></code> compares pretests, not posttests: its estimate is
 <code>difference</code>, followed by <code>std.error</code>, <code>statistic</code>, <code>df</code>, <code>p.value</code>,
 <code>conf.low</code>, and <code>conf.high</code>, and it has no <code>contrast</code>.</p></li>

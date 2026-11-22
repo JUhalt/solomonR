@@ -1308,6 +1308,22 @@ Zeileis, A. (2006). Object-oriented computation of sandwich estimators.
 > computes for each permutation, at the exact estimate
 > ([\#134](https://github.com/JUhalt/solomonR/issues/134)).
 
+Zhang, J.-T. (2013). Tests of linear hypotheses in the ANOVA under
+heteroscedasticity. *International Journal of Advanced Statistics and
+Probability, 1*(2), 9–24. <https://doi.org/10.14419/ijasp.v1i2.908>
+
+> For tests of several group means under unequal variances, approximates
+> the distribution of the Wald-type statistic by Hotelling’s T-squared
+> distribution. The first two moments of that reference distribution
+> exist only with more than 4 denominator degrees of freedom, which
+> holds for any variances when the smallest group has more than 3 + 4 /
+> (q + 1) participants, for a hypothesis with q constraints (Remarks
+> 2.3, 2.16, and 2.17). *In solomonR:* the classed warning
+> `solomonR_small_df_warning` that
+> [`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+> gives for the small-sample omnibus tests of a design with several
+> treatments ([\#45](https://github.com/JUhalt/solomonR/issues/45)).
+
 Zhao, A., & Ding, P. (2024). To adjust or not to adjust? Estimating the
 average treatment effect in randomized experiments with missing
 covariates. *Journal of the American Statistical Association, 119*(545),

@@ -294,12 +294,12 @@ fit_solomon_glm(y_post, treat, pretested, y_pre, control = "Control", data = d6)
 #> Formula: y ~ (treat_A + treat_B) * pretested + pre_obs
 #> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 293)
 #> 
-#> Omnibus tests
-#> Test                                  Statistic      p
-#> Condition (avg over pretest)  F(2, 293) = 15.00  <.001
-#> Pretest x Condition            F(2, 293) = 1.15  0.318
-#> Condition | pretested         F(2, 293) = 17.50  <.001
-#> Condition | unpretested        F(2, 293) = 3.07  0.048
+#> Omnibus tests (small-sample AHT tests; Pustejovsky & Tipton, 2018)
+#> Test                                    Statistic      p
+#> Condition (avg over pretest)  F(2, 217.0) = 15.28  <.001
+#> Pretest x Condition            F(2, 217.0) = 1.17  0.312
+#> Condition | pretested         F(2, 106.8) = 17.85  <.001
+#> Condition | unpretested        F(2, 109.3) = 3.10  0.049
 #> 
 #> Contrasts
 #> Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI
@@ -323,9 +323,13 @@ fit_solomon_glm(y_post, treat, pretested, y_pre, control = "Control", data = d6)
 #> at the pretested participants' mean pretest (0.022), with standard errors
 #> that include the sampling variance of that mean.
 #> 
-#> Experimental: in the package's simulation study (issue #45), the omnibus
-#> tests of Condition | pretested and Condition | unpretested rejected in up
-#> to 6.9% of replications at the .05 level with three treatments and 10
-#> participants per group. No other test, and no family of adjusted
-#> comparisons, failed the study's rule. See ?fit_solomon_glm.
+#> Experimental: the package's first simulation study (issue #45) judged the
+#> omnibus tests that Gaussian fits with the identity link and robust = "HC3"
+#> gave then, Wald F tests on the HC3 covariance. With three treatments and
+#> 10 participants per group, those tests of Condition | pretested and
+#> Condition | unpretested rejected in up to 6.9% of replications at the .05
+#> level. No other test, and no family of adjusted comparisons, failed the
+#> study's rule. Such fits now give small-sample AHT tests (Pustejovsky &
+#> Tipton, 2018), whose simulation study has not yet run. See
+#> ?fit_solomon_glm.
 ```

@@ -12,6 +12,11 @@ Steyn’s sequence to Scheffé’s (1953) test, which Steyn (2005) used, and
 kept the Holm-adjusted version as a second variant. The study has 5,000
 replications in each of 112 scenarios.
 
+The study judged the analysis as it was when the study ran. Its result
+on rule 1 led to a change of the omnibus tests, so the rates of the
+omnibus tests below are those of tests that the default fit no longer
+gives; see [After this study](#after-this-study).
+
 ## Design
 
 **Data.** Normal outcomes, generated as
@@ -343,6 +348,32 @@ group and three treatments, judge whether the conditions differ among
 pretested, or among unpretested, participants by the adjusted
 comparisons rather than by those two omnibus tests.
 
+## After this study
+
+The omnibus tests of M1 and M2 in this article are Wald F tests on the
+HC3 covariance matrix: the Wald statistic over the number of treatments,
+referred to the F distribution with the residual degrees of freedom.
+That is what
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+computed for these fits when the study ran.
+
+Because rule 1 was not met, the protocol was amended on [issue
+\#45](https://github.com/JUhalt/solomonR/issues/45), before any further
+run, to replace those tests. For a linear model with HC3 standard
+errors,
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)
+now computes the approximate Hotelling’s T-squared test of Pustejovsky
+and Tipton (2018) from the HC2 covariance matrix (MacKinnon & White,
+1985), with each participant as a cluster. The rates of the omnibus
+tests above, and the advice in the verdict about two of them, therefore
+describe the former tests, not the tests that such a fit gives now.
+
+The simulation study of the new test has not yet run, so this article
+reports no results for it, and the analysis of designs with several
+treatments stays experimental. The contrasts, their HC3 standard errors,
+and the Holm-adjusted comparisons are computed as this study judged
+them. The conventional analysis (M3) is unchanged too.
+
 ## Limits of this study
 
 - Outcomes were normal. The four-group studies of binary and count
@@ -401,12 +432,18 @@ against the current package. The adaptation does not change what the
 script computes: on two replications of scenarios 1 and 65, with the
 package at commit 459d17d, the script as it was at that commit and the
 adapted script give identical results, the saved replications included.
-With the current package the replications are the same, since they do
-not call the package; in those two replications, the agreement
-differences of M1 change by at most 2e-14, because the pretest has been
-centered since [issue
-\#104](https://github.com/JUhalt/solomonR/issues/104). The script also
-records its commits by the rule under [Rerunning a
+With a later package the replications are the same, since they do not
+call the package. With the package as it was when the script was
+adapted, the agreement differences of M1 in those two replications
+changed by at most 2e-14, because the pretest has been centered since
+[issue \#104](https://github.com/JUhalt/solomonR/issues/104). Since the
+package’s omnibus tests of these fits changed (see [After this
+study](#after-this-study)), the omnibus p-values of M1 and M2 differ
+from the package’s, as they must: the study’s are those of the former
+tests, and that comparison holds at commit 459d17d. The smoke mode
+therefore leaves out that one comparison for M1 and M2 and makes every
+other one. The script also records its commits by the rule under
+[Rerunning a
 study](https://juhalt.github.io/solomonR/articles/validation-evidence.html#rerunning-a-study)
 ([issue \#152](https://github.com/JUhalt/solomonR/issues/152)). A run
 resumed from checkpoints that hold no commit, as the script before that
@@ -419,6 +456,11 @@ Holm, S. (1979). A simple sequentially rejective multiple test
 procedure. *Scandinavian Journal of Statistics, 6*(2), 65–70.
 <https://www.jstor.org/stable/4615733>
 
+MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent
+covariance matrix estimators with improved finite sample properties.
+*Journal of Econometrics, 29*(3), 305–325.
+<https://doi.org/10.1016/0304-4076(85)90158-7>
+
 Mai, N. N., Takahashi, Y., & Oo, M. M. (2020). Testing the effectiveness
 of transfer interventions using Solomon four-group designs. *Education
 Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
@@ -430,6 +472,11 @@ through service learning. *Journal of Management Education, 26*(6),
 Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
 studies to evaluate statistical methods. *Statistics in Medicine,
 38*(11), 2074–2102. <https://doi.org/10.1002/sim.8086>
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed
+effects models. *Journal of Business & Economic Statistics, 36*(4),
+672–683. <https://doi.org/10.1080/07350015.2016.1247004>
 
 Scheffé, H. (1953). A method for judging all contrasts in the analysis
 of variance. *Biometrika, 40*(1–2), 87–104.

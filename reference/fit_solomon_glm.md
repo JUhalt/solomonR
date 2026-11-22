@@ -128,7 +128,10 @@ fit_solomon_glm(
   [`validate_solomon()`](https://juhalt.github.io/solomonR/reference/validate_solomon.md).
   A classed warning (`solomonR_small_df_warning`) flags Solomon
   contrasts whose Satterthwaite degrees of freedom are below 4, where
-  Tipton (2015) advises that p-values not be trusted.
+  Tipton (2015) advises that p-values not be trusted. With several
+  treatments, a warning of that class also flags omnibus tests with 4 or
+  fewer denominator degrees of freedom (see "Designs with several
+  treatments").
 
 - family:
 
@@ -352,7 +355,13 @@ For a design with several treatments, an object of class
   condition and the pretest main effect.
 
 - `omnibus`: the omnibus tests, in the columns `test`, `statistic`,
-  `df1`, `df2`, `p.value`, and `reference` (`"F"` or `"chisq"`).
+  `df1`, `df2`, `p.value`, `reference` (`"F"` or `"chisq"`), and
+  `method`. `method` names the test of each row (see "Designs with
+  several treatments"): `"AHT, HC2 (Pustejovsky & Tipton, 2018)"`,
+  `"Wald F, HC3"`, `"Wald chi-square, HC3"`, `"F, model-based"`,
+  `"chi-square, model-based"`, or
+  `"AHT, CR2 (Pustejovsky & Tipton, 2018)"`. `df2` is usually not a
+  whole number for an AHT test, and is `Inf` for a chi-square test.
 
 - `conditions`: the control and the treatments, with their model terms
   (`condition`, `role`, and `term`).
@@ -544,7 +553,8 @@ computed from the QR decomposition. For example, in the data of issue
 unpretested participants, which does not depend on the pretested
 participants, keeps its HC3 standard error, and the other three
 treatment contrasts and the three pretest effects are `NA`. With several
-treatments, an omnibus test is `NA` when one of its contrasts is. A
+treatments, an omnibus test is `NA` when one of its contrasts is, and so
+are the denominator degrees of freedom of a small-sample (AHT) test. A
 comparison whose p-value is `NA` still counts in the Holm or Bonferroni
 adjustment of the other comparisons, as if its p-value were the largest,
 so their adjustment is conservative. The same rule gives `NA` in the
@@ -1128,9 +1138,136 @@ Solomon contrasts are estimated for each comparison:
   `contrasts = list(Lecture = c(Lecture = 0.5, Both = 0.5, Service = -0.5, None = -0.5))`.
   The weights of each comparison must sum to zero.
 
-Omnibus Wald tests ask whether the conditions differ on each contrast.
-The Pretest x Condition test asks whether pretesting changes the effect
-of any treatment.
+Omnibus tests ask whether the conditions differ on each contrast. The
+Pretest x Condition test asks whether pretesting changes the effect of
+any treatment. Each tests k constraints, one for each treatment against
+the control. The `method` column of `omnibus` names the test, which
+depends on `robust` and the family:
+
+- `robust = "HC3"` (the default) with a Gaussian family and the identity
+  link: the approximate Hotelling's T-squared (AHT) test of Pustejovsky
+  and Tipton (2018), a test for small samples. It is their test for
+  cluster-robust covariance with each participant as a cluster, so it
+  equals the omnibus test of `robust = "CR2"` when `cluster` identifies
+  the participants. The Wald statistic Q comes from the HC2 covariance
+  matrix (MacKinnon & White, 1985), and Q(\\\eta\\ - k + 1) /
+  (\\\eta\\k) is referred to the F distribution with k and \\\eta\\ -
+  k + 1 degrees of freedom. \\\eta\\ is computed from the design (the
+  group sizes, the pretest, and the covariates) under a working model of
+  independent errors with equal variances. It does not depend on the
+  outcomes, and `df2` is usually not a whole number. The contrasts keep
+  their HC3 standard errors; the omnibus tests use HC2 because the AHT
+  test is built on the estimator that is unbiased under the working
+  model (Pustejovsky & Tipton, 2018).
+
+- `robust = "HC3"` with any other family or link: the Wald statistic W
+  from the HC3 covariance matrix. W / k is referred to the F
+  distribution with k and N - p degrees of freedom, where N - p is the
+  residual degrees of freedom, or W to the chi-square distribution with
+  k degrees of freedom when the dispersion is fixed (binomial, Poisson,
+  and negative-binomial fits). These tests have no small-sample
+  correction, and no simulation study of them has been run for several
+  treatments.
+
+- `robust = "none"`: the same with the model-based covariance matrix.
+  For a Gaussian model with the identity link this is the classical F
+  test.
+
+- `robust = "CR2"`: the AHT test with the CR2 covariance matrix of the
+  clusters given, from
+  [`clubSandwich::Wald_test()`](http://jepusto.github.io/clubSandwich/reference/Wald_test.md)
+  with `test = "HTZ"`.
+
+A classed warning, `solomonR_small_df_warning`, is given when an AHT
+test has 4 or fewer denominator degrees of freedom. For the AHT tests of
+HC3 fits it is also given when a group that a test compares has fewer
+than 5 analyzable participants with two or three treatments, or fewer
+than 4 with more. The approximation that gives the test its F
+distribution needs more than 4 denominator degrees of freedom. For tests
+of group means, without pretest scores or covariates, that is assured
+for any variances of the groups when every group compared has more than
+3 + 4 / (k + 1) participants (Zhang, 2013). With covariates, `df2` can
+be 4 or less even then. The Pretest x Condition test and the test of the
+conditions averaged over pretest compare all 2(k + 1) groups, Condition
+\| pretested compares the pretested groups, and Condition \| unpretested
+the unpretested groups. Both conditions depend on the group sizes and
+the covariates, not on the outcomes. In a pretested group, only the
+participants with a pretest are counted, so
+`missing_pretest = "indicator"` names the same groups as `"drop"` does
+on the same data, and the warning says so when a group it names has
+participants kept without a pretest. Two or more of those participants
+inform the contrasts of the groups' means: through the shared
+coefficient of `pre_missing` when they lie in several groups, and
+through the covariates' slopes when the model has covariates. When only
+one is kept, or they all lie in one group and the model has no
+covariates, they inform none, and the AHT tests are those of `"drop"` (a
+derivation, checked numerically in the package's tests). Otherwise the
+AHT tests can differ from those of `"drop"`, and so can the tests with 4
+or fewer denominator degrees of freedom that the warning names.
+
+An AHT test on HC2 has no statistic and no p-value (`NA`) when the HC2
+covariance matrix of the contrasts it tests is singular, that is, when
+the residuals of the groups that it compares do not span its k
+constraints. Without pretest scores or covariates, a group whose outcome
+does not vary has residuals of 0. Condition \| pretested and Condition
+\| unpretested are then singular when the outcome does not vary within
+two of the groups that they compare, as in a linear probability model in
+which no unpretested participant of the control and of one treatment has
+an event. The other two tests are singular when it does not vary within
+the pretested and the unpretested groups of two conditions. With pretest
+scores or covariates, a group has residuals of 0 when its outcome is an
+exact linear function of them, with the slopes of the fit. With the
+pretest and no covariates, for example, Condition \| pretested is
+singular when every pretested participant's score changes by the same
+amount from pretest to posttest, or none changes. The unpretested groups
+have no pretest scores.
+
+Computed residuals are 0 only up to rounding error, so the matrix,
+standardized by the contrasts' model-based covariance (it is singular
+exactly when the HC2 matrix is), is taken as singular when either holds:
+
+- its reciprocal condition number is below the machine epsilon, the rule
+  by which base R's [`solve()`](https://rdrr.io/r/base/solve.html)
+  refuses a matrix;
+
+- its smallest eigenvalue is at most the square of 10N times the machine
+  epsilon times the root mean square of the outcome, for N participants.
+  That eigenvalue is a weighted mean of the participants' squared
+  residuals, each divided by one minus its leverage, so this rule asks
+  whether the residuals that carry some direction of the contrasts are 0
+  up to rounding error. That error follows the size of the outcome, the
+  other groups' included, so the bound does too.
+
+The second rule catches a test whose groups all have an outcome that
+does not vary: its matrix is then made of rounding error alone, the
+first rule does not find it singular, and it would give an arbitrary
+statistic. Rounding error also depends on the design, so the bound is a
+margin, not a proof. In checks of designs whose groups were within 10
+times of each other in size and whose covariates were not nearly
+collinear, the two rules found every test whose residuals are 0 in exact
+arithmetic; in those that the first rule did not find, the root of the
+smallest eigenvalue was at most 6% of the root of the bound. With groups
+of more different sizes, or nearly collinear covariates, rounding error
+can exceed the bound, and the test is then reported with an arbitrary
+statistic instead of `NA`. Every such miss in the checks came with
+compared groups whose outcome was constant within each group: all of
+them, or, in one design, two of three (groups of 2 at 0 among groups of
+100,000). With compared groups 100 times the size of the others, the
+root reached 83% of the root of the bound. Without nearly collinear
+covariates, the smallest ratios of group sizes at which misses were
+found were 300, with the compared groups the larger (groups of 1,500
+against groups of 5), and 7,500, with them the smaller (groups of 2
+among groups of 15,000). The second rule also takes as singular a test
+whose groups vary by less than about 10N times the machine epsilon of
+the outcome's root mean square: an outcome whose spread is that small
+against its distance from zero, or groups whose spread is that small
+against the others'. The test's `df2`, which depends on the design
+alone, is still given, and a classed warning,
+`solomonR_singular_test_warning`, names the test. With `robust = "CR2"`,
+the test comes from
+[`clubSandwich::Wald_test()`](http://jepusto.github.io/clubSandwich/reference/Wald_test.md),
+which makes neither check: on such a matrix it stops or gives an
+arbitrary value, depending on rounding error.
 
 The p-values of each contrast are adjusted across the comparisons, by
 Holm's (1979) procedure by default. It controls the familywise error
@@ -1166,9 +1303,12 @@ carries out the sequence of tests Steyn (2009) proposed for these
 designs.
 
 **\[experimental\]** The analysis of designs with several treatments is
-experimental. In the package's simulation study (issue \#45; 112
+experimental. The package's first simulation study (issue \#45; 112
 scenarios with two or three treatments and 10 to 50 participants per
-group, 5,000 replications each):
+group, 5,000 replications each) judged the analysis as it then was. The
+omnibus tests of its HC3 fits were the Wald tests above, W / k on the F
+distribution with k and N - p degrees of freedom, which Gaussian fits
+with the identity link no longer give. In that study:
 
 - the treatment contrasts were unbiased, and coverage of their 95%
   intervals was 0.939 to 0.967;
@@ -1176,19 +1316,24 @@ group, 5,000 replications each):
 - the familywise error rates of the Holm-adjusted comparisons were at
   most 0.059;
 
-- the Pretest x Condition test and the test of the conditions averaged
-  over pretest rejected a true null hypothesis in 0.036 to 0.055 of
-  replications;
+- the former Pretest x Condition test and the former test of the
+  conditions averaged over pretest rejected a true null hypothesis in
+  0.036 to 0.055 of replications;
 
-- with three treatments and 10 participants per group, the omnibus tests
-  of Condition \| pretested and Condition \| unpretested rejected in
-  0.055 to 0.069 of replications at the .05 level. The rule for error
-  control set before the study was therefore not met, which is why the
-  analysis is experimental. With groups that small, judge those two
-  questions by the adjusted comparisons.
+- with three treatments and 10 participants per group, the former
+  omnibus tests of Condition \| pretested and Condition \| unpretested
+  rejected in 0.055 to 0.069 of replications at the .05 level. The rule
+  for error control set before the study was therefore not met.
 
-The study did not cover the pretest effects, which were added later
-(issue \#104), binary or count outcomes, clustered designs, or
+The AHT test replaced those tests for that reason, by an amendment of
+the protocol posted on issue \#45 before any run of the new study. That
+study has not yet run, so the package reports no simulation results for
+the AHT test in Solomon designs, and the analysis stays experimental
+until it does. The contrasts, their HC3 standard errors, and the Holm
+adjustment have not changed.
+
+The first study did not cover the pretest effects, which were added
+later (issue \#104), binary or count outcomes, clustered designs, or
 comparisons given as weights. It is reported in the article "Designs
 With Several Treatments: Validating the Joint Model".
 
@@ -1353,6 +1498,10 @@ White, I. R., & Thompson, S. G. (2005). Adjusting for partially missing
 baseline measurements in randomized trials. *Statistics in Medicine,
 24*(7), 993–1007. https://doi.org/10.1002/sim.1981
 
+Zhang, J.-T. (2013). Tests of linear hypotheses in the ANOVA under
+heteroscedasticity. *International Journal of Advanced Statistics and
+Probability, 1*(2), 9–24. https://doi.org/10.14419/ijasp.v1i2.908
+
 Zhao, A., & Ding, P. (2024). To adjust or not to adjust? Estimating the
 average treatment effect in randomized experiments with missing
 covariates. *Journal of the American Statistical Association, 119*(545),
@@ -1419,12 +1568,12 @@ fit6
 #> Formula: y ~ (treat_RP + treat_GS) * pretested + pre_obs
 #> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 126)
 #> 
-#> Omnibus tests
-#> Test                                 Statistic      p
-#> Condition (avg over pretest)  F(2, 126) = 1.10  0.336
-#> Pretest x Condition           F(2, 126) = 1.74  0.179
-#> Condition | pretested         F(2, 126) = 2.23  0.112
-#> Condition | unpretested       F(2, 126) = 0.73  0.485
+#> Omnibus tests (small-sample AHT tests; Pustejovsky & Tipton, 2018)
+#> Test                                  Statistic      p
+#> Condition (avg over pretest)  F(2, 82.7) = 1.16  0.320
+#> Pretest x Condition           F(2, 82.7) = 1.81  0.170
+#> Condition | pretested         F(2, 51.2) = 2.32  0.108
+#> Condition | unpretested       F(2, 37.9) = 0.75  0.481
 #> 
 #> Contrasts
 #> Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI
@@ -1464,11 +1613,15 @@ fit6
 #>   pretested dropouts' pretests predict for them (0.04); "observed" assumes 0.
 #>   The data cannot tell which center is right. See ?check_solomon_missing.
 #> 
-#> Experimental: in the package's simulation study (issue #45), the omnibus
-#> tests of Condition | pretested and Condition | unpretested rejected in up
-#> to 6.9% of replications at the .05 level with three treatments and 10
-#> participants per group. No other test, and no family of adjusted
-#> comparisons, failed the study's rule. See ?fit_solomon_glm.
+#> Experimental: the package's first simulation study (issue #45) judged the
+#> omnibus tests that Gaussian fits with the identity link and robust = "HC3"
+#> gave then, Wald F tests on the HC3 covariance. With three treatments and
+#> 10 participants per group, those tests of Condition | pretested and
+#> Condition | unpretested rejected in up to 6.9% of replications at the .05
+#> level. No other test, and no family of adjusted comparisons, failed the
+#> study's rule. Such fits now give small-sample AHT tests (Pustejovsky &
+#> Tipton, 2018), whose simulation study has not yet run. See
+#> ?fit_solomon_glm.
 
 # Posttests are missing in mai2020, so the print gives the pretest effects
 # at both centers; pretest_sensitivity returns them.

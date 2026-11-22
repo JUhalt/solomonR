@@ -112,6 +112,11 @@ joint$omnibus
 #> 2          Pretest x Condition 1.8558342   2 127 0.16053677         F
 #> 3        Condition | pretested 2.5864295   2 127 0.07925036         F
 #> 4      Condition | unpretested 0.7027302   2 127 0.49714666         F
+#>           method
+#> 1 F, model-based
+#> 2 F, model-based
+#> 3 F, model-based
+#> 4 F, model-based
 ```
 
 The Pretest x Condition test has two numerator degrees of freedom, one
@@ -133,12 +138,12 @@ fit
 #> Formula: y ~ (treat_RP + treat_GS) * pretested + pre_obs
 #> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 126)
 #> 
-#> Omnibus tests
-#> Test                                 Statistic      p
-#> Condition (avg over pretest)  F(2, 126) = 1.10  0.336
-#> Pretest x Condition           F(2, 126) = 1.74  0.179
-#> Condition | pretested         F(2, 126) = 2.23  0.112
-#> Condition | unpretested       F(2, 126) = 0.73  0.485
+#> Omnibus tests (small-sample AHT tests; Pustejovsky & Tipton, 2018)
+#> Test                                  Statistic      p
+#> Condition (avg over pretest)  F(2, 82.7) = 1.16  0.320
+#> Pretest x Condition           F(2, 82.7) = 1.81  0.170
+#> Condition | pretested         F(2, 51.2) = 2.32  0.108
+#> Condition | unpretested       F(2, 37.9) = 0.75  0.481
 #> 
 #> Contrasts
 #> Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI
@@ -178,17 +183,24 @@ fit
 #>   pretested dropouts' pretests predict for them (0.04); "observed" assumes 0.
 #>   The data cannot tell which center is right. See ?check_solomon_missing.
 #> 
-#> Experimental: in the package's simulation study (issue #45), the omnibus
-#> tests of Condition | pretested and Condition | unpretested rejected in up
-#> to 6.9% of replications at the .05 level with three treatments and 10
-#> participants per group. No other test, and no family of adjusted
-#> comparisons, failed the study's rule. See ?fit_solomon_glm.
+#> Experimental: the package's first simulation study (issue #45) judged the
+#> omnibus tests that Gaussian fits with the identity link and robust = "HC3"
+#> gave then, Wald F tests on the HC3 covariance. With three treatments and
+#> 10 participants per group, those tests of Condition | pretested and
+#> Condition | unpretested rejected in up to 6.9% of replications at the .05
+#> level. No other test, and no family of adjusted comparisons, failed the
+#> study's rule. Such fits now give small-sample AHT tests (Pustejovsky &
+#> Tipton, 2018), whose simulation study has not yet run. See
+#> ?fit_solomon_glm.
 ```
 
 The output has four parts:
 
 - **Omnibus tests.** Each asks whether the conditions differ on one
-  contrast.
+  contrast. With HC3 standard errors and the default linear model, they
+  are small-sample tests (Pustejovsky & Tipton, 2018), whose denominator
+  degrees of freedom come from the design and are usually not whole
+  numbers. The `method` column of `fit$omnibus` names the test.
 - **Contrasts.** The four Solomon contrasts of the four-group design,
   for each treatment against the control, and then the pretest effect in
   each condition (pretested minus unpretested participants, at the mean
@@ -621,8 +633,10 @@ report_solomon(fit)
 #> containing an indicator for each treatment, pretesting, and their
 #> interactions, adjusting for the pretest score among pretested participants
 #> (Lin, 2013; Newman et al., 1990), with HC3 heteroskedasticity-consistent
-#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F
-#> tests examined whether the differences between the conditions depended on
+#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald
+#> tests, using the small-sample test of Pustejovsky and Tipton (2018) with the
+#> HC2 covariance matrix (MacKinnon & White, 1985) and each participant as a
+#> cluster, examined whether the differences between the conditions depended on
 #> pretesting (the Pretest x Condition interaction) and whether the conditions
 #> differed when averaged over pretest conditions. Each treatment was compared
 #> with the control (RP vs Control and GS vs Control), and the Solomon contrasts
@@ -633,9 +647,9 @@ report_solomon(fit)
 #> adjusted with Holm's (1979) procedure.
 #> 
 #> The omnibus test of the Pretest x Condition interaction (pretest
-#> sensitization) gave F(2, 126) = 1.74, p = .179, and the omnibus test of the
-#> conditions, averaged over pretest conditions, gave F(2, 126) = 1.10, p =
-#> .336.
+#> sensitization) gave F(2, 82.7) = 1.81, p = .170, and the omnibus test of the
+#> conditions, averaged over pretest conditions, gave F(2, 82.7) = 1.16, p =
+#> .320.
 #> The average treatment effect of RP relative to Control across pretest
 #> conditions was -0.03, 95% CI [-0.19, 0.12], t(126) = -0.44, p = .659,
 #> Holm-adjusted. The Pretest x Treatment interaction (pretest sensitization)
@@ -702,6 +716,11 @@ report_solomon(fit)
 #>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
 #>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
 #> 
+#> Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+#>     cluster-robust variance estimation and hypothesis testing in fixed
+#>     effects models. Journal of Business & Economic Statistics, 36(4),
+#>     672–683. https://doi.org/10.1080/07350015.2016.1247004
+#> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
 #> 
@@ -718,24 +737,34 @@ treatments and 10 to 50 participants per group, under a protocol posted
 before the study was run. The article [Designs With Several Treatments:
 Validating the Joint
 Model](https://juhalt.github.io/solomonR/articles/ngroup-validation.md)
-reports it. In summary:
+reports it. The study judged the analysis as it then was. With HC3
+standard errors, its omnibus tests were Wald F tests on the HC3
+covariance matrix, which the small-sample tests above have since
+replaced for the linear model. In summary:
 
 - **Contrasts.** They were unbiased, and coverage of their 95% intervals
   was 0.939 to 0.967.
 - **Adjusted comparisons.** The chance of at least one false rejection
   in a family of Holm-adjusted comparisons was at most 0.059.
-- **Pretest x Condition test.** It rejected a true null hypothesis in
-  0.036 to 0.055 of replications.
-- **Two omnibus tests at the smallest size.** With three treatments and
-  10 participants per group, the omnibus tests of Condition \| pretested
-  and Condition \| unpretested rejected in 0.055 to 0.069 of
-  replications at the .05 level. The study’s rule for error control was
-  therefore not met, and the analysis of designs with several treatments
-  is labeled experimental. With groups that small, judge those two
-  questions by the adjusted comparisons.
+- **The former Pretest x Condition test.** It rejected a true null
+  hypothesis in 0.036 to 0.055 of replications.
+- **Two of the former omnibus tests at the smallest size.** With three
+  treatments and 10 participants per group, the former tests of
+  Condition \| pretested and Condition \| unpretested rejected in 0.055
+  to 0.069 of replications at the .05 level. The study’s rule for error
+  control was therefore not met, and the analysis of designs with
+  several treatments is labeled experimental.
 - **Overlapping four-group analyses.** When no treatment was sensitized,
   at least one of the separate interaction tests was significant in 8%
   to 22% of replications.
+
+The small-sample tests replaced the former tests for that reason, under
+an amendment to the protocol that was posted on [issue
+\#45](https://github.com/JUhalt/solomonR/issues/45) before any run of a
+new study. That study has not yet run, so the package reports no
+simulation results for the small-sample tests in Solomon designs, and
+the analysis stays experimental until it does. The contrasts, their
+standard errors, and the adjusted comparisons have not changed.
 
 ## What needs a four-group design
 
@@ -786,6 +815,11 @@ Sciences, 10*(4), Article 92. <https://doi.org/10.3390/educsci10040092>
 McCarthy, A. M., & Tucker, M. L. (2002). Encouraging community service
 through service learning. *Journal of Management Education, 26*(6),
 629–647. <https://doi.org/10.1177/1052562902238322>
+
+Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed
+effects models. *Journal of Business & Economic Statistics, 36*(4),
+672–683. <https://doi.org/10.1080/07350015.2016.1247004>
 
 Scheffé, H. (1953). A method for judging all contrasts in the analysis
 of variance. *Biometrika, 40*(1–2), 87–104.

@@ -123,6 +123,10 @@ the study was run, following the ADEMP structure of Morris et al.
 test of Steyn’s sequence to Scheffé’s (1953) test, which Steyn (2005)
 used, and kept the Holm-adjusted version as a second variant. The study
 has 5,000 replications in each of 112 scenarios.</p>
+<p>The study judged the analysis as it was when the study ran. Its
+result on rule 1 led to a change of the omnibus tests, so the rates of
+the omnibus tests below are those of tests that the default fit no
+longer gives; see <a href="#after-this-study">After this study</a>.</p>
 <div class="section level2">
 <h2 id="design">Design<a class="anchor" aria-label="anchor" href="#design"></a>
 </h2>
@@ -1275,6 +1279,28 @@ conditions differ among pretested, or among unpretested, participants by
 the adjusted comparisons rather than by those two omnibus tests.</p>
 </div>
 <div class="section level2">
+<h2 id="after-this-study">After this study<a class="anchor" aria-label="anchor" href="#after-this-study"></a>
+</h2>
+<p>The omnibus tests of M1 and M2 in this article are Wald F tests on
+the HC3 covariance matrix: the Wald statistic over the number of
+treatments, referred to the F distribution with the residual degrees of
+freedom. That is what <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> computed for these
+fits when the study ran.</p>
+<p>Because rule 1 was not met, the protocol was amended on <a href="https://github.com/JUhalt/solomonR/issues/45" class="external-link">issue #45</a>,
+before any further run, to replace those tests. For a linear model with
+HC3 standard errors, <code><a href="../reference/fit_solomon_glm.html">fit_solomon_glm()</a></code> now computes the
+approximate Hotelling’s T-squared test of Pustejovsky and Tipton (2018)
+from the HC2 covariance matrix (MacKinnon &amp; White, 1985), with each
+participant as a cluster. The rates of the omnibus tests above, and the
+advice in the verdict about two of them, therefore describe the former
+tests, not the tests that such a fit gives now.</p>
+<p>The simulation study of the new test has not yet run, so this article
+reports no results for it, and the analysis of designs with several
+treatments stays experimental. The contrasts, their HC3 standard errors,
+and the Holm-adjusted comparisons are computed as this study judged
+them. The conventional analysis (M3) is unchanged too.</p>
+</div>
+<div class="section level2">
 <h2 id="limits-of-this-study">Limits of this study<a class="anchor" aria-label="anchor" href="#limits-of-this-study"></a>
 </h2>
 <ul>
@@ -1372,12 +1398,18 @@ a short run that checks it against the current package. The adaptation
 does not change what the script computes: on two replications of
 scenarios 1 and 65, with the package at commit 459d17d, the script as it
 was at that commit and the adapted script give identical results, the
-saved replications included. With the current package the replications
-are the same, since they do not call the package; in those two
-replications, the agreement differences of M1 change by at most 2e-14,
-because the pretest has been centered since <a href="https://github.com/JUhalt/solomonR/issues/104" class="external-link">issue #104</a>. The
-script also records its commits by the rule under <a href="validation-evidence.html#rerunning-a-study">Rerunning a study</a>
-(<a href="https://github.com/JUhalt/solomonR/issues/152" class="external-link">issue
+saved replications included. With a later package the replications are
+the same, since they do not call the package. With the package as it was
+when the script was adapted, the agreement differences of M1 in those
+two replications changed by at most 2e-14, because the pretest has been
+centered since <a href="https://github.com/JUhalt/solomonR/issues/104" class="external-link">issue #104</a>.
+Since the package’s omnibus tests of these fits changed (see <a href="#after-this-study">After this study</a>), the omnibus p-values of
+M1 and M2 differ from the package’s, as they must: the study’s are those
+of the former tests, and that comparison holds at commit 459d17d. The
+smoke mode therefore leaves out that one comparison for M1 and M2 and
+makes every other one. The script also records its commits by the rule
+under <a href="validation-evidence.html#rerunning-a-study">Rerunning a
+study</a> (<a href="https://github.com/JUhalt/solomonR/issues/152" class="external-link">issue
 #152</a>). A run resumed from checkpoints that hold no commit, as the
 script before that change left them when it stopped outside any git
 repository, records <code>NA</code> as the commit of their replications
@@ -1388,6 +1420,10 @@ repository, records <code>NA</code> as the commit of their replications
 </h2>
 <p>Holm, S. (1979). A simple sequentially rejective multiple test
 procedure. <em>Scandinavian Journal of Statistics, 6</em>(2), 65–70. <a href="https://www.jstor.org/stable/4615733" class="external-link uri">https://www.jstor.org/stable/4615733</a></p>
+<p>MacKinnon, J. G., &amp; White, H. (1985). Some
+heteroskedasticity-consistent covariance matrix estimators with improved
+finite sample properties. <em>Journal of Econometrics, 29</em>(3),
+305–325. <a href="https://doi.org/10.1016/0304-4076(85)90158-7" class="external-link uri">https://doi.org/10.1016/0304-4076(85)90158-7</a></p>
 <p>Mai, N. N., Takahashi, Y., &amp; Oo, M. M. (2020). Testing the
 effectiveness of transfer interventions using Solomon four-group
 designs. <em>Education Sciences, 10</em>(4), Article 92. <a href="https://doi.org/10.3390/educsci10040092" class="external-link uri">https://doi.org/10.3390/educsci10040092</a></p>
@@ -1397,6 +1433,10 @@ service through service learning. <em>Journal of Management Education,
 <p>Morris, T. P., White, I. R., &amp; Crowther, M. J. (2019). Using
 simulation studies to evaluate statistical methods. <em>Statistics in
 Medicine, 38</em>(11), 2074–2102. <a href="https://doi.org/10.1002/sim.8086" class="external-link uri">https://doi.org/10.1002/sim.8086</a></p>
+<p>Pustejovsky, J. E., &amp; Tipton, E. (2018). Small-sample methods for
+cluster-robust variance estimation and hypothesis testing in fixed
+effects models. <em>Journal of Business &amp; Economic Statistics,
+36</em>(4), 672–683. <a href="https://doi.org/10.1080/07350015.2016.1247004" class="external-link uri">https://doi.org/10.1080/07350015.2016.1247004</a></p>
 <p>Scheffé, H. (1953). A method for judging all contrasts in the
 analysis of variance. <em>Biometrika, 40</em>(1–2), 87–104. <a href="https://doi.org/10.1093/biomet/40.1-2.87" class="external-link uri">https://doi.org/10.1093/biomet/40.1-2.87</a></p>
 <p>Steyn, R. (2005). <em>Self-evaluasie en die vorming van

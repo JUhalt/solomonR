@@ -283,12 +283,12 @@ package's <code>data-raw</code> folder on GitHub. See also <code>inst/COPYRIGHTS
 <span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ (treat_RP + treat_GS) * pretested + pre_obs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Covariance: HC3 heteroskedasticity-consistent; t tests (df = 126)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Omnibus tests</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Test                                 Statistic      p</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Condition (avg over pretest)  F(2, 126) = 1.10  0.336</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Condition           F(2, 126) = 1.74  0.179</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Condition | pretested         F(2, 126) = 2.23  0.112</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Condition | unpretested       F(2, 126) = 0.73  0.485</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Omnibus tests (small-sample AHT tests; Pustejovsky &amp; Tipton, 2018)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Test                                  Statistic      p</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Condition (avg over pretest)  F(2, 82.7) = 1.16  0.320</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Pretest x Condition           F(2, 82.7) = 1.81  0.170</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Condition | pretested         F(2, 51.2) = 2.32  0.108</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Condition | unpretested       F(2, 37.9) = 0.75  0.481</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Contrasts</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Comparison      Contrast                        Est (SE)      t   df      p  p adj.           95% CI</span>
@@ -328,11 +328,15 @@ package's <code>data-raw</code> folder on GitHub. See also <code>inst/COPYRIGHTS
 <span class="r-out co"><span class="r-pr">#&gt;</span>   pretested dropouts' pretests predict for them (0.04); "observed" assumes 0.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   The data cannot tell which center is right. See ?check_solomon_missing.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Experimental: in the package's simulation study (issue #45), the omnibus</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> tests of Condition | pretested and Condition | unpretested rejected in up</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> to 6.9% of replications at the .05 level with three treatments and 10</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> participants per group. No other test, and no family of adjusted</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> comparisons, failed the study's rule. See ?fit_solomon_glm.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Experimental: the package's first simulation study (issue #45) judged the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> omnibus tests that Gaussian fits with the identity link and robust = "HC3"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gave then, Wald F tests on the HC3 covariance. With three treatments and</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 participants per group, those tests of Condition | pretested and</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Condition | unpretested rejected in up to 6.9% of replications at the .05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> level. No other test, and no family of adjusted comparisons, failed the</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> study's rule. Such fits now give small-sample AHT tests (Pustejovsky &amp;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Tipton, 2018), whose simulation study has not yet run. See</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ?fit_solomon_glm.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -142,11 +142,14 @@ fit with `control` and three or more conditions (class
 control, and the 2(k + 1) groups of the design (Steyn, 2009), with the
 numbers analyzed in each. The results give the omnibus tests of the
 Pretest x Condition interaction and of the conditions averaged over
-pretest conditions, then the Solomon contrasts of each comparison. Their
-p-values are adjusted within each contrast across the comparisons, by
-Holm's (1979) procedure unless the fit chose another adjustment; the
-confidence intervals are not adjusted. Comparisons defined by weights
-are reported with their weights. An
+pretest conditions, then the Solomon contrasts of each comparison. The
+method names the omnibus test that the fit computed, with its sources
+(see "Designs with several treatments" in
+[`fit_solomon_glm()`](https://juhalt.github.io/solomonR/reference/fit_solomon_glm.md)).
+The p-values of the contrasts are adjusted within each contrast across
+the comparisons, by Holm's (1979) procedure unless the fit chose another
+adjustment; the confidence intervals are not adjusted. Comparisons
+defined by weights are reported with their weights. An
 [`equivalence_solomon()`](https://juhalt.github.io/solomonR/reference/equivalence_solomon.md)
 test of one comparison and the
 [`baseline_solomon()`](https://juhalt.github.io/solomonR/reference/baseline_solomon.md)
@@ -326,8 +329,10 @@ report_solomon(fit6)
 #> containing an indicator for each treatment, pretesting, and their
 #> interactions, adjusting for the pretest score among pretested participants
 #> (Lin, 2013; Newman et al., 1990), with HC3 heteroskedasticity-consistent
-#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald F
-#> tests examined whether the differences between the conditions depended on
+#> standard errors (MacKinnon & White, 1985; Long & Ervin, 2000). Omnibus Wald
+#> tests, using the small-sample test of Pustejovsky and Tipton (2018) with the
+#> HC2 covariance matrix (MacKinnon & White, 1985) and each participant as a
+#> cluster, examined whether the differences between the conditions depended on
 #> pretesting (the Pretest x Condition interaction) and whether the conditions
 #> differed when averaged over pretest conditions. Each treatment was compared
 #> with the control (RP vs Control and GS vs Control), and the Solomon contrasts
@@ -338,9 +343,9 @@ report_solomon(fit6)
 #> adjusted with Holm's (1979) procedure.
 #> 
 #> The omnibus test of the Pretest x Condition interaction (pretest
-#> sensitization) gave F(2, 126) = 1.74, p = .179, and the omnibus test of the
-#> conditions, averaged over pretest conditions, gave F(2, 126) = 1.10, p =
-#> .336.
+#> sensitization) gave F(2, 82.7) = 1.81, p = .170, and the omnibus test of the
+#> conditions, averaged over pretest conditions, gave F(2, 82.7) = 1.16, p =
+#> .320.
 #> The average treatment effect of RP relative to Control across pretest
 #> conditions was -0.03, 95% CI [-0.19, 0.12], t(126) = -0.44, p = .659,
 #> Holm-adjusted. The Pretest x Treatment interaction (pretest sensitization)
@@ -406,6 +411,11 @@ report_solomon(fit6)
 #> Newman, I., Benz, C., & Williams, J. D. (1990). Alternatives in analyzing the
 #>     Solomon four group design. Multiple Linear Regression Viewpoints, 17(2),
 #>     91–103. https://ojs.lib.ua.edu/glmj/article/view/125
+#> 
+#> Pustejovsky, J. E., & Tipton, E. (2018). Small-sample methods for
+#>     cluster-robust variance estimation and hypothesis testing in fixed
+#>     effects models. Journal of Business & Economic Statistics, 36(4),
+#>     672–683. https://doi.org/10.1080/07350015.2016.1247004
 #> 
 #> Solomon, R. L. (1949). An extension of control group design. Psychological
 #>     Bulletin, 46(2), 137–150. https://doi.org/10.1037/h0062958
