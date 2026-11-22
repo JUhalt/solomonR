@@ -827,7 +827,8 @@ Contrasts on a link scale named by that scale —
 
 Reference lists that follow the session’s collation, as `.apa_sort()`
 orders with [`order()`](https://rdrr.io/r/base/order.html) —
-[\#191](https://github.com/JUhalt/solomonR/issues/191)
+[\#191](https://github.com/JUhalt/solomonR/issues/191); merged in [PR
+\#195](https://github.com/JUhalt/solomonR/pull/195)
 
 **Inference**
 

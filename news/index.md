@@ -11,6 +11,31 @@
   changes. The check of the oldest supported version of R now runs on R
   4.2.
 
+### Order of references under another collation (bug fix, [\#191](https://github.com/JUhalt/solomonR/issues/191))
+
+- [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  and
+  [`analysis_plan_solomon()`](https://juhalt.github.io/solomonR/reference/analysis_plan_solomon.md)
+  sorted their references in the order of the session’s collation, so
+  the same analysis could list them in another order on another
+  computer. Under a Czech collation, in which “ch” is a letter that
+  comes after “h”, “Chan” came after “Groenwold” in the references of an
+  analysis plan, and 18 of the package’s 68 references were out of
+  place. The order under the C and English collations was right.
+- The references are now sorted by the rule that
+  `tools/check-references.R` checks for every reference list of the
+  package: letter by letter, with each surname and each set of initials
+  a field of its own, so that the end of a name comes before any letter
+  (“Brown, J.” before “Browning, A.”); accented letters read as their
+  base letters, from a fixed table; and a work with no date before the
+  same authors’ dated works. The keys are compared byte by byte, so the
+  order no longer depends on the collation.
+  [`report_solomon()`](https://juhalt.github.io/solomonR/reference/report_solomon.md)
+  is stable, so this changes its output, but only where the collation
+  had sorted the references differently: under the C and English
+  collations, the order of all 68 references is unchanged. That script
+  now also checks the order that the package itself gives.
+
 ### Pretested participants without a pretest ([\#142](https://github.com/JUhalt/solomonR/issues/142))
 
 - **New: `missing_pretest = "indicator"`.**
