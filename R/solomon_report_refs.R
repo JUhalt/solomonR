@@ -85,11 +85,12 @@
 # "Browning, A.", and "Little, R. J." precedes "Little, R. J. A.". Each
 # name and set of initials is therefore a field of its own, ended by a tab.
 # Accented Latin letters count as their base letters (an e with an acute
-# accent counts as e), from a fixed table rather than the platform's iconv. A work with no date ("n.d.") precedes the same authors'
-# dated works. The keys are compared byte by byte (method = "radix"), so
-# the order does not depend on the session's collation: with order() alone,
-# a Czech collation, in which "ch" is a letter after "h", put "Chan" after
-# "Hrobjartsson".
+# accent counts as e), from a fixed table rather than the platform's
+# iconv. A work with no date ("n.d.") precedes the same authors' dated
+# works. The keys are compared byte by byte (method = "radix"), so the
+# order does not depend on the session's collation: with order() alone,
+# a Czech collation, in which "ch" is a letter after "h", put "Chan"
+# after every surname beginning with "h".
 .apa_accented <- paste0(
   "\u00e0\u00e1\u00e2\u00e3\u00e4\u00e5\u0101\u0103\u0105\u01ce",       # a
   "\u00e7\u0107\u0109\u010b\u010d",                                     # c

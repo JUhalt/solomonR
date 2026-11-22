@@ -24,7 +24,7 @@ test_that(".apa_sort() orders letter by letter, the end of a name first", {
 
   table <- unname(.solomon_reference_text)
   expect_identical(.apa_sort(rev(table)), .apa_sort(table))
-  expect_setequal(.apa_sort(table), table)
+  expect_identical(sort(.apa_sort(table), method = "radix"), sort(table, method = "radix"))
 })
 
 test_that(".apa_sort() gives one order under the C and Czech collations", {
