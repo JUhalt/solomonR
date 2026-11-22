@@ -1016,7 +1016,7 @@ test_that("the group size counts only the participants with a pretest in a prete
   }
   message_of <- function(out) {
     expect_length(out$small_df, 1L)
-    conditionMessage(out$small_df[[1]])
+    if (length(out$small_df)) conditionMessage(out$small_df[[1]]) else ""
   }
   note <- paste0("In a pretested group, the participants kept without a pretest ",
                  "(missing_pretest = \"indicator\") are not counted. ")
