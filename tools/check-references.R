@@ -148,6 +148,44 @@ for (key in names(registry$.solomon_reference_text)) {
 }
 n_checked <- n_checked + length(registry$.solomon_reference_text)
 
+# report_solomon() and analysis_plan_solomon() order their references with
+# .apa_sort() (R/solomon_report_refs.R; issue #191). Its order of the whole
+# table, from the table's order and from the reverse, must be the one
+# checked here, with each entry once.
+same_entries <- function(a, b) {
+  identical(sort(a, method = "radix"), sort(b, method = "radix"))
+}
+table_refs <- unname(enc2utf8(registry$.solomon_reference_text))
+for (input in list(table_refs, rev(table_refs))) {
+  sorted <- registry$.apa_sort(input)
+  if (!same_entries(sorted, table_refs) || !in_order(vapply(sorted, sort_key, ""))) {
+    note("R/solomon_report_refs.R", ".apa_sort() does not give the APA order checked here")
+  }
+}
+# The table may not exercise every part of the rule, so a fixed set does:
+# the end of a surname and of a set of initials before any letter, an
+# accented letter as its base letter, no date before a date, and one
+# author before the same author with others. The order is written out.
+rule_refs <- c(
+  "Brown, J. (2010). Title.",
+  "Browning, A. (2001). Title.",
+  "Dor\u00e9n, A. (2000). Title.",
+  "Dorf, B. (2000). Title.",
+  "Little, R. J. (1995). Title.",
+  "Little, R. J. A. (1990). Title.",
+  "Smith, A. (n.d.). Title.",
+  "Smith, A. (2020). Title.",
+  "Smith, A., & Jones, B. (2001). Title."
+)
+if (!in_order(vapply(rule_refs, sort_key, ""))) {
+  note("tools/check-references.R", "sort_key() does not give the written-out order of the fixed set")
+}
+for (input in list(rev(rule_refs), rule_refs[c(6, 2, 9, 4, 7, 1, 8, 3, 5)])) {
+  if (!identical(registry$.apa_sort(input), rule_refs)) {
+    note("R/solomon_report_refs.R", ".apa_sort() does not give the written-out order of the fixed set")
+  }
+}
+
 canonical_lines <- readLines(canonical_file, encoding = "UTF-8")
 sections <- split(canonical_lines, cumsum(grepl("^## ", canonical_lines)))
 for (section in sections[-1]) {

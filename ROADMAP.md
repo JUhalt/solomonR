@@ -476,6 +476,8 @@ the audit:
     far from 1 — [#137](https://github.com/JUhalt/solomonR/issues/137); merged in [PR #151](https://github.com/JUhalt/solomonR/pull/151)
   - [x] `fit_solomon_glm()` drops, without saying so, a covariate given as
     a vector or a matrix — [#146](https://github.com/JUhalt/solomonR/issues/146); merged in [PR #155](https://github.com/JUhalt/solomonR/pull/155)
+  - [ ] `fit_solomon_glm()` leaves out a participant with a missing
+    covariate without saying so — [#193](https://github.com/JUhalt/solomonR/issues/193)
   - [x] `marginal_solomon()` and `plot_sensitization()` code a factor
     covariate by the contrasts option in force when they refit the
     model, not as the fit coded it — [#168](https://github.com/JUhalt/solomonR/issues/168); merged in [PR #169](https://github.com/JUhalt/solomonR/pull/169)
@@ -494,10 +496,14 @@ the audit:
   - [x] Latent-variable reports that follow the fit's own invariance
     result — [#112](https://github.com/JUhalt/solomonR/issues/112); merged in [PR #122](https://github.com/JUhalt/solomonR/pull/122)
   - [x] Contrasts on a link scale named by that scale — [#114](https://github.com/JUhalt/solomonR/issues/114); merged in [PR #121](https://github.com/JUhalt/solomonR/pull/121)
+  - [x] Reference lists that follow the session's collation, as
+    `.apa_sort()` orders with `order()` — [#191](https://github.com/JUhalt/solomonR/issues/191); merged in [PR #195](https://github.com/JUhalt/solomonR/pull/195)
 - **Inference**
   - [x] A warning when the difference statistic of the permutation test
     is used with unequal arms — [#113](https://github.com/JUhalt/solomonR/issues/113); merged in [PR #122](https://github.com/JUhalt/solomonR/pull/122)
   - [x] Satterthwaite inference by default in `fit_solomon_ml()` — [#115](https://github.com/JUhalt/solomonR/issues/115); merged in [PR #124](https://github.com/JUhalt/solomonR/pull/124)
+  - [ ] `baseline_solomon()` without a significance test of the baseline
+    difference after random assignment (`assignment = `) — [#192](https://github.com/JUhalt/solomonR/issues/192)
   - [x] Permutations tied with the observed statistic counted exactly in
     `perm_solomon()` — [#131](https://github.com/JUhalt/solomonR/issues/131); merged in [PR #132](https://github.com/JUhalt/solomonR/pull/132), released in 0.8.2
   - [x] `perm_solomon()`: ties with a covariate in iterated models, and
