@@ -47,6 +47,13 @@ aht_warnings <- function(expr) {
   list(value = value, small_df = small_df, other = other)
 }
 
+# The message of the `i`th warning of class `solomonR_small_df_warning` in
+# `out`, or "" when there is none, so that a missing warning fails the
+# checks of its message rather than stopping the test.
+small_df_message <- function(out, i = 1L) {
+  if (length(out$small_df) >= i) conditionMessage(out$small_df[[i]]) else ""
+}
+
 omnibus_tests <- c("Condition (avg over pretest)", "Pretest x Condition",
                    "Condition | pretested", "Condition | unpretested")
 
@@ -323,7 +330,7 @@ test_that("an AHT test without a positive df2 has no p-value, as in clubSandwich
   expect_identical(om$statistic[3:4], c(0, 0))
   expect_length(out$small_df, 1L)
   expect_length(out$other, 0L)
-  expect_match(conditionMessage(out$small_df[[1]]), "Condition | pretested (df2 = -0.4)",
+  expect_match(small_df_message(out), "Condition | pretested (df2 = -0.4)",
                fixed = TRUE)
 })
 
@@ -364,7 +371,7 @@ test_that("an AHT test is NA when a contrast it tests depends on a participant a
   # groups and the test with 3.5 denominator degrees of freedom.
   expect_length(out$small_df, 1L)
   expect_identical(vapply(out$other, function(w) class(w)[1], ""), "solomonR_hc3_leverage_warning")
-  expect_match(conditionMessage(out$small_df[[1]]),
+  expect_match(small_df_message(out),
                "Tests with 4 or fewer denominator degrees of freedom: Condition | unpretested (df2 = 3.5).",
                fixed = TRUE)
 
@@ -941,7 +948,7 @@ test_that("three treatments warn with groups of 4 and not with groups of 5", {
     expect_length(out$small_df, 1L)
     expect_length(out$other, 0L)
     expect_true(all(out$value$omnibus$df2 > 4))
-    message <- conditionMessage(out$small_df[[1]])
+    message <- small_df_message(out)
     expect_match(message, "Groups with fewer than 5 analyzable participants: Pretested, Control (4); ",
                  fixed = TRUE)
     expect_match(message, paste0(
@@ -967,7 +974,7 @@ test_that("four treatments warn with groups of 3 and not with groups of 4", {
   out <- aht_warnings(fit_solomon_glm(y_post, condition, pretested, y_pre, control = "Control",
                                       data = three))
   expect_length(out$small_df, 1L)
-  message <- conditionMessage(out$small_df[[1]])
+  message <- small_df_message(out)
   expect_match(message, "Groups with fewer than 4 analyzable participants: ", fixed = TRUE)
   expect_match(message, "has at least 4 participants (Zhang, 2013).", fixed = TRUE)
   # With groups of 3, the two tests that compare k + 1 groups also have 4 or
@@ -986,7 +993,7 @@ test_that("the warning names the small groups and the tests that compare them", 
   out <- aht_warnings(fit_solomon_glm(y_post, condition, pretested, y_pre, control = "Control",
                                       data = d))
   expect_length(out$small_df, 1L)
-  expect_match(conditionMessage(out$small_df[[1]]), paste0(
+  expect_match(small_df_message(out), paste0(
     "Groups with fewer than 5 analyzable participants: Unpretested, Control (4); ",
     "Unpretested, A (4); Unpretested, B (4); Unpretested, C (4). The tests that compare ",
     "them: Condition (avg over pretest); Pretest x Condition; Condition | unpretested. "
@@ -999,7 +1006,7 @@ test_that("the warning names the small groups and the tests that compare them", 
   out <- aht_warnings(fit_solomon_glm(y_post, condition, pretested, y_pre, control = "Control",
                                       data = d))
   expect_length(out$small_df, 1L)
-  expect_match(conditionMessage(out$small_df[[1]]), paste0(
+  expect_match(small_df_message(out), paste0(
     "Groups with fewer than 5 analyzable participants: Pretested, B (4). The tests that ",
     "compare them: Condition (avg over pretest); Pretest x Condition; Condition | pretested. "
   ), fixed = TRUE)
@@ -1016,7 +1023,7 @@ test_that("the group size counts only the participants with a pretest in a prete
   }
   message_of <- function(out) {
     expect_length(out$small_df, 1L)
-    if (length(out$small_df)) conditionMessage(out$small_df[[1]]) else ""
+    small_df_message(out)
   }
   note <- paste0("In a pretested group, the participants kept without a pretest ",
                  "(missing_pretest = \"indicator\") are not counted. ")
@@ -1105,8 +1112,8 @@ test_that("a CR2 omnibus test with 4 or fewer denominator degrees of freedom war
   # tests, of the same class.
   expect_length(out$small_df, 2L)
   expect_length(out$other, 0L)
-  expect_match(conditionMessage(out$small_df[[1]]), "Tipton (2015)", fixed = TRUE)
-  message <- conditionMessage(out$small_df[[2]])
+  expect_match(small_df_message(out), "Tipton (2015)", fixed = TRUE)
+  message <- small_df_message(out, 2L)
   expect_match(message, sprintf(
     "Tests with 4 or fewer denominator degrees of freedom: Condition (avg over pretest) (df2 = %.1f); ",
     om$df2[1]
