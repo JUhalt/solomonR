@@ -397,8 +397,13 @@
     covariance = covariance,
     scale = scale,
     pretest_caution = pretest_caution,
-    leverage = .hc3_leverage_sentence(fit$hc3_leverage, fit$effects, fit$omnibus,
-                                      .reported_other_center(fit)),
+    # An omnibus test whose covariance matrix is singular lacks a statistic
+    # for another reason than leverage (.omnibus_singular()).
+    leverage = .hc3_leverage_sentence(
+      fit$hc3_leverage, fit$effects,
+      if (!is.null(fit$omnibus)) fit$omnibus[!.omnibus_singular(fit$omnibus), , drop = FALSE],
+      .reported_other_center(fit)
+    ),
     refs = refs
   )
 }
@@ -608,8 +613,14 @@
             })
   }
 
+  # The sentence names the AHT test on HC2 by the `method` column of the
+  # omnibus table (issue #45, amendment 2). A fit made before the column
+  # was added holds the former Wald tests and is reported as before.
   omnibus <- if (identical(fit$robust, "CR2")) {
     "Omnibus Wald tests, using the small-sample test of Pustejovsky and Tipton (2018) for CR2 covariance,"
+  } else if (.omnibus_aht_hc2(om)) {
+    refs <- c(refs, "pustejovsky2018", "mackinnon1985")
+    "Omnibus Wald tests, using the small-sample test of Pustejovsky and Tipton (2018) with the HC2 covariance matrix (MacKinnon & White, 1985) and each participant as a cluster,"
   } else if (all(om$reference == "chisq")) {
     "Omnibus Wald chi-square tests"
   } else {
@@ -641,7 +652,11 @@
   om_sentence <- function(test) {
     r <- om[om$test == test, , drop = FALSE]
     # A test of a contrast whose HC3 standard error is undefined (issue
-    # #173) has no statistic.
+    # #173) has no statistic, nor has an AHT test whose covariance matrix
+    # is singular (.aht_test()).
+    if (.omnibus_singular(r)) {
+      return("no result, as the covariance matrix of the contrasts it tests is singular")
+    }
     if (is.na(r$statistic)) return("no result, as a standard error it needs is undefined")
     paste0(.apa_omnibus(r$statistic, r$df1, r$df2, r$reference, md, digits), ", ",
            .apa_p(r$p.value, md))
@@ -2320,10 +2335,12 @@
 #' groups of the design (Steyn, 2009), with the numbers analyzed in each.
 #' The results give the omnibus tests of the Pretest x Condition interaction
 #' and of the conditions averaged over pretest conditions, then the Solomon
-#' contrasts of each comparison. Their p-values are adjusted within each
-#' contrast across the comparisons, by Holm's (1979) procedure unless the
-#' fit chose another adjustment; the confidence intervals are not adjusted.
-#' Comparisons defined by weights are reported with their weights. An
+#' contrasts of each comparison. The method names the omnibus test that the
+#' fit computed, with its sources (see "Designs with several treatments" in
+#' [fit_solomon_glm()]). The p-values of the contrasts are adjusted within
+#' each contrast across the comparisons, by Holm's (1979) procedure unless
+#' the fit chose another adjustment; the confidence intervals are not
+#' adjusted. Comparisons defined by weights are reported with their weights. An
 #' [equivalence_solomon()] test of one comparison and the
 #' [baseline_solomon()] comparisons of such a design are reported with the
 #' same design statement. So is a [solomon_from_summary()] analysis of the

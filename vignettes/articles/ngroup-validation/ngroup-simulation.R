@@ -27,6 +27,18 @@ script_dir <- out_dir
 # results are not touched. It stops unless every agreement is within the
 # protocol's 1e-8 and every decision is identical.
 # tools/check-validation-scripts.R runs it. Unset, the script runs the study.
+#
+# One comparison is left out of the smoke mode's check: the omnibus p-values
+# of M1 and M2. This study computes, and judged, the omnibus tests that
+# fit_solomon_glm() gave for its HC3 fits when the study ran: the HC3 Wald
+# statistic over k, referred to F(k, N - p) (joint_tests()). Because of this
+# study's result, amendment 2 on issue #45 replaced them in the package by
+# the small-sample test of Pustejovsky and Tipton (2018), so the package no
+# longer computes what the study computed. That agreement holds at the
+# study's own commit (`agreement_commit` in run-information.csv), as
+# agreement.csv records. A full run with a later package records the
+# differences in `max_diff_omnibus_p`, as it must. M3's omnibus test, the
+# classical F test, did not change and is still compared.
 smoke_dir <- Sys.getenv("SOLOMONR_SMOKE_DIR")
 smoke <- nzchar(smoke_dir)
 if (smoke) out_dir <- file.path(smoke_dir, "ngroup-validation")
@@ -484,6 +496,13 @@ if (sys.nframe() == 0L) {
     a <- run_summary$agreement
     diffs <- as.matrix(a[, grep("^max_diff_", names(a))])
     glm_rows <- a$method %in% c("M1", "M2", "M3")
+    # The omnibus p-values of the HC3 fits are not compared (see the top of
+    # this script); the difference must still have been computed.
+    hc3_rows <- a$method %in% c("M1", "M2")
+    if (!all(is.finite(diffs[hc3_rows, "max_diff_omnibus_p"]))) {
+      stop("Smoke run failed: an omnibus test of the package is missing; see agreement.csv.")
+    }
+    diffs[hc3_rows, "max_diff_omnibus_p"] <- 0
     agree <- nrow(a) > 0 && all(is.finite(diffs[glm_rows, ])) &&
       all(is.finite(a$max_diff_p[!glm_rows])) && all(diffs < 1e-8, na.rm = TRUE) &&
       isTRUE(all(a$decisions_identical[!glm_rows]))

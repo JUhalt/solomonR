@@ -204,6 +204,49 @@ test_that("with the default center, results equal those of master (a6c771a)", {
         ref[["p_perm"]] <- c("perm ATE (avg over pretest)" = 0.04, "perm Pretest x Treatment" = 0.32)[[name]]
       }
       info <- paste(name, part)
+      # Since #45 (amendment 2), the omnibus tests of an HC3 fit of a
+      # Gaussian outcome with the identity link are the small-sample (AHT)
+      # tests of Pustejovsky and Tipton (2018) on HC2: here those of "ngroup
+      # HC3" and "ngroup mai2020 HC3". Their statistics, denominator degrees
+      # of freedom, and p-values are no longer master's and are compared
+      # with clubSandwich's (aht_reference(), in helper-ngroup-aht.R); the
+      # rest of the table is master's, with the new `method` column. The
+      # print of such a fit gives the tests under a new heading and ends
+      # with a new note, and its report names the test in the method and
+      # gives it in the first sentence of the results: those lines are
+      # checked and master's are put in their place, so that every other
+      # line is compared as before. The stored results are kept, because
+      # they guard everything else.
+      aht_fits <- c("ngroup HC3", "ngroup mai2020 HC3")
+      if (name %in% aht_fits && part == "omnibus") {
+        reference <- if (name == "ngroup HC3") {
+          with(stored$data$six, aht_reference(y_post, treat, pretested, y_pre,
+                                              control = "Control"))
+        } else {
+          with(stored$data$mai2020, aht_reference(post_behavior, condition, pretested,
+                                                  pre_behavior, control = "Control"))
+        }
+        expect_identical(got$test, reference$test, info = info)
+        expect_equal(got[aht_columns], reference[aht_columns], tolerance = 1e-10, info = info)
+        expect_identical(got$method, rep(aht_hc2_label, nrow(got)), info = info)
+        same <- setdiff(names(ref), aht_columns)
+        expect_equal(got[same], ref[same], tolerance = tolerance(name), info = info)
+        next
+      }
+      aht_fit <- sub("^(print|report) ", "", name)
+      if (aht_fit != name && aht_fit %in% aht_fits) {
+        om <- now[[aht_fit]]$omnibus
+        if (part == "text") got <- aht_text_as_master(got, ref, om, info)
+        if (part == "sentences") {
+          expect_identical(got[1], aht_report_sentence(om), info = info)
+          got[1] <- ref[1]
+        }
+        if (part == "method") {
+          expect_match(got, aht_method_phrase, fixed = TRUE, info = info)
+          got <- sub(aht_method_phrase, "Omnibus Wald F tests", got, fixed = TRUE)
+        }
+        if (is.null(got)) next
+      }
       if (part %in% c("text", "sentences")) {
         if (grepl("complete|classic", name)) {
           expect_identical(rounding_differences(got, ref, stored$results[[name]], now[[name]],

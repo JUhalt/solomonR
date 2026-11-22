@@ -99,10 +99,12 @@ design statement names the treatments, the control, and the 2(k + 1)
 groups of the design (Steyn, 2009), with the numbers analyzed in each.
 The results give the omnibus tests of the Pretest x Condition interaction
 and of the conditions averaged over pretest conditions, then the Solomon
-contrasts of each comparison. Their p-values are adjusted within each
-contrast across the comparisons, by Holm's (1979) procedure unless the
-fit chose another adjustment; the confidence intervals are not adjusted.
-Comparisons defined by weights are reported with their weights. An
+contrasts of each comparison. The method names the omnibus test that the
+fit computed, with its sources (see "Designs with several treatments" in
+\code{\link[=fit_solomon_glm]{fit_solomon_glm()}}). The p-values of the contrasts are adjusted within
+each contrast across the comparisons, by Holm's (1979) procedure unless
+the fit chose another adjustment; the confidence intervals are not
+adjusted. Comparisons defined by weights are reported with their weights. An
 \code{\link[=equivalence_solomon]{equivalence_solomon()}} test of one comparison and the
 \code{\link[=baseline_solomon]{baseline_solomon()}} comparisons of such a design are reported with the
 same design statement. So is a \code{\link[=solomon_from_summary]{solomon_from_summary()}} analysis of the

@@ -115,6 +115,98 @@
   ))
 }
 
+# Classed warning for the small-sample (AHT) omnibus tests of a design with
+# several treatments (issue #45, amendment 2), of the class that the CR2
+# contrasts use. The approximation that gives an AHT test its F
+# distribution needs more than 4 denominator degrees of freedom, so that
+# the first two moments of that distribution exist. For tests of group
+# means, that holds for any variances of the groups when every group
+# compared has more than 3 + 4 / (k + 1) participants, with k + 1 the
+# number of groups (Zhang, 2013, Remarks 2.3, 2.16, and 2.17): at least 5
+# with two or three treatments, and at least 4 with more. With covariates,
+# `df2` can be 4 or less with groups of that size. `tests` and `df2`
+# name the tests with 4 or fewer denominator degrees of freedom. For the
+# AHT tests on HC2, `groups` and `sizes` name the groups with fewer than
+# `need` analyzable participants, and `compared` the tests that compare
+# them. `uncounted` is TRUE when a group named has participants that
+# missing_pretest = "indicator" keeps without a pretest, which its size
+# leaves out (issue #142). `clustered` is TRUE for a CR2 fit, whose remedy
+# is more clusters. The warning for CR2 contrasts keeps its own threshold,
+# below 4, and its own source (.warn_cr2_small_df()).
+.warn_aht_small_df <- function(tests = character(), df2 = numeric(), groups = character(),
+                               sizes = integer(), need = NA_integer_,
+                               compared = character(), uncounted = FALSE,
+                               clustered = FALSE) {
+  few_df <- if (length(tests)) {
+    paste0(
+      "Tests with 4 or fewer denominator degrees of freedom: ",
+      paste(sprintf("%s (df2 = %.1f)", tests, df2), collapse = "; "), ". "
+    )
+  }
+  small <- if (length(groups)) {
+    paste0(
+      "Groups with fewer than ", need, " analyzable participants: ",
+      paste(sprintf("%s (%d)", groups, as.integer(sizes)), collapse = "; "),
+      ". The tests that compare them: ", paste(compared, collapse = "; "), ". ",
+      if (uncounted) {
+        paste0("In a pretested group, the participants kept without a pretest ",
+               "(missing_pretest = \"indicator\") are not counted. ")
+      }
+    )
+  }
+  warning(structure(
+    class = c("solomonR_small_df_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "The p-values of the small-sample omnibus tests (Pustejovsky & Tipton, 2018) ",
+        "may not be accurate here. ", few_df, small,
+        "The F distribution of these tests is an approximation that needs more than 4 ",
+        "denominator degrees of freedom",
+        if (length(groups)) {
+          paste0(". For tests of group means, without pretest scores or covariates, that ",
+                 "holds whatever the variances of the groups when every group that a test ",
+                 "compares has at least ", need, " participants (Zhang, 2013). With ",
+                 "covariates, df2 can be 4 or less even then. ")
+        } else {
+          " (Zhang, 2013). "
+        },
+        if (clustered) {
+          "More clusters, or clusters of more equal size, are needed; see validate_solomon()."
+        } else {
+          "See ?fit_solomon_glm."
+        }
+      ),
+      call = NULL
+    )
+  ))
+}
+
+# Classed warning for the AHT omnibus tests on HC2 `tests` that have no
+# statistic because the HC2 covariance matrix of their contrasts is
+# singular to working precision (.aht_singular()): the residuals of the
+# groups that a test compares do not span its constraints, as when the
+# outcome does not vary within enough of those groups. Their statistics
+# and p-values are NA, and their `df2`, which depends on the design alone,
+# is kept.
+.warn_aht_singular <- function(tests) {
+  one <- length(tests) == 1L
+  warning(structure(
+    class = c("solomonR_singular_test_warning", "warning", "condition"),
+    list(
+      message = paste0(
+        "The small-sample omnibus test", if (one) " of " else "s of ",
+        paste(tests, collapse = "; "), if (one) " has" else " have",
+        " no statistic and no p-value: the HC2 covariance matrix of the contrasts ",
+        if (one) "it tests" else "they test", " is singular to working precision, as when ",
+        "the outcome does not vary within enough of the groups that a test compares. The ",
+        "denominator degrees of freedom, which depend on the design alone, are given. See ",
+        "\"Designs with several treatments\" in ?fit_solomon_glm."
+      ),
+      call = NULL
+    )
+  ))
+}
+
 # Classed error for cluster-robust inference in a design whose cells contain
 # a single cluster.
 .stop_confounded_clusters <- function(cells) {
@@ -1229,6 +1321,25 @@ validate_solomon <- function(y_post, treat, pretested, y_pre = NULL, min_cell_n 
 
 .wrap_lines <- function(text, indent = 0, exdent = indent) {
   paste(strwrap(text, width = 78, indent = indent, exdent = exdent), collapse = "\n")
+}
+
+# Wraps `words` into lines shorter than 78 characters, as .wrap_lines()
+# does, but keeps each element of `words` whole, spaces and all: a name
+# such as "Condition | pretested" is not split across lines.
+.wrap_words <- function(words, width = 78) {
+  lines <- character()
+  line <- ""
+  for (word in words) {
+    if (!nzchar(line)) {
+      line <- word
+    } else if (nchar(line) + 1L + nchar(word) < width) {
+      line <- paste(line, word)
+    } else {
+      lines <- c(lines, line)
+      line <- word
+    }
+  }
+  paste(c(lines, line), collapse = "\n")
 }
 
 

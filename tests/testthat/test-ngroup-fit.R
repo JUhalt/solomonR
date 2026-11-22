@@ -86,6 +86,8 @@ test_that("a covariate with a name that is not syntactic enters as the supplied 
                            control = "Control", data = d)
   expect_equal(spaced$effects, plain$effects)
   expect_equal(spaced$omnibus, plain$omnibus)
+  # The omnibus table names its tests (#45, amendment 2).
+  expect_identical(unique(plain$omnibus$method), "AHT, HC2 (Pustejovsky & Tipton, 2018)")
   expect_true("`my cov`" %in% spaced$coefficients$term)
   # A syntactic name is written as before.
   expect_true("my_cov" %in% plain$coefficients$term)
@@ -244,10 +246,17 @@ test_that("HC3 is refused when a group has one analyzable participant", {
   expect_s3_class(fit, "solomon_ngroup")
   expect_true(all(is.finite(fit$effects$std.error)))
   expect_true(all(is.finite(fit$omnibus$statistic)))
+  expect_identical(unique(fit$omnibus$method), "F, model-based")
 
+  # Under HC3, a group of two gives the classed warning of the small-sample
+  # omnibus tests (#45, amendment 2; test-ngroup-aht.R).
   pair <- d[!(d$condition == "B" & d$pretested == 0L & d$id > 2L), ]
-  fit <- fit_solomon_glm(y_post, condition, pretested, y_pre, control = "Control",
-                         data = pair)
+  expect_warning(
+    fit <- fit_solomon_glm(y_post, condition, pretested, y_pre, control = "Control",
+                           data = pair),
+    "Groups with fewer than 5 analyzable participants: Unpretested, B (2).",
+    fixed = TRUE, class = "solomonR_small_df_warning"
+  )
   expect_true(all(is.finite(fit$effects$std.error)))
 })
 
@@ -434,9 +443,15 @@ test_that("the printed N-group fit carries its lifecycle label", {
                          control = "Control", data = mai2020)
   out <- paste(utils::capture.output(print(fit)), collapse = " ")
   # The protocol on issue #45 requires the printed output to say that the
-  # analysis is experimental and to name the scenarios that failed.
-  expect_match(out, "Experimental: in the package's simulation study (issue #45)", fixed = TRUE)
+  # analysis is experimental and to name the scenarios that failed. Those
+  # were scenarios of the omnibus tests that these fits gave then; the note
+  # says so since the small-sample test replaced them (amendment 2), and
+  # that its study has not yet run. test-ngroup-aht.R tests the wording, and
+  # the note of a fit saved before the change.
+  expect_match(out, "Experimental: the package's first simulation study (issue #45)", fixed = TRUE)
   expect_match(out, "three treatments and 10 participants per group", fixed = TRUE)
+  expect_match(out, "rejected in up to 6.9% of replications at the .05 level", fixed = TRUE)
+  expect_match(out, "whose simulation study has not yet run", fixed = TRUE)
   # A four-group fit has no such label.
   four <- fit_solomon_glm(y_post, treat, pretested, y_pre, data = solomon_example)
   expect_false(any(grepl("Experimental", utils::capture.output(print(four)))))

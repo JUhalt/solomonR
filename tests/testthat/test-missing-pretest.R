@@ -2293,6 +2293,38 @@ test_that("\"drop\", and fits without a missing pretest, give the results of mas
     else if (grepl("binomial|poisson|logit|counts|marginal", name)) 1e-6
     else 1e-8
   }
+  # Since #45 (amendment 2), every omnibus table of a fit with several
+  # treatments ends with a `method` column that names its test, and the
+  # omnibus tests of an HC3 fit of a Gaussian outcome with the identity link
+  # are the small-sample (AHT) tests of Pustejovsky and Tipton (2018) on HC2:
+  # here those of the Gaussian HC3 fits of "six" and "six_complete",
+  # "pairwise age" among them. Their statistics, denominator degrees of
+  # freedom, and p-values are no longer master's and are compared with
+  # clubSandwich's (aht_reference(), in helper-ngroup-aht.R), as in
+  # test-pretest-center.R and test-covariate-location.R; every other column
+  # of every omnibus table is compared with master's. The print and the
+  # report of "HC3 analyzed gaussian" give its tests under a new heading,
+  # with a new note, a new phrase in the method, and new numbers in the
+  # first sentence of the results: those lines are checked and master's are
+  # put in their place, so that every other line is compared with master's,
+  # and the block added by #142 is checked, as before. test-ngroup-aht.R
+  # tests the AHT tests, the `method` of every family and covariance, the
+  # heading, the method's phrase, the report's sentence, and the note;
+  # test-ngroup-fit.R also tests the `method` column and the note, and
+  # test-ngroup-report.R the method's phrase and the sentence.
+  #
+  # The `method` that #45 gives the omnibus tests of a fit that master made
+  # with covariance `robust`, a family and link in `family`, and tests on
+  # the `reference` distribution (.omnibus_methods, in R/solomon_aht.R).
+  omnibus_method <- function(robust, family, reference) {
+    if (robust == "CR2") return("AHT, CR2 (Pustejovsky & Tipton, 2018)")
+    if (robust == "HC3" && identical(family$family, "gaussian") &&
+        identical(family$link, "identity")) {
+      return(aht_hc2_label)
+    }
+    test <- if (identical(reference, "F")) "F" else "chi-square"
+    if (robust == "HC3") paste0("Wald ", test, ", HC3") else paste0(test, ", model-based")
+  }
   runs <- list(default = list(), drop = list(missing_pretest = "drop"),
                indicator = list(missing_pretest = "indicator"))
   for (run in names(runs)) {
@@ -2304,6 +2336,9 @@ test_that("\"drop\", and fits without a missing pretest, give the results of mas
       # With the indicator, only the data without a missing pretest must
       # give master's results.
       if (run == "indicator" && !complete) next
+      # The fits, print, and report with several treatments (#45).
+      set <- sub(" .*", "", name)
+      six <- set %in% c("six", "six_complete")
       for (part in names(stored$results[[name]])) {
         ref <- stored$results[[name]][[part]]
         got <- now[[name]][[part]]
@@ -2314,7 +2349,37 @@ test_that("\"drop\", and fits without a missing pretest, give the results of mas
           expect_identical(got, ref, info = info)
           next
         }
+        if (six && part == "omnibus") {
+          master <- stored$results[[name]]
+          method <- omnibus_method(master$robust, master$family, unique(ref$reference))
+          expect_identical(got$method, rep(method, nrow(got)), info = info)
+          got$method <- NULL
+          if (method == aht_hc2_label) {
+            d <- stored$data[[set]]
+            reference <- aht_reference(d$y_post, d$condition, d$pretested, d$y_pre,
+                                       covariates = if (grepl("age", name)) d["age"],
+                                       control = "Control")
+            expect_identical(got$test, reference$test, info = info)
+            expect_equal(got[aht_columns], reference[aht_columns], tolerance = 1e-10,
+                         info = info)
+            got[aht_columns] <- ref[aht_columns]
+          }
+        }
+        if (six && name == paste(set, "report") && part == "method") {
+          expect_match(got, aht_method_phrase, fixed = TRUE, info = info)
+          got <- sub(aht_method_phrase, "Omnibus Wald F tests", got, fixed = TRUE)
+        }
         if (part %in% c("text", "sentences")) {
+          if (six) {
+            om <- now[[paste(set, "HC3 analyzed gaussian")]]$omnibus
+            if (part == "text") {
+              got <- aht_text_as_master(got, ref, om, info)
+              if (is.null(got)) next
+            } else {
+              expect_identical(got[1], aht_report_sentence(om), info = info)
+              got[1] <- ref[1]
+            }
+          }
           if (complete) {
             expect_identical(got, ref, info = info)
           } else if (part == "text") {
@@ -2323,6 +2388,7 @@ test_that("\"drop\", and fits without a missing pretest, give the results of mas
             # lines under its title, added before any closing note.
             at <- match("Pretested participants without a pretest", got)
             expect_false(is.na(at), info = info)
+            if (is.na(at)) next
             expect_identical(got[at - 1L], "", info = info)
             end <- at
             while (end < length(got) && startsWith(got[end + 1L], "  ")) end <- end + 1L
@@ -2356,7 +2422,10 @@ test_that("\"drop\", and fits without a missing pretest, give the results of mas
 test_that("fits saved by master print, summarize, report, tidy, and plot as on master", {
   # fixtures/missing-pretest-master.rds also holds fits and a
   # marginal_solomon() result made by master (941eb77), with their output
-  # there. They lack every element added by #142.
+  # there. They lack every element added by #142, and the omnibus table of
+  # `ngroup` lacks the `method` column added by #45 (amendment 2), on which
+  # the heading, the note, and the report's wording of the AHT tests are
+  # keyed: it prints and reports as on master (test-ngroup-aht.R).
   source(test_path("fixtures", "missing-pretest-master.R"), local = TRUE)
   stored <- readRDS(test_path("fixtures", "missing-pretest-master.rds"))
   # Identical on the platform that made the fixture; elsewhere, numbers

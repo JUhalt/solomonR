@@ -36,10 +36,12 @@ sample sizes. The issue #55 study found no measurement-invariance
 criterion that holds its false-rejection rate in Solomon-sized groups,
 which affects \code{\link[=fit_solomon_sem_latent]{fit_solomon_sem_latent()}} and \code{\link[=invariance_solomon]{invariance_solomon()}}.
 The analysis of designs with several treatments in \code{\link[=fit_solomon_glm]{fit_solomon_glm()}} is
-experimental, because the rule for error control set before its
-simulation study (issue #45) was not met for two omnibus tests with
-three treatments and 10 participants per group. The pre-specified
-rules of their simulation studies were not met for \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}
+experimental. The rule for error control set before its first
+simulation study (issue #45) was not met for two of the omnibus tests
+that the analysis then computed, with three treatments and 10
+participants per group. A small-sample test has replaced them, and its
+simulation study has not yet run. The pre-specified rules of their
+simulation studies were not met for \code{\link[=fit_solomon_mmrm]{fit_solomon_mmrm()}}
 (issue #57) and for \code{\link[=fit_solomon_mi]{fit_solomon_mi()}}, \code{\link[=tipping_point_solomon]{tipping_point_solomon()}}, and
 \code{\link[=plot_tipping_point]{plot_tipping_point()}} (issue #82). \code{\link[=analysis_plan_solomon]{analysis_plan_solomon()}} stays
 experimental until researchers have used it (issue #81).

@@ -242,6 +242,12 @@
 # The omnibus Pretest x Condition test of a solomon_ngroup fit, as text.
 .ngroup_omnibus_text <- function(fit, test = "Pretest x Condition") {
   row <- fit$omnibus[fit$omnibus$test == test, , drop = FALSE]
+  # An AHT test whose covariance matrix is singular has no statistic
+  # (.aht_test()).
+  if (.omnibus_singular(row)) {
+    return(sprintf("%s: no result, as the covariance matrix of the contrasts it tests is singular",
+                   test))
+  }
   # Under HC3, a test of a contrast that depends on a participant whose
   # leverage is 1 has no statistic (issue #173).
   if (length(fit$hc3_leverage) && is.na(row$statistic)) {

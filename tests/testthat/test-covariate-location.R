@@ -2417,6 +2417,38 @@ test_that("with covariates near zero, results equal those of master (d446577)", 
       # observed statistic, the number of permutations, and the ATE's p (.25)
       # are unchanged.
       if (name == "perm Pretest x Treatment") ref[["p_perm"]] <- 0.33
+      # Since #45 (amendment 2), the omnibus tests of an HC3 fit of a
+      # Gaussian outcome with the identity link are the small-sample (AHT)
+      # tests of Pustejovsky and Tipton (2018) on HC2, here those of "six
+      # gaussian HC3" alone. Their statistics, denominator degrees of
+      # freedom, and p-values are no longer master's and are compared with
+      # clubSandwich's (aht_reference(), in helper-ngroup-aht.R); the rest of
+      # the table is master's, with the new `method` column. The print and
+      # the report of that fit give the tests under a new heading, with a
+      # new note, and in the first sentence of the results: those lines are
+      # checked and master's are put in their place, so that every other
+      # line is compared as before. The stored results are kept, because
+      # they guard everything else.
+      if (name == "six gaussian HC3" && part == "omnibus") {
+        six <- stored$data$six
+        reference <- aht_reference(six$y_g, six$cond, six$pretested, six$pre,
+                                   covariates = six[c("age", "sex", "z")], control = "Ctl")
+        expect_identical(got$test, reference$test, info = info)
+        expect_equal(got[aht_columns], reference[aht_columns], tolerance = 1e-10, info = info)
+        expect_identical(got$method, rep(aht_hc2_label, nrow(got)), info = info)
+        same <- setdiff(names(ref), aht_columns)
+        expect_equal(got[same], ref[same], tolerance = tolerance(name), info = info)
+        next
+      }
+      if (name == "print six gaussian HC3") {
+        om <- now[["six gaussian HC3"]]$omnibus
+        if (part == "text") got <- aht_text_as_master(got, ref, om, info)
+        if (part == "sentences") {
+          expect_identical(got[1], aht_report_sentence(om), info = info)
+          got[1] <- ref[1]
+        }
+        if (is.null(got)) next
+      }
       if (part == "text" && grepl("^marginal", name)) {
         # Since #171 the print of marginal_solomon() also says that the
         # "observed" standardization leaves out the pretested participant

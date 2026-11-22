@@ -303,23 +303,32 @@ number is not allowed for.
 - **Estimates:** the four Solomon contrasts for each treatment against the
   control, for every pair of conditions, or for planned comparisons given
   as weights, from one model fitted to all the groups.
-- **Tests:** omnibus Wald tests of each contrast across the conditions,
-  then the comparisons, with p-values adjusted within each contrast by
-  Holm's (1979) procedure. The confidence intervals are not adjusted.
+- **Tests:** omnibus tests of each contrast across the conditions, then
+  the comparisons, with p-values adjusted within each contrast by Holm's
+  (1979) procedure. The confidence intervals are not adjusted. With HC3
+  standard errors and a linear model (a Gaussian family with the identity
+  link), the omnibus tests are the small-sample tests of Pustejovsky and
+  Tipton (2018), computed from the HC2 covariance matrix (MacKinnon &
+  White, 1985) with each participant as a cluster. Other families and
+  links have Wald tests on the HC3 covariance matrix, without a
+  small-sample correction.
 - **Assumptions:** those of the unified model; a common pretest-posttest
   slope across the pretested groups.
 - **Function:** `fit_solomon_glm(control = )`. The article "Designs With
   Several Treatments" works through an example.
-- **Validation:** in the package's simulation study (issue #45), the
+- **Validation:** the package's first simulation study (issue #45) judged
+  the analysis when the omnibus tests of its linear model with HC3
+  standard errors were Wald F tests on the HC3 covariance matrix. The
   contrasts were unbiased, coverage of the 95% intervals was 0.939 to
   0.967, and the familywise error rates of the Holm-adjusted comparisons
   were at most 0.059. The pre-specified rule for error control was not met:
-  with three treatments and 10 participants per group, the omnibus tests of
-  Condition | pretested and Condition | unpretested rejected in 0.055 to
-  0.069 of replications at the .05 level. The analysis is therefore
-  experimental. Overlapping four-group analyses found at least one
-  significant interaction in 8% to 22% of replications when no treatment
-  was sensitized.
+  with three treatments and 10 participants per group, those omnibus tests
+  of Condition | pretested and Condition | unpretested rejected in 0.055 to
+  0.069 of replications at the .05 level. The small-sample tests replaced
+  them for that reason. Their simulation study has not yet run, so the
+  analysis is experimental. Overlapping four-group analyses found at least
+  one significant interaction in 8% to 22% of replications when no
+  treatment was sensitized.
 
 ## Published Solomon proposals
 

@@ -8,6 +8,104 @@
   could no longer install the current ggplot2. No code of solomonR changes. The check
   of the oldest supported version of R now runs on R 4.2.
 
+## Small-sample omnibus tests for designs with several treatments (#45)
+
+* **A change in results.** With several treatments, a Gaussian outcome
+  with the identity link, and the default `robust = "HC3"`,
+  `fit_solomon_glm()` now gives its omnibus tests as approximate
+  Hotelling's T-squared (AHT) tests (Pustejovsky & Tipton, 2018). The
+  Wald statistic comes from the HC2 covariance matrix (MacKinnon &
+  White, 1985), with each participant as a cluster, and is referred to
+  an F distribution whose denominator degrees of freedom come from the
+  design, not from the outcomes. Before, the HC3 Wald statistic over the
+  number of treatments, k, was referred to F(k, N - p), with N - p the
+  residual degrees of freedom. The `statistic`, `df2`, and `p.value` of
+  these rows of `omnibus` change, and `df2` is usually no longer a whole
+  number. The tests equal those of `robust = "CR2"` when `cluster`
+  identifies the participants. The contrasts, their HC3 standard errors,
+  and the Holm adjustment do not change.
+* **Why.** In the package's first simulation study of these designs, the
+  former tests of Condition | pretested and Condition | unpretested
+  rejected a true null hypothesis in up to 6.9% of replications at the
+  .05 level with three treatments and 10 participants per group, so the
+  rule for error control set before the study was not met. An amendment
+  to the protocol, posted on issue #45 before any run of a new study,
+  named this test as the replacement. The study of the new test has not
+  yet run, and the analysis of designs with several treatments stays
+  experimental.
+* The `omnibus` table has a new last column, `method`, which names the
+  test in every row: `"AHT, HC2 (Pustejovsky & Tipton, 2018)"`,
+  `"Wald F, HC3"`, `"Wald chi-square, HC3"`, `"F, model-based"`,
+  `"chi-square, model-based"`, or
+  `"AHT, CR2 (Pustejovsky & Tipton, 2018)"`.
+* Other families and links, `robust = "none"`, and `robust = "CR2"` give
+  the same tests as before; CR2 fits now print them under the heading of
+  the AHT tests. With HC3, the tests of other families and links have no
+  small-sample correction, and the help page now says so.
+* **A new warning.** `solomonR_small_df_warning`, the class of the
+  warning for CR2 contrasts, is now also raised when an AHT omnibus test
+  has 4 or fewer denominator degrees of freedom, under HC3 or CR2. For
+  the AHT tests of HC3 fits, it is also raised when a group that a test
+  compares has fewer than 5 analyzable participants with two or three
+  treatments, or fewer than 4 with more (Zhang, 2013). In a pretested
+  group, only the participants with a pretest are counted, so
+  `missing_pretest = "indicator"` (#142, below) names the same groups as
+  `"drop"` does on the same data. A fit with groups that small gave no
+  such warning before.
+* An omnibus test that is undefined because one of its contrasts depends
+  on a participant at leverage 1 (#173) is `NA`, as before. The `df2` of
+  an AHT test is then `NA` too.
+* **Fits that stopped now return.** Without pretest scores or
+  covariates, the covariance matrix of an omnibus test's contrasts is
+  singular when the outcome does not vary within two of the groups that
+  Condition | pretested or Condition | unpretested compares, or, for the
+  other two tests, within the pretested and the unpretested groups of
+  two conditions: in a linear probability model with no events in two
+  unpretested groups, for example. With pretest scores or covariates,
+  the same holds for groups whose outcome is an exact linear function of
+  them, with the slopes of the fit: with the pretest and no covariates,
+  for example, the matrix of Condition | pretested is singular when
+  every pretested participant's score changes by the same amount, or
+  none changes. Such fits often stopped with "system is computationally
+  singular" or "system is exactly singular", and otherwise gave a
+  meaningless statistic. When the outcome did not vary within any of the
+  groups that a test compares, the test mostly gave a meaningless
+  statistic. The AHT test of a Gaussian HC3 fit now has no statistic and
+  no p-value (`NA`) in these cases, and the rest of the fit is computed
+  as usual. A new classed warning, `solomonR_singular_test_warning`,
+  names the test, and its `df2` is given. The help page gives the rule
+  ("Designs with several treatments"). In checks of designs whose
+  groups were within 10 times of each other in size and whose
+  covariates were not nearly collinear, the rule found every test with
+  such a singular matrix. With groups of more different sizes, or nearly
+  collinear covariates, rounding error can exceed the rule's bound, and
+  the test is then reported with an arbitrary statistic instead of `NA`.
+  In the checks, every such miss came with compared groups whose outcome
+  was constant within each group (all of them, or in one design two of
+  three), and, without nearly collinear covariates, the smallest ratios
+  at which misses were found were 300 times, with the compared groups
+  the larger (groups of 1,500 against groups of 5), and 7,500 times,
+  with them the smaller (groups of 2 among groups of 15,000).
+  Fits with `robust = "CR2"`, whose omnibus tests come from
+  clubSandwich, still stop or give an arbitrary value on such data.
+* The printed heading of the omnibus tests and the method of
+  `report_solomon()` name the test and its sources, and the print, the
+  report, and the subtitle of `plot_sensitization()` give a `df2` that
+  is not whole to one decimal.
+* Fits saved by earlier versions hold the former tests. They print and
+  report as before, with the heading, the note, and the wording that
+  describe those tests.
+* The help page, the printed note, the methods guide, the roadmap, and
+  the articles "Designs With Several Treatments", "Validation Evidence",
+  and "Designs With Several Treatments: Validating the Joint Model" now
+  say that the first study judged the former tests, and that the study
+  of the new test has not yet run.
+* The script of the first study still runs in smoke mode against the
+  current package, without the comparison of the omnibus p-values of its
+  HC3 fits, which the package no longer computes. That comparison holds
+  at the commit that the study records.
+* Zhang (2013) joins the reference list.
+
 ## Order of references under another collation (bug fix, #191)
 
 * `report_solomon()` and `analysis_plan_solomon()` sorted their
@@ -49,11 +147,13 @@
   without one, the fit stops and names the group. See "Pretested
   participants without a pretest" in `?fit_solomon_glm`.
 * **The default is unchanged.** `"drop"`, the default, leaves these
-  participants out, as before, so no estimate, standard error, or test
-  of an existing call changes: a fixture made by the previous master
-  checks, on a battery of fits, that `"drop"`, and any fit in which no
-  pretested participant analyzed lacks a pretest, give identical
-  results. The default will follow the rules posted on #142 once its
+  participants out, as before, so `missing_pretest` changes no estimate,
+  standard error, or test of an existing call: a fixture made by the
+  previous master checks, on a battery of fits, that `"drop"`, and any
+  fit in which no pretested participant analyzed lacks a pretest, give
+  identical results, apart from the omnibus tests of designs with several
+  treatments and the lines that describe them, which change with #45
+  (above). The default will follow the rules posted on #142 once its
   validation study has run.
 * **Printed under either handling.** Whenever such a participant is
   present, the print of `fit_solomon_glm()`, of its summary, and of

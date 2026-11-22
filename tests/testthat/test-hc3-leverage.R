@@ -169,10 +169,16 @@ test_that("leverage 1 gives no internal error for either link, center, a factor 
   }
   expect_true(all(is.na(unlist(e[!un, c(inference_columns, "p.adjusted")]))))
   expect_false(any(is.nan(unlist(e[, inference_columns]))))
-  # An omnibus test is NA when one of its contrasts is.
+  # An omnibus test is NA when one of its contrasts is. These are the
+  # small-sample tests on HC2 (#45, amendment 2), which divides by 1 - h
+  # too, so their denominator degrees of freedom are NA as well; the test of
+  # the unpretested groups is that of test-ngroup-aht.R.
   om <- fit$omnibus
   expect_true(all(is.na(om$statistic[om$test != "Condition | unpretested"])))
+  expect_true(all(is.na(om$df2[om$test != "Condition | unpretested"])))
   expect_true(is.finite(om$p.value[om$test == "Condition | unpretested"]))
+  expect_true(is.finite(om$df2[om$test == "Condition | unpretested"]))
+  expect_identical(unique(om$method), "AHT, HC2 (Pustejovsky & Tipton, 2018)")
   # The same with a Poisson fit, where sandwich gave NaN throughout.
   out <- with_warnings(fit_solomon_glm(y3, c3, p3, pre3, control = "Control",
                                        family = stats::poisson()))
